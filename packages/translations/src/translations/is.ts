@@ -91,6 +91,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Sérsníðaðu persónuverndastillingar þínar hér. Þú getur valið hvaða tegundir af vafrakökum og rakningartækni þú leyfir.',
+			features: {
+				description:
+					'Þessar vinnsluaðferðir má eingöngu nota til að ná einum eða fleiri þeirra tilganga sem þér er gefinn kostur á að velja í þessari tilkynningu.',
+				title: 'Eiginleikar',
+			},
 			footer: {
 				consentStorage:
 					'Samþykkisstillingar eru geymdar í vafraköku sem heitir "euconsent-v2" í 13 mánuði. Geymslutíminn kann að endurnýjast þegar þú uppfærir stillingar þínar.',

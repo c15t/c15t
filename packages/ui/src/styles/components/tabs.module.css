@@ -40,8 +40,8 @@
 		font-weight: 500;
 		padding: 0.625rem 0.875rem;
 		transition:
-			background-color var(--c15t-duration-fast) ease,
-			color var(--c15t-duration-fast) ease;
+			background-color var(--c15t-duration-fast) var(--c15t-easing),
+			color var(--c15t-duration-fast) var(--c15t-easing);
 	}
 
 	.trigger[data-state='active'] {

@@ -39,8 +39,11 @@ integration is disabled and labelled "Not configured".
   local init route or backend rewrite.
 - `app/api/c15t/manifest/route.ts` serves the cached public manifest for both
   routers. The handler uses the backend environment variable configured above.
-- `app/app-router/layout.tsx` awaits server prefetch before rendering
-  the boundary, so consent UI is included in the initial HTML.
+- `app/app-router/layout.tsx` starts server prefetch and passes the pending
+  result to the boundary without awaiting it, so the page renders without
+  waiting for the manifest and the banner mounts after hydration. To render
+  the banner in the initial HTML instead, await `resolveConsent` in an async
+  component inside `<Suspense>`, which holds the page back with it.
 - `pages/pages-router.tsx` awaits the Pages Router helper in `getServerSideProps`.
   `pages/_app.tsx` passes `initialConsent` to the same client wrapper.
 - `app/client-init/page.tsx` skips prefetch. The browser resolves the manifest,
@@ -68,6 +71,20 @@ It does not delete records already submitted to Inth.
 5. Switch Default, Branded and Custom designs. Reset to see a dismissed banner
    again. The policy's actions remain the same across designs.
 6. Enable the floating preferences trigger and inspect c15t DevTools.
+
+## Banner experiment
+
+Open `/app-router?experiment=1` to run the banner-shape experiment: c15t
+picks the `control` arm (the default banner) or the `wall` arm, and the design
+panel shows `banner-shape · <arm> · c15t`. `/app-router?experiment=1&arm=wall`
+resolves the arm on the server: `proxy.ts` copies the query into request
+headers, `app/app-router/layout.tsx` reads them with `headers()` and passes
+`experimentArm` down, which is where a flag provider's answer would go. Any
+other `arm` value runs `control`. The provider's `onSurfaceShown` and
+`onChoiceRecorded` callbacks list each impression and choice under the arm,
+and push them to `window.dataLayer` as `c15t_surface_shown` and
+`c15t_choice_recorded`. See
+https://c15t.com/docs/guides/banner-experiments.
 
 PostHog uses `loadMode: 'after-consent'`, so its SDK waits for measurement
 permission. X Pixel waits for marketing. The indicators show effective

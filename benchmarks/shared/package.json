@@ -15,7 +15,12 @@
 		"./policy-fixtures": "./src/policy-fixtures.ts",
 		"./expected-results": "./src/expected-results.ts",
 		"./nuxt-baseline": "./src/nuxt-baseline.ts",
-		"./nuxt-repeat-visitor": "./src/nuxt-repeat-visitor.ts"
+		"./nuxt-repeat-visitor": "./src/nuxt-repeat-visitor.ts",
+		"./html-stream": "./src/html-stream.ts",
+		"./production-consumer": "./src/production-consumer.ts",
+		"./stylesheet-overlap": "./src/stylesheet-overlap.ts",
+		"./visit-definitions": "./src/visit-definitions.ts",
+		"./visit-metrics": "./src/visit-metrics.ts"
 	},
 	"scripts": {
 		"bench": "echo 'no-op'",

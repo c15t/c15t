@@ -9,7 +9,7 @@ afterEach(() => {
 	vi.useRealTimers();
 });
 
-it('measures all three real cookie projections and hydrates without writes', async () => {
+it('measures the real cookie projections and hydrates without writes', async () => {
 	vi.useFakeTimers();
 	const resolution = resolvePolicyRules({
 		countryCode: 'US',
@@ -20,15 +20,15 @@ it('measures all three real cookie projections and hydrates without writes', asy
 	const persistence = createPersistence({ kernel });
 	await kernel.commands.init();
 	kernel.set.privacySignals({ gpc: true });
+	// A choice made while the notice is owed acknowledges it, so this one
+	// save writes the choice and the notice projections together.
 	await kernel.commands.save({ functionality: true });
-	expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
-	await kernel.commands.dismissNotice();
+	expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
 	vi.advanceTimersByTime(0);
 	const cookies = document.cookie.split('; ').sort();
 	expect(cookies.map((cookie) => cookie.split('=')[0]).sort()).toEqual([
 		'c15t',
 		'c15t-notice',
-		'c15t-privacy',
 	]);
 	const bytes = Object.fromEntries(
 		cookies.map((cookie) => {
@@ -53,7 +53,9 @@ it('measures all three real cookie projections and hydrates without writes', asy
 	vi.advanceTimersByTime(0);
 	expect(writes).not.toHaveBeenCalled();
 	expect(repeated.getSnapshot().promptRequirement.kind).toBe('none');
-	expect(repeated.getSnapshot().effectivePermissions.marketing).toBe(false);
+	// GPC is live-only: the fresh runtime has no signal, so nothing restricts
+	// marketing under the opt-out policy.
+	expect(repeated.getSnapshot().effectivePermissions.marketing).toBe(true);
 	expect(document.cookie.split('; ').sort()).toEqual(cookies);
 	writes.mockRestore();
 	repeatedPersistence.dispose();

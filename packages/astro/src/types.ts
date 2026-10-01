@@ -12,12 +12,18 @@ import type {
 	AllConsentNames,
 	ClearOnRevocationConfig,
 	ConsentSnapshot,
+	ConsentExperiment,
 	ConsentPresentation,
 	KernelConfig,
 	LegalLinks,
+	PublisherRestriction,
 	Script,
 	StorageConfig,
 } from '@c15t/core';
+import type {
+	ConsentRuntimeOptions,
+	RuntimeNetworkBlockerOptions,
+} from '@c15t/core/runtime';
 import type {
 	PolicyRule,
 	PolicyResolution,
@@ -92,9 +98,10 @@ export type C15tUIAdapterName = 'svelte' | 'react' | 'vue';
  * Dark mode is the `c15t-dark` class on `<html>`, not a
  * `prefers-color-scheme` block, so something has to set it. `'system'`
  * follows `prefers-color-scheme` and keeps following it; `'light'` and
- * `'dark'` pin it.
+ * `'dark'` pin it. `'none'` leaves the class to the site: c15t never adds
+ * or removes it, so a site with its own theme switch toggles it itself.
  */
-export type C15tColorScheme = 'light' | 'dark' | 'system';
+export type C15tColorScheme = 'light' | 'dark' | 'system' | 'none';
 
 /** Route paths the integration can inject. */
 export interface C15tEndpointOptions {
@@ -134,12 +141,38 @@ export interface C15tMiddlewareOptions {
 	 * @example ['/api/webhooks', '/healthz']
 	 */
 	skip?: string[];
+	/**
+	 * Longest a server render waits for the visitor's policy, in
+	 * milliseconds.
+	 *
+	 * The middleware resolves consent before the page renders, so a slow or
+	 * unreachable backend holds the whole response. When the budget runs out
+	 * the page renders without the server decision: no banner in the HTML,
+	 * optional categories denied, gated scripts and iframes blocked. The
+	 * browser then resolves the policy and shows the banner. A manifest
+	 * request keeps running and fills the cache for the next render.
+	 *
+	 * `false` waits for the backend however long it takes.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 }
 
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation`, exposed as `snapshot.experiment`, and
+	 * recorded with the impressions and choices of visitors the banner
+	 * showed it to. The banner is server-rendered, so the arm is resolved on
+	 * the server: per request through `consentMiddleware({ experimentArm })`
+	 * with `middleware: false`, or one fixed `arm` for every visitor.
+	 * Built-in assignment is not available on Astro.
+	 */
+	experiment?: ConsentExperiment;
 	/**
 	 * Transport selection. Build it with `hosted()`, `offline()` or
 	 * `manifest()` so the descriptor stays well-formed.
@@ -156,6 +189,26 @@ export interface C15tAstroOptions {
 	clearOnRevocation?: ClearOnRevocationConfig;
 
 	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
+
+	/**
+	 * Block `fetch` and XHR requests that match these rules until the
+	 * visitor's consent allows them. Omitted or `false` disables it.
+	 * `onRequestBlocked` is a callback, so it belongs in
+	 * {@link C15tClientOptionsExtension.networkBlocker}.
+	 */
+	networkBlocker?:
+		| Omit<RuntimeNetworkBlockerOptions, 'onRequestBlocked'>
+		| false;
+
+	/**
 	 * IAB TCF configuration. `false` disables it.
 	 *
 	 * Only the serializable fields are accepted here; a live GVL fetcher
@@ -169,7 +222,10 @@ export interface C15tAstroOptions {
 	/** Locale and message overrides. */
 	i18n?: C15tI18nOptions;
 
-	/** Theme tokens applied to the banner and dialog surfaces. */
+	/**
+	 * Theme tokens applied to the banner and dialog surfaces. The server
+	 * renders them as a `<style id="c15t-theme">` next to the config script.
+	 */
 	theme?: Theme;
 
 	/**
@@ -179,6 +235,10 @@ export interface C15tAstroOptions {
 	 * the visitor changes it. `<ConsentScript />` writes the class from a
 	 * tiny inline script in `<head>`, so the server-rendered banner is
 	 * already dark on its first paint rather than flashing light.
+	 *
+	 * `'none'` hands the `c15t-dark` class on `<html>` to the site: c15t
+	 * neither sets nor clears it, on boot, on ClientRouter navigation or when
+	 * a dialog opens. Use it when the site's own theme switch toggles it.
 	 *
 	 * @default 'system'
 	 */
@@ -199,6 +259,18 @@ export interface C15tAstroOptions {
 	 * @default 'svelte'
 	 */
 	ui?: C15tUIAdapterName;
+
+	/**
+	 * Add `@c15t/astro/styles.css` to every page, and
+	 * `@c15t/astro/iab/styles.css` when {@link C15tAstroOptions.iab} is set.
+	 *
+	 * Set to `false` to import them yourself, for example from a global
+	 * stylesheet with your own cascade layers, or to style the surfaces from
+	 * scratch.
+	 *
+	 * @default true
+	 */
+	styles?: boolean;
 
 	/** Injected API routes. */
 	endpoints?: C15tEndpointOptions | boolean;
@@ -265,8 +337,20 @@ export interface C15tIABOptions {
 	vendors?: number[];
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
-	/** Whether the CMP is service-specific rather than global. */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
+	 * also encoded as 1. Passing `false` logs a warning once and has no
+	 * other effect.
+	 */
 	isServiceSpecific?: boolean;
+	/**
+	 * Publisher restrictions to encode into the TC string and apply to IAB
+	 * gates. Plain data, so it travels to the browser with the rest of these
+	 * options. `@c15t/iab` rejects restrictions the vendor list does not allow.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 	/**
 	 * Fetch the vendor list from this URL on the server.
 	 *
@@ -300,8 +384,19 @@ export interface C15tClientOptionsExtension {
 	scripts?: Script[];
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
-	callbacks?: Record<string, unknown>;
-	/** Merged over the serialized theme. */
+	/**
+	 * Replaces {@link C15tAstroOptions.networkBlocker}. Use it to pass
+	 * `onRequestBlocked`.
+	 */
+	networkBlocker?: RuntimeNetworkBlockerOptions | false;
+	callbacks?: ConsentRuntimeOptions['callbacks'];
+	/** External CMP owns consent decisions and preferences. */
+	consentSource?: ConsentRuntimeOptions['consentSource'];
+	/**
+	 * Merged over the serialized theme for slot styles and consent-action
+	 * variants. Design tokens here are not applied: the browser no longer
+	 * generates theme CSS, so put tokens in the integration's `theme`.
+	 */
 	theme?: Theme;
 }
 
@@ -320,7 +415,8 @@ export interface C15tResolvedOptions extends Omit<
 	endpoints: Required<Omit<C15tEndpointOptions, 'enabled'>> & {
 		enabled: boolean;
 	};
-	middleware: Required<C15tMiddlewareOptions>;
+	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
+		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
 }
 
 /** Consent context the middleware attaches to every request. */
@@ -341,6 +437,13 @@ export interface C15tLocals {
 
 	/** Whether the server decided this request should see the banner. */
 	shouldShowBanner: boolean;
+
+	/**
+	 * Whether this render is shared by every visitor, as on a prerendered
+	 * route. Consent surfaces then render hidden, and the browser shows
+	 * them once it has read the visitor's own cookie.
+	 */
+	prerendered: boolean;
 
 	/**
 	 * Whether a policy rule is resolved for this request. Every c15t consent

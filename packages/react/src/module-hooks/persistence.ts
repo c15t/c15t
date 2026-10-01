@@ -23,6 +23,7 @@ export const usePersistence = function usePersistence(
 			current.current = null;
 		},
 		hydrate: () => current.current?.hydrate() ?? false,
+		reconcile: () => current.current?.reconcile() ?? false,
 	}));
 	void setHandle;
 	useEffect(() => {
@@ -31,13 +32,20 @@ export const usePersistence = function usePersistence(
 			now: options.now,
 			skipHydration: options.skipHydration,
 			storageConfig: options.storageConfig,
+			sync: options.sync,
 		});
 		current.current = created;
 		return () => {
 			created.dispose();
 			current.current = null;
 		};
-	}, [kernel, options.now, options.skipHydration, options.storageConfig]);
+	}, [
+		kernel,
+		options.now,
+		options.skipHydration,
+		options.storageConfig,
+		options.sync,
+	]);
 
 	return handle;
 };

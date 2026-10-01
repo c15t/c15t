@@ -6,6 +6,7 @@
 
 import { assign, setup } from 'xstate';
 
+import { needsTailwind3PostcssPlugin } from '~/commands/shared/postcss-config';
 import { UMBRELLA_PACKAGE } from '~/constants';
 import type { StorageMode } from '~/constants';
 import type { CliContext } from '~/context/types';
@@ -683,10 +684,15 @@ export const generateMachine = setup({
 							// (@c15t/react, @c15t/nextjs) as already satisfying it.
 							const deps: string[] = [UMBRELLA_PACKAGE];
 							if (event.output.addScripts) {
-								deps.push('@c15t/scripts');
+								deps.push('@c15t/integrations');
 							}
 							if (context.enableDevTools && context.framework?.pkg === 'c15t') {
 								deps.push('@c15t/dev-tools');
+							}
+							// Tailwind 3 apps load `@c15t/ui/postcss-tailwind3` by name,
+							// which pnpm only resolves for direct dependencies.
+							if (needsTailwind3PostcssPlugin(context.framework)) {
+								deps.push('@c15t/ui');
 							}
 							return deps;
 						},

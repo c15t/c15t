@@ -32,6 +32,7 @@ import type {
 	ExplicitChoice,
 	OptionalConsentCategory,
 } from '../consent-record/types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import type { SavePayload } from '../types';
 
 export interface BuildSubjectPostBodyOptions {
@@ -57,10 +58,32 @@ export interface SubjectPostBody {
 	tcString?: string;
 	/** Granted flag per declared vendor after this act, when vendors exist. */
 	vendorChoice?: VendorChoiceWire;
-	metadata?: {
-		userProperties: NonNullable<SavePayload['user']>['properties'];
+	/** Free-form audit metadata. `userProperties`, `timeToDecisionMs` and `experiment` are the keys c15t sets. */
+	metadata?: Record<string, unknown> & {
+		userProperties?: NonNullable<SavePayload['user']>['properties'];
+		/** Milliseconds from the surface's first impression to the action. */
+		timeToDecisionMs?: number;
+		/** The presentation experiment arm the visitor acted under. */
+		experiment?: ExperimentAssignment;
 	};
 }
+
+/** Audit metadata for a save, or `undefined` when there is nothing to send. */
+const buildMetadata = function buildMetadata(
+	payload: SubjectSavePayload
+): SubjectPostBody['metadata'] {
+	const metadata: SubjectPostBody['metadata'] = {};
+	if (payload.user?.properties) {
+		metadata.userProperties = payload.user.properties;
+	}
+	if (payload.timeToDecisionMs !== undefined) {
+		metadata.timeToDecisionMs = payload.timeToDecisionMs;
+	}
+	if (payload.experiment) {
+		metadata.experiment = { ...payload.experiment };
+	}
+	return Object.keys(metadata).length > 0 ? metadata : undefined;
+};
 
 /**
  * The wire receipt for the categories one action confirmed.
@@ -131,9 +154,7 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		givenAt: payload.confirmed.actionAt,
 		identityProvider: payload.user?.identityProvider,
 		jurisdictionModel: payload.model ?? undefined,
-		metadata: payload.user?.properties
-			? { userProperties: payload.user.properties }
-			: undefined,
+		metadata: buildMetadata(payload),
 		policySnapshotToken: payload.policySnapshotToken ?? undefined,
 		preferences: explicitPreferences(payload.choice),
 		subjectId: payload.subjectId,

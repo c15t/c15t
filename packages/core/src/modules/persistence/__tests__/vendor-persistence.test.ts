@@ -58,6 +58,8 @@ afterEach(() => {
 
 const createKernel = () =>
 	createConsentKernel({
+		// The runtime infers this from the declared vendor.
+		consentCategories: ['marketing'],
 		initialPolicyResolution: matchedResolution(
 			optInRule({ categories: ['marketing'] })
 		),

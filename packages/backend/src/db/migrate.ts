@@ -42,6 +42,8 @@ import { up as baselineUp } from './migrations/1-baseline';
 import { up as indexesUp } from './migrations/2-hot-path-indexes';
 import { up as receiptsUp } from './migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoiceUp } from './migrations/4-vendor-choice';
+import { up as dropIdentityAuthorityUp } from './migrations/5-drop-subject-identity-authority';
+import { up as attributionUp } from './migrations/6-experiment-attribution';
 import { encodeRow, encoder } from './values';
 
 const DATABASE_CLASSIFICATION_KEY = 'shape' as const;
@@ -78,6 +80,12 @@ export const MIGRATIONS: readonly Migration[] = [
 		up: receiptsUp,
 	},
 	{ id: 4, name: '4-vendor-choice', up: vendorChoiceUp },
+	{
+		id: 5,
+		name: '5-drop-subject-identity-authority',
+		up: dropIdentityAuthorityUp,
+	},
+	{ id: 6, name: '6-experiment-attribution', up: attributionUp },
 ];
 
 export interface MigrateOptions extends ApplyOptions {

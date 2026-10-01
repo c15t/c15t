@@ -18,11 +18,11 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptRequirement,
 	RestrictionReason,
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import {
 	buildEvaluationPolicy,
 	deriveActiveUI,
@@ -42,6 +42,7 @@ import type {
 	KernelVendorsState,
 	VendorChoice,
 } from '../types';
+import { evaluateExternalPermissions } from './external-permissions';
 import { freezeSnapshot } from './snapshot';
 
 /**
@@ -51,10 +52,10 @@ import { freezeSnapshot } from './snapshot';
  * Nullable fields: `undefined` (omitted) preserves, `null` clears.
  */
 export interface SnapshotPatch {
+	externalPermissions?: Readonly<ConsentState>;
 	consentCategories?: readonly AllConsentNames[] | null;
 	explicitChoice?: ExplicitChoice | null;
 	noticeDismissal?: NoticeDismissal | null;
-	optOutDirectives?: readonly PrivacyOptOut[];
 	resolution?: PolicyResolution;
 	subject?: ConsentSubject | null;
 	/** Detected user-agent GPC signal. */
@@ -71,6 +72,8 @@ export interface SnapshotPatch {
 	iab?: KernelIABState | null;
 	vendors?: KernelVendorsState | null;
 	vendorChoice?: VendorChoice | null;
+	experiment?: ExperimentAssignment | null;
+	experimentPending?: boolean;
 	/** Evaluation time. Defaults to the current `evaluatedAt`. */
 	now?: number;
 }
@@ -104,14 +107,14 @@ export const isUnchangedPatch = function isUnchangedPatch(
 		return false;
 	}
 	return (
+		pick(patch.externalPermissions, current.externalPermissions) ===
+			current.externalPermissions &&
 		pick(patch.privacyDetected, current.privacySignals.gpc.detected) ===
 			current.privacySignals.gpc.detected &&
 		pick(patch.explicitChoice, current.explicitChoice) ===
 			current.explicitChoice &&
 		pick(patch.noticeDismissal, current.noticeDismissal) ===
 			current.noticeDismissal &&
-		pick(patch.optOutDirectives, current.optOutDirectives) ===
-			current.optOutDirectives &&
 		pick(patch.consentCategories, current.consentCategories) ===
 			current.consentCategories &&
 		pick(patch.resolution, current.resolution) === current.resolution &&
@@ -128,7 +131,10 @@ export const isUnchangedPatch = function isUnchangedPatch(
 			current.policyPending &&
 		pick(patch.iab, current.iab) === current.iab &&
 		pick(patch.vendors, current.vendors) === current.vendors &&
-		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice
+		pick(patch.vendorChoice, current.vendorChoice) === current.vendorChoice &&
+		pick(patch.experiment, current.experiment) === current.experiment &&
+		pick(patch.experimentPending, current.experimentPending) ===
+			current.experimentPending
 	);
 };
 
@@ -186,31 +192,6 @@ const sameRestrictions = function sameRestrictions(
 	return true;
 };
 
-const preservePrivacyDirectives = function preservePrivacyDirectives(
-	current: readonly PrivacyOptOut[],
-	patched: readonly PrivacyOptOut[] | undefined
-): readonly PrivacyOptOut[] {
-	if (patched === undefined || patched === current) {
-		return current;
-	}
-	const unchanged =
-		patched.length === current.length &&
-		patched.every((directive, index) => {
-			const previous = current[index];
-			return (
-				previous !== undefined &&
-				directive.source === previous.source &&
-				directive.recordedAt === previous.recordedAt &&
-				directive.categories.length === previous.categories.length &&
-				directive.categories.every(
-					(category, categoryIndex) =>
-						category === previous.categories[categoryIndex]
-				)
-			);
-		});
-	return unchanged ? current : patched;
-};
-
 const samePrivacySignals = function samePrivacySignals(
 	left: KernelPrivacySignals,
 	right: KernelPrivacySignals
@@ -247,6 +228,7 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	derive: boolean;
 	policyRule: ConsentSnapshot['policyRule'];
 	policyPending: boolean;
+	experimentPending: boolean;
 	promptRequirement: PromptRequirement;
 	resolution: PolicyResolution;
 }): KernelActiveUI {
@@ -255,6 +237,7 @@ const deriveNextActiveUI = function deriveNextActiveUI(input: {
 	}
 	if (input.derive) {
 		return deriveActiveUI({
+			experimentPending: input.experimentPending,
 			policyPending: input.policyPending,
 			promptRequirement: input.promptRequirement,
 			resolution: input.resolution,
@@ -293,10 +276,6 @@ export const buildNextSnapshot = function buildNextSnapshot(
 
 	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
 	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
-	const optOutDirectives = preservePrivacyDirectives(
-		current.optOutDirectives,
-		patch.optOutDirectives
-	);
 	const overrides = pick(patch.overrides, current.overrides);
 	const detected = pick(
 		patch.privacyDetected,
@@ -328,11 +307,14 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		evaluationPolicy === current.evaluationPolicy &&
 		explicitChoice === current.explicitChoice &&
 		noticeDismissal === current.noticeDismissal &&
-		optOutDirectives === current.optOutDirectives &&
 		privacySignals.gpc.active === current.privacySignals.gpc.active &&
 		now >= current.evaluatedAt &&
 		(current.nextDeadline === null || now < current.nextDeadline);
-	const evaluation = reuseEvaluation
+	const externalPermissions = pick(
+		patch.externalPermissions,
+		current.externalPermissions
+	);
+	let evaluation = reuseEvaluation
 		? {
 				nextDeadline: current.nextDeadline,
 				permissions: current.effectivePermissions,
@@ -344,9 +326,15 @@ export const buildNextSnapshot = function buildNextSnapshot(
 				gpc: privacySignals.gpc.active,
 				noticeDismissal,
 				now,
-				optOuts: optOutDirectives,
 				policy: evaluationPolicy,
 			});
+	if (externalPermissions) {
+		if (iab && (iab.enabled || iab.authority)) {
+			iab = { ...iab, authority: null, enabled: false };
+		}
+		evaluation = evaluateExternalPermissions(externalPermissions);
+	}
+
 	const effectivePermissions = samePermissions(
 		current.effectivePermissions,
 		evaluation.permissions
@@ -367,18 +355,27 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		: evaluation.restrictions;
 
 	const policyPending = pick(patch.policyPending, current.policyPending);
+	const experimentPending = pick(
+		patch.experimentPending,
+		current.experimentPending
+	);
 	const promptChanged = promptRequirement !== current.promptRequirement;
 	const visibilityChanged =
-		resolutionChanged || policyPending !== current.policyPending;
-	const activeUI = deriveNextActiveUI({
-		current,
-		derive: promptChanged || visibilityChanged,
-		patch,
-		policyPending,
-		policyRule,
-		promptRequirement,
-		resolution,
-	});
+		resolutionChanged ||
+		policyPending !== current.policyPending ||
+		experimentPending !== current.experimentPending;
+	const activeUI = externalPermissions
+		? 'none'
+		: deriveNextActiveUI({
+				current,
+				derive: promptChanged || visibilityChanged,
+				experimentPending,
+				patch,
+				policyPending,
+				policyRule,
+				promptRequirement,
+				resolution,
+			});
 
 	const subject = pick(patch.subject, current.subject);
 
@@ -389,13 +386,15 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		effectivePermissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		experiment: pick(patch.experiment, current.experiment),
+		experimentPending,
 		explicitChoice,
+		externalPermissions,
 		iab,
 		location: pick(patch.location, current.location),
 		model: deriveModel(policyRule, iab?.enabled ?? false),
 		nextDeadline: evaluation.nextDeadline,
 		noticeDismissal,
-		optOutDirectives,
 		overrides,
 		policyPending,
 		policyRule,
@@ -409,6 +408,9 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		restrictions,
 		revision: current.revision + 1,
 		subject,
+		// Impressions are stamped by the runtime once its lifecycle started;
+		// derivation only carries the record through.
+		surfaceShownAt: current.surfaceShownAt,
 		translations: pick(patch.translations, current.translations),
 		user: pick(patch.user, current.user),
 		vendorChoice: pick(patch.vendorChoice, current.vendorChoice),

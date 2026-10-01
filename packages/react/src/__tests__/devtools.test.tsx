@@ -183,6 +183,7 @@ describe('v3 React DevTools adapter', () => {
 			const view = await render(
 				<ConsentProvider
 					options={{
+						consentCategories: ['measurement', 'marketing'],
 						mode: offline(),
 						presentation: { preferences: { primaryActions: ['accept'] } },
 						storageConfig: { storageKey },

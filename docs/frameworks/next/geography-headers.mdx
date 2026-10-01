@@ -122,25 +122,28 @@ cookie, read it where you call `resolveConsent` and pass it as the
 `country` override:
 
 ```tsx title="app/layout.tsx (partial)"
-import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 
-async function ResolvedConsent({ children }: { children: ReactNode }) {
+async function resolveVisitorConsent() {
   const country = (await cookies()).get('c15t-country')?.value;
-  const state = await resolveConsent({
-    config: consentConfig,
-    country,
-  });
-  return <Consent state={state}>{children}</Consent>;
+  return resolveConsent({ config: consentConfig, country });
 }
+
+// Inside the existing synchronous root layout:
+const state = resolveVisitorConsent();
+
+<Consent state={state}>{children}</Consent>
 ```
 
-This is the `ResolvedConsent` component from the
-[App Router guide](/docs/frameworks/next/app-router); keep it inside the
-`Suspense` boundary shown there.
+This replaces the `resolveConsent` call in the root layout from the
+[App Router guide](/docs/frameworks/next/app-router); the layout still passes
+the pending result. With the
+[awaited layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),
+`await resolveVisitorConsent()` inside `ResolvedConsent` and keep it inside
+the `Suspense` boundary shown there.
 
 `resolveConsent` accepts `country` and `language` overrides. It has no
 `region` override in the current API, so the region cookie is available only to

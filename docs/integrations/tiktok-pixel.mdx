@@ -8,10 +8,10 @@ group: integrations
 
 Use your TikTok Pixel ID. The helper prepares `ttq`, queues consent and a page event, and loads the pixel for that ID.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { tiktokPixel } from '@c15t/scripts/tiktok-pixel';
+import { tiktokPixel } from '@c15t/integrations/tiktok-pixel';
 
 export const scripts = [tiktokPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 ```

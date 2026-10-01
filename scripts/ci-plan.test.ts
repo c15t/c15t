@@ -1,3 +1,5 @@
+import { readdirSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import { ciSchedulingOutputs, createCiPlan, readWorkspaces } from './ci-plan';
@@ -8,6 +10,32 @@ const workspaces = readWorkspaces(repository);
 const plan = (files: string[]) => createCiPlan(files, workspaces);
 
 describe('CI selection', () => {
+	it('tests the compatibility package without requiring vendor-runtime coverage', () => {
+		const result = plan(['bun.lock']);
+		expect(result.tests).toContain('@c15t/scripts');
+		expect(result.coverage).not.toContain('packages/scripts');
+		expect(result.coverage).toContain('packages/integrations');
+	});
+
+	it('runs the device builds for whichever autolink config the package has', () => {
+		// The device group is the only job that asks Expo whether the library was linked,
+		// and it selects on paths alone. The config was renamed from `.cjs` to `.js` and the
+		// selector went on naming the old literal, so edits to the very file whose breakage
+		// dropped the library in silence stopped selecting the check that would have caught
+		// it. Reading the directory is what keeps this honest if it moves again.
+		const packageRoot = new URL('../packages/react-native/', import.meta.url)
+			.pathname;
+		const configs = readdirSync(packageRoot).filter((entry) =>
+			entry.startsWith('react-native.config.')
+		);
+		expect(configs).not.toHaveLength(0);
+		for (const config of configs) {
+			expect(plan([`packages/react-native/${config}`])).toMatchObject({
+				mobileBrowserOrDevice: true,
+			});
+		}
+	});
+
 	it('treats release notes as docs but validates publish locks as executable configuration', () => {
 		expect(plan(['.tegami/fix.md'])).toMatchObject({
 			docs: true,
@@ -23,7 +51,7 @@ describe('CI selection', () => {
 			'packages/react/AGENTS.md',
 			'packages/nextjs/AGENTS.md',
 			'packages/c15t/AGENTS.md',
-			'packages/scripts/docs/frameworks/next/script-loader.md',
+			'packages/integrations/docs/frameworks/next/script-loader.md',
 		]);
 		expect(result).toMatchObject({
 			backend: false,
@@ -47,6 +75,17 @@ describe('CI selection', () => {
 		expect(result.examples).toContain('sveltekit');
 		expect(result.compat).toContain('16-static-export');
 		expect(result.bundle).toBe(true);
+	});
+	it('pairs an Astro-only change with every framework parity is measured against', () => {
+		// The parity suite needs at least two of React, Svelte and Vue; React
+		// and Astro alone fail it before comparing anything.
+		const result = plan(['packages/astro/src/client.ts']);
+		expect([...result.parity].sort()).toEqual([
+			'astro',
+			'react',
+			'svelte',
+			'vue',
+		]);
 	});
 	it('follows Next through the umbrella package used by examples', () => {
 		const result = plan(['packages/nextjs/src/index.ts']);
@@ -78,7 +117,7 @@ describe('CI selection', () => {
 		const result = plan([file]);
 		expect(result.full).toBe(true);
 		expect(result.backend).toBe(true);
-		expect(result.examples).toHaveLength(9);
+		expect(result.examples).toHaveLength(10);
 	});
 	it('runs benchmark helper tests when benchmark infrastructure changes', () => {
 		expect(plan(['benchmarks/shared/src/budgets.ts']).tests).toContain(
@@ -90,6 +129,85 @@ describe('CI selection', () => {
 		expect(result.build).toContain('@c15t/core');
 		expect(result.examples).toEqual(['vue']);
 		expect(result.compat).toEqual([]);
+	});
+	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {
+		for (const file of [
+			'packages/react-native/src/index.ts',
+			'packages/react-native/android/c15t-react-native/library.gradle',
+			'benchmarks/mobile/src/run.ts',
+		]) {
+			const result = plan([file]);
+			expect(result.mobile, file).toBe(true);
+			expect(result.build).toContain('@c15t/react-native');
+		}
+		expect(plan(['packages/react-native/src/index.ts']).tests).toContain(
+			'@c15t/react-native'
+		);
+		expect(plan(['benchmarks/mobile/src/run.ts']).tests).toContain(
+			'@c15t/mobile-bench'
+		);
+	});
+	it('follows a core change into the mobile SDK that runs the same kernel', () => {
+		const result = plan(['packages/core/src/kernel.ts']);
+		expect(result.mobile).toBe(true);
+		expect(result.mobileBrowserOrDevice).toBe(false);
+	});
+	it.each([
+		'native/core-swift/Sources/C15tCore/ConsentCore.swift',
+		'native/core-android/c15t-core/src/main/kotlin/com/c15t/core/C15tKernel.kt',
+		'native/protocol/evaluation-eu-opt-in.json',
+	])('selects the whole graph for the native path %s', (file) => {
+		const result = plan([file]);
+		expect(result.full).toBe(true);
+		expect(result.mobile).toBe(true);
+		expect(result.mobileBrowserOrDevice).toBe(true);
+	});
+	it('keeps packages that only share benchmark tooling off the mobile runners', () => {
+		// The mobile bench depends on @c15t/benchmarking, which the backend depends on
+		// too. Selecting the mobile group through that edge would put a macOS runner on
+		// every backend pull request.
+		for (const file of [
+			'packages/backend/src/index.ts',
+			'benchmarks/shared/src/budgets.ts',
+		]) {
+			expect(plan([file]).mobile, file).toBe(false);
+			expect(plan([file]).mobileBrowserOrDevice, file).toBe(false);
+		}
+	});
+	it('runs app builds only for files an app compiles', () => {
+		const device = [
+			'examples/expo-dev/App.tsx',
+			'examples/react-native-bare/ios/Podfile',
+			'packages/react-native/ios/C15tReactNative/Bridge/Wire.swift',
+			'packages/react-native/C15tReactNative.podspec',
+			'packages/react-native/Package.swift',
+		];
+		for (const file of device) {
+			expect(plan([file]).mobileBrowserOrDevice, file).toBe(true);
+		}
+		// JavaScript inside the SDK is covered by the mobile SDK jobs, and an app
+		// build on every kernel tweak would cost macOS minutes for no new signal.
+		expect(
+			plan(['packages/react-native/src/index.ts']).mobileBrowserOrDevice
+		).toBe(false);
+		expect(plan(['packages/backend/src/index.ts']).mobileBrowserOrDevice).toBe(
+			false
+		);
+	});
+	it('runs no mobile work for mobile documentation', () => {
+		const result = plan([
+			'docs/mobile/react-native.mdx',
+			'native/CONTRACT.md',
+			'packages/react-native/README.md',
+			'benchmarks/mobile/README.md',
+		]);
+		expect(result).toMatchObject({
+			build: [],
+			docs: true,
+			mobile: false,
+			mobileBrowserOrDevice: false,
+			tests: [],
+		});
 	});
 });
 
@@ -103,8 +221,20 @@ describe('CI scheduling outputs', () => {
 		expect(ciSchedulingOutputs(plan(['docs/guide.mdx']))).toMatchObject({
 			build: false,
 			integrations: [],
+			mobile: false,
+			mobileBrowserOrDevice: false,
 			packageChecks: false,
 		});
+	});
+	it('schedules both mobile groups as booleans', () => {
+		const sdk = ciSchedulingOutputs(
+			plan(['packages/react-native/src/index.ts'])
+		);
+		expect(sdk.mobile).toBe(true);
+		expect(sdk.mobileBrowserOrDevice).toBe(false);
+		const apps = ciSchedulingOutputs(plan(['examples/expo-dev/App.tsx']));
+		expect(apps.mobileBrowserOrDevice).toBe(true);
+		expect(JSON.stringify(apps)).not.toContain('@c15t/');
 	});
 	it('schedules packages when only test types are selected', () => {
 		const result = createCiPlan(
@@ -129,6 +259,8 @@ it('every selected artifact consumer has a package build in the real graph', () 
 			result.backend ||
 			result.bundle ||
 			result.performance ||
+			result.mobile ||
+			result.mobileBrowserOrDevice ||
 			result.integrations.length > 0;
 		return consumesArtifact && result.build.length === 0;
 	});

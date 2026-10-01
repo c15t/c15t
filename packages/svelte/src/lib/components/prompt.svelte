@@ -226,7 +226,7 @@
 	const finalClassName = $derived(
 		noStyle
 			? rootStyle.className || ''
-			: `${rootStyle.className || ''} ${visibility.isVisible ? styles.bannerVisible : styles.bannerHidden}`
+			: `${rootStyle.className || ''} ${visibility.isVisible ? `${styles.bannerVisible}${disableAnimation ? '' : ` ${styles.bannerEntering}`}` : styles.bannerHidden}`
 	);
 
 	const localPrimaryActions = $derived.by(() => {
@@ -355,7 +355,11 @@
 {#if visibility.isMounted && visibility.shouldRender}
 	<div use:portal>
 		{#if shouldScrollLock}
-			<Overlay visible={visibility.isVisible} />
+			<Overlay
+				{styles}
+				entering={!disableAnimation}
+				visible={visibility.isVisible}
+			/>
 		{/if}
 		<div
 			bind:this={visibility.bannerEl}

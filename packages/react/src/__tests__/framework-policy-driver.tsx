@@ -57,7 +57,7 @@ import {
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
-import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
+import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import type { FrameworkRoot } from './framework-root';
 
 // Theme styles load after mount; compare the consent markup and track hydration warnings separately.
@@ -117,10 +117,6 @@ const storageBytes = (): PolicyStorageBytes => ({
 	notice: {
 		cookie: cookieValue(`${keys.consent}-notice`),
 		localStorage: localStorage.getItem(`${keys.consent}-notice`),
-	},
-	privacy: {
-		cookie: cookieValue(`${keys.consent}-privacy`),
-		localStorage: localStorage.getItem(`${keys.consent}-privacy`),
 	},
 });
 const prepare = (input: ScenarioPolicy): PolicyResolution => {
@@ -268,7 +264,7 @@ export const createFrameworkPolicyDriver = ({
 		const events: { name: string; payload: unknown }[] = [];
 		const callbacks: { name: string; payload: unknown }[] = [];
 		const requests: {
-			kind: 'consent' | 'privacy' | 'init';
+			kind: 'consent' | 'init';
 			payload: unknown;
 		}[] = [];
 		const diagnostics: string[] = [];
@@ -296,7 +292,8 @@ export const createFrameworkPolicyDriver = ({
 			keys.consent,
 			legacyKey,
 			`${keys.consent}-notice`,
-			`${keys.consent}-privacy`,
+			// A clear's epoch outlives it and would void the next seed's records.
+			keys.epoch,
 		]) {
 			localStorage.removeItem(key);
 			document.cookie = `${key}=; Max-Age=0; Path=/`;
@@ -361,7 +358,6 @@ export const createFrameworkPolicyDriver = ({
 					'choice:recorded',
 					'permissions:changed',
 					'notice:dismissed',
-					'privacy:opt-out',
 				].map((name) =>
 					current.events.on(name as 'choice:recorded', (payload) => {
 						const { type: _type, ...eventPayload } = payload;
@@ -471,13 +467,6 @@ export const createFrameworkPolicyDriver = ({
 									? Promise.reject(new Error('transport failed'))
 									: Promise.resolve(response);
 							},
-							recordPrivacyOptOut: (directive, subjectId) => {
-								requests.push({
-									kind: 'privacy',
-									payload: { directive, subjectId },
-								});
-								return Promise.resolve();
-							},
 							save: (payload) => {
 								requests.push({ kind: 'consent', payload });
 								return Promise.resolve({
@@ -488,6 +477,8 @@ export const createFrameworkPolicyDriver = ({
 						}),
 
 						presentation,
+						// A real reload restarts the browser test page.
+						reloadOnConsentRevoked: false,
 					}}
 				>
 					<Mount />

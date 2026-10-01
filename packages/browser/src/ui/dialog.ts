@@ -6,7 +6,7 @@ import { classes } from '../generated/styles';
 import type { ConsentDialogOptions } from '../types';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs } from './dom';
+import { h, readDurationMs, supportsStartingStyle } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 import { createWidget } from './widget';
@@ -42,6 +42,7 @@ export const createDialog = function createDialog(
 		translations: ConsentSnapshot['translations'];
 		branding: ConsentSnapshot['branding'];
 		policyRule: ConsentSnapshot['policyRule'];
+		experiment: ConsentSnapshot['experiment'];
 	} | null = null;
 
 	const onKeyDown = function onKeyDown(event: KeyboardEvent): void {
@@ -64,7 +65,7 @@ export const createDialog = function createDialog(
 				'aria-labelledby': 'consent-dialog-title',
 				'aria-modal': resolveConsentPresentation({
 					policy: snapshot.policyRule,
-					presentation: ctx.client.options.presentation,
+					presentation: ctx.client.presentation,
 					surface: 'preferences',
 				}).blocking
 					? 'true'
@@ -149,6 +150,7 @@ export const createDialog = function createDialog(
 		});
 		renderedFrom = {
 			branding: snapshot.branding,
+			experiment: snapshot.experiment,
 			policyRule: snapshot.policyRule,
 			translations: snapshot.translations,
 		};
@@ -194,27 +196,39 @@ export const createDialog = function createDialog(
 		if (!(overlay && positioner && content)) {
 			return;
 		}
+		// The state classes go on before insertion so the first style the
+		// browser computes already includes them; the scroll lock reads
+		// layout, which would otherwise fix the bare state as the start.
+		const flip = !(noStyle || ctx.disableAnimation || supportsStartingStyle());
+		setVisible(!flip);
+		if (!(noStyle || flip || ctx.disableAnimation)) {
+			// `@starting-style` transitions from the entering state on the
+			// first frame; nothing here has to wait for layout.
+			overlay.classList.add(styles.overlayEntering);
+			positioner.classList.add(styles.dialogEntering);
+			content.classList.add(styles.contentEntering);
+		}
 		ctx.root.append(overlay, positioner);
 		const { blocking } = resolveConsentPresentation({
 			policy: snapshot.policyRule,
-			presentation: ctx.client.options.presentation,
+			presentation: ctx.client.presentation,
 			surface: 'preferences',
 		});
 		if (blocking) {
-			cleanups.push(setupScrollLock(), setupFocusTrap(content));
+			cleanups.push(
+				setupScrollLock(),
+				setupFocusTrap(content, { initialFocus: 'first-tabbable' })
+			);
 		} else {
 			overlay.hidden = true;
 		}
-		if (noStyle) {
-			return;
-		}
-		if (ctx.disableAnimation) {
+		if (flip) {
+			// Without `@starting-style`, force layout so the browser observes
+			// the hidden state before the flip; otherwise a fresh open can
+			// skip the entry transition.
+			void positioner.offsetHeight;
 			setVisible(true);
-			return;
 		}
-		setVisible(false);
-		void positioner.offsetHeight;
-		setVisible(true);
 	};
 
 	const close = function close(): void {
@@ -256,7 +270,8 @@ export const createDialog = function createDialog(
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
 				renderedFrom.branding === snapshot.branding &&
-				renderedFrom.policyRule === snapshot.policyRule
+				renderedFrom.policyRule === snapshot.policyRule &&
+				renderedFrom.experiment === snapshot.experiment
 			) {
 				widget?.sync(snapshot);
 				return;

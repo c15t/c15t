@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Passe deine Datenschutz-Einstellungen hier an. Wähle aus, welche Arten von Cookies und Tracking-Technologien zugelassen werden.',
+			features: {
+				description:
+					'Diese Verarbeitungen können ausschließlich zur Verfolgung eines oder mehrerer Zwecke verwendet werden, für die Ihnen in diesem Hinweis eine Auswahlmöglichkeit gegeben wird.',
+				title: 'Merkmale',
+			},
 			footer: {
 				consentStorage:
 					'Einwilligungspräferenzen werden in einem Cookie namens "euconsent-v2" für 13 Monate gespeichert. Die Speicherdauer kann erneut beginnen, wenn du deine Präferenzen aktualisierst.',

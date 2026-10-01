@@ -25,6 +25,64 @@ import type { ConsentManifest } from './consent-manifest';
  */
 export const CONSENT_SESSION_CLIENT_IP_HEADER = 'x-c15t-client-ip';
 
+/**
+ * Request header that carries the banner-experiment arm a visitor runs, as
+ * `<id>=<arm>` with both parts URI-encoded. A client sends it on `/init`
+ * only while the visitor has no stored choice, so a session that carries it
+ * is one where the banner was owed under that arm.
+ */
+export const CONSENT_EXPERIMENT_HEADER = 'x-c15t-experiment';
+
+/** Longest experiment id or arm name a session report carries. */
+const EXPERIMENT_TEXT_MAX = 128;
+
+/** The experiment arm a session ran. */
+export interface SessionExperiment {
+	id: string;
+	arm: string;
+}
+
+/**
+ * The {@link CONSENT_EXPERIMENT_HEADER} value for an arm.
+ *
+ * @param experiment - The experiment id and arm.
+ * @returns The header value.
+ */
+export const formatExperimentHeader = function formatExperimentHeader(
+	experiment: SessionExperiment
+): string {
+	return `${encodeURIComponent(experiment.id)}=${encodeURIComponent(experiment.arm)}`;
+};
+
+/**
+ * Read a {@link CONSENT_EXPERIMENT_HEADER} value. Anything malformed or
+ * longer than 128 characters per part reads as no experiment: the header is
+ * analytics and never fails a request.
+ *
+ * @param value - The raw header value, if any.
+ * @returns The experiment and arm, or `null`.
+ */
+export const parseExperimentHeader = function parseExperimentHeader(
+	value: string | null | undefined
+): SessionExperiment | null {
+	if (!value) {
+		return null;
+	}
+	const separator = value.indexOf('=');
+	if (separator <= 0 || separator === value.length - 1) {
+		return null;
+	}
+	try {
+		const id = decodeURIComponent(value.slice(0, separator));
+		const arm = decodeURIComponent(value.slice(separator + 1));
+		return id.length <= EXPERIMENT_TEXT_MAX && arm.length <= EXPERIMENT_TEXT_MAX
+			? { arm, id }
+			: null;
+	} catch {
+		return null;
+	}
+};
+
 /** The resolver inputs a report records alongside the decision. */
 export interface SessionReportInputs {
 	country?: string | null;
@@ -42,6 +100,11 @@ export interface BuildConsentSessionReportOptions {
 	source: ConsentSessionSource;
 	/** Package that resolved init, for example `@c15t/nextjs`. */
 	adapter?: string;
+	/**
+	 * The banner-experiment arm the visitor runs, when they have no stored
+	 * choice yet. See {@link CONSENT_EXPERIMENT_HEADER}.
+	 */
+	experiment?: SessionExperiment | null;
 }
 
 /**
@@ -75,6 +138,12 @@ export const buildConsentSessionReport = function buildConsentSessionReport(
 	};
 	if (options.adapter) {
 		report.adapter = options.adapter;
+	}
+	if (options.experiment) {
+		report.experiment = {
+			arm: options.experiment.arm,
+			id: options.experiment.id,
+		};
 	}
 	if (options.manifest.tenantId !== undefined) {
 		report.tenantId = options.manifest.tenantId;

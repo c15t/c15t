@@ -66,12 +66,12 @@ describe('checkInstalledDependencies', () => {
 		});
 
 		const result = await checkInstalledDependencies({
-			dependencies: ['c15t', '@c15t/scripts'],
+			dependencies: ['c15t', '@c15t/integrations'],
 			projectRoot: root,
 		});
 
 		expect(result.installed).toEqual(['c15t']);
-		expect(result.missing).toEqual(['@c15t/scripts']);
+		expect(result.missing).toEqual(['@c15t/integrations']);
 	});
 
 	it('treats an existing @c15t/nextjs install as satisfying the umbrella requirement', async () => {

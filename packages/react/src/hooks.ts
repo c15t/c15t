@@ -21,6 +21,8 @@
 import type {
 	AllConsentNames,
 	ConsentKernel,
+	ConsentPresentation,
+	ExperimentAssignment,
 	PromptPresentation,
 	PreferencesPresentation,
 	ConsentSnapshot,
@@ -37,45 +39,22 @@ import type {
 	ResolvedVendor,
 	VendorChoice,
 } from '@c15t/core';
-import { evaluateConsent, isVendorDenied } from '@c15t/core';
-import { useCallback, useContext, useSyncExternalStore } from 'react';
+import {
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	evaluateConsent,
+	isVendorDenied,
+} from '@c15t/core';
+import { useCallback, useMemo, useSyncExternalStore } from 'react';
 
-import { KernelContext } from './context';
+import {
+	useGateSelector,
+	useKernel,
+	useKernelSelector,
+} from './kernel-selector';
+import type { Theme } from './types/theme';
 import { useUIConfig } from './ui-config-context';
 import { invalidateConsentUIAction } from './ui-save';
-
-const useKernel = function useKernel(): ConsentKernel {
-	const kernel = useContext(KernelContext);
-	if (!kernel) {
-		throw new Error(
-			'c15t: no kernel in context. Wrap your app with <ConsentProvider options={...}> from @c15t/react.'
-		);
-	}
-	return kernel;
-};
-
-const subscribe = function subscribe(
-	kernel: ConsentKernel,
-	listener: () => void
-): () => void {
-	return kernel.subscribe(listener);
-};
-
-const useKernelSelector = function useKernelSelector<T>(
-	selector: (snap: ConsentSnapshot) => T
-): T {
-	const kernel = useKernel();
-	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
-		() => selector(kernel.getSnapshot()),
-		// Hydration must render what the SERVER rendered. Client boot
-		// mutations (sync persistence hydrate, eager init) can flip the live
-		// snapshot before hydration completes — rendering the mutated state
-		// here mismatches the server HTML and strands SSR'd consent UI as
-		// unowned DOM (a banner React never removes).
-		() => selector(kernel.getServerSnapshot())
-	);
-};
 
 /**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
@@ -84,7 +63,7 @@ const useKernelSelector = function useKernelSelector<T>(
 export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 	const kernel = useKernel();
 	return useSyncExternalStore(
-		(listener) => subscribe(kernel, listener),
+		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot(),
 		() => kernel.getServerSnapshot()
 	);
@@ -164,10 +143,23 @@ export const useHasConsentPolicy = function useHasConsentPolicy(): boolean {
 export const useHasConsentUI = function useHasConsentUI(): boolean {
 	return useKernelSelector(
 		(snap) =>
+			!snap.externalPermissions &&
 			snap.resolution.status === 'matched' &&
 			(snap.policyRule.prompt !== 'none' || snap.policyRule.rights.length > 0)
 	);
 };
+
+/** Whether c15t or an external CMP offers a preferences control. */
+export const useHasConsentPreferences =
+	function useHasConsentPreferences(): boolean {
+		return useKernelSelector(
+			(snap) =>
+				Boolean(snap.externalPermissions) ||
+				(snap.resolution.status === 'matched' &&
+					(snap.policyRule.prompt !== 'none' ||
+						snap.policyRule.rights.length > 0))
+		);
+	};
 
 /**
  * Derived consent model (opt-in / opt-out / iab), or `null` while no policy
@@ -280,7 +272,7 @@ export const useVendorChoice =
 export const useVendorAllowed = function useVendorAllowed(
 	vendorId: string
 ): boolean {
-	return useKernelSelector((snap) => {
+	return useGateSelector((snap, now) => {
 		const vendor = snap.vendors?.declared.find(
 			(entry) => entry.id === vendorId
 		);
@@ -296,7 +288,7 @@ export const useVendorAllowed = function useVendorAllowed(
 			return false;
 		}
 		try {
-			return evaluateConsent({ category: vendor.category }, snap);
+			return evaluateConsent({ category: vendor.category }, snap, now);
 		} catch {
 			return false;
 		}
@@ -423,12 +415,6 @@ export const usePrivacySignals =
 		return useKernelSelector((snapshot) => snapshot.privacySignals);
 	};
 
-/** Read optOutDirectives from the kernel without a competing projection. */
-export const useOptOutDirectives =
-	function useOptOutDirectives(): ConsentSnapshot['optOutDirectives'] {
-		return useKernelSelector((snapshot) => snapshot.optOutDirectives);
-	};
-
 /** Read resolution from the kernel without a competing projection. */
 export const usePolicyResolution =
 	function usePolicyResolution(): ConsentSnapshot['resolution'] {
@@ -453,15 +439,66 @@ export const useDismissNotice =
 		return useKernel().commands.dismissNotice;
 	};
 
+/**
+ * The presentation experiment arm this visitor runs. Built-in assignment
+ * lands after mount; a host-resolved `variant` is known at once.
+ *
+ * @returns The assignment, or `null` while no experiment is configured, the
+ * arm is not assigned yet, or the visitor's policy rejects it.
+ *
+ * @example
+ * ```tsx
+ * const arm = useExperiment();
+ * return arm ? <p>{arm.id}: {arm.variant}</p> : null;
+ * ```
+ */
+export const useExperiment =
+	function useExperiment(): Readonly<ExperimentAssignment> | null {
+		return useKernelSelector((snapshot) => snapshot.experiment);
+	};
+
+/**
+ * The host presentation with the assigned experiment arm merged over it.
+ *
+ * @returns The presentation to render: `options.presentation` itself while
+ * no arm is assigned.
+ */
+export const useResolvedPresentation = function useResolvedPresentation():
+	| ConsentPresentation
+	| undefined {
+	const { experiment, presentation } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentAssignment(presentation, experiment, assignment),
+		[presentation, experiment, assignment]
+	);
+};
+
+/**
+ * The host theme with the assigned experiment arm's `theme` merged over it.
+ * Render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+ *
+ * @returns The theme to render: `options.theme` itself while no arm is
+ * assigned or the arm has no theme.
+ */
+export const useResolvedTheme = function useResolvedTheme(): Theme | undefined {
+	const { experiment, theme } = useUIConfig();
+	const assignment = useExperiment();
+	return useMemo(
+		() => applyExperimentTheme(theme, experiment, assignment),
+		[theme, experiment, assignment]
+	);
+};
+
 const EMPTY_PROMPT: PromptPresentation = {};
 const EMPTY_PREFERENCES: PreferencesPresentation = {};
-/** Host first-layer presentation. */
+/** Host first-layer presentation, with the experiment arm applied. */
 export const usePromptPresentation =
 	function usePromptPresentation(): PromptPresentation {
-		return useUIConfig().presentation?.prompt ?? EMPTY_PROMPT;
+		return useResolvedPresentation()?.prompt ?? EMPTY_PROMPT;
 	};
-/** Host persistent preferences presentation. */
+/** Host persistent preferences presentation, with the experiment arm applied. */
 export const usePreferencesPresentation =
 	function usePreferencesPresentation(): PreferencesPresentation {
-		return useUIConfig().presentation?.preferences ?? EMPTY_PREFERENCES;
+		return useResolvedPresentation()?.preferences ?? EMPTY_PREFERENCES;
 	};

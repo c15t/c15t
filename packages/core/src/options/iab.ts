@@ -1,8 +1,8 @@
 import type { GlobalVendorList, NonIABVendor } from '../types';
-import type { TCFConsentData } from './iab-tcf';
+import type { PublisherRestriction, TCFConsentData } from './iab-tcf';
 
 /**
- * Configuration for the IAB TCF 2.3 integration.
+ * Configuration for the IAB TCF 2.4 integration.
  */
 export interface IABConfig {
 	/** Enables IAB TCF mode. */
@@ -17,8 +17,20 @@ export interface IABConfig {
 	customVendors?: NonIABVendor[];
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
-	/** Whether consent is service-specific rather than global. */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
+	 * also encoded as 1. Passing `false` logs a warning once and has no
+	 * other effect.
+	 */
 	isServiceSpecific?: boolean;
+	/**
+	 * Publisher restrictions to encode into the TC string and apply to IAB
+	 * gates. `@c15t/iab` rejects
+	 * restrictions that do not match the vendor list's declarations.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 	/** Pre-fetched Global Vendor List. */
 	gvl?: GlobalVendorList;
 }

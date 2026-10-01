@@ -1,6 +1,8 @@
 /**
  * Guards the default theme tokens that `generate-css-entrypoints.ts` bakes
- * into every published stylesheet.
+ * into the render-blocking stylesheets (`styles.css`, `styles.tw3.css`). The
+ * IAB, dialog and primitive sheets load next to one of those and carry no
+ * second copy.
  *
  * Without them every component rule resolves `var(--c15t-surface)`,
  * `var(--c15t-radius-lg)` and friends against nothing, and an app that imports
@@ -18,11 +20,14 @@ import { defaultTheme, generateThemeCSS, themeToVars } from '../../theme/utils';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 
-const ENTRYPOINTS = [
-	'styles.css',
-	'styles.tw3.css',
+const ENTRYPOINTS = ['styles.css', 'styles.tw3.css'];
+
+/** Sheets that load next to `styles.css` and must not repeat its tokens. */
+const COMPANION_SHEETS = [
 	join('iab', 'styles.css'),
 	join('iab', 'styles.tw3.css'),
+	join('styles', 'dialog.css'),
+	join('styles', 'primitives.css'),
 ];
 
 const readEntrypoint = function readEntrypoint(relativePath: string): string {
@@ -127,7 +132,9 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 	});
 
 	test('emits the tokens first, so they read as the file preamble', () => {
-		expect(css.startsWith('/* default theme tokens')).toBe(true);
+		// Only the layer order statement may precede them.
+		const preamble = css.replace(/^@layer [^;{]+;\s*/u, '');
+		expect(preamble.startsWith('/* default theme tokens')).toBe(true);
 	});
 
 	test('matches what a host passing theme: defaultTheme would inject', () => {
@@ -144,12 +151,65 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		// override — in charge. If a host imports this stylesheet into a layer
 		// (`@import ... layer(c15t)`, as examples/sveltekit-demo does), the
 		// override wins by layer precedence instead.
-		const layerStart = css.indexOf('@layer');
+		const layerStart = css.indexOf('@layer components');
 		const tokensStart = findBlockStart(css, LIGHT_SELECTOR);
 		expect(tokensStart).toBeGreaterThanOrEqual(0);
 		const tokensEnd = css.indexOf('}', tokensStart);
 
 		expect(tokensEnd).toBeLessThan(layerStart === -1 ? Infinity : layerStart);
+	});
+});
+
+describe.each(COMPANION_SHEETS)('%s', (entrypoint) => {
+	const css = readEntrypoint(entrypoint);
+
+	test('does not repeat the default tokens', () => {
+		expect(findBlockStart(css, LIGHT_SELECTOR)).toBe(-1);
+		expect(findBlockStart(css, DARK_SELECTOR)).toBe(-1);
+		expect(css).not.toContain('--c15t-surface:');
+	});
+
+	test('scopes every :root block to :host too, for shadow-root hosts', () => {
+		const bare =
+			css.match(/(?:^|[\s,}{;]):root(?:\.[A-Za-z0-9_-]+)?\s*\{/gu) ?? [];
+		expect(bare).toEqual([]);
+	});
+});
+
+describe('surface font variables', () => {
+	/**
+	 * `typography.fontFamily` reaches the page as `--c15t-font-family`. A
+	 * surface whose own font variable hardcodes a stack instead ignores the
+	 * theme: the preference list did, so its category rows kept the system
+	 * font under a themed dialog title.
+	 */
+	const fontVariables = [
+		readEntrypoint('styles.css'),
+		readEntrypoint(join('iab', 'styles.css')),
+	].flatMap((css) =>
+		[
+			...css.matchAll(
+				/(?<name>--(?:iab-)?(?:consent|cd)-[a-z-]*font-family)\s*:\s*(?<value>[^;}]+)/gu
+			),
+		].map((match) => [match.groups?.name, match.groups?.value?.trim()])
+	);
+
+	test('the sheets declare them', () => {
+		expect(fontVariables.map(([name]) => name)).toEqual(
+			expect.arrayContaining([
+				'--consent-banner-font-family',
+				'--consent-dialog-font-family',
+				'--consent-manager-font-family',
+				'--iab-consent-banner-font-family',
+				'--iab-cd-font-family',
+			])
+		);
+	});
+
+	test('every one resolves through --c15t-font-family', () => {
+		expect(
+			fontVariables.filter(([, value]) => value !== 'var(--c15t-font-family)')
+		).toEqual([]);
 	});
 });
 
@@ -163,16 +223,18 @@ describe('an app that imports the stylesheet without a theme', () => {
 	 * jsdom's CSS parser rejects the whole stylesheet — it does not understand
 	 * `@layer`, `color-mix()` or range media queries — and a rejected sheet
 	 * contributes nothing to the cascade. Mount the real artifact's token
-	 * preamble instead: still the shipped bytes, minus the component rules
-	 * jsdom could not apply anyway.
+	 * preamble instead: still the shipped bytes, minus the layer order
+	 * statement and the component rules jsdom could not apply anyway.
 	 */
 	const mountStylesheet = function mountStylesheet() {
 		const css = readEntrypoint('styles.css');
+		const tokensStart = css.indexOf('/* default theme tokens');
 		const componentsStart = css.indexOf('/* primitives/');
-		expect(componentsStart).toBeGreaterThan(0);
+		expect(tokensStart).toBeGreaterThanOrEqual(0);
+		expect(componentsStart).toBeGreaterThan(tokensStart);
 
 		const style = document.createElement('style');
-		style.textContent = css.slice(0, componentsStart);
+		style.textContent = css.slice(tokensStart, componentsStart);
 		document.head.appendChild(style);
 	};
 

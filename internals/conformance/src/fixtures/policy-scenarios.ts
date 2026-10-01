@@ -158,7 +158,6 @@ const noneRegime: readonly PolicyScenario[] = [
 					firstLayer: 'hidden',
 					permissions: { marketing: false, measurement: true, necessary: true },
 					prompt: { kind: 'none' },
-					standingOptOut: ['marketing'],
 				},
 				operation: { kind: 'hydrate' },
 			},
@@ -260,18 +259,25 @@ const gpc = (
 				choice: POLICY_RECORDS[record].expected.choice,
 				consentCallbacks: 0,
 				consentRequests: 0,
-				events: {
-					'choice-recorded': 0,
-					'notice-dismissed': 0,
-					'privacy-opt-out': 1,
-				},
+				events: { 'choice-recorded': 0, 'notice-dismissed': 0 },
 				gates: blockedGates,
 				permissions: denied,
 				prompt: { kind: 'notice', reason: 'missing' },
-				standingOptOut: POLICY_SCOPE,
-				storage: 'privacy-only',
+				// GPC is a live signal: nothing about it is written.
+				storage: 'unchanged',
 			},
 			operation: { kind: 'hydrate' },
+		},
+		{
+			// The restriction ends with the signal; the stored grant applies again.
+			expect: {
+				...quiet,
+				choice: POLICY_RECORDS[record].expected.choice,
+				gates: openGates,
+				permissions: granted,
+				prompt: { kind: 'notice', reason: 'missing' },
+			},
+			operation: { active: false, kind: 'set-gpc' },
 		},
 		{
 			expect: {
@@ -280,9 +286,8 @@ const gpc = (
 				gates: blockedGates,
 				permissions: denied,
 				prompt: { kind: 'notice', reason: 'missing' },
-				standingOptOut: POLICY_SCOPE,
 			},
-			operation: { active: false, kind: 'set-gpc' },
+			operation: { active: true, kind: 'set-gpc' },
 		},
 		{
 			expect: {
@@ -291,11 +296,12 @@ const gpc = (
 					POLICY_NOW
 				),
 				consentCallbacks: 1,
+				// The choice acknowledges the notice; no separate dismissal event.
 				events: { 'choice-recorded': 1, 'notice-dismissed': 0 },
 				gates: blockedGates,
+				noticeDismissal: 'current',
 				permissions: denied,
-				prompt: { kind: 'notice', reason: 'missing' },
-				standingOptOut: POLICY_SCOPE,
+				prompt: { kind: 'none' },
 			},
 			operation: { kind: 'accept' },
 		},
@@ -307,9 +313,9 @@ const gpc = (
 				),
 				consentCallbacks: 1,
 				events: { 'choice-recorded': 1, 'permissions-changed': 0 },
+				noticeDismissal: 'current',
 				permissions: denied,
-				prompt: { kind: 'notice', reason: 'missing' },
-				standingOptOut: POLICY_SCOPE,
+				prompt: { kind: 'none' },
 			},
 			operation: { kind: 'save-current' },
 		},
@@ -317,9 +323,8 @@ const gpc = (
 			expect: {
 				choice: null,
 				noticeDismissal: 'absent',
-				permissions: granted,
+				permissions: denied,
 				prompt: { kind: 'notice', reason: 'missing' },
-				standingOptOut: [],
 				storage: 'cleared',
 			},
 			operation: { kind: 'clear' },
@@ -455,10 +460,9 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 					choice: null,
 					consentCallbacks: 0,
 					consentRequests: 0,
-					events: { 'choice-recorded': 0, 'privacy-opt-out': 1 },
+					events: { 'choice-recorded': 0 },
 					permissions: denied,
-					standingOptOut: POLICY_SCOPE,
-					storage: 'privacy-only',
+					storage: 'unchanged',
 				},
 				operation: { kind: 'hydrate' },
 			},
@@ -591,14 +595,9 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 					choice: POLICY_RECORDS['legacy-broad-grant'].expected.choice,
 					consentCallbacks: 0,
 					consentRequests: 0,
-					events: {
-						'choice-recorded': 0,
-						'notice-dismissed': 0,
-						'privacy-opt-out': 1,
-					},
+					events: { 'choice-recorded': 0, 'notice-dismissed': 0 },
 					permissions: { experience: true, functionality: true, ...denied },
-					standingOptOut: POLICY_SCOPE,
-					storage: 'privacy-only',
+					storage: 'unchanged',
 				},
 				operation: { kind: 'hydrate' },
 			},
@@ -606,8 +605,7 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 				expect: {
 					...quiet,
 					choice: POLICY_RECORDS['legacy-broad-grant'].expected.choice,
-					permissions: { experience: true, functionality: true, ...denied },
-					standingOptOut: POLICY_SCOPE,
+					permissions: { experience: true, functionality: true, ...granted },
 				},
 				operation: { active: false, kind: 'set-gpc' },
 			},
@@ -616,7 +614,7 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 	},
 	{
 		covers: ['F5', 'F10'],
-		id: 'notice-save-dismiss-expire-clear',
+		id: 'notice-save-acknowledges-expire-clear',
 		now: POLICY_NOW,
 		policy: POLICY_NOTICE,
 		steps: [
@@ -636,35 +634,33 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 				expect: {
 					choice: policyChoice({ marketing: false }, POLICY_NOW),
 					consentCallbacks: 1,
+					// A choice made while the notice is owed acknowledges it: one
+					// outcome, one `choice-recorded`, no `notice-dismissed`.
 					events: {
 						'choice-recorded': 1,
 						'notice-dismissed': 0,
 						'permissions-changed': 1,
 					},
-					firstLayer: 'notice',
-					noticeDismissal: 'absent',
+					firstLayer: 'hidden',
+					noticeDismissal: 'current',
 					permissions: { marketing: false, measurement: true },
-					prompt: { kind: 'notice', reason: 'missing' },
-					storage: 'choice-v3',
+					prompt: { kind: 'none' },
+					storage: 'choice-and-notice',
 				},
 				operation: { kind: 'save', values: { marketing: false } },
 			},
 			{
+				// The acknowledgement the save recorded survives a fresh mount:
+				// the notice does not return for this visitor.
 				expect: {
+					...quiet,
 					choice: policyChoice({ marketing: false }, POLICY_NOW),
-					consentCallbacks: 0,
-					consentRequests: 0,
-					events: {
-						'choice-recorded': 0,
-						'notice-dismissed': 1,
-						'permissions-changed': 0,
-					},
+					firstLayer: 'hidden',
 					noticeDismissal: 'current',
 					permissions: { marketing: false, measurement: true },
 					prompt: { kind: 'none' },
-					storage: 'notice-only',
 				},
-				operation: { kind: 'dismiss-notice' },
+				operation: { kind: 'reload' },
 			},
 			{
 				expect: {
@@ -680,7 +676,6 @@ export const POLICY_SCENARIOS: readonly PolicyScenario[] = [
 					noticeDismissal: 'absent',
 					permissions: granted,
 					prompt: { kind: 'notice', reason: 'missing' },
-					standingOptOut: [],
 					storage: 'cleared',
 				},
 				operation: { kind: 'clear' },

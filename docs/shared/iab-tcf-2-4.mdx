@@ -1,0 +1,34 @@
+## How the preference centre shows features
+
+The stock IAB preference centres in React, Next.js, Vue, Svelte, Astro and the
+script tag follow TCF 2.4 and Policies v5.0.b. Special purposes stay in their
+locked section with a lock icon, because the visitor cannot object to them.
+
+Features get their own section after the special purposes. It shows the IAB
+standard text for features from the Global Vendor List's
+`standardTexts.features`. If the list has no standard text, it shows the
+`iab.preferenceCenter.features.description` translation. Each feature lists
+its name, description, illustrations and the vendors that use it. The section has no switch, lock or vendor toggle, because
+TCF forbids showing features next to a control that cannot be disabled.
+
+The feature section follows the theme's spacing and typography tokens.
+Its disclosure arrows are decorative and stay out of the accessibility tree.
+
+A custom preference UI gets the same rows from
+`resolveIABDialogDisplayModel` in `@c15t/iab/headless`. `essentialRows` holds
+the special purposes only. `featureRows` holds the features, with
+`locked: false` and `toggle: 'none'`, so render them without a control.
+`featuresStandardText` is the standard text, or `null` when you should use the
+translation.
+
+## Consent scope
+
+c15t stores TCF choices per site and browser, which the TCF calls
+service-specific scope. It does not sync TC strings across devices, and every
+TC string it writes has `IsServiceSpecific` set to `1`.
+
+Do not use `/consent/check` or your own account data to skip the TCF banner on
+another device. That turns the choice into multi-device scope, which the TCF
+requires you to disclose in the first layer, and c15t does not show that
+disclosure. The `isServiceSpecific` option is deprecated. c15t ignores it and
+logs a warning when you pass `false`.

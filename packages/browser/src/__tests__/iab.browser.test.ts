@@ -55,9 +55,11 @@ describe.each([false, true])('IAB browser interaction, shadow=%s', (shadow) => {
 		if (!dialog) {
 			throw new Error('Missing IAB dialog');
 		}
-		await expect.poll(activeElement).toBe(dialog);
-		await userEvent.tab();
-		expect(activeElement()?.getAttribute('aria-label')).toBe('Close');
+		// The dialog opens with focus on its first control, the close button.
+		await expect
+			.poll(() => activeElement()?.getAttribute('aria-label'))
+			.toBe('Close');
+		expect(dialog.contains(activeElement())).toBe(true);
 		await userEvent.tab({ shift: true });
 		expect(activeElement()?.tagName).toBe('A');
 		await userEvent.tab();

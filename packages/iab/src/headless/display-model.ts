@@ -8,14 +8,19 @@
  * four preference centres listing the same purposes the same number of
  * times.
  *
- * Two lists come out of it, matching the two places the preference centre
- * puts things:
+ * Three lists come out of it, matching the three places the preference
+ * centre puts things:
  *
  * - {@link HeadlessIABDialogDisplayModel.consentRows} — everything the
  *   visitor can decide on: purpose 1, the standalone purposes, the stacks,
  *   then the special features.
  * - {@link HeadlessIABDialogDisplayModel.essentialRows} — the locked
- *   "essential functions" section: special purposes, then features.
+ *   "essential functions" section: special purposes only.
+ * - {@link HeadlessIABDialogDisplayModel.featureRows} — the informational
+ *   Features section. TCF Policies v5.0.b forbid showing Features next to
+ *   controls that cannot be disabled, so these rows carry no toggle at all
+ *   and render after the special purposes, under
+ *   {@link HeadlessIABDialogDisplayModel.featuresStandardText}.
  *
  * A row's `testId` is part of the model rather than the components,
  * because the same numeric id can name a purpose, a special purpose, a
@@ -45,12 +50,16 @@ export type HeadlessIABDisplayRowKind =
 /**
  * Which consent map a row's toggle writes to.
  *
- * `'none'` is the locked essential rows: they render a toggle that is on
- * and cannot be changed, because the legal basis is not consent.
+ * `'none'` means the row writes to no consent map. Check
+ * {@link HeadlessIABDisplayRow.locked} to tell the two cases apart:
+ *
+ * - Special purposes are locked. They render a toggle that is on and cannot
+ *   be changed, because the legal basis is not consent.
+ * - Features are not locked. They are informational and render no control.
  */
 export type HeadlessIABDisplayToggle = 'purpose' | 'special-feature' | 'none';
 
-/** A single toggleable or locked row. */
+/** A single toggleable, locked or informational row. */
 export interface HeadlessIABDisplayRow {
 	kind: Exclude<HeadlessIABDisplayRowKind, 'stack'>;
 	/** The GVL id within its own kind. Not unique across kinds. */
@@ -61,10 +70,22 @@ export interface HeadlessIABDisplayRow {
 	description: string;
 	illustrations: string[];
 	vendors: HeadlessIABProcessedVendor[];
-	/** Whether the toggle is fixed on. */
+	/**
+	 * Whether the row shows a toggle fixed on. `true` only for special
+	 * purposes. Feature rows are `false` and show no toggle.
+	 */
 	locked: boolean;
 	/** Which consent map the toggle writes to. */
 	toggle: HeadlessIABDisplayToggle;
+	/**
+	 * Whether any vendor processes this purpose on consent: lists it in
+	 * `purposes` once publisher restrictions apply. `false` when every vendor
+	 * uses only legitimate interest, for example after a restriction moved
+	 * them there. A consent switch would then change
+	 * nothing the vendors rely on, so the row offers only the objection
+	 * control. Always `true` for rows that are not purposes.
+	 */
+	hasConsentBasis: boolean;
 }
 
 /** A stack, with the purposes it absorbed. */
@@ -87,13 +108,25 @@ export type HeadlessIABDisplayConsentRow =
 export interface HeadlessIABDialogDisplayModel {
 	/** Rows the visitor decides on, in render order. */
 	consentRows: HeadlessIABDisplayConsentRow[];
-	/** The locked "essential functions" rows, in render order. */
+	/** The locked "essential functions" rows: special purposes only. */
 	essentialRows: HeadlessIABDisplayRow[];
+	/**
+	 * The informational Features rows, in render order. They have
+	 * `toggle: 'none'` and `locked: false`: render the name, description,
+	 * illustrations and vendor names, with no switch or lock.
+	 */
+	featureRows: HeadlessIABDisplayRow[];
+	/**
+	 * The IAB standard text to show under the Features heading, from the
+	 * vendor list's `standardTexts.features`. `null` when the vendor list
+	 * does not carry it; show the translated fallback instead.
+	 */
+	featuresStandardText: string | null;
 	/** The count next to the purposes tab. */
 	purposeTabCount: number;
 	/** The count next to the vendors tab. */
 	vendorTabCount: number;
-	/** Distinct vendors named by the essential rows. */
+	/** Distinct vendors named by the essential (special purpose) rows. */
 	essentialPartnerCount: number;
 	/** Whether the GVL is still on its way. */
 	isLoading: boolean;
@@ -137,10 +170,15 @@ const toRow = function toRow(
 ): HeadlessIABDisplayRow {
 	return {
 		description: purpose.description,
+		// Membership in `purposes`, after restrictions, is the consent basis.
+		// A vendor can also list the purpose for legitimate interest.
+		hasConsentBasis:
+			toggle !== 'purpose' ||
+			purpose.vendors.some((vendor) => vendor.purposes.includes(purpose.id)),
 		id: purpose.id,
 		illustrations: purpose.illustrations,
 		kind,
-		locked: toggle === 'none',
+		locked: kind === 'special-purpose',
 		name: purpose.name,
 		testId: iabDisplayTestId(kind, purpose.id),
 		toggle,
@@ -156,7 +194,7 @@ const toRow = function toRow(
  * calls it once per render.
  *
  * @param iab - IAB state carrying the GVL and any custom vendors.
- * @returns The ordered rows plus the tab counts.
+ * @returns The ordered rows, the Features standard text and the tab counts.
  * @example
  * ```ts
  * const model = resolveIABDialogDisplayModel(iabState);
@@ -191,12 +229,12 @@ export const resolveIABDialogDisplayModel =
 			),
 		];
 
-		const essentialRows: HeadlessIABDisplayRow[] = [
-			...data.specialPurposes.map((purpose) =>
-				toRow(purpose, 'special-purpose', 'none')
-			),
-			...data.features.map((feature) => toRow(feature, 'feature', 'none')),
-		];
+		const essentialRows = data.specialPurposes.map((purpose) =>
+			toRow(purpose, 'special-purpose', 'none')
+		);
+		const featureRows = data.features.map((feature) =>
+			toRow(feature, 'feature', 'none')
+		);
 
 		const essentialPartners = new Set<HeadlessIABProcessedVendor['id']>();
 		for (const row of essentialRows) {
@@ -210,6 +248,8 @@ export const resolveIABDialogDisplayModel =
 			data,
 			essentialPartnerCount: essentialPartners.size,
 			essentialRows,
+			featureRows,
+			featuresStandardText: iab?.gvl?.standardTexts?.features || null,
 			isLoading: data.isLoading,
 			isReady: data.isReady,
 			// The tab count is the whole GVL, not the rows: a purpose absorbed

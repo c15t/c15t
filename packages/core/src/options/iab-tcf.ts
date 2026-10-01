@@ -1,8 +1,8 @@
 /**
- * IAB TCF 2.3 Types
+ * IAB TCF 2.4 Types
  *
  * Type definitions for the Global Vendor List (GVL) and related IAB TCF structures.
- * Based on IAB TCF v2.3 specification.
+ * Based on IAB TCF v2.4 specification.
  *
  * @see https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework
  * @packageDocumentation
@@ -19,6 +19,7 @@ export type {
 	GVLSpecialFeature,
 	GVLSpecialPurpose,
 	GVLStack,
+	GVLStandardTexts,
 	GVLVendor,
 	GVLVendorUrl,
 } from '@c15t/schema/types';
@@ -47,7 +48,7 @@ export interface TCFConsentData {
 	/**
 	 * Vendors disclosed to the user in the CMP UI (keyed by vendor ID).
 	 *
-	 * Required for IAB TCF 2.3 compliance. Each vendor shown in the UI should
+	 * Required for IAB TCF 2.4 compliance. Each vendor shown in the UI should
 	 * have their ID set to true, regardless of whether consent was given.
 	 */
 	vendorsDisclosed: Record<number, boolean>;
@@ -57,12 +58,27 @@ export interface TCFConsentData {
 }
 
 /**
- * Publisher restriction for a specific purpose.
+ * Publisher restriction for one purpose and a set of vendors.
+ *
+ * Encoded in the `PubRestrictions` section of the TC string core segment
+ * and reported by `__tcfapi` as `publisher.restrictions`. Restrictions are
+ * only allowed in service-specific TC strings.
+ *
+ * - `0` prohibits the purpose for the vendors on every legal basis. Each
+ *   vendor must declare the purpose.
+ * - `1` requires consent. Each vendor must declare the purpose for
+ *   legitimate interest and list it in `flexiblePurposes`.
+ * - `2` requires legitimate interest. Each vendor must declare the purpose
+ *   for consent and list it in `flexiblePurposes`. Not allowed for purposes
+ *   1, 3, 4, 5 and 6, which TCF allows only with consent.
+ *
+ * Type `3` is reserved by the spec. Unsupported restrictions throw
+ * `PublisherRestrictionError` from `@c15t/iab` instead of being dropped.
  *
  * @public
  */
 export interface PublisherRestriction {
-	/** Purpose ID this restriction applies to */
+	/** Purpose ID this restriction applies to (not a special purpose). */
 	purposeId: number;
 
 	/**
@@ -166,7 +182,7 @@ export interface TCData {
 	/** CMP status */
 	cmpStatus: CMPStatus;
 
-	/** Whether service-specific (not global) */
+	/** Always `true`: TCF requires IsServiceSpecific=1. */
 	isServiceSpecific: boolean;
 
 	/** Whether publisher consent or legitimate interest was established */
@@ -188,6 +204,11 @@ export interface TCData {
 	vendor: {
 		consents: Record<number, boolean>;
 		legitimateInterests: Record<number, boolean>;
+		/**
+		 * Vendors the CMP disclosed to the user (CMP API v2.2). `true` means
+		 * disclosed. Matches the TC string's disclosed vendors segment.
+		 */
+		disclosedVendors: Record<string | number, boolean>;
 	};
 
 	/** Special feature opt-ins */
@@ -288,7 +309,7 @@ export const IAB_PURPOSES = {
  * @public
  */
 export const IAB_SPECIAL_FEATURES = {
-	/** Actively scan device characteristics for identification */
+	/** Identify devices based on information actively requested */
 	DEVICE_SCANNING: 2,
 	/** Use precise geolocation data */
 	PRECISE_GEOLOCATION: 1,

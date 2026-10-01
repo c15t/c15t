@@ -12,6 +12,11 @@ import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import type { StorageConfig } from '../libs/cookie';
+import type {
+	ConsentExperiment,
+	ExperimentArmTheme,
+	ExperimentState,
+} from '../libs/experiment';
 import type { ConsentPresentation } from '../libs/policy-actions';
 import type { ClearOnRevocationConfig } from '../modules/clear-on-revocation';
 import type { IframeBlockerOptions } from '../modules/iframe-blocker';
@@ -27,6 +32,7 @@ import type { User } from '../options/user';
 import type { ProviderTransportFactory } from '../transports/mode';
 import type {
 	ConsentKernel,
+	ConsentState,
 	GlobalVendorList,
 	KernelConfig,
 	KernelOverrides,
@@ -90,8 +96,16 @@ export interface ConsentRuntimeIABFactoryOptions {
 	customVendors?: IABConfig['customVendors'];
 	/** Publisher country code used in the TC string. */
 	publisherCountryCode?: string;
-	/** Whether the CMP is service-specific rather than global. */
+	/**
+	 * Ignored: c15t always encodes IsServiceSpecific=1.
+	 *
+	 * @deprecated TCF requires IsServiceSpecific=1. Group-specific scope is
+	 * also encoded as 1. Passing `false` logs a warning once and has no
+	 * other effect.
+	 */
 	isServiceSpecific?: boolean;
+	/** Publisher restrictions to encode and enforce. */
+	publisherRestrictions?: IABConfig['publisherRestrictions'];
 	/** Pre-fetched Global Vendor List, or `null` to disable IAB mode. */
 	gvl?: GlobalVendorList | null;
 	/** Override the GVL endpoint. */
@@ -125,7 +139,7 @@ export interface ConsentRuntimeIABHandle {
 	acceptAll: () => void;
 	/** Flip every vendor + purpose consent to false. */
 	rejectAll: () => void;
-	/** Encode the current state as a TCF 2.3 string and commit it. */
+	/** Encode the current state as a TCF 2.4 string and commit it. */
 	generateTCString: () => Promise<string>;
 	/** Generate the TC string, commit it, and run the kernel save flow. */
 	save: () => Promise<void>;
@@ -151,13 +165,23 @@ export type ConsentRuntimeIABFactory = (
 	options: ConsentRuntimeIABFactoryOptions
 ) => ConsentRuntimeIABHandle;
 
+/** External CMP decision source. The provider owns UI, persistence, expiry and GPC. */
+export interface ExternalConsentSource {
+	/** Read the current decision. Null means not ready, so optional categories are denied. */
+	getPermissions: () => Partial<ConsentState> | null;
+	/** Notify on initialization, changes, revocation and expiry. Returns cleanup. */
+	subscribe: (listener: () => void) => Unsubscribe;
+	/** Open the external provider's preference UI. */
+	openPreferences: () => void | Promise<void>;
+}
+
 /**
- * Everything the framework-agnostic consent runtime needs.
- *
- * Framework packages extend this with their UI-only options (theme, color
- * scheme, animation, legal links) and forward the rest untouched.
+ * Framework-independent lifecycle options. Adapters add presentation options.
+ * External sources are initial-only; recreate the runtime to change authority.
  */
 export interface ConsentRuntimeOptions {
+	/** External authority. Disables c15t persistence, initialization, IAB and choice UI. */
+	consentSource?: ExternalConsentSource;
 	/**
 	 * Set `false` to grant every category, suppress all UI and skip
 	 * initialization. Consent-gated scripts load immediately, as they would
@@ -182,18 +206,48 @@ export interface ConsentRuntimeOptions {
 	 * Cleanup waits for policy resolution. Initial-only; omitted disables it.
 	 */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Subject identity forwarded to the backend on `identify`. */
 	user?: User | KernelUser;
 	/** Decision inputs (country, region, language, GPC) forced by the host. */
 	overrides?: KernelOverrides;
-	/** Server-prefetched kernel configuration, for SSR without a flash. */
-	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'>;
+	/**
+	 * Server-prefetched kernel configuration, for SSR without a flash. An
+	 * `experiment` the server resolved runs instead of the `experiment`
+	 * option.
+	 */
+	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'> & ExperimentState;
 	/** Host presentation, separate from policy semantics. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation`, recorded on `snapshot.experiment`, and
+	 * saved with every choice as `metadata.experiment`.
+	 */
+	experiment?: ConsentExperiment;
+	/**
+	 * The host theme tokens. The runtime renders nothing with them; it only
+	 * merges each experiment arm's `theme` over them so arm validation sees
+	 * the `consentActions` the arm will render with. Framework packages
+	 * narrow this to their `Theme` type and render it.
+	 */
+	theme?: ExperimentArmTheme;
 	/** Lifecycle callbacks invoked as consent is fetched, set and changed. */
 	callbacks?: Pick<
 		Callbacks,
-		'onChoiceRecorded' | 'onPermissionsChanged' | 'onError'
+		| 'onChoiceRecorded'
+		| 'onPermissionsChanged'
+		| 'onSurfaceShown'
+		| 'onError'
+		| 'onBeforeConsentRevocationReload'
 	>;
 	/** Consent-gated scripts the loader mounts as categories are granted. */
 	scripts?: Script[];
@@ -236,7 +290,9 @@ export interface ConsentRuntimeOptions {
 	createIAB?: ConsentRuntimeIABFactory;
 	/**
 	 * Storage persistence. `true`/omitted hydrates from cookie +
-	 * localStorage on start; `false` disables storage entirely.
+	 * localStorage on start and reconciles with other tabs; `false` disables
+	 * storage entirely. Pass `{ sync: false }` to keep storage but reconcile
+	 * only through {@link ConsentRuntime.reconcileStorage}.
 	 */
 	persistence?: boolean | RuntimePersistenceOptions;
 	/** Ordered policy rules evaluated by local transports. */
@@ -299,8 +355,40 @@ export interface ConsentRuntime {
 	setOverrides: (overrides: KernelOverrides) => void;
 	/**
 	 * Re-run `kernel.commands.init()` and evaluate the current records. A no-op when `enabled` is `false`.
+	 *
+	 * Does not read storage. Use {@link ConsentRuntime.reconcileStorage} for
+	 * records another runtime changed.
 	 */
 	reinit: () => Promise<void>;
+	/**
+	 * Read stored consent records again and apply what another runtime
+	 * changed, such as a denial saved or records cleared in another tab.
+	 *
+	 * With persistence on, the runtime already does this when another tab
+	 * changes c15t's localStorage keys, when the page becomes visible and
+	 * when the window regains focus (see `persistence.sync`). Call it
+	 * yourself after a change no browser event reports: a second runtime
+	 * on the same page, or cookies rewritten without a localStorage change.
+	 *
+	 * This runtime's queued writes land first. Category decisions then
+	 * merge per category, keeping the newer decision for each; a stored
+	 * notice or vendor record replaces the in-memory one unless it is older.
+	 * A record removed from storage since this runtime last read or wrote it
+	 * is cleared so the active policy applies, and unreadable storage
+	 * changes nothing. Subscribers are notified once when anything changed.
+	 *
+	 * @returns Whether any in-memory record changed. `false` before
+	 * {@link ConsentRuntime.start}, after {@link ConsentRuntime.dispose}, and
+	 * when persistence is off or the runtime is disabled.
+	 *
+	 * @example
+	 * ```ts
+	 * // The response sets the consent cookie; no browser event reports it.
+	 * await fetch('/account/restore-consent', { method: 'POST' });
+	 * runtime.reconcileStorage();
+	 * ```
+	 */
+	reconcileStorage: () => boolean;
 	/** Replace configured categories; retain categories discovered from integrations. */
 	setConsentCategories: (categories: AllConsentNames[]) => void;
 	/**

@@ -8,11 +8,10 @@
  * re-parses the same headers and the same cookie. This runs that work once and
  * publishes it on `event.locals.c15t`.
  */
-import type { KernelConfig } from '@c15t/core';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 import type { Handle } from '@sveltejs/kit';
 
-import { readInitialConsentConfig } from '../server';
+import { resolveConsent } from '../server';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
 /** Options for {@link c15tHandle}. */
@@ -94,7 +93,7 @@ export const c15tHandle = function c15tHandle(
 		});
 		normalizeRequestHeaders(headers, inputs);
 
-		const config: KernelConfig = await readInitialConsentConfig({
+		const config = await resolveConsent({
 			cookieName: options.cookieName,
 			country: inputs.country,
 			headers,

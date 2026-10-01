@@ -6,15 +6,15 @@ group: integrations
 
 ## Register the container
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 ```ts title="src/consent-scripts.ts"
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 
 export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 ```
@@ -196,7 +196,7 @@ clientEntrypoint: fileURLToPath(new URL('./src/c15t.client.ts', import.meta.url)
 Export the scripts from that module:
 
 ```ts title="src/c15t.client.ts"
-import type { C15tClientOptionsExtension } from '@c15t/astro';
+import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { scripts } from './consent-scripts';
 
 export default { scripts } satisfies C15tClientOptionsExtension;
@@ -271,6 +271,27 @@ Call `loader.dispose()` when that application instance is destroyed.
 `kernel` is the hosted kernel from your quickstart. A provider-owned kernel
 already has a loader; do not attach a second one. See
 [JavaScript script loading](../frameworks/javascript/script-loader.md).
+
+**React Native**
+
+There is no script loader to register. `@c15t/integrations` loads browser
+documents, and a React Native app has none: the consent kernel runs natively
+and the vendor ships as a native or JavaScript module you start yourself.
+
+Gate the vendor where you start it, so the module never initialises without
+permission:
+
+```tsx
+import { ConsentGate } from '@c15t/react-native';
+
+export function VendorInit() {
+  return <ConsentGate category="measurement">{() => <VendorSDK />}</ConsentGate>;
+}
+```
+
+An SDK you start outside React reads the same snapshot natively and has to
+check it there too. See
+[React Native setup](https://c15t.com/docs/frameworks/react-native/quickstart).
 
 ## Consent Mode is not a zero-request gate
 

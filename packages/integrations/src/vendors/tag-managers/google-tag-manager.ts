@@ -1,0 +1,160 @@
+import type { Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { runtimeTimestampValue, vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import {
+	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	withOptionalConsentMapping,
+} from '../_shared/google-consent';
+
+// Extended Window interface to include GTM-specific properties
+declare global {
+	interface Window {
+		dataLayer: unknown[];
+		gtag: (...args: unknown[]) => void;
+	}
+}
+
+/**
+ * Google Tag Manager vendor manifest.
+ *
+ * Defines GTM as a declarative integration:
+ * - Initializes dataLayer and gtag function before the container loads
+ * - Maps c15t consent categories to Google Consent Mode v2 types
+ * - Signals consent state via `gtag('consent', 'default'|'update', ...)`
+ */
+export const googleTagManagerManifest = {
+	...vendorManifestContract,
+	alwaysLoad: true,
+	bootstrap: [
+		{
+			ifUndefined: true,
+
+			name: 'dataLayer',
+			type: 'setGlobal',
+			value: [],
+		},
+		{
+			ifUndefined: true,
+
+			name: 'gtag',
+			queue: 'dataLayer',
+			type: 'defineQueueFunction',
+		},
+	],
+	category: 'necessary',
+	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	consentSignal: 'gtag',
+	install: [
+		{
+			queue: 'dataLayer',
+			type: 'pushToQueue',
+			value: {
+				event: 'gtm.js',
+
+				'gtm.start': runtimeTimestampValue,
+			},
+		},
+		{
+			async: true,
+
+			src: 'https://www.googletagmanager.com/gtm.js?id={{id}}',
+			type: 'loadScript',
+		},
+	],
+	onConsentChange: [
+		{
+			args: ['event', '{{updateEventName}}'],
+
+			global: 'gtag',
+			type: 'callGlobal',
+		},
+	],
+	vendor: 'google-tag-manager',
+} as const satisfies VendorManifest;
+
+export interface GoogleTagManagerOptions {
+	/** Container queue name. Defaults to dataLayer. */
+	dataLayer?: string;
+	/**
+	 * Your Google Tag Manager container ID. Begins with 'GTM-'.
+	 * @example `GTM-1234XXX`
+	 */
+	id: string;
+
+	/**
+	 * Custom event name fired after consent updates.
+	 * Can be used as a trigger in GTM to load scripts once consent is updated.
+	 *
+	 * @default 'consent-update'
+	 */
+	updateEventName?: string;
+
+	/**
+	 * Custom mapping from c15t consent categories to Google Consent Mode v2 types.
+	 * Overrides the default mapping when provided.
+	 *
+	 * @default
+	 * ```ts
+	 * {
+	 *   necessary: ['security_storage'],
+	 *   functionality: ['functionality_storage'],
+	 *   measurement: ['analytics_storage'],
+	 *   marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+	 *   experience: ['personalization_storage'],
+	 * }
+	 * ```
+	 */
+	consentMapping?: Record<string, string[]>;
+}
+
+/**
+ * Creates a Google Tag Manager script.
+ * GTM can be used for managing the consent of other scripts via Google Tag Manager consent mode.
+ * We recommend using c15t's script loader instead so your script logic is centralised.
+ *
+ * @param options - The options for the Google Tag Manager script.
+ * @returns The Google Tag Manager script.
+ */
+export const googleTagManager = function googleTagManager({
+	id,
+	dataLayer = 'dataLayer',
+	updateEventName,
+	consentMapping,
+}: GoogleTagManagerOptions): Script {
+	let manifest: VendorManifest = withOptionalConsentMapping(
+		googleTagManagerManifest,
+		consentMapping
+	);
+
+	if (dataLayer !== 'dataLayer') {
+		// Manifest values are JSON; substitute only exact queue/signal tokens.
+		manifest = JSON.parse(
+			JSON.stringify(manifest)
+				.replace(/"(?:dataLayer|gtag)"/gu, (token) =>
+					JSON.stringify(
+						token === '"dataLayer"' ? dataLayer : `${dataLayer}Gtag`
+					)
+				)
+				.replace(
+					'gtm.js?id={{id}}',
+					`gtm.js?id={{id}}&l=${encodeURIComponent(dataLayer)}`
+				)
+		);
+		manifest = {
+			...manifest,
+			consentSignal: 'gtag',
+			consentSignalTarget: `${dataLayer}Gtag`,
+		};
+	}
+	const resolved = resolveManifest(manifest, {
+		id,
+		updateEventName: updateEventName ?? 'consent-update',
+	});
+
+	return {
+		...resolved,
+		attributes: { ...resolved.attributes, 'data-c15t-layer': dataLayer },
+	};
+};

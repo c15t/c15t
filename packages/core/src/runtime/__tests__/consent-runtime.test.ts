@@ -6,6 +6,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { holdNetworkRequests } from '../../modules/network-blocker/hold';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
@@ -296,6 +297,24 @@ describe('createConsentRuntime', () => {
 		runtime.dispose();
 	});
 
+	test('`start()` with a resolved prefetch still records the first impression', () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			prefetch: RESOLVED_PREFETCH,
+		});
+		const shown: string[] = [];
+		runtime.kernel.events.on('surface:shown', (event) =>
+			shown.push(event.surface)
+		);
+
+		runtime.start();
+
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		expect(shown).toEqual(['banner']);
+		expect(runtime.kernel.getSnapshot().surfaceShownAt.banner).not.toBeNull();
+		runtime.dispose();
+	});
+
 	test('`start()` skips init when the prefetch already resolved the policy', async () => {
 		const transport = createTransport();
 		const runtime = createConsentRuntime({
@@ -531,6 +550,72 @@ describe('createConsentRuntime', () => {
 		expect(runtime.started).toBe(false);
 	});
 
+	test('holds network-blocker requests from construction until `start()` decides them', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			// A component that mounts before the host calls `start()`.
+			const early = window.fetch('https://tracker.example/collect');
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(original).not.toHaveBeenCalled();
+
+			runtime.start();
+
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			runtime.dispose();
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('a runtime disposed before `start()` fails its held requests closed', async () => {
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			let settled = false;
+			const early = window
+				.fetch('https://tracker.example/collect')
+				.finally(() => {
+					settled = true;
+				});
+			await new Promise<void>((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(settled).toBe(false);
+
+			runtime.dispose();
+
+			// Nothing checked consent for the held request, so it is answered
+			// as blocked rather than sent, and it does not hang.
+			expect((await early).status).toBe(451);
+			expect(original).not.toHaveBeenCalled();
+			// The hold is gone: nothing waits from here on.
+			expect(window.fetch).toBe(original);
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('forwards `i18n` messages into the kernel translations', () => {
 		const runtime = createConsentRuntime({
 			i18n: {
@@ -609,5 +694,130 @@ describe('windowDebug', () => {
 
 		runtime.dispose();
 		expect((window as DebugWindow).c15t).toBe(owned);
+	});
+});
+
+describe('the runtime network hold', () => {
+	const settles = (request: Promise<Response>) => {
+		const state = { settled: false };
+		void request.finally(() => {
+			state.settled = true;
+		});
+		return state;
+	};
+	const tick = () =>
+		new Promise<void>((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+	test("disposing before `start()` fails only this runtime's held requests closed", async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = network as unknown as typeof window.fetch;
+		// Another caller, such as a component, holds its own rules.
+		const other = holdNetworkRequests([
+			{ category: 'marketing', domain: 'ads.example' },
+		]);
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			const own = window.fetch('https://tracker.example/collect');
+			const ads = settles(window.fetch('https://ads.example/pixel'));
+			await tick();
+
+			runtime.dispose();
+
+			// Nothing checked consent for it: answered as blocked, not sent.
+			expect((await own).status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
+			await tick();
+			expect(ads.settled).toBe(false);
+		} finally {
+			other.release()();
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('a disabled blocker leaves other callers holding', async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = network as unknown as typeof window.fetch;
+		const other = holdNetworkRequests([
+			{ category: 'marketing', domain: 'ads.example' },
+		]);
+		try {
+			const runtime = createConsentRuntime({
+				mode: custom(createTransport()),
+				networkBlocker: {
+					enabled: false,
+					rules: [{ category: 'marketing', domain: 'ads.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			});
+			const ads = settles(window.fetch('https://ads.example/pixel'));
+			await tick();
+
+			runtime.start();
+			await tick();
+
+			// The disabled blocker's pass-through would send it unchecked.
+			expect(ads.settled).toBe(false);
+			expect(network).not.toHaveBeenCalledWith(
+				'https://ads.example/pixel',
+				undefined
+			);
+			runtime.dispose();
+		} finally {
+			other.release()();
+			window.fetch = nativeFetch;
+		}
+	});
+});
+
+describe('revocation reload', () => {
+	const revoke = async function revoke(
+		options: { reloadOnConsentRevoked?: boolean } = {}
+	) {
+		vi.useFakeTimers();
+		const reload = vi.fn();
+		vi.spyOn(window, 'location', 'get').mockReturnValue({
+			reload,
+		} as unknown as Location);
+		const onBeforeConsentRevocationReload = vi.fn();
+		const runtime = createConsentRuntime({
+			callbacks: { onBeforeConsentRevocationReload },
+			mode: custom(createTransport()),
+			prefetch: RESOLVED_PREFETCH,
+			...options,
+		});
+		const settle = async (saving: Promise<unknown>) => {
+			await vi.advanceTimersByTimeAsync(10);
+			await saving;
+			await vi.advanceTimersByTimeAsync(10);
+		};
+		await settle(runtime.kernel.commands.save({ marketing: true }));
+		await settle(runtime.kernel.commands.save({ marketing: false }));
+		runtime.dispose();
+		vi.useRealTimers();
+		return { onBeforeConsentRevocationReload, reload };
+	};
+
+	test('reloads by default after an explicit revocation', async () => {
+		const { onBeforeConsentRevocationReload, reload } = await revoke();
+		expect(onBeforeConsentRevocationReload).toHaveBeenCalledOnce();
+		expect(reload).toHaveBeenCalledOnce();
+	});
+
+	test('honours `reloadOnConsentRevoked: false`', async () => {
+		const { onBeforeConsentRevocationReload, reload } = await revoke({
+			reloadOnConsentRevoked: false,
+		});
+		expect(onBeforeConsentRevocationReload).not.toHaveBeenCalled();
+		expect(reload).not.toHaveBeenCalled();
 	});
 });

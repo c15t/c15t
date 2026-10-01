@@ -6,10 +6,10 @@ group: integrations
 
 ## Register the messenger
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { intercom } from '@c15t/scripts/intercom';
+import { intercom } from '@c15t/integrations/intercom';
 
 export const scripts = [intercom({ appId: 'your-app-id' })];
 ```

@@ -49,7 +49,7 @@ import {
 	validateStoredConsentEnvelope,
 } from '../../../core/src/modules/persistence/record-codec';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
-import { gtag } from '../../../scripts/src/vendors/analytics/google-tag';
+import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import { ConsentGate } from '../components/consent-gate';
 import { ConsentDialog } from '../components/panel';
 import { ConsentDialogLink } from '../components/panel-link';
@@ -99,10 +99,6 @@ const storageBytes = (): PolicyStorageBytes => ({
 	notice: {
 		cookie: cookieValue(`${keys.consent}-notice`),
 		localStorage: localStorage.getItem(`${keys.consent}-notice`),
-	},
-	privacy: {
-		cookie: cookieValue(`${keys.consent}-privacy`),
-		localStorage: localStorage.getItem(`${keys.consent}-privacy`),
 	},
 });
 const prepare = (input: ScenarioPolicy): PolicyResolution => {
@@ -238,8 +234,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 	let networkCompletions = 0;
 	const events: { name: string; payload: unknown }[] = [];
 	const callbacks: { name: string; payload: unknown }[] = [];
-	const requests: { kind: 'consent' | 'privacy' | 'init'; payload: unknown }[] =
-		[];
+	const requests: { kind: 'consent' | 'init'; payload: unknown }[] = [];
 	const diagnostics: string[] = [];
 	const logs = (): PolicyLogs => ({
 		callbacks: [...callbacks],
@@ -265,7 +260,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		keys.consent,
 		legacyKey,
 		`${keys.consent}-notice`,
-		`${keys.consent}-privacy`,
+		// A clear's epoch outlives it and would void the next seed's records.
+		keys.epoch,
 	]) {
 		localStorage.removeItem(key);
 		document.cookie = `${key}=; Max-Age=0; Path=/`;
@@ -330,7 +326,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 				'choice:recorded',
 				'permissions:changed',
 				'notice:dismissed',
-				'privacy:opt-out',
 			].map((name) =>
 				current.events.on(name as 'choice:recorded', (payload) => {
 					const { type: _type, ...eventPayload } = payload;
@@ -429,13 +424,6 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 							return failTransport
 								? Promise.reject(new Error('transport failed'))
 								: Promise.resolve(response);
-						},
-						recordPrivacyOptOut: (directive, subjectId) => {
-							requests.push({
-								kind: 'privacy',
-								payload: { directive, subjectId },
-							});
-							return Promise.resolve();
 						},
 						save: (payload) => {
 							requests.push({ kind: 'consent', payload });

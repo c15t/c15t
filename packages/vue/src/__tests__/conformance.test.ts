@@ -238,7 +238,7 @@ const buildInitOutput = function buildInitOutput(
 	// The same-origin init route ships the vendor list for IAB policies,
 	// and the Nuxt plugin hands that payload to the server render.
 	if (isIabComponent(opts.component)) {
-		init.gvl = MINIMAL_GVL as unknown as GlobalVendorList;
+		init.gvl = (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList;
 	}
 	return init;
 };
@@ -267,7 +267,7 @@ const buildKernelConfig = function buildKernelConfig(
 		base.initialIab = {
 			cmpId: IAB_FIXTURE_CMP_ID,
 			enabled: true,
-			gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+			gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
 		};
 	}
 	if (initMode === 'authoritative') {
@@ -749,6 +749,68 @@ test.each(['accept', 'reject', 'save'])(
 		await vi.waitFor(() =>
 			expect(context.kernel.getSnapshot().iab?.authority?.tcString).toBeTruthy()
 		);
+	}
+);
+
+test.each(
+	(['iab-consent-banner', 'iab-consent-dialog'] as const).flatMap((component) =>
+		(['accept', 'reject'] as const).flatMap((action) =>
+			(['pending', 'rejected'] as const).map(
+				(outcome) => [component, action, outcome] as const
+			)
+		)
+	)
+)(
+	'closes %s on %s before a %s save settles',
+	async (component, action, outcome) => {
+		localStorage.clear();
+		const opts: MountOptions = { component };
+		const { context, config, options } = createContext(opts);
+		onTestFinished(() => context.dispose());
+		context.kernel.set.iab({ enabled: true, gvl: completeGVL });
+		const handle = createIAB({ cmpId: 28, kernel: context.kernel });
+		onTestFinished(() => handle.dispose());
+		await handle.whenReady();
+		// The handle records the choice locally, then the backend never
+		// answers or fails.
+		const save = vi.fn(async () => {
+			await handle.save();
+			if (outcome === 'rejected') {
+				throw new Error('offline');
+			}
+			await Promise.withResolvers<never>().promise;
+		});
+		context.iab = { ...handle, save };
+		const container = document.createElement('div');
+		onTestFinished(() => container.remove());
+		document.body.append(container);
+		const app = createApp(createHarness(opts, options, context));
+		onTestFinished(() => app.unmount());
+		provideContext(app, context, config);
+		app.mount(container);
+		const surface = component === 'iab-consent-banner' ? 'banner' : 'dialog';
+		const button = () =>
+			document.querySelector<HTMLButtonElement>(
+				surface === 'banner'
+					? `[data-testid="iab-consent-banner-${action}-button"]`
+					: `[data-testid="iab-consent-dialog-root"] [data-action="${action}"]`
+			);
+		await vi.waitFor(() => {
+			expect(button()).not.toBeNull();
+			expect(button()?.disabled).toBe(false);
+		});
+		button()?.click();
+		expect(context.kernel.getSnapshot().activeUI).toBe('none');
+		const before = context.kernel.getSnapshot().iab?.authority;
+		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+		await vi.waitFor(() =>
+			expect(context.kernel.getSnapshot().iab?.authority).not.toBe(before)
+		);
+		await flushScheduler();
+		expect(context.kernel.getSnapshot().activeUI).toBe('none');
+		expect(
+			document.querySelector(`[data-testid="iab-consent-${surface}-card"]`)
+		).toBeNull();
 	}
 );
 

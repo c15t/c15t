@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/ui",
-	"version": "3.0.0-alpha.2",
+	"version": "3.0.0-alpha.3",
 	"description": "Framework-agnostic primitives, CSS, and theme system powering c15t consent UIs (React, Solid, Svelte, Vue).",
 	"keywords": [
 		"c15t",
@@ -35,11 +35,16 @@
 		"src/styles",
 		"!src/styles/**/__tests__/**",
 		"!src/styles/**/*.test.ts",
+		"!src/primitives/**/__tests__/**",
+		"!src/primitives/**/*.test.ts",
+		"!dist-types/**/__tests__/**",
+		"!types/**/__tests__/**",
 		"types"
 	],
 	"type": "module",
 	"sideEffects": [
-		"**/*.css"
+		"**/*.css",
+		"./dist/styles/dialog.js"
 	],
 	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
@@ -48,6 +53,14 @@
 		"./styles.tw3.css": "./dist/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",
 		"./iab/styles.tw3.css": "./dist/iab/styles.tw3.css",
+		"./styles/dialog.css": "./dist/styles/dialog.css",
+		"./styles/dialog": {
+			"types": "./dist/styles/dialog.d.ts",
+			"node": "./dist/styles/dialog.node.js",
+			"import": "./dist/styles/dialog.js",
+			"default": "./dist/styles/dialog.js"
+		},
+		"./styles/primitives.css": "./dist/styles/primitives.css",
 		"./postcss-tailwind3": {
 			"types": "./dist-types/postcss-tailwind3.d.ts",
 			"import": "./dist/postcss-tailwind3.js",

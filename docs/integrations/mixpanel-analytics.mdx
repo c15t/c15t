@@ -8,10 +8,10 @@ group: integrations
 
 Replace the example with your 32-character hexadecimal Mixpanel project token. The helper initializes the default Mixpanel instance; named instances and `people.*` queue helpers are outside its contract.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { mixpanelAnalytics } from '@c15t/scripts/mixpanel-analytics';
+import { mixpanelAnalytics } from '@c15t/integrations/mixpanel-analytics';
 
 export const scripts = [mixpanelAnalytics({
     token: '0123456789abcdef0123456789abcdef',

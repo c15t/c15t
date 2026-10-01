@@ -51,6 +51,13 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	/** Per-vendor grants this submission carried, in wire form, stored as sent. */
 	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly metadata?: unknown;
+	/**
+	 * Experiment attribution, projected out of `metadata` onto real columns so
+	 * the summary can group on them. `metadata` still holds the full object.
+	 */
+	readonly experimentId?: string | null;
+	readonly experimentArm?: string | null;
+	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress?: string | null;
 	readonly userAgent?: string | null;
 	readonly jurisdiction?: string | null;
@@ -332,6 +339,44 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	}
 );
 
+/** The column values one submission writes, absent fields as SQL NULL. */
+const rowValues = (
+	id: string,
+	submission: ConsentSubmission
+): Record<string, unknown> => ({
+	choice:
+		submission.choice === undefined || submission.choice === null
+			? null
+			: JSON.stringify(submission.choice),
+	consentAction: submission.consentAction ?? null,
+	domainId: submission.domainId,
+	experimentArm: submission.experimentArm ?? null,
+	experimentId: submission.experimentId ?? null,
+	givenAt: submission.givenAt,
+	id,
+	ipAddress: submission.ipAddress ?? null,
+	jurisdiction: submission.jurisdiction ?? null,
+	jurisdictionModel: submission.jurisdictionModel ?? null,
+	metadata:
+		submission.metadata === undefined
+			? null
+			: JSON.stringify(submission.metadata),
+	policyId: submission.policyId ?? null,
+	purposeIds: JSON.stringify(submission.purposeIds),
+	runtimePolicySource: submission.runtimePolicySource ?? null,
+	subjectId: submission.subjectId,
+	tcString: submission.tcString ?? null,
+	tenantId: submission.tenantId ?? null,
+	timeToDecisionMs: submission.timeToDecisionMs ?? null,
+	uiSource: submission.uiSource ?? null,
+	userAgent: submission.userAgent ?? null,
+	validUntil: submission.validUntil ?? null,
+	vendorChoice:
+		submission.vendorChoice === undefined || submission.vendorChoice === null
+			? null
+			: JSON.stringify(submission.vendorChoice),
+});
+
 export const record = Effect.fn('consent.record')(function* record(
 	submission: ConsentSubmission
 ): Generator<
@@ -390,37 +435,7 @@ export const record = Effect.fn('consent.record')(function* record(
 	const created = yield* insertOnce({
 		conflictOn: 'id',
 		into: 'consent',
-		values: {
-			choice:
-				submission.choice === undefined || submission.choice === null
-					? null
-					: JSON.stringify(submission.choice),
-			consentAction: submission.consentAction ?? null,
-			domainId: submission.domainId,
-			givenAt: submission.givenAt,
-			id,
-			ipAddress: submission.ipAddress ?? null,
-			jurisdiction: submission.jurisdiction ?? null,
-			jurisdictionModel: submission.jurisdictionModel ?? null,
-			metadata:
-				submission.metadata === undefined
-					? null
-					: JSON.stringify(submission.metadata),
-			policyId: submission.policyId ?? null,
-			purposeIds: JSON.stringify(submission.purposeIds),
-			runtimePolicySource: submission.runtimePolicySource ?? null,
-			subjectId: submission.subjectId,
-			tcString: submission.tcString ?? null,
-			tenantId: submission.tenantId ?? null,
-			uiSource: submission.uiSource ?? null,
-			userAgent: submission.userAgent ?? null,
-			validUntil: submission.validUntil ?? null,
-			vendorChoice:
-				submission.vendorChoice === undefined ||
-				submission.vendorChoice === null
-					? null
-					: JSON.stringify(submission.vendorChoice),
-		},
+		values: rowValues(id, submission),
 	});
 
 	if (created) {

@@ -100,7 +100,7 @@ const program = ts.createProgram(generatedFiles, {
  paths: {
  '#app': [${JSON.stringify(resolve(packageRoot, 'node_modules/nuxt/dist/app/index.d.ts'))}],
  '@c15t/vue/vue-plugin': [${JSON.stringify(resolve(packageRoot, 'src/index.ts'))}],
- '@c15t/scripts/segment': [${JSON.stringify(resolve(packageRoot, '../scripts/src/vendors/analytics/segment.ts'))}],
+ '@c15t/integrations/segment': [${JSON.stringify(resolve(packageRoot, '../integrations/src/vendors/analytics/segment.ts'))}],
  },
 });
 const errors = generatedFiles.flatMap(file => program.getSemanticDiagnostics(program.getSourceFile(file)));
@@ -112,7 +112,7 @@ const server = await createServer({
   // The standalone fixture supplies Nuxt's #imports virtual while exercising the generated composables alias.
   { find: '#imports', replacement: ${JSON.stringify(resolve(packageRoot, 'src/runtime/vue/stubs.ts'))} },
   { find: '#c15t/composables', replacement: ${JSON.stringify(resolve(packageRoot, framework === 'nuxt' ? 'src/index.ts' : 'src/runtime/composables/index.ts'))} },
-  { find: '@c15t/scripts/segment', replacement: ${JSON.stringify(resolve(packageRoot, '../scripts/src/vendors/analytics/segment.ts'))} },
+  { find: '@c15t/integrations/segment', replacement: ${JSON.stringify(resolve(packageRoot, '../integrations/src/vendors/analytics/segment.ts'))} },
   { find: '@c15t/vue/vue-plugin', replacement: ${JSON.stringify(resolve(packageRoot, 'src/index.ts'))} },
   { find: '@c15t/vue/consent-root', replacement: ${JSON.stringify(resolve(packageRoot, 'src/runtime/components/consent-root.vue'))} },
  ] },

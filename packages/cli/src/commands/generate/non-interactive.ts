@@ -19,6 +19,7 @@ import {
 	saveGenerationJournal,
 	clearGenerationJournal,
 } from '../../machines/generate/journal';
+import { needsTailwind3PostcssPlugin } from '../shared/postcss-config';
 import { planGenerateFiles } from './options/utils/generate-files';
 import type { GenerateMode } from './options/utils/generate-files';
 import type { UIStyle, ExpandedTheme } from './prompts';
@@ -292,10 +293,13 @@ export const generateWithoutPrompts = async (
 	const backendURL = await resolveBackendURL(context, mode);
 	const dependencies = ['c15t'];
 	if (selectedScripts.length) {
-		dependencies.push('@c15t/scripts');
+		dependencies.push('@c15t/integrations');
 	}
 	if (flags.devtools && framework.pkg === 'c15t') {
 		dependencies.push('@c15t/dev-tools');
+	}
+	if (needsTailwind3PostcssPlugin(framework)) {
+		dependencies.push('@c15t/ui');
 	}
 	const { missing: missingDependencies } = await checkInstalledDependencies({
 		dependencies,

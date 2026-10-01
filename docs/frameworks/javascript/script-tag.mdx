@@ -37,7 +37,7 @@ Every attribute is optional.
 | `data-backend-url` | Backend origin. Selects hosted mode. |
 | `data-mode` | `hosted`, `offline`, or `manifest`. Inferred when omitted. |
 | `data-manifest-url` | URL to fetch a consent manifest. Include `data-backend-url` when this is not the backend's `/manifest` endpoint. |
-| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the entire policy scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
+| `data-categories` | Comma-separated categories to offer: `functionality`, `experience`, `measurement`, `marketing`. Omit it to display the categories of gated scripts; with none, a permissive policy displays only Necessary and a strict one its entire scope. This filters the UI, not the policy; undisplayed categories may leave a choice prompt incomplete. |
 | `data-policy-rules` | Comma-separated policy presets for offline mode: `europeOptIn`, `usPrivacyStatesOptOut`, `quebecOptIn`, `worldNone`. Resolved by the visitor's country. |
 | `data-language` | Force a language instead of reading the browser's. |
 | `data-country`, `data-region` | Known location, when your host injects it. |
@@ -159,7 +159,7 @@ Queue `config` and `on` before the tag loads. Call action methods after initiali
 
 Queued event listeners attach before the client starts, so consent listeners receive startup events when the client restores saved choices. `on()` returns an unsubscribe function that also works before initialization. Disposal removes the current client's listeners; register new listeners after `dispose()` to observe the next client.
 
-The same events fire on `document` as `c15t:ready`, `c15t:consent`, `c15t:ui`, and `c15t:error`, with the payload in `event.detail`.
+The same events fire on `document` as `c15t:ready`, `c15t:consent`, `c15t:ui`, `c15t:surfaceShown`, and `c15t:error`, with the payload in `event.detail`. `surfaceShown` fires when the banner or the dialog becomes visible, with `{ surface, shownAt, snapshot }`; count it as an impression.
 
 ## Headless
 
@@ -204,6 +204,19 @@ For an ordinary page stylesheet, configure `ui: { shadow: false }` before loadin
   border: 3px solid #0a66ff;
 }
 ```
+
+In the page, the stylesheet's rules sit in `@layer components`. Any CSS on
+the page outside a layer beats them whatever its specificity, including a
+theme's global `button {}` rule and Tailwind 3's preflight, which removes the
+button padding and card borders. Keep the default shadow root on those sites.
+If you import `@c15t/browser/styles.css` through a bundler that runs Tailwind
+3, install `@c15t/ui` as a direct dependency and add
+`@c15t/ui/postcss-tailwind3` before `tailwindcss` in your PostCSS plugins,
+using the object form: `{ '@c15t/ui/postcss-tailwind3': {}, tailwindcss: {} }`.
+PostCSS resolves the plugin from your app, so under pnpm the copy nested in
+`@c15t/browser` is not enough. Without the plugin, Tailwind 3 drops those
+rules without an error, and only the layered copy `c15t.js` injects remains,
+which preflight overrides.
 
 For layout, pass host presentation separately from the policy:
 
@@ -367,6 +380,8 @@ if (cmp) {
 ### Purpose and partner choices
 
 In the stock preference centre, changing a purpose's consent also changes consent for the partners that use that purpose on a consent basis. Its legitimate-interest control changes the purpose and its legitimate-interest partners separately. Turning that control off records an objection; it does not change consent-based choices.
+
+Special purposes appear in a locked section with no consent control. Features appear in their own section after it, under the IAB standard text for features, with their illustrations and the names of the partners that use them. That section has no controls, because TCF forbids showing features next to a control that cannot be disabled.
 
 Each stack has a group control for its purposes and consent-based partners. The control exposes a mixed state when only some purposes are selected. Special-feature controls update the feature opt-in and its associated consent partners without changing the same-numbered purpose. Partners shared by several purposes have one vendor-wide consent value.
 

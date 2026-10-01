@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/core",
-	"version": "3.0.0-alpha.2",
+	"version": "3.0.0-alpha.3",
 	"description": "Headless JavaScript consent management platform for cookie banners, privacy preferences, consent storage, and script gating.",
 	"keywords": [
 		"ccpa",
@@ -63,6 +63,16 @@
 			"import": "./dist/consent-record.js",
 			"default": "./dist/consent-record.js"
 		},
+		"./experiment": {
+			"types": "./dist-types/experiment.d.ts",
+			"import": "./dist/experiment.js",
+			"default": "./dist/experiment.js"
+		},
+		"./consent-categories": {
+			"types": "./dist-types/consent-record/types.d.ts",
+			"import": "./dist/consent-categories.js",
+			"default": "./dist/consent-categories.js"
+		},
 		"./transports": {
 			"types": "./dist-types/transports/index.d.ts",
 			"import": "./dist/transports.js",
@@ -103,6 +113,11 @@
 			"import": "./dist/network-blocker.js",
 			"default": "./dist/network-blocker.js"
 		},
+		"./modules/network-hold": {
+			"types": "./dist-types/modules/network-blocker/hold.d.ts",
+			"import": "./dist/network-hold.js",
+			"default": "./dist/network-hold.js"
+		},
 		"./modules/iframe-blocker": {
 			"types": "./dist-types/modules/iframe-blocker/index.d.ts",
 			"import": "./dist/iframe-blocker.js",
@@ -127,6 +142,11 @@
 			"types": "./dist-types/runtime/index.d.ts",
 			"import": "./dist/runtime.js",
 			"default": "./dist/runtime.js"
+		},
+		"./runtime/controls": {
+			"types": "./dist-types/runtime/controls.d.ts",
+			"import": "./dist/runtime/controls.js",
+			"default": "./dist/runtime/controls.js"
 		}
 	},
 	"publishConfig": {

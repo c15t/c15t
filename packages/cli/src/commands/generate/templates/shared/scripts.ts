@@ -8,7 +8,7 @@
  * Code-generation snippet for one built-in script integration.
  */
 interface ScriptSnippet {
-	/** Named export of the `@c15t/scripts/<subpath>` module. */
+	/** Named export of the `@c15t/integrations/<subpath>` module. */
 	importName: string;
 	/** Example call with the vendor's real required options. */
 	example: string;
@@ -69,6 +69,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "fathomAnalytics({ site: 'YOUR_SITE_ID' })",
 		importName: 'fathomAnalytics',
 	},
+	'front-chat': {
+		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
+		importName: 'frontChat',
+	},
 	'google-tag': {
 		example: "gtag({ id: 'G-XXXXXXXXXX', category: 'measurement' })",
 		importName: 'gtag',
@@ -122,9 +126,17 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "mixpanelAnalytics({ token: 'YOUR_32_CHAR_PROJECT_TOKEN' })",
 		importName: 'mixpanelAnalytics',
 	},
+	'one-dollar-stats': {
+		example: 'oneDollarStats()',
+		importName: 'oneDollarStats',
+	},
 	'openai-pixel': {
 		example: "openaiPixel({ pixelId: 'YOUR_PIXEL_ID' })",
 		importName: 'openaiPixel',
+	},
+	'pinterest-tag': {
+		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
+		importName: 'pinterestTag',
 	},
 	pirsch: {
 		example: "pirsch({ identificationCode: 'YOUR_IDENTIFICATION_CODE' })",
@@ -208,7 +220,7 @@ function getSnippet(scriptName: string): ScriptSnippet {
 
 /**
  * Generates the import statements for selected scripts
- * Each script uses a subpath import from @c15t/scripts
+ * Each script uses a subpath import from @c15t/integrations
  *
  * @param selectedScripts - Array of script names to import
  * @returns The import statements string, or empty string if no scripts
@@ -217,8 +229,8 @@ function getSnippet(scriptName: string): ScriptSnippet {
  * ```ts
  * generateScriptsImport(['google-tag-manager', 'microsoft-clarity']);
  * // Returns:
- * // "import { googleTagManager } from '@c15t/scripts/google-tag-manager';
- * //  import { clarity } from '@c15t/scripts/microsoft-clarity';"
+ * // "import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+ * //  import { clarity } from '@c15t/integrations/microsoft-clarity';"
  * ```
  */
 export function generateScriptsImport(selectedScripts: string[]): string {
@@ -229,7 +241,7 @@ export function generateScriptsImport(selectedScripts: string[]): string {
 	return selectedScripts
 		.map(
 			(script) =>
-				`import { ${getSnippet(script).importName} } from '@c15t/scripts/${script}';`
+				`import { ${getSnippet(script).importName} } from '@c15t/integrations/${script}';`
 		)
 		.join('\n');
 }
@@ -285,7 +297,7 @@ export function generateScriptsArrayValue(
  */
 export function generateScriptsCommentPlaceholder(): string {
 	return `// Add your scripts here:
-				// import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+				// import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 				// scripts: [
 				//   googleTagManager({ id: 'GTM-XXXXXX' }),
 				// ],`;

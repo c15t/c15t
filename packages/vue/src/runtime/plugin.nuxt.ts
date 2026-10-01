@@ -4,6 +4,10 @@ import {
 	c15tProtocolHeaders,
 } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import {
+	CONSENT_EXPERIMENT_HEADER,
+	formatExperimentHeader,
+} from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 import { defu } from 'defu';
 import { computed } from 'vue';
@@ -27,7 +31,11 @@ import {
 	startVueConsentRuntime,
 } from './kernel';
 import type { RuntimeConsentConfig } from './kernel';
-import { resolveManifestMode } from './manifest';
+import {
+	C15T_TIMEOUT_HEADER,
+	resolveManifestMode,
+	resolveNuxtTimeoutMs,
+} from './manifest';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -58,11 +66,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const manifestMode = resolveManifestMode(config.value);
 	const initialRecords = useNuxtState('c15t:records', () =>
-		readStoredRecordsFromCookieHeader(
-			cookieHeader,
-			config.value.storageConfig,
-			Date.now()
-		)
+		config.value.consentSource
+			? undefined
+			: readStoredRecordsFromCookieHeader(
+					cookieHeader,
+					config.value.storageConfig,
+					Date.now()
+				)
 	);
 
 	const producerContract = useNuxtState<number | null | undefined>(
@@ -70,11 +80,32 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		() => undefined
 	);
 	let prefetch: InitOutput | undefined;
-	if (initFetchTarget) {
+	if (initFetchTarget && !config.value.consentSource) {
+		// The render waits at most `timeoutMs` for policy. The same-origin init
+		// route runs in-process, where an abort signal does not reach it, so it
+		// is told the budget in a header; an absolute backend `/init` is a real
+		// request and `timeout` aborts it. The browser's own request waits.
+		const timeoutMs =
+			typeof window === 'undefined'
+				? resolveNuxtTimeoutMs(config.value)
+				: undefined;
+		const budgetHeaders: Record<string, string> =
+			timeoutMs !== undefined && manifestMode === 'server'
+				? { [C15T_TIMEOUT_HEADER]: String(timeoutMs) }
+				: {};
+		// The render's `/init` is the only one this page makes, so it carries
+		// a fixed experiment arm while the visitor has no stored choice.
+		const { experiment } = config.value;
+		if (experiment?.arm !== undefined && !initialRecords.value?.choice) {
+			budgetHeaders[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader({
+				arm: experiment.arm,
+				id: experiment.id,
+			});
+		}
 		const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
 			baseURL: initFetchTarget.baseURL,
 			cache: manifestMode === 'server' ? undefined : 'no-store',
-			headers: { ...c15tProtocolHeaders, ...headers },
+			headers: { ...c15tProtocolHeaders, ...headers, ...budgetHeaders },
 			key: 'c15t:init',
 			onResponse({ response }) {
 				const value = response.headers.get(C15T_POLICY_CONTRACT_HEADER);
@@ -86,6 +117,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 					producerContract.value = null;
 				}
 			},
+			timeout: timeoutMs,
 			transform: (payload) =>
 				deferInitGvl(
 					payload,

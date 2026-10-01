@@ -6,6 +6,7 @@
  * anything.
  */
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
 import {
 	mergeDeclaredVendors,
 	sameDeclaredVendors,
@@ -22,6 +23,7 @@ import type {
 	ResolvedVendor,
 	VendorSource,
 } from '../types';
+import { normalizeExternalPermissions } from './external-permissions';
 import type { KernelRuntime } from './runtime';
 import {
 	buildDraft,
@@ -161,7 +163,7 @@ export const buildSetters = function buildSetters(
 	runtime: KernelRuntime,
 	config: KernelConfig
 ) {
-	const { getSnapshot, commit, emit } = runtime;
+	const { batch, getSnapshot, commit, emit } = runtime;
 
 	let configured = config.consentCategories
 		? [...config.consentCategories]
@@ -192,58 +194,79 @@ export const buildSetters = function buildSetters(
 
 	return {
 		activeUI(ui: KernelActiveUI): void {
-			commit({ activeUI: ui });
+			if (getSnapshot().externalPermissions) {
+				if (ui === 'dialog') {
+					runtime.emit({ type: 'preferences:requested' });
+				}
+				return;
+			}
+			// The clock travels so a surface impression is stamped at the time
+			// it opened, not at the previous evaluation.
+			commit({ activeUI: ui, now: runtime.now() });
 		},
-
 		consentCategories(
 			categories: readonly AllConsentNames[] | undefined
 		): void {
 			configured = categories ? [...categories] : [];
 			updateCategories();
 		},
-
 		draft(input: Partial<ConsentState>): void {
 			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
 		},
-
+		experiment(
+			assignment: ExperimentAssignment | null,
+			gate?: ExperimentGate
+		): void {
+			runtime.setExperiment(assignment, gate ?? null);
+		},
+		externalPermissions(permissions: Partial<ConsentState>): void {
+			if (config.initialExternalPermissions === undefined) {
+				throw new Error(
+					'Configure external consent authority before updating its permissions.'
+				);
+			}
+			commit({
+				externalPermissions: normalizeExternalPermissions(permissions),
+			});
+		},
 		iab(input: Partial<KernelIABState>): void {
 			const { next, changed } = mergeIab(getSnapshot().iab, input);
 			if (!changed) {
 				return;
 			}
-			if (commit({ iab: next })) {
-				emit({ snapshot: getSnapshot(), type: 'iab:set' });
-			}
+			batch(() => {
+				if (commit({ iab: next })) {
+					emit({ snapshot: getSnapshot(), type: 'iab:set' });
+				}
+			});
 		},
-
 		language(code: string): void {
 			const snapshot = getSnapshot();
 			if (snapshot.overrides.language === code) {
 				return;
 			}
-			commit({ overrides: { ...snapshot.overrides, language: code } });
-			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			batch(() => {
+				commit({ overrides: { ...snapshot.overrides, language: code } });
+				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			});
 		},
-
 		overrides(input: KernelOverrides): void {
 			const snapshot = getSnapshot();
 			const at = runtime.now();
-			commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
-			emit({ snapshot: getSnapshot(), type: 'overrides:set' });
-			runtime.reconcilePrivacy(at);
+			batch(() => {
+				commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
+				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
+			});
 			runtime.armDeadlineTimer();
 		},
-
 		privacySignals(input: { gpc?: boolean }): void {
 			if (input.gpc === undefined) {
 				return;
 			}
 			const at = runtime.now();
 			commit({ now: at, privacyDetected: input.gpc === true });
-			runtime.reconcilePrivacy(at);
 			runtime.armDeadlineTimer();
 		},
-
 		registerConsentCategories(categories: readonly AllConsentNames[]): void {
 			if (!categories.length) {
 				return;
@@ -257,7 +280,6 @@ export const buildSetters = function buildSetters(
 				updateCategories();
 			}
 		},
-
 		subjectId(id: string | null): void {
 			const { subject, iab } = getSnapshot();
 			const iabPatch = iab
@@ -277,11 +299,9 @@ export const buildSetters = function buildSetters(
 			}
 			commit({ subject: { ...subject, subjectId: id }, ...iabPatch });
 		},
-
 		vendorDraft(input: Record<string, boolean> | null): void {
 			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
 		},
-
 		vendors(
 			input: Partial<KernelVendorsState>,
 			options?: { replaceSource?: VendorSource }
@@ -294,9 +314,11 @@ export const buildSetters = function buildSetters(
 			if (!changed) {
 				return;
 			}
-			if (commit({ vendors: next })) {
-				emit({ snapshot: getSnapshot(), type: 'vendors:set' });
-			}
+			batch(() => {
+				if (commit({ vendors: next })) {
+					emit({ snapshot: getSnapshot(), type: 'vendors:set' });
+				}
+			});
 		},
 	};
 };

@@ -14,9 +14,17 @@ import type { PresentationAction } from '@c15t/core';
 import { vendorsListedUnder } from '@c15t/core';
 import type { CONSENT_CATEGORY } from '@c15t/core/consent-record';
 import accordionStyles from '@c15t/ui/styles/components/accordion';
+
+import '@c15t/ui/styles/components/accordion.css';
 import buttonStyles from '@c15t/ui/styles/components/button';
+
+import '@c15t/ui/styles/components/button.css';
 import actionStyles from '@c15t/ui/styles/components/consent-actions';
+
+import '@c15t/ui/styles/components/consent-actions.css';
 import managerStyles from '@c15t/ui/styles/components/consent-manager';
+
+import '@c15t/ui/styles/components/consent-manager.css';
 import { getTextDirection } from '@c15t/ui/utils/dom';
 import { computed, inject, mergeProps, ref, useId } from 'vue';
 
@@ -137,6 +145,17 @@ const isOpen = function isOpen(category: CONSENT_CATEGORY): boolean {
 	return openItems.value[category] ?? false;
 };
 
+/**
+ * Categories opened at least once. A collapsed body, with its vendor list,
+ * mounts on first open and then stays, so the close transition keeps its
+ * content. The React and Svelte primitives do the same.
+ */
+const openedItems = ref<ReadonlySet<string>>(new Set());
+
+const hasOpened = function hasOpened(category: CONSENT_CATEGORY): boolean {
+	return openedItems.value.has(category);
+};
+
 const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
 	const nextOpen = !isOpen(category);
 	openItems.value = Object.fromEntries(
@@ -145,6 +164,9 @@ const toggleOpenItem = function toggleOpenItem(category: CONSENT_CATEGORY) {
 			nextOpen && current === category,
 		])
 	);
+	if (nextOpen && !hasOpened(category)) {
+		openedItems.value = new Set([...openedItems.value, category]);
+	}
 };
 
 const toggleConsent = function toggleConsent(category: CONSENT_CATEGORY) {
@@ -288,8 +310,8 @@ const onAction = async function onAction(action: PresentationAction) {
 								stroke-linejoin="round"
 								stroke-width="2"
 								viewBox="0 0 24 24"
+								aria-hidden="true"
 							>
-								<title>{{ isOpen(category) ? 'Close' : 'Open' }}</title>
 								<path :d="isOpen(category) ? 'M5 12h14' : 'M5 12h14M12 5v14'" />
 							</svg>
 						</div>
@@ -361,16 +383,18 @@ const onAction = async function onAction(action: PresentationAction) {
 							v-bind="config.components?.accordion?.contentInner"
 							data-slot="preference-item-content-inner"
 						>
-							{{ consentDescription(category) }}
-							<ConsentWidgetVendorList
-								v-if="displayedVendors(category).length > 0"
-								:category="category"
-								:category-on="draft[category] === true"
-								:granted="draftVendors"
-								:no-style="noStyle"
-								:vendors="displayedVendors(category)"
-								@toggle="setVendor"
-							/>
+							<template v-if="hasOpened(category)">
+								{{ consentDescription(category) }}
+								<ConsentWidgetVendorList
+									v-if="displayedVendors(category).length > 0"
+									:category="category"
+									:category-on="draft[category] === true"
+									:granted="draftVendors"
+									:no-style="noStyle"
+									:vendors="displayedVendors(category)"
+									@toggle="setVendor"
+								/>
+							</template>
 						</div>
 					</div>
 				</div>

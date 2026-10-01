@@ -26,7 +26,11 @@ import {
 
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
-export type { ConsentModuleOptions, ModuleOptions } from './module-options';
+export type {
+	C15tNuxtConfig,
+	ConsentModuleOptions,
+	ModuleOptions,
+} from './module-options';
 
 /**
  * The part of a Nuxt DevTools custom tab this module sends. Declared here
@@ -170,6 +174,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		}
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		if (manifestMode === 'client') {
+			// Resolves the manifest in the browser at startup: bundle the
+			// resolver with the entry so it preloads with the page.
+			addPlugin({
+				mode: 'client',
+				src: resolver.resolve('./runtime/plugin-client-manifest.nuxt'),
+			});
+		}
 
 		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {
 			addDevToolsTab(nuxt, (path) => resolver.resolve(path));
@@ -229,13 +241,15 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				'usePromptRequirement',
 				'useNoticeDismissal',
 				'usePrivacySignals',
-				'useOptOutDirectives',
 				'usePolicyRule',
 				'usePolicyResolution',
 				'useConsentRestrictions',
 				'useDismissNotice',
 				'useConsentDraft',
 				'useConsentPolicyActions',
+				'useExperiment',
+				'useResolvedPresentation',
+				'useResolvedTheme',
 
 				'useConsentIabSelection',
 				'useConsentIabSave',

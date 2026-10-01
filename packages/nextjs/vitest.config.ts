@@ -36,6 +36,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/modules/network-blocker/index.ts'
 				),
+				'@c15t/core/modules/network-hold': resolve(
+					__dirname,
+					'../core/src/modules/network-blocker/hold.ts'
+				),
 				'@c15t/core/modules/iframe-blocker': resolve(
 					__dirname,
 					'../core/src/modules/iframe-blocker/index.ts'
@@ -61,6 +65,10 @@ export default mergeConfig(
 					'../core/src/transports/index.ts'
 				),
 				'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
+				'@c15t/core/runtime/controls': resolve(
+					__dirname,
+					'../core/src/runtime/controls.ts'
+				),
 				'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),
 				'@c15t/react/iab': resolve(__dirname, '../react/dist/iab.js'),

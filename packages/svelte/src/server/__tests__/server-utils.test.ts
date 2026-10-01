@@ -5,14 +5,11 @@ import {
 /**
  * Tests for server-side utilities.
  *
- * Covers: extractRelevantHeaders, validateBackendURL, normalizeBackendURL, v3 prefetch helpers
+ * Covers: extractRelevantHeaders, validateBackendURL, normalizeBackendURL, resolveConsent
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-	prefetchInitialConsent,
-	readInitialConsentConfig,
-} from '../../lib/server';
+import { resolveConsent } from '../../lib/server';
 import { extractRelevantHeaders } from '../../lib/server/headers';
 import {
 	normalizeBackendURL,
@@ -272,19 +269,21 @@ describe('v3 server helpers', () => {
 		vi.restoreAllMocks();
 	});
 
-	test('readInitialConsentConfig returns empty records with a shared clock when no request context is present', async () => {
+	test('resolveConsent without a backendURL returns empty records with a shared clock when no request context is present', async () => {
 		const headers = new Headers({
 			'content-type': 'application/json',
 		});
-		const result = await readInitialConsentConfig({
+		const result = await resolveConsent({
+			fetch: mockFetch,
 			headers,
 		});
+		expect(mockFetch).not.toHaveBeenCalled();
 		expect(result.initialRecords?.choice).toBeNull();
 		expect(result.initialRecords?.now).toBe(result.now);
 		expect(result.initialPrivacySignals?.gpc).toBe(false);
 	});
 
-	test('readInitialConsentConfig reads geo, language, and consent cookie', async () => {
+	test('resolveConsent without a backendURL reads geo, language, and consent cookie', async () => {
 		// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
@@ -293,7 +292,7 @@ describe('v3 server helpers', () => {
 			// The persistence module's cookie — v2-compatible compact format.
 			cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1234567890',
 		});
-		const result = await readInitialConsentConfig({
+		const result = await resolveConsent({
 			headers,
 		});
 
@@ -310,11 +309,11 @@ describe('v3 server helpers', () => {
 		).toBe(1234567890);
 	});
 
-	test('prefetchInitialConsent returns base config when URL normalization fails', async () => {
+	test('resolveConsent returns the request state when URL normalization fails', async () => {
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await prefetchInitialConsent({
+		const result = await resolveConsent({
 			backendURL: '/api/consent',
 			fetch: mockFetch,
 			headers,
@@ -323,7 +322,7 @@ describe('v3 server helpers', () => {
 		expect(mockFetch).not.toHaveBeenCalled();
 	});
 
-	test('prefetchInitialConsent calls normalized URL /init', async () => {
+	test('resolveConsent calls normalized URL /init', async () => {
 		const initData = {
 			branding: 'c15t',
 			location: { countryCode: 'DE', regionCode: null },
@@ -338,7 +337,7 @@ describe('v3 server helpers', () => {
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: 'https://api.example.com',
 			fetch: mockFetch,
 			headers,
@@ -349,7 +348,7 @@ describe('v3 server helpers', () => {
 		expect(mockFetch.mock.calls[0][1].method).toBe('GET');
 	});
 
-	test('prefetchInitialConsent folds init response into KernelConfig', async () => {
+	test('resolveConsent folds the init response into the state', async () => {
 		const initData = {
 			branding: 'c15t',
 			cmpId: 123,
@@ -384,7 +383,7 @@ describe('v3 server helpers', () => {
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await prefetchInitialConsent({
+		const result = await resolveConsent({
 			backendURL: 'https://api.example.com',
 			fetch: mockFetch,
 			headers,
@@ -400,13 +399,13 @@ describe('v3 server helpers', () => {
 		expect(result).not.toHaveProperty('initialHasConsented');
 	});
 
-	test('prefetchInitialConsent returns base config on non-OK response', async () => {
+	test('resolveConsent returns the request state on non-OK response', async () => {
 		mockFetch.mockResolvedValue(new Response('Not Found', { status: 404 }));
 
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await prefetchInitialConsent({
+		const result = await resolveConsent({
 			backendURL: 'https://api.example.com',
 			fetch: mockFetch,
 			headers,
@@ -416,13 +415,13 @@ describe('v3 server helpers', () => {
 		expect(result.initialPolicyResolution).toBeUndefined();
 	});
 
-	test('prefetchInitialConsent returns base config on fetch error', async () => {
+	test('resolveConsent returns the request state on fetch error', async () => {
 		mockFetch.mockRejectedValue(new Error('Network error'));
 
 		const headers = new Headers({
 			'cf-ipcountry': 'DE',
 		});
-		const result = await prefetchInitialConsent({
+		const result = await resolveConsent({
 			backendURL: 'https://api.example.com',
 			fetch: mockFetch,
 			headers,

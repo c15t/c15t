@@ -1,6 +1,6 @@
 name: Script Vendor Monitor
 
-# Live browser probes for every built-in @c15t/scripts integration.
+# Live browser probes for every built-in @c15t/integrations integration.
 # Runs outside normal CI so transient third-party/network failures never
 # block PRs. Failures open one deduped issue per vendor; recoveries close
 # that vendor's issue automatically.
@@ -61,14 +61,14 @@ jobs:
         # Derive the version from the package devDependency so browser builds
         # can never drift from the API version runner.ts links against.
         run: |
-          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./packages/scripts/package.json').devDependencies.playwright)")
+          PLAYWRIGHT_VERSION=$(bun -e "console.log(require('./packages/integrations/package.json').devDependencies.playwright)")
           bunx "playwright@${PLAYWRIGHT_VERSION}" install --with-deps chromium
 
       - name: Build c15t core
         run: bun turbo run build --filter=@c15t/core
 
       - name: Run live vendor probes
-        working-directory: packages/scripts
+        working-directory: packages/integrations
         env:
           VENDOR_FILTER: ${{ inputs.vendor }}
         run: |
@@ -83,13 +83,13 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: live-vendors-report
-          path: packages/scripts/live-vendors-report.json
+          path: packages/integrations/live-vendors-report.json
           if-no-files-found: warn
           retention-days: 30
 
       - name: Sync monitor issues
         if: always()
-        working-directory: packages/scripts
+        working-directory: packages/integrations
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |

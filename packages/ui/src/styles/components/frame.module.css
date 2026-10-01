@@ -1,29 +1,30 @@
 @import url('./animations/fade-in.css');
 
 :root {
-	--frame-font-family:
-		system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif,
-		'Apple Color Emoji', 'Segoe UI Emoji';
-	--frame-line-height: 1.5;
-	--frame-placeholder-gap: 1rem;
+	/* Every default follows the theme. The -dark variables point at the same
+	   tokens, which the dark palette redefines under .c15t-dark. */
+	--frame-font-family: var(--c15t-font-family);
+	--frame-line-height: var(--c15t-line-height-normal);
+	--frame-placeholder-gap: var(--c15t-space-md);
 
 	/* Border */
-	--frame-placeholder-border-radius: 1.25rem;
+	/* 1.25rem with the default radius scale. */
+	--frame-placeholder-border-radius: calc(var(--c15t-radius-lg) * 5 / 3);
 	--frame-placeholder-border-width: 1px;
-	--frame-placeholder-border-color: hsla(0 0% 92.16% / 1);
-	--frame-placeholder-border-color-dark: hsla(0 0% 20% / 1);
+	--frame-placeholder-border-color: var(--c15t-border);
+	--frame-placeholder-border-color-dark: var(--c15t-border);
 
 	/* Colors */
-	--frame-placeholder-background-color: hsl(0, 0%, 100%);
-	--frame-placeholder-background-color-dark: hsla(0 0% 9.02% / 1);
-	--frame-placeholder-text-color: hsla(0 0% 9.02% / 1);
-	--frame-placeholder-text-color-dark: hsla(0 0% 90% / 1);
-	--frame-placeholder-title-color: hsla(0 0% 9.02% / 1);
-	--frame-placeholder-title-color-dark: hsla(0 0% 90% / 1);
+	--frame-placeholder-background-color: var(--c15t-surface);
+	--frame-placeholder-background-color-dark: var(--c15t-surface);
+	--frame-placeholder-text-color: var(--c15t-text);
+	--frame-placeholder-text-color-dark: var(--c15t-text);
+	--frame-placeholder-title-color: var(--c15t-text);
+	--frame-placeholder-title-color-dark: var(--c15t-text);
 
 	/* Shadow */
-	--frame-placeholder-shadow: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
-	--frame-placeholder-shadow-dark: 0 16px 32px -12px rgba(14, 18, 27, 0.1);
+	--frame-placeholder-shadow: var(--c15t-shadow-lg);
+	--frame-placeholder-shadow-dark: var(--c15t-shadow-lg);
 
 	--frame-placeholder-opacity: 1;
 	/* Server-rendered placeholders are visible immediately; motion is opt-in. */
@@ -65,10 +66,10 @@
 	.title {
 		/* Reset in case a host renders the placeholder title as a heading. */
 		margin: 0;
-		font-size: 1rem;
-		line-height: 1.5rem;
+		font-size: var(--c15t-font-size-base);
+		line-height: var(--c15t-line-height-normal);
 		letter-spacing: -0.011em;
-		font-weight: 500;
+		font-weight: var(--c15t-font-weight-medium);
 		color: var(--frame-placeholder-title-color);
 	}
 

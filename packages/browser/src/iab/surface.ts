@@ -94,7 +94,9 @@ export const createIABSurface = (
 		};
 		const result = await save[action]();
 		busy = false;
-		saveFailed = !result.ok;
+		// A backend failure after the choice was recorded leaves the surface
+		// closed; the message is only for a surface that came back to retry.
+		saveFailed = !result.ok && client.getSnapshot().activeUI !== 'none';
 		client.ui?.update();
 		updateFeedback();
 	};
@@ -106,7 +108,7 @@ export const createIABSurface = (
 		const actions = resolveActions(
 			snapshot,
 			dialog ? 'preferences' : 'prompt',
-			client.options.presentation,
+			client.presentation,
 			dialog
 				? undefined
 				: {
@@ -128,6 +130,7 @@ export const createIABSurface = (
 			? t.preferenceCenter.title
 			: (bannerOptions.title ?? t.banner.title);
 		const content = h('div', {
+			'aria-describedby': dialog ? `${prefix}-description` : undefined,
 			'aria-labelledby': `${prefix}-title`,
 			'aria-modal': actions.blocking ? 'true' : undefined,
 			class: css(styles.card),
@@ -174,7 +177,7 @@ export const createIABSurface = (
 			headerCopy.append(
 				h(
 					'p',
-					{ class: css(styles.description) },
+					{ class: css(styles.description), id: `${prefix}-description` },
 					t.preferenceCenter.description
 				)
 			);
@@ -320,7 +323,12 @@ export const createIABSurface = (
 		}
 		ctx.root.append(root);
 		if (actions.blocking) {
-			release.push(setupScrollLock(), setupFocusTrap(content));
+			release.push(
+				setupScrollLock(),
+				setupFocusTrap(content, {
+					initialFocus: dialog ? 'first-tabbable' : 'container',
+				})
+			);
 		}
 		updateFeedback();
 	};
@@ -351,7 +359,8 @@ export const createIABSurface = (
 			rendered.snapshot.iab?.gvl === snapshot.iab?.gvl &&
 			rendered.snapshot.translations === snapshot.translations &&
 			rendered.snapshot.policyRule === snapshot.policyRule &&
-			rendered.snapshot.branding === snapshot.branding
+			rendered.snapshot.branding === snapshot.branding &&
+			rendered.snapshot.experiment === snapshot.experiment
 		) {
 			preferences?.sync(snapshot);
 			return;

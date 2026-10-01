@@ -1,8 +1,9 @@
 /**
  * Migration 3, on every engine.
  *
- * Three properties: it adds exactly the column, column and table it claims
- * to; it can be re-run after a partial apply without failing on what already
+ * Three properties: it adds exactly the column it claims to, and no longer
+ * the directive table or link authority column its alpha version created; it
+ * can be re-run after a partial apply without failing on what already
  * landed; and it leaves the baseline's own shape alone, so a database adopted
  * from 2.x and a fresh install still agree about everything migration 1
  * covers.
@@ -15,11 +16,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { ENGINES, resetDatabase } from '../../__tests__/engines';
 import { up as baseline } from './1-baseline';
 import { up as indexes } from './2-hot-path-indexes';
-import {
-	PRIVACY_DIRECTIVE_INDEXES,
-	PRIVACY_DIRECTIVE_TABLE,
-	up as receipts,
-} from './3-consent-receipts-and-privacy-directives';
+import { up as receipts } from './3-consent-receipts-and-privacy-directives';
 
 const columnsOf = Effect.fn('columnsOf')(function* columnsOf(table: string) {
 	const sql = yield* SqlClient.SqlClient;
@@ -40,51 +37,25 @@ const columnsOf = Effect.fn('columnsOf')(function* columnsOf(table: string) {
 	return rows.map((row) => row.name).sort();
 });
 
-const indexNames = Effect.fn('indexNames')(function* indexNames() {
-	const sql = yield* SqlClient.SqlClient;
-	const rows = yield* sql.onDialectOrElse({
-		mysql: () =>
-			sql<{ name: string }>`
-				select distinct index_name as name from information_schema.statistics
-				where table_schema = database()
-			`,
-		orElse: () =>
-			sql<{ name: string }>`
-				select indexname as name from pg_indexes
-				where schemaname = current_schema()
-			`,
-		sqlite: () =>
-			sql<{ name: string }>`
-				select name from sqlite_master where type = 'index'
-			`,
-	});
-	return new Set(rows.map((row) => row.name));
-});
-
 for (const engine of ENGINES) {
 	describe(`consent receipts migration on ${engine.name}`, () => {
 		it.effect(
-			'adds the receipt column, the link authority column and the directive table',
+			'adds the receipt column and nothing else',
 			() =>
 				Effect.gen(function* gen() {
 					yield* resetDatabase;
 					yield* baseline;
 					yield* indexes;
 					const before = yield* columnsOf('consent');
+					const subjectBefore = yield* columnsOf('subject');
 					assert.notInclude(before, 'choice');
 
 					yield* receipts;
 
 					assert.include(yield* columnsOf('consent'), 'choice');
-					assert.include(yield* columnsOf('subject'), 'identityAuthority');
-					assert.deepStrictEqual(
-						yield* columnsOf('privacyDirective'),
-						PRIVACY_DIRECTIVE_TABLE.columns.map((column) => column.name).sort()
-					);
-					const names = yield* indexNames();
-					for (const index of PRIVACY_DIRECTIVE_INDEXES) {
-						assert.isTrue(names.has(index.name), `missing ${index.name}`);
-					}
+					// The alpha version also added these. This one must not.
+					assert.deepStrictEqual(yield* columnsOf('subject'), subjectBefore);
+					assert.deepStrictEqual(yield* columnsOf('privacyDirective'), []);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 60_000 }
 		);

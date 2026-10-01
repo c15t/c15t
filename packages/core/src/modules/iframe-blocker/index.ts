@@ -26,6 +26,7 @@
  * subscription. Per-iframe state is derived from the DOM at check time,
  * so multiple instances produce the same result.
  */
+import type { AllConsentNames } from '../../consent/consent-types';
 import { declareOwnedVendors, forgetOwnedVendors } from '../../libs/vendors';
 import type { VendorOwner } from '../../libs/vendors';
 import {
@@ -33,11 +34,77 @@ import {
 	determineCategory,
 	determineVendor,
 	reconcileAllIframes,
-	reconcileIframe,
+	reconcileIframeSafely,
 } from './reconcile';
 import type { IframeBlockerHandle, IframeBlockerOptions } from './types';
 
 export type { IframeBlockerHandle, IframeBlockerOptions } from './types';
+
+/**
+ * Whether a node is an iframe. False for a node page script can't read:
+ * Firefox throws "Permission denied to access property" for some nodes,
+ * such as ones an extension inserted.
+ */
+const isIframe = function isIframe(node: Node): node is HTMLIFrameElement {
+	try {
+		return (
+			node.nodeType === 1 &&
+			(node as Element).tagName?.toUpperCase() === 'IFRAME'
+		);
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * Add the iframes in a node to `into`: the node itself when it is an
+ * iframe, plus any inside it. A node page script can't read is skipped, so
+ * the rest of the mutation batch is still gated.
+ */
+const addIframes = function addIframes(
+	node: Node,
+	into: Set<HTMLIFrameElement>
+): void {
+	if (isIframe(node)) {
+		into.add(node);
+	}
+	try {
+		if (node.nodeType !== 1) {
+			return;
+		}
+		for (const iframe of Array.from(
+			(node as Element).querySelectorAll?.('iframe') ?? []
+		)) {
+			into.add(iframe);
+		}
+	} catch {
+		// Unreadable node: page script can't gate what is inside it either.
+	}
+};
+
+interface IframeGate {
+	category: AllConsentNames | null | undefined;
+	isConnected: boolean;
+	vendor: string | undefined;
+}
+
+/**
+ * Read what an iframe is gated on. `null` for an iframe page script can't
+ * read (see `isIframe`), so it is skipped instead of stopping the pass.
+ */
+const readGate = function readGate(
+	iframe: HTMLIFrameElement
+): IframeGate | null {
+	try {
+		return {
+			category: determineCategory(iframe),
+			isConnected: iframe.isConnected !== false,
+			vendor: determineVendor(iframe),
+		};
+	} catch {
+		return null;
+	}
+};
 
 export const createIframeBlocker = function createIframeBlocker(
 	options: IframeBlockerOptions
@@ -80,12 +147,12 @@ export const createIframeBlocker = function createIframeBlocker(
 		return [...seen.values()];
 	};
 	const registerIframes = (iframes: Iterable<HTMLIFrameElement>) => {
-		const list = Array.from(iframes);
+		const list = Array.from(iframes).flatMap((iframe) => {
+			const gate = readGate(iframe);
+			return gate ? [{ ...gate, iframe }] : [];
+		});
 		kernel.set.registerConsentCategories(
-			list.flatMap((iframe) => {
-				const category = determineCategory(iframe);
-				return category ? [category] : [];
-			})
+			list.flatMap(({ category }) => (category ? [category] : []))
 		);
 		// Declare the slugs the frames name, the way scripts and rules do, so
 		// a stored denial keeps gating them before a backend declaration of
@@ -93,10 +160,8 @@ export const createIframeBlocker = function createIframeBlocker(
 		// category to declare under; `reconcileIframe` holds it against the
 		// stored denial directly instead.
 		const before = new Set(currentOwners().map(ownerKey));
-		for (const iframe of list) {
-			const vendor = determineVendor(iframe);
-			const category = determineCategory(iframe);
-			if (vendor && category && iframe.isConnected !== false) {
+		for (const { category, iframe, isConnected, vendor } of list) {
+			if (vendor && category && isConnected) {
 				framed.set(iframe, { category, vendor });
 			} else {
 				framed.delete(iframe);
@@ -106,12 +171,11 @@ export const createIframeBlocker = function createIframeBlocker(
 		// here: one that left the page, or stayed but dropped its gate
 		// attributes, takes its declaration with it. Without an observer,
 		// under `disableAutomaticBlocking`, this is the only place that can.
+		// A frame page script can no longer read keeps its declaration:
+		// nothing shows it left or changed, and `dispose` still drops it.
 		for (const iframe of [...framed.keys()]) {
-			if (
-				iframe.isConnected === false ||
-				!determineVendor(iframe) ||
-				!determineCategory(iframe)
-			) {
+			const gate = readGate(iframe);
+			if (gate && !(gate.isConnected && gate.vendor && gate.category)) {
 				framed.delete(iframe);
 			}
 		}
@@ -135,46 +199,23 @@ export const createIframeBlocker = function createIframeBlocker(
 	const observer = new MutationObserver((mutations) => {
 		const iframes = new Set<HTMLIFrameElement>();
 		for (const mutation of mutations) {
-			if (
-				mutation.type === 'attributes' &&
-				(mutation.target as Element).tagName?.toUpperCase() === 'IFRAME'
-			) {
-				iframes.add(mutation.target as HTMLIFrameElement);
+			if (mutation.type === 'attributes' && isIframe(mutation.target)) {
+				iframes.add(mutation.target);
 			}
 			for (const node of Array.from(mutation.addedNodes)) {
-				if (node.nodeType !== 1) {
-					continue;
-				}
-				const element = node as Element;
-				if (element.tagName?.toUpperCase() === 'IFRAME') {
-					iframes.add(element as HTMLIFrameElement);
-				}
-				for (const iframe of Array.from(element.querySelectorAll('iframe'))) {
-					iframes.add(iframe);
-				}
+				addIframes(node, iframes);
 			}
 			// A frame that left the page takes its declaration with it. Only
 			// frames the blocker knows are re-registered, so a removed subtree
 			// costs nothing when it held no gated frame.
 			for (const node of Array.from(mutation.removedNodes ?? [])) {
-				if (node.nodeType !== 1) {
-					continue;
-				}
-				const element = node as Element;
-				if (element.tagName?.toUpperCase() === 'IFRAME') {
-					iframes.add(element as HTMLIFrameElement);
-				}
-				for (const iframe of Array.from(
-					element.querySelectorAll?.('iframe') ?? []
-				)) {
-					iframes.add(iframe);
-				}
+				addIframes(node, iframes);
 			}
 		}
 		registerIframes(iframes);
 		const pass = buildReconcilePass(kernel.getSnapshot());
 		for (const iframe of iframes) {
-			reconcileIframe(iframe, pass);
+			reconcileIframeSafely(iframe, pass);
 		}
 	});
 

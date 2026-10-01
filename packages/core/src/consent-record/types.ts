@@ -5,6 +5,10 @@
  * optional category, each carrying its own confirmation time and
  * policy-compatibility basis, with no history. The kernel snapshot exposes
  * these shapes directly; `@c15t/core/consent-record` re-exports them.
+ *
+ * An integration that wants only the category vocabulary, and no part of the
+ * kernel behind it, imports `@c15t/core/consent-categories`. This file has no
+ * imports of its own, so that subpath is the whole cost.
  */
 
 /** Every category the runtime knows about, in stable display order. */
@@ -85,25 +89,17 @@ export interface ExplicitChoice {
 	categories: Partial<Record<OptionalConsentCategory, CategoryDecision>>;
 }
 
-/** Local record that the current notice was explicitly dismissed. */
+/**
+ * Local record that the current notice was explicitly dismissed. The same
+ * record acknowledges a choice prompt that had no category to decide; it
+ * then carries the choice fingerprint instead of the notice fingerprint.
+ */
 export interface NoticeDismissal {
 	version: 1;
 	/** Epoch milliseconds of the dismissal. */
 	dismissedAt: number;
-	/** Notice prompt fingerprint the dismissal was made against. */
+	/** Prompt fingerprint the dismissal was made against. */
 	fingerprint: string;
-}
-
-/**
- * Standing privacy directive recorded from a user-agent signal. It is a
- * privacy request, not a consent record, and it outlives the live signal.
- */
-export interface PrivacyOptOut {
-	source: 'gpc';
-	/** Categories the directive restricts. */
-	categories: readonly OptionalConsentCategory[];
-	/** Epoch milliseconds when the directive was recorded. */
-	recordedAt: number;
 }
 
 /** Subject identifiers carried at the record's enclosing boundary. */
@@ -134,7 +130,10 @@ export interface EvaluationPolicy {
 	scope: readonly OptionalConsentCategory[];
 	/** How categories outside `scope` behave. */
 	scopeMode: 'strict' | 'permissive';
-	/** Displayed categories required for a choice. Defaults to the policy scope. */
+	/**
+	 * Displayed categories required for a choice. Defaults to the policy
+	 * scope. Empty means a choice prompt only asks for an acknowledgement.
+	 */
 	choiceScope?: readonly OptionalConsentCategory[];
 	choice: RecordValidity;
 	notice: RecordValidity;
@@ -149,11 +148,7 @@ export interface EvaluationPolicy {
 }
 
 /** Why a category is restricted regardless of grants or defaults. */
-export type RestrictionReason =
-	| 'explicit-denial'
-	| 'strict-scope'
-	| 'gpc'
-	| 'opt-out-directive';
+export type RestrictionReason = 'explicit-denial' | 'strict-scope' | 'gpc';
 
 /** Authority status of a stored positive or negative decision. */
 export type DecisionAuthority =

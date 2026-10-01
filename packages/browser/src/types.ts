@@ -2,6 +2,7 @@ import type {
 	AllConsentNames,
 	Callbacks,
 	ClearOnRevocationConfig,
+	ConsentExperiment,
 	ConsentPresentation,
 	SaveResult,
 	NoticeDismissResult,
@@ -15,6 +16,7 @@ import type {
 	KernelOverrides,
 	KernelUser,
 	LegalLinks,
+	OnSurfaceShownPayload,
 	PolicyRule,
 	policyRulePresets,
 	ProviderTransportFactory,
@@ -144,7 +146,10 @@ export interface ConsentUIOptions {
  * Everything `init()` accepts. Queue serializable options, transport
  * factories, callbacks, and DOM containers through `c15t.push(['config', {...}])` on a no-code site.
  */
-export interface ConsentClientOptions {
+export interface ConsentClientOptions extends Pick<
+	ConsentRuntimeOptions,
+	'consentSource'
+> {
 	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */
 	iab?: ConsentRuntimeOptions['iab'];
 	/**
@@ -175,6 +180,15 @@ export interface ConsentClientOptions {
 	scripts?: Script[];
 	/** Browser data to remove when its consent category is denied. Initial-only. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Lifecycle callbacks. */
 	callbacks?: Callbacks;
 	/** Cookie and storage settings. */
@@ -200,6 +214,13 @@ export interface ConsentClientOptions {
 	enabled?: boolean;
 	/** Host layout and behavior, resolved under the active policy constraints. */
 	presentation?: ConsentPresentation;
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation` (read it from `client.presentation`),
+	 * exposed as `snapshot.experiment`, and recorded with every impression
+	 * and choice.
+	 */
+	experiment?: ConsentExperiment;
 	/** UI options, or `false` for headless use. */
 	ui?: ConsentUIOptions | false;
 	/** Package name reported on `window.c15t`. */
@@ -232,6 +253,8 @@ export interface ConsentClientEventMap {
 	consent: ConsentSnapshot;
 	/** The surface the runtime wants shown changed. */
 	ui: KernelActiveUI;
+	/** The banner or the dialog became visible. Count it as an impression. */
+	surfaceShown: OnSurfaceShownPayload;
 	/** A transport call failed. */
 	error: unknown;
 }
@@ -244,6 +267,18 @@ export interface ConsentClient {
 	readonly kernel: ConsentKernel;
 	/** The options the client was created with. */
 	readonly options: ConsentClientOptions;
+	/**
+	 * `options.presentation` with the assigned experiment arm merged over it.
+	 * Equal to `options.presentation` while no experiment is configured or
+	 * assigned. Surfaces render from this, not from `options.presentation`.
+	 */
+	readonly presentation: ConsentPresentation | undefined;
+	/**
+	 * `options.ui.theme` with the assigned experiment arm's `theme` merged
+	 * over it. Equal to `options.ui.theme` while no experiment is configured
+	 * or assigned, and `undefined` for a headless client.
+	 */
+	readonly theme: Theme | undefined;
 	/** Which transport is in use. */
 	readonly mode: ConsentModeName | 'custom';
 	/** Categories the UI should offer, after policy filtering. */
@@ -273,7 +308,10 @@ export interface ConsentClient {
 	 * @param condition - A category name or a `has()` condition.
 	 */
 	has: (condition: HasCondition<AllConsentNames>) => boolean;
-	/** Whether the visitor has already made a choice. */
+	/**
+	 * Whether the visitor has already made a choice, or acknowledged a
+	 * banner that had only strictly necessary to show.
+	 */
 	hasConsented: () => boolean;
 	/** Grant every offered category and close the UI. */
 	acceptAll: () => Promise<SaveResult>;

@@ -14,6 +14,7 @@ import { buildInitialSnapshot } from '../snapshot';
 describe('resolveSaveSelection', () => {
 	test("'all' confirms the active scope with true", () => {
 		const snap = buildInitialSnapshot({
+			consentCategories: ['marketing', 'measurement'],
 			initialPolicyResolution: matchedResolution(
 				optInRule({ categories: ['marketing', 'measurement'] })
 			),
@@ -38,6 +39,28 @@ describe('resolveSaveSelection', () => {
 		});
 	});
 
+	test("'all' over a displayed subset still reports the bulk action", () => {
+		const snap = buildInitialSnapshot({
+			consentCategories: ['experience', 'marketing', 'measurement'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing', 'measurement', 'experience'] })
+			),
+			now: NOW,
+		});
+		expect(
+			resolveSaveSelection(snap, null, 'all', ['marketing', 'measurement'])
+		).toEqual({
+			consentAction: 'all',
+			values: { marketing: true, measurement: true },
+		});
+		expect(
+			resolveSaveSelection(snap, null, 'none', ['marketing', 'measurement'])
+		).toEqual({
+			consentAction: 'necessary',
+			values: { marketing: false, measurement: false },
+		});
+	});
+
 	test('object input is passed through for validation', () => {
 		const snap = buildInitialSnapshot({ now: NOW });
 		expect(resolveSaveSelection(snap, null, { marketing: true })).toEqual({
@@ -48,6 +71,7 @@ describe('resolveSaveSelection', () => {
 
 	test('no input confirms draft, then explicit, then displayed default', () => {
 		const snap = buildInitialSnapshot({
+			consentCategories: ['experience', 'marketing', 'measurement'],
 			initialPolicyResolution: matchedResolution(
 				optInRule({
 					categories: ['experience', 'marketing', 'measurement'],
@@ -64,6 +88,7 @@ describe('resolveSaveSelection', () => {
 
 	test('no input under opt-out confirms the unmasked default, not the GPC mask', () => {
 		const snap = buildInitialSnapshot({
+			consentCategories: ['marketing'],
 			initialOverrides: { gpc: true },
 			initialPolicyResolution: matchedResolution(
 				optOutRule({

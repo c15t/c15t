@@ -38,6 +38,13 @@ const workspaceAliases = [
 		),
 	},
 	{
+		find: '@c15t/core/modules/network-hold',
+		replacement: resolve(
+			__dirname,
+			'../core/src/modules/network-blocker/hold.ts'
+		),
+	},
+	{
 		find: '@c15t/core/modules/persistence',
 		replacement: resolve(__dirname, '../core/src/modules/persistence/index.ts'),
 	},

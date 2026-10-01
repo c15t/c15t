@@ -18,6 +18,11 @@ export type {
 export type { HostedKernelTransport, HostedTransportOptions } from './hosted';
 export { createHostedTransport } from './hosted';
 export type {
+	HostedRecordTransport,
+	HostedRecordTransportOptions,
+} from './hosted-records';
+export { createHostedRecordTransport } from './hosted-records';
+export type {
 	MapInitOutputOptions,
 	TransportInitResponse,
 	TransportKernelConfig,
@@ -37,12 +42,17 @@ export type {
 	ProviderTransportFactory,
 	ProviderTransportKind,
 } from './mode';
-export { custom, hosted } from './mode';
+export { custom } from './custom';
+export { hosted } from './mode';
 export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
 } from './offline';
 export { createOfflineTransport } from './offline';
+export {
+	ConsentSaveRejectedError,
+	isConsentSaveRejection,
+} from './save-rejection';
 export type { SubjectPostBody, SubjectSavePayload } from './subject-body';
 export { buildConfirmedChoiceWire, buildSubjectPostBody } from './subject-body';
 export type {

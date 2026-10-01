@@ -11,6 +11,30 @@ c15t codemods component-renames --dry-run --json
 
 These transforms target c15t v2. They are available from the command line and help output, but are omitted from the main onboarding menu. For v3, use the [agent migration workflow](../automation).
 
+The v3 transforms run only when named, never with `--all`.
+`use-consent-manager-to-hooks` rewrites `useConsentManager()` destructuring to
+the v3 hooks:
+
+```bash
+c15t codemods use-consent-manager-to-hooks --dry-run --json
+```
+
+Fields with no one-hook equivalent stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment, so the build fails where manual work remains. The [upgrade guide](/docs/upgrade-v3#replace-useconsentmanager) maps every field.
+
+`scripts-to-integrations` renames `@c15t/scripts` imports and re-exports to
+`@c15t/integrations` in JavaScript and TypeScript files, including literal
+dynamic imports, `require()` calls, and import types.
+It also recognizes `require` functions created by Node's imported
+`createRequire()` and scans `.mts`, `.cts`, `.mjs`, and `.cjs` files:
+
+```bash
+c15t codemods scripts-to-integrations --dry-run --json
+```
+
+Update package dependencies, lockfiles, and imports inside `.vue`, `.svelte`,
+or `.astro` files separately. See the
+[package migration](/docs/upgrade-v3#rename-the-integrations-dependency).
+
 ## Choose transforms
 
 Pass one or more IDs from `--list`. Named transforms remain available after you update dependency versions, because the application source may still use the previous API.
@@ -21,7 +45,7 @@ To select all transforms applicable to the original version:
 c15t codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 ```
 
-Review the proposed changes before repeating the command without `--dry-run`. Without `--from`, automatic selection uses the declared core/framework versions. Independently versioned integrations such as `@c15t/scripts` do not determine the application version.
+Review the proposed changes before repeating the command without `--dry-run`. Without `--from`, automatic selection uses the declared core/framework versions. Independently versioned integrations such as `@c15t/integrations` do not determine the application version.
 
 V2 prereleases, including `2.0.0-rc.4` and `2.0.0-canary-*`, count as v2 for automatic selection and skip the legacy v1 transforms. If you upgraded dependencies while the source still uses v1, pass its original version with `--from 1.9.0` or select a named transform explicitly.
 

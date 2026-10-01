@@ -60,6 +60,10 @@ export default mergeConfig(
 					resolve(__dirname, '../core/src/modules/network-blocker/index.ts'),
 				],
 				[
+					'@c15t/core/modules/network-hold',
+					resolve(__dirname, '../core/src/modules/network-blocker/hold.ts'),
+				],
+				[
 					'@c15t/core/modules/iframe-blocker',
 					resolve(__dirname, '../core/src/modules/iframe-blocker/index.ts'),
 				],
@@ -70,6 +74,10 @@ export default mergeConfig(
 				[
 					'@c15t/core/modules/window-debug',
 					resolve(__dirname, '../core/src/modules/window-debug/index.ts'),
+				],
+				[
+					'@c15t/core/runtime/controls',
+					resolve(__dirname, '../core/src/runtime/controls.ts'),
 				],
 				[
 					'@c15t/core/runtime',
@@ -143,7 +151,11 @@ export default mergeConfig(
 			browser: {
 				enabled: true,
 				instances: [{ browser: 'chromium' }],
-				provider: playwright(),
+				// Headless Chromium hides scrollbars by default. Showing them keeps
+				// classic scrollbar layout (as on Windows and Linux) testable.
+				provider: playwright({
+					launchOptions: { ignoreDefaultArgs: ['--hide-scrollbars'] },
+				}),
 			},
 			coverage: {
 				// Coverage ratchet: floors below current coverage so regressions

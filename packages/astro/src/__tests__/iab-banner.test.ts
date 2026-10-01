@@ -183,6 +183,21 @@ describe('<IABConsentBanner />', () => {
 		expect(html).not.toContain('data-testid="iab-consent-banner-root"');
 	});
 
+	it('renders the host-resolved experiment arm on the root', async () => {
+		const html = await render(
+			await buildLocals({
+				...iabOptions,
+				experiment: {
+					arm: 'bar',
+					arms: { bar: { prompt: { variant: 'bar' } } },
+					id: 'iab-shape',
+				},
+			})
+		);
+		expect(html).toContain('data-variant="bar"');
+		expect(html).toContain('data-position="bottom"');
+	});
+
 	it('inlines the resolved config so the browser skips /init', async () => {
 		const html = await render(await buildLocals());
 		expect(html).toContain('window.__c15tAstroConfig=');

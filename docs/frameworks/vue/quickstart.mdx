@@ -13,7 +13,7 @@ Plain Vue uses two c15t entry points: a Vite plugin for module resolution and a
 Vue plugin for the runtime. `c15t/vue` is the Nuxt module, so do not pass that
 entry point to `app.use()`. Plain Vue uses `c15t/vue/vue-plugin`.
 
-<CommandTabs command="c15t @c15t/scripts" mode="install" />
+<CommandTabs command="c15t @c15t/integrations" mode="install" />
 
 ```ts title="vite.config.ts"
 import { defineConfig } from 'vite';
@@ -151,6 +151,24 @@ Effective permission can be true under an opt-out rule before a visitor acts.
 Use the snapshot's `explicitChoice` when you need recorded choices. Register
 vendor scripts with the consent runtime rather than assuming `v-if` on unrelated
 content blocks existing scripts.
+
+## Block tracking requests
+
+`networkBlocker` stops `fetch` and `XMLHttpRequest` calls that match a rule
+until the visitor grants the rule's category. A blocked `fetch` resolves to a
+`451` response and nothing is sent.
+
+```ts title="src/main.ts"
+createApp(App).use(c15tVue, {
+  backendURL,
+  networkBlocker: {
+    rules: [{ category: 'measurement', domain: 'google-analytics.com' }],
+  },
+}).mount('#app');
+```
+
+Each rule's `domain` also matches its subdomains. Add `pathIncludes` or
+`methods` to narrow it, and `onRequestBlocked` to observe blocked requests.
 
 ## Verify and troubleshoot
 

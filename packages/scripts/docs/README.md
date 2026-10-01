@@ -1,6 +1,6 @@
 # @c15t/scripts
 
-> Consent-aware vendor integrations and Consent Mode loading contracts.
+> Deprecated v3 compatibility package for @c15t/integrations. Migrate before v4.
 
 These docs ship inside the package so coding agents can read them offline. Open the topic file you need from the list below — paths are relative to this file.
 
@@ -13,7 +13,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Connect your integrations](./integrations/overview.md)
 - [Customize your consent interface](./customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
-- [Upgrade to v3 policies](./upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
 
 ## More documentation
 
@@ -30,6 +30,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Understand consent state](./guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Data fetching and transports](./guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
 - [Choose a deployment mode](./guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
+- [Share consent controls across frameworks](./guides/shared-consent-controls.md): Use the same c15t script lifecycle, external consent source, and event controls in every framework.
 - [Troubleshoot consent](./guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 
@@ -54,9 +55,11 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Crisp](./integrations/crisp.md): Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
 - [Databuddy](./integrations/databuddy.md): Configure Databuddy's initial and updated consent state with c15t v3.
 - [Fathom Analytics](./integrations/fathom-analytics.md): Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Front Chat](./integrations/front-chat.md): Load the Front Chat widget with functionality permission, forward CSP nonces and clear the session on revocation.
 - [Google Maps](./integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
 - [Google Tag](./integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
 - [Google Tag Manager](./integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
+- [Granular consent](./integrations/granular-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 - [Heap](./integrations/heap.md): Configure Heap with c15t v3, understand measurement permission and verify loading and revocation.
 - [Hightouch](./integrations/hightouch.md): Configure Hightouch with c15t v3, understand measurement permission and verify loading and revocation.
 - [Hotjar](./integrations/hotjar.md): Configure Hotjar with c15t v3, understand measurement permission and verify loading and revocation.
@@ -68,8 +71,10 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Microsoft Clarity](./integrations/microsoft-clarity.md): Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
 - [Microsoft UET](./integrations/microsoft-uet.md): Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
 - [Mixpanel](./integrations/mixpanel-analytics.md): Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+- [OneDollarStats](./integrations/one-dollar-stats.md): Load the OneDollarStats tracker with measurement permission, forward its settings and verify loading and revocation.
 - [OpenAI Pixel](./integrations/openai-pixel.md): Configure the OpenAI Measurement Pixel for ChatGPT Ads with c15t v3, manage marketing permission and verify conversion delivery.
 - [Overview](./integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Pinterest Tag](./integrations/pinterest-tag.md): Configure the Pinterest Tag with c15t v3, track typed events and verify marketing permission, revocation and reload.
 - [Pirsch](./integrations/pirsch.md): Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
 - [Plausible Analytics](./integrations/plausible-analytics.md): Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [PostHog](./integrations/posthog.md): Choose PostHog loading and cookieless behavior, configure the region, and synchronize v3 permissions.
@@ -81,11 +86,10 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Snapchat Pixel](./integrations/snapchat-pixel.md): Configure Snapchat Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [TikTok Pixel](./integrations/tiktok-pixel.md): Configure TikTok Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [Umami Analytics](./integrations/umami-analytics.md): Configure Umami Analytics with c15t v3, understand measurement permission and verify loading and revocation.
-- [Vendor-level consent](./integrations/vendor-consent.md): Let visitors grant a category and still turn one vendor off, without adopting IAB TCF.
 - [Vercel Analytics](./integrations/vercel-analytics.md): Configure Vercel Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [X Pixel](./integrations/x-pixel.md): Configure X Pixel with c15t v3, understand marketing permission and verify loading and revocation.
 - [YouTube](./integrations/youtube.md): Gate YouTube embeds with c15t v3 in Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit or JavaScript.
 
 ## Reference
 
-- [Upgrade to v3 policies](./upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.

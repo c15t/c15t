@@ -7,6 +7,7 @@ import {
 import type { CornerPosition } from '@c15t/ui/utils';
 
 import { classes } from '../generated/styles';
+import { hasDecided } from '../has-decided';
 import type { ConsentTriggerOptions } from '../types';
 import { cx, h, svg } from './dom';
 import type { Surface, SurfaceContext } from './surface';
@@ -193,7 +194,7 @@ export const createTrigger = function createTrigger(
 			element.remove();
 		},
 		sync(snapshot: ConsentSnapshot) {
-			const allowed = showWhen === 'always' || snapshot.explicitChoice !== null;
+			const allowed = showWhen === 'always' || hasDecided(snapshot);
 			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
 			applyClasses(snapTimer !== undefined);

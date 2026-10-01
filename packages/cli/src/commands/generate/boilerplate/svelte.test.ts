@@ -20,7 +20,10 @@ describe('Svelte v3 boilerplate', () => {
 				mode: 'offline',
 				scripts: ['segment'],
 			});
-			expect(result.dependencies).toEqual(['@c15t/svelte', '@c15t/scripts']);
+			expect(result.dependencies).toEqual([
+				'@c15t/svelte',
+				'@c15t/integrations',
+			]);
 			expect(result.files['consent-provider.svelte']).toContain(
 				'<ConsentDialogTrigger />'
 			);
@@ -99,7 +102,7 @@ const program = ts.createProgram(generatedFiles, {
  moduleResolution: ts.ModuleResolutionKind.Bundler,
  paths: {
  '@c15t/svelte': [${JSON.stringify(resolve(packageRoot, 'src/lib/index.ts'))}],
- '@c15t/scripts/segment': [${JSON.stringify(resolve(packageRoot, '../scripts/src/vendors/analytics/segment.ts'))}],
+ '@c15t/integrations/segment': [${JSON.stringify(resolve(packageRoot, '../integrations/src/vendors/analytics/segment.ts'))}],
  },
 });
 const errors = generatedFiles.flatMap(file => program.getSemanticDiagnostics(program.getSourceFile(file)));
@@ -108,7 +111,7 @@ const server = await createServer({
  configFile: false, root: ${JSON.stringify(directory)}, logLevel: 'error',
  plugins: [svelte({ configFile: false })],
  resolve: { conditions: ['svelte', 'node'], alias: [
-  { find: '@c15t/scripts/segment', replacement: ${JSON.stringify(resolve(packageRoot, '../scripts/src/vendors/analytics/segment.ts'))} },
+  { find: '@c15t/integrations/segment', replacement: ${JSON.stringify(resolve(packageRoot, '../integrations/src/vendors/analytics/segment.ts'))} },
   { find: '@c15t/svelte/styles.css', replacement: ${JSON.stringify(resolve(packageRoot, 'src/styles.css'))} },
   { find: '@c15t/svelte', replacement: ${JSON.stringify(resolve(packageRoot, 'src/lib/index.ts'))} },
  ] },

@@ -1,19 +1,9 @@
 {
-	"title": "@c15t/scripts: Prebuilt Consent Scripts",
-	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, analytics tools, pixels, tag managers, and widgets.",
-	"features": [
-		"Prebuilt script loaders for popular analytics, advertising, marketing, and functional tools",
-		"Google Tag Manager support with Google Consent Mode v2 defaults and consent updates",
-		"Google Analytics 4 and Google Ads support through gtag.js",
-		"Consent-gated Meta Pixel and conversion pixel loading",
-		"Easy integration with c15t's script loader",
-		"Configuration options for each supported vendor",
-		"Supported vendors include Google Tag Manager, Meta Pixel, OpenAI Pixel, Amplitude, Heap, PostHog, TikTok Pixel, LinkedIn Insights, Microsoft UET, X Pixel, Reddit Pixel, Snapchat Pixel, Intercom, Crisp, and more"
-	],
-	"docsLink": "https://c15t.com/docs/integrations",
+	"title": "@c15t/scripts: v3 compatibility package",
+	"description": "Deprecated compatibility package for @c15t/integrations. Existing imports keep working throughout v3. Compatibility ends in v4.",
+	"docsLink": "https://c15t.com/docs/upgrade-v3#rename-the-integrations-dependency",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Integrations": "- **Google Tag Manager**: Loads with Google Consent Mode v2 defaults set to denied; GTM-managed tags fire only once matching consent is granted ([guide](https://c15t.com/docs/integrations/google-tag-manager))\n- **Cloudflare Zaraz**: Maps c15t effective permissions to Zaraz purpose IDs for tools managed in Cloudflare ([guide](https://c15t.com/docs/integrations/cloudflare-zaraz))\n- **Google Analytics 4 + Google Ads (gtag.js)**: Consent Mode v2 defaults and consent updates when users make a choice ([guide](https://c15t.com/docs/integrations/google-tag))\n- **Conversion pixels**: Meta Pixel, OpenAI Pixel, TikTok Pixel, LinkedIn Insights, Microsoft UET (Microsoft Ads), X Pixel, Reddit Pixel, Snapchat Pixel\n- **Analytics**: PostHog, Amplitude, Heap, Segment, RudderStack, Hightouch, Mixpanel, Microsoft Clarity, Hotjar, Plausible, Fathom, Matomo, Umami, Vercel Analytics\n- **Chat widgets**: Intercom, Crisp",
-		"Example": "```ts\nimport { googleTagManager } from '@c15t/scripts/google-tag-manager'\nimport { metaPixel } from '@c15t/scripts/meta-pixel'\n\nconst scripts = [\n  googleTagManager({ id: 'GTM-XXXXXX' }),\n  metaPixel({ pixelId: '000000000000000' }),\n]\n```"
+		"Migration": "Install `@c15t/integrations` and replace `@c15t/scripts` in your imports. Vendor helper names and the `scripts` configuration option stay the same.\n\n```ts\nimport { posthog } from '@c15t/integrations/posthog';\n```\n\nThis package re-exports the same implementation and types. It has no separate vendor runtime. Use the v3 CLI's `scripts-to-integrations` codemod to update JavaScript and TypeScript imports. Previously published versions will remain available on npm."
 	}
 }

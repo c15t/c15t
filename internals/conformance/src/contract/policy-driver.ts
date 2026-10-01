@@ -33,7 +33,6 @@ export interface PolicySessionSetup {
 export interface PolicyStorageBytes {
 	choice: { cookie: string | null; localStorage: string | null };
 	notice: { cookie: string | null; localStorage: string | null };
-	privacy: { cookie: string | null; localStorage: string | null };
 	legacyLocalStorage: string | null;
 }
 
@@ -42,9 +41,9 @@ export interface PolicyLogs {
 	events: readonly { name: string; payload: unknown }[];
 	/** Invocations of onChoiceRecorded registered through public provider config. */
 	callbacks: readonly { name: string; payload: unknown }[];
-	/** Consent saves and privacy requests must remain distinct. */
+	/** Consent saves and init requests must remain distinct. */
 	requests: readonly {
-		kind: 'consent' | 'privacy' | 'init';
+		kind: 'consent' | 'init';
 		payload: unknown;
 	}[];
 	diagnostics: readonly string[];
@@ -74,11 +73,6 @@ export interface PolicySnapshotEvidence {
 		dismissedAt: number;
 		fingerprint: string;
 	} | null;
-	optOutDirectives: readonly {
-		source: 'gpc';
-		categories: readonly PolicyCategory[];
-		recordedAt: number;
-	}[];
 	privacySignals: {
 		gpc: { detected: boolean; active: boolean; override?: boolean };
 	};

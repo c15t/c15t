@@ -7,6 +7,7 @@ import type {
 	ConsentState,
 	SaveResult,
 	SaveInput,
+	SaveUISource,
 } from '@c15t/core';
 import { deniedVendorIds, vendorRenders } from '@c15t/core';
 import {
@@ -21,7 +22,8 @@ import {
 import type { ReactNode } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
-import { useUIConfig } from './ui-config-context';
+import { useResolvedPresentation } from './hooks';
+import { useCommittedRef } from './hooks/use-committed-ref';
 import { saveConsentUI } from './ui-save';
 
 /** A local, unmasked selection, committed only by an explicit save. */
@@ -158,10 +160,29 @@ const seed = function seed(
 	}
 	return values;
 };
+const sameDefaults = function sameDefaults(
+	left: Partial<ConsentState> | undefined,
+	right: Partial<ConsentState> | undefined
+): boolean {
+	if (left === right) {
+		return true;
+	}
+	if (!left || !right) {
+		return false;
+	}
+	const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+	for (const key of keys) {
+		if (left[key as AllConsentNames] !== right[key as AllConsentNames]) {
+			return false;
+		}
+	}
+	return true;
+};
 const createDraftStore = function createDraftStore(
 	kernel: ConsentKernel,
-	defaults?: Partial<ConsentState>
+	initialDefaults?: Partial<ConsentState>
 ) {
+	let defaults = initialDefaults;
 	let revision = 0;
 	let saveSequence = 0;
 	let source = kernel.getSnapshot();
@@ -318,6 +339,8 @@ const createDraftStore = function createDraftStore(
 			return kernel.subscribe(sync);
 		},
 		getSnapshot: () => current,
+		/** The kernel this draft reads from and saves into. */
+		kernel,
 		rejectAll() {
 			update(
 				Object.fromEntries(
@@ -332,7 +355,8 @@ const createDraftStore = function createDraftStore(
 		async save(
 			input?: SaveInput,
 			categories?: readonly AllConsentNames[],
-			onSuccess?: () => void
+			onSuccess?: () => void,
+			uiSource?: SaveUISource
 		): Promise<SaveResult> {
 			// Guard against changes between the render and the click as well.
 			if (
@@ -367,6 +391,7 @@ const createDraftStore = function createDraftStore(
 			const pending = kernel.commands.save(input ?? patch, {
 				categories,
 				...(Object.keys(vendors).length > 0 && { vendors }),
+				...(uiSource !== undefined && { uiSource }),
 			});
 			// A clean draft can reseed synchronously from the local receipt.
 			const savedRevision = revision;
@@ -385,6 +410,20 @@ const createDraftStore = function createDraftStore(
 		},
 		set(category: AllConsentNames, value: boolean) {
 			update({ [category]: value });
+		},
+		/**
+		 * Replace the defaults a category without a receipt seeds from. A
+		 * clean draft reseeds at once, so an experiment arm assigned after
+		 * mount shows its own defaults; edits the visitor already made stay.
+		 */
+		setDefaults(next: Partial<ConsentState> | undefined) {
+			if (sameDefaults(defaults, next)) {
+				return;
+			}
+			defaults = next;
+			if (!current.isDirty) {
+				reset();
+			}
 		},
 		setVendor(vendorId: string, granted: boolean) {
 			updateVendors({ [vendorId]: granted });
@@ -407,6 +446,29 @@ const useKernel = function useKernel() {
 	}
 	return kernel;
 };
+/**
+ * A draft store bound to the kernel in context. A provider handed a new
+ * runtime changes that kernel without remounting its children, so the store
+ * is rebuilt for the new kernel and the previous draft is dropped rather than
+ * carried over, where its save would record into the old runtime.
+ */
+const useKernelDraftStore = function useKernelDraftStore(
+	kernel: ConsentKernel,
+	defaults: Partial<ConsentState> | undefined
+): DraftStore {
+	const [entry, setEntry] = useState(() => ({
+		kernel,
+		store: createDraftStore(kernel, defaults),
+	}));
+	if (entry.kernel === kernel) {
+		return entry.store;
+	}
+	// Adjusting state during render: React re-renders this component before
+	// committing, so no child ever sees the store of the previous kernel.
+	const next = { kernel, store: createDraftStore(kernel, defaults) };
+	setEntry(next);
+	return next.store;
+};
 export interface ConsentDraftProviderProps {
 	children: ReactNode;
 	/** Defaults apply only to categories without an explicit receipt. */
@@ -418,13 +480,16 @@ export const ConsentDraftProvider = ({
 }: ConsentDraftProviderProps) => {
 	const kernel = useKernel();
 	const parent = useContext(DraftContext);
-	const { presentation } = useUIConfig();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, initial ?? presentation?.preferences?.defaults)
-	);
-	void setLocal;
-	const store = parent && !initial ? parent : local;
+	const presentation = useResolvedPresentation();
+	const defaults = initial ?? presentation?.preferences?.defaults;
+	const local = useKernelDraftStore(kernel, defaults);
+	// Inherit an outer draft only while it belongs to this kernel. A nested
+	// provider on another runtime must not save into the outer one.
+	const store = parent && !initial && parent.kernel === kernel ? parent : local;
 	useEffect(() => store.connect(), [store]);
+	useEffect(() => {
+		local.setDefaults(defaults);
+	}, [local, defaults]);
 	return (
 		<DraftContext.Provider value={store}>{children}</DraftContext.Provider>
 	);
@@ -432,32 +497,69 @@ export const ConsentDraftProvider = ({
 const useDraftStore = function useDraftStore() {
 	const kernel = useKernel();
 	const shared = useContext(DraftContext);
-	const { presentation } = useUIConfig();
-	const [local, setLocal] = useState(() =>
-		createDraftStore(kernel, presentation?.preferences?.defaults)
+	const presentation = useResolvedPresentation();
+	const defaults = presentation?.preferences?.defaults;
+	const local = useKernelDraftStore(kernel, defaults);
+	// A shared draft bound to another kernel belongs to an outer provider.
+	const store = shared?.kernel === kernel ? shared : local;
+	useEffect(
+		() => (store === shared ? undefined : store.connect()),
+		[shared, store]
 	);
-	void setLocal;
-	const store = shared ?? local;
-	useEffect(() => (shared ? undefined : store.connect()), [shared, store]);
+	useEffect(() => {
+		local.setDefaults(defaults);
+	}, [local, defaults]);
 	return store;
 };
+
+/**
+ * Whether `store` still belongs to the kernel this component last committed.
+ *
+ * A handle or save action kept across a runtime switch, by an async submit or
+ * a descendant's layout effect in the switch commit, calls through this. Its
+ * store stays bound to the previous kernel, either because a new store
+ * replaced it or because it is an outer draft the outer provider still uses,
+ * so the check fails and the call records nothing. The committed kernel is
+ * read at call time (see `useCommittedRef`), so the check holds from the
+ * moment the switch commits. A component that only unmounts keeps its last
+ * kernel, so a submit that outlives its dialog still saves on that runtime.
+ */
+const useDraftGuard = function useDraftGuard(store: DraftStore): () => boolean {
+	const committedKernelRef = useCommittedRef(useKernel());
+	return useCallback(
+		() => committedKernelRef.current === store.kernel,
+		[committedKernelRef, store]
+	);
+};
+
+const REFUSED: SaveResult = { ok: false };
 
 const useSaveAction = function useSaveAction(store: DraftStore) {
 	const kernel = useKernel();
 	const services = useContext(ProviderServicesContext);
+	const isCurrent = useDraftGuard(store);
 	return useCallback(
-		(input?: SaveInput) => {
+		(input?: SaveInput, uiSource?: SaveUISource) => {
+			// Refuse before touching the previous runtime's UI state.
+			if (!isCurrent()) {
+				return Promise.resolve(REFUSED);
+			}
 			let current = false;
 			return saveConsentUI(
 				kernel,
 				() =>
-					store.save(input, services?.getConsentCategories(), () => {
-						current = true;
-					}),
+					store.save(
+						input,
+						services?.getConsentCategories(),
+						() => {
+							current = true;
+						},
+						uiSource
+					),
 				() => current
 			);
 		},
-		[kernel, store, services]
+		[isCurrent, kernel, store, services]
 	);
 };
 
@@ -469,19 +571,30 @@ const useDraftHandle = function useDraftHandle(
 		store.getSnapshot,
 		store.getSnapshot
 	);
-	return useMemo(
-		() => ({
+	const isCurrent = useDraftGuard(store);
+	return useMemo(() => {
+		// A handle bound to another kernel is inert: staging would edit a
+		// draft this component no longer shows, and saving would record into
+		// the previous runtime.
+		const guarded =
+			<Args extends unknown[]>(method: (...args: Args) => void) =>
+			(...args: Args) => {
+				if (isCurrent()) {
+					method(...args);
+				}
+			};
+		return {
 			...snapshot,
-			acceptAll: store.acceptAll,
-			rejectAll: store.rejectAll,
-			reset: store.reset,
-			save: store.save,
-			set: store.set,
-			setVendor: store.setVendor,
-			update: store.update,
-		}),
-		[snapshot, store]
-	);
+			acceptAll: guarded(store.acceptAll),
+			rejectAll: guarded(store.rejectAll),
+			reset: guarded(store.reset),
+			save: (...args: Parameters<DraftStore['save']>) =>
+				isCurrent() ? store.save(...args) : Promise.resolve(REFUSED),
+			set: guarded(store.set),
+			setVendor: guarded(store.setVendor),
+			update: guarded(store.update),
+		};
+	}, [isCurrent, snapshot, store]);
 };
 
 /** Internal UI save path shared by stock controls and headless actions. */
@@ -489,10 +602,34 @@ export const useConsentSaveAction = function useConsentSaveAction() {
 	return useSaveAction(useDraftStore());
 };
 
-/** Keep the compatibility manager selection and its save on the same draft. */
-export const useConsentManagerDraft = function useConsentManagerDraft() {
-	const store = useDraftStore();
-	return { draft: useDraftHandle(store), save: useSaveAction(store) };
+/**
+ * The nearest consent draft store, for the stock preference rows. Pair with
+ * {@link useConsentDraftSlice} so a row re-renders only when its own slice
+ * changes, not on every staged edit elsewhere in the draft.
+ *
+ * @returns The shared draft store, or a local one outside a provider.
+ * @internal
+ */
+export const useConsentDraftStore =
+	function useConsentDraftStore(): DraftStore {
+		return useDraftStore();
+	};
+
+/**
+ * Subscribes to one slice of a consent draft store.
+ *
+ * @param store - Store from {@link useConsentDraftStore}.
+ * @param selector - Picks the slice. Return a primitive or a reference the
+ * draft already holds.
+ * @returns The selected slice.
+ * @internal
+ */
+export const useConsentDraftSlice = function useConsentDraftSlice<SliceType>(
+	store: DraftStore,
+	selector: (draft: DraftSnapshot) => SliceType
+): SliceType {
+	const read = () => selector(store.getSnapshot());
+	return useSyncExternalStore(store.subscribe, read, read);
 };
 
 /** Read and edit displayed choices without replacing masked effective permissions. */

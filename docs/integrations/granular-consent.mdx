@@ -58,7 +58,7 @@ runtime.start();
 
 The `id` is a lowercase slug of up to 64 characters. Reuse it as the `vendor`
 field on scripts and network rules and as the `data-vendor` attribute on
-iframes. Integrations from `@c15t/scripts` already set `vendor` to their
+iframes. Integrations from `@c15t/integrations` already set `vendor` to their
 manifest slug, so `gtag()` and `metaPixel()` need no extra wiring.
 
 A backend can also declare vendors. Add `vendors` and an optional
@@ -79,7 +79,9 @@ loads  =  category condition satisfied  AND  vendor not denied
 ```
 
 The category is evaluated first, so an unknown category still throws as a
-configuration error. A vendor toggle never grants a category on its own: with
+configuration error. The iframe blocker is the exception: an `<iframe>` with an
+unknown or empty `data-category` stays blocked and logs a console warning, so one typo
+can't stop the other iframes on the page from being gated. A vendor toggle never grants a category on its own: with
 marketing denied, `meta-pixel` stays blocked whatever its own switch says.
 A script with `alwaysLoad` still mounts, as it does for a denied category;
 its callbacks receive the vendor result in `info.vendor.granted` so a

@@ -1,5 +1,5 @@
 import { C15T_POLICY_CONTRACT_HEADER } from '@c15t/core';
-import { readStoredRecords } from '@c15t/core/modules/persistence';
+import type { ExternalConsentSource } from '@c15t/core/runtime';
 import {
 	normalizePolicyRule,
 	createConsentManifestPolicyPack,
@@ -9,7 +9,14 @@ import {
 import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
-import { createSSRApp, defineComponent, h, nextTick, shallowRef } from 'vue';
+import {
+	createApp,
+	createSSRApp,
+	defineComponent,
+	h,
+	nextTick,
+	shallowRef,
+} from 'vue';
 import type { App, ShallowRef } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
@@ -20,6 +27,11 @@ import { resolveManifestInit } from '../runtime/server/manifest-mode';
 
 const nuxt = vi.hoisted(() => ({
 	cached: undefined as InitOutput | undefined,
+	consentSource: undefined as ExternalConsentSource | undefined,
+	experiment: undefined as
+		| { arm?: string; arms: Record<string, object>; id: string }
+		| undefined,
+	fetchHeaders: [] as Record<string, string>[],
 	headers: {} as Record<string, string | undefined>,
 	manifest: false,
 	requests: 0,
@@ -34,7 +46,9 @@ vi.mock('#imports', async () => {
 		useAppConfig: () => ({
 			c15t: {
 				backendURL: '/api/c15t',
+				consentSource: nuxt.consentSource,
 				disableAnimation: true,
+				experiment: nuxt.experiment,
 				hideBranding: true,
 				iframeBlocker: false,
 				manifest: nuxt.manifest,
@@ -47,6 +61,7 @@ vi.mock('#imports', async () => {
 				onResponse: (context: { response: { headers: Headers } }) => void;
 			}
 		) => {
+			nuxt.fetchHeaders.push(options.headers);
 			if (!nuxt.cached) {
 				expect(options.headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
 				options.onResponse({
@@ -75,6 +90,9 @@ afterEach(() => {
 	vi.restoreAllMocks();
 	nuxt.state.clear();
 	nuxt.cached = undefined;
+	nuxt.consentSource = undefined;
+	nuxt.experiment = undefined;
+	nuxt.fetchHeaders = [];
 	document.body.replaceChildren();
 });
 
@@ -237,11 +255,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		expect(document.cookie).toBe(beforeCookie);
 		mounted?.();
 		await nextTick();
-		await vi.waitFor(() =>
-			expect(
-				readStoredRecords(undefined, now + 10_000).records.optOutDirectives
-			).toHaveLength(1)
-		);
+		expect(localStorage.getItem('c15t-privacy')).toBeNull();
 		expect(context.snapshot.value.explicitChoice).toBeNull();
 		expect(nuxt.requests).toBe(1);
 		expect(context.snapshot.value.privacySignals.gpc).toMatchObject({
@@ -258,4 +272,105 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	} finally {
 		clientApp.unmount();
 	}
+});
+
+test('Nuxt external authority skips server fetch and records, then connects only on mount', async () => {
+	const getPermissions = vi.fn(() => ({ measurement: true }));
+	const detach = vi.fn();
+	const openPreferences = vi.fn();
+	nuxt.requests = 0;
+	nuxt.consentSource = {
+		getPermissions,
+		openPreferences,
+		subscribe: () => detach,
+	};
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	let context!: VueConsentKernelContext;
+	const app = createApp(
+		defineComponent({
+			setup() {
+				context = useConsentKernelContext();
+				return () => h('div');
+			},
+		})
+	);
+	let mounted: (() => void) | undefined;
+	await plugin({
+		hook: (name, handler) => {
+			if (name === 'app:mounted') {
+				mounted = handler;
+			}
+		},
+		vueApp: app,
+	});
+	expect(nuxt.requests).toBe(0);
+	expect(nuxt.state.get('c15t:records')?.value).toBeUndefined();
+	expect(getPermissions).not.toHaveBeenCalled();
+	const container = document.createElement('div');
+	document.body.append(container);
+	app.mount(container);
+	try {
+		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			false
+		);
+		mounted?.();
+		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
+			true
+		);
+		context.activeUI.value = 'manager';
+		expect(openPreferences).toHaveBeenCalledTimes(1);
+		expect(context.kernel.getSnapshot().activeUI).toBe('none');
+	} finally {
+		app.unmount();
+	}
+	expect(detach).toHaveBeenCalledTimes(1);
+});
+
+test('the server init fetch carries a fixed experiment arm until the visitor chooses', async () => {
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	const policy = normalizePolicyRule({
+		categories: ['marketing'],
+		id: 'nuxt-experiment',
+		match: { fallback: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	});
+	nuxt.manifest = false;
+	nuxt.response = {
+		branding: 'none',
+		jurisdiction: 'GDPR',
+		location: { countryCode: 'DE', regionCode: null },
+		policyResolution: writePolicyResolutionWire({
+			fingerprints: createPolicyRuleFingerprints(policy),
+			matchedBy: 'fallback',
+			policy,
+			policyId: policy.id,
+			status: 'matched',
+		}),
+		translations: { language: 'en', translations },
+	};
+	nuxt.experiment = {
+		arm: 'wall',
+		arms: { wall: { prompt: { variant: 'wall' } } },
+		id: 'banner-shape',
+	};
+	nuxt.headers = { cookie: '' };
+	vi.stubGlobal('window', undefined);
+	vi.stubGlobal('document', undefined);
+	await plugin({
+		hook: () => undefined,
+		vueApp: createSSRApp(defineComponent({ render: () => null })),
+	});
+	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
 });

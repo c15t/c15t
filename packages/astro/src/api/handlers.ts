@@ -40,26 +40,39 @@ const MANIFEST_ROUTE_SUFFIX = '/manifest';
 /**
  * The per-request context a route or the middleware can pass so a
  * background refresh is registered with the platform. Astro adapters that
- * cancel detached work after the response expose `waitUntil` on
- * `locals.runtime.ctx` (Cloudflare); anything else is left alone.
+ * cancel detached work after the response expose `waitUntil` on it
+ * (Cloudflare); anything else is left alone.
  */
 export interface RequestLifetime {
 	locals?: unknown;
 }
 
+interface WaitUntilContext {
+	waitUntil?: unknown;
+}
+
 /**
- * Hands a promise to the `waitUntil` an Astro adapter exposes on
- * `locals.runtime.ctx` (Cloudflare), so a background refresh outlives the
- * response on runtimes that would cancel it. A no-op where there is none.
+ * Hands a promise to the `waitUntil` an Astro adapter exposes, so a
+ * background refresh outlives the response on runtimes that would cancel
+ * it. The Cloudflare adapter puts the execution context on
+ * `locals.cfContext` from Astro 6, and on `locals.runtime.ctx` before that.
+ * A no-op where there is neither.
  */
 export const waitUntilFromLocals = function waitUntilFromLocals(
 	revalidation: Promise<void>,
 	locals: unknown
 ): void {
-	const ctx = (
-		locals as { runtime?: { ctx?: { waitUntil?: unknown } } } | undefined
-	)?.runtime?.ctx;
-	if (ctx && typeof ctx.waitUntil === 'function') {
+	const adapterLocals = locals as
+		| { cfContext?: WaitUntilContext; runtime?: { ctx?: WaitUntilContext } }
+		| undefined;
+	// `cfContext` first: the Astro 6 adapter keeps a `runtime.ctx` getter that
+	// throws, so it is only read when there is no `cfContext`.
+	const cfContext = adapterLocals?.cfContext;
+	const ctx =
+		typeof cfContext?.waitUntil === 'function'
+			? cfContext
+			: adapterLocals?.runtime?.ctx;
+	if (typeof ctx?.waitUntil === 'function') {
 		(ctx.waitUntil as (promise: Promise<unknown>) => void).call(
 			ctx,
 			revalidation

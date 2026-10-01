@@ -14,9 +14,33 @@
  *   (the browser fetches the manifest once and resolves locally), or omit
  *   to call the backend `/init` directly (the v2-compatible default).
  */
+/**
+ * Module config is static, so the banner-shape experiment is switched on
+ * at build time, the way `C15T_IAB` gates the Astro demo:
+ *
+ *   NUXT_PUBLIC_C15T_EXPERIMENT=1 bun run --cwd examples/nuxt dev
+ *   NUXT_PUBLIC_C15T_EXPERIMENT=1 NUXT_PUBLIC_C15T_EXPERIMENT_ARM=wall ...
+ *
+ * The arm env stands in for a flag provider: `wall` runs the wall arm, any
+ * other value runs `control` (the default banner), and leaving it unset lets
+ * c15t pick. The page lists impressions and choices from the kernel's events.
+ */
+const experimentArm = process.env.NUXT_PUBLIC_C15T_EXPERIMENT_ARM;
+const experiment =
+	process.env.NUXT_PUBLIC_C15T_EXPERIMENT === '1'
+		? {
+				arms: { wall: { prompt: { variant: 'wall' as const } } },
+				id: 'banner-shape',
+				...(experimentArm !== undefined && {
+					arm: experimentArm === 'wall' ? 'wall' : 'control',
+				}),
+			}
+		: undefined;
+
 export default defineNuxtConfig({
 	c15t: {
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
+		experiment,
 		manifest: true,
 	},
 	compatibilityDate: '2026-07-04',

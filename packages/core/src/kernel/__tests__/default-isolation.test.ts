@@ -16,7 +16,6 @@ test('default derivations agree with the evaluator across clocks and GPC inputs'
 				gpc,
 				noticeDismissal: null,
 				now,
-				optOuts: [],
 				policy: snapshot.evaluationPolicy,
 			});
 			expect(snapshot.evaluatedAt).toBe(now);

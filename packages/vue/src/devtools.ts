@@ -17,6 +17,7 @@ import {
 import type { PropType, WatchSource } from 'vue';
 
 import { useConsentConfig } from './runtime/composables/config';
+import { useResolvedPresentation } from './runtime/composables/experiment';
 import { useConsentKernel } from './runtime/composables/kernel';
 import { readDisplayedCategories } from './runtime/devtools/services';
 import { symbolKernelContext } from './runtime/utils/symbols';
@@ -70,6 +71,7 @@ const useProviderDevTools = (
 ): void => {
 	const kernel = useConsentKernel();
 	const config = useConsentConfig();
+	const presentation = useResolvedPresentation();
 	const context = inject(symbolKernelContext, undefined);
 	const getCategories = () =>
 		readDisplayedCategories(
@@ -106,7 +108,7 @@ const useProviderDevTools = (
 					getPresentation: () =>
 						props.getPresentation
 							? props.getPresentation()
-							: config.value.presentation,
+							: presentation.value,
 					kernel,
 					maxEvents: props.maxEvents,
 				});

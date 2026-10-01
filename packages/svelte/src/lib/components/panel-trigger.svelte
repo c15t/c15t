@@ -10,7 +10,8 @@
 	import { onMount, untrack } from 'svelte';
 
 	import { portal } from '../actions/portal';
-	import { getConsentContext } from '../context.svelte';
+	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { holdIdleDialogWarming, warmDialog } from '../dialog-warming';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import ConsentIconOnly from './icons/consent-icon-only.svelte';
 
@@ -39,6 +40,7 @@
 	} = $props();
 
 	const consent = getConsentContext();
+	const theme = getThemeContext();
 
 	let corner: CornerPosition = $state(untrack(() => defaultPosition));
 
@@ -61,10 +63,18 @@
 	const branding = $derived(consent.state.branding);
 	// Nothing to manage without a resolved policy.
 	const visible = $derived(
-		consent.state.hasConsentUi &&
+		consent.state.hasConsentPreferences &&
 			showWhen !== 'never' &&
 			consent.snapshot.activeUI !== 'dialog'
 	);
+
+	// Load the deferred dialog before the first click, but only while the
+	// button is shown: a hidden trigger can't open the dialog.
+	$effect(() => {
+		if (visible) {
+			return holdIdleDialogWarming(theme.preloadDialog);
+		}
+	});
 
 	// Position class mapping
 	const cornerClassMap: Record<CornerPosition, string> = {
@@ -220,6 +230,8 @@
 			onpointermove={handlePointerMove}
 			onpointerup={handlePointerUp}
 			onpointercancel={handlePointerCancel}
+			onpointerenter={warmDialog}
+			onfocus={warmDialog}
 			data-testid="consent-dialog-trigger"
 		>
 			<span

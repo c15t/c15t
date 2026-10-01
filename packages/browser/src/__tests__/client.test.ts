@@ -52,8 +52,8 @@ afterEach(() => {
 });
 
 describe('createConsentClient', () => {
-	it('keeps preferences open and reports a transport failure', async () => {
-		const client = start({
+	const withSave = (save: () => Promise<{ ok: boolean }>) =>
+		start({
 			mode: custom({
 				init: () =>
 					Promise.resolve({
@@ -70,19 +70,53 @@ describe('createConsentClient', () => {
 							})
 						),
 					}),
-				save: () => Promise.reject(new Error('offline')),
+				save,
 			}),
 		});
-		await client.ready();
-		const onError = vi.fn();
-		client.on('error', onError);
-		client.openDialog();
-		expect(
-			(await client.save({ marketing: false, measurement: true })).ok
-		).toBe(false);
-		expect(client.getSnapshot().activeUI).toBe('dialog');
-		expect(onError).toHaveBeenCalled();
-	});
+
+	for (const surface of ['banner', 'dialog'] as const) {
+		for (const outcome of ['pending', 'rejected'] as const) {
+			it(`closes the ${surface} before a ${outcome} save settles`, async () => {
+				const save = vi.fn(() =>
+					outcome === 'pending'
+						? Promise.withResolvers<{ ok: boolean }>().promise
+						: Promise.reject(new Error('offline'))
+				);
+				const client = withSave(save);
+				await client.ready();
+				const onError = vi.fn();
+				client.on('error', onError);
+				if (surface === 'dialog') {
+					client.openDialog();
+				}
+				expect(client.getSnapshot().activeUI).toBe(surface);
+				const saving = client.save({ marketing: false, measurement: true });
+				// Closed in the calling task, before the request starts.
+				expect(client.getSnapshot().activeUI).toBe('none');
+				expect(save).not.toHaveBeenCalled();
+				expect(client.hasConsented()).toBe(true);
+				await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+				expect(localStorage.getItem('c15t')).toContain('measurement');
+				const settled = await Promise.race([
+					saving,
+					new Promise<null>((resolve) => {
+						setTimeout(() => resolve(null), 20);
+					}),
+				]);
+				// A failed request resolves `save()` with ok: false and reaches
+				// the error event once; a pending one does neither.
+				expect(settled?.ok ?? null).toBe(outcome === 'rejected' ? false : null);
+				expect(onError).toHaveBeenCalledTimes(outcome === 'rejected' ? 1 : 0);
+				await new Promise((resolve) => {
+					setTimeout(resolve, 20);
+				});
+				expect(client.getSnapshot().activeUI).toBe('none');
+				expect(
+					client.getSnapshot().explicitChoice?.categories.measurement?.value
+				).toBe(true);
+			});
+		}
+	}
 
 	it('does not let an older save close preferences reopened while saving', async () => {
 		const { promise, resolve: complete } = Promise.withResolvers<{
@@ -182,6 +216,25 @@ describe('createConsentClient', () => {
 		expect(onDocument).toHaveBeenCalledOnce();
 		expect(onDocument.mock.calls[0]?.[0]).toMatchObject({ detail: 'dialog' });
 		document.removeEventListener('c15t:ui', onDocument);
+	});
+
+	it('emits a surface impression as a client event and a document event', async () => {
+		const client = start();
+		const onShown = vi.fn();
+		const onDocument = vi.fn();
+		client.on('surfaceShown', onShown);
+		document.addEventListener('c15t:surfaceShown', onDocument);
+		await client.ready();
+
+		expect(onShown).toHaveBeenCalledOnce();
+		expect(onShown.mock.calls[0]?.[0]).toMatchObject({ surface: 'banner' });
+		expect(onDocument.mock.calls[0]?.[0]).toMatchObject({
+			detail: { surface: 'banner' },
+		});
+		expect(client.getSnapshot().surfaceShownAt.banner).toBe(
+			onShown.mock.calls[0]?.[0].shownAt
+		);
+		document.removeEventListener('c15t:surfaceShown', onDocument);
 	});
 
 	it('replays ready and the current surface to listeners attached after init', async () => {
@@ -296,6 +349,37 @@ describe('createConsentClient', () => {
 		expect(() => client.mountUI()).toThrow(/headless/u);
 	});
 
+	it('exposes the ui theme with the assigned arm merged over it', async () => {
+		const client = start({
+			experiment: {
+				arm: 'bold',
+				arms: {
+					bold: { theme: { colors: { primary: '#123456' } } },
+				},
+				id: 'button-style',
+			},
+			ui: { theme: { colors: { surface: '#abcdef' } } },
+		});
+		await client.ready();
+		expect(client.theme).toEqual({
+			colors: { primary: '#123456', surface: '#abcdef' },
+		});
+		expect(start({ ui: false }).theme).toBeUndefined();
+	});
+
+	it('keeps the theme undefined for a headless client with an arm theme', async () => {
+		const client = start({
+			experiment: {
+				arm: 'bold',
+				arms: { bold: { theme: { colors: { primary: '#123456' } } } },
+				id: 'button-style',
+			},
+			ui: false,
+		});
+		await client.ready();
+		expect(client.getSnapshot().experiment?.arm).toBe('bold');
+		expect(client.theme).toBeUndefined();
+	});
 	it('resolves ready straight away when disabled', async () => {
 		const client = start({ enabled: false });
 		await expect(client.ready()).resolves.toBeDefined();

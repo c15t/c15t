@@ -9,7 +9,7 @@ this guide. Configure the project's policy rules and allowed app origins first.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte @c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/svelte @c15t/integrations" mode="install" />
 
 ## Register consent-gated scripts
 
@@ -73,6 +73,17 @@ The provider owns initialization and cleanup. Keep it mounted around the app
 rather than creating a new provider for each page. The stylesheet supplies the
 stock appearance. Use [customization](/docs/customization/overview) before
 rebuilding the UI with headless APIs.
+
+`ConsentDialog` is not part of the page's first load. It loads in its own
+chunk: in browser idle time after the page loads while a button that opens it
+is mounted (the banner's Customize button, `ConsentDialogLink` or
+`ConsentDialogTrigger`), when that button is hovered or focused, and at the
+latest when the dialog opens. Pass `preloadDialog: 'intent'` in the provider
+options to load it only on hover, focus or open. Idle loading is skipped with
+Save-Data, on 2G connections and offline. With `showTrigger`, the dialog loads
+at mount, so its trigger appears right after hydration instead of in the server
+HTML; render `ConsentDialogTrigger` next to the dialog to keep it in the server
+HTML.
 
 ## Use local policies when no backend is needed
 

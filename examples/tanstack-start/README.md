@@ -139,6 +139,15 @@ absent before measurement permission. The example emits no custom conversion
 events. Script removal cannot undo SDK code that already ran; application event
 calls must also stop after withdrawal.
 
+Open `/consent-example?experiment=1` to run the banner-shape experiment: c15t
+picks the `control` arm (the default banner) or the `wall` arm, and the page
+shows `banner-shape · <arm> · c15t`. `/consent-example?experiment=1&arm=wall`
+resolves the arm in the root loader, on the server, which is where a flag
+provider's answer would go; any other `arm` value runs `control`. The root's
+`onSurfaceShown` and `onChoiceRecorded` callbacks list each impression and
+choice under the arm as `c15t_surface_shown` and `c15t_choice_recorded`.
+See https://c15t.com/docs/guides/banner-experiments.
+
 The root route keeps its existing server prefetch, proxy and IAB components.
 Without the backend override, the existing self-hosted backend is used.
 Development DevTools uses the React adapter against that same runtime.

@@ -13,12 +13,12 @@ in a client wrapper. Keep that wrapper and add vendors to `lib/scripts.ts`.
 If you are adding scripts to an existing c15t setup, install the helpers and
 use the same registration pattern below.
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
 Keep `c15t.config.ts` and the manifest route from your router setup. These shared
 URLs connect initialization and consent submissions to the same backend.
@@ -36,8 +36,8 @@ measurement and marketing categories in your policy for these two vendors.
 Create `lib/scripts.ts` with the example's script configuration:
 
 ```ts title="lib/scripts.ts"
-import { posthog } from '@c15t/scripts/posthog';
-import { xPixel } from '@c15t/scripts/x-pixel';
+import { posthog } from '@c15t/integrations/posthog';
+import { xPixel } from '@c15t/integrations/x-pixel';
 import type { Script } from 'c15t';
 
 export const posthogConfigured = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);
@@ -108,26 +108,26 @@ do not add a second provider. Keep your site's content and footer inside it.
 
 ## Pass prepared consent through your router
 
-App Router awaits the prefetch in the `ResolvedConsent` Server Component from
-the [App Router guide](https://c15t.com/docs/frameworks/next/app-router) and renders the
-wrapper inside it. This partial example is that component; keep the
-`Suspense` boundary, `html`, `body` and stylesheet from your existing layout:
+In the App Router, the root layout from the
+[App Router guide](https://c15t.com/docs/frameworks/next/app-router) passes the pending
+`resolveConsent` result to this wrapper. This partial example is that call;
+keep the `html`, `body` and stylesheet from your existing layout:
 
 ```tsx
-import type { ReactNode } from 'react';
 import { resolveConsent } from 'c15t/next/server';
 import { consentConfig } from '../c15t.config';
 import { Consent } from '../components/consent';
 
-async function ResolvedConsent({ children }: { children: ReactNode }) {
-  const state = await resolveConsent({ config: consentConfig });
-  return <Consent state={state}>{children}</Consent>;
-}
+// Inside the existing synchronous root layout:
+const state = resolveConsent({ config: consentConfig });
+
+<Consent state={state}>{children}</Consent>
 ```
 
-To stream the page shell before consent resolves instead, pass the unawaited
-promise from a synchronous layout as described in
-[stream the page while consent resolves](https://c15t.com/docs/frameworks/next/app-router#stream-the-page-while-consent-resolves).
+No script loads until the browser has applied the resolved policy and the
+visitor's choice allows it. With the
+[awaited layout](https://c15t.com/docs/frameworks/next/app-router#render-the-banner-in-the-server-html),
+pass the awaited result from `ResolvedConsent` to the same wrapper instead.
 
 Pages Router passes `state={pageProps.consentState ?? {}}` to this wrapper
 in `_app.tsx`. Keep `getServerSideProps` and its `c15t/next/pages` helper.
@@ -167,6 +167,40 @@ Use [custom integrations](../../integrations/building-integrations.md) for an
 unlisted vendor. Google helpers have a separate
 [Consent Mode contract](../../integrations/google-tag-manager.md).
 
+## Granular consent
+
+A visitor can grant marketing and still turn one vendor off. Declare the
+vendors next to the scripts in `lib/scripts.ts`, with the `vendor` slug each
+script already carries, and pass both to `ConsentRoot`:
+
+```ts title="lib/scripts.ts"
+import type { Vendor } from 'c15t';
+
+export const vendors: Vendor[] = [
+  {
+    id: 'x-pixel',
+    name: 'X Pixel',
+    category: 'marketing',
+    privacyPolicyUrl: 'https://x.com/privacy',
+  },
+];
+```
+
+```tsx title="components/consent.tsx"
+import { scripts, vendors } from '../lib/scripts';
+
+<ConsentRoot state={state} config={consentConfig} scripts={scripts} vendors={vendors}>
+  {children}
+</ConsentRoot>
+```
+
+The preference center lists each vendor under its category with a switch.
+Integrations from `@c15t/integrations` set `vendor` to their manifest slug, so
+`xPixel()` needs no extra wiring; give a hand-written script the same slug
+in its `vendor` field. A backend manifest can declare vendors too. See
+[granular consent](../../integrations/granular-consent.md) for storage,
+bulk actions and the hooks a custom control uses.
+
 ## Clear stored tracking data
 
 Script gating does not remove cookies or Web Storage entries that a script
@@ -174,3 +208,9 @@ already wrote. Add `clearOnRevocation` to your `ConsentRoot` or provider
 options to remove declared data when its category is denied. See
 [clear on revocation](../../integrations/clear-on-revocation.md) for configuration
 and browser limits.
+
+## Shared lifecycle controls
+
+See [shared consent controls](../../guides/shared-consent-controls.md) for external CMPs,
+preference delegation, withdrawal reloads, and application events. These controls
+use the same core runtime across frameworks.

@@ -1,14 +1,15 @@
-import {
-	resolvePolicyRules,
-	writePolicyResolutionWire,
-	buildConsentManifestFromConfig,
-} from '@c15t/schema/types';
 /**
  * Tests for the backend branch of resolveConsent: with a backend URL the
  * server helper calls the backend's /init (or resolves the manifest), folds
  * the response into the ConsentState, and hands it to the client
  * `ConsentRoot` for first-paint accurate rendering.
  */
+import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import {
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+	buildConsentManifestFromConfig,
+} from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { defineConsentConfig } from '../config';
@@ -84,6 +85,8 @@ const resolveConsent = (
 beforeEach(() => {
 	cookieStore.clear();
 	headerStore.clear();
+	// resolveConsent reads manifests through the shared in-process cache.
+	clearManifestCache();
 });
 
 afterEach(() => {
@@ -199,6 +202,59 @@ describe('resolveConsent: backend call', () => {
 			customVendors: [],
 			enabled: false,
 			gvl: null,
+		});
+	});
+
+	describe('experiment', () => {
+		const wallExperiment = {
+			arm: 'invasive',
+			arms: { invasive: { prompt: { variant: 'wall' as const } } },
+			id: 'banner-shape',
+		};
+		const initFetch = () =>
+			vi
+				.fn()
+				.mockResolvedValue(
+					new Response(JSON.stringify(createInitOutput()), { status: 200 })
+				);
+		const sentArm = (fetchSpy: ReturnType<typeof initFetch>) => {
+			const init = fetchSpy.mock.calls[0]?.[1] as RequestInit | undefined;
+			return (init?.headers as Record<string, string> | undefined)?.[
+				'x-c15t-experiment'
+			];
+		};
+
+		test('/init carries the arm alone and the state carries the experiment', async () => {
+			const fetchSpy = initFetch();
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				experiment: wallExperiment,
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			});
+			expect(sentArm(fetchSpy)).toBe('banner-shape=invasive');
+			expect(state.experiment).toEqual(wallExperiment);
+		});
+
+		test('a visitor who already chose is not counted but keeps the arm', async () => {
+			headerStore.set('cookie', 'c15t=c.necessary:1,c.marketing:1,i.t:1');
+			const fetchSpy = initFetch();
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				experiment: wallExperiment,
+				fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			});
+			expect(sentArm(fetchSpy)).toBeUndefined();
+			expect(state.experiment).toEqual(wallExperiment);
+		});
+
+		test('a failed backend call still returns the experiment', async () => {
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				experiment: wallExperiment,
+				fetch: vi.fn().mockRejectedValue(new Error('network down')),
+				onError: () => undefined,
+			});
+			expect(state.experiment).toEqual(wallExperiment);
 		});
 	});
 
@@ -760,3 +816,144 @@ test.each(['public', 'custom-fetch', 'header'] as const)(
 		expect(JSON.stringify(state)).not.toContain('Bearer private');
 	}
 );
+
+describe('resolveConsent: slow or failing backend', () => {
+	const manifestResponse = () =>
+		new Response(JSON.stringify(MANIFEST_FIXTURE), {
+			headers: {
+				'cache-control': 'public, s-maxage=300, stale-while-revalidate=86400',
+				'content-type': 'application/json',
+			},
+			status: 200,
+		});
+	const hanging = (_url: string | URL | Request, init?: RequestInit) =>
+		new Promise<Response>((_resolve, reject) => {
+			init?.signal?.addEventListener('abort', () =>
+				reject(init.signal?.reason)
+			);
+		});
+
+	test('renders fail-closed when the manifest misses the budget, then uses it on the next render', async () => {
+		headerStore.set('x-vercel-ip-country', 'DE');
+		let answer: (() => void) | undefined;
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					answer = () => resolve(manifestResponse());
+				})
+		);
+		const onError = vi.fn();
+		const background: Promise<void>[] = [];
+
+		const first = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+			onError,
+			timeoutMs: 20,
+			waitUntil: (task) => {
+				background.push(task);
+			},
+		});
+
+		expect(first.initialPolicyResolution).toBeUndefined();
+		expect(onError).toHaveBeenCalledWith(
+			expect.objectContaining({ reason: 'timeout' })
+		);
+		// The request keeps going and is handed to the platform.
+		expect(background).toHaveLength(1);
+		answer?.();
+		await background[0];
+
+		const second = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+			timeoutMs: 20,
+		});
+		expect(second.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a direct backend manifestURL is read through the cache', async () => {
+		headerStore.set('x-vercel-ip-country', 'DE');
+		const fetchSpy = vi.fn(() => Promise.resolve(manifestResponse()));
+		const options = {
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+		};
+
+		const concurrent = await Promise.all(
+			Array.from({ length: 5 }, () => resolveConsent(options))
+		);
+		const sequential = await resolveConsent(options);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		for (const state of [...concurrent, sequential]) {
+			expect(state.initialPolicyResolution?.status).toBe('matched');
+		}
+	});
+
+	test('after a failed manifest, later renders do not ask the backend again straight away', async () => {
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(new Response('unavailable', { status: 503 }))
+		);
+		const onError = vi.fn();
+		const options = {
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+			onError,
+		};
+
+		const states = [];
+		for (let index = 0; index < 5; index += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential renders by design.
+			states.push(await resolveConsent(options));
+		}
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		for (const state of states) {
+			expect(state.initialPolicyResolution).toBeUndefined();
+		}
+		expect(onError.mock.calls.at(-1)?.[0]).toMatchObject({
+			reason: 'backoff',
+		});
+	});
+
+	test('bounds the backend /init call by the same budget', async () => {
+		const onError = vi.fn();
+		const startedAt = Date.now();
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: vi.fn(hanging) as unknown as typeof globalThis.fetch,
+			onError,
+			timeoutMs: 30,
+		});
+
+		expect(Date.now() - startedAt).toBeLessThan(2000);
+		expect(state.initialPolicyResolution).toBeUndefined();
+		expect(onError).toHaveBeenCalledTimes(1);
+	});
+
+	test('timeoutMs: false waits for a slow manifest', async () => {
+		headerStore.set('x-vercel-ip-country', 'DE');
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					setTimeout(() => resolve(manifestResponse()), 60);
+				})
+		);
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy as unknown as typeof globalThis.fetch,
+			manifestURL: 'https://consent.example.com/manifest',
+			timeoutMs: false,
+		});
+		expect(state.initialPolicyResolution?.status).toBe('matched');
+	});
+});

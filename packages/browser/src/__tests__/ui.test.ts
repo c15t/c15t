@@ -2,6 +2,7 @@ import { policyRulePresets } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
+import { classes } from '../generated/styles';
 import type {
 	ConsentClient,
 	ConsentUIHandle,
@@ -75,6 +76,49 @@ afterEach(() => {
 });
 
 describe('mountConsentUI', () => {
+	it('rebuilds the banner when the assigned arm changes', async () => {
+		const experiment = {
+			arm: 'floating',
+			arms: {
+				bar: { prompt: { variant: 'bar' as const } },
+				floating: { prompt: { variant: 'floating' as const } },
+			},
+			id: 'banner-shape',
+		};
+		const { client, root } = await mount({}, { experiment });
+		// The banner waits for the lazily loaded experiment controller.
+		await vi.waitFor(() =>
+			expect(query(root, 'consent-banner-root').dataset.variant).toBe(
+				'floating'
+			)
+		);
+		client.kernel.set.experiment({
+			acknowledgedDiagnostics: false,
+			arm: 'bar',
+			assignedBy: 'c15t',
+			id: 'banner-shape',
+		});
+		expect(query(root, 'consent-banner-root').dataset.variant).toBe('bar');
+	});
+
+	it('creates the stylesheet when an arm theme arrives after mount', async () => {
+		const experiment = {
+			arms: {
+				bold: { theme: { colors: { primary: '#123456' } } },
+			},
+			id: 'button-style',
+		};
+		// No stylesheet, theme or css: nothing to inject at mount.
+		const { client, root } = await mount({}, { experiment });
+		client.kernel.set.experiment({
+			acknowledgedDiagnostics: false,
+			arm: 'bold',
+			assignedBy: 'c15t',
+			id: 'button-style',
+		});
+		expect(root.querySelector('style')?.textContent).toContain('#123456');
+	});
+
 	it('records untouched displayed preferences when Save is clicked', async () => {
 		const { client, root } = await mount();
 		client.openDialog();
@@ -168,6 +212,90 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	describe('entry transition', () => {
+		const spyOnLayout = function spyOnLayout() {
+			return vi
+				.spyOn(HTMLElement.prototype, 'offsetHeight', 'get')
+				.mockReturnValue(0);
+		};
+
+		/** Only the presence of the interface is checked. */
+		const declareStartingStyle = function declareStartingStyle() {
+			Object.assign(globalThis, { CSSStartingStyleRule: {} });
+		};
+
+		afterEach(() => {
+			vi.restoreAllMocks();
+			Reflect.deleteProperty(globalThis, 'CSSStartingStyleRule');
+		});
+
+		it('inserts the banner and dialog visible without reading layout when @starting-style is supported', async () => {
+			declareStartingStyle();
+			const layout = spyOnLayout();
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerHidden)).toBe(
+				false
+			);
+
+			query(root, 'consent-banner-customize-button').click();
+			const dialog = query(root, 'consent-dialog-root');
+			expect(dialog.classList.contains(classes.dialog.contentVisible)).toBe(
+				true
+			);
+			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
+				true
+			);
+			expect(layout).not.toHaveBeenCalled();
+		});
+
+		it('falls back to the hidden-then-visible flip with a layout read', async () => {
+			const layout = spyOnLayout();
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				false
+			);
+			expect(layout).toHaveBeenCalledTimes(1);
+
+			query(root, 'consent-banner-customize-button').click();
+			const dialog = query(root, 'consent-dialog-root');
+			expect(dialog.classList.contains(classes.dialog.contentVisible)).toBe(
+				true
+			);
+			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
+				false
+			);
+			expect(layout).toHaveBeenCalledTimes(2);
+		});
+
+		it('skips the entering state when animation is disabled', async () => {
+			declareStartingStyle();
+			const layout = spyOnLayout();
+			const { root } = await mount();
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				false
+			);
+			expect(layout).not.toHaveBeenCalled();
+		});
+	});
+
 	it('accepts from the banner and removes it', async () => {
 		const { root, client } = await mount();
 
@@ -179,6 +307,41 @@ describe('mountConsentUI', () => {
 			root.querySelector('[data-testid="consent-banner-root"]')
 		).toBeNull();
 	});
+
+	it.each([
+		['accept', 'consent-banner-accept-button'],
+		['reject', 'consent-banner-reject-button'],
+	])(
+		'shows only Strictly necessary when nothing is declared, and %s dismisses the banner',
+		async (_action, button) => {
+			const { root, client } = await mount(
+				{ trigger: { showWhen: 'after-consent' } },
+				{
+					consentCategories: undefined,
+					policyRules: [
+						{ ...policyRulePresets.europeOptIn(), match: { isDefault: true } },
+					],
+				}
+			);
+			expect(client.consentCategories).toEqual(['necessary']);
+			client.openDialog();
+			expect(
+				root.querySelectorAll('[data-testid^="consent-widget-switch-"]')
+			).toHaveLength(1);
+			query(root, 'consent-widget-switch-necessary');
+			client.showBanner();
+			query(root, button).click();
+			await vi.waitFor(() =>
+				expect(client.getSnapshot().activeUI).toBe('none')
+			);
+			expect(client.getSnapshot().promptRequirement).toEqual({ kind: 'none' });
+			expect(client.hasConsented()).toBe(true);
+			expect(query(root, 'consent-dialog-trigger').hidden).toBe(false);
+			expect(
+				root.querySelector('[data-testid="consent-banner-root"]')
+			).toBeNull();
+		}
+	);
 
 	it('opens the preference centre, toggles a draft and saves it', async () => {
 		const { root, client } = await mount();

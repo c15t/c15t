@@ -1,6 +1,6 @@
 import { readStoredRecords } from '@c15t/core/modules/persistence';
 /**
- * E2E Test Setup for IAB TCF 2.3 Components
+ * E2E Test Setup for IAB TCF 2.4 Components
  *
  * Provides utilities for browser-based E2E testing of IAB components.
  * Uses MSW (Mock Service Worker) for network-level mocking.
@@ -9,6 +9,7 @@ import { readStoredRecords } from '@c15t/core/modules/persistence';
  */
 import { vi } from 'vitest';
 
+import { DEFAULT_KEY_STORAGE } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import type { ConsentProviderOptions } from '~/provider';
 import { offline } from '~/transports/offline';
@@ -235,6 +236,8 @@ export const defaultProviderIABOptions: ConsentProviderOptions = {
 		prompt: 'choice',
 		scopeMode: 'strict',
 	}),
+	// These tests read the TC string and records under the default key.
+	storageConfig: DEFAULT_KEY_STORAGE,
 };
 
 /**

@@ -159,6 +159,44 @@
 					},
 				},
 			]);
+			// `?experiment=1` runs a banner-shape experiment: `control` is the
+			// default banner and `wall` blocks the page. c15t picks the arm;
+			// `&arm=wall` sets it the way a flag provider would (any other `arm`
+			// value runs `control`). The callbacks log each impression and
+			// choice made under the arm.
+			const experimentParams = new URLSearchParams(location.search);
+			if (experimentParams.get('experiment') === '1') {
+				const arm = experimentParams.get('arm');
+				const experiment = {
+					id: 'banner-shape',
+					arms: { wall: { prompt: { variant: 'wall' } } },
+				};
+				if (arm !== null) {
+					experiment.arm = arm === 'wall' ? 'wall' : 'control';
+				}
+				c15t.push([
+					'config',
+					{
+						experiment,
+						callbacks: {
+							onSurfaceShown: (event) => {
+								if (event.experiment) {
+									log(
+										`c15t_surface_shown · ${event.experiment.arm} · ${event.surface}`
+									);
+								}
+							},
+							onChoiceRecorded: (event) => {
+								if (event.experiment) {
+									log(
+										`c15t_choice_recorded · ${event.experiment.arm} · ${event.consentAction}`
+									);
+								}
+							},
+						},
+					},
+				]);
+			}
 			// Listeners queue the same way and attach once the client exists.
 			c15t.push(
 				[
@@ -174,7 +212,15 @@
 					'consent',
 					(s) => log(`consent: ${JSON.stringify(s.effectivePermissions)}`),
 				],
-				['on', 'ui', (surface) => log(`ui: ${surface}`)]
+				['on', 'ui', (surface) => log(`ui: ${surface}`)],
+				[
+					'on',
+					'surfaceShown',
+					(impression) =>
+						log(
+							`surface shown: ${impression.surface}${impression.experiment ? ` (arm ${impression.experiment.arm})` : ''}`
+						),
+				]
 			);
 			function log(line) {
 				const el = document.getElementById('log');
@@ -214,6 +260,19 @@
 				below is gated on consent; watch the log as you accept, reject and
 				customise. The <a href="/custom">custom UI page</a> does the same with
 				the headless build and its own HTML.
+			</p>
+
+			<h2>Banner experiment</h2>
+			<p>
+				Open <a href="/?experiment=1">?experiment=1</a> to let c15t pick a
+				banner-shape arm (<code>control</code> or <code>wall</code>), or
+				<a href="/?experiment=1&arm=wall">?experiment=1&amp;arm=wall</a> to set
+				the wall arm. Arm:
+				<span
+					class="status"
+					id="experiment-arm"
+					>none</span
+				>. Impressions and choices made under the arm appear in the log.
 			</p>
 
 			<h2>Page hooks</h2>
@@ -364,6 +423,12 @@
 				'onInit',
 				(client) => {
 					const paint = () => {
+						const arm = client.kernel.getSnapshot().experiment;
+						const armBadge = document.getElementById('experiment-arm');
+						armBadge.dataset.on = String(Boolean(arm));
+						armBadge.textContent = arm
+							? `${arm.id} · ${arm.arm} · ${arm.assignedBy}`
+							: 'none';
 						for (const badge of document.querySelectorAll('[data-check]')) {
 							const name = badge.dataset.check;
 							const on = client.has(name);

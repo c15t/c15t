@@ -94,6 +94,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Čia galite tinkinti savo privatumo nustatymus. Galite pasirinkti, kokių tipų slapukus ir sekimo technologijas leidžiate naudoti.',
+			features: {
+				description:
+					'Šie apdorojimo būdai gali būti naudojami tik siekiant vieno ar kelių tikslų, dėl kurių Jums šiame pranešime suteikiamas pasirinkimas.',
+				title: 'Funkcijos',
+			},
 			footer: {
 				consentStorage:
 					'Sutikimo nuostatos saugomos slapuke pavadinimu „euconsent-v2“ 13 mėnesių. Kai atnaujinate savo nuostatas, saugojimo trukmė gali būti pradėta skaičiuoti iš naujo.',

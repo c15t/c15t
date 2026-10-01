@@ -1,6 +1,7 @@
 import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import type { OptionalConsentCategory } from '../../consent-record/types';
 import {
+	EXPERIMENT_STORAGE_KEY,
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
@@ -52,6 +53,7 @@ export const createClearOnRevocation = (
 		PENDING_SAVES_STORAGE_KEY,
 		// Keep the optional IAB addon's receipts without importing its runtime.
 		'c15t-iab-authority-v1',
+		EXPERIMENT_STORAGE_KEY,
 		'euconsent-v2',
 	]);
 	for (const key of [
@@ -62,6 +64,8 @@ export const createClearOnRevocation = (
 		protectedKeys.add(`${key}-notice`);
 		protectedKeys.add(`${key}-privacy`);
 		protectedKeys.add(`${key}-vendors`);
+		protectedKeys.add(`${key}-epoch`);
+		protectedKeys.add(`${key}-cookie-miss`);
 	}
 	const previous = new Map<OptionalConsentCategory, boolean>();
 	const reconcile = (): void => {

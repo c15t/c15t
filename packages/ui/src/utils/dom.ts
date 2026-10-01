@@ -131,11 +131,22 @@ export const getFocusableElements = function getFocusableElements(
 		'input:not([disabled]):not([tabindex="-1"])',
 		'select:not([disabled]):not([tabindex="-1"])',
 		'[contenteditable]:not([tabindex="-1"])',
+		// Native sequential stops that are not form controls or links. An
+		// iframe is left out on purpose: focus inside a frame's document
+		// never reaches this document's key listener, so the trap could not
+		// hold it.
+		'summary:not([tabindex="-1"])',
+		'audio[controls]:not([tabindex="-1"])',
+		'video[controls]:not([tabindex="-1"])',
 		'[tabindex]:not([tabindex="-1"])',
 	].join(',');
 
 	return Array.from(container.querySelectorAll<HTMLElement>(selector)).filter(
 		(el) => {
+			// A negative `tabindex` other than "-1" also leaves sequential focus.
+			if (el.tabIndex < 0) {
+				return false;
+			}
 			if (typeof el.checkVisibility === 'function') {
 				return el.checkVisibility({ checkVisibilityCSS: true });
 			}
@@ -164,28 +175,115 @@ export const getFocusableElements = function getFocusableElements(
 };
 
 let scrollLockCount = 0;
-let scrollLockOriginal: { overflow: string; paddingRight: string } | null =
-	null;
+let scrollLockRestore: (() => void) | null = null;
+
+/** Whether an element's computed overflow is `visible` on both axes. */
+const hasVisibleOverflow = (style: CSSStyleDeclaration): boolean =>
+	[style.overflowX, style.overflowY].every(
+		(value) => value === '' || value === 'visible'
+	);
+
+const supportsScrollbarGutter = (): boolean =>
+	typeof CSS !== 'undefined' &&
+	typeof CSS.supports === 'function' &&
+	CSS.supports('scrollbar-gutter', 'stable');
 
 /**
  * Locks document scrolling.
+ *
+ * Hides overflow on whichever element scrolls the page: `<body>` when its
+ * overflow reaches the viewport (the default), otherwise `<html>`, plus
+ * `<body>` when it is its own scroll container. When the page was showing a
+ * classic scrollbar, `scrollbar-gutter: stable` on `<html>` keeps the
+ * viewport width constant so neither in-flow content nor fixed-position
+ * elements move. Where no gutter holds (browsers without `scrollbar-gutter`,
+ * and scrollbars styled with `::-webkit-scrollbar`), `<body>` gets
+ * `padding-right` instead, which keeps in-flow content still.
+ *
  * @returns Cleanup function to restore scroll
  */
 export const setupScrollLock = function setupScrollLock() {
 	// Reference counted: a banner and a dialog can both hold the lock (the
 	// banner's exit animation overlaps the dialog opening), and the page
-	// must only get its original overflow back when the last one lets go.
+	// must only get its original styles back when the last one lets go.
 	if (scrollLockCount === 0) {
-		scrollLockOriginal = {
-			overflow: document.body.style.overflow,
-			paddingRight: document.body.style.paddingRight,
+		const root = document.documentElement;
+		const { body } = document;
+		const rootStyle = window.getComputedStyle(root);
+		// Only a classic scrollbar takes space. Measure it before hiding
+		// overflow: reserving a gutter on a page without one would narrow it.
+		const scrollbarWidth = window.innerWidth - root.clientWidth;
+		const rootWidth = root.getBoundingClientRect().width;
+		const restores: (() => void)[] = [];
+		// Saves the inline values of `property` and any `related` longhands.
+		// A page that set only `overflow-x` reads back an empty `overflow`,
+		// so the longhands are what let the restore keep it.
+		const setStyle = (
+			element: HTMLElement,
+			property: string,
+			value: string,
+			related: string[] = []
+		) => {
+			const saved = [property, ...related].map((name) => ({
+				name,
+				priority: element.style.getPropertyPriority(name),
+				value: element.style.getPropertyValue(name),
+			}));
+			element.style.setProperty(property, value);
+			restores.push(() => {
+				for (const { name } of saved) {
+					element.style.removeProperty(name);
+				}
+				for (const { name, priority, value: previous } of saved) {
+					if (previous) {
+						element.style.setProperty(name, previous, priority);
+					}
+				}
+			});
 		};
-		const scrollbarWidth =
-			window.innerWidth - document.documentElement.clientWidth;
-		document.body.style.overflow = 'hidden';
-		if (scrollbarWidth > 0) {
-			document.body.style.paddingRight = `${scrollbarWidth}px`;
+		const hideOverflow = (element: HTMLElement) => {
+			setStyle(element, 'overflow', 'hidden', ['overflow-x', 'overflow-y']);
+		};
+
+		// While <html> has visible overflow, <body>'s overflow is what the
+		// viewport uses. Hiding it there, rather than on <html>, leaves <body>
+		// out of the scroll-container chain, so sticky elements and margin
+		// collapsing behave as they did before the lock.
+		if (hasVisibleOverflow(rootStyle)) {
+			hideOverflow(body);
+		} else {
+			hideOverflow(root);
+			// Pages that scroll <body> instead of the viewport.
+			if (!hasVisibleOverflow(window.getComputedStyle(body))) {
+				hideOverflow(body);
+			}
 		}
+
+		if (scrollbarWidth > 0) {
+			if (supportsScrollbarGutter()) {
+				if (
+					!rootStyle.getPropertyValue('scrollbar-gutter').includes('stable')
+				) {
+					setStyle(root, 'scrollbar-gutter', 'stable');
+				}
+				// The gutter only holds for native scrollbars: Chromium reserves
+				// none for one styled with `::-webkit-scrollbar`. When the page
+				// still widened, pad <body> by the difference instead, which keeps
+				// in-flow content still (fixed elements still move).
+				const growth = root.getBoundingClientRect().width - rootWidth;
+				if (growth > 0.5) {
+					setStyle(body, 'padding-right', `${growth}px`);
+				}
+			} else {
+				setStyle(body, 'padding-right', `${scrollbarWidth}px`);
+			}
+		}
+
+		scrollLockRestore = () => {
+			for (const restore of restores.reverse()) {
+				restore();
+			}
+		};
 	}
 	scrollLockCount += 1;
 
@@ -196,10 +294,9 @@ export const setupScrollLock = function setupScrollLock() {
 		}
 		released = true;
 		scrollLockCount -= 1;
-		if (scrollLockCount === 0 && scrollLockOriginal) {
-			document.body.style.overflow = scrollLockOriginal.overflow;
-			document.body.style.paddingRight = scrollLockOriginal.paddingRight;
-			scrollLockOriginal = null;
+		if (scrollLockCount === 0 && scrollLockRestore) {
+			scrollLockRestore();
+			scrollLockRestore = null;
 		}
 	};
 };
@@ -234,6 +331,22 @@ const findFocusRestoreEquivalent = function findFocusRestoreEquivalent(
 	return null;
 };
 
+/** Whether `node` is `target` or inside it, crossing shadow roots. */
+const containsComposed = function containsComposed(
+	target: Element,
+	node: Element | null
+): boolean {
+	let current: Node | null = node;
+	while (current) {
+		if (current === target || target.contains(current)) {
+			return true;
+		}
+		const root = current.getRootNode();
+		current = root instanceof ShadowRoot ? root.host : null;
+	}
+	return false;
+};
+
 /** Read focus inside nested shadow roots as well as the document. */
 const readActiveElement = (): Element | null => {
 	let active = document.activeElement;
@@ -244,10 +357,66 @@ const readActiveElement = (): Element | null => {
 };
 
 /**
+ * The elements sequential Tab reaches inside `container`, in the order it
+ * reaches them: the lowest positive `tabindex` first, then document order.
+ * Controls a browser would refuse to focus, disabled through an ancestor
+ * `fieldset` or inside an `inert` subtree, are left out.
+ *
+ * @param container - The element to search inside.
+ * @returns The tabbable elements in sequential focus order.
+ */
+export const tabbableElements = function tabbableElements(
+	container: HTMLElement
+): HTMLElement[] {
+	const candidates = getFocusableElements(container).filter(
+		(element) => !(element.matches(':disabled') || element.closest('[inert]'))
+	);
+	const positive = candidates
+		.filter((element) => element.tabIndex > 0)
+		.sort((left, right) => left.tabIndex - right.tabIndex);
+	return [
+		...positive,
+		...candidates.filter((element) => element.tabIndex === 0),
+	];
+};
+
+/**
+ * The element sequential Tab would reach first inside `container`.
+ *
+ * @param container - The element to search inside.
+ * @returns The first tabbable element, or `undefined` when there is none.
+ */
+export const firstTabbable = function firstTabbable(
+	container: HTMLElement
+): HTMLElement | undefined {
+	return tabbableElements(container)[0];
+};
+
+/** Where a focus trap puts focus when it starts. */
+export interface FocusTrapOptions {
+	/**
+	 * `'first-tabbable'` focuses the first tabbable element inside the
+	 * container, the way dialog libraries such as Base UI do, so a keyboard
+	 * user sees the ring on a control. `'container'`, the default, focuses the
+	 * container itself; a blocking banner uses it so no action button is
+	 * favored. Both fall back to the container when nothing inside is
+	 * tabbable.
+	 */
+	initialFocus?: 'container' | 'first-tabbable';
+}
+
+/**
  * Traps focus within a container.
+ *
+ * @param container - The element focus must stay inside. It is made
+ * focusable when it is not already.
+ * @param options - Where focus starts; see {@link FocusTrapOptions}.
  * @returns Cleanup function to remove listeners and restore focus
  */
-export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
+export const setupFocusTrap = function setupFocusTrap(
+	container: HTMLElement,
+	options: FocusTrapOptions = {}
+) {
 	const activeElement = readActiveElement() as HTMLElement | null;
 	const previousFocus =
 		activeElement &&
@@ -256,12 +425,17 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			? activeElement
 			: lastFocusedElement;
 
-	// Focus the container itself so the user can read the content first,
-	// then Tab into interactive elements (links, then buttons).
-	// This avoids biasing initial focus toward a specific action button.
+	// The container stays focusable so the trap can land on it when nothing
+	// inside is tabbable, and so a blocking banner can start there without
+	// favoring an action button. `aria-labelledby` and `aria-describedby`
+	// carry the title and description to a screen reader either way.
 	if (container.tabIndex < 0) {
 		container.tabIndex = -1;
 	}
+	const initialTarget = () =>
+		(options.initialFocus === 'first-tabbable'
+			? firstTabbable(container)
+			: undefined) ?? container;
 	const focusTimer = setTimeout(() => {
 		try {
 			const activeElementLocal = readActiveElement();
@@ -272,7 +446,18 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			) {
 				return;
 			}
-			container.focus({ preventScroll: true });
+			const target = initialTarget();
+			target.focus({ preventScroll: true });
+			// A control the browser would not focus after all leaves focus
+			// outside the modal; the container is always focusable. A shadow
+			// host that delegates focus reports the inner element as active,
+			// so containment is checked across shadow boundaries.
+			if (
+				target !== container &&
+				!containsComposed(target, readActiveElement())
+			) {
+				container.focus({ preventScroll: true });
+			}
 		} catch {
 			// Silently handle focus errors
 		}
@@ -284,7 +469,9 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 			return;
 		}
 
-		const elements = getFocusableElements(container);
+		// The same list and order as the initial focus, so the wrap points
+		// are the real first and last sequential stops.
+		const elements = tabbableElements(container);
 		if (elements.length === 0) {
 			return;
 		}
@@ -296,6 +483,18 @@ export const setupFocusTrap = function setupFocusTrap(container: HTMLElement) {
 		const inside = active
 			? active === container || container.contains(active)
 			: false;
+
+		// A positive `tabindex` puts the browser's next stop anywhere in the
+		// page, so with one present the trap steps through its own list
+		// instead of letting the browser choose.
+		const index = active ? elements.indexOf(active) : -1;
+		if (index !== -1 && elements.some((element) => element.tabIndex > 0)) {
+			e.preventDefault();
+			const step = e.shiftKey ? -1 : 1;
+			const next = elements[(index + step + elements.length) % elements.length];
+			next?.focus({ preventScroll: true });
+			return;
+		}
 
 		// Shift+Tab wraps to the last focusable when focus would otherwise
 		// escape: from the first focusable, from the focused container itself

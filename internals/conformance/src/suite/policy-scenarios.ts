@@ -178,33 +178,19 @@ const assertStorage = function assertStorage(
 			choice: { cookie: null, localStorage: null },
 			legacyLocalStorage: null,
 			notice: { cookie: null, localStorage: null },
-			privacy: { cookie: null, localStorage: null },
 		});
 	}
-	if (expected === 'notice-only' || expected === 'privacy-only') {
-		const changed = expected === 'notice-only' ? 'notice' : 'privacy';
-		const unchanged = changed === 'notice' ? 'privacy' : 'notice';
+	if (expected === 'notice-only') {
 		api.expect(bytes.choice).toEqual(before.choice);
 		api.expect(bytes.legacyLocalStorage).toBe(before.legacyLocalStorage);
-		api.expect(bytes[unchanged]).toEqual(before[unchanged]);
 		api
-			.expect(
-				JSON.stringify(bytes[changed]) === JSON.stringify(before[changed])
-			)
+			.expect(JSON.stringify(bytes.notice) === JSON.stringify(before.notice))
 			.toBe(false);
-		api.expect(bytes[changed].localStorage).not.toBeNull();
-		const persisted: unknown = JSON.parse(
-			bytes[changed].localStorage ?? 'null'
-		);
-		api
-			.expect(persisted)
-			.toEqual(
-				changed === 'notice'
-					? after.snapshot.noticeDismissal
-					: { directives: after.snapshot.optOutDirectives, version: 1 }
-			);
+		api.expect(bytes.notice.localStorage).not.toBeNull();
+		const persisted: unknown = JSON.parse(bytes.notice.localStorage ?? 'null');
+		api.expect(persisted).toEqual(after.snapshot.noticeDismissal);
 	}
-	if (expected === 'choice-v3') {
+	if (expected === 'choice-v3' || expected === 'choice-and-notice') {
 		api.expect(bytes.choice.localStorage).not.toBeNull();
 		const envelope: unknown = JSON.parse(bytes.choice.localStorage ?? 'null');
 		api.expect(envelope).toHaveProperty('version');
@@ -223,8 +209,15 @@ const assertStorage = function assertStorage(
 		api
 			.expect('subject' in envelope ? envelope.subject : null)
 			.toEqual(after.snapshot.subject);
-		api.expect(bytes.notice).toEqual(before.notice);
-		api.expect(bytes.privacy).toEqual(before.privacy);
+		if (expected === 'choice-v3') {
+			api.expect(bytes.notice).toEqual(before.notice);
+			return;
+		}
+		// The same save acknowledged the owed notice.
+		api.expect(bytes.notice.localStorage).not.toBeNull();
+		api
+			.expect(JSON.parse(bytes.notice.localStorage ?? 'null'))
+			.toEqual(after.snapshot.noticeDismissal);
 	}
 };
 
@@ -393,19 +386,6 @@ export const assertPolicyObservation = function assertPolicyObservation(
 				]
 			)
 			.toBe(value);
-	}
-	if (expected.standingOptOut !== undefined) {
-		api
-			.expect(
-				[
-					...new Set(
-						snapshot.optOutDirectives.flatMap(
-							(directive) => directive.categories
-						)
-					),
-				].sort()
-			)
-			.toEqual([...expected.standingOptOut].sort());
 	}
 	if (expected.noticeDismissal === 'absent') {
 		api.expect(snapshot.noticeDismissal).toBe(null);

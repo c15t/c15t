@@ -1,0 +1,90 @@
+Each restriction type has a requirement that depends on the vendor list:
+
+| `restrictionType` | Meaning | Allowed when the vendor |
+| --- | --- | --- |
+| `0` | Purpose not allowed on any legal basis | declares the purpose for consent or legitimate interest |
+| `1` | Consent required | declares the purpose for legitimate interest and lists it in `flexiblePurposes` |
+| `2` | Legitimate interest required | declares the purpose for consent and lists it in `flexiblePurposes` |
+
+Type `2` is never allowed for purposes 1, 3, 4, 5 and 6, which TCF allows
+only with consent. TCF allows restrictions only in service-specific TC strings.
+c15t always writes those, so the deprecated `isServiceSpecific` option has no
+effect on restrictions.
+c15t copies the restrictions when the CMP starts, so changing your array
+afterwards has no effect.
+
+c15t checks restrictions when the vendor list loads and again before each TC
+String is encoded. Unsupported restrictions include type `3`, which the spec
+reserves, a vendor or purpose missing from the list, and a vendor with two
+restriction types for one purpose. They are never dropped. Loading IAB
+settings, saving and generating a TC String all reject with a
+`PublisherRestrictionError` exported by `@c15t/iab`. On a `createIAB` handle
+these are `whenReady()`, `save()` and `generateTCString()`. No TC String is
+written and no consent is recorded. Retrying `whenReady()` does not fetch
+another vendor list. The error lasts until a new vendor list is set up: with an
+explicit `gvl` option that never happens, so saving keeps failing even if the
+kernel later holds a different list. When the CMP follows the kernel's list
+instead, a replacement list is checked again and saving works once it accepts
+the restrictions. When a replacement vendor list makes a restriction
+unsupported, c15t also clears the TC authority confirmed under the previous
+list, so gated scripts stop until the configuration is fixed. Whenever c15t
+withdraws the authority it confirmed, it also removes the TC String from the
+`euconsent-v2` cookie and localStorage entry. Because the check reads the
+current vendor list, a vendor that stops declaring a purpose or its flexibility
+makes a restriction invalid. Narrow a `vendors` allowlist and your restrictions
+together.
+
+Saved TC Strings carry the restrictions in their `PubRestrictions` section, and
+`__tcfapi('getTCData')` reports them as `publisher.restrictions`, keyed by
+purpose ID, then vendor ID. A stored TC String whose restrictions differ from
+the current configuration is not restored. If the visitor's stored choice is
+otherwise current, the banner opens again, as it does after a policy change,
+and closes once the visitor saves. IAB gates that depend on the TC String stay
+denied until then. c15t also removes the superseded TC String from the
+`euconsent-v2` cookie and localStorage entry, so vendors reading standard
+storage do not pick it up. An unchanged configuration restores the stored TC
+String without asking.
+When reading a string written under TCF policy version 2 or 3, c15t accepts
+type `2` for purposes 3 to 6, which those versions allowed. Strings c15t
+writes always follow the current policy.
+
+The React, Vue, Svelte and `@c15t/browser/iab` preference centres list each
+vendor under the legal basis the restrictions leave it. A vendor whose purpose
+now requires legitimate interest gets an objection control instead of a
+consent toggle, and a prohibited purpose no longer lists the vendor. A
+purpose whose vendors all use legitimate interest has no consent switch,
+because turning one off would change nothing the vendors rely on; its
+objection control is the opt-out. Such a purpose does not decide its c15t
+category: the category follows the purposes in it that the visitor can
+consent to. Legitimate interest never grants a category on its own. If none of
+a category's purposes has a consent basis, the category needs all of them
+consented, which only Accept all does. Stack switches
+cover only the purposes some vendor processes on consent. Display-model rows
+expose this as `hasConsentBasis`. Custom preference UIs can call
+`applyPublisherRestrictionsToGVL` from `@c15t/iab/headless`, or pass
+`publisherRestrictions` to `processGVLForDialog`, to get the same vendor
+declarations. The configured restrictions are on the kernel's IAB state as
+`publisherRestrictions`.
+
+Consent-gated scripts, network rules and iframes with a `vendorId` also apply
+the confirmed restrictions for that vendor:
+
+- Type `0` blocks a target that declares the purpose in `iabPurposes` or
+  `iabLegIntPurposes`.
+- Type `1` makes a purpose declared in `iabLegIntPurposes` require purpose and
+  vendor consent. Legitimate interest no longer satisfies it.
+- Type `2` makes a purpose declared in `iabPurposes` require purpose and vendor
+  legitimate interest. Consent no longer satisfies it.
+
+Types `1` and `2` block the target when the vendor list does not mark the
+purpose as flexible for that vendor. Targets without a `vendorId` ignore
+restrictions. A target that uses only legitimate interest once restrictions
+apply is not blocked by a refused category, since it needs no consent; its
+legitimate interest signals and the visitor's objection decide. GPC and strict
+scope still block it, and the category stays refused for scripts that depend on
+it. Accept all grants the vendor signal a restriction moves a purpose to,
+including legitimate interest for a vendor that declares none. Legitimate
+interest a restriction introduces applies until the visitor objects: the
+preference centres show it as allowed, and saving without touching it encodes
+it as allowed. `introducedLegitimateInterest` from `@c15t/iab/headless` lists
+those purposes and vendors for custom preference UIs.

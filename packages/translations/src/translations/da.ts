@@ -91,6 +91,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Tilpas dine privatlivsindstillinger her. Du kan vælge, hvilke typer cookies og sporingsteknologier du vil tillade.',
+			features: {
+				description:
+					'Disse behandlingsmetoder kan udelukkende anvendes til ét eller flere formål, som du får mulighed for at vælge mellem i denne meddelelse.',
+				title: 'Funktioner',
+			},
 			footer: {
 				consentStorage:
 					'Samtykkepræferencer gemmes i en cookie med navnet "euconsent-v2" i 13 måneder. Opbevaringsperioden kan blive fornyet, når du opdaterer dine præferencer.',

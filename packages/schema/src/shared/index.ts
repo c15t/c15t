@@ -21,8 +21,12 @@ export {
 export {
 	type BuildConsentSessionReportOptions,
 	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
 	CONSENT_SESSION_CLIENT_IP_HEADER,
+	formatExperimentHeader,
 	isSpeculativeRequest,
+	parseExperimentHeader,
+	type SessionExperiment,
 	type SessionReportInputs,
 } from './session-report';
 // Export constants separately for runtime-safe usage
@@ -56,6 +60,7 @@ export {
 	type GVLSpecialFeature,
 	type GVLSpecialPurpose,
 	type GVLStack,
+	type GVLStandardTexts,
 	type GVLVendor,
 	type GVLVendorUrl,
 	globalVendorListSchema,
@@ -65,6 +70,7 @@ export {
 	gvlSpecialFeatureSchema,
 	gvlSpecialPurposeSchema,
 	gvlStackSchema,
+	gvlStandardTextsSchema,
 	gvlVendorSchema,
 	gvlVendorUrlSchema,
 } from './gvl';
@@ -96,10 +102,13 @@ export {
 } from './policy-fingerprint';
 export {
 	matchPolicyRules,
-	POLICY_CONTRACT_HEADER,
-	POLICY_CONTRACT_VERSION,
 	type PolicyMatchEntry,
 	type PolicyMatchOutcome,
+	resolvePolicyRules,
+} from './policy-resolution';
+export {
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
 	type PolicyResolution,
 	type PolicyResolutionFailed,
 	type PolicyResolutionFailure,
@@ -109,28 +118,23 @@ export {
 	type PolicyResolutionWire,
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
-	resolvePolicyRules,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 	SAFE_FALLBACK_POLICY_ID,
 	type SafeFallbackPolicyInput,
 	safeFallbackPolicyInput,
 	safeFallbackPolicyRule,
 	writePolicyResolutionWire,
-} from './policy-resolution';
+} from './policy-resolution-wire';
 export {
 	canonicalizePolicySet,
 	collectResolvedPolicyRuleIssues,
-	DEFAULT_CHOICE_VALIDITY_DAYS,
-	DEFAULT_NOTICE_VALIDITY_DAYS,
 	expectedPolicyActions,
-	inspectPolicyRules,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
 	isPolicyPrompt,
 	isPolicyRight,
 	isPolicyRuleModel,
 	isValidPolicyPromptForModel,
-	normalizePolicyRule,
 	POLICY_CONSENT_CATEGORIES,
 	POLICY_MODEL_PROMPTS,
 	POLICY_OPTIONAL_CATEGORIES,
@@ -138,6 +142,14 @@ export {
 	POLICY_PROMPTS,
 	POLICY_RIGHTS,
 	POLICY_RULE_MODELS,
+	requiredPolicyRights,
+} from './policy-rule-invariants';
+export { compareCanonical } from './canonical-order';
+export {
+	DEFAULT_CHOICE_VALIDITY_DAYS,
+	DEFAULT_NOTICE_VALIDITY_DAYS,
+	inspectPolicyRules,
+	normalizePolicyRule,
 	type PolicyActionConstraints,
 	type PolicyChoiceAction,
 	type PolicyConsentCategory,
@@ -148,7 +160,6 @@ export {
 	type PolicyRule,
 	type PolicyRuleModel,
 	type PolicyRuleReview,
-	requiredPolicyRights,
 	type ResolvedPolicyRule,
 	validatePolicyRules,
 } from './policy-rule';

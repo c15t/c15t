@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react",
-	"version": "3.0.0-alpha.2",
+	"version": "3.0.0-alpha.3",
 	"description": "React cookie banner, consent manager, preference center, and headless CMP components with IAB TCF and Consent Mode support.",
 	"keywords": [
 		"ccpa",
@@ -256,7 +256,7 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
-		"@iabtechlabtcf/core": "^1.5.20",
+		"@iabtechlabtcf/core": "^1.5.22",
 		"genversion": "3.2.0",
 		"msw": "^2.14.6",
 		"typescript": "7.0.2"

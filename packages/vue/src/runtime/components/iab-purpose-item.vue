@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
+
+import '@c15t/ui/styles/components/iab-consent-dialog.css';
 /**
- * One row in the IAB preference centre: a purpose, a special purpose, a
- * feature or a special feature.
+ * One row in the IAB preference centre: a purpose, a special purpose or a
+ * special feature. Features have their own informational row,
+ * `iab-feature-item.vue`, because they must not sit next to a control.
  *
  * Built on the shared `PreferenceItem` primitive rather than a hand-rolled
  * trigger and a `v-if` body, because the React and Svelte rows are, and a
@@ -11,6 +14,8 @@ import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
  * three-element content, same switch stylesheet.
  */
 import switchStyles from '@c15t/ui/styles/components/switch';
+
+import '@c15t/ui/styles/components/switch.css';
 import { computed, ref, toValue } from 'vue';
 
 import {
@@ -54,6 +59,11 @@ export interface IabProcessedPurpose {
 	description: string;
 	illustrations: string[];
 	vendors: IabProcessedVendor[];
+	/**
+	 * From the shared display model: `false` when every vendor uses
+	 * legitimate interest, so only the objection control applies.
+	 */
+	hasConsentBasis?: boolean;
 }
 
 const props = defineProps<{
@@ -112,6 +122,13 @@ const isPurposeLiAllowed = computed(
 	() => props.purposeLegitimateInterests?.[props.purpose.id] ?? true
 );
 
+// With no vendor on consent, a consent switch would look like an opt-out
+// while every vendor kept processing; the objection control is the one
+// that counts.
+const showConsentSwitch = computed(
+	() => props.purpose.hasConsentBasis !== false
+);
+
 const checked = computed({
 	get: () => props.isEnabled,
 	set: (value: boolean) => {
@@ -136,7 +153,7 @@ const handlePurposeLiObjection = function handlePurposeLiObjection() {
 	const nextValue = !isPurposeLiAllowed.value;
 	emit('purposeLegitimateInterestToggle', nextValue);
 	for (const vendor of legIntVendors.value) {
-		emit('vendorToggle', vendor.id, nextValue);
+		emit('vendorLegitimateInterestToggle', vendor.id, nextValue);
 	}
 };
 
@@ -203,7 +220,7 @@ const interpolate = function interpolate(
 					</PreferenceItemAuxiliary>
 				</PreferenceItemHeader>
 			</PreferenceItemTrigger>
-			<PreferenceItemControl>
+			<PreferenceItemControl v-if="showConsentSwitch">
 				<SwitchRoot
 					v-model="checked"
 					v-bind="config.components?.switch?.root"

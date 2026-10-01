@@ -12,6 +12,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { singleTenant } from '../db/tenant';
 import {
 	countByExternalId,
@@ -27,6 +28,7 @@ const migrate = Effect.gen(function* migrate() {
 	yield* baseline;
 	yield* receipts;
 	yield* vendorChoice;
+	yield* attribution;
 	yield* indexes;
 });
 

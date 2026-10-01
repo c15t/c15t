@@ -2,12 +2,7 @@
 
 import type * as C15tCoreTypes from '@c15t/core';
 import styles from '@c15t/ui/styles/components/iab-consent-banner';
-import {
-	forwardRef as createForwardRef,
-	useEffect,
-	useMemo,
-	useState,
-} from 'react';
+import { forwardRef as createForwardRef, useMemo } from 'react';
 import type { CSSProperties, FC, HTMLAttributes, ReactNode } from 'react';
 
 import { ConsentTrackingContext } from '~/context/consent-tracking-context';
@@ -69,56 +64,6 @@ const IABConsentBannerRootChildren = createForwardRef<
 		// IAB banner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner =
 			model !== null && activeUI === 'banner' && models.includes(model);
-		// Seed visibility from the resolved state so a server-rendered banner
-		// carries its visible class in the first HTML and hydrates without a
-		// flash, matching `ConsentBanner.Root`.
-		const [isVisible, setIsVisible] = useState(shouldShowBanner);
-		const [hasAnimated, setHasAnimated] = useState(shouldShowBanner);
-		const [animationDurationMs, setAnimationDurationMs] = useState(200);
-
-		useEffect(() => {
-			const duration = Number.parseInt(
-				getComputedStyle(document.documentElement).getPropertyValue(
-					'--iab-consent-banner-animation-duration'
-				) || '200',
-				10
-			);
-			const frame = requestAnimationFrame(() => {
-				setAnimationDurationMs(duration);
-			});
-			return () => cancelAnimationFrame(frame);
-		}, []);
-
-		useEffect(() => {
-			if (shouldShowBanner) {
-				if (hasAnimated) {
-					const frame = requestAnimationFrame(() => setIsVisible(true));
-					return () => cancelAnimationFrame(frame);
-				}
-				const animationTimer = setTimeout(() => {
-					setIsVisible(true);
-					setHasAnimated(true);
-				}, 10);
-				return () => clearTimeout(animationTimer);
-			}
-
-			if (disableAnimation) {
-				const frame = requestAnimationFrame(() => {
-					setHasAnimated(false);
-					setIsVisible(false);
-				});
-				return () => cancelAnimationFrame(frame);
-			}
-			const frame = requestAnimationFrame(() => setHasAnimated(false));
-			const timer = setTimeout(() => {
-				setIsVisible(false);
-			}, animationDurationMs);
-			return () => {
-				cancelAnimationFrame(frame);
-				clearTimeout(timer);
-			};
-		}, [shouldShowBanner, disableAnimation, hasAnimated, animationDurationMs]);
-
 		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {
 			baseClassName: [styles.root],
 			className: className || forwardedClassName,
@@ -129,7 +74,7 @@ const IABConsentBannerRootChildren = createForwardRef<
 
 		const finalClassName = noStyle
 			? contentStyle.className || ''
-			: `${contentStyle.className || ''} ${isVisible ? styles.bannerVisible : styles.bannerHidden}`;
+			: `${contentStyle.className || ''} ${styles.bannerVisible}${disableAnimation ? '' : ` ${styles.bannerEntering}`}`;
 		if (!shouldShowBanner) {
 			return null;
 		}

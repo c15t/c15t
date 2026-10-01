@@ -6,14 +6,19 @@
 		KernelUser,
 		OptionalConsentCategory,
 	} from '@c15t/core';
-	import { deniedVendorIds, vendorRenders } from '@c15t/core';
+	import {
+		applyExperimentAssignment,
+		applyExperimentTheme,
+		deniedVendorIds,
+		hostExperiment,
+		vendorRenders,
+	} from '@c15t/core';
 	import {
 		createConsentRuntime,
 		normalizeKernelUser,
 	} from '@c15t/core/runtime';
 	import type { ConsentRuntime } from '@c15t/core/runtime';
 	import type { IABHandle } from '@c15t/iab';
-	import { generateThemeCSS } from '@c15t/ui/theme';
 	import { setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
 	import { onDestroy, onMount, untrack } from 'svelte';
@@ -98,6 +103,13 @@
 			})
 		);
 	const { kernel } = runtime;
+	// The runtime validated and assigned from the experiment it was created
+	// with (the server's, else `options.experiment`), so presentation, theme
+	// and draft defaults resolve against that same definition; a later
+	// `options.experiment` is ignored.
+	const experiment = untrack(() =>
+		hostExperiment(options.experiment, options.prefetch)
+	);
 
 	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
 	let draftScope = $state<string | null>(null);
@@ -166,7 +178,11 @@
 		name: OptionalConsentCategory
 	) =>
 		current.explicitChoice?.categories[name]?.value ??
-		options.presentation?.preferences?.defaults?.[name] ??
+		applyExperimentAssignment(
+			options.presentation,
+			experiment,
+			current.experiment
+		)?.preferences?.defaults?.[name] ??
 		(current.policyRule.model === 'opt-out' ||
 			current.policyRule.preselectedCategories.includes(name));
 	/**
@@ -407,10 +423,12 @@
 			...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
 		],
 		getDraft: () => draft,
+		getExperiment: () => experiment,
 		getIAB: getIABState,
 		getLegalLinks: () => options.legalLinks,
 		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
+		getTheme: () => options.theme,
 	});
 
 	const unsubscribe = kernel.subscribe((next) => {
@@ -548,7 +566,11 @@
 		return () => mediaQuery.removeEventListener('change', handler);
 	});
 
-	const userTheme = $derived(options.theme);
+	// The arm's theme overrides ride on the host theme, so the injected
+	// tokens and the theme context both follow the assignment.
+	const userTheme = $derived(
+		applyExperimentTheme(options.theme, experiment, snapshot.experiment)
+	);
 
 	setThemeContext({
 		get colorScheme() {
@@ -563,6 +585,9 @@
 		get noStyle() {
 			return options.noStyle;
 		},
+		get preloadDialog() {
+			return options.preloadDialog;
+		},
 		get scrollLock() {
 			return options.scrollLock;
 		},
@@ -572,41 +597,6 @@
 		get trapFocus() {
 			return options.trapFocus;
 		},
-	});
-
-	const themeCSS = $derived(userTheme ? generateThemeCSS(userTheme) : '');
-
-	let themeStyleEl: HTMLStyleElement | null = null;
-	let ownedStyleEl = false;
-
-	$effect(() => {
-		if (typeof document === 'undefined') {
-			return;
-		}
-		if (!themeCSS) {
-			if (ownedStyleEl && themeStyleEl) {
-				themeStyleEl.remove();
-				themeStyleEl = null;
-				ownedStyleEl = false;
-			}
-			return;
-		}
-		if (!themeStyleEl) {
-			themeStyleEl = document.getElementById(
-				'c15t-theme'
-			) as HTMLStyleElement | null;
-			if (!themeStyleEl) {
-				themeStyleEl = document.createElement('style');
-				themeStyleEl.id = 'c15t-theme';
-				document.head.appendChild(themeStyleEl);
-				ownedStyleEl = true;
-			}
-		}
-		// A nonce-based CSP rejects the injected block without it.
-		if (options.nonce) {
-			themeStyleEl.nonce = options.nonce;
-		}
-		themeStyleEl.textContent = themeCSS;
 	});
 
 	$effect(() => {
@@ -619,11 +609,6 @@
 	onDestroy(() => {
 		unsubscribe();
 		unsubscribeIAB();
-		if (ownedStyleEl && themeStyleEl) {
-			themeStyleEl.remove();
-			themeStyleEl = null;
-			ownedStyleEl = false;
-		}
 	});
 </script>
 

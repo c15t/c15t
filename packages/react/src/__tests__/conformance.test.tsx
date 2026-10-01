@@ -234,7 +234,7 @@ const buildProviderOptions = (opts: MountOptions): ConsentProviderOptions => {
 					? {
 							cmpId: IAB_FIXTURE_CMP_ID,
 							enabled: true,
-							gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+							gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
 						}
 					: undefined,
 			initialPolicyPending: !authoritative,
@@ -390,7 +390,7 @@ const renderTree = function renderTree(
 				<IABProvider
 					cmpId={IAB_FIXTURE_CMP_ID}
 					cmpVersion={IAB_FIXTURE_CMP_VERSION}
-					gvl={MINIMAL_GVL as unknown as GlobalVendorList}
+					gvl={(opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList}
 				>
 					{content}
 				</IABProvider>

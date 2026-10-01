@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Pas hier uw privacyinstellingen aan. U kunt kiezen welke soorten cookies en trackingtechnologieën u toestaat.',
+			features: {
+				description:
+					'Deze verwerkingsmethoden mogen uitsluitend worden gebruikt ter verwezenlijking van een of meerdere doeleinden waarvoor u in deze kennisgeving de keuze krijgt.',
+				title: 'Functies',
+			},
 			footer: {
 				consentStorage:
 					'Toestemmingsvoorkeuren worden gedurende 13 maanden opgeslagen in een cookie genaamd "euconsent-v2". De bewaartermijn kan opnieuw ingaan wanneer u uw voorkeuren aanpast.',

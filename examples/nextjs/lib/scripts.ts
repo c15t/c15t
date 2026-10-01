@@ -1,5 +1,5 @@
-import { posthog } from '@c15t/scripts/posthog';
-import { xPixel } from '@c15t/scripts/x-pixel';
+import { posthog } from '@c15t/integrations/posthog';
+import { xPixel } from '@c15t/integrations/x-pixel';
 import type { Script } from 'c15t';
 
 export const posthogConfigured = Boolean(process.env.NEXT_PUBLIC_POSTHOG_KEY);

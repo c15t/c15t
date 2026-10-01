@@ -21,7 +21,6 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
-import type { PrivacyOptOut } from '../consent-record/types';
 import { reportConsentSession } from '../libs/session-report';
 import type { SessionReportHeaders } from '../libs/session-report';
 import type {
@@ -40,6 +39,7 @@ import { fetchCachedGvl } from './gvl-cache';
 import { deferInitGvl, deferInitGvlToRoute } from './gvl-reference';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
+import { saveFailure } from './save-rejection';
 import { buildSubjectPostBody } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import {
@@ -183,10 +183,6 @@ export interface ManifestKernelTransport extends KernelTransport {
 	loadSubjectRecord: (
 		subjectId: string
 	) => Promise<TransportHydrationRecords | null>;
-	recordPrivacyOptOut: (
-		directive: PrivacyOptOut,
-		subjectId: string | null
-	) => Promise<void>;
 }
 
 const trimSlash = function trimSlash(url: string): string {
@@ -460,6 +456,7 @@ export const createManifestTransport = function createManifestTransport(
 					// manifest URL that is not `<backend>/manifest`, the derived
 					// value is the manifest asset itself.
 					backendURL: options.report.backendURL ?? options.backendURL,
+					experiment: ctx.experiment,
 					fetch: fetchImpl,
 					headers: options.report.headers ?? options.headers,
 					init: payload,
@@ -502,30 +499,6 @@ export const createManifestTransport = function createManifestTransport(
 			return mapSubjectRecordToHydrationRecords(record, { now: now() });
 		},
 
-		async recordPrivacyOptOut(directive, subjectId): Promise<void> {
-			if (!subjectId) {
-				return;
-			}
-			const response = await fetchImpl(
-				`${subjectURL(subjectId)}/privacy-directives`,
-				{
-					body: JSON.stringify({
-						categories: [...directive.categories],
-						recordedAt: directive.recordedAt,
-						source: directive.source,
-					}),
-					credentials,
-					headers: jsonHeaders,
-					method: 'POST',
-				}
-			);
-			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects/:id/privacy-directives responded ${response.status} ${response.statusText}`
-				);
-			}
-		},
-
 		async save(payload): Promise<SaveResult> {
 			const response = await fetchImpl(
 				`${requireBackendURL('save')}/subjects`,
@@ -541,9 +514,7 @@ export const createManifestTransport = function createManifestTransport(
 			);
 
 			if (!response.ok) {
-				throw new Error(
-					`c15t manifest transport: /subjects responded ${response.status} ${response.statusText}`
-				);
+				throw await saveFailure(response, 'c15t manifest transport');
 			}
 
 			return toSaveResult(await response.json());

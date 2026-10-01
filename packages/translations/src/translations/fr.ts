@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Personnalisez vos paramètres de confidentialité ici. Vous pouvez choisir les types de cookies et de technologies de suivi que vous autorisez.',
+			features: {
+				description:
+					'Ces méthodes de traitement ne peuvent être utilisées que dans le cadre d’une ou plusieurs finalités pour lesquelles vous avez la possibilité de choisir dans le présent avis.',
+				title: 'Fonctionnalités',
+			},
 			footer: {
 				consentStorage:
 					'Les préférences de consentement sont stockées dans un cookie nommé « euconsent-v2 » pendant 13 mois. La durée de stockage peut être renouvelée lorsque vous mettez à jour vos préférences.',

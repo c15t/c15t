@@ -10,6 +10,8 @@
  * @internal
  */
 
+import { compareCanonical } from '@c15t/schema/types';
+
 import type {
 	EvaluationPolicy,
 	OptionalConsentCategory,
@@ -42,9 +44,7 @@ export interface EvaluationPolicyInput {
 export const canonicalizeCategories = function canonicalizeCategories<
 	CategoryType extends string,
 >(categories: readonly CategoryType[]): CategoryType[] {
-	return [...new Set(categories)].sort((left, right) =>
-		left.localeCompare(right)
-	);
+	return [...new Set(categories)].sort(compareCanonical);
 };
 
 const assertPromptForModel = function assertPromptForModel(

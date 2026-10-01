@@ -6,12 +6,18 @@ import {
 	choiceRecords,
 	explicitChoice,
 	matchedResolution,
+	noneRule,
 	noticeRule,
 	NOW,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { evaluateConsentRecord } from '../../consent-record/evaluate';
 import type { ConsentSnapshot } from '../../types';
+import { createDispatcher } from '../dispatch';
+import {
+	evaluateExternalPermissions,
+	normalizeExternalPermissions,
+} from '../external-permissions';
 import { buildNextSnapshot, snapshotChanged } from '../patch';
 import type { SnapshotPatch } from '../patch';
 import { createRuntime } from '../runtime';
@@ -23,10 +29,10 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 	const emit = vi.fn();
 	const listener = vi.fn();
 	const runtime = createRuntime({
+		dispatcher: createDispatcher(),
 		emit,
 		initialDraft: null,
 		initialSnapshot: initial,
-		transport: undefined,
 	});
 	runtime.subscribe(listener);
 	const candidate = buildNextSnapshot(initial, patch);
@@ -42,14 +48,15 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 	expect(emit).toHaveBeenCalledTimes(
 		expected.effectivePermissions === initial.effectivePermissions ? 0 : 1
 	);
-	const evaluation = evaluateConsentRecord({
-		choice: actual.explicitChoice,
-		gpc: actual.privacySignals.gpc.active,
-		noticeDismissal: actual.noticeDismissal,
-		now: patch.now ?? initial.evaluatedAt,
-		optOuts: actual.optOutDirectives,
-		policy: actual.evaluationPolicy,
-	});
+	const evaluation = actual.externalPermissions
+		? evaluateExternalPermissions(actual.externalPermissions)
+		: evaluateConsentRecord({
+				choice: actual.explicitChoice,
+				gpc: actual.privacySignals.gpc.active,
+				noticeDismissal: actual.noticeDismissal,
+				now: patch.now ?? initial.evaluatedAt,
+				policy: actual.evaluationPolicy,
+			});
 	expect(actual.effectivePermissions).toEqual(evaluation.permissions);
 	expect(actual.promptRequirement).toEqual(evaluation.promptRequirement);
 	expect(actual.restrictions).toEqual(evaluation.restrictions);
@@ -63,7 +70,19 @@ test('every patch input agrees with full snapshot derivation', () => {
 		activeUI: { activeUI: 'dialog' },
 		branding: { branding: 'consent' },
 		consentCategories: { consentCategories: ['necessary', 'measurement'] },
+		experiment: {
+			experiment: {
+				acknowledgedDiagnostics: false,
+				arm: 'a',
+				assignedBy: 'host',
+				id: 'exp',
+			},
+		},
+		experimentPending: { experimentPending: true },
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
+		externalPermissions: {
+			externalPermissions: normalizeExternalPermissions({ measurement: true }),
+		},
 		iab: { iab: { ...DEFAULT_IAB, enabled: true } },
 		location: { location: { countryCode: 'DE', regionCode: null } },
 		noticeDismissal: {
@@ -74,11 +93,6 @@ test('every patch input agrees with full snapshot derivation', () => {
 			},
 		},
 		now: { now: NOW + 1000 },
-		optOutDirectives: {
-			optOutDirectives: [
-				{ categories: ['marketing'], recordedAt: NOW, source: 'gpc' },
-			],
-		},
 		overrides: { overrides: { gpc: true } },
 		policyPending: { policyPending: true },
 		policySnapshotToken: { policySnapshotToken: 'token' },
@@ -118,7 +132,12 @@ test('every patch input agrees with full snapshot derivation', () => {
 
 test('no-op init retains the initial time and snapshot but emits lifecycle events', async () => {
 	vi.spyOn(Date, 'now').mockReturnValue(NOW + 1000);
-	const kernel = createConsentKernel({ now: NOW });
+	// A rule without a prompt keeps every surface hidden, so init records no
+	// impression and the snapshot can stay identical.
+	const kernel = createConsentKernel({
+		initialPolicyResolution: matchedResolution(noneRule()),
+		now: NOW,
+	});
 	const initial = kernel.getSnapshot();
 	const listener = vi.fn();
 	const completed = vi.fn();
@@ -188,10 +207,10 @@ test('notice expiry and clearing records keep their full derivation', () => {
 test('reusing a mutable patch still observes changed privacy and record inputs', () => {
 	const initial = buildInitialSnapshot({ now: NOW });
 	const runtime = createRuntime({
+		dispatcher: createDispatcher(),
 		emit: vi.fn(),
 		initialDraft: null,
 		initialSnapshot: initial,
-		transport: undefined,
 	});
 	const patch: SnapshotPatch = { privacyDetected: false };
 	expect(runtime.commit(patch)).toBe(false);
@@ -225,4 +244,41 @@ test('an unchanged patch still normalizes incompatible initial IAB authority', (
 	expect(initial.iab?.authority).not.toBeNull();
 	const next = checkCommit(initial, { now: NOW + 1, policyPending: false });
 	expect(next.iab?.authority).toBeNull();
+});
+
+test('a live kernel stamps an unchanged patch like the full derivation', () => {
+	const initial = buildInitialSnapshot({ now: NOW });
+	expect(initial.activeUI).toBe('banner');
+	const emit = vi.fn();
+	const listener = vi.fn();
+	const runtime = createRuntime({
+		dispatcher: createDispatcher(),
+		emit,
+		initialDraft: null,
+		initialSnapshot: initial,
+	});
+	runtime.subscribe(listener);
+	runtime.markLive(NOW + 5);
+
+	const actual = runtime.getSnapshot();
+	const expected = freezeSnapshot({
+		...buildNextSnapshot(initial, { now: NOW + 5 }),
+		surfaceShownAt: { banner: NOW + 5, dialog: null },
+	});
+	expect(actual).toEqual(expected);
+	expect(actual.evaluatedAt).toBe(NOW + 5);
+	expect(actual.revision).toBe(initial.revision + 1);
+	expect(Object.isFrozen(actual)).toBe(true);
+	expect(Object.isFrozen(actual.surfaceShownAt)).toBe(true);
+	expect(listener).toHaveBeenCalledExactlyOnceWith(actual);
+	expect(emit).toHaveBeenCalledExactlyOnceWith({
+		shownAt: NOW + 5,
+		snapshot: actual,
+		surface: 'banner',
+		type: 'surface:shown',
+	});
+
+	// The impression is recorded; the same patch is a no-op afterwards.
+	expect(runtime.commit({ now: NOW + 5 })).toBe(false);
+	expect(runtime.getSnapshot()).toBe(actual);
 });

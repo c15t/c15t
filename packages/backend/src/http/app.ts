@@ -22,10 +22,10 @@ import {
 import { makeRun } from './context';
 import type { AppOptions, RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
+import { register as registerExperiment } from './routes/experiment';
 import { register as registerInit } from './routes/init';
 import { register as registerLegalDocument } from './routes/legal-document';
 import { register as registerManifest } from './routes/manifest';
-import { register as registerPrivacyDirective } from './routes/privacy-directive';
 import { register as registerScript } from './routes/script';
 import { register as registerSession } from './routes/session';
 import { register as registerStatus } from './routes/status';
@@ -73,7 +73,7 @@ export const createApp = function createApp(
 			);
 			c.header(
 				'Access-Control-Allow-Headers',
-				`Content-Type, Authorization, x-request-id, x-c15t-version, ${POLICY_CONTRACT_HEADER}, x-c15t-country, x-c15t-region, x-c15t-gpc, sec-gpc, accept-language`
+				`Content-Type, Authorization, x-request-id, x-c15t-version, ${POLICY_CONTRACT_HEADER}, x-c15t-country, x-c15t-region, x-c15t-gpc, x-c15t-experiment, sec-gpc, accept-language`
 			);
 			c.header('Access-Control-Max-Age', '86400');
 			return c.body(null, 204);
@@ -113,7 +113,7 @@ export const createApp = function createApp(
 	registerLegalDocument(context);
 	registerConsent(context);
 	registerSubject(context);
-	registerPrivacyDirective(context);
+	registerExperiment(context);
 
 	// Registered last so every route above is already on the app and appears
 	// in the generated document.

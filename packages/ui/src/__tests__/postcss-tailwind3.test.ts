@@ -1,9 +1,10 @@
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import type { AcceptedPlugin } from 'postcss';
-import postcss from 'postcss';
+import postcss, { parse } from 'postcss';
 import { describe, expect, test } from 'vitest';
 
 import tailwind3Plugin, { isC15tUiStylesheetPath } from '../postcss-tailwind3';
@@ -66,11 +67,58 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 
 	test('removes bare @layer order statements for scoped c15t files', async () => {
 		const css = await postcss([tailwind3Plugin]).process(
-			'@layer theme, base, components, utilities;',
+			'@layer properties, theme, base, components, utilities;',
 			{ from: '/app/node_modules/@c15t/ui/dist/styles/components/button.css' }
 		);
 
 		expect(css.css.trim()).toBe('');
+	});
+
+	test('leaves no @layer in any built layered sheet', async () => {
+		// Every layered sheet opens with the layer order statement; Tailwind 3
+		// has no layers to order, so the plugin drops it along with the blocks.
+		// The entrypoints matter most: apps import `styles.css` directly.
+		for (const file of [
+			'styles.css',
+			'iab/styles.css',
+			'styles/dialog.css',
+			'styles/primitives.css',
+		]) {
+			const from = join(TEST_DIR, '..', '..', 'dist', file);
+			// oxlint-disable-next-line no-await-in-loop -- Four small files.
+			const result = await postcss([tailwind3Plugin]).process(
+				readFileSync(from, 'utf8'),
+				{ from }
+			);
+
+			expect(result.css, file).toContain('.c15t-ui-');
+			expect(result.css, file).not.toMatch(/@layer\b/u);
+		}
+	});
+
+	test('unwraps c15t rules inlined into an app stylesheet', async () => {
+		// Vite and postcss-import inline `@import`ed files before other
+		// plugins run. The inlined nodes keep their own source file, so the
+		// plugin unwraps c15t's layers and leaves the app's own alone.
+		const app = parse(
+			'@tailwind components;\n@layer components { .app-card { color: red; } }',
+			{ from: '/app/src/index.css' }
+		);
+		const inlined = parse(layeredCss, {
+			from: '/app/node_modules/@c15t/ui/dist/styles.css',
+		});
+		app.append(inlined.nodes);
+
+		const result = await postcss([tailwind3Plugin]).process(app, {
+			from: '/app/src/index.css',
+		});
+		const layers = [...result.css.matchAll(/@layer [^{;]+/gu)].map((match) =>
+			match[0].trim()
+		);
+
+		expect(layers).toEqual(['@layer components']);
+		expect(result.css).toContain('.app-card');
+		expect(result.css).toContain('.c15t-ui-button-a1b2c');
 	});
 
 	test('normalizes the in-process module namespace into a working plugin', async () => {
@@ -122,7 +170,33 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 			)
 		).toBe(true);
 		expect(
+			isC15tUiStylesheetPath('/app/node_modules/@c15t/ui/dist/styles.css')
+		).toBe(true);
+		expect(
+			isC15tUiStylesheetPath(
+				'C:\\app\\node_modules\\@c15t\\ui\\dist\\iab\\styles.css'
+			)
+		).toBe(true);
+		expect(
+			isC15tUiStylesheetPath('/app/node_modules/@c15t/ui/dist/styles.tw3.css')
+		).toBe(true);
+		expect(
 			isC15tUiStylesheetPath('/app/dist/styles/components/button.css')
+		).toBe(false);
+		expect(isC15tUiStylesheetPath('/app/dist/styles.css')).toBe(false);
+		expect(
+			isC15tUiStylesheetPath('/app/node_modules/@c15t/browser/dist/c15t.css')
+		).toBe(true);
+		expect(
+			isC15tUiStylesheetPath(
+				'/app/node_modules/@c15t/browser/dist/c15t.iab.css'
+			)
+		).toBe(true);
+		expect(
+			isC15tUiStylesheetPath('/app/node_modules/@c15t/browser/dist/c15t.js')
+		).toBe(false);
+		expect(
+			isC15tUiStylesheetPath('/app/node_modules/@c15t/ui/dist/other.css')
 		).toBe(false);
 	});
 });

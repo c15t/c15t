@@ -1,3 +1,6 @@
+// Layout assertions below need the documented app-level stylesheet: class
+// maps carry no CSS of their own.
+import '@c15t/ui/styles.css';
 import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { custom } from '@c15t/core';
 import {
@@ -243,8 +246,9 @@ describe('policy presentation reference behavior', () => {
 			.element(screen.getByTestId('consent-widget-footer-save-button'))
 			.toBeVisible();
 		await screen.getByTestId('consent-widget-footer-save-button').click();
-		expect(kernel.getSnapshot().promptRequirement.kind).toBe('notice');
-		expect(kernel.getSnapshot().noticeDismissal).toBeNull();
+		// Saving from the preference center acknowledges the notice.
+		expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	});
 });
 

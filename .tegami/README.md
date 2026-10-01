@@ -79,6 +79,34 @@ Keep publishing in `release.yml`; moving it to another top-level workflow change
 the identity npm trusts. New package names still need npm trusted publishing set
 up for `c15t/c15t`, workflow `release.yml`, before their first release.
 
+The v3 rename to `@c15t/integrations` needs its own npm trusted publisher.
+The publisher configured for `@c15t/scripts` does not transfer to the new name.
+
+### Deprecate the v3 compatibility releases
+
+npm stores deprecation notices in the registry. A `deprecated` field in
+`package.json` does not set the install warning. After both packages have been
+published, a maintainer with npm access should run these commands from the
+release commit for each new v3 compatibility version:
+
+```sh
+compat_version=$(node -p "require('./packages/scripts/package.json').version")
+npm deprecate "@c15t/scripts@$compat_version" "Use @c15t/integrations instead. @c15t/scripts remains supported throughout v3; compatibility ends in v4."
+npm view "@c15t/scripts@$compat_version" deprecated
+```
+
+Verify that `compat_version` is the just-published v3 version before running
+the commands. Deprecate that exact version, including its prerelease suffix;
+do not deprecate the package without a version or change older v2 releases.
+Keep previously published versions available on npm.
+
+Once `@c15t/integrations` is available, update the c15t skill in the upstream
+`c15t/skills` repository to recommend the new package. Refresh the pinned copy
+with `bunx skills update -y` and review the resulting skill and lockfile changes.
+Do not hand-edit `.agents/skills/c15t/SKILL.md` here.
+
+### Inspect a release
+
 To inspect a release, use a disposable checkout:
 
 ```sh

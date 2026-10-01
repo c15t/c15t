@@ -11,7 +11,7 @@ export const generateJavaScriptBoilerplate = (
 ): BoilerplateTemplate => ({
 	dependencies: [
 		'@c15t/core',
-		...(options.scripts.length ? ['@c15t/scripts'] : []),
+		...(options.scripts.length ? ['@c15t/integrations'] : []),
 	],
 	files: {
 		'consent.ts': `import { ${options.mode === 'hosted' ? 'hosted' : 'createOfflineTransport, type ProviderTransportFactory'} } from '@c15t/core';

@@ -6,7 +6,7 @@
  * tests and advanced setups bind it to their own.
  */
 
-import type { MiddlewareHandler } from 'astro';
+import type { APIContext, MiddlewareHandler } from 'astro';
 
 import { waitUntilFromLocals } from './api/handlers';
 import { resolveConsentContext } from './server';
@@ -16,6 +16,15 @@ import type { C15tResolvedOptions } from './types';
 export interface ConsentMiddlewareOptions {
 	/** Override fetch, mainly for tests. */
 	fetch?: typeof globalThis.fetch;
+	/**
+	 * Resolve this request's banner-experiment arm, for example from a
+	 * feature flag or a cookie. Overrides a static `experiment.arm`.
+	 * Return `undefined` to run no experiment for the request. Not called
+	 * for prerendered routes, which render once for every visitor.
+	 */
+	experimentArm?: (
+		context: APIContext
+	) => string | undefined | Promise<string | undefined>;
 }
 
 /**
@@ -64,9 +73,11 @@ const resolveSkipPaths = function resolveSkipPaths(
  * the components render the right thing on the server and the browser boots
  * without an `/init` roundtrip.
  *
- * A prerendered route is skipped: there is no per-visitor request to read,
- * and resolving one would bake one visitor's geo into a shared HTML file.
- * Use `<ConsentBannerDeferred />` when a cached page still needs live geo.
+ * A prerendered route is resolved without its request: there is no
+ * per-visitor request to read, and resolving one would bake one visitor's
+ * geo and cookie into a shared HTML file. Offline mode still resolves its
+ * policy, and the browser applies the visitor's own cookie on boot. Use
+ * `<ConsentBannerDeferred />` when a cached page still needs live geo.
  *
  * So are the integration's own init and manifest routes, and anything
  * listed in `middleware.skip` — those run `next()` with `Astro.locals.c15t`
@@ -88,13 +99,21 @@ export const createConsentMiddleware = function createConsentMiddleware(
 			return await next();
 		}
 
+		const prerendered = context.isPrerendered === true;
+		const experimentArm =
+			options.experiment && !prerendered
+				? await middlewareOptions.experimentArm?.(context)
+				: undefined;
 		context.locals.c15t = await resolveConsentContext({
+			experimentArm,
 			fetch: middlewareOptions.fetch,
-			headers: context.request.headers,
+			// Astro warns on any read of a prerendered request's headers, and
+			// at build time they hold nothing about a visitor anyway.
+			headers: prerendered ? new Headers() : context.request.headers,
 			onBackgroundRevalidate: (revalidation) =>
 				waitUntilFromLocals(revalidation, context.locals),
 			options,
-			skipPrefetch: context.isPrerendered === true,
+			prerendered,
 			url: context.request.url,
 		});
 		return await next();

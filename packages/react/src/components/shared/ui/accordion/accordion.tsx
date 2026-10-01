@@ -7,6 +7,8 @@ import {
 import type { AccordionType } from '@c15t/ui/primitives/accordion';
 import { getDataDisabled } from '@c15t/ui/primitives/data-state';
 import styles from '@c15t/ui/styles/components/accordion';
+// These classes' rules are in the dialog stylesheet, not styles.css.
+import '@c15t/ui/styles/dialog';
 import {
 	createContext,
 	forwardRef as createForwardRef,

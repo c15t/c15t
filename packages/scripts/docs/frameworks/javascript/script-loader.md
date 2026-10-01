@@ -7,14 +7,14 @@ group: frameworks
 
 ## Attach the loader before initialization
 
-Install `@c15t/scripts` alongside `c15t`. This browser example adds a
+Install `@c15t/integrations` alongside `c15t`. This browser example adds a
 marketing integration to a hosted kernel:
 
 ```ts
 import { createConsentKernel, createHostedTransport } from 'c15t';
 import { createPersistence } from 'c15t/modules/persistence';
 import { createScriptLoader } from 'c15t/modules/script-loader';
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
 
 const kernel = createConsentKernel({
   transport: createHostedTransport({ backendURL: 'https://your-project.inth.app' }),
@@ -92,3 +92,9 @@ Script gating does not remove cookies or Web Storage entries that a script
 already wrote. Configure [clear on revocation](../../integrations/clear-on-revocation.md)
 on your runtime, or attach its module to your existing kernel, to remove
 declared data when its category is denied.
+
+## Shared lifecycle controls
+
+See [shared consent controls](../../guides/shared-consent-controls.md) for external CMPs,
+preference delegation, withdrawal reloads, and application events. These controls
+use the same core runtime across frameworks.

@@ -78,7 +78,9 @@ export default defineDocsConfig({
 				'deployment-modes',
 				'data-fetching',
 				'consent-state',
+				'shared-consent-controls',
 				'verify-consent',
+				'banner-experiments',
 				'troubleshooting',
 			],
 			title: 'Understand consent',
@@ -97,6 +99,7 @@ export default defineDocsConfig({
 							pages: [
 								'optimization',
 								'script-loader',
+								'network-blocker',
 								'geography-headers',
 								'content-security-policy',
 								'troubleshooting',
@@ -121,7 +124,7 @@ export default defineDocsConfig({
 							title: 'Styling',
 						},
 						{
-							pages: ['hooks/use-consent-manager/overview'],
+							pages: ['hooks/overview'],
 							title: 'Hooks',
 						},
 						{
@@ -163,7 +166,12 @@ export default defineDocsConfig({
 							title: 'Policies',
 						},
 						{
-							pages: ['script-loader', 'troubleshooting'],
+							pages: [
+								'script-loader',
+								'network-blocker',
+								'callbacks',
+								'troubleshooting',
+							],
 							title: 'Integration',
 						},
 						{
@@ -184,7 +192,7 @@ export default defineDocsConfig({
 							title: 'Styling',
 						},
 						{
-							pages: ['hooks/use-consent-manager/overview'],
+							pages: ['hooks/overview'],
 							title: 'Hooks',
 						},
 						{
@@ -255,6 +263,26 @@ export default defineDocsConfig({
 					slug: 'javascript',
 					title: 'JavaScript',
 				},
+				{
+					base: 'react-native',
+					children: [
+						{
+							pages: ['configuration'],
+							title: 'Configuration',
+						},
+						{
+							pages: ['native-behaviour', 'platform-support'],
+							title: 'Native runtime',
+						},
+						{
+							pages: ['troubleshooting'],
+							title: 'Integration',
+						},
+					],
+					pages: ['quickstart', 'usage'],
+					slug: 'react-native',
+					title: 'React Native',
+				},
 			],
 			pages: ['index'],
 			slug: 'frameworks',
@@ -292,6 +320,7 @@ export default defineDocsConfig({
 						'heap',
 						'matomo-analytics',
 						'mixpanel-analytics',
+						'one-dollar-stats',
 						'hotjar',
 						'hightouch',
 						'logrocket',
@@ -309,7 +338,7 @@ export default defineDocsConfig({
 					title: 'Analytics',
 				},
 				{
-					pages: ['crisp', 'intercom'],
+					pages: ['crisp', 'front-chat', 'intercom'],
 					slug: 'functionality',
 					title: 'Functionality',
 				},
@@ -317,6 +346,7 @@ export default defineDocsConfig({
 					pages: [
 						'meta-pixel',
 						'openai-pixel',
+						'pinterest-tag',
 						'reddit-pixel',
 						'tiktok-pixel',
 						'linkedin-insights',

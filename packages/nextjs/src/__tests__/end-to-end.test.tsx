@@ -313,6 +313,17 @@ describe('ConsentRoot: config picks the transport', () => {
 						initURL: '/api/consent/init',
 						manifestURL: '/api/consent/manifest',
 					})}
+					// A site declares its categories; with none, the permissive
+					// policy asks only for an acknowledgement, not a choice.
+					options={{
+						consentCategories: [
+							'necessary',
+							'experience',
+							'functionality',
+							'marketing',
+							'measurement',
+						],
+					}}
 					persistence={false}
 				>
 					<PolicyProbe />

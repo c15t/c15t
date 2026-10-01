@@ -11,9 +11,26 @@
  *      styled UI instead of falling back to browser defaults
  *    - :root custom properties and @keyframes stay unlayered
  *    - `styles.css` / `iab/styles.css` wrap component rules in `@layer components`
- *      for Tailwind 4 and native CSS layer consumers
- *    - `styles.tw3.css` / `iab/styles.tw3.css` emit the same component rules flat
- *      for Tailwind 3, which cannot import a standalone layered stylesheet from JS
+ *      for Tailwind 4 and native CSS layer consumers; every layered file opens
+ *      with Tailwind 4's layer order statement so `components` never ranks
+ *      below `base`
+ *    - `styles.tw3.css` / `iab/styles.tw3.css` emit the same component rules
+ *      flat. They predate `@c15t/ui/postcss-tailwind3` covering the
+ *      entrypoints and stay for apps that already import them; new Tailwind 3
+ *      setups import `styles.css` and run the plugin
+ *
+ * The stylesheets are split by when a page needs them:
+ *
+ * | File | Holds | Loaded by |
+ * | --- | --- | --- |
+ * | `styles.css`, `styles.tw3.css` | default tokens, every `:root` variable and `@keyframes`, rules for the banner, dialog trigger and ConsentGate | the app, once, render-blocking |
+ * | `styles/dialog.css` | rules for the dialog and preference widget | the dialog's module (lazy in React) |
+ * | `styles/dialog.js` (`@c15t/ui/styles/dialog`) | an import of `styles/dialog.css`; nothing under the `node` condition | React's dialog, widget and primitive modules |
+ * | `styles/primitives.css` | rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css` and hosts that render those class maps |
+ * | `iab/styles.css`, `iab/styles.tw3.css` | IAB variables and rules only | the app, next to `styles.css` |
+ *
+ * Every variable stays in `styles.css`, so later sheets only add rules and
+ * never re-declare a variable a host has overridden.
  */
 import {
 	existsSync,
@@ -23,9 +40,14 @@ import {
 	renameSync,
 	writeFileSync,
 } from 'node:fs';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { defaultTheme, generateThemeCSS } from '../src/theme/utils';
+import {
+	DIALOG_COMPONENTS,
+	FIRST_PAINT_COMPONENTS,
+	IAB_PREFIX,
+} from './stylesheet-parts';
 
 const DIST_DIR = join(import.meta.dirname, '..', 'dist');
 const PRIMITIVES_DIR = join(DIST_DIR, 'styles', 'primitives');
@@ -64,8 +86,6 @@ for (const file of readdirSync(PRIMITIVES_DIR)) {
 }
 
 // ── Step 2: Discover sources ─────────────────────────────────────────
-
-const IAB_PREFIX = 'iab-';
 
 const discoverPrimitiveNames = function discoverPrimitiveNames(): string[] {
 	return readdirSync(PRIMITIVES_DIR)
@@ -115,6 +135,29 @@ if (NON_IAB_PRIMITIVES.length === 0) {
 if (NON_IAB_COMPONENTS.length === 0) {
 	throw new Error(
 		'generate-css-entrypoints: no components found in dist/styles/components/'
+	);
+}
+
+const firstPaintNames = new Set<string>(FIRST_PAINT_COMPONENTS);
+const dialogNames = new Set<string>(DIALOG_COMPONENTS);
+const unassigned = NON_IAB_COMPONENTS.filter(
+	(c) => !(firstPaintNames.has(c) || dialogNames.has(c))
+);
+if (unassigned.length > 0) {
+	throw new Error(
+		`generate-css-entrypoints: add ${unassigned.join(
+			', '
+		)} to FIRST_PAINT_COMPONENTS or DIALOG_COMPONENTS in scripts/stylesheet-parts.ts`
+	);
+}
+const missing = [...firstPaintNames, ...dialogNames].filter(
+	(c) => !NON_IAB_COMPONENTS.includes(c)
+);
+if (missing.length > 0) {
+	throw new Error(
+		`generate-css-entrypoints: scripts/stylesheet-parts.ts lists ${missing.join(
+			', '
+		)}, which dist/styles/components does not contain`
 	);
 }
 
@@ -221,20 +264,33 @@ const scopeRootToHost = function scopeRootToHost(css: string): string {
 	);
 };
 
-const collectCssParts = function collectCssParts(
-	primitives: string[],
-	components: string[]
-): { rootParts: string[]; ruleParts: string[] } {
-	const rootParts: string[] = [];
-	const ruleParts: string[] = [];
-	// Several components inline the same shared animation stylesheet, so the
-	// same @keyframes / :root block shows up more than once. Keep the first.
-	const seenUnlayered = new Set<string>();
+interface StylesheetSource {
+	/** Which output file receives the rules. */
+	group: string;
+	label: string;
+	path: string;
+}
 
-	const push = function push(label: string, filePath: string) {
+/**
+ * Read each source, keep its unlayered statements (`:root` variables,
+ * `@keyframes`) in one list and its component rules in a list per output
+ * group. `seenUnlayered` is shared across calls so a statement already
+ * emitted in `styles.css` is not repeated in the IAB sheet.
+ */
+const collectCssParts = function collectCssParts(
+	sources: StylesheetSource[],
+	seenUnlayered: Set<string>
+): { rootParts: string[]; ruleParts: Map<string, string[]> } {
+	const rootParts: string[] = [];
+	const ruleParts = new Map<string, string[]>();
+
+	for (const { group, label, path } of sources) {
 		const { unlayered, componentRules } = splitStylesheet(
-			readFileSync(filePath, 'utf-8')
+			readFileSync(path, 'utf-8')
 		);
+		// Several components inline the same shared animation stylesheet, so
+		// the same @keyframes / :root block shows up more than once. Keep the
+		// first.
 		const uniqueUnlayered = splitTopLevelStatements(
 			scopeRootToHost(unlayered)
 		).filter((statement) => {
@@ -248,16 +304,10 @@ const collectCssParts = function collectCssParts(
 			rootParts.push(`/* ${label} vars */\n${uniqueUnlayered.join('\n')}`);
 		}
 		if (componentRules) {
-			ruleParts.push(`/* ${label} */\n${componentRules}`);
+			const parts = ruleParts.get(group) ?? [];
+			parts.push(`/* ${label} */\n${componentRules}`);
+			ruleParts.set(group, parts);
 		}
-	};
-
-	for (const name of primitives) {
-		push(`primitives/${name}`, join(PRIMITIVES_DIR, `${name}.module.css`));
-	}
-
-	for (const name of components) {
-		push(`components/${name}`, join(COMPONENTS_DIR, `${name}.css`));
 	}
 
 	return { rootParts, ruleParts };
@@ -289,88 +339,162 @@ const DEFAULT_THEME_CSS = [
 ].join('\n');
 
 /**
- * Generate layered CSS: component rules wrapped in @layer components.
- * Use with Tailwind 4 — import Tailwind normally; c15t joins the components layer automatically.
+ * Tailwind 4's layer order: it emits `@layer properties;` and then
+ * `@layer theme, base, components, utilities;`. Layers rank by first
+ * mention, so a page that loads a c15t sheet before Tailwind's (Astro
+ * injects it from `page-ssr`; an app may import it above its own CSS) would
+ * declare `components` first and rank it below `base`, where preflight
+ * zeroes the banner's padding and borders. Every layered entrypoint opens
+ * with the full order, so `components` lands between `base` and `utilities`
+ * whichever sheet loads first. Without Tailwind the other four layers stay
+ * empty. `@c15t/ui/postcss-tailwind3` removes the statement with the blocks.
  */
-const buildLayeredCss = function buildLayeredCss(
-	rootParts: string[],
-	ruleParts: string[]
-): string {
-	const parts: string[] = [DEFAULT_THEME_CSS];
-	if (rootParts.length) {
-		parts.push(rootParts.join('\n\n'));
-	}
-	if (ruleParts.length) {
-		parts.push(
-			`@layer components {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`
-		);
-	}
-	return parts.join('\n\n');
-};
+const LAYER_ORDER = '@layer properties, theme, base, components, utilities;';
 
 /**
- * Generate flat CSS: component rules are emitted without any layer wrapper.
- * Use with Tailwind 3, where the stylesheet is typically imported from JS and
- * must not rely on a colocated `@tailwind components` directive.
+ * Sits directly above each layer block. Tailwind 3 without
+ * `@c15t/ui/postcss-tailwind3` fails on that block, and bundlers print the
+ * lines above the failing one, so the fix shows up in the build error.
+ * Avoids the word "layer" after an at-sign so layer scans skip it.
  */
-const buildFlatCss = function buildFlatCss(
-	rootParts: string[],
-	ruleParts: string[]
-): string {
-	const parts: string[] = [DEFAULT_THEME_CSS];
-	if (rootParts.length) {
-		parts.push(rootParts.join('\n\n'));
+const TAILWIND3_HINT =
+	"/* Tailwind 3 cannot build the next block on its own. Add '@c15t/ui/postcss-tailwind3' before 'tailwindcss' in your PostCSS plugins. */";
+
+/**
+ * Wrap component rules in `@layer components`. Tailwind 4 declares that layer
+ * before its utilities, so bare utilities override c15t without
+ * `!important`. Tailwind 3 hosts run `@c15t/ui/postcss-tailwind3`, which
+ * unwraps the layer in every built stylesheet, including `styles.css` and
+ * `styles/dialog.css`.
+ */
+const layered = function layered(ruleParts: string[]): string {
+	return `${TAILWIND3_HINT}\n@layer components {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`;
+};
+
+const joinParts = function joinParts(parts: (string | undefined)[]): string {
+	return `${parts.filter((part) => part && part.length > 0).join('\n\n')}\n`;
+};
+
+const rulesFor = function rulesFor(
+	ruleParts: Map<string, string[]>,
+	group: string,
+	file: string
+): string[] {
+	const parts = ruleParts.get(group) ?? [];
+	if (parts.length === 0) {
+		throw new Error(
+			`generate-css-entrypoints: no component rules collected for ${file}`
+		);
 	}
-	if (ruleParts.length) {
-		parts.push(ruleParts.join('\n\n'));
-	}
-	return parts.join('\n\n');
+	return parts;
+};
+
+const writeDist = function writeDist(relativePath: string, css: string) {
+	const target = join(DIST_DIR, relativePath);
+	mkdirSync(dirname(target), { recursive: true });
+	writeFileSync(target, css);
 };
 
 // ── Non-IAB entrypoints ─────────────────────────────────────────────
-const nonIab = collectCssParts(NON_IAB_PRIMITIVES, NON_IAB_COMPONENTS);
+const seenUnlayered = new Set<string>();
+const nonIab = collectCssParts(
+	[
+		...NON_IAB_PRIMITIVES.map((name) => ({
+			group: 'primitives',
+			label: `primitives/${name}`,
+			path: join(PRIMITIVES_DIR, `${name}.module.css`),
+		})),
+		...NON_IAB_COMPONENTS.map((name) => ({
+			group: dialogNames.has(name) ? 'dialog' : 'first-paint',
+			label: `components/${name}`,
+			path: join(COMPONENTS_DIR, `${name}.css`),
+		})),
+	],
+	seenUnlayered
+);
+const rootCss = nonIab.rootParts.join('\n\n');
+const firstPaintRules = rulesFor(nonIab.ruleParts, 'first-paint', 'styles.css');
 
-if (nonIab.ruleParts.length === 0) {
-	throw new Error(
-		'generate-css-entrypoints: no component rules collected for styles.css — output would contain only :root variables'
-	);
-}
-
-// dist/styles.css — @layer components (default, for Tailwind 4 + native CSS layers)
-writeFileSync(
-	join(DIST_DIR, 'styles.css'),
-	`${buildLayeredCss(nonIab.rootParts, nonIab.ruleParts)}\n`
+// dist/styles.css — layer order, tokens, every variable, first-paint rules
+// in @layer components (Tailwind 4 and native CSS layers). Render-blocking.
+writeDist(
+	'styles.css',
+	joinParts([LAYER_ORDER, DEFAULT_THEME_CSS, rootCss, layered(firstPaintRules)])
 );
 
-// dist/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
-writeFileSync(
-	join(DIST_DIR, 'styles.tw3.css'),
-	`${buildFlatCss(nonIab.rootParts, nonIab.ruleParts)}\n`
+// dist/styles.tw3.css — the same, flat (kept for existing Tailwind 3 imports)
+writeDist(
+	'styles.tw3.css',
+	joinParts([DEFAULT_THEME_CSS, rootCss, firstPaintRules.join('\n\n')])
+);
+
+// dist/styles/dialog.css — dialog and widget rules only. The dialog's module
+// imports it, so bundlers deliver it with the dialog chunk and load it
+// before that module runs. Variables stay in styles.css.
+writeDist(
+	'styles/dialog.css',
+	joinParts([
+		LAYER_ORDER,
+		'/* @c15t/ui dialog styles. Needs @c15t/ui/styles.css for tokens and variables. */',
+		layered(rulesFor(nonIab.ruleParts, 'dialog', 'styles/dialog.css')),
+	])
+);
+
+// dist/styles/dialog.js — the side-effect module JavaScript imports to load
+// dialog.css (`@c15t/ui/styles/dialog`). Bundlers follow its CSS import. The
+// `node` export condition serves dialog.node.js instead, which imports
+// nothing: a runtime that loads the package with plain Node (externalised
+// SSR, for example) cannot load a `.css` file. Keep `./styles/dialog.css`
+// itself unconditional: Astro imports it from `page-ssr`, where its SSR
+// build collects the page's CSS.
+writeDist('styles/dialog.js', "import './dialog.css';\n");
+writeDist(
+	'styles/dialog.node.js',
+	'// Plain Node cannot load CSS. Bundlers resolve dialog.js instead.\nexport {};\n'
+);
+writeDist('styles/dialog.d.ts', 'export {};\n');
+
+// dist/styles/primitives.css — rules for the primitive class maps, which
+// React never renders. Svelte's styles.css and custom hosts import it.
+writeDist(
+	'styles/primitives.css',
+	joinParts([
+		LAYER_ORDER,
+		'/* @c15t/ui primitive styles. Needs @c15t/ui/styles.css for tokens and variables. */',
+		layered(rulesFor(nonIab.ruleParts, 'primitives', 'styles/primitives.css')),
+	])
 );
 
 // ── IAB entrypoints ─────────────────────────────────────────────────
-const iab = collectCssParts(NON_IAB_PRIMITIVES, IAB_COMPONENTS);
-const iabDir = join(DIST_DIR, 'iab');
-mkdirSync(iabDir, { recursive: true });
+// Loaded next to styles.css, so they carry only IAB variables and rules:
+// no second copy of the tokens or of the variables styles.css declares.
+if (IAB_COMPONENTS.length > 0) {
+	const iab = collectCssParts(
+		IAB_COMPONENTS.map((name) => ({
+			group: 'iab',
+			label: `components/${name}`,
+			path: join(COMPONENTS_DIR, `${name}.css`),
+		})),
+		seenUnlayered
+	);
+	const iabRules = rulesFor(iab.ruleParts, 'iab', 'iab/styles.css');
+	const iabBanner =
+		'/* @c15t/ui IAB TCF styles. Load after @c15t/ui/styles.css, which holds the tokens. */';
+	const iabRoot = iab.rootParts.join('\n\n');
 
-if (IAB_COMPONENTS.length > 0 && iab.ruleParts.length === 0) {
-	throw new Error(
-		'generate-css-entrypoints: no component rules collected for iab/styles.css — output would contain only :root variables'
+	// dist/iab/styles.css — @layer components
+	writeDist(
+		'iab/styles.css',
+		joinParts([LAYER_ORDER, iabBanner, iabRoot, layered(iabRules)])
+	);
+
+	// dist/iab/styles.tw3.css — flat rules (kept for existing Tailwind 3 imports)
+	writeDist(
+		'iab/styles.tw3.css',
+		joinParts([iabBanner, iabRoot, iabRules.join('\n\n')])
 	);
 }
 
-// dist/iab/styles.css — @layer components
-writeFileSync(
-	join(iabDir, 'styles.css'),
-	`${buildLayeredCss(iab.rootParts, iab.ruleParts)}\n`
-);
-
-// dist/iab/styles.tw3.css — flat rules (for Tailwind 3 layout imports)
-writeFileSync(
-	join(iabDir, 'styles.tw3.css'),
-	`${buildFlatCss(iab.rootParts, iab.ruleParts)}\n`
-);
-
 console.log(
-	'Generated dist/styles.css, dist/styles.tw3.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
+	'Generated dist/styles.css, dist/styles.tw3.css, dist/styles/dialog.css, dist/styles/dialog.js, dist/styles/primitives.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
 );

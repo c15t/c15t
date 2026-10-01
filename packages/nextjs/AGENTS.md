@@ -16,7 +16,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Static export setup](./docs/frameworks/next/static-export.md)
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
 
 ## More documentation
 
@@ -31,7 +31,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [ConsentDialog](./docs/frameworks/next/components/consent-dialog.md): Mount ConsentDialog as a Client Component inside a Next.js ConsentRoot to open the preference center from the banner, links and triggers.
 - [ConsentDialogLink](./docs/frameworks/next/components/consent-dialog-link.md): Open the preference center from a Next.js footer with ConsentDialogLink, a Client Component that renders an unstyled button inside ConsentRoot.
 - [ConsentDialogTrigger](./docs/frameworks/next/components/consent-dialog-trigger.md): Add the floating ConsentDialogTrigger button or toolbar to a Next.js ConsentRoot so visitors can reopen the preference center.
-- [ConsentGate](./docs/frameworks/next/components/consent-gate.md): Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the placeholder or embed is decided in the server HTML.
+- [ConsentGate](./docs/frameworks/next/components/consent-gate.md): Consent-gate an iframe in Next.js with ConsentGate inside ConsentRoot; with server prefetch the server HTML carries the placeholder for a denied category, and a granted embed mounts after hydration.
 - [ConsentRoot](./docs/frameworks/next/components/consent-manager-provider.md): Pass server-resolved consent state and shared configuration to the Next.js ConsentRoot.
 - [ConsentWidget](./docs/frameworks/next/components/consent-widget.md): Render ConsentWidget on a Next.js privacy page inside ConsentRoot as an inline preference center, server-rendered when the route resolves consent.
 - [DevTools](./docs/frameworks/next/components/dev-tools.md): Load the c15t DevTools panel only in Next.js development builds to inspect consent state, scripts, policy and events inside ConsentRoot.
@@ -41,8 +41,9 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Data fetching](./docs/frameworks/next/data-fetching.md): Choose cached manifests for a Next.js server, backend initialization for a simpler setup, or offline mode for local development.
 - [Forward geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
 - [Headless](./docs/frameworks/next/headless.md): Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
-- [Hooks](./docs/frameworks/next/hooks/use-consent-manager/overview.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
+- [Hooks](./docs/frameworks/next/hooks/overview.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
 - [IAB TCF](./docs/frameworks/next/iab/overview.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
+- [Block network requests](./docs/frameworks/next/network-blocker.md): Block fetch and XHR calls to third-party domains in a Next.js app until the visitor grants their consent category.
 - [Optimization](./docs/frameworks/next/optimization.md): Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
 - [Pages Router](./docs/frameworks/next/pages-router.md): Set up Pages Router with Inth, cached manifests and consent-gated scripts.
 - [Quickstart](./docs/frameworks/next/quickstart.md): Add c15t consent management to Next.js with Inth, with setup guides for the App Router, the Pages Router and static export.
@@ -57,6 +58,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Data fetching and transports](./docs/guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
+- [Share consent controls across frameworks](./docs/guides/shared-consent-controls.md): Use the same c15t script lifecycle, external consent source, and event controls in every framework.
 - [Troubleshoot consent](./docs/guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 
@@ -81,6 +83,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Crisp](./docs/integrations/crisp.md): Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
 - [Databuddy](./docs/integrations/databuddy.md): Configure Databuddy's initial and updated consent state with c15t v3.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Front Chat](./docs/integrations/front-chat.md): Load the Front Chat widget with functionality permission, forward CSP nonces and clear the session on revocation.
 - [Google Maps](./docs/integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
 - [Google Tag](./docs/integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
@@ -96,8 +99,10 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Microsoft Clarity](./docs/integrations/microsoft-clarity.md): Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
 - [Microsoft UET](./docs/integrations/microsoft-uet.md): Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
 - [Mixpanel](./docs/integrations/mixpanel-analytics.md): Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+- [OneDollarStats](./docs/integrations/one-dollar-stats.md): Load the OneDollarStats tracker with measurement permission, forward its settings and verify loading and revocation.
 - [OpenAI Pixel](./docs/integrations/openai-pixel.md): Configure the OpenAI Measurement Pixel for ChatGPT Ads with c15t v3, manage marketing permission and verify conversion delivery.
 - [Overview](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Pinterest Tag](./docs/integrations/pinterest-tag.md): Configure the Pinterest Tag with c15t v3, track typed events and verify marketing permission, revocation and reload.
 - [Pirsch](./docs/integrations/pirsch.md): Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
 - [Plausible Analytics](./docs/integrations/plausible-analytics.md): Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [PostHog](./docs/integrations/posthog.md): Choose PostHog loading and cookieless behavior, configure the region, and synchronize v3 permissions.
@@ -115,4 +120,4 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Reference
 
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.

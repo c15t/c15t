@@ -20,6 +20,13 @@
  *   uses; a disagreement is a 422, not a record written against the wrong
  *   policy. Recording without either only happens when there is no policy to
  *   attest to.
+ * - Late saves: a replayed save whose token expired before it arrived is
+ *   verified at its `givenAt` instead (see `policy-snapshot.ts`) and filed
+ *   with `runtimePolicySource: 'snapshot_token_replayed'`. A token whose
+ *   policy is no longer in the manifest under the same fingerprint is a
+ *   `STALE_POLICY` 422 with reason `policy-changed`, live or late: the
+ *   visitor saw that policy, and recording against its replacement would
+ *   claim consent to text they never saw.
  * - Scope: a receipt granting a category the resolved policy does not offer
  *   is refused. A denial outside scope is kept, because a persistent refusal
  *   must remain possible there.
@@ -100,8 +107,6 @@ export interface SubmissionContext {
 	readonly policySnapshot: PolicySnapshotOptions | undefined;
 	readonly tenantId: string | undefined;
 	readonly ipAddress: IpAddressConfig | undefined;
-	/** Whether the request authenticated with an API key. */
-	readonly authenticated: boolean;
 	/** Server clock, epoch milliseconds. Receipts may not be later than this. */
 	readonly now: number;
 }
@@ -109,7 +114,14 @@ export interface SubmissionContext {
 /** The resolved decision behind a submission, when there is one. */
 export interface ResolvedDecision {
 	readonly input: DecisionInput;
-	readonly source: 'snapshot_token' | 'write_time_fallback';
+	/**
+	 * `snapshot_token_replayed`: the token had expired when the save arrived
+	 * and was verified at the save's `givenAt`.
+	 */
+	readonly source:
+		| 'snapshot_token'
+		| 'snapshot_token_replayed'
+		| 'write_time_fallback';
 	/** Canonical rule authenticated by the snapshot or asserted resolution. */
 	readonly rule: ResolvedPolicyRule;
 	readonly jurisdiction: string;
@@ -135,6 +147,8 @@ export interface PreparedSubmission {
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
 	readonly metadata: Record<string, unknown> | undefined;
+	/** Attribution columns projected from `metadata`; see `attributionFields`. */
+	readonly attribution: AttributionFields;
 }
 
 const OPTIONAL: ReadonlySet<string> = new Set(POLICY_OPTIONAL_CATEGORIES);
@@ -212,28 +226,35 @@ const asString = (value: unknown): string | undefined =>
 const asNullableString = (value: unknown): string | null =>
 	typeof value === 'string' ? value : null;
 
-/** A decision rebuilt from verified token claims. */
+/**
+ * A decision rebuilt from verified token claims, `malformed` when the claims
+ * are incomplete, or `policy-changed` when the manifest no longer has the
+ * policy they name under the same fingerprint and model.
+ */
 const decisionFromClaims = (
 	claims: Record<string, unknown>,
 	manifest: ConsentManifest,
-	context: SubmissionContext
-): ResolvedDecision | undefined => {
+	context: SubmissionContext,
+	late: boolean
+): ResolvedDecision | 'malformed' | 'policy-changed' => {
 	const policyId = asString(claims.policyId);
 	const fingerprint = asString(claims.fingerprint);
 	const matchedBy = asString(claims.matchedBy);
 	const jurisdiction = asString(claims.jurisdiction);
 	const model = asString(claims.model);
 	if (!policyId || !fingerprint || !matchedBy || !jurisdiction || !model) {
-		return undefined;
+		return 'malformed';
+	}
+	if (manifest.policyFailure) {
+		return 'malformed';
 	}
 	const pack = packById(manifest, policyId);
 	if (
 		!pack ||
 		pack.fingerprints.policy !== fingerprint ||
-		pack.rule.model !== model ||
-		manifest.policyFailure
+		pack.rule.model !== model
 	) {
-		return undefined;
+		return 'policy-changed';
 	}
 	const { rule } = pack;
 	const countryCode = asNullableString(claims.country);
@@ -266,7 +287,7 @@ const decisionFromClaims = (
 		jurisdiction,
 		language,
 		rule,
-		source: 'snapshot_token',
+		source: late ? 'snapshot_token_replayed' : 'snapshot_token',
 	};
 };
 
@@ -371,21 +392,36 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 				verifyPolicySnapshotToken(
 					input.policySnapshotToken,
 					context.policySnapshot,
-					context.tenantId
+					context.tenantId,
+					{ decidedAt: input.givenAt, receivedAt: context.now }
 				)
 			);
 			if (!verification.valid) {
-				return yield* new PolicySnapshotError({
-					code: 'POLICY_SNAPSHOT_INVALID',
-					message: 'Policy snapshot token is invalid',
-				});
+				return yield* verification.reason === 'expired'
+					? new PolicySnapshotError({
+							code: 'POLICY_SNAPSHOT_EXPIRED',
+							message:
+								'Policy snapshot token had expired when this choice was made, or the save arrived after the replay window',
+						})
+					: new PolicySnapshotError({
+							code: 'POLICY_SNAPSHOT_INVALID',
+							message: 'Policy snapshot token is invalid',
+						});
 			}
 			const decision = decisionFromClaims(
 				verification.payload,
 				manifest,
-				context
+				context,
+				verification.late
 			);
-			if (!decision) {
+			if (decision === 'policy-changed') {
+				return yield* new StalePolicyError({
+					message:
+						'The policy this token names is no longer in the manifest under the same fingerprint',
+					reason: 'policy-changed',
+				});
+			}
+			if (decision === 'malformed') {
 				return yield* new PolicySnapshotError({
 					code: 'POLICY_SNAPSHOT_INVALID',
 					message: 'Policy snapshot token is missing decision claims',
@@ -635,6 +671,77 @@ const proofFields = (
 	};
 };
 
+export interface AttributionFields {
+	readonly experimentId: string | null;
+	readonly experimentArm: string | null;
+	readonly timeToDecisionMs: number | null;
+}
+
+/**
+ * Longest experiment id or arm name stored on its own column.
+ *
+ * The columns are `indexedText`, which is `varchar(255)` on MySQL; well
+ * under that so an index key never has to be truncated.
+ */
+const ATTRIBUTION_TEXT_MAX = 128;
+
+/**
+ * Largest `timeToDecisionMs` stored on its column.
+ *
+ * The column is `integer`, which is a signed 32-bit `int` on MySQL and
+ * Postgres. A larger value would fail the whole consent insert there, so it
+ * is dropped here instead; about 24 days is far past any real decision.
+ */
+const TIME_TO_DECISION_MAX_MS = 2_147_483_647;
+
+const attributionText = (value: unknown): string | undefined =>
+	typeof value === 'string' &&
+	value.length > 0 &&
+	value.length <= ATTRIBUTION_TEXT_MAX
+		? value
+		: undefined;
+
+/**
+ * The experiment attribution a submission carries, as column values.
+ *
+ * A v3 client puts `experiment: { id, arm, … }` and `timeToDecisionMs`
+ * in `metadata`; the summary route groups and orders on them, so they are
+ * copied onto real columns at write time. `metadata` is left exactly as sent.
+ *
+ * Anything malformed is dropped, never rejected: attribution is analytics,
+ * and a consent save must not fail over it. A value that is missing here is
+ * still in `metadata` for the audit trail.
+ *
+ * The id and the arm are kept together or dropped together. The summary
+ * filters on `experimentArm is not null`, so an id without an arm would
+ * be a row no report ever counts, and an arm without an id belongs to no
+ * experiment.
+ */
+const attributionFields = (
+	metadata: Record<string, unknown> | undefined
+): AttributionFields => {
+	const experiment = metadata?.experiment;
+	const arm =
+		experiment !== null && typeof experiment === 'object'
+			? (experiment as Record<string, unknown>)
+			: undefined;
+	const experimentId = attributionText(arm?.id);
+	const experimentArm = attributionText(arm?.arm);
+	const complete = experimentId !== undefined && experimentArm !== undefined;
+	const ms = metadata?.timeToDecisionMs;
+	return {
+		experimentArm: complete ? experimentArm : null,
+		experimentId: complete ? experimentId : null,
+		timeToDecisionMs:
+			typeof ms === 'number' &&
+			Number.isInteger(ms) &&
+			ms >= 0 &&
+			ms <= TIME_TO_DECISION_MAX_MS
+				? ms
+				: null,
+	};
+};
+
 interface ResolvedCategories {
 	appliedPreferences: Record<string, boolean> | undefined;
 	grantedCodes: string[];
@@ -754,6 +861,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 
 		return {
 			appliedPreferences,
+			attribution: attributionFields(input.metadata),
 			choice,
 			consentAction: deriveConsentAction(input.consentAction, model),
 			decision,

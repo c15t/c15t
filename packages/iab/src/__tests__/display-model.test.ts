@@ -31,19 +31,46 @@ describe('IAB dialog display model', () => {
 		]);
 	});
 
-	test('puts special purposes and features in the locked essential section', () => {
+	test('keeps only special purposes in the locked essential section', () => {
 		const model = resolveIABDialogDisplayModel({ gvl: conformanceGVL });
 
 		expect(model.essentialRows.map((row) => row.testId)).toEqual([
 			'special-purpose-item-1',
-			'feature-item-1',
 		]);
 		expect(model.essentialRows.every((row) => row.locked)).toBe(true);
 		expect(model.essentialRows.every((row) => row.toggle === 'none')).toBe(
 			true
 		);
-		// One vendor declares both, so the section names one partner.
 		expect(model.essentialPartnerCount).toBe(1);
+	});
+
+	test('puts features in their own informational section with no toggle', () => {
+		const model = resolveIABDialogDisplayModel({ gvl: conformanceGVL });
+
+		expect(model.featureRows.map((row) => row.testId)).toEqual([
+			'feature-item-1',
+		]);
+		// TCF Policies v5.0.b: Features must not sit next to a control that
+		// cannot be disabled, so they are neither locked nor toggleable.
+		expect(model.featureRows.every((row) => !row.locked)).toBe(true);
+		expect(model.featureRows.every((row) => row.toggle === 'none')).toBe(true);
+		expect(model.featureRows[0]?.illustrations.length).toBeGreaterThan(0);
+		expect(model.featureRows[0]?.vendors.length).toBeGreaterThan(0);
+	});
+
+	test('passes through the GVL standard text for features', () => {
+		const standardTexts = { features: 'Standard features text' };
+
+		expect(
+			resolveIABDialogDisplayModel({
+				gvl: { ...completeGVL, standardTexts },
+			}).featuresStandardText
+		).toBe('Standard features text');
+		expect(
+			resolveIABDialogDisplayModel({
+				gvl: { ...completeGVL, standardTexts: undefined },
+			}).featuresStandardText
+		).toBeNull();
 	});
 
 	test('gives every row a test-id no other row shares', () => {
@@ -55,6 +82,7 @@ describe('IAB dialog display model', () => {
 					: [row.testId]
 			),
 			...model.essentialRows.map((row) => row.testId),
+			...model.featureRows.map((row) => row.testId),
 		];
 
 		expect(new Set(testIds).size).toBe(testIds.length);
@@ -120,6 +148,8 @@ describe('IAB dialog display model', () => {
 		expect(model.isLoading).toBe(true);
 		expect(model.consentRows).toHaveLength(0);
 		expect(model.essentialRows).toHaveLength(0);
+		expect(model.featureRows).toHaveLength(0);
+		expect(model.featuresStandardText).toBeNull();
 		expect(model.purposeTabCount).toBe(0);
 		expect(model.vendorTabCount).toBe(0);
 	});

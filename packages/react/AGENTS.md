@@ -13,7 +13,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [React quickstart](./docs/frameworks/react/quickstart.md)
 - [Customize your consent interface](./docs/customization/overview.md): Choose presentation, theme tokens, slots or custom markup for the change you need.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.
 
 ## More documentation
 
@@ -32,8 +32,9 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Consent categories](./docs/frameworks/react/concepts/consent-categories.md): Assign optional features to categories and understand how policy scope affects permission.
 - [Policy presets](./docs/frameworks/react/concepts/policy-presets.md): Understand how policy rules affect React prompts, permissions and persistent privacy controls.
 - [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
-- [Hooks](./docs/frameworks/react/hooks/use-consent-manager/overview.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
+- [Hooks](./docs/frameworks/react/hooks/overview.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
 - [IAB TCF](./docs/frameworks/react/iab/overview.md): Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
+- [Block network requests](./docs/frameworks/react/network-blocker.md): Block fetch and XHR calls to third-party domains in a React app until the visitor grants their consent category.
 - [Quickstart](./docs/frameworks/react/quickstart.md): Connect a React application to Inth and add consent UI, persistence and a preferences link.
 - [Load scripts with consent](./docs/frameworks/react/script-loader.md): Register vendor scripts once and let effective permissions control loading.
 - [Styling](./docs/frameworks/react/styling/overview.md): Import the React stylesheet and theme c15t components with tokens, slots, and class names on ConsentProvider.
@@ -44,6 +45,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Understand consent state](./docs/guides/consent-state.md): Distinguish policy resolution, effective permissions, explicit choices, notices and privacy signals.
 - [Data fetching and transports](./docs/guides/data-fetching.md): Choose cached manifests, backend init or offline policy resolution, and understand where consent records are saved.
 - [Choose a deployment mode](./docs/guides/deployment-modes.md): Choose who runs your consent backend, then select manifest, init or offline resolution for your deployment.
+- [Share consent controls across frameworks](./docs/guides/shared-consent-controls.md): Use the same c15t script lifecycle, external consent source, and event controls in every framework.
 - [Troubleshoot consent](./docs/guides/troubleshooting.md): Diagnose missing banners, early vendor requests, lost choices and hydration differences.
 - [Verify consent before shipping](./docs/guides/verify-consent.md): Test requests, policy resolution, persistence, navigation and preference changes in a production build.
 
@@ -68,6 +70,7 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Crisp](./docs/integrations/crisp.md): Configure Crisp with c15t v3, understand functionality permission and verify loading and revocation.
 - [Databuddy](./docs/integrations/databuddy.md): Configure Databuddy's initial and updated consent state with c15t v3.
 - [Fathom Analytics](./docs/integrations/fathom-analytics.md): Configure Fathom Analytics with c15t v3, understand measurement permission and verify loading and revocation.
+- [Front Chat](./docs/integrations/front-chat.md): Load the Front Chat widget with functionality permission, forward CSP nonces and clear the session on revocation.
 - [Google Maps](./docs/integrations/google-maps.md): Prevent a map iframe from mounting before the required permission.
 - [Google Tag](./docs/integrations/google-tag.md): Configure gtag with c15t Consent Mode signals and understand its loading behavior.
 - [Google Tag Manager](./docs/integrations/google-tag-manager.md): Load GTM with c15t consent signals and verify the tags inside your container.
@@ -83,8 +86,10 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 - [Microsoft Clarity](./docs/integrations/microsoft-clarity.md): Configure Microsoft Clarity with c15t v3, understand measurement permission and verify loading and revocation.
 - [Microsoft UET](./docs/integrations/microsoft-uet.md): Configure Microsoft UET with c15t v3, understand marketing permission and verify loading and revocation.
 - [Mixpanel](./docs/integrations/mixpanel-analytics.md): Configure Mixpanel with c15t v3, understand measurement permission and verify loading and revocation.
+- [OneDollarStats](./docs/integrations/one-dollar-stats.md): Load the OneDollarStats tracker with measurement permission, forward its settings and verify loading and revocation.
 - [OpenAI Pixel](./docs/integrations/openai-pixel.md): Configure the OpenAI Measurement Pixel for ChatGPT Ads with c15t v3, manage marketing permission and verify conversion delivery.
 - [Overview](./docs/integrations/overview.md): Find all c15t integrations for analytics, tag managers, advertising, chat and embedded content.
+- [Pinterest Tag](./docs/integrations/pinterest-tag.md): Configure the Pinterest Tag with c15t v3, track typed events and verify marketing permission, revocation and reload.
 - [Pirsch](./docs/integrations/pirsch.md): Configure Pirsch with c15t v3, understand measurement permission and verify loading and revocation.
 - [Plausible Analytics](./docs/integrations/plausible-analytics.md): Configure Plausible Analytics with c15t v3, understand measurement permission and verify loading and revocation.
 - [PostHog](./docs/integrations/posthog.md): Choose PostHog loading and cookieless behavior, configure the region, and synchronize v3 permissions.
@@ -102,4 +107,4 @@ These docs describe v3. Start with Inth hosted setup, identify the framework, ro
 
 ## Reference
 
-- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate policy configuration, consent records, callbacks, and custom transports to the v3 policy system.
+- [Upgrade to v3 policies](./docs/upgrade-v3.md): Migrate vendor imports, policy configuration, consent records, callbacks, and custom transports to v3.

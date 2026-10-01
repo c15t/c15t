@@ -18,7 +18,7 @@ export const generateTanStackStartBoilerplate = (
 	return {
 		dependencies: [
 			'@c15t/tanstack-start',
-			...(options.scripts.length ? ['@c15t/scripts'] : []),
+			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files: {
 			'Consent.tsx': `import { ConsentBanner, ConsentDialog, ConsentDialogTrigger, ConsentRoot${hosted ? '' : ', offline'} } from '@c15t/tanstack-start';

@@ -1,3 +1,4 @@
+import type { AllConsentNames } from '@c15t/core';
 import { readStoredRecords } from '@c15t/core/modules/persistence';
 import {
 	normalizePolicyRule,
@@ -36,6 +37,8 @@ const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
 	};
 };
 afterEach(() => vi.restoreAllMocks());
+/** What a site offering the fixture policy's categories declares. */
+const DECLARED: AllConsentNames[] = ['marketing', 'measurement'];
 
 test('subject-only prefetch preserves browser receipts without a prepared record seed', async () => {
 	const now = 1_800_000_000_000;
@@ -94,7 +97,7 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 	const now = 1_800_000_000_000;
 	vi.spyOn(Date, 'now').mockReturnValue(now);
 	const context = createVueConsentKernelContext({
-		config: {},
+		config: { consentCategories: DECLARED },
 		kernelConfig: {
 			initialPolicyResolution: resolution({
 				privacySignals: { gpc: { denyCategories: ['marketing'] } },
@@ -115,7 +118,7 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 		})
 	);
 	app.provide(symbolKernelContext, context);
-	app.provide(consentConfigKey, {});
+	app.provide(consentConfigKey, { consentCategories: DECLARED });
 	const container = document.createElement('div');
 	app.mount(container);
 	try {
@@ -184,7 +187,7 @@ test('a draft preserves configured category order and confirms only the displaye
 test('material policy changes block an already displayed draft until review', async () => {
 	let current = resolution();
 	const context = createVueConsentKernelContext({
-		config: {},
+		config: { consentCategories: DECLARED },
 		kernelConfig: {
 			initialPolicyResolution: current,
 			transport: {
@@ -205,7 +208,7 @@ test('material policy changes block an already displayed draft until review', as
 		})
 	);
 	app.provide(symbolKernelContext, context);
-	app.provide(consentConfigKey, {});
+	app.provide(consentConfigKey, { consentCategories: DECLARED });
 	app.mount(document.createElement('div'));
 	try {
 		draft.values.value.marketing = true;
@@ -257,6 +260,41 @@ test('notice dismissal and registration do not replay choice callbacks', async (
 	}
 });
 
+test('onSurfaceShown fires for the server-rendered banner and an opened dialog', () => {
+	const now = 1_800_000_000_000;
+	vi.spyOn(Date, 'now').mockReturnValue(now);
+	const surfaceShown = vi.fn();
+	const config = {
+		callbacks: { onSurfaceShown: surfaceShown },
+		iframeBlocker: false as const,
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		kernelConfig: { initialPolicyResolution: resolution(), now },
+	});
+	expect(surfaceShown).not.toHaveBeenCalled();
+	// No init on the prefetch path: the runtime marks the kernel live itself.
+	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	try {
+		expect(surfaceShown).toHaveBeenCalledOnce();
+		expect(surfaceShown.mock.calls[0]?.[0]).toMatchObject({
+			shownAt: now,
+			surface: 'banner',
+		});
+		expect(surfaceShown.mock.calls[0]?.[0]).not.toHaveProperty('type');
+
+		vi.spyOn(Date, 'now').mockReturnValue(now + 2000);
+		context.activeUI.value = 'manager';
+		expect(surfaceShown).toHaveBeenCalledTimes(2);
+		expect(surfaceShown.mock.calls[1]?.[0]).toMatchObject({
+			shownAt: now + 2000,
+			surface: 'dialog',
+		});
+	} finally {
+		dispose();
+	}
+});
+
 test.each([true, false, 'true', 1, undefined])(
 	'browser GPC accepts only the exact boolean signal %s',
 	(signal) => {
@@ -296,7 +334,7 @@ test.each([true, false, 'true', 1, undefined])(
 );
 
 test.each(['header', 'browser', 'header-with-browser-false'] as const)(
-	'prepared mount persists %s GPC without recording consent',
+	'prepared mount applies %s GPC live without recording consent or storage',
 	async (source) => {
 		const now = Date.now();
 		vi.spyOn(Date, 'now').mockReturnValue(now);
@@ -327,7 +365,6 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 				choice: null,
 				noticeDismissal: null,
 				now: now - 1000,
-				optOutDirectives: [],
 				subject: null,
 			},
 			kernelConfig: {
@@ -340,21 +377,24 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 				transport: { save: consentSave },
 			},
 		});
-		const privacy = vi.fn();
-		context.kernel.events.on('privacy:opt-out', privacy);
-		expect(context.snapshot.value.optOutDirectives).toEqual([]);
+		// A browser that reports `false` on mount ends the header's signal, and
+		// nothing stored keeps its restriction alive.
+		const active = source !== 'header-with-browser-false';
 		const dispose = startVueConsentRuntime(context, config, { runInit: false });
 		try {
 			await vi.waitFor(() =>
-				expect(
-					readStoredRecords(storageConfig, now).records.optOutDirectives
-				).toHaveLength(1)
+				expect(context.snapshot.value.privacySignals.gpc.active).toBe(active)
+			);
+			expect(context.snapshot.value.effectivePermissions.marketing).toBe(
+				!active
 			);
 			expect(context.snapshot.value.explicitChoice).toBeNull();
-			expect(privacy).toHaveBeenCalledOnce();
 			expect(choice).not.toHaveBeenCalled();
 			expect(consentSave).not.toHaveBeenCalled();
 			expect(readStoredRecords(storageConfig, now).records.choice).toBeNull();
+			expect(
+				localStorage.getItem(`${storageConfig.storageKey}-privacy`)
+			).toBeNull();
 		} finally {
 			dispose();
 			if (previous) {

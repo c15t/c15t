@@ -2,6 +2,8 @@
 import type { PresentationAction } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import bannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
+
+import '@c15t/ui/styles/components/iab-consent-banner.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, ref, Teleport, Transition, toValue } from 'vue';
 
@@ -14,10 +16,15 @@ import {
 	useIabTranslations,
 } from '#c15t/composables';
 
-import { useConsentSnapshot, useHasConsentUi } from '../composables/kernel';
+import {
+	useConsentKernel,
+	useConsentSnapshot,
+	useHasConsentUi,
+} from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useFocusTrap } from '../primitives/use-focus-trap';
+import { saveIABChoice } from '../utils/save-iab-choice';
 import ConsentActions from './actions.vue';
 import ConsentTag from './tag.vue';
 
@@ -48,7 +55,11 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
-const save = useConsentIabSave();
+const kernel = useConsentKernel();
+const saveIab = useConsentIabSave();
+// The banner closes in the click task; see `saveIABChoice`.
+const save = (...args: Parameters<typeof saveIab>) =>
+	saveIABChoice(kernel, () => saveIab(...args));
 
 const initValue = computed(() => toValue(init));
 const textDirection = computed(() =>
@@ -182,7 +193,7 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 	<Teleport to="body">
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="bannerStyles.overlayHidden"
+			:enter-from-class="''"
 			:enter-active-class="bannerStyles.overlayVisible"
 			:enter-to-class="bannerStyles.overlayVisible"
 			:leave-from-class="bannerStyles.overlayVisible"
@@ -194,12 +205,16 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 				v-bind="config.components?.['iab-banner']?.overlay"
 				aria-hidden="true"
 				data-testid="iab-consent-banner-overlay"
-				:class="[bannerStyles.overlay, bannerStyles.overlayVisible]"
+				:class="[
+					bannerStyles.overlay,
+					bannerStyles.overlayVisible,
+					disableAnimation ? undefined : bannerStyles.overlayEntering,
+				]"
 			/>
 		</Transition>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="bannerStyles.bannerHidden"
+			:enter-from-class="''"
 			:enter-active-class="bannerStyles.bannerVisible"
 			:enter-to-class="bannerStyles.bannerVisible"
 			:leave-from-class="bannerStyles.bannerVisible"
@@ -215,7 +230,11 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 				"
 				:dir="textDirection"
 				tabindex="-1"
-				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
+				:class="[
+					bannerStyles.root,
+					bannerStyles.bannerVisible,
+					disableAnimation ? undefined : bannerStyles.bannerEntering,
+				]"
 			>
 				<div
 					v-bind="config.components?.['iab-banner']?.cardShell"

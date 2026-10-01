@@ -138,13 +138,16 @@ export const coreRuntimeBudgets: MetricBudget[] = [
 		secondaryThreshold: 20,
 		threshold: 1,
 	},
+	// 2µs, not 1µs: a first-visit init stamps the banner's first impression
+	// (#1146), one frozen snapshot copy that costs ~0.35µs locally and
+	// lands close to 1µs on hosted runners.
 	{
 		comparator: 'absolute-or-percent-lte',
 		description:
-			'Empty-kernel init must not regress by both more than 1µs and 15%.',
+			'Empty-kernel init must not regress by both more than 2µs and 15%.',
 		metric: 'initConsentManager',
 		secondaryThreshold: 15,
-		threshold: 1,
+		threshold: 2,
 	},
 ];
 
@@ -698,6 +701,74 @@ export const sharedBrowserBudgets: MetricBudget[] = browserBudgets.filter(
 
 const SSR_SCENARIOS = new Set(['ssr', 'manifest-ssr', 'ssr-repeat']);
 
+const SAVED_CONSENT_SCENARIOS = new Set([
+	'saved-consent-accept',
+	'saved-consent-reject',
+]);
+
+/**
+ * Budgets for a saved-consent visit: a new browser context that carries the
+ * cookies and localStorage of an accepted or rejected fresh visit. The
+ * banner-readiness budget does not apply because no banner may render.
+ *
+ * @param options.serverRendered - The route renders consent on the server,
+ *   so the server HTML must omit the banner too.
+ */
+export const savedConsentBrowserBudgets =
+	function savedConsentBrowserBudgets(options: {
+		serverRendered: boolean;
+	}): MetricBudget[] {
+		const budgets: MetricBudget[] = [
+			...sharedBrowserBudgets.filter(
+				(budget) => budget.metric !== 'bannerReadyMs'
+			),
+			{
+				comparator: 'count-eq',
+				description:
+					'A saved-consent visit restores the stored choice from the carried-over storage.',
+				metric: 'hydratedChoicePresent',
+				threshold: 1,
+			},
+			{
+				comparator: 'count-eq',
+				description: 'A saved-consent visit shows no first-layer banner.',
+				metric: 'promptShownCount',
+				threshold: 0,
+			},
+		];
+		if (options.serverRendered) {
+			budgets.push({
+				comparator: 'count-eq',
+				description:
+					'A saved-consent visit over SSR gets no banner markup in the server HTML.',
+				metric: 'bannerInServerHtml',
+				threshold: 0,
+			});
+		}
+		return budgets;
+	};
+
+/**
+ * The Astro, SvelteKit, and Nuxt `repeat-visitor` arms seed a stored
+ * choice, so they render no banner and report no banner-readiness time.
+ */
+const withoutBannerReadinessForStoredConsent =
+	function withoutBannerReadinessForStoredConsent(
+		budgets: MetricBudget[],
+		scenario: string
+	): MetricBudget[] {
+		return scenario === 'repeat-visitor'
+			? budgets.filter((budget) => budget.metric !== 'bannerReadyMs')
+			: budgets;
+	};
+
+/** Whether a scenario name is a saved-consent visit. */
+export const isSavedConsentScenario = function isSavedConsentScenario(
+	scenario: string
+): boolean {
+	return SAVED_CONSENT_SCENARIOS.has(scenario);
+};
+
 const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 	scenario: string
 ): MetricBudget | undefined {
@@ -710,10 +781,19 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 			threshold: 0,
 		};
 	}
-	if (scenario === 'repeat-visitor' || scenario === 'baseline') {
-		// The fresh-context repeat arm has no fixed count; the baseline arm
-		// renders no consent provider, so it never issues an init request.
+	if (scenario === 'baseline') {
+		// The baseline arm renders no consent provider, so it never issues an
+		// init request.
 		return undefined;
+	}
+	if (SAVED_CONSENT_SCENARIOS.has(scenario)) {
+		return {
+			comparator: 'count-eq',
+			description:
+				'Saved-consent visits over manifest SSR make no browser init request.',
+			metric: 'initRequestsAfterLoad',
+			threshold: 0,
+		};
 	}
 	if (scenario === 'manifest-client') {
 		return {
@@ -739,7 +819,10 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 export const nextjsBrowserBudgetsForScenario =
 	function nextjsBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
 		const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
-		const budgets = [...sharedBrowserBudgets];
+		const budgets =
+			SAVED_CONSENT_SCENARIOS.has(baseScenario) || baseScenario === 'ssr-repeat'
+				? savedConsentBrowserBudgets({ serverRendered: true })
+				: [...sharedBrowserBudgets];
 		const initRequest = nextjsInitRequestBudget(baseScenario);
 		if (initRequest) {
 			budgets.push(initRequest);
@@ -751,7 +834,10 @@ export const nextjsBrowserBudgetsForScenario =
 				)
 			);
 		}
-		if (SSR_SCENARIOS.has(baseScenario)) {
+		if (
+			SSR_SCENARIOS.has(baseScenario) ||
+			SAVED_CONSENT_SCENARIOS.has(baseScenario)
+		) {
 			// Only server-rendered arms can flash: the client-init arms go from
 			// no prompt to the banner once init resolves, which is one legitimate
 			// transition rather than a server/client disagreement.
@@ -759,31 +845,6 @@ export const nextjsBrowserBudgetsForScenario =
 				...ssrConsistencyBudgets.filter(
 					(budget) => budget.metric === 'promptTransitionCount'
 				)
-			);
-		}
-		if (baseScenario === 'ssr-repeat') {
-			budgets.push({
-				comparator: 'count-eq',
-				description:
-					'SSR repeat visitor applies the real stored choice before the settled client observation.',
-				metric: 'hydratedChoicePresent',
-				threshold: 1,
-			});
-			budgets.push(
-				{
-					comparator: 'count-eq',
-					description:
-						'A persisted repeat visitor over SSR gets no banner in the first HTML.',
-					metric: 'bannerInFirstHtml',
-					threshold: 0,
-				},
-				{
-					comparator: 'count-eq',
-					description:
-						'A persisted repeat visitor over SSR sees no first-layer prompt after hydration.',
-					metric: 'promptShownCount',
-					threshold: 0,
-				}
 			);
 		}
 		return budgets;
@@ -817,7 +878,10 @@ export const nuxtBrowserBudgetsForScenario =
 			baseScenario === 'repeat-visitor'
 		) {
 			return [
-				...sharedBrowserBudgets,
+				...withoutBannerReadinessForStoredConsent(
+					sharedBrowserBudgets,
+					baseScenario
+				),
 				{
 					comparator: 'count-eq',
 					description:
@@ -871,6 +935,9 @@ export const reactBrowserBudgetsForScenario =
 				return policyBrowserBudgets;
 			case 'policy-repeat':
 				return hydrationBudgets;
+			case 'saved-consent-accept':
+			case 'saved-consent-reject':
+				return savedConsentBrowserBudgets({ serverRendered: false });
 			default:
 				return sharedBrowserBudgets;
 		}
@@ -911,7 +978,7 @@ export const astroBrowserBudgetsForScenario =
 		// Every Astro arm is server-rendered and boots from the inlined config,
 		// so none of them should ever put an init request on the browser.
 		return [
-			...shared,
+			...withoutBannerReadinessForStoredConsent(shared, scenario),
 			{
 				comparator: 'count-eq',
 				description:
@@ -955,7 +1022,7 @@ export const sveltekitBrowserBudgetsForScenario =
 			scenario === 'repeat-visitor'
 		) {
 			return [
-				...shared,
+				...withoutBannerReadinessForStoredConsent(shared, scenario),
 				{
 					comparator: 'count-eq',
 					description:
@@ -1033,8 +1100,17 @@ export const tanstackBrowserBudgetsForScenario =
 			];
 		}
 
-		if (baseScenario === 'repeat-visitor') {
-			return shared;
+		if (SAVED_CONSENT_SCENARIOS.has(baseScenario)) {
+			return [
+				...savedConsentBrowserBudgets({ serverRendered: true }),
+				{
+					comparator: 'count-eq',
+					description:
+						'Saved-consent visits over manifest SSR make no browser init request.',
+					metric: 'initRequestsAfterLoad',
+					threshold: 0,
+				},
+			];
 		}
 
 		if (baseScenario === 'manifest-client') {

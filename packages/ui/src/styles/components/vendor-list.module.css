@@ -48,16 +48,13 @@
 	}
 
 	.item:not(:global(.headless)):has(.trigger:focus-visible) {
-		outline: 2px solid var(--vendor-list-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline: 2px solid var(--vendor-list-focus-ring, var(--c15t-primary));
 		outline-offset: -2px;
 	}
 
 	:global(.c15t-dark)
 		.item:not(:global(.headless)):has(.trigger:focus-visible) {
-		outline-color: var(
-			--vendor-list-focus-ring-dark,
-			hsl(228.07, 69.8%, 48.04%)
-		);
+		outline-color: var(--vendor-list-focus-ring-dark, var(--c15t-primary));
 	}
 
 	/* Trigger on the left, switch on the right, the way a category row lays
@@ -137,7 +134,11 @@
 		justify-content: center;
 		width: var(--vendor-list-icon-size, 1.25rem);
 		height: var(--vendor-list-icon-size, 1.25rem);
-		color: var(--vendor-list-arrow-color, hsl(0, 0%, 63.92%));
+		/* The same step lighter than the muted text as the category arrow. */
+		color: var(
+			--vendor-list-arrow-color,
+			color-mix(in srgb, var(--c15t-text-muted) 60%, var(--c15t-surface))
+		);
 	}
 
 	.arrow:not(:global(.headless)) svg {
@@ -147,14 +148,17 @@
 	}
 
 	:global(.c15t-dark) .arrow:not(:global(.headless)) {
-		color: var(--vendor-list-arrow-color-dark, hsl(0, 0%, 80%));
+		color: var(
+			--vendor-list-arrow-color-dark,
+			color-mix(in srgb, var(--c15t-text-muted) 40%, var(--c15t-text))
+		);
 	}
 
 	.name:not(:global(.headless)) {
 		margin: 0;
 		min-width: 0;
 		font: inherit;
-		font-weight: var(--c15t-font-weight-regular);
+		font-weight: var(--c15t-font-weight-normal);
 		color: inherit;
 	}
 
@@ -213,7 +217,7 @@
 	}
 
 	.link:not(:global(.headless)):focus-visible {
-		outline: 2px solid var(--vendor-list-focus-ring, hsl(227.93, 100%, 63.92%));
+		outline: 2px solid var(--vendor-list-focus-ring, var(--c15t-primary));
 		outline-offset: 2px;
 		border-radius: var(--c15t-radius-sm);
 	}

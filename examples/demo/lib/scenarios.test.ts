@@ -289,6 +289,9 @@ describe('demo policy scenarios', () => {
 	});
 	it('the US opt-in variant blocks tracking before choice and honors GPC after accept', async () => {
 		const kernel = createConsentKernel({
+			// The demo declares these; with none, a permissive policy records an
+			// acknowledgement, not a grant.
+			consentCategories: ['necessary', 'marketing', 'measurement'],
 			initialPolicyResolution: resolvePolicyRules({
 				countryCode: 'US',
 				regionCode: 'CO',

@@ -8,10 +8,10 @@ group: integrations
 
 Replace the example site ID with your Hotjar site ID. The helper sets the Hotjar queue and settings before requesting the loader.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { hotjar } from '@c15t/scripts/hotjar';
+import { hotjar } from '@c15t/integrations/hotjar';
 
 export const scripts = [hotjar({ siteId: 1234567 })];
 ```

@@ -6,9 +6,10 @@
  * snapshot data only. Commands emit their lifecycle events
  * (`*:started`, `*:completed`, `command:error`).
  *
- * Only `save()` records an explicit choice, and it captures one action
- * time before any yield, network call or persistence. `dismissNotice()`
- * records the local dismissal only. `init()` folds a complete transport
+ * Only `save()` records an explicit choice, or acknowledges a choice prompt
+ * with no category to decide, and it captures one action time before any
+ * yield, network call or persistence. `dismissNotice()` records the local
+ * dismissal only. `init()` folds a complete transport
  * response and installs the deadline timer.
  */
 
@@ -18,11 +19,13 @@ import type {
 	OptionalConsentCategory,
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
+import type { ExperimentAssignment } from '../libs/experiment';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
 import { presentedSelection, scopeSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
+import { isConsentSaveRejection } from '../transports/save-rejection';
 import type {
 	ConsentSnapshot,
 	ConsentState,
@@ -33,18 +36,21 @@ import type {
 	KernelIABAuthority,
 	KernelTransport,
 	KernelUser,
+	NoticeDismissal,
 	NoticeDismissResult,
 	SaveInput,
 	SavePayload,
 	SaveResult,
 	VendorChoice,
+	SaveUISource,
+	KernelEvent,
 } from '../types';
 import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import { createPendingSaveQueue } from './pending-saves';
 import type { KernelRuntime } from './runtime';
 import { selectSavePayload } from './save-selection';
-import { copyIABAuthority } from './snapshot';
+import { copyIABAuthority, isPromptSurface } from './snapshot';
 
 const DEFAULT_MAX_ATTEMPTS = 5;
 const DEFAULT_BASE_DELAY_MS = 1000;
@@ -165,10 +171,14 @@ export const resolveSaveSelection = function resolveSaveSelection(
 					displayed.map((category) => [category, values[category]])
 				);
 	if (input === 'all' || input === 'none') {
+		// A bulk action stays `all` / `necessary` even when the host displays
+		// a subset of the scope: the action names what the visitor clicked,
+		// `confirmed` names what it covered.
 		const bulkAction = input === 'all' ? 'all' : 'necessary';
+		// With nothing to decide, the bulk action still covers everything the
+		// visitor was shown: strictly necessary alone.
 		return {
-			consentAction:
-				displayed.length === rule.scope.length ? bulkAction : 'custom',
+			consentAction: bulkAction,
 			values: narrow(scopeSelection(rule, input === 'all')),
 		};
 	}
@@ -600,6 +610,67 @@ const saveUnderNoneRegime = function saveUnderNoneRegime(
 	return { confirmed: [], ok: true, subjectId: snapshot.subject?.subjectId };
 };
 
+/**
+ * The acknowledgement a save records when the choice prompt has no category
+ * to decide, or `null` when the choice scope has one. It is a dismissal
+ * record bound to the choice fingerprint, so persistence, cross-tab
+ * reconciliation and the deadline timer carry it like a notice dismissal,
+ * and the evaluator never mistakes it for one. A stored acknowledgement at
+ * least as new is kept.
+ */
+const choiceAcknowledgement = function choiceAcknowledgement(
+	snapshot: ConsentSnapshot,
+	actionAt: number
+): NoticeDismissal | null {
+	const policy = snapshot.evaluationPolicy;
+	if (
+		policy.prompt !== 'choice' ||
+		(policy.choiceScope ?? policy.scope).length > 0
+	) {
+		return null;
+	}
+	const current = snapshot.noticeDismissal;
+	if (
+		current &&
+		current.fingerprint === policy.choice.fingerprint &&
+		current.dismissedAt >= actionAt
+	) {
+		return current;
+	}
+	return {
+		dismissedAt: actionAt,
+		fingerprint: policy.choice.fingerprint,
+		version: 1,
+	};
+};
+
+/**
+ * A visitor who records a choice while a notice is owed has read the
+ * notice: the choice acknowledges it, so the banner does not return after
+ * an opt-out made from the preference center. The dismissal rides on
+ * `choice:recorded`; no separate notice event, so an outcome is counted once.
+ */
+const applyNoticeAcknowledgement = function applyNoticeAcknowledgement(
+	patch: SnapshotPatch,
+	before: ConsentSnapshot,
+	actionAt: number
+): void {
+	// Only a notice prompt, and never over an acknowledgement this save
+	// already made (a choice prompt with nothing to decide records its own).
+	if (
+		patch.noticeDismissal !== undefined ||
+		before.evaluationPolicy.prompt !== 'notice' ||
+		before.promptRequirement.kind !== 'notice'
+	) {
+		return;
+	}
+	patch.noticeDismissal = {
+		dismissedAt: actionAt,
+		fingerprint: before.evaluationPolicy.notice.fingerprint,
+		version: 1,
+	};
+};
+
 /** Subject written by a save: the stored identifiers plus the current user's. */
 const saveSubject = function saveSubject(
 	snapshot: ConsentSnapshot,
@@ -654,6 +725,47 @@ const isRecord = function isRecord(
 	return value !== null && typeof value === 'object' && !Array.isArray(value);
 };
 
+const isIntegerIn = (value: unknown, min: number, max: number): boolean =>
+	typeof value === 'number' &&
+	Number.isInteger(value) &&
+	value >= min &&
+	value <= max;
+
+/**
+ * Every index of a list, holes included. `every` skips holes, which would
+ * let a sparse list through and hand `undefined` to the IAB gate.
+ */
+const everyIndex = (
+	list: readonly unknown[],
+	check: (entry: unknown) => boolean
+): boolean => {
+	for (let index = 0; index < list.length; index += 1) {
+		if (!(index in list && check(list[index]))) {
+			return false;
+		}
+	}
+	return true;
+};
+
+/** Absent, or a dense list of well-formed TC publisher restrictions. */
+const validPublisherRestrictions = function validPublisherRestrictions(
+	value: unknown
+): boolean {
+	return (
+		value === undefined ||
+		(Array.isArray(value) &&
+			everyIndex(
+				value,
+				(restriction) =>
+					isRecord(restriction) &&
+					isIntegerIn(restriction.purposeId, 1, 63) &&
+					isIntegerIn(restriction.restrictionType, 0, 2) &&
+					Array.isArray(restriction.vendorIds) &&
+					everyIndex(restriction.vendorIds, (id) => isIntegerIn(id, 1, 65_535))
+			))
+	);
+};
+
 /** Validate addon metadata before the local action can mutate any state. */
 const validSaveAuthority = function validSaveAuthority(
 	value: unknown,
@@ -684,6 +796,7 @@ const validSaveAuthority = function validSaveAuthority(
 					snapshot.evaluationPolicy.choice.maxAgeMs ?? 395 * 86400000,
 					395 * 86400000
 				) &&
+		validPublisherRestrictions(authority.publisherRestrictions) &&
 		[
 			authority.vendorConsents,
 			authority.vendorLegitimateInterests,
@@ -729,7 +842,7 @@ export interface CommandDeps {
 // oxlint-disable-next-line max-lines-per-function -- Commands share retry, timer and replay state through closures.
 export const buildCommands = function buildCommands(deps: CommandDeps) {
 	const { runtime, transport, initRetry } = deps;
-	const { getSnapshot, commit, emit } = runtime;
+	const { batch, getSnapshot, commit, emit } = runtime;
 	const retryPolicy = resolveInitRetryPolicy(initRetry);
 	const pendingSaves = transport?.save
 		? createPendingSaveQueue({ emit, save: transport.save })
@@ -806,14 +919,39 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			}
 		};
 
-	const finishLifecycle = function finishLifecycle(
-		now: number,
-		activatePrivacy = true
-	): void {
-		if (activatePrivacy) {
-			runtime.reconcilePrivacy(now);
+	/**
+	 * Which surface a save is attributed to and, when that surface has a
+	 * recorded impression, the milliseconds from it to the action. Unknown
+	 * for a non-prompt surface, a surface never shown, or a clock that moved
+	 * backwards; then `timeToDecisionMs` is omitted rather than negative.
+	 */
+	const saveAttribution = function saveAttribution(
+		current: ConsentSnapshot,
+		requested: SaveUISource | undefined,
+		actionAt: number
+	): {
+		uiSource: SaveUISource;
+		timeToDecisionMs?: number;
+		experiment?: ExperimentAssignment;
+	} {
+		const uiSource = requested ?? current.activeUI;
+		const attribution: ReturnType<typeof saveAttribution> = { uiSource };
+		// The arm the visitor acted under, captured with the action so a
+		// later reassignment cannot relabel this choice. Only once the banner
+		// has shown it in this page: a returning visitor who changes their
+		// choice from a footer link never saw the arm's banner.
+		if (current.experiment && current.surfaceShownAt.banner !== null) {
+			attribution.experiment = current.experiment;
 		}
-		runtime.armDeadlineTimer();
+		if (!isPromptSurface(uiSource)) {
+			return attribution;
+		}
+		const shownAt = current.surfaceShownAt[uiSource];
+		if (shownAt === null || actionAt < shownAt) {
+			return attribution;
+		}
+		attribution.timeToDecisionMs = actionAt - shownAt;
+		return attribution;
 	};
 
 	/** Finalize local init while preserving its precomputed resolution. */
@@ -821,9 +959,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		now: number
 	): void {
 		const patch: SnapshotPatch = { now, policyPending: false };
-		if (commit(patch)) {
-			emit({ snapshot: getSnapshot(), type: 'init:applied' });
-		}
+		batch(() => {
+			if (commit(patch)) {
+				emit({ snapshot: getSnapshot(), type: 'init:applied' });
+			}
+		});
 	};
 
 	const runInitAttempt = async function runInitAttempt(
@@ -831,11 +971,14 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	): Promise<InitResult> {
 		emit({ type: 'command:init:started' });
 		runtime.start();
+		// One clock read: the impression stamped here and a local finalize
+		// evaluate at the same instant.
+		const startedAt = runtime.now();
+		runtime.markLive(startedAt);
 
 		if (!transport?.init) {
-			const now = runtime.now();
-			finalizeWithoutTransport(now);
-			finishLifecycle(now);
+			finalizeWithoutTransport(startedAt);
+			runtime.armDeadlineTimer();
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
 			void replayPendingSaves();
@@ -858,6 +1001,14 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				overrides: snapshot.overrides,
 				user: snapshot.user,
 			};
+			// A visitor with a stored choice is not shown the banner, so only
+			// an undecided visitor counts toward the arm.
+			if (snapshot.experiment && snapshot.explicitChoice === null) {
+				ctx.experiment = {
+					arm: snapshot.experiment.arm,
+					id: snapshot.experiment.id,
+				};
+			}
 			const response = await transport.init(ctx);
 			if (generation !== initGeneration) {
 				return completeSuperseded(
@@ -886,11 +1037,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					applied.recordIssues
 				);
 			}
-			const changed = commit(applied.patch);
-			if (changed || snapshot.policyPending) {
-				emit({ snapshot: getSnapshot(), type: 'init:applied' });
-			}
-			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
+			batch(() => {
+				const changed = commit(applied.patch);
+				if (changed || snapshot.policyPending) {
+					emit({ snapshot: getSnapshot(), type: 'init:applied' });
+				}
+			});
+			runtime.armDeadlineTimer();
 			clearRetryTimer();
 			pendingRetryAttempt = null;
 			removeVisibilityListener();
@@ -905,7 +1058,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ command: 'init', error, type: 'command:error' });
 			const now = runtime.now();
 			commit(failedResolutionPatch(getSnapshot(), now));
-			finishLifecycle(now, recordsGeneration === runtime.getGeneration());
+			runtime.armDeadlineTimer();
 			const nextRetryMs =
 				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
 					? getRetryDelay(retryPolicy, attempt)
@@ -1031,6 +1184,24 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 	};
 
 	/**
+	 * Queue a save the transport threw on, unless the backend refused it for
+	 * good: that one would be refused again on every replay. Queued older
+	 * saves it replaced are dropped instead, so they can't replay over the
+	 * newer choice. The choice stays recorded locally either way.
+	 */
+	const settleThrownSave = async function settleThrownSave(
+		payload: SavePayload,
+		error: unknown
+	): Promise<void> {
+		if (isConsentSaveRejection(error)) {
+			await pendingSaves?.discard(payload);
+			return;
+		}
+		await pendingSaves?.enqueue(payload);
+		ensureOnlineListener();
+	};
+
+	/**
 	 * Transport phase of a save. The outcome only touches the replay queue
 	 * while this action's confirmed receipts are current. Disjoint category
 	 * actions remain independent. Only the newest action can map the subject
@@ -1110,22 +1281,23 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					getSnapshot().explicitChoice === actionSnapshot.explicitChoice &&
 					getSnapshot().subject?.subjectId === actionSnapshot.subject?.subjectId
 				) {
-					commit({
-						subject: { ...getSnapshot().subject, subjectId: result.subjectId },
+					batch(() => {
+						commit({
+							subject: {
+								...getSnapshot().subject,
+								subjectId: result.subjectId,
+							},
+						});
+						emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 					});
-					emit({ snapshot: getSnapshot(), type: 'subject:resolved' });
 				}
-				// The accepted save established or confirmed the subject: standing
-				// directives recorded while anonymous can be forwarded now.
-				runtime.flushPrivacy();
 			}
 			return { ...result, confirmed };
 		} catch (error) {
 			emit({ command: 'save', error, type: 'command:error' });
 			const remaining = currentPayload();
 			if (remaining) {
-				await pendingSaves?.enqueue(remaining);
-				ensureOnlineListener();
+				await settleThrownSave(remaining, error);
 			}
 			return { confirmed, ok: false };
 		}
@@ -1143,13 +1315,40 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				fingerprint: snapshot.evaluationPolicy.notice.fingerprint,
 				version: 1 as const,
 			};
-			commit({ noticeDismissal: dismissal, now: actionAt });
-			emit({ dismissal, snapshot: getSnapshot(), type: 'notice:dismissed' });
+			// Attributed like a save: the surface is whatever is open, the
+			// timing is known only for a shown prompt surface and a forward
+			// clock, and the arm is the one the visitor dismissed under. All
+			// three are read before `commit()` notifies subscribers, who may
+			// reassign the arm or move the surface.
+			const {
+				experiment,
+				uiSource: surface,
+				timeToDecisionMs,
+			} = saveAttribution(snapshot, undefined, actionAt);
+			batch(() => {
+				commit({ noticeDismissal: dismissal, now: actionAt });
+				const event: Extract<KernelEvent, { type: 'notice:dismissed' }> = {
+					dismissal,
+					snapshot: getSnapshot(),
+					surface,
+					type: 'notice:dismissed',
+				};
+				if (timeToDecisionMs !== undefined) {
+					event.timeToDecisionMs = timeToDecisionMs;
+				}
+				if (experiment) {
+					event.experiment = experiment;
+				}
+				emit(event);
+			});
 			runtime.armDeadlineTimer();
 			return Promise.resolve({ dismissal, ok: true });
 		},
 
 		async identify(user: KernelUser): Promise<void> {
+			if (getSnapshot().externalPermissions) {
+				return;
+			}
 			identifyGeneration += 1;
 			const attempt = identifyGeneration;
 			const generation = runtime.getGeneration();
@@ -1159,8 +1358,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (iab) {
 				patch.iab = { ...iab, authority: null, tcString: null };
 			}
-			commit(patch);
-			emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			batch(() => {
+				commit(patch);
+				emit({ snapshot: getSnapshot(), type: 'user:identified' });
+			});
 			if (transport?.identify) {
 				try {
 					await transport.identify({ ...user }, subjectId);
@@ -1176,13 +1377,13 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			) {
 				return;
 			}
-			// An existing subject forwards standing directives right away;
-			// without one they stay pending until a save establishes it.
-			runtime.flushPrivacy();
 			await loadSubjectRecord(subjectId, attempt);
 		},
 
 		init(): Promise<InitResult> {
+			if (getSnapshot().externalPermissions) {
+				return Promise.resolve({ ok: true });
+			}
 			// An explicit init re-arms a disposed kernel. React StrictMode runs
 			// effect cleanup (which disposes) and then re-mounts with the same
 			// memoized kernel and calls init again; retries must work after that.
@@ -1203,8 +1404,15 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				iabAuthority?: KernelIABAuthority;
 				categories?: readonly AllConsentNames[];
 				vendors?: Record<string, boolean>;
+				uiSource?: SaveUISource;
 			}
 		): Promise<SaveResult> {
+			if (getSnapshot().externalPermissions) {
+				throw new Error(
+					'Consent is owned by an external CMP. Save through that provider.'
+				);
+			}
+
 			// An object input may carry the vendor grants next to the categories.
 			// They are split off here so the category validator only sees
 			// categories; the context form wins when both are given.
@@ -1259,7 +1467,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return owedNothing;
 			}
 			// Captured once, before validation, yield, network or persistence.
-			const uiSource = before.activeUI;
+			const { uiSource, ...decisionTiming } = saveAttribution(
+				before,
+				context?.uiSource,
+				actionAt
+			);
 			let consentAction: SavePayload['consentAction'] = 'custom';
 			let recorded: ReturnType<typeof recordCategoryPatch>;
 			if (owedNothing) {
@@ -1293,7 +1505,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				return result;
 			}
 			const categoriesChanged = recorded.confirmed.length > 0;
-			if (!categoriesChanged && !vendorsChanged) {
+			// Any action on a choice prompt with nothing to decide acknowledges
+			// it, and sends a receipt for strictly necessary alone.
+			const acknowledgement = owedNothing
+				? null
+				: choiceAcknowledgement(before, actionAt);
+			if (!categoriesChanged && !vendorsChanged && !acknowledgement) {
 				// Nothing confirmed: no receipt, no choice event, no request, no write.
 				// A staged vendor value the selection ignored (undeclared, disabled)
 				// is dropped too, or a later declaration would let an unrelated save
@@ -1322,14 +1539,52 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (vendorsChanged) {
 				patch.vendorChoice = nextVendorChoice;
 			}
+			const acknowledged =
+				acknowledgement !== null && acknowledgement !== before.noticeDismissal;
+			if (acknowledged) {
+				patch.noticeDismissal = acknowledgement;
+			}
+			applyNoticeAcknowledgement(patch, before, actionAt);
 			applySaveAuthority(patch, before, context?.iabAuthority);
-			commit(patch);
-			const after = getSnapshot();
-			// Records generation at the moment the action landed. A hydration
-			// boundary (storage clear, server record) that replaces the choice
-			// afterwards supersedes this action: its outcome must not queue a
-			// replay or touch the subject.
-			const generation = runtime.getGeneration();
+			// Listeners run when the batch closes, after this action's events
+			// are queued: `after` and the events carry this action's snapshot
+			// even when a listener records another choice in response.
+			const { after, generation } = batch(() => {
+				commit(patch);
+				const committed = getSnapshot();
+				// Records generation at the moment the action landed. A hydration
+				// boundary (storage clear, server record) that replaces the choice
+				// afterwards supersedes this action: its outcome must not queue a
+				// replay or touch the subject.
+				const recordsGeneration = runtime.getGeneration();
+				if (categoriesChanged) {
+					emit({
+						actionAt,
+						// Listeners run before the payload below is built. A frozen
+						// copy keeps them from changing what this save sends.
+						confirmed: Object.freeze([...recorded.confirmed]),
+						consentAction,
+						snapshot: committed,
+						type: 'choice:recorded',
+						uiSource,
+						...decisionTiming,
+					});
+				}
+				if (vendorsChanged) {
+					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
+				}
+				if (acknowledged) {
+					// Attributed like the save that recorded it.
+					emit({
+						dismissal: acknowledgement,
+						snapshot: committed,
+						surface: uiSource,
+						type: 'notice:dismissed',
+						...decisionTiming,
+					});
+				}
+				return { after: committed, generation: recordsGeneration };
+			});
 			// Exactly the confirmed keys with their recorded values, copied so a
 			// caller mutating its input object cannot change the queued payload.
 			const confirmedCategories: Partial<
@@ -1340,17 +1595,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				if (decision) {
 					confirmedCategories[category] = decision.value;
 				}
-			}
-			if (categoriesChanged) {
-				emit({
-					actionAt,
-					confirmed: recorded.confirmed,
-					snapshot: after,
-					type: 'choice:recorded',
-				});
-			}
-			if (vendorsChanged) {
-				emit({ actionAt, snapshot: after, type: 'vendors:recorded' });
 			}
 			runtime.armDeadlineTimer();
 
@@ -1371,6 +1615,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				tcString: after.iab?.tcString ?? null,
 				uiSource,
 				user: after.user,
+				...decisionTiming,
 			};
 			const vendorChoice = vendorChoicePayload(after, before.vendorChoice);
 			if (vendorChoice) {

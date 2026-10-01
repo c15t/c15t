@@ -1,18 +1,12 @@
-@import '@c15t/ui/styles/components/button.css';
-@import '@c15t/ui/styles/components/consent-actions.css';
-@import '@c15t/ui/styles/components/consent-banner.css';
-@import '@c15t/ui/styles/components/consent-dialog.css';
-@import '@c15t/ui/styles/components/consent-manager.css';
-@import '@c15t/ui/styles/components/legal-links.css';
-@import '@c15t/ui/styles/components/accordion.css';
-@import '@c15t/ui/styles/components/switch.css';
-@import '@c15t/ui/styles/components/preference-item.css';
+/* The same import every c15t setup uses. @c15t/ui/postcss-tailwind3 (in
+   postcss.config.mjs) flattens its layers for Tailwind 3. It sits first
+   because postcss-import (Vite) drops an @import that follows the
+   directives. */
+@import '@c15t/nextjs/styles.css';
 /* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind base;
 /* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind components;
-/* This fixture verifies c15t layer ordering between Tailwind v3 layers. */
-@import '@c15t/nextjs/styles.tw3.css';
 /* Tailwind v3 directives are required for this compatibility fixture. */
 @tailwind utilities;
 

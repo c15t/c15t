@@ -175,7 +175,7 @@ Add this component to pages using your consent-enabled base layout:
 <c15t-consent-embed style="display: block"></c15t-consent-embed>
 
 <script>
-  import { getConsentClient } from '@c15t/astro/client';
+  import { getConsentClient } from 'c15t/astro/client';
   import { mountConsentEmbed } from '../consent-embed';
 
   class ConsentEmbed extends HTMLElement {
@@ -297,6 +297,32 @@ const disposeEmbed = mountConsentEmbed(container, kernel, openPreferences);
 application's function for showing its consent preferences UI. Call
 `disposeEmbed()` when the page or component is destroyed. The helper observes
 both the current snapshot and later changes.
+
+**React Native**
+
+Render the embed only while the category is allowed, so unmounting on
+revocation tears the player down. The examples below use
+[`react-native-webview`](https://www.npmjs.com/package/react-native-webview);
+install it separately, since it is a native module of its own.
+
+```tsx
+import { Text } from 'react-native';
+import WebView from 'react-native-webview';
+import { ConsentGate } from '@c15t/react-native';
+
+export function Embed() {
+  return (
+    <ConsentGate category="functionality" fallback={<Text>Enable functionality to load this.</Text>}>
+      {() => <WebView originWhitelist={['*']} source={{ uri: embedURL }} />}
+    </ConsentGate>
+  );
+}
+```
+
+`ConsentGate` renders nothing until the native core has decided, so the
+request cannot happen on a cold start. `embedURL` and the category come from
+the configuration on this page. See
+[React Native setup](https://c15t.com/docs/frameworks/react-native/quickstart).
 
 ## Browser helper for Astro and JavaScript
 

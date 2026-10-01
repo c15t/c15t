@@ -270,7 +270,17 @@ export const ScriptLifecycleProvider = ({
 			};
 
 			const hasInitialConsent = config.initialConsent === 'all';
+			// The loader attaches after the initial save, so the kernel declares
+			// the fixture scripts' categories up front. Without a declaration a
+			// permissive policy asks only for an acknowledgement.
 			const kernel = createConsentKernel({
+				consentCategories: [
+					'necessary',
+					'experience',
+					'functionality',
+					'marketing',
+					'measurement',
+				],
 				transport: createHostedTransport({
 					backendURL: '/api/bench-consent',
 				}),

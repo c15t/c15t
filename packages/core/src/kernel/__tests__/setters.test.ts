@@ -1,9 +1,11 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import {
+	DAY,
 	iabRule,
 	matchedResolution,
 	NOW,
+	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../index';
@@ -94,6 +96,39 @@ describe('buildSetters', () => {
 		expect(events).toHaveBeenCalledTimes(1);
 	});
 
+	test('set.activeUI across an elapsed deadline re-evaluates at the toggle time', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW);
+		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({
+					categories: ['marketing'],
+					validity: { choiceDays: 1 },
+				})
+			),
+			now: NOW,
+			transport: { save: vi.fn().mockResolvedValue({ ok: true }) },
+		});
+		await kernel.commands.init();
+		await kernel.commands.save('all');
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		expect(kernel.getSnapshot().nextDeadline).toBe(NOW + DAY);
+
+		// The deadline timer has not fired yet; the toggle carries the clock,
+		// so the expired grant is re-evaluated in the same commit.
+		vi.spyOn(Date, 'now').mockReturnValue(NOW + 2 * DAY);
+		kernel.set.activeUI('dialog');
+		const snapshot = kernel.getSnapshot();
+		expect(snapshot.activeUI).toBe('dialog');
+		expect(snapshot.evaluatedAt).toBe(NOW + 2 * DAY);
+		expect(snapshot.effectivePermissions.marketing).toBe(false);
+		expect(snapshot.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'expired',
+		});
+		kernel.dispose();
+	});
+
 	test('set.overrides with gpc masks permissions and emits permissions:changed', () => {
 		const kernel = createConsentKernel({
 			initialPolicyResolution: matchedResolution(
@@ -111,7 +146,5 @@ describe('buildSetters', () => {
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		expect(kernel.getSnapshot().restrictions.marketing).toEqual(['gpc']);
 		expect(permissions).toHaveBeenCalledTimes(1);
-		// An override is not a detected signal: no standing directive.
-		expect(kernel.getSnapshot().optOutDirectives).toEqual([]);
 	});
 });

@@ -7,6 +7,8 @@ import type {
 import type { PolicyRight } from '@c15t/schema/types';
 import type { CompleteTranslations } from '@c15t/translations';
 import bannerStyles from '@c15t/ui/styles/components/consent-banner';
+
+import '@c15t/ui/styles/components/consent-banner.css';
 import { getTextDirection } from '@c15t/ui/utils';
 import { computed, mergeProps, ref, Teleport, Transition } from 'vue';
 
@@ -24,7 +26,7 @@ import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import ConsentActions from './actions.vue';
-import ConsentDescription from './description.vue';
+import DescriptionContent from './description-content.vue';
 import ConsentTag from './tag.vue';
 
 /**
@@ -223,7 +225,7 @@ const onAction = function onAction(action: PresentationAction) {
 	>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="transitionStyles.overlayHidden"
+			:enter-from-class="''"
 			:enter-active-class="transitionStyles.overlayVisible"
 			:enter-to-class="transitionStyles.overlayVisible"
 			:leave-from-class="transitionStyles.overlayVisible"
@@ -238,12 +240,13 @@ const onAction = function onAction(action: PresentationAction) {
 				:class="[
 					bannerStyles.overlay,
 					disableAnimation ? undefined : bannerStyles.overlayVisible,
+					disableAnimation ? undefined : bannerStyles.overlayEntering,
 				]"
 			/>
 		</Transition>
 		<Transition
 			:css="!disableAnimation"
-			:enter-from-class="transitionStyles.bannerHidden"
+			:enter-from-class="''"
 			:enter-active-class="transitionStyles.bannerVisible"
 			:enter-to-class="transitionStyles.bannerVisible"
 			:leave-from-class="transitionStyles.bannerVisible"
@@ -260,7 +263,11 @@ const onAction = function onAction(action: PresentationAction) {
 				:data-prompt="promptKind"
 				:data-model="snapshot.policyRule.model"
 				:dir="textDirection"
-				:class="[bannerStyles.root, bannerStyles.bannerVisible]"
+				:class="[
+					bannerStyles.root,
+					bannerStyles.bannerVisible,
+					disableAnimation ? undefined : bannerStyles.bannerEntering,
+				]"
 			>
 				<div
 					v-bind="config.components?.banner?.cardShell"
@@ -292,7 +299,10 @@ const onAction = function onAction(action: PresentationAction) {
 							>
 								{{ bannerTitle }}
 							</h2>
-							<ConsentDescription context="banner" />
+							<DescriptionContent
+								context="banner"
+								:description-class="bannerStyles.description"
+							/>
 						</div>
 						<ConsentActions
 							data-testid="consent-banner-footer"

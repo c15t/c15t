@@ -109,7 +109,7 @@ for (const name of ['loader-base', 'loader-head', 'bridge']) {
 			resolve(
 				root,
 				name === 'bridge'
-					? 'packages/scripts/src/vendors/tag-managers/cloudflare-zaraz.ts'
+					? 'packages/integrations/src/vendors/tag-managers/cloudflare-zaraz.ts'
 					: 'packages/core/src/modules/script-loader/index.ts'
 			),
 		],

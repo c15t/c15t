@@ -1,7 +1,13 @@
 /* oxlint-disable react/iframe-missing-sandbox -- The cross-origin YouTube player requires scripts and its own origin. */
 import { createFileRoute } from '@tanstack/react-router';
-import { ConsentDialogLink, useConsent } from 'c15t/tanstack-start';
+import {
+	ConsentDialogLink,
+	useConsent,
+	useExperiment,
+} from 'c15t/tanstack-start';
 import { lazy, Suspense, useEffect, useSyncExternalStore } from 'react';
+
+import { useExperimentEvents } from '../experiment';
 
 const subscribe = () => () => {
 	/* Hydration state has no external events. */
@@ -12,6 +18,38 @@ const DevTools = import.meta.env.DEV
 			return { default: module.DevTools };
 		})
 	: null;
+
+/** The assigned arm and the experiment events logged so far. */
+const ExperimentReadout = () => {
+	const events = useExperimentEvents();
+	const assignment = useExperiment();
+	if (!events) {
+		return null;
+	}
+	return (
+		<section data-testid="experiment">
+			<h2>Banner experiment</h2>
+			<p>
+				Arm:{' '}
+				<code data-testid="experiment-arm">
+					{assignment
+						? `${assignment.id} · ${assignment.arm} · ${assignment.assignedBy}`
+						: 'assigning…'}
+				</code>
+			</p>
+			<ul>
+				{events.map((event, index) => (
+					<li
+						// oxlint-disable-next-line react/no-array-index-key -- append-only log
+						key={index}
+					>
+						<code>{event.name}</code> · {event.arm} · {event.detail}
+					</li>
+				))}
+			</ul>
+		</section>
+	);
+};
 
 const ConsentExample = () => {
 	const allowed = useConsent('measurement');
@@ -53,6 +91,14 @@ const ConsentExample = () => {
 			>
 				Branded theme
 			</button>
+			<nav aria-label="Banner experiment">
+				<a href="/consent-example">Default</a>{' '}
+				<a href="/consent-example?experiment=1">Experiment</a>{' '}
+				<a href="/consent-example?experiment=1&arm=wall">
+					Experiment (wall arm)
+				</a>
+			</nav>
+			<ExperimentReadout />
 			<h2>Watch the video</h2>
 			{allowed ? (
 				<iframe

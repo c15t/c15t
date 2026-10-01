@@ -5,10 +5,11 @@ import type { DevToolsEvent } from './state-manager';
 
 const EVENT_TYPES = [
 	'records:cleared',
+	'preferences:requested',
 	'choice:recorded',
+	'surface:shown',
 	'permissions:changed',
 	'notice:dismissed',
-	'privacy:opt-out',
 	'overrides:set',
 	'user:identified',
 	'subject:resolved',
@@ -38,15 +39,16 @@ function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 	return {
 		activeUI: snapshot.activeUI,
 		effectivePermissions: snapshot.effectivePermissions,
+		experiment: snapshot.experiment,
 		explicitChoice: snapshot.explicitChoice,
 		model: snapshot.model,
 		noticeDismissal: snapshot.noticeDismissal,
-		optOutDirectives: snapshot.optOutDirectives,
 		privacySignals: snapshot.privacySignals,
 		promptRequirement: snapshot.promptRequirement,
 		resolution: snapshot.resolution.status,
 		revision: snapshot.revision,
 		subject: snapshot.subject,
+		surfaceShownAt: snapshot.surfaceShownAt,
 	};
 }
 
@@ -85,6 +87,11 @@ const outcomeMessage = (
 	failure: string
 ): string => (ok ? success : failure);
 
+const replayMessage = (ok: boolean, rejected: string | undefined): string =>
+	rejected
+		? `Queued consent save refused by the backend (${rejected}); dropped`
+		: outcomeMessage(ok, 'Queued consent saved', 'Queued consent save failed');
+
 /**
  * Converts a kernel event into the stable log shape shown by DevTools.
  *
@@ -93,7 +100,7 @@ const outcomeMessage = (
  * @param timestamp - Capture time in milliseconds.
  * @returns A serializable DevTools event.
  */
-// oxlint-disable-next-line func-style -- Preserve the public conversion function declaration.
+// oxlint-disable-next-line func-style, complexity -- Exhaustive public conversion of the kernel event union.
 export function kernelEventToDevToolsEvent(
 	event: KernelEvent,
 	id: string,
@@ -101,6 +108,13 @@ export function kernelEventToDevToolsEvent(
 ): DevToolsEvent {
 	// oxlint-disable-next-line default-case -- KernelEvent is a discriminated union handled exhaustively.
 	switch (event.type) {
+		case 'preferences:requested':
+			return {
+				id,
+				message: 'External preferences requested',
+				timestamp,
+				type: event.type,
+			};
 		case 'records:cleared':
 			return {
 				id,
@@ -114,9 +128,22 @@ export function kernelEventToDevToolsEvent(
 					...snapshotData(event.snapshot),
 					actionAt: event.actionAt,
 					confirmed: event.confirmed,
+					timeToDecisionMs: event.timeToDecisionMs,
 				},
 				id,
 				message: 'Explicit choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'surface:shown':
+			return {
+				data: {
+					...snapshotData(event.snapshot),
+					shownAt: event.shownAt,
+					surface: event.surface,
+				},
+				id,
+				message: `${event.surface === 'banner' ? 'Banner' : 'Dialog'} shown`,
 				timestamp,
 				type: event.type,
 			};
@@ -130,17 +157,14 @@ export function kernelEventToDevToolsEvent(
 			};
 		case 'notice:dismissed':
 			return {
-				data: { ...snapshotData(event.snapshot), dismissal: event.dismissal },
+				data: {
+					...snapshotData(event.snapshot),
+					dismissal: event.dismissal,
+					surface: event.surface,
+					timeToDecisionMs: event.timeToDecisionMs,
+				},
 				id,
-				message: 'Local notice dismissed',
-				timestamp,
-				type: event.type,
-			};
-		case 'privacy:opt-out':
-			return {
-				data: { ...snapshotData(event.snapshot), directive: event.directive },
-				id,
-				message: 'Privacy opt-out recorded',
+				message: `Local notice dismissed from ${event.surface}`,
 				timestamp,
 				type: event.type,
 			};
@@ -228,13 +252,13 @@ export function kernelEventToDevToolsEvent(
 			};
 		case 'save:replayed':
 			return {
-				data: { ok: event.ok, subjectId: event.subjectId },
+				data: {
+					ok: event.ok,
+					rejected: event.rejected,
+					subjectId: event.subjectId,
+				},
 				id,
-				message: outcomeMessage(
-					event.ok,
-					'Queued consent saved',
-					'Queued consent save failed'
-				),
+				message: replayMessage(event.ok, event.rejected),
 				timestamp,
 				type: event.type,
 			};

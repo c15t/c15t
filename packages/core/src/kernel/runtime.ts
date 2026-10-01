@@ -4,28 +4,33 @@
  *
  * - `commit()` merges a patch, re-derives dependent fields and adopts the
  *   result only when something changed, emitting `permissions:changed`
- *   when the effective permissions differ.
+ *   when the effective permissions differ and, once `init` marked the
+ *   kernel live, `surface:shown` when a prompt surface becomes visible.
+ *   Subscribers receive the snapshot that commit produced, through the
+ *   dispatcher shared with the event bus.
  * - `hydrate()` is the validated read-only boundary for stored records.
  * - `refresh()` re-evaluates at a supplied time so an elapsed expiry cannot
  *   hide behind a delayed or background timer.
- * - The deadline timer, the visibility listener and the GPC directive are
- *   installed only after a lifecycle command ran, never at construction.
+ * - The deadline timer, the visibility listener and browser GPC detection
+ *   are installed only after a lifecycle command ran, never at construction.
  */
-import type { PrivacyOptOut } from '../consent-record/types';
+import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
 import type { PresentedSelection } from '../policy';
 import type {
 	ConsentSnapshot,
 	HydrationRecords,
 	HydrationResult,
 	KernelEvent,
-	KernelTransport,
 	Listener,
+	PromptSurface,
 } from '../types';
+import { createListenerSet } from './dispatch';
+import type { Dispatcher, ListenerSet } from './dispatch';
 import { buildNextSnapshot, isUnchangedPatch, snapshotChanged } from './patch';
 import type { SnapshotPatch } from './patch';
 import { mergeNewestChoice, validateHydrationRecords } from './records';
 import { mergeServerPatch } from './server-records';
-import { freezeSnapshot } from './snapshot';
+import { freezeSnapshot, isPromptSurface } from './snapshot';
 
 /** Longest delay `setTimeout` honors without overflowing to zero. */
 const MAX_TIMER_DELAY_MS = 2_147_483_647;
@@ -40,16 +45,16 @@ export interface KernelRuntime {
 	getGeneration: () => number;
 	/** Fence pending record work after an explicit subject switch. */
 	invalidateRecords: () => void;
-	/**
-	 * Forward standing directives that were recorded without a server
-	 * subject. Called once a subject is established (identify, accepted
-	 * save). Each directive is sent once, with its original `recordedAt`.
-	 */
-	flushPrivacy: () => void;
 	subscribe: (listener: Listener<ConsentSnapshot>) => () => void;
 	emit: (event: KernelEvent) => void;
 	/** Merge a patch and adopt the result when it changes anything. */
 	commit: (patch: SnapshotPatch) => boolean;
+	/**
+	 * Deliver the notifications and events queued by `run` only after it
+	 * returns, so a command's follow-up events precede any transition a
+	 * listener starts and `getSnapshot()` inside `run` is its own commit.
+	 */
+	batch: Dispatcher['batch'];
 	getDraft: () => PresentedSelection | null;
 	setDraft: (draft: PresentedSelection | null) => void;
 	/** Staged per-vendor grants, dropped when the choice contract changes. */
@@ -60,6 +65,22 @@ export interface KernelRuntime {
 	isStarted: () => boolean;
 	/** Mark the lifecycle started: detect the browser signal, install listeners. */
 	start: () => void;
+	/**
+	 * Mark the kernel live in a visitor's browser: from here on, every commit
+	 * that leaves a prompt surface visible stamps its first impression. A
+	 * surface already visible is stamped at `at` (default: now). Hydration
+	 * alone never marks the kernel live, so a server or test kernel that only
+	 * applies records records no impression.
+	 */
+	markLive: (at?: number) => void;
+	/**
+	 * Set the arm this visitor runs and the gate that decides, per policy,
+	 * whether it is shown. A gate, or `null`, releases a held prompt.
+	 */
+	setExperiment: (
+		assignment: ExperimentAssignment | null,
+		gate: ExperimentGate | null
+	) => void;
 	hydrate: (records: HydrationRecords) => HydrationResult;
 	/**
 	 * Apply server-mapped records, keeping the newest receipt per category
@@ -67,8 +88,6 @@ export interface KernelRuntime {
 	 */
 	mergeServerRecords: (records: HydrationRecords) => HydrationResult;
 	refresh: (now?: number) => ConsentSnapshot;
-	/** Record the standing GPC directive when a detected signal is honored. */
-	reconcilePrivacy: (now: number) => void;
 	/** Install or re-arm the deadline timer from the current snapshot. */
 	armDeadlineTimer: () => void;
 	/** Stop timers and listeners. An explicit init or hydrate re-arms. */
@@ -81,7 +100,8 @@ export interface RuntimeOptions {
 	initialSnapshot: ConsentSnapshot;
 	initialDraft: PresentedSelection | null;
 	emit: (event: KernelEvent) => void;
-	transport: KernelTransport | undefined;
+	/** Shared with the event bus so snapshots and events keep one order. */
+	dispatcher: Dispatcher;
 }
 
 const detectBrowserGpc = function detectBrowserGpc(): boolean {
@@ -114,7 +134,7 @@ interface BoundDraft<Values> {
 export const createRuntime = function createRuntime(
 	options: RuntimeOptions
 ): KernelRuntime {
-	const { emit, transport } = options;
+	const { dispatcher, emit } = options;
 	let snapshot = options.initialSnapshot;
 	let draft: BoundDraft<PresentedSelection> | null = options.initialDraft
 		? {
@@ -124,44 +144,225 @@ export const createRuntime = function createRuntime(
 		: null;
 	let vendorDraft: BoundDraft<Record<string, boolean>> | null = null;
 	let started = false;
+	let live = false;
+	/**
+	 * The surface the kernel, not the adapter, hid in the last commit: a
+	 * derived `activeUI` change (a save clearing the prompt) rather than an
+	 * explicit `set.activeUI`, together with the snapshot that hide produced.
+	 * An adapter restoring that surface as the very next state change is not
+	 * a new impression. Any other commit clears it, so a later derived
+	 * re-show (an expired choice, a refresh, a re-init) counts again.
+	 */
+	let hiddenBySave: {
+		snapshot: ConsentSnapshot;
+		surface: PromptSurface;
+	} | null = null;
 	let disposed = false;
 	let generation = 0;
-	let forwardedDirectives: Set<string> | undefined;
-	let pendingDirectives: Map<string, object> | undefined;
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	let visibilityInstalled = false;
-	let listeners: Set<Listener<ConsentSnapshot>> | undefined;
+	let listeners: ListenerSet<ConsentSnapshot> | undefined;
+	/**
+	 * The arm the visitor runs whenever the policy accepts it.
+	 * `snapshot.experiment` is this arm or `null`, decided by `experimentGate`
+	 * in the commit that resolves each policy.
+	 */
+	let wantedExperiment: ExperimentAssignment | null =
+		options.initialSnapshot.experiment;
+	let experimentGate: ExperimentGate | null = null;
 
 	const getSnapshot = () => snapshot;
 	const now = () => Date.now();
 
-	const notify = function notify(): void {
-		if (!listeners) {
-			return;
+	/**
+	 * Whether the visible prompt surface still lacks its first impression
+	 * time. Only a live kernel stamps impressions: a server render, a
+	 * prerender seed or a hydrate-only kernel never records that a visitor
+	 * saw anything.
+	 */
+	const impressionDue = function impressionDue(
+		candidate: ConsentSnapshot
+	): candidate is ConsentSnapshot & { activeUI: PromptSurface } {
+		return (
+			live &&
+			isPromptSurface(candidate.activeUI) &&
+			candidate.surfaceShownAt[candidate.activeUI] === null
+		);
+	};
+
+	/**
+	 * Candidate with the visible surface's first impression stamped at its
+	 * evaluation time. `candidate` is an unfrozen copy owned by this commit.
+	 */
+	const stampImpression = function stampImpression(
+		candidate: ConsentSnapshot & { activeUI: PromptSurface }
+	): ConsentSnapshot {
+		return {
+			...candidate,
+			surfaceShownAt: {
+				...candidate.surfaceShownAt,
+				[candidate.activeUI]: candidate.evaluatedAt,
+			},
+		};
+	};
+
+	/**
+	 * `current` with only its first impression stamped, at `at`. An
+	 * unchanged patch keeps every evaluator input and stays inside the
+	 * current deadline, so the full derivation would hand back `current`
+	 * under a new clock and revision. Every nested value is shared with the
+	 * already-frozen `current`; only the two new objects need freezing.
+	 */
+	const stampCurrent = function stampCurrent(
+		current: ConsentSnapshot & { activeUI: PromptSurface },
+		at: number
+	): ConsentSnapshot {
+		return Object.freeze({
+			...current,
+			evaluatedAt: at,
+			revision: current.revision + 1,
+			surfaceShownAt: Object.freeze({
+				...current.surfaceShownAt,
+				[current.activeUI]: at,
+			}),
+		});
+	};
+
+	/**
+	 * `candidate` with the arm its policy allows. Asked only when the policy
+	 * or the arm changes, so a commit that stamps an impression under a new
+	 * policy already carries the arm that policy shows.
+	 */
+	const gateExperiment = function gateExperiment(
+		current: ConsentSnapshot,
+		candidate: ConsentSnapshot,
+		patch: SnapshotPatch
+	): ConsentSnapshot {
+		if (
+			patch.experiment === undefined &&
+			candidate.policyRule === current.policyRule
+		) {
+			return candidate;
 		}
-		for (const listener of listeners) {
-			listener(snapshot);
-		}
+		const allowed =
+			wantedExperiment && (!experimentGate || experimentGate(candidate))
+				? wantedExperiment
+				: null;
+		return allowed === candidate.experiment
+			? candidate
+			: { ...candidate, experiment: allowed };
+	};
+
+	/**
+	 * The arm an event records: the visitor's arm once the banner has shown
+	 * it in this page. A returning visitor who reopens the dialog from a
+	 * footer link never saw the arm's banner, so their choice is not the
+	 * arm's outcome.
+	 */
+	const exposedExperiment = function exposedExperiment(
+		candidate: ConsentSnapshot
+	): ExperimentAssignment | undefined {
+		return candidate.experiment && candidate.surfaceShownAt.banner !== null
+			? candidate.experiment
+			: undefined;
+	};
+
+	/**
+	 * Deliver an adopted snapshot to subscribers, then its events. Runs as
+	 * one batch so a listener that commits again queues behind this
+	 * transition instead of overtaking it.
+	 */
+	const publish = function publish(
+		current: ConsentSnapshot,
+		adopted: ConsentSnapshot,
+		shown: PromptSurface | null
+	): void {
+		dispatcher.batch(() => {
+			if (listeners) {
+				dispatcher.deliver(listeners, adopted);
+			}
+			if (adopted.effectivePermissions !== current.effectivePermissions) {
+				emit({
+					previous: current.effectivePermissions,
+					snapshot: adopted,
+					type: 'permissions:changed',
+				});
+			}
+			if (shown !== null) {
+				const event: Extract<KernelEvent, { type: 'surface:shown' }> = {
+					shownAt: adopted.evaluatedAt,
+					snapshot: adopted,
+					surface: shown,
+					type: 'surface:shown',
+				};
+				const experiment = exposedExperiment(adopted);
+				if (experiment) {
+					event.experiment = experiment;
+				}
+				emit(event);
+			}
+		});
 	};
 
 	const commit = function commit(patch: SnapshotPatch): boolean {
+		if (patch.experiment !== undefined) {
+			wantedExperiment = patch.experiment;
+		}
 		const current = snapshot;
+		let adopted: ConsentSnapshot;
 		if (isUnchangedPatch(current, patch)) {
-			return false;
+			if (!impressionDue(current)) {
+				return false;
+			}
+			adopted = stampCurrent(current, patch.now ?? current.evaluatedAt);
+		} else {
+			let next = gateExperiment(
+				current,
+				buildNextSnapshot(current, patch),
+				patch
+			);
+			if (impressionDue(next)) {
+				next = stampImpression(next);
+			}
+			if (!snapshotChanged(current, next)) {
+				return false;
+			}
+			adopted = freezeSnapshot(next);
 		}
-		const next = buildNextSnapshot(current, patch);
-		if (!snapshotChanged(current, next)) {
-			return false;
-		}
-		snapshot = freezeSnapshot(next);
-		notify();
-		if (snapshot.effectivePermissions !== current.effectivePermissions) {
-			emit({
-				previous: current.effectivePermissions,
-				snapshot,
-				type: 'permissions:changed',
-			});
-		}
+		snapshot = adopted;
+		const surface = adopted.activeUI;
+		// A save derives `activeUI` to `none` in the same commit that clears
+		// the prompt. An adapter that keeps its preference dialog open for the
+		// save then restores `dialog` with an explicit `set.activeUI` before
+		// anything else commits; the visitor never saw it close. That restore
+		// is not a new impression. A surface the visitor reopens after the
+		// kernel hid it for real is, and so is a surface the kernel derives
+		// back into view later (an expired choice, a refresh, a re-init).
+		const restoredAfterSave =
+			hiddenBySave !== null &&
+			hiddenBySave.snapshot === current &&
+			hiddenBySave.surface === surface &&
+			patch.activeUI === surface;
+		hiddenBySave =
+			isPromptSurface(current.activeUI) &&
+			current.activeUI !== surface &&
+			patch.activeUI === undefined
+				? { snapshot: adopted, surface: current.activeUI }
+				: null;
+		const shown: PromptSurface | null =
+			live &&
+			isPromptSurface(surface) &&
+			!restoredAfterSave &&
+			(surface !== current.activeUI || current.surfaceShownAt[surface] === null)
+				? surface
+				: null;
+		// Everything the events describe is settled before subscribers run: a
+		// listener may commit again synchronously (an adapter hiding or
+		// restoring a surface), and that nested commit must neither steal
+		// this commit's events nor see a stale `hiddenBySave`. Deliver the
+		// snapshot this commit produced, never the live cell, so later
+		// listeners still observe this transition first.
+		publish(current, adopted, shown);
 		return true;
 	};
 
@@ -223,95 +424,6 @@ export const createRuntime = function createRuntime(
 		}, delay);
 	};
 
-	const directiveKey = function directiveKey(directive: PrivacyOptOut): string {
-		return `${directive.source}:${directive.recordedAt}:${directive.categories.join(',')}`;
-	};
-
-	const persistDirective = async function persistDirective(
-		directive: PrivacyOptOut,
-		subjectId: string,
-		key: string
-	): Promise<void> {
-		const attempt = {};
-		const recordsGeneration = generation;
-		pendingDirectives ??= new Map();
-		pendingDirectives.set(key, attempt);
-		try {
-			await transport?.recordPrivacyOptOut?.(directive, subjectId);
-			if (generation === recordsGeneration) {
-				forwardedDirectives ??= new Set();
-				forwardedDirectives.add(key);
-			}
-		} catch (error) {
-			emit({ command: 'recordPrivacyOptOut', error, type: 'command:error' });
-		} finally {
-			if (pendingDirectives.get(key) === attempt) {
-				pendingDirectives.delete(key);
-			}
-		}
-	};
-
-	/**
-	 * Directives stay kernel-local until a server subject exists. No consent
-	 * request is made for them and no event is repeated when they are
-	 * forwarded later; they keep their original `recordedAt`.
-	 */
-	const flushPrivacy = function flushPrivacy(): void {
-		const { subject, user } = snapshot;
-		const subjectId = subject?.subjectId;
-		if (!transport?.recordPrivacyOptOut || !subjectId || !user) {
-			return;
-		}
-		for (const directive of snapshot.optOutDirectives) {
-			const key = JSON.stringify([subjectId, directiveKey(directive)]);
-			if (forwardedDirectives?.has(key) || pendingDirectives?.has(key)) {
-				continue;
-			}
-			void persistDirective(directive, subjectId, key);
-		}
-	};
-
-	const reconcilePrivacy = function reconcilePrivacy(at: number): void {
-		if (!started) {
-			return;
-		}
-		// Existing directives remain requests after the live signal disappears.
-		// Forward them when init establishes an identified subject, preserving
-		// their original timestamp and without emitting another privacy event.
-		flushPrivacy();
-		const current = snapshot;
-		const { gpc } = current.privacySignals;
-		// Only a detected user-agent signal records a directive. A developer
-		// override masks permissions but is not a privacy request.
-		if (!(gpc.active && gpc.detected)) {
-			return;
-		}
-		const mapping = current.policyRule.privacySignals.gpc.denyCategories;
-		if (mapping.length === 0) {
-			return;
-		}
-		const covered = new Set<string>();
-		for (const directive of current.optOutDirectives) {
-			for (const category of directive.categories) {
-				covered.add(category);
-			}
-		}
-		if (mapping.every((category) => covered.has(category))) {
-			return;
-		}
-		const directive: PrivacyOptOut = {
-			categories: [...mapping],
-			recordedAt: at,
-			source: 'gpc',
-		};
-		commit({
-			now: at,
-			optOutDirectives: [...current.optOutDirectives, directive],
-		});
-		emit({ directive, snapshot, type: 'privacy:opt-out' });
-		flushPrivacy();
-	};
-
 	const refresh = function refresh(at: number = now()): ConsentSnapshot {
 		commit({ now: at });
 		armDeadlineTimer();
@@ -327,6 +439,51 @@ export const createRuntime = function createRuntime(
 		if (detectBrowserGpc()) {
 			commit({ privacyDetected: true });
 		}
+	};
+
+	const setExperiment = function setExperiment(
+		assignment: ExperimentAssignment | null,
+		gate: ExperimentGate | null
+	): void {
+		// The arm alone keeps a held prompt held: it waits for the gate that
+		// checks the arm against the policy. The gate, or no experiment at
+		// all, releases it.
+		const release = gate !== null || assignment === null;
+		const pending = release ? false : snapshot.experimentPending;
+		if (
+			gate === experimentGate &&
+			pending === snapshot.experimentPending &&
+			assignment?.id === wantedExperiment?.id &&
+			assignment?.arm === wantedExperiment?.arm &&
+			assignment?.assignedBy === wantedExperiment?.assignedBy &&
+			assignment?.acknowledgedDiagnostics ===
+				wantedExperiment?.acknowledgedDiagnostics
+		) {
+			return;
+		}
+		experimentGate = gate;
+		commit({
+			experiment: assignment ? Object.freeze({ ...assignment }) : null,
+			experimentPending: pending,
+		});
+	};
+
+	const markLive = function markLive(at: number = now()): void {
+		if (live) {
+			return;
+		}
+		live = true;
+		// A surface visible before init ran is first shown now; the stamp
+		// records that impression once and emits `surface:shown` for it.
+		// Only the stamp changes, so skip the patch checks a commit runs:
+		// this sits on every first visit's init.
+		const current = snapshot;
+		if (!impressionDue(current)) {
+			return;
+		}
+		snapshot = stampCurrent(current, at);
+		hiddenBySave = null;
+		publish(current, snapshot, current.activeUI);
 	};
 
 	const applyRecords = function applyRecords(
@@ -354,10 +511,6 @@ export const createRuntime = function createRuntime(
 			patch.iab = { ...snapshot.iab, authority: null, tcString: null };
 		}
 		const changed = commit(patch);
-		if (reset) {
-			forwardedDirectives?.clear();
-			pendingDirectives?.clear();
-		}
 		if (
 			reset ||
 			snapshot.explicitChoice !== before.explicitChoice ||
@@ -365,10 +518,6 @@ export const createRuntime = function createRuntime(
 		) {
 			generation += 1;
 		}
-		// Hydration applies records; it never activates a directive. A clear
-		// therefore leaves the records cleared even while the live signal
-		// keeps masking permissions. Activation happens when init completes
-		// or when a signal is set at runtime.
 		armDeadlineTimer();
 		return { changed, ok: true };
 	};
@@ -391,9 +540,9 @@ export const createRuntime = function createRuntime(
 
 	return {
 		armDeadlineTimer,
+		batch: dispatcher.batch,
 		commit,
 		emit,
-		flushPrivacy,
 		// A draft presented under an earlier choice contract is stale once the
 		// policy changed materially; it is dropped, never restamped.
 		getDraft: () =>
@@ -413,12 +562,12 @@ export const createRuntime = function createRuntime(
 			generation += 1;
 		},
 		isStarted: () => started,
+		markLive,
 		mergeServerRecords,
 		now,
 		rearm() {
 			disposed = false;
 		},
-		reconcilePrivacy,
 		refresh,
 		setDraft(next) {
 			draft = next
@@ -428,6 +577,7 @@ export const createRuntime = function createRuntime(
 					}
 				: null;
 		},
+		setExperiment,
 		setVendorDraft(next) {
 			vendorDraft = next
 				? {
@@ -439,11 +589,8 @@ export const createRuntime = function createRuntime(
 		start,
 		stopTimers,
 		subscribe(listener) {
-			listeners ??= new Set();
-			listeners.add(listener);
-			return () => {
-				listeners?.delete(listener);
-			};
+			listeners ??= createListenerSet();
+			return listeners.add(listener);
 		},
 	};
 };

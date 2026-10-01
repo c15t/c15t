@@ -60,6 +60,56 @@ export const isDocumentation = function isDocumentation(path: string): boolean {
 	);
 };
 
+/**
+ * The native kernels, protocol fixtures, and contract live outside the workspace
+ * graph, so a change there owns no package and needs an explicit filter.
+ */
+export const isMobileNativePath = function isMobileNativePath(
+	path: string
+): boolean {
+	return path.startsWith('native/');
+};
+
+/**
+ * Files a phone actually compiles, as opposed to files that only reach the SDK's
+ * JavaScript.
+ *
+ * The device group pays for `expo prebuild`, `pod install`, and two app builds, so
+ * it keys on the sources those builds read: the native kernels, the binding's iOS and
+ * Android halves, and the two example apps. A JavaScript-only change inside
+ * `packages/react-native/src` still runs the mobile SDK jobs, which cover the kernel
+ * toolchains and the vitest suite, without spending app-build minutes on it.
+ */
+export const isMobileDevicePath = function isMobileDevicePath(
+	path: string
+): boolean {
+	return (
+		/^examples\/(?:expo-dev|react-native-bare)\//u.test(path) ||
+		isMobileNativePath(path) ||
+		/^packages\/react-native\/(?:ios|android)\//u.test(path) ||
+		/^packages\/react-native\/(?:Package\.swift|C15tReactNative\.podspec|react-native\.config\.(?:js|cjs|mjs|ts))$/u.test(
+			path
+		)
+	);
+};
+
+// The autolink config is matched under every extension a linker might be told to read.
+// It has already been renamed once, from `.cjs` to `.js`, and the rename is what let Expo
+// drop the library silently; a selector naming one literal rots the next time it moves.
+
+/**
+ * The mobile budget harness, as a path rather than a workspace.
+ *
+ * `@c15t/benchmarking` is a dependency of the mobile bench and of the backend, so a
+ * selected workspace would drag mobile macOS minutes into any backend pull request.
+ * Editing the harness itself is the signal that its measurement contracts changed.
+ */
+export const isMobileBenchmarkPath = function isMobileBenchmarkPath(
+	path: string
+): boolean {
+	return path.startsWith('benchmarks/mobile/');
+};
+
 /** Select reverse dependencies first, then build their forward dependency closure. */
 // oxlint-disable-next-line complexity -- Selection combines independent integration capabilities; graph traversal stays explicit.
 export const createCiPlan = function createCiPlan(
@@ -109,6 +159,7 @@ export const createCiPlan = function createCiPlan(
 		['nuxt', 'nuxt'],
 		['tanstack-start', 'tanstack-start'],
 		['astro', 'astro-demo'],
+		['astro-static', 'astro-demo'],
 		['sveltekit', 'sveltekit-demo'],
 	]
 		.filter(([, directory]) =>
@@ -129,6 +180,7 @@ export const createCiPlan = function createCiPlan(
 			'nuxt',
 			'tanstack-start',
 			'astro',
+			'astro-static',
 			'sveltekit'
 		);
 	}
@@ -137,7 +189,10 @@ export const createCiPlan = function createCiPlan(
 			/^apps\/storybook-(?:react|vue|svelte|astro)$/u.test(workspace.directory)
 		)
 		.map((workspace) => workspace.directory.replace('apps/storybook-', ''));
-	if (parity.includes('react')) {
+	// React is the reference every framework compares against, and the Astro
+	// Storybook is only checked alongside the React, Svelte and Vue ones: the
+	// suite needs at least two of those to pair stories and DevTools panels.
+	if (parity.includes('react') || parity.includes('astro')) {
 		parity.splice(0, parity.length, 'react', 'svelte', 'vue', 'astro');
 	}
 	if (parity.length && !parity.includes('react')) {
@@ -191,7 +246,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
+					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', sveltekit: 'sveltekit-demo' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);
@@ -221,6 +276,21 @@ export const createCiPlan = function createCiPlan(
 			workspace.directory
 		)
 	);
+	// The mobile SDK's own jobs. The selected SDK covers a kernel change that reaches it
+	// as a dependency, because the JS boundary runs the same engine the web packages
+	// do; the path filters cover the tree that has no workspace to select. A full run
+	// selects the SDK, so it always runs these too.
+	const mobile =
+		selected.some(
+			(workspace) => workspace.directory === 'packages/react-native'
+		) ||
+		runtime.some(
+			(path) => isMobileNativePath(path) || isMobileBenchmarkPath(path)
+		);
+	// Advisory, and expensive: app builds run on a macOS runner and a full Android
+	// build, so only files an app compiles select it, plus the runs that select
+	// everything.
+	const mobileBrowserOrDevice = full || runtime.some(isMobileDevicePath);
 	const integrations = [
 		{ kind: 'examples', targets: examples.join(',') },
 		{ kind: 'compat', targets: compat.join(',') },
@@ -245,6 +315,8 @@ export const createCiPlan = function createCiPlan(
 		full,
 		integrations,
 		journeys,
+		mobile,
+		mobileBrowserOrDevice,
 		parity,
 		performance: selected.some(
 			(workspace) =>
@@ -277,6 +349,8 @@ export const ciSchedulingOutputs = (plan: CiPlan) => ({
 	bundle: plan.bundle,
 	docs: plan.docs,
 	integrations: plan.integrations,
+	mobile: plan.mobile,
+	mobileBrowserOrDevice: plan.mobileBrowserOrDevice,
 	packageChecks:
 		plan.tests.length + plan.types.length + plan.testTypes.length > 0,
 	performance: plan.performance,

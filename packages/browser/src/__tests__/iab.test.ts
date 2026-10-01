@@ -160,6 +160,55 @@ describe('IAB browser entry', () => {
 			query(client, 'special-purpose-item-1').querySelector('[role="switch"]')
 		).toBeNull();
 	});
+	it('shows features in their own section with the standard text and no controls', async () => {
+		const { 1: feature } = completeGVL.features;
+		if (!feature) {
+			throw new Error('Missing feature fixture');
+		}
+		const client = await start({
+			iab: {
+				cmpId: 28,
+				gvl: {
+					...completeGVL,
+					features: {
+						...completeGVL.features,
+						1: { ...feature, illustrations: ['Feature illustration'] },
+					},
+				},
+			},
+		});
+		query(client, 'iab-consent-banner-customize-button').click();
+		const section = query(client, 'iab-consent-dialog-features');
+
+		expect(section.getAttribute('aria-label')).toBe('Features');
+		expect(section.textContent).toContain(
+			completeGVL.standardTexts?.features ?? 'missing standard text'
+		);
+		expect(section.querySelector('[data-testid="feature-item-1"]')).toBe(
+			query(client, 'feature-item-1')
+		);
+		expect(section.textContent).toContain('Feature illustration');
+		expect(
+			section.querySelector('[role="switch"], [role="checkbox"], input')
+		).toBeNull();
+		expect(section.textContent).not.toContain(
+			'Required for site functionality'
+		);
+		// Special purposes keep their locked presentation.
+		expect(query(client, 'special-purpose-item-1').textContent).toContain(
+			'Required for site functionality'
+		);
+	});
+	it('falls back to the translated features text when the GVL has none', async () => {
+		const client = await start({
+			iab: { cmpId: 28, gvl: { ...completeGVL, standardTexts: undefined } },
+		});
+		query(client, 'iab-consent-banner-customize-button').click();
+
+		expect(query(client, 'iab-consent-dialog-features').textContent).toContain(
+			'These means of processing can be used solely in pursuit of one or several purposes'
+		);
+	});
 	it('opens the vendors tab from the partner disclosure and shows policy URLs', async () => {
 		const client = await start();
 		query(client, 'iab-consent-banner-partners-link').click();
@@ -244,7 +293,7 @@ describe('IAB browser entry', () => {
 			'true'
 		);
 	});
-	it('keeps preferences available after a failed backend save', async () => {
+	it('closes preferences on the local record when the backend save fails', async () => {
 		const factory = offline();
 		const mode: typeof factory = Object.assign(
 			(context: Parameters<typeof factory>[0]) => ({
@@ -257,15 +306,24 @@ describe('IAB browser entry', () => {
 		client.openDialog();
 		const errors = vi.fn();
 		client.on('error', errors);
-		expect((await client.acceptAll()).ok).toBe(false);
-		expect(client.getSnapshot().activeUI).toBe('dialog');
+		const saving = client.acceptAll();
+		// Closed in the calling task, before the TC string or the request.
+		expect(client.getSnapshot().activeUI).toBe('none');
+		expect((await saving).ok).toBe(false);
+		expect(client.getSnapshot().activeUI).toBe('none');
+		expect(client.getSnapshot().iab?.authority?.tcString).toBeTruthy();
 		expect(errors).toHaveBeenCalled();
+		client.openDialog();
 		query(client, 'iab-consent-dialog-accept-button').click();
-		await vi.waitFor(() =>
-			expect(
-				client.ui?.root.querySelector('[role="alert"]')?.textContent
-			).toContain('Unable to save')
-		);
+		expect(client.getSnapshot().activeUI).toBe('none');
+		await new Promise((resolve) => {
+			setTimeout(resolve, 20);
+		});
+		client.openDialog();
+		// The recorded choice stands, so reopened preferences show no failure.
+		expect(
+			client.ui?.root.querySelector('[role="alert"]')?.textContent ?? ''
+		).not.toContain('Unable to save');
 	});
 	it('shows GVL failure and prevents confirmation without a loaded vendor list', async () => {
 		vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));

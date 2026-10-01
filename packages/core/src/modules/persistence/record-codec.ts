@@ -27,12 +27,10 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 } from '../../consent-record/types';
 import {
 	checkTimestamp,
 	isNonEmptyString,
-	isOptionalConsentCategory,
 	isPlainRecord,
 	ownKeys,
 	ownValue,
@@ -62,21 +60,20 @@ export interface StoredIabMetadata {
 export interface StoredConsentEnvelope {
 	version: 3;
 	subject?: ConsentSubject;
+	/**
+	 * Clear epoch the envelope was written under: the time of the last
+	 * `clear()` its writer knew about, in epoch milliseconds. Absent means
+	 * epoch 0, a record from before any clear (every v2 or legacy record,
+	 * and every envelope written before epochs existed). Decisions
+	 * confirmed before the current epoch are void.
+	 */
+	epoch?: number;
 	categories: ExplicitChoice['categories'];
 	iab?: StoredIabMetadata;
 }
 
 /** Local-only notice dismissal record. Version 1 matches the record type. */
 export type StoredNoticeDismissal = NoticeDismissal;
-
-/**
- * Local-only standing privacy directives. Kept as a versioned list so
- * more than one signal source can be recorded later without a rewrite.
- */
-export interface StoredPrivacyOptOuts {
-	version: 1;
-	directives: readonly PrivacyOptOut[];
-}
 
 /** Local vendor denial list. Version 1 matches the kernel record. */
 export type StoredVendorChoice = VendorChoice & {
@@ -148,6 +145,7 @@ const CODE_TO_IAB_KEY: ReadonlyMap<string, keyof StoredIabMetadata> = new Map(
 );
 
 const BASIS_FIELD = 'b';
+const EPOCH_FIELD = 'e';
 const VERSION_FIELD = 'v';
 
 const SUBJECT_KEYS = ['subjectId', 'externalId', 'identityProvider'] as const;
@@ -277,7 +275,41 @@ export const validateIabMetadata = function validateIabMetadata(
 	return metadata;
 };
 
-const ENVELOPE_KEYS = ['version', 'subject', 'categories', 'iab'] as const;
+const ENVELOPE_KEYS = [
+	'version',
+	'subject',
+	'epoch',
+	'categories',
+	'iab',
+] as const;
+
+/**
+ * How far a clear epoch may lie ahead of the clock and still count: one
+ * hour. A clock set back after a clear leaves the epoch in the future, and
+ * dropping it would let cleared records back in, so a small lead is kept.
+ * A larger one is taken as corrupt, since it would void every decision for
+ * as long as it stays ahead.
+ */
+export const EPOCH_CLOCK_TOLERANCE_MS = 60 * 60 * 1000;
+
+/**
+ * Reads a clear epoch: a whole, non-negative time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now`, or `undefined`. The
+ * epoch only voids decisions, so an unreadable one is dropped rather than
+ * rejecting the record that carries it: a bad epoch never discards a
+ * stored denial.
+ */
+const readEpoch = function readEpoch(
+	value: unknown,
+	now: number
+): number | undefined {
+	return typeof value === 'number' &&
+		Number.isSafeInteger(value) &&
+		value >= 0 &&
+		value <= now + EPOCH_CLOCK_TOLERANCE_MS
+		? value
+		: undefined;
+};
 
 /**
  * Validates a parsed v3 envelope object. Reuses the consent-record
@@ -303,6 +335,8 @@ export const validateStoredConsentEnvelope =
 			}
 		}
 		const subject = validateSubject(ownValue(input, 'subject'), issues);
+		const rawEpoch = ownValue(input, 'epoch');
+		const epoch = rawEpoch === undefined ? undefined : readEpoch(rawEpoch, now);
 		const rawIab = ownValue(input, 'iab');
 		let iab: StoredIabMetadata | undefined;
 		if (isPlainRecord(rawIab)) {
@@ -329,6 +363,9 @@ export const validateStoredConsentEnvelope =
 		};
 		if (subject) {
 			envelope.subject = subject;
+		}
+		if (epoch) {
+			envelope.epoch = epoch;
 		}
 		if (iab) {
 			envelope.iab = iab;
@@ -380,6 +417,9 @@ export const encodeStoredConsentEnvelopeJson =
 		if (envelope.subject && Object.keys(envelope.subject).length > 0) {
 			ordered.subject = envelope.subject;
 		}
+		if (envelope.epoch) {
+			ordered.epoch = envelope.epoch;
+		}
 		ordered.categories = categories;
 		if (envelope.iab) {
 			ordered.iab = envelope.iab;
@@ -422,6 +462,7 @@ const encodeBooleanMap = function encodeBooleanMap(
  * sid=<uri-encoded subjectId>          (optional)
  * eid=<uri-encoded externalId>         (optional)
  * idp=<uri-encoded identityProvider>   (optional)
+ * e=<clear epoch>                      (optional, only after a clear)
  * b=<basis>|<basis>                    (when any category is present)
  * fn=<0|1>.<confirmedAt>.<basisIndex>  (per present category: fn ex me mk)
  * icv=<0|1>.<uri-encoded vendorId>|... (optional)
@@ -447,6 +488,9 @@ export const encodeStoredConsentEnvelopeCompact =
 					`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
 				);
 			}
+		}
+		if (envelope.epoch) {
+			fields.push(`${EPOCH_FIELD}${KEY_VALUE_SEPARATOR}${envelope.epoch}`);
 		}
 
 		const bases: string[] = [];
@@ -661,6 +705,15 @@ export const decodeStoredConsentEnvelopeCompact =
 		fields.delete(BASIS_FIELD);
 		const bases =
 			rawBases === undefined ? [] : parseBasisList(rawBases, issues);
+		const rawEpoch = fields.get(EPOCH_FIELD);
+		fields.delete(EPOCH_FIELD);
+		const epoch =
+			rawEpoch === undefined
+				? undefined
+				: readEpoch(
+						DIGITS_ONLY.test(rawEpoch) ? Number(rawEpoch) : rawEpoch,
+						now
+					);
 
 		const subject: ConsentSubject = {};
 		const categories: ExplicitChoice['categories'] = {};
@@ -703,6 +756,9 @@ export const decodeStoredConsentEnvelopeCompact =
 		if (Object.keys(subject).length > 0) {
 			envelope.subject = subject;
 		}
+		if (epoch) {
+			envelope.epoch = epoch;
+		}
 		if (Object.keys(iab).length > 0) {
 			envelope.iab = iab;
 		}
@@ -710,7 +766,7 @@ export const decodeStoredConsentEnvelopeCompact =
 	};
 
 // ---------------------------------------------------------------------------
-// Notice dismissal and privacy opt-outs (local-only, JSON)
+// Notice dismissal (local-only, JSON)
 // ---------------------------------------------------------------------------
 
 /** Serializes a notice dismissal for localStorage. */
@@ -736,143 +792,12 @@ export const decodeNoticeDismissal = function decodeNoticeDismissal(
 	return { ok: true, record: result.record };
 };
 
-const PRIVACY_OPT_OUT_KEYS = ['source', 'categories', 'recordedAt'] as const;
-
-const validatePrivacyOptOut = function validatePrivacyOptOut(
-	input: unknown,
-	path: string,
-	now: number,
-	issues: StorageIssue[]
-): PrivacyOptOut | null {
-	if (!isPlainRecord(input)) {
-		issues.push({ code: 'not-an-object', path });
-		return null;
-	}
-	let ok = true;
-	for (const key of ownKeys(input)) {
-		if (
-			!PRIVACY_OPT_OUT_KEYS.includes(
-				key as (typeof PRIVACY_OPT_OUT_KEYS)[number]
-			)
-		) {
-			issues.push({ code: 'unknown-key', path: `${path}.${key}` });
-			ok = false;
-		}
-	}
-	const source = ownValue(input, 'source');
-	if (source !== 'gpc') {
-		issues.push({ code: 'invalid-basis', path: `${path}.source` });
-		ok = false;
-	}
-	const recordedAt = ownValue(input, 'recordedAt');
-	const timestampIssue = checkTimestamp(recordedAt, now);
-	if (timestampIssue) {
-		issues.push({ code: timestampIssue, path: `${path}.recordedAt` });
-		ok = false;
-	}
-	const rawCategories = ownValue(input, 'categories');
-	const categories: OptionalConsentCategory[] = [];
-	if (Array.isArray(rawCategories)) {
-		for (const [index, entry] of rawCategories.entries()) {
-			if (typeof entry !== 'string' || !isOptionalConsentCategory(entry)) {
-				issues.push({
-					code: 'unknown-key',
-					path: `${path}.categories[${index}]`,
-				});
-				ok = false;
-				continue;
-			}
-			if (categories.includes(entry)) {
-				issues.push({
-					code: 'duplicate-key',
-					path: `${path}.categories[${index}]`,
-				});
-				ok = false;
-				continue;
-			}
-			categories.push(entry);
-		}
-	} else {
-		issues.push({ code: 'not-an-object', path: `${path}.categories` });
-		ok = false;
-	}
-	if (!ok) {
-		return null;
-	}
-	return {
-		categories: [...categories].sort(),
-		recordedAt: recordedAt as number,
-		source: 'gpc',
-	};
-};
-
-/** Serializes standing privacy directives for localStorage. */
-export const encodePrivacyOptOuts = function encodePrivacyOptOuts(
-	record: StoredPrivacyOptOuts
-): string {
-	return JSON.stringify({
-		directives: record.directives.map((directive) => ({
-			categories: [...directive.categories].sort(),
-			recordedAt: directive.recordedAt,
-			source: directive.source,
-		})),
-		version: 1,
-	});
-};
-
-/** Validates a parsed privacy opt-out list. */
-export const decodePrivacyOptOuts = function decodePrivacyOptOuts(
-	input: unknown,
-	now: number
-): DecodeResult<StoredPrivacyOptOuts> {
-	if (!isPlainRecord(input)) {
-		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
-	}
-	if (ownValue(input, 'version') !== 1) {
-		return {
-			issues: [{ code: 'unsupported-version', path: 'version' }],
-			ok: false,
-		};
-	}
-	const issues: StorageIssue[] = [];
-	for (const key of ownKeys(input)) {
-		if (key !== 'version' && key !== 'directives') {
-			issues.push({ code: 'unknown-key', path: key });
-		}
-	}
-	const rawDirectives = ownValue(input, 'directives');
-	if (!Array.isArray(rawDirectives)) {
-		issues.push({ code: 'not-an-object', path: 'directives' });
-		return { issues, ok: false };
-	}
-	const directives: PrivacyOptOut[] = [];
-	for (const [index, entry] of rawDirectives.entries()) {
-		const directive = validatePrivacyOptOut(
-			entry,
-			`directives[${index}]`,
-			now,
-			issues
-		);
-		if (directive) {
-			directives.push(directive);
-		}
-	}
-	if (issues.length > 0) {
-		return { issues, ok: false };
-	}
-	return { ok: true, record: { directives, version: 1 } };
-};
-
 // ---------------------------------------------------------------------------
-// Compact cookie projections for notice dismissal and privacy opt-outs
+// Compact cookie projection for notice dismissal
 // ---------------------------------------------------------------------------
 
 /** Prefix of the compact notice-dismissal cookie projection. */
 export const COMPACT_NOTICE_PREFIX = 'v=1';
-/** Prefix of the compact privacy-opt-out cookie projection. */
-export const COMPACT_PRIVACY_PREFIX = 'v=1';
-
-const CATEGORY_LIST_SEPARATOR = '-';
 
 const parseCompactFields = function parseCompactFields(
 	rawValue: string,
@@ -959,73 +884,6 @@ export const decodeNoticeDismissalCompact =
 			now
 		);
 	};
-
-/**
- * Compact privacy directives for the `<key>-privacy` cookie:
- * `v=1&d=<source>.<recordedAt>.<code-code>|<source>.<recordedAt>.<code>`.
- * Category codes are the same two-letter codes the consent cookie uses.
- */
-export const encodePrivacyOptOutsCompact = function encodePrivacyOptOutsCompact(
-	record: StoredPrivacyOptOuts
-): string {
-	const directives = record.directives.map((directive) =>
-		[
-			directive.source,
-			String(directive.recordedAt),
-			[...directive.categories]
-				.sort()
-				.map((category) => CATEGORY_CODES[category])
-				.join(CATEGORY_LIST_SEPARATOR),
-		].join(TUPLE_SEPARATOR)
-	);
-	const parts = [COMPACT_PRIVACY_PREFIX];
-	if (directives.length > 0) {
-		parts.push(`d${KEY_VALUE_SEPARATOR}${directives.join(LIST_SEPARATOR)}`);
-	}
-	return parts.join(FIELD_SEPARATOR);
-};
-
-/** Decodes compact privacy directives through the shared validator. */
-export const decodePrivacyOptOutsCompact = function decodePrivacyOptOutsCompact(
-	rawValue: string,
-	now: number
-): DecodeResult<StoredPrivacyOptOuts> {
-	const issues: StorageIssue[] = [];
-	const fields = parseCompactFields(rawValue, COMPACT_PRIVACY_PREFIX, issues);
-	if (!fields) {
-		return { issues, ok: false };
-	}
-	for (const key of fields.keys()) {
-		if (key !== 'd') {
-			issues.push({ code: 'unknown-key', path: key });
-		}
-	}
-	if (issues.length > 0) {
-		return { issues, ok: false };
-	}
-	const list = fields.get('d');
-	const directives: unknown[] = [];
-	if (list !== undefined && list !== '') {
-		for (const [index, entry] of list.split(LIST_SEPARATOR).entries()) {
-			const [source, recordedAt, codes, ...rest] = entry.split(TUPLE_SEPARATOR);
-			if (rest.length > 0 || source === undefined || codes === undefined) {
-				return {
-					issues: [{ code: 'malformed-encoding', path: `d[${index}]` }],
-					ok: false,
-				};
-			}
-			const categories = codes
-				.split(CATEGORY_LIST_SEPARATOR)
-				.map((code) => CODE_TO_CATEGORY.get(code) ?? code);
-			directives.push({
-				categories,
-				recordedAt: parseCompactInteger(recordedAt),
-				source,
-			});
-		}
-	}
-	return decodePrivacyOptOuts({ directives, version: 1 }, now);
-};
 
 // ---------------------------------------------------------------------------
 // Vendor denial list (local-only, JSON + compact cookie projection)
@@ -1201,4 +1059,37 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 		candidate.subject = subject;
 	}
 	return decodeVendorChoice(candidate, now);
+};
+
+// ---------------------------------------------------------------------------
+// Clear epoch (cookie and localStorage)
+// ---------------------------------------------------------------------------
+
+/**
+ * Serializes the clear epoch record: the time of the last `clear()` in
+ * epoch milliseconds, as plain decimal digits. The same text is stored in
+ * the `<key>-epoch` cookie and localStorage entry.
+ */
+export const encodeClearEpoch = function encodeClearEpoch(
+	epoch: number
+): string {
+	return String(epoch);
+};
+
+/**
+ * Parses a clear epoch record. Anything but a whole time at most
+ * {@link EPOCH_CLOCK_TOLERANCE_MS} ahead of `now` is rejected, and a
+ * rejected epoch reads as `0`: a corrupt epoch voids nothing.
+ */
+export const decodeClearEpoch = function decodeClearEpoch(
+	text: string,
+	now: number
+): DecodeResult<number> {
+	const epoch = DIGITS_ONLY.test(text)
+		? readEpoch(Number(text), now)
+		: undefined;
+	if (epoch === undefined) {
+		return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
+	}
+	return { ok: true, record: epoch };
 };

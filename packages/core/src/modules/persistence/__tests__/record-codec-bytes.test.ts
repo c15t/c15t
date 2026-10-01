@@ -13,7 +13,7 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import type { ChoiceBasis, PrivacyOptOut } from '../../../consent-record/types';
+import type { ChoiceBasis } from '../../../consent-record/types';
 import {
 	flatToString,
 	flattenObject,
@@ -23,18 +23,17 @@ import {
 } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import {
+	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
-	encodePrivacyOptOuts,
-	encodePrivacyOptOutsCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
 } from '../record-codec';
 import type { StoredConsentEnvelope } from '../record-codec';
 import {
+	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-	writeStoredPrivacyOptOuts,
 } from '../record-storage';
 
 const TIME = 1_756_857_600_000;
@@ -136,6 +135,12 @@ const v3: Record<string, StoredConsentEnvelope> = {
 		subject: { subjectId: SUBJECT_ID },
 		version: 3,
 	},
+	acceptAllAfterClear: {
+		categories: v3Categories(true, choice),
+		epoch: TIME - 1000,
+		subject: { subjectId: SUBJECT_ID },
+		version: 3,
+	},
 	acceptAllIdentified: {
 		categories: v3Categories(true, choice),
 		subject: {
@@ -222,6 +227,8 @@ describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 		);
 		expect(measured).toEqual({
 			acceptAll: 186,
+			// The clear epoch adds `&e=` and 13 digits once a clear happened.
+			acceptAllAfterClear: 202,
 			acceptAllIdentified: 233,
 			migratedLegacyNoHash: 122,
 			mixedLegacyAndCurrent: 252,
@@ -239,6 +246,8 @@ describe('cookie projection bytes (baseline evidence, not a budget)', () => {
 		);
 		expect(measured).toEqual({
 			acceptAll: 748,
+			// `,"epoch":` and 13 digits.
+			acceptAllAfterClear: 770,
 			acceptAllIdentified: 823,
 			migratedLegacyNoHash: 424,
 			mixedLegacyAndCurrent: 766,
@@ -273,23 +282,12 @@ describe('auxiliary cookie projection bytes (baseline evidence, not a budget)', 
 		expect(bytes(encodeNoticeDismissal(record))).toBe(122);
 	});
 
-	it('measures the privacy directive projection actually stored', () => {
-		const one: PrivacyOptOut[] = [
-			{
-				categories: ['marketing', 'measurement'],
-				recordedAt: TIME,
-				source: 'gpc',
-			},
-		];
-		const result = writeStoredPrivacyOptOuts(one, undefined, NOW);
-		expect(result.ok).toBe(true);
-		const stored = getRawCookieValue(`${STORAGE_KEY_V2}-privacy`);
-		expect(stored).toBe(
-			encodePrivacyOptOutsCompact({ directives: one, version: 1 })
-		);
-		expect(bytes(stored ?? '')).toBe(29);
-		expect(bytes(encodePrivacyOptOuts({ directives: one, version: 1 }))).toBe(
-			113
-		);
+	it('measures the clear epoch record actually stored', () => {
+		const written = writeStoredClearEpoch(TIME, undefined);
+		expect(written.cookie).toBe(true);
+		const stored = getRawCookieValue(`${STORAGE_KEY_V2}-epoch`);
+		expect(stored).toBe(encodeClearEpoch(TIME));
+		expect(bytes(stored ?? '')).toBe(13);
+		expect(window.localStorage.getItem(`${STORAGE_KEY_V2}-epoch`)).toBe(stored);
 	});
 });

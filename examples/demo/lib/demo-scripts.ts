@@ -1,6 +1,6 @@
-import { databuddy } from '@c15t/scripts/databuddy';
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-import { xPixel } from '@c15t/scripts/x-pixel';
+import { databuddy } from '@c15t/integrations/databuddy';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+import { xPixel } from '@c15t/integrations/x-pixel';
 
 type DemoScript = ReturnType<typeof databuddy>;
 

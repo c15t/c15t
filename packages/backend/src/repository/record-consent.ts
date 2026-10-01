@@ -33,7 +33,7 @@ import { record } from './consent';
 import type { ConsentPurposeConflictError, ConsentSubmission } from './consent';
 import { recordDecision } from './runtime-policy-decision';
 import type { DecisionInput } from './runtime-policy-decision';
-import type { IdentityAuthority, SubjectTenantConflictError } from './subject';
+import type { SubjectTenantConflictError } from './subject';
 import { findOrCreate } from './subject';
 
 export interface ConsentSubmissionRequest {
@@ -41,8 +41,6 @@ export interface ConsentSubmissionRequest {
 	readonly domainId: string;
 	readonly externalId?: string | null;
 	readonly identityProvider?: string | null;
-	/** Who asserted `externalId` on a fresh subject. Defaults to `browser`. */
-	readonly identityAuthority?: IdentityAuthority;
 	readonly policyId?: string | null;
 	readonly purposeIds: readonly string[];
 	/** v3 receipts this act confirmed, only those categories. */
@@ -51,6 +49,10 @@ export interface ConsentSubmissionRequest {
 	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly givenAt: Date;
 	readonly metadata?: unknown;
+	/** See `ConsentSubmission`: attribution columns projected from `metadata`. */
+	readonly experimentId?: string | null;
+	readonly experimentArm?: string | null;
+	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
 	readonly jurisdiction?: string | null;
@@ -62,7 +64,10 @@ export interface ConsentSubmissionRequest {
 	/** Present when the request resolved a policy; absent for a bare consent. */
 	readonly decision?: DecisionInput;
 	/** Where the decision came from: a verified token or a recompute. */
-	readonly runtimePolicySource?: 'snapshot_token' | 'write_time_fallback';
+	readonly runtimePolicySource?:
+		| 'snapshot_token'
+		| 'snapshot_token_replayed'
+		| 'write_time_fallback';
 }
 
 export interface SubmissionResult {
@@ -96,7 +101,6 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 
 	const subject = yield* findOrCreate({
 		externalId: request.externalId,
-		identityAuthority: request.identityAuthority,
 		identityProvider: request.identityProvider,
 		subjectId: request.subjectId,
 		tenantId,
@@ -112,6 +116,8 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		choice: request.choice,
 		consentAction: request.consentAction,
 		domainId: request.domainId,
+		experimentArm: request.experimentArm,
+		experimentId: request.experimentId,
 		givenAt: request.givenAt,
 		ipAddress: request.ipAddress,
 		jurisdiction: request.jurisdiction,
@@ -123,6 +129,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		subjectId: subject.id,
 		tcString: request.tcString,
 		tenantId,
+		timeToDecisionMs: request.timeToDecisionMs,
 		uiSource: request.uiSource,
 		userAgent: request.userAgent,
 		validUntil: request.validUntil,

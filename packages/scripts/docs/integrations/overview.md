@@ -7,19 +7,19 @@ group: integrations
 
 ## Choose an integration
 
-Use the vendor helper from `@c15t/scripts` with your existing c15t provider or
+Use the vendor helper from `@c15t/integrations` with your existing c15t provider or
 script loader. Every helper returns a script configuration; importing one does
 not install the vendor. Start with your [framework quickstart](https://c15t.com/docs/frameworks)
 to connect Inth and render consent UI, then follow the vendor guide.
 
-| Package manager | Command                     |
-| :-------------- | :-------------------------- |
-| npm             | `npm install @c15t/scripts` |
-| pnpm            | `pnpm add @c15t/scripts`    |
-| yarn            | `yarn add @c15t/scripts`    |
-| bun             | `bun add @c15t/scripts`     |
+| Package manager | Command                          |
+| :-------------- | :------------------------------- |
+| npm             | `npm install @c15t/integrations` |
+| pnpm            | `pnpm add @c15t/integrations`    |
+| yarn            | `yarn add @c15t/integrations`    |
+| bun             | `bun add @c15t/integrations`     |
 
-`@c15t/scripts` is a separate add-on. Keep the main `c15t` package for imports
+`@c15t/integrations` is a separate add-on. Keep the main `c15t` package for imports
 such as `c15t/react` and `c15t/next`.
 
 Browse integrations by service type below. The tables distinguish helpers that
@@ -36,7 +36,7 @@ behavior before choosing either approach.
 
 Both guides include all nine framework examples. React and Svelte use `ConsentGate`;
 Vue conditionally renders the iframe, and Astro and JavaScript use the existing
-kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
+kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Tag managers
 
@@ -61,6 +61,7 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 | [Heap](./heap.md)                                         | `heap`                   | `measurement`              | Waits for effective permission                           |
 | [Matomo Analytics](./matomo-analytics.md)                 | `matomoAnalytics`        | `measurement`              | Gated by default; optional consent mode                  |
 | [Mixpanel](./mixpanel-analytics.md)                       | `mixpanelAnalytics`      | `measurement`              | Always loads; calls opt-in and opt-out APIs              |
+| [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`              | Waits for effective permission                           |
 | [Hotjar](./hotjar.md)                                     | `hotjar`                 | `measurement`              | Waits for effective permission                           |
 | [Hightouch](./hightouch.md)                               | `hightouch`              | `measurement`              | Waits for effective permission                           |
 | [LogRocket](./logrocket.md)                               | `logRocket`              | `measurement`              | Waits for effective permission                           |
@@ -76,23 +77,25 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/scripts`.
 
 ## Functionality
 
-| Integration               | Helper     | Category        | Loading behavior               |
-| ------------------------- | ---------- | --------------- | ------------------------------ |
-| [Crisp](./crisp.md)       | `crisp`    | `functionality` | Waits for effective permission |
-| [Intercom](./intercom.md) | `intercom` | `functionality` | Waits for effective permission |
+| Integration                   | Helper      | Category        | Loading behavior               |
+| ----------------------------- | ----------- | --------------- | ------------------------------ |
+| [Crisp](./crisp.md)           | `crisp`     | `functionality` | Waits for effective permission |
+| [Front Chat](./front-chat.md) | `frontChat` | `functionality` | Waits for effective permission |
+| [Intercom](./intercom.md)     | `intercom`  | `functionality` | Waits for effective permission |
 
 ## Ads and pixels
 
-| Integration                                    | Helper             | Category    | Loading behavior                                  |
-| ---------------------------------------------- | ------------------ | ----------- | ------------------------------------------------- |
-| [Meta Pixel](./meta-pixel.md)                  | `metaPixel`        | `marketing` | Waits for effective permission                    |
-| [OpenAI Pixel](./openai-pixel.md)              | `openaiPixel`      | `marketing` | Gated initially; retains SDK and signals consent  |
-| [Reddit Pixel](./reddit-pixel.md)              | `redditPixel`      | `marketing` | Gated initially; retains SDK and switches cookies |
-| [TikTok Pixel](./tiktok-pixel.md)              | `tiktokPixel`      | `marketing` | Gated initially; retains SDK and signals consent  |
-| [LinkedIn Insight Tag](./linkedin-insights.md) | `linkedinInsights` | `marketing` | Waits for effective permission                    |
-| [Microsoft UET](./microsoft-uet.md)            | `microsoftUet`     | `marketing` | Always loads; signals ad storage consent          |
-| [Snapchat Pixel](./snapchat-pixel.md)          | `snapchatPixel`    | `marketing` | Waits for effective permission                    |
-| [X Pixel](./x-pixel.md)                        | `xPixel`           | `marketing` | Waits for effective permission                    |
+| Integration                                    | Helper             | Category    | Loading behavior                                     |
+| ---------------------------------------------- | ------------------ | ----------- | ---------------------------------------------------- |
+| [Meta Pixel](./meta-pixel.md)                  | `metaPixel`        | `marketing` | Waits for effective permission                       |
+| [OpenAI Pixel](./openai-pixel.md)              | `openaiPixel`      | `marketing` | Gated initially; retains SDK and signals consent     |
+| [Pinterest Tag](./pinterest-tag.md)            | `pinterestTag`     | `marketing` | Gated initially; retains the tag and signals consent |
+| [Reddit Pixel](./reddit-pixel.md)              | `redditPixel`      | `marketing` | Gated initially; retains SDK and switches cookies    |
+| [TikTok Pixel](./tiktok-pixel.md)              | `tiktokPixel`      | `marketing` | Gated initially; retains SDK and signals consent     |
+| [LinkedIn Insight Tag](./linkedin-insights.md) | `linkedinInsights` | `marketing` | Waits for effective permission                       |
+| [Microsoft UET](./microsoft-uet.md)            | `microsoftUet`     | `marketing` | Always loads; signals ad storage consent             |
+| [Snapchat Pixel](./snapchat-pixel.md)          | `snapchatPixel`    | `marketing` | Waits for effective permission                       |
+| [X Pixel](./x-pixel.md)                        | `xPixel`           | `marketing` | Waits for effective permission                       |
 
 ## Keep one owner per vendor
 

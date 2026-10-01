@@ -67,6 +67,22 @@ test('offline mode without rules resolves the recommended pack: strict opt-in fo
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 });
 
+test('exposes only the window.c15t debug object, not the kernel', async () => {
+	const screen = await render(
+		<ConsentProvider options={{ mode: offline(), persistence: false }}>
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await expect
+		.element(screen.getByTestId('consent-banner-accept-button'))
+		.toBeVisible();
+	expect((window as Window & { c15t?: unknown }).c15t).toMatchObject({
+		mode: 'offline',
+		pkg: '@c15t/react',
+	});
+	expect('c15tKernel' in window).toBe(false);
+});
+
 test('failed initialization keeps the first layer hidden and reports the error', async () => {
 	const onError = vi.fn();
 	await render(
@@ -344,6 +360,67 @@ test('separates explicit actions from effective permission changes', async () =>
 	expect(save).toHaveBeenCalledTimes(2);
 });
 
+test('onSurfaceShown fires for a prefetched banner without init and for an opened dialog', async () => {
+	const onSurfaceShown = vi.fn();
+	const init = vi.fn(() => Promise.resolve({}));
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onSurfaceShown },
+				mode: custom({ init }),
+				persistence: false,
+				prefetch: policyFixture(),
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	// The prepared branch hydrates and marks the kernel live; no init runs.
+	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
+	expect(init).not.toHaveBeenCalled();
+	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+		surface: 'banner',
+	});
+	expect(onSurfaceShown.mock.calls[0]?.[0]).not.toHaveProperty('type');
+	expect(kernel.getSnapshot().surfaceShownAt.banner).not.toBeNull();
+
+	kernel.set.activeUI('dialog');
+	expect(onSurfaceShown).toHaveBeenCalledTimes(2);
+	expect(onSurfaceShown.mock.calls[1]?.[0]).toMatchObject({
+		surface: 'dialog',
+	});
+});
+
+test('onSurfaceShown fires once init resolves the policy', async () => {
+	const onSurfaceShown = vi.fn();
+	const prepared = policyFixture();
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				prepared.initialPolicyResolution
+			),
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				callbacks: { onSurfaceShown },
+				mode: custom({ init }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+			<ConsentBanner />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(onSurfaceShown).toHaveBeenCalledTimes(1));
+	expect(init).toHaveBeenCalledTimes(1);
+	expect(onSurfaceShown.mock.calls[0]?.[0]).toMatchObject({
+		surface: 'banner',
+	});
+});
+
 test('uses current callback props without replacing the kernel', async () => {
 	const first = vi.fn();
 	const second = vi.fn();
@@ -353,6 +430,7 @@ test('uses current callback props without replacing the kernel', async () => {
 		<ConsentProvider
 			options={{
 				callbacks: { onChoiceRecorded: first },
+				consentCategories: ['marketing'],
 				mode,
 				persistence: false,
 				prefetch,
@@ -365,6 +443,7 @@ test('uses current callback props without replacing the kernel', async () => {
 		<ConsentProvider
 			options={{
 				callbacks: { onChoiceRecorded: second },
+				consentCategories: ['marketing'],
 				mode,
 				persistence: false,
 				prefetch,
@@ -450,7 +529,7 @@ test('StrictMode remount keeps persistence subscriptions active', async () => {
 });
 
 test.each(['header', 'browser'] as const)(
-	'prepared mount persists %s GPC without init or category choice',
+	'prepared mount applies %s GPC live without init, category choice or storage',
 	async (source) => {
 		const key = `react-prepared-gpc-${source}`;
 		const previous = Object.getOwnPropertyDescriptor(
@@ -490,22 +569,21 @@ test.each(['header', 'browser'] as const)(
 				</StrictMode>
 			);
 			await vi.waitFor(() =>
-				expect(localStorage.getItem(`${key}-privacy`)).not.toBeNull()
+				expect(kernel.getSnapshot().privacySignals.gpc.active).toBe(true)
 			);
-			expect(kernel.getSnapshot().optOutDirectives).toHaveLength(1);
-			expect(kernel.getServerSnapshot().optOutDirectives).toEqual([]);
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 			expect(kernel.getSnapshot().explicitChoice).toEqual(
 				prepared.initialRecords?.choice
 			);
+			expect(localStorage.getItem(`${key}-privacy`)).toBeNull();
+			// The restriction ends with the signal; the stored grant applies again.
 			kernel.set.privacySignals({ gpc: false });
-			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+			expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 			expect(init).not.toHaveBeenCalled();
 			expect(save).not.toHaveBeenCalled();
 			expect(onChoiceRecorded).not.toHaveBeenCalled();
 			await screen.unmount();
 		} finally {
-			localStorage.removeItem(`${key}-privacy`);
-			document.cookie = `${key}-privacy=; Max-Age=0; Path=/`;
 			if (previous) {
 				Object.defineProperty(navigator, 'globalPrivacyControl', previous);
 			} else {
@@ -617,6 +695,7 @@ test('protects consent records after the persistence storage key changes', async
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
+				consentCategories: ['marketing', 'measurement'],
 				mode,
 				persistence: {
 					skipHydration: true,
@@ -636,6 +715,7 @@ test('protects consent records after the persistence storage key changes', async
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
+				consentCategories: ['marketing', 'measurement'],
 				mode,
 				persistence: {
 					skipHydration: true,
@@ -653,6 +733,7 @@ test('protects consent records after the persistence storage key changes', async
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
+				consentCategories: ['marketing', 'measurement'],
 				mode,
 				persistence: {
 					skipHydration: true,

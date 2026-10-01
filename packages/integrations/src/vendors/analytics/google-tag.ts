@@ -1,0 +1,157 @@
+import type { AllConsentNames, Script } from '@c15t/core';
+
+import { resolveManifest } from '../../resolve';
+import { runtimeDateValue, vendorManifestContract } from '../../types';
+import type { VendorManifest } from '../../types';
+import {
+	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	withOptionalConsentMapping,
+} from '../_shared/google-consent';
+
+// Extended Window interface to include gtag specific properties
+declare global {
+	interface Window {
+		dataLayer: unknown[];
+		gtag: (...args: unknown[]) => void;
+	}
+}
+
+/**
+ * Google Tag (gtag.js) vendor manifest.
+ *
+ * Similar to GTM but for direct Google product integration (Analytics, Ads, Floodlight).
+ * Uses the same Consent Mode v2 mapping.
+ */
+export const gtagManifest = {
+	...vendorManifestContract,
+	alwaysLoad: true,
+	bootstrap: [
+		{
+			ifUndefined: true,
+
+			name: 'dataLayer',
+			type: 'setGlobal',
+			value: [],
+		},
+		{
+			ifUndefined: true,
+
+			name: 'gtag',
+			queue: 'dataLayer',
+			type: 'defineQueueFunction',
+		},
+	],
+	category: '{{category}}',
+	consentMapping: GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
+	consentSignal: 'gtag',
+	install: [
+		{
+			args: ['js', runtimeDateValue],
+
+			global: 'gtag',
+			type: 'callGlobal',
+		},
+		{
+			args: ['config', '{{id}}'],
+
+			global: 'gtag',
+			type: 'callGlobal',
+		},
+		{
+			async: true,
+
+			src: 'https://www.googletagmanager.com/gtag/js?id={{id}}',
+			type: 'loadScript',
+		},
+	],
+	persistAfterConsentRevoked: true,
+	vendor: 'gtag',
+} as const satisfies VendorManifest;
+
+export interface GtagOptions {
+	/** Parameters forwarded to gtag config. */
+	config?: Record<string, unknown>;
+	/**
+	 * Your gtag id
+	 * @example `G-XXXXXXX`
+	 */
+	id: string;
+
+	/**
+	 * The consent category to use for the gtag script. This is typically marketing (Ads & Floodlight) or measurement (Analytics)
+	 * @example 'marketing'
+	 */
+	category: AllConsentNames;
+
+	/**
+	 * Custom mapping from c15t consent categories to Google Consent Mode v2 types.
+	 * Overrides the default mapping when provided.
+	 *
+	 * @default
+	 * ```ts
+	 * {
+	 *   necessary: ['security_storage'],
+	 *   functionality: ['functionality_storage'],
+	 *   measurement: ['analytics_storage'],
+	 *   marketing: ['ad_storage', 'ad_user_data', 'ad_personalization'],
+	 *   experience: ['personalization_storage'],
+	 * }
+	 * ```
+	 */
+	consentMapping?: Record<string, string[]>;
+
+	/**
+	 * Deprecated script-level overrides preserved for backwards compatibility.
+	 *
+	 * Prefer manifest-backed options instead of this generic override bag.
+	 * @deprecated
+	 */
+	script?: Partial<Script>;
+}
+
+/**
+ * Creates a Google Tag (gtag.js) script.
+ * Allows you to send data website to linked Google products like Analytics, Ads & Floodlight.
+ *
+ * @param options - The options for the gtag script.
+ * @returns The Google Tag Manager script.
+ */
+export const gtag = function gtag({
+	id,
+	config,
+	category,
+	consentMapping,
+	script,
+}: GtagOptions): Script {
+	const base =
+		config === undefined
+			? gtagManifest
+			: {
+					...gtagManifest,
+					install: gtagManifest.install.map((step) =>
+						step.type === 'callGlobal' && step.args[0] === 'config'
+							? { ...step, args: ['config', '{{id}}', '{{config}}'] }
+							: step
+					),
+				};
+	const manifest = withOptionalConsentMapping(base, consentMapping);
+
+	const resolved = resolveManifest(manifest, {
+		category,
+		config,
+		id,
+	});
+
+	if (!script) {
+		return resolved;
+	}
+
+	return {
+		...resolved,
+		...script,
+		attributes: {
+			...(resolved.attributes ?? {}),
+			...(script.attributes ?? {}),
+		},
+	};
+};

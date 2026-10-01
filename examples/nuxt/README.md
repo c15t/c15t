@@ -84,6 +84,16 @@ absent before measurement permission. The example emits no custom conversion
 events. Script removal cannot undo SDK code that already ran; application event
 calls must also stop after withdrawal.
 
+Module config is static, so the banner-shape experiment is switched on at
+build time. Run `NUXT_PUBLIC_C15T_EXPERIMENT=1 bun run --cwd examples/nuxt dev`
+and open `/consent-example`: c15t picks the `control` arm (the default banner)
+or the `wall` arm, and the page shows `banner-shape · <arm> · c15t` with a
+`c15t_surface_shown` and `c15t_choice_recorded` line for each impression and
+choice under the arm, read from the kernel's `surface:shown` and
+`choice:recorded` events. Add `NUXT_PUBLIC_C15T_EXPERIMENT_ARM=wall` to set the
+arm the way a flag provider would; any other value runs `control`. See
+https://c15t.com/docs/guides/banner-experiments.
+
 The Nuxt module owns the shared runtime. One loader starts after `app:mounted`
 and is disposed with the app. The existing development DevTools remains mounted.
 Without the backend override, the existing self-hosted backend is used.

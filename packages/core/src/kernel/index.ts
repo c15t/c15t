@@ -8,11 +8,12 @@
  * - `snapshot.ts`             — initial-state construction + freezing.
  * - `patch.ts`                — `SnapshotPatch` shape + pure derivation.
  * - `records.ts`              — validation for hydration records.
- * - `runtime.ts`              — commit, hydrate, refresh, timers, GPC directive.
+ * - `runtime.ts`              — commit, hydrate, refresh, timers, GPC detection.
  * - `apply-init-response.ts`  — pure transport-response folder.
  * - `setters.ts`              — `kernel.set.*` (sync mutators).
  * - `commands.ts`             — `kernel.commands.*` (async I/O).
  * - `events.ts`               — typed event bus.
+ * - `dispatch.ts`             — ordered, isolated listener delivery.
  *
  * Invariants:
  * - `createConsentKernel()` has zero side effects. No window writes, no
@@ -24,9 +25,14 @@
  *   permissions at most, never the choice.
  * - Timers and browser listeners are installed by lifecycle commands
  *   (`init`, `hydrate`) and removed by `dispose()`.
+ * - Subscribers and event listeners are notified synchronously, in commit
+ *   order. A throwing listener is reported and never fails the command or
+ *   hides the change from other listeners. A commit's follow-up event is
+ *   delivered before any transition a listener starts in response.
  */
 import type { ConsentKernel, KernelConfig } from '../types';
 import { buildCommands } from './commands';
+import { createDispatcher } from './dispatch';
 import { createEventBus } from './events';
 import { createRuntime } from './runtime';
 import { buildSetters } from './setters';
@@ -42,7 +48,8 @@ export const createConsentKernel = function createConsentKernel(
 	config: KernelConfig = {}
 ): ConsentKernel {
 	const { transport } = config;
-	const eventBus = createEventBus();
+	const dispatcher = createDispatcher();
+	const eventBus = createEventBus(dispatcher);
 	const initialSnapshot = buildInitialSnapshot(config);
 	// The revision-0 snapshot, held immutably. This is what a server render
 	// saw, so hydration-time consumers can render exactly what the server
@@ -50,10 +57,10 @@ export const createConsentKernel = function createConsentKernel(
 	const serverSnapshot = initialSnapshot;
 
 	const runtime = createRuntime({
+		dispatcher,
 		emit: eventBus.emit,
 		initialDraft: buildDraft(config.initialDraft),
 		initialSnapshot,
-		transport,
 	});
 	const set = buildSetters(runtime, config);
 	const commandHandle = buildCommands({
@@ -73,6 +80,7 @@ export const createConsentKernel = function createConsentKernel(
 		getServerSnapshot: () => serverSnapshot,
 		getSnapshot: runtime.getSnapshot,
 		hydrate: runtime.hydrate,
+		markLive: runtime.markLive,
 		refresh: runtime.refresh,
 		set,
 		subscribe: runtime.subscribe,

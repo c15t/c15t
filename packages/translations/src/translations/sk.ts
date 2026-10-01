@@ -93,6 +93,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Prispôsobte si nastavenia súkromia tu. Môžete si vybrať, ktoré typy cookies a sledovacích technológií povolíte.',
+			features: {
+				description:
+					'Tieto spôsoby spracúvania možno použiť výlučne na dosiahnutie jedného alebo viacerých účelov, z ktorých si môžete zvoliť v tomto oznámení.',
+				title: 'Funkcie',
+			},
 			footer: {
 				consentStorage:
 					'Predvoľby súhlasu sú uložené v cookie s názvom "euconsent-v2" po dobu 13 mesiacov. Doba uloženia sa môže obnoviť, keď aktualizujete svoje predvoľby.',

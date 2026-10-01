@@ -8,10 +8,10 @@ group: integrations
 
 Use the LogRocket app ID in `org-slug/app-slug` form. The helper calls `LogRocket.init` after the SDK loads.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { logRocket } from '@c15t/scripts/logrocket';
+import { logRocket } from '@c15t/integrations/logrocket';
 
 export const scripts = [logRocket({ appId: 'your-org/your-app' })];
 ```

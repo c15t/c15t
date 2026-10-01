@@ -9,7 +9,7 @@
 		"start": "next start"
 	},
 	"dependencies": {
-		"@c15t/scripts": "workspace:*",
+		"@c15t/integrations": "workspace:*",
 		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*",
 		"next": "16.2.10",

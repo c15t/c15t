@@ -51,12 +51,14 @@ describe('kernel event mapping', () => {
 		const snapshot = createConsentKernel().getSnapshot();
 		const events: KernelEvent[] = [
 			{ type: 'records:cleared' },
+			{ type: 'preferences:requested' },
 			{
 				actionAt: 1,
 				confirmed: ['marketing'],
 				snapshot,
 				type: 'choice:recorded',
 			},
+			{ shownAt: 1, snapshot, surface: 'banner', type: 'surface:shown' },
 			{
 				previous: snapshot.effectivePermissions,
 				snapshot,
@@ -65,12 +67,8 @@ describe('kernel event mapping', () => {
 			{
 				dismissal: { dismissedAt: 1, fingerprint: 'notice', version: 1 },
 				snapshot,
+				surface: 'banner',
 				type: 'notice:dismissed',
-			},
-			{
-				directive: { categories: ['marketing'], recordedAt: 1, source: 'gpc' },
-				snapshot,
-				type: 'privacy:opt-out',
 			},
 			{ snapshot, type: 'overrides:set' },
 			{ snapshot, type: 'user:identified' },

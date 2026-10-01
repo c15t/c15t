@@ -19,6 +19,9 @@ interface RunInput {
 	fetch?: typeof globalThis.fetch;
 	/** Extra `Astro.locals` fields, such as an adapter runtime. */
 	locals?: Record<string, unknown>;
+	experimentArm?: (context: {
+		request: Request;
+	}) => string | undefined | Promise<string | undefined>;
 }
 
 const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
@@ -26,7 +29,7 @@ const run = async function run(input: RunInput = {}): Promise<C15tLocals> {
 		resolveOptions(
 			input.options ?? { mode: offlineMode({ policyRules: [testRule] }) }
 		),
-		{ fetch: input.fetch }
+		{ experimentArm: input.experimentArm, fetch: input.fetch }
 	);
 	const locals = { ...(input.locals ?? {}) } as { c15t: C15tLocals };
 	const next = vi.fn(() => new Response('ok'));
@@ -95,6 +98,35 @@ describe('consent middleware', () => {
 		expect(registered).toHaveLength(1);
 		await expect(registered[0]).resolves.toBeUndefined();
 		expect(fetchImpl).toHaveBeenCalledTimes(2);
+	});
+
+	it('resolves the experiment arm per request', async () => {
+		const options: C15tAstroOptions = {
+			experiment: {
+				arms: { bar: { prompt: { variant: 'bar' } } },
+				id: 'banner-shape',
+			},
+			middleware: false,
+			mode: offlineMode({ policyRules: [testRule] }),
+		};
+		const experimentArm = ({ request }: { request: Request }) =>
+			request.headers.get('x-arm') ?? undefined;
+		const bar = await run({
+			experimentArm,
+			headers: { 'x-arm': 'bar' },
+			options,
+		});
+		const control = await run({
+			experimentArm,
+			headers: { 'x-arm': 'control' },
+			options,
+		});
+		const none = await run({ experimentArm, options });
+		expect(bar.snapshot.experiment?.arm).toBe('bar');
+		expect(control.snapshot.experiment?.arm).toBe('control');
+		expect(none.snapshot.experiment).toBeNull();
+		// Nothing is held: the banner is server HTML either way.
+		expect(none.snapshot.experimentPending).toBe(false);
 	});
 
 	it('populates locals for a first-time visitor', async () => {

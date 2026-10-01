@@ -1,31 +1,39 @@
 <script lang="ts">
-	import bannerStyles from '@c15t/ui/styles/components/consent-banner';
-	import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
-	import iabBannerStyles from '@c15t/ui/styles/components/iab-consent-banner';
-	import iabDialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
-
 	import { getThemeContext } from '../context.svelte';
 	import { resolveComponentStyles } from '../utils';
 
+	/**
+	 * The overlay class names from the caller's own style map. The overlay
+	 * imports none itself, so a page with only the banner does not ship the
+	 * dialog or IAB class maps (and, where a class map imports its CSS, their
+	 * stylesheets).
+	 */
+	interface OverlayStyles {
+		overlay?: string;
+		overlayVisible?: string;
+		overlayEntering?: string;
+		overlayHidden?: string;
+	}
+
 	let {
+		entering,
+		styles,
 		variant = 'banner',
 		visible = true,
 	}: {
+		/**
+		 * Add the `@starting-style` entering class on a visible overlay so it
+		 * fades in from the first frame. Defaults to the theme's animation
+		 * setting, so a caller only passes it to override that.
+		 */
+		entering?: boolean;
+		styles: OverlayStyles;
 		variant?: 'banner' | 'dialog' | 'iab-banner' | 'iab-dialog';
 		visible?: boolean;
 	} = $props();
 
 	const theme = getThemeContext();
-
-	const styles = $derived.by(() => {
-		if (variant === 'dialog') {
-			return dialogStyles;
-		}
-		if (variant === 'iab-dialog') {
-			return iabDialogStyles;
-		}
-		return variant === 'iab-banner' ? iabBannerStyles : bannerStyles;
-	});
+	const shouldEnter = $derived(entering ?? !(theme.disableAnimation ?? false));
 
 	const themeKey = $derived.by(() => {
 		if (variant === 'dialog') {
@@ -63,7 +71,7 @@
 	const className = $derived(
 		theme.noStyle
 			? themeStyle.className || ''
-			: `${themeStyle.className || ''} ${visible ? styles.overlayVisible : styles.overlayHidden}`
+			: `${themeStyle.className || ''} ${visible ? `${styles.overlayVisible}${shouldEnter && styles.overlayEntering ? ` ${styles.overlayEntering}` : ''}` : styles.overlayHidden}`
 	);
 </script>
 

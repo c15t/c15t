@@ -5,8 +5,12 @@ import {
 	createHostedTransport,
 	initOutputToKernelConfig,
 	resolveVendors,
+	seedExperiment,
+	startExperiment,
+	watchRevocationReload,
 } from '@c15t/core';
 import type {
+	ConsentExperiment,
 	ConsentKernel,
 	ConsentSnapshot,
 	InitResponse,
@@ -23,12 +27,18 @@ import type {
 	BlockedRequestInfo,
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
+import { holdNetworkRequests, NOT_HELD } from '@c15t/core/modules/network-hold';
+import type { NetworkHold } from '@c15t/core/modules/network-hold';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
-import { createLazyIABFactory } from '@c15t/core/runtime';
+import {
+	wireRuntimeCallbacks,
+	connectConsentSource,
+	createLazyIABFactory,
+} from '@c15t/core/runtime';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeIABHandle,
@@ -42,12 +52,14 @@ import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { Ref } from 'vue';
 
+import type * as ClientManifestModule from './client-manifest';
 import type { ConsentConfig } from './config';
 import {
 	isClientManifestModeEnabled,
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
 } from './manifest';
+import { invalidateIABChoice } from './utils/save-iab-choice';
 
 export const INIT_HEADER_NAMES = [...CONSENT_REQUEST_HEADER_NAMES] as const;
 
@@ -77,6 +89,12 @@ export interface VueConsentKernelContext {
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
 	initialRecords?: HydrationRecords;
 	ownsKernel: boolean;
+	/**
+	 * The experiment definition the kernel was created with. Validation,
+	 * assignment and attribution all derive from it, so presentation and
+	 * theme resolve against it too; a later config change is ignored.
+	 */
+	experimentDefinition?: ConsentExperiment;
 	dispose: () => void;
 }
 
@@ -150,6 +168,35 @@ const toVueActiveUI = function toVueActiveUI(
 		return null;
 	}
 	return ui;
+};
+
+const DISPLAY_DATA_KEYS = [
+	'branding',
+	'cmpId',
+	'customVendors',
+	'gvl',
+	'gvlReference',
+	'location',
+	'translations',
+] as const;
+
+/**
+ * Keep the previous display data when every field is the same reference, so
+ * components reading `useConsentInit()` don't re-render on kernel changes
+ * that leave it alone (opening the dialog, a save, a privacy signal).
+ */
+const reuseDisplayData = function reuseDisplayData(
+	next: VueConsentDisplayData | undefined,
+	previous: VueConsentDisplayData | undefined
+): VueConsentDisplayData | undefined {
+	if (
+		next &&
+		previous &&
+		DISPLAY_DATA_KEYS.every((key) => next[key] === previous[key])
+	) {
+		return previous;
+	}
+	return next;
 };
 
 const snapshotToDisplayData = function snapshotToDisplayData(
@@ -361,6 +408,28 @@ const settle = async function settle<Value>(
 	}
 };
 
+type ClientManifestResources = typeof ClientManifestModule;
+
+let bundledClientManifest: ClientManifestResources | undefined;
+
+/**
+ * Hand the kernel client manifest resources that are already part of the
+ * app's entry, so it uses them instead of importing its own chunk. Nuxt's
+ * client manifest mode registers them from a plugin that imports them
+ * statically: that mode resolves the manifest at startup, and a static
+ * import lets the page preload the resolver instead of fetching it after
+ * the entry runs.
+ *
+ * @param resources - The `./client-manifest` module, or `undefined` to
+ * go back to importing it on demand.
+ * @internal
+ */
+export const registerClientManifest = function registerClientManifest(
+	resources: ClientManifestResources | undefined
+): void {
+	bundledClientManifest = resources;
+};
+
 const createVueManifestTransport = function createVueManifestTransport(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>,
@@ -409,8 +478,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 	const loadClientResources = function loadClientResources() {
 		return settle(
 			Promise.all([
-				import('@c15t/core/transports/manifest'),
-				import('@c15t/translations/all'),
+				bundledClientManifest ?? import('./client-manifest'),
 				fetchManifest(),
 			])
 		);
@@ -435,7 +503,7 @@ const createVueManifestTransport = function createVueManifestTransport(
 				clientResources = undefined;
 				throw loaded.error;
 			}
-			const [{ createManifestTransport }, { baseTranslations }, manifest] =
+			const [{ baseTranslations, createManifestTransport }, manifest] =
 				loaded.value;
 			manifestTransport ??= createManifestTransport({
 				backendURL,
@@ -507,7 +575,69 @@ const resolveInitialPolicyPending = (
 		initialConfig.initialPolicyResolution
 	);
 
+/**
+ * Each context's hold until a network blocker takes it over. A context
+ * disposed while its hold is still here ends the hold itself.
+ */
+const unclaimedHolds = new WeakMap<VueConsentKernelContext, NetworkHold>();
+
+/**
+ * The network blocker installs once the root mounts, after every child ran
+ * its setup and mount hooks. Hold matching requests until then; the blocker
+ * takes over this context's hold and replays them.
+ *
+ * @returns This context's hold, or `null` when it holds nothing.
+ */
+const holdBlockedRequests = function holdBlockedRequests(
+	config: RuntimeConsentConfig,
+	ownsKernel: boolean
+): NetworkHold | null {
+	if (
+		ownsKernel &&
+		config.networkBlocker &&
+		config.networkBlocker.enabled !== false
+	) {
+		return holdNetworkRequests(config.networkBlocker.rules);
+	}
+	return null;
+};
+
+const trackUnclaimedHold = function trackUnclaimedHold(
+	context: VueConsentKernelContext,
+	hold: NetworkHold | null
+): void {
+	if (hold) {
+		unclaimedHolds.set(context, hold);
+	}
+};
+
+/** Reload after an explicit revocation. A borrowed runtime does this itself. */
+const watchOwnedRevocationReload = function watchOwnedRevocationReload(
+	ownsKernel: boolean,
+	kernel: ConsentKernel,
+	config: RuntimeConsentConfig
+): () => void {
+	if (!ownsKernel) {
+		return () => undefined;
+	}
+	return watchRevocationReload({
+		getOnBeforeReload: () => config.callbacks?.onBeforeConsentRevocationReload,
+		isEnabled: () => config.reloadOnConsentRevoked !== false,
+		kernel,
+	});
+};
+
+/** Take a context's hold, so only one owner ends it. */
+const claimHold = function claimHold(
+	context: VueConsentKernelContext
+): NetworkHold {
+	const hold = unclaimedHolds.get(context) ?? NOT_HELD;
+	unclaimedHolds.delete(context);
+	return hold;
+};
+
 export const createVueConsentKernelContext =
+	// oxlint-disable-next-line complexity -- Resolves hosted, prefetched, borrowed and external-authority kernels.
 	function createVueConsentKernelContext(options: {
 		config: RuntimeConsentConfig;
 		headers?: Record<string, string | undefined>;
@@ -550,52 +680,68 @@ export const createVueConsentKernelContext =
 			options.config,
 			initialConfig
 		);
-		const kernel =
-			options.runtime?.kernel ??
-			createConsentKernel({
-				...initialConfig,
-				consentCategories: options.config.consentCategories,
-				inferredConsentCategories: inferConfiguredCategories(
-					options.config,
-					initialVendors
-				),
-				initialPolicyPending: resolveInitialPolicyPending(
-					initialConfig,
-					options.kernelConfig
-				),
-				initialRecords: records.initialRecords,
-				initialVendors,
-				now:
-					options.now ??
-					options.initialRecords?.now ??
-					options.config.initialRecords?.now,
-				transport,
-				...options.kernelConfig,
-			});
+		const kernelConfig: KernelConfig = {
+			...initialConfig,
+			consentCategories: options.config.consentCategories,
+			inferredConsentCategories: inferConfiguredCategories(
+				options.config,
+				initialVendors
+			),
+			initialPolicyPending: resolveInitialPolicyPending(
+				initialConfig,
+				options.kernelConfig
+			),
+			initialRecords: records.initialRecords,
+			initialVendors,
+			now:
+				options.now ??
+				options.initialRecords?.now ??
+				options.config.initialRecords?.now,
+			transport,
+			...options.kernelConfig,
+		};
+		// A prefetched or host-resolved arm renders on the server; built-in
+		// assignment holds the prompt until the browser picked the arm.
+		if (ownsKernel) {
+			Object.assign(
+				kernelConfig,
+				seedExperiment(
+					options.config.experiment,
+					options.kernelConfig?.initialExperiment ??
+						initialConfig.initialExperiment,
+					!resolveInitialPolicyPending(initialConfig, options.kernelConfig)
+				)
+			);
+		}
+		if (options.config.consentSource) {
+			kernelConfig.initialExternalPermissions = {};
+			kernelConfig.initialRecords = undefined;
+			kernelConfig.initialPolicyPending = false;
+		}
+		const kernel = options.runtime?.kernel ?? createConsentKernel(kernelConfig);
+		const hold = holdBlockedRequests(options.config, ownsKernel);
 
 		const snapshot = shallowRef(kernel.getSnapshot());
 		const unsubscribe = kernel.subscribe((next) => {
 			snapshot.value = next;
 		});
 
-		const init = computed(() => snapshotToDisplayData(snapshot.value));
+		const init = computed<VueConsentDisplayData | undefined>((previous) =>
+			reuseDisplayData(snapshotToDisplayData(snapshot.value), previous)
+		);
 		const activeUI = computed<ConsentActiveUI>({
 			get: () => toVueActiveUI(snapshot.value.activeUI),
-			set: (value) => kernel.set.activeUI(toKernelActiveUI(value)),
+			set: (value) => {
+				invalidateIABChoice(kernel);
+				kernel.set.activeUI(toKernelActiveUI(value));
+			},
 		});
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
-		const unsubscribeChoice = kernel.events.on(
-			'choice:recorded',
-			({ snapshot: eventSnapshot, confirmed, actionAt }) => {
-				(ownsKernel ? options.config.callbacks : undefined)?.onChoiceRecorded?.(
-					{
-						actionAt,
-						confirmed,
-						snapshot: eventSnapshot,
-					}
-				);
-			}
-		);
+		const unsubscribeCallbacks = wireRuntimeCallbacks({
+			callbacks: ownsKernel ? options.config.callbacks : undefined,
+			kernel,
+		});
+
 		// Vendors the backend declares arrive with init. Their categories
 		// become selectable the same way a code-declared vendor's do.
 		const unsubscribeVendorCategories = ownsKernel
@@ -610,17 +756,11 @@ export const createVueConsentKernelContext =
 					}
 				})
 			: () => undefined;
-		const unsubscribePermissions = kernel.events.on(
-			'permissions:changed',
-			({ snapshot: eventSnapshot, previous }) => {
-				(ownsKernel
-					? options.config.callbacks
-					: undefined
-				)?.onPermissionsChanged?.({
-					previous,
-					snapshot: eventSnapshot,
-				});
-			}
+
+		const unsubscribeRevocationReload = watchOwnedRevocationReload(
+			ownsKernel,
+			kernel,
+			options.config
 		);
 
 		// Assigned after context creation because the subscription updates that context.
@@ -636,7 +776,6 @@ export const createVueConsentKernelContext =
 				kernel.hydrate({
 					choice: null,
 					noticeDismissal: null,
-					optOutDirectives: [],
 					subject: null,
 				});
 				kernel.events.emit({ type: 'records:cleared' });
@@ -644,13 +783,19 @@ export const createVueConsentKernelContext =
 			dispose() {
 				unsubscribeIab?.();
 				unsubscribe();
-				unsubscribeChoice();
+				unsubscribeCallbacks();
 				unsubscribeVendorCategories();
-				unsubscribePermissions();
+				unsubscribeRevocationReload();
 				if (ownsKernel) {
 					kernel.dispose();
 				}
+				// Disposed before a blocker took the hold over (a failed mount,
+				// or no browser start): nothing else ends it, and nothing
+				// checked consent for what it held, so those requests fail as
+				// blocked rather than wait for the rest of the page.
+				claimHold(context).block();
 			},
+			experimentDefinition: options.config.experiment,
 			iab: options.runtime?.iab ?? undefined,
 			init,
 			initialRecords: records.hydrationRecords,
@@ -662,6 +807,7 @@ export const createVueConsentKernelContext =
 		unsubscribeIab = options.runtime?.onIABChange((handle) => {
 			context.iab = handle ?? undefined;
 		});
+		trackUnclaimedHold(context, hold);
 		return context;
 	};
 
@@ -755,6 +901,31 @@ const mountClearOnRevocation = (
  * @param options - Set `runInit: false` to skip the initial `init()`.
  * @returns A disposer that undoes everything this call mounted.
  */
+/**
+ * Hydrate stored records into the kernel. No-op without browser storage.
+ */
+const mountVuePersistence = (
+	context: VueConsentKernelContext,
+	config: RuntimeConsentConfig
+): (() => void) => {
+	if (typeof document === 'undefined' || typeof localStorage === 'undefined') {
+		return () => undefined;
+	}
+	const persistence = createPersistence({
+		kernel: context.kernel,
+		skipHydration: true,
+		storageConfig: config.storageConfig,
+	});
+	hydrateVuePersistence(context, persistence);
+	const clearMemory = context.clearRecords;
+	context.clearRecords = persistence.clear;
+	return () => {
+		context.clearRecords = clearMemory;
+		persistence.dispose();
+	};
+};
+
+// oxlint-disable-next-line complexity -- Mounts consent modules in lifecycle order with one external authority.
 export const startVueConsentRuntime = function startVueConsentRuntime(
 	context: VueConsentKernelContext,
 	config: RuntimeConsentConfig,
@@ -780,23 +951,32 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 		disposers.push(() => windowDebug.dispose());
 	}
 
-	if (typeof document !== 'undefined' && typeof localStorage !== 'undefined') {
-		const persistence = createPersistence({
-			kernel: context.kernel,
-			skipHydration: true,
-			storageConfig: config.storageConfig,
-		});
-		hydrateVuePersistence(context, persistence);
-		const clearMemory = context.clearRecords;
-		context.clearRecords = persistence.clear;
-		disposers.push(() => {
-			context.clearRecords = clearMemory;
-			persistence.dispose();
-		});
+	if (!config.consentSource) {
+		disposers.push(mountVuePersistence(context, config));
+	}
+	// After hydration, so a returning visitor's subject id seeds the arm.
+	// The controller loads as its own chunk; a held prompt waits for it.
+	if (
+		context.ownsKernel &&
+		context.experimentDefinition &&
+		!config.consentSource &&
+		typeof document !== 'undefined'
+	) {
+		disposers.push(
+			startExperiment({
+				experiment: context.experimentDefinition,
+				kernel: context.kernel,
+				presentation: config.presentation,
+				storageConfig: config.storageConfig,
+			})
+		);
 	}
 
+	if (typeof document !== 'undefined' && config.consentSource) {
+		disposers.push(connectConsentSource(context.kernel, config.consentSource));
+	}
 	const detectedGpc = context.snapshot.value.privacySignals.gpc;
-	if (detectedGpc.detected && detectedGpc.active) {
+	if (!config.consentSource && detectedGpc.detected && detectedGpc.active) {
 		// Prepared hydration is read-only. Commit the honored request signal
 		// through the public setter once the provider has mounted.
 		context.kernel.set.privacySignals({ gpc: true });
@@ -816,6 +996,9 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	if (typeof document !== 'undefined' && config.networkBlocker) {
 		const networkBlocker = createNetworkBlocker({
 			enabled: config.networkBlocker.enabled,
+			// This context's hold only, so the blocker leaves other callers'
+			// holds in place, disabled or not.
+			hold: claimHold(context),
 			kernel: context.kernel,
 			logBlockedRequests: config.networkBlocker.logBlockedRequests,
 			onRequestBlocked: config.networkBlocker.onRequestBlocked,
@@ -837,6 +1020,9 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	let iabHandle: ConsentRuntimeIABHandle | undefined;
 	let activeCmpId: number | undefined;
 	const mountIab = () => {
+		if (config.consentSource) {
+			return;
+		}
 		const state = context.kernel.getSnapshot();
 		const cmpId = state.iab?.cmpId;
 		const nextCmpId =
@@ -869,13 +1055,19 @@ export const startVueConsentRuntime = function startVueConsentRuntime(
 	});
 
 	const browserGpc = getBrowserGpc();
-	if (browserGpc !== undefined) {
+	if (!config.consentSource && browserGpc !== undefined) {
 		context.kernel.set.privacySignals({ gpc: browserGpc });
 	}
 	let active = true;
 	const isActive = () => active;
 
-	if (options.runInit !== false) {
+	if (config.consentSource) {
+		// An external source owns permissions; there is nothing to initialise.
+	} else if (options.runInit === false) {
+		// No init call marks this kernel live, so do it here: the banner the
+		// server rendered is the visitor's first impression.
+		context.kernel.markLive();
+	} else {
 		void (async () => {
 			await context.kernel.commands.init();
 			if (!active) {

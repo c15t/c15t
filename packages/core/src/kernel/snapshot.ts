@@ -33,7 +33,12 @@ import type {
 	KernelVendorsState,
 	VendorChoice,
 	ResolvedVendor,
+	PromptSurface,
 } from '../types';
+import {
+	evaluateExternalPermissions,
+	normalizeExternalPermissions,
+} from './external-permissions';
 import { validateHydrationRecords } from './records';
 
 /**
@@ -77,7 +82,7 @@ const UNCONFIGURED: PolicyResolution = Object.freeze({
 	status: 'unconfigured',
 });
 
-// The fallback evaluation without records has no expiry or directive deadline.
+// The fallback evaluation without records has no expiry deadline.
 // Its permissions and prompt are independent of the clock and GPC because
 // the fallback has no GPC deny mapping. Compute the real evaluator once and
 // freeze its result before sharing it between independently owned snapshots.
@@ -85,8 +90,17 @@ const DEFAULT_EFFECTIVE_POLICY = resolveEffectivePolicy(UNCONFIGURED);
 const DEFAULT_EVALUATION_POLICY = buildEvaluationPolicy(
 	DEFAULT_EFFECTIVE_POLICY
 );
-const EMPTY_DIRECTIVES: ConsentSnapshot['optOutDirectives'] = Object.freeze([]);
 const EMPTY_OVERRIDES = Object.freeze({});
+/** No prompt surface has been shown yet. Shared by every fresh snapshot. */
+export const UNSHOWN_SURFACES: ConsentSnapshot['surfaceShownAt'] =
+	Object.freeze({ banner: null, dialog: null });
+
+/** Whether an active UI value is a prompt surface the kernel timestamps. */
+export const isPromptSurface = function isPromptSurface(
+	value: unknown
+): value is PromptSurface {
+	return value === 'banner' || value === 'dialog';
+};
 const DEFAULT_PRIVACY_SIGNALS: ConsentSnapshot['privacySignals'] =
 	Object.freeze({
 		gpc: Object.freeze({ active: false, detected: false, override: undefined }),
@@ -95,7 +109,6 @@ const DEFAULT_RECORD_EVALUATION = evaluateConsentRecord({
 	choice: null,
 	noticeDismissal: null,
 	now: 0,
-	optOuts: EMPTY_DIRECTIVES,
 	policy: DEFAULT_EVALUATION_POLICY,
 });
 deepFreeze(DEFAULT_RECORD_EVALUATION);
@@ -137,6 +150,14 @@ export const copyIABAuthority = function copyIABAuthority(
 	}
 	return {
 		...authority,
+		...(authority.publisherRestrictions && {
+			publisherRestrictions: authority.publisherRestrictions.map(
+				(restriction) => ({
+					...restriction,
+					vendorIds: [...restriction.vendorIds],
+				})
+			),
+		}),
 		purposeConsents: { ...authority.purposeConsents },
 		purposeLegitimateInterests: { ...authority.purposeLegitimateInterests },
 		specialFeatureOptIns: { ...authority.specialFeatureOptIns },
@@ -237,13 +258,6 @@ export const freezeSnapshot = function freezeSnapshot(
 		}
 		Object.freeze(snapshot.restrictions);
 	}
-	if (snapshot.optOutDirectives !== EMPTY_DIRECTIVES) {
-		for (const directive of snapshot.optOutDirectives) {
-			Object.freeze(directive.categories);
-			Object.freeze(directive);
-		}
-		Object.freeze(snapshot.optOutDirectives);
-	}
 	if (snapshot.privacySignals !== DEFAULT_PRIVACY_SIGNALS) {
 		Object.freeze(snapshot.privacySignals.gpc);
 		Object.freeze(snapshot.privacySignals);
@@ -269,10 +283,14 @@ export const freezeSnapshot = function freezeSnapshot(
 
 		snapshot.iab,
 		snapshot.location,
+		snapshot.experiment,
 	]) {
 		if (nested) {
 			Object.freeze(nested);
 		}
+	}
+	if (snapshot.surfaceShownAt !== UNSHOWN_SURFACES) {
+		Object.freeze(snapshot.surfaceShownAt);
 	}
 	return Object.freeze(snapshot) as ConsentSnapshot;
 };
@@ -311,11 +329,18 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const records = validated?.ok === true ? validated.records : null;
 	const explicitChoice = records?.choice ?? null;
 	const noticeDismissal = records?.noticeDismissal ?? null;
-	const optOutDirectives = records?.optOutDirectives ?? EMPTY_DIRECTIVES;
 	const subject = records?.subject ?? null;
 	const vendorChoice = records?.vendorChoice ?? null;
 
-	const iab = buildInitialIab(config.initialIab);
+	const iab = buildInitialIab(
+		config.initialExternalPermissions === undefined
+			? config.initialIab
+			: config.initialIab && {
+					...config.initialIab,
+					authority: null,
+					enabled: false,
+				}
+	);
 	const vendors = buildInitialVendors(config.initialVendors);
 	const override = config.initialOverrides?.gpc;
 	const detected = config.initialPrivacySignals?.gpc === true;
@@ -324,39 +349,51 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 			? DEFAULT_PRIVACY_SIGNALS
 			: { gpc: { active: override ?? detected, detected, override } };
 
-	const evaluation =
+	const externalPermissions =
+		config.initialExternalPermissions === undefined
+			? undefined
+			: normalizeExternalPermissions(config.initialExternalPermissions);
+	const recordEvaluation =
 		evaluationPolicy === DEFAULT_EVALUATION_POLICY &&
 		explicitChoice === null &&
-		noticeDismissal === null &&
-		optOutDirectives.length === 0
+		noticeDismissal === null
 			? DEFAULT_RECORD_EVALUATION
 			: evaluateConsentRecord({
 					choice: explicitChoice,
 					gpc: privacySignals.gpc.active,
 					noticeDismissal,
 					now,
-					optOuts: optOutDirectives,
 					policy: evaluationPolicy,
 				});
 
+	const evaluation = externalPermissions
+		? evaluateExternalPermissions(externalPermissions)
+		: recordEvaluation;
 	return freezeSnapshot({
-		activeUI: deriveActiveUI({
-			policyPending,
-			promptRequirement: evaluation.promptRequirement,
-			resolution,
-		}),
+		activeUI: externalPermissions
+			? 'none'
+			: deriveActiveUI({
+					experimentPending: config.initialExperimentPending === true,
+					policyPending,
+					promptRequirement: evaluation.promptRequirement,
+					resolution,
+				}),
 		branding: config.initialBranding ?? null,
 		consentCategories,
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		experiment: config.initialExperiment
+			? { ...config.initialExperiment }
+			: null,
+		experimentPending: config.initialExperimentPending === true,
 		explicitChoice,
+		externalPermissions,
 		iab,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
 		model: deriveModel(effective.rule, iab?.enabled ?? false),
 		nextDeadline: evaluation.nextDeadline,
 		noticeDismissal,
-		optOutDirectives,
 		overrides: config.initialOverrides
 			? { ...config.initialOverrides }
 			: EMPTY_OVERRIDES,
@@ -369,6 +406,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		restrictions: evaluation.restrictions,
 		revision: 0,
 		subject,
+		surfaceShownAt: UNSHOWN_SURFACES,
 		translations: config.initialTranslations
 			? { ...config.initialTranslations }
 			: null,

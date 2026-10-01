@@ -105,7 +105,7 @@ export default defineNuxtPlugin((nuxtApp) => {
 			'@c15t/vue',
 			'@c15t/core',
 			'@c15t/ui',
-			...(options.scripts.length ? ['@c15t/scripts'] : []),
+			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files,
 		instructions,

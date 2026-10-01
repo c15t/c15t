@@ -240,7 +240,7 @@ describe('run-compare gate', () => {
 			coreScenarios.length
 		);
 		expect(summaryOf(run).budgets.definitionMismatches[0]).toContain(
-			'threshold expected 1 but saw 50'
+			'threshold expected 2 but saw 50'
 		);
 	});
 

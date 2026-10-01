@@ -96,7 +96,7 @@ const MODEL_OPTIONS: { value: PolicyRuleModel; label: string; hint: string }[] =
 			value: 'opt-out',
 		},
 		{
-			hint: 'IAB TCF 2.3. The playground mounts the IAB addon and fetches the Global Vendor List for this model.',
+			hint: 'IAB TCF 2.4. The playground mounts the IAB addon and fetches the Global Vendor List for this model.',
 			label: 'iab',
 			value: 'iab',
 		},
@@ -119,7 +119,6 @@ const EVENT_TYPES: KernelEvent['type'][] = [
 	'choice:recorded',
 	'permissions:changed',
 	'notice:dismissed',
-	'privacy:opt-out',
 	'records:cleared',
 	'command:save:completed',
 ];
@@ -974,9 +973,6 @@ const RuntimeInspector = ({
 							? ' (detected)'
 							: ' (override)'}
 					</p>
-					<p className="font-mono text-xs">
-						directives: {snapshot.optOutDirectives.length}
-					</p>
 				</div>
 				<div className="space-y-1">
 					<SectionLabel>Notice</SectionLabel>
@@ -1182,7 +1178,6 @@ const RuntimeInspector = ({
 						model: snapshot.model,
 						nextDeadline: snapshot.nextDeadline,
 						noticeDismissal: snapshot.noticeDismissal,
-						optOutDirectives: snapshot.optOutDirectives,
 						overrides: snapshot.overrides,
 						policyRule: snapshot.policyRule,
 						privacySignals: snapshot.privacySignals,

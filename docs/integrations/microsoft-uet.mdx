@@ -8,10 +8,10 @@ group: integrations
 
 Use your Microsoft Advertising UET tag ID. The helper owns the `uetq` queue and enables automatic SPA tracking when it constructs UET.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { microsoftUet } from '@c15t/scripts/microsoft-uet';
+import { microsoftUet } from '@c15t/integrations/microsoft-uet';
 
 export const scripts = [microsoftUet({ id: 'YOUR_UET_TAG_ID' })];
 ```

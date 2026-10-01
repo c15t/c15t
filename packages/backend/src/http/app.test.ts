@@ -20,6 +20,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -39,6 +40,7 @@ for (const engine of ENGINES) {
 				yield* indexes;
 				yield* receipts;
 				yield* vendorChoice;
+				yield* attribution;
 			})
 		);
 		app = createApp(runtime, {
@@ -328,6 +330,23 @@ for (const engine of ENGINES) {
 			// The IP goes through the same masking as a consent record's.
 			assert.strictEqual(onReport.mock.calls[0]?.[1].ip, '203.0.113.0');
 			assert.strictEqual(onReport.mock.calls[0]?.[1].userAgent, 'Mozilla/5.0');
+		});
+
+		it('puts the arm from x-c15t-experiment on the /init session report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request('/init', {
+				headers: {
+					'x-c15t-experiment': 'banner-shape=wall',
+					'x-c15t-version': '3.0.0',
+				},
+			});
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].experiment, {
+				arm: 'wall',
+				id: 'banner-shape',
+			});
 		});
 
 		it('refuses a report a page could have sent', async () => {
@@ -1125,6 +1144,171 @@ for (const engine of ENGINES) {
 				})
 			);
 			assert.strictEqual(rows[0]?.ipAddress, '203.0.113.0');
+		});
+
+		it('echoes free-form metadata such as an experiment arm', async () => {
+			await seed();
+			const metadata = {
+				experiment: {
+					acknowledgedDiagnostics: false,
+					arm: 'bar',
+					assignedBy: 'host',
+					id: 'banner-shape',
+				},
+				timeToDecisionMs: 3700,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.deepStrictEqual(body.metadata, metadata);
+			const rows = await runtime.runPromise(
+				Effect.gen(function* rows() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{ metadata: unknown }>`
+						select ${sql('metadata')} from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			// The JSON column comes back decoded on Postgres and as text on SQLite.
+			const raw = rows[0]?.metadata;
+			const stored = (
+				typeof raw === 'string' ? JSON.parse(raw) : raw
+			) as typeof metadata;
+			assert.deepStrictEqual(stored.experiment, metadata.experiment);
+			assert.strictEqual(stored.timeToDecisionMs, 3700);
+
+			// And projected onto the attribution columns the summary groups on.
+			const columns = await runtime.runPromise(
+				Effect.gen(function* columns() {
+					const sql = yield* SqlClient.SqlClient;
+					return yield* sql<{
+						experimentId: string | null;
+						experimentArm: string | null;
+						timeToDecisionMs: number | string | null;
+					}>`
+						select ${sql('experimentId')}, ${sql('experimentArm')},
+							${sql('timeToDecisionMs')}
+						from ${sql('consent')}
+						where ${sql('id')} = ${body.consentId}
+					`;
+				})
+			);
+			assert.strictEqual(columns[0]?.experimentId, 'banner-shape');
+			assert.strictEqual(columns[0]?.experimentArm, 'bar');
+			assert.strictEqual(Number(columns[0]?.timeToDecisionMs), 3700);
+		});
+
+		it('summarises a posted choice under the action names the summary reports', async () => {
+			await seed();
+			const experiment = {
+				acknowledgedDiagnostics: false,
+				arm: 'bar',
+				assignedBy: 'host',
+				id: 'banner-shape',
+			};
+			const saves = await Promise.all(
+				[
+					['sub_accepts', 'all'],
+					['sub_rejects', 'necessary'],
+				].map(([subjectId, consentAction]) =>
+					post({
+						...submission,
+						consentAction,
+						metadata: { experiment },
+						subjectId,
+					})
+				)
+			);
+			for (const save of saves) {
+				assert.strictEqual(save.status, 200);
+			}
+
+			const response = await app.request(
+				'/experiments/banner-shape/summary',
+				authed
+			);
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.deepStrictEqual(body.arms[0]?.byAction, {
+				accept_all: 1,
+				custom: 0,
+				opt_out: 0,
+				reject_all: 1,
+				unknown: 0,
+			});
+		});
+
+		const attributionColumns = (consentId: string) =>
+			runtime.runPromise(
+				Effect.gen(function* columns() {
+					const sql = yield* SqlClient.SqlClient;
+					const rows = yield* sql<{
+						experimentId: string | null;
+						experimentArm: string | null;
+						timeToDecisionMs: number | string | null;
+					}>`
+						select ${sql('experimentId')}, ${sql('experimentArm')},
+							${sql('timeToDecisionMs')}
+						from ${sql('consent')}
+						where ${sql('id')} = ${consentId}
+					`;
+					return rows[0];
+				})
+			);
+
+		it('drops oversized or malformed attribution without failing the save', async () => {
+			await seed();
+			// The id is longer than its column allows, and the decision time is
+			// past what a 32-bit `int` column holds on MySQL and Postgres.
+			const metadata = {
+				experiment: { arm: 'bar', id: 'x'.repeat(129) },
+				timeToDecisionMs: 3_000_000_000,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			// Still in the audit copy, just not on the columns.
+			assert.deepStrictEqual(body.metadata, metadata);
+			const columns = await attributionColumns(body.consentId);
+			assert.isNull(columns?.experimentId);
+			// The arm goes with the id: a row with an arm and no id would belong
+			// to no experiment, and one with an id and no arm would never be
+			// counted by the summary.
+			assert.isNull(columns?.experimentArm);
+			assert.isNull(columns?.timeToDecisionMs);
+		});
+
+		it('keeps a well-formed experiment when only the decision time is out of range', async () => {
+			await seed();
+			const metadata = {
+				experiment: { arm: 'bar', id: 'banner-shape' },
+				timeToDecisionMs: -1,
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			const columns = await attributionColumns(body.consentId);
+			assert.strictEqual(columns?.experimentId, 'banner-shape');
+			assert.strictEqual(columns?.experimentArm, 'bar');
+			assert.isNull(columns?.timeToDecisionMs);
+		});
+
+		it('drops the experiment id when the arm is malformed', async () => {
+			await seed();
+			const metadata = {
+				experiment: { arm: 42, id: 'banner-shape' },
+			};
+			const response = await post({ ...submission, metadata });
+
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			const columns = await attributionColumns(body.consentId);
+			assert.isNull(columns?.experimentId);
+			assert.isNull(columns?.experimentArm);
 		});
 
 		it('rejects a submission missing its identifiers', async () => {

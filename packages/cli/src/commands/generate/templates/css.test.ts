@@ -50,7 +50,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'src/main.tsx',
 			packageName: 'c15t/react',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -83,7 +82,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'app/layout.tsx',
 			packageName: 'c15t/next',
 			projectRoot: root,
-			tailwindVersion: '^4.2.2',
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -93,7 +91,7 @@ describe('updateAppStylesheetImports', () => {
 		);
 	});
 
-	it('inserts the Tailwind v3 stylesheet after @tailwind components', async () => {
+	it('puts the stylesheet above the Tailwind v3 directives', async () => {
 		const { root } = await createProject({
 			'app/globals.css': [
 				'@tailwind base;',
@@ -113,16 +111,15 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'app/layout.tsx',
 			packageName: 'c15t/next',
 			projectRoot: root,
-			tailwindVersion: '3.4.17',
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
 		expect(result.updated).toBe(true);
 		expect(content).toBe(
 			[
+				'@import "c15t/next/styles.css";',
 				'@tailwind base;',
 				'@tailwind components;',
-				'@import "c15t/next/styles.tw3.css";',
 				'@tailwind utilities;',
 			].join('\n')
 		);
@@ -149,7 +146,6 @@ describe('updateAppStylesheetImports', () => {
 			includeIab: true,
 			packageName: 'c15t/react',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/styles.css'), 'utf-8');
 
@@ -176,7 +172,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'src/main.tsx',
 			packageName: 'c15t/react',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -206,7 +201,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'app/layout.tsx',
 			packageName: 'c15t/next',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -240,7 +234,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'src/main.tsx',
 			packageName: 'c15t/react',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -267,7 +260,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'app/layout.tsx',
 			packageName: 'c15t/next',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'app/globals.css'), 'utf-8');
 
@@ -297,7 +289,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'src/main.tsx',
 			packageName: 'c15t/react',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 		const content = await readFile(join(root, 'src/index.css'), 'utf-8');
 
@@ -320,7 +311,6 @@ describe('updateAppStylesheetImports', () => {
 			entrypointPath: 'src/main.tsx',
 			packageName: 'c15t/react',
 			projectRoot: root,
-			tailwindVersion: null,
 		});
 
 		expect(result.updated).toBe(false);

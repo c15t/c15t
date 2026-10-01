@@ -1,8 +1,10 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	getFocusableElements,
 	getTextDirection,
+	firstTabbable,
+	tabbableElements,
 	setupFocusTrap,
 	setupScrollLock,
 	setupTextDirection,
@@ -132,50 +134,132 @@ describe('setupTextDirection', () => {
 });
 
 describe('setupScrollLock', () => {
-	const originalOverflow = document.body.style.overflow;
-	const originalPaddingRight = document.body.style.paddingRight;
+	const root = document.documentElement;
+	const { body } = document;
+	let pageStyle: HTMLStyleElement | null = null;
+
+	/** jsdom has no layout; give the root a classic scrollbar of `width`. */
+	const showRootScrollbar = (width: number) => {
+		Object.defineProperty(root, 'clientWidth', {
+			configurable: true,
+			get: () => window.innerWidth - width,
+		});
+	};
+	const supportScrollbarGutter = () => {
+		vi.stubGlobal('CSS', {
+			supports: (property: string) => property === 'scrollbar-gutter',
+		});
+	};
+	const addPageStyle = (css: string) => {
+		pageStyle = document.createElement('style');
+		pageStyle.textContent = css;
+		document.head.append(pageStyle);
+	};
 
 	afterEach(() => {
-		document.body.style.overflow = originalOverflow;
-		document.body.style.paddingRight = originalPaddingRight;
+		root.removeAttribute('style');
+		body.removeAttribute('style');
+		pageStyle?.remove();
+		pageStyle = null;
+		Reflect.deleteProperty(root, 'clientWidth');
+		vi.unstubAllGlobals();
 	});
 
-	test('sets overflow to hidden', () => {
+	test('hides body overflow when it controls the viewport, and restores it', () => {
+		body.style.overflow = 'auto';
 		const cleanup = setupScrollLock();
-		expect(document.body.style.overflow).toBe('hidden');
-		// The lock is reference counted across the module; release it so the
-		// next test starts unlocked.
+		expect(body.style.overflow).toBe('hidden');
+		expect(root.style.overflow).toBe('');
 		cleanup();
+		expect(body.style.overflow).toBe('auto');
 	});
 
-	test('cleanup restores original overflow', () => {
-		document.body.style.overflow = 'auto';
+	test('hides root overflow when the root sets its own, and restores it', () => {
+		addPageStyle('html { overflow-y: scroll; }');
+		root.style.overflowX = 'hidden';
 		const cleanup = setupScrollLock();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(root.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('');
 		cleanup();
-		expect(document.body.style.overflow).toBe('auto');
+		expect(root.style.overflowX).toBe('hidden');
+		expect(root.style.overflowY).toBe('');
+	});
+
+	test('also hides body overflow when body is the scroll container', () => {
+		addPageStyle('html { overflow: hidden; } body { overflow-y: auto; }');
+		root.style.setProperty('overflow-y', 'hidden', 'important');
+		const cleanup = setupScrollLock();
+		expect(root.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
+		cleanup();
+		expect(root.style.getPropertyValue('overflow-y')).toBe('hidden');
+		expect(root.style.getPropertyPriority('overflow-y')).toBe('important');
+		expect(body.style.overflow).toBe('');
 	});
 
 	test('nested locks restore the page only when the last one releases', () => {
-		document.body.style.overflow = 'auto';
+		body.style.overflow = 'auto';
 		const first = setupScrollLock();
 		const second = setupScrollLock();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
 
 		first();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
 		first();
-		expect(document.body.style.overflow).toBe('hidden');
+		expect(body.style.overflow).toBe('hidden');
 
 		second();
-		expect(document.body.style.overflow).toBe('auto');
+		expect(body.style.overflow).toBe('auto');
 	});
 
-	test('cleanup restores original paddingRight', () => {
-		document.body.style.paddingRight = '10px';
+	test('reserves the root scrollbar gutter instead of padding body', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		body.style.paddingRight = '10px';
 		const cleanup = setupScrollLock();
+		expect(root.style.scrollbarGutter).toBe('stable');
+		expect(body.style.paddingRight).toBe('10px');
 		cleanup();
-		expect(document.body.style.paddingRight).toBe('10px');
+		expect(root.style.scrollbarGutter).toBe('');
+	});
+
+	test('restores an inline scrollbar gutter the page already had', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		root.style.scrollbarGutter = 'auto';
+		const cleanup = setupScrollLock();
+		expect(root.style.scrollbarGutter).toBe('stable');
+		cleanup();
+		expect(root.style.scrollbarGutter).toBe('auto');
+	});
+
+	test('adds no gutter when the page shows no scrollbar', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(0);
+		const cleanup = setupScrollLock();
+		expect(body.style.overflow).toBe('hidden');
+		expect(root.style.scrollbarGutter).toBe('');
+		expect(body.style.paddingRight).toBe('');
+		cleanup();
+	});
+
+	test('keeps a stable gutter the page already reserves', () => {
+		supportScrollbarGutter();
+		showRootScrollbar(15);
+		addPageStyle('html { scrollbar-gutter: stable both-edges; }');
+		const cleanup = setupScrollLock();
+		expect(root.style.scrollbarGutter).toBe('');
+		cleanup();
+	});
+
+	test('pads body by the scrollbar width without scrollbar-gutter support', () => {
+		showRootScrollbar(15);
+		body.style.paddingRight = '10px';
+		const cleanup = setupScrollLock();
+		expect(body.style.paddingRight).toBe('15px');
+		expect(root.style.scrollbarGutter).toBe('');
+		cleanup();
+		expect(body.style.paddingRight).toBe('10px');
 	});
 });
 
@@ -317,6 +401,31 @@ describe('setupFocusTrap focus restore', () => {
 		cleanup();
 		await flushFocusTimers();
 		expect(document.activeElement).toBe(trigger);
+	});
+
+	test('focuses the first tabbable element when asked to', async () => {
+		const link = document.createElement('a');
+		link.href = '#';
+		const button = document.createElement('button');
+		dialog.append(link, button);
+
+		const release = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(link);
+		release();
+	});
+
+	test('falls back to the container when nothing inside is tabbable', async () => {
+		const label = document.createElement('p');
+		label.textContent = 'Nothing to press';
+		dialog.append(label);
+
+		const release = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+
+		expect(document.activeElement).toBe(dialog);
+		release();
 	});
 
 	test('does not steal focus already moved inside the trap before initial focus runs', async () => {
@@ -495,5 +604,110 @@ describe('getFocusableElements fallback ancestor visibility', () => {
 		container.innerHTML =
 			'<div style="display: none"><button>Hidden child</button></div>';
 		expect(getFocusableElements(container)).toHaveLength(0);
+	});
+});
+
+describe('firstTabbable', () => {
+	afterEach(() => {
+		document.body.innerHTML = '';
+	});
+
+	const mount = function mount(html: string): HTMLElement {
+		const container = document.createElement('div');
+		container.innerHTML = html;
+		document.body.appendChild(container);
+		return container;
+	};
+
+	test('skips negative tabindex and controls a browser would not focus', () => {
+		const container = mount(`
+			<div tabindex="-2">Not tabbable</div>
+			<fieldset disabled><button id="fieldset-disabled">No</button></fieldset>
+			<div inert><button id="inert">No</button></div>
+			<button id="yes">Yes</button>
+		`);
+		expect(firstTabbable(container)?.id).toBe('yes');
+	});
+
+	test('prefers the lowest positive tabindex over document order', () => {
+		const container = mount(`
+			<button id="natural">Natural</button>
+			<button id="second" tabindex="2">Second</button>
+			<button id="first" tabindex="1">First</button>
+		`);
+		expect(firstTabbable(container)?.id).toBe('first');
+	});
+
+	test('orders the whole list the way sequential Tab does', () => {
+		const container = mount(`
+			<button id="natural">Natural</button>
+			<button id="second" tabindex="2">Second</button>
+			<button id="first" tabindex="1">First</button>
+			<button id="last">Last</button>
+		`);
+		expect(tabbableElements(container).map((element) => element.id)).toEqual([
+			'first',
+			'second',
+			'natural',
+			'last',
+		]);
+	});
+
+	test('counts native stops that are not form controls', () => {
+		const container = mount(`
+			<details><summary id="summary">More</summary><p>Body</p></details>
+			<button id="button">Button</button>
+		`);
+		expect(tabbableElements(container).map((element) => element.id)).toEqual([
+			'summary',
+			'button',
+		]);
+	});
+
+	test('returns undefined when nothing is tabbable', () => {
+		const container = mount('<p>Text only</p>');
+		expect(firstTabbable(container)).toBeUndefined();
+	});
+});
+
+describe('setupFocusTrap with positive tabindex', () => {
+	let cleanup: (() => void) | undefined;
+
+	afterEach(() => {
+		cleanup?.();
+		cleanup = undefined;
+		document.body.innerHTML = '';
+	});
+
+	const pressTab = function pressTab(shiftKey = false) {
+		document.dispatchEvent(
+			new KeyboardEvent('keydown', {
+				bubbles: true,
+				cancelable: true,
+				key: 'Tab',
+				shiftKey,
+			})
+		);
+	};
+
+	test('steps through the dialog in sequential order instead of leaving it', async () => {
+		document.body.innerHTML = `
+			<button id="outside">Outside</button>
+			<div id="dialog">
+				<button id="natural">Natural</button>
+				<button id="jump" tabindex="1">Jump</button>
+			</div>
+		`;
+		const dialog = document.getElementById('dialog') as HTMLElement;
+		cleanup = setupFocusTrap(dialog, { initialFocus: 'first-tabbable' });
+		await flushFocusTimers();
+		expect(document.activeElement?.id).toBe('jump');
+
+		pressTab();
+		expect(document.activeElement?.id).toBe('natural');
+		pressTab();
+		expect(document.activeElement?.id).toBe('jump');
+		pressTab(true);
+		expect(document.activeElement?.id).toBe('natural');
 	});
 });

@@ -138,11 +138,18 @@ for (const target of selectedTargets()) {
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
-				test(`${route}: initial HTML contains consent UI before hydration`, async () => {
+				// The App Router layout passes the pending consent state without
+				// awaiting it, so the page renders first and the banner mounts
+				// after hydration. The Pages Router awaits it in
+				// getServerSideProps and renders the banner on the server.
+				const bannerInHTML = route !== '/app-router';
+				test(`${route}: initial HTML renders the page with embeds blocked`, async () => {
 					const response = await fetch(`${server.baseURL}${route}`);
 					expect(response.ok).toBe(true);
 					const html = await response.text();
-					expect(html).toContain('data-testid="consent-banner-root"');
+					expect(html.includes('data-testid="consent-banner-root"')).toBe(
+						bannerInHTML
+					);
 					expect(html).toContain('data-testid="frame-placeholder"');
 					expect(html).not.toContain('<iframe');
 				});
@@ -232,10 +239,8 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => requests.posthog).toBe(1);
 				await expect
 					.poll(() =>
-						page.evaluate(
-							() =>
-								(window as Window & { __examplePosthogConsent?: string })
-									.__examplePosthogConsent
+						page.evaluate(() =>
+							sessionStorage.getItem('__examplePosthogConsent')
 						)
 					)
 					.toBe('granted');
@@ -248,17 +253,34 @@ for (const target of selectedTargets()) {
 				await openPreferences(page);
 				await setCategory(page, 'Measurement', false);
 				await setCategory(page, 'Marketing', false);
-				await saveButton(page).click();
+				if (target.id === 'javascript') {
+					// The bare-kernel example owns its lifecycle without auto-reload.
+					await saveButton(page).click();
+				} else {
+					// Providers reload after revocation. Assert against the new page.
+					await Promise.all([
+						page.waitForEvent('load'),
+						saveButton(page).click(),
+					]);
+				}
 				await expect.poll(() => video(page).count()).toBe(0);
 				await expect
 					.poll(() =>
-						page.evaluate(
-							() =>
-								(window as Window & { __examplePosthogConsent?: string })
-									.__examplePosthogConsent
+						page.evaluate(() =>
+							sessionStorage.getItem('__examplePosthogConsent')
 						)
 					)
 					.toBe('denied');
+				await openPreferences(page);
+				expect(await categoryControl(page, 'Measurement').isChecked()).toBe(
+					false
+				);
+				expect(await categoryControl(page, 'Marketing').isChecked()).toBe(
+					false
+				);
+				expect(requests.posthog).toBe(1);
+				expect(requests.xPixel).toBe(1);
+				expect(await video(page).count()).toBe(0);
 				expect(requests.unexpected).toEqual([]);
 			});
 
@@ -283,6 +305,114 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => video(page).count()).toBe(1);
 				await openPreferences(page);
 				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		if (target.id === 'astro' || target.id === 'astro-static') {
+			test('ClientRouter navigation keeps one runtime and the banner state', async () => {
+				await visit('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await page.evaluate(() => {
+					(window as unknown as { __runtimeMarker: unknown }).__runtimeMarker =
+						(window as unknown as { __c15tAstro: unknown }).__c15tAstro;
+				});
+				const sameRuntime = () =>
+					page.evaluate(
+						() =>
+							(window as unknown as { __runtimeMarker: unknown })
+								.__runtimeMarker ===
+							(window as unknown as { __c15tAstro: unknown }).__c15tAstro
+					);
+
+				// A swapped-in page still owes the banner until someone chooses.
+				await page
+					.getByRole('link', { exact: true, name: 'Second page' })
+					.click();
+				await page.waitForURL('**/second');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				expect(await sameRuntime()).toBe(true);
+
+				await rejectButton(page).click();
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(false);
+				await page
+					.getByRole('link', { exact: true, name: 'Consent example' })
+					.click();
+				await page.waitForURL('**/consent-example');
+				await expect
+					.poll(() =>
+						page
+							.getByRole('heading', { exact: true, name: 'Consent example' })
+							.isVisible()
+					)
+					.toBe(true);
+				expect(await rejectButton(page).isVisible()).toBe(false);
+				expect(await sameRuntime()).toBe(true);
+				await expectNoTracking(page, requests);
+			});
+
+			test('the preference dialog stays styled and reopens after ClientRouter navigation', async () => {
+				await visit('/consent-example');
+				await expect.poll(() => rejectButton(page).isVisible()).toBe(true);
+				await rejectButton(page).click();
+
+				const card = page.getByTestId('consent-dialog-card');
+				// The dialog's rules are not in the page stylesheet. Without them
+				// the card has no background.
+				const cardBackground = () =>
+					card.evaluate((element) => getComputedStyle(element).backgroundColor);
+
+				await openPreferences(page);
+				expect(await cardBackground()).not.toBe('rgba(0, 0, 0, 0)');
+				await saveButton(page).click();
+				await expect.poll(() => card.isVisible()).toBe(false);
+
+				await page
+					.getByRole('link', { exact: true, name: 'Second page' })
+					.click();
+				await page.waitForURL('**/second');
+				await page
+					.getByRole('button', { exact: true, name: 'Cookie preferences' })
+					.click();
+				await expect.poll(() => card.isVisible()).toBe(true);
+				expect(await cardBackground()).not.toBe('rgba(0, 0, 0, 0)');
+				await expect.poll(() => saveButton(page).isVisible()).toBe(true);
+			});
+		}
+
+		if (['nextjs', 'react'].includes(target.id)) {
+			const route = target.id === 'nextjs' ? '/app-router' : '/';
+			test('a host-resolved experiment arm reports the impression and the choice', async () => {
+				const dataLayer = () =>
+					page.evaluate(
+						() =>
+							(window as Window & { dataLayer?: Record<string, unknown>[] })
+								.dataLayer ?? []
+					);
+				await visit(`${route}?experiment=1&arm=wall`);
+				await expect.poll(() => acceptButton(page).isVisible()).toBe(true);
+				await expect
+					.poll(() => page.getByTestId('experiment-arm').textContent())
+					.toBe('banner-shape · wall · host');
+				await expect.poll(dataLayer).toContainEqual(
+					expect.objectContaining({
+						arm: 'wall',
+						event: 'c15t_surface_shown',
+						experiment_id: 'banner-shape',
+						surface: 'banner',
+					})
+				);
+				await acceptButton(page).click();
+				await expect.poll(dataLayer).toContainEqual(
+					expect.objectContaining({
+						arm: 'wall',
+						consent_action: 'all',
+						event: 'c15t_choice_recorded',
+						experiment_id: 'banner-shape',
+					})
+				);
+				await expect
+					.poll(() => page.getByTestId('experiment').textContent())
+					.toContain('c15t_choice_recorded');
 			});
 		}
 

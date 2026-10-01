@@ -91,6 +91,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Tukaj prilagodite svoje nastavitve zasebnosti. Izberete lahko, katere vrste piškotkov in tehnologij sledenja dovolite.',
+			features: {
+				description:
+					'Ta sredstva obdelave se lahko uporabljajo izključno za doseganje enega ali več namenov, za katere vam je v tem obvestilu dana izbira.',
+				title: 'Funkcije',
+			},
 			footer: {
 				consentStorage:
 					'Preference glede soglasja so shranjene v piškotku z imenom "euconsent-v2" 13 mesecev. Obdobje hrambe se lahko obnovi, ko posodobite svoje preference.',

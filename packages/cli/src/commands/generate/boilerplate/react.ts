@@ -43,7 +43,7 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 	return {
 		dependencies: [
 			packageName,
-			...(options.scripts.length ? ['@c15t/scripts'] : []),
+			...(options.scripts.length ? ['@c15t/integrations'] : []),
 		],
 		files: { 'consent-manager.tsx': source },
 		instructions: [

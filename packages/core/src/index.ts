@@ -22,7 +22,6 @@ export type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RecordIssue,
@@ -37,6 +36,7 @@ export {
 	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
+export { disabledPolicyResolution } from './policy';
 export {
 	resolveIABBannerSummary,
 	IAB_BANNER_MAX_DISPLAY_ITEMS,
@@ -78,6 +78,18 @@ export type {
 export { clearGvlCache, fetchCachedGvl } from './transports/gvl-cache';
 export type { HostedTransportOptions } from './transports/hosted';
 export { createHostedTransport } from './transports/hosted';
+export type {
+	HostedRecordTransport,
+	HostedRecordTransportOptions,
+} from './transports/hosted-records';
+export { createHostedRecordTransport } from './transports/hosted-records';
+export type { HostedInitRequest } from './transports/hosted-init-request';
+export { createHostedInitRequest } from './transports/hosted-init-request';
+export { hasPrefetchedInitialData } from './libs/prefetch/window-key';
+export {
+	ConsentSaveRejectedError,
+	isConsentSaveRejection,
+} from './transports/save-rejection';
 export {
 	initOutputToKernelConfig,
 	initResponseToKernelConfig,
@@ -92,7 +104,8 @@ export type {
 	ProviderTransportFactory,
 	ProviderTransportKind,
 } from './transports/mode';
-export { custom, hosted } from './transports/mode';
+export { custom } from './transports/custom';
+export { hosted } from './transports/mode';
 export type {
 	OfflineKernelTransport,
 	OfflineTransportOptions,
@@ -137,8 +150,10 @@ export type {
 	PolicyScopeMode,
 	ResolvedPolicyRule,
 	ResolvedVendor,
+	PromptSurface,
 	SaveInput,
 	SavePayload,
+	SaveUISource,
 	SaveResult,
 	TranslationsResponse,
 	Unsubscribe,
@@ -213,10 +228,10 @@ export type {
 	IABConfig,
 	LegalLink,
 	LegalLinks,
-	OnBannerFetchedPayload,
 	OnChoiceRecordedPayload,
 	OnPermissionsChangedPayload,
 	OnErrorPayload,
+	OnSurfaceShownPayload,
 	Overrides,
 	PingData,
 	PublisherRestriction,
@@ -283,6 +298,32 @@ export {
 	PROMPT_VARIANT_POSITIONS,
 	resolveConsentPresentation,
 } from './libs/policy-actions';
+export {
+	actionAppearanceFromTheme,
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	CONTROL_ARM,
+	defineExperiment,
+	experimentArmRef,
+	hostExperiment,
+	resolveExperimentPresentation,
+	resolveExperimentTheme,
+	seedExperiment,
+	startExperiment,
+} from './libs/experiment';
+export type {
+	ActionAppearance,
+	ConsentExperiment,
+	ExperimentActionStyle,
+	ExperimentArm,
+	ExperimentArmTheme,
+	ExperimentAssignment,
+	ExperimentGate,
+	ExperimentState,
+	ServerExperiment,
+	StartExperimentOptions,
+} from './libs/experiment';
+export { EXPERIMENT_STORAGE_KEY } from './libs/storage-keys';
 export type {
 	ConsentPresentation,
 	PromptPresentation,
@@ -305,6 +346,11 @@ export {
 	getEffectiveGateState,
 	isVendorDenied,
 } from './modules/has';
+export type { RevocationReloadOptions } from './modules/revocation-reload';
+export {
+	hasRevokedPermission,
+	watchRevocationReload,
+} from './modules/revocation-reload';
 export type { ResolveVendorsInput, VendorOwner } from './libs/vendors';
 export {
 	declareOwnedVendors,

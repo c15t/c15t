@@ -1,6 +1,14 @@
-import { custom, evaluateConsent, hosted, policyRulePresets } from '@c15t/core';
+import {
+	applyExperimentAssignment,
+	applyExperimentTheme,
+	custom,
+	evaluateConsent,
+	hosted,
+	policyRulePresets,
+} from '@c15t/core';
 import type {
 	AllConsentNames,
+	ConsentPresentation,
 	ConsentSnapshot,
 	ConsentState,
 	HasCondition,
@@ -15,9 +23,11 @@ import type {
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
+import type { Theme } from '@c15t/ui/theme';
 
 import { createDeferred } from './deferred';
 import { createGatedScriptActivator } from './gated-scripts';
+import { hasDecided } from './has-decided';
 import { manifest } from './transports/manifest';
 import { offline } from './transports/offline';
 import type {
@@ -218,8 +228,10 @@ export const createConsentClient = function createConsentClient(
 		callbacks: options.callbacks,
 		clearOnRevocation: options.clearOnRevocation,
 		consentCategories: options.consentCategories,
+		consentSource: options.consentSource,
 		createIAB: context.createIAB,
 		enabled: options.enabled,
+		experiment: options.experiment,
 		i18n: options.i18n,
 		iab: context.createIAB ? (options.iab ?? { enabled: true }) : undefined,
 		iframeBlocker: options.iframeBlocker,
@@ -230,8 +242,10 @@ export const createConsentClient = function createConsentClient(
 		policyRules: resolveRules(options.policyRules),
 		prefetch: options.prefetch,
 		presentation: options.presentation,
+		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
 		scripts: options.scripts,
 		storageConfig: options.storageConfig,
+		theme: options.ui === false ? undefined : options.ui?.theme,
 		user: options.user,
 		// The script-tag build owns `window.c15t`; core must not overwrite it.
 		windowDebug: false,
@@ -254,6 +268,7 @@ export const createConsentClient = function createConsentClient(
 		consent: new Set(),
 		error: new Set(),
 		ready: new Set(),
+		surfaceShown: new Set(),
 		ui: new Set(),
 	};
 	const dispatch = function dispatch<
@@ -314,6 +329,9 @@ export const createConsentClient = function createConsentClient(
 		kernel.events.on('command:error', ({ error }) => {
 			emit('error', error);
 		}),
+		kernel.events.on('surface:shown', ({ type: _type, ...impression }) => {
+			emit('surfaceShown', impression);
+		}),
 		// Saves and hydration can change permissions or explicit receipts;
 		// one subscription observes both paths.
 		kernel.subscribe((snapshot) => {
@@ -356,25 +374,46 @@ export const createConsentClient = function createConsentClient(
 		navigation += 1;
 		kernel.set.activeUI('banner');
 	};
+	/** Leave the surface for the banner only when a choice is still owed. */
+	const settleSurface = (): void => {
+		kernel.set.activeUI(
+			kernel.getSnapshot().promptRequirement.kind === 'none' ? 'none' : 'banner'
+		);
+	};
 	const saveSelection = async (input: SaveInput): Promise<SaveResult> => {
 		navigation += 1;
 		const current = navigation;
-		const surface = kernel.getSnapshot().activeUI;
-		const { fingerprint } = kernel.getSnapshot().evaluationPolicy.choice;
+		const before = kernel.getSnapshot();
+		const surface = before.activeUI;
+		const { fingerprint } = before.evaluationPolicy.choice;
 		const pending = kernel.commands.save(input, { categories: categories() });
-		// Local recording can close the surface before the transport answers.
-		kernel.set.activeUI(surface);
+		// The kernel records the choice and updates permissions before the
+		// transport runs (storage follows one task later, still ahead of the
+		// request). Close in this task and let the backend
+		// request finish in the background: its outcome never reopens the
+		// surface, and a failed request stays queued for replay.
+		const after = kernel.getSnapshot();
+		// A choice prompt with nothing to decide records an acknowledgement.
+		if (
+			after.explicitChoice !== before.explicitChoice ||
+			after.vendorChoice !== before.vendorChoice ||
+			after.noticeDismissal !== before.noticeDismissal
+		) {
+			if (surface !== 'none') {
+				settleSurface();
+			}
+			return pending;
+		}
+		// A save that recorded nothing new closes once it resolves.
 		const result = await pending;
 		if (
 			result.ok &&
+			surface !== 'none' &&
 			current === navigation &&
+			kernel.getSnapshot().activeUI === surface &&
 			fingerprint === kernel.getSnapshot().evaluationPolicy.choice.fingerprint
 		) {
-			kernel.set.activeUI(
-				kernel.getSnapshot().promptRequirement.kind === 'none'
-					? 'none'
-					: 'banner'
-			);
+			settleSurface();
 		}
 		return result;
 	};
@@ -391,6 +430,24 @@ export const createConsentClient = function createConsentClient(
 		navigation += 1;
 		const current = navigation;
 		const snapshot = kernel.getSnapshot();
+		// The surface closes in this task. An IAB choice commits once its TC
+		// string is encoded, which can wait on the TCF library but never on
+		// the backend. The surface comes back only when that local step
+		// recorded nothing, so the visitor can try again.
+		if (snapshot.activeUI !== 'none') {
+			kernel.set.activeUI('none');
+		}
+		const restoreIfUnrecorded = (): void => {
+			const next = kernel.getSnapshot();
+			if (
+				current === navigation &&
+				snapshot.activeUI !== 'none' &&
+				next.activeUI === 'none' &&
+				next.iab?.authority === snapshot.iab?.authority
+			) {
+				kernel.set.activeUI(snapshot.activeUI);
+			}
+		};
 		try {
 			if (blanket === true) {
 				handle.acceptAll();
@@ -405,16 +462,12 @@ export const createConsentClient = function createConsentClient(
 				next.evaluationPolicy.choice.fingerprint !==
 					snapshot.evaluationPolicy.choice.fingerprint
 			) {
+				restoreIfUnrecorded();
 				return { ok: false };
-			}
-			if (current === navigation) {
-				kernel.set.activeUI('none');
 			}
 			return { ok: true };
 		} catch (error) {
-			if (current === navigation) {
-				kernel.set.activeUI(snapshot.activeUI);
-			}
+			restoreIfUnrecorded();
 			emit('error', error instanceof Error ? error : new Error(String(error)));
 			return { ok: false };
 		}
@@ -493,7 +546,7 @@ export const createConsentClient = function createConsentClient(
 			return evaluateConsent({ category: condition }, snapshot);
 		},
 		hasConsented() {
-			return kernel.getSnapshot().explicitChoice !== null;
+			return hasDecided(kernel.getSnapshot());
 		},
 		async identify(user: KernelUser) {
 			await runtime.identify(user);
@@ -534,6 +587,13 @@ export const createConsentClient = function createConsentClient(
 		},
 		openDialog,
 		options,
+		get presentation(): ConsentPresentation | undefined {
+			return applyExperimentAssignment(
+				options.presentation,
+				options.experiment,
+				kernel.getSnapshot().experiment
+			);
+		},
 		ready() {
 			return ready.promise;
 		},
@@ -638,6 +698,18 @@ export const createConsentClient = function createConsentClient(
 		},
 		subscribe(listener) {
 			return kernel.subscribe(listener);
+		},
+		get theme(): Theme | undefined {
+			// A headless client renders nothing, so an arm's theme has nothing
+			// to override; the getter stays `undefined` whatever is assigned.
+			if (options.ui === false) {
+				return undefined;
+			}
+			return applyExperimentTheme(
+				options.ui?.theme,
+				options.experiment,
+				kernel.getSnapshot().experiment
+			);
 		},
 		get ui() {
 			return ui;

@@ -1,0 +1,587 @@
+---
+title: Banner experiments
+description: Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
+group: guides
+---
+
+## Vary presentation, not policy
+
+An experiment changes only how the prompt and the preference center look:
+variant, position, layout, primary actions, blocking. The policy rule, its
+categories and its copy stay the same for every arm, so every arm records a
+choice under the same policy fingerprint.
+
+Your normal `presentation` is the `control` arm. Every other arm lists only
+what it changes. Pass the arm your feature flag resolved:
+
+```tsx title="src/app/providers.tsx"
+'use client';
+
+import { ConsentProvider, hosted } from 'c15t/react';
+
+const bannerShape = {
+	id: 'banner-shape',
+	arms: {
+		invasive: { prompt: { variant: 'wall' } },
+	},
+};
+
+export const Providers = ({
+	children,
+	arm,
+}: {
+	children: React.ReactNode;
+	arm?: 'control' | 'invasive';
+}) => (
+	<ConsentProvider
+		options={{
+			mode: hosted({ url: 'https://your-project.inth.app' }),
+			presentation: { prompt: { variant: 'floating', position: 'bottom-left' } },
+			// No arm: this visitor is not in the experiment.
+			experiment: arm ? { ...bannerShape, arm } : undefined,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
+```
+
+Or let c15t split visitors itself:
+
+```ts
+experiment: { ...bannerShape, split: { control: 60, invasive: 40 } }
+```
+
+| Field | Purpose |
+| --- | --- |
+| `id` | Stable experiment name, recorded with every choice |
+| `arms` | What each arm changes, merged over `presentation`. `control` is your `presentation` and is not listed |
+| `arm` | The arm your flag resolved: `control` or a key of `arms` |
+| `split` | Relative weights when c15t picks the arm; default equal. Keys are `control` and the arms |
+| `acknowledgeDiagnostics` | Run an arm that trips a presentation diagnostic and record that you reviewed it |
+
+c15t merges the arm over `presentation`, exposes it as `snapshot.experiment`,
+sends it with `/init`, and records it on the choices of visitors the banner
+showed it to, so you can compare opt-in rate and time to decision per arm.
+
+The same option exists on `c15t/next` (`ConsentRoot` options), `c15t/vue`,
+`@c15t/svelte`, `@c15t/astro` and `@c15t/browser`. On a server-rendered page
+in Next.js, TanStack Start or SvelteKit, pass it to `resolveConsent` instead,
+which counts the arm and hands it to the client; see
+[Vercel Flags SDK](#vercel-flags-sdk).
+
+`experiment` is read once, when the provider mounts. Changing it later has
+no effect; remount the provider (a `key` in React) to switch experiments.
+
+Build the experiment with `defineExperiment()` to have TypeScript check the
+arm names in `arm` and `split`:
+
+```ts title="src/experiments.ts"
+import { defineExperiment } from 'c15t';
+
+export const bannerShape = defineExperiment({
+	id: 'banner-shape',
+	arms: { invasive: { prompt: { variant: 'wall' } } },
+});
+```
+
+Assignment and arm validation load as a separate chunk, only on pages that
+set `experiment`. A site without an experiment does not download them.
+
+### Astro
+
+The Astro banner is server-rendered HTML that the browser only shows or
+hides, so the arm is resolved on the server. To pick it per request, set
+`middleware: false` in `c15t()` and compose the consent middleware yourself
+with `experimentArm`:
+
+```ts title="src/middleware.ts"
+import { consentMiddleware } from '@c15t/astro/middleware';
+
+export const onRequest = consentMiddleware({
+	experimentArm: async (context) => await bannerShapeFlag(context),
+});
+```
+
+Return `undefined` to run no experiment for that request. A fixed
+`experiment.arm` in `c15t()` puts every visitor in one arm, which only
+suits a staged rollout. Prerendered routes render once for every visitor, so
+they get no per-request arm. `c15t()` throws at config time when
+`experiment` has neither.
+
+### Vary the theme
+
+An arm can carry `theme` overrides next to its presentation fragment. They
+merge over the host `theme` one token group deep, so an arm can change one
+colour or radius and keep the rest of your palette. Arrays and scalars are
+replaced.
+
+```tsx
+experiment: {
+	id: 'button-style',
+	arms: {
+		bold: {
+			theme: {
+				colors: { primary: '#0a0a0a' },
+				radius: { lg: '4px' },
+			},
+		},
+	},
+}
+```
+
+Read the merged theme with `useResolvedTheme()` in React,
+`useResolvedTheme(theme)` in Vue, `getConsentManager().theme` in Svelte and
+`client.theme` in `@c15t/browser`. Astro renders the arm's tokens with the
+banner. In React, `consentActions` and slot overrides apply through the
+provider, but colour, radius and other tokens reach the page through
+`ConsentTheme`, so render it from the resolved theme:
+
+```tsx
+'use client';
+
+import { ConsentTheme, useResolvedTheme } from 'c15t/react';
+
+export const ExperimentTheme = () => (
+	<ConsentTheme theme={useResolvedTheme()} />
+);
+```
+
+Rendered from a client component, `ConsentTheme` ships the theme generator.
+With an arm from your flag, you can instead render
+`<ConsentTheme theme={resolveExperimentTheme(theme, experiment, { arm })} />`
+from a Server Component. Per-action styling through
+`theme.consentActions` runs through the same prominence check as
+presentation: an arm that fills accept and outlines reject trips
+`equivalent-prominence-overridden` and needs `acknowledgeDiagnostics: true`.
+
+## Resolve the arm with a flag provider
+
+Resolve the arm wherever your flags live and pass its name as `arm`. c15t
+records `assignedBy: 'host'` and never re-assigns a visitor you assigned.
+
+### Vercel Flags SDK
+
+Give the flag three values. `off` keeps a visitor out of the test; `control`
+and `invasive` split the rest. Set the weights in the Vercel dashboard, so
+you can roll out and widen the test without a deploy: start at 90% `off`,
+check that both arms arrive, then move to 0% `off` for the real run.
+
+```ts title="src/flags.ts"
+import { vercelAdapter } from '@flags-sdk/vercel';
+import { flag } from 'flags/next';
+
+export const bannerShapeFlag = flag<'off' | 'control' | 'invasive'>({
+	key: 'banner-shape',
+	adapter: vercelAdapter(),
+	identify, // your existing identify
+	defaultValue: 'off',
+});
+```
+
+Keep `identify` returning a stable id. Vercel splits on it, so a visitor
+keeps their arm when you change the weights.
+
+Resolve the flag where consent resolves and pass the experiment to
+`resolveConsent`. The server reports the arm with `/init`, and the returned
+state carries the experiment to `ConsentRoot`, so the client needs no
+`experiment` option of its own:
+
+```tsx title="src/app/resolved-consent.tsx"
+import { resolveConsent } from 'c15t/next/server';
+
+import { consentConfig } from '../c15t.config';
+import { Consent } from '../components/consent';
+import { bannerShape } from '../experiments';
+import { bannerShapeFlag } from '../flags';
+
+export async function ResolvedConsent({
+	children,
+}: {
+	children: React.ReactNode;
+}) {
+	const arm = await bannerShapeFlag();
+	const state = await resolveConsent({
+		config: consentConfig,
+		experiment: arm === 'off' ? undefined : { ...bannerShape, arm },
+	});
+	return <Consent state={state}>{children}</Consent>;
+}
+```
+
+Render it inside `<Suspense>`, as in
+[Await consent inside Suspense](/docs/frameworks/next/server-side#await-consent-inside-suspense).
+The banner is then in the server HTML already showing the visitor's arm.
+`resolveConsent` in `@c15t/tanstack-start` and `@c15t/svelte` takes the same
+`experiment`.
+
+If you pass `resolveConsent()` to `ConsentRoot` without awaiting it (the
+streaming layout), the client mounts before the state arrives. Pass the
+same experiment to the client options as well; c15t warns in development
+when the streamed state carries an experiment the client did not get.
+
+### PostHog
+
+PostHog resolves flags asynchronously in the browser. Because `experiment`
+is read once at mount, wait for the flags, then mount the provider with the
+resolved arm. Do not wait forever: a blocked or slow flags request would
+leave the visitor with no banner and you with no consent. After a second,
+mount without the experiment. Those visitors see `presentation` and are not
+counted in either arm.
+
+```tsx title="src/app/flagged-providers.tsx"
+'use client';
+
+import { useEffect, useState } from 'react';
+import posthog from 'posthog-js';
+
+import { Providers } from './providers';
+
+export const FlaggedProviders = ({
+	children,
+}: {
+	children: React.ReactNode;
+}) => {
+	const [arm, setArm] = useState<'control' | 'invasive' | 'off' | null>(null);
+	useEffect(() => {
+		// The first answer wins: the provider reads the arm once.
+		const fallback = setTimeout(() => setArm((current) => current ?? 'off'), 1000);
+		const unsubscribe = posthog.onFeatureFlags(() => {
+			const flag = posthog.getFeatureFlag('banner-shape');
+			setArm((current) => current ?? (flag === 'invasive' ? 'invasive' : 'control'));
+		});
+		return () => {
+			clearTimeout(fallback);
+			unsubscribe();
+		};
+	}, []);
+	if (arm === null) {
+		// Flags not loaded yet: no provider, no banner.
+		return children;
+	}
+	return (
+		<Providers arm={arm === 'off' ? undefined : arm}>{children}</Providers>
+	);
+};
+```
+
+### LaunchDarkly, GrowthBook, Statsig
+
+```ts
+const arm = ldClient.stringVariation('banner-shape', 'control');
+const arm = growthbook.getFeatureValue('banner-shape', 'control');
+const arm = StatsigClient.instance()
+	.getExperiment('banner-shape')
+	.get('arm', 'control');
+```
+
+An `arm` that is not `control` or a key of `arms` logs an error and runs no
+experiment for that visitor; the page still renders. Treat that as a flag
+misconfiguration.
+
+## Let c15t assign the arm
+
+Omit `arm` and c15t picks one by `split` (equal by default) when the page
+starts, before `/init`, and records `assignedBy: 'c15t'`. A visitor who
+already saw an arm keeps it.
+
+The banner waits until the arm is picked, so the visitor never sees the base
+banner swap for their arm. On a server-rendered page that means the banner is
+not in the server HTML; it appears once the browser has loaded the
+assignment chunk. If the chunk fails to load, the base banner shows and no
+experiment runs. To keep the banner in the server HTML, resolve the arm on
+the server and pass it as `arm`.
+
+Once the banner has shown the arm, c15t stores `{ id, arm }` under
+`c15t-experiment-v1` in localStorage (a cookie when localStorage is
+unavailable), so the visitor keeps seeing the banner they saw. Nothing is
+stored for a visitor who is never prompted, and nothing is stored for a
+host-resolved arm: your flag provider decides that one on every visit. The
+record holds no identifier. It exists only to keep the consent banner
+consistent, so treat it like the consent record itself when you describe
+your storage.
+
+A `split` that gives no arm a positive weight, or that names an arm that does
+not exist, logs an error and runs no experiment. An arm missing from the
+split gets no visitors.
+
+```ts
+experiment: {
+	id: 'banner-shape',
+	arms: { invasive: { prompt: { variant: 'wall' } } },
+	split: { control: 60, invasive: 40 },
+}
+```
+
+Changing `id` starts a new experiment and re-assigns everyone. Removing an
+arm re-assigns only the visitors who were in it. For a clean analysis, change
+`id` rather than editing the arms of a running experiment.
+
+Built-in assignment is not available on `@c15t/astro`; see
+[Astro](#astro).
+
+## Acknowledge presentation diagnostics
+
+Each arm is resolved under the visitor's policy the same way `presentation`
+is. An arm that trips a diagnostic, for example
+`equivalent-prominence-overridden` because it makes accept primary while
+reject stays neutral, is not shown under that policy: those visitors see the
+base presentation, are not counted in the experiment, and c15t logs the
+diagnostics. Set `acknowledgeDiagnostics: true` to run the arm anyway. c15t
+then logs the diagnostics as a warning once per policy and records
+`acknowledgedDiagnostics: true` with the arm on every choice. You own the
+legal review of that arm; c15t records that you made it.
+
+The check runs in the browser once the policy is known, so catch a rejected
+arm before you deploy with `validateExperiment` in a test:
+
+```ts
+import { validateExperiment } from 'c15t/experiment';
+
+test('banner-shape arms pass under the EU policy', () => {
+	validateExperiment(bannerShape, euPolicy, { presentation });
+});
+```
+
+It throws for an invalid definition and for arms with unacknowledged
+diagnostics.
+
+## Read the assignment
+
+```tsx
+import {
+	useExperiment,
+	useResolvedPresentation,
+	useResolvedTheme,
+} from 'c15t/react';
+
+const { id, arm, assignedBy } = useExperiment() ?? {};
+const presentation = useResolvedPresentation();
+const theme = useResolvedTheme();
+```
+
+React exposes three hooks:
+
+- `useExperiment()` returns the assigned arm (`id`, `arm`, `assignedBy`,
+  `acknowledgedDiagnostics`), or `null` while no experiment is configured
+  or no arm is assigned yet.
+- `useResolvedPresentation()` returns `presentation` with the assigned
+  arm merged over it per surface. While no arm is assigned it returns
+  `presentation` itself. The stock banner, dialog and widget render from it,
+  as do `usePromptPresentation()` and `usePreferencesPresentation()`.
+- `useResolvedTheme()` returns `theme` with the arm's `theme` merged one
+  token group deep over it. While no arm is assigned, or the arm has no
+  `theme`, it returns `theme` itself. The provider injects this merged theme.
+
+Built-in assignment lands after mount, so `useExperiment()` is `null` on the
+server render and during hydration and the resolved hooks return the base
+values. The banner is held until then, and a clean preferences draft reseeds
+from the arm's `preferences.defaults` when it lands. An
+arm from your flag is known from the first render, on the server too.
+
+Vue exposes `useExperiment()`, `useResolvedPresentation()` and
+`useResolvedTheme(theme)`, Svelte `getConsentManager().experiment`,
+`.presentation` and `.theme`, and `@c15t/browser` `client.presentation` and
+`client.theme`. Every adapter also reports the arm on `snapshot.experiment`.
+
+## What is recorded
+
+An impression or a choice carries the arm only once the banner has shown it
+in the current page. A returning visitor who reopens the preference center
+from a footer link, or saves from an inline widget, never saw the arm's
+banner, so their choice is recorded without it and does not count toward any
+arm.
+
+Each choice saved through `POST /subjects` carries in `metadata`:
+
+| Key | Value |
+| --- | --- |
+| `experiment` | `{ id, arm, assignedBy, acknowledgedDiagnostics }` |
+| `timeToDecisionMs` | Milliseconds from the surface's first impression to the action |
+
+`uiSource` on the same record names the surface (`banner`, `dialog`,
+`widget`). The `surface:shown` and `choice:recorded` kernel events and the
+`onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
+`experiment` object, so impressions and decisions can be joined per arm in
+your analytics without a backend query.
+
+## Measure the results
+
+An opt-in rate needs two counts per arm: how many visitors the banner was
+owed to, and how many of them accepted. c15t sends both to the backend on
+its own; you do not wire anything up.
+
+- **Visitors owed the banner.** While a visitor has no stored choice, every
+  `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header,
+  and the backend puts it on that request's session report as
+  `experiment: { id, arm }`. In manifest mode, the server render or the
+  init route puts it on the report it sends to `POST /sessions`. A visitor
+  who already chose is not shown the banner, so is not counted.
+- **Choices.** Every choice saved through `POST /subjects` carries the arm
+  in `metadata.experiment`, as above.
+
+On a server-rendered page the server calls `/init`, not the browser, so the
+server has to know the arm. Pass the experiment to `resolveConsent`, as in
+[Vercel Flags SDK](#vercel-flags-sdk): it sends only `{ id, arm }` to the
+backend and hands the full experiment to the client in its state.
+`resolveConsent` takes `experiment` in `c15t/next`, `@c15t/tanstack-start`
+and `@c15t/svelte`; Astro and Nuxt pass the arm they rendered on their own.
+When c15t picks the arm in the browser, the browser's own `/init` carries
+it, so a server-rendered page that skips the client `/init` has no count
+for built-in assignment. Resolve the arm with a flag on those pages.
+
+### Where the counts go
+
+On inth, the dashboard reads both counts for you. A self-hosted backend
+hands each session report to `sessions.onReport`, which is where you log or
+count it; `experiment` is on the report. Choices are in the `consent` table,
+and [`GET /experiments/:id/summary`](#read-the-summary-from-your-backend)
+groups them per arm.
+
+The opt-in rate of an arm is visitors with an `accept_all` choice under that
+arm, divided by visitors whose session reports carry the arm. Count
+visitors, not requests: an undecided visitor sends a report on every page
+until they choose. Deduplicate the reports per visitor the way you count
+sessions.
+
+### Send the events to your own analytics too
+
+The `onSurfaceShown` and `onChoiceRecorded` callbacks carry the same
+`experiment` object, so one line forwards them to any tool:
+
+```tsx
+<ConsentProvider
+	options={{
+		experiment,
+		callbacks: {
+			onSurfaceShown: ({ experiment, surface }) =>
+				experiment &&
+				window.dataLayer?.push({
+					event: 'c15t_surface_shown',
+					experiment_id: experiment.id,
+					arm: experiment.arm,
+					surface,
+				}),
+			onChoiceRecorded: ({ experiment, consentAction }) =>
+				experiment &&
+				posthog.capture('c15t_choice_recorded', {
+					experiment_id: experiment.id,
+					arm: experiment.arm,
+					consent_action: consentAction,
+				}),
+		},
+	}}
+>
+```
+
+An impression fires before any consent exists. If your analytics tool loads
+only after consent, it never sees a decliner's impression, and its opt-in
+rate trends towards 100%. The backend counts above do not have that gap.
+
+### Read the results
+
+Consent rates move by a few points, not by half. At a 30% base rate you need
+roughly 2,500 visitors per arm to detect a 5-point change with 80% power,
+and about 10,000 per arm to detect 2 points. Run a sample-size calculator
+against your own base rate before you start, decide the stop date up front,
+and do not stop early on a good-looking day.
+
+Under an `opt-out` policy with `prompt: 'notice'`, dismissing the notice
+records no choice, so compare arms on opt-outs instead: `opt_out` choices
+per visitor owed the banner.
+
+Time to decision is the median `timeToDecisionMs` per arm over the choices.
+Use the median, not the mean: a visitor who leaves the tab open skews the
+mean without saying anything about the arm.
+
+## Read the summary from your backend
+
+The self-hosted backend copies `experiment.id`, `experiment.arm` and
+`timeToDecisionMs` out of `metadata` onto their own columns (migration
+`6-experiment-attribution`), so `GET /experiments/:id/summary` can group
+choices per arm without a JSON query. It needs an API key.
+
+```bash
+curl 'http://localhost:3000/api/c15t/experiments/banner-shape/summary?from=2026-09-01&to=2026-09-30' \
+  -H "Authorization: Bearer $C15T_API_KEY"
+```
+
+```json
+{
+	"experimentId": "banner-shape",
+	"from": "2026-09-01T00:00:00.000Z",
+	"to": "2026-09-30T23:59:59.999Z",
+	"arms": [
+		{
+			"arm": "wall",
+			"choices": 120,
+			"byAction": {
+				"accept_all": 80,
+				"custom": 10,
+				"opt_out": 0,
+				"reject_all": 30,
+				"unknown": 0
+			},
+			"bySurface": { "banner": 100, "dialog": 20 },
+			"medianTimeToDecisionMs": 4200
+		},
+		{
+			"arm": "control",
+			"choices": 95,
+			"byAction": {
+				"accept_all": 50,
+				"custom": 5,
+				"opt_out": 0,
+				"reject_all": 40,
+				"unknown": 0
+			},
+			"bySurface": { "banner": 90, "dialog": 5 },
+			"medianTimeToDecisionMs": 5100
+		}
+	]
+}
+```
+
+`byAction` always has all five keys. They are the action the backend
+stored, not the client's `consent_action`: `accept_all` for accept,
+`reject_all` for reject, `opt_out` for a reject under an opt-out policy,
+`custom` for a saved selection, and `unknown` for a record without one.
+`choices` counts consent records, so a visitor who changes their mind under
+the same arm counts twice.
+
+`from` and `to` accept an ISO 8601 date or timestamp and filter on the
+consent's `givenAt`, both ends inclusive. A date without a time is the whole
+of that day in UTC: `from=2026-09-01` starts at midnight and `to=2026-09-30`
+runs to the end of the 30th, so the example above covers all of September. A
+`from` later than `to` is a 400. `domain` narrows to one domain name. An
+experiment id no consent carries returns `arms: []`. The
+`@c15t/node-sdk` client exposes the same call as
+`client.experiments.summary(id, { from, to, domain })`.
+
+The summary counts choices. The other half of an opt-in rate, the visitors
+each arm's banner was owed to, is on the session reports `/init` produces
+(see [Measure the results](#measure-the-results)). Divide `accept_all` per
+arm by the visitors whose reports carry that arm.
+
+## Try it
+
+Every example app under `examples/` runs this experiment. Open
+`/?experiment=1` in the React, Vue, Svelte, JavaScript and script-tag
+examples, `/app-router?experiment=1` in Next.js, or
+`/consent-example?experiment=1` in TanStack Start and SvelteKit; add
+`&arm=wall` to see an arm from a flag. The Nuxt and Astro examples take
+static config, so start them with `NUXT_PUBLIC_C15T_EXPERIMENT=1` or
+`C15T_EXPERIMENT=1`. Each page shows the assigned arm.
+
+## End an experiment
+
+Move the winning arm's fragment into `presentation` (and its `theme` into
+`theme`), then remove `experiment`. Visitors keep their consent; the stored
+arm is ignored once no experiment reads it.
+
+## Copy is out of scope
+
+Arms change presentation and theme tokens only. Copy is not a variant dimension because
+`copyRevision` is hashed into the prompt fingerprint: a copy change re-prompts
+every returning visitor, so a copy experiment would re-prompt them on each
+arm switch. Vary layout, shape, position and action prominence instead.

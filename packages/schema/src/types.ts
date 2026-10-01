@@ -17,6 +17,12 @@ export type {
 	CheckConsentQuery,
 	ConsentCheckResult,
 } from './api/consent';
+// API types - Experiment
+export type {
+	ExperimentSummaryOutput,
+	ExperimentSummaryQuery,
+	ExperimentArmSummary,
+} from './api/experiment';
 // API types - Init
 export type {
 	InitOutput,
@@ -39,21 +45,16 @@ export type {
 	GetSubjectOutput,
 	GetSubjectParams,
 	GetSubjectQuery,
-	IdentityPrivacyDirectiveInput,
-	ListPrivacyDirectivesOutput,
 	ListSubjectsOutput,
 	ListSubjectsQuery,
 	PatchSubjectFullInput,
 	PatchSubjectOutput,
 	PostSubjectInput,
 	PostSubjectOutput,
-	PrivacyDirectiveWire,
-	RecordPrivacyDirectiveOutput,
 	SubjectCategoryReceiptWire,
 	SubjectChoiceBasisWire,
 	SubjectChoiceWire,
 	SubjectItem,
-	SubjectPrivacyDirectiveInput,
 	VendorChoiceWire,
 } from './api/subject';
 // Domain types
@@ -97,13 +98,17 @@ export type {
 	ResolveInitFromManifestInputs,
 	ResolveInitFromManifestOptions,
 	BuildConsentSessionReportOptions,
+	SessionExperiment,
 	SessionReportInputs,
 } from './shared';
 export {
 	buildConsentManifestFromConfig,
 	buildConsentSessionReport,
+	CONSENT_EXPERIMENT_HEADER,
 	CONSENT_SESSION_CLIENT_IP_HEADER,
+	formatExperimentHeader,
 	isSpeculativeRequest,
+	parseExperimentHeader,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	checkJurisdiction,
@@ -143,6 +148,7 @@ export type {
 	GVLSpecialFeature,
 	GVLSpecialPurpose,
 	GVLStack,
+	GVLStandardTexts,
 	GVLVendor,
 	GVLVendorUrl,
 } from './shared/gvl';
@@ -172,6 +178,15 @@ export {
 export type {
 	PolicyMatchEntry,
 	PolicyMatchOutcome,
+} from './shared/policy-resolution';
+export {
+	matchPolicyRules,
+	resolvePolicyRules,
+} from './shared/policy-resolution';
+// The wire contract and the resolved-rule invariants come straight from their
+// own modules, so a client that only reads a resolution never pulls in the
+// authoring validator or fingerprint hashing behind `resolvePolicyRules`.
+export type {
 	PolicyResolution,
 	PolicyResolutionFailed,
 	PolicyResolutionFailure,
@@ -180,20 +195,18 @@ export type {
 	PolicyResolutionUnconfigured,
 	PolicyResolutionWire,
 	SafeFallbackPolicyInput,
-} from './shared/policy-resolution';
+} from './shared/policy-resolution-wire';
 export {
-	matchPolicyRules,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
-	resolvePolicyRules,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 	SAFE_FALLBACK_POLICY_ID,
 	safeFallbackPolicyInput,
 	safeFallbackPolicyRule,
 	writePolicyResolutionWire,
-} from './shared/policy-resolution';
+} from './shared/policy-resolution-wire';
 export type {
 	PolicyActionConstraints,
 	PolicyChoiceAction,
@@ -208,19 +221,22 @@ export type {
 	ResolvedPolicyRule,
 } from './shared/policy-rule';
 export {
-	canonicalizePolicySet,
-	collectResolvedPolicyRuleIssues,
 	DEFAULT_CHOICE_VALIDITY_DAYS,
 	DEFAULT_NOTICE_VALIDITY_DAYS,
-	expectedPolicyActions,
 	inspectPolicyRules,
+	normalizePolicyRule,
+	validatePolicyRules,
+} from './shared/policy-rule';
+export {
+	canonicalizePolicySet,
+	collectResolvedPolicyRuleIssues,
+	expectedPolicyActions,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
 	isPolicyPrompt,
 	isPolicyRight,
 	isPolicyRuleModel,
 	isValidPolicyPromptForModel,
-	normalizePolicyRule,
 	POLICY_CONSENT_CATEGORIES,
 	POLICY_MODEL_PROMPTS,
 	POLICY_OPTIONAL_CATEGORIES,
@@ -229,8 +245,8 @@ export {
 	POLICY_RIGHTS,
 	POLICY_RULE_MODELS,
 	requiredPolicyRights,
-	validatePolicyRules,
-} from './shared/policy-rule';
+} from './shared/policy-rule-invariants';
+export { compareCanonical } from './shared/canonical-order';
 export type {
 	ChoicePromptFingerprintInput,
 	JsonValue,

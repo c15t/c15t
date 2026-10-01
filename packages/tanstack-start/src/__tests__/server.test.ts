@@ -204,6 +204,37 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 		});
 	});
 
+	test('the report carries the arm alone and the state carries the experiment', async () => {
+		const experiment = {
+			arm: 'invasive',
+			arms: { invasive: { prompt: { variant: 'wall' as const } } },
+			id: 'banner-shape',
+		};
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		const registered: Promise<void>[] = [];
+		const state = await resolveConsent(
+			{},
+			{
+				backendURL: 'https://consent.example.com',
+				experiment,
+				fetch: fetchSpy,
+				manifest: MANIFEST_FIXTURE,
+				onBackgroundRevalidate: (task) => {
+					registered.push(task);
+				},
+			}
+		);
+		expect(state.experiment).toEqual(experiment);
+		await registered[0];
+		const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(JSON.parse(init.body as string).experiment).toEqual({
+			arm: 'invasive',
+			id: 'banner-shape',
+		});
+	});
+
 	test('sends nothing when reportSessions is false', async () => {
 		const fetchSpy = vi.fn();
 		await resolveConsent(

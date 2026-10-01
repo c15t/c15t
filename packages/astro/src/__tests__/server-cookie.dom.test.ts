@@ -5,6 +5,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
+import type { C15tAstroOptions } from '../types';
 import { testRule, testResolution } from './policy-fixture';
 
 /**
@@ -27,10 +28,16 @@ const clearCookies = function clearCookies(): void {
 	localStorage.clear();
 };
 
-const resolve = async function resolve(cookieHeader: string) {
+const resolve = async function resolve(
+	cookieHeader: string,
+	options: Partial<C15tAstroOptions> = {}
+) {
 	return await resolveConsentContext({
 		headers: new Headers(cookieHeader ? { cookie: cookieHeader } : {}),
-		options: resolveOptions({ mode: offlineMode({ policyRules: [testRule] }) }),
+		options: resolveOptions({
+			mode: offlineMode({ policyRules: [testRule] }),
+			...options,
+		}),
 	});
 };
 
@@ -41,8 +48,23 @@ beforeEach(() => {
 
 afterEach(() => vi.useRealTimers());
 
+/** Acknowledge a banner that offered only strictly necessary. */
+const saveAcknowledgement = async () => {
+	const kernel = createConsentKernel({
+		initialPolicyResolution: testResolution(),
+		now: Date.now(),
+	});
+	const persistence = createPersistence({ kernel });
+	await kernel.commands.save('all');
+	vi.advanceTimersByTime(0);
+	persistence.dispose();
+	kernel.dispose();
+};
+
 const saveReceipt = async (value: boolean) => {
 	const kernel = createConsentKernel({
+		// The earlier page offered the policy's categories.
+		consentCategories: ['marketing', 'measurement'],
 		initialPolicyResolution: testResolution(),
 		now: Date.now(),
 	});
@@ -87,6 +109,46 @@ describe('cookie round-trip', () => {
 
 	it('ignores an unrelated cookie', async () => {
 		const context = await resolve('session=abc; theme=dark');
+		expect(context.shouldShowBanner).toBe(true);
+	});
+
+	it('hides the banner for a visitor who acknowledged a necessary-only banner', async () => {
+		await saveAcknowledgement();
+
+		const context = await resolve(document.cookie);
+		expect(context.snapshot.evaluationPolicy.choiceScope).toEqual([]);
+		expect(context.shouldShowBanner).toBe(false);
+	});
+
+	it('judges a stored visitor against the categories the page scripts declare', async () => {
+		const scripts = [
+			{ category: 'marketing' as const, id: 'ads', src: '/ads.js' },
+		];
+		await saveAcknowledgement();
+
+		// The browser runtime asks about marketing for this page, so the server
+		// must render the banner too rather than let it appear after boot.
+		const acknowledged = await resolve(document.cookie, { scripts });
+		expect(acknowledged.snapshot.evaluationPolicy.choiceScope).toEqual([
+			'marketing',
+		]);
+		expect(acknowledged.shouldShowBanner).toBe(true);
+
+		clearCookies();
+		await saveReceipt(true);
+		const accepted = await resolve(document.cookie, { scripts });
+		expect(accepted.shouldShowBanner).toBe(false);
+	});
+
+	it('judges a stored visitor against the configured categories', async () => {
+		await saveAcknowledgement();
+
+		const context = await resolve(document.cookie, {
+			consentCategories: ['necessary', 'measurement'],
+		});
+		expect(context.snapshot.evaluationPolicy.choiceScope).toEqual([
+			'measurement',
+		]);
 		expect(context.shouldShowBanner).toBe(true);
 	});
 });

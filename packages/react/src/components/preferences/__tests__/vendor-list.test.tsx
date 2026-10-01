@@ -142,6 +142,7 @@ describe('consent widget vendor rows', () => {
 			.toHaveTextContent('Ad conversion measurement.');
 		await expect.element(content).toHaveTextContent('Privacy policy');
 		// The measurement vendor lives under its own category, not this one.
+		await openVendors('measurement');
 		const marketingList = document.querySelector(
 			'[data-testid="consent-widget-vendor-list-marketing"]'
 		);
@@ -159,7 +160,9 @@ describe('consent widget vendor rows', () => {
 		).not.toBeNull();
 
 		// The switch is addressed by its accessible name, which is part of the
-		// contract; test ids keep category-scoped membership assertions.
+		// contract; test ids keep category-scoped membership assertions. The
+		// marketing rows stay mounted after the accordion closes them.
+		await openVendors('marketing');
 		const meta = list.getByRole('switch', { name: 'Allow Meta Pixel' });
 		await expect.element(meta).toHaveAttribute('aria-checked', 'true');
 		await meta.click();
@@ -176,6 +179,55 @@ describe('consent widget vendor rows', () => {
 				meta: false,
 			});
 		});
+	});
+
+	test('a collapsed category mounts its vendor rows on first open and keeps them', async () => {
+		renderWidget({ marketing: true, measurement: true });
+		const content = page.getByTestId(
+			'consent-widget-accordion-content-marketing'
+		);
+		// The content element stays for the trigger's aria-controls, empty
+		// until the category first opens.
+		await expect.element(content).toHaveAttribute('data-state', 'closed');
+		const trigger = page.getByTestId(
+			'consent-widget-accordion-trigger-marketing'
+		);
+		await expect
+			.element(trigger)
+			.toHaveAttribute(
+				'aria-controls',
+				content.element().getAttribute('id') ?? ''
+			);
+		expect(
+			document.querySelector('[data-testid^="consent-widget-vendor-"]')
+		).toBeNull();
+
+		await openVendors('marketing');
+		const card = page.getByTestId(
+			'consent-widget-vendor-item-marketing-meta-pixel'
+		);
+		await expect.element(card).toBeInTheDocument();
+		// A vendor card's own details mount the same way.
+		const details = page.getByTestId(
+			'consent-widget-vendor-content-marketing-meta-pixel'
+		);
+		await expect.element(details).toHaveAttribute('data-state', 'closed');
+		expect(details.element().textContent).toBe('');
+		await page
+			.getByTestId('consent-widget-vendor-trigger-marketing-meta-pixel')
+			.click();
+		await expect
+			.element(details)
+			.toHaveTextContent('Ad conversion measurement.');
+
+		// Opening another category closes marketing; its rows, and the open
+		// vendor card, stay mounted for the close transition.
+		await openVendors('measurement');
+		await expect.element(content).toHaveAttribute('data-state', 'closed');
+		await expect.element(card).toBeInTheDocument();
+		await expect
+			.element(details)
+			.toHaveTextContent('Ad conversion measurement.');
 	});
 
 	test('vendor cards sit inset the same on both sides of the category row', async () => {
@@ -223,6 +275,8 @@ describe('consent widget vendor rows', () => {
 
 	test('a shared vendor gets a distinct label id per category and a negated one is not listed', async () => {
 		renderWidget({ marketing: true, measurement: true });
+		await openVendors('marketing');
+		await openVendors('measurement');
 		await openVendors('marketing');
 		const ids = [...document.querySelectorAll('[id$="-shared-vendor"]')].map(
 			(element) => element.id

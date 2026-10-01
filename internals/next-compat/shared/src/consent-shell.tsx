@@ -38,6 +38,7 @@ export interface ConsentShellProps {
 	transport?: 'hosted' | 'manifest' | 'manifest-geo' | 'static';
 	/** Required with `transport="static"`. */
 	manifest?: CompatManifest;
+	networkBlocker?: ConsentRootProps['networkBlocker'];
 }
 
 const createMode = function createMode({
@@ -87,6 +88,7 @@ export const ConsentShell = ({
 	backendURL = COMPAT_BACKEND_URL,
 	transport = 'hosted',
 	manifest,
+	networkBlocker,
 }: ConsentShellProps) => {
 	const mode = useMemo(
 		() => createMode({ backendURL, manifest, transport }),
@@ -97,6 +99,7 @@ export const ConsentShell = ({
 		<ConsentRoot
 			backendURL={transport === 'hosted' ? backendURL : undefined}
 			config={transport === 'manifest-geo' ? COMPAT_CONSENT_CONFIG : undefined}
+			networkBlocker={networkBlocker}
 			state={state ?? {}}
 			options={{
 				callbacks: {

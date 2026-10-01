@@ -28,7 +28,7 @@ Cookie banner, preference centre, and consent-gated script loading for sites wit
 - data-c15t-action buttons and #c15t-preferences links wired for you
 - Hosted, self-hosted, offline, and manifest modes; an inlined manifest renders a location-independent policy with no request at all
 - DevTools panel as a second tag (c15t.devtools.js) with a Location tab for trying geo-keyed policies
-- Consent-gated script loading and Google Consent Mode through @c15t/scripts
+- Consent-gated script loading and Google Consent Mode through @c15t/integrations
 - ES module entry points for bundler projects without a framework
 
 ## Prerequisites

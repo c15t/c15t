@@ -16,10 +16,23 @@
 	--consent-dialog-card-padding-mobile: var(--c15t-space-md);
 
 	/* Branding */
-	--consent-dialog-branding-gap: 0.5rem;
+	--consent-dialog-branding-gap: var(--c15t-space-sm);
 	--consent-dialog-branding-icon-height: 1.25rem;
 	--consent-dialog-branding-icon-width: auto;
 	--consent-dialog-branding-label-size: 0.6875rem;
+
+	/* "Secured by" tag. These are read with a fallback instead of being
+	   declared here: a variable declared on :root resolves var(--c15t-primary)
+	   once, on :root, so a primary or dark palette scoped to a banner or to
+	   .c15t-theme-root would stop reaching the tag. Set any of them to
+	   restyle it:
+	   --consent-branding-tag-background-color  (var(--c15t-primary))
+	   --consent-branding-tag-border-color      (primary mixed 14% toward black)
+	   --consent-branding-tag-text-color        (var(--c15t-text-on-primary, #fff))
+	   --consent-branding-tag-mark-color        (the text color)
+	   --consent-branding-tag-shadow            (inset highlight, 1px drop)
+	   --consent-branding-tag-attached-edge-width (0px: the edge that meets
+	     the card stays open) */
 }
 
 @layer components {
@@ -136,13 +149,25 @@
 		min-height: 1.75rem;
 		max-width: calc(100% - 1.5rem);
 		padding: 0.28125rem 0.625rem;
-		border: 1px solid color-mix(in srgb, var(--c15t-primary), black 14%);
+		border: 1px solid
+			var(
+				--consent-branding-tag-border-color,
+				color-mix(in srgb, var(--c15t-primary), black 14%)
+			);
 		border-radius: 0.75rem 0.75rem 0.1875rem 0.1875rem;
-		color: var(--c15t-text-on-primary, #fff);
-		background-color: var(--c15t-primary);
-		box-shadow:
+		color: var(
+			--consent-branding-tag-text-color,
+			var(--c15t-text-on-primary, #fff)
+		);
+		background-color: var(
+			--consent-branding-tag-background-color,
+			var(--c15t-primary)
+		);
+		box-shadow: var(
+			--consent-branding-tag-shadow,
 			inset 0 1px 0 rgb(255 255 255 / 0.16),
-			0 1px 2px rgb(15 23 42 / 0.12);
+			0 1px 2px rgb(15 23 42 / 0.12)
+		);
 		z-index: 2;
 		text-decoration: none;
 	}
@@ -159,7 +184,10 @@
 	.brandingTag:not(:global(.headless)) .brandingCopy {
 		font-size: var(--consent-dialog-branding-label-size);
 		letter-spacing: 0.01em;
-		color: var(--c15t-text-on-primary, #fff);
+		color: var(
+			--consent-branding-tag-text-color,
+			var(--c15t-text-on-primary, #fff)
+		);
 		text-decoration: none;
 	}
 
@@ -175,18 +203,27 @@
 
 	.brandingTag:not(:global(.headless)) .brandingWordmark {
 		gap: 0.3125rem;
-		color: var(--c15t-text-on-primary, #fff);
+		color: var(
+			--consent-branding-tag-text-color,
+			var(--c15t-text-on-primary, #fff)
+		);
 		text-decoration: none;
 	}
 
 	.brandingTag:not(:global(.headless)) .brandingC15TMark {
 		height: 0.9375rem;
-		color: var(--c15t-text-on-primary, #fff);
+		color: var(
+			--consent-branding-tag-mark-color,
+			var(--consent-branding-tag-text-color, var(--c15t-text-on-primary, #fff))
+		);
 	}
 
 	.brandingTag:not(:global(.headless)) .brandingInth {
 		height: 0.9375rem;
-		color: var(--c15t-text-on-primary, #fff);
+		color: var(
+			--consent-branding-tag-mark-color,
+			var(--consent-branding-tag-text-color, var(--c15t-text-on-primary, #fff))
+		);
 	}
 
 	.brandingTag[data-context='banner']:not(:global(.headless)),
@@ -198,7 +235,7 @@
 		transform: none;
 		margin-inline-end: 0.75rem;
 		margin-block-end: -1px;
-		border-bottom-width: 0;
+		border-bottom-width: var(--consent-branding-tag-attached-edge-width, 0px);
 		border-radius: 0.75rem 0.75rem 0 0;
 	}
 
@@ -206,8 +243,12 @@
 	.brandingTag[data-context='iab-dialog']:not(:global(.headless)) {
 		right: var(--consent-dialog-card-padding-mobile);
 		bottom: 0;
-		transform: translateY(calc(100% + 1px));
-		border-top-width: 0;
+		/* The 1px clears the card's own border. An edge drawn by the tag moves
+		   up to cover it, as the banner tag's does with its -1px margin. */
+		transform: translateY(
+			calc(100% + 1px - var(--consent-branding-tag-attached-edge-width, 0px))
+		);
+		border-top-width: var(--consent-branding-tag-attached-edge-width, 0px);
 		border-radius: 0 0 0.75rem 0.75rem;
 	}
 
@@ -257,15 +298,19 @@
 		transform: none;
 		margin-inline-end: 0.75rem;
 		margin-block-end: -1px;
-		border-bottom-width: 0;
+		border-bottom-width: var(--consent-branding-tag-attached-edge-width, 0px);
 		border-radius: 0.75rem 0.75rem 0 0;
 	}
 
 	.brandingTagDialog:not(:global(.headless)) {
 		right: var(--consent-dialog-card-padding-mobile);
 		bottom: 0;
-		transform: translateY(calc(100% + 1px));
-		border-top-width: 0;
+		/* The 1px clears the card's own border. An edge drawn by the tag moves
+		   up to cover it, as the banner tag's does with its -1px margin. */
+		transform: translateY(
+			calc(100% + 1px - var(--consent-branding-tag-attached-edge-width, 0px))
+		);
+		border-top-width: var(--consent-branding-tag-attached-edge-width, 0px);
 		border-radius: 0 0 0.75rem 0.75rem;
 	}
 

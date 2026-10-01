@@ -6,7 +6,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Group | Owns | Does not need another copy in |
 | --- | --- | --- |
 | Repository and docs | Lint, format, selectors, tooling contracts, generated docs | Package runtime builds |
-| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, benchmark helper units | Every example journey |
+| Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
 | Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
 | Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
@@ -15,6 +15,8 @@ benchmark should reuse an existing group unless it proves a different contract.
 | CSS compatibility | Tailwind 3 important overrides, Tailwind 4 layers, plain CSS | Runtime performance suites |
 | Consumer bundles | Initial/deferred JS, CSS, compressed sizes, import boundaries and tarballs | Per-package Rsdoctor comments |
 | Runtime comparisons | Public operation costs, policy resolution, script lifecycle; full browser metrics in separate v3 runs and full validation | Routine microbench runs |
+| Mobile SDK | Swift and Kotlin kernel builds and tests, both Android assemblies, the binding's autolinking as a host app resolves it, the mobile JS boundary, mobile budgets and their required-row contract | Example app builds |
+| Mobile device builds (advisory) | Expo config-plugin resolution, CocoaPods resolution and the two example apps built for iOS and Android | A second native unit-test run |
 
 ## Selection and local commands
 
@@ -25,12 +27,30 @@ bun scripts/ci-run.ts build
 bun scripts/ci-run.ts types
 bun scripts/ci-run.ts testTypes
 bun scripts/ci-run.ts tests
+bun turbo run test --filter=@c15t/consent-observers
 CI_INTEGRATION=examples CI_TARGETS=react,vue bun scripts/ci-browser.ts
 CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
 CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
 CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.ts
 CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 ```
+
+```sh
+bun run --cwd benchmarks/mobile bench:ci
+bun scripts/ci-mobile-bench-report.ts --kind ios-toolchain --report-dir .ci-reports/mobile-ios-toolchain
+# Android instrumented suite, needs a booted emulator, so it is local-only
+JAVA_HOME=$(/usr/libexec/java_home -v 17) ANDROID_HOME=$HOME/Library/Android/sdk \
+  sh native/core-android/gradlew -p native/core-android :c15t-android:connectedDebugAndroidTest --no-build-cache
+```
+
+`internals/consent-observers` is an ordinary package test with a different
+install. Its `test` script packs the `c15t` closure with the next-compat pack
+step, type-checks against the extracted `dist-types`, then runs Vitest against
+the extracted `dist`. It owns the external-observer contract: reading and
+subscribing through `c15t/runtime` and `c15t/react/context`, provider
+replacement and isolation, StrictMode, borrowed-runtime ownership, and Next.js
+and TanStack Start request isolation. Any change to a package in that closure
+selects it.
 
 The selector compares committed changes with the merge base. Without
 `CI_DIFF_BASE`, it selects a full run. Its regression tests use the real
@@ -48,9 +68,100 @@ measurements. Tests, builds, consumer bundle budgets, and package validation
 remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
 
+Mobile work selects on paths, not on the dependency graph alone. The mobile
+SDK group runs for `packages/react-native`, `native/` and `benchmarks/mobile`,
+and for anything whose reverse dependencies reach `@c15t/react-native`, because
+the JS boundary drives the same kernel the web packages ship.
+`@c15t/benchmarking` is a dependency of both the mobile bench and the backend,
+so the bench is matched by path on purpose: a workspace edge there would put a
+macOS runner on every backend pull request. The device group is narrower, and
+takes only the files an app compiles -- the native kernels, the binding's
+`ios/` and `android/` halves, its podspec and Swift manifest, and the two
+example apps -- plus the runs that select everything. Mobile Markdown,
+`native/CONTRACT.md` included, selects neither group.
+
+The device group is advisory and absent from `complete`, so `CI complete` stays
+green when a pod fetch fails; read it as a build report. It is the most
+expensive thing here: roughly 25 macOS minutes and 12 Ubuntu minutes per
+selected run, and the same again on a dependency bump, because a full run
+selects it. The mobile SDK group is required when selected and costs roughly 10
+macOS plus 8 Ubuntu minutes. Both groups take Xcode 27, the version
+`native/CONTRACT.md` standardises on, and fall back to Xcode 26, which is all
+`macos-latest` ships; the Swift sources build on either because the expanded
+tracking request is found by selector at runtime rather than by declaration.
+They export `DEVELOPER_DIR` instead of switching `xcode-select`, cache SwiftPM,
+Gradle and CocoaPods, and use GitHub-hosted runners only. Files under `native/` own no workspace, so they
+still widen to a full run.
+
+The Android kernel's instrumented suite in `src/androidTest` runs on a booted
+emulator and belongs to neither group. Neither Android leg can host it: both are
+`ubuntu-latest`, which exposes no KVM, and a connected run that finds no device
+answers as a pass rather than a skip. Until a runner with nested virtualization
+or a device cloud is wired up, that suite is a local and pre-release gate, run
+before any change to storage, keystore, launch, or lifecycle, as
+`native/core-android/README.md` describes.
+
+Autolinking is gated separately from the Android assemblies. Assembling an AAR proves Gradle
+can compile the library; it never asks React Native's CLI whether the library can be found. A
+host app's `settings.gradle` runs `react-native config`, so a package the CLI cannot resolve
+fails that app before it configures a project -- and nothing in `packages/react-native` goes
+through that path. It is also not the only linker: an Expo app's `settings.gradle` runs
+`expoAutolinking.rnConfigCommand`, so Expo's own resolver answers for that app and never asks
+the community CLI anything, and the two implementations read a library's config file
+differently. `bun scripts/react-native-autolink.ts` asks both: the unscoped
+`react-native config` from `examples/react-native-bare`, and
+`expo-modules-autolinking react-native-config --platform android --json` from
+`examples/expo-dev`. Each answer is checked to name the library module and the package class,
+and the bare fixture additionally has to name the podspec. It runs on the Android leg of the
+mobile SDK group and, as `scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
+
+The same two questions are then asked of the tarball rather than the checkout. Both fixtures
+install `@c15t/react-native` as a workspace symlink, so a pass above only proves the repository
+tree resolves, and the tree holds files `package.json` never publishes. The script runs
+`npm pack`, installs the extracted tarball over the symlink in each fixture, resolves again,
+and restores what it moved aside. Against the packed tree it additionally holds the manifest to
+what the two native builds open: `codegenConfig.jsSrcsDir` has to contain a spec file, because
+an app generates `NativeC15tSpec` from that directory for both platforms and the Android bridge
+generates its own copy there, and every path the podspec declares -- sources, headers, the
+resource bundle, the license -- has to resolve inside the package rather than above it.
+Packing skips `prepack`, so this leg needs no build output and runs in `test:scripts` like the
+rest. A `files` allowlist that drops a file an app reads goes red here and green everywhere
+else, which is the gap this closes.
+
+The publish artifact guard in `scripts/check-publish-artifacts.ts` reads the same tarball from
+the other side. npm discards a package's root `.gitignore` as soon as `files` names an
+allowlist, so a directory that is allowlisted is published with whatever a build left in it:
+`ios/Pods` from a `pod install`, a Gradle `build/` tree, `ios/Tests`, `src/test/kotlin`. The
+guard refuses those shapes anywhere in a tarball, not only under `dist/`, and holds
+`@c15t/react-native` to the host-app file list above. It runs at release time as
+`bun run check:publish-artifacts`; its rules also run in `bun run test:scripts`, so an
+allowlist that starts sweeping a build tree fails the pull request rather than the release.
+
+Mobile budgets are gated twice, each on the runner that can measure them. The
+bench step runs `bench:ci`, which fails any measured row over its `budgets.json`
+ceiling. `scripts/ci-mobile-bench-report.ts` then fails a required row that
+produced no number, the way `BENCHMARK_EXPECTED_PACKAGES` does for the runtime
+comparisons, and publishes `mobile-summary.json` and a markdown table to the
+step summary and the evidence artifact. Each leg declares its own required
+rows: the Swift leg takes the `swift-core` rows and the iOS slice bytes, the
+Android leg takes the `kotlin-core` rows, the JS boundary and the Android class
+bytes. The idle rows and the cold Kotlin bootstrap are reported and budget-gated
+but never required: the first three watch a quiet process, and the fourth medians
+over forked JVMs, so all four read the runner's load. `ios_binding_bytes` alone
+stays unmeasured by design. The Kotlin bench needs a warm Gradle run first, because the harness
+invokes Gradle with `--offline`, and the harness needs Xcode at
+`/Applications/Xcode.app`, which the Xcode step links when the image installs a
+versioned bundle. The SDK's vitest suite runs here too, on Linux, next to the
+package behaviour group's copy: the mobile group owns the mobile JS contract,
+and a JS-only regression should not wait on a native toolchain.
+
 `benchmark-regression.yml` also runs full comparisons independently on pushes
 to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
-manual runs default to `v3` and accept a different `head_ref` or `base_ref`.
+manual runs also check out `v3` and accept a different `base_ref`.
+Both use the measurement tooling on `v3`; other published branches do not
+contain it. Manual runs cannot execute an arbitrary head revision with
+default-branch cache access.
+The base must belong to the selected head's commit history.
 Runtime comparisons use one runner per package: two jobs for quick runs and
 eight for full runs. Both revisions resolve once before the matrix starts.
 Each job measures base then head on the same runner and enforces that package's

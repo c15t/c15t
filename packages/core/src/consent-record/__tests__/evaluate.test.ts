@@ -68,14 +68,17 @@ describe('evaluateConsentRecord: fresh subjects', () => {
 		});
 	});
 
-	it('returns no prompt when the policy governs no optional category', () => {
+	it('still asks under a choice prompt when the policy governs no optional category', () => {
 		const result = evaluateConsentRecord({
 			choice: null,
 			noticeDismissal: null,
 			now: NOW,
 			policy: makePolicy({ scope: [], scopeMode: 'strict' }),
 		});
-		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
 		expect(result.permissions).toEqual(allFalse);
 	});
 });
@@ -509,22 +512,6 @@ describe('evaluateConsentRecord: privacy signals', () => {
 		expect(result.restrictions).toEqual({});
 	});
 
-	it('keeps a standing directive after the live signal disappears', () => {
-		const result = evaluateConsentRecord({
-			choice: makeChoice({ marketing: true }, NOW, currentBasis(policy)),
-			gpc: false,
-			noticeDismissal: null,
-			now: NOW,
-			optOuts: [
-				{ categories: ['marketing'], recordedAt: NOW - DAY, source: 'gpc' },
-			],
-			policy,
-		});
-		expect(result.permissions.marketing).toBe(false);
-		expect(result.permissions.measurement).toBe(true);
-		expect(result.restrictions.marketing).toEqual(['opt-out-directive']);
-	});
-
 	it('does not acknowledge a required notice', () => {
 		const notice = makePolicy({
 			gpcDenyCategories: ['marketing'],
@@ -646,7 +633,7 @@ describe('evaluateConsentRecord: notices', () => {
 		});
 	});
 
-	it('does not clear a notice requirement when a choice is saved', () => {
+	it('does not clear a notice requirement from a choice alone; the kernel records the dismissal with the save', () => {
 		const result = evaluateConsentRecord({
 			choice: makeChoice(
 				{
@@ -894,5 +881,98 @@ describe('evaluateConsentRecord: displayed choice scope', () => {
 		});
 		expect(result.promptRequirement).toEqual({ kind: 'none' });
 		expect(result.nextDeadline).toBe(NOW + DAY);
+	});
+});
+
+describe('evaluateConsentRecord: empty choice scope', () => {
+	const policy = makePolicy({
+		choice: { fingerprint: 'choice-fp-1', maxAgeMs: DAY },
+		choiceScope: [],
+	});
+	const acknowledgement = (
+		dismissedAt: number,
+		fingerprint = policy.choice.fingerprint
+	): NoticeDismissal => ({ dismissedAt, fingerprint, version: 1 });
+
+	it('asks for an acknowledgement until the visitor gives one', () => {
+		const result = evaluateConsentRecord({
+			choice: null,
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
+		expect(result.permissions).toEqual(allFalse);
+	});
+
+	it('is answered by an acknowledgement until the choice lifetime ends', () => {
+		const input = {
+			choice: null,
+			noticeDismissal: acknowledgement(NOW - 1000),
+			now: NOW,
+			policy,
+		};
+		const result = evaluateConsentRecord(input);
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.nextDeadline).toBe(NOW - 1000 + DAY);
+		expect(
+			evaluateConsentRecord({ ...input, now: NOW - 1000 + DAY })
+				.promptRequirement
+		).toEqual({ kind: 'choice', reason: 'expired' });
+	});
+
+	it('asks again when the policy changes', () => {
+		const result = evaluateConsentRecord({
+			choice: null,
+			noticeDismissal: acknowledgement(NOW - 1000, 'choice-fp-0'),
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'policy-changed',
+		});
+	});
+
+	it('never takes a notice dismissal for an acknowledgement', () => {
+		const result = evaluateConsentRecord({
+			choice: null,
+			noticeDismissal: acknowledgement(NOW - 1000, policy.notice.fingerprint),
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement.kind).toBe('choice');
+	});
+
+	it('is answered by a choice still valid under the current policy', () => {
+		const choice = makeChoice(
+			{ marketing: false },
+			NOW - 1000,
+			currentBasis(policy)
+		);
+		const result = evaluateConsentRecord({
+			choice,
+			noticeDismissal: null,
+			now: NOW,
+			policy,
+		});
+		expect(result.promptRequirement).toEqual({ kind: 'none' });
+		expect(result.nextDeadline).toBe(NOW - 1000 + DAY);
+	});
+
+	it('stops being answered by an acknowledgement once a category is displayed', () => {
+		const result = evaluateConsentRecord({
+			choice: null,
+			noticeDismissal: acknowledgement(NOW - 1000),
+			now: NOW,
+			policy: makePolicy({ choiceScope: ['marketing'] }),
+		});
+		expect(result.promptRequirement).toEqual({
+			kind: 'choice',
+			reason: 'missing',
+		});
 	});
 });

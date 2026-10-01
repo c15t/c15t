@@ -8,6 +8,7 @@
 import type {
 	PolicyFingerprints,
 	PolicyResolution,
+	PolicyResolutionMatched,
 	ResolvedPolicyRule,
 } from '@c15t/schema/types';
 import { safeFallbackPolicyInput } from '@c15t/schema/types';
@@ -29,6 +30,28 @@ export interface EffectivePolicy {
 	fingerprints: PolicyFingerprints;
 }
 
+/**
+ * Categories the visitor is asked about. Declared categories narrow the
+ * policy scope. With nothing declared, a permissive rule asks about none of
+ * them, since categories outside the choice scope stay allowed there, and a
+ * strict rule asks about its whole scope, since nothing outside it may run.
+ * An IAB rule also asks about its whole scope: TCF consent is given per
+ * purpose and recorded in the TC string, whatever the site declares.
+ */
+const projectChoiceScope = function projectChoiceScope(
+	rule: ResolvedPolicyRule,
+	consentCategories?: readonly AllConsentNames[] | null
+): readonly OptionalConsentCategory[] | undefined {
+	if (consentCategories?.length) {
+		return rule.scope.filter((category) =>
+			consentCategories.includes(category)
+		);
+	}
+	return rule.scopeMode === 'permissive' && rule.model !== 'iab'
+		? []
+		: undefined;
+};
+
 const projectEvaluationPolicy = (
 	effective: EffectivePolicy,
 	consentCategories?: readonly AllConsentNames[] | null
@@ -39,9 +62,7 @@ const projectEvaluationPolicy = (
 			fingerprint: fingerprints.choice,
 			maxAgeMs: Math.round(rule.validity.choiceMs),
 		},
-		choiceScope: consentCategories?.length
-			? rule.scope.filter((category) => consentCategories.includes(category))
-			: undefined,
+		choiceScope: projectChoiceScope(rule, consentCategories),
 		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
 		legacyMaterialFingerprint: fingerprints.legacyMaterial ?? null,
 		model: rule.model,
@@ -67,6 +88,51 @@ const FALLBACK_EVALUATION_POLICY = projectEvaluationPolicy(
 	FALLBACK_EFFECTIVE_POLICY
 );
 deepFreeze(FALLBACK_EVALUATION_POLICY);
+
+/**
+ * The resolution a disabled provider or runtime runs on: a permissive
+ * opt-out rule with no prompt, matched as the fallback.
+ *
+ * @remarks
+ * A literal, not a `resolvePolicyRules` call. Resolving at module load would
+ * validate and hash a rule on every page load, and would ship the authoring
+ * validator and the SHA-256 fingerprinting to every client bundle that
+ * renders a provider. A test pins this value to what `resolvePolicyRules`
+ * returns for the same rule.
+ *
+ * @returns A fresh copy.
+ * @internal
+ */
+export const disabledPolicyResolution =
+	function disabledPolicyResolution(): PolicyResolutionMatched {
+		return {
+			fingerprints: {
+				choice:
+					'7c239616f9280c2381800f2815429bd4bc3dad324a367fbd36adb838a1960340',
+				notice:
+					'167ae78ed172a70d96c03045e6a740e0fe1a7d7f54d28ccee8777fe345c574ed',
+				policy:
+					'7f89b3f54bb6e0396447461ca1451ef4d448d43bc356442ee61910de8070c220',
+			},
+			matchedBy: 'fallback',
+			policy: {
+				actions: { allowed: [], equivalent: [], required: [] },
+				copyRevision: null,
+				id: 'disabled',
+				model: 'opt-out',
+				preselectedCategories: [],
+				privacySignals: { gpc: { denyCategories: [] } },
+				prompt: 'none',
+				proof: { storeIp: false, storeLanguage: false, storeUserAgent: false },
+				rights: ['disclosure', 'opt-out', 'preferences'],
+				scope: ['experience', 'functionality', 'marketing', 'measurement'],
+				scopeMode: 'permissive',
+				validity: { choiceMs: 31_536_000_000, noticeMs: 31_536_000_000 },
+			},
+			policyId: 'disabled',
+			status: 'matched',
+		};
+	};
 
 /**
  * The rule a resolution puts in force: the matched rule, or the safe
@@ -124,8 +190,14 @@ export const deriveActiveUI = function deriveActiveUI(input: {
 	promptRequirement: PromptRequirement;
 	policyPending: boolean;
 	resolution: PolicyResolution;
+	/** A banner experiment is still assigning this visitor's arm. */
+	experimentPending?: boolean;
 }): KernelActiveUI {
-	if (input.policyPending || input.resolution.status === 'failed') {
+	if (
+		input.policyPending ||
+		input.experimentPending ||
+		input.resolution.status === 'failed'
+	) {
 		return 'none';
 	}
 	if (input.promptRequirement.kind === 'none') {

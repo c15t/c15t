@@ -1,6 +1,6 @@
 # c15t Monorepo
 
-c15t is a developer-first consent management platform (CMP): cookie banners, consent dialogs, preference centers, consent-gated script loading, Google Consent Mode v2, and IAB TCF 2.3 for JavaScript, React, Next.js, Vue, Svelte, and Solid. This repo contains the published npm packages, the MDX source for the c15t.com docs, benchmarks, Storybook apps, and a demo.
+c15t is a developer-first consent management platform (CMP): cookie banners, consent dialogs, preference centers, consent-gated script loading, Google Consent Mode v2, and IAB TCF 2.4 for JavaScript, React, Next.js, Vue, Svelte, and Solid. This repo contains the published npm packages, the MDX source for the c15t.com docs, benchmarks, Storybook apps, and a demo.
 
 This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guides live in `.agents/skills/` (symlinked into `.claude/skills/`, `.cursor/skills/`, and `.github/skills/`). Third-party skills are managed with the [skills CLI](https://skills.sh) and pinned in `skills-lock.json` — add or refresh them with `bunx skills add <owner>/<repo>` / `bunx skills update -y`, never by hand-editing their files. The first-party skills (`writing-docs`, `releasing`, `creating-a-package`) are maintained in this repo.
 
@@ -14,8 +14,9 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 | `packages/tanstack-start` | `@c15t/tanstack-start` — TanStack Start integration (server routes, server functions, request middleware, SSR) |
 | `packages/ui` | `@c15t/ui` — framework-agnostic primitives, CSS, theme system |
 | `packages/vue`, `packages/svelte`, `packages/solid` | Thin framework re-exports of `@c15t/ui` |
-| `packages/scripts` | `@c15t/scripts` — consent-aware loaders for GTM, GA4, pixels, widgets |
-| `packages/iab` | `@c15t/iab` — IAB TCF 2.3 addon (TC String, GVL, vendor consent) |
+| `packages/scripts` | `@c15t/scripts` — deprecated v3 compatibility re-exports of `@c15t/integrations`; retire in v4 |
+| `packages/integrations` | `@c15t/integrations` — consent-aware loaders for GTM, GA4, pixels, widgets |
+| `packages/iab` | `@c15t/iab` — IAB TCF 2.4 addon (TC String, GVL, vendor consent) |
 | `packages/backend` | `@c15t/backend` — self-hostable consent backend (policies, audit, geo) |
 | `packages/cli` | `@c15t/cli` — scaffolding/setup CLI |
 | `packages/node-sdk`, `packages/schema`, `packages/translations`, `packages/logger`, `packages/dev-tools` | Node API client, Valibot schemas, i18n, logger, devtools |
@@ -76,6 +77,7 @@ Enforced by `oxlint.config.ts` and `oxfmt.config.ts` (root):
 - Tabs, line width 80, single quotes, semicolons, LF. JSX uses double quotes.
 - Oxlint extends Ultracite's core, React, and Vue presets. Rules with existing violations are listed as deferred in `oxlint.config.ts`; all other preset rules remain errors.
 - Oxfmt deliberately leaves import, package JSON, and Tailwind sorting disabled to avoid unrelated reorder-only diffs.
+- `@c15t/ui` component CSS takes colors, shadows, fonts, font sizes and weights, line heights, radii, spacing and motion from `var()`: a `--c15t-*` theme token, or a component variable that defaults or falls back to one. A literal fallback on a component variable counts as a literal. `packages/ui/src/styles/__tests__/design-token-literals.test.ts` fails on new literals. Older ones are listed in `design-token-baseline.json`, which should only shrink.
 
 Conventions not enforced by tooling (hold new code to these; older code has exceptions):
 

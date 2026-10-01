@@ -76,7 +76,7 @@
 			opacity var(--consent-banner-animation-duration)
 				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
-				cubic-bezier(0.34, 1.56, 0.64, 1);
+				var(--c15t-easing-spring);
 	}
 
 	.bannerLeaveActive:not(:global(.headless)) {
@@ -107,7 +107,7 @@
 			opacity var(--consent-banner-animation-duration)
 				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
-				cubic-bezier(0.34, 1.56, 0.64, 1);
+				var(--c15t-easing-spring);
 	}
 
 	.bannerHidden:not(:global(.headless)) {
@@ -118,6 +118,19 @@
 				var(--consent-banner-animation-timing),
 			transform var(--consent-banner-animation-duration)
 				var(--consent-banner-animation-timing);
+	}
+
+	/*
+	 * Entry for a banner inserted with `.bannerVisible` already set. Browsers
+	 * with `@starting-style` transition from this state on the first frame,
+	 * so the mount needs no forced layout between the hidden and visible
+	 * classes. The script-tag banner uses it; other hosts keep their toggles.
+	 */
+	@starting-style {
+		.bannerEntering:not(:global(.headless)) {
+			opacity: 0;
+			transform: translateY(50px);
+		}
 	}
 
 	@media (min-width: 640px) {
@@ -413,10 +426,15 @@
 		overflow: hidden;
 	}
 
+	/* The footer lays out its actions by this shell's width, not the
+	   viewport's (see consent-actions.module.css). Inline-size containment
+	   ignores the content's width, so every variant must give the shell an
+	   explicit width, as the rules here do. */
 	.cardShell:not(:global(.headless)) {
 		display: flex;
 		flex-direction: column;
 		width: min(calc(100vw - 2rem), var(--consent-banner-max-width));
+		container: c15t-banner / inline-size;
 	}
 
 	@media (min-width: 640px) {
@@ -794,6 +812,12 @@
 		opacity: 0;
 		transition: opacity var(--consent-banner-animation-duration)
 			var(--consent-banner-animation-timing);
+	}
+
+	@starting-style {
+		.overlayEntering:not(:global(.headless)) {
+			opacity: 0;
+		}
 	}
 
 	:global(.c15t-dark) .overlay:not(:global(.headless)) {

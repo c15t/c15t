@@ -241,6 +241,8 @@ export const runFrameworkConformance = ({
 		const authoritative =
 			(opts.initMode ?? 'authoritative') === 'authoritative';
 		return {
+			// A real reload restarts the browser test page.
+			reloadOnConsentRevoked: false,
 			...provided,
 			disableAnimation: true,
 			mode: offline(),
@@ -255,7 +257,7 @@ export const runFrameworkConformance = ({
 						? {
 								cmpId: IAB_FIXTURE_CMP_ID,
 								enabled: true,
-								gvl: MINIMAL_GVL as unknown as GlobalVendorList,
+								gvl: (opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList,
 							}
 						: undefined,
 				initialPolicyPending: !authoritative,
@@ -415,7 +417,7 @@ export const runFrameworkConformance = ({
 					<IABProvider
 						cmpId={IAB_FIXTURE_CMP_ID}
 						cmpVersion={IAB_FIXTURE_CMP_VERSION}
-						gvl={MINIMAL_GVL as unknown as GlobalVendorList}
+						gvl={(opts.gvl ?? MINIMAL_GVL) as unknown as GlobalVendorList}
 					>
 						{content}
 					</IABProvider>

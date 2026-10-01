@@ -196,7 +196,7 @@ export const completeGVL: GlobalVendorList = {
 				'With your acceptance, certain characteristics specific to your device...',
 			id: 2,
 			illustrations: [],
-			name: 'Actively scan device characteristics for identification',
+			name: 'Identify devices based on information actively requested',
 		},
 	},
 	specialPurposes: {
@@ -244,6 +244,10 @@ export const completeGVL: GlobalVendorList = {
 			purposes: [8, 10],
 			specialFeatures: [],
 		},
+	},
+	standardTexts: {
+		features:
+			'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
 	},
 	tcfPolicyVersion: 5,
 	vendorListVersion: 142,

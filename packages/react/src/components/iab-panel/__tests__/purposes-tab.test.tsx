@@ -149,7 +149,7 @@ const mockGVL = {
 			description: '',
 			id: 2,
 			illustrations: [],
-			name: 'Actively scan device characteristics for identification',
+			name: 'Identify devices based on information actively requested',
 		},
 	},
 	specialPurposes: {

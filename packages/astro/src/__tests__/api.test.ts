@@ -172,41 +172,57 @@ describe('manifest caching through the routes', () => {
 		expect(await response.json()).toEqual(MANIFEST);
 	});
 
-	it("defaults to the adapter's locals.runtime.ctx.waitUntil for a stale read's refresh", async () => {
-		vi.useFakeTimers();
-		const fetchImpl = vi.fn(() =>
-			Promise.resolve(
-				jsonResponse(MANIFEST, {
-					'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
-					etag: 'W/"v1"',
-				})
-			)
-		);
-		const registered: Promise<unknown>[] = [];
-		// Same shape the injected routes pass: the request plus `{ locals }`.
-		const locals = {
-			runtime: {
-				ctx: {
-					waitUntil: (promise: Promise<unknown>) => {
-						registered.push(promise);
-					},
+	it.each([
+		// Cloudflare adapter for Astro 6 and later. It keeps a `runtime.ctx`
+		// getter that throws, so that must never be read.
+		[
+			'locals.cfContext',
+			(waitUntil: (promise: Promise<unknown>) => void) => ({
+				cfContext: { waitUntil },
+				get runtime(): never {
+					throw new Error('Astro.locals.runtime was removed');
 				},
-			},
-		};
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
+			}),
+		],
+		// Cloudflare adapter for Astro 5.
+		[
+			'locals.runtime.ctx',
+			(waitUntil: (promise: Promise<unknown>) => void) => ({
+				runtime: { ctx: { waitUntil } },
+			}),
+		],
+	])(
+		"defaults to the adapter's %s.waitUntil for a stale read's refresh",
+		async (_location, makeLocals) => {
+			vi.useFakeTimers();
+			const fetchImpl = vi.fn(() =>
+				Promise.resolve(
+					jsonResponse(MANIFEST, {
+						'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
+						etag: 'W/"v1"',
+					})
+				)
+			);
+			const registered: Promise<unknown>[] = [];
+			// Same shape the injected routes pass: the request plus `{ locals }`.
+			const locals = makeLocals((promise) => {
+				registered.push(promise);
+			});
+			const handlers = createConsentRouteHandlers({
+				fetch: fetchImpl,
+				options: options(),
+			});
 
-		await handlers.manifest(makeManifestRequest(), { locals });
-		expect(registered).toHaveLength(0);
+			await handlers.manifest(makeManifestRequest(), { locals });
+			expect(registered).toHaveLength(0);
 
-		vi.setSystemTime(Date.now() + 1500);
-		await handlers.manifest(makeManifestRequest(), { locals });
-		expect(registered).toHaveLength(1);
-		await expect(registered[0]).resolves.toBeUndefined();
-		expect(fetchImpl).toHaveBeenCalledTimes(2);
-	});
+			vi.setSystemTime(Date.now() + 1500);
+			await handlers.manifest(makeManifestRequest(), { locals });
+			expect(registered).toHaveLength(1);
+			await expect(registered[0]).resolves.toBeUndefined();
+			expect(fetchImpl).toHaveBeenCalledTimes(2);
+		}
+	);
 
 	it("hands a stale read's refresh to onBackgroundRevalidate", async () => {
 		vi.useFakeTimers();

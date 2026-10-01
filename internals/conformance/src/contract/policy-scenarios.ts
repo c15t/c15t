@@ -75,8 +75,7 @@ export type ScenarioPrompt =
 export type ScenarioEvent =
 	| 'choice-recorded'
 	| 'permissions-changed'
-	| 'notice-dismissed'
-	| 'privacy-opt-out';
+	| 'notice-dismissed';
 
 /** A step's observations; omitted properties impose no assertion. */
 export interface PolicyObservation {
@@ -105,10 +104,10 @@ export interface PolicyObservation {
 	storage?:
 		| 'unchanged'
 		| 'choice-v3'
+		/** A v3 choice envelope plus the notice dismissal the same save recorded. */
+		| 'choice-and-notice'
 		| 'notice-only'
-		| 'privacy-only'
 		| 'cleared';
-	standingOptOut?: readonly PolicyCategory[];
 	noticeDismissal?: 'absent' | 'current';
 	firstLayer?: 'choice' | 'notice' | 'hidden';
 	persistentRights?: readonly ('disclosure' | 'preferences' | 'opt-out')[];

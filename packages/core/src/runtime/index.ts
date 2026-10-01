@@ -26,25 +26,33 @@
  * runtime.start();
  * ```
  */
-import { resolvePolicyRules } from '@c15t/schema/types';
 import { deepMergeTranslations } from '@c15t/translations';
 import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
 import { createConsentKernel } from '../kernel';
+import {
+	hostExperiment,
+	seedExperiment,
+	startExperiment,
+} from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { resolveVendors } from '../libs/vendors';
 import { createClearOnRevocation } from '../modules/clear-on-revocation';
 import { createIframeBlocker } from '../modules/iframe-blocker';
 import { createNetworkBlocker } from '../modules/network-blocker';
+import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
+import type { NetworkHold } from '../modules/network-blocker/hold';
 import { createPersistence } from '../modules/persistence';
 import type { PersistenceHandle } from '../modules/persistence';
+import { watchRevocationReload } from '../modules/revocation-reload';
 import { createScriptLoader } from '../modules/script-loader';
 import {
 	createWindowDebug,
 	resolveWindowDebugMode,
 } from '../modules/window-debug';
 import type { User } from '../options/user';
+import { disabledPolicyResolution } from '../policy';
 import { defaultTranslationConfig } from '../translations';
 import type { ProviderTransportContext } from '../transports/mode';
 import type {
@@ -54,9 +62,11 @@ import type {
 	KernelOverrides,
 	KernelTranslations,
 	KernelUser,
+	ResolvedVendor,
 	TranslationsResponse,
 } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
+import { connectConsentSource } from './controls';
 import { isIABConfigured } from './iab-options';
 import type {
 	ConsentRuntime,
@@ -67,7 +77,11 @@ import type {
 	RuntimePersistenceOptions,
 } from './types';
 
+export { connectConsentSource } from './controls';
+export type { ConsentControlOptions } from './controls';
+
 export type {
+	ExternalConsentSource,
 	ConsentRuntime,
 	ConsentRuntimeIABFactory,
 	ConsentRuntimeIABFactoryOptions,
@@ -171,19 +185,6 @@ export const resolveRuntimeTranslations = function resolveRuntimeTranslations(
 	};
 };
 
-const DISABLED_RESOLUTION = resolvePolicyRules({
-	countryCode: null,
-	regionCode: null,
-	rules: [
-		{
-			id: 'disabled',
-			match: { fallback: true },
-			model: 'opt-out',
-			prompt: 'none',
-		},
-	],
-});
-
 const normalizePersistenceOptions = function normalizePersistenceOptions(
 	options: ConsentRuntimeOptions
 ): RuntimePersistenceOptions | false {
@@ -197,6 +198,7 @@ const normalizePersistenceOptions = function normalizePersistenceOptions(
 	return {
 		skipHydration: options.persistence.skipHydration,
 		storageConfig: options.persistence.storageConfig ?? storageConfig,
+		sync: options.persistence.sync,
 	};
 };
 
@@ -244,6 +246,32 @@ const requireTransportFactory = function requireTransportFactory(
 };
 
 /**
+ * Categories a site declares through what it runs: its gated scripts, its
+ * network blocker rules and its declared vendors.
+ *
+ * The runtime registers these with its kernel. A server that builds its own
+ * kernel for the same page passes the same result as
+ * `inferredConsentCategories`, so it asks about the same categories as the
+ * browser and judges a returning visitor's stored choice the same way.
+ *
+ * @param options - The scripts and network blocker the page declares.
+ * @param vendors - Vendors the page declares, from code or a prefetch.
+ * @returns Every category those declarations name, possibly repeated.
+ */
+export const inferConsentCategories = function inferConsentCategories(
+	options: Pick<ConsentRuntimeOptions, 'networkBlocker' | 'scripts'>,
+	vendors: readonly Pick<ResolvedVendor, 'category'>[] = []
+): AllConsentNames[] {
+	return [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+		...vendors,
+	].flatMap((declaration) =>
+		extractConsentNamesFromCondition(declaration.category)
+	);
+};
+
+/**
  * Builds the runtime's kernel without touching the DOM.
  *
  * Exported so servers can construct the same kernel a browser runtime
@@ -258,7 +286,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	options: ConsentRuntimeOptions
 ): ConsentKernel {
 	const enabled = options.enabled ?? true;
-	const prefetch = options.prefetch ?? {};
+	// The server's experiment is a runtime input, not kernel configuration.
+	const { experiment: serverExperiment, ...prefetch } = options.prefetch ?? {};
 	const i18nTranslations =
 		resolveRuntimeTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
@@ -284,21 +313,28 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		owners: integrations,
 	});
 	const vendorListVersion = prefetch.initialVendors?.listVersion ?? null;
+	// A prefetched or host-resolved arm is known before any render, so the
+	// server snapshot and the first paint already use it. Built-in
+	// assignment holds the prompt until the browser has picked the arm.
+	const experimentSeed = enabled
+		? seedExperiment(
+				hostExperiment(options.experiment, { experiment: serverExperiment }),
+				prefetch.initialExperiment,
+				hasResolvedPrefetch(options.prefetch)
+			)
+		: {};
 
 	return createConsentKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
-		inferredConsentCategories: [
-			...integrations.flatMap((integration) =>
-				extractConsentNamesFromCondition(integration.category)
-			),
-			// Every declared vendor, from code or a resolved prefetch, makes its
-			// category selectable at construction, so the server snapshot and the
-			// hydrated one evaluate the same scope.
-			...declaredVendors.flatMap((vendor) =>
-				extractConsentNamesFromCondition(vendor.category)
-			),
-		],
+		// Every declared vendor, from code or a resolved prefetch, makes its
+		// category selectable at construction, so the server snapshot and the
+		// hydrated one evaluate the same scope.
+		inferredConsentCategories: inferConsentCategories(options, declaredVendors),
+		initialExperiment: experimentSeed.initialExperiment,
+		initialExperimentPending: experimentSeed.initialExperimentPending,
+		initialExternalPermissions:
+			enabled && options.consentSource ? {} : undefined,
 		initialIab:
 			prefetch.initialIab?.gvlReference &&
 			options.iab &&
@@ -315,15 +351,17 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			...(prefetch.initialOverrides ?? {}),
 			...(options.overrides ?? {}),
 		},
-		initialPolicyPending:
-			prefetch.initialPolicyPending ??
-			(enabled && !prefetch.initialPolicyResolution),
+		initialPolicyPending: options.consentSource
+			? false
+			: (prefetch.initialPolicyPending ??
+				(enabled && !prefetch.initialPolicyResolution)),
 		initialPolicyResolution: enabled
 			? prefetch.initialPolicyResolution
-			: DISABLED_RESOLUTION,
+			: disabledPolicyResolution(),
 		// A disabled runtime grants everything, so stored records, including a
 		// vendor denial list, must not narrow what loads.
-		initialRecords: enabled ? prefetch.initialRecords : undefined,
+		initialRecords:
+			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
 		initialVendors:
@@ -361,6 +399,7 @@ const normalizeIABOptions = function normalizeIABOptions(
 		gvlURL: iab.gvlURL,
 		isServiceSpecific: iab.isServiceSpecific,
 		publisherCountryCode: iab.publisherCountryCode,
+		publisherRestrictions: iab.publisherRestrictions,
 		vendors: iab.vendors,
 	};
 };
@@ -395,8 +434,21 @@ export const createConsentRuntime = function createConsentRuntime(
 	options: ConsentRuntimeOptions
 ): ConsentRuntime {
 	const enabled = options.enabled ?? true;
-	const persistenceOptions = normalizePersistenceOptions(options);
+	const persistenceOptions = options.consentSource
+		? false
+		: normalizePersistenceOptions(options);
 	const kernel = createRuntimeKernel(options);
+	// `start()` installs the blocker, often after the host rendered its
+	// children. Hold matching requests until then; the blocker takes over this
+	// runtime's hold and replays them. A runtime disposed before it started
+	// ends its hold itself, failing what it held closed. Either way, other
+	// callers' holds stay in place.
+	let hold: NetworkHold | null =
+		enabled &&
+		options.networkBlocker &&
+		options.networkBlocker.enabled !== false
+			? holdNetworkRequests(options.networkBlocker.rules)
+			: null;
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let started = false;
@@ -419,6 +471,12 @@ export const createConsentRuntime = function createConsentRuntime(
 		wireRuntimeCallbacks({
 			callbacks: options.callbacks,
 			kernel,
+		}),
+		watchRevocationReload({
+			getOnBeforeReload: () =>
+				options.callbacks?.onBeforeConsentRevocationReload,
+			isEnabled: () => options.reloadOnConsentRevoked !== false,
+			kernel,
 		})
 	);
 	// Vendors the backend declares arrive with init. Their categories become
@@ -440,7 +498,7 @@ export const createConsentRuntime = function createConsentRuntime(
 	let persistenceHandle: PersistenceHandle | null = null;
 
 	const runInit = async function runInit(): Promise<void> {
-		if (disposed) {
+		if (disposed || options.consentSource) {
 			return;
 		}
 		await kernel.commands.init();
@@ -456,6 +514,7 @@ export const createConsentRuntime = function createConsentRuntime(
 				persistenceOptions.skipHydration ??
 				Boolean(options.prefetch?.initialRecords),
 			storageConfig: persistenceOptions.storageConfig,
+			sync: persistenceOptions.sync,
 		});
 		persistenceHandle = persistence;
 		disposers.push(() => {
@@ -480,7 +539,7 @@ export const createConsentRuntime = function createConsentRuntime(
 
 	const startIAB = function startIAB() {
 		const { createIAB } = options;
-		if (!(enabled && createIAB && options.iab)) {
+		if (!(enabled && createIAB && options.iab) || options.consentSource) {
 			return;
 		}
 		let mounted = false;
@@ -517,7 +576,6 @@ export const createConsentRuntime = function createConsentRuntime(
 			kernel.hydrate({
 				choice: null,
 				noticeDismissal: null,
-				optOutDirectives: [],
 				subject: null,
 				vendorChoice: null,
 			});
@@ -537,6 +595,11 @@ export const createConsentRuntime = function createConsentRuntime(
 				dispose();
 			}
 			disposers.length = 0;
+			// No blocker took the hold over, so nothing else ends it, and
+			// nothing checked consent for what it held: those requests fail
+			// as blocked rather than wait for the rest of the page.
+			hold?.block();
+			hold = null;
 			iabListeners.clear();
 			iabHandle = null;
 			persistenceHandle = null;
@@ -562,6 +625,9 @@ export const createConsentRuntime = function createConsentRuntime(
 				iabListeners.delete(listener);
 			};
 		},
+		reconcileStorage() {
+			return persistenceHandle?.reconcile() ?? false;
+		},
 		async reinit() {
 			if (!enabled || disposed) {
 				return;
@@ -580,6 +646,7 @@ export const createConsentRuntime = function createConsentRuntime(
 		stageVendorConsent(vendorId, granted) {
 			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
+		// oxlint-disable-next-line complexity -- Starts the runtime modules in dependency order.
 		start() {
 			if (started || disposed || typeof document === 'undefined') {
 				return;
@@ -595,13 +662,41 @@ export const createConsentRuntime = function createConsentRuntime(
 			}
 
 			startPersistence();
+			if (enabled && options.consentSource) {
+				disposers.push(connectConsentSource(kernel, options.consentSource));
+				kernel.events.emit({
+					snapshot: kernel.getSnapshot(),
+					type: 'init:applied',
+				});
+			}
+			// After hydration, so a returning visitor's subject id seeds the
+			// arm. The controller loads as its own chunk; a held prompt waits.
+			const experiment = hostExperiment(options.experiment, options.prefetch);
+			if (enabled && experiment && !options.consentSource) {
+				disposers.push(
+					startExperiment({
+						experiment,
+						kernel,
+						presentation: options.presentation,
+						storageConfig: options.storageConfig,
+						theme: options.theme,
+					})
+				);
+			}
 
 			// A server-resolved prefetch already holds the init answer; asking
 			// for it again is one request per page load on every SSR route.
-			if (enabled && !hasResolvedPrefetch(options.prefetch)) {
+			if (
+				enabled &&
+				!options.consentSource &&
+				!hasResolvedPrefetch(options.prefetch)
+			) {
 				void runInit();
-			} else if (enabled) {
+			} else if (enabled && !options.consentSource) {
 				kernel.hydrate({ now: kernel.getServerSnapshot().evaluatedAt });
+				// No init call marks this kernel live, so do it here: the banner
+				// the server rendered is the visitor's first impression.
+				kernel.markLive();
 				const { gpc } = kernel.getSnapshot().privacySignals;
 				if (gpc.detected && gpc.active) {
 					kernel.set.privacySignals({ gpc: true });
@@ -632,11 +727,15 @@ export const createConsentRuntime = function createConsentRuntime(
 			if (enabled && options.networkBlocker) {
 				const blocker = createNetworkBlocker({
 					enabled: options.networkBlocker.enabled,
+					// Never omitted: without a hold, the blocker ends every
+					// caller's hold, including ones a disabled blocker must not.
+					hold: hold ?? NOT_HELD,
 					kernel,
 					logBlockedRequests: options.networkBlocker.logBlockedRequests,
 					onRequestBlocked: options.networkBlocker.onRequestBlocked,
 					rules: options.networkBlocker.rules,
 				});
+				hold = null;
 				disposers.push(() => blocker.dispose());
 			}
 

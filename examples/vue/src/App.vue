@@ -4,11 +4,14 @@ import ConsentRoot from 'c15t/vue/consent-root';
 import { DevTools } from 'c15t/vue/devtools';
 import {
 	useConsentActiveUI,
+	useConsentConfig,
 	useConsentSnapshot,
 	useConsentKernel,
+	useExperiment,
 } from 'c15t/vue/vue-plugin';
 import { onMounted, onUnmounted } from 'vue';
 
+import { experimentEvents } from './experiment';
 import { scripts } from './scripts';
 
 const kernel = useConsentKernel();
@@ -19,6 +22,8 @@ onMounted(() => {
 onUnmounted(() => loader?.dispose());
 const activeUI = useConsentActiveUI();
 const snapshot = useConsentSnapshot();
+const experimentConfigured = Boolean(useConsentConfig().value.experiment);
+const experiment = useExperiment();
 </script>
 
 <template>
@@ -28,8 +33,33 @@ const snapshot = useConsentSnapshot();
 		<h1>Consent example</h1>
 		<p>One consent setup for your analytics, advertising and video embeds.</p>
 		<nav aria-label="Banner design">
-			<a href="/">Default</a><a href="/?design=branded">Branded</a>
+			<a href="/">Default</a><a href="/?design=branded">Branded</a
+			><a href="/?experiment=1">Experiment</a
+			><a href="/?experiment=1&arm=wall">Experiment (wall arm)</a>
 		</nav>
+		<section
+			v-if="experimentConfigured"
+			class="card"
+			data-testid="experiment"
+		>
+			<h2>Banner experiment</h2>
+			<p>
+				Arm:
+				<code data-testid="experiment-arm">{{
+					experiment
+						? `${experiment.id} · ${experiment.arm} · ${experiment.assignedBy}`
+						: 'assigning…'
+				}}</code>
+			</p>
+			<ul class="statuses">
+				<li
+					v-for="(event, index) in experimentEvents"
+					:key="index"
+				>
+					<code>{{ event.name }}</code> · {{ event.arm }} · {{ event.detail }}
+				</li>
+			</ul>
+		</section>
 		<section class="card">
 			<h2>Scripts follow your choices</h2>
 			<ul class="statuses">

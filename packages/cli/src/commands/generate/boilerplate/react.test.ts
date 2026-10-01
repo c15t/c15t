@@ -25,9 +25,9 @@ describe('React, Next.js and JavaScript boilerplate', () => {
 			mkdirSync(join(root, 'node_modules/@c15t'), { recursive: true });
 			for (const [name, directory] of Object.entries({
 				core: 'core',
+				integrations: 'integrations',
 				nextjs: 'nextjs',
 				react: 'react',
-				scripts: 'scripts',
 			})) {
 				symlinkSync(
 					join(packages, directory),

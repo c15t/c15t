@@ -7,10 +7,29 @@ import { resolvePolicyRules } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createIAB } from '../index';
-import type { TCFConsentData } from '../tcf/iab-tcf-types';
+import { createCMPApi } from '../tcf/cmp-api';
+import { CMP_VERSION_NUMBER } from '../tcf/cmp-defaults';
+import type { TCData, TCFConsentData } from '../tcf/iab-tcf-types';
 import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { MINIMAL_TC_STRING } from './fixtures/tc-strings';
-import { createMockGVL, createMockTCFConsentAllGranted } from './test-setup';
+import {
+	createMockGVL,
+	createMockTCFConsent,
+	createMockTCFConsentAllGranted,
+	createMockVendor,
+	createMockVendors,
+} from './test-setup';
+
+const readTCData = (): Promise<TCData> =>
+	new Promise((resolve, reject) => {
+		window.__tcfapi?.('getTCData', 2, (data, success) => {
+			if (success && data) {
+				resolve(data);
+			} else {
+				reject(new Error('getTCData failed'));
+			}
+		});
+	});
 
 describe('@c15t/iab TC string encode/decode', () => {
 	test.each([undefined, false])(
@@ -180,6 +199,35 @@ describe('@c15t/iab TC string encode/decode', () => {
 		});
 	});
 
+	test.each([0, 1, undefined])(
+		'refuses to encode a TC string for cmpId %p',
+		async (cmpId) => {
+			// The 12-bit core-string field starts at 2. Pinning the encoder rule keeps
+			// the createIAB boundary honest: it may not accept a wider range than the
+			// library can encode, and nothing may default a missing id.
+			await expect(
+				generateTCString(createMockTCFConsentAllGranted(), createMockGVL(), {
+					cmpId: cmpId as number,
+				})
+			).rejects.toThrow(/cmpId/u);
+		}
+	);
+
+	test('reports the package major as cmpVersion when unset', async () => {
+		const kernel = createConsentKernel();
+		const iab = createIAB({ cmpId: 28, gvl: createMockGVL(), kernel });
+
+		try {
+			iab.setPurposeConsent(1, true);
+			const decoded = await decodeTCString(await iab.generateTCString());
+
+			expect(decoded.cmpVersion).toBe(CMP_VERSION_NUMBER);
+			expect(decoded.policyVersion).toBe(5);
+		} finally {
+			iab.dispose();
+		}
+	});
+
 	test('createIAB encodes vendorsDisclosed from considered vendor consent state', async () => {
 		const gvl = createMockGVL();
 		const kernel = createConsentKernel();
@@ -200,5 +248,91 @@ describe('@c15t/iab TC string encode/decode', () => {
 		expect(decoded.vendorsDisclosed[755]).toBeUndefined();
 
 		iab.dispose();
+	});
+});
+
+describe('@c15t/iab TCF 2.4 encoding rules', () => {
+	test('clears the vendor LI bit for a vendor that declares only special purposes', async () => {
+		// TCF 2.4 removed the rule that set this bit. The vendor has no
+		// purpose on legitimate interest, so the bit must be 0.
+		const gvl = createMockGVL({
+			vendors: {
+				...createMockVendors(),
+				42: createMockVendor(42, {
+					flexiblePurposes: [],
+					legIntPurposes: [],
+					purposes: [],
+					specialPurposes: [1, 2],
+				}),
+			},
+		});
+		const tcString = await generateTCString(
+			createMockTCFConsent({
+				vendorLegitimateInterests: { 10: true, 42: true },
+				vendorsDisclosed: { 10: true, 42: true },
+			}),
+			gvl,
+			{ cmpId: 28 }
+		);
+		const decoded = await decodeTCString(tcString);
+
+		expect(decoded.vendorLegitimateInterests[42]).toBeUndefined();
+		// A vendor with a real LI purpose keeps its bit.
+		expect(decoded.vendorLegitimateInterests[10]).toBe(true);
+		expect(decoded.vendorsDisclosed[42]).toBe(true);
+	});
+
+	test('always encodes IsServiceSpecific=1', async () => {
+		const tcString = await generateTCString(
+			createMockTCFConsent(),
+			createMockGVL(),
+			{ cmpId: 28, isServiceSpecific: false }
+		);
+
+		expect((await decodeTCString(tcString)).isServiceSpecific).toBe(true);
+	});
+});
+
+describe('@c15t/iab CMP API disclosed vendors', () => {
+	test('getTCData lists the vendors encoded in the disclosed vendors segment', async () => {
+		const gvl = createMockGVL();
+		const consentData = createMockTCFConsent({
+			// Vendor 0 and false entries are not encoded, so TC data must not
+			// list them either.
+			vendorsDisclosed: { 0: true, 1: true, 10: false, 755: true },
+		});
+		const tcString = await generateTCString(consentData, gvl, { cmpId: 28 });
+		const api = createCMPApi({ cmpId: 28, gvl });
+		try {
+			api.updateConsent(tcString, consentData);
+			const tcData = await readTCData();
+
+			expect(tcData.vendor.disclosedVendors).toEqual({ 1: true, 755: true });
+			expect(tcData.vendor.disclosedVendors).toEqual(
+				(await decodeTCString(tcString)).vendorsDisclosed
+			);
+		} finally {
+			api.destroy();
+		}
+	});
+
+	test('getTCData reads disclosed vendors from a stored string without consent data', async () => {
+		const gvl = createMockGVL();
+		const tcString = await generateTCString(
+			createMockTCFConsent({ vendorsDisclosed: { 10: true, 2: true } }),
+			gvl,
+			{ cmpId: 28 }
+		);
+		const api = createCMPApi({ cmpId: 28, gvl });
+		try {
+			api.updateConsent(tcString);
+
+			expect((await readTCData()).vendor.disclosedVendors).toEqual({
+				10: true,
+				2: true,
+			});
+		} finally {
+			api.destroy();
+		}
 	});
 });

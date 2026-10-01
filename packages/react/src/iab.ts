@@ -1,5 +1,5 @@
 /**
- * IAB TCF 2.3 React components and hooks.
+ * IAB TCF 2.4 React components and hooks.
  *
  * This subpath export contains all IAB-specific React UI. It is only
  * loaded when explicitly imported from '@c15t/react/iab'.

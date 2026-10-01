@@ -260,6 +260,35 @@ describe('iframe data-vendor', () => {
 		kernel.dispose();
 	});
 
+	test('a frame page script can no longer read keeps its declaration', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ marketing: true }),
+			now: NOW,
+		});
+		const iframe = makeIframe({
+			'data-category': 'marketing',
+			'data-vendor': 'youtube',
+			src: 'https://www.youtube.com/embed/x',
+		});
+		const blocker = createIframeBlocker({ kernel });
+		expect(kernel.getSnapshot().vendors?.declared.map((v) => v.id)).toEqual([
+			'youtube',
+		]);
+		// Nothing shows the frame left or changed its gate, so the pass must
+		// not drop the slug it owns.
+		Object.defineProperty(iframe, 'getAttribute', {
+			value() {
+				throw new Error('Permission denied to access property "getAttribute"');
+			},
+		});
+		expect(() => blocker.processAllIframes()).not.toThrow();
+		expect(kernel.getSnapshot().vendors?.declared.map((v) => v.id)).toEqual([
+			'youtube',
+		]);
+		blocker.dispose();
+		kernel.dispose();
+	});
+
 	test('a manual pass drops a connected frame that lost its gate attributes', () => {
 		// No observer under `disableAutomaticBlocking`, so the manual pass is
 		// the only sweep. Its selector skips a frame with neither attribute,

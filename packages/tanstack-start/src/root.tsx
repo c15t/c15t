@@ -1,20 +1,21 @@
 'use client';
 
-import type { KernelOverrides, Vendor } from '@c15t/core';
+import type { KernelOverrides, KernelTransport, Vendor } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
 /**
  * Client root for the TanStack Start adapter.
  *
- * Receives the visitor's resolved `ConsentState` from the root route loader
- * and forwards it to the React provider as `options.prefetch`. Kernel
- * creation, persistence, init, and module wiring live in `@c15t/react`.
+ * Receives the visitor's `ConsentState` from the root route loader, resolved
+ * or as a pending promise the loader streams, and forwards it to the React
+ * provider as `options.prefetch`. Kernel creation, persistence, init, and
+ * module wiring live in `@c15t/react`.
  *
  * The state must travel through loader data (or a server function
  * result), never through module state: the server and the client each
  * create their own kernel from the same serialized value, which is what
  * keeps the first paint and the hydrated tree identical.
  */
-import { hosted, offline } from '@c15t/react';
+import { hosted } from '@c15t/react';
 import type { ProviderTransportFactory } from '@c15t/react';
 import type {
 	UseNetworkBlockerOptions,
@@ -41,8 +42,15 @@ export interface ConsentRootProps {
 	 * The visitor's consent state produced server-side by `resolveConsent()`
 	 * (or `createConsentStateHandler()`) from `@c15t/tanstack-start/server`,
 	 * usually read back with `Route.useLoaderData()`. Serializable JSON.
+	 *
+	 * A pending promise is fine too. Return it unawaited from the root
+	 * loader (`loader: () => ({ consent: getConsentState() })`) and TanStack
+	 * Router streams it: the response starts without waiting for the
+	 * backend, and the banner mounts once the promise resolves after
+	 * hydration instead of being in the server HTML. Until then no category
+	 * is granted, so gated scripts and embeds stay blocked.
 	 */
-	state: ConsentState;
+	state: ConsentState | Promise<ConsentState>;
 
 	/**
 	 * Backend base URL. When provided, the provider uses hosted mode and
@@ -128,6 +136,45 @@ export interface ConsentRootProps {
 	children: ReactNode;
 }
 
+/**
+ * Offline mode that loads `offline()` on first init. `offline()` carries
+ * the recommended policy-rule pack, so a static import would ship that pack
+ * to every app that renders the root with a backend URL, where it never runs.
+ */
+const lazyOffline = function lazyOffline(): ProviderTransportFactory {
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
+			let transportPromise: Promise<KernelTransport> | undefined;
+			const load = function load(): Promise<KernelTransport> {
+				transportPromise ??= (async () => {
+					try {
+						const { offline } = await import('./offline-mode');
+						return offline()(context);
+					} catch (error) {
+						// Let the kernel's retry make a fresh import attempt.
+						transportPromise = undefined;
+						throw error;
+					}
+				})();
+				return transportPromise;
+			};
+			return {
+				async init(ctx) {
+					const transport = await load();
+					return (await transport.init?.(ctx)) ?? {};
+				},
+			};
+		},
+		{ kind: 'offline' as const }
+	);
+};
+
+const isPromiseLike = function isPromiseLike(
+	value: ConsentState | PromiseLike<ConsentState>
+): value is PromiseLike<ConsentState> {
+	return typeof (value as PromiseLike<ConsentState>).then === 'function';
+};
+
 const resolveMode = function resolveMode(
 	backendURL: string | undefined,
 	initRoute: string | false | undefined,
@@ -136,7 +183,7 @@ const resolveMode = function resolveMode(
 	overrides: KernelOverrides | undefined
 ): ProviderTransportFactory {
 	if (!backendURL) {
-		return offline();
+		return lazyOffline();
 	}
 	if (initRoute === false) {
 		return hosted({ initialData, url: backendURL });
@@ -145,6 +192,8 @@ const resolveMode = function resolveMode(
 		assertDecisionInputs: true,
 		// The server-rendered banner is interactive before the client init
 		// resolves; the prefetched decision binds any save made in between.
+		// A streamed state renders no banner before it resolves, and the
+		// saves made after that carry the decision the kernel applied.
 		decisionInputs: decisionInputsFromConfig(state, overrides),
 		initURL: initRoute ?? DEFAULT_INIT_ROUTE,
 		initialData,
@@ -167,6 +216,25 @@ const resolveMode = function resolveMode(
  *       state={state}
  *       backendURL="https://consent.example.com"
  *     >
+ *       <Outlet />
+ *     </ConsentRoot>
+ *   );
+ * }
+ * ```
+ *
+ * @example
+ * ```tsx
+ * // Stream the page without waiting for the consent backend.
+ * export const Route = createRootRoute({
+ *   ...consentLoaderOptions,
+ *   loader: () => ({ consent: getConsentState() }),
+ *   component: RootComponent,
+ * });
+ *
+ * function RootComponent() {
+ *   const { consent } = Route.useLoaderData();
+ *   return (
+ *     <ConsentRoot state={consent} backendURL="https://consent.example.com">
  *       <Outlet />
  *     </ConsentRoot>
  *   );
@@ -202,7 +270,7 @@ export const ConsentRoot = ({
 					initRoute,
 					overrides: options?.overrides,
 				}),
-				state,
+				isPromiseLike(state) ? undefined : state,
 				options?.overrides
 			)
 	);

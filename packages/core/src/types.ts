@@ -29,14 +29,15 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RestrictionReason,
 } from './consent-record/types';
 import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
+import type { ExperimentAssignment, ExperimentGate } from './libs/experiment';
 import type { HasCondition } from './libs/has';
+import type { PublisherRestriction } from './options/iab-tcf';
 
 // Re-export schema types that consumers need so they don't have to
 // import from @c15t/schema directly for routine work.
@@ -57,7 +58,6 @@ export type {
 	ExplicitChoice,
 	NoticeDismissal,
 	OptionalConsentCategory,
-	PrivacyOptOut,
 	PromptReason,
 	PromptRequirement,
 	RecordIssue,
@@ -93,6 +93,16 @@ export type Model = KernelModel;
  * it to open or close a surface.
  */
 export type KernelActiveUI = 'none' | 'banner' | 'dialog' | null;
+
+/**
+ * Surface a save is attributed to. Defaults to the snapshot's `activeUI`;
+ * a host passes `'widget'` for an inline preference center that is not a
+ * kernel-managed surface.
+ */
+export type SaveUISource = KernelActiveUI | 'widget';
+
+/** Prompt surfaces whose first appearance the kernel timestamps. */
+export type PromptSurface = 'banner' | 'dialog';
 
 /**
  * Active UI surface once the kernel has resolved (never `null`).
@@ -175,6 +185,11 @@ export interface KernelIABAuthority {
 	purposeConsents: Record<number, boolean>;
 	purposeLegitimateInterests: Record<number, boolean>;
 	specialFeatureOptIns: Record<number, boolean>;
+	/**
+	 * Publisher restrictions decoded from `tcString`. IAB gates apply them to
+	 * the target's `vendorId`. Absent means none.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 }
 
 export interface KernelIABState {
@@ -203,6 +218,12 @@ export interface KernelIABState {
 	specialFeatureOptIns: Record<number, boolean>;
 	/** Latest TC string, set after `save()` encodes one. */
 	tcString: string | null;
+	/**
+	 * Publisher restrictions configured on the CMP. Preference UIs list each
+	 * vendor under the legal basis these leave it. Gates enforce the ones in
+	 * the confirmed `authority`, not these.
+	 */
+	publisherRestrictions?: PublisherRestriction[];
 }
 
 /**
@@ -276,7 +297,6 @@ export interface HydrationRecords {
 	choice?: ExplicitChoice | null;
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
-	optOutDirectives?: readonly PrivacyOptOut[];
 	/** Vendors the subject turned off. `null` clears the denial list. */
 	vendorChoice?: VendorChoice | null;
 	/** Evaluation time in epoch milliseconds. Defaults to `Date.now()`. */
@@ -295,6 +315,8 @@ export type HydrationResult =
  * value did not change.
  */
 export interface ConsentSnapshot {
+	/** Volatile external CMP authority, when configured. Never persisted as a receipt. */
+	readonly externalPermissions?: Readonly<ConsentState>;
 	/** Configured and discovered categories. Null uses the full policy scope. */
 	readonly consentCategories: readonly AllConsentNames[] | null;
 	// -- Consent model -------------------------------------------------------
@@ -308,13 +330,11 @@ export interface ConsentSnapshot {
 	readonly noticeDismissal: Readonly<NoticeDismissal> | null;
 	/** Detected and overridden privacy signals. */
 	readonly privacySignals: KernelPrivacySignals;
-	/** Standing privacy directives; they outlive the live signal. */
-	readonly optOutDirectives: readonly PrivacyOptOut[];
 	/** Policy resolution outcome. `policy` is `null` for every non-matched status. */
 	readonly resolution: Readonly<PolicyResolution>;
 	/** Rule the evaluator uses: the matched rule or the safe opt-in fallback. */
 	readonly policyRule: Readonly<ResolvedPolicyRule>;
-	/** Categories restricted by a denial, strict scope or a privacy opt-out. */
+	/** Categories restricted by a denial, strict scope or a live GPC signal. */
 	readonly restrictions: Readonly<
 		Partial<Record<OptionalConsentCategory, readonly RestrictionReason[]>>
 	>;
@@ -356,6 +376,26 @@ export interface ConsentSnapshot {
 	 * `'none'`. A failed init also keeps the first layer hidden.
 	 */
 	readonly policyPending: boolean;
+	/**
+	 * Epoch milliseconds of the first time each prompt surface became
+	 * visible in this kernel's lifetime, or `null` while it never has. The
+	 * event bus does not replay `surface:shown` to late subscribers; read
+	 * this to learn about an impression that happened before subscribing.
+	 */
+	readonly surfaceShownAt: Readonly<Record<PromptSurface, number | null>>;
+	/**
+	 * The presentation experiment arm this visitor runs, or `null` when no
+	 * experiment is configured, the arm is not assigned yet, or the policy
+	 * rejects it. Impressions and choices carry it once the banner has shown
+	 * it in this page, and the backend saves it as `metadata.experiment`.
+	 */
+	readonly experiment: Readonly<ExperimentAssignment> | null;
+	/**
+	 * Built-in experiment assignment has not run yet. The prompt stays
+	 * hidden until it has, so the visitor never sees the base banner swap
+	 * for their arm.
+	 */
+	readonly experimentPending: boolean;
 
 	// -- IAB passthrough (null when IAB not enabled) -------------------------
 	readonly iab: Readonly<KernelIABState> | null;
@@ -373,6 +413,8 @@ export interface ConsentSnapshot {
  * handle and only invoked when the corresponding command fires.
  */
 export interface KernelConfig {
+	/** External CMP authority. An empty object starts with optional categories denied. */
+	initialExternalPermissions?: Partial<ConsentState>;
 	/**
 	 * Categories to offer alongside discovered categories, intersected with policy scope.
 	 * Uses the full policy scope when neither source supplies categories.
@@ -401,6 +443,13 @@ export interface KernelConfig {
 	initialOverrides?: KernelOverrides;
 	/** Initial identified user, if known at construction. */
 	initialUser?: KernelUser;
+	/** Presentation experiment arm already assigned (a host-resolved variant). */
+	initialExperiment?: ExperimentAssignment;
+	/**
+	 * Hold the prompt until `set.experiment()` assigns the arm. Set for
+	 * built-in assignment, which only runs in the browser.
+	 */
+	initialExperimentPending?: boolean;
 	/** Initial translation bundle (e.g. from prefetch). */
 	initialTranslations?: KernelTranslations;
 	/** Initial location (e.g. from prefetch). */
@@ -410,6 +459,12 @@ export interface KernelConfig {
 	/**
 	 * Marks the policy as pending transport initialization.
 	 * Suppresses `activeUI` until init completes.
+	 *
+	 * `init()` marks the kernel live before `transport.init` resolves, so a
+	 * kernel built without an initial policy resolution shows the fallback
+	 * banner and records its impression (`surface:shown`) at once. Headless
+	 * callers that wait for the transport's policy should pass `true` so no
+	 * impression is recorded before the policy arrives.
 	 */
 	initialPolicyPending?: boolean;
 	/**
@@ -450,6 +505,13 @@ export interface KernelConfig {
 export interface InitContext {
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
+	/**
+	 * The banner-experiment arm the visitor runs, set only while they have
+	 * no stored choice. Transports send it with the request (`x-c15t-experiment`)
+	 * or put it on the session report, so the backend can count the visitors
+	 * each arm's banner was owed to.
+	 */
+	experiment?: { id: string; arm: string };
 }
 
 /**
@@ -519,9 +581,17 @@ export interface SavePayload {
 	overrides: Readonly<KernelOverrides>;
 	user: Readonly<KernelUser> | null;
 	model: KernelModel;
-	uiSource: KernelActiveUI;
+	uiSource: SaveUISource;
 	consentAction: 'all' | 'necessary' | 'custom';
 	policySnapshotToken: string | null;
+	/**
+	 * Milliseconds between the first impression of the surface this save is
+	 * attributed to and `confirmed.actionAt`. Absent when the surface is not
+	 * a prompt surface or was never shown to this kernel.
+	 */
+	timeToDecisionMs?: number;
+	/** The presentation experiment arm the visitor ran when acting, when any. */
+	experiment?: ExperimentAssignment;
 	/**
 	 * Resolved policy inputs captured with the action. The backend
 	 * recomputes them before accepting a choice; retries keep the
@@ -564,21 +634,16 @@ export interface KernelTransport {
 	 * the hydration boundary, never as a choice.
 	 */
 	loadSubjectRecord?: (subjectId: string) => Promise<HydrationRecords | null>;
-	/**
-	 * Persist a standing privacy directive for an identified subject. Called
-	 * when a directive is recorded while `user` is set. Failures emit
-	 * `command:error` and never change local state.
-	 */
-	recordPrivacyOptOut?: (
-		directive: PrivacyOptOut,
-		subjectId: string | null
-	) => Promise<void>;
 }
 
 /**
  * Kernel event surface. Stable event names.
  */
 export type KernelEvent =
+	| {
+			/** An external authority should open its preferences. */
+			type: 'preferences:requested';
+	  }
 	| { type: 'records:cleared' }
 	| {
 			/** An explicit accept, reject or save recorded a choice. */
@@ -587,6 +652,24 @@ export type KernelEvent =
 			/** Categories whose receipt this action replaced. */
 			confirmed: readonly OptionalConsentCategory[];
 			actionAt: number;
+			/** Surface the action is attributed to. */
+			uiSource: SaveUISource;
+			/** Whether the action accepted all, only necessary, or a custom selection. */
+			consentAction: SavePayload['consentAction'];
+			/** Milliseconds from the surface's first impression to this action, when known. */
+			timeToDecisionMs?: number;
+			/** The experiment arm the visitor ran, when an experiment is assigned. */
+			experiment?: ExperimentAssignment;
+	  }
+	| {
+			/** A prompt surface became visible. */
+			type: 'surface:shown';
+			surface: PromptSurface;
+			/** Epoch milliseconds of this impression. */
+			shownAt: number;
+			snapshot: ConsentSnapshot;
+			/** The experiment arm the surface rendered with, when an experiment is assigned. */
+			experiment?: ExperimentAssignment;
 	  }
 	| {
 			/** Effective permissions changed by value (choice, policy, expiry, privacy). */
@@ -599,12 +682,19 @@ export type KernelEvent =
 			type: 'notice:dismissed';
 			snapshot: ConsentSnapshot;
 			dismissal: NoticeDismissal;
-	  }
-	| {
-			/** A standing privacy directive was recorded from a user-agent signal. */
-			type: 'privacy:opt-out';
-			snapshot: ConsentSnapshot;
-			directive: PrivacyOptOut;
+			/**
+			 * Surface the notice was dismissed from: the snapshot's `activeUI`,
+			 * so `none` for a programmatic dismissal with no prompt open.
+			 */
+			surface: SaveUISource;
+			/**
+			 * Milliseconds from the surface's first impression to the dismissal.
+			 * Omitted when no prompt surface was open, the surface was never
+			 * shown, or the clock moved backwards.
+			 */
+			timeToDecisionMs?: number;
+			/** Experiment arm active at the dismissal. */
+			experiment?: ExperimentAssignment;
 	  }
 	| { type: 'overrides:set'; snapshot: ConsentSnapshot }
 	| { type: 'user:identified'; snapshot: ConsentSnapshot }
@@ -640,6 +730,12 @@ export type KernelEvent =
 			type: 'save:replayed';
 			subjectId: string;
 			ok: boolean;
+			/**
+			 * The backend's code when it refused the save for good, for
+			 * example `POLICY_SNAPSHOT_EXPIRED`. The save left the queue and
+			 * the choice stays recorded in the browser only.
+			 */
+			rejected?: string;
 	  }
 	| { type: 'command:init:started' }
 	| { type: 'command:init:completed'; result: InitResult }
@@ -736,10 +832,22 @@ export interface ConsentKernel {
 	 * Apply validated stored records without creating a choice. Emits
 	 * `permissions:changed` when permissions changed and nothing else. Marks
 	 * the lifecycle as started and installs the deadline timer. Hydration does
-	 * not write storage or record privacy directives; the mounted adapter
-	 * forwards browser detection through set.privacySignals afterward.
+	 * not write storage; the mounted adapter forwards browser detection
+	 * through set.privacySignals afterward.
 	 */
 	hydrate: (records: HydrationRecords) => HydrationResult;
+
+	/**
+	 * Mark the kernel live in a visitor's browser. `init()` does this on its
+	 * own; an adapter that renders from a server-resolved prefetch and never
+	 * calls `init()` must call it after hydration so a visible surface is
+	 * stamped as an impression (`surface:shown`, `snapshot.surfaceShownAt`)
+	 * and a later choice can carry `timeToDecisionMs`. Idempotent; a server
+	 * or test kernel that never goes live records no impression.
+	 *
+	 * @param at - Impression time for a surface already visible. Defaults to now.
+	 */
+	markLive: (at?: number) => void;
 
 	/**
 	 * Re-evaluate at `now` (default `Date.now()`). Gates call this before a
@@ -752,6 +860,8 @@ export interface ConsentKernel {
 	 * Sync mutations. Notify subscribers synchronously.
 	 */
 	readonly set: {
+		/** Replace external CMP permissions. Only available when configured at construction. */
+		externalPermissions: (permissions: Partial<ConsentState>) => void;
 		/** Replace configured categories, retain discovered categories, and re-evaluate completion. */
 		consentCategories: (
 			categories: readonly AllConsentNames[] | undefined
@@ -767,6 +877,17 @@ export interface ConsentKernel {
 		privacySignals: (input: { gpc?: boolean }) => void;
 		/** Set the active UI surface. */
 		activeUI: (ui: KernelActiveUI) => void;
+		/**
+		 * Record the presentation experiment arm this visitor runs; `null`
+		 * runs no experiment. `gate` decides per policy whether the arm is
+		 * shown, and a rejected arm is withheld until a policy accepts it. A
+		 * held prompt stays held until a gate is set or the experiment is
+		 * cleared.
+		 */
+		experiment: (
+			assignment: ExperimentAssignment | null,
+			gate?: ExperimentGate
+		) => void;
 		/** Patch the IAB slice. Creates the slice if currently null. */
 		iab: (patch: Partial<KernelIABState>) => void;
 		/**
@@ -814,6 +935,8 @@ export interface ConsentKernel {
 				 * when the model is `iab`.
 				 */
 				vendors?: Record<string, boolean>;
+				/** Surface to attribute the save to. Defaults to the snapshot's `activeUI`. */
+				uiSource?: SaveUISource;
 			}
 		) => Promise<SaveResult>;
 		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */

@@ -1,11 +1,14 @@
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { resetDialogStylesForTest } from '../browser/dialog-styles';
+import { whenIABReady } from '../browser/iab';
 import {
 	attachBannerActions,
 	boot,
 	getConsent,
 	getConsentClient,
+	registerDialogStyles,
 	subscribe,
 	syncBannerVisibility,
 	syncSurfaceVisibility,
@@ -13,7 +16,7 @@ import {
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
-import type { C15tAstroOptions } from '../types';
+import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
 import { testResolution, testRule } from './policy-fixture';
@@ -70,15 +73,16 @@ const renderBanner = function renderBanner(): void {
 };
 
 const start = function start(
-	options: C15tAstroOptions = OPTIONS
+	options: C15tAstroOptions = OPTIONS,
+	config: Record<string, unknown> = INLINE_CONFIG
 ): AstroConsentClient {
-	(window as unknown as Record<string, unknown>).__c15tAstroConfig =
-		INLINE_CONFIG;
+	(window as unknown as Record<string, unknown>).__c15tAstroConfig = config;
 	client = boot(resolveOptions(options));
 	return client;
 };
 
 beforeEach(() => {
+	resetDialogStylesForTest();
 	localStorage.clear();
 	document.body.innerHTML = '';
 	document.head.innerHTML = '';
@@ -100,6 +104,44 @@ describe('boot', () => {
 		const second = boot(resolveOptions(OPTIONS));
 		expect(second).toBe(first);
 		expect(getConsentClient()).toBe(first);
+	});
+
+	it('runs the arm the server resolved for this request from the first snapshot', () => {
+		renderBanner();
+		const arm = {
+			acknowledgedDiagnostics: false,
+			arm: 'bar',
+			assignedBy: 'host',
+			id: 'banner-shape',
+		};
+		const booted = start(
+			{
+				...OPTIONS,
+				experiment: {
+					arms: { bar: { prompt: { variant: 'bar' } } },
+					id: 'banner-shape',
+				},
+				middleware: false,
+			},
+			{ ...INLINE_CONFIG, initialExperiment: arm }
+		);
+		expect(booted.getConsent().experiment).toEqual(arm);
+		expect(booted.getConsent().experimentPending).toBe(false);
+	});
+
+	it('runs no experiment, and holds nothing, when the server resolved no arm', () => {
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			experiment: {
+				arms: { bar: { prompt: { variant: 'bar' } } },
+				id: 'banner-shape',
+			},
+			middleware: false,
+		});
+		expect(booted.getConsent().experiment).toBeNull();
+		expect(booted.getConsent().experimentPending).toBe(false);
+		expect(booted.getConsent().activeUI).toBe('banner');
 	});
 
 	it('boots from the inlined config instead of the network', () => {
@@ -126,6 +168,46 @@ describe('boot', () => {
 	it('returns a no-op subscription before boot', () => {
 		expect(getConsent()).toBeNull();
 		expect(() => subscribe(vi.fn())()).not.toThrow();
+	});
+});
+
+describe('IAB options', () => {
+	it('forwards publisher restrictions to the CMP', async () => {
+		const publisherRestrictions = [
+			{ purposeId: 2, restrictionType: 0 as const, vendorIds: [755] },
+		];
+		const gvl = {
+			features: {},
+			purposes: { 2: { description: '', id: 2, illustrations: [], name: '' } },
+			specialFeatures: {},
+			specialPurposes: {},
+			stacks: {},
+			tcfPolicyVersion: 5,
+			vendorListVersion: 1,
+			vendors: {
+				755: {
+					features: [],
+					flexiblePurposes: [],
+					id: 755,
+					legIntPurposes: [],
+					name: 'Vendor',
+					purposes: [2],
+					specialFeatures: [],
+					specialPurposes: [],
+					urls: [],
+					usesCookies: false,
+					usesNonCookieAccess: false,
+				},
+			},
+		} as unknown as NonNullable<C15tIABOptions['gvl']>;
+		const booted = start({
+			...OPTIONS,
+			iab: { cmpId: 28, gvl, publisherRestrictions },
+		});
+		await whenIABReady();
+		expect(booted.getConsent().iab?.publisherRestrictions).toEqual(
+			publisherRestrictions
+		);
 	});
 });
 
@@ -482,6 +564,111 @@ describe('dialog lifecycle', () => {
 	});
 });
 
+describe('warming the dialog on intent', () => {
+	const registerCountingAdapter = function registerCountingAdapter(
+		preload: () => Promise<void> = () => Promise.resolve()
+	) {
+		const counts = { loads: 0, preloads: 0 };
+		registerDialogAdapter('svelte', () => {
+			counts.loads += 1;
+			return Promise.resolve({
+				mount: () =>
+					Promise.resolve({
+						close: vi.fn(),
+						destroy: vi.fn(),
+					} as ConsentDialogHandle),
+				name: 'svelte',
+				preload: () => {
+					counts.preloads += 1;
+					return preload();
+				},
+			});
+		});
+		return counts;
+	};
+
+	const button = (action: string) =>
+		document.querySelector<HTMLButtonElement>(`[data-c15t-action="${action}"]`);
+
+	it('does not download the dialog on load', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		await tick();
+		expect(counts).toEqual({ loads: 0, preloads: 0 });
+	});
+
+	it('downloads it when the pointer reaches Customize', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+		// More hovers reuse the first download.
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await tick();
+		expect(counts).toEqual({ loads: 1, preloads: 1 });
+	});
+
+	it('downloads it when Customize gets focus', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		start();
+		button('customize')?.focus();
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+	});
+
+	it('ignores other buttons and the IAB dialog', async () => {
+		const counts = registerCountingAdapter();
+		renderBanner();
+		document.body.insertAdjacentHTML(
+			'beforeend',
+			'<button data-c15t-action="customize" data-c15t-dialog="iab" id="iab">Partners</button>'
+		);
+		start();
+		for (const target of [
+			button('accept'),
+			button('reject'),
+			document.querySelector('#iab'),
+		]) {
+			target?.dispatchEvent(new Event('pointerover', { bubbles: true }));
+		}
+		await tick();
+		expect(counts).toEqual({ loads: 0, preloads: 0 });
+	});
+
+	it('retries after a failed download', async () => {
+		let fail = true;
+		const counts = registerCountingAdapter(() =>
+			fail ? Promise.reject(new Error('offline')) : Promise.resolve()
+		);
+		renderBanner();
+		start();
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(1);
+		});
+		await tick();
+		fail = false;
+		button('customize')?.dispatchEvent(
+			new Event('pointerover', { bubbles: true })
+		);
+		await vi.waitFor(() => {
+			expect(counts.preloads).toBe(2);
+		});
+	});
+});
+
 it('forwards cleanup targets to its shared runtime', async () => {
 	const booted = start({
 		...OPTIONS,
@@ -491,4 +678,245 @@ it('forwards cleanup targets to its shared runtime', async () => {
 	localStorage.setItem('analytics:visitor', 'visitor');
 	await booted.rejectAll();
 	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+});
+
+it('opens the external CMP and never records its decisions as c15t choices', async () => {
+	const openPreferences = vi.fn();
+	const onPermissionsChanged = vi.fn();
+	const trigger = document.createElement('button');
+	trigger.dataset.c15tSurface = 'trigger';
+	document.body.append(trigger);
+	client = boot(resolveOptions(OPTIONS), {
+		callbacks: { onPermissionsChanged },
+		consentSource: {
+			getPermissions: () => ({ measurement: true }),
+			openPreferences,
+			subscribe: () => () => {},
+		},
+	});
+	expect(trigger.hidden).toBe(false);
+	await client.openDialog();
+	expect(openPreferences).toHaveBeenCalledOnce();
+	expect(client.getConsent().explicitChoice).toBeNull();
+	expect(client.getConsent().activeUI).toBe('none');
+	expect(client.getConsent().effectivePermissions.measurement).toBe(true);
+	expect(onPermissionsChanged).toHaveBeenCalled();
+	await expect(client.acceptAll()).rejects.toThrow('external CMP');
+});
+
+describe('networkBlocker', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+		// The consent cookie outlives the localStorage reset between tests.
+		for (const cookie of document.cookie.split(';')) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=; max-age=0; path=/`;
+			}
+		}
+	});
+
+	const TRACKER = 'https://tracker.example/collect';
+	const rules = [
+		{ category: 'measurement' as const, domain: 'tracker.example' },
+	];
+
+	it('blocks matching requests until the visitor consents', async () => {
+		const network = vi
+			.spyOn(globalThis, 'fetch')
+			.mockResolvedValue(new Response('ok'));
+		renderBanner();
+		const booted = start({
+			...OPTIONS,
+			networkBlocker: { logBlockedRequests: false, rules },
+		});
+
+		expect((await window.fetch(TRACKER)).status).toBe(451);
+		expect(network).not.toHaveBeenCalled();
+
+		await booted.acceptAll();
+		expect((await window.fetch(TRACKER)).status).toBe(200);
+		expect(network).toHaveBeenCalledWith(TRACKER, undefined);
+	});
+
+	it('takes onRequestBlocked from the client entrypoint', async () => {
+		vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('ok'));
+		const onRequestBlocked = vi.fn();
+		renderBanner();
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		client = boot(
+			resolveOptions({ ...OPTIONS, networkBlocker: { rules: [] } }),
+			{
+				networkBlocker: { logBlockedRequests: false, onRequestBlocked, rules },
+			}
+		);
+
+		expect((await window.fetch(TRACKER)).status).toBe(451);
+		expect(onRequestBlocked).toHaveBeenCalledWith(
+			expect.objectContaining({ url: TRACKER })
+		);
+	});
+});
+
+describe('dialog stylesheets and ClientRouter swaps', () => {
+	const DIALOG_CSS = '/_astro/dialog.css';
+
+	/** Registers a Svelte adapter that records where each surface mounted. */
+	const registerRecordingAdapter = function registerRecordingAdapter() {
+		const targets: HTMLElement[] = [];
+		const destroy = vi.fn();
+		registerDialogAdapter('svelte', () =>
+			Promise.resolve({
+				mount: ({ target }) => {
+					targets.push(target);
+					return Promise.resolve({
+						close: vi.fn(),
+						destroy,
+					} as ConsentDialogHandle);
+				},
+				name: 'svelte',
+			})
+		);
+		return { destroy, targets };
+	};
+
+	const dialogLink = () =>
+		document.head.querySelector<HTMLLinkElement>(
+			`link[rel="stylesheet"][href="${DIALOG_CSS}"]`
+		);
+
+	/** Opens the dialog, answering the stylesheet download. */
+	const openWithStyles = async function openWithStyles(
+		booted: AstroConsentClient
+	): Promise<void> {
+		const opening = booted.openDialog();
+		await vi.waitFor(() => {
+			expect(dialogLink()).not.toBeNull();
+		});
+		dialogLink()?.dispatchEvent(new Event('load'));
+		await opening;
+	};
+
+	/** What the ClientRouter does: parse the next page, swap body and head. */
+	const swapPage = function swapPage(): Document {
+		const incoming = document.implementation.createHTMLDocument();
+		const beforeSwap = Object.assign(new Event('astro:before-swap'), {
+			newDocument: incoming,
+		});
+		document.dispatchEvent(beforeSwap);
+		document.body.replaceWith(incoming.body.cloneNode(true));
+		renderBanner();
+		document.dispatchEvent(new Event('astro:after-swap'));
+		return incoming;
+	};
+
+	it('mounts the dialog only once its stylesheet has loaded', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+
+		const opening = booted.openDialog();
+		await vi.waitFor(() => {
+			expect(dialogLink()).not.toBeNull();
+		});
+		await tick();
+		expect(targets).toHaveLength(0);
+
+		dialogLink()?.dispatchEvent(new Event('load'));
+		await opening;
+		expect(targets).toHaveLength(1);
+		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+
+	it('opens unstyled rather than not at all when the stylesheet fails', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+
+		const opening = booted.openDialog();
+		await vi.waitFor(() => {
+			expect(dialogLink()).not.toBeNull();
+		});
+		dialogLink()?.dispatchEvent(new Event('error'));
+		await opening;
+
+		expect(targets).toHaveLength(1);
+		// Forgotten, so the next open downloads it again.
+		expect(dialogLink()).toBeNull();
+	});
+
+	it('hands the stylesheet to the incoming page so the swap keeps it', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await openWithStyles(booted);
+
+		const incoming = document.implementation.createHTMLDocument();
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		const copies = incoming.head.querySelectorAll(
+			`link[rel="stylesheet"][href="${DIALOG_CSS}"]`
+		);
+		expect(copies).toHaveLength(1);
+	});
+
+	it('does not copy a stylesheet the incoming page already links', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await openWithStyles(booted);
+
+		const incoming = document.implementation.createHTMLDocument();
+		incoming.head.innerHTML = `<link rel="stylesheet" href="${DIALOG_CSS}">`;
+		document.dispatchEvent(
+			Object.assign(new Event('astro:before-swap'), { newDocument: incoming })
+		);
+
+		expect(
+			incoming.head.querySelectorAll(`link[href="${DIALOG_CSS}"]`)
+		).toHaveLength(1);
+	});
+
+	it('remounts an open dialog on the page a swap brings in', async () => {
+		const { destroy, targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await booted.openDialog();
+		const [first] = targets;
+
+		swapPage();
+
+		await vi.waitFor(() => {
+			expect(targets).toHaveLength(2);
+		});
+		expect(first?.isConnected).toBe(false);
+		expect(targets[1]?.isConnected).toBe(true);
+		expect(destroy).toHaveBeenCalledOnce();
+		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+
+	it('reopens a closed dialog on the page, not the one a swap removed', async () => {
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		await booted.openDialog();
+		booted.closeDialog();
+
+		swapPage();
+		await tick();
+		// Closed dialogs stay closed across the swap.
+		expect(targets).toHaveLength(1);
+
+		await booted.openDialog();
+		expect(targets).toHaveLength(2);
+		expect(targets[1]?.isConnected).toBe(true);
+		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
 });

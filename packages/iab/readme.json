@@ -1,8 +1,8 @@
 {
-	"title": "@c15t/iab: IAB TCF 2.3 Addon",
-	"description": "IAB TCF 2.3 addon for c15t with TC String generation, GVL support, TCF APIs, and programmatic advertising consent workflows.",
+	"title": "@c15t/iab: IAB TCF 2.4 Addon",
+	"description": "IAB TCF 2.4 addon for c15t with TC String generation, GVL support, TCF APIs, and programmatic advertising consent workflows.",
 	"features": [
-		"IAB TCF 2.3 support for programmatic advertising consent",
+		"IAB TCF 2.4 support for programmatic advertising consent",
 		"TC String generation and storage",
 		"Global Vendor List (GVL) support",
 		"Purpose, special purpose, feature, special feature, and vendor controls",
@@ -28,7 +28,7 @@
 		"Configure c15t with the IAB consent model for jurisdictions that require TCF workflows",
 		"Use the React IAB components for a prebuilt TCF banner and preference center",
 		"Use headless APIs when you need a custom IAB consent experience",
-		"For full implementation details, see the [IAB TCF 2.3 docs](https://c15t.com/docs/frameworks/react/iab/overview)"
+		"For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab/overview)"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/react/iab/overview",
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/iab/overview",

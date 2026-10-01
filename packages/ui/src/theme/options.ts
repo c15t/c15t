@@ -124,7 +124,7 @@ export interface CommonInlineStoreOptions {
 	networkBlocker?: NetworkBlockerConfig;
 
 	/**
-	 * IAB TCF 2.3 configuration.
+	 * IAB TCF 2.4 configuration.
 	 *
 	 * @remarks
 	 * Most users don't need this — only enable if you work with

@@ -32,10 +32,10 @@ describe('Solid boilerplate', () => {
 					paths: {
 						'@c15t/core': [path.join(packages, 'core/src/index.ts')],
 						'@c15t/core/*': [path.join(packages, 'core/src/*')],
-						'@c15t/scripts/google-tag-manager': [
+						'@c15t/integrations/google-tag-manager': [
 							path.join(
 								packages,
-								'scripts/src/vendors/tag-managers/google-tag-manager.ts'
+								'integrations/src/vendors/tag-managers/google-tag-manager.ts'
 							),
 						],
 					},

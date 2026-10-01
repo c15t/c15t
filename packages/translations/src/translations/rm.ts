@@ -93,6 +93,11 @@ export const translations: CompleteTranslations = {
 		preferenceCenter: {
 			description:
 				'Persunalisai vossas configuraziuns da la sfera privata qua. Vus pudais tscherner tge tips da cookies e tecnologias da tracking che vus lubis.',
+			features: {
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+				title: 'Funcziuns',
+			},
 			footer: {
 				consentStorage:
 					'Las preferenzas da consentiment vegnan memorisadas en in cookie numnà "euconsent-v2" per 13 mais. La durada da memorisaziun po vegnir renovada, cur che vus actualisais vossas preferenzas.',

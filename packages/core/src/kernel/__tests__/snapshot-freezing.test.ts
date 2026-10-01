@@ -112,7 +112,6 @@ describe('snapshot default freezing', () => {
 						gpc,
 						noticeDismissal: null,
 						now,
-						optOuts: [],
 						policy: initial.evaluationPolicy,
 					});
 					expect(initial.effectivePermissions).toEqual(evaluated.permissions);

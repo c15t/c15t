@@ -5,6 +5,7 @@
 		resolveIABBannerSummary,
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
+	import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
@@ -14,12 +15,17 @@
 	import { focusTrap } from '../actions/focus-trap';
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
-	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import {
+		getConsentContext,
+		getThemeContext,
+		saveIABChoice,
+	} from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
 	import { Tabs } from '../primitives';
 	import Branding from './branding.svelte';
+	import IABFeatureItem from './iab-feature-item.svelte';
 	import IABPurposeItem from './iab-purpose-item.svelte';
 	import IABStackItem from './iab-stack-item.svelte';
 	import IABVendorList from './iab-vendor-list.svelte';
@@ -137,9 +143,20 @@
 						customVendors: iabState.nonIABVendors ?? [],
 						gvl: iabState.gvl,
 						isLoadingGVL: iabState.isLoadingGVL,
+						publisherRestrictions: iabState.publisherRestrictions,
 					}
 				: null
 		)
+	);
+	// The vendor tab reads declarations directly, so give it the ones
+	// publisher restrictions leave.
+	const vendorData = $derived(
+		iabState?.gvl
+			? applyPublisherRestrictionsToGVL(
+					iabState.gvl,
+					iabState.publisherRestrictions
+				)
+			: null
 	);
 
 	const summary = $derived(resolveIABBannerSummary(iabState));
@@ -186,8 +203,9 @@
 		if (!iabState) {
 			return;
 		}
+		const state = iabState;
 		try {
-			await iabState.save();
+			await saveIABChoice(consent.kernel, () => state.save());
 		} catch {
 			// Keep the prompt available so a later action can retry the failed load/save.
 		}
@@ -233,6 +251,7 @@
 	<div use:portal>
 		{#if preferences.blocking}
 			<Overlay
+				{styles}
 				variant="iab-dialog"
 				visible={isOpen}
 			/>
@@ -254,8 +273,12 @@
 				role="dialog"
 				aria-modal={preferences.blocking ? 'true' : undefined}
 				aria-label={iabT.preferenceCenter.title}
+				aria-describedby="iab-consent-dialog-description"
 				tabindex="-1"
-				use:focusTrap={preferences.blocking}
+				use:focusTrap={{
+					enabled: preferences.blocking,
+					initialFocus: 'first-tabbable',
+				}}
 				use:scrollLock={preferences.blocking}
 				onkeydown={handleDialogKeydown}
 			>
@@ -265,7 +288,10 @@
 						<h2 class={noStyle ? '' : styles.title || ''}>
 							{iabT.preferenceCenter.title}
 						</h2>
-						<p class={noStyle ? '' : styles.description || ''}>
+						<p
+							class={noStyle ? '' : styles.description || ''}
+							id="iab-consent-dialog-description"
+						>
 							{iabT.preferenceCenter.description}
 						</p>
 					</div>
@@ -382,7 +408,7 @@
 									{/if}
 								{/each}
 
-								<!-- Essential Functions: Special Purposes + Features (locked) -->
+								<!-- Essential Functions: Special Purposes (locked) -->
 								{#if display.essentialRows.length > 0}
 									<div
 										class={noStyle ? '' : styles.specialPurposesSection || ''}
@@ -452,6 +478,37 @@
 									</div>
 								{/if}
 
+								<!-- Features: informational, no controls (TCF Policies v5.0.b) -->
+								{#if display.featureRows.length > 0}
+									<section
+										aria-label={iabT.preferenceCenter.features.title}
+										class={noStyle ? '' : styles.featuresSection || ''}
+										data-testid="iab-consent-dialog-features"
+									>
+										<div class={noStyle ? '' : styles.featuresHeader || ''}>
+											<h3 class={noStyle ? '' : styles.featuresTitle || ''}>
+												{iabT.preferenceCenter.features.title}
+											</h3>
+											<p
+												class={noStyle ? '' : styles.featuresDescription || ''}
+											>
+												{display.featuresStandardText ??
+													iabT.preferenceCenter.features.description}
+											</p>
+										</div>
+										<div class={noStyle ? '' : styles.featuresList || ''}>
+											{#each display.featureRows as row (row.testId)}
+												<IABFeatureItem
+													feature={row}
+													testId={row.testId}
+													{noStyle}
+													{iabT}
+												/>
+											{/each}
+										</div>
+									</section>
+								{/if}
+
 								<!-- Consent storage notice -->
 								<div class={noStyle ? '' : styles.consentNotice || ''}>
 									<p class={noStyle ? '' : styles.consentNoticeText || ''}>
@@ -468,7 +525,7 @@
 						>
 							{#if iabState}
 								<IABVendorList
-									vendorData={iabState.gvl}
+									{vendorData}
 									purposes={display.data.purposes}
 									vendorConsents={iabState.vendorConsents}
 									onVendorToggle={handleVendorToggle}

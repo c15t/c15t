@@ -1,0 +1,21 @@
+{
+	"extends": "@c15t/typescript-config/base.json",
+	"compilerOptions": {
+		"rootDir": "src",
+		"moduleResolution": "bundler",
+		"types": ["@vitest/browser/matchers"],
+		"paths": {
+			"@c15t/core": ["../core/dist-types/index.d.ts"],
+			"@c15t/core/*": ["../core/dist-types/*"],
+			"~/*": ["./src/*"]
+		}
+	},
+	"include": ["src"],
+	"exclude": [
+		"node_modules",
+		"src/**/*.test.ts",
+		"src/**/*.spec.ts",
+		"src/**/*.e2e.test.ts",
+		"src/e2e-test-utils.ts"
+	]
+}

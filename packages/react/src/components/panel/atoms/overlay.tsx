@@ -8,7 +8,7 @@ import styles from '@c15t/ui/styles/components/consent-dialog';
 import { useEffect, useState } from 'react';
 import type { FC, PropsWithChildren } from 'react';
 
-import { useConsentManager } from '~/component-hooks/use-manager';
+import { useActiveUI } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { ThemeValue } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -67,7 +67,7 @@ export type OverlayProps = PropsWithChildren<{
 }>;
 
 const ConsentDialogOverlay: FC<OverlayProps> = ({ noStyle, style, open }) => {
-	const { activeUI } = useConsentManager();
+	const activeUI = useActiveUI();
 	const { components } = useUIConfig();
 	const {
 		disableAnimation,

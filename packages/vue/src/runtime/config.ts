@@ -1,10 +1,14 @@
 import type {
+	ConsentExperiment,
 	ConsentPresentation,
 	ClearOnRevocationConfig,
-	KernelEvent,
 	HydrationRecords,
 	Vendor,
 } from '@c15t/core';
+import type {
+	ConsentControlOptions,
+	ConsentRuntimeOptions,
+} from '@c15t/core/runtime';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
 import type { HTMLAttributes } from 'vue';
@@ -45,6 +49,20 @@ export interface ConsentManifestNuxtConfig {
 	manifestRoute?: string;
 
 	/**
+	 * Longest server rendering waits for the visitor's policy, in
+	 * milliseconds. Past it the page renders without a resolved policy: no
+	 * consent UI in the server HTML, optional categories denied, gated
+	 * scripts and embeds blocked, and the browser resolves the policy after
+	 * hydration. In server manifest mode the manifest request keeps running
+	 * and fills the cache for the next request. Applies to the render only;
+	 * the browser's own init requests wait for the manifest. `false` removes
+	 * the budget.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
+
+	/**
 	 * Report each init the server init route resolves to the backend's
 	 * `POST /sessions`, server-to-server and detached from the response, so
 	 * the backend still counts visitors it never served `/init` to. Needs an
@@ -57,7 +75,10 @@ export interface ConsentManifestNuxtConfig {
 }
 
 export interface ConsentConfig
-	extends BaseConsentConfig<HTMLAttributes>, ConsentManifestNuxtConfig {
+	extends
+		BaseConsentConfig<HTMLAttributes>,
+		ConsentManifestNuxtConfig,
+		ConsentControlOptions {
 	/**
 	 * Vendors the preference center lists under their category, each with
 	 * its own switch, so a visitor can grant a category and still turn one
@@ -67,19 +88,30 @@ export interface ConsentConfig
 	vendors?: Vendor[];
 	/** Remove configured browser data when its consent permission is revoked. */
 	clearOnRevocation?: ClearOnRevocationConfig;
+	/**
+	 * Reload the page after an accept, reject or save turns off a category or
+	 * vendor that was granted, or after a `consentSource` withdraws one.
+	 * Removing a script cannot stop code that already ran, so the reload
+	 * starts a document with only permitted code. Waits for the save request.
+	 * Set `false` to handle revocation yourself.
+	 * @default true
+	 */
+	reloadOnConsentRevoked?: boolean;
 	/** Resolved server init data, reused for the first client render. */
 	prefetch?: InitOutput;
 	/** Raw server records with their request evaluation clock. */
 	initialRecords?: HydrationRecords;
 	/** Application-owned prompt and preference presentation. */
 	presentation?: ConsentPresentation;
+	/** Scripts whose loading follows the shared consent permissions. */
+	scripts?: ConsentRuntimeOptions['scripts'];
+	/**
+	 * A/B experiment on prompt/preferences presentation. The assigned arm is
+	 * merged over `presentation` (read it with `useResolvedPresentation()`),
+	 * exposed through `useExperiment()`, and recorded with every impression
+	 * and choice.
+	 */
+	experiment?: ConsentExperiment;
 	/** Receives kernel events only when the corresponding change occurs. */
-	callbacks?: {
-		onChoiceRecorded?: (
-			event: Omit<Extract<KernelEvent, { type: 'choice:recorded' }>, 'type'>
-		) => void;
-		onPermissionsChanged?: (
-			event: Omit<Extract<KernelEvent, { type: 'permissions:changed' }>, 'type'>
-		) => void;
-	};
+	callbacks?: ConsentRuntimeOptions['callbacks'];
 }

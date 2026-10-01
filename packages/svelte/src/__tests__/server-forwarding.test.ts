@@ -5,14 +5,11 @@ import {
 } from '@c15t/schema/types';
 import { expect, test, vi } from 'vitest';
 
-import {
-	readInitialConsentConfig,
-	prefetchInitialConsent,
-} from '../lib/server';
+import { resolveConsent } from '../lib/server';
 
 const now = 1780000000000;
 test('Svelte raw Sec-GPC stays separate from developer override', async () => {
-	const config = await readInitialConsentConfig({
+	const config = await resolveConsent({
 		headers: new Headers({ 'sec-gpc': '1' }),
 		now,
 	});
@@ -32,7 +29,7 @@ test.each([undefined, 'fr-CA'])(
 				{ headers: { 'x-c15t-policy-contract': '1' } }
 			)
 		);
-		await prefetchInitialConsent({
+		await resolveConsent({
 			backendURL: 'https://backend.test',
 			fetch,
 			forwardHeaders: ['x-review'],
@@ -74,7 +71,7 @@ test('Svelte prefetch preserves a backend literal subject without manufacturing 
 			{ headers: { 'x-c15t-policy-contract': '1' } }
 		)
 	);
-	const config = await prefetchInitialConsent({
+	const config = await resolveConsent({
 		backendURL: 'https://backend.test',
 		fetch,
 		headers: new Headers(),
@@ -128,7 +125,7 @@ test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
 		);
 		vi.stubGlobal('fetch', fetch);
 		try {
-			const config = await prefetchInitialConsent({
+			const config = await resolveConsent({
 				backendURL: 'https://private.test',
 				fetch: access === 'custom-fetch' ? fetch : undefined,
 				forwardHeaders: access === 'header' ? ['authorization'] : undefined,
@@ -144,3 +141,30 @@ test.each(['public', 'cookie', 'header', 'custom-fetch'] as const)(
 		}
 	}
 );
+test('Svelte server init carries the arm alone and returns the experiment', async () => {
+	const experiment = {
+		arm: 'invasive',
+		arms: { invasive: { prompt: { variant: 'wall' as const } } },
+		id: 'banner-shape',
+	};
+	const fetch = vi.fn().mockResolvedValue(
+		new Response(
+			JSON.stringify({
+				location: { countryCode: null, regionCode: null },
+				policyResolution: { policy: null, status: 'no-match', version: 1 },
+				translations: { language: 'en', translations: {} },
+			}),
+			{ headers: { 'x-c15t-policy-contract': '1' } }
+		)
+	);
+	const state = await resolveConsent({
+		backendURL: 'https://backend.test',
+		experiment,
+		fetch,
+		headers: new Headers(),
+		now,
+	});
+	const headers = new Headers(fetch.mock.calls[0]?.[1].headers);
+	expect(headers.get('x-c15t-experiment')).toBe('banner-shape=invasive');
+	expect(state.experiment).toEqual(experiment);
+});

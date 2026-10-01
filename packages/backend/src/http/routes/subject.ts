@@ -24,8 +24,6 @@ import { setFields } from '../../observability/log';
 import { findOrCreateRuntimePolicy } from '../../repository/consent-policy';
 import { findOrCreatePurposeIds } from '../../repository/consent-purpose';
 import { findOrCreateDomain } from '../../repository/domain';
-import { listDirectivesForSubject } from '../../repository/privacy-directive';
-import type { PrivacyDirective } from '../../repository/privacy-directive';
 import { submit } from '../../repository/record-consent';
 import {
 	findById,
@@ -51,15 +49,6 @@ const toConsentItem = (consent: ConsentRow): ConsentItem => ({
 	preferences: consent.preferences,
 	type: consent.type,
 	vendorChoice: consent.vendorChoice,
-});
-
-const toDirectiveWire = (directive: PrivacyDirective) => ({
-	authority: directive.authority,
-	categories: [...directive.categories],
-	id: directive.id,
-	recordedAt: directive.recordedAt.getTime(),
-	signalHeader: directive.signalHeader,
-	source: directive.source,
 });
 
 export const register = function register({
@@ -163,7 +152,6 @@ export const register = function register({
 							resource: 'Subject',
 						});
 					}
-					const directives = (yield* listDirectivesForSubject(subjectId)) ?? [];
 
 					const consents = subject.consents
 						.filter(
@@ -199,7 +187,6 @@ export const register = function register({
 						// asking about legal documents still needs its category state.
 						subjectChoice: subject.choice,
 						subjectVendorChoice: subject.vendorChoice,
-						privacyDirectives: directives.map(toDirectiveWire),
 					};
 				})
 			);
@@ -231,10 +218,6 @@ export const register = function register({
 		}),
 		async (c) => {
 			const body = await c.req.json().catch(() => undefined);
-			const authenticated = validateRequestAuth(
-				c.req.raw.headers,
-				options.apiKeys
-			);
 			// One clock reading per request, so every timestamp check and every
 			// stored `createdAt` agree about when the request happened.
 			const now = Date.now();
@@ -243,7 +226,6 @@ export const register = function register({
 				c,
 				Effect.gen(function* result() {
 					const prepared = yield* prepareSubmission(body, {
-						authenticated,
 						headers: c.req.raw.headers,
 						ipAddress: options.ipAddress,
 						manifest: options.manifest,
@@ -262,12 +244,12 @@ export const register = function register({
 
 					const submission = yield* submit({
 						choice: prepared.choice ?? null,
+						...prepared.attribution,
 						consentAction: prepared.consentAction ?? null,
 						decision: prepared.decision?.input,
 						domainId: domain.id,
 						externalId: input.externalSubjectId ?? null,
 						givenAt: prepared.givenAt,
-						identityAuthority: authenticated ? 'api' : 'browser',
 						identityProvider: input.identityProvider ?? null,
 						ipAddress: prepared.ipAddress,
 						jurisdiction: prepared.jurisdiction,
@@ -291,6 +273,9 @@ export const register = function register({
 						consent: {
 							created: submission.created,
 							decisionId: submission.decisionId ?? null,
+							// `snapshot_token_replayed` marks a save that arrived after
+							// its token expired; see `policy-snapshot.ts`.
+							decisionSource: prepared.decision?.source ?? null,
 							id: submission.consentId,
 							receipts: prepared.choice
 								? Object.keys(prepared.choice.categories)
@@ -352,11 +337,6 @@ export const register = function register({
 		async (c) => {
 			const subjectId = c.req.param('id');
 			const body = await c.req.json().catch(() => undefined);
-			// Who is asserting the link decides what it may unlock later: a
-			// browser-asserted link never exposes identity-level privacy data.
-			const authority = validateRequestAuth(c.req.raw.headers, options.apiKeys)
-				? 'api'
-				: 'browser';
 
 			const result = await run(
 				c,
@@ -369,7 +349,6 @@ export const register = function register({
 					}
 
 					const linked = yield* linkExternalId({
-						authority,
 						externalId: body.externalId,
 						// Matches @c15t/backend's default: an identity supplied
 						// without a named provider is still externally sourced.

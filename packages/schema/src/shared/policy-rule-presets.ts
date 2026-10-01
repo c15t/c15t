@@ -63,7 +63,7 @@ const europeRule = function europeRule(mode: EuropePolicyRuleMode): PolicyRule {
 			[ICO_SOURCE, EDPB_SOURCE, GIBRALTAR_SOURCE],
 			isIab
 				? [
-						'IAB TCF 2.3 only. No TCF 2.4 claim.',
+						'IAB TCF 2.4 under TCF Policies v5.0.b. TC strings are service-specific: c15t stores them per site and browser and does not sync them across devices.',
 						'Covers consent-requiring processing in the EEA, UK and Gibraltar, including separately geocoded EU territories. National analytics exemptions need separate scoped configurations.',
 						'Used as the geo fallback so an unknown location gets the strictest configured behavior.',
 					]
@@ -392,7 +392,7 @@ export interface PolicyRulePresets {
 	saudiArabiaOptIn: () => PolicyRule;
 	/** Europe opt-in preset (EEA + UK + Gibraltar, geo fallback). Choice prompt. */
 	europeOptIn: () => PolicyRule;
-	/** Europe IAB TCF 2.3 preset (EEA + UK + Gibraltar, geo fallback). Choice prompt. */
+	/** Europe IAB TCF 2.4 preset (EEA + UK + Gibraltar, geo fallback). Choice prompt. */
 	europeIab: () => PolicyRule;
 	/** California opt-in preset (US-CA). Choice prompt, GPC honored. */
 	californiaOptIn: () => PolicyRule;
@@ -760,7 +760,7 @@ export const policyRulePresets: PolicyRulePresets = {
 /** Options for {@link recommendedPolicyRules}. */
 export interface RecommendedPolicyRulesOptions {
 	/**
-	 * Use the IAB TCF 2.3 Europe rule instead of plain opt-in. The runtime
+	 * Use the IAB TCF 2.4 Europe rule instead of plain opt-in. The runtime
 	 * still needs the IAB module enabled for the rule to run as `iab`.
 	 * @default false
 	 */

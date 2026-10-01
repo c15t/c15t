@@ -8,10 +8,10 @@ group: integrations
 
 Use the browser project API key. The helper initializes Amplitude Browser SDK 2 for you; remove an existing SDK initializer before registering it.
 
-<CommandTabs command="@c15t/scripts" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { amplitude } from '@c15t/scripts/amplitude';
+import { amplitude } from '@c15t/integrations/amplitude';
 
 export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY', initOptions: { autocapture: false } })];
 ```

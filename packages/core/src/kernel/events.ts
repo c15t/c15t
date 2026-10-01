@@ -9,14 +9,20 @@
  * The bus does not retain state — late subscribers do not receive
  * historical events. For state-shaped observability use snapshot
  * subscriptions instead.
+ *
+ * Delivery goes through the kernel's dispatcher, shared with snapshot
+ * subscribers: a throwing listener is reported and skipped, and deliveries
+ * reach every listener in the order they were made.
  */
 import type { KernelEvent, Listener, Unsubscribe } from '../types';
+import { createDispatcher, createListenerSet } from './dispatch';
+import type { Dispatcher, ListenerSet } from './dispatch';
 
 export interface EventBus {
 	/**
 	 * Register a listener for a specific event type. Listeners are called
-	 * in registration order and may not unsubscribe themselves during
-	 * dispatch (the change applies after the current dispatch completes).
+	 * in registration order. A listener removed during dispatch is not
+	 * called again; one added during dispatch first receives the next event.
 	 */
 	on: <E extends KernelEvent['type']>(
 		type: E,
@@ -25,27 +31,25 @@ export interface EventBus {
 
 	/**
 	 * Dispatch an event to all listeners registered for its type.
-	 * No-op if no listeners are registered.
+	 * No-op if no listeners are registered. Never throws a listener's error.
 	 */
 	emit: (event: KernelEvent) => void;
 }
 
 /**
- * Create a fresh event bus. Each kernel instance owns its own bus.
+ * Create a fresh event bus. Each kernel instance owns its own bus and
+ * passes the dispatcher its snapshot subscribers share.
  */
-export const createEventBus = function createEventBus(): EventBus {
-	let listeners:
-		| Map<KernelEvent['type'], Set<Listener<KernelEvent>>>
-		| undefined;
+export const createEventBus = function createEventBus(
+	dispatcher: Dispatcher = createDispatcher()
+): EventBus {
+	let listeners: Map<KernelEvent['type'], ListenerSet<KernelEvent>> | undefined;
 
 	return {
 		emit(event) {
 			const bucket = listeners?.get(event.type);
-			if (!bucket) {
-				return;
-			}
-			for (const listener of bucket) {
-				listener(event);
+			if (bucket) {
+				dispatcher.deliver(bucket, event);
 			}
 		},
 
@@ -53,14 +57,10 @@ export const createEventBus = function createEventBus(): EventBus {
 			listeners ??= new Map();
 			let bucket = listeners.get(type);
 			if (!bucket) {
-				bucket = new Set();
+				bucket = createListenerSet();
 				listeners.set(type, bucket);
 			}
-			const cast = listener as Listener<KernelEvent>;
-			bucket.add(cast);
-			return () => {
-				bucket?.delete(cast);
-			};
+			return bucket.add(listener as Listener<KernelEvent>);
 		},
 	};
 };

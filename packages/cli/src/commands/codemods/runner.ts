@@ -6,7 +6,16 @@ import type { SourceFile } from 'ts-morph';
 
 import { forEachSequential } from '../../utils/for-each-sequential';
 
-const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.jsx']);
+const SOURCE_EXTENSIONS = new Set([
+	'.ts',
+	'.tsx',
+	'.mts',
+	'.cts',
+	'.js',
+	'.jsx',
+	'.mjs',
+	'.cjs',
+]);
 const IGNORED_DIRECTORIES = new Set([
 	'.git',
 	'.next',

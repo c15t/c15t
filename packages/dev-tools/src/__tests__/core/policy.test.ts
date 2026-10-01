@@ -46,7 +46,7 @@ it('inspects notice, privacy and rights without creating a choice or writing sto
 		'Required prompt',
 		'missing',
 		'Local notice dismissal',
-		'Standing privacy directives',
+		'Privacy signals',
 		'Action constraints and persistent rights',
 		'opt-out',
 		'Presentation resolution',
@@ -58,14 +58,12 @@ it('inspects notice, privacy and rights without creating a choice or writing sto
 	expect(text).toContain('"nextDeadline": null');
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
 	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
-	expect(kernel.getSnapshot().optOutDirectives).toHaveLength(1);
 	expect(writes).not.toHaveBeenCalled();
 	expect(choice).not.toHaveBeenCalled();
-	const [directive] = kernel.getSnapshot().optOutDirectives;
 	await tools.actions.dismissNotice();
 	expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	expect(kernel.getSnapshot().explicitChoice).toBeNull();
-	expect(kernel.getSnapshot().optOutDirectives[0]).toEqual(directive);
+	expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 	expect(
 		tools.getState().events.some((event) => event.type === 'notice:dismissed')
 	).toBe(true);
@@ -108,7 +106,8 @@ it('saves unmasked displayed choices under GPC and preserves hidden receipt cloc
 	expect(kernel.getSnapshot().explicitChoice?.categories.experience).toEqual(
 		hidden
 	);
-	expect(kernel.getSnapshot().noticeDismissal).toBeNull();
+	// The save acknowledged the owed notice.
+	expect(kernel.getSnapshot().noticeDismissal).not.toBeNull();
 	await tools.actions.save('all');
 	expect(kernel.getSnapshot().explicitChoice?.categories.marketing?.value).toBe(
 		true
@@ -311,4 +310,29 @@ it('preserves an edit made while an earlier save waits for its canonical subject
 		marketing: false,
 		measurement: false,
 	});
+});
+
+it('shows the assigned experiment arm on the policy tab', async () => {
+	const kernel = createConsentKernel({
+		initialExperiment: {
+			acknowledgedDiagnostics: false,
+			arm: 'bar',
+			assignedBy: 'host',
+			id: 'banner-shape',
+		},
+		initialPolicyResolution: policyResolution({ model: 'opt-in' }),
+	});
+	cleanups.push(kernel.dispose);
+	await kernel.commands.init();
+	const tools = createDevTools({
+		defaultOpen: true,
+		defaultTab: 'policy',
+		kernel,
+	});
+	cleanups.push(tools.destroy);
+	const text = tools.element?.textContent ?? '';
+	for (const expected of ['Experiment', 'banner-shape', 'bar', 'host']) {
+		expect(text).toContain(expected);
+	}
+	expect(text).not.toContain('No presentation experiment');
 });

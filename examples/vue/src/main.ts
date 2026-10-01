@@ -2,6 +2,7 @@ import { c15tVue } from 'c15t/vue/vue-plugin';
 import { createApp } from 'vue';
 
 import App from './App.vue';
+import { experimentCallbacks, experimentFromSearch } from './experiment';
 
 import './style.css';
 
@@ -20,6 +21,16 @@ const tokens = branded
 		}
 	: undefined;
 
+// `?experiment=1` runs the banner-shape experiment; `&arm=wall` sets the
+// arm. Without the param the plugin gets no `experiment` option.
+const experiment = experimentFromSearch(location.search);
+
 createApp(App)
-	.use(c15tVue, { backendURL, showTrigger: true, tokens })
+	.use(c15tVue, {
+		backendURL,
+		callbacks: experiment ? experimentCallbacks : undefined,
+		experiment,
+		showTrigger: true,
+		tokens,
+	})
 	.mount('#app');
