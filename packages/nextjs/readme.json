@@ -30,11 +30,15 @@
 		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/next/quickstart)."
 	],
 	"usage": [
-		"Import `ConsentManagerProvider` in your app's root layout",
-		"Add `ConsentBanner` and `ConsentDialog` components",
-		"Customize styling and behavior to fit your app",
-		"For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)",
-		"```tsx\n// app/layout.tsx\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from '@c15t/nextjs'\n\nexport default function RootLayout({ children }: { children: React.ReactNode }) {\n  return (\n    <html lang=\"en\">\n      <body>\n        <ConsentManagerProvider>\n          {children}\n          <ConsentBanner />\n          <ConsentDialog />\n        </ConsentManagerProvider>\n      </body>\n    </html>\n  )\n}\n```"
+		"Create `c15t.config.ts` with your Inth backend URL and the manifest route",
+		"```ts\n// c15t.config.ts\nimport { defineConsentConfig } from '@c15t/nextjs'\n\nexport const consentConfig = defineConsentConfig({\n  backendURL: 'https://your-project.inth.app',\n  manifestURL: '/api/c15t/manifest',\n})\n```",
+		"Serve the policy manifest from that route",
+		"```ts\n// app/api/c15t/manifest/route.ts\nimport { createNextConsentRouteHandlers } from '@c15t/nextjs/api'\n\nimport { consentConfig } from '@/c15t.config'\n\nexport const { manifestGET: GET } =\n  createNextConsentRouteHandlers(consentConfig)\n```",
+		"Mount `ConsentRoot` with `ConsentBanner` and `ConsentDialog` in a client component. Import the config there; do not pass it from a Server Component",
+		"```tsx\n// components/consent.tsx\n'use client'\n\nimport {\n  ConsentBanner,\n  ConsentDialog,\n  ConsentDialogLink,\n  ConsentRoot,\n} from '@c15t/nextjs'\nimport type { ConsentRootProps } from '@c15t/nextjs'\nimport type { ReactNode } from 'react'\n\nimport { consentConfig } from '@/c15t.config'\n\nexport const Consent = ({\n  children,\n  state,\n}: {\n  children: ReactNode\n  state: ConsentRootProps['state']\n}) => (\n  <ConsentRoot state={state} config={consentConfig}>\n    {children}\n    <ConsentBanner />\n    <ConsentDialog />\n    <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n  </ConsentRoot>\n)\n```",
+		"Call `resolveConsent` in the root layout and pass the result to that component",
+		"```tsx\n// app/layout.tsx\nimport { resolveConsent } from '@c15t/nextjs/server'\nimport type { ReactNode } from 'react'\n\nimport { consentConfig } from '@/c15t.config'\nimport { Consent } from '@/components/consent'\n\nimport './globals.css'\n\nexport default function RootLayout({ children }: { children: ReactNode }) {\n  // Not awaited: the page renders while consent resolves.\n  const state = resolveConsent({ config: consentConfig })\n\n  return (\n    <html lang=\"en\">\n      <body>\n        <Consent state={state}>{children}</Consent>\n      </body>\n    </html>\n  )\n}\n```",
+		"For full implementation details, see the [Next.js quickstart docs](https://c15t.com/docs/frameworks/next/quickstart)"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/next/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/next/quickstart",

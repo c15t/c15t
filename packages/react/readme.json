@@ -31,12 +31,11 @@
 		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/react/quickstart)."
 	],
 	"usage": [
-		"Import `ConsentManagerProvider` in your app's root component",
-		"Add `ConsentBanner` and `ConsentDialog` components",
+		"Wrap your app in `ConsentProvider` with the backend URL from your Inth project",
+		"Render `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` inside the provider, and mount it once for the life of the app",
 		"Customize styling and behavior to fit your app",
 		"For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)",
-
-		"```tsx\n// App.tsx\nimport {\n  ConsentManagerProvider,\n  ConsentBanner,\n  ConsentDialog,\n} from '@c15t/react'\n\nfunction App() {\n  return (\n    <ConsentManagerProvider>\n      <YourApp />\n      <ConsentBanner />\n      <ConsentDialog />\n    </ConsentManagerProvider>\n  )\n}\n```"
+		"```tsx\n// src/consent.tsx\nimport {\n  ConsentBanner,\n  ConsentDialog,\n  ConsentDialogLink,\n  ConsentProvider,\n  hosted,\n} from '@c15t/react'\nimport type { ReactNode } from 'react'\n\nconst mode = hosted({ url: 'https://your-project.inth.app' })\n\nexport const Consent = ({ children }: { children: ReactNode }) => (\n  <ConsentProvider options={{ mode }}>\n    {children}\n    <ConsentBanner />\n    <ConsentDialog />\n    <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n  </ConsentProvider>\n)\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/react/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/react/quickstart",

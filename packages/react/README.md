@@ -77,28 +77,32 @@ To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/re
 
 ## Usage
 
-1. Import `ConsentManagerProvider` in your app's root component
-2. Add `ConsentBanner` and `ConsentDialog` components
+1. Wrap your app in `ConsentProvider` with the backend URL from your Inth project
+2. Render `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` inside the provider, and mount it once for the life of the app
 3. Customize styling and behavior to fit your app
 4. For full implementation details, see the [React quickstart docs](https://c15t.com/docs/frameworks/react/quickstart)
 
 ```tsx
-// App.tsx
+// src/consent.tsx
 import {
-  ConsentManagerProvider,
   ConsentBanner,
   ConsentDialog,
+  ConsentDialogLink,
+  ConsentProvider,
+  hosted,
 } from '@c15t/react'
+import type { ReactNode } from 'react'
 
-function App() {
-  return (
-    <ConsentManagerProvider>
-      <YourApp />
-      <ConsentBanner />
-      <ConsentDialog />
-    </ConsentManagerProvider>
-  )
-}
+const mode = hosted({ url: 'https://your-project.inth.app' })
+
+export const Consent = ({ children }: { children: ReactNode }) => (
+  <ConsentProvider options={{ mode }}>
+    {children}
+    <ConsentBanner />
+    <ConsentDialog />
+    <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+  </ConsentProvider>
+)
 ```
 
 ## Documentation
