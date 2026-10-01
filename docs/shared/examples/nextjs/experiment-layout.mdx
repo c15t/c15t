@@ -7,17 +7,17 @@ import type { ReactNode } from 'react';
 
 import { consentConfig } from '@/c15t.config';
 import { ExperimentConsent } from '@/components/experiment-consent';
-import { bannerShape } from '@/lib/experiment';
-import { bannerShapeFlag } from '@/lib/flags';
+import { bannerExperiment } from '@/lib/experiment';
+import { bannerExperimentFlag } from '@/lib/flags';
 
 import '@/styles/globals.css';
 
 const ResolvedConsent = async ({ children }: { children: ReactNode }) => {
-	const arm = await bannerShapeFlag();
+	const arm = await bannerExperimentFlag();
 	const state = await resolveConsent({
 		config: consentConfig,
 		// `off` keeps this visitor out of the experiment.
-		experiment: arm === 'off' ? undefined : { ...bannerShape, arm },
+		experiment: arm === 'off' ? undefined : { ...bannerExperiment, arm },
 	});
 
 	return <ExperimentConsent state={state}>{children}</ExperimentConsent>;

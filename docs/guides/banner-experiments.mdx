@@ -26,7 +26,7 @@ choice to `window.dataLayer`; see
 Omit `arm` to let c15t pick, and set `split` to weight the arms:
 
 ```ts
-experiment: { ...bannerShape, split: { control: 60, wall: 40 } }
+experiment: { ...bannerExperiment, split: { control: 60, wall: 40 } }
 ```
 
 | Field | Purpose |
@@ -58,7 +58,7 @@ set `experiment`. A site without an experiment does not download them.
 The Astro banner is server-rendered HTML that the browser only shows or
 hides, so the arm is resolved on the server. To pick it per request, set
 `middleware: false` in `c15t()` and compose the consent middleware yourself
-with `experimentArm`, where `bannerShapeFlag` stands for your flag lookup:
+with `experimentArm`, where `bannerExperimentFlag` stands for your flag lookup:
 
 {/* example: fragment */}
 
@@ -66,7 +66,7 @@ with `experimentArm`, where `bannerShapeFlag` stands for your flag lookup:
 import { consentMiddleware } from 'c15t/astro/middleware';
 
 export const onRequest = consentMiddleware({
-	experimentArm: async (context) => await bannerShapeFlag(context),
+	experimentArm: async (context) => await bannerExperimentFlag(context),
 });
 ```
 
@@ -135,7 +135,7 @@ check that both arms arrive, then move to 0% `off` for the real run.
 import { vercelAdapter } from '@flags-sdk/vercel';
 import { flag } from 'flags/next';
 
-export const bannerShapeFlag = flag<'off' | 'control' | 'wall'>({
+export const bannerExperimentFlag = flag<'off' | 'control' | 'wall'>({
 	key: 'banner-shape',
 	adapter: vercelAdapter(),
 	identify, // your existing identify
@@ -285,7 +285,7 @@ arm before you deploy with `validateExperiment` in a test. `euPolicy` and
 import { validateExperiment } from 'c15t/experiment';
 
 test('banner-shape arms pass under the EU policy', () => {
-	validateExperiment(bannerShape, euPolicy, { presentation });
+	validateExperiment(bannerExperiment, euPolicy, { presentation });
 });
 ```
 

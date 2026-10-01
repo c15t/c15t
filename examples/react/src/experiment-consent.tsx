@@ -22,7 +22,7 @@ const mode = hosted({ url: backendURL });
 
 // `control` is the stock banner. `wall` blocks the page until the visitor
 // chooses.
-const bannerShape = defineExperiment({
+const bannerExperiment = defineExperiment({
 	arms: { wall: { prompt: { variant: 'wall' } } },
 	id: 'banner-shape',
 });
@@ -71,7 +71,7 @@ export const Consent = ({
 	<ConsentProvider
 		options={{
 			callbacks,
-			experiment: arm === 'off' ? undefined : { ...bannerShape, arm },
+			experiment: arm === 'off' ? undefined : { ...bannerExperiment, arm },
 			mode,
 			scripts,
 		}}

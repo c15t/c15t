@@ -5,7 +5,7 @@ import type { OnChoiceRecordedPayload, OnSurfaceShownPayload } from 'c15t';
  * The banner-shape experiment. `control` is the default banner; the `wall`
  * arm blocks the page until the visitor chooses.
  */
-export const bannerShape = defineExperiment({
+export const bannerExperiment = defineExperiment({
 	arms: { wall: { prompt: { variant: 'wall' } } },
 	id: 'banner-shape',
 });
