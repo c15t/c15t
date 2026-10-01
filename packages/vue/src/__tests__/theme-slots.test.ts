@@ -108,3 +108,50 @@ test('puts slot classes and styles on the stock banner under components', async 
 	expect(card?.style.color).toBe('rgb(4, 5, 6)');
 	expect(part('consent-banner-title')?.classList).toContain('theme-title');
 });
+
+test('applies the assigned experiment arm slots to the stock banner', async () => {
+	const config = {
+		backendURL: 'https://consent.example',
+		customFetch: vi.fn(() => new Response('{}')) as unknown as typeof fetch,
+		disableAnimation: true,
+		experiment: {
+			arms: {
+				branded: { theme: { slots: { consentBannerCard: 'arm-card' } } },
+			},
+			id: 'card-class',
+		},
+		hideBranding: true,
+		theme: { slots: { consentBannerTitle: 'theme-title' } },
+	} as ConsentConfig;
+	const context = createVueConsentKernelContext({ config, prefetch: init });
+	context.activeUI.value = 'banner';
+	const wrapper = mount(ConsentBanner, {
+		attachTo: document.body,
+		global: {
+			provide: {
+				[consentConfigKey as symbol]: config,
+				[symbolKernelContext as symbol]: context,
+				[symbolKernel as symbol]: context.kernel,
+				[symbolSnapshot as symbol]: context.snapshot,
+				[symbolInit as symbol]: context.init,
+				[symbolActiveUI as symbol]: context.activeUI,
+				[symbolConsent as symbol]: context.storedConsent,
+			},
+		},
+	});
+	mounted = { context, wrapper };
+	await flushPromises();
+	await vi.waitFor(() => expect(part('consent-banner-card')).not.toBeNull());
+	expect(part('consent-banner-card')?.classList).not.toContain('arm-card');
+
+	context.kernel.set.experiment({
+		acknowledgedDiagnostics: false,
+		arm: 'branded',
+		assignedBy: 'c15t',
+		id: 'card-class',
+	});
+	await flushPromises();
+
+	expect(part('consent-banner-card')?.classList).toContain('arm-card');
+	expect(part('consent-banner-title')?.classList).toContain('theme-title');
+});
