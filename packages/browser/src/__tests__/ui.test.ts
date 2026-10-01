@@ -103,6 +103,8 @@ describe('mountConsentUI', () => {
 
 	it('applies the assigned arm theme slots to the rendered parts', async () => {
 		const experiment = {
+			// `control` is the host presentation and is not listed in `arms`.
+			arm: 'control',
 			arms: {
 				branded: {
 					theme: { slots: { consentBannerCard: 'arm-card' } },
@@ -114,7 +116,12 @@ describe('mountConsentUI', () => {
 			{ theme: { slots: { consentBannerTitle: 'base-title' } } },
 			{ experiment }
 		);
-		await vi.waitFor(() => query(root, 'consent-banner-card'));
+		// Start on the control arm, so the lazily loaded controller cannot
+		// assign `branded` before the first assertion.
+		await vi.waitFor(() => {
+			expect(client.getSnapshot().experiment?.arm).toBe('control');
+			query(root, 'consent-banner-card');
+		});
 		expect(query(root, 'consent-banner-card').classList).not.toContain(
 			'arm-card'
 		);
