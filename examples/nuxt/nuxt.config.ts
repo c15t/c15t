@@ -21,8 +21,9 @@
  * are not `NUXT_PUBLIC_*` names because Nitro would apply those at runtime
  * over `runtimeConfig.public.c15t.experiment`.
  */
+import type { ModuleOptions } from 'c15t/vue';
+
 const staticOutput = process.env.C15T_NUXT_OUTPUT === 'static';
-const clientManifest = process.env.C15T_NUXT_MANIFEST === 'client';
 const experimentArm = process.env.C15T_NUXT_EXPERIMENT_ARM;
 const experiment =
 	process.env.C15T_NUXT_EXPERIMENT === '1'
@@ -35,14 +36,19 @@ const experiment =
 			}
 		: undefined;
 
+const c15t: ModuleOptions = {
+	// This demo self-hosts @c15t/backend at `/api/self-host` (see
+	// `server/api/self-host/[...all].ts`) when no backend URL is set.
+	backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
+	experiment,
+};
+// Left unset otherwise, so the layer's `manifest` applies.
+if (process.env.C15T_NUXT_MANIFEST === 'client') {
+	c15t.manifest = 'client';
+}
+
 export default defineNuxtConfig({
-	c15t: {
-		// This demo self-hosts @c15t/backend at `/api/self-host` (see
-		// `server/api/self-host/[...all].ts`) when no backend URL is set.
-		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
-		...(clientManifest ? { manifest: 'client' as const } : {}),
-		experiment,
-	},
+	c15t,
 	compatibilityDate: '2026-07-04',
 	css: ['~/consent-example.css'],
 	devtools: { enabled: true },
