@@ -227,11 +227,16 @@ export const createGatedScriptActivator = function createGatedScriptActivator(
 	};
 };
 
-// Standalone scans retain their latest snapshot per root. Clients own their
-// activator so disposal never cancels another client's continuation.
+// Standalone scans retain their latest snapshot and nonce per root. Clients
+// own their activator so disposal never cancels another client's
+// continuation.
 const standaloneActivators = new WeakMap<
 	ParentNode,
-	{ snapshot: ConsentSnapshot; activator: GatedScriptActivator }
+	{
+		snapshot: ConsentSnapshot;
+		activator: GatedScriptActivator;
+		nonce: string | undefined;
+	}
 >();
 
 /**
@@ -248,8 +253,9 @@ const standaloneActivators = new WeakMap<
  *
  * @param snapshot - The kernel snapshot.
  * @param root - Where to look. Defaults to the document.
- * @param options - `nonce` limits activation to tags carrying it. The first
- * call for a root fixes it.
+ * @param options - `nonce` limits activation to tags carrying it. The root
+ * remembers the last nonce passed: a call with a different nonce replaces
+ * it, and a call without one keeps it.
  * @returns How many scripts were activated immediately. Others may be waiting
  * for an earlier external script.
  */
@@ -259,17 +265,24 @@ export const activateGatedScripts = function activateGatedScripts(
 	options: { nonce?: string } = {}
 ): number {
 	let state = standaloneActivators.get(root);
+	if (state && options.nonce !== undefined && options.nonce !== state.nonce) {
+		state.activator.dispose();
+		state = undefined;
+	}
 	if (!state) {
+		const { nonce } = options;
 		const current: {
 			snapshot: ConsentSnapshot;
 			activator: GatedScriptActivator;
+			nonce: string | undefined;
 		} = {
 			activator: createGatedScriptActivator(
 				() => current.snapshot,
 				root,
 				undefined,
-				options.nonce
+				nonce
 			),
+			nonce,
 			snapshot,
 		};
 		state = current;
