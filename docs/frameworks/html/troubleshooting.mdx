@@ -14,7 +14,10 @@ Remove the tag before you publish.
 
 ## Why is there no banner?
 
-Check the Network tab for the request to your backend's `/init` endpoint.
+**Check.** In the Network tab, find the request to your backend's `/init`
+endpoint.
+
+**Fix.** Act on what you find:
 
 - **The request failed with a CORS error.** Add your site's exact origin,
   including `https://` and any `www`, to the trusted origins in your Inth
@@ -32,81 +35,104 @@ Check the Network tab for the request to your backend's `/init` endpoint.
 
 ## Why does a vendor script run before a choice?
 
-The script tag only holds scripts that are `type="text/plain"` with a
-`data-c15t-category`. Search the page source for the vendor's domain. A second
-copy added by a theme setting, a plugin or a tag manager runs on its own terms.
-Remove it, or gate it too.
+**Check.** Search the page source for the vendor's domain. The script tag only
+holds scripts that are `type="text/plain"` with a `data-c15t-category`. A
+second copy added by a theme setting, a plugin or a tag manager runs on its own
+terms.
+
+**Fix.** Remove the second copy, or gate it too.
+
+**Check.** View the published page's source and check that each gated tag still
+has `type="text/plain"`. A caching or optimization plugin can rewrite a gated
+tag's `type` or move it.
+
+**Fix.** Follow
+[caching and optimization plugins](/docs/frameworks/html/platforms#caching-and-optimization-plugins).
 
 Check the category as well. Under an opt-out policy, optional categories are
 allowed until the visitor refuses, so vendors load on the first visit by
 design.
 
-A caching or optimization plugin can also rewrite a gated tag's `type` or
-move it. View the published page's source and check that each gated tag still
-has `type="text/plain"`. See
-[caching and optimization plugins](/docs/frameworks/html/platforms#caching-and-optimization-plugins).
-
 ## Why does a gated script never run on a page with a nonce?
 
-When the c15t tag has a `nonce` or `data-nonce`, c15t runs only gated
+**Check.** When the c15t tag has a `nonce` or `data-nonce`, c15t runs only gated
 `text/plain` tags that carry the same nonce. Open the console and look for a
 warning that c15t skipped a `data-c15t-category` script, and check the tag in
-the Elements panel for `data-c15t-activated="untrusted"`. Add
-`nonce="RANDOM_PER_RESPONSE"`, with the value your server sends, to the tag,
-including tags your own code inserts later. See
+the Elements panel for `data-c15t-activated="untrusted"`.
+
+**Fix.** Add `nonce="RANDOM_PER_RESPONSE"`, with the value your server sends, to
+the tag, including tags your own code inserts later. See
 [gated tags on a page with a nonce](/docs/frameworks/html/components/gated-script#gated-tags-on-a-page-with-a-nonce).
 
 ## Why is the banner unstyled or missing its colors?
 
-A Content Security Policy whose `style-src` does not allow the stock UI's
-`<style>` element blocks it, and the console shows a CSP violation. Put the
-nonce from your `style-src` on the c15t tag, as `nonce` or `data-nonce`, or
-serve the stylesheet as a file as
+**Check.** The console shows a CSP violation. A Content Security Policy whose
+`style-src` does not allow the stock UI's `<style>` element blocks it.
+
+**Fix.** Put the nonce from your `style-src` on the c15t tag, as `nonce` or
+`data-nonce`, or serve the stylesheet as a file as
 [Content Security Policy](/docs/frameworks/html/content-security-policy#allow-the-stock-uis-styles)
 describes.
 
 ## Why does the preferences link do nothing?
 
-Check that its `href` ends in `#c15t-preferences` and that the page loads the
-c15t tag. With `c15t.headless.js` or `ui: { dialog: false }`, the link asks for
-the dialog but nothing renders it; your page must render its own, as
-[headless](/docs/frameworks/html/headless) shows.
+**Check.** Confirm that the link's `href` ends in `#c15t-preferences` and that
+the page loads the c15t tag. With `c15t.headless.js` or `ui: { dialog: false }`, the link asks for
+the dialog but nothing renders it.
+
+**Fix.** Correct the `href` or add the c15t tag. With a headless setup, your
+page must render its own dialog, as [headless](/docs/frameworks/html/headless)
+shows.
 
 ## Why does the console say "call c15t.init() first"?
 
-Something called a `window.c15t` method directly before the client existed,
-for example from an inline script that ran before the tag, or on a page whose
-tag has `data-manual` before anything called `c15t.init()`. Queue the call with
-`c15t.push()`, move it into an `on('ready', ...)` listener, or wait for
-`c15t.ready()`. See
+**Check.** Something called a `window.c15t` method directly before the client
+existed, for example from an inline script that ran before the tag, or on a
+page whose tag has `data-manual` before anything called `c15t.init()`.
+
+**Fix.** Queue the call with `c15t.push()`, move it into an `on('ready', ...)`
+listener, or wait for `c15t.ready()`. See
 [which calls you can queue](/docs/frameworks/html/api#which-calls-you-can-queue).
 
 ## Why does the console say a queued call "was skipped"?
 
-`c15t.push()` received a method it does not queue, such as `has`,
+**Check.** `c15t.push()` received a method it does not queue, such as `has`,
 `getSnapshot` or `dispose`, or a name c15t does not know. A queue cannot hand
-a value back, so c15t skips the call. Call those methods inside
-`c15t.onInit()` or after `c15t.ready()`.
+a value back, so c15t skips the call.
+
+**Fix.** Call those methods inside `c15t.onInit()` or after `c15t.ready()`.
 
 ## Why is my queued configuration ignored?
 
-Look for an inline script that assigns `window.c15t = [...]`. Assignment
-replaces calls other scripts queued before it. Use
-`window.c15t = window.c15t || []` followed by `c15t.push(...)` everywhere.
-A `config` call made after the bundle ran also does nothing; it has to run
-before the tag, or be passed to `c15t.init()` with `data-manual`.
+**Check.** Look for an inline script that assigns `window.c15t = [...]`.
+Assignment replaces calls other scripts queued before it.
+
+**Fix.** Use `window.c15t = window.c15t || []` followed by `c15t.push(...)`
+everywhere.
+
+**Check.** Look for a `config` call made after the bundle ran. It does nothing.
+
+**Fix.** Run the `config` call before the tag, or pass the configuration to
+`c15t.init()` with `data-manual`.
 
 ## Why does the page throw "Load c15t.iab.js instead of c15t.js"?
 
-Two c15t bundles are on the page. Keep only `c15t.iab.js` for an IAB policy,
-and remove `c15t.js` or `c15t.headless.js`, including copies a plugin adds.
+**Check.** Two c15t bundles are on the page, including copies a plugin adds.
+
+**Fix.** Keep only `c15t.iab.js` for an IAB policy, and remove `c15t.js` or
+`c15t.headless.js`.
 
 ## Why did the banner change after a release?
 
-`@alpha` in the tag's URL follows the newest prerelease. Replace it with an
-exact version so your page changes only when you change it.
+**Check.** `@alpha` in the tag's URL follows the newest prerelease.
 
-## More symptoms
+**Fix.** Replace it with an exact version so your page changes only when you
+change it.
 
-[Troubleshoot consent](/docs/guides/troubleshooting) covers problems that are
-the same in every setup, such as choices lost on reload and content blockers.
+## More help
+
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

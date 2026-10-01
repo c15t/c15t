@@ -6,56 +6,71 @@ group: frameworks
 
 ## The build says manifest mode needs a server adapter
 
-`manifest()` adds on-demand `/api/c15t/init` and `/api/c15t/manifest` routes,
-and `astro build` stops when no adapter can serve them. Either add your host's
-adapter and use server output, or switch to `hosted({ url })` for a static
-site. See [Rendering and deployment](/docs/frameworks/astro/rendering).
+**Check.** `manifest()` adds on-demand `/api/c15t/init` and `/api/c15t/manifest`
+routes, and `astro build` stops when no adapter can serve them. Look for an
+adapter and server output in `astro.config.mjs`.
+
+**Fix.** Add your host's adapter and use server output, or switch to
+`hosted({ url })` for a static site. See
+[Rendering and deployment](/docs/frameworks/astro/rendering).
 
 ## The build says `ui` needs an Astro integration
 
-The preference dialog is an island in the framework that the `ui` option names,
-so that framework's Astro integration must be installed and listed before
-`c15t()` in `astro.config.mjs`. For `ui: 'svelte'`, install `@astrojs/svelte`
-and `svelte`. For `'react'`, install `@astrojs/react`, `react` and `react-dom`.
-For `'vue'`, install `@astrojs/vue` and `vue`.
+**Check.** The preference dialog is an island in the framework that the `ui`
+option names. Look in `astro.config.mjs` for that framework's Astro
+integration, listed before `c15t()`.
 
-A site that only shows a notice and never opens the dialog can set
+**Fix.** Install the integration and list it before `c15t()`. For
+`ui: 'svelte'`, install `@astrojs/svelte` and `svelte`. For `'react'`, install
+`@astrojs/react`, `react` and `react-dom`. For `'vue'`, install `@astrojs/vue`
+and `vue`. A site that only shows a notice and never opens the dialog can set
 `requireUIIntegration: false` instead.
 
-If the build log suggests `ui: 'react'` or `ui: 'vue'`, your site already loads
-that framework. Set `ui` to it so visitors do not download Svelte as well, or
-set `ui: 'svelte'` to keep Svelte and silence the message.
+**Check.** The build log suggests `ui: 'react'` or `ui: 'vue'`. Your site
+already loads that framework.
+
+**Fix.** Set `ui` to it so visitors do not download Svelte as well, or set
+`ui: 'svelte'` to keep Svelte and silence the message.
 
 ## `C15T_BACKEND_URL` is set in `.env` but the build cannot see it
 
-Astro evaluates `astro.config.mjs` before it loads `.env`. Set the variable in
-your shell, for example `C15T_BACKEND_URL=https://your-project.inth.app npx astro build`, or in your host's
-build environment. Variables that start with `PUBLIC_` and are read in browser
-code, such as vendor IDs, do come from `.env`.
+**Check.** Astro evaluates `astro.config.mjs` before it loads `.env`, so a value
+that exists only in `.env` is not set when the config runs.
+
+**Fix.** Set the variable in your shell, for example
+`C15T_BACKEND_URL=https://your-project.inth.app npx astro build`, or in your
+host's build environment. Variables that start with `PUBLIC_` and are read in
+browser code, such as vendor IDs, do come from `.env`.
 
 ## A component says `Astro.locals.c15t` is missing
 
-`ConsentBanner` and `IABConsentBanner` read the consent context that the
-integration's middleware sets. Check that:
+**Check.** `ConsentBanner` and `IABConsentBanner` read the consent context that
+the integration's middleware sets. Confirm that:
 
 - `c15t()` is in the `integrations` list of `astro.config.mjs`.
 - The integration does not set `middleware: false`.
 - The route is not listed in `middleware.skip`.
 
+**Fix.** Add `c15t()` to `integrations`, remove `middleware: false`, or take
+the route out of `middleware.skip`.
+
 ## Why is there no banner?
 
-Check these in order:
+**Check.** In DevTools Network, find the browser's `/init` request. Its
+response, or `Astro.locals.c15t.snapshot.policyRule`, shows which policy
+matched.
+
+**Fix.** Work through these causes in order:
 
 1. **The visitor already chose.** A saved choice hides the banner. Open a
    private window.
 2. **The policy asks for no banner.** A rule whose prompt is `none`, such as
-   one you set up for visitors in the United States, shows no banner. Look at the
-   `/init` response, or `Astro.locals.c15t.snapshot.policyRule`, to see which
-   policy matched. [Policies](/docs/concepts/policies#why-the-banner-may-be-absent)
-   explains each case.
-3. **The policy did not resolve.** If the browser's `/init` request failed, no
-   banner or `ConsentDialogTrigger` appears and optional categories stay
-   denied. Check DevTools Network for a failed or blocked request.
+   one you set up for visitors in the United States, shows no banner.
+   [Policies](/docs/concepts/policies#why-the-banner-may-be-absent) explains
+   each case.
+3. **The policy did not resolve.** If the browser's `/init` request failed or
+   was blocked, no banner or `ConsentDialogTrigger` appears and optional
+   categories stay denied.
 4. **The page shares its HTML.** On a static or prerendered page, the banner
    appears after the `/init` request returns, not in the first HTML.
 
@@ -66,116 +81,150 @@ set `x-c15t-*` headers in production, because they override the host's.
 
 ## The browser's `/init` request fails with a CORS error
 
-With `hosted()`, the browser calls your backend directly. Add the exact origin
-of the site, including the scheme and port, to your Inth project's trusted
-origins. A preview deployment has its own origin, so add it too.
+**Check.** With `hosted()`, the browser calls your backend directly, so the
+backend must trust the site's origin. A preview deployment has its own origin.
+
+**Fix.** Add the exact origin of the site, including the scheme and port, to
+your Inth project's trusted origins. Add each preview deployment's origin too.
 
 ## The banner is missing from server HTML now and then
 
-The middleware waits up to 500 ms for the policy. When the backend is slower,
-for example on the first request after a deploy, the page renders without the
-banner and the browser shows it after its own request. Raise the budget with
-`middleware: { timeoutMs }`. See
+**Check.** The middleware waits up to 500 ms for the policy. When the backend is
+slower, for example on the first request after a deploy, the page renders
+without the banner and the browser shows it after its own request.
+
+**Fix.** Raise the budget with `middleware: { timeoutMs }`. See
 [Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
 
 ## The build fails with "manifest mode needs a `backendURL`"
 
-In manifest mode, the browser saves consent to the backend URL you give
-`manifest()`, so `astro.config` refuses to load without one. Pass
-`manifest({ backendURL })`, or set `C15T_BACKEND_URL` or
+**Check.** In manifest mode, the browser saves consent to the backend URL you
+give `manifest()`, so `astro.config` refuses to load without one. Astro reads
+the config before it loads `.env`, so a value only in `.env` does not count.
+
+**Fix.** Pass `manifest({ backendURL })`, or set `C15T_BACKEND_URL` or
 `PUBLIC_C15T_BACKEND_URL` in the environment that runs `astro dev` or
-`astro build`. Astro reads the config before it loads `.env`, so a value only
-in `.env` does not count. An inline `manifest` object needs no backend URL,
-because that app serves its own save route.
+`astro build`. An inline `manifest` object needs no backend URL, because that
+app serves its own save route.
 
 ## A vendor loads before the visitor chooses
 
-- The vendor's own snippet is still in your layout or a tag manager. Remove it,
-  so only c15t loads the vendor.
-- An inline script is missing `type="text/plain"` or `is:inline`. Without
-  `is:inline`, Astro bundles the script and runs it straight away.
-- The policy allows the category before a choice. Under an opt-out policy,
-  measurement can be allowed from the start. Check `effectivePermissions` in
-  the snapshot.
+**Check.** Search your layout and any tag manager for the vendor's own snippet.
 
-See [Scripts](/docs/frameworks/astro/scripts) and
-[Embeds](/docs/frameworks/astro/embeds).
+**Fix.** Remove it, so only c15t loads the vendor.
+
+**Check.** Look at the vendor's inline script. It needs `type="text/plain"` and
+`is:inline`.
+
+**Fix.** Add the missing attribute. Without `is:inline`, Astro bundles the
+script and runs it straight away.
+
+**Check.** Read `effectivePermissions` in the snapshot. The policy may allow the
+category before a choice: under an opt-out policy, measurement can be allowed
+from the start.
+
+**Fix.** None. The vendor loads because the policy allows it.
+[Scripts](/docs/frameworks/astro/scripts) and
+[Embeds](/docs/frameworks/astro/embeds) cover the gating options.
 
 ## A gated inline script never runs
 
-Open the console. c15t logs a warning for a `data-c15t-category` value that is
-not a category name, and leaves that script inert. The attribute takes one
-category, such as `measurement`.
+**Check.** Open the console. c15t logs a warning for a `data-c15t-category`
+value that is not a category name, and leaves that script inert.
 
-Under a nonce-based Content Security Policy, c15t also skips a gated tag that
-lacks the page's nonce. The console shows a warning about a script without
-the page's CSP nonce, and the tag has `data-c15t-activated="untrusted"` in the
-Elements panel. Add `nonce={Astro.locals.c15t?.nonce}` to the tag and reload.
-c15t never retries a tag it marked `untrusted`. See
+**Fix.** Set the attribute to one category, such as `measurement`.
+
+**Check.** Under a nonce-based Content Security Policy, c15t also skips a gated
+tag that lacks the page's nonce. The console shows a warning about a script
+without the page's CSP nonce, and the tag has `data-c15t-activated="untrusted"`
+in the Elements panel.
+
+**Fix.** Add `nonce={Astro.locals.c15t?.nonce}` to the tag and reload. c15t
+never retries a tag it marked `untrusted`. See
 [put the nonce on your gated scripts](/docs/frameworks/astro/content-security-policy#put-the-nonce-on-your-gated-scripts).
 
 ## The preference dialog opens without styles
 
-With `styles: false`, c15t does not link the dialog's stylesheet. Import
-`c15t/astro/dialog.css`, and `c15t/astro/primitives.css` for the Svelte
-dialog, from your global stylesheet. See
+**Check.** Look for `styles: false` in your c15t setup. With it, c15t does not
+link the dialog's stylesheet.
+
+**Fix.** Import `c15t/astro/dialog.css`, and `c15t/astro/primitives.css` for the
+Svelte dialog, from your global stylesheet. See
 [load the stylesheet yourself](/docs/frameworks/astro/customize#load-the-stylesheet-yourself).
 
 ## The banner loses its padding with Tailwind CSS
 
-Tailwind's preflight in the `base` layer is overriding c15t's `components`
-layer. This happens when your own stylesheet names its layers before c15t's
-stylesheet does. Put `components` after `base` in your first `@layer`
-statement, or set `styles: false` and import `c15t/astro/styles.css` after your
-layer order statement.
+**Check.** Tailwind's preflight in the `base` layer is overriding c15t's
+`components` layer. This happens when your own stylesheet names its layers
+before c15t's stylesheet does.
+
+**Fix.** Put `components` after `base` in your first `@layer` statement, or set
+`styles: false` and import `c15t/astro/styles.css` after your layer order
+statement.
 
 ## The dark mode is wrong or flashes
 
-Keep `ConsentScript` in `<head>`, so the color scheme is set before first
-paint. If your site has its own theme switch, set `colorScheme: 'none'` and
-toggle `c15t-dark` on `<html>` yourself, including after `ClientRouter`
-navigation. See
+**Check.** Find where `ConsentScript` renders. It belongs in `<head>`, so the
+color scheme is set before first paint.
+
+**Fix.** Keep `ConsentScript` in `<head>`. If your site has its own theme
+switch, set `colorScheme: 'none'` and toggle `c15t-dark` on `<html>` yourself,
+including after `ClientRouter` navigation. See
 [set light or dark mode](/docs/frameworks/astro/customize#set-light-or-dark-mode).
 
 ## `getConsentClient()` returns `null`
 
-The runtime starts from a module script, and your script ran before it, or it
-ran on the server. Call it in the browser, and try again on
+**Check.** The runtime starts from a module script. Your script ran before it,
+or it ran on the server.
+
+**Fix.** Call `getConsentClient()` in the browser, and try again on
 `DOMContentLoaded`. See [Client API](/docs/frameworks/astro/client-api).
 
 ## The banner shows no links to my policies
 
-`ConsentBanner` and `ConsentDialog` show only the legal links their
-`legalLinks` prop lists, even when the integration defines them. Pass
-`legalLinks={['privacyPolicy', 'cookiePolicy']}` to each, and define those
-keys in the integration's `legalLinks` option. See
+**Check.** `ConsentBanner` and `ConsentDialog` show only the legal links their
+`legalLinks` prop lists, even when the integration defines them. Look for the
+prop on each component.
+
+**Fix.** Pass `legalLinks={['privacyPolicy', 'cookiePolicy']}` to each, and
+define those keys in the integration's `legalLinks` option. See
 [ConsentBanner legal links](/docs/frameworks/astro/components/consent-banner#legal-links).
 
 ## An iframe loads before the visitor chooses
 
-An iframe with `src` in the HTML loads before any script runs. Put the URL in
-`data-src` with a `data-category`, or render the iframe from a component that
-adds it only while the category is allowed. See
+**Check.** Look for an iframe with `src` in the HTML. It loads before any
+script runs.
+
+**Fix.** Put the URL in `data-src` with a `data-category`, or render the iframe
+from a component that adds it only while the category is allowed. See
 [Embeds](/docs/frameworks/astro/embeds).
 
 ## My own island is out of step with the banner, or turns dark mode off
 
-Your island created its own consent runtime, or its adapter is managing the
-`c15t-dark` class. Pass `getConsentClient()?.runtime` to the adapter as
-`runtime`, set `colorScheme: null` in its options, and render the island with
-`client:only`. See
+**Check.** Your island created its own consent runtime, or its adapter is
+managing the `c15t-dark` class. Look at the options the island passes to its
+adapter.
+
+**Fix.** Pass `getConsentClient()?.runtime` to the adapter as `runtime`, set
+`colorScheme: null` in its options, and render the island with `client:only`.
+See
 [use consent in your own islands](/docs/frameworks/astro/islands#use-consent-in-your-own-islands).
 
 ## The console reports a Content Security Policy violation
 
-c15t renders inline scripts and a theme `<style>`. Under a nonce policy, set
-`Astro.locals.c15t.nonce` from your own middleware so they carry the nonce.
-Under Astro's `security.csp`, the integration adds their hashes for you. A
-`ConsentBannerDeferred` island stays blocked under a nonce policy, because
-Astro's island loader carries no nonce. See
-[Content Security Policy](/docs/frameworks/astro/content-security-policy).
+**Check.** c15t renders inline scripts and a theme `<style>`. Find out whether
+your site uses a nonce policy or Astro's `security.csp`.
+
+**Fix.** Under a nonce policy, set `Astro.locals.c15t.nonce` from your own
+middleware so they carry the nonce. Under Astro's `security.csp`, the
+integration adds their hashes for you. A `ConsentBannerDeferred` island stays
+blocked under a nonce policy, because Astro's island loader carries no nonce.
+See [Content Security Policy](/docs/frameworks/astro/content-security-policy).
 
 ## More help
 
-[Troubleshooting](/docs/guides/troubleshooting) covers problems shared by every
-framework, such as content blockers and choices that disappear on reload.
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.

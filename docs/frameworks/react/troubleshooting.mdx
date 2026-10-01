@@ -87,7 +87,7 @@ See [customize](/docs/frameworks/react/customize#import-the-stylesheet).
 
 ## The console warns that theme tokens are no longer turned into CSS
 
-**Cause.** `options.theme` holds colors, radius or other tokens, and the page
+**Check.** `options.theme` holds colors, radius or other tokens, and the page
 has no `c15t-theme` style element. The provider only reads `consentActions`
 and slot styles from `theme`.
 
@@ -96,12 +96,18 @@ and slot styles from `theme`.
 
 ## The banner is missing from server-rendered HTML
 
-In React Router framework mode, Remix and other server-rendered apps without a
-c15t adapter, this is expected. The browser resolves consent after hydration.
+**Check.** Your app uses React Router framework mode, Remix or another
+server-rendered setup without a c15t adapter. There this is expected: the
+browser resolves consent after hydration.
+
+**Fix.** None is needed for consent to work.
 [Rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps)
 explains the options.
 
-## Other problems
+## More help
 
-[Troubleshoot consent](/docs/guides/troubleshooting) covers choices that do not
-persist, content blockers and static hosting.
+[Troubleshoot consent](/docs/guides/troubleshooting) covers problems shared by
+every framework, such as a missing banner, analytics that load before a choice,
+imports that fail because npm installed c15t v2, choices that disappear on
+reload, server HTML that differs from the browser, static builds that fail and
+content blockers that hide the consent UI.
