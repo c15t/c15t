@@ -81,6 +81,35 @@ describe('resolveBackendURL', () => {
 		).toBe('https://app.example.com/api/c15t');
 	});
 
+	it('validates trusted proxy headers as it validates host', () => {
+		const trusted = { trustForwardedHeaders: true };
+		expect(
+			resolveBackendURL(
+				'/api/c15t',
+				{
+					'x-forwarded-host': 'edge.example.com, internal:3000',
+					'x-forwarded-proto': 'http, https',
+				},
+				trusted
+			)
+		).toBe('http://edge.example.com/api/c15t');
+		expect(
+			resolveBackendURL(
+				'/api/c15t',
+				{
+					'x-forwarded-host': 'app.example.com',
+					'x-forwarded-proto': 'javascript',
+				},
+				trusted
+			)
+		).toBe('https://app.example.com/api/c15t');
+		for (const host of ['attacker.example/x', 'user@attacker.example', 'a b']) {
+			expect(
+				resolveBackendURL('/api/c15t', { 'x-forwarded-host': host }, trusted)
+			).toBeNull();
+		}
+	});
+
 	it('returns null when a relative URL has no host source', () => {
 		expect(resolveBackendURL('/api/c15t', {})).toBeNull();
 	});

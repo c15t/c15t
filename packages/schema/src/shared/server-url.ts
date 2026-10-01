@@ -29,6 +29,21 @@ const getRefererHost = function getRefererHost(
 	}
 };
 
+/** First entry of a comma-separated proxy chain, trimmed. */
+const firstListValue = function firstListValue(
+	value: string | undefined
+): string | undefined {
+	const first = value?.split(',')[0]?.trim();
+	return first || undefined;
+};
+
+const normalizeProtocol = function normalizeProtocol(
+	value: string | undefined
+): 'http' | 'https' | undefined {
+	const protocol = value?.trim().toLowerCase().replace(/:$/u, '');
+	return protocol === 'http' || protocol === 'https' ? protocol : undefined;
+};
+
 const IPV4_LITERAL = /^\d{1,3}(?:\.\d{1,3}){3}$/u;
 const UNSAFE_HOST_CHARACTER = /[\s/\\?#@]/u;
 
@@ -60,8 +75,11 @@ export interface ResolveBackendURLOptions {
 	/**
 	 * Restore the previous resolution order: `x-forwarded-proto` /
 	 * `x-forwarded-ssl` for the scheme, and `x-forwarded-host`, then `host`,
-	 * then the `referer` host. Any client can send those headers, so set
-	 * this only behind a proxy that sets them and drops incoming ones.
+	 * then the `referer` host. The first entry of a comma-separated value is
+	 * used, a scheme other than `http` or `https` is ignored, and the host
+	 * must be a bare authority, as without this option. Any client can send
+	 * those headers, so set this only behind a proxy that sets them and drops
+	 * incoming ones.
 	 *
 	 * @defaultValue false
 	 */
@@ -100,28 +118,33 @@ export const resolveBackendURL = function resolveBackendURL(
 			return null;
 		}
 
+		// Both branches validate the host the same way; trust only changes
+		// which headers supply it and the scheme.
+		let host: string | undefined;
+		let protocol: 'http' | 'https' | undefined;
 		if (options.trustForwardedHeaders) {
-			const proto =
-				getHeader(headers, 'x-forwarded-proto') ??
+			host =
+				firstListValue(getHeader(headers, 'x-forwarded-host')) ??
+				getHeader(headers, 'host')?.trim() ??
+				getRefererHost(headers) ??
+				undefined;
+			protocol =
+				normalizeProtocol(
+					firstListValue(getHeader(headers, 'x-forwarded-proto'))
+				) ??
 				(getHeader(headers, 'x-forwarded-ssl') === 'on'
 					? 'https'
 					: undefined) ??
 				'https';
-			const host =
-				getHeader(headers, 'x-forwarded-host') ??
-				getHeader(headers, 'host') ??
-				getRefererHost(headers);
-			if (!host) {
-				return null;
-			}
-			return trimTrailingSlash(`${proto}://${host}${backendURL}`);
+		} else {
+			host = getHeader(headers, 'host')?.trim();
 		}
-
-		const host = getHeader(headers, 'host')?.trim();
 		if (!host || UNSAFE_HOST_CHARACTER.test(host)) {
 			return null;
 		}
-		const { origin } = new URL(`${defaultProtocolForHost(host)}://${host}`);
+		const { origin } = new URL(
+			`${protocol ?? defaultProtocolForHost(host)}://${host}`
+		);
 		const resolved = new URL(`${origin}${backendURL}`);
 		if (resolved.origin !== origin) {
 			return null;
