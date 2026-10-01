@@ -46,13 +46,21 @@ one source:
 | `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against the request's forwarding headers instead of `event.url`, and sends those headers to the backend. |
 | `fetch` | `typeof fetch` | `event.fetch` | The fetch used for the backend's `/init`. |
 
-`loadConsent` resolves a relative `backendURL` against `event.url`, which
-SvelteKit builds from the adapter's `ORIGIN`, or its `PROTOCOL_HEADER` and
-`HOST_HEADER` settings. A client's `x-forwarded-host` does not change it. On
-`adapter-node` behind a proxy, set those environment variables as the adapter
-documents. `trustForwardedHeaders: true` reads the forwarding headers
-directly; set it only when your proxy overwrites them. For a route in your own
-app, prefer `initRoute`, which stays inside the process.
+`loadConsent` resolves a relative `backendURL` against `event.url` and calls
+it with `event.fetch`. The resolved URL has the request's own origin, so
+SvelteKit answers it in-process and the request never leaves the server. A
+client's `x-forwarded-host` does not change it. Two options change that:
+
+- With your own `fetch`, the call goes over the network to the origin of
+  `event.url`. SvelteKit builds that origin from the adapter's `ORIGIN`, or
+  its `PROTOCOL_HEADER` and `HOST_HEADER` settings. Without `ORIGIN`,
+  `adapter-node` takes the host from the request's `Host` header, so set
+  `ORIGIN` or pass an absolute `backendURL`.
+- `trustForwardedHeaders: true` resolves against the forwarding headers
+  instead. When they name another host, `event.fetch` sends the call there
+  over the network. Set it only when your proxy overwrites those headers.
+
+For the manifest route, use `initRoute` instead of `backendURL`.
 
 `loadConsent` never throws. When the backend fails, answers with an error or
 takes longer than `timeoutMs`, it returns the stored choice without a policy.
@@ -111,24 +119,26 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `backendURL` | `string` | `C15T_BACKEND_URL` env | The backend's base URL. The manifest is at `<backendURL>/manifest`. Keep it absolute. |
-| `manifestURL` | `string` | `C15T_MANIFEST_URL` env | A manifest URL of its own, such as a CDN. Wins over `backendURL`. |
+| `backendURL` | `string` | `C15T_BACKEND_URL` env | The backend's base URL, absolute or `/`-relative. The manifest is at `<backendURL>/manifest`. See the note on relative URLs below. |
+| `manifestURL` | `string` | `C15T_MANIFEST_URL` env | A manifest URL of its own, such as a CDN. Wins over `backendURL`. Absolute or `/`-relative. |
 | `proxy` | `true` or `{ paths?, cookieNames? }` | off | Forwards consent writes to `backendURL`. See [save consent through your own origin](./rendering#save-consent-through-your-own-origin). |
 | `reportSessions` | `boolean` | `true` | Reports each resolved visit to the backend's `/sessions`, so Inth counts visitors it never served `/init` to. |
 | `onBackgroundRevalidate` | `(promise, event) => void` | the adapter's `waitUntil` | Keeps background manifest refreshes and session reports alive on runtimes that stop work after the response. |
 | `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | a plain `GET` | Fetches the Global Vendor List under an IAB policy. |
-| `fetch` | `typeof fetch` | global `fetch` | The fetch used for the manifest and the vendor list. |
+| `fetch` | `typeof fetch` | global `fetch` | The fetch used for an absolute `backendURL` or `manifestURL`, and for the vendor list. |
 
 Without `backendURL`, `manifestURL` or either environment variable, each
 request throws `@c15t/svelte/kit: configure backendURL, manifestURL, or the
-C15T_BACKEND_URL environment variable.` A relative URL resolves against
-`event.url`, which SvelteKit derives from the adapter's `ORIGIN`, or
-`PROTOCOL_HEADER` and `HOST_HEADER` settings. A forged `x-forwarded-host`
-header does not change it. Without `ORIGIN`, `adapter-node` takes the host
-from the request's `Host` header by default. If your server answers requests
-for any `Host`, such as a Node server exposed directly or a proxy that forwards
-`Host` from its default virtual host, set `ORIGIN` or use an absolute
-`backendURL` and `manifestURL`.
+C15T_BACKEND_URL environment variable.`
+
+An absolute `backendURL` or `manifestURL` is fetched over the network with
+`fetch`. A `/`-relative one, such as `/api/self-host` for a backend mounted in
+your app, names a route in this app. The handlers request it through
+`event.fetch`, which SvelteKit answers in-process, so it is never resolved
+against `event.url` or the request's `Host` header. The proxy forwards to a
+relative `backendURL` the same way. Do not point it at the route the handlers
+serve, such as `/api/c15t`, or the route requests itself. A relative
+`backendURL` also turns off session reports, which need an absolute backend.
 
 The manifest is cached in memory per server process for as long as its
 `s-maxage` allows, then served stale while it refreshes in the background.

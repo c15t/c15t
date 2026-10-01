@@ -59,11 +59,16 @@ before the request reaches SvelteKit.
 forged through it. Behind your own proxy, make sure it overwrites the country
 headers rather than passing a client's value through.
 
-The manifest route and `loadConsent` resolve a relative `backendURL` against
-`event.url`, which SvelteKit builds from the adapter's `ORIGIN`, or
-`PROTOCOL_HEADER` and `HOST_HEADER` settings. A forged `x-forwarded-host`
-cannot point their server-side requests at another host. On `adapter-node` behind a proxy, set
-those environment variables as the adapter documents.
+The manifest route fetches a relative `backendURL` through `event.fetch` and
+never resolves it against the request, so a forged `Host` or
+`x-forwarded-host` header cannot send its requests elsewhere. `loadConsent`
+resolves a relative `backendURL` against `event.url`. With its default
+`event.fetch`, the call stays in-process. With your own `fetch`, it goes to the
+origin of `event.url`, which SvelteKit builds from the adapter's `ORIGIN`, or
+`PROTOCOL_HEADER` and `HOST_HEADER` settings; without `ORIGIN`, `adapter-node`
+takes the host from the `Host` header. A forged `x-forwarded-host` changes
+neither unless you set `trustForwardedHeaders`. See
+[Server API](./server-api#loadconsent).
 
 ## Force a location
 

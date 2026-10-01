@@ -55,10 +55,11 @@ gets a `405`. Keep `hosted({ url })` on the backend URL, as the quickstart
 layout does, or turn on the proxy described in
 [save consent through your own origin](#save-consent-through-your-own-origin).
 
-Keep `backendURL` absolute. A relative URL resolves against `event.url`,
-which SvelteKit builds from the adapter's `ORIGIN`, or `PROTOCOL_HEADER` and
-`HOST_HEADER` settings, and one that points back at `/api/c15t` makes the
-route fetch itself.
+Pass the absolute Inth URL as `backendURL`. A relative URL, such as
+`/api/self-host` for a backend mounted in your app, is fetched with
+`event.fetch` inside the app and is never resolved against the request's
+`Host` header. One that points back at `/api/c15t` makes the route fetch
+itself.
 Without `backendURL`, the handlers read the `C15T_BACKEND_URL` or
 `C15T_MANIFEST_URL` environment variable.
 

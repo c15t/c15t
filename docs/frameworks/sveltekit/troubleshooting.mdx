@@ -50,9 +50,9 @@ catch-all route. See
 
 ## The manifest route times out or calls itself
 
-**Check.** `createSvelteKitConsentRouteHandlers` needs the absolute backend
-URL. A relative `backendURL` resolves against your own origin; if it points at
-`/api/c15t`, the route requests itself.
+**Check.** `createSvelteKitConsentRouteHandlers` needs the backend's URL. A
+relative `backendURL` names a route in your own app, which the handlers call
+in-process; if it points at `/api/c15t`, the route requests itself.
 
 **Fix.** Pass the Inth URL, or set `C15T_BACKEND_URL` in the server
 environment.
