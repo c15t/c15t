@@ -202,7 +202,7 @@ const runQueued = async function runQueued(
 
 /** The pending consent and UI actions for one API. */
 interface ActionChain {
-	/** Settles once every batch queued so far has finished. */
+	/** Settles once every batch reserved so far has finished. */
 	tail: Promise<void>;
 	/** Set by `dispose()`. Batches that have not run yet stop. */
 	cancelled: boolean;
@@ -216,13 +216,20 @@ interface ActionChain {
 const actionChains = new WeakMap<C15tGlobal, ActionChain>();
 
 /**
- * Run a batch of consent and UI actions once the policy has resolved and
- * every earlier batch for the same API has finished.
+ * Reserve the next place in the API's action chain for a batch of consent
+ * and UI actions. The batch runs once it is released, every earlier batch
+ * has finished and the policy has resolved. Reserving before the batch is
+ * filled keeps its place ahead of any `push()` made while it is filled.
+ *
+ * @param api - The API the actions run against.
+ * @param actions - The batch. It is read when the batch runs, so the
+ * caller can keep adding to it until it calls the returned function.
+ * @returns A function that releases the batch.
  */
-const enqueueActions = function enqueueActions(
+const reserveActions = function reserveActions(
 	api: C15tGlobal,
 	actions: readonly QueuedCall[]
-): void {
+): () => void {
 	let chain = actionChains.get(api);
 	if (!chain) {
 		chain = { cancelled: false, tail: Promise.resolve() };
@@ -230,10 +237,12 @@ const enqueueActions = function enqueueActions(
 	}
 	const current = chain;
 	const previous = current.tail;
+	const released = createDeferred<undefined>();
 	const run = async function run(): Promise<void> {
 		// `runQueued` reports its own failures, so the chain never rejects.
 		await previous;
-		if (current.cancelled) {
+		await released.promise;
+		if (current.cancelled || actions.length === 0) {
 			return;
 		}
 		try {
@@ -250,6 +259,9 @@ const enqueueActions = function enqueueActions(
 		}
 	};
 	current.tail = run();
+	return function release() {
+		released.resolve(undefined);
+	};
 };
 
 /**
@@ -278,6 +290,9 @@ const replayQueue = function replayQueue(
 	queue: readonly unknown[]
 ): void {
 	const actions: QueuedCall[] = [];
+	// Reserve before the setup calls run: a ready listener that `init()`
+	// fires can push actions of its own, and those belong after these.
+	const releaseActions = reserveActions(api, actions);
 	for (const call of queue) {
 		const method = Array.isArray(call) ? call[0] : undefined;
 		if (typeof method !== 'string') {
@@ -304,10 +319,7 @@ const replayQueue = function replayQueue(
 			);
 		}
 	}
-	if (actions.length === 0) {
-		return;
-	}
-	enqueueActions(api, actions);
+	releaseActions();
 };
 
 /**

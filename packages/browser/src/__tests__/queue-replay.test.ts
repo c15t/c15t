@@ -221,6 +221,31 @@ describe('c15t.push after the tag loads', () => {
 		expect(api.has('measurement')).toBe(false);
 	});
 
+	it('runs a batch before actions pushed by a ready listener during its init', async () => {
+		testWindow.c15t = [];
+		const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));
+		const onConsent = vi.fn();
+
+		api.push(
+			['config', options],
+			['on', 'consent', onConsent],
+			[
+				'on',
+				'ready',
+				() => {
+					api.push(['rejectAll']);
+				},
+			],
+			['init'],
+			['acceptAll']
+		);
+
+		await vi.waitFor(() => {
+			expect(onConsent).toHaveBeenCalledTimes(2);
+		});
+		expect(api.has('measurement')).toBe(false);
+	});
+
 	it('runs actions pushed after a dispose that interrupted a wait for init', async () => {
 		testWindow.c15t = [['config', options]];
 		const api = installGlobal(createGlobal({ pkg: '@c15t/browser/test' }));
