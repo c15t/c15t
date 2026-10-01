@@ -104,8 +104,8 @@ or add `/// <reference types="@c15t/svelte/kit/locals" />` to `src/app.d.ts`.
 
 ## createSvelteKitConsentRouteHandlers
 
-`createSvelteKitConsentRouteHandlers(options?)` returns request handlers for
-manifest mode. Export them from a catch-all route such as
+`createSvelteKitConsentRouteHandlers(options)` returns request handlers for
+manifest mode. The options argument is required. Export them from a catch-all route such as
 `src/routes/api/c15t/[...path]/+server.ts`.
 
 | Returned | Serves |
@@ -127,7 +127,8 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 | `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | a plain `GET` | Fetches the Global Vendor List under an IAB policy. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch used for an absolute `backendURL` or `manifestURL`, and for the vendor list. |
 
-Without `backendURL` or `manifestURL`, each request throws
+With an options object that sets neither `backendURL` nor `manifestURL`, each
+request throws
 `@c15t/svelte/kit: pass backendURL or manifestURL.` The handlers read no
 environment variables.
 
