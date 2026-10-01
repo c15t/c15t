@@ -4,7 +4,7 @@ description: Mount the c15t banner, preference dialog and floating trigger in Nu
 group: frameworks
 ---
 
-## Usage
+## Render `ConsentRoot` in `app.vue`
 
 The Nuxt module registers `ConsentRoot` globally, so you render it without an
 import. Put it in `app.vue`, outside `<NuxtPage />`:
@@ -67,7 +67,7 @@ current language. See [translations](/docs/frameworks/nuxt/translations).
 `ConsentRoot` is the same as rendering the banner, dialog and trigger with the
 right conditions. To place them yourself, render them in place of
 `ConsentRoot`, as in
-[ConsentBanner](/docs/frameworks/nuxt/components/consent-banner#usage). Do not
+[ConsentBanner](/docs/frameworks/nuxt/components/consent-banner#import-the-banner-in-place-of-consentroot). Do not
 render `ConsentRoot` next to them, or the visitor sees two banners.
 
 ## Verify
@@ -77,7 +77,7 @@ asks for consent. The HTML holds `data-testid="consent-banner-root"` and the
 `c15t-css-vars` style tag. Click Customize and the preference dialog opens.
 Reject, reload, and confirm the banner stays closed.
 
-## Related
+## Next steps
 
 - [Nuxt module](/docs/frameworks/nuxt/module) lists the options `ConsentRoot`
   reads.

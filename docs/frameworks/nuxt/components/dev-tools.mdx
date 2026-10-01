@@ -4,7 +4,7 @@ description: Inspect consent state, the resolved policy, location, scripts and c
 group: frameworks
 ---
 
-## Usage
+## Load DevTools only in development
 
 The module does not register `ConsentDevTools`. Import it from
 `c15t/vue/devtools` with a dynamic import that runs only in development:
@@ -58,7 +58,7 @@ Run `nuxt dev` and open the app. A DevTools button appears in the corner you
 set. Open the Location panel and check the country the server resolved. Build
 with `nuxt build`, start the server and confirm the button does not appear.
 
-## Related
+## Next steps
 
 - [Troubleshooting](/docs/frameworks/nuxt/troubleshooting) uses DevTools to
   explain a missing banner.

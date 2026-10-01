@@ -4,7 +4,7 @@ description: Add the c15t preference dialog to an Astro site as an island that d
 group: frameworks
 ---
 
-## Usage
+## Add the dialog to your layout
 
 Render one `ConsentDialog` in the layout that wraps every page:
 
@@ -59,7 +59,7 @@ second one for a single dialog. See
 ## What the dialog contains
 
 The dialog lists the categories the policy covers, each with a switch, and
-offers Accept all, Reject all and Save. `necessary` is always on. The dialog
+offers Accept All, Reject All and Save Settings. `necessary` is always on. The dialog
 follows the integration's `theme`, `presentation.preferences` and
 `consentCategories`.
 
@@ -76,7 +76,7 @@ c15t passes the list to the Svelte, React or Vue dialog island. A key renders
 only when the integration defines it. A link without a `label` reads as the
 translated name for its type, such as "Privacy Policy" in English.
 
-Save, Accept all and Reject all record a choice and close the dialog. Turning
+Save Settings, Accept All and Reject All record a choice and close the dialog. Turning
 off a category that was allowed reloads the page, unless the integration sets
 `reloadOnConsentRevoked: false`. See
 [withdraw consent without reloading](/docs/frameworks/astro/scripts#withdraw-consent-without-reloading).
@@ -107,7 +107,7 @@ locks page scroll follows `presentation.preferences` in the integration
 options. Every framework renders the same markup and labels, so the dialog
 behaves the same whichever `ui` you pick.
 
-## Related
+## Next steps
 
 - [ConsentDialogTrigger](/docs/frameworks/astro/components/consent-dialog-trigger)
   reopens the dialog from your footer.

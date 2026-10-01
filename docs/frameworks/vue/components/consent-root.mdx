@@ -4,7 +4,7 @@ description: Mount the c15t banner, preference dialog and floating trigger in a 
 group: frameworks
 ---
 
-## Usage
+## Render `ConsentRoot` in your root component
 
 Render `ConsentRoot` once in your root component, next to your page content.
 Import it from `c15t/vue/consent-root`:
@@ -67,7 +67,7 @@ Bind `language` to your site's language switcher:
 `ConsentRoot` is the same as rendering `ConsentBanner`, `ConsentManager` and
 the IAB components with the right conditions. To place or configure them
 yourself, render them in place of `ConsentRoot`, as in
-[ConsentBanner](/docs/frameworks/vue/components/consent-banner#usage). Do not
+[ConsentBanner](/docs/frameworks/vue/components/consent-banner#import-the-banner-into-your-root-component). Do not
 render `ConsentRoot` next to them, or the visitor sees two banners.
 
 ## Verify
@@ -78,7 +78,7 @@ Elements panel, the `<style id="c15t-css-vars">` element in `<head>` holds
 the `--c15t-*` tokens. Click Customize and the preference dialog opens. Reject,
 reload, and confirm the banner stays closed.
 
-## Related
+## Next steps
 
 - [c15tVue plugin](/docs/frameworks/vue/plugin) lists the options
   `ConsentRoot` reads.

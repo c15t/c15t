@@ -4,7 +4,7 @@ description: Render the IAB TCF 2.4 banner as server HTML on an Astro site with 
 group: frameworks
 ---
 
-## Usage
+## Swap in the IAB banner and dialog
 
 Under an IAB TCF policy, replace `ConsentBanner` and `ConsentDialog` with the
 IAB pair:
@@ -24,7 +24,7 @@ the CMP ID, the vendor list and publisher restrictions.
   with "and N more" when it names only some.
 - A notice about legitimate interest, and whether the choice applies to this
   site only or to a group of sites.
-- Reject all and Accept all, plus a Customize button that opens the IAB
+- Reject All and Accept All, plus a Customize button that opens the IAB
   preference center.
 
 The banner sits in the bottom-left corner, or bottom-right for right-to-left
@@ -86,7 +86,7 @@ not read `theme.consentActions`. Theme tokens still apply.
 | Partners button | `data-testid="iab-consent-banner-partners-link"` |
 | Actions | `data-action` and `data-testid="iab-consent-banner-<action>-button"` |
 
-## Related
+## Next steps
 
 - [IABConsentDialog](/docs/frameworks/astro/components/iab-consent-dialog)
   is the preference center this banner opens.

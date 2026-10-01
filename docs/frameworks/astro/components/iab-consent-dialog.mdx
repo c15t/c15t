@@ -4,7 +4,7 @@ description: Add the IAB TCF 2.4 preference center to an Astro site with c15t as
 group: frameworks
 ---
 
-## Usage
+## Render the dialog next to `IABConsentBanner`
 
 Render one `IABConsentDialog` next to `IABConsentBanner`:
 
@@ -37,13 +37,13 @@ must open without a wait.
 
 The preference center is the IAB dialog of the framework the integration's
 `ui` option names. It has tabs for purposes and vendors, per-purpose and
-per-vendor controls including legitimate interest, and Accept all, Reject all
-and Save. Saving writes the TC String, which `__tcfapi` then reports.
+per-vendor controls including legitimate interest, and Accept All, Reject All
+and Save Settings. Saving writes the TC String, which `__tcfapi` then reports.
 
 Opening the dialog on a different tab than the one it shows remounts it on
 that tab.
 
-## Related
+## Next steps
 
 - [IABConsentBanner](/docs/frameworks/astro/components/iab-consent-banner)
 - [IAB TCF](/docs/frameworks/astro/iab) covers the CMP ID, the vendor list and
