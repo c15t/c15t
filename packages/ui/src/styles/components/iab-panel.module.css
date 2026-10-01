@@ -116,6 +116,15 @@
 			var(--iab-cd-animation-timing);
 	}
 
+	/* The dialog mounts already visible; the overlay fades in from here on
+	   its first frame. Adapters leave the class off with disableAnimation,
+	   and reduced motion drops the transition. */
+	@starting-style {
+		.overlayEntering {
+			opacity: 0;
+		}
+	}
+
 	:global(.c15t-dark) .overlay {
 		background-color: var(--iab-cd-overlay-background-dark);
 	}

@@ -42,6 +42,7 @@ declare const styles: {
   readonly "objectButton": string;
   readonly "objectButtonActive": string;
   readonly "overlay": string;
+  readonly "overlayEntering": string;
   readonly "overlayHidden": string;
   readonly "overlayVisible": string;
   readonly "partialIndicator": string;
