@@ -60,6 +60,20 @@ export const createTrigger = function createTrigger(
 	let startY = 0;
 	let startedAt = 0;
 	let snapTimer: ReturnType<typeof setTimeout> | undefined;
+	// The arm the slots were applied for.
+	let renderedExperiment = ctx.client.getSnapshot().experiment;
+
+	const createIcon = function createIcon(): HTMLSpanElement {
+		return slot(
+			h(
+				'span',
+				{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
+				svg('0 0 140 97', CONSENT_MARK)
+			),
+			'consentDialogTriggerIcon'
+		);
+	};
+	let icon = createIcon();
 
 	const element = h(
 		'button',
@@ -73,14 +87,7 @@ export const createTrigger = function createTrigger(
 			hidden: true,
 			type: 'button',
 		},
-		slot(
-			h(
-				'span',
-				{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
-				svg('0 0 140 97', CONSENT_MARK)
-			),
-			'consentDialogTriggerIcon'
-		)
+		icon
 	);
 
 	const applyClasses = function applyClasses(snapping = false): void {
@@ -100,6 +107,24 @@ export const createTrigger = function createTrigger(
 		}
 		// Rewriting the state classes drops the slot's; put them back.
 		slot(element, 'consentDialogTrigger');
+	};
+
+	/**
+	 * Drop the previous arm's slot classes, inline styles and `noStyle`
+	 * result, then apply the current arm's. The banner and dialogs rebuild
+	 * for a new arm; the button stays, so a drag in progress keeps going.
+	 */
+	const reapplySlots = function reapplySlots(): void {
+		const next = createIcon();
+		icon.replaceWith(next);
+		icon = next;
+		const { transform, transition } = element.style;
+		element.removeAttribute('style');
+		element.style.transform = transform;
+		element.style.transition = transition;
+		// `applyClasses` rewrites the class unless `noStyle` is set.
+		element.removeAttribute('class');
+		applyClasses(snapTimer !== undefined);
 	};
 
 	const moveTo = function moveTo(next: CornerPosition): void {
@@ -203,7 +228,12 @@ export const createTrigger = function createTrigger(
 			const allowed = showWhen === 'always' || hasDecided(snapshot);
 			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
-			applyClasses(snapTimer !== undefined);
+			if (renderedExperiment === snapshot.experiment) {
+				applyClasses(snapTimer !== undefined);
+				return;
+			}
+			renderedExperiment = snapshot.experiment;
+			reapplySlots();
 		},
 	};
 };

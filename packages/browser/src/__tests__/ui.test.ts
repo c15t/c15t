@@ -138,6 +138,55 @@ describe('mountConsentUI', () => {
 		);
 	});
 
+	it('re-slots the trigger icon when the arm changes after mount', async () => {
+		const experiment = {
+			arm: 'control',
+			arms: {
+				branded: {
+					theme: {
+						slots: {
+							consentDialogTrigger: { style: { opacity: 0.5 } },
+							consentDialogTriggerIcon: 'branded-icon',
+						},
+					},
+				},
+				plain: {
+					theme: {
+						slots: {
+							consentDialogTriggerIcon: { className: 'bare', noStyle: true },
+						},
+					},
+				},
+			},
+			id: 'trigger-icon',
+		};
+		const { client, root } = await mount({ trigger: true }, { experiment });
+		const trigger = query(root, 'consent-dialog-trigger');
+		const icon = () =>
+			trigger.querySelector('[part~="consentDialogTriggerIcon"]');
+		expect(icon()?.classList).toContain(classes.trigger.icon);
+		expect(icon()?.classList).not.toContain('branded-icon');
+
+		const assign = (arm: string) =>
+			client.kernel.set.experiment({
+				acknowledgedDiagnostics: false,
+				arm,
+				assignedBy: 'c15t',
+				id: 'trigger-icon',
+			});
+		assign('branded');
+		expect(icon()?.classList).toContain('branded-icon');
+		expect(icon()?.classList).toContain(classes.trigger.icon);
+		expect(trigger.style.opacity).toBe('0.5');
+
+		// The next arm's `noStyle` drops the stock class, and the previous
+		// arm's class and inline style go with it.
+		assign('plain');
+		expect(icon()?.className).toBe('bare');
+		expect(trigger.style.opacity).toBe('');
+		expect(trigger.classList).toContain(classes.trigger.trigger);
+	});
+
 	it('creates the stylesheet when an arm theme arrives after mount', async () => {
 		const experiment = {
 			arms: {
