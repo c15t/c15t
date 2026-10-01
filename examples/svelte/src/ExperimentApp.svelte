@@ -18,12 +18,12 @@
 		experimentFromSearch,
 	} from './experiment.svelte';
 	import { scripts } from './scripts';
+	import { testBackend } from './test-backend';
 
-	const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-	if (!backendURL) {
-		throw new Error('Set VITE_C15T_BACKEND_URL to the backend URL from Inth');
-	}
-	const mode = hosted({ url: backendURL });
+	const mode = hosted({
+		url: 'https://your-project.inth.app',
+		...testBackend('url'),
+	});
 	// `&arm=wall` sets the arm the way a flag provider would; without it
 	// c15t picks one.
 	const experiment = experimentFromSearch(location.search);

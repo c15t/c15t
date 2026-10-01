@@ -45,7 +45,9 @@ const snapshot = useConsentSnapshot();
 					}}
 				</li>
 			</ul>
-			<p>Set your project IDs in .env.local to enable the vendor scripts.</p>
+			<p>
+				Replace the placeholder project IDs in src/scripts.ts with your own.
+			</p>
 		</section>
 		<section class="card">
 			<h2>YouTube embed</h2>
