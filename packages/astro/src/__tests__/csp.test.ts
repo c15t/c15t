@@ -21,7 +21,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import ConsentScript from '../components/consent-script.astro';
 import IABConsentBanner from '../components/iab-prompt.astro';
 import ConsentBanner from '../components/prompt.astro';
-import { buildAstroCspUpdate, buildInlineCodeHashes } from '../csp';
+import { buildAstroCsp, buildInlineCodeHashes } from '../csp';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
@@ -236,7 +236,7 @@ describe("Astro's own CSP", () => {
 
 		// `csp: true` reaches integrations with no algorithm filled in.
 		expect(
-			await buildAstroCspUpdate({ security: { csp: true } }, options)
+			(await buildAstroCsp({ security: { csp: true } }, options))?.update
 		).toEqual({
 			security: {
 				csp: {
@@ -248,10 +248,12 @@ describe("Astro's own CSP", () => {
 		});
 		// Astro 5 keeps it under `experimental`.
 		expect(
-			await buildAstroCspUpdate(
-				{ experimental: { csp: { algorithm: 'SHA-384' } } },
-				options
-			)
+			(
+				await buildAstroCsp(
+					{ experimental: { csp: { algorithm: 'SHA-384' } } },
+					options
+				)
+			)?.update
 		).toMatchObject({
 			experimental: {
 				csp: {
@@ -264,9 +266,7 @@ describe("Astro's own CSP", () => {
 				},
 			},
 		});
-		expect(await buildAstroCspUpdate({ security: {} }, options)).toBe(
-			undefined
-		);
+		expect(await buildAstroCsp({ security: {} }, options)).toBe(undefined);
 	});
 
 	it('allows the inline scripts the loader injects', async () => {
@@ -278,5 +278,34 @@ describe("Astro's own CSP", () => {
 			})
 		);
 		expect(hashes.scripts).toContain(sha256(textContent));
+	});
+
+	it('hands the browser every script hash the policy allows, for clientEntrypoint scripts', async () => {
+		// The site's own entry for an inline script its clientEntrypoint adds.
+		const siteHash = sha256('window.__fromEntrypoint = true;');
+		const options = resolveOptions({
+			...shared,
+			clientEntrypoint: './src/c15t.client.ts',
+			mode: offlineMode({ policyRules: [testRule] }),
+		});
+		const csp = await buildAstroCsp(
+			{ security: { csp: { scriptDirective: { hashes: [siteHash] } } } },
+			options
+		);
+		const { scripts } = await buildInlineCodeHashes(options);
+
+		expect(csp?.browser).toEqual({
+			algorithm: 'SHA-256',
+			scriptHashes: [...scripts, siteHash],
+		});
+		// Without a clientEntrypoint there is nothing for the browser to check.
+		expect(
+			(
+				await buildAstroCsp(
+					{ security: { csp: true } },
+					resolveOptions({ mode: offlineMode({ policyRules: [testRule] }) })
+				)
+			)?.browser
+		).toBeUndefined();
 	});
 });

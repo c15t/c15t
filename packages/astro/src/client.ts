@@ -45,6 +45,7 @@ import {
 	PROMPT_SLOT_ATTRIBUTE,
 	readIABSpotModels,
 } from './banner/slot';
+import { reportUnhashedScripts } from './browser/csp-report';
 import {
 	keepDialogStylesOnSwap,
 	loadDialogStyles,
@@ -525,6 +526,12 @@ const createClient = function createClient(
 	const config: KernelConfig =
 		inlined.now === undefined ? { ...inlined, now: Date.now() } : inlined;
 	const scripts = [...(options.scripts ?? []), ...(extension.scripts ?? [])];
+	// Under Astro's CSP the config could not hash these, so say which ones
+	// the policy will block. A page with a nonce runs under the site's own
+	// policy, which the loader's nonce satisfies.
+	if (options.csp && !pageNonce && extension.scripts?.length) {
+		void reportUnhashedScripts(extension.scripts, options.csp);
+	}
 
 	// The server already resolved translations into `prefetch`, which the
 	// runtime prefers over anything it would derive from `i18n`.

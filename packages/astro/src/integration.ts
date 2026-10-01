@@ -538,17 +538,22 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 			}) {
 				command = setupCommand;
 				const resolveEntry = await createOwnEntryResolver();
-				updateConfig({
-					vite: { plugins: await buildVitePlugins(resolved) },
-				});
 
 				// With Astro's own CSP on, allow the inline code the components
-				// render. Loaded here so the package root, which browser code
-				// may import, does not pull in the server renderers.
-				const { buildAstroCspUpdate } = await import('./csp');
-				const csp = await buildAstroCspUpdate(config, resolved);
+				// render, and hand the browser the policy's script hashes so it
+				// can name the `clientEntrypoint` scripts the policy lacks.
+				// Loaded here so the package root, which browser code may
+				// import, does not pull in the server renderers.
+				const { buildAstroCsp } = await import('./csp');
+				const csp = await buildAstroCsp(config, resolved);
+				const serialized = csp?.browser
+					? { ...resolved, csp: csp.browser }
+					: resolved;
+				updateConfig({
+					vite: { plugins: await buildVitePlugins(serialized) },
+				});
 				if (csp) {
-					updateConfig(csp);
+					updateConfig(csp.update);
 				}
 
 				if (resolved.middleware.enabled) {

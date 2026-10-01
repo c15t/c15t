@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import type { ConsentSnapshot } from '@c15t/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -945,6 +947,47 @@ describe('dialog stylesheets and ClientRouter swaps', () => {
 		expect(targets).toHaveLength(2);
 		expect(targets[1]?.isConnected).toBe(true);
 		expect(booted.getConsent().activeUI).toBe('dialog');
+	});
+});
+
+describe("Astro's hash-based CSP", () => {
+	const ALLOWED = 'globalThis.__allowed = true;';
+	const BLOCKED = 'globalThis.__blocked = true;';
+	/** The hash a browser computes for an inline script's text. */
+	const sha256 = (text: string): string =>
+		`sha256-${createHash('sha256').update(text).digest('base64')}`;
+
+	it('names each clientEntrypoint inline script the policy has no hash for', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+		(window as unknown as Record<string, unknown>).__c15tAstroConfig =
+			INLINE_CONFIG;
+		renderBanner();
+		client = boot(
+			{
+				...resolveOptions(OPTIONS),
+				// The site added the first script's hash to its own policy.
+				csp: { algorithm: 'SHA-256', scriptHashes: [sha256(ALLOWED)] },
+			},
+			{
+				scripts: [
+					{ category: 'measurement', id: 'allowed', textContent: ALLOWED },
+					{ category: 'measurement', id: 'blocked', textContent: BLOCKED },
+					{ category: 'measurement', id: 'remote', src: '/vendor.js' },
+				],
+			}
+		);
+
+		// Every script is hashed before any is reported, so once the second
+		// one is, the first has been checked too.
+		await vi.waitFor(() => {
+			expect(error).toHaveBeenCalledWith(expect.stringContaining(`'blocked'`));
+		});
+		expect(error).toHaveBeenCalledOnce();
+		// The hash the browser checks, so the site can add it as logged.
+		expect(error).toHaveBeenCalledWith(
+			expect.stringContaining(`'${sha256(BLOCKED)}'`)
+		);
+		error.mockRestore();
 	});
 });
 

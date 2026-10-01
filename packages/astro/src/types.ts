@@ -381,6 +381,16 @@ export interface C15tI18nOptions {
  * {@link C15tAstroOptions.clientEntrypoint}.
  */
 export interface C15tClientOptionsExtension {
+	/**
+	 * Scripts added to the integration's `scripts`.
+	 *
+	 * Under Astro's CSP, the integration cannot hash an inline
+	 * (`textContent`) script from here, because this module only runs in
+	 * the browser. The browser logs the hash of each one the policy lacks;
+	 * add it to the CSP config's `scriptDirective.hashes`, or move a script
+	 * without callbacks into the integration's `scripts` option, which c15t
+	 * hashes for you.
+	 */
 	scripts?: Script[];
 	/** Overrides cleanup targets from the integration options. */
 	clearOnRevocation?: ClearOnRevocationConfig;
@@ -417,6 +427,24 @@ export interface C15tResolvedOptions extends Omit<
 	};
 	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
 		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
+	/**
+	 * Set when the site turned on Astro's CSP and has a `clientEntrypoint`.
+	 * The browser checks the inline scripts that module adds against it.
+	 */
+	csp?: C15tBrowserCsp;
+}
+
+/**
+ * The part of Astro's CSP the browser needs to tell which inline scripts
+ * from a `clientEntrypoint` the policy will block.
+ *
+ * @internal
+ */
+export interface C15tBrowserCsp {
+	/** The digest the policy's hashes use. */
+	algorithm: 'SHA-256' | 'SHA-384' | 'SHA-512';
+	/** Every script hash the policy allows: c15t's and the site's own. */
+	scriptHashes: string[];
 }
 
 /** Consent context the middleware attaches to every request. */

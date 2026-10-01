@@ -16,54 +16,31 @@
  * - the per-visitor boot payload is a `type="application/json"` data
  *   block, which never runs and which CSP does not govern.
  *
+ * The inline `scripts` a `clientEntrypoint` adds are the exception: that
+ * module only runs in the browser, so no hash for them can be computed
+ * here. The browser hashes them itself and names any the policy lacks.
+ *
  * @internal
  */
 
 import { applyExperimentTheme } from '@c15t/core';
 
+import { hashSource } from './libs/csp-hash';
+import type { CspHashAlgorithm, CspHashSource } from './libs/csp-hash';
 import {
 	buildBannerRevealScript,
 	buildColorSchemeScript,
 	buildThemeCSS,
 } from './server';
-import type { C15tResolvedOptions } from './types';
+import type { C15tBrowserCsp, C15tResolvedOptions } from './types';
 
-/** A hash algorithm Astro's CSP feature accepts. */
-export type CspHashAlgorithm = 'SHA-256' | 'SHA-384' | 'SHA-512';
-
-const PREFIXES = {
-	'SHA-256': 'sha256-',
-	'SHA-384': 'sha384-',
-	'SHA-512': 'sha512-',
-} as const satisfies Record<CspHashAlgorithm, string>;
+export type { CspHashAlgorithm } from './libs/csp-hash';
 
 /** Source hashes in the `sha256-…` form a CSP directive takes. */
 export interface InlineCodeHashes {
-	scripts: `sha${number}-${string}`[];
-	styles: `sha${number}-${string}`[];
+	scripts: CspHashSource[];
+	styles: CspHashSource[];
 }
-
-/**
- * Hash one inline element's text the way a browser checks it.
- *
- * @param content - The element's exact text content.
- * @param algorithm - The digest to use.
- * @returns The hash source, such as `sha256-…`.
- */
-const hashSource = async function hashSource(
-	content: string,
-	algorithm: CspHashAlgorithm
-): Promise<`sha${number}-${string}`> {
-	const digest = await globalThis.crypto.subtle.digest(
-		algorithm,
-		new TextEncoder().encode(content)
-	);
-	let binary = '';
-	for (const byte of new Uint8Array(digest)) {
-		binary += String.fromCharCode(byte);
-	}
-	return `${PREFIXES[algorithm]}${btoa(binary)}` as `sha${number}-${string}`;
-};
 
 /**
  * The hashes of every inline script and style the c15t components can
@@ -71,7 +48,8 @@ const hashSource = async function hashSource(
  *
  * The per-visitor boot payload is not among them: it renders as a JSON data
  * block, which a policy does not need to allow. Neither are `scripts`
- * entries a `clientEntrypoint` adds, which the config never sees.
+ * entries a `clientEntrypoint` adds, which the config never sees; see
+ * {@link buildAstroCsp} for how the browser reports those.
  *
  * @param options - The resolved integration options.
  * @param algorithm - The digest Astro's CSP is configured with.
@@ -144,20 +122,58 @@ export const findAstroCsp = function findAstroCsp(
 };
 
 /**
- * The config update that allows c15t's inline code under Astro's CSP.
+ * The script hashes a site lists in its own Astro CSP config.
+ *
+ * @param csp - The site's `csp` value.
+ * @returns The hashes, or an empty list when it sets none.
+ */
+const readSiteScriptHashes = function readSiteScriptHashes(
+	csp: unknown
+): string[] {
+	if (typeof csp !== 'object' || csp === null) {
+		return [];
+	}
+	const hashes = (csp as { scriptDirective?: { hashes?: unknown } })
+		.scriptDirective?.hashes;
+	return Array.isArray(hashes)
+		? hashes.filter((hash): hash is string => typeof hash === 'string')
+		: [];
+};
+
+/** What the integration does with Astro's CSP turned on. */
+export interface AstroCspSetup {
+	/** The `updateConfig()` argument that allows c15t's inline code. */
+	update: Record<string, unknown>;
+	/**
+	 * What the browser checks `clientEntrypoint` inline scripts against.
+	 * Only set with a `clientEntrypoint`, the one source of scripts the
+	 * config cannot hash.
+	 */
+	browser?: C15tBrowserCsp;
+}
+
+/**
+ * Allow c15t's inline code under Astro's CSP.
  *
  * The algorithm is always set: a site that enabled CSP with `csp: true`
  * gets Astro's defaults filled in before integrations run, and an object
  * merged over `true` would otherwise leave the digest unset.
  *
+ * Inline `scripts` from a `clientEntrypoint` cannot be hashed here, because
+ * that module only runs in the browser. The browser would block them with
+ * a violation that does not say which script it was, so the policy's hashes
+ * travel to the browser, which hashes each of those scripts and logs the
+ * hash of any the policy lacks.
+ *
  * @param config - The Astro config `astro:config:setup` receives.
  * @param options - The resolved integration options.
- * @returns The `updateConfig()` argument, or `undefined` without CSP.
+ * @returns The config update and the browser's copy of the script hashes,
+ * or `undefined` without CSP.
  */
-export const buildAstroCspUpdate = async function buildAstroCspUpdate(
+export const buildAstroCsp = async function buildAstroCsp(
 	config: unknown,
 	options: C15tResolvedOptions
-): Promise<Record<string, unknown> | undefined> {
+): Promise<AstroCspSetup | undefined> {
 	const found = findAstroCsp(config);
 	if (!found) {
 		return undefined;
@@ -166,7 +182,7 @@ export const buildAstroCspUpdate = async function buildAstroCspUpdate(
 		options,
 		found.algorithm
 	);
-	return {
+	const update = {
 		[found.key]: {
 			csp: {
 				algorithm: found.algorithm,
@@ -174,5 +190,18 @@ export const buildAstroCspUpdate = async function buildAstroCspUpdate(
 				...(styles.length > 0 && { styleDirective: { hashes: styles } }),
 			},
 		},
+	};
+	if (!options.clientEntrypoint) {
+		return { update };
+	}
+	const siteCsp = (config as Record<string, { csp?: unknown }>)[found.key]?.csp;
+	return {
+		browser: {
+			algorithm: found.algorithm,
+			scriptHashes: [
+				...new Set([...scripts, ...readSiteScriptHashes(siteCsp)]),
+			],
+		},
+		update,
 	};
 };

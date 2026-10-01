@@ -275,6 +275,35 @@ describe('astro:config:setup', () => {
 		).toBe(false);
 	});
 
+	it('hands the browser the policy hashes when a clientEntrypoint can add inline scripts', async () => {
+		const options: C15tAstroOptions = {
+			clientEntrypoint: './src/c15t.client.ts',
+			mode: offlineMode(),
+		};
+		const { calls } = await runSetup(options, {
+			security: { csp: { scriptDirective: { hashes: ['sha256-site'] } } },
+		});
+		const update = calls.updateConfig.mock.calls.find(([value]) =>
+			Object.hasOwn(value as object, 'vite')
+		)?.[0] as {
+			vite: {
+				plugins: { load: (id: string) => string }[];
+			};
+		};
+		const loaded = update.vite.plugins[0]?.load('\0virtual:c15t/options');
+		const parsed = JSON.parse(
+			(loaded ?? '').replace(/^export default /u, '').replace(/;$/u, '')
+		);
+
+		expect(parsed.csp).toEqual({
+			algorithm: 'SHA-256',
+			scriptHashes: [
+				...(await buildInlineCodeHashes(resolveOptions(options))).scripts,
+				'sha256-site',
+			],
+		});
+	});
+
 	it('registers the middleware before user middleware', async () => {
 		const { calls } = await runSetup({
 			mode: hostedMode({ url: '/api/c15t' }),
