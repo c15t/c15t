@@ -74,7 +74,7 @@ Pass the current marketing permission from your framework, for example
 minor unit, so `2599` is $25.99. Reuse `event_id` on the server event to
 deduplicate it.
 
-`@c15t/scripts/openai-pixel` also exports `openaiPixelEvent`, a typed wrapper
+`@c15t/integrations/openai-pixel` also exports `openaiPixelEvent`, a typed wrapper
 around `oaiq('measure', ...)`. It drops calls made before the queue exists and
 does not check permission, so apply the same guard before calling it. A
 `custom` event needs `custom_event_name` in its options. To send to one pixel

@@ -60,7 +60,7 @@ export function trackPurchase(marketingAllowed: boolean, orderId: string) {
 
 Pass the current marketing permission from your framework, for example
 `useConsent('marketing')` in React. Set `conversionId` to deduplicate against
-the Conversions API. `@c15t/scripts/reddit-pixel` also exports
+the Conversions API. `@c15t/integrations/reddit-pixel` also exports
 `redditPixelEvent`, a typed wrapper around `rdt('track', ...)`. It does nothing
 until `rdt` exists and does not check permission, so apply the same guard
 before calling it.

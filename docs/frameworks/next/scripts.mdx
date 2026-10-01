@@ -12,7 +12,7 @@ The [App Router](/docs/frameworks/next/app-router),
 scripts. Use this page to add vendors to an existing setup or to change how
 they load. Install the helpers if you have not:
 
-<CommandTabs command="@c15t/scripts@alpha" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 Keep `c15t.config.ts`, the manifest route and the layout from your router
 guide. Adding a vendor needs no server change. Server-rendered state, a
@@ -31,8 +31,8 @@ Meta Pixel together:
 {/* example: fragment */}
 
 ```ts title="lib/scripts.ts (partial)"
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
-import { metaPixel } from '@c15t/scripts/meta-pixel';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+import { metaPixel } from '@c15t/integrations/meta-pixel';
 import type { Script } from 'c15t';
 
 export const scripts: Script[] = [
@@ -111,7 +111,7 @@ import { scripts, vendors } from '@/lib/scripts';
 ```
 
 The preference center lists each vendor under its category with a switch.
-Helpers from `@c15t/scripts` set `vendor` to their manifest slug, so `xPixel()`
+Helpers from `@c15t/integrations` set `vendor` to their manifest slug, so `xPixel()`
 needs no extra wiring. Give a hand-written script the same slug in its `vendor`
 field. A backend manifest can declare vendors too. See
 [granular consent](/docs/integrations/granular-consent) for storage, bulk

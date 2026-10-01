@@ -9,6 +9,8 @@ group: reference
 - One package, `c15t`, replaces `@c15t/nextjs`, `@c15t/react` and the v2
   `c15t` store. Import from its subpaths: `c15t/next`, `c15t/react`, and `c15t`
   for the headless engine.
+- The vendor helpers move from `@c15t/scripts` to `@c15t/integrations`, with
+  the same subpaths and helper names.
 - `ConsentManagerProvider` becomes `ConsentProvider` in React. Next.js apps
   that resolve consent on the server use `ConsentRoot`.
 - `mode` and `backendURL` become one transport, `hosted({ url })` or
@@ -27,7 +29,8 @@ group: reference
 
 1. Upgrade React and React DOM to 18 or newer. The v3 React and Next.js
    adapters require them, and `c15t/next` requires Next.js 15 or 16.
-2. [Replace the packages](#replace-the-packages).
+2. [Replace the packages](#replace-the-packages), including the
+   [integrations dependency](#rename-the-integrations-dependency).
 3. Run the [`useConsentManager()` codemod](#replace-useconsentmanager) if your
    code calls it.
 4. Replace the provider for your framework: [Next.js](#nextjs-with-consentmanagerprovider),
@@ -43,9 +46,9 @@ group: reference
 Remove `@c15t/nextjs` and `@c15t/react`, then install `c15t` from the `alpha`
 dist-tag. npm's default tag still resolves v2.
 
-<CommandTabs command="c15t@alpha @c15t/scripts@alpha" mode="install" />
+<CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Drop `@c15t/scripts@alpha` if you do not use its vendor helpers.
+Drop `@c15t/integrations@alpha` if you do not use its vendor helpers.
 
 | v2 import | v3 import |
 | --- | --- |
@@ -56,11 +59,57 @@ Drop `@c15t/scripts@alpha` if you do not use its vendor helpers.
 | `@c15t/react/styles.css` | `c15t/react/styles.css` |
 | `c15t` (`getOrCreateConsentRuntime` and the store) | `c15t` for the engine and `c15t/runtime` for a managed runtime. The APIs are new; see [JavaScript](#javascript-with-getorcreateconsentruntime). |
 | `DevTools` from `@c15t/dev-tools/react` | `DevTools` from `c15t/react/devtools` or `c15t/next/devtools` |
-| `@c15t/scripts/*` | Unchanged helper names; install `@c15t/scripts@alpha`. |
+| `@c15t/scripts/*` | `@c15t/integrations/*`, with unchanged helper names. See [rename the integrations dependency](#rename-the-integrations-dependency). |
 
 The scoped packages `@c15t/nextjs`, `@c15t/react` and `@c15t/core` still exist
 at v3, so imports from them keep working if you pin them to `@alpha`. The docs
 use the `c15t` subpaths.
+
+## Rename the integrations dependency
+
+v3 renames `@c15t/scripts` to `@c15t/integrations`. Remove `@c15t/scripts`
+from your dependencies and install `@c15t/integrations` from the `alpha`
+dist-tag:
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+Replace the package name in each import. Vendor subpaths and helper names stay
+the same.
+
+Before, in v2 and earlier v3 alphas:
+
+{/* example: fragment */}
+
+```ts
+import { posthog } from '@c15t/scripts/posthog';
+import { createEventDispatcher } from '@c15t/scripts/events';
+```
+
+After:
+
+{/* example: fragment */}
+
+```ts
+import { posthog } from '@c15t/integrations/posthog';
+import { createEventDispatcher } from '@c15t/integrations/events';
+```
+
+The `scripts` configuration option and the `Script` type keep their names.
+`@c15t/scripts` stays available as a deprecated compatibility package for all
+of v3. It re-exports the implementation and types of `@c15t/integrations`, so
+you can migrate imports separately from the rest of the upgrade. Compatibility
+ends in v4; versions already published stay on npm.
+
+To preview the import changes in JavaScript and TypeScript files:
+
+```bash
+npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
+```
+
+Review the output, then run it again without `--dry-run`. The codemod runs
+only when you name it. It does not change `package.json`, lockfiles, or
+imports inside `.vue`, `.svelte` or `.astro` files; update those by hand, then
+reinstall dependencies and build the app.
 
 ## Replace `useConsentManager()`
 
@@ -329,7 +378,7 @@ between a permission and a recorded choice.
 | `iframeBlockerConfig` | `iframeBlocker`, or `false` to turn it off |
 | `Frame` | `ConsentGate`. `Frame` still works as a deprecated alias. |
 | `YouTubeEmbed`, `GoogleMap` | Removed. Wrap your own embed in `ConsentGate`. |
-| `useConsentScript()` | Removed. Register the script in `scripts` with a `@c15t/scripts` helper. |
+| `useConsentScript()` | Removed. Register the script in `scripts` with a `@c15t/integrations` helper. |
 | `useSSRStatus()` | Removed |
 
 `ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`

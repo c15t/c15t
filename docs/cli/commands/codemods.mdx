@@ -1,6 +1,6 @@
 ---
 title: Codemods
-description: Rewrite useConsentManager() calls to the c15t v3 hooks, and run the v1 to v2 source transforms, with the c15t CLI codemods command.
+description: Rewrite useConsentManager() calls to the c15t v3 hooks, rename @c15t/scripts imports to @c15t/integrations, and run the v1 to v2 source transforms with the c15t CLI codemods command.
 group: cli
 ---
 
@@ -37,6 +37,23 @@ and their `/headless` entries. For each `useConsentManager()` destructuring, it:
 
 The [v3 migration guide](/docs/upgrade-v3#replace-useconsentmanager) maps every
 field. This codemod runs only when you name it; `--all` never selects it.
+
+## Rename `@c15t/scripts` imports
+
+v3 renames the vendor package `@c15t/scripts` to `@c15t/integrations`. The
+`scripts-to-integrations` codemod rewrites imports and re-exports in
+JavaScript and TypeScript files, including literal dynamic imports, `require()`
+calls, `require` functions made with Node's `createRequire()`, and import
+types. It scans `.mts`, `.cts`, `.mjs` and `.cjs` files too:
+
+```bash
+npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
+```
+
+It does not edit `package.json`, lockfiles, or imports inside `.vue`, `.svelte`
+or `.astro` files. Update those by hand, as the
+[package migration](/docs/upgrade-v3#rename-the-integrations-dependency)
+describes. Like the hooks codemod, it runs only when you name it.
 
 ## Run the v1 to v2 transforms
 

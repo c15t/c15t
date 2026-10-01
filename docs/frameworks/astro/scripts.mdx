@@ -10,7 +10,7 @@ The `ConsentBanner` component does not stop a `<script>` tag you already have.
 Give c15t each vendor script to load instead, and remove the vendor's own
 snippet so it loads once.
 
-Vendor helpers from `@c15t/scripts` contain callbacks, and the integration
+Vendor helpers from `@c15t/integrations` contain callbacks, and the integration
 options in `astro.config.mjs` must survive JSON serialization. So register
 helpers in the module that the integration's `clientEntrypoint` option names.
 This list loads PostHog on measurement and X Pixel on marketing:

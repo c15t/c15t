@@ -10,10 +10,10 @@ Copy the container ID, which starts with `GTM-`, from your GTM workspace.
 Remove the existing GTM snippet, its `<noscript>` iframe and any framework
 plugin that loads the same container.
 
-<CommandTabs command="@c15t/scripts@alpha" mode="install" />
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 ```ts title="src/consent-scripts.ts"
-import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
 
 export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 ```

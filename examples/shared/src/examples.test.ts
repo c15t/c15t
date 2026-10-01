@@ -267,7 +267,7 @@ for (const target of selectedTargets()) {
 				await expect.poll(() => requests.posthog).toBe(1);
 				// Plain HTML loads PostHog's own snippet only after consent, so no
 				// helper calls PostHog's opt-in API. The other examples use
-				// `@c15t/scripts`, which does.
+				// `@c15t/integrations`, which does.
 				if (target.id !== 'html') {
 					await expect
 						.poll(() =>

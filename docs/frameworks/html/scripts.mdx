@@ -103,7 +103,7 @@ Every callback receives the script's `id`, the created element's
 there is one.
 
 For a plain vendor snippet, the `text/plain` tag is simpler and works in any
-CMS field that accepts HTML. The vendor helpers in `@c15t/scripts`, such as
+CMS field that accepts HTML. The vendor helpers in `@c15t/integrations`, such as
 the PostHog and Google tag helpers, are ES modules that need a bundler. On a
 plain HTML page, paste the vendor's own snippet into a `text/plain` tag.
 
@@ -134,7 +134,7 @@ patterns, cookie domains and browser limits.
 ## Google Consent Mode and tag managers
 
 The script tag does not send Google Consent Mode signals. The Google tag and
-Google Tag Manager helpers in `@c15t/scripts` do, but they need a bundler. On
+Google Tag Manager helpers in `@c15t/integrations` do, but they need a bundler. On
 a plain HTML page, gate Google's snippet like any other vendor. Google then
 loads only after consent, so it sends nothing before a choice.
 [Gated scripts](/docs/frameworks/html/components/gated-script#load-order)

@@ -67,7 +67,7 @@ set `event_id` to deduplicate against the Conversions API. Pinterest reports
 conversions only for its 20 event types. It keeps other event names for
 audience targeting.
 
-`@c15t/scripts/pinterest-tag` also exports `pinterestTagEvent`, a typed wrapper
+`@c15t/integrations/pinterest-tag` also exports `pinterestTagEvent`, a typed wrapper
 around `pintrk('track', ...)`. It does nothing until `pintrk` exists and does
 not check permission, so apply the same guard before calling it. Its optional
 third argument receives Pinterest's `(didInit, error)` result.

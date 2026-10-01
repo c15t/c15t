@@ -1,5 +1,5 @@
 // #region docs:analytics-events
-import { createEventDispatcher } from '@c15t/scripts/events';
+import { createEventDispatcher } from '@c15t/integrations/events';
 import { getConsentClient } from 'c15t/astro/client';
 
 import consentClient from './consent-client';

@@ -60,7 +60,7 @@ export function trackPurchase(marketingAllowed: boolean, orderId: string) {
 
 Pass the current marketing permission from your framework, for example
 `useConsent('marketing')` in React. Set `client_dedup_id` to deduplicate
-against the Conversions API. `@c15t/scripts/snapchat-pixel` also exports
+against the Conversions API. `@c15t/integrations/snapchat-pixel` also exports
 `snapchatPixelEvent`, a typed wrapper around `snaptr('track', ...)`. It does
 nothing until `snaptr` exists and does not check permission, so apply the same
 guard before calling it.

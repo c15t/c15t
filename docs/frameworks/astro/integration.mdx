@@ -27,7 +27,7 @@ List the Astro integration of your `ui` framework before `c15t()`. Import
 The integration serializes its options once at build time and hands the same
 JSON to the middleware, the components and the browser. Functions, class
 instances and other live values do not survive that. Put callbacks, vendor
-helpers from `@c15t/scripts` and anything else with a function in the module
+helpers from `@c15t/integrations` and anything else with a function in the module
 that [`clientEntrypoint`](#cliententrypoint) names.
 
 The options are also written into every page, so keep secrets out of them.
@@ -167,7 +167,7 @@ The default export is a `C15tClientOptionsExtension` from `c15t/astro`:
 
 | Field | Effect |
 | --- | --- |
-| `scripts` | Scripts added to the integration's `scripts`. Vendor helpers from `@c15t/scripts` go here |
+| `scripts` | Scripts added to the integration's `scripts`. Vendor helpers from `@c15t/integrations` go here |
 | `callbacks` | `onChoiceRecorded`, `onPermissionsChanged`, `onError` and `onBeforeConsentRevocationReload`. See [Callbacks](/docs/frameworks/astro/callbacks) |
 | `networkBlocker` | Replaces the integration's `networkBlocker`, so it can include `onRequestBlocked` |
 | `clearOnRevocation` | Replaces the integration's `clearOnRevocation` |

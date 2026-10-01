@@ -28,7 +28,7 @@ function's return value must be serializable, and vendor loaders contain
 functions. Scripts only load in the browser, so importing them in the root
 route adds nothing to the server HTML.
 
-Each helper from `@c15t/scripts` sets its own category and a stable `id`.
+Each helper from `@c15t/integrations` sets its own category and a stable `id`.
 Remove every other loader for the same vendor, such as a `scripts` entry in a
 route's `head()` or an SDK you initialize at module level, so the vendor loads
 once and only through c15t. [Integrations](/docs/integrations/overview) lists
@@ -69,7 +69,7 @@ configuration and browser limits.
 
 To let a visitor allow a category but turn off one vendor, pass `vendors` to
 `ConsentRoot`. The preference dialog then lists each vendor under its category.
-Helpers from `@c15t/scripts` already carry their vendor slug.
+Helpers from `@c15t/integrations` already carry their vendor slug.
 [Granular consent](/docs/integrations/granular-consent) explains the setup.
 
 ## Check the scripts

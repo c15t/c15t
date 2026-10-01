@@ -3,8 +3,8 @@
 Run `bun run --cwd examples/sveltekit-demo dev` from the repository root.
 Open DevTools and select Scripts to inspect ten loading cases.
 
-The demo uses the actual `@c15t/scripts` helpers for Meta Pixel, TikTok Pixel,
-Google Tag, and Microsoft Clarity. By default, their SDK URLs point to local
+The demo uses the actual `@c15t/integrations` helpers for Meta Pixel, TikTok
+Pixel, Google Tag, and Microsoft Clarity. By default, their SDK URLs point to local
 fixtures. Their setup and consent callbacks run, but the fixtures do not send
 events to vendor accounts. Script names explicitly identify fixture mode.
 

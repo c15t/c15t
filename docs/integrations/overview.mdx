@@ -104,7 +104,7 @@ on revocation and how to check it.
 
 ## Send events only to allowed integrations
 
-`createEventDispatcher` from `@c15t/scripts/events` sends one named event to
+`createEventDispatcher` from `@c15t/integrations/events` sends one named event to
 every registered integration that has an event API and is allowed right now.
 It drops events while measurement is denied, and one vendor's error does not
 stop delivery to the others:
@@ -112,7 +112,7 @@ stop delivery to the others:
 {/* example: fragment */}
 
 ```ts
-import { createEventDispatcher } from '@c15t/scripts/events';
+import { createEventDispatcher } from '@c15t/integrations/events';
 
 const events = createEventDispatcher({
   scripts,

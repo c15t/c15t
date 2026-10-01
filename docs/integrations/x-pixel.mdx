@@ -56,7 +56,7 @@ export function trackPurchase(marketingAllowed: boolean, orderId: string) {
 
 Pass the current marketing permission from your framework, for example
 `useConsent('marketing')` in React. Set `conversion_id` to deduplicate the
-event. `@c15t/scripts/x-pixel` also exports `xPixelEvent`, a typed wrapper
+event. `@c15t/integrations/x-pixel` also exports `xPixelEvent`, a typed wrapper
 around `twq('event', ...)`. `xPixelEvent` does nothing while `twq` is
 undefined, which is the case before marketing is first allowed. It does not
 check permission, so apply the same guard before calling it.

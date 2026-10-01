@@ -56,7 +56,7 @@ export function trackPurchase(marketingAllowed: boolean, value: number) {
 ```
 
 Pass the current marketing permission from your framework, for example
-`useConsent('marketing')` in React. `@c15t/scripts/meta-pixel` also exports
+`useConsent('marketing')` in React. `@c15t/integrations/meta-pixel` also exports
 typed wrappers: `metaPixelEvent`, `metaPixelCustomEvent`,
 `metaPixelSingleEvent` and `metaPixelSingleCustomEvent`. They do nothing while
 `window.fbq` is undefined, before the pixel's first setup. They do not check
