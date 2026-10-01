@@ -15,6 +15,7 @@ const routes = [
 	{ href: '/awaited', label: 'Awaited' },
 	{ href: '/pages-router', label: 'Pages Router' },
 	{ href: '/client-init', label: 'Browser init' },
+	{ href: '/experiment', label: 'Experiment' },
 ];
 
 const designs = [

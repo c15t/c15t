@@ -468,7 +468,7 @@ for (const target of selectedTargets()) {
 		}
 
 		if (['nextjs', 'react'].includes(target.id)) {
-			const route = target.id === 'nextjs' ? '/app-router' : '/';
+			const route = target.id === 'nextjs' ? '/experiment' : '/experiment.html';
 			test('a host-resolved experiment arm reports the impression and the choice', async () => {
 				const dataLayer = () =>
 					page.evaluate(

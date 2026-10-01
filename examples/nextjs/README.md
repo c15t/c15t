@@ -75,15 +75,15 @@ submitted to Inth.
 
 ## Banner experiment
 
-Open `/app-router?experiment=1` to run the banner-shape experiment: c15t
-picks the `control` arm (the default banner) or the `wall` arm, and the design
-panel shows `banner-shape · <arm> · c15t`. `/app-router?experiment=1&arm=wall`
-resolves the arm on the server: `proxy.ts` copies the query into request
-headers, `app/app-router/layout.tsx` reads them with `headers()` and passes
-`experimentArm` down, which is where a flag provider's answer would go. Any
-other `arm` value runs `control`. The provider's `onSurfaceShown` and
-`onChoiceRecorded` callbacks list each impression and choice under the arm,
-and push them to `window.dataLayer` as `c15t_surface_shown` and
+`/experiment` runs the banner-shape experiment with the arm resolved on the
+server. Its layout, `app/(experiment)/layout.tsx`, asks `lib/flags.ts` for the
+arm and passes it to `resolveConsent`, so the banner in the server HTML
+already shows that arm. `lib/flags.ts` stands in for a flag provider and reads
+`?arm=` from a header that `proxy.ts` sets: `?arm=wall` runs the `wall` arm,
+`?arm=off` leaves the visitor out, and anything else runs `control`.
+`components/experiment-consent.tsx` adds `onSurfaceShown` and
+`onChoiceRecorded` callbacks that list each impression and choice under the
+arm and push them to `window.dataLayer` as `c15t_surface_shown` and
 `c15t_choice_recorded`. See
 https://c15t.com/docs/guides/banner-experiments.
 

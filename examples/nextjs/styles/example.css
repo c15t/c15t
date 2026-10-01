@@ -39,6 +39,7 @@ button {
 	cursor: pointer;
 }
 .demo-shell,
+.experiment-readout,
 body > footer {
 	width: min(1120px, calc(100% - 64px));
 	margin-inline: auto;
@@ -70,12 +71,6 @@ body > footer {
 }
 .site-header nav a {
 	padding-block: 10px;
-}
-.experiment-links {
-	display: flex;
-	flex-wrap: wrap;
-	gap: 16px;
-	font-size: 14px;
 }
 .experiment-readout ul {
 	margin: 8px 0;
@@ -252,6 +247,7 @@ body > footer {
 }
 @media (max-width: 760px) {
 	.demo-shell,
+	.experiment-readout,
 	body > footer {
 		width: calc(100% - 36px);
 	}

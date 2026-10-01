@@ -1,0 +1,37 @@
+// #region docs:experiment-layout title="app/layout.tsx"
+import { resolveConsent } from 'c15t/next/server';
+import { Suspense } from 'react';
+import type { ReactNode } from 'react';
+
+import { consentConfig } from '@/c15t.config';
+import { ExperimentConsent } from '@/components/experiment-consent';
+import { bannerShape } from '@/lib/experiment';
+import { bannerShapeFlag } from '@/lib/flags';
+
+import '@/styles/globals.css';
+
+const ResolvedConsent = async ({ children }: { children: ReactNode }) => {
+	const arm = await bannerShapeFlag();
+	const state = await resolveConsent({
+		config: consentConfig,
+		// `off` keeps this visitor out of the experiment.
+		experiment: arm === 'off' ? undefined : { ...bannerShape, arm },
+	});
+
+	return <ExperimentConsent state={state}>{children}</ExperimentConsent>;
+};
+
+const RootLayout = ({ children }: { children: ReactNode }) => (
+	<html lang="en">
+		<body>
+			<Suspense fallback={null}>
+				<ResolvedConsent>{children}</ResolvedConsent>
+			</Suspense>
+		</body>
+	</html>
+);
+
+export default RootLayout;
+// #endregion docs:experiment-layout
+
+export { metadata } from '@/lib/metadata';

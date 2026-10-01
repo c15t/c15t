@@ -33,6 +33,10 @@ export const App = () => {
 			<nav aria-label="Banner design">
 				<a href="/">Default</a>
 				<a href="/?design=branded">Branded</a>
+				<a href="/experiment.html?experiment=1">Experiment</a>
+				<a href="/experiment.html?experiment=1&arm=wall">
+					Experiment (wall arm)
+				</a>
 			</nav>
 			<section className="card">
 				<h2>Scripts follow your choices</h2>

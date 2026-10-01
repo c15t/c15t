@@ -1,34 +1,14 @@
-import type {
-	ConsentExperiment,
-	OnChoiceRecordedPayload,
-	OnSurfaceShownPayload,
-} from 'c15t';
-
-/** The arms of the demo's banner-shape experiment. `control` is the default banner. */
-export const EXPERIMENT_ARMS = ['control', 'wall'] as const;
-
-export type ExperimentArm = (typeof EXPERIMENT_ARMS)[number];
-
-/** The arm for a requested `?arm=` value: `wall`, or `control` for anything else. */
-export const toExperimentArm = function toExperimentArm(
-	value: string
-): ExperimentArm {
-	return value === 'wall' ? 'wall' : 'control';
-};
+import { defineExperiment } from 'c15t';
+import type { OnChoiceRecordedPayload, OnSurfaceShownPayload } from 'c15t';
 
 /**
- * The banner-shape experiment. `arm` is the arm the server resolved, as a
- * flag provider would; omit it and c15t picks one.
+ * The banner-shape experiment. `control` is the default banner; the `wall`
+ * arm blocks the page until the visitor chooses.
  */
-export const bannerExperiment = function bannerExperiment(
-	arm: ExperimentArm | undefined
-): ConsentExperiment {
-	const experiment: ConsentExperiment<'wall'> = {
-		arms: { wall: { prompt: { variant: 'wall' } } },
-		id: 'banner-shape',
-	};
-	return arm === undefined ? experiment : { ...experiment, arm };
-};
+export const bannerShape = defineExperiment({
+	arms: { wall: { prompt: { variant: 'wall' } } },
+	id: 'banner-shape',
+});
 
 /** One experiment event the page lists. */
 export interface ExperimentLogEntry {
