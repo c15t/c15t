@@ -2,14 +2,15 @@
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
-	import CustomConsentBanner from '$lib/custom-consent-banner.svelte';
-	import { scripts } from '$lib/example-scripts';
 	import {
 		ConsentDialog,
 		ConsentDialogLink,
 		ConsentManagerProvider,
 		hosted,
 	} from '@c15t/svelte';
+
+	import CustomConsentBanner from '#lib/custom-consent-banner.svelte';
+	import { scripts } from '#lib/example-scripts.js';
 
 	// The stock dialog still needs the stylesheet.
 	import '@c15t/svelte/styles.css';

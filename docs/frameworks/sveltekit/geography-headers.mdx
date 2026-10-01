@@ -64,9 +64,10 @@ never resolves it against the request, so a forged `Host` or
 `x-forwarded-host` header cannot send its requests elsewhere. `loadConsent`
 resolves a relative `backendURL` against `event.url`. With its default
 `event.fetch`, the call stays in-process. With your own `fetch`, it goes to the
-origin of `event.url`, which SvelteKit builds from the adapter's `ORIGIN`, or
-`PROTOCOL_HEADER` and `HOST_HEADER` settings; without `ORIGIN`, `adapter-node`
-takes the host from the `Host` header. A forged `x-forwarded-host` changes
+origin of `event.url`. `adapter-node` builds that origin from `paths.origin`
+in SvelteKit 3 (the `ORIGIN` variable in SvelteKit 2), or from its
+`PROTOCOL_HEADER` and `HOST_HEADER` settings; with none of them, it takes the
+host from the `Host` header. A forged `x-forwarded-host` changes
 neither unless you set `trustForwardedHeaders`. See
 [Server API](./server-api#loadconsent).
 
