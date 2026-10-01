@@ -152,7 +152,7 @@ Then make three changes:
 1. Add `@c15t/ui/postcss-tailwind3` to your PostCSS plugins, before
    `tailwindcss`. Write the plugins as an object, as the examples below do.
    PostCSS runs them in the order of the keys. Next.js also accepts an array
-   of names, but the loader Vite uses rejects one.
+   of plugin names, but Vite's PostCSS loader rejects that form.
 2. Where you import c15t's stylesheet yourself, put the import above the
    `@tailwind` directives, whatever your build tool. Vite drops an `@import`
    that follows another rule, with the warning
