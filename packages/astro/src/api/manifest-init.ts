@@ -12,12 +12,12 @@ import { deferInitGvlToRoute } from '@c15t/core';
 import {
 	fetchCachedManifest,
 	reportConsentSession,
+	resolveRequestBackendURL,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
-	resolveBackendURL,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type {
@@ -68,11 +68,8 @@ const trimSlash = function trimSlash(value: string): string {
 };
 
 /**
- * Resolves a possibly-relative backend URL against the request.
- *
- * Seeds the protocol from the request URL rather than letting the shared
- * resolver fall back to `https`, so a relative `backendURL` still resolves
- * on a plain `http://localhost` dev server.
+ * Resolves a possibly-relative backend URL against the request, with the
+ * rule every adapter shares (`resolveRequestBackendURL`).
  *
  * Only the request's own URL or `Host` decides the origin — never a
  * forwarded header the caller supplied. The adapter builds `Request.url`
@@ -86,15 +83,10 @@ const resolveAgainstRequest = function resolveAgainstRequest(
 	url: string,
 	source: RequestSource
 ): string | null {
-	if (source.url) {
-		const requestURL = new URL(source.url);
-		return resolveBackendURL(url, {
-			host: requestURL.host,
-			'x-forwarded-proto': requestURL.protocol.replace(':', ''),
-		});
-	}
-	const hostHeader = source.headers.get('host');
-	return hostHeader ? resolveBackendURL(url, { host: hostHeader }) : null;
+	return resolveRequestBackendURL(url, {
+		headers: source.headers,
+		requestURL: source.url,
+	});
 };
 
 /**

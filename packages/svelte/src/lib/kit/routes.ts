@@ -20,13 +20,13 @@ import {
 	getManifestAge,
 	MANIFEST_PASSTHROUGH_HEADERS,
 	reportConsentSession,
+	resolveRequestBackendURL,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
-	resolveBackendURL,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type {
@@ -252,16 +252,12 @@ const resolveTarget = function resolveTarget(
 	options: SvelteKitConsentRouteOptions
 ): ResolvedTarget | null {
 	if (url.startsWith('/')) {
-		if (url.startsWith('//')) {
-			return null;
-		}
-		const resolved = resolveBackendURL(url, {
-			host: new URL(IN_PROCESS_ORIGIN).host,
-			'x-forwarded-proto': 'http',
+		const resolved = resolveRequestBackendURL(url, {
+			requestURL: new URL(IN_PROCESS_ORIGIN),
 		});
 		return resolved ? { fetch: inProcessFetch(event), url: resolved } : null;
 	}
-	const resolved = resolveBackendURL(url, {});
+	const resolved = resolveRequestBackendURL(url);
 	return resolved ? { fetch: options.fetch, url: resolved } : null;
 };
 

@@ -26,13 +26,13 @@ import {
 	withResolutionBudget,
 } from '@c15t/core/libs/manifest-cache';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import { resolveRequestBackendURL } from '@c15t/core/server';
 import { readProducerPolicyContract } from '@c15t/core/transports';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import type { InitOutput } from '@c15t/schema/types';
 import {
 	CONSENT_EXPERIMENT_HEADER,
 	formatExperimentHeader,
-	resolveBackendURL,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 
@@ -201,8 +201,10 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * if the backend knows the user). This avoids a first-paint flicker
 	 * before the client-side init lands.
 	 *
-	 * Relative URLs are resolved via the request headers (`x-forwarded-proto`,
-	 * `host`) so the backend call works under any reverse-proxy.
+	 * A relative URL resolves against the request's `host` header: over
+	 * `https` for a domain name, and over `http` for `localhost`, an IP
+	 * address or a single-label host such as `app:3000`. `x-forwarded-*`
+	 * headers are ignored unless `trustForwardedHeaders` is set.
 	 *
 	 * Without a backend URL the helper returns the cookie- and header-only
 	 * state and performs no network call. Overrides `config.backendURL`.
@@ -244,6 +246,17 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * authentication tokens or custom tracing headers.
 	 */
 	forwardHeaders?: string[];
+
+	/**
+	 * Resolve a relative `backendURL` or `manifestURL` against the request's
+	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
+	 * of `host`. Any client can send those headers, and the backend call
+	 * carries the visitor's cookies, so set this only behind a proxy that
+	 * sets them and drops incoming ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 
 	/**
 	 * Called when the backend or manifest request fails or runs out of
@@ -590,26 +603,32 @@ const resolveConsentState = async function resolveConsentState(
 	const manifestURL = options.manifestURL ?? options.config?.manifestURL;
 	const requestCookies = await request.cookies();
 
-	const absoluteBackend = resolveBackendURL(backendURL, requestHeaders);
+	// Never from client-supplied forwarding headers unless the app opts in:
+	// the backend call below carries the request's cookies.
+	const resolution = {
+		headers: requestHeaders,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	};
+	const absoluteBackend = resolveRequestBackendURL(backendURL, resolution);
 	if (!absoluteBackend) {
 		reportPrefetchError(
 			options,
 			backendURL,
 			new Error(
-				'backendURL could not be resolved from the request headers; pass an absolute URL or make sure host/x-forwarded-* reach the server.'
+				'backendURL could not be resolved from the request host; pass an absolute URL or make sure the host header reaches the server.'
 			)
 		);
 		return base;
 	}
 	const absoluteManifest = manifestURL
-		? resolveBackendURL(manifestURL, requestHeaders)
+		? resolveRequestBackendURL(manifestURL, resolution)
 		: undefined;
 	if (manifestURL && !absoluteManifest) {
 		reportPrefetchError(
 			options,
 			manifestURL,
 			new Error(
-				'manifestURL could not be resolved from the request headers; pass an absolute URL or make sure host/x-forwarded-* reach the server.'
+				'manifestURL could not be resolved from the request host; pass an absolute URL or make sure the host header reaches the server.'
 			)
 		);
 		return base;

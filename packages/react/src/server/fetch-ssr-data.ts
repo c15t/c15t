@@ -2,7 +2,7 @@ import { C15T_VERSION_HEADER } from '@c15t/core';
 import type { InitOutput, SSRInitialData } from '@c15t/core';
 
 import { version } from '../version';
-import { extractRelevantHeaders } from './headers';
+import { CLIENT_FORWARDING_HEADERS, extractRelevantHeaders } from './headers';
 import { normalizeBackendURL } from './normalize-url';
 import type { FetchSSRDataOptions } from './types';
 
@@ -210,12 +210,18 @@ export const fetchSSRData = async function fetchSSRData(
 	}
 
 	// Extract relevant headers from the request
-	const relevantHeaders = extractRelevantHeaders(headers);
+	const relevantHeaders = extractRelevantHeaders(headers, {
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 
 	logRelevantHeaders(relevantHeaders, debug);
 
-	// We can't fetch from the server if the headers are not present
-	if (Object.keys(relevantHeaders).length === 0) {
+	// We can't fetch from the server if the headers are not present. Untrusted
+	// forwarding headers are not sent, but they still mark a live request.
+	const hasRequestHeaders =
+		Object.keys(relevantHeaders).length > 0 ||
+		CLIENT_FORWARDING_HEADERS.some((name) => headers.has(name));
+	if (!hasRequestHeaders) {
 		if (debug) {
 			console.log(
 				'[c15t/server] No relevant headers found, skipping SSR fetch'
@@ -225,7 +231,9 @@ export const fetchSSRData = async function fetchSSRData(
 	}
 
 	// Normalize URL synchronously
-	const normalizedURL = normalizeBackendURL(backendURL, headers);
+	const normalizedURL = normalizeBackendURL(backendURL, headers, {
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 	if (!normalizedURL) {
 		if (debug) {
 			console.log('[c15t/server] Failed to normalize URL, skipping SSR fetch');

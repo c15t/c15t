@@ -6,8 +6,7 @@ import { fetchSSRData } from './fetch-ssr-data';
 const createRequestHeaders = function createRequestHeaders(): Headers {
 	const headers = new Headers();
 	headers.set('cf-ipcountry', 'US');
-	headers.set('x-forwarded-proto', 'https');
-	headers.set('x-forwarded-host', 'example.com');
+	headers.set('host', 'example.com');
 	return headers;
 };
 
@@ -128,6 +127,65 @@ describe('fetchSSRData', () => {
 			);
 		}
 	);
+
+	it('resolves a relative backendURL against host, not a forged x-forwarded-host', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		const headers = createRequestHeaders();
+		headers.set('x-forwarded-host', 'attacker.example');
+		headers.set('x-forwarded-proto', 'http');
+
+		await fetchSSRData({ backendURL: '/api/c15t', headers });
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.any(Object)
+		);
+		const sent = fetchMock.mock.calls[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		expect(sent).not.toHaveProperty('x-forwarded-host');
+		expect(sent).not.toHaveProperty('x-forwarded-proto');
+	});
+
+	it('still fetches when only untrusted forwarding headers mark the request', async () => {
+		const fetchMock = vi
+			.fn()
+			.mockResolvedValue(createResponse({ categories: [], gvl: null }));
+		vi.stubGlobal('fetch', fetchMock);
+		const headers = new Headers({
+			host: 'example.com',
+			'x-forwarded-host': 'example.com',
+		});
+
+		await fetchSSRData({ backendURL: '/api/c15t', headers });
+
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.any(Object)
+		);
+		const sent = fetchMock.mock.calls[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		expect(sent).not.toHaveProperty('x-forwarded-host');
+	});
+
+	it('skips the fetch when the request carries no headers', async () => {
+		const fetchMock = vi.fn();
+		vi.stubGlobal('fetch', fetchMock);
+
+		const result = await fetchSSRData({
+			backendURL: 'https://consent.example.com',
+			headers: new Headers(),
+		});
+
+		expect(result).toBeUndefined();
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
 
 	it('runs independent fetches for concurrent calls', async () => {
 		const fetchMock = vi

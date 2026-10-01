@@ -6,13 +6,13 @@ import {
 } from '@c15t/core';
 import type { InitContext } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import { resolveRequestBackendURL } from '@c15t/core/server';
 import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from '@c15t/schema/types';
 
-import { extractRelevantHeaders } from './headers';
-import { normalizeBackendURL } from './normalize-url';
+import { CLIENT_FORWARDING_HEADERS, extractRelevantHeaders } from './headers';
 import type {
 	ConsentRequestOptions,
 	ConsentState,
@@ -60,14 +60,23 @@ const createForwardHeaders = (
 	options: ResolveConsentOptions,
 	overrides: ConsentState['initialOverrides']
 ): Record<string, string> => {
+	const trustForwarded = options.trustForwardedHeaders === true;
 	const forward: Record<string, string> = {
-		...extractRelevantHeaders(options.headers),
+		...extractRelevantHeaders(options.headers, {
+			trustForwardedHeaders: trustForwarded,
+		}),
 	};
 	const cookieHeader = options.cookieHeader ?? options.headers.get('cookie');
 	if (cookieHeader) {
 		forward.cookie = cookieHeader;
 	}
+	const clientForwarding = new Set<string>(CLIENT_FORWARDING_HEADERS);
 	for (const key of options.forwardHeaders ?? []) {
+		// Client-settable forwarding headers need the explicit opt-in, even
+		// when named here.
+		if (!trustForwarded && clientForwarding.has(key.toLowerCase())) {
+			continue;
+		}
 		const value = options.headers.get(key);
 		if (value) {
 			forward[key.toLowerCase()] = value;
@@ -114,10 +123,13 @@ const resolveConsentState = async function resolveConsentState(
 	if (!options.backendURL) {
 		return base;
 	}
-	const absoluteBackend = normalizeBackendURL(
-		options.backendURL,
-		options.headers
-	);
+	// Never resolve against client-supplied forwarding headers by default:
+	// the call below carries the request's cookies to whatever host this is.
+	const absoluteBackend = resolveRequestBackendURL(options.backendURL, {
+		headers: options.headers,
+		requestURL: options.requestURL,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 	if (!absoluteBackend) {
 		return base;
 	}

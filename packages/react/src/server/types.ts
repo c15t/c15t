@@ -13,9 +13,21 @@ import type { Overrides, SSRInitialData } from '@c15t/core';
 export interface FetchSSRDataOptionsBase {
 	/**
 	 * The backend URL to fetch consent data from.
-	 * Can be absolute (https://...) or relative (/api/consent).
+	 * Can be absolute (https://...) or relative (/api/consent). A relative
+	 * URL resolves against the request's `host` header.
 	 */
 	backendURL: string;
+
+	/**
+	 * Resolve a relative `backendURL` against the request's `forwarded`,
+	 * `x-forwarded-host` and `x-forwarded-proto` headers instead of `host`.
+	 * Any client can send those headers, so set this only behind a proxy
+	 * that sets them and drops incoming ones. Also forwards those three
+	 * headers to the backend, which is skipped otherwise.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
 
 	/**
 	 * Optional overrides for geo-location.

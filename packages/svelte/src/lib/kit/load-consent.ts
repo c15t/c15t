@@ -30,7 +30,8 @@ import type { C15tLocals, ConsentRequestOptions, ConsentState } from './types';
 export interface LoadConsentOptions extends ConsentRequestOptions {
 	/**
 	 * Hosted mode: the c15t backend base URL, absolute or origin-relative.
-	 * `loadConsent` calls its `/init` directly.
+	 * `loadConsent` calls its `/init` directly. A relative URL resolves
+	 * against `event.url`.
 	 */
 	backendURL?: string;
 
@@ -44,8 +45,26 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 */
 	initRoute?: string;
 
-	/** Extra request headers to forward upstream in hosted mode. */
+	/**
+	 * Extra request headers to forward upstream in hosted mode. `forwarded`,
+	 * `x-forwarded-host` and `x-forwarded-proto` are skipped unless
+	 * `trustForwardedHeaders` is set.
+	 */
 	forwardHeaders?: string[];
+
+	/**
+	 * Hosted mode: resolve a relative `backendURL` against the request's
+	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
+	 * of `event.url`. Any client can send those headers, and `loadConsent`
+	 * forwards the visitor's cookies to the resolved backend, so set this
+	 * only behind a proxy that sets them and drops incoming ones. Prefer
+	 * SvelteKit's `ORIGIN`, `HOST_HEADER` and `PROTOCOL_HEADER` adapter
+	 * settings, which shape `event.url` itself. Also forwards those three
+	 * headers to the backend, which is skipped otherwise.
+	 *
+	 * @defaultValue false
+	 */
+	trustForwardedHeaders?: boolean;
 
 	/** Fetch implementation for hosted mode. Defaults to `event.fetch`. */
 	fetch?: typeof globalThis.fetch;
@@ -317,6 +336,8 @@ export const loadConsent = async function loadConsent(
 					headers: event.request.headers,
 					language: inputs.language,
 					region: inputs.region,
+					requestURL: event.url,
+					trustForwardedHeaders: options.trustForwardedHeaders,
 				}),
 			timeoutMs,
 			config,

@@ -110,11 +110,27 @@ describe('extractRelevantHeaders', () => {
 		expect(result['x-vercel-ip-country-region']).toBe('BY');
 		expect(result['accept-language']).toBe('de-DE');
 		expect(result['user-agent']).toBe('Mozilla/5.0');
-		expect(result['x-forwarded-host']).toBe('example.com');
+		expect(result).not.toHaveProperty('x-forwarded-host');
 		expect(result['x-forwarded-for']).toBe('1.2.3.4');
 		expect(result['sec-gpc']).toBe('1');
 		expect(result['x-c15t-country']).toBe('DE');
 		expect(result['x-c15t-region']).toBe('BY');
+	});
+
+	test('keeps client forwarding headers only when trusted', () => {
+		const headers = new Headers({
+			forwarded: 'host=attacker.example',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
+		expect(extractRelevantHeaders(headers)).toEqual({});
+		expect(
+			extractRelevantHeaders(headers, { trustForwardedHeaders: true })
+		).toEqual({
+			forwarded: 'host=attacker.example',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
+		});
 	});
 
 	test('preserves explicit x-c15t override headers over infra headers', () => {
@@ -192,16 +208,17 @@ describe('normalizeBackendURL', () => {
 		expect(result).toBe('https://api.example.com/consent');
 	});
 
-	test('relative URL resolved with x-forwarded-host and x-forwarded-proto', () => {
+	test('relative URL ignores forged x-forwarded-host and x-forwarded-proto', () => {
 		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-proto': 'https',
+			host: 'app.example.com',
+			'x-forwarded-host': 'attacker.example',
+			'x-forwarded-proto': 'http',
 		});
 		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('https://example.com/api/consent');
+		expect(result).toBe('https://app.example.com/api/consent');
 	});
 
-	test('relative URL resolved with host header (no x-forwarded-host)', () => {
+	test('relative URL resolved with host header', () => {
 		const headers = new Headers({
 			host: 'example.com',
 		});
@@ -209,29 +226,18 @@ describe('normalizeBackendURL', () => {
 		expect(result).toBe('https://example.com/api/consent');
 	});
 
-	test('defaults to https when no x-forwarded-proto', () => {
-		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
-		});
+	test('uses http for a loopback host', () => {
+		const headers = new Headers({ host: 'localhost:5173' });
 		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('https://example.com/api/consent');
+		expect(result).toBe('http://localhost:5173/api/consent');
 	});
 
-	test('uses x-forwarded-proto when provided', () => {
-		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
-			'x-forwarded-proto': 'http',
-		});
-		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('http://example.com/api/consent');
-	});
-
-	test('falls back to referer when no host headers', () => {
+	test('does not fall back to the referer', () => {
 		const headers = new Headers({
 			referer: 'https://mysite.com/page',
 		});
 		const result = normalizeBackendURL('/api/consent', headers);
-		expect(result).toBe('https://mysite.com/api/consent');
+		expect(result).toBeNull();
 	});
 
 	test('returns null when cannot resolve relative URL', () => {
@@ -248,7 +254,7 @@ describe('normalizeBackendURL', () => {
 
 	test('trims trailing slash from resolved URL', () => {
 		const headers = new Headers({
-			'x-forwarded-host': 'example.com',
+			host: 'example.com',
 		});
 		const result = normalizeBackendURL('/api/consent/', headers);
 		expect(result).toBe('https://example.com/api/consent');
@@ -320,6 +326,82 @@ describe('v3 server helpers', () => {
 		});
 		expect(result.initialOverrides?.country).toBe('DE');
 		expect(mockFetch).not.toHaveBeenCalled();
+	});
+
+	test('resolveConsent does not send cookies to a forged x-forwarded-host', async () => {
+		mockFetch.mockResolvedValue(
+			new Response(JSON.stringify({ branding: 'c15t' }), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+			})
+		);
+		const headers = new Headers({
+			cookie: 'c15t=abc',
+			host: 'app.example.com',
+			'x-forwarded-host': 'attacker.example',
+		});
+
+		await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: mockFetch,
+			headers,
+			requestURL: 'https://app.example.com/page',
+		});
+
+		expect(mockFetch).toHaveBeenCalledOnce();
+		expect(mockFetch.mock.calls[0][0]).toBe(
+			'https://app.example.com/api/c15t/init'
+		);
+	});
+
+	test('resolveConsent does not forward client forwarding headers to the backend', async () => {
+		mockFetch.mockResolvedValue(
+			new Response(JSON.stringify({ branding: 'c15t' }), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		await resolveConsent({
+			backendURL: 'https://api.example.com',
+			fetch: mockFetch,
+			// Naming them in forwardHeaders does not bypass the rule.
+			forwardHeaders: ['forwarded', 'x-forwarded-host', 'x-forwarded-proto'],
+			headers: new Headers({
+				forwarded: 'host=attacker.example',
+				'x-forwarded-host': 'attacker.example',
+				'x-forwarded-proto': 'http',
+			}),
+		});
+
+		const sent = new Headers(mockFetch.mock.calls[0][1].headers);
+		expect(sent.has('forwarded')).toBe(false);
+		expect(sent.has('x-forwarded-host')).toBe(false);
+		expect(sent.has('x-forwarded-proto')).toBe(false);
+	});
+
+	test('resolveConsent honours x-forwarded-host only when trusted', async () => {
+		mockFetch.mockResolvedValue(
+			new Response(JSON.stringify({ branding: 'c15t' }), {
+				headers: { 'Content-Type': 'application/json' },
+				status: 200,
+			})
+		);
+
+		await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: mockFetch,
+			headers: new Headers({
+				'x-forwarded-host': 'edge.example.com',
+				'x-forwarded-proto': 'https',
+			}),
+			requestURL: 'http://127.0.0.1:3000/',
+			trustForwardedHeaders: true,
+		});
+
+		expect(mockFetch.mock.calls[0][0]).toBe(
+			'https://edge.example.com/api/c15t/init'
+		);
 	});
 
 	test('resolveConsent calls normalized URL /init', async () => {
