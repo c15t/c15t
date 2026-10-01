@@ -13,6 +13,7 @@ packages:
   '@c15t/scripts': patch
   '@c15t/backend': patch
   '@c15t/cli': patch
+  '@c15t/iab': patch
 ---
 
 ### Ship a c15t skill and the v3 guides in every package
@@ -25,4 +26,5 @@ it for the first time.
 
 The bundled docs follow the rewritten v3 guides: concept pages, a setup
 chooser, a full page set for every framework, and a new HTML guide for the
-script tag in `@c15t/browser`.
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
