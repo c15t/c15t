@@ -153,7 +153,8 @@ Some code still needs your own entry in the policy:
   one's text to `security.csp.scriptDirective.hashes`.
 - Scripts registered from the `clientEntrypoint` module. The integration
   cannot see them when it computes the hashes, so add the hash of each inline
-  one yourself.
+  one yourself. With Astro's CSP on, c15t logs a console error that names
+  each inline entrypoint script the policy is missing and the hash to add.
 - Vendor script hosts. Add them to `security.csp.scriptDirective.resources`,
   together with `'self'`, which a custom list no longer includes.
 
