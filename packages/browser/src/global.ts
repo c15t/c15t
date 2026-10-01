@@ -201,11 +201,44 @@ const runQueued = async function runQueued(
 };
 
 /**
+ * The tail of each API's action chain. Every batch of queued actions runs
+ * after the batch before it settles, so actions from separate `push()`
+ * calls keep their order.
+ */
+const actionChains = new WeakMap<C15tGlobal, Promise<void>>();
+
+/**
+ * Run a batch of consent and UI actions once the policy has resolved and
+ * every earlier batch for the same API has finished.
+ */
+const enqueueActions = function enqueueActions(
+	api: C15tGlobal,
+	actions: readonly QueuedCall[]
+): void {
+	const previous = actionChains.get(api);
+	const run = async function run(): Promise<void> {
+		// `runQueued` reports its own failures, so the chain never rejects.
+		await previous;
+		try {
+			await api.ready();
+		} catch {
+			// The actions still run; the client reports its own errors.
+		}
+		for (const call of actions) {
+			// oxlint-disable-next-line no-await-in-loop -- Queue order is the contract.
+			await runQueued(api, call);
+		}
+	};
+	actionChains.set(api, run());
+};
+
+/**
  * Replay the calls a page pushed onto `window.c15t` before the script
  * loaded. `config`, `init`, `on` and `onInit` run in place, `subscribe`
  * attaches once the client exists, and consent and UI actions run in
- * queue order once the policy has resolved. Anything else is skipped
- * with a warning. A call that throws is reported and the rest still run.
+ * queue order once the policy has resolved, after any actions from
+ * earlier `push()` calls. Anything else is skipped with a warning. A
+ * call that throws is reported and the rest still run.
  */
 const replayQueue = function replayQueue(
 	api: C15tGlobal,
@@ -241,17 +274,7 @@ const replayQueue = function replayQueue(
 	if (actions.length === 0) {
 		return;
 	}
-	api.onInit(async (client) => {
-		try {
-			await client.ready();
-		} catch {
-			// The actions still run; the client reports its own errors.
-		}
-		for (const call of actions) {
-			// oxlint-disable-next-line no-await-in-loop -- Queue order is the contract.
-			await runQueued(api, call);
-		}
-	});
+	enqueueActions(api, actions);
 };
 
 /**

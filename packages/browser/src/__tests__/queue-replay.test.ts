@@ -168,6 +168,43 @@ describe('c15t.push after the tag loads', () => {
 		expect(onConsent).toHaveBeenCalled();
 	});
 
+	it('waits for an earlier push to settle before running the next one', async () => {
+		const api = loadTag([['config', options]]);
+		const order: string[] = [];
+		let finishFirst: () => void = () => undefined;
+		api.acceptAll = () => {
+			order.push('acceptAll:start');
+			return new Promise<boolean>((resolve) => {
+				finishFirst = () => {
+					order.push('acceptAll:end');
+					resolve(true);
+				};
+			});
+		};
+		api.rejectAll = () => {
+			order.push('rejectAll');
+			return Promise.resolve(true);
+		};
+
+		api.push(['acceptAll']);
+		api.push(['rejectAll']);
+
+		await vi.waitFor(() => {
+			expect(order).toEqual(['acceptAll:start']);
+		});
+		await api.ready();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(order).toEqual(['acceptAll:start']);
+
+		finishFirst();
+
+		await vi.waitFor(() => {
+			expect(order).toEqual(['acceptAll:start', 'acceptAll:end', 'rejectAll']);
+		});
+	});
+
 	it('warns about an unsupported method and keeps going', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const api = loadTag([['config', options]]);
