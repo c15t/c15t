@@ -79,16 +79,17 @@ group: integrations
 statableAnalytics({
   siteId: '12345',
   scriptUrl: 'https://cdn.example.com/{siteId}/s.js',
-  trackingApi: 'https://ingest.statable.com',
+  trackingApi: 'https://ingest.statable.com/api/event',
 });
 ```
 
 - `siteId` (required) accepts a string or finite number; blank input throws `statableAnalytics: missing siteId` and non-numeric or non-finite values throw `statableAnalytics: invalid siteId`. Every finite numeric form is accepted (0, negatives, decimals, scientific notation).
+- `scriptUrl` (optional) overrides the tracker URL. Every `{siteId}` placeholder is replaced with the resolved site id. Leave it unset to use `https://statable.com/js/{siteId}/s.js`.
+- `trackingApi` (optional) sets the event ingestion endpoint via the `data-tracking-api` attribute. The tracker posts to this value **as-is** — it does not append `/api/event` — so provide a complete endpoint including the path (for example `https://ingest.statable.com/api/event`). Without `trackingApi`, the tracker derives the endpoint from the script host (`new URL(currentScript.src).origin + '/api/event'`); when you serve the tracker from a CDN via `scriptUrl`, a complete `trackingApi` is required or events are posted to the CDN and lost. Blank values are ignored.
 
 ## Plan requirement
 
 The standalone tracker at `/js/{siteId}/s.js` is available only on plans that include it. Statable's **Hobby** plan does not include the standalone tracker — its script ships with the site widget. If you are on Hobby, use the installation snippet generated from your Statable widget instead of this integration.
-- `scriptUrl` (optional) overrides the tracker URL. Every `{siteId}` placeholder is replaced with the resolved site id. Leave it unset to use `https://statable.com/js/{siteId}/s.js`.
 
 ## Custom events
 
