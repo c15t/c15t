@@ -312,6 +312,7 @@ export const getEffectiveGateState = function getEffectiveGateState(
 	}
 	const evaluation = evaluateConsentRecord({
 		choice: snapshot.explicitChoice,
+		exemptionPreferences: snapshot.exemptionPreferences,
 		gpc: snapshot.privacySignals.gpc.active,
 		noticeDismissal: snapshot.noticeDismissal,
 		now,

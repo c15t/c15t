@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1"
+		/>
+		<title>UK exemptions demo | c15t</title>
+		<link
+			rel="stylesheet"
+			href="/styles.css"
+		/>
+		<script
+			type="module"
+			src="/app.js"
+		></script>
+	</head>
+	<body>
+		<header class="demo-header">
+			<a
+				class="brand"
+				href="/"
+				aria-label="c15t demo home"
+				>c15t<span class="brand-dot">.</span></a
+			>
+			<span class="prototype-tag">Live kernel demo</span>
+		</header>
+		<main>
+			<div class="intro">
+				<p class="eyebrow">UK cookie exemptions</p>
+				<h1>Statistics can start. Advertising waits.</h1>
+				<p class="intro-copy">
+					Try a visitor's choices on the left. Watch what is allowed on the
+					right.
+				</p>
+			</div>
+			<section
+				class="scenario"
+				aria-label="Demo settings"
+			>
+				<div class="location-control">
+					<span id="location-label">Visitor location</span>
+					<div
+						class="segmented"
+						role="group"
+						aria-labelledby="location-label"
+					>
+						<button
+							type="button"
+							data-region="uk"
+							aria-pressed="true"
+						>
+							United Kingdom
+						</button>
+						<button
+							type="button"
+							data-region="eu"
+							aria-pressed="false"
+						>
+							European Union
+						</button>
+						<button
+							type="button"
+							data-region="unknown"
+							aria-pressed="false"
+						>
+							Unknown
+						</button>
+					</div>
+				</div>
+				<button
+					class="button button-secondary"
+					id="reset"
+					type="button"
+				>
+					Start a fresh visit
+				</button>
+			</section>
+			<div class="demo-grid">
+				<section
+					class="site-card"
+					aria-label="Example website"
+				>
+					<div class="site-header">
+						<span class="site-name">Fieldnotes</span
+						><button
+							class="text-button"
+							type="button"
+							id="open-preferences"
+						>
+							Privacy settings
+						</button>
+					</div>
+					<section
+						class="consent-banner"
+						id="consent-banner"
+						aria-labelledby="banner-title"
+					>
+						<p class="eyebrow">Your privacy</p>
+						<h3 id="banner-title">A choice for advertising</h3>
+						<p id="banner-copy">
+							We use qualifying service statistics to improve this site. You can
+							turn them off in privacy settings. Advertising stays off unless
+							you allow it.
+						</p>
+						<div class="banner-actions">
+							<button
+								class="button button-consent"
+								type="button"
+								id="accept"
+							>
+								Allow advertising</button
+							><button
+								class="button button-consent"
+								type="button"
+								id="reject"
+							>
+								Reject optional processing
+							</button>
+						</div>
+						<button
+							class="text-button"
+							type="button"
+							id="manage"
+						>
+							Choose individually
+						</button>
+					</section>
+					<div class="article">
+						<p class="eyebrow">A quieter internet</p>
+						<h2>Make room for curiosity.</h2>
+						<p>
+							Stories about the places, ideas and everyday details worth paying
+							attention to.
+						</p>
+						<div
+							class="article-art"
+							aria-hidden="true"
+						>
+							<div class="sun"></div>
+							<div class="hill hill-back"></div>
+							<div class="hill hill-front"></div>
+							<div class="art-caption">The weekend edition / 028</div>
+						</div>
+						<button
+							class="button button-secondary"
+							type="button"
+							id="page-view"
+						>
+							Visit another article <span aria-hidden="true">↗</span>
+						</button>
+						<div
+							class="ad-slot"
+							id="ad-slot"
+						>
+							<span id="ad-label">Advertising is blocked</span>
+							<p id="ad-copy">
+								An ad appears here only after you give consent.
+							</p>
+						</div>
+					</div>
+
+					<footer class="site-footer">
+						<span>© Fieldnotes</span><span id="visit-label">First visit</span>
+					</footer>
+				</section>
+				<aside
+					class="observer"
+					aria-label="Live explanation"
+				>
+					<div class="observer-heading">
+						<h2>What is happening</h2>
+						<span class="live-tag">Live</span>
+					</div>
+					<p
+						class="observer-intro"
+						id="region-explanation"
+					>
+						UK visitor. Only the reviewed statistics use qualifies for an
+						exemption.
+					</p>
+					<div class="permission-card">
+						<div class="permission-title">
+							<h3>Service statistics</h3>
+							<span
+								class="status"
+								id="statistics-status"
+								>Running</span
+							>
+						</div>
+						<p id="statistics-reason">
+							On under the exemption. No consent was given.
+						</p>
+						<div class="receipt">
+							<span>Consent grant</span
+							><strong id="statistics-grant">None</strong>
+						</div>
+						<div class="receipt">
+							<span>Simulated page views</span
+							><strong id="statistics-events">0</strong>
+						</div>
+					</div>
+					<div class="permission-card">
+						<div class="permission-title">
+							<h3>Advertising</h3>
+							<span
+								class="status"
+								id="advertising-status"
+								>Blocked</span
+							>
+						</div>
+						<p id="advertising-reason">Waiting for your explicit consent.</p>
+						<div class="receipt">
+							<span>Consent grant</span
+							><strong id="advertising-grant">None</strong>
+						</div>
+						<div class="receipt">
+							<span>Simulated page views</span
+							><strong id="advertising-events">0</strong>
+						</div>
+					</div>
+					<div class="try-note">
+						<p class="eyebrow">Try this</p>
+						<p id="try-copy">
+							Allow advertising, then open privacy settings and turn statistics
+							off. Advertising can stay on.
+						</p>
+					</div>
+					<p
+						id="feedback"
+						class="feedback"
+						role="status"
+						aria-live="polite"
+					>
+						A simulated page view has been evaluated.
+					</p>
+				</aside>
+			</div>
+			<details class="demo-notes">
+				<summary>About this demo and the exemption</summary>
+				<div class="notes-content">
+					<p>
+						This demo runs the workspace consent kernel and the new exemption
+						policy. Integrations are simulated; no analytics or advertising
+						requests are sent. Each location has a separate visitor whose
+						preferences survive reloading.
+					</p>
+					<p>
+						The example assumes aggregate statistics used only to improve this
+						service, with clear information, restricted sharing and a free way
+						to object. An analytics product name does not establish eligibility.
+					</p>
+					<label class="exemption-setting"
+						><input
+							type="checkbox"
+							id="exemption-enabled"
+							checked
+						/><span>Statistics qualify for the UK exemption</span></label
+					>
+					<p>
+						Turn this off to see a policy change. Statistics then require
+						consent; permission from the exemption does not become a consent
+						grant.
+					</p>
+					<a
+						href="https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/"
+						target="_blank"
+						rel="noreferrer"
+						>Read the ICO's exemption guidance ↗</a
+					>
+				</div>
+			</details>
+		</main>
+		<dialog
+			id="preferences"
+			aria-labelledby="preferences-title"
+			aria-describedby="preferences-description"
+		>
+			<form id="preferences-form">
+				<div class="dialog-header">
+					<p class="eyebrow">Fieldnotes / Privacy</p>
+					<button
+						class="close-button"
+						type="button"
+						id="close-preferences"
+						aria-label="Close privacy settings"
+					>
+						×
+					</button>
+				</div>
+				<h2 id="preferences-title">Your privacy settings</h2>
+				<p id="preferences-description">
+					Choose what can run. You can change these settings at any time.
+				</p>
+				<div class="necessary-row">
+					<div>
+						<h3>Essential storage</h3>
+						<p>Remembers your privacy choices.</p>
+					</div>
+					<span class="always-on">Always on</span>
+				</div>
+				<label
+					class="preference-row"
+					for="statistics-toggle"
+					><span class="preference-copy"
+						><span class="preference-title">Service statistics</span
+						><span
+							class="basis-label"
+							id="statistics-basis"
+							>Exempt, with a right to object</span
+						><span
+							class="preference-description"
+							id="statistics-description"
+							>Aggregate information to improve this site. Enabled by default;
+							turn it off to object.</span
+						></span
+					><input
+						class="switch"
+						type="checkbox"
+						id="statistics-toggle"
+						role="switch"
+						aria-describedby="statistics-description"
+				/></label>
+				<label
+					class="preference-row"
+					for="advertising-toggle"
+					><span class="preference-copy"
+						><span class="preference-title">Advertising</span
+						><span class="basis-label">Requires your consent</span
+						><span
+							class="preference-description"
+							id="advertising-description"
+							>Enables advertising and its measurement. Starts disabled; turn it
+							on to give consent.</span
+						></span
+					><input
+						class="switch"
+						type="checkbox"
+						id="advertising-toggle"
+						role="switch"
+						aria-describedby="advertising-description"
+				/></label>
+				<div class="dialog-actions">
+					<button
+						class="button button-primary"
+						type="submit"
+					>
+						Save privacy settings</button
+					><button
+						class="text-button"
+						type="button"
+						id="dialog-reject"
+					>
+						Turn off optional processing
+					</button>
+				</div>
+			</form>
+		</dialog>
+	</body>
+</html>

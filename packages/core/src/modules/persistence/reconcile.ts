@@ -49,12 +49,16 @@ import {
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
+import {
+	exemptionsSinceEpoch,
+	mergeExemptionPreferences,
+} from './exemption-record';
 import type { StoredRecords } from './hydrate';
 
 /** The parts of a storage read that reconciliation consults. */
 export type StoredRead = Pick<
 	StoredRecords,
-	'records' | 'vendorSubject' | 'epoch'
+	'records' | 'vendorSubject' | 'exemptionSubject' | 'epoch'
 >;
 
 const canonical = function canonical(value: unknown): unknown {
@@ -256,7 +260,7 @@ export const mayWriteNotice = function mayWriteNotice(
 // ---------------------------------------------------------------------------
 
 /** The stored records, each read and written on its own. */
-export type StoredRecordKind = 'choice' | 'notice' | 'vendors';
+export type StoredRecordKind = 'choice' | 'notice' | 'vendors' | 'exemptions';
 
 /**
  * What storage held for each record the last time this runtime read or
@@ -272,6 +276,7 @@ const fingerprint = function fingerprint(value: unknown): string {
 /** Fingerprints of readable storage holding none of the records. */
 const ABSENT: Record<StoredRecordKind, string> = {
 	choice: fingerprint(null),
+	exemptions: fingerprint([null, null]),
 	notice: fingerprint(null),
 	vendors: fingerprint([null, null]),
 };
@@ -303,6 +308,12 @@ export const fingerprintStoredRecords = function fingerprintStoredRecords(
 		prints.vendors = fingerprint([
 			stored.vendorChoice,
 			stored.vendorChoice ? read.vendorSubject : null,
+		]);
+	}
+	if (stored.exemptionPreferences !== undefined) {
+		prints.exemptions = fingerprint([
+			stored.exemptionPreferences,
+			stored.exemptionPreferences ? (read.exemptionSubject ?? null) : null,
 		]);
 	}
 	return prints;
@@ -499,6 +510,10 @@ const sinceEpoch = function sinceEpoch(
 ): ConsentSnapshot {
 	return {
 		...snapshot,
+		exemptionPreferences: exemptionsSinceEpoch(
+			snapshot.exemptionPreferences,
+			epoch
+		),
 		explicitChoice: choiceSinceEpoch(
 			snapshot.explicitChoice,
 			epoch,
@@ -515,6 +530,7 @@ const EPOCH_FIELDS = [
 	['noticeDismissal', 'noticeDismissal'],
 	['subject', 'subject'],
 	['vendorChoice', 'vendorChoice'],
+	['exemptionPreferences', 'exemptionPreferences'],
 ] as const;
 
 /**
@@ -532,6 +548,45 @@ const applyVoided = function applyVoided(
 			view[snapshotKey] !== snapshot[snapshotKey]
 		) {
 			Object.assign(records, { [recordKey]: view[snapshotKey] });
+		}
+	}
+};
+
+/** Apply preference changes independently of receipts and preserve preference-only identity. */
+const reconcileExemptions = (
+	view: ConsentSnapshot,
+	stored: HydrationRecords,
+	records: HydrationRecords,
+	movement: Movement,
+	subjectYields: boolean
+): void => {
+	if (stored.exemptionPreferences === null && movement.removed('exemptions')) {
+		records.exemptionPreferences = null;
+	} else if (stored.exemptionPreferences) {
+		const merged = mergeExemptionPreferences(
+			view.exemptionPreferences,
+			stored.exemptionPreferences
+		);
+		if (!sameRecord(merged, view.exemptionPreferences)) {
+			records.exemptionPreferences = merged;
+		}
+	}
+	if (
+		!stored.choice &&
+		!stored.vendorChoice &&
+		movement.changed('exemptions')
+	) {
+		if (
+			movement.removed('exemptions') &&
+			!view.explicitChoice &&
+			!view.vendorChoice
+		) {
+			records.subject = null;
+		} else if (
+			stored.exemptionPreferences &&
+			(subjectYields || !view.subject)
+		) {
+			records.subject = stored.subject;
 		}
 	}
 };
@@ -616,6 +671,7 @@ export const selectReconciledRecords = function selectReconciledRecords(
 		records.noticeDismissal = stored.noticeDismissal ?? null;
 	}
 
+	reconcileExemptions(view, stored, records, movement, subjectYields);
 	applyVoided(records, view, snapshot);
 
 	return {

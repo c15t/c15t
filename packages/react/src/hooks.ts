@@ -383,6 +383,18 @@ export const useExplicitChoice =
 		return useKernelSelector((snapshot) => snapshot.explicitChoice);
 	};
 
+/**
+ * Recorded preferences for exempt processing. An enabled preference is not
+ * an explicit consent grant. Use the consent draft to stage an objection.
+ *
+ * @returns Saved exemption preferences, or null before a preference is saved.
+ * @public
+ */
+export const useExemptionPreferences =
+	function useExemptionPreferences(): ConsentSnapshot['exemptionPreferences'] {
+		return useKernelSelector((snapshot) => snapshot.exemptionPreferences);
+	};
+
 /** Read effectivePermissions from the kernel without a competing projection. */
 export const useEffectivePermissions =
 	function useEffectivePermissions(): ConsentSnapshot['effectivePermissions'] {

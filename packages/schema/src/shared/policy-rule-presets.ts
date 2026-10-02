@@ -344,6 +344,16 @@ export interface PolicyRulePresets {
 	canadaOptOut: () => PolicyRule;
 	/** UK: service statistics only, with information and free objection. Advertising stays denied. */
 	ukStatistics: () => PolicyRule;
+	/**
+	 * UK: qualifying statistics with objection controls and advertising by consent.
+	 *
+	 * @param revision - Revision of the operator's reviewed eligibility declaration.
+	 * @returns A strict measurement/marketing opt-in rule with a statistics exception.
+	 * @throws {TypeError} When revision is empty.
+	 * @example
+	 * `policyRulePresets.ukStatisticsAndConsent('statistics-review-1')`
+	 */
+	ukStatisticsAndConsent: (revision: string) => PolicyRule;
 	/** Malaysia: solely statistics/research, nonidentifying output and no secondary uses. */
 	malaysiaStatistics: () => PolicyRule;
 
@@ -734,6 +744,24 @@ export const policyRulePresets: PolicyRulePresets = {
 		categories: ['measurement'],
 		scopeMode: 'strict',
 	}),
+	ukStatisticsAndConsent: (revision) => {
+		if (typeof revision !== 'string' || !revision.trim()) {
+			throw new TypeError(
+				'UK statistics requires a non-empty eligibility revision.'
+			);
+		}
+		return {
+			...policyRulePresets.ukStatistics(),
+			categories: ['measurement', 'marketing'],
+			exemptions: {
+				measurement: { kind: 'uk-statistics', revision: revision.trim() },
+			},
+			id: 'uk_statistics_and_consent',
+			model: 'opt-in',
+			prompt: 'choice',
+			scopeMode: 'strict',
+		};
+	},
 	usPrivacyStatesOptIn: () => usPrivacyStatesRule('opt-in'),
 	usPrivacyStatesOptOut: () => usPrivacyStatesRule('opt-out'),
 	vietnamOptIn: () =>

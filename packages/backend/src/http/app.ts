@@ -8,7 +8,10 @@
  * readable.
  */
 
-import { POLICY_CONTRACT_HEADER, POLICY_CONTRACT_VERSION } from '@c15t/schema';
+import {
+	POLICY_CONTRACT_HEADER,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
+} from '@c15t/schema';
 import { isOriginTrusted } from '@c15t/schema/geo';
 import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/unstable/sql';
@@ -81,7 +84,7 @@ export const createApp = function createApp(
 		// Which policy contract this producer speaks, on every response and
 		// exposed to browsers, so a client can tell a negotiated producer from
 		// one that predates the contract without guessing from a version.
-		c.header(POLICY_CONTRACT_HEADER, String(POLICY_CONTRACT_VERSION));
+		c.header(POLICY_CONTRACT_HEADER, String(POLICY_SUPPORTED_CONTRACT_VERSION));
 		if (allowed && origin) {
 			c.header('Access-Control-Expose-Headers', POLICY_CONTRACT_HEADER);
 		}

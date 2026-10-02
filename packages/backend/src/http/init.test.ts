@@ -438,3 +438,62 @@ describe('init with a matching policy', () => {
 		assert.strictEqual(claims.aud, 'c15t-policy-snapshot:tenant_1');
 	});
 });
+
+describe('UK exemption contract negotiation', () => {
+	const mixed: ConsentManifestConfig = {
+		policyRules: [
+			{
+				exemptions: { measurement: { kind: 'uk-statistics', revision: '1' } },
+				id: 'uk-mixed',
+				match: { countries: ['GB'] },
+				model: 'opt-in',
+				prompt: 'choice',
+			},
+		],
+	};
+
+	it('requires explicit exemption capability before enabling exempt processing', async () => {
+		await Promise.all(
+			[undefined, '1'].map(async (capability) => {
+				const headers = new Headers({ 'x-c15t-country': 'GB' });
+				if (capability) {
+					headers.set('x-c15t-policy-contract', capability);
+				}
+				const result = await buildInitResponse(mixed, headers);
+				assert.deepStrictEqual(result.body.policyResolution, {
+					policy: null,
+					reason: 'unsupported-contract',
+					status: 'failed',
+					version: 1,
+				});
+			})
+		);
+		const result = await buildInitResponse(
+			mixed,
+			new Headers({
+				'x-c15t-country': 'GB',
+				'x-c15t-policy-contract': '2',
+			})
+		);
+		assert.strictEqual(result.body.policyResolution.version, 2);
+		assert.strictEqual(result.body.policyResolution.status, 'matched');
+	});
+
+	it('serves an ordinary version 1 policy to a version 2 client', async () => {
+		const result = await buildInitResponse(
+			{
+				policyRules: [
+					{
+						id: 'ordinary',
+						match: { countries: ['DE'] },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			},
+			new Headers({ 'x-c15t-country': 'DE', 'x-c15t-policy-contract': '2' })
+		);
+		assert.strictEqual(result.body.policyResolution.version, 1);
+		assert.strictEqual(result.body.policyResolution.status, 'matched');
+	});
+});

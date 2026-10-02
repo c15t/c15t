@@ -14,6 +14,7 @@ import type {
 	CategoryDecision,
 	ChoiceBasis,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 } from './types';
@@ -269,3 +270,70 @@ export const validateNoticeDismissal = function validateNoticeDismissal(
 		},
 	};
 };
+
+/** Validates objection preferences without converting them into consent receipts. */
+export const validateExemptionPreferences =
+	function validateExemptionPreferences(
+		input: unknown,
+		now: number
+	): ValidationResult<ExemptionPreferences> {
+		if (!isPlainRecord(input)) {
+			return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
+		}
+		if (ownValue(input, 'version') !== 1) {
+			return {
+				issues: [{ code: 'unsupported-version', path: 'version' }],
+				ok: false,
+			};
+		}
+		const raw = ownValue(input, 'categories');
+		if (!isPlainRecord(raw)) {
+			return {
+				issues: [{ code: 'not-an-object', path: 'categories' }],
+				ok: false,
+			};
+		}
+		const issues: RecordIssue[] = [];
+		const categories: ExemptionPreferences['categories'] = {};
+		for (const key of ownKeys(input)) {
+			if (key !== 'version' && key !== 'categories') {
+				issues.push({ code: 'unknown-key', path: key });
+			}
+		}
+		for (const key of ownKeys(raw)) {
+			const path = `categories.${key}`;
+			if (!isOptionalConsentCategory(key)) {
+				issues.push({ code: 'unknown-key', path });
+				continue;
+			}
+			const entry = raw[key];
+			if (!isPlainRecord(entry)) {
+				issues.push({ code: 'not-an-object', path });
+				continue;
+			}
+			for (const field of ownKeys(entry)) {
+				if (field !== 'value' && field !== 'confirmedAt') {
+					issues.push({ code: 'unknown-key', path: `${path}.${field}` });
+				}
+			}
+			const value = ownValue(entry, 'value');
+			const confirmedAt = ownValue(entry, 'confirmedAt');
+			const timestampIssue = checkTimestamp(confirmedAt, now);
+			if (typeof value !== 'boolean') {
+				issues.push({ code: 'invalid-boolean', path: `${path}.value` });
+			}
+			if (timestampIssue) {
+				issues.push({ code: timestampIssue, path: `${path}.confirmedAt` });
+			}
+			if (
+				typeof value === 'boolean' &&
+				typeof confirmedAt === 'number' &&
+				!timestampIssue
+			) {
+				categories[key] = { confirmedAt, value };
+			}
+		}
+		return issues.length > 0
+			? { issues, ok: false }
+			: { ok: true, record: { categories, version: 1 } };
+	};

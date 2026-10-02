@@ -34,8 +34,13 @@ import type { LegacyRecordEncoding } from '../../consent-record/normalize';
 import type {
 	ConsentSubject,
 	ExplicitChoice,
+	ExemptionPreferences,
 } from '../../consent-record/types';
-import { isPlainRecord, ownValue } from '../../consent-record/validation';
+import {
+	isPlainRecord,
+	ownValue,
+	validateExemptionPreferences,
+} from '../../consent-record/validation';
 import {
 	deleteConsentFromStorage,
 	deleteCookie,
@@ -56,6 +61,10 @@ import {
 	STORAGE_KEY_V2,
 } from '../../libs/storage-keys';
 import { choiceSinceEpoch } from './epoch';
+import {
+	exemptionsSinceEpoch,
+	mergeExemptionPreferences,
+} from './exemption-record';
 import {
 	decodeClearEpoch,
 	decodeNoticeDismissal,
@@ -104,6 +113,7 @@ export interface ResolvedStorageKeys {
 	legacyConsent: string | null;
 	notice: string;
 	vendors: string;
+	exemptions: string;
 	/** Time of the last clear. Survives the clear it records. */
 	epoch: string;
 	/**
@@ -122,6 +132,7 @@ export const resolveStorageKeys = function resolveStorageKeys(
 		consent,
 		cookieMiss: `${consent}-cookie-miss`,
 		epoch: `${consent}-epoch`,
+		exemptions: `${consent}-exemptions`,
 		legacyConsent: consent === STORAGE_KEY ? null : STORAGE_KEY,
 		notice: `${consent}-notice`,
 		vendors: `${consent}-vendors`,
@@ -1233,6 +1244,162 @@ export const writeStoredClearEpoch = function writeStoredClearEpoch(
 	};
 };
 
+/** Explicit exemption preferences plus the identity a preference-only action created. */
+export type StoredExemptionPreferences = ExemptionPreferences & {
+	subject?: ConsentSubject;
+};
+
+const decodeStoredExemptions = (
+	value: unknown,
+	now: number
+): DecodeResult<StoredExemptionPreferences> => {
+	if (!isPlainRecord(value)) {
+		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
+	}
+	const validated = validateExemptionPreferences(
+		{
+			categories: ownValue(value, 'categories'),
+			version: ownValue(value, 'version'),
+		},
+		now
+	);
+	if (!validated.ok) {
+		return validated;
+	}
+	const record: StoredExemptionPreferences = { ...validated.record };
+	const subject = ownValue(value, 'subject');
+	if (subject !== undefined) {
+		if (!isPlainRecord(subject)) {
+			return {
+				issues: [{ code: 'not-an-object', path: 'subject' }],
+				ok: false,
+			};
+		}
+		const identity: ConsentSubject = {};
+		for (const key of [
+			'subjectId',
+			'externalId',
+			'identityProvider',
+		] as const) {
+			const id = ownValue(subject, key);
+			if (id !== undefined && (typeof id !== 'string' || !id)) {
+				return {
+					issues: [{ code: 'invalid-identifier', path: `subject.${key}` }],
+					ok: false,
+				};
+			}
+			if (typeof id === 'string') {
+				identity[key] = id;
+			}
+		}
+		record.subject = identity;
+	}
+	return { ok: true, record };
+};
+
+const readExemptionCookie = (
+	text: string | null | undefined,
+	now: number
+): DecodeResult<StoredExemptionPreferences> | null => {
+	if (!text) {
+		return null;
+	}
+	try {
+		return decodeStoredExemptions(JSON.parse(decodeURIComponent(text)), now);
+	} catch {
+		return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
+	}
+};
+
+/** Read both projections; a failed cookie write must never hide a newer objection. */
+export const readStoredExemptionPreferences = (
+	config: StorageConfig | undefined,
+	now: number,
+	onUnavailable?: () => void,
+	epoch: number = readStoredClearEpoch(config, now)
+): DecodeResult<StoredExemptionPreferences> | null => {
+	const key = resolveStorageKeys(config).exemptions;
+	const cookie = readExemptionCookie(
+		getRawCookieValue(key, onUnavailable),
+		now
+	);
+	const local = readLocalJson(
+		key,
+		(value) => decodeStoredExemptions(value, now),
+		onUnavailable
+	);
+	const first = cookie?.ok ? exemptionsSinceEpoch(cookie.record, epoch) : null;
+	const second = local?.ok ? exemptionsSinceEpoch(local.record, epoch) : null;
+	const merged = mergeExemptionPreferences(first, second);
+	if (merged) {
+		const record: StoredExemptionPreferences = { ...merged };
+		if (cookie?.ok && first) {
+			record.subject = cookie.record.subject;
+		}
+		if (local?.ok && second && local.record.subject) {
+			record.subject = local.record.subject;
+		}
+		return { ok: true, record };
+	}
+	return cookie?.ok || local?.ok ? null : (local ?? cookie);
+};
+
+/** Cookie-only read for SSR, using the same validation as browser hydration. */
+export const readStoredExemptionPreferencesFromCookieHeader = (
+	cookieHeader: string | undefined,
+	config: StorageConfig | undefined,
+	now: number
+): DecodeResult<StoredExemptionPreferences> | null =>
+	readExemptionCookie(
+		readCookieValueFromHeader(
+			cookieHeader,
+			resolveStorageKeys(config).exemptions
+		),
+		now
+	);
+
+/** Write only explicit preference actions; defaults are never persisted. */
+export const writeStoredExemptionPreferences = (
+	record: StoredExemptionPreferences,
+	config: StorageConfig | undefined,
+	now: number,
+	cookie?: CookieOptions
+): DecodeResult<StoredExemptionPreferences> & {
+	written?: AuxiliaryWriteReport;
+} => {
+	const validated = decodeStoredExemptions(record, now);
+	if (!validated.ok) {
+		return validated;
+	}
+	const key = resolveStorageKeys(config).exemptions;
+	const text = JSON.stringify(validated.record);
+	const localStorage = writeLocalStorageText(key, text);
+	const cookieDetail = writeCookie(
+		key,
+		encodeURIComponent(text),
+		cookie,
+		config
+	);
+	return {
+		...validated,
+		written: {
+			cookie: cookieDetail.attempted && cookieDetail.verified,
+			cookieDetail,
+			localStorage,
+		},
+	};
+};
+
+/** Remove preference evidence and its cookie projection. */
+export const clearStoredExemptionPreferences = (
+	config?: StorageConfig,
+	cookie?: CookieOptions
+): void => {
+	const key = resolveStorageKeys(config).exemptions;
+	removeLocalStorageKey(key);
+	deleteCookie(key, cookie, config);
+};
+
 // ---------------------------------------------------------------------------
 // Clear everything
 // ---------------------------------------------------------------------------
@@ -1254,6 +1421,7 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	clearStoredNoticeDismissal(config, cookie);
 	clearLegacyPrivacyRecord(config, cookie);
 	clearStoredVendorChoice(config, cookie);
+	clearStoredExemptionPreferences(config, cookie);
 	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
 	// Addon bytes must be removed even when the addon is not mounted.
 	removeLocalStorageKey('c15t-iab-authority-v1');

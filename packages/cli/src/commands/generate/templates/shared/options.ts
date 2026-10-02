@@ -109,7 +109,7 @@ export const generateOptionsText = function generateOptionsText(
 			return `mode: custom({
 				async init() {
 					const res = await fetch(${url}, {
-						headers: { 'x-c15t-policy-contract': '1' },
+						headers: { 'x-c15t-policy-contract': '2' },
 					});
 					if (!res.ok) throw new Error('Consent initialization failed');
 					return res.json();
@@ -119,7 +119,7 @@ export const generateOptionsText = function generateOptionsText(
 						method: 'POST',
 						headers: {
 							'Content-Type': 'application/json',
-							'x-c15t-policy-contract': '1',
+							'x-c15t-policy-contract': '2',
 						},
 						body: JSON.stringify(payload),
 					});

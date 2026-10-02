@@ -153,7 +153,7 @@ for (const source of ['scripts', 'frames', 'iframes'] as const) {
 }
 
 test('a site that declares nothing shows only Strictly necessary, and any banner action dismisses it for good', async () => {
-	localStorage.clear();
+	const storageKey = `c15t-category-discovery-${crypto.randomUUID()}`;
 	const resolution = resolvePolicyRules({
 		countryCode: 'DE',
 		regionCode: null,
@@ -186,6 +186,7 @@ test('a site that declares nothing shows only Strictly necessary, and any banner
 				options={{
 					mode: Object.assign(() => ({ save }), { kind: 'custom' as const }),
 					prefetch: { initialPolicyResolution: resolution },
+					storageConfig: { storageKey },
 				}}
 			>
 				<Capture />
@@ -238,7 +239,12 @@ test('a site that declares nothing shows only Strictly necessary, and any banner
 		expect(banner()).toBeNull();
 	} finally {
 		unmount();
-		localStorage.clear();
+		for (const key of Object.keys(localStorage)) {
+			if (key.startsWith(storageKey)) {
+				localStorage.removeItem(key);
+				document.cookie = `${key}=; Max-Age=0; Path=/`;
+			}
+		}
 	}
 });
 

@@ -37,6 +37,7 @@ describe('readStoredRecords', () => {
 		expect(stored.found).toBe(false);
 		expect(stored.records).toEqual({
 			choice: null,
+			exemptionPreferences: null,
 			noticeDismissal: null,
 			now: NOW,
 			subject: null,
@@ -63,6 +64,7 @@ describe('readStoredRecords', () => {
 		const stored = readStoredRecords(undefined, NOW);
 		expect(stored.records).toEqual({
 			choice: explicitChoice({ marketing: true }),
+			exemptionPreferences: null,
 			noticeDismissal: null,
 			now: NOW,
 			subject: null,
@@ -134,6 +136,7 @@ describe('readStoredRecordsFromCookieHeader', () => {
 		const records = readStoredRecordsFromCookieHeader(header, undefined, NOW);
 		expect(records).toEqual({
 			choice: explicitChoice({ marketing: false }),
+			exemptionPreferences: null,
 			noticeDismissal: {
 				dismissedAt: NOW - 1000,
 				fingerprint: 'notice-fp',

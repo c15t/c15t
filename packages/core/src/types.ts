@@ -27,6 +27,7 @@ import type {
 	ConsentSubject,
 	EvaluationPolicy,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 	PromptReason,
@@ -55,6 +56,7 @@ export type {
 	ConsentSubject,
 	EvaluationPolicy,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 	PromptReason,
@@ -284,6 +286,7 @@ export interface VendorChoice {
  */
 export interface HydrationRecords {
 	choice?: ExplicitChoice | null;
+	exemptionPreferences?: ExemptionPreferences | null;
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
 	/** Vendors the subject turned off. `null` clears the denial list. */
@@ -311,6 +314,8 @@ export interface ConsentSnapshot {
 	// -- Consent model -------------------------------------------------------
 	/** Latest explicit per-category receipts. Only accept, reject and save write it. */
 	readonly explicitChoice: Readonly<ExplicitChoice> | null;
+	/** Objections and reversals, kept separately from consent receipts. */
+	readonly exemptionPreferences: Readonly<ExemptionPreferences> | null;
 	/** Effective permissions for script, iframe, network and Consent Mode gates. */
 	readonly effectivePermissions: Readonly<ConsentState>;
 	/** Interaction the active policy still requires. */
@@ -525,6 +530,8 @@ export interface SavePayload {
 	choice: Readonly<ExplicitChoice>;
 	/** Exactly the categories this action confirmed. */
 	confirmed: ConfirmedCoverage;
+	/** Exactly the exemption preferences confirmed by this action. Never consent. */
+	exemptionPreferences?: Readonly<ExemptionPreferences>;
 	/** Effective permissions after the action. */
 	consents: Readonly<ConsentState>;
 	overrides: Readonly<KernelOverrides>;
@@ -586,6 +593,7 @@ export type KernelEvent =
 			type: 'preferences:requested';
 	  }
 	| { type: 'records:cleared' }
+	| { type: 'exemption:recorded'; snapshot: ConsentSnapshot; actionAt: number }
 	| {
 			/** An explicit accept, reject or save recorded a choice. */
 			type: 'choice:recorded';

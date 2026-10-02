@@ -51,6 +51,7 @@ const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
 		? evaluateExternalPermissions(actual.externalPermissions)
 		: evaluateConsentRecord({
 				choice: actual.explicitChoice,
+				exemptionPreferences: actual.exemptionPreferences,
 				gpc: actual.privacySignals.gpc.active,
 				noticeDismissal: actual.noticeDismissal,
 				now: patch.now ?? initial.evaluatedAt,
@@ -69,6 +70,12 @@ test('every patch input agrees with full snapshot derivation', () => {
 		activeUI: { activeUI: 'dialog' },
 		branding: { branding: 'consent' },
 		consentCategories: { consentCategories: ['necessary', 'measurement'] },
+		exemptionPreferences: {
+			exemptionPreferences: {
+				categories: { measurement: { confirmedAt: NOW, value: false } },
+				version: 1,
+			},
+		},
 		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
 		externalPermissions: {
 			externalPermissions: normalizeExternalPermissions({ measurement: true }),

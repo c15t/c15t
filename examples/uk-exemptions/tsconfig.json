@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+		"target": "ES2022",
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"strict": true,
+		"skipLibCheck": true,
+		"noEmit": true,
+		"paths": {
+			"@c15t/core": ["../../packages/core/dist-types/index.d.ts"],
+			"@c15t/schema/types": ["../../packages/schema/dist-types/types.d.ts"]
+		},
+		"types": ["bun"]
+	},
+	"include": ["*.ts"]
+}

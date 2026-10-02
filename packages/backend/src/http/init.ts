@@ -24,6 +24,8 @@ import {
 	parsePolicyContractHeader,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
+	POLICY_EXEMPTION_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 	resolveInitFromManifest,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -104,9 +106,17 @@ export const readInitSignals = function readInitSignals(
 
 /** Negotiation cannot revoke grants already running in cached original clients. */
 const isContractSupported = function isContractSupported(
-	declared: number | null | undefined
+	declared: number | null | undefined,
+	required: number
 ): boolean {
-	return declared === undefined || declared === POLICY_CONTRACT_VERSION;
+	if (required === POLICY_EXEMPTION_CONTRACT_VERSION) {
+		return declared === POLICY_SUPPORTED_CONTRACT_VERSION;
+	}
+	return (
+		declared === undefined ||
+		declared === POLICY_CONTRACT_VERSION ||
+		declared === POLICY_SUPPORTED_CONTRACT_VERSION
+	);
 };
 
 /**
@@ -151,7 +161,10 @@ export const buildInitResponse = async function buildInitResponse(
 		{ baseTranslations }
 	);
 
-	const supported = isContractSupported(signals.policyContract);
+	const supported = isContractSupported(
+		signals.policyContract,
+		resolved.policyResolution.version
+	);
 	const negotiated: InitOutput = supported
 		? resolved
 		: {

@@ -1,7 +1,12 @@
 /** @vitest-environment jsdom */
+import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
+import {
+	choiceRecords,
+	matchedResolution,
+	optOutRule,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../index';
 import { getScriptDiagnostics } from '../diagnostics';
 import { createScriptLoader } from '../index';
@@ -377,4 +382,49 @@ test('records completion when onLoad removes its own element without replacing t
 	document.head.querySelector('script')?.dispatchEvent(new Event('load'));
 	expect(document.head.querySelector('script')).toBeNull();
 	expect(getScriptDiagnostics(kernel)[0]?.status).toBe('loaded');
+});
+
+test('updates provider signals when a policy introduces an exemption without changing permissions', async () => {
+	let resolution = matchedResolution(
+		optOutRule({ match: { countries: ['GB'] } }),
+		'country'
+	);
+	const kernel = createConsentKernel({
+		initialPolicyResolution: resolution,
+		transport: {
+			init: () =>
+				Promise.resolve({
+					policyResolution: writePolicyResolutionWire(resolution),
+				}),
+		},
+	});
+	const updates = vi.fn();
+	const loader = createScriptLoader({
+		kernel,
+		scripts: [
+			{
+				callbackOnly: true,
+				category: 'measurement',
+				id: 'statistics-signals',
+				onBeforeLoad: (info) =>
+					updates((info.consentSignals ?? info.consents).measurement),
+				onConsentChange: (info) =>
+					updates((info.consentSignals ?? info.consents).measurement),
+			},
+		],
+	});
+	disposers.push(kernel.dispose, loader.dispose);
+	expect(updates).toHaveBeenLastCalledWith(true);
+	const before = kernel.getSnapshot().effectivePermissions;
+	updates.mockClear();
+	resolution = matchedResolution(
+		optOutRule({
+			exemptions: { measurement: { kind: 'uk-statistics', revision: '1' } },
+			match: { countries: ['GB'] },
+		}),
+		'country'
+	);
+	await kernel.commands.init();
+	expect(kernel.getSnapshot().effectivePermissions).toBe(before);
+	expect(updates).toHaveBeenLastCalledWith(false);
 });

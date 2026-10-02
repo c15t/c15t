@@ -26,6 +26,7 @@ import {
 	canonicalizePolicySet,
 	CHOICE_ACTION_SET,
 	collectResolvedPolicyRuleIssues,
+	collectPolicyExemptionIssues,
 	expectedPolicyActions,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
@@ -102,6 +103,22 @@ export type PolicyOptionalCategory = Exclude<
 	'necessary'
 >;
 
+/** Reviewed UK PECR exception declared by the operator. */
+export type PolicyExemptionKind = 'uk-statistics' | 'uk-appearance';
+
+/** Eligibility declaration for every processing operation in a category. */
+export interface PolicyCategoryExemption {
+	/** Statistics is measurement-only; appearance covers functionality/experience. */
+	kind: PolicyExemptionKind;
+	/** Operator revision identifying the reviewed eligibility declaration. */
+	revision: string;
+}
+
+/** Category exemptions. Marketing and necessary cannot be exempted here. */
+export type PolicyExemptions = Partial<
+	Record<PolicyOptionalCategory, PolicyCategoryExemption>
+>;
+
 /** Product default for how long a positive category choice stays valid. */
 export const DEFAULT_CHOICE_VALIDITY_DAYS = 365;
 
@@ -151,6 +168,8 @@ export interface PolicyRule {
 	scopeMode?: PolicyScopeMode;
 	/** Categories a preference form pre-selects. Inside scope; never for `iab`. */
 	preselectedCategories?: string[];
+	/** Reviewed exceptions, restricted to rules that explicitly match GB only. */
+	exemptions?: PolicyExemptions;
 	/**
 	 * Actions a choice prompt offers. `accept` and `reject` are always
 	 * required; `customize` is optional. Leave unset for notice and none.
@@ -215,6 +234,8 @@ export interface ResolvedPolicyRule {
 	scopeMode: PolicyScopeMode;
 	/** Sorted. Always empty for `iab`. */
 	preselectedCategories: PolicyOptionalCategory[];
+	/** Default permission with persistent objection controls, never consent. */
+	exemptions?: PolicyExemptions;
 	actions: PolicyActionConstraints;
 	/** Sorted. Contains `disclosure` and `preferences` for every model but `none`. */
 	rights: PolicyRight[];
@@ -251,6 +272,7 @@ const RULE_KEYS = [
 	'categories',
 	'scopeMode',
 	'preselectedCategories',
+	'exemptions',
 	'actions',
 	'rights',
 	'validity',
@@ -457,6 +479,59 @@ const collectScopeErrors = function collectScopeErrors(check: RuleCheck): void {
 				);
 			}
 		}
+	}
+};
+
+const hasExplicitMatchers = function hasExplicitMatchers(
+	match: Record<string, unknown>
+): boolean {
+	const countries = own(match, 'countries');
+	const regions = own(match, 'regions');
+	const regionFallbacks = own(match, 'regionFallbacks');
+	return (
+		(Array.isArray(countries) && countries.length > 0) ||
+		(Array.isArray(regions) && regions.length > 0) ||
+		(Array.isArray(regionFallbacks) && regionFallbacks.length > 0)
+	);
+};
+
+const collectExemptionErrors = function collectExemptionErrors(
+	check: RuleCheck
+): void {
+	const exemptions = own(check.rule, 'exemptions');
+	if (exemptions === undefined) {
+		return;
+	}
+	for (const issue of collectPolicyExemptionIssues(
+		exemptions,
+		resolveScope(own(check.rule, 'categories')),
+		own(check.rule, 'model')
+	)) {
+		check.errors.push(`Policy ${check.label} ${issue}.`);
+	}
+	const match = own(check.rule, 'match');
+	if (!isPlainPolicyObject(match)) {
+		return;
+	}
+	const countries = own(match, 'countries');
+	const regions = own(match, 'regions');
+	const regionFallbacks = own(match, 'regionFallbacks');
+	const isGb = (country: unknown) =>
+		typeof country === 'string' && country.trim().toUpperCase() === 'GB';
+	if (
+		!hasExplicitMatchers(match) ||
+		own(match, 'isDefault') === true ||
+		own(match, 'fallback') === true ||
+		(Array.isArray(countries) && !countries.every(isGb)) ||
+		(Array.isArray(regionFallbacks) && !regionFallbacks.every(isGb)) ||
+		(Array.isArray(regions) &&
+			!regions.every(
+				(region) => isPlainPolicyObject(region) && isGb(own(region, 'country'))
+			))
+	) {
+		check.errors.push(
+			`Policy ${check.label} exemptions require explicit GB-only matchers and cannot be a default or global fallback.`
+		);
 	}
 };
 
@@ -709,19 +784,6 @@ const collectRegionMatcherErrors = function collectRegionMatcherErrors(
 	});
 };
 
-const hasExplicitMatchers = function hasExplicitMatchers(
-	match: Record<string, unknown>
-): boolean {
-	const countries = own(match, 'countries');
-	const regions = own(match, 'regions');
-	const regionFallbacks = own(match, 'regionFallbacks');
-	return (
-		(Array.isArray(countries) && countries.length > 0) ||
-		(Array.isArray(regions) && regions.length > 0) ||
-		(Array.isArray(regionFallbacks) && regionFallbacks.length > 0)
-	);
-};
-
 const collectMatchErrors = function collectMatchErrors(check: RuleCheck): void {
 	const { errors, label, rule } = check;
 	const match = own(rule, 'match');
@@ -776,6 +838,7 @@ const collectRuleErrors = function collectRuleErrors(
 	collectMatchErrors(check);
 	collectModelPromptErrors(check);
 	collectScopeErrors(check);
+	collectExemptionErrors(check);
 	collectActionErrors(check);
 	collectRightsErrors(check);
 	collectValidityErrors(check);
@@ -1068,6 +1131,18 @@ export const normalizePolicyRule = function normalizePolicyRule(
 	};
 	if (i18n) {
 		normalized.i18n = i18n;
+	}
+	if (rule.exemptions) {
+		normalized.exemptions = {};
+		for (const category of POLICY_OPTIONAL_CATEGORIES) {
+			const exemption = rule.exemptions[category];
+			if (exemption) {
+				normalized.exemptions[category] = {
+					kind: exemption.kind,
+					revision: exemption.revision.trim(),
+				};
+			}
+		}
 	}
 	const issues = collectResolvedPolicyRuleIssues(normalized);
 	if (issues.length > 0) {

@@ -56,14 +56,14 @@ describe('policy contract negotiation on /init', () => {
 		const response = await harness.app.request('/init', {
 			headers: { Origin: 'https://app.example.com' },
 		});
-		assert.strictEqual(response.headers.get(POLICY_CONTRACT_HEADER), '1');
+		assert.strictEqual(response.headers.get(POLICY_CONTRACT_HEADER), '2');
 		assert.include(
 			response.headers.get('Access-Control-Expose-Headers') ?? '',
 			POLICY_CONTRACT_HEADER
 		);
 
 		const manifest = await harness.app.request('/manifest');
-		assert.strictEqual(manifest.headers.get(POLICY_CONTRACT_HEADER), '1');
+		assert.strictEqual(manifest.headers.get(POLICY_CONTRACT_HEADER), '2');
 	});
 
 	it('allows the contract header through CORS preflight', async () => {
@@ -111,7 +111,7 @@ describe('policy contract negotiation on /init', () => {
 
 	it('fails closed for a client declaring a contract it does not speak', async () => {
 		const init = await harness.json('GET', '/init', undefined, {
-			[POLICY_CONTRACT_HEADER]: '2',
+			[POLICY_CONTRACT_HEADER]: '99',
 			'x-c15t-country': 'DE',
 		});
 		assert.deepStrictEqual(init.body.policyResolution, {

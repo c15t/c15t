@@ -32,7 +32,11 @@
  */
 
 import { generateEntityId } from '@c15t/schema';
-import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema';
+import type {
+	ExemptionPreferencesWire,
+	SubjectChoiceWire,
+	VendorChoiceWire,
+} from '@c15t/schema';
 import { Data, Effect } from 'effect';
 import { SqlClient, Statement } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
@@ -43,6 +47,8 @@ import { encodeRow, encoder, toDate, toDateOrNull } from '../db/values';
 import { purposeCodesById } from './consent-purpose';
 import {
 	decodePreferences,
+	decodeStoredExemptionPreferences,
+	mergeSubjectExemptionPreferences,
 	decodeStoredChoice,
 	decodeStoredVendorChoice,
 	mergeSubjectChoice,
@@ -77,6 +83,7 @@ export interface ConsentRow {
 	readonly storedChoice: StoredChoice;
 	/** Per-vendor grants this submission carried, as the client sent them. */
 	readonly vendorChoice: VendorChoiceWire | null | undefined;
+	readonly exemptionPreferences: ExemptionPreferencesWire | null | undefined;
 	readonly storedVendorChoice: StoredVendorChoice;
 	readonly givenAt: Date;
 	/** True when this consent points at the newest active policy of its type. */
@@ -93,6 +100,7 @@ export interface SubjectWithConsents {
 	readonly choice: SubjectChoiceWire | null;
 	/** Newest vendor grant map across the cookie-banner consents. */
 	readonly vendorChoice: VendorChoiceWire | null;
+	readonly exemptionPreferences: ExemptionPreferencesWire | null;
 }
 
 interface JoinedRow {
@@ -107,6 +115,7 @@ interface JoinedRow {
 	readonly consent_purposeIds: unknown;
 	readonly consent_choice: unknown;
 	readonly consent_vendorChoice: unknown;
+	readonly consent_exemptionPreferences: unknown;
 	readonly consent_givenAt: unknown;
 	readonly policy_type: string | null;
 	readonly policy_version: string | null;
@@ -134,6 +143,7 @@ const JOINED_COLUMNS: readonly (readonly [column: string, alias: string])[] = [
 	['c.purposeIds', 'consent_purposeIds'],
 	['c.choice', 'consent_choice'],
 	['c.vendorChoice', 'consent_vendorChoice'],
+	['c.exemptionPreferences', 'consent_exemptionPreferences'],
 	['c.givenAt', 'consent_givenAt'],
 	['p.type', 'policy_type'],
 	['p.version', 'policy_version'],
@@ -210,6 +220,7 @@ const groupSubjects = (
 			choice: null,
 			consents: [],
 			createdAt: toDate(row.subject_createdAt),
+			exemptionPreferences: null,
 			externalId: row.subject_externalId,
 			id: row.subject_id,
 			identityProvider: row.subject_identityProvider,
@@ -235,6 +246,9 @@ const groupSubjects = (
 			}
 			(subject.consents as ConsentRow[]).push({
 				choice,
+				exemptionPreferences: decodeStoredExemptionPreferences(
+					row.consent_exemptionPreferences
+				),
 				givenAt: toDate(row.consent_givenAt),
 				id: row.consent_id,
 				isLatestPolicy:
@@ -271,6 +285,7 @@ const groupSubjects = (
 				type: consent.type,
 			}))
 		),
+		exemptionPreferences: mergeSubjectExemptionPreferences(subject.consents),
 		vendorChoice: mergeSubjectVendorChoice(
 			subject.consents.map((consent) => ({
 				givenAt: consent.givenAt,

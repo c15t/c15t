@@ -22,13 +22,14 @@ import type { AllConsentNames } from '../consent/consent-types';
 import { generateSubjectId } from '../libs/generate-subject-id';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
-import { presentedSelection, scopeSelection } from '../policy';
+import { presentedSelection } from '../policy';
 import type { PresentedSelection } from '../policy';
 import { isConsentSaveRejection } from '../transports/save-rejection';
 import type {
 	ConsentSnapshot,
 	ConsentState,
 	ExplicitChoice,
+	ExemptionPreferences,
 	InitContext,
 	InitResult,
 	KernelConfig,
@@ -169,20 +170,30 @@ export const resolveSaveSelection = function resolveSaveSelection(
 				);
 	if (input === 'all' || input === 'none') {
 		const bulkAction = input === 'all' ? 'all' : 'necessary';
-		// With nothing to decide, the bulk action still covers everything the
-		// visitor was shown: strictly necessary alone.
+		const selected = displayed.filter(
+			(category) => input !== 'all' || !rule.exemptions?.[category]
+		);
 		return {
 			consentAction:
-				displayed.length === rule.scope.length || choiceScope.length === 0
+				selected.length === rule.scope.length || choiceScope.length === 0
 					? bulkAction
 					: 'custom',
-			values: narrow(scopeSelection(rule, input === 'all')),
+			values: Object.fromEntries(
+				selected.map((category) => [category, input === 'all'])
+			),
 		};
 	}
 	if (input === undefined) {
 		return {
 			consentAction: 'custom',
-			values: narrow(presentedSelection(rule, draft, snapshot.explicitChoice)),
+			values: narrow(
+				presentedSelection(
+					rule,
+					draft,
+					snapshot.explicitChoice,
+					snapshot.exemptionPreferences
+				)
+			),
 		};
 	}
 	return { consentAction: 'custom', values: input };
@@ -470,6 +481,22 @@ export const resolveVendorSelection = function resolveVendorSelection(
 	}
 	const bulk = input === 'all' || input === 'none';
 	if (bulk) {
+		if (input === 'all' && snapshot.policyRule.exemptions) {
+			const displayed =
+				categories ??
+				snapshot.evaluationPolicy.choiceScope ??
+				snapshot.policyRule.scope;
+			return scopedBulkVendorChoice(
+				snapshot,
+				displayed.filter(
+					(category) =>
+						category === 'necessary' ||
+						!snapshot.policyRule.exemptions?.[category]
+				),
+				true,
+				actionAt
+			);
+		}
 		// Vendors follow the category on a bulk action; explicit grants and the
 		// staged draft are both discarded so nothing survives as a denial.
 		// A bulk action that covers every category the policy lets the
@@ -1151,7 +1178,10 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				payload,
 				(category) =>
 					current.explicitChoice?.categories[category] ===
-					actionSnapshot.explicitChoice?.categories[category]
+					actionSnapshot.explicitChoice?.categories[category],
+				(category) =>
+					current.exemptionPreferences?.categories[category] ===
+					actionSnapshot.exemptionPreferences?.categories[category]
 			);
 			if (payload.vendorChoice === undefined || !selected) {
 				return selected;
@@ -1166,7 +1196,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					: { ...selected, vendorChoice: payload.vendorChoice };
 			}
 			const { vendorChoice: _superseded, ...remaining } = selected;
-			return Object.keys(remaining.confirmed.categories).length > 0
+			return Object.keys(remaining.confirmed.categories).length > 0 ||
+				Object.keys(remaining.exemptionPreferences?.categories ?? {}).length > 0
 				? remaining
 				: null;
 		};
@@ -1401,13 +1432,51 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				emit({ result, type: 'command:save:completed' });
 				return result;
 			}
+			// Validate the complete selection before dividing consent and objection records.
+			const exemptionCategories: ExemptionPreferences['categories'] = {};
+			const consentConfirmed: OptionalConsentCategory[] = [];
+			const receiptCategories = recorded.choice.categories;
+			for (const category of recorded.confirmed) {
+				if (before.policyRule.exemptions?.[category]) {
+					const decision = receiptCategories[category];
+					if (decision) {
+						exemptionCategories[category] = {
+							confirmedAt: actionAt,
+							value: decision.value,
+						};
+					}
+				} else {
+					consentConfirmed.push(category);
+				}
+			}
+			const exemptionChanged = Object.keys(exemptionCategories).length > 0;
+			if (exemptionChanged) {
+				consentAction = 'custom';
+				recorded = {
+					choice: {
+						categories: Object.fromEntries(
+							Object.entries(receiptCategories).filter(
+								([category]) => !Object.hasOwn(exemptionCategories, category)
+							)
+						),
+						version: 3,
+					},
+					confirmed: consentConfirmed,
+					ok: true,
+				};
+			}
 			const categoriesChanged = recorded.confirmed.length > 0;
 			// Any action on a choice prompt with nothing to decide acknowledges
 			// it, and sends a receipt for strictly necessary alone.
 			const acknowledgement = owedNothing
 				? null
 				: choiceAcknowledgement(before, actionAt);
-			if (!categoriesChanged && !vendorsChanged && !acknowledgement) {
+			if (
+				!categoriesChanged &&
+				!exemptionChanged &&
+				!vendorsChanged &&
+				!acknowledgement
+			) {
 				// Nothing confirmed: no receipt, no choice event, no request, no write.
 				// A staged vendor value the selection ignored (undeclared, disabled)
 				// is dropped too, or a later declaration would let an unrelated save
@@ -1430,8 +1499,23 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				now: currentTime,
 				subject,
 			};
-			if (categoriesChanged) {
+			if (
+				categoriesChanged ||
+				(exemptionChanged &&
+					Object.keys(exemptionCategories).some((category) =>
+						Object.hasOwn(before.explicitChoice?.categories ?? {}, category)
+					))
+			) {
 				patch.explicitChoice = recorded.choice;
+			}
+			if (exemptionChanged) {
+				patch.exemptionPreferences = {
+					categories: {
+						...before.exemptionPreferences?.categories,
+						...exemptionCategories,
+					},
+					version: 1,
+				};
 			}
 			if (vendorsChanged) {
 				patch.vendorChoice = nextVendorChoice;
@@ -1462,6 +1546,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 						snapshot: committed,
 						type: 'choice:recorded',
 					});
+				}
+				if (exemptionChanged) {
+					emit({ actionAt, snapshot: committed, type: 'exemption:recorded' });
 				}
 				if (vendorsChanged) {
 					emit({ actionAt, snapshot: committed, type: 'vendors:recorded' });
@@ -1506,6 +1593,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				uiSource,
 				user: after.user,
 			};
+			if (exemptionChanged) {
+				payload.exemptionPreferences = {
+					categories: exemptionCategories,
+					version: 1,
+				};
+			}
 			const vendorChoice = vendorChoicePayload(after, before.vendorChoice);
 			if (vendorChoice) {
 				payload.vendorChoice = vendorChoice;

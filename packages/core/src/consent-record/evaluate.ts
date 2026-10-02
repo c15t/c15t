@@ -20,6 +20,7 @@ import type {
 	DecisionAuthority,
 	EvaluationPolicy,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 	PromptReason,
@@ -31,6 +32,8 @@ export interface ConsentEvaluationInput {
 	policy: EvaluationPolicy;
 	/** Validated explicit choice, or `null` when none is usable. */
 	choice: ExplicitChoice | null;
+	/** Persistent objections, never a source of consent grants. */
+	exemptionPreferences?: ExemptionPreferences | null;
 	/** Validated notice dismissal, or `null`. */
 	noticeDismissal: NoticeDismissal | null;
 	/** Detected GPC signal. Only a strict `true` counts. */
@@ -106,8 +109,22 @@ const collectRestrictions = function collectRestrictions(
 	input: ConsentEvaluationInput
 ): RestrictionReason[] {
 	const restrictions: RestrictionReason[] = [];
-	if (decision?.value === false) {
+	const preference = input.exemptionPreferences?.categories[category];
+	const preferenceIsLatest =
+		preference !== undefined &&
+		(!decision || preference.confirmedAt >= decision.confirmedAt);
+	if (
+		decision?.value === false &&
+		!(
+			input.policy.exemptions?.[category] &&
+			preferenceIsLatest &&
+			preference?.value === true
+		)
+	) {
 		restrictions.push('explicit-denial');
+	}
+	if (preference?.value === false && preferenceIsLatest) {
+		restrictions.push('exemption-objection');
 	}
 	if (!inScope && input.policy.scopeMode === 'strict') {
 		restrictions.push('strict-scope');
@@ -133,8 +150,12 @@ const evaluateCategory = function evaluateCategory(
 	const restrictions = collectRestrictions(category, decision, inScope, input);
 
 	let permitted = defaultPermission(policy, inScope);
-	let source: CategoryEvaluation['source'] = 'default';
-	if (inScope && decision?.value === true && authority === 'valid') {
+	const exempt = inScope && policy.exemptions?.[category] !== undefined;
+	if (exempt) {
+		permitted = true;
+	}
+	let source: CategoryEvaluation['source'] = exempt ? 'exemption' : 'default';
+	if (inScope && !exempt && decision?.value === true && authority === 'valid') {
 		permitted = true;
 		source = 'grant';
 	}
@@ -143,7 +164,14 @@ const evaluateCategory = function evaluateCategory(
 		source = 'restricted';
 	}
 
-	return { authority, expiresAt, inScope, permitted, restrictions, source };
+	return {
+		authority: exempt ? 'absent' : authority,
+		expiresAt: exempt ? null : expiresAt,
+		inScope,
+		permitted,
+		restrictions,
+		source,
+	};
 };
 
 const requirement = function requirement(
@@ -154,11 +182,16 @@ const requirement = function requirement(
 };
 
 /** An automatic Accept All prompt must not solicit reversal of a refusal. */
+const requiredChoiceScope = (policy: EvaluationPolicy) =>
+	(policy.choiceScope ?? policy.scope).filter(
+		(category) => !policy.exemptions?.[category]
+	);
+
 const hasChoiceRefusal = function hasChoiceRefusal(
 	policy: EvaluationPolicy,
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
 ): boolean {
-	return (policy.choiceScope ?? policy.scope).some(
+	return requiredChoiceScope(policy).some(
 		(category) => categories[category].restrictions.length > 0
 	);
 };
@@ -250,8 +283,15 @@ const deriveChoiceRequirement = function deriveChoiceRequirement(
 	categories: Record<OptionalConsentCategory, CategoryEvaluation>
 ): PromptRequirement {
 	const { policy } = input;
-	const choiceScope = policy.choiceScope ?? policy.scope;
+	const choiceScope = requiredChoiceScope(policy);
 	if (choiceScope.length === 0) {
+		if (
+			(policy.choiceScope ?? policy.scope).some(
+				(category) => policy.exemptions?.[category]
+			)
+		) {
+			return { kind: 'none' };
+		}
 		return deriveAcknowledgementRequirement(input, categories);
 	}
 	if (hasChoiceRefusal(policy, categories)) {
@@ -337,7 +377,7 @@ const acknowledgementDeadline = function acknowledgementDeadline(
 	const { policy } = input;
 	if (
 		policy.prompt !== 'choice' ||
-		(policy.choiceScope ?? policy.scope).length > 0 ||
+		requiredChoiceScope(policy).length > 0 ||
 		promptRequirement.kind !== 'none'
 	) {
 		return [];
@@ -360,7 +400,7 @@ const deriveNextDeadline = function deriveNextDeadline(
 ): number | null {
 	const { policy } = input;
 	const candidates: number[] = [];
-	const choiceScope = policy.choiceScope ?? policy.scope;
+	const choiceScope = requiredChoiceScope(policy);
 	// Expiry can only change a choice prompt from satisfied to expired.
 	// Missing coverage or a mismatch keeps precedence over later expiry.
 	const choicePromptCanChange =

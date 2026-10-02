@@ -1,3 +1,7 @@
+import {
+	POLICY_CONTRACT_HEADER,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
+} from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { version } from '../version';
@@ -66,6 +70,22 @@ describe('fetchSSRData', () => {
 		});
 		expect(typeof result?.metadata?.requestDurationMs).toBe('number');
 		expect(result?.metadata?.requestDurationMs).toBeGreaterThanOrEqual(0);
+	});
+
+	it('advertises exemption policy support independently of incoming client headers', async () => {
+		const fetchMock = vi.fn().mockResolvedValue(createResponse({}));
+		vi.stubGlobal('fetch', fetchMock);
+		const headers = createRequestHeaders();
+		headers.set(POLICY_CONTRACT_HEADER, '1');
+		await fetchSSRData({ backendURL: '/api/c15t', headers });
+		expect(fetchMock).toHaveBeenCalledWith(
+			'https://example.com/api/c15t/init',
+			expect.objectContaining({
+				headers: expect.objectContaining({
+					[POLICY_CONTRACT_HEADER]: String(POLICY_SUPPORTED_CONTRACT_VERSION),
+				}),
+			})
+		);
 	});
 
 	it('returns cache metadata for non-hit responses', async () => {

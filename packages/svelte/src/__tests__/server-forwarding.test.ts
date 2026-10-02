@@ -2,6 +2,7 @@ import { createConsentKernel } from '@c15t/core';
 import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 } from '@c15t/schema/types';
 import { expect, test, vi } from 'vitest';
 
@@ -51,7 +52,7 @@ test.each([undefined, 'fr-CA'])(
 			cookie: 'session=literal',
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
-			'x-c15t-policy-contract': '1',
+			'x-c15t-policy-contract': String(POLICY_SUPPORTED_CONTRACT_VERSION),
 			'x-c15t-region': 'BE',
 			'x-review': 'review',
 		});

@@ -152,6 +152,7 @@ export const watchRevocationReload = function watchRevocationReload({
 			saveStartSnapshot = kernel.getSnapshot();
 		}),
 		kernel.events.on('choice:recorded', onRecorded),
+		kernel.events.on('exemption:recorded', onRecorded),
 		kernel.events.on('vendors:recorded', onRecorded),
 		kernel.events.on('command:save:completed', () => {
 			savesInFlight = Math.max(0, savesInFlight - 1);

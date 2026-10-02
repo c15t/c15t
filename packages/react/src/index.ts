@@ -168,6 +168,7 @@ export { defineTheme, type Theme } from './types/theme';
 
 export {
 	useExplicitChoice,
+	useExemptionPreferences,
 	useEffectivePermissions,
 	usePromptRequirement,
 	useNoticeDismissal,

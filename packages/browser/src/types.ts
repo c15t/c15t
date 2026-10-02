@@ -42,7 +42,13 @@ import type { Theme } from '@c15t/ui/theme';
 export type ConsentModeName = 'hosted' | 'offline' | 'manifest';
 
 /** A built-in policy pack, by the name `policyRulePresets` exports it under. */
-export type PolicyPresetName = keyof typeof policyRulePresets;
+export type PolicyPresetName = {
+	[PresetName in keyof typeof policyRulePresets]: Parameters<
+		(typeof policyRulePresets)[PresetName]
+	> extends []
+		? PresetName
+		: never;
+}[keyof typeof policyRulePresets];
 
 /** Corner the floating preferences button docks to. */
 export type TriggerPosition =

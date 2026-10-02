@@ -51,7 +51,14 @@
 
 // Shared with the client packages, so a policy pack authored against these
 // resolves identically in the browser and on the server.
-export type { PolicyMatch, PolicyRulePresets } from '@c15t/schema';
+export type {
+	PolicyMatch,
+	PolicyRule,
+	PolicyRulePresets,
+	PolicyExemptions,
+	PolicyCategoryExemption,
+	PolicyExemptionKind,
+} from '@c15t/schema';
 export {
 	EEA_COUNTRY_CODES,
 	EU_COUNTRY_CODES,

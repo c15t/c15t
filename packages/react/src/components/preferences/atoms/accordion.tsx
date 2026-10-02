@@ -6,6 +6,7 @@ import {
 	useCallback,
 	useContext,
 	useMemo,
+	useId,
 } from 'react';
 import type { ComponentPropsWithoutRef, ReactNode, Ref } from 'react';
 
@@ -16,7 +17,12 @@ import { LucideIcon } from '~/components/shared/ui/icon';
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentDraftSlice, useConsentDraftStore } from '~/draft';
-import { useExplicitChoice, useRestrictions } from '~/hooks';
+import {
+	useExplicitChoice,
+	useExemptionPreferences,
+	usePolicyRule,
+	useRestrictions,
+} from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import { useDisplayedCategories } from '~/kernel-selector';
 
@@ -191,6 +197,7 @@ interface ConsentWidgetAccordionRowProps {
 	title: string;
 	description: string;
 	restricted: boolean;
+	processingNotice?: string;
 	open: boolean;
 	noStyle?: boolean;
 	onToggleItem: (value: string, open: boolean) => void;
@@ -205,10 +212,12 @@ const ConsentWidgetAccordionRow = ({
 	title,
 	description,
 	restricted,
+	processingNotice,
 	open,
 	noStyle,
 	onToggleItem,
 }: ConsentWidgetAccordionRowProps) => {
+	const processingId = useId();
 	const draft = useConsentDraftStore();
 	const checked = useConsentDraftSlice(
 		draft,
@@ -271,7 +280,12 @@ const ConsentWidgetAccordionRow = ({
 						aria-label={title}
 						checked={checked}
 						aria-describedby={
-							restricted ? `c15t-restriction-${consent.name}` : undefined
+							[
+								restricted ? `c15t-restriction-${consent.name}` : undefined,
+								processingNotice ? processingId : undefined,
+							]
+								.filter(Boolean)
+								.join(' ') || undefined
 						}
 						onCheckedChange={(value) => draft.set(consent.name, value)}
 						disabled={consent.disabled}
@@ -280,6 +294,15 @@ const ConsentWidgetAccordionRow = ({
 					/>
 				</PreferenceItem.Control>
 			</ConsentWidgetAccordionTrigger>
+			{processingNotice ? (
+				<p
+					className={noStyle ? undefined : accordionStyles.restriction}
+					data-testid={`consent-widget-processing-${consent.name}`}
+					id={processingId}
+				>
+					{processingNotice}
+				</p>
+			) : null}
 			{restricted ? (
 				<output
 					className={noStyle ? undefined : accordionStyles.restriction}
@@ -312,7 +335,9 @@ const ConsentWidgetAccordionRow = ({
 
 const ConsentWidgetAccordionItems = () => {
 	const displayedCategories = useDisplayedCategories();
+	const policy = usePolicyRule();
 	const explicitChoice = useExplicitChoice();
+	const exemptionPreferences = useExemptionPreferences();
 	const restrictions = useRestrictions();
 	// Only a saved grant that the current policy or a privacy signal
 	// overrides is "restricted". An unsaved draft toggle is not.
@@ -321,15 +346,39 @@ const ConsentWidgetAccordionItems = () => {
 			return false;
 		}
 		const decision = explicitChoice?.categories[name];
-		return decision?.value === true && (restrictions[name]?.length ?? 0) > 0;
+		const preference = exemptionPreferences?.categories[name];
+		const latest =
+			preference &&
+			(!decision || preference.confirmedAt >= decision.confirmedAt)
+				? preference
+				: decision;
+		const savedEnabled =
+			latest?.value === true &&
+			(latest === preference || !policy.exemptions?.[name]);
+		return savedEnabled && (restrictions[name]?.length ?? 0) > 0;
 	};
 	const { noStyle, onToggleItem, openValues } =
 		useConsentWidgetAccordionContext();
-	const { consentTypes } = useTranslations();
+	const { consentTypes, common } = useTranslations();
 	const consents = useMemo(() => {
 		const allowed = new Set(displayedCategories);
 		return DEFAULT_CONSENT_TYPES.filter((type) => allowed.has(type.name));
 	}, [displayedCategories]);
+
+	const processingNotice = (name: AllConsentNames): string | undefined => {
+		if (name === 'necessary' || !Object.keys(policy.exemptions ?? {}).length) {
+			return undefined;
+		}
+		if (policy.exemptions?.[name]) {
+			return (
+				common.exemptProcessing ??
+				'Does not require prior consent. You can turn this off at any time.'
+			);
+		}
+		return policy.model === 'opt-in'
+			? (common.consentRequired ?? 'Requires your consent.')
+			: undefined;
+	};
 
 	return consents.map((consent) => (
 		<ConsentWidgetAccordionRow
@@ -338,6 +387,7 @@ const ConsentWidgetAccordionItems = () => {
 			description={
 				consentTypes[consent.name]?.description ?? consent.description
 			}
+			processingNotice={processingNotice(consent.name)}
 			noStyle={noStyle}
 			onToggleItem={onToggleItem}
 			open={openValues.includes(consent.name)}

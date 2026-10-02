@@ -240,6 +240,72 @@ const isValidMs = function isValidMs(value: number): boolean {
 };
 
 /**
+ * Validates operator-declared exemptions without accepting inherited fields.
+ *
+ * @param value - Raw declarations from authored rules or a wire payload.
+ * @param scope - Categories covered by the policy.
+ * @param model - The ordinary permission model.
+ * @returns Issues that prevent the declarations from being used.
+ */
+export const collectPolicyExemptionIssues =
+	function collectPolicyExemptionIssues(
+		value: unknown,
+		scope: readonly PolicyOptionalCategory[],
+		model: unknown
+	): string[] {
+		if (value === undefined) {
+			return [];
+		}
+		if (!isPlainPolicyObject(value)) {
+			return ['exemptions must be a plain object'];
+		}
+		const issues: string[] = [];
+		const categories = Object.getOwnPropertyNames(value);
+		if (categories.length === 0) {
+			issues.push('exemptions must declare at least one category');
+		}
+		if (model !== 'opt-in' && model !== 'opt-out') {
+			issues.push('exemptions require an opt-in or opt-out model');
+		}
+		for (const category of categories) {
+			if (!isPolicyOptionalCategory(category) || category === 'marketing') {
+				issues.push(`exemptions cannot cover "${category}"`);
+				continue;
+			}
+			if (!scope.includes(category)) {
+				issues.push(`exemptions "${category}" is outside the policy scope`);
+			}
+			const declaration = value[category];
+			if (!isPlainPolicyObject(declaration)) {
+				issues.push(`exemptions.${category} must be a plain object`);
+				continue;
+			}
+			for (const key of Object.getOwnPropertyNames(declaration)) {
+				if (key !== 'kind' && key !== 'revision') {
+					issues.push(`exemptions.${category} has unknown field "${key}"`);
+				}
+			}
+			const kind = Object.hasOwn(declaration, 'kind')
+				? declaration.kind
+				: undefined;
+			const expectedKind =
+				category === 'measurement' ? 'uk-statistics' : 'uk-appearance';
+			if (kind !== expectedKind) {
+				issues.push(`exemptions.${category}.kind must be "${expectedKind}"`);
+			}
+			const revision = Object.hasOwn(declaration, 'revision')
+				? declaration.revision
+				: undefined;
+			if (typeof revision !== 'string' || !revision.trim()) {
+				issues.push(
+					`exemptions.${category}.revision must be a non-empty string`
+				);
+			}
+		}
+		return issues;
+	};
+
+/**
  * Semantic invariants every {@link ResolvedPolicyRule} must satisfy.
  *
  * @remarks
@@ -251,7 +317,11 @@ const isValidMs = function isValidMs(value: number): boolean {
  */
 export const collectResolvedPolicyRuleIssues =
 	function collectResolvedPolicyRuleIssues(rule: ResolvedPolicyRule): string[] {
-		const issues: string[] = [];
+		const issues: string[] = collectPolicyExemptionIssues(
+			rule.exemptions,
+			rule.scope,
+			rule.model
+		);
 		if (!rule.id.trim()) {
 			issues.push('id must be a non-empty string');
 		}

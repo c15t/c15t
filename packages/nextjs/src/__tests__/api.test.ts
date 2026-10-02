@@ -1,6 +1,9 @@
 import { clearGvlCache } from '@c15t/core';
 import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
-import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import {
+	POLICY_SUPPORTED_CONTRACT_VERSION,
+	createConsentManifestPolicyPack,
+} from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -270,9 +273,58 @@ describe('@c15t/nextjs/api', () => {
 			policyResolution: { reason: 'unsupported-contract', status: 'failed' },
 		});
 		expect(fetch.mock.calls[0]?.[1].headers['x-c15t-policy-contract']).toBe(
-			'1'
+			String(POLICY_SUPPORTED_CONTRACT_VERSION)
 		);
 	});
+
+	test.each([undefined, '1', '2'])(
+		'negotiates mixed exemptions with client capability %s',
+		async (capability) => {
+			const manifest = {
+				...MANIFEST_FIXTURE,
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						categories: ['measurement', 'marketing'],
+						exemptions: {
+							measurement: { kind: 'uk-statistics', revision: 'review-1' },
+						},
+						id: 'uk-mixed',
+						match: { countries: ['GB'] },
+						model: 'opt-in',
+						prompt: 'choice',
+						scopeMode: 'strict',
+					}),
+				],
+			};
+			const { GET } = createNextConsentRouteHandlers({
+				backendURL: 'https://consent.example.com',
+				fetch: vi.fn().mockResolvedValue(Response.json(manifest)),
+				reportSessions: false,
+			});
+			const headers = new Headers({ 'x-c15t-country': 'GB' });
+			if (capability !== undefined) {
+				headers.set('x-c15t-policy-contract', capability);
+			}
+			const response = await GET(
+				new Request('https://example.com/api/c15t/init', { headers })
+			);
+			expect(response.headers.get('x-c15t-policy-contract')).toBe(
+				capability === '2' ? '2' : '1'
+			);
+			expect(await response.json()).toMatchObject({
+				policyResolution:
+					capability === '2'
+						? {
+								policy: {
+									exemptions: { measurement: { kind: 'uk-statistics' } },
+								},
+								status: 'matched',
+								version: 2,
+							}
+						: { reason: 'unsupported-contract', status: 'failed' },
+			});
+		}
+	);
 
 	test('cache helpers expose s-maxage and Next fetch config', () => {
 		expect(getSMaxAge('public, s-maxage=240, stale-while-revalidate=60')).toBe(

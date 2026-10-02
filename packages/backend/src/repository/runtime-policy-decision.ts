@@ -38,6 +38,7 @@
  */
 
 import { generateEntityId, hashSha256Hex } from '@c15t/schema';
+import type { PolicyExemptions } from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 
@@ -61,6 +62,7 @@ export interface DecisionInput {
 	readonly categories?: unknown;
 	readonly preselectedCategories?: unknown;
 	readonly proofConfig?: unknown;
+	readonly exemptions?: PolicyExemptions;
 }
 
 /**
@@ -126,6 +128,7 @@ export const recordDecision = Effect.fn('decision.record')(
 				createdAt: new Date(),
 				dedupeKey,
 				dialogUi: json(input.dialogUi),
+				exemptions: json(input.exemptions),
 				fingerprint: input.fingerprint,
 				id,
 				jurisdiction: input.jurisdiction,

@@ -11,6 +11,7 @@
 import { compareCanonical } from './canonical-order';
 import type {
 	PolicyOptionalCategory,
+	PolicyExemptions,
 	PolicyPromptAction,
 	PolicyRight,
 	ResolvedPolicyRule,
@@ -18,6 +19,7 @@ import type {
 import type { PolicyFingerprints } from './policy-rule-fingerprint';
 import {
 	collectResolvedPolicyRuleIssues,
+	collectPolicyExemptionIssues,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
 	isPolicyPrompt,
@@ -29,6 +31,10 @@ import type { PolicyMatchedBy } from './policy-runtime';
 
 /** Version of the policy wire contract this package produces and reads. */
 export const POLICY_CONTRACT_VERSION = 1;
+/** Contract version required to represent default permission and objections. */
+export const POLICY_EXEMPTION_CONTRACT_VERSION = 2;
+/** Highest policy contract version this reader supports and negotiates. */
+export const POLICY_SUPPORTED_CONTRACT_VERSION = 2;
 
 /**
  * Request header a client sends to declare the policy contract version it can
@@ -78,7 +84,9 @@ export type PolicyResolution =
 
 /** Wire form of {@link PolicyResolution}: the same union plus `version`. */
 export type PolicyResolutionWire = PolicyResolution & {
-	version: typeof POLICY_CONTRACT_VERSION;
+	version:
+		| typeof POLICY_CONTRACT_VERSION
+		| typeof POLICY_EXEMPTION_CONTRACT_VERSION;
 };
 
 /** Parses the {@link POLICY_CONTRACT_HEADER} value. */
@@ -174,7 +182,13 @@ export const safeFallbackPolicyInput =
 export const writePolicyResolutionWire = function writePolicyResolutionWire(
 	resolution: PolicyResolution
 ): PolicyResolutionWire {
-	return { ...resolution, version: POLICY_CONTRACT_VERSION };
+	return {
+		...resolution,
+		version:
+			resolution.status === 'matched' && resolution.policy.exemptions
+				? POLICY_EXEMPTION_CONTRACT_VERSION
+				: POLICY_CONTRACT_VERSION,
+	};
 };
 
 const MATCHED_BY = new Set<string>([
@@ -208,6 +222,7 @@ const RULE_WIRE_KEYS = [
 	'scope',
 	'scopeMode',
 	'preselectedCategories',
+	'exemptions',
 	'actions',
 	'rights',
 	'validity',
@@ -465,7 +480,8 @@ const readI18n = function readI18n(value: unknown): ResolvedPolicyRule['i18n'] {
 };
 
 const readResolvedPolicyRule = function readResolvedPolicyRule(
-	value: unknown
+	value: unknown,
+	version: number
 ): ResolvedPolicyRule {
 	const raw = readObject(value, 'policy', RULE_WIRE_KEYS);
 	const id = own(raw, 'id');
@@ -492,6 +508,34 @@ const readResolvedPolicyRule = function readResolvedPolicyRule(
 		scope: readStringSet(own(raw, 'scope'), 'policy.scope', isOptionalCategory),
 		validity: readValidity(own(raw, 'validity')),
 	};
+	const exemptions = own(raw, 'exemptions');
+	if (Object.hasOwn(raw, 'exemptions')) {
+		if (version !== POLICY_EXEMPTION_CONTRACT_VERSION) {
+			throw unsupported('policy.exemptions requires contract version 2');
+		}
+		const issues = collectPolicyExemptionIssues(
+			exemptions,
+			rule.scope,
+			rule.model
+		);
+		if (issues.length > 0 || !isPlainPolicyObject(exemptions)) {
+			throw invalid(`policy: ${issues[0] ?? 'invalid exemptions'}`);
+		}
+		// Copy validated own fields so callers cannot mutate the transport object.
+		rule.exemptions = {};
+		for (const category of rule.scope) {
+			if (!Object.hasOwn(exemptions, category)) {
+				continue;
+			}
+			const declaration = exemptions[category] as NonNullable<
+				PolicyExemptions[typeof category]
+			>;
+			rule.exemptions[category] = {
+				kind: declaration.kind,
+				revision: declaration.revision,
+			};
+		}
+	}
 	const i18n = readI18n(own(raw, 'i18n'));
 	if (i18n) {
 		rule.i18n = i18n;
@@ -527,7 +571,8 @@ const readFingerprints = function readFingerprints(
 };
 
 const readMatched = function readMatched(
-	input: Record<string, unknown>
+	input: Record<string, unknown>,
+	version: number
 ): PolicyResolutionMatched {
 	const policyId = own(input, 'policyId');
 	const matchedBy = own(input, 'matchedBy');
@@ -537,7 +582,7 @@ const readMatched = function readMatched(
 	if (typeof matchedBy !== 'string' || !MATCHED_BY.has(matchedBy)) {
 		throw unsupported(`matchedBy "${String(matchedBy)}" is not supported`);
 	}
-	const policy = readResolvedPolicyRule(own(input, 'policy'));
+	const policy = readResolvedPolicyRule(own(input, 'policy'), version);
 	if (policy.id !== policyId) {
 		throw invalid('policyId must equal policy.id');
 	}
@@ -555,7 +600,11 @@ const readWire = function readWire(input: unknown): PolicyResolution {
 	if (!Object.hasOwn(raw, 'version')) {
 		throw invalid('policyResolution.version is required');
 	}
-	if (own(raw, 'version') !== POLICY_CONTRACT_VERSION) {
+	const version = own(raw, 'version');
+	if (
+		version !== POLICY_CONTRACT_VERSION &&
+		version !== POLICY_EXEMPTION_CONTRACT_VERSION
+	) {
 		throw unsupported(
 			`policy contract version ${String(own(raw, 'version'))} is not supported`
 		);
@@ -587,7 +636,7 @@ const readWire = function readWire(input: unknown): PolicyResolution {
 			};
 		}
 		case 'matched':
-			return readMatched(raw);
+			return readMatched(raw, version);
 		default:
 			throw unsupported(`status "${String(status)}" is not supported`);
 	}

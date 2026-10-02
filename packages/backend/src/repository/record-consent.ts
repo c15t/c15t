@@ -21,7 +21,11 @@
  */
 
 import { generateEntityId } from '@c15t/schema';
-import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema';
+import type {
+	ExemptionPreferencesWire,
+	SubjectChoiceWire,
+	VendorChoiceWire,
+} from '@c15t/schema';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/unstable/sql';
 import type { SqlError } from 'effect/unstable/sql';
@@ -47,6 +51,7 @@ export interface ConsentSubmissionRequest {
 	readonly choice?: SubjectChoiceWire | null;
 	/** Per-vendor grants this act carried, the complete map. */
 	readonly vendorChoice?: VendorChoiceWire | null;
+	readonly exemptionPreferences?: ExemptionPreferencesWire | null;
 	readonly givenAt: Date;
 	readonly metadata?: unknown;
 	readonly ipAddress: string | null;
@@ -112,6 +117,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		choice: request.choice,
 		consentAction: request.consentAction,
 		domainId: request.domainId,
+		exemptionPreferences: request.exemptionPreferences,
 		givenAt: request.givenAt,
 		ipAddress: request.ipAddress,
 		jurisdiction: request.jurisdiction,
@@ -138,9 +144,15 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		yield* sql`
 			insert into ${sql('auditLog')} ${sql.insert(
 				encodeRow(yield* encoder, {
-					actionType: 'consent_given',
+					actionType:
+						request.exemptionPreferences &&
+						Object.keys(request.choice?.categories ?? {}).length === 0 &&
+						!request.vendorChoice
+							? 'exemption_preferences_changed'
+							: 'consent_given',
 					changes: JSON.stringify({
 						choice: request.choice ?? null,
+						exemptionPreferences: request.exemptionPreferences ?? null,
 						purposeIds: request.purposeIds,
 						vendorChoice: request.vendorChoice ?? null,
 					}),

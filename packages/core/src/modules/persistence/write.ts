@@ -14,8 +14,11 @@ import type {
 	StoredIabMetadata,
 	StoredVendorChoice,
 } from './record-codec';
+import type { StoredExemptionPreferences } from './record-storage';
 import {
 	clearStoredVendorChoice,
+	clearStoredExemptionPreferences,
+	writeStoredExemptionPreferences,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
 	writeStoredVendorChoice,
@@ -123,6 +126,34 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 		console.warn(
 			'[c15t] Vendor choice cookie was not stored; the localStorage copy is current but a server render will not see it. Shorten vendor ids or deny fewer vendors.',
 			result.written.cookieDetail
+		);
+	}
+};
+
+/** Persist explicit objections without creating a consent envelope. */
+export const writeExemptionsToStorage = (
+	snapshot: ConsentSnapshot,
+	storageConfig: StorageConfig | undefined,
+	now: number
+): void => {
+	if (typeof document === 'undefined') {
+		return;
+	}
+	if (!snapshot.exemptionPreferences) {
+		clearStoredExemptionPreferences(storageConfig);
+		return;
+	}
+	const record: StoredExemptionPreferences = {
+		...snapshot.exemptionPreferences,
+	};
+	if (snapshot.subject) {
+		record.subject = snapshot.subject;
+	}
+	const result = writeStoredExemptionPreferences(record, storageConfig, now);
+	if (!result.ok) {
+		console.warn(
+			'[c15t] Exemption preferences were not written.',
+			result.issues
 		);
 	}
 };

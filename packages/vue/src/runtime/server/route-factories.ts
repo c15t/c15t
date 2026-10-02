@@ -19,6 +19,7 @@ import {
 	writePolicyResolutionWire,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 import {
@@ -222,9 +223,13 @@ const negotiateInit = function negotiateInit(
 	clientContract: string | undefined
 ): InitOutput {
 	const negotiated = { ...output };
+	const capability = parsePolicyContractHeader(clientContract);
 	if (
-		clientContract !== undefined &&
-		parsePolicyContractHeader(clientContract) !== POLICY_CONTRACT_VERSION
+		(clientContract !== undefined &&
+			capability !== POLICY_CONTRACT_VERSION &&
+			capability !== POLICY_SUPPORTED_CONTRACT_VERSION) ||
+		(output.policyResolution.version > POLICY_CONTRACT_VERSION &&
+			capability !== POLICY_SUPPORTED_CONTRACT_VERSION)
 	) {
 		negotiated.policyResolution = writePolicyResolutionWire({
 			policy: null,
@@ -303,6 +308,11 @@ export const createInitRoute = function createInitRoute(
 			const payload = negotiateInit(
 				resolveManifestInit({ inputs, manifest: manifest.manifest }),
 				getRequestHeader(event, POLICY_CONTRACT_HEADER)
+			);
+			setResponseHeader(
+				event,
+				POLICY_CONTRACT_HEADER,
+				String(payload.policyResolution.version)
 			);
 			if (
 				payload.policyResolution.status === 'matched' &&
@@ -405,10 +415,16 @@ export const createInitRoute = function createInitRoute(
 				subjectId: mapped.subjectId,
 				translations: payload.translations,
 			};
-			return negotiateInit(
+			const negotiated = negotiateInit(
 				output,
 				getRequestHeader(event, POLICY_CONTRACT_HEADER)
 			);
+			setResponseHeader(
+				event,
+				POLICY_CONTRACT_HEADER,
+				String(negotiated.policyResolution.version)
+			);
+			return negotiated;
 		}
 	});
 };

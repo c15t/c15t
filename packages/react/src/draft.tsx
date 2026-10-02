@@ -8,7 +8,12 @@ import type {
 	SaveResult,
 	SaveInput,
 } from '@c15t/core';
-import { deniedVendorIds, vendorRenders } from '@c15t/core';
+import {
+	deniedVendorIds,
+	extractConsentNamesFromCondition,
+	getCategoryPreference,
+	vendorRenders,
+} from '@c15t/core';
 import {
 	createContext,
 	useCallback,
@@ -47,7 +52,9 @@ export interface ConsentDraftHandle {
 	 * would drop the grant on save.
 	 */
 	setVendor: (vendorId: string, granted: boolean) => void;
+	/** Stage consent grants while preserving exempt processing preferences. */
 	acceptAll: () => void;
+	/** Stage refusal of every optional category, including exempt processing. */
 	rejectAll: () => void;
 	save: () => Promise<SaveResult>;
 	reset: () => void;
@@ -151,11 +158,7 @@ const seed = function seed(
 	};
 	for (const category of snapshot.evaluationPolicy.choiceScope ??
 		snapshot.policyRule.scope) {
-		values[category] =
-			snapshot.explicitChoice?.categories[category]?.value ??
-			defaults?.[category] ??
-			(snapshot.policyRule.model === 'opt-out' ||
-				snapshot.policyRule.preselectedCategories.includes(category));
+		values[category] = getCategoryPreference(snapshot, category, defaults);
 	}
 	return values;
 };
@@ -260,10 +263,24 @@ const createDraftStore = function createDraftStore(
 			});
 		}
 	};
-	/** Every declared vendor granted: what a bulk action leaves behind. */
-	const allVendorsOn = () => {
+	/** Stage grants while keeping exempt-category vendor objections intact. */
+	const allVendorsOn = (preserveExemptions = false) => {
 		const grants: Record<string, boolean> = {};
+		const snapshot = kernel.getSnapshot();
 		for (const id of Object.keys(baseVendors)) {
+			const category = snapshot.vendors?.declared.find(
+				(vendor) => vendor.id === id
+			)?.category;
+			if (
+				preserveExemptions &&
+				category &&
+				extractConsentNamesFromCondition(category).some(
+					(name) =>
+						name !== 'necessary' && snapshot.policyRule.exemptions?.[name]
+				)
+			) {
+				continue;
+			}
 			setOwn(grants, id, true);
 		}
 		return grants;
@@ -272,6 +289,7 @@ const createDraftStore = function createDraftStore(
 		const next = kernel.getSnapshot();
 		if (
 			source.explicitChoice === next.explicitChoice &&
+			source.exemptionPreferences === next.exemptionPreferences &&
 			source.policyRule === next.policyRule &&
 			source.evaluationPolicy === next.evaluationPolicy &&
 			source.vendors === next.vendors &&
@@ -307,12 +325,17 @@ const createDraftStore = function createDraftStore(
 	};
 	return {
 		acceptAll() {
+			const { exemptions } = kernel.getSnapshot().policyRule;
 			update(
 				Object.fromEntries(
-					current.displayedCategories.map((category) => [category, true])
+					current.displayedCategories
+						.filter(
+							(category) => category === 'necessary' || !exemptions?.[category]
+						)
+						.map((category) => [category, true])
 				)
 			);
-			updateVendors(allVendorsOn());
+			updateVendors(allVendorsOn(true));
 		},
 		connect() {
 			sync();
@@ -435,7 +458,7 @@ const useKernelDraftStore = function useKernelDraftStore(
 };
 export interface ConsentDraftProviderProps {
 	children: ReactNode;
-	/** Defaults apply only to categories without an explicit receipt. */
+	/** Defaults apply to consent-required categories without an explicit receipt. */
 	initial?: Partial<ConsentState>;
 }
 export const ConsentDraftProvider = ({

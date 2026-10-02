@@ -8,10 +8,14 @@
 
 import * as v from 'valibot';
 
-import { POLICY_CONTRACT_VERSION } from './policy-resolution-wire';
+import {
+	POLICY_CONTRACT_VERSION,
+	POLICY_EXEMPTION_CONTRACT_VERSION,
+} from './policy-resolution-wire';
 import type { ResolvedPolicyRule } from './policy-rule';
 import {
 	collectResolvedPolicyRuleIssues,
+	collectPolicyExemptionIssues,
 	isPlainPolicyObject,
 	POLICY_OPTIONAL_CATEGORIES,
 	POLICY_PROMPT_ACTIONS,
@@ -53,11 +57,33 @@ export const policyActionConstraintsSchema = v.pipe(
 	})
 );
 
+/** Operator declarations, checked against category/model invariants below. */
+export const policyExemptionsSchema = v.pipe(
+	plainObjectSchema,
+	v.check(
+		(input) =>
+			collectPolicyExemptionIssues(input, POLICY_OPTIONAL_CATEGORIES, 'opt-in')
+				.length === 0,
+		'Invalid exemption declaration'
+	),
+	v.record(
+		policyOptionalCategorySchema,
+		v.pipe(
+			plainObjectSchema,
+			v.strictObject({
+				kind: v.picklist(['uk-statistics', 'uk-appearance']),
+				revision: v.pipe(v.string(), v.minLength(1)),
+			})
+		)
+	)
+);
+
 const resolvedPolicyRuleFieldsSchema = v.pipe(
 	plainObjectSchema,
 	v.strictObject({
 		actions: policyActionConstraintsSchema,
 		copyRevision: v.nullable(v.string()),
+		exemptions: v.optional(policyExemptionsSchema),
 		i18n: v.optional(
 			v.pipe(
 				plainObjectSchema,
@@ -115,6 +141,12 @@ export const resolvedPolicyRuleSchema = v.pipe(
 		if (!dataset.typed) {
 			return;
 		}
+		if (
+			Object.hasOwn(dataset.value, 'exemptions') &&
+			dataset.value.exemptions === undefined
+		) {
+			addIssue({ message: 'exemptions must declare at least one category' });
+		}
 		for (const issue of collectResolvedPolicyRuleIssues(
 			dataset.value as ResolvedPolicyRule
 		)) {
@@ -141,7 +173,10 @@ export const policyResolutionFailureSchema = v.picklist([
 	'invalid-payload',
 ]);
 
-const contractVersionSchema = v.literal(POLICY_CONTRACT_VERSION);
+const contractVersionSchema = v.picklist([
+	POLICY_CONTRACT_VERSION,
+	POLICY_EXEMPTION_CONTRACT_VERSION,
+]);
 
 const policyResolutionVariantSchema = v.variant('status', [
 	v.strictObject({
@@ -181,6 +216,14 @@ export const policyResolutionWireSchema = v.pipe(
 	plainObjectSchema,
 	policyResolutionVariantSchema,
 	v.rawCheck(({ dataset, addIssue }) => {
+		if (
+			dataset.typed &&
+			dataset.value.status === 'matched' &&
+			dataset.value.version === POLICY_CONTRACT_VERSION &&
+			Object.hasOwn(dataset.value.policy, 'exemptions')
+		) {
+			addIssue({ message: 'policy.exemptions requires contract version 2' });
+		}
 		if (
 			dataset.typed &&
 			dataset.value.status === 'matched' &&

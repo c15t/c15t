@@ -1,3 +1,5 @@
+import type { PolicyExemptions } from '@c15t/schema/types';
+
 /**
  * Normalized consent-record contracts.
  *
@@ -8,7 +10,7 @@
  *
  * An integration that wants only the category vocabulary, and no part of the
  * kernel behind it, imports `@c15t/core/consent-categories`. This file has no
- * imports of its own, so that subpath is the whole cost.
+ * runtime imports of its own, so that subpath is the whole cost.
  */
 
 /** Every category the runtime knows about, in stable display order. */
@@ -89,6 +91,20 @@ export interface ExplicitChoice {
 	categories: Partial<Record<OptionalConsentCategory, CategoryDecision>>;
 }
 
+/** Persistent objections and reversals under declared exemptions, never consent. */
+export interface ExemptionPreferences {
+	version: 1;
+	categories: Partial<
+		Record<
+			OptionalConsentCategory,
+			{
+				value: boolean;
+				confirmedAt: number;
+			}
+		>
+	>;
+}
+
 /**
  * Local record that the current notice was explicitly dismissed. The same
  * record acknowledges a choice prompt that had no category to decide; it
@@ -135,6 +151,8 @@ export interface EvaluationPolicy {
 	 * scope. Empty means a choice prompt only asks for an acknowledgement.
 	 */
 	choiceScope?: readonly OptionalConsentCategory[];
+	/** Explicit reviewed category exemptions. */
+	exemptions?: PolicyExemptions;
 	choice: RecordValidity;
 	notice: RecordValidity;
 	/**
@@ -148,7 +166,11 @@ export interface EvaluationPolicy {
 }
 
 /** Why a category is restricted regardless of grants or defaults. */
-export type RestrictionReason = 'explicit-denial' | 'strict-scope' | 'gpc';
+export type RestrictionReason =
+	| 'explicit-denial'
+	| 'exemption-objection'
+	| 'strict-scope'
+	| 'gpc';
 
 /** Authority status of a stored positive or negative decision. */
 export type DecisionAuthority =
@@ -158,7 +180,7 @@ export type DecisionAuthority =
 	| 'policy-changed';
 
 /** Where an effective permission came from. */
-export type PermissionSource = 'grant' | 'default' | 'restricted';
+export type PermissionSource = 'grant' | 'exemption' | 'default' | 'restricted';
 
 /** Per-category diagnostics derived during evaluation. */
 export interface CategoryEvaluation {

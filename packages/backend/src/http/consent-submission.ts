@@ -50,6 +50,8 @@ import {
 	getRegionFromHeaders,
 	headersToRecord,
 	POLICY_OPTIONAL_CATEGORIES,
+	POLICY_CONTRACT_HEADER,
+	POLICY_EXEMPTION_CONTRACT_VERSION,
 	postSubjectInputSchema,
 	resolveInitFromManifest,
 	subjectCookieBannerInputSchema,
@@ -59,6 +61,7 @@ import type {
 	ConsentManifestConfig,
 	ConsentManifestPolicyPack,
 	PostSubjectInput,
+	ExemptionPreferencesWire,
 	ResolvedPolicyRule,
 	SubjectChoiceWire,
 	VendorChoiceWire,
@@ -135,6 +138,7 @@ export interface PreparedSubmission {
 	readonly choice: SubjectChoiceWire | undefined;
 	/** Per-vendor grants this act carried, stored as sent. */
 	readonly vendorChoice: VendorChoiceWire | undefined;
+	readonly exemptionPreferences: ExemptionPreferencesWire | undefined;
 	/** Granted codes after scope filtering, for `purposeIds`. */
 	readonly grantedCodes: readonly string[];
 	/** The preference map after scope filtering, echoed to the client. */
@@ -271,6 +275,7 @@ const decisionFromClaims = (
 				regionCode,
 				tenantId: context.tenantId,
 			}),
+			exemptions: rule.exemptions,
 			fingerprint,
 			jurisdiction,
 			language,
@@ -346,6 +351,7 @@ const decisionFromAssertedInputs = (
 				regionCode: resolved.location.regionCode,
 				tenantId: context.tenantId,
 			}),
+			exemptions: rule.exemptions,
 			fingerprint: decision.fingerprints.policy,
 			jurisdiction: resolved.jurisdiction,
 			language,
@@ -480,6 +486,19 @@ const checkChoice = (
 	for (const [category, receipt] of Object.entries(choice.categories)) {
 		if (!receipt || !OPTIONAL.has(category)) {
 			continue;
+		}
+		if (
+			receipt.value &&
+			POLICY_OPTIONAL_CATEGORIES.some(
+				(optional) =>
+					optional === category &&
+					decision?.rule.exemptions?.[optional] !== undefined
+			)
+		) {
+			return new BadRequestError({
+				code: 'INPUT_VALIDATION_FAILED',
+				message: 'Exempt processing must not be recorded as consent.',
+			});
 		}
 		const timestampIssue = checkTimestamp(
 			receipt.confirmedAt,
@@ -653,6 +672,10 @@ const proofFields = (
 	const language =
 		decision?.language ?? parseLanguage(context.headers.get('accept-language'));
 	const metadata: Record<string, unknown> = { ...(inputMetadata ?? {}) };
+	delete metadata.policyExemptions;
+	if (decision?.rule.exemptions) {
+		metadata.policyExemptions = decision.rule.exemptions;
+	}
 	if ((proof?.storeLanguage ?? false) && language) {
 		metadata.policyLanguage = language;
 	}
@@ -687,6 +710,17 @@ const resolveCategories = (
 	givenAt: Date,
 	now: number
 ): ResolvedCategories | BadRequestError => {
+	if (
+		decision?.rule.exemptions &&
+		cookieBanner &&
+		cookieBanner.choice === undefined
+	) {
+		return new BadRequestError({
+			code: 'INPUT_VALIDATION_FAILED',
+			message:
+				'Exemption policies require an explicit choice wire, including an empty choice for preference-only actions.',
+		});
+	}
 	let appliedPreferences: Record<string, boolean> | undefined;
 	let grantedCodes: string[] = [];
 	if (preferences) {
@@ -714,6 +748,83 @@ const resolveCategories = (
 		choice = legacyReceiptsFromPreferences(appliedPreferences, givenAt);
 	}
 	return { appliedPreferences, choice, grantedCodes };
+};
+
+/** Legacy saves cannot bypass exemption-aware policy negotiation by omitting proof. */
+const checkUnboundExemptionPolicy = (
+	cookieBanner: CookieBannerInput | undefined,
+	decision: ResolvedDecision | undefined,
+	manifest: ConsentManifest,
+	context: SubmissionContext
+): BadRequestError | undefined => {
+	if (!cookieBanner || decision) {
+		return undefined;
+	}
+	const { country, region } = getRegionFromHeaders(
+		headersToRecord(context.headers)
+	);
+	const resolved = resolveInitFromManifest(
+		manifest,
+		{
+			country: country ?? null,
+			gpc: context.headers.get('sec-gpc') === '1',
+			language: context.headers.get('accept-language') ?? 'en',
+			region: region ?? null,
+		},
+		{ baseTranslations }
+	);
+	if (
+		resolved.policyResolution?.status === 'matched' &&
+		resolved.policyResolution.policy.exemptions
+	) {
+		return new BadRequestError({
+			code: 'INPUT_VALIDATION_FAILED',
+			message:
+				'Exemption policies require an authenticated or asserted policy decision.',
+		});
+	}
+	return undefined;
+};
+
+const checkExemptionPreferences = (
+	preferences: ExemptionPreferencesWire | undefined,
+	decision: ResolvedDecision | undefined,
+	context: SubmissionContext
+): BadRequestError | undefined => {
+	if (
+		decision?.rule.exemptions &&
+		context.headers.get(POLICY_CONTRACT_HEADER) !==
+			String(POLICY_EXEMPTION_CONTRACT_VERSION)
+	) {
+		return new BadRequestError({
+			code: 'UNSUPPORTED_POLICY_CONTRACT',
+			message: 'This policy requires exemption preference support.',
+		});
+	}
+	if (preferences) {
+		for (const category of POLICY_OPTIONAL_CATEGORIES) {
+			const preference = preferences.categories[category];
+			if (!preference) {
+				continue;
+			}
+			const issue = checkTimestamp(
+				preference.confirmedAt,
+				`exemptionPreferences.categories.${category}.confirmedAt`,
+				context.now
+			);
+			if (issue) {
+				return issue;
+			}
+			if (preference.value && !decision?.rule.exemptions?.[category]) {
+				return new BadRequestError({
+					code: 'INPUT_VALIDATION_FAILED',
+					message: `No active exemption for ${category}.`,
+				});
+			}
+		}
+	}
+
+	return undefined;
 };
 
 /**
@@ -752,6 +863,15 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		);
 		const cookieBanner = asCookieBanner(input);
 		const decision = yield* resolveDecision(cookieBanner, manifest, context);
+		const unboundExemptionIssue = checkUnboundExemptionPolicy(
+			cookieBanner,
+			decision,
+			manifest,
+			context
+		);
+		if (unboundExemptionIssue) {
+			return yield* unboundExemptionIssue;
+		}
 
 		const headerRecord = headersToRecord(context.headers);
 		const { country, region } = getRegionFromHeaders(headerRecord);
@@ -782,6 +902,16 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			}
 		}
 
+		const exemptionPreferences = cookieBanner?.exemptionPreferences;
+		const exemptionIssue = checkExemptionPreferences(
+			exemptionPreferences,
+			decision,
+			context
+		);
+		if (exemptionIssue) {
+			return yield* exemptionIssue;
+		}
+
 		const model = effectiveModel(decision, input.jurisdictionModel);
 		const validityMs = choiceValidityMs(decision);
 		const proof = proofFields(decision, context, input.metadata);
@@ -791,6 +921,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			choice,
 			consentAction: deriveConsentAction(input.consentAction, model),
 			decision,
+			exemptionPreferences,
 			givenAt,
 			grantedCodes,
 			input,

@@ -1,6 +1,9 @@
 import type { ConsentSnapshot } from '../types';
 import type { SnapshotPatch } from './patch';
-import { mergeNewestVendorChoice } from './records';
+import {
+	mergeNewestVendorChoice,
+	mergeNewestExemptionPreferences,
+} from './records';
 import type { ValidatedRecords } from './records';
 
 /**
@@ -26,6 +29,12 @@ export const mergeServerPatch = function mergeServerPatch(
 		patch.subject = records.subject
 			? { ...current.subject, ...records.subject }
 			: current.subject;
+	}
+	if (records.exemptionPreferences !== undefined) {
+		patch.exemptionPreferences = mergeNewestExemptionPreferences(
+			current.exemptionPreferences,
+			records.exemptionPreferences
+		);
 	}
 	if (records.vendorChoice !== undefined) {
 		patch.vendorChoice = mergeNewestVendorChoice(

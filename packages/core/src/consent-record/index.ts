@@ -38,6 +38,7 @@ export type {
 	DecisionAuthority,
 	EvaluationPolicy,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 	PermissionSource,
@@ -51,6 +52,7 @@ export type {
 export {
 	isOptionalConsentCategory,
 	validateExplicitChoice,
+	validateExemptionPreferences,
 	validateNoticeDismissal,
 } from './validation';
 export type { RecordIssue, ValidationResult } from './validation';

@@ -7,6 +7,7 @@
 import * as v from 'valibot';
 
 import { subjectChoiceWireSchema } from './choice-wire';
+import { exemptionPreferencesWireSchema } from './exemption-preferences-wire';
 import { subjectIdSchema } from './post';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
@@ -73,6 +74,7 @@ export const consentItemSchema = v.object({
 	 * Absent on rows written before receipts existed; null when unreadable.
 	 */
 	choice: v.optional(v.nullable(subjectChoiceWireSchema)),
+	exemptionPreferences: v.optional(v.nullable(exemptionPreferencesWireSchema)),
 	givenAt: v.date(),
 	id: v.string(),
 	isLatestPolicy: v.boolean(),
@@ -116,6 +118,9 @@ export const getSubjectOutputSchema = v.object({
 	 * predate receipts omit this field and require client-side reconstruction.
 	 */
 	subjectChoice: v.optional(v.nullable(subjectChoiceWireSchema)),
+	subjectExemptionPreferences: v.optional(
+		v.nullable(exemptionPreferencesWireSchema)
+	),
 	/**
 	 * Newest vendor grants across every cookie-banner consent. Null when no
 	 * row carries one. Backends that predate vendor consent omit the field.

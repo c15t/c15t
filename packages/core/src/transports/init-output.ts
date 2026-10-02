@@ -6,6 +6,7 @@
  */
 import {
 	POLICY_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 	readPolicyResolutionWire,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -108,10 +109,20 @@ export const resolveInitPolicyWire = function resolveInitPolicyWire(
 	options: MapInitOutputOptions = {}
 ): PolicyResolutionWire {
 	const declared = options.producerContract;
-	if (declared !== undefined && declared !== POLICY_CONTRACT_VERSION) {
+	if (
+		declared !== undefined &&
+		declared !== POLICY_CONTRACT_VERSION &&
+		declared !== POLICY_SUPPORTED_CONTRACT_VERSION
+	) {
 		return writePolicyResolutionWire(FAILED_UNSUPPORTED_CONTRACT);
 	}
 	if (payload.policyResolution !== undefined) {
+		if (
+			typeof declared === 'number' &&
+			payload.policyResolution.version > declared
+		) {
+			return writePolicyResolutionWire(FAILED_UNSUPPORTED_CONTRACT);
+		}
 		// Untouched. The kernel's strict reader decides what it can represent.
 		return payload.policyResolution;
 	}

@@ -16,6 +16,7 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
 	ConsentSubject,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 	PromptRequirement,
@@ -54,6 +55,7 @@ export interface SnapshotPatch {
 	externalPermissions?: Readonly<ConsentState>;
 	consentCategories?: readonly AllConsentNames[] | null;
 	explicitChoice?: ExplicitChoice | null;
+	exemptionPreferences?: ExemptionPreferences | null;
 	noticeDismissal?: NoticeDismissal | null;
 	resolution?: PolicyResolution;
 	subject?: ConsentSubject | null;
@@ -108,6 +110,8 @@ export const isUnchangedPatch = function isUnchangedPatch(
 			current.externalPermissions &&
 		pick(patch.privacyDetected, current.privacySignals.gpc.detected) ===
 			current.privacySignals.gpc.detected &&
+		pick(patch.exemptionPreferences, current.exemptionPreferences) ===
+			current.exemptionPreferences &&
 		pick(patch.explicitChoice, current.explicitChoice) ===
 			current.explicitChoice &&
 		pick(patch.noticeDismissal, current.noticeDismissal) ===
@@ -267,6 +271,10 @@ export const buildNextSnapshot = function buildNextSnapshot(
 			: current.evaluationPolicy;
 
 	const explicitChoice = pick(patch.explicitChoice, current.explicitChoice);
+	const exemptionPreferences = pick(
+		patch.exemptionPreferences,
+		current.exemptionPreferences
+	);
 	const noticeDismissal = pick(patch.noticeDismissal, current.noticeDismissal);
 	const overrides = pick(patch.overrides, current.overrides);
 	const detected = pick(
@@ -298,6 +306,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 	const reuseEvaluation =
 		evaluationPolicy === current.evaluationPolicy &&
 		explicitChoice === current.explicitChoice &&
+		exemptionPreferences === current.exemptionPreferences &&
 		noticeDismissal === current.noticeDismissal &&
 		privacySignals.gpc.active === current.privacySignals.gpc.active &&
 		now >= current.evaluatedAt &&
@@ -315,6 +324,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 			}
 		: evaluateConsentRecord({
 				choice: explicitChoice,
+				exemptionPreferences,
 				gpc: privacySignals.gpc.active,
 				noticeDismissal,
 				now,
@@ -371,6 +381,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		effectivePermissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		exemptionPreferences,
 		explicitChoice,
 		externalPermissions,
 		iab,

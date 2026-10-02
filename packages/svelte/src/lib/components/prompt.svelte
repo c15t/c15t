@@ -325,6 +325,23 @@
 					englishTranslations?.cookieBanner?.noticeDescription)
 				: translations.cookieBanner.description)
 	);
+	const exemptionNotices = $derived.by(() => {
+		const kinds = new Set(
+			Object.values(consent.snapshot.policyRule.exemptions ?? {}).map(
+				(exemption) => exemption.kind
+			)
+		);
+		return [
+			kinds.has('uk-statistics')
+				? (translations.common.exemptStatisticsNotice ??
+					'We use service statistics to improve this service without asking for consent. You can turn this off in privacy settings.')
+				: undefined,
+			kinds.has('uk-appearance')
+				? (translations.common.exemptAppearanceNotice ??
+					'We use your appearance preferences without asking for consent. You can turn this off in privacy settings.')
+				: undefined,
+		].filter((notice) => notice !== undefined);
+	});
 	// Acknowledgement records no category choice.
 	const resolvedDismissText = $derived(
 		dismissButtonText ??
@@ -407,6 +424,9 @@
 							data-testid="consent-banner-description"
 						>
 							{resolvedDescription}
+							{#each exemptionNotices as notice (notice)}
+								<p data-testid="consent-banner-exemption-notice">{notice}</p>
+							{/each}
 							<InlineLegalLinks
 								links={legalLinks}
 								themeKey="consentBannerDescription"

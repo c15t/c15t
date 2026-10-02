@@ -753,6 +753,7 @@ export const createVueConsentKernelContext =
 				}
 				kernel.hydrate({
 					choice: null,
+					exemptionPreferences: null,
 					noticeDismissal: null,
 					subject: null,
 				});

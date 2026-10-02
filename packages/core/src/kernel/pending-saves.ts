@@ -11,7 +11,10 @@
  */
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
-import { validateExplicitChoice } from '../consent-record/validation';
+import {
+	validateExplicitChoice,
+	validateExemptionPreferences,
+} from '../consent-record/validation';
 import { PENDING_SAVES_STORAGE_KEY } from '../libs/storage-keys';
 import { isConsentSaveRejection } from '../transports/save-rejection';
 import type { KernelEvent, KernelTransport, SavePayload } from '../types';
@@ -144,7 +147,9 @@ const isSavePayload = function isSavePayload(
 		!isSubject(value.subject) ||
 		!isDecisionInputs(value.decisionInputs) ||
 		!isConfirmedCoverage(value.confirmed) ||
-		!validateExplicitChoice(value.choice, Date.now()).ok
+		!validateExplicitChoice(value.choice, Date.now()).ok ||
+		(value.exemptionPreferences !== undefined &&
+			!validateExemptionPreferences(value.exemptionPreferences, Date.now()).ok)
 	) {
 		return false;
 	}
@@ -273,7 +278,9 @@ const subtractSuperseded = function subtractSuperseded(
 	}
 	const selected = selectSavePayload(
 		older,
-		(category) => !Object.hasOwn(newer.confirmed.categories, category)
+		(category) => !Object.hasOwn(newer.confirmed.categories, category),
+		(category) =>
+			!Object.hasOwn(newer.exemptionPreferences?.categories ?? {}, category)
 	);
 	if (
 		!selected ||
@@ -285,7 +292,8 @@ const subtractSuperseded = function subtractSuperseded(
 	// The newer action carries the complete vendor grant map, so the older
 	// one has nothing left to say about vendors.
 	const { vendorChoice: _superseded, ...remaining } = selected;
-	return Object.keys(remaining.confirmed.categories).length > 0
+	return Object.keys(remaining.confirmed.categories).length > 0 ||
+		Object.keys(remaining.exemptionPreferences?.categories ?? {}).length > 0
 		? remaining
 		: null;
 };

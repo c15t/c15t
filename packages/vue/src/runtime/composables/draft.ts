@@ -1,5 +1,9 @@
 import type { ConsentState, ConsentSnapshot, SaveResult } from '@c15t/core';
-import { deniedVendorIds, vendorRenders } from '@c15t/core';
+import {
+	deniedVendorIds,
+	getCategoryPreference,
+	vendorRenders,
+} from '@c15t/core';
 import { computed, ref, shallowRef, watch } from 'vue';
 
 import { useConsentConfig } from './config';
@@ -121,10 +125,11 @@ export const useConsentDraft = function useConsentDraft(
 			categories.map((category) => [
 				category,
 				category === 'necessary' ||
-					(current.explicitChoice?.categories[category]?.value ??
-						config.value.presentation?.preferences?.defaults?.[category] ??
-						(current.policyRule.model === 'opt-out' ||
-							current.policyRule.preselectedCategories.includes(category))),
+					getCategoryPreference(
+						current,
+						category,
+						config.value.presentation?.preferences?.defaults
+					),
 			])
 		);
 	const reset = () => {
@@ -195,13 +200,20 @@ export const useConsentDraft = function useConsentDraft(
 	watch(
 		[
 			() => snapshot.value.explicitChoice,
+			() => snapshot.value.exemptionPreferences,
 			() => snapshot.value.vendorChoice,
 			() => snapshot.value.vendors,
 			() => snapshot.value.evaluationPolicy,
 		],
 		(
-			[choice, vendorChoice, declared, policy],
-			[previousChoice, previousVendorChoice, previousDeclared, previousPolicy]
+			[choice, exemptionPreferences, vendorChoice, declared, policy],
+			[
+				previousChoice,
+				previousExemptions,
+				previousVendorChoice,
+				previousDeclared,
+				previousPolicy,
+			]
 		) => {
 			if (!shouldSyncChanges()) {
 				// The surface that suppressed syncing owns this change and
@@ -217,6 +229,7 @@ export const useConsentDraft = function useConsentDraft(
 			// reseeds itself on success.
 			const changed =
 				choice !== previousChoice ||
+				exemptionPreferences !== previousExemptions ||
 				vendorChoice !== previousVendorChoice ||
 				declared !== previousDeclared ||
 				(policy !== previousPolicy &&

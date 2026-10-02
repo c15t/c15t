@@ -12,6 +12,7 @@ import {
 	policyTypeSchema,
 } from '../../domain/consent-policy';
 import { subjectChoiceWireSchema } from './choice-wire';
+import { exemptionPreferencesWireSchema } from './exemption-preferences-wire';
 import { vendorChoiceWireSchema } from './vendor-choice-wire';
 
 /**
@@ -201,6 +202,8 @@ export const subjectCookieBannerInputSchema = v.object({
 	 * rather than from `preferences` plus one `givenAt`.
 	 */
 	choice: v.optional(subjectChoiceWireSchema),
+	/** Exemption objections or reversals confirmed by this action. */
+	exemptionPreferences: v.optional(exemptionPreferencesWireSchema),
 	preferences: v.pipe(
 		v.record(v.string(), v.boolean()),
 		v.description('Consent preferences keyed by category.'),
@@ -279,6 +282,7 @@ export const postSubjectOutputSchema = v.object({
 	consentId: v.string(),
 	domain: v.string(),
 	domainId: v.string(),
+	exemptionPreferences: v.optional(exemptionPreferencesWireSchema),
 	givenAt: v.date(),
 	metadata: v.optional(v.record(v.string(), v.unknown())),
 	subjectId: v.string(),

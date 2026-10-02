@@ -26,7 +26,7 @@
  */
 import {
 	POLICY_CONTRACT_HEADER,
-	POLICY_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 } from '@c15t/schema/types';
 
 import { version } from '../version';
@@ -47,7 +47,7 @@ export const c15tVersionHeaders: Readonly<Record<string, string>> = {
  */
 export const c15tProtocolHeaders: Readonly<Record<string, string>> = {
 	...c15tVersionHeaders,
-	[C15T_POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
+	[C15T_POLICY_CONTRACT_HEADER]: String(POLICY_SUPPORTED_CONTRACT_VERSION),
 };
 
 /**

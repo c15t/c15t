@@ -163,6 +163,7 @@ export const createScriptLoader = function createScriptLoader(
 	let lastRestrictions: unknown = null;
 	let lastModel: unknown = null;
 	let lastEvaluationPolicy: unknown = null;
+	let lastExemptions: unknown = null;
 	let lastVendorChoice: unknown = null;
 	let lastVendors: unknown = null;
 
@@ -211,6 +212,8 @@ export const createScriptLoader = function createScriptLoader(
 		}
 		const effective = getEffectiveGateState(snapshot);
 		const permissionsChanged = effective.effectivePermissions !== lastConsents;
+		const consentSignalsChanged =
+			snapshot.evaluationPolicy.exemptions !== lastExemptions;
 
 		if (!force && isConsentStateUnchanged(snapshot)) {
 			return;
@@ -221,6 +224,7 @@ export const createScriptLoader = function createScriptLoader(
 		lastRestrictions = effective.restrictions;
 		lastModel = snapshot.model;
 		lastEvaluationPolicy = snapshot.evaluationPolicy;
+		lastExemptions = snapshot.evaluationPolicy.exemptions;
 		lastPolicyCategories = snapshot.policyRule.scope;
 		lastScopeMode = snapshot.policyRule.scopeMode;
 		lastIab = snapshot.iab;
@@ -243,7 +247,10 @@ export const createScriptLoader = function createScriptLoader(
 				!force &&
 				previousEligibility === eligible &&
 				previousConsent === hasConsent &&
-				!(permissionsChanged && typeof script.onConsentChange === 'function')
+				!(
+					(permissionsChanged || consentSignalsChanged) &&
+					typeof script.onConsentChange === 'function'
+				)
 			) {
 				continue;
 			}

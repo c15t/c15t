@@ -39,6 +39,7 @@ import { BadRequestError, NotFoundError } from '../errors';
 /** One consent as the wire reports it, with 2.x fields plus v3 receipts. */
 const toConsentItem = (consent: ConsentRow): ConsentItem => ({
 	choice: consent.choice,
+	exemptionPreferences: consent.exemptionPreferences,
 	givenAt: consent.givenAt,
 	id: consent.id,
 	isLatestPolicy: consent.isLatestPolicy,
@@ -187,6 +188,7 @@ export const register = function register({
 						// asking about legal documents still needs its category state.
 						subjectChoice: subject.choice,
 						subjectVendorChoice: subject.vendorChoice,
+						subjectExemptionPreferences: subject.exemptionPreferences,
 					};
 				})
 			);
@@ -247,6 +249,7 @@ export const register = function register({
 						consentAction: prepared.consentAction ?? null,
 						decision: prepared.decision?.input,
 						domainId: domain.id,
+						exemptionPreferences: prepared.exemptionPreferences ?? null,
 						externalId: input.externalSubjectId ?? null,
 						givenAt: prepared.givenAt,
 						identityProvider: input.identityProvider ?? null,
@@ -290,6 +293,7 @@ export const register = function register({
 						consentId: submission.consentId,
 						domain: domain.name,
 						domainId: domain.id,
+						exemptionPreferences: prepared.exemptionPreferences,
 						givenAt: prepared.givenAt,
 						metadata: input.metadata,
 						ok: true as const,

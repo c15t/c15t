@@ -2,6 +2,7 @@ import type {
 	CategoryDecision,
 	ConsentSubject,
 	ExplicitChoice,
+	OptionalConsentCategory,
 } from '../../consent-record/types';
 /**
  * `@c15t/core/modules/persistence`
@@ -45,6 +46,7 @@ import type {
  *   schedule one coalesced `reconcile()`. `dispose()` removes the
  *   listeners and cancels the scheduled run.
  */
+import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import type { ConsentSnapshot, HydrationRecords } from '../../types';
 import {
@@ -52,6 +54,10 @@ import {
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
+import {
+	exemptionsSinceEpoch,
+	mergeExemptionPreferences,
+} from './exemption-record';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import {
 	choiceToWrite,
@@ -75,6 +81,7 @@ import { createWriteScheduler } from './schedule';
 import type { PersistenceHandle, PersistenceOptions } from './types';
 import {
 	writeChoiceToStorage,
+	writeExemptionsToStorage,
 	writeNoticeToStorage,
 	writeVendorChoiceToStorage,
 } from './write';
@@ -125,6 +132,11 @@ export const createPersistence = function createPersistence(
 	// scheduled write only acknowledges the server's subject id.
 	let choiceRecorded = false;
 	let vendorsRecorded = false;
+	let exemptionRecorded = false;
+	const ownExemptionDecisions = new Map<
+		OptionalConsentCategory,
+		{ preference: { value: boolean; confirmedAt: number }; epoch: number }
+	>();
 	let disposed = false;
 	// The subject id storage held at the last readable read or write, and
 	// the id a save generated because this runtime held none. An in-memory
@@ -351,6 +363,55 @@ export const createPersistence = function createPersistence(
 		markWritten('vendors', sameRecord(subject, snapshot.subject));
 	});
 
+	const exemptionWrites = createWriteScheduler(() => {
+		const subjectOnly = !exemptionRecorded;
+		exemptionRecorded = false;
+		const snapshot = kernel.getSnapshot();
+		const at = now();
+		const read = readStoredRecordsForReconcile(storageConfig, at);
+		if (
+			subjectOnly &&
+			(!read.records.exemptionPreferences ||
+				changedSinceSeen('exemptions', read) ||
+				read.epoch > memoryEpoch)
+		) {
+			return;
+		}
+		const ours = exemptionsSinceEpoch(
+			snapshot.exemptionPreferences,
+			read.epoch
+		);
+		const merged = mergeExemptionPreferences(
+			ours,
+			read.records.exemptionPreferences
+		);
+		if (!merged) {
+			return;
+		}
+		const subject = writtenSubject(
+			snapshot,
+			read.exemptionSubject,
+			subjectOnly,
+			read
+		);
+		writeExemptionsToStorage(
+			{ ...snapshot, exemptionPreferences: merged, subject },
+			storageConfig,
+			at
+		);
+		for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+			const preference = merged.categories[category];
+			if (preference) {
+				ownExemptionDecisions.set(category, { epoch: read.epoch, preference });
+			}
+		}
+		markWritten(
+			'exemptions',
+			sameRecord(merged, snapshot.exemptionPreferences) &&
+				sameRecord(subject, snapshot.subject)
+		);
+	});
+
 	const unsubscribers = [
 		kernel.events.on('command:save:started', () => {
 			subjectBeforeSave = kernel.getSnapshot().subject?.subjectId;
@@ -361,6 +422,9 @@ export const createPersistence = function createPersistence(
 			choiceWrites.schedule();
 		}),
 		kernel.events.on('subject:resolved', ({ snapshot }) => {
+			if (snapshot.exemptionPreferences) {
+				exemptionWrites.schedule();
+			}
 			choiceWrites.schedule();
 			// The vendor record carries the subject only once a vendor decision
 			// exists. Scheduling without one would run the writer's clear branch
@@ -368,6 +432,11 @@ export const createPersistence = function createPersistence(
 			if (snapshot.vendorChoice !== null) {
 				vendorWrites.schedule();
 			}
+		}),
+		kernel.events.on('exemption:recorded', ({ actionAt, snapshot }) => {
+			noteGeneratedSubject(snapshot, actionAt);
+			exemptionRecorded = true;
+			exemptionWrites.schedule();
 		}),
 		kernel.events.on('notice:dismissed', () => {
 			noticeWrites.schedule();
@@ -383,14 +452,17 @@ export const createPersistence = function createPersistence(
 		choiceWrites.flush();
 		noticeWrites.flush();
 		vendorWrites.flush();
+		exemptionWrites.flush();
 	};
 
 	const cancelAll = function cancelAll(): void {
 		choiceWrites.cancel();
 		noticeWrites.cancel();
 		vendorWrites.cancel();
+		exemptionWrites.cancel();
 		choiceRecorded = false;
 		vendorsRecorded = false;
+		exemptionRecorded = false;
 	};
 
 	/**
@@ -429,6 +501,27 @@ export const createPersistence = function createPersistence(
 				categories: { ...seeded, ...Object.fromEntries(denials) },
 				version: 3,
 			};
+		}
+		const seededExemptions = snapshot.exemptionPreferences;
+		const protective: NonNullable<
+			HydrationRecords['exemptionPreferences']
+		>['categories'] = {};
+		for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+			const decision = records.exemptionPreferences?.categories[category];
+			const current = seededExemptions?.categories[category];
+			if (
+				decision &&
+				!decision.value &&
+				(!current || decision.confirmedAt >= current.confirmedAt)
+			) {
+				Object.assign(protective, { [category]: decision });
+			}
+		}
+		if (Object.keys(protective).length) {
+			patch.exemptionPreferences = mergeExemptionPreferences(seededExemptions, {
+				categories: protective,
+				version: 1,
+			});
 		}
 		const { vendorChoice } = records;
 		if (
@@ -508,6 +601,27 @@ export const createPersistence = function createPersistence(
 		}
 	};
 
+	const restoreLostExemptionWrites = (read: StoredRead): void => {
+		if (read.records.exemptionPreferences === undefined) {
+			return;
+		}
+		const snapshot = kernel.getSnapshot();
+		const lost = [...ownExemptionDecisions].some(([category, written]) => {
+			const held = snapshot.exemptionPreferences?.categories[category];
+			const stored = read.records.exemptionPreferences?.categories[category];
+			return (
+				held &&
+				sameRecord(held, written.preference) &&
+				held.confirmedAt >= read.epoch &&
+				(!stored || stored.confirmedAt < held.confirmedAt)
+			);
+		});
+		if (lost) {
+			exemptionRecorded = true;
+			exemptionWrites.schedule();
+		}
+	};
+
 	const reconcile = function reconcile(): boolean {
 		scheduledReconcile.cancel();
 		if (disposed || typeof document === 'undefined') {
@@ -536,6 +650,7 @@ export const createPersistence = function createPersistence(
 		const { records } = next;
 		if (!records) {
 			restoreLostWrites(stored);
+			restoreLostExemptionWrites(stored);
 			return false;
 		}
 		const result = kernel.hydrate(records);
@@ -550,6 +665,7 @@ export const createPersistence = function createPersistence(
 			storedIab = records.choice ? stored.iab : null;
 		}
 		restoreLostWrites(stored);
+		restoreLostExemptionWrites(stored);
 		return result.changed;
 	};
 
@@ -569,6 +685,7 @@ export const createPersistence = function createPersistence(
 			keys.legacyConsent,
 			keys.notice,
 			keys.vendors,
+			keys.exemptions,
 			keys.epoch,
 			// Another page called `localStorage.clear()`.
 			null,
@@ -610,6 +727,7 @@ export const createPersistence = function createPersistence(
 			cancelAll();
 			unadopted.clear();
 			ownDecisions.clear();
+			ownExemptionDecisions.clear();
 			storedIab = null;
 			// The cleared subject is gone: an id generated by a save already
 			// under way is a new local id, not one the server resolved.
@@ -642,6 +760,7 @@ export const createPersistence = function createPersistence(
 			observe();
 			kernel.hydrate({
 				choice: null,
+				exemptionPreferences: null,
 				noticeDismissal: null,
 				now: at,
 				subject: null,

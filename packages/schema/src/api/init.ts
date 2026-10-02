@@ -92,8 +92,12 @@ export const completeTranslationsSchema = v.object({
 	common: v.object({
 		acceptAll: v.string(),
 		acknowledge: v.optional(v.string()),
+		consentRequired: v.optional(v.string()),
 		customize: v.string(),
 		dismiss: v.optional(v.string()),
+		exemptAppearanceNotice: v.optional(v.string()),
+		exemptProcessing: v.optional(v.string()),
+		exemptStatisticsNotice: v.optional(v.string()),
 		rejectAll: v.string(),
 		save: v.string(),
 	}),
@@ -129,8 +133,12 @@ export const partialTranslationsSchema = v.object({
 		v.object({
 			acceptAll: v.optional(v.string()),
 			acknowledge: v.optional(v.string()),
+			consentRequired: v.optional(v.string()),
 			customize: v.optional(v.string()),
 			dismiss: v.optional(v.string()),
+			exemptAppearanceNotice: v.optional(v.string()),
+			exemptProcessing: v.optional(v.string()),
+			exemptStatisticsNotice: v.optional(v.string()),
 			rejectAll: v.optional(v.string()),
 			save: v.optional(v.string()),
 		})

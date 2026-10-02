@@ -25,7 +25,11 @@
  * complete granted-or-denied map with one confirmation time, so the backend
  * stores the vendor decision without knowing the vendor list.
  */
-import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema/types';
+import type {
+	ExemptionPreferencesWire,
+	SubjectChoiceWire,
+	VendorChoiceWire,
+} from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
@@ -57,6 +61,7 @@ export interface SubjectPostBody {
 	tcString?: string;
 	/** Granted flag per declared vendor after this act, when vendors exist. */
 	vendorChoice?: VendorChoiceWire;
+	exemptionPreferences?: ExemptionPreferencesWire;
 	metadata?: {
 		userProperties: NonNullable<SavePayload['user']>['properties'];
 	};
@@ -141,6 +146,9 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		type: 'cookie_banner',
 		uiSource: payload.uiSource ?? undefined,
 		...(choice !== undefined && { choice }),
+		...(payload.exemptionPreferences !== undefined && {
+			exemptionPreferences: payload.exemptionPreferences,
+		}),
 		...(payload.vendorChoice !== undefined && {
 			vendorChoice: {
 				confirmedAt: payload.vendorChoice.confirmedAt,

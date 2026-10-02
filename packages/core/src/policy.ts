@@ -17,12 +17,13 @@ import { createEvaluationPolicy } from './consent-record/evaluation-policy';
 import type {
 	EvaluationPolicy,
 	ExplicitChoice,
+	ExemptionPreferences,
 	OptionalConsentCategory,
 	PromptRequirement,
 } from './consent-record/types';
 import type { AllConsentNames } from './consent/consent-types';
 import { deepFreeze } from './libs/freeze-data';
-import type { KernelActiveUI, KernelModel } from './types';
+import type { ConsentSnapshot, KernelActiveUI, KernelModel } from './types';
 
 /** Rule plus fingerprints the evaluator runs on. */
 export interface EffectivePolicy {
@@ -63,6 +64,7 @@ const projectEvaluationPolicy = (
 			maxAgeMs: Math.round(rule.validity.choiceMs),
 		},
 		choiceScope: projectChoiceScope(rule, consentCategories),
+		exemptions: rule.exemptions,
 		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
 		legacyMaterialFingerprint: fingerprints.legacyMaterial ?? null,
 		model: rule.model,
@@ -218,7 +220,8 @@ export type PresentedSelection = Partial<
 export const presentedSelection = function presentedSelection(
 	rule: ResolvedPolicyRule,
 	draft: PresentedSelection | null,
-	choice: ExplicitChoice | null
+	choice: ExplicitChoice | null,
+	exemptionPreferences?: ExemptionPreferences | null
 ): PresentedSelection {
 	const selection: PresentedSelection = {};
 	for (const category of rule.scope) {
@@ -228,6 +231,23 @@ export const presentedSelection = function presentedSelection(
 			continue;
 		}
 		const decision = choice?.categories[category];
+		if (rule.exemptions?.[category]) {
+			const preference = exemptionPreferences?.categories[category];
+			selection[category] =
+				preference &&
+				(!decision || preference.confirmedAt >= decision.confirmedAt)
+					? preference.value
+					: decision?.value !== false;
+			continue;
+		}
+		const objection = exemptionPreferences?.categories[category];
+		if (
+			objection?.value === false &&
+			(!decision || objection.confirmedAt >= decision.confirmedAt)
+		) {
+			selection[category] = false;
+			continue;
+		}
 		if (decision) {
 			selection[category] = decision.value;
 			continue;
@@ -250,4 +270,44 @@ export const scopeSelection = function scopeSelection(
 		selection[category] = value;
 	}
 	return selection;
+};
+
+/**
+ * Value presented by a category control before GPC and grant expiry apply.
+ * Exemption defaults and preferences do not constitute consent.
+ * @param snapshot Current consent snapshot.
+ * @param category Category to display.
+ * @param defaults Optional displayed defaults for undecided consent categories.
+ * @returns The preference value a visitor can confirm or change.
+ */
+export const getCategoryPreference = function getCategoryPreference(
+	snapshot: ConsentSnapshot,
+	category: OptionalConsentCategory,
+	defaults?: Partial<Record<OptionalConsentCategory, boolean>>
+): boolean {
+	if (snapshot.policyRule.exemptions?.[category]) {
+		return (
+			presentedSelection(
+				snapshot.policyRule,
+				null,
+				snapshot.explicitChoice,
+				snapshot.exemptionPreferences
+			)[category] ?? true
+		);
+	}
+	const decision = snapshot.explicitChoice?.categories[category];
+	const objection = snapshot.exemptionPreferences?.categories[category];
+	if (
+		objection?.value === false &&
+		(!decision || objection.confirmedAt >= decision.confirmedAt)
+	) {
+		return false;
+	}
+	return (
+		decision?.value ??
+		defaults?.[category] ??
+		(snapshot.model === 'opt-out' ||
+			snapshot.model === 'none' ||
+			snapshot.policyRule.preselectedCategories.includes(category))
+	);
 };

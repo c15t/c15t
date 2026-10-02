@@ -58,6 +58,7 @@ describe('kernel event mapping', () => {
 				snapshot,
 				type: 'choice:recorded',
 			},
+			{ actionAt: 1, snapshot, type: 'exemption:recorded' },
 			{
 				previous: snapshot.effectivePermissions,
 				snapshot,

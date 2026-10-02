@@ -12,9 +12,14 @@ const presetNames = Object.keys(
 	policyRulePresets
 ) as (keyof typeof policyRulePresets)[];
 
+const presetFor = (name: keyof typeof policyRulePresets) =>
+	name === 'ukStatisticsAndConsent'
+		? policyRulePresets[name]('statistics-review-1')
+		: policyRulePresets[name]();
+
 describe('policyRulePresets', () => {
 	test.each(presetNames)('%s normalizes with review metadata', (name) => {
-		const rule = policyRulePresets[name]();
+		const rule = presetFor(name);
 		expect(() => normalizePolicyRule(rule)).not.toThrow();
 		expect(rule.review?.reviewBy).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
 		expect(rule.review?.assumptions?.length).toBeGreaterThan(0);
@@ -29,7 +34,7 @@ describe('policyRulePresets', () => {
 	test.each(presetNames.filter((name) => name !== 'worldNone'))(
 		'%s has completed review metadata',
 		(name) => {
-			const rule = policyRulePresets[name]();
+			const rule = presetFor(name);
 			expect(rule.review?.status).toBe('reviewed');
 			expect(rule.review?.reviewedOn).toMatch(/^\d{4}-\d{2}-\d{2}$/u);
 			expect(Date.parse(rule.review?.reviewBy ?? '')).toBeGreaterThan(
@@ -44,9 +49,7 @@ describe('policyRulePresets', () => {
 			(name) => name !== 'worldNone' && name !== 'worldOptOutNoPrompt'
 		)
 	)('%s cites review sources', (name) => {
-		expect(policyRulePresets[name]().review?.sources?.length).toBeGreaterThan(
-			0
-		);
+		expect(presetFor(name).review?.sources?.length).toBeGreaterThan(0);
 	});
 
 	test('each Europe variant validates with the regional presets as one pack', () => {

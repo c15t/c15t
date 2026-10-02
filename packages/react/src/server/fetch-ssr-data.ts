@@ -1,5 +1,9 @@
 import { C15T_VERSION_HEADER } from '@c15t/core';
 import type { InitOutput, SSRInitialData } from '@c15t/core';
+import {
+	POLICY_CONTRACT_HEADER,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
+} from '@c15t/schema/types';
 
 import { version } from '../version';
 import { extractRelevantHeaders } from './headers';
@@ -114,7 +118,10 @@ const performInitFetch = async function performInitFetch(
 	try {
 		const response = await fetch(`${normalizedURL}/init`, {
 			cache: 'no-store',
-			headers: relevantHeaders,
+			headers: {
+				...relevantHeaders,
+				[POLICY_CONTRACT_HEADER]: String(POLICY_SUPPORTED_CONTRACT_VERSION),
+			},
 			method: 'GET',
 		});
 		const requestDurationMs = Math.max(0, Math.round(getNowMs() - startTime));

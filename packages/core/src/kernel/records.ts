@@ -10,6 +10,7 @@ import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
 	ConsentSubject,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 } from '../consent-record/types';
 import {
@@ -19,6 +20,7 @@ import {
 	ownKeys,
 	ownValue,
 	validateExplicitChoice,
+	validateExemptionPreferences,
 	validateNoticeDismissal,
 } from '../consent-record/validation';
 import type { RecordIssue } from '../consent-record/validation';
@@ -28,6 +30,7 @@ import type { HydrationRecords, VendorChoice } from '../types';
 /** Validated records with the same omit/clear semantics as the input. */
 export interface ValidatedRecords {
 	choice?: ExplicitChoice | null;
+	exemptionPreferences?: ExemptionPreferences | null;
 	subject?: ConsentSubject | null;
 	noticeDismissal?: NoticeDismissal | null;
 	vendorChoice?: VendorChoice | null;
@@ -154,6 +157,26 @@ export const validateHydrationRecords = function validateHydrationRecords(
 			}
 		}
 	}
+	if (input.exemptionPreferences !== undefined) {
+		if (input.exemptionPreferences === null) {
+			records.exemptionPreferences = null;
+		} else {
+			const result = validateExemptionPreferences(
+				input.exemptionPreferences,
+				now
+			);
+			if (result.ok) {
+				records.exemptionPreferences = result.record;
+			} else {
+				issues.push(
+					...result.issues.map((issue) => ({
+						...issue,
+						path: `exemptionPreferences.${issue.path}`,
+					}))
+				);
+			}
+		}
+	}
 	if (input.subject !== undefined) {
 		records.subject =
 			input.subject === null ? null : validateSubject(input.subject, issues);
@@ -243,3 +266,28 @@ export const mergeNewestChoice = function mergeNewestChoice(
 	}
 	return { categories, version: 3 };
 };
+
+/** Keep the newest per-category exemption preference; refusals win ties. */
+export const mergeNewestExemptionPreferences =
+	function mergeNewestExemptionPreferences(
+		current: ExemptionPreferences | null,
+		incoming: ExemptionPreferences | null
+	): ExemptionPreferences | null {
+		if (!current) {
+			return incoming;
+		}
+		if (!incoming) {
+			return current;
+		}
+		const categories = { ...current.categories };
+		let changed = false;
+		for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+			const theirs = incoming.categories[category];
+			const ours = categories[category];
+			if (theirs && (!ours || theirs.confirmedAt > ours.confirmedAt)) {
+				categories[category] = theirs;
+				changed = true;
+			}
+		}
+		return changed ? { categories, version: 1 } : current;
+	};

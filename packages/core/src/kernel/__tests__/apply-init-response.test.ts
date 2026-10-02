@@ -25,7 +25,7 @@ describe('readInitResolution', () => {
 			readInitResolution({ policyResolution: { ...matched, version: 1 } })
 		).toMatchObject({ policyId: 'test-opt-in', status: 'matched' });
 		expect(
-			readInitResolution({ policyResolution: { ...matched, version: 2 } })
+			readInitResolution({ policyResolution: { ...matched, version: 3 } })
 		).toEqual({
 			policy: null,
 			reason: 'unsupported-contract',

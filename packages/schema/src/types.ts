@@ -189,6 +189,8 @@ export type {
 export {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
+	POLICY_EXEMPTION_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
@@ -199,6 +201,9 @@ export {
 } from './shared/policy-resolution-wire';
 export type {
 	PolicyActionConstraints,
+	PolicyExemptionKind,
+	PolicyCategoryExemption,
+	PolicyExemptions,
 	PolicyChoiceAction,
 	PolicyConsentCategory,
 	PolicyOptionalCategory,
@@ -220,6 +225,7 @@ export {
 export {
 	canonicalizePolicySet,
 	collectResolvedPolicyRuleIssues,
+	collectPolicyExemptionIssues,
 	expectedPolicyActions,
 	isPlainPolicyObject,
 	isPolicyOptionalCategory,
@@ -253,6 +259,9 @@ export {
 	NOTICE_PROMPT_FINGERPRINT_VERSION,
 	noticePromptFingerprintInput,
 	POLICY_FINGERPRINT_VERSION,
+	POLICY_EXEMPTION_FINGERPRINT_VERSION,
+	CHOICE_EXEMPTION_FINGERPRINT_VERSION,
+	NOTICE_EXEMPTION_FINGERPRINT_VERSION,
 	policyFingerprintInput,
 	PRESENTATION_FINGERPRINT_VERSION,
 } from './shared/policy-rule-fingerprint';
@@ -286,3 +295,5 @@ export type {
 	LegacyMaterialPolicyInput,
 	LegacyMaterialSurfaceInput,
 } from './shared/legacy-material-policy';
+
+export type { ExemptionPreferencesWire } from './api/subject/exemption-preferences-wire';

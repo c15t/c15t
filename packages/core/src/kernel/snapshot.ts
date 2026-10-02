@@ -260,6 +260,7 @@ export const freezeSnapshot = function freezeSnapshot(
 	if (snapshot.evaluationPolicy !== DEFAULT_EVALUATION_POLICY) {
 		deepFreeze(snapshot.evaluationPolicy);
 	}
+	deepFreeze(snapshot.exemptionPreferences);
 	freezeChoice(snapshot.explicitChoice as ExplicitChoice | null);
 	freezeVendorChoice(snapshot.vendorChoice as VendorChoice | null);
 	deepFreeze(snapshot.vendors);
@@ -313,6 +314,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		: null;
 	const records = validated?.ok === true ? validated.records : null;
 	const explicitChoice = records?.choice ?? null;
+	const exemptionPreferences = records?.exemptionPreferences ?? null;
 	const noticeDismissal = records?.noticeDismissal ?? null;
 	const subject = records?.subject ?? null;
 	const vendorChoice = records?.vendorChoice ?? null;
@@ -341,10 +343,12 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 	const recordEvaluation =
 		evaluationPolicy === DEFAULT_EVALUATION_POLICY &&
 		explicitChoice === null &&
+		exemptionPreferences === null &&
 		noticeDismissal === null
 			? DEFAULT_RECORD_EVALUATION
 			: evaluateConsentRecord({
 					choice: explicitChoice,
+					exemptionPreferences,
 					gpc: privacySignals.gpc.active,
 					noticeDismissal,
 					now,
@@ -367,6 +371,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		effectivePermissions: evaluation.permissions,
 		evaluatedAt: now,
 		evaluationPolicy,
+		exemptionPreferences,
 		explicitChoice,
 		externalPermissions,
 		iab,

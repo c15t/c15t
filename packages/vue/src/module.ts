@@ -185,6 +185,7 @@ const module: NuxtModule<C15tNuxtConfig> = defineNuxtModule<C15tNuxtConfig>({
 				'useConsentKernel',
 				'useConsentSnapshot',
 				'useExplicitChoice',
+				'useExemptionPreferences',
 				'useEffectivePermissions',
 				'usePromptRequirement',
 				'useNoticeDismissal',

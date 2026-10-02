@@ -26,9 +26,14 @@
  * only the identity tuple can find them.
  */
 
-import { buildConsentId, vendorChoiceWireSchema } from '@c15t/schema';
+import {
+	buildConsentId,
+	exemptionPreferencesWireSchema,
+	vendorChoiceWireSchema,
+} from '@c15t/schema';
 import type {
 	ConsentSubmissionIdentity,
+	ExemptionPreferencesWire,
 	SubjectChoiceWire,
 	VendorChoiceWire,
 } from '@c15t/schema';
@@ -50,6 +55,7 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly choice?: SubjectChoiceWire | null;
 	/** Per-vendor grants this submission carried, in wire form, stored as sent. */
 	readonly vendorChoice?: VendorChoiceWire | null;
+	readonly exemptionPreferences?: ExemptionPreferencesWire | null;
 	readonly metadata?: unknown;
 	readonly ipAddress?: string | null;
 	readonly userAgent?: string | null;
@@ -313,6 +319,51 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 	}
 );
 
+const encodeOptionalJson = (value: unknown): string | null =>
+	value === undefined || value === null ? null : JSON.stringify(value);
+
+/** A retry must preserve the same exemption preference action. */
+const assertSameExemptionPreferences = Effect.fn(
+	'consent.assertSameExemptionPreferences'
+)(function* assertSameExemptionPreferences(
+	stored: unknown,
+	submitted: ExemptionPreferencesWire | null | undefined
+) {
+	let parsed: unknown = stored;
+	if (typeof stored === 'string') {
+		try {
+			parsed = JSON.parse(stored);
+		} catch {
+			parsed = undefined;
+		}
+	}
+	if ((parsed === null || parsed === undefined) && !submitted) {
+		return;
+	}
+	const decoded = v.safeParse(exemptionPreferencesWireSchema, parsed);
+	const canonical = (record: ExemptionPreferencesWire) =>
+		JSON.stringify(
+			Object.entries(record.categories)
+				.sort(([left], [right]) => left.localeCompare(right))
+				.map(([category, preference]) => [
+					category,
+					preference?.value,
+					preference?.confirmedAt,
+				])
+		);
+	if (
+		decoded.success &&
+		submitted &&
+		canonical(decoded.output) === canonical(submitted)
+	) {
+		return;
+	}
+	return yield* new ConsentPurposeConflictError({
+		message:
+			'This action was already recorded with different exemption preferences.',
+	});
+});
+
 /**
  * Every content check against a stored row, for the two paths that find
  * one.
@@ -322,13 +373,22 @@ export const assertSameVendors = Effect.fn('consent.assertSameVendors')(
 export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 	function* assertSameSubmission(
 		stored:
-			| { purposeIds: unknown; choice: unknown; vendorChoice: unknown }
+			| {
+					purposeIds: unknown;
+					choice: unknown;
+					vendorChoice: unknown;
+					exemptionPreferences?: unknown;
+			  }
 			| undefined,
 		submission: ConsentSubmission
 	) {
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
 		yield* assertSameChoice(stored?.choice, submission.choice);
 		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
+		yield* assertSameExemptionPreferences(
+			stored?.exemptionPreferences,
+			submission.exemptionPreferences
+		);
 	}
 );
 
@@ -354,8 +414,9 @@ export const record = Effect.fn('consent.record')(function* record(
 		purposeIds: unknown;
 		choice: unknown;
 		vendorChoice: unknown;
+		exemptionPreferences?: unknown;
 	}>`
-		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		select ${sql('id')}, ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}, ${sql('exemptionPreferences')}
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;
@@ -381,6 +442,10 @@ export const record = Effect.fn('consent.record')(function* record(
 	// a query, so it must not run on the hot retry path above.
 	const legacyId = yield* findLegacySubmission(submission);
 	if (legacyId !== undefined) {
+		yield* assertSameExemptionPreferences(
+			undefined,
+			submission.exemptionPreferences
+		);
 		return { created: false, id: legacyId };
 	}
 
@@ -397,6 +462,7 @@ export const record = Effect.fn('consent.record')(function* record(
 					: JSON.stringify(submission.choice),
 			consentAction: submission.consentAction ?? null,
 			domainId: submission.domainId,
+			exemptionPreferences: encodeOptionalJson(submission.exemptionPreferences),
 			givenAt: submission.givenAt,
 			id,
 			ipAddress: submission.ipAddress ?? null,
@@ -437,8 +503,9 @@ export const record = Effect.fn('consent.record')(function* record(
 		purposeIds: unknown;
 		choice: unknown;
 		vendorChoice: unknown;
+		exemptionPreferences?: unknown;
 	}>`
-		select ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}
+		select ${sql('purposeIds')}, ${sql('choice')}, ${sql('vendorChoice')}, ${sql('exemptionPreferences')}
 		from ${sql('consent')}
 		where ${sql('id')} = ${id}
 	`;

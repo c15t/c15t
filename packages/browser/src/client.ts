@@ -79,7 +79,7 @@ interface ResolvedMode {
  *
  * @param policyRules - Rules, preset names, or a mix.
  * @returns Rules only, or `undefined` when none were given.
- * @throws {Error} On a name `policyRulePresets` does not export.
+ * @throws {Error} On an unknown name or a preset that requires operator input.
  */
 export const resolveRules = function resolveRules(
 	policyRules: ConsentClientOptions['policyRules']
@@ -90,6 +90,11 @@ export const resolveRules = function resolveRules(
 	return policyRules.map((entry) => {
 		if (typeof entry !== 'string') {
 			return entry;
+		}
+		if (String(entry) === 'ukStatisticsAndConsent') {
+			throw new Error(
+				'@c15t/browser: ukStatisticsAndConsent requires an eligibility revision. Pass policyRulePresets.ukStatisticsAndConsent(revision) as a rule.'
+			);
 		}
 		// Own keys only: `'constructor'` would otherwise resolve to Object.
 		const preset = Object.hasOwn(policyRulePresets, entry)

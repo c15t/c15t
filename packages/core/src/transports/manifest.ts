@@ -7,7 +7,7 @@
  */
 
 import {
-	POLICY_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
 import type {
@@ -469,7 +469,7 @@ export const createManifestTransport = function createManifestTransport(
 			// Local resolution always produces the v3 wire; the manifest's own
 			// schema version decides matched, lifted, or failed inside it.
 			return mapInitOutputToInitResponse(payload, toHeadersFromInputs(inputs), {
-				producerContract: POLICY_CONTRACT_VERSION,
+				producerContract: POLICY_SUPPORTED_CONTRACT_VERSION,
 			});
 		},
 

@@ -10,7 +10,11 @@
  * @internal
  */
 
-import { compareCanonical } from '@c15t/schema/types';
+import {
+	compareCanonical,
+	collectPolicyExemptionIssues,
+} from '@c15t/schema/types';
+import type { PolicyExemptions } from '@c15t/schema/types';
 
 import type {
 	EvaluationPolicy,
@@ -32,6 +36,7 @@ export interface EvaluationPolicyInput {
 	choiceScope?: readonly OptionalConsentCategory[];
 	/** Choice prompt fingerprint and semantic validity. */
 	choice: RecordValidity;
+	exemptions?: PolicyExemptions;
 	/** Notice prompt fingerprint and semantic validity. */
 	notice: RecordValidity;
 	/** Explicit GPC deny mapping. Omit or leave empty when GPC is not honored. */
@@ -162,6 +167,12 @@ export const createEvaluationPolicy = function createEvaluationPolicy(
 	const gpcDenyCategories = input.gpcDenyCategories ?? [];
 	assertGpcMapping(gpcDenyCategories, scope);
 
+	if (input.exemptions) {
+		const issues = collectPolicyExemptionIssues(input.exemptions, scope, model);
+		if (issues.length > 0) {
+			throw new TypeError(issues[0]);
+		}
+	}
 	const policy: EvaluationPolicy = {
 		choice,
 		gpcDenyCategories: canonicalizeCategories(gpcDenyCategories),
@@ -174,6 +185,9 @@ export const createEvaluationPolicy = function createEvaluationPolicy(
 	};
 	if (choiceScope) {
 		policy.choiceScope = canonicalizeCategories(choiceScope);
+	}
+	if (input.exemptions) {
+		policy.exemptions = structuredClone(input.exemptions);
 	}
 	return policy;
 };

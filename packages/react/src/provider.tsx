@@ -1292,6 +1292,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 				} else {
 					kernel.hydrate({
 						choice: null,
+						exemptionPreferences: null,
 						noticeDismissal: null,
 						subject: null,
 						vendorChoice: null,

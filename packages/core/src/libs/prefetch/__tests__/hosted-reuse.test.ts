@@ -60,7 +60,7 @@ describe('hosted browser prefetch consumption', () => {
 		expect(first?.policyResolution).toEqual(payload.policyResolution);
 		expect(fetch).toHaveBeenCalledTimes(1);
 		expect(fetch.mock.calls[0]?.[1].headers).toMatchObject({
-			'x-c15t-policy-contract': '1',
+			'x-c15t-policy-contract': '2',
 		});
 		await transport.init?.(context);
 		expect(fetch).toHaveBeenCalledTimes(2);

@@ -10,6 +10,7 @@
  * therefore have side effects, but contains no DOM or kernel access of
  * its own.
  */
+import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import type { ConsentSnapshot } from '../../types';
 import { getEffectiveGateState, isVendorDenied } from '../has';
 import type {
@@ -40,6 +41,15 @@ export const buildCallbackInfo = function buildCallbackInfo(
 		hasConsent,
 		id: script.id,
 	};
+	const { exemptions } = snapshot.evaluationPolicy;
+	if (exemptions) {
+		info.consentSignals = { ...info.consents };
+		for (const category of OPTIONAL_CONSENT_CATEGORIES) {
+			if (exemptions[category]) {
+				info.consentSignals[category] = false;
+			}
+		}
+	}
 	if (script.vendor && snapshot.model !== 'iab') {
 		info.vendor = {
 			granted: !isVendorDenied(snapshot, script.vendor),

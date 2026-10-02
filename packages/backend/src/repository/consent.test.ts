@@ -15,6 +15,7 @@ import { SqlClient } from 'effect/unstable/sql';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as exemptionPreferences } from '../db/migrations/6-exemption-preferences';
 import { singleTenant } from '../db/tenant';
 import { assertSamePurposes, assertSameVendors, record } from './consent';
 
@@ -28,6 +29,7 @@ const setup = Effect.gen(function* setup() {
 	yield* baseline;
 	yield* receipts;
 	yield* vendorChoice;
+	yield* exemptionPreferences;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
 		values ('dom_1','example.com',now(),now())`);

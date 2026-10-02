@@ -48,6 +48,7 @@ export const saveConsentUI = (
 	// A choice prompt with nothing to decide records an acknowledgement.
 	if (
 		after.explicitChoice !== before.explicitChoice ||
+		after.exemptionPreferences !== before.exemptionPreferences ||
 		after.vendorChoice !== before.vendorChoice ||
 		after.noticeDismissal !== before.noticeDismissal
 	) {

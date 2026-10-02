@@ -21,6 +21,7 @@ import * as Dialect from '../db/dialect';
 import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as exemptionPreferences } from '../db/migrations/6-exemption-preferences';
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
@@ -78,6 +79,7 @@ for (const engine of ENGINES) {
 					yield* baseline;
 					yield* receipts;
 					yield* vendorChoice;
+					yield* exemptionPreferences;
 
 					const a = yield* recordDecision(input).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
@@ -113,6 +115,7 @@ for (const engine of ENGINES) {
 					yield* baseline;
 					yield* receipts;
 					yield* vendorChoice;
+					yield* exemptionPreferences;
 
 					// Scoping must not cost idempotency, which is the whole point of
 					// the key.
@@ -138,6 +141,7 @@ for (const engine of ENGINES) {
 					yield* baseline;
 					yield* receipts;
 					yield* vendorChoice;
+					yield* exemptionPreferences;
 
 					const first = yield* recordDecision(input);
 					const second = yield* recordDecision(input);

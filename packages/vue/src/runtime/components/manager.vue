@@ -156,6 +156,7 @@ const onAction = async function onAction(action: PresentationAction) {
 				// A choice prompt with nothing to decide records an
 				// acknowledgement instead of a choice.
 				(after.explicitChoice !== before.explicitChoice ||
+					after.exemptionPreferences !== before.exemptionPreferences ||
 					after.vendorChoice !== before.vendorChoice ||
 					after.noticeDismissal !== before.noticeDismissal)
 			) {

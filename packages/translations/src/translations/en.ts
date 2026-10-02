@@ -5,8 +5,15 @@ export const translations: CompleteTranslations = {
 		acceptAll: 'Accept All',
 		acknowledge: 'OK',
 		close: 'Close',
+		consentRequired: 'Requires your consent.',
 		customize: 'Customize',
 		dismiss: 'Dismiss',
+		exemptAppearanceNotice:
+			'We use your appearance preferences without asking for consent. You can turn this off in privacy settings.',
+		exemptProcessing:
+			'Does not require prior consent. You can turn this off at any time.',
+		exemptStatisticsNotice:
+			'We use service statistics to improve this service without asking for consent. You can turn this off in privacy settings.',
 		rejectAll: 'Reject All',
 		save: 'Save Settings',
 		securedBy: 'Secured by',

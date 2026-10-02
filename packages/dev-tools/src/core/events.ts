@@ -7,6 +7,7 @@ const EVENT_TYPES = [
 	'records:cleared',
 	'preferences:requested',
 	'choice:recorded',
+	'exemption:recorded',
 	'permissions:changed',
 	'notice:dismissed',
 	'overrides:set',
@@ -38,6 +39,7 @@ function snapshotData(snapshot: ConsentSnapshot): Record<string, unknown> {
 	return {
 		activeUI: snapshot.activeUI,
 		effectivePermissions: snapshot.effectivePermissions,
+		exemptionPreferences: snapshot.exemptionPreferences,
 		explicitChoice: snapshot.explicitChoice,
 		model: snapshot.model,
 		noticeDismissal: snapshot.noticeDismissal,
@@ -128,6 +130,14 @@ export function kernelEventToDevToolsEvent(
 				},
 				id,
 				message: 'Explicit choice recorded',
+				timestamp,
+				type: event.type,
+			};
+		case 'exemption:recorded':
+			return {
+				data: { ...snapshotData(event.snapshot), actionAt: event.actionAt },
+				id,
+				message: 'Exemption preference recorded',
 				timestamp,
 				type: event.type,
 			};

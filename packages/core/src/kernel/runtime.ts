@@ -265,6 +265,7 @@ export const createRuntime = function createRuntime(
 		if (
 			reset ||
 			snapshot.explicitChoice !== before.explicitChoice ||
+			snapshot.exemptionPreferences !== before.exemptionPreferences ||
 			snapshot.subject !== before.subject
 		) {
 			generation += 1;

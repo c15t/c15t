@@ -110,6 +110,7 @@ assumptions do not fit your application.
 | Japan | `japanOptIn()`, `japanOptOut()` |
 | Switzerland | `switzerlandOptIn()`, `switzerlandOptOutNoPrompt()` |
 | Restricted statistics profiles | `ukStatistics()`, `malaysiaStatistics()` |
+| Reviewed UK statistics with consent | `ukStatisticsAndConsent('review-1')` |
 | Other regional opt-in | Singapore, Malaysia, Thailand, Indonesia, Philippines, Vietnam, Brunei, Laos, China, South Korea, India, Brazil, Turkey and more in `policyRulePresets`. |
 | Global defaults | `worldNone()`, `worldOptOutNoPrompt()` |
 
@@ -141,3 +142,144 @@ Invalid rules create a `policyFailure` and a failed resolution, even when the
 HTTP response succeeds. Verify the browser's effective permissions, visible
 controls and saved receipts after the change. Do not rely only on a banner
 screenshot to establish policy behavior.
+
+## Combine UK exceptions with consent
+
+Declare `exemptions` only after reviewing every processing operation in the
+category. A declaration allows that category before consent and gives the visitor
+an objection control. It does not record consent or establish eligibility for a
+vendor automatically.
+
+This partial configuration belongs in `manifest.policyRules`. Place the UK rule
+before any other rule that matches GB at the same specificity.
+
+```ts title="c15t-backend.config.ts"
+import type { PolicyRule } from '@c15t/backend';
+
+const policyRules = [
+  {
+    id: 'uk-statistics-and-advertising',
+    match: { countries: ['GB'] },
+    model: 'opt-in',
+    prompt: 'choice',
+    categories: ['measurement', 'marketing'],
+    scopeMode: 'strict',
+    exemptions: {
+      measurement: { kind: 'uk-statistics', revision: 'statistics-review-1' },
+    },
+  },
+  {
+    id: 'consent-required',
+    match: { isDefault: true, fallback: true },
+    model: 'opt-in',
+    prompt: 'choice',
+    categories: ['measurement', 'marketing'],
+    scopeMode: 'strict',
+  },
+] satisfies PolicyRule[];
+```
+
+In GB, measurement is initially allowed and marketing waits for consent. Outside
+GB, including unknown geography, both categories wait for consent. The stock
+preferences controls label exempt processing and let visitors turn it off.
+Provide clear information about its purpose before processing starts, and a
+persistent way to open those controls. An all-exempt scope has no automatic
+consent prompt, so publish that information in the page itself.
+
+`policyRulePresets.ukStatisticsAndConsent('statistics-review-1')` returns the UK
+rule with measurement and marketing in scope. The older `ukStatistics()` preset
+is a statistics-only opt-out profile; it does not enable this mixed policy or
+create separate exemption preferences.
+
+The validator requires explicit GB-only matchers. Exemptions cannot appear on a
+default or global fallback, or under `iab` or `none`. `uk-statistics` applies only
+to measurement. `uk-appearance` applies to functionality or experience, for
+appearance and functionality processing that meets its own conditions. Marketing
+cannot be exempted. Update `revision` when the reviewed processing changes.
+
+### Check the statistics conditions
+
+The [PECR Schedule A1 statistics exception](https://www.legislation.gov.uk/uksi/2003/2426/schedule/A1)
+requires processing solely to collect statistics for improving the service.
+Review the [ICO exceptions guidance](https://ico.org.uk/for-organisations/direct-marketing-and-privacy-and-electronic-communications/guidance-on-the-use-of-storage-and-access-technologies/what-are-the-exceptions/)
+against the deployed configuration and contracts. In particular:
+
+- Produce aggregate statistics for your service, with no individual histories,
+  profiling, advertising or cross-site tracking.
+- Restrict sharing to what the exception permits. An analytics provider must act
+  on your instructions and must not reuse the information for its own purposes.
+- Explain the processing and offer a free, simple objection mechanism.
+- Use consent where the same storage or access operation also serves a
+  non-exempt purpose. Ad measurement still requires consent.
+
+This first version exempts a whole category. If measurement contains both
+eligible statistics and consent-required analytics, leave measurement under
+consent. Granular vendor consent can further restrict a category, but it does
+not let c15t exempt only one vendor inside that category.
+
+### Review premade integrations
+
+Premade integrations configure script loading and callbacks. Their vendor name
+or `category: 'measurement'` does not determine PECR eligibility.
+
+| Integration or use | Review before declaring an exemption |
+| --- | --- |
+| Advertising pixels and advertising measurement | Keep under consent. |
+| GTM and other tag containers | Review every tag and every purpose. A container is not an exemption declaration. |
+| Analytics with user identification, session replay, profiles, advertising links or vendor reuse | Keep under consent unless the deployed processing is changed and reviewed against the exception. |
+| Current Plausible, Fathom and Pirsch loaders | Review revocation separately. Removing their script tag does not stop an SDK that has already initialized. |
+| Aggregate service statistics | A possible candidate after checking data use, configuration, sharing, information and objection controls. |
+
+c15t does not automatically exempt any premade integration. The shipped helper
+also cannot inspect your vendor account settings or data-processing contract.
+Cookieless tracking alone does not establish eligibility; storage and access
+rules can apply to other techniques too.
+
+An objection must stop ongoing collection as well as future script loads.
+Removing a script element does not stop an SDK's existing timers, listeners or
+network requests. Review the helper's revocation behavior and the provider's
+supported opt-out or shutdown API. The runtime and framework adapters reload
+after a saved objection by default, so the next page starts without that script.
+If you disable `reloadOnConsentRevoked`, use the headless kernel directly, or
+need to stop collection in another open tab, supply a script `onConsentChange`
+callback that stops collection when `hasConsent` becomes false. Use a
+consent-required configuration until the deployed processing can honor an
+objection. c15t cannot undo earlier collection.
+
+Localize the optional `common.exemptStatisticsNotice`,
+`common.exemptAppearanceNotice`, `common.exemptProcessing` and
+`common.consentRequired` translation keys for your visitors. The stock UI falls
+back to English when these keys are absent.
+
+### Check the appearance conditions
+
+The appearance exception covers changes that follow a visitor's preferences,
+such as a remembered language or display choice. It does not exempt advertising
+or personalization inferred from tracking. Explain the processing and offer the
+same free, simple objection mechanism. Review functionality and experience
+operations separately before declaring `uk-appearance` for either category.
+
+### Keep objections separate from consent
+
+The kernel stores objections and reversals in `exemptionPreferences`, separately
+from `explicitChoice`. A positive exemption preference resumes exempt processing;
+it never grants consent-required processing. Objections do not expire with
+consent receipts. An old explicit refusal remains effective until the visitor
+reverses it.
+
+Accept All preserves an existing exemption objection. Reject All objects to
+exempt processing too. A visitor can explicitly turn the category back on in
+preferences. Removing the exemption makes the category wait for valid consent;
+a stored exemption preference cannot supply it. Material policy changes can also
+invalidate existing consent grants.
+
+Script gates use effective permissions. Vendor consent signals, including Google
+Consent Mode, keep exempt categories denied because exemption permission is not
+consent. Do not use an exemption to load a script whose own terms or consent
+requirements prohibit that processing.
+
+Exemption rules use policy contract version 2. Updated clients advertise support
+for version 2; older clients receive a safe policy failure rather than a rule
+whose exemption semantics they cannot enforce. Ordinary rules retain version 1
+wire output and fingerprints. Upgrade the backend and clients together before
+publishing exemption rules.

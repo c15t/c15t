@@ -2299,7 +2299,7 @@ describe('createHostedTransport: request shape', () => {
 			'sec-gpc': '1',
 			'x-c15t-country': 'DE',
 			// Always attached by the transport itself, not consumer-forwarded.
-			'x-c15t-policy-contract': '1',
+			'x-c15t-policy-contract': '2',
 			'x-c15t-region': 'BE',
 			'x-c15t-version': expect.stringMatching(/^\d+\.\d+\.\d+/u),
 		});

@@ -66,3 +66,9 @@ export {
 	subjectOtherConsentInputSchema,
 	subjectPolicyBasedInputSchema,
 } from './post';
+
+export {
+	type ExemptionPreferencesWire,
+	exemptionPreferenceWireSchema,
+	exemptionPreferencesWireSchema,
+} from './exemption-preferences-wire';

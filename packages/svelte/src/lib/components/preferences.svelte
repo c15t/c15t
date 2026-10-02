@@ -50,6 +50,42 @@
 		)
 	);
 
+	const processingNotice = (name: AllConsentNames): string | undefined => {
+		const { exemptions } = consent.snapshot.policyRule;
+		if (name === 'necessary' || !Object.keys(exemptions ?? {}).length) {
+			return undefined;
+		}
+		if (exemptions?.[name]) {
+			return (
+				translations.common.exemptProcessing ??
+				'Does not require prior consent. You can turn this off at any time.'
+			);
+		}
+		return consent.snapshot.policyRule.model === 'opt-in'
+			? (translations.common.consentRequired ?? 'Requires your consent.')
+			: undefined;
+	};
+
+	const isRestricted = (name: AllConsentNames): boolean => {
+		if (name === 'necessary') {
+			return false;
+		}
+		const decision = consent.snapshot.explicitChoice?.categories[name];
+		const preference = consent.snapshot.exemptionPreferences?.categories[name];
+		const latest =
+			preference &&
+			(!decision || preference.confirmedAt >= decision.confirmedAt)
+				? preference
+				: decision;
+		const savedEnabled =
+			latest?.value === true &&
+			(latest === preference ||
+				!consent.snapshot.policyRule.exemptions?.[name]);
+		return (
+			savedEnabled && (consent.snapshot.restrictions[name]?.length ?? 0) > 0
+		);
+	};
+
 	let openItems = $state<Record<string, boolean>>({});
 
 	const toggleConsent = function toggleConsent(name: string, checked: boolean) {
@@ -143,6 +179,7 @@
 		>
 			{#each displayedConsents as consentType (consentType.name)}
 				{@const isOpen = openItems[consentType.name] ?? false}
+				{@const notice = processingNotice(consentType.name)}
 				{@const isChecked =
 					consent.state.selectedConsents?.[consentType.name] ??
 					consent.snapshot.explicitChoice?.categories[
@@ -151,14 +188,7 @@
 					false}
 				{@const isDisabled =
 					consentType.name === 'necessary' || (consentType.disabled ?? false)}
-				{@const restricted =
-					consentType.name !== 'necessary' &&
-					consent.snapshot.explicitChoice?.categories[
-						consentType.name as Exclude<AllConsentNames, 'necessary'>
-					]?.value === true &&
-					(consent.snapshot.restrictions[
-						consentType.name as Exclude<AllConsentNames, 'necessary'>
-					]?.length ?? 0) > 0}
+				{@const restricted = isRestricted(consentType.name)}
 				<PreferenceItem.Root
 					class={noStyle ? '' : accordionStyles.item || ''}
 					open={isOpen}
@@ -211,9 +241,16 @@
 								aria-label={translations.consentTypes[consentType.name]
 									?.title ?? formatConsentName(consentType.name)}
 								checked={isChecked}
-								aria-describedby={restricted
-									? `${widgetId}-${consentType.name}-restriction`
-									: undefined}
+								aria-describedby={[
+									restricted
+										? `${widgetId}-${consentType.name}-restriction`
+										: undefined,
+									notice
+										? `${widgetId}-${consentType.name}-processing`
+										: undefined,
+								]
+									.filter(Boolean)
+									.join(' ') || undefined}
 								onclick={() => toggleConsent(consentType.name, !isChecked)}
 								disabled={isDisabled}
 								class={noStyle ? '' : switchStyles.root}
@@ -227,6 +264,15 @@
 						</PreferenceItem.Control>
 					</div>
 
+					{#if notice}
+						<p
+							id={`${widgetId}-${consentType.name}-processing`}
+							class={noStyle ? '' : accordionStyles.restriction || ''}
+							data-testid={`consent-widget-processing-${consentType.name}`}
+						>
+							{notice}
+						</p>
+					{/if}
 					{#if restricted}
 						<p
 							id={`${widgetId}-${consentType.name}-restriction`}

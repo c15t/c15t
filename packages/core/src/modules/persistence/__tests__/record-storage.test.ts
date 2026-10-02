@@ -442,6 +442,7 @@ describe('raw candidate reading', () => {
 			consent: 'custom-key',
 			cookieMiss: 'custom-key-cookie-miss',
 			epoch: 'custom-key-epoch',
+			exemptions: 'custom-key-exemptions',
 			legacyConsent: STORAGE_KEY,
 			notice: 'custom-key-notice',
 			vendors: 'custom-key-vendors',

@@ -40,6 +40,28 @@ const bannerDescription = computed(() => {
 	return cookieBanner?.description;
 });
 
+const exemptionNotices = computed(() => {
+	if (props.context !== 'banner') {
+		return [];
+	}
+	const common = init.value?.translations?.translations?.common;
+	const kinds = new Set(
+		Object.values(snapshot.value.policyRule.exemptions ?? {}).map(
+			(exemption) => exemption.kind
+		)
+	);
+	return [
+		kinds.has('uk-statistics')
+			? (common?.exemptStatisticsNotice ??
+				'We use service statistics to improve this service without asking for consent. You can turn this off in privacy settings.')
+			: undefined,
+		kinds.has('uk-appearance')
+			? (common?.exemptAppearanceNotice ??
+				'We use your appearance preferences without asking for consent. You can turn this off in privacy settings.')
+			: undefined,
+	].filter((notice) => notice !== undefined);
+});
+
 const legalLinks = computed(() => {
 	if (props.context === 'banner') {
 		return config.value.bannerLegalLinks;
@@ -82,6 +104,13 @@ const testId = computed(() =>
 				}}
 			</template>
 		</slot>
+		<p
+			v-for="notice in exemptionNotices"
+			:key="notice"
+			data-testid="consent-banner-exemption-notice"
+		>
+			{{ notice }}
+		</p>
 		<ConsentLegalLinks
 			v-if="legalLinks !== undefined && legalLinks !== null"
 			:context="linkContext"

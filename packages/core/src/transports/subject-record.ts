@@ -37,6 +37,7 @@ import type {
 import {
 	checkTimestamp,
 	validateExplicitChoice,
+	validateExemptionPreferences,
 } from '../consent-record/validation';
 import { isValidVendorId } from '../libs/vendors';
 import type { HydrationRecords, VendorChoice } from '../types';
@@ -254,8 +255,15 @@ export const mapSubjectRecordToHydrationRecords =
 				? mergeItemVendors(record.consents)
 				: record.subjectVendorChoice;
 
+		const exemptionWire = record.subjectExemptionPreferences;
+		const validatedExemptions = exemptionWire
+			? validateExemptionPreferences(exemptionWire, options.now)
+			: undefined;
 		return {
 			choice: validated?.ok ? validated.record : null,
+			exemptionPreferences: validatedExemptions?.ok
+				? validatedExemptions.record
+				: null,
 			now: options.now,
 			subject: mapSubject(record.subject),
 			vendorChoice: mapVendorChoice(vendorWire, options.now),

@@ -15,9 +15,24 @@ grant.
 | --- | --- |
 | Load a script or render an optional feature | `effectivePermissions`, React `useConsent(category)` |
 | Inspect what the visitor confirmed | `explicitChoice` |
+| Inspect exemption objections and reversals | `exemptionPreferences`, React `useExemptionPreferences()` |
 | Decide whether to show a prompt | `promptRequirement` |
 | Explain regional behavior | `policyRule` |
 | Diagnose initialization | `resolution` |
+
+## Keep exemption preferences separate from consent
+
+A reviewed UK category exemption can allow processing before consent. The
+visitor can object through preferences. c15t stores that action in
+`exemptionPreferences` and emits `exemption:recorded`; it does not record a
+consent grant or call `onChoiceRecorded` for that category. Turning the category
+back on reverses the objection without granting consent.
+
+Accept All preserves an existing exemption objection. Reject All also turns off
+exempt processing. An objection does not expire with consent. Removing an
+exemption makes the category wait for valid consent. See
+[UK category exemptions](/docs/self-host/guides/policy-packs#combine-uk-exceptions-with-consent)
+for eligibility and configuration.
 
 ## Gate IAB vendors on the TC string
 
@@ -69,7 +84,8 @@ and `save()`, close without waiting for the backend. In order:
 4. When the request settles, the kernel emits `command:save:completed`. The
    promise returned by `kernel.commands.save()`, React's `performAction()` and
    Svelte's `saveConsents()` resolves or rejects only then.
-5. If the save turned off a category or vendor that was granted, the page
+5. If the save turned off an allowed category or vendor, including exempt
+   processing, the page
    reloads in the next task, after `onBeforeConsentRevocationReload` runs.
    Removing a script cannot stop code that already ran, so the reload starts a
    page with only permitted code. With several saves in flight, it waits for

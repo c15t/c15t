@@ -74,6 +74,30 @@ afterEach(() => {
 });
 
 describe('watchRevocationReload', () => {
+	it('reloads after an exemption-only objection without recording consent', async () => {
+		const kernel = createKernel({
+			initialPolicyResolution: matchedResolution(
+				optInRule({
+					categories: ['measurement'],
+					exemptions: {
+						measurement: { kind: 'uk-statistics', revision: 'review-1' },
+					},
+					match: { countries: ['GB'] },
+				})
+			),
+		});
+		const { reload } = watch(kernel);
+		const choice = kernel.getSnapshot().explicitChoice;
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
+
+		await kernel.commands.save({ measurement: false });
+		await vi.runAllTimersAsync();
+
+		expect(kernel.getSnapshot().explicitChoice).toBe(choice);
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+		expect(reload).toHaveBeenCalledOnce();
+	});
+
 	it('reloads after a save turns off a granted category', async () => {
 		const kernel = createKernel();
 		const { onBeforeReload, reload } = watch(kernel);

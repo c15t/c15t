@@ -14,11 +14,18 @@ export interface ScriptCallbackInfo {
 	/** The actual DOM element ID used (anonymized if enabled) */
 	elementId: string;
 
-	/** Has consent  */
+	/** Effective permission to load, including a declared policy exemption. */
 	hasConsent: boolean;
 
-	/** The current consent state */
+	/** Current effective category permissions used by processing gates. */
 	consents: ConsentState;
+
+	/**
+	 * Consent Mode projection when a policy declares exemptions. Exempt
+	 * processing permission never becomes a consent grant. Provider consent
+	 * signals should use this value, falling back to `consents` when absent.
+	 */
+	consentSignals?: ConsentState;
 
 	/**
 	 * Vendor-level consent for the script's `vendor` slug, when set. Absent

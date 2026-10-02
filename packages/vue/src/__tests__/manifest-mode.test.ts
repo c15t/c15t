@@ -1,5 +1,8 @@
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
-import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import {
+	createConsentManifestPolicyPack,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
+} from '@c15t/schema/types';
 import { flushPromises } from '@vue/test-utils';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -152,7 +155,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
 			headers: {
 				'if-none-match': '"manifest-rev-1"',
-				'x-c15t-policy-contract': '1',
+				'x-c15t-policy-contract': String(POLICY_SUPPORTED_CONTRACT_VERSION),
 			},
 		});
 		expect(third.manifest.revision).toBe('manifest-rev-1');
@@ -234,7 +237,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
 			expect(String(input)).toBe('https://cdn.example/manifest');
 			expect(new Headers(init?.headers).get('x-c15t-policy-contract')).toBe(
-				'1'
+				String(POLICY_SUPPORTED_CONTRACT_VERSION)
 			);
 			return new Response(JSON.stringify(createManifestFixture()), {
 				headers: { 'content-type': 'application/json' },
@@ -277,7 +280,7 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
 			expect(String(input)).toBe('https://cdn.example/manifest');
 			expect(new Headers(init?.headers).get('x-c15t-policy-contract')).toBe(
-				'1'
+				String(POLICY_SUPPORTED_CONTRACT_VERSION)
 			);
 			return new Response(
 				manifestStatus === 200

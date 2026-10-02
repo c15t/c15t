@@ -307,6 +307,19 @@ describe('createConsentClient', () => {
 		expect(snapshot.activeUI).toBe('none');
 	});
 
+	it('requires an eligibility revision for the mixed UK preset', () => {
+		expect(() =>
+			createConsentClient(
+				{
+					mode: 'offline',
+					// @ts-expect-error Required-argument presets must be constructed explicitly.
+					policyRules: ['ukStatisticsAndConsent'],
+				},
+				{ pkg: 'test' }
+			)
+		).toThrow(/requires an eligibility revision/u);
+	});
+
 	it('rejects inherited object keys as preset names', () => {
 		expect(() =>
 			createConsentClient(

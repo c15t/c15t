@@ -5,6 +5,7 @@ import {
 	createConsentManifestPolicyPack,
 	createPolicyRuleFingerprints,
 	writePolicyResolutionWire,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 } from '@c15t/schema/types';
 import type { InitOutput, PolicyRule } from '@c15t/schema/types';
 import { translations } from '@c15t/translations/en';
@@ -57,7 +58,9 @@ vi.mock('#imports', async () => {
 			}
 		) => {
 			if (!nuxt.cached) {
-				expect(options.headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
+				expect(options.headers[C15T_POLICY_CONTRACT_HEADER]).toBe(
+					String(POLICY_SUPPORTED_CONTRACT_VERSION)
+				);
 				options.onResponse({
 					response: {
 						headers: new Headers({ [C15T_POLICY_CONTRACT_HEADER]: '1' }),

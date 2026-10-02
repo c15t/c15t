@@ -20,6 +20,7 @@ export type {
 	ConsentSubject,
 	EvaluationPolicy,
 	ExplicitChoice,
+	ExemptionPreferences,
 	NoticeDismissal,
 	OptionalConsentCategory,
 	PromptReason,
@@ -36,7 +37,7 @@ export {
 	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
-export { disabledPolicyResolution } from './policy';
+export { disabledPolicyResolution, getCategoryPreference } from './policy';
 export {
 	resolveIABBannerSummary,
 	IAB_BANNER_MAX_DISPLAY_ITEMS,
@@ -279,6 +280,9 @@ export type {
 	PolicyPrompt,
 	PolicyResolutionFailure,
 	PolicyRule,
+	PolicyExemptions,
+	PolicyExemptionKind,
+	PolicyCategoryExemption,
 	PolicyRulePresets,
 	RecommendedPolicyRulesOptions,
 } from '@c15t/schema/types';

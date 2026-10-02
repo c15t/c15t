@@ -16,6 +16,8 @@ import {
 import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
+	parsePolicyContractHeader,
 	resolveBackendURL,
 	resolveInitFromManifest,
 } from '@c15t/schema/types';
@@ -376,9 +378,13 @@ export const createNextConsentRouteHandlers =
 				});
 
 				const contract = request.headers.get(POLICY_CONTRACT_HEADER);
+				const capability = parsePolicyContractHeader(contract);
 				if (
-					contract !== null &&
-					contract.trim() !== String(POLICY_CONTRACT_VERSION)
+					(contract !== null &&
+						capability !== POLICY_CONTRACT_VERSION &&
+						capability !== POLICY_SUPPORTED_CONTRACT_VERSION) ||
+					(payload.policyResolution.version > POLICY_CONTRACT_VERSION &&
+						capability !== POLICY_SUPPORTED_CONTRACT_VERSION)
 				) {
 					payload.policyResolution = {
 						policy: null,
@@ -389,6 +395,9 @@ export const createNextConsentRouteHandlers =
 
 					delete payload.policySnapshotToken;
 					delete payload.gvl;
+					delete payload.gvlReference;
+					delete payload.cmpId;
+					delete payload.customVendors;
 				}
 
 				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
@@ -420,7 +429,9 @@ export const createNextConsentRouteHandlers =
 					{
 						headers: {
 							'cache-control': INIT_CACHE_CONTROL,
-							[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
+							[POLICY_CONTRACT_HEADER]: String(
+								payload.policyResolution.version
+							),
 						},
 					}
 				);

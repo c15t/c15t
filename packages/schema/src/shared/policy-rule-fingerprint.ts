@@ -25,6 +25,7 @@ import {
 import { canonicalizePolicySet as sorted } from './policy-rule';
 import type {
 	PolicyOptionalCategory,
+	PolicyExemptions,
 	PolicyPromptAction,
 	PolicyRight,
 	PolicyRuleModel,
@@ -33,6 +34,12 @@ import type {
 import type { PolicyScopeMode } from './policy-runtime';
 
 export const POLICY_FINGERPRINT_VERSION = 1;
+/** Exact behavior domain used when a rule declares exemptions. */
+export const POLICY_EXEMPTION_FINGERPRINT_VERSION = 2;
+/** Choice currency domain including exemption declarations. */
+export const CHOICE_EXEMPTION_FINGERPRINT_VERSION = 2;
+/** Notice currency domain including exemption declarations. */
+export const NOTICE_EXEMPTION_FINGERPRINT_VERSION = 2;
 export const CHOICE_PROMPT_FINGERPRINT_VERSION = 1;
 export const NOTICE_PROMPT_FINGERPRINT_VERSION = 1;
 export const PRESENTATION_FINGERPRINT_VERSION = 1;
@@ -48,11 +55,11 @@ export type JsonValue =
 
 /** Fingerprints a producer precomputes for one resolved rule. */
 export interface PolicyFingerprints {
-	/** Exact resolved behavior. Domain `policy`, version 1. */
+	/** Exact resolved behavior. Version 2 includes exemption declarations. */
 	policy: string;
-	/** Choice prompt currency. Domain `choice`, version 1. */
+	/** Choice currency. Version 2 includes exemption declarations. */
 	choice: string;
-	/** Notice prompt currency. Domain `notice`, version 1. */
+	/** Notice currency. Version 2 includes exemption declarations. */
 	notice: string;
 	/** Frozen v2 receipt comparator, retained for the lifetime of v3. */
 	legacyMaterial?: string;
@@ -61,7 +68,10 @@ export interface PolicyFingerprints {
 /** Hashed input for the exact-policy domain. */
 export interface PolicyFingerprintInput {
 	domain: 'policy';
-	version: typeof POLICY_FINGERPRINT_VERSION;
+	version:
+		| typeof POLICY_FINGERPRINT_VERSION
+		| typeof POLICY_EXEMPTION_FINGERPRINT_VERSION;
+	exemptions?: PolicyExemptions;
 	model: PolicyRuleModel;
 	prompt: ResolvedPolicyRule['prompt'];
 	scope: PolicyOptionalCategory[];
@@ -82,7 +92,10 @@ export interface PolicyFingerprintInput {
 /** Hashed input for the choice prompt domain. */
 export interface ChoicePromptFingerprintInput {
 	domain: 'choice';
-	version: typeof CHOICE_PROMPT_FINGERPRINT_VERSION;
+	version:
+		| typeof CHOICE_PROMPT_FINGERPRINT_VERSION
+		| typeof CHOICE_EXEMPTION_FINGERPRINT_VERSION;
+	exemptions?: PolicyExemptions;
 	model: PolicyRuleModel;
 	/** The configured prompt, never the runtime prompt reason. */
 	prompt: ResolvedPolicyRule['prompt'];
@@ -98,7 +111,10 @@ export interface ChoicePromptFingerprintInput {
 /** Hashed input for the notice prompt domain. */
 export interface NoticePromptFingerprintInput {
 	domain: 'notice';
-	version: typeof NOTICE_PROMPT_FINGERPRINT_VERSION;
+	version:
+		| typeof NOTICE_PROMPT_FINGERPRINT_VERSION
+		| typeof NOTICE_EXEMPTION_FINGERPRINT_VERSION;
+	exemptions?: PolicyExemptions;
 	model: PolicyRuleModel;
 	/** The configured prompt, never the runtime prompt reason. */
 	prompt: ResolvedPolicyRule['prompt'];
@@ -163,12 +179,15 @@ export const policyFingerprintInput = function policyFingerprintInput(
 			choiceMs: rule.validity.choiceMs,
 			noticeMs: rule.validity.noticeMs,
 		},
-		version: POLICY_FINGERPRINT_VERSION,
+		version: rule.exemptions
+			? POLICY_EXEMPTION_FINGERPRINT_VERSION
+			: POLICY_FINGERPRINT_VERSION,
+		...(rule.exemptions && { exemptions: rule.exemptions }),
 	};
 };
 
 /**
- * Builds the canonical input for the choice prompt fingerprint (version 1).
+ * Builds the canonical input for the choice prompt fingerprint. Version 1 is retained for ordinary policies.
  *
  * @remarks
  * Hashes the configured prompt, never the runtime prompt reason. Includes the
@@ -196,12 +215,15 @@ export const choicePromptFingerprintInput =
 			scope: sorted(rule.scope),
 			scopeMode: rule.scopeMode,
 			validityMs: rule.validity.choiceMs,
-			version: CHOICE_PROMPT_FINGERPRINT_VERSION,
+			version: rule.exemptions
+				? CHOICE_EXEMPTION_FINGERPRINT_VERSION
+				: CHOICE_PROMPT_FINGERPRINT_VERSION,
+			...(rule.exemptions && { exemptions: rule.exemptions }),
 		};
 	};
 
 /**
- * Builds the canonical input for the notice prompt fingerprint (version 1).
+ * Builds the canonical input for the notice prompt fingerprint. Version 1 is retained for ordinary policies.
  *
  * @remarks
  * Independent from the choice domain: notice validity and the choice
@@ -227,7 +249,10 @@ export const noticePromptFingerprintInput =
 			scope: sorted(rule.scope),
 			scopeMode: rule.scopeMode,
 			validityMs: rule.validity.noticeMs,
-			version: NOTICE_PROMPT_FINGERPRINT_VERSION,
+			version: rule.exemptions
+				? NOTICE_EXEMPTION_FINGERPRINT_VERSION
+				: NOTICE_PROMPT_FINGERPRINT_VERSION,
+			...(rule.exemptions && { exemptions: rule.exemptions }),
 		};
 	};
 

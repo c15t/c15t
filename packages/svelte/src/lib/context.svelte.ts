@@ -107,6 +107,7 @@ export interface ConsentManagerState extends Pick<
 	| 'user'
 	| 'vendors'
 	| 'vendorChoice'
+	| 'exemptionPreferences'
 > {
 	activeUI: ActiveUI;
 	branding: NonNullable<ConsentSnapshot['branding']>;
@@ -388,6 +389,7 @@ const createConsentState = function createConsentState(
 				// acknowledgement instead of a choice.
 				return (
 					after.explicitChoice !== before.explicitChoice ||
+					after.exemptionPreferences !== before.exemptionPreferences ||
 					after.vendorChoice !== before.vendorChoice ||
 					after.noticeDismissal !== before.noticeDismissal
 				);
@@ -489,6 +491,9 @@ const createConsentState = function createConsentState(
 		},
 		get translations() {
 			return getSnapshotLocal().translations;
+		},
+		get exemptionPreferences() {
+			return getSnapshotLocal().exemptionPreferences;
 		},
 		get vendorChoice() {
 			return getSnapshotLocal().vendorChoice;

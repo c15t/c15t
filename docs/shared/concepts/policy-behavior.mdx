@@ -67,3 +67,26 @@ default for other known locations. An unknown country uses its strict opt-in
 fallback. A US country with a missing state gets the US opt-out fallback.
 These are the local pack's defaults, not a promise about your Inth project.
 Browser-only mode does not discover a visitor's country from their IP address.
+
+## Read exemption preferences
+
+A reviewed GB policy can exempt measurement statistics or appearance and
+functionality processing from prior consent. Exempt categories start enabled,
+while the remaining opt-in categories still wait for consent. The stock controls
+explain the difference and keep an objection switch available.
+
+`exemptionPreferences` stores explicit objections and reversals separately from
+`explicitChoice`. Use `effectivePermissions` for gates, and read the appropriate
+record when showing the visitor's decision. Accept All preserves an existing
+exemption objection; Reject All objects to exempt processing as well. Removing
+an exemption does not turn its saved preference into consent.
+
+For custom controls, `getCategoryPreference(snapshot, category)` returns the
+presented value, including the enabled exemption default. Save that value through
+the regular category save command. The kernel writes an exemption preference for
+an exempt category and a consent receipt for a consent-required category.
+`useExemptionPreferences()` exposes the separate record in React.
+
+Declare an exemption only when every processing operation in its category meets
+the conditions. Premade scripts and vendor consent do not determine eligibility.
+See [UK policy configuration](/docs/self-host/guides/policy-packs#combine-uk-exceptions-with-consent).

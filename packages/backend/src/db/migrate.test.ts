@@ -133,8 +133,9 @@ for (const engine of ENGINES) {
 						'3-consent-receipts-and-privacy-directives',
 						'4-vendor-choice',
 						'5-drop-subject-identity-authority',
+						'6-exemption-preferences',
 					]);
-					assert.deepStrictEqual(yield* ledger, [1, 2, 3, 4, 5]);
+					assert.deepStrictEqual(yield* ledger, [1, 2, 3, 4, 5, 6]);
 				}).pipe(Effect.provide(engine.layer)),
 			{ timeout: 120_000 }
 		);
@@ -195,6 +196,7 @@ for (const engine of ENGINES) {
 						'3-consent-receipts-and-privacy-directives',
 						'4-vendor-choice',
 						'5-drop-subject-identity-authority',
+						'6-exemption-preferences',
 					]);
 
 					// The assertion that makes the flag mean something: no tables, no

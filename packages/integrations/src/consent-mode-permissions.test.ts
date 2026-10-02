@@ -71,3 +71,56 @@ test('Google Consent Mode updates each permission and follows the live GPC signa
 		kernel.dispose();
 	}
 });
+
+test('UK exempt statistics do not manufacture a Google Consent Mode grant', async () => {
+	const transport = createOfflineTransport({
+		policyRules: [
+			{
+				exemptions: { measurement: { kind: 'uk-statistics', revision: '1' } },
+				id: 'uk-mixed',
+				match: { countries: ['GB'] },
+				model: 'opt-in',
+				prompt: 'choice',
+				scopeMode: 'strict',
+			},
+		],
+	});
+	const kernel = createConsentKernel({
+		initialOverrides: { country: 'GB' },
+		now: Date.now(),
+		transport,
+	});
+	const commands = vi.fn();
+	window.gtag = commands;
+	window.dataLayer = [];
+	const loader = createScriptLoader({
+		kernel,
+		scripts: [gtag({ category: 'measurement', id: 'G-TEST' })],
+	});
+	try {
+		await kernel.commands.init();
+		expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		const lastUpdate = () =>
+			commands.mock.calls.findLast(
+				([command, action]) => command === 'consent' && action === 'update'
+			)?.[2];
+		expect(lastUpdate()).toMatchObject({
+			ad_storage: 'denied',
+			analytics_storage: 'denied',
+		});
+		await kernel.commands.save({ marketing: true });
+		expect(lastUpdate()).toMatchObject({
+			ad_storage: 'granted',
+			analytics_storage: 'denied',
+		});
+		await kernel.commands.save({ measurement: false });
+		expect(lastUpdate()).toMatchObject({
+			ad_storage: 'granted',
+			analytics_storage: 'denied',
+		});
+	} finally {
+		loader.dispose();
+		kernel.dispose();
+	}
+});

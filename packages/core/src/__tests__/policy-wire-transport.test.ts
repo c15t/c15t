@@ -22,6 +22,8 @@ import type {
 import {
 	POLICY_CONTRACT_HEADER,
 	readPolicyResolutionWire,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
 	SAFE_FALLBACK_POLICY_FINGERPRINTS,
 } from '@c15t/schema/types';
 import { assert, describe, expect, test, vi } from 'vitest';
@@ -142,10 +144,10 @@ describe('policy contract header', () => {
 				string,
 				string
 			>;
-			expect(headers[POLICY_CONTRACT_HEADER]).toBe('1');
+			expect(headers[POLICY_CONTRACT_HEADER]).toBe('2');
 			expect(headers['x-c15t-version']).toMatch(/^\d+\.\d+\.\d+/u);
 		}
-		expect(c15tProtocolHeaders[POLICY_CONTRACT_HEADER]).toBe('1');
+		expect(c15tProtocolHeaders[POLICY_CONTRACT_HEADER]).toBe('2');
 	});
 });
 
@@ -156,6 +158,44 @@ describe('resolveInitPolicyWire', () => {
 			{ producerContract: 1 }
 		);
 		expect(wire).toBe(MATCHED_WIRE);
+	});
+
+	test('rejects exemption payloads from a producer declaring only version 1', () => {
+		const wire = writePolicyResolutionWire(
+			resolvePolicyRules({
+				countryCode: 'GB',
+				regionCode: null,
+				rules: [
+					{
+						exemptions: {
+							measurement: { kind: 'uk-statistics', revision: '1' },
+						},
+						id: 'uk-mixed',
+						match: { countries: ['GB'] },
+						model: 'opt-in',
+						prompt: 'choice',
+					},
+				],
+			})
+		);
+		expect(wire.version).toBe(2);
+		const payload = { ...BASE_INIT, policyResolution: wire };
+		expect(
+			readPolicyResolutionWire(
+				resolveInitPolicyWire(payload, { producerContract: 1 })
+			)
+		).toEqual({
+			policy: null,
+			reason: 'unsupported-contract',
+			status: 'failed',
+		});
+		expect(resolveInitPolicyWire(payload, { producerContract: 2 })).toBe(wire);
+		expect(
+			resolveInitPolicyWire(
+				{ ...BASE_INIT, policyResolution: MATCHED_WIRE as never },
+				{ producerContract: 2 }
+			)
+		).toBe(MATCHED_WIRE);
 	});
 
 	test('rejects a producer that predates the policy contract', () => {
@@ -194,7 +234,7 @@ describe('resolveInitPolicyWire', () => {
 		).toEqual({ policy: null, reason: 'invalid-payload', status: 'failed' });
 		// A declared contract this client does not speak, or cannot parse, is
 		// refused before the body is considered at all.
-		for (const producerContract of [2, null]) {
+		for (const producerContract of [3, null]) {
 			expect(
 				readPolicyResolutionWire(
 					resolveInitPolicyWire(
@@ -462,6 +502,7 @@ describe('hosted subject record boundary', () => {
 		expect(fetchSpy.mock.calls[0]?.[0]).toBe('/api/c15t/subjects/sub_test');
 		expect(records).toEqual({
 			choice: subjectRead.subjectChoice,
+			exemptionPreferences: null,
 			now: 1_700_000_200_000,
 			subject: { externalId: 'person-42', subjectId: 'sub_test' },
 			vendorChoice: null,
@@ -811,7 +852,7 @@ describe('manifest transport', () => {
 		});
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
 		const headers = (init as RequestInit).headers as Record<string, string>;
-		expect(headers[POLICY_CONTRACT_HEADER]).toBe('1');
+		expect(headers[POLICY_CONTRACT_HEADER]).toBe('2');
 		expect(JSON.parse((init as RequestInit).body as string).choice).toEqual({
 			categories: {
 				marketing: {

@@ -138,6 +138,49 @@ const displayedVendors = function displayedVendors(category: CONSENT_CATEGORY) {
 	return vendorsListedUnder(declaredVendors.value, category);
 };
 
+/** Explain an exemption beside its control, even while its details are closed. */
+const processingNotice = function processingNotice(
+	category: CONSENT_CATEGORY
+): string | undefined {
+	if (
+		category === 'necessary' ||
+		!Object.keys(snapshot.value.policyRule.exemptions ?? {}).length
+	) {
+		return undefined;
+	}
+	const common = init.value?.translations?.translations?.common;
+	if (snapshot.value.policyRule.exemptions?.[category]) {
+		return (
+			common?.exemptProcessing ??
+			'Does not require prior consent. You can turn this off at any time.'
+		);
+	}
+	return snapshot.value.policyRule.model === 'opt-in'
+		? (common?.consentRequired ?? 'Requires your consent.')
+		: undefined;
+};
+
+const isRestricted = function isRestricted(
+	category: CONSENT_CATEGORY
+): boolean {
+	if (category === 'necessary') {
+		return false;
+	}
+	const decision = snapshot.value.explicitChoice?.categories[category];
+	const preference = snapshot.value.exemptionPreferences?.categories[category];
+	const latest =
+		preference && (!decision || preference.confirmedAt >= decision.confirmedAt)
+			? preference
+			: decision;
+	const savedEnabled =
+		latest?.value === true &&
+		(latest === preference ||
+			!snapshot.value.policyRule.exemptions?.[category]);
+	return (
+		savedEnabled && (snapshot.value.restrictions[category]?.length ?? 0) > 0
+	);
+};
+
 /** Single-open accordion state (opening one category closes the rest). */
 const openItems = ref<Record<string, boolean>>({});
 
@@ -338,6 +381,18 @@ const onAction = async function onAction(action: PresentationAction) {
 							role="switch"
 							:aria-checked="draft[category] ? 'true' : 'false'"
 							:aria-label="consentTitle(category)"
+							:aria-describedby="
+								[
+									processingNotice(category)
+										? `c15t-processing-${uid}-${index}`
+										: undefined,
+									isRestricted(category)
+										? `c15t-restriction-${uid}-${index}`
+										: undefined,
+								]
+									.filter(Boolean)
+									.join(' ') || undefined
+							"
 							v-bind="config.components?.switch?.root"
 							:class="noStyle ? undefined : sw.root()"
 							:data-disabled="category === 'necessary' ? '' : undefined"
@@ -362,6 +417,22 @@ const onAction = async function onAction(action: PresentationAction) {
 						</button>
 					</div>
 				</div>
+				<p
+					v-if="processingNotice(category)"
+					:id="`c15t-processing-${uid}-${index}`"
+					:class="noStyle ? undefined : accordionStyles.restriction"
+					:data-testid="`consent-widget-processing-${category}`"
+				>
+					{{ processingNotice(category) }}
+				</p>
+				<p
+					v-if="isRestricted(category)"
+					:id="`c15t-restriction-${uid}-${index}`"
+					:class="noStyle ? undefined : accordionStyles.restriction"
+					:data-testid="`consent-widget-restriction-${category}`"
+				>
+					Your saved choice is restricted by the current privacy settings.
+				</p>
 				<div
 					v-bind="config.components?.['accordion-item']?.content"
 					:id="contentId(index)"

@@ -6,7 +6,11 @@
 		KernelUser,
 		OptionalConsentCategory,
 	} from '@c15t/core';
-	import { deniedVendorIds, vendorRenders } from '@c15t/core';
+	import {
+		deniedVendorIds,
+		getCategoryPreference,
+		vendorRenders,
+	} from '@c15t/core';
 	import {
 		createConsentRuntime,
 		normalizeKernelUser,
@@ -164,10 +168,11 @@
 		current: ConsentSnapshot,
 		name: OptionalConsentCategory
 	) =>
-		current.explicitChoice?.categories[name]?.value ??
-		options.presentation?.preferences?.defaults?.[name] ??
-		(current.policyRule.model === 'opt-out' ||
-			current.policyRule.preselectedCategories.includes(name));
+		getCategoryPreference(
+			current,
+			name,
+			options.presentation?.preferences?.defaults
+		);
 	/**
 	 * Forget the policy and vendor surface once nothing is staged. Both maps
 	 * hold only moved values, so a visitor who moves a switch and moves it

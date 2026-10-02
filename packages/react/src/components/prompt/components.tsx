@@ -117,6 +117,21 @@ const ConsentBannerDescription = createForwardRef<
 		ref
 	) => {
 		const { description } = useBannerCopy();
+		const { exemptions } = usePolicyRule();
+		const { common } = useTranslations();
+		const exemptionKinds = new Set(
+			Object.values(exemptions ?? {}).map((exemption) => exemption.kind)
+		);
+		const exemptionNotices = [
+			exemptionKinds.has('uk-statistics')
+				? (common.exemptStatisticsNotice ??
+					'We use service statistics to improve this service without asking for consent. You can turn this off in privacy settings.')
+				: undefined,
+			exemptionKinds.has('uk-appearance')
+				? (common.exemptAppearanceNotice ??
+					'We use your appearance preferences without asking for consent. You can turn this off in privacy settings.')
+				: undefined,
+		].filter((notice) => notice !== undefined);
 		const { components } = useUIConfig();
 		const { noStyle: contextNoStyle } = useTheme();
 		const context = 'banner';
@@ -151,6 +166,14 @@ const ConsentBannerDescription = createForwardRef<
 				{...descriptionProps}
 			>
 				{children ?? description}
+				{exemptionNotices.map((notice) => (
+					<p
+						key={notice}
+						data-testid="consent-banner-exemption-notice"
+					>
+						{notice}
+					</p>
+				))}
 				<InlineLegalLinks
 					links={legalLinks}
 					context="banner"

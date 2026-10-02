@@ -38,6 +38,9 @@ const useSnapshotField = <Key extends keyof ConsentSnapshot>(key: Key) => {
 };
 /** Read the explicit receipt without applying permission restrictions. */
 export const useExplicitChoice = () => useSnapshotField('explicitChoice');
+/** Read saved exemption preferences independently of consent grants. */
+export const useExemptionPreferences = () =>
+	useSnapshotField('exemptionPreferences');
 /** Read the permissions currently available to consent gates. */
 export const useEffectivePermissions = () =>
 	useSnapshotField('effectivePermissions');

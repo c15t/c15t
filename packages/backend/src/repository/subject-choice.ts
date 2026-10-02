@@ -30,9 +30,11 @@
 import {
 	POLICY_OPTIONAL_CATEGORIES,
 	subjectChoiceWireSchema,
+	exemptionPreferencesWireSchema,
 	vendorChoiceWireSchema,
 } from '@c15t/schema';
 import type {
+	ExemptionPreferencesWire,
 	PolicyOptionalCategory,
 	SubjectCategoryReceiptWire,
 	SubjectChoiceWire,
@@ -332,4 +334,51 @@ export const mergeSubjectVendorChoice = function mergeSubjectVendorChoice(
 	const times = Object.values(decidedAt);
 	const confirmedAt = times.length === 0 ? latestAt : Math.min(...times);
 	return { confirmedAt, grants, version: 1 };
+};
+
+/** Validate persisted preferences independently of consent receipts. */
+export const decodeStoredExemptionPreferences = (
+	value: unknown
+): ExemptionPreferencesWire | null | undefined => {
+	if (value === null || value === undefined) {
+		return undefined;
+	}
+	let parsed: unknown = value;
+	if (typeof value === 'string') {
+		try {
+			parsed = JSON.parse(value);
+		} catch {
+			return null;
+		}
+	}
+	const decoded = v.safeParse(exemptionPreferencesWireSchema, parsed);
+	return decoded.success ? decoded.output : null;
+};
+
+/** Merge the newest preference for each category; legacy rows never clear objections. */
+export const mergeSubjectExemptionPreferences = (
+	rows: readonly {
+		type: string;
+		exemptionPreferences?: ExemptionPreferencesWire | null;
+	}[]
+): ExemptionPreferencesWire | null => {
+	const categories: ExemptionPreferencesWire['categories'] = {};
+	for (const row of rows) {
+		if (row.type !== COOKIE_BANNER_TYPE || !row.exemptionPreferences) {
+			continue;
+		}
+		for (const category of POLICY_OPTIONAL_CATEGORIES) {
+			const incoming = row.exemptionPreferences.categories[category];
+			const current = categories[category];
+			if (
+				incoming &&
+				(!current ||
+					incoming.confirmedAt > current.confirmedAt ||
+					(incoming.confirmedAt === current.confirmedAt && !incoming.value))
+			) {
+				categories[category] = incoming;
+			}
+		}
+	}
+	return Object.keys(categories).length ? { categories, version: 1 } : null;
 };

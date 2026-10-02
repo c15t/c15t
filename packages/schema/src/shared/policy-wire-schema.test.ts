@@ -61,7 +61,7 @@ describe('policyResolutionWireSchema', () => {
 	});
 
 	test.each([
-		{ input: { ...matched, version: 2 }, label: 'unknown version' },
+		{ input: { ...matched, version: 99 }, label: 'unknown version' },
 		{ input: { ...matched, status: 'pending' }, label: 'unknown status' },
 		{ input: { ...matched, extra: true }, label: 'extra wire field' },
 		{ input: { ...matched, policy: null }, label: 'matched with null policy' },

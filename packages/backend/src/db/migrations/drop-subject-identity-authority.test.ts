@@ -18,6 +18,7 @@ import { up as indexes } from './2-hot-path-indexes';
 import { up as receipts } from './3-consent-receipts-and-privacy-directives';
 import { up as vendors } from './4-vendor-choice';
 import { up as dropAuthority } from './5-drop-subject-identity-authority';
+import { up as exemptionPreferences } from './6-exemption-preferences';
 
 const columnsOf = Effect.fn('columnsOf')(function* columnsOf(table: string) {
 	const sql = yield* SqlClient.SqlClient;
@@ -110,6 +111,7 @@ const migrateToFour = Effect.gen(function* migrateToFour() {
 	yield* indexes;
 	yield* receipts;
 	yield* vendors;
+	yield* exemptionPreferences;
 });
 
 for (const engine of ENGINES) {

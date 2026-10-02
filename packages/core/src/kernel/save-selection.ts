@@ -10,16 +10,28 @@ import type { SavePayload } from '../types';
  */
 export const selectSavePayload = function selectSavePayload(
 	payload: SavePayload,
-	keep: (category: OptionalConsentCategory) => boolean
+	keep: (category: OptionalConsentCategory) => boolean,
+	keepExemption: (category: OptionalConsentCategory) => boolean = keep
 ): SavePayload | null {
 	const keys = OPTIONAL_CONSENT_CATEGORIES.filter((category) =>
 		Object.hasOwn(payload.confirmed.categories, category)
 	);
 	const selected = keys.filter(keep);
-	if (selected.length === keys.length) {
+	const exemptionKeys = OPTIONAL_CONSENT_CATEGORIES.filter((category) =>
+		Object.hasOwn(payload.exemptionPreferences?.categories ?? {}, category)
+	);
+	const selectedExemptions = exemptionKeys.filter(keepExemption);
+	if (
+		selected.length === keys.length &&
+		selectedExemptions.length === exemptionKeys.length
+	) {
 		return payload;
 	}
-	if (selected.length === 0) {
+	if (
+		selected.length === 0 &&
+		selectedExemptions.length === 0 &&
+		payload.vendorChoice === undefined
+	) {
 		return null;
 	}
 	const categories: Partial<Record<OptionalConsentCategory, boolean>> = {};
@@ -39,12 +51,25 @@ export const selectSavePayload = function selectSavePayload(
 			consents[category] = payload.consents[category];
 		}
 	}
+	const exemptionCategories: NonNullable<
+		SavePayload['exemptionPreferences']
+	>['categories'] = {};
+	for (const category of selectedExemptions) {
+		const preference = payload.exemptionPreferences?.categories[category];
+		if (preference) {
+			exemptionCategories[category] = preference;
+			consents[category] = payload.consents[category];
+		}
+	}
 	return {
 		...payload,
 		choice: { categories: receipts, version: 3 },
 		confirmed: { ...payload.confirmed, categories },
 		consentAction: 'custom',
 		consents,
+		exemptionPreferences: selectedExemptions.length
+			? { categories: exemptionCategories, version: 1 }
+			: undefined,
 		// A partial category action cannot replay the superseded full TC selection.
 		tcString: null,
 	};

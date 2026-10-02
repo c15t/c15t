@@ -10,6 +10,7 @@ import {
 	buildConsentManifestFromConfig,
 	createConsentManifestPolicyPack,
 	policyRulePresets,
+	POLICY_SUPPORTED_CONTRACT_VERSION,
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -403,6 +404,92 @@ describe('init route', () => {
 		}
 	);
 
+	test.each([undefined, '1', '2'])(
+		'negotiates mixed exemptions with client capability %s',
+		async (capability) => {
+			mocks.serverFetch.mockResolvedValue(
+				Response.json({
+					...MANIFEST,
+					policyPacks: [
+						createConsentManifestPolicyPack({
+							categories: ['measurement', 'marketing'],
+							exemptions: {
+								measurement: { kind: 'uk-statistics', revision: 'review-1' },
+							},
+							id: 'uk-mixed',
+							match: { countries: ['GB'] },
+							model: 'opt-in',
+							prompt: 'choice',
+							scopeMode: 'strict',
+						}),
+					],
+				})
+			);
+			const headers: Record<string, string> = { 'x-c15t-country': 'GB' };
+			if (capability !== undefined) {
+				headers['x-c15t-policy-contract'] = capability;
+			}
+			const response = await callInitRoute(headers);
+			expect(response.headers.get('x-c15t-policy-contract')).toBe(
+				capability === '2' ? '2' : '1'
+			);
+			expect(await response.json()).toMatchObject({
+				policyResolution:
+					capability === '2'
+						? {
+								policy: {
+									exemptions: { measurement: { kind: 'uk-statistics' } },
+								},
+								status: 'matched',
+								version: 2,
+							}
+						: { reason: 'unsupported-contract', status: 'failed' },
+			});
+		}
+	);
+
+	test('rejects exemption payload falsely declared as a version-one producer', async () => {
+		const policyResolution = writePolicyResolutionWire(
+			resolvePolicyRules({
+				countryCode: 'GB',
+				regionCode: null,
+				rules: [
+					{
+						categories: ['measurement', 'marketing'],
+						exemptions: {
+							measurement: { kind: 'uk-statistics', revision: 'review-1' },
+						},
+						id: 'uk-mixed',
+						match: { countries: ['GB'] },
+						model: 'opt-in',
+						prompt: 'choice',
+						scopeMode: 'strict',
+					},
+				],
+			})
+		);
+		mocks.serverFetch
+			.mockResolvedValueOnce(new Response('missing', { status: 404 }))
+			.mockResolvedValueOnce(
+				Response.json(
+					{
+						location: { countryCode: 'GB', regionCode: null },
+						policyResolution,
+						policySnapshotToken: 'stale-token',
+						translations: { language: 'en', translations: {} },
+					},
+					{ headers: { 'x-c15t-policy-contract': '1' } }
+				)
+			);
+		const response = await callInitRoute({ 'x-c15t-policy-contract': '2' });
+		const body = await response.json();
+		expect(body.policyResolution).toMatchObject({
+			reason: 'unsupported-contract',
+			status: 'failed',
+		});
+		expect(body).not.toHaveProperty('policySnapshotToken');
+	});
+
 	test.each(['99', 'invalid', ''])(
 		'rejects unsupported client declaration %s',
 		async (contract) => {
@@ -456,7 +543,9 @@ describe('init route', () => {
 			expect(mocks.serverFetch).toHaveBeenLastCalledWith(
 				'/api/self-host/init',
 				expect.objectContaining({
-					headers: expect.objectContaining({ 'x-c15t-policy-contract': '1' }),
+					headers: expect.objectContaining({
+						'x-c15t-policy-contract': String(POLICY_SUPPORTED_CONTRACT_VERSION),
+					}),
 				})
 			);
 		}

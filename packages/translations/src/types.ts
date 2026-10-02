@@ -9,6 +9,14 @@ export interface CommonTranslations {
 	/** Acknowledges a notice without recording consent. */
 	acknowledge: string;
 	acceptAll: string;
+	/** Explains the right to object to configured exempt processing. */
+	exemptProcessing?: string;
+	/** First-layer disclosure for reviewed service statistics. */
+	exemptStatisticsNotice?: string;
+	/** First-layer disclosure for reviewed appearance preferences. */
+	exemptAppearanceNotice?: string;
+	/** Distinguishes consent-required processing in mixed preferences. */
+	consentRequired?: string;
 	rejectAll: string;
 	customize: string;
 	save: string;

@@ -31,6 +31,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
+import { up as exemptionPreferences } from '../db/migrations/6-exemption-preferences';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -71,6 +72,7 @@ for (const engine of ENGINES) {
 					yield* indexes;
 					yield* receipts;
 					yield* vendorChoice;
+					yield* exemptionPreferences;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// Untenanted so every tenant's instance can reference them; the

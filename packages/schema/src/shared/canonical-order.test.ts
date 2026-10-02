@@ -125,11 +125,11 @@ describe('fingerprint inputs under other locales', () => {
 
 	const sets: string[][] = [];
 	for (const preset of Object.values(policyRulePresets)) {
-		const rule = normalizePolicyRule(preset());
+		const rule = normalizePolicyRule(preset('statistics-review-1'));
 		collect(policyFingerprintInput(rule), sets);
 		collect(choicePromptFingerprintInput(rule), sets);
 		collect(noticePromptFingerprintInput(rule), sets);
-		collect(preset().legacyMaterial ?? null, sets);
+		collect(preset('statistics-review-1').legacyMaterial ?? null, sets);
 	}
 
 	test.each(['en', 'tr', 'da', 'nb', 'sv', 'fi', 'cs', 'sk', 'de', 'es', 'pl'])(

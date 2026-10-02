@@ -10,6 +10,8 @@ import {
 import { createDeterministicFingerprintSync } from './policy-fingerprint';
 import {
 	matchPolicyRules,
+	POLICY_CONTRACT_VERSION,
+	POLICY_EXEMPTION_CONTRACT_VERSION,
 	readPolicyResolutionWire,
 	writePolicyResolutionWire,
 } from './policy-resolution';
@@ -150,7 +152,9 @@ export const resolvePolicyResolutionFromManifest =
 					policy: pack.rule,
 					policyId: pack.rule?.id,
 					status: 'matched',
-					version: 1,
+					version: pack.rule?.exemptions
+						? POLICY_EXEMPTION_CONTRACT_VERSION
+						: POLICY_CONTRACT_VERSION,
 				});
 				if (parsed.status !== 'matched') {
 					throw new TypeError('Invalid pack');
@@ -159,10 +163,13 @@ export const resolvePolicyResolutionFromManifest =
 			});
 			// Validate all matchers and IAB configuration, including unmatched entries.
 			const authored = packs.map((pack) => ({
+				categories: pack.rule.scope,
+				exemptions: pack.rule.exemptions,
 				id: pack.rule.id,
 				match: pack.match,
 				model: pack.rule.model,
 				prompt: pack.rule.prompt,
+				scopeMode: pack.rule.scopeMode,
 			}));
 			if (
 				inspectPolicyRules(authored, { iabEnabled: manifest.iab?.enabled })
@@ -194,7 +201,9 @@ export const resolvePolicyResolutionFromManifest =
 				policy: pack.rule,
 				policyId: pack.rule.id,
 				status: 'matched',
-				version: 1,
+				version: pack.rule?.exemptions
+					? POLICY_EXEMPTION_CONTRACT_VERSION
+					: POLICY_CONTRACT_VERSION,
 			});
 		} catch {
 			return {

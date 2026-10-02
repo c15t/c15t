@@ -33,7 +33,7 @@ describe('generateOptionsText', () => {
 		};
 		expect(await transport.save(payload)).toEqual(result);
 		expect(fetchMock.mock.calls[0]?.[1].headers).toEqual({
-			'x-c15t-policy-contract': '1',
+			'x-c15t-policy-contract': '2',
 		});
 		expect(JSON.parse(fetchMock.mock.calls[1]?.[1].body)).toEqual(payload);
 	});

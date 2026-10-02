@@ -15,8 +15,11 @@ import {
 	noticeSinceEpoch,
 	vendorChoiceSinceEpoch,
 } from './epoch';
+import { exemptionsSinceEpoch } from './exemption-record';
 import type { StoredIabMetadata, StoredVendorChoice } from './record-codec';
 import {
+	readStoredExemptionPreferences,
+	readStoredExemptionPreferencesFromCookieHeader,
 	readStoredClearEpoch,
 	readStoredClearEpochFromCookieHeader,
 	readStoredConsentRecord,
@@ -44,6 +47,7 @@ export interface StoredRecords {
 	 * `records.subject`, so this is the only place the vendor copy shows.
 	 */
 	vendorSubject: ConsentSubject | null;
+	exemptionSubject?: ConsentSubject | null;
 	/**
 	 * The clear epoch in force: the newer of the stored epoch and the one
 	 * the envelope records, `0` when no clear was ever recorded. Records
@@ -86,6 +90,25 @@ const envelopeSinceEpoch = function envelopeSinceEpoch(
 	return { ...selected, iab: null, subject: null };
 };
 
+const exemptionRead = (
+	read: ReturnType<typeof readStoredExemptionPreferences>,
+	epoch: number
+) => {
+	const surviving = read?.ok ? exemptionsSinceEpoch(read.record, epoch) : null;
+	const preference = surviving
+		? { categories: surviving.categories, version: 1 as const }
+		: null;
+	const subject = surviving && read?.ok ? (read.record.subject ?? null) : null;
+	return { preference, subject };
+};
+
+const subjectFromRecords = (
+	selected: StoredConsentSelection['selected'],
+	vendors: StoredVendorChoice | null,
+	exemptionSubject: ConsentSubject | null
+): ConsentSubject | null =>
+	selected?.subject ?? vendors?.subject ?? exemptionSubject;
+
 /**
  * Builds the records from decoded reads. Anything confirmed before the
  * clear epoch (the newer of the stored epoch and the envelope's own) was
@@ -97,7 +120,8 @@ const composeRecords = function composeRecords(
 	notice: ReturnType<typeof readStoredNoticeDismissal>,
 	vendors: ReturnType<typeof readStoredVendorChoice>,
 	clearEpoch: number,
-	now: number
+	now: number,
+	exemptions: ReturnType<typeof readStoredExemptionPreferences>
 ): StoredRecords {
 	const envelopeEpoch = selection.selected?.epoch ?? 0;
 	const epoch = Math.max(clearEpoch, envelopeEpoch);
@@ -115,22 +139,28 @@ const composeRecords = function composeRecords(
 		vendors?.ok ? vendors.record : null,
 		epoch
 	);
+	const { preference: exemptionRecord, subject: exemptionSubject } =
+		exemptionRead(exemptions, epoch);
 	const records: HydrationRecords = {
 		choice,
+		exemptionPreferences: exemptionRecord,
 		noticeDismissal: noticeSinceEpoch(notice?.ok ? notice.record : null, epoch),
 		now,
 		// The envelope's subject wins; the vendor record's copy covers a visitor
 		// whose only act so far decided vendors.
-		subject: selected?.subject ?? vendorRecord?.subject ?? null,
+		subject: subjectFromRecords(selected, vendorRecord, exemptionSubject),
 		vendorChoice: kernelVendorChoice(vendorRecord),
 	};
 	return {
 		candidates: selection.candidates,
 		epoch,
-		found:
-			selected !== null ||
-			vendorRecord !== null ||
-			records.noticeDismissal !== null,
+		exemptionSubject,
+		found: [
+			selected,
+			vendorRecord,
+			records.noticeDismissal,
+			exemptionRecord,
+		].some((record) => record !== null),
 		iab: selected?.iab ?? null,
 		records,
 		vendorSubject: vendorRecord?.subject ?? null,
@@ -155,6 +185,7 @@ interface Unreadable {
 	choice: boolean;
 	notice: boolean;
 	vendors: boolean;
+	exemptions: boolean;
 }
 
 /**
@@ -164,11 +195,12 @@ interface Unreadable {
 const markUndecodable = function markUndecodable(
 	unreadable: Unreadable,
 	selection: StoredConsentSelection,
-	results: Record<'notice' | 'vendors', { ok: boolean } | null>
+	results: Record<'notice' | 'vendors' | 'exemptions', { ok: boolean } | null>
 ): void {
 	unreadable.choice ||= hasUndecodableChoice(selection);
 	unreadable.notice ||= results.notice?.ok === false;
 	unreadable.vendors ||= results.vendors?.ok === false;
+	unreadable.exemptions ||= results.exemptions?.ok === false;
 };
 
 /**
@@ -183,6 +215,7 @@ const readRecords = function readRecords(
 ): StoredRecords {
 	const unreadable: Unreadable = {
 		choice: false,
+		exemptions: false,
 		notice: false,
 		vendors: false,
 	};
@@ -201,15 +234,30 @@ const readRecords = function readRecords(
 		},
 		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
 	);
+	const exemptions = readStoredExemptionPreferences(
+		storageConfig,
+		now,
+		() => {
+			unreadable.exemptions = true;
+		},
+		Math.max(clearEpoch, selection.selected?.epoch ?? 0)
+	);
 	if (preserveUndecodable) {
-		markUndecodable(unreadable, selection, { notice, vendors });
+		markUndecodable(unreadable, selection, { exemptions, notice, vendors });
 	}
 	const {
 		choice: choiceUnavailable,
 		notice: noticeUnavailable,
 		vendors: vendorsUnavailable,
 	} = unreadable;
-	const stored = composeRecords(selection, notice, vendors, clearEpoch, now);
+	const stored = composeRecords(
+		selection,
+		notice,
+		vendors,
+		clearEpoch,
+		now,
+		exemptions
+	);
 	// An absent value only clears memory when every candidate was readable.
 	// A valid record from an available source can still hydrate normally.
 	if (!selection.selected && choiceUnavailable) {
@@ -223,6 +271,9 @@ const readRecords = function readRecords(
 	}
 	if (!vendors?.ok && vendorsUnavailable) {
 		delete stored.records.vendorChoice;
+	}
+	if (!exemptions?.ok && unreadable.exemptions) {
+		delete stored.records.exemptionPreferences;
 	}
 	return stored;
 };
@@ -274,7 +325,12 @@ export const readStoredRecordsFromCookieHeader =
 			),
 			readStoredVendorChoiceFromCookieHeader(cookieHeader, storageConfig, now),
 			readStoredClearEpochFromCookieHeader(cookieHeader, storageConfig, now),
-			now
+			now,
+			readStoredExemptionPreferencesFromCookieHeader(
+				cookieHeader,
+				storageConfig,
+				now
+			)
 		).records;
 	};
 
