@@ -51,6 +51,7 @@ import {
 } from '../src/vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
 import { segment } from '../src/vendors/analytics/segment';
+import { statableAnalytics } from '../src/vendors/analytics/statable-analytics';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { crisp } from '../src/vendors/functional/crisp';
@@ -952,6 +953,14 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 				typeof window.rybbit?.pageview === 'function',
 				'window.rybbit.pageview present after loader executed'
 			),
+	},
+	{
+		vendor: 'statable-analytics',
+		tier: 'loader-only',
+		createScript: () => statableAnalytics({ siteId: 0 }),
+		loaderUrlSubstring: 'statable.com/js/',
+		notes:
+			'The integration installs no bootstrap stub (the live tracker boots with `window.statable ||=` and does not replay early calls), so there is no pre-load global to assert; a numeric placeholder site id (`0`) is not expected to produce a runnable runtime, and the probe reduces to proving the real loader endpoint and consent gating.',
 	},
 	{
 		vendor: 'plausible-analytics',

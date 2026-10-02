@@ -84,6 +84,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		importName: 'rybbitAnalytics',
 		example: "rybbitAnalytics({ siteId: 'YOUR_SITE_ID' })",
 	},
+	'statable-analytics': {
+		importName: 'statableAnalytics',
+		example: "statableAnalytics({ siteId: '12345' })",
+	},
 	'plausible-analytics': {
 		importName: 'plausibleAnalytics',
 		example: "plausibleAnalytics({ domain: 'example.com' })",

@@ -242,6 +242,11 @@
 			"types": "./dist-types/*.d.ts",
 			"import": "./dist/*.js",
 			"require": "./dist/*.cjs"
+		},
+		"./statable-analytics": {
+			"types": "./dist-types/vendors/analytics/statable-analytics.d.ts",
+			"import": "./dist/vendors/analytics/statable-analytics.js",
+			"require": "./dist/vendors/analytics/statable-analytics.cjs"
 		}
 	},
 	"files": [
