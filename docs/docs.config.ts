@@ -887,7 +887,7 @@ export default defineDocsConfig({
 					title: 'Guides',
 				},
 				{
-					pages: ['api/configuration', 'api/endpoints'],
+					pages: ['api/configuration', 'api/endpoints', 'api/node-sdk'],
 					slug: 'reference',
 					title: 'Reference',
 				},

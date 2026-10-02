@@ -1,231 +1,201 @@
 /**
- * Testing utilities for @c15t/node-sdk
+ * Test helpers for code that uses `@c15t/node-sdk`.
  *
- * These utilities help users mock the C15T client in their tests.
+ * `createMockC15tClient` returns a full {@link C15tClient} whose methods call
+ * the handlers you pass. Handler types come from the client, so a handler
+ * that returns the wrong data or an error code its method cannot produce is
+ * a type error.
  *
  * @example
- * ```typescript
- * import { createMockClient, createMockResponse } from '@c15t/node-sdk/testing';
+ * ```ts
+ * import { createMockC15tClient, err, ok } from '@c15t/node-sdk/testing';
  *
- * const mockClient = createMockClient({
- *   getSubject: async () => createMockResponse({ id: 'sub_123', consents: [] }),
+ * const c15t = createMockC15tClient({
+ *   consents: {
+ *     check: ({ types }) =>
+ *       ok({
+ *         results: Object.fromEntries(
+ *           types.map((type) => [type, { hasConsent: true, isLatestPolicy: true }])
+ *         ),
+ *       }),
+ *   },
+ *   subjects: { get: () => err('NOT_FOUND') },
  * });
- *
- * // Use mockClient in your tests
- * const result = await mockClient.getSubject('sub_123');
- * expect(result.data?.id).toBe('sub_123');
  * ```
  */
 
-import type { ResponseContext } from './types';
+import type { ConsentPolicyType } from '@c15t/schema/types';
 
-const assignInOrder = Object.assign;
+import type {
+	C15tClient,
+	C15tExperiments,
+	C15tLegalDocuments,
+	C15tSubjects,
+} from './client';
+import type { C15tCheckConsentInput } from './contract';
+import { C15tError } from './errors';
+import type { C15tErrorCode, C15tIssue, StalePolicyReason } from './errors';
+import type { C15tCallOptions } from './options';
+import type { C15tFailure, C15tResult, C15tSuccess } from './result';
+
+type Awaitable<Value> = Value | Promise<Value>;
+
+/** A handler with the same arguments as `Method`, sync or async. */
+export type C15tMockHandler<Method> = Method extends (
+	...args: infer Args
+) => Promise<infer Result>
+	? (...args: Args) => Awaitable<Result>
+	: never;
 
 /**
- * Creates a mock ResponseContext for testing
- *
- * @param data - The data to return in the response
- * @param options - Optional configuration for the mock response
- * @returns A ResponseContext object
- *
- * @example
- * ```typescript
- * const response = createMockResponse({ id: 'sub_123' });
- * expect(response.ok).toBe(true);
- * expect(response.data?.id).toBe('sub_123');
- * ```
+ * `consents.check` is generic over the requested types, which a plain
+ * handler cannot be. Its handler returns results keyed by string; the mock
+ * hands them back under the caller's narrowed type.
  */
-export const createMockResponse = function createMockResponse<T>(
-	data: T,
-	options: {
-		ok?: boolean;
-		error?: {
-			message: string;
-			status: number;
-			code?: string;
-			details?: Record<string, unknown> | null;
-		};
-		response?: Response;
-	} = {}
-): ResponseContext<T> {
-	const isSuccess = options.ok ?? true;
-	const error = options.error ?? null;
-	const response = options.response ?? null;
+export type C15tMockCheckConsentHandler = (
+	input: C15tCheckConsentInput<readonly ConsentPolicyType[]>,
+	options?: C15tCallOptions
+) => Awaitable<
+	C15tResult<
+		{
+			readonly results: Readonly<
+				Record<
+					string,
+					{ readonly hasConsent: boolean; readonly isLatestPolicy: boolean }
+				>
+			>;
+		},
+		'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'TYPE_REQUIRED'
+	>
+>;
 
+/** Handlers for {@link createMockC15tClient}. Any method can be left out. */
+export interface C15tMockHandlers {
+	readonly status?: C15tMockHandler<C15tClient['status']>;
+	readonly init?: C15tMockHandler<C15tClient['init']>;
+	readonly manifest?: C15tMockHandler<C15tClient['manifest']>;
+	readonly subjects?: {
+		readonly [Name in keyof C15tSubjects]?: C15tMockHandler<C15tSubjects[Name]>;
+	};
+	readonly consents?: { readonly check?: C15tMockCheckConsentHandler };
+	readonly experiments?: {
+		readonly [Name in keyof C15tExperiments]?: C15tMockHandler<
+			C15tExperiments[Name]
+		>;
+	};
+	readonly legalDocuments?: {
+		readonly [Name in keyof C15tLegalDocuments]?: C15tMockHandler<
+			C15tLegalDocuments[Name]
+		>;
+	};
+}
+
+/**
+ * Builds a successful result.
+ *
+ * @param data - The result's data.
+ * @param init - Optional status, request id and headers.
+ */
+export const ok = function ok<Data>(
+	data: Data,
+	init: {
+		readonly status?: number;
+		readonly requestId?: string;
+		readonly headers?: ConstructorParameters<typeof Headers>[0];
+	} = {}
+): C15tSuccess<Data> {
 	return {
-		data: isSuccess ? data : null,
-		error,
-		expect(message: string): T {
-			if (!isSuccess || data === null) {
-				throw new Error(message);
-			}
-			return data;
-		},
-		map<U>(fn: (d: T) => U): ResponseContext<U> {
-			if (!isSuccess || data === null) {
-				return createMockResponse<U>(null as U, {
-					error: error ?? undefined,
-					ok: false,
-				});
-			}
-			return createMockResponse<U>(fn(data));
-		},
-		ok: isSuccess,
-		response,
-		unwrap(): T {
-			if (!isSuccess || data === null) {
-				throw new Error(error?.message || 'Request failed');
-			}
-			return data;
-		},
-		unwrapOr(defaultValue: T): T {
-			if (!isSuccess || data === null) {
-				return defaultValue;
-			}
-			return data;
-		},
+		data,
+		headers: new Headers(init.headers),
+		ok: true,
+		requestId: init.requestId ?? 'mock-request-id',
+		status: init.status ?? 200,
 	};
 };
 
 /**
- * Creates a mock error ResponseContext for testing
+ * Builds a failed result. The code is checked against the method the
+ * handler belongs to.
  *
- * @param error - The error details
- * @returns A ResponseContext object representing an error
- *
- * @example
- * ```typescript
- * const response = createMockErrorResponse({
- *   message: 'Not found',
- *   status: 404,
- *   code: 'NOT_FOUND',
- * });
- * expect(response.ok).toBe(false);
- * expect(response.error?.status).toBe(404);
- * ```
+ * @param code - Error code, such as `NOT_FOUND`.
+ * @param init - Optional message, status and other error fields.
  */
-export const createMockErrorResponse = function createMockErrorResponse<
-	T = unknown,
->(error: {
-	message: string;
-	status: number;
-	code?: string;
-	details?: Record<string, unknown> | null;
-}): ResponseContext<T> {
-	return createMockResponse<T>(null as T, { error, ok: false });
+export const err = function err<const Code extends C15tErrorCode>(
+	code: Code,
+	init: {
+		readonly message?: string;
+		readonly status?: number;
+		readonly reason?: Code extends 'STALE_POLICY' ? StalePolicyReason : never;
+		readonly requestId?: string;
+		readonly retryable?: boolean;
+		readonly issues?: readonly C15tIssue[];
+		readonly serverCode?: string;
+	} = {}
+): C15tFailure<Code> {
+	return {
+		error: new C15tError({
+			code,
+			issues: init.issues,
+			message: init.message ?? `Mock ${code} error.`,
+			reason: init.reason,
+			requestId: init.requestId ?? 'mock-request-id',
+			retryable: init.retryable,
+			serverCode: init.serverCode,
+			status: init.status,
+		}),
+		ok: false,
+	};
 };
 
-/**
- * Type for mock method implementations
- */
-export type MockMethodImplementation<TInput, TOutput> = (
-	input: TInput
-) => ResponseContext<TOutput> | Promise<ResponseContext<TOutput>>;
-
-/**
- * Type for mock client overrides
- */
-export interface MockClientOverrides {
-	status?: MockMethodImplementation<void, unknown>;
-	init?: MockMethodImplementation<void, unknown>;
-	checkConsent?: MockMethodImplementation<unknown, unknown>;
-	createSubject?: MockMethodImplementation<unknown, unknown>;
-	getSubject?: MockMethodImplementation<string, unknown>;
-	patchSubject?: MockMethodImplementation<unknown, unknown>;
-	listSubjects?: MockMethodImplementation<unknown, unknown>;
-}
-
-/**
- * Creates a mock C15T client for testing
- *
- * @param overrides - Method implementations to override
- * @returns A mock client object
- *
- * @example
- * ```typescript
- * const mockClient = createMockClient({
- *   getSubject: async (id) => createMockResponse({
- *     id,
- *     externalId: 'user_123',
- *     consents: [],
- *   }),
- *   checkConsent: async () => createMockResponse({
- *     results: { analytics: { hasConsent: true } },
- *   }),
- * });
- *
- * // Use in tests
- * const result = await mockClient.getSubject('sub_123');
- * ```
- */
-export const createMockClient = function createMockClient(
-	overrides: MockClientOverrides = {}
-) {
-	const defaultNotImplemented = () =>
-		createMockErrorResponse({
-			code: 'NOT_IMPLEMENTED',
-			message: 'Method not implemented in mock',
-			status: 501,
-		});
-
-	const status = overrides.status ?? defaultNotImplemented;
-	const init = overrides.init ?? defaultNotImplemented;
-	const checkConsent = overrides.checkConsent ?? defaultNotImplemented;
-	const createSubject = overrides.createSubject ?? defaultNotImplemented;
-	const getSubject = overrides.getSubject ?? defaultNotImplemented;
-	const patchSubject = overrides.patchSubject ?? defaultNotImplemented;
-	const listSubjects = overrides.listSubjects ?? defaultNotImplemented;
-
-	return assignInOrder(
-		{},
-		{ status: () => Promise.resolve(status()) },
-		{ init: () => Promise.resolve(init()) },
-		{ checkConsent: (query: unknown) => Promise.resolve(checkConsent(query)) },
-		{
-			createSubject: (input: unknown) => Promise.resolve(createSubject(input)),
-		},
-		{ getSubject: (id: string) => Promise.resolve(getSubject(id)) },
-		{
-			patchSubject: (id: string, input: unknown) => {
-				const patchInput = { id };
-				if (typeof input === 'object' && input !== null) {
-					Object.assign(patchInput, input);
-				}
-
-				return Promise.resolve(patchSubject(patchInput));
-			},
-		},
-		{ listSubjects: (query?: unknown) => Promise.resolve(listSubjects(query)) },
-		{
-			consent: {
-				check: (query: unknown) => Promise.resolve(checkConsent(query)),
-			},
-		},
-		{
-			subjects: {
-				create: (input: unknown) => Promise.resolve(createSubject(input)),
-				get: (id: string) => Promise.resolve(getSubject(id)),
-				list: (query?: unknown) => Promise.resolve(listSubjects(query)),
-				patch: (id: string, input: unknown) => {
-					const patchInput = { id };
-					if (typeof input === 'object' && input !== null) {
-						Object.assign(patchInput, input);
-					}
-
-					return Promise.resolve(patchSubject(patchInput));
-				},
-			},
-		},
-		{
-			meta: {
-				init: () => Promise.resolve(init()),
-				status: () => Promise.resolve(status()),
-			},
-		}
+const missing = (name: string) => (): Promise<never> =>
+	Promise.reject(
+		new Error(
+			`createMockC15tClient: ${name} was called but has no handler. Pass one in the handlers object.`
+		)
 	);
-};
 
 /**
- * Type representing the mock client returned by createMockClient
+ * Wraps a handler so it always returns a promise, like the real method, and
+ * a missing one rejects with a message naming the method.
  */
-export type MockC15TClient = ReturnType<typeof createMockClient>;
+const bind = <Args extends unknown[], Result>(
+	name: string,
+	handler: ((...args: Args) => Awaitable<Result>) | undefined
+): ((...args: Args) => Promise<Result>) =>
+	handler === undefined
+		? (missing(name) as (...args: Args) => Promise<Result>)
+		: async (...args: Args) => await handler(...args);
+
+/**
+ * Creates a client whose methods call the given handlers.
+ *
+ * A method without a handler rejects with an error naming it, so a test
+ * fails loudly when code calls something the test did not expect.
+ *
+ * @param handlers - Handlers by namespace and method name.
+ * @returns A full {@link C15tClient}.
+ */
+export const createMockC15tClient = function createMockC15tClient(
+	handlers: C15tMockHandlers = {}
+): C15tClient {
+	return {
+		consents: {
+			check: bind('consents.check', handlers.consents?.check) as never,
+		},
+		experiments: {
+			summary: bind('experiments.summary', handlers.experiments?.summary),
+		},
+		init: bind('init', handlers.init),
+		legalDocuments: {
+			publish: bind('legalDocuments.publish', handlers.legalDocuments?.publish),
+		},
+		manifest: bind('manifest', handlers.manifest),
+		status: bind('status', handlers.status),
+		subjects: {
+			create: bind('subjects.create', handlers.subjects?.create),
+			get: bind('subjects.get', handlers.subjects?.get),
+			identify: bind('subjects.identify', handlers.subjects?.identify),
+			list: bind('subjects.list', handlers.subjects?.list),
+		},
+	};
+};

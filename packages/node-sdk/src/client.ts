@@ -1,373 +1,295 @@
 import type {
-	CheckConsentOutput,
-	CheckConsentQuery,
+	ConsentPolicyType,
 	ExperimentSummaryOutput,
-	ExperimentSummaryQuery,
 	GetSubjectOutput,
-	GetSubjectQuery,
 	InitOutput,
+	LegalDocumentCurrentOutput,
+	LegalDocumentPolicyType,
 	ListSubjectsOutput,
-	ListSubjectsQuery,
-	PatchSubjectFullInput,
 	PatchSubjectOutput,
-	PostSubjectInput,
 	PostSubjectOutput,
 	StatusOutput,
 } from '@c15t/schema/types';
 
-import {
-	checkConsent,
-	createSubject,
-	getSubject,
-	init,
-	listSubjects,
-	patchSubject,
-	status,
-	summarizeExperiment,
-} from './endpoints';
-import { DEFAULT_RETRY_CONFIG, DEFAULT_TIMEOUT_MS, fetcher } from './fetcher';
-import type { FetcherContext } from './fetcher';
+import { endpoints } from './contract';
 import type {
-	C15TClientOptions,
-	FetchOptions,
-	ResponseContext,
-	RetryConfig,
-} from './types';
+	C15tCheckConsentInput,
+	C15tCheckConsentOutput,
+	C15tCreateSubjectInput,
+	C15tExperimentSummaryRequest,
+	C15tGetSubjectRequest,
+	C15tIdentifySubjectInput,
+	C15tInitRequest,
+	C15tManifestRequest,
+	C15tManifestResult,
+	C15tPublishLegalDocumentInput,
+} from './contract';
+import { decodeOptions } from './options';
+import type { C15tCallOptions, C15tClientOptions } from './options';
+import type { C15tResult } from './result';
+import { send } from './transport';
+
+/** `subjects` methods available without an API key. */
+export interface C15tPublicSubjects {
+	/**
+	 * Reads a subject and its consents.
+	 *
+	 * @param id - Subject id, such as `sub_2jv6z8n4q9`.
+	 * @param request - Optional filter by policy type.
+	 */
+	get: (
+		id: string,
+		request?: C15tGetSubjectRequest,
+		options?: C15tCallOptions
+	) => Promise<C15tResult<GetSubjectOutput, 'DATABASE_ERROR' | 'NOT_FOUND'>>;
+
+	/**
+	 * Records a consent, creating the subject if it does not exist.
+	 * Retried submissions resolve to the same consent.
+	 *
+	 * @param input - The consent. `type` selects which fields apply.
+	 */
+	create: (
+		input: C15tCreateSubjectInput,
+		options?: C15tCallOptions
+	) => Promise<
+		C15tResult<
+			PostSubjectOutput,
+			| 'CHOICE_OUT_OF_SCOPE'
+			| 'CHOICE_PREFERENCE_MISMATCH'
+			| 'CONFLICT'
+			| 'DATABASE_ERROR'
+			| 'INPUT_VALIDATION_FAILED'
+			| 'POLICY_SNAPSHOT_EXPIRED'
+			| 'POLICY_SNAPSHOT_INVALID'
+			| 'POLICY_SNAPSHOT_REQUIRED'
+			| 'PURPOSE_NOT_ALLOWED'
+			| 'STALE_POLICY'
+			| 'SUBJECT_CONFLICT'
+		>
+	>;
+
+	/**
+	 * Links a subject to your own user id, so `consents.check` and
+	 * `subjects.list` can find it. Call it after the visitor signs in.
+	 *
+	 * @param id - Subject id from the visitor's browser.
+	 * @param input - Your user id and, optionally, who issued it.
+	 */
+	identify: (
+		id: string,
+		input: C15tIdentifySubjectInput,
+		options?: C15tCallOptions
+	) => Promise<
+		C15tResult<
+			PatchSubjectOutput,
+			'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'NOT_FOUND'
+		>
+	>;
+}
+
+/** `subjects` methods on a client with an API key. */
+export interface C15tSubjects extends C15tPublicSubjects {
+	/**
+	 * Lists every subject linked to one of your user ids, with their consents.
+	 * Needs an API key.
+	 */
+	list: (
+		query: { readonly externalId: string },
+		options?: C15tCallOptions
+	) => Promise<
+		C15tResult<
+			ListSubjectsOutput,
+			'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'UNAUTHORIZED'
+		>
+	>;
+}
+
+/** `consents` methods. */
+export interface C15tConsents {
+	/**
+	 * Reports whether a user has consented to each policy type. Every
+	 * requested type appears in `results`, consented or not.
+	 *
+	 * @example
+	 * ```ts
+	 * const result = await c15t.consents.check({
+	 *   externalId: user.id,
+	 *   types: ['marketing_communications'],
+	 * });
+	 * if (result.ok && result.data.results.marketing_communications.hasConsent) {
+	 *   await sendNewsletter(user);
+	 * }
+	 * ```
+	 */
+	check: <
+		const Types extends readonly [ConsentPolicyType, ...ConsentPolicyType[]],
+	>(
+		input: C15tCheckConsentInput<Types>,
+		options?: C15tCallOptions
+	) => Promise<
+		C15tResult<
+			C15tCheckConsentOutput<Types[number]>,
+			'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'TYPE_REQUIRED'
+		>
+	>;
+}
+
+/** `experiments` methods. Need an API key. */
+export interface C15tExperiments {
+	/**
+	 * Counts choices per arm of a banner experiment, by action and surface,
+	 * with the median time to decision.
+	 *
+	 * @param id - Experiment id, as configured on the client.
+	 */
+	summary: (
+		id: string,
+		request?: C15tExperimentSummaryRequest,
+		options?: C15tCallOptions
+	) => Promise<
+		C15tResult<
+			ExperimentSummaryOutput,
+			'DATABASE_ERROR' | 'INPUT_VALIDATION_FAILED' | 'UNAUTHORIZED'
+		>
+	>;
+}
+
+/** `legalDocuments` methods. Need an API key. */
+export interface C15tLegalDocuments {
+	/**
+	 * Publishes a legal document release as the current version, so new
+	 * consents record it. Call it from the job that ships the document.
+	 *
+	 * @param type - Document type, such as `privacy_policy` or
+	 * `terms_and_conditions_b2b`.
+	 */
+	publish: (
+		type: LegalDocumentPolicyType,
+		input: C15tPublishLegalDocumentInput,
+		options?: C15tCallOptions
+	) => Promise<
+		C15tResult<
+			LegalDocumentCurrentOutput,
+			'CONFLICT' | 'DATABASE_ERROR' | 'INPUT_VALIDATION_FAILED' | 'UNAUTHORIZED'
+		>
+	>;
+}
 
 /**
- * C15T Client for interacting with the consent management API
+ * A client created without an API key: the routes the backend serves
+ * without one.
+ */
+export interface C15tPublicClient {
+	/** Backend version and the request context it saw. */
+	status: (
+		options?: C15tCallOptions
+	) => Promise<C15tResult<StatusOutput, 'SERVICE_UNAVAILABLE'>>;
+
+	/**
+	 * Resolves the consent banner for a visitor: jurisdiction, translations,
+	 * policies. Pass the visitor's context when calling from a server.
+	 */
+	init: (
+		request?: C15tInitRequest,
+		options?: C15tCallOptions
+	) => Promise<C15tResult<InitOutput>>;
+
+	/**
+	 * Fetches the consent manifest, the cacheable configuration `init` is
+	 * resolved from. Pass the `etag` you hold as `ifNoneMatch` to skip
+	 * downloading an unchanged manifest.
+	 */
+	manifest: (
+		request?: C15tManifestRequest,
+		options?: C15tCallOptions
+	) => Promise<C15tResult<C15tManifestResult>>;
+
+	readonly subjects: C15tPublicSubjects;
+	readonly consents: C15tConsents;
+}
+
+/** A client created with an API key. */
+export interface C15tClient extends C15tPublicClient {
+	readonly subjects: C15tSubjects;
+	readonly experiments: C15tExperiments;
+	readonly legalDocuments: C15tLegalDocuments;
+}
+
+/**
+ * Creates a client for a hosted or self-hosted c15t backend.
+ *
+ * Methods resolve to `{ ok: true, data }` or `{ ok: false, error }` and never
+ * reject. Methods that need an API key exist only on a client created with
+ * one.
+ *
+ * @param options - Backend URL, optional API key, transport settings.
+ * @returns A client. Its type depends on whether `apiKey` was passed.
+ * @throws {C15tConfigurationError} When an option is invalid. Every problem
+ * is reported at once.
  *
  * @example
- * ```typescript
- * const client = new C15TClient({
- *   baseUrl: 'https://api.example.com',
- *   token: 'your-auth-token',
+ * ```ts
+ * import { createC15tClient } from '@c15t/node-sdk';
+ *
+ * const c15t = createC15tClient({
+ *   baseUrl: 'https://consent.example.com/api/c15t',
+ *   apiKey: process.env.C15T_API_KEY!,
  * });
  *
- * // Check API status
- * const statusResponse = await client.status();
- *
- * // Initialize consent manager
- * const initResponse = await client.init();
- *
- * // Create a subject with consent
- * const subject = await client.createSubject({
- *   type: 'new',
- *   subjectId: 'sub_123',
- *   consents: { analytics: true },
- * });
+ * const result = await c15t.subjects.list({ externalId: 'user_123' });
  * ```
  */
-export class C15TClient {
-	/**
-	 * Internal fetcher context
-	 */
-	private context: FetcherContext;
+export function createC15tClient(
+	options: C15tClientOptions & { readonly apiKey: string }
+): C15tClient;
+export function createC15tClient(
+	options: C15tClientOptions & { readonly apiKey?: undefined }
+): C15tPublicClient;
+export function createC15tClient(
+	options: C15tClientOptions
+): C15tClient | C15tPublicClient;
+export function createC15tClient(options: unknown): C15tClient {
+	const resolved = decodeOptions(options);
 
-	/**
-	 * Creates a new C15T client instance
-	 *
-	 * @param options - Client configuration options
-	 * @throws {TypeError} If baseUrl is invalid or not provided (and no env var)
-	 */
-	constructor(options: C15TClientOptions = {}) {
-		// Resolve baseUrl from options or environment variable
-		const baseUrlString =
-			options.baseUrl ||
-			(typeof process === 'undefined' ? undefined : process.env?.C15T_API_URL);
-
-		if (!baseUrlString) {
-			throw new TypeError(
-				'baseUrl is required. Provide it in options or set C15T_API_URL environment variable.'
-			);
-		}
-
-		// Validate base URL
-		const baseUrl = new URL(baseUrlString);
-
-		// Apply prefix if provided
-		if (options.prefix) {
-			baseUrl.pathname = options.prefix;
-		}
-
-		// Resolve token from options or environment variable
-		const token =
-			options.token ||
-			(typeof process === 'undefined'
-				? undefined
-				: process.env?.C15T_API_TOKEN);
-
-		// Prepare authorization header if token is provided
-		const authHeaders: Record<string, string> = token
-			? { Authorization: `Bearer ${token}` }
-			: {};
-
-		// Merge retry config with defaults
-		const retryConfig: RetryConfig = {
-			...DEFAULT_RETRY_CONFIG,
-			...options.retryConfig,
-		};
-
-		// Resolve debug mode from options or environment variable
-		const debug =
-			options.debug ??
-			(typeof process === 'undefined'
-				? false
-				: process.env?.C15T_DEBUG === 'true');
-
-		// Resolve timeout from options or use default
-		const timeout = options.timeout ?? DEFAULT_TIMEOUT_MS;
-
-		this.context = {
-			baseUrl: baseUrl.toString(),
-			debug,
-			headers: {
-				...authHeaders,
-				...options.headers,
-			},
-			retryConfig,
-			timeout,
-		};
-	}
-
-	/**
-	 * Get API status
-	 *
-	 * @param options - Optional fetch options
-	 * @returns Status response with version and client info
-	 */
-	status(
-		options?: FetchOptions<StatusOutput>
-	): Promise<ResponseContext<StatusOutput>> {
-		return status(this.context, options);
-	}
-
-	/**
-	 * Initialize consent manager
-	 *
-	 * @param options - Optional fetch options
-	 * @returns Init response with jurisdiction, location, translations, branding
-	 */
-	init(
-		options?: FetchOptions<InitOutput>
-	): Promise<ResponseContext<InitOutput>> {
-		return init(this.context, options);
-	}
-
-	/**
-	 * Create a new subject with consent preferences
-	 *
-	 * @param input - Subject creation input
-	 * @param options - Optional fetch options
-	 * @returns Created subject response
-	 */
-	createSubject(
-		input: PostSubjectInput,
-		options?: FetchOptions<PostSubjectOutput, PostSubjectInput>
-	): Promise<ResponseContext<PostSubjectOutput>> {
-		return createSubject(this.context, input, options);
-	}
-
-	/**
-	 * Get a subject by ID
-	 *
-	 * @param id - Subject ID
-	 * @param query - Optional query parameters
-	 * @param options - Optional fetch options
-	 * @returns Subject data response
-	 */
-	getSubject(
-		id: string,
-		query?: GetSubjectQuery,
-		options?: FetchOptions<GetSubjectOutput, never, GetSubjectQuery>
-	): Promise<ResponseContext<GetSubjectOutput>> {
-		return getSubject(this.context, id, query, options);
-	}
-
-	/**
-	 * Update a subject (link external ID or update preferences)
-	 *
-	 * @param id - Subject ID
-	 * @param input - Patch input with externalId or other fields
-	 * @param options - Optional fetch options
-	 * @returns Updated subject response
-	 */
-	patchSubject(
-		id: string,
-		input: Omit<PatchSubjectFullInput, 'id'>,
-		options?: FetchOptions<
-			PatchSubjectOutput,
-			Omit<PatchSubjectFullInput, 'id'>
-		>
-	): Promise<ResponseContext<PatchSubjectOutput>> {
-		return patchSubject(this.context, id, input, options);
-	}
-
-	/**
-	 * List subjects with optional filtering
-	 *
-	 * @param query - Query parameters for filtering
-	 * @param options - Optional fetch options
-	 * @returns List of subjects
-	 */
-	listSubjects(
-		query?: ListSubjectsQuery,
-		options?: FetchOptions<ListSubjectsOutput, never, ListSubjectsQuery>
-	): Promise<ResponseContext<ListSubjectsOutput>> {
-		return listSubjects(this.context, query, options);
-	}
-
-	/**
-	 * Check consent status for an external ID
-	 *
-	 * @param query - Query parameters (externalId required)
-	 * @param options - Optional fetch options
-	 * @returns Consent check response
-	 */
-	checkConsent(
-		query: CheckConsentQuery,
-		options?: FetchOptions<CheckConsentOutput, never, CheckConsentQuery>
-	): Promise<ResponseContext<CheckConsentOutput>> {
-		return checkConsent(this.context, query, options);
-	}
-
-	/**
-	 * Summarise a banner experiment (requires an API key)
-	 *
-	 * Counts choices per arm by consent action and surface, with the median
-	 * time to decision. Impressions never reach the backend, so compute rates
-	 * from the client-side `experiment.reportTo` events.
-	 *
-	 * @param id - Experiment id, as configured on the client
-	 * @param query - Optional `from`, `to` (ISO dates) and `domain` filters
-	 * @param options - Optional fetch options
-	 * @returns Per-arm summary
-	 */
-	summarizeExperiment(
-		id: string,
-		query?: ExperimentSummaryQuery,
-		options?: FetchOptions<
-			ExperimentSummaryOutput,
-			never,
-			ExperimentSummaryQuery
-		>
-	): Promise<ResponseContext<ExperimentSummaryOutput>> {
-		return summarizeExperiment(this.context, id, query, options);
-	}
-
-	/**
-	 * Make a custom API request to any endpoint
-	 *
-	 * @param path - API endpoint path
-	 * @param options - Fetch options
-	 * @returns Response context
-	 */
-	$fetch<ResponseType, BodyType = unknown, QueryType = unknown>(
-		path: string,
-		options?: FetchOptions<ResponseType, BodyType, QueryType>
-	): Promise<ResponseContext<ResponseType>> {
-		return fetcher<ResponseType, BodyType, QueryType>(
-			this.context,
-			path,
-			options
-		);
-	}
-
-	/**
-	 * Namespaced access to consent endpoints
-	 */
-	consent = {
-		/**
-		 * Check consent status for an external ID
-		 */
-		check: (
-			query: CheckConsentQuery,
-			options?: FetchOptions<CheckConsentOutput, never, CheckConsentQuery>
-		) => this.checkConsent(query, options),
-	};
-
-	/**
-	 * Namespaced access to subject endpoints
-	 */
-	subjects = {
-		/**
-		 * Create a new subject
-		 */
-		create: (
-			input: PostSubjectInput,
-			options?: FetchOptions<PostSubjectOutput, PostSubjectInput>
-		) => this.createSubject(input, options),
-
-		/**
-		 * Get a subject by ID
-		 */
-		get: (
-			id: string,
-			query?: GetSubjectQuery,
-			options?: FetchOptions<GetSubjectOutput, never, GetSubjectQuery>
-		) => this.getSubject(id, query, options),
-
-		/**
-		 * List subjects
-		 */
-		list: (
-			query?: ListSubjectsQuery,
-			options?: FetchOptions<ListSubjectsOutput, never, ListSubjectsQuery>
-		) => this.listSubjects(query, options),
-
-		/**
-		 * Update a subject
-		 */
-		patch: (
-			id: string,
-			input: Omit<PatchSubjectFullInput, 'id'>,
-			options?: FetchOptions<
-				PatchSubjectOutput,
-				Omit<PatchSubjectFullInput, 'id'>
-			>
-		) => this.patchSubject(id, input, options),
-	};
-
-	/**
-	 * Namespaced access to experiment endpoints
-	 */
-	experiments = {
-		/**
-		 * Summarise a banner experiment (requires an API key)
-		 *
-		 * Counts choices per arm by consent action and surface, with the median
-		 * time to decision. Same as {@link C15TClient.summarizeExperiment}.
-		 *
-		 * @param id - Experiment id, as configured on the client
-		 * @param query - Optional `from`, `to` (ISO dates) and `domain` filters
-		 * @param options - Optional fetch options
-		 * @returns Per-arm summary: `experimentId`, the window as applied, and
-		 * one entry per arm with `choices`, `byAction`, `bySurface` and
-		 * `medianTimeToDecisionMs`
-		 */
-		summary: (
-			id: string,
-			query?: ExperimentSummaryQuery,
-			options?: FetchOptions<
-				ExperimentSummaryOutput,
-				never,
-				ExperimentSummaryQuery
-			>
-		) => this.summarizeExperiment(id, query, options),
-	};
-
-	/**
-	 * Namespaced access to meta endpoints
-	 */
-	meta = {
-		/**
-		 * Initialize consent manager
-		 */
-		init: (options?: FetchOptions<InitOutput>) => this.init(options),
-
-		/**
-		 * Get API status
-		 */
-		status: (options?: FetchOptions<StatusOutput>) => this.status(options),
+	return {
+		consents: {
+			check: (input, callOptions) =>
+				send(resolved, endpoints.checkConsent, input, callOptions) as never,
+		},
+		experiments: {
+			summary: (id, request, callOptions) =>
+				send(
+					resolved,
+					endpoints.experimentSummary,
+					{ id, request },
+					callOptions
+				),
+		},
+		init: (request, callOptions) =>
+			send(resolved, endpoints.init, request, callOptions),
+		legalDocuments: {
+			publish: (type, input, callOptions) =>
+				send(
+					resolved,
+					endpoints.publishLegalDocument,
+					{ input, type },
+					callOptions
+				),
+		},
+		manifest: (request, callOptions) =>
+			send(resolved, endpoints.manifest, request, callOptions),
+		status: (callOptions) =>
+			send(resolved, endpoints.status, undefined, callOptions),
+		subjects: {
+			create: (input, callOptions) =>
+				send(resolved, endpoints.createSubject, input, callOptions),
+			get: (id, request, callOptions) =>
+				send(resolved, endpoints.getSubject, { id, request }, callOptions),
+			identify: (id, input, callOptions) =>
+				send(resolved, endpoints.identifySubject, { id, input }, callOptions),
+			list: (query, callOptions) =>
+				send(resolved, endpoints.listSubjects, query, callOptions),
+		},
 	};
 }

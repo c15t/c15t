@@ -17,6 +17,25 @@ curl -X PUT 'http://localhost:3000/api/c15t/legal-documents/terms_and_conditions
   -d '{"version":"3.0","hash":"YOUR_DOCUMENT_CONTENT_HASH","effectiveDate":"2026-09-10T00:00:00.000Z"}'
 ```
 
+From a Node.js deploy script, the [Node.js SDK](/docs/self-host/api/node-sdk#publish-a-legal-document-from-ci)
+sends the same request with a client created with `apiKey`:
+
+```ts
+const result = await c15t.legalDocuments.publish('terms_and_conditions', {
+	version: '3.0',
+	hash: 'YOUR_DOCUMENT_CONTENT_HASH',
+	effectiveDate: '2026-09-10T00:00:00.000Z',
+});
+
+if (!result.ok) {
+	throw result.error;
+}
+```
+
+The SDK retries network errors, timeouts and the statuses listed in
+[retries and timeouts](/docs/self-host/api/node-sdk#retries-and-timeouts).
+Republishing the same release is safe.
+
 Compute the hash from the exact published document using your application's
 chosen content-hashing convention. Keep the same type, version, hash and
 effective date when rendering and recording acceptance. A conflicting release

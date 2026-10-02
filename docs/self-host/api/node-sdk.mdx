@@ -1,0 +1,557 @@
+---
+title: Node.js SDK
+description: Call the c15t consent API from server code with @c15t/node-sdk. Check consent before sending email, link users after sign-in, export a user's records, publish legal documents from CI and read experiment results.
+group: self-host
+---
+
+## When to use the SDK
+
+`@c15t/node-sdk` is a typed client for the [HTTP endpoints](/docs/self-host/api/endpoints)
+of a c15t backend, hosted on Inth or self-hosted. Use it in server code:
+
+- Check `consents.check` before you send a marketing email to a signed-in
+  user.
+- Read a visitor's banner categories with `subjects.get` before you send a
+  server-side analytics event.
+- Link a visitor's consent records to your user ID after sign-in with
+  `subjects.identify`.
+- Export everything recorded for one user with `subjects.list`, for a data
+  access request.
+- Publish a new privacy policy or terms release from CI with
+  `legalDocuments.publish`.
+- Read per-arm counts for a [banner experiment](/docs/guides/banner-experiments)
+  with `experiments.summary`.
+
+Do not use it in the browser. The framework adapters already call the backend
+for the banner, and three methods need an API key that must stay on the server.
+
+## Install
+
+<CommandTabs command="@c15t/node-sdk@alpha" mode="install" />
+
+The client needs Node.js 20.19 or later, or another runtime with `fetch`,
+`AbortSignal.any` and `crypto.randomUUID`. It is ESM only.
+
+## Create a client
+
+Pass the URL where the backend is mounted, path included. The client reads no
+environment variables, so pass every value explicitly.
+
+<include src="../../shared/examples/sveltekit-demo/node-sdk-client.mdx" />
+
+This SvelteKit example reads the URL from its own `C15T_API_URL` variable and
+falls back to the demo's local backend. `baseUrl` keeps its path: with `https://app.example.com/api/c15t`, `status()`
+requests `https://app.example.com/api/c15t/status`. For Inth, use the URL from
+your project, such as `https://your-project.inth.app`.
+
+A client without `apiKey` has no `subjects.list`, `experiments.summary` or
+`legalDocuments.publish`. Those three endpoints require a key. Create a second
+client with one where you need them:
+
+{/* example: fragment */}
+
+```ts title="src/lib/server/c15t-admin.ts"
+import { createC15tClient } from '@c15t/node-sdk';
+
+const apiKey = process.env.C15T_API_KEY;
+if (!apiKey) throw new Error('Set C15T_API_KEY');
+
+export const c15tAdmin = createC15tClient({
+	baseUrl: 'https://app.example.com/api/c15t',
+	apiKey,
+});
+```
+
+A self-hosted backend accepts the keys listed in its
+[`apiKeys` option](/docs/self-host/api/configuration). The client sends the key
+as `Authorization: Bearer <key>`. Check that the key is set before you pass it,
+as above. With a `string | undefined` key, TypeScript cannot tell which client
+you get, and the key-only methods are not callable until you narrow it. Called
+on a client without a key, they return `MISSING_API_KEY` and send nothing.
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| `baseUrl` | Required | Backend URL, path included. A query string or fragment is rejected. |
+| `apiKey` | None | Sent as `Authorization: Bearer`. Adds the key-only methods. |
+| `fetch` | `globalThis.fetch` | `fetch` implementation, for tracing, proxies or tests. |
+| `headers` | `{}` | Headers sent with every request. |
+| `timeoutMs` | `10000` | Deadline for one attempt, reading the response body included. |
+| `retry` | `{ maxRetries: 2, initialDelayMs: 200, maxDelayMs: 5000 }` | [Retry settings](#retries-and-timeouts), or `false` to never retry. |
+| `onEvent` | None | Called for each request, response and retry. |
+
+`createC15tClient` checks every option and throws one `C15tConfigurationError`
+listing all the problems, with each in `error.issues`. It is the only error the
+SDK throws. Create the client at module scope, so a bad option fails at
+startup rather than on the first request.
+
+The client refuses an `http:` URL together with an API key, because the key
+would travel in the clear. `http:` with a key is accepted only for `localhost`,
+`127.0.0.1` and `[::1]`.
+
+## Handle results
+
+Every method resolves to a result object and never rejects. Check `ok` before
+reading `data`:
+
+```ts
+const result = await c15t.subjects.get(subjectId);
+
+if (!result.ok) {
+	switch (result.error.code) {
+		case 'NOT_FOUND':
+			return null;
+		default:
+			throw result.error;
+	}
+}
+
+return result.data.consents;
+```
+
+| Field | On | What it holds |
+| --- | --- | --- |
+| `ok` | Both | `true` for success, `false` for failure |
+| `data` | Success | The response body. Dates are `Date` objects. |
+| `status` | Success | HTTP status |
+| `requestId` | Success | The `x-request-id` the call sent |
+| `headers` | Success | Response `Headers` |
+| `error` | Failure | A `C15tError` |
+
+`error.code` is typed per method. `subjects.get` can fail with `NOT_FOUND` or
+`DATABASE_ERROR` from the backend, plus the client codes every method shares.
+TypeScript flags a `case` for a code the method cannot return.
+
+| Client code | When |
+| --- | --- |
+| `INVALID_INPUT` | The input or call options failed validation. Nothing was sent. `error.issues` lists each problem with a `path`. |
+| `MISSING_API_KEY` | The method needs an API key and the client has none. Nothing was sent. |
+| `NETWORK_ERROR` | The request failed before a response arrived. |
+| `TIMEOUT` | One attempt took longer than `timeoutMs`. |
+| `ABORTED` | Your `signal` aborted the call. |
+| `UNEXPECTED_RESPONSE` | A response the endpoint does not document, such as a proxy's HTML error page or a body without the documented shape. An undocumented backend code is kept in `error.serverCode`. |
+
+Every `C15tError` also has `message`, `status` (when a response arrived),
+`requestId` (when something was sent) and `retryable`. `retryable` says whether
+the same call could succeed later; the client has already retried by the time
+you see it. A `STALE_POLICY` error carries `reason`: `policy-changed`,
+`decision-mismatch` or `incomplete-inputs`. `error.toJSON()` gives a plain
+object for logs.
+
+### Throw instead with `unwrap`
+
+`unwrap(result)` returns `data` or throws the `C15tError`. Use it where a failure
+should stop the surrounding work, such as a job with its own retry.
+`isC15tError(error, ...codes)` checks a caught value and narrows its code:
+
+{/* example: fragment */}
+
+```ts
+import { isC15tError, unwrap } from '@c15t/node-sdk';
+
+try {
+	const { subjects } = unwrap(await c15tAdmin.subjects.list({ externalId }));
+	await writeExport(subjects);
+} catch (error) {
+	if (isC15tError(error, 'UNAUTHORIZED')) {
+		// error.code is 'UNAUTHORIZED': the key is wrong or revoked
+	}
+	throw error;
+}
+```
+
+To name a method's types elsewhere, use `C15tDataOf` and `C15tErrorCodeOf`:
+
+{/* example: fragment */}
+
+```ts
+import type { C15tDataOf, C15tErrorCodeOf } from '@c15t/node-sdk';
+
+type Subject = C15tDataOf<typeof c15t.subjects.get>;
+type SubjectError = C15tErrorCodeOf<typeof c15t.subjects.get>;
+```
+
+## Methods
+
+| Method | Endpoint | API key |
+| --- | --- | --- |
+| `consents.check({ externalId, types })` | `GET /consents/check` | No |
+| `subjects.identify(id, { externalId, identityProvider })` | `PATCH /subjects/:id` | No |
+| `subjects.get(id, { types })` | `GET /subjects/:id` | No |
+| `subjects.create(input)` | `POST /subjects` | No |
+| `subjects.list({ externalId })` | `GET /subjects` | Required |
+| `legalDocuments.publish(type, { version, hash, effectiveDate })` | `PUT /legal-documents/:type/current` | Required |
+| `experiments.summary(id, { from, to, domain })` | `GET /experiments/:id/summary` | Required |
+| `status()` | `GET /status` | No |
+| `init({ language, country, region, gpc })` | `GET /init` | No |
+| `manifest({ language, ifNoneMatch })` | `GET /manifest` | No |
+
+Every method also takes [call options](#call-options) as its last argument.
+The examples below use the `c15t` and `c15tAdmin` clients from
+[Create a client](#create-a-client).
+
+### Check consent before sending email
+
+`consents.check` reports, for each requested policy type, whether the user has
+a consent record of that type and whether one of those records is for the
+current policy version. The user is your own ID, linked with
+`subjects.identify`.
+
+```ts
+const result = await c15t.consents.check({
+	externalId: user.id,
+	types: ['marketing_communications'],
+});
+
+if (result.ok && result.data.results.marketing_communications.hasConsent) {
+	await sendNewsletter(user);
+}
+```
+
+`results` has a key for every type you request, so
+`results.marketing_communications` needs no `?`. A type with no record, or one
+the backend does not know, comes back as
+`{ hasConsent: false, isLatestPolicy: false }`.
+
+`hasConsent` means a record of that type exists. The check does not read the
+record's `preferences`, so record a `marketing_communications` consent only
+when the user opts in. Treat a failed check as no consent.
+
+`types` must be a non-empty array. Each type is one entry; a type containing a
+comma returns `INVALID_INPUT`.
+
+### Gate a server-side event on a banner category
+
+`consents.check` reports `hasConsent: true` for `cookie_banner` after a reject
+too, because a reject is also a recorded choice. To send a server-side analytics event only
+when the visitor allowed measurement, read the category from `subjects.get`:
+
+```ts
+const result = await c15t.subjects.get(subjectId);
+const measurement = result.ok
+	? result.data.subjectChoice?.categories.measurement
+	: undefined;
+
+if (measurement?.value === true) {
+	await trackPurchase(order);
+}
+```
+
+`subjectChoice.categories` holds the latest receipt for `measurement`,
+`marketing`, `functionality` and `experience`, each with `value` and
+`confirmedAt`. A category with no receipt is absent. `subjectChoice` is `null`
+when the subject has no usable choice.
+
+### Link a user after sign-in
+
+`subjects.identify` links a subject, the ID the c15t client stores in the
+visitor's browser, to your user ID. After that, `consents.check` and
+`subjects.list` find the subject's records by your ID.
+
+```ts
+const result = await c15t.subjects.identify(subjectId, {
+	externalId: user.id,
+	identityProvider: 'auth0',
+});
+```
+
+The browser adapters do this themselves when you call their `identify()` after
+sign-in. Call `subjects.identify` when your server handles sign-in and the
+frontend sends the subject ID with the request. `identityProvider` is optional;
+the backend stores `external` without it. `data.subject` holds `id`,
+`externalId` and `identityProvider`. An unknown subject ID returns `NOT_FOUND`.
+Linking the same user again changes nothing.
+
+### Export a user's records
+
+`subjects.list` returns every subject linked to one of your user IDs, each with
+its consents. It needs an API key.
+
+```ts
+const result = await c15tAdmin.subjects.list({ externalId: user.id });
+
+if (result.ok) {
+	for (const subject of result.data.subjects) {
+		console.log(subject.id, subject.createdAt.toISOString());
+		for (const consent of subject.consents) {
+			console.log(consent.type, consent.givenAt, consent.preferences);
+		}
+	}
+}
+```
+
+`createdAt`, `givenAt` and `policyEffectiveDate` are `Date` objects. Each
+consent also has `isLatestPolicy`, `policyVersion` and `policyHash` where they
+apply.
+
+### Read one subject
+
+`subjects.get` reads one subject by ID. Pass `types` to return only consents of
+those policy types:
+
+```ts
+const result = await c15t.subjects.get(subjectId, { types: ['cookie_banner'] });
+```
+
+`data` holds `subject`, `consents`, `isValid` and `subjectChoice`, the latest
+category choices across the subject's cookie-banner consents. The filter
+changes which consent records come back and how `isValid` is calculated. It
+does not filter `subjectChoice`. Anyone with a subject ID can read it, so treat
+subject IDs as private.
+
+### Record a consent
+
+`subjects.create` records a consent and creates the subject if it does not
+exist. Leave cookie-banner saves to the browser client, which builds the
+receipts for each category. Use this method for consents your server
+collects, such as terms accepted in a sign-up form:
+
+```ts
+const result = await c15t.subjects.create({
+	type: 'terms_and_conditions',
+	subjectId,
+	domain: 'app.example.com',
+	givenAt: new Date(),
+	externalSubjectId: user.id,
+	policyHash: termsHash,
+});
+```
+
+`subjectId` uses the `sub_` format that `generateSubjectId()` from `c15t`
+produces. `givenAt` takes a `Date` or epoch milliseconds. `type` decides which
+other fields apply: `cookie_banner` requires `preferences`, and legal-document
+types accept `policyHash`, `policyId` or `documentSnapshotToken`. Sending the
+same consent again returns the existing record. `data` holds `subjectId`,
+`consentId`, `givenAt` and `appliedPreferences`.
+
+### Publish a legal document from CI
+
+`legalDocuments.publish` stores a document release as the current version, so
+new consents of that type record it. Run it from the job that ships the
+document, with an API key:
+
+{/* example: fragment */}
+
+```ts title="scripts/publish-privacy-policy.ts"
+import { createHash } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+
+import { createC15tClient, unwrap } from '@c15t/node-sdk';
+
+const apiKey = process.env.C15T_API_KEY;
+if (!apiKey) throw new Error('Set C15T_API_KEY');
+
+const c15t = createC15tClient({
+	baseUrl: 'https://app.example.com/api/c15t',
+	apiKey,
+});
+
+const document = await readFile('legal/privacy-policy.md');
+const hash = `sha256:${createHash('sha256').update(document).digest('hex')}`;
+
+const { policy } = unwrap(
+	await c15t.legalDocuments.publish('privacy_policy', {
+		version: '2026-10-01',
+		hash,
+		effectiveDate: '2026-10-01T00:00:00.000Z',
+	})
+);
+
+console.log(`Published ${policy.type} ${policy.version} as ${policy.id}`);
+```
+
+`type` is `privacy_policy`, `dpa` or `terms_and_conditions`, or one of them
+with a suffix such as `terms_and_conditions_b2b`. `effectiveDate` takes a
+`Date` or an ISO 8601 string. Publishing the same hash again with the same
+version and date changes nothing, so a rerun job is safe. The same hash with a
+different version or date returns `CONFLICT`. See
+[legal-document snapshots](/docs/self-host/guides/legal-document-snapshot-integration)
+for signing the document a user saw.
+
+### Read an experiment summary
+
+`experiments.summary` counts choices per arm of a banner experiment. It needs an
+API key.
+
+```ts
+const result = await c15tAdmin.experiments.summary('banner-shape', {
+	from: '2026-09-01',
+	to: '2026-09-30',
+});
+
+if (result.ok) {
+	for (const arm of result.data.arms) {
+		console.log(arm.arm, arm.choices, arm.byAction.accept_all);
+	}
+}
+```
+
+`from` and `to` take a `Date` or an ISO 8601 string. A date without a time
+covers the whole day in UTC, so the example covers all of September. `domain`
+narrows to one domain. The response's own `from` and `to` are strings, or
+`null` when unbounded. [Read the summary from your backend](/docs/guides/banner-experiments#read-the-summary-from-your-backend)
+explains each field.
+
+### Status, init and manifest
+
+```ts
+const status = await c15t.status();
+// status.data: { version, timestamp, client }
+
+const init = await c15t.init({ country: 'DE', language: 'de', gpc: true });
+// Sent as x-c15t-country, Accept-Language and x-c15t-gpc
+
+const manifest = await c15t.manifest({ language: 'en', ifNoneMatch: etag });
+if (manifest.ok && manifest.data.status === 'modified') {
+	cache.set(manifest.data.manifest, manifest.data.etag);
+}
+```
+
+`init` resolves the banner for one visitor. Pass `country`, `region`,
+`language` and `gpc` from the request you are handling; otherwise the backend
+sees your server's location. `manifest` returns
+`{ status: 'modified', manifest, etag }`, or `{ status: 'not-modified', etag }`
+when `ifNoneMatch` matches the current manifest. Prefer the framework adapters
+for rendering the banner; see [data fetching](/docs/concepts/data-fetching).
+
+## Call options
+
+Every method takes these as its last argument:
+
+| Option | What it does |
+| --- | --- |
+| `signal` | Aborts the call, including a pending retry. The result is `ABORTED`. |
+| `timeoutMs` | Overrides the client's per-attempt timeout. |
+| `headers` | Merged over the client's headers for this call. |
+| `retry` | Overrides the client's retry settings, or `false` for none. Omitted fields keep the client's values. |
+| `requestId` | `x-request-id` to send. Defaults to a random UUID. |
+
+```ts
+const result = await c15t.consents.check(
+	{ externalId: user.id, types: ['marketing_communications'] },
+	{
+		requestId: request.headers.get('x-request-id') ?? undefined,
+		timeoutMs: 2000,
+	}
+);
+```
+
+Pass the ID of the request you are handling as `requestId` to match your logs
+with the backend's. The client owns `Accept`, `Authorization`, `Content-Type`,
+`x-request-id`, `x-c15t-version` and `x-c15t-policy-contract`; a header you pass
+with one of those names is replaced. An invalid call option returns
+`INVALID_INPUT` instead of throwing.
+
+## Retries and timeouts
+
+The client retries a call when the attempt fails with `NETWORK_ERROR`,
+`TIMEOUT`, or HTTP 408, 429, 500, 502, 503 or 504. It retries only idempotent
+endpoints, and every current endpoint is one: the backend returns the existing
+record when it receives the same consent, link or release twice.
+
+- With the defaults, a call makes up to 3 attempts.
+- Each wait is random, up to `initialDelayMs` doubled per retry and capped at
+  `maxDelayMs`: under 200 ms, then under 400 ms.
+- A `Retry-After` header, in seconds or as an HTTP date, replaces the backoff.
+  A `Retry-After` longer than `maxDelayMs` stops retrying and returns the error.
+- Every attempt sends the same `x-request-id`.
+- `maxRetries` can be 0 to 10.
+
+`timeoutMs` applies to each attempt, reading the response body included. The
+default worst case is three 10-second attempts plus the waits. To cap the whole
+call, pass a signal; the result is then `ABORTED`:
+
+```ts
+const result = await c15t.consents.check(
+	{ externalId: user.id, types: ['marketing_communications'] },
+	{ signal: AbortSignal.timeout(3000) }
+);
+```
+
+`onEvent` reports each attempt for logging and metrics. An error it throws is
+ignored.
+
+```ts
+const c15t = createC15tClient({
+	baseUrl: 'https://app.example.com/api/c15t',
+	onEvent: (event) => {
+		if (event.type === 'retry') {
+			logger.warn('c15t retry', {
+				path: event.path,
+				attempt: event.attempt,
+				delayMs: event.delayMs,
+				code: event.error.code,
+				requestId: event.requestId,
+			});
+		}
+	},
+});
+```
+
+`request` events carry `method`, `path`, `requestId` and `attempt`, counted
+from 0. `response` events add `status` and `durationMs`.
+
+## Test code that uses the client
+
+`@c15t/node-sdk/testing` exports `createMockC15tClient`, `ok` and `err`. The
+mock is a full client whose methods call the handlers you pass. Handlers are
+typed from the client, so wrong data, or an error code the method cannot
+return, is a type error. A method without a handler rejects with an error that
+names it, so a test fails when the code calls something unexpected.
+
+Write the code under test to take the client as a parameter:
+
+{/* example: fragment */}
+
+```ts title="src/newsletter.ts"
+import type { C15tPublicClient } from '@c15t/node-sdk';
+
+export async function canEmail(c15t: C15tPublicClient, userId: string) {
+	const result = await c15t.consents.check({
+		externalId: userId,
+		types: ['marketing_communications'],
+	});
+	return result.ok && result.data.results.marketing_communications.hasConsent;
+}
+```
+
+{/* example: fragment */}
+
+```ts title="src/newsletter.test.ts"
+import { createMockC15tClient, err, ok } from '@c15t/node-sdk/testing';
+import { expect, test } from 'vitest';
+
+import { canEmail } from './newsletter';
+
+test('emails a user who opted in', async () => {
+	const c15t = createMockC15tClient({
+		consents: {
+			check: () =>
+				ok({
+					results: {
+						marketing_communications: {
+							hasConsent: true,
+							isLatestPolicy: true,
+						},
+					},
+				}),
+		},
+	});
+	expect(await canEmail(c15t, 'user_123')).toBe(true);
+});
+
+test('does not email when the check fails', async () => {
+	const c15t = createMockC15tClient({
+		consents: { check: () => err('DATABASE_ERROR') },
+	});
+	expect(await canEmail(c15t, 'user_123')).toBe(false);
+});
+```
+
+`ok(data, { status, requestId, headers })` and
+`err(code, { message, status, reason, retryable, issues })` take optional
+fields for the rest of the result.
+
+## Upgrade from v2
+
+The v2 `c15tClient()` and its flat methods are gone. See
+[Migrate to v3](/docs/upgrade-v3#update-the-node-sdk) for the mapping.

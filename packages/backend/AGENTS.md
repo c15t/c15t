@@ -39,6 +39,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 - [Backend configuration](./docs/self-host/api/configuration.md): Options for a self-hosted c15t backend in c15t-backend.config.ts and c15tInstance, covering SQL storage, trusted origins, policies, signing, script routes and request logging.
 - [HTTP endpoints](./docs/self-host/api/endpoints.md): HTTP endpoints of a self-hosted c15t v3 backend for the manifest, /init, session reports, consent saves, identity links, the script tag and legal-document releases.
+- [Node.js SDK](./docs/self-host/api/node-sdk.md): Call the c15t consent API from server code with @c15t/node-sdk. Check consent before sending email, link users after sign-in, export a user's records, publish legal documents from CI and read experiment results.
 - [Caching](./docs/self-host/guides/caching.md): Cache public manifests and vendor lists while keeping request-specific initialization and subject state private.
 - [Backend database setup](./docs/self-host/guides/database-setup.md): Connect a self-hosted c15t backend to PostgreSQL, MySQL or SQLite, apply migrations, and upgrade a v2 backend database.
 - [Deployment runtimes](./docs/self-host/guides/edge-deployment.md): Choose a backend runtime that supports your SQL driver and deploy static or edge-rendered clients against its HTTP endpoint.
