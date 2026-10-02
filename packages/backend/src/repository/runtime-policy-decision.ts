@@ -160,6 +160,17 @@ export const recordDecision = Effect.fn('decision.record')(
 		where ${sql('dedupeKey')} = ${dedupeKey}
 	`;
 
-		return { created: false, id: existing[0]?.id ?? id };
+		const [row] = existing;
+		if (row === undefined) {
+			// The conflict was on some other unique index the table carries, not
+			// on this key. Returning `id` would hand back a row that was never
+			// written.
+			return yield* Effect.die(
+				new Error(
+					'runtimePolicyDecision insert conflicted on a unique index other than dedupeKey; run `c15t self-host migrate --plan` to check the schema'
+				)
+			);
+		}
+		return { created: false, id: row.id };
 	}
 );
