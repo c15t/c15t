@@ -117,6 +117,12 @@ export const recordDecision = Effect.fn('decision.record')(
 		);
 
 		const created = yield* insertOnce({
+			// Any unique index, not only one on exactly `dedupeKey`: a database
+			// changed by hand, such as one indexed on `(tenantId, dedupeKey)`,
+			// would otherwise fail every consent save on Postgres. The other
+			// unique index the migrator creates is the random primary key.
+			// `migrate --plan` reports the missing index.
+			anyUniqueConflict: true,
 			conflictOn: 'dedupeKey',
 			into: 'runtimePolicyDecision',
 			values: {
@@ -154,6 +160,17 @@ export const recordDecision = Effect.fn('decision.record')(
 		where ${sql('dedupeKey')} = ${dedupeKey}
 	`;
 
-		return { created: false, id: existing[0]?.id ?? id };
+		const [row] = existing;
+		if (row === undefined) {
+			// The conflict was on some other unique index the table carries, not
+			// on this key. Returning `id` would hand back a row that was never
+			// written.
+			return yield* Effect.die(
+				new Error(
+					'runtimePolicyDecision insert conflicted on a unique index other than dedupeKey; run `c15t self-host migrate --plan` to check the schema'
+				)
+			);
+		}
+		return { created: false, id: row.id };
 	}
 );

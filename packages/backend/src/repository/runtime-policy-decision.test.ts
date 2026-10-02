@@ -16,6 +16,7 @@ import { assert, describe, it } from '@effect/vitest';
 import { Effect } from 'effect';
 import { SqlClient } from 'effect/sql';
 
+import { createCompositeDedupeTable } from '../__tests__/composite-dedupe-table';
 import { ENGINES, resetDatabase } from '../__tests__/engines';
 import * as Dialect from '../db/dialect';
 import { up as baseline } from '../db/migrations/1-baseline';
@@ -103,6 +104,58 @@ for (const engine of ENGINES) {
 						rows.map((row) => row.tenantId),
 						['tenant_a', 'tenant_b']
 					);
+				}).pipe(Effect.provide(engine.client)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
+			'deduplicates against a table indexed only on (tenantId, dedupeKey)',
+			() =>
+				Effect.gen(function* gen() {
+					// The hosted schema had this index and no unique index on
+					// dedupeKey alone. Postgres rejected `on conflict ("dedupeKey")`
+					// against it, so every consent save failed.
+					yield* resetDatabase;
+					yield* createCompositeDedupeTable;
+
+					const first = yield* recordDecision(input).pipe(
+						Effect.provide(tenantLayer('tenant_a'))
+					);
+					const second = yield* recordDecision(input).pipe(
+						Effect.provide(tenantLayer('tenant_a'))
+					);
+
+					assert.isTrue(first.created);
+					assert.isFalse(second.created);
+					assert.strictEqual(first.id, second.id);
+				}).pipe(Effect.provide(engine.client)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
+			'fails rather than return an unwritten id when another unique index conflicts',
+			() =>
+				Effect.gen(function* gen() {
+					yield* resetDatabase;
+					yield* createCompositeDedupeTable;
+					const sql = yield* SqlClient.SqlClient;
+					const quote = Dialect.escaperFor(yield* Dialect.current);
+					yield* sql.unsafe(
+						`create unique index ${quote('decision_fingerprint')} on ${quote(
+							'runtimePolicyDecision'
+						)} (${quote('fingerprint')})`
+					);
+
+					yield* recordDecision(input).pipe(
+						Effect.provide(tenantLayer('tenant_a'))
+					);
+					const other = yield* Effect.exit(
+						recordDecision({ ...input, dedupeKey: 'other|key' }).pipe(
+							Effect.provide(tenantLayer('tenant_a'))
+						)
+					);
+
+					assert.strictEqual(other._tag, 'Failure');
 				}).pipe(Effect.provide(engine.client)),
 			{ timeout: 60_000 }
 		);

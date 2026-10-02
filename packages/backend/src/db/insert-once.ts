@@ -20,6 +20,18 @@ export interface InsertOnceOptions {
 	 * deterministic primary key, or `dedupeKey`.
 	 */
 	readonly conflictOn: string;
+	/**
+	 * Treat a conflict on any unique index as the duplicate, rather than only
+	 * an index on exactly `conflictOn`.
+	 *
+	 * Postgres rejects `on conflict (col)` outright when no unique index covers
+	 * exactly that column, so a database whose index differs from the one the
+	 * migrator creates fails every insert. With this set, Postgres and SQLite
+	 * write `on conflict do nothing` with no target. Use it only for a table
+	 * whose other unique indexes cannot collide, or a real conflict on one of
+	 * them is reported as a duplicate. MySQL already behaves this way.
+	 */
+	readonly anyUniqueConflict?: boolean;
 	/** Column values. JSON columns must already be serialised. */
 	readonly values: Record<string, unknown>;
 }
@@ -78,11 +90,17 @@ export const insertOnce = Effect.fn('db.insertOnce')(function* insertOnce(
 			),
 		orElse: () =>
 			Effect.map(
-				sql`
-					insert into ${into} ${values}
-					on conflict (${conflictOn}) do nothing
-					returning ${conflictOn}
-				`,
+				options.anyUniqueConflict === true
+					? sql`
+							insert into ${into} ${values}
+							on conflict do nothing
+							returning ${conflictOn}
+						`
+					: sql`
+							insert into ${into} ${values}
+							on conflict (${conflictOn}) do nothing
+							returning ${conflictOn}
+						`,
 				(rows) => rows.length > 0
 			),
 	});

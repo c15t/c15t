@@ -55,6 +55,12 @@ export const describePlan = function describePlan(
 			'Retained'
 		);
 	}
+
+	// Drift is not a step this run takes, so it does not make the plan
+	// non-empty; an up-to-date database can still have it.
+	for (const message of report.drift) {
+		logger.warn(message);
+	}
 };
 
 /**
