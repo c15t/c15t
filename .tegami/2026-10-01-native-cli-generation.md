@@ -3,47 +3,39 @@ packages:
   '@c15t/cli': minor
 ---
 
-### Reuse native frontend workflows and Inth accounts
+### Native frontend workflows, `setup --codex`, and Inth accounts
 
-Export generation plans and argument parsing through `@c15t/cli/generate`,
-host-owned setup, project selection and account status through
-`@c15t/cli/frontend`, and the Node command registry through `@c15t/cli/commands`.
-Ship independent TypeScript sources for static scriptc 0.2.0 hosts, enabling
-commands such as `inth c15t generate` without `--dynamic` or database dependencies.
+**Breaking:** account commands now run through Inth. `c15t login`, `logout`,
+`status`, and `projects` use the bundled Inth executable and share its session
+with the `inth` CLI. The `authenticate` export is removed, and control-plane
+adapters take a working directory, organization, and abort signal instead of
+tokens or an API URL. Sessions stored in `~/.c15t/config.json` are no longer
+read; run `c15t login` again. `c15t logout` deletes that file.
 
-Accept generation defaults and provisioned backend URLs from the host, or
-resolve a selected project from its fetched project list. Report missing or
-malformed hosted URLs with guidance to supply `--backend-url` or select a
-project. Accept forwarded `--mode` arguments and reject repeated modes.
+Inth ships binaries for macOS on Apple silicon, glibc Linux on x64 and arm64,
+and Windows on x64. On other platforms, including Intel Macs and Alpine, account
+commands fail with `INTH_UNSUPPORTED_PLATFORM`. Pass `--backend-url` or use
+offline mode there.
 
-Use `@alpha` for bare c15t dependencies in portable hosts and retain the
-standalone CLI's release-line installation rules. Preserve explicit versions,
-external dependencies and local package snapshots.
+For agents and CI, `c15t login --email <email>` prints an approval URL and code,
+and `c15t login --complete` finishes sign-in. `INTH_TOKEN` also works.
 
-Add `@c15t/cli/frontend/runtime` for plan/apply, symlink and conflict checks,
-interrupted recovery, and npm, pnpm, yarn or Bun installation after file apply.
-Installer failures preserve generated files and report a retry command. Clean
-up unpublished stages after an initial journal write failure; recover missing
-or partial journals only when no staged files or unexpected contents remain.
-Preserve application edits and replacement files during recovery.
+`c15t setup --codex` hands frontend setup to the Codex CLI. Add `--plan` to
+print the task and copy it to the clipboard instead, or `--plan --json` to
+get it as JSON.
 
-Add `setup --codex` and `@c15t/cli/frontend/agent` for the shared v3 frontend
-task and launcher. Preserve the agent's approval settings, exit status and
-cancellation. Preview with `--plan` or `--dry-run`, copy the complete prompt
-to the clipboard and confirm the copy, or provide a manual-copy fallback.
-JSON previews export the task without clipboard access. Include only named
-public configuration and omit the inputs section when none is supplied.
-Keep `generate` deterministic.
+New exports let other CLIs run c15t frontend setup without Node:
 
-Delegate standalone login, logout, status, organization and region lookup,
-and project provisioning to the pinned Inth native executable. Reuse Inth's
-connection, credential storage and token refresh. Use `consent.backendUrl`,
-follow all pagination and reject pending backends. Store only the public project
-selection in the application's `.c15t/project.json`. Legacy c15t credential
-files remain untouched and are no longer read. Replace raw-token authentication
-exports with the executable adapter; control-plane adapters accept cwd,
-organization and cancellation instead of credentials or a custom API URL.
+- `@c15t/cli/generate` builds generation plans.
+- `@c15t/cli/frontend` handles setup, project selection, and status with
+  host-supplied state.
+- `@c15t/cli/frontend/runtime` applies plans to disk, recovers interrupted
+  applies, and installs packages with npm, pnpm, yarn, or Bun.
+- `@c15t/cli/frontend/agent` builds and launches the Codex task.
+- `@c15t/cli/commands` exposes the command registry.
 
-Codex launch and native dependency installation support macOS and Linux.
-On Windows, use prompt preview and manual dependency installation. Native
-workflows that request installation on Windows fail before writing files.
+The generate and frontend modules also ship as TypeScript source for static
+compilation. Generated installs follow the CLI's release line.
+
+Codex launch and native dependency installation support macOS and Linux. On
+Windows, use `--plan` and `--skip-install`.

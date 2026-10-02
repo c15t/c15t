@@ -30,9 +30,11 @@ which has its own options.
 
 Use `setup --codex` to give your installed Codex CLI the default c15t v3
 frontend task. Add `--plan --json` to inspect the prompt without launching it.
-With `--plan` or `--dry-run`, the CLI prints the prompt, copies it to your
-clipboard and confirms the copy. If clipboard access fails, copy the printed
-prompt manually. `--json` exports the prompt without accessing the clipboard.
+With `--plan` or `--dry-run`, the CLI prints the prompt to stdout as plain
+text, copies it to your clipboard and confirms the copy. If clipboard access
+fails, copy the printed prompt or redirect it with `> prompt.txt`; status
+messages stay out of the redirected file. `--json` exports the prompt without
+accessing the clipboard.
 See [agent setup](/docs/cli/automation#agent-setup-and-v3-migration-workflow)
 for inputs and requirements. `generate` keeps the deterministic setup workflow.
 

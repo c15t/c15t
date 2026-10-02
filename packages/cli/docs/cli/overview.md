@@ -35,15 +35,15 @@ The package also installs the executable under its older name, `cli`.
 
 ## Commands
 
-| Command                                               | Purpose                                                                                                              |
-| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `setup`                                               | Add c15t to a Next.js or React app, or generate framework files for any supported framework. `generate` is an alias. |
-| `codemods`                                            | Rewrite `useConsentManager()` calls for v3, or run the v1 to v2 transforms.                                          |
-| `login`, `logout`, `status`                           | Use Inth login, logout and public local session status.                                                              |
-| `projects list`, `projects select`, `projects create` | Manage Inth projects and the application project preference used by setup. `instances` is an alias.                  |
-| `self-host migrate`                                   | Plan and apply database migrations for a self-hosted backend.                                                        |
-| `skills`                                              | Install c15t agent skills through the external skills CLI.                                                           |
-| `docs`, `changelog`, `github`                         | Open the URL in a browser, or print it when there is no terminal.                                                    |
+| Command                                               | Purpose                                                                                                                                                              |
+| ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `setup`                                               | Add c15t to a Next.js or React app, or generate framework files for any supported framework. `generate` is an alias.                                                 |
+| `codemods`                                            | Rewrite `useConsentManager()` calls for v3, or run the v1 to v2 transforms.                                                                                          |
+| `login`, `logout`, `status`                           | Sign in to Inth in a browser or by email approval, sign out of the shared Inth session, and check local session status. See [hosted projects](./commands/hosted.md). |
+| `projects list`, `projects select`, `projects create` | Manage Inth projects and the application project preference used by setup. `instances` is an alias.                                                                  |
+| `self-host migrate`                                   | Plan and apply database migrations for a self-hosted backend.                                                                                                        |
+| `skills`                                              | Install c15t agent skills through the external skills CLI.                                                                                                           |
+| `docs`, `changelog`, `github`                         | Open the URL in a browser, or print it when there is no terminal.                                                                                                    |
 
 `setup --codex` hands frontend integration to your installed Codex CLI.
 `generate` keeps deterministic file generation.

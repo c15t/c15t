@@ -73,11 +73,11 @@ const forwardedPlan = runGenerateCommand([
 ]);
 ```
 
-Both functions return `{ files, dependencies, instructions }` synchronously. `files` maps application-relative paths to their contents, including a README. `dependencies` contains installation arguments such as `@c15t/react@alpha`. `getInstallSpecifier` adds `@alpha` to bare c15t package names and preserves explicit specifiers and external package names. `generateBoilerplateTemplate` exposes the lower-level template with bare dependency names and paths relative to the output directory.
+Both functions return `{ files, dependencies, instructions }` synchronously. `files` maps application-relative paths to their contents, including a README. `dependencies` contains installation arguments on the CLI's release line, such as `@c15t/react@alpha` from an alpha CLI or `@c15t/react@3` from a stable v3 CLI. `getInstallSpecifier` applies the same rule as the CLI's own installs to bare c15t package names and preserves explicit specifiers and external package names. The published source records the CLI version it shipped with, so vendored source keeps that release line. `generateBoilerplateTemplate` exposes the lower-level template with bare dependency names and paths relative to the output directory.
 
 The host CLI owns writing files, checking existing contents and symlinks, installing dependencies, diagnostics, and authentication. These functions do not read the application, detect its framework, prompt, write files, install packages, or access the network. Use the project's provisioned backend URL for hosted mode.
 
-`runGenerateCommand` accepts `hosted` or `offline`, `--framework`, and optional `--backend-url`, `--scripts`, and `--output` values. A second argument supplies host defaults for these inputs. Without defaults, mode and framework are required. Explicit arguments override defaults; selecting offline clears an inherited backend URL. Repeated flags are rejected. `parseGenerateOptions` exposes the same parser without generating files. It supports the [boilerplate framework targets](./commands/boilerplate.md). The default output is `src/consent`. Hosted mode requires an absolute HTTP or HTTPS URL without embedded credentials. Offline mode rejects a backend URL. Invalid frameworks, integrations, flags, and paths that escape the application throw an `Error`. Runner flags such as `--apply`, `--json`, and `--package-source` belong to the host rather than this parser.
+`runGenerateCommand` accepts `hosted` or `offline`, `--framework`, and optional `--backend-url`, `--scripts`, and `--output` values. Value flags accept `--flag value` or `--flag=value`. A second argument supplies host defaults for these inputs. Without defaults, mode and framework are required. Explicit arguments override defaults; selecting offline clears an inherited backend URL. Repeated flags are rejected. `parseGenerateOptions` exposes the same parser without generating files. It supports the [boilerplate framework targets](./commands/boilerplate.md). The default output is `src/consent`. Hosted mode requires an absolute HTTP or HTTPS URL without embedded credentials, whitespace or control characters. Offline mode rejects a backend URL. Invalid frameworks, integrations, flags, and paths that escape the application throw an `Error`. Runner flags such as `--apply`, `--json`, and `--package-source` belong to the host rather than this parser.
 
 For Node hosts that need the full CLI command metadata and actions, `import { commands } from '@c15t/cli/commands'` exports the same registry used by the runner. Actions accept a c15t `CliContext`; use `runCli` when you need the runner to create that context.
 
@@ -155,27 +155,31 @@ and application wiring.
 
 The result contains `{ command, applied, created, installed, plan, recovered }`.
 `plan` contains the canonical application `root`, `files` with `path`, `content`
-and `exists`, alpha `dependencies`, and `instructions`. Existing files must
-already match. Apply checks the reviewed files again before writing and refuses
+and `exists`, release-line `dependencies`, and `instructions`. Existing files
+must already match. Apply checks the reviewed files again before writing and refuses
 conflicts, symlink targets and symlink ancestors, including dangling symlinks.
 The application root itself resolves to its real directory.
 
-Files stage in `.c15t-native-generation` before complete contents are published
-with exclusive hard links. An interrupted apply blocks further generation.
-Use `--resume --apply` with the original command to recover and regenerate.
-Recovery checks every record and generated file before removing owned files.
-Edited files, replacements even with identical contents, unexpected staging
-contents, and malformed records remain for inspection. Empty generated directories
-can remain after recovery. This supports process interruption; it does not promise
-recovery from filesystem corruption or power loss. Recovery removes an incomplete
-journal only when there are no staged files or unexpected contents, leaving
+Files stage in `.c15t-native-generation` and publish with exclusive hard links.
+Where hard links are unavailable, apply creates each file exclusively and records
+its identity before writing, so existing files are never replaced. An interrupted
+apply blocks further generation. Use `--resume --apply` with the original command
+to recover and regenerate. Recovery checks every record and generated file before
+removing files it published. Files it cannot prove it published, including
+replacements with identical contents, stay in place. Edited generated files,
+unexpected staging contents, and malformed records stop recovery for inspection.
+Recovery removes generated directories only when they are empty. This supports
+process interruption; it does not promise recovery from filesystem corruption or
+power loss. Without a journal, recovery deletes leftover staged files and leaves
 application files untouched. A partial journal with staged files requires
 inspection. The Node runner's `.c15t-generation.json` uses its own recovery
 path and cannot be resumed by this runtime.
 
 Dependency installation runs after file apply commits. npm, pnpm, yarn, and Bun
 run in the application directory with installer output on stderr. Cancellation
-stops the direct installer process. Installer failure leaves generated files in
+stops the direct installer process. Cancellation before or during installation
+reports that generated files remain, and workflow errors list the created files.
+Installer failure leaves generated files in
 place and reports a retry command; package-manager changes to manifests, lockfiles
 and `node_modules` do not roll back. For manual installation, use `--skip-install`
 and the returned dependencies. `planGeneration`, `applyGeneration`,
@@ -237,7 +241,7 @@ scriptc build cli.ts --out inth
 ./inth c15t generate hosted --framework react --backend-url https://your-project.inth.app
 ```
 
-Replace the example URL with the exact endpoint provisioned for the project. The result contains the generated source and alpha installation arguments. To route the frontend command set, import `runFrontendCommand` from `./vendor/c15t/frontend/index.ts`, forward arguments after the `c15t` namespace, and supply the host context described above. Native verification covers hosted and offline boilerplate for all targets, generation defaults, project list/select, account status, filesystem apply, conflicts, symlinks, recovery, and alpha installer arguments. Import `runGenerationWorkflow` from `./vendor/c15t/frontend/runtime/index.ts` to plan and apply standalone frontend files natively. Interactive application-root editing, codemods, and database migrations continue to use the Node runner.
+Replace the example URL with the exact endpoint provisioned for the project. The result contains the generated source and release-line installation arguments. To route the frontend command set, import `runFrontendCommand` from `./vendor/c15t/frontend/index.ts`, forward arguments after the `c15t` namespace, and supply the host context described above. Native verification covers hosted and offline boilerplate for all targets, generation defaults, project list/select, account status, filesystem apply, conflicts, symlinks, recovery, and release-line installer arguments. Import `runGenerationWorkflow` from `./vendor/c15t/frontend/runtime/index.ts` to plan and apply standalone frontend files natively. Interactive application-root editing, codemods, and database migrations continue to use the Node runner.
 
 ## Agent setup and v3 migration workflow
 
@@ -245,8 +249,10 @@ Launching Codex through the CLI is supported on macOS and Linux. On Windows,
 use `--plan` to copy the prompt and run it in Codex manually.
 
 Use `c15t setup --codex --plan` to print the setup prompt and copy it to your
-clipboard without launching Codex. The CLI confirms a successful copy or tells
-you to copy the printed prompt manually if clipboard access fails. `--dry-run`
+clipboard without launching Codex. The prompt goes to stdout as plain text.
+The copy confirmation or failure notice is diagnostic output, so
+`c15t setup --codex --plan > prompt.txt` saves only the prompt. On Linux the
+CLI tries `wl-copy`, `xclip` and `xsel`, then `clip.exe` under WSL. `--dry-run`
 does the same. Add `--json` to export the prompt without clipboard access.
 
 Launch your installed Codex CLI from the application directory:
@@ -265,12 +271,17 @@ public inputs section only when you supply configuration.
 
 Codex receives the default c15t v3 frontend task and named public inputs. It
 inspects the application, proposes a setup plan, installs required c15t packages
-from `@alpha`, and reads their version-matched bundled docs before adapting
-providers, UI, styles, and consent-gated scripts. It does not provision a
-backend or migrate a database. Review the resulting diff and the agent's
-verification report before deploying.
+from the CLI's release line, and reads their version-matched bundled docs
+before adapting providers, UI, styles, and consent-gated scripts. It does not
+provision a backend or migrate a database. The prompt includes the parsed
+backend URL, and setup rejects URLs containing whitespace or control
+characters. Review the resulting diff and the agent's verification report
+before deploying.
 
 Launch requires an interactive terminal and a `codex` executable on `PATH`.
+When Codex cannot start, setup fails with `AGENT_NOT_STARTED` and leaves the
+project unchanged. `AGENT_FAILED` means Codex ran and exited unsuccessfully, so
+review its edits.
 The CLI inherits Codex's approval and sandbox settings; `--yes` does not
 change them. A successful exit means the agent session ended successfully,
 not that the CLI independently verified the application's behavior. Interrupting
@@ -308,7 +319,8 @@ into the task. Hosts keep authentication and project selection in their own
 code. The module also exports `DEFAULT_C15T_SETUP_PROMPT`, `AgentSetupOptions`,
 and `AgentSetupPlan`. A missing executable produces an installation hint;
 `launchAgentSetup` returns the agent's exit code and rejects on caller
-cancellation or launch failure.
+cancellation or launch failure. `isAgentNotStartedError` identifies rejections
+raised before Codex ran.
 
 For a scriptc host, vendor both source directories as described above and
 import from `./vendor/c15t/frontend/agent/index.ts`. The prompt and launcher

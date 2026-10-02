@@ -14,10 +14,39 @@ c15t projects list --json
 ```
 
 Inth owns browser sign-in, saved connections, credential storage, organization
-selection, and token refresh. An existing Inth session works with c15t. For
-unattended setup, use an existing connection or an organization API key through
-`INTH_TOKEN`. `--no-browser` passes the browser preference to Inth. `--json`
-disables interactive login; c15t does not start a separate device grant.
+selection, and token refresh. An existing Inth session works with c15t, and
+signing in through c15t also signs in the standalone `inth` CLI. c15t never
+reads or returns Inth's access tokens, refresh tokens, or API keys.
+
+## Sign in without a browser on this machine
+
+Browser login needs an interactive terminal. Agents, remote shells, and anyone
+approving on another device can sign in by email instead:
+
+```bash
+c15t login --email you@example.com
+```
+
+c15t prints an approval link and a code, then waits until the person approves
+in their browser. The link asks for permission to read organizations and manage
+projects.
+
+Agents that need the link before the wait finishes use two JSON calls:
+
+```bash
+c15t login --email you@example.com --json
+c15t login --complete --json
+```
+
+The first call returns `data.verificationUri` and `data.userCode` right away.
+Show both to the person, then start the second call in the background. It waits
+for approval and finishes sign-in. `--timeout <seconds>` sets the wait, from 1 to
+3600 seconds; the default is 600. If the wait times out, run
+`c15t login --complete --json` again to keep waiting.
+
+In CI, set `INTH_TOKEN` to an organization API key instead of signing in. c15t
+passes its environment to Inth, so `c15t status` reports the key as signed in.
+`--no-browser` asks Inth to print the browser login URL instead of opening it.
 
 ## Account status and logout
 
@@ -26,15 +55,20 @@ c15t status --json
 c15t logout
 ```
 
-Status reports credential presence and local expiry, not remote session
-validity. Inth validates or refreshes credentials when making project requests.
-Logout delegates to Inth and signs out the connection selected there. c15t
-never reads or returns Inth's access tokens, refresh tokens, or API keys.
+Status reads the local session without contacting the server. A browser session
+stays `logged-in` after its short-lived access token expires, because Inth
+refreshes it on the next request. Status reports `expired` only when the session
+cannot be renewed, such as an email sign-in past its one-hour approval window.
 
-Older c15t credentials in `~/.c15t/config.json` are no longer read or migrated.
-Sign in through Inth once if you only have that legacy session. Existing
-credential files remain untouched. Control-plane and connection configuration
-now belong to Inth; `CONSENT_URL` no longer configures account operations.
+Logout signs out of the Inth session that c15t shares with the `inth` CLI,
+including a pending email sign-in. It does not affect `INTH_TOKEN`; unset the
+variable to stop using an API key.
+
+Earlier c15t versions stored their own session in `~/.c15t/config.json`. That
+file is no longer read. `status`, `login`, and `projects` mention it when you
+have no Inth session, and `c15t logout` deletes it. Control-plane and connection
+configuration now belong to Inth; `CONSENT_URL` no longer configures account
+operations.
 
 ## Select a project
 
@@ -67,7 +101,26 @@ A newly created project's consent backend may still be pending. Setup requires
 `consent.backendUrl` from the project response. It never substitutes a dashboard
 URL. Project data and account errors stay within c15t's versioned JSON result.
 
-Inth distributes native executables for macOS arm64, Linux arm64/x64, and Windows
-x64. Install optional dependencies so the matching executable is available.
+## Supported platforms
+
+Hosted account commands (`login`, `logout`, `status`, and `projects`) run Inth's
+native executable. `@inth/cli` 0.0.4 ships executables for:
+
+* macOS on Apple silicon (arm64)
+* Linux arm64 and x64 with glibc
+* Windows x64
+
+Intel Macs, musl-based Linux such as Alpine, and other platforms have no Inth
+executable. On those platforms, hosted account commands fail with
+`INTH_UNSUPPORTED_PLATFORM`. `INTH_TOKEN` does not help there, because the key is
+used by the executable. Pass `--backend-url` to `c15t setup` with the backend URL
+from the Inth dashboard, or use offline setup. Neither needs Inth.
+
+On supported platforms, install optional dependencies so the matching
+`@inth/cli-<platform>-<arch>` package is present. Yarn Plug'n'Play cannot run an
+executable from its zip cache: mark the platform package as `unplugged` in
+`dependenciesMeta`, or use `nodeLinker: node-modules`. c15t reports both cases as
+`INTH_UNAVAILABLE` with the package name.
+
 The shared c15t generation and agent modules do not import or execute Inth;
 embedded hosts continue to supply their own configuration.
