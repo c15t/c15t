@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { lstatSync, readFileSync, realpathSync } from 'node:fs';
 import { join } from 'node:path';
 
-import { getInstallSpecifier } from '../../generate/dependencies';
+import { getInstallSpecifier } from '../../generate/dependencies.ts';
 
 /** Package managers supported by native frontend generation. */
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
@@ -15,6 +15,9 @@ export const requireNativeInstaller = (): void => {
 		);
 	}
 };
+
+const cancelled = (): Error =>
+	new Error('Dependency installation was cancelled. Generated files remain.');
 
 /**
  * Install dependencies after successfully applying generation files.
@@ -31,7 +34,9 @@ export const installGenerationDependencies = async (
 	manager: PackageManager,
 	signal?: AbortSignal
 ): Promise<void> => {
-	signal?.throwIfAborted();
+	if (signal?.aborted) {
+		throw cancelled();
+	}
 	if (!['npm', 'pnpm', 'yarn', 'bun'].includes(manager)) {
 		throw new Error(
 			'Choose npm, pnpm, yarn, or bun for dependency installation.'
@@ -80,11 +85,7 @@ export const installGenerationDependencies = async (
 			});
 			child.once('close', (code) => {
 				if (signal?.aborted) {
-					reject(
-						new Error(
-							'Dependency installation was cancelled. Generated files remain.'
-						)
-					);
+					reject(cancelled());
 				} else if (failure || code !== 0) {
 					reject(
 						new Error(

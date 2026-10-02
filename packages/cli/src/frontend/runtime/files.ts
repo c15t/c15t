@@ -1,6 +1,7 @@
 import {
 	closeSync,
 	constants,
+	fstatSync,
 	fsyncSync,
 	linkSync,
 	lstatSync,
@@ -9,14 +10,15 @@ import {
 	readFileSync,
 	readdirSync,
 	realpathSync,
-	rmSync,
+	rmdirSync,
 	unlinkSync,
 	writeSync,
 } from 'node:fs';
+import type { Stats } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
-import type { GenerationPlan } from '../../generate';
-import { getInstallSpecifier } from '../../generate/dependencies';
+import { getInstallSpecifier } from '../../generate/dependencies.ts';
+import type { GenerationPlan } from '../../generate/index.ts';
 
 const recoveryDirectory = '.c15t-native-generation';
 
@@ -35,10 +37,22 @@ export interface ApplicationPlan {
 	instructions: string[];
 }
 
-const missing = (error: unknown): boolean =>
-	error instanceof Error &&
-	(('code' in error && error.code === 'ENOENT') ||
-		error.message.startsWith('ENOENT:'));
+/** Read an errno code from Node errors or scriptc's `CODE: message` errors. */
+const errorCode = (error: unknown): string | undefined => {
+	if (!(error instanceof Error)) {
+		return undefined;
+	}
+	if ('code' in error && typeof error.code === 'string') {
+		return error.code;
+	}
+	const prefix = error.message.split(':')[0] ?? '';
+	return /^[A-Z][A-Z0-9]*$/u.test(prefix) ? prefix : undefined;
+};
+
+const missing = (error: unknown): boolean => errorCode(error) === 'ENOENT';
+
+const describeError = (error: unknown): string =>
+	error instanceof Error ? error.message : String(error);
 
 /** Validate containment and every ancestor, including dangling symlinks. */
 const targetPath = (root: string, file: string): string => {
@@ -199,32 +213,127 @@ export const planGeneration = (
 	};
 };
 
-const writeExclusive = (path: string, content: string, mode: number): void => {
-	const descriptor = openSync(
+const writeAll = (descriptor: number, content: string): void => {
+	const bytes = new TextEncoder().encode(content);
+	let offset = 0;
+	while (offset < bytes.length) {
+		const written = writeSync(descriptor, bytes, offset, bytes.length - offset);
+		if (written <= 0) {
+			throw new Error('Could not finish writing a generated file.');
+		}
+		offset += written;
+	}
+	fsyncSync(descriptor);
+};
+
+const openExclusive = (path: string, mode: number): number =>
+	openSync(
 		path,
 		// Numeric exclusive-open flags compile statically with scriptc.
 		// oxlint-disable-next-line no-bitwise
 		constants.O_WRONLY | constants.O_CREAT | constants.O_EXCL,
 		mode
 	);
+
+const writeExclusive = (path: string, content: string, mode: number): void => {
+	const descriptor = openExclusive(path, mode);
 	try {
-		const bytes = new TextEncoder().encode(content);
-		let offset = 0;
-		while (offset < bytes.length) {
-			const written = writeSync(
-				descriptor,
-				bytes,
-				offset,
-				bytes.length - offset
-			);
-			if (written <= 0) {
-				throw new Error('Could not finish staging a generated file.');
-			}
-			offset += written;
-		}
-		fsyncSync(descriptor);
+		writeAll(descriptor, content);
 	} finally {
 		closeSync(descriptor);
+	}
+};
+
+/** Filesystem identity recorded for a file published by copying. */
+interface FileIdentity {
+	dev: number;
+	ino: number;
+}
+
+// Copies the fields explicitly: scriptc does not width-coerce Stats records.
+const identityOf = (entry: Stats): FileIdentity => ({
+	dev: entry.dev,
+	ino: entry.ino,
+});
+
+const sameIdentity = (entry: FileIdentity, other: FileIdentity): boolean =>
+	entry.dev === other.dev && entry.ino === other.ino;
+
+const lstatOrNull = (path: string): Stats | null => {
+	try {
+		return lstatSync(path);
+	} catch (error) {
+		if (missing(error)) {
+			return null;
+		}
+		throw error;
+	}
+};
+
+const removeIfPresent = (path: string): void => {
+	try {
+		unlinkSync(path);
+	} catch (error) {
+		if (!missing(error)) {
+			throw error;
+		}
+	}
+};
+
+// Filesystems such as exFAT, SMB, and 9p report these when hard links are unavailable.
+const unsupportedLinkCodes = [
+	'EXDEV',
+	'EPERM',
+	'ENOTSUP',
+	'EOPNOTSUPP',
+	'ENOSYS',
+];
+
+/**
+ * Create the target exclusively and record its identity before writing contents.
+ * The record lets recovery tell this copy apart from a file created by anyone else.
+ */
+const publishCopy = (target: string, content: string, record: string): void => {
+	const descriptor = openExclusive(target, 0o644);
+	let unrecorded: FileIdentity | null = null;
+	try {
+		const entry = fstatSync(descriptor);
+		unrecorded = identityOf(entry);
+		writeExclusive(record, JSON.stringify(identityOf(entry)), 0o600);
+		unrecorded = null;
+		writeAll(descriptor, content);
+	} catch (error) {
+		// Without a record, recovery cannot prove ownership, so remove the empty file now.
+		const current = unrecorded ? lstatOrNull(target) : null;
+		if (
+			unrecorded &&
+			current &&
+			sameIdentity(identityOf(current), unrecorded)
+		) {
+			unlinkSync(target);
+		}
+		throw error;
+	} finally {
+		closeSync(descriptor);
+	}
+};
+
+/** Publish a staged file without replacing anything already at the target. */
+const publish = (
+	staged: string,
+	target: string,
+	content: string,
+	record: string
+): void => {
+	try {
+		// Exclusive hard-link publication keeps partial writes out of application files.
+		linkSync(staged, target);
+	} catch (error) {
+		const code = errorCode(error);
+		if (!code || !unsupportedLinkCodes.includes(code)) {
+			throw error;
+		}
+		publishCopy(target, content, record);
 	}
 };
 
@@ -244,7 +353,19 @@ const decodeRecoveryFile = (entry: unknown): PlannedFile => {
 	return { content: entry.content, exists: false, path: entry.path };
 };
 
-const readRecovery = (root: string, stage: string): PlannedFile[] => {
+/** A decoded native generation journal. */
+interface RecoveryRecord {
+	/** Directories apply may have created, parents first. */
+	directories: string[];
+	files: PlannedFile[];
+}
+
+const invalidRecord = (): Error =>
+	new Error(
+		'Invalid native generation recovery record. Inspect it before continuing.'
+	);
+
+const readRecovery = (root: string, stage: string): RecoveryRecord => {
 	if (
 		!lstatSync(join(stage, 'journal.json')).isFile() ||
 		lstatSync(join(stage, 'journal.json')).isSymbolicLink()
@@ -266,9 +387,7 @@ const readRecovery = (root: string, stage: string): PlannedFile[] => {
 		!('files' in journal) ||
 		!Array.isArray(journal.files)
 	) {
-		throw new Error(
-			'Invalid native generation recovery record. Inspect it before continuing.'
-		);
+		throw invalidRecord();
 	}
 	const files: PlannedFile[] = [];
 	const seen: string[] = [];
@@ -278,48 +397,140 @@ const readRecovery = (root: string, stage: string): PlannedFile[] => {
 		registerTarget(seen, target);
 		files.push(file);
 	}
-	return files;
+	const directories: string[] = [];
+	if ('directories' in journal) {
+		if (!Array.isArray(journal.directories)) {
+			throw invalidRecord();
+		}
+		for (const entry of journal.directories) {
+			if (typeof entry !== 'string') {
+				throw invalidRecord();
+			}
+			// Only ancestors of journaled files can have been created by apply.
+			const directory = targetPath(root, entry);
+			if (!seen.some((target) => target.startsWith(`${directory}${sep}`))) {
+				throw invalidRecord();
+			}
+			directories.push(entry);
+		}
+	}
+	return { directories, files };
 };
 
-const validateStage = (stage: string, files: PlannedFile[]): void => {
-	const allowed = [
-		'journal.json',
-		...files.map((_file, index) => `${index}.tmp`),
-	];
+const stageEntry = /^(?:0|[1-9][0-9]*)\.(?:tmp|copy)$/u;
+
+/**
+ * Reject anything in the stage apply could not have written.
+ * @returns The number of file slots the staged entries cover.
+ */
+const validateStage = (stage: string, count: number | null): number => {
+	let slots = 0;
 	for (const name of readdirSync(stage)) {
 		const entry = lstatSync(join(stage, name));
-		if (!allowed.includes(name) || !entry.isFile() || entry.isSymbolicLink()) {
+		const index = stageEntry.test(name) ? Number(name.split('.')[0]) : -1;
+		if (
+			!entry.isFile() ||
+			entry.isSymbolicLink() ||
+			(name !== 'journal.json' &&
+				(index < 0 || (count !== null && index >= count)))
+		) {
 			throw new Error(
 				'Unexpected contents in the native generation recovery directory.'
 			);
 		}
+		slots = Math.max(slots, index + 1);
 	}
+	return slots;
 };
 
-const checkOwnedFile = (
+/** Remove temps and copy records first and the journal last, then the stage. */
+const removeStage = (stage: string, count: number): void => {
+	for (let index = 0; index < count; index += 1) {
+		removeIfPresent(join(stage, `${index}.copy`));
+		removeIfPresent(join(stage, `${index}.tmp`));
+	}
+	removeIfPresent(join(stage, 'journal.json'));
+	rmdirSync(stage);
+};
+
+const readCopyIdentity = (
+	stage: string,
+	index: number
+): FileIdentity | null => {
+	const record = readExisting(join(stage, `${index}.copy`));
+	if (record === null) {
+		return null;
+	}
+	let identity: unknown;
+	try {
+		identity = JSON.parse(record);
+	} catch {
+		// A torn record was written before the copy received any contents.
+		return null;
+	}
+	if (
+		!identity ||
+		typeof identity !== 'object' ||
+		!('dev' in identity) ||
+		typeof identity.dev !== 'number' ||
+		!('ino' in identity) ||
+		typeof identity.ino !== 'number'
+	) {
+		return null;
+	}
+	return { dev: identity.dev, ino: identity.ino };
+};
+
+/**
+ * Find a target this transaction published.
+ * @returns The target path, or null when it is absent or belongs to someone else.
+ * @throws {Error} When a file this transaction published was edited.
+ */
+const ownedTarget = (
 	root: string,
 	stage: string,
 	file: PlannedFile,
 	index: number
-): void => {
+): string | null => {
 	const target = targetPath(root, file.path);
-	const current = readExisting(target);
-	if (current === null) {
+	const published = lstatOrNull(target);
+	// Apply writes each temp before publishing it, so a missing temp means the
+	// target was never published by this transaction.
+	const staged = lstatOrNull(join(stage, `${index}.tmp`));
+	if (!published || !staged) {
+		return null;
+	}
+	const copied = readCopyIdentity(stage, index);
+	if (
+		!sameIdentity(identityOf(published), identityOf(staged)) &&
+		!(copied && sameIdentity(identityOf(published), copied))
+	) {
+		return null;
+	}
+	if (!published.isFile() || readExisting(target) !== file.content) {
+		throw new Error(`Generated file changed since apply: ${file.path}`);
+	}
+	return target;
+};
+
+const removeEmptyDirectory = (root: string, directory: string): void => {
+	const target = targetPath(root, directory);
+	const entry = lstatOrNull(target);
+	if (!entry || !entry.isDirectory() || readdirSync(target).length) {
 		return;
 	}
-	const published = lstatSync(target);
-	const staged = lstatSync(join(stage, `${index}.tmp`));
-	if (
-		current !== file.content ||
-		published.dev !== staged.dev ||
-		published.ino !== staged.ino
-	) {
-		throw new Error(`Generated file changed since apply: ${file.path}`);
+	try {
+		rmdirSync(target);
+	} catch (error) {
+		if (!missing(error) && errorCode(error) !== 'ENOTEMPTY') {
+			throw error;
+		}
 	}
 };
 
 /**
  * Restore an interrupted apply without overwriting intervening application changes.
+ * Files and directories created by someone else are left in place.
  * @param projectRoot Application directory used by the original apply.
  * @returns Whether a native generation transaction was recovered.
  * @throws {Error} For invalid records, symlinks, or generated files edited since apply.
@@ -327,58 +538,79 @@ const checkOwnedFile = (
 export const recoverGeneration = (projectRoot: string): boolean => {
 	const root = realpathSync(projectRoot);
 	const stage = stagePath(root);
-	try {
-		lstatSync(stage);
-	} catch (error) {
-		if (missing(error)) {
-			return false;
-		}
-		throw error;
+	if (!lstatOrNull(stage)) {
+		return false;
 	}
-	let files: PlannedFile[];
+	let record: RecoveryRecord;
 	try {
-		files = readRecovery(root, stage);
+		record = readRecovery(root, stage);
 	} catch (error) {
 		if (!missing(error) && !(error instanceof SyntaxError)) {
 			throw error;
 		}
-		// An incomplete journal with no staged files cannot establish ownership
-		// of application files. Remove only the unpublished recovery directory.
-		validateStage(stage, []);
-		rmSync(stage, { recursive: true });
+		// Without a complete journal, ownership of application files cannot be
+		// established, so they stay. Temps and copy records left without a journal
+		// are safe to delete: published hard links keep their contents. Apply
+		// completes the journal before staging any file, so a partial journal
+		// next to staged files needs inspection.
+		removeStage(stage, validateStage(stage, missing(error) ? null : 0));
 		return true;
 	}
-	validateStage(stage, files);
+	const { directories, files } = record;
+	validateStage(stage, files.length);
 	// Validate the entire record and current state before removing any file.
-	for (let index = 0; index < files.length; index += 1) {
-		const file = files[index];
-		if (file) {
-			checkOwnedFile(root, stage, file, index);
-		}
-	}
+	const owned = files.map((file, index) =>
+		ownedTarget(root, stage, file, index)
+	);
 	for (let index = files.length - 1; index >= 0; index -= 1) {
 		const file = files[index];
 		if (!file) {
 			throw new Error('Missing recovery entry.');
 		}
-		checkOwnedFile(root, stage, file, index);
-		const target = targetPath(root, file.path);
-		const current = readExisting(target);
-		if (current === file.content) {
-			unlinkSync(target);
-		} else if (current !== null) {
-			throw new Error(`Generated file changed during recovery: ${file.path}`);
+		if (owned[index]) {
+			const target = ownedTarget(root, stage, file, index);
+			if (target) {
+				unlinkSync(target);
+			}
 		}
 	}
-	rmSync(stage, { recursive: true });
+	for (let index = directories.length - 1; index >= 0; index -= 1) {
+		const directory = directories[index];
+		if (directory) {
+			removeEmptyDirectory(root, directory);
+		}
+	}
+	removeStage(stage, files.length);
 	return true;
+};
+
+/** List directories that publishing these files would create, parents first. */
+const missingDirectories = (root: string, files: PlannedFile[]): string[] => {
+	const directories: string[] = [];
+	for (const file of files) {
+		const segments = relative(root, dirname(targetPath(root, file.path)))
+			.split(sep)
+			.filter(Boolean);
+		for (let depth = 1; depth <= segments.length; depth += 1) {
+			const directory = segments.slice(0, depth).join('/');
+			if (
+				!directories.includes(directory) &&
+				!lstatOrNull(join(root, directory))
+			) {
+				directories.push(directory);
+			}
+		}
+	}
+	return directories;
 };
 
 /**
  * Apply a reviewed plan, publishing complete files without replacing existing ones.
+ * Uses exclusive hard links, or exclusive copies where hard links are unsupported.
  * @param plan Application plan produced by planGeneration.
  * @returns Paths created inside the application.
  * @throws {Error} For stale plans, conflicts, interrupted applies, or failed writes.
+ * When rollback also fails, the error names both failures and keeps the original as `cause`.
  */
 export const applyGeneration = (plan: ApplicationPlan): string[] => {
 	if (realpathSync(plan.root) !== plan.root) {
@@ -399,13 +631,14 @@ export const applyGeneration = (plan: ApplicationPlan): string[] => {
 	if (!files.length) {
 		return [];
 	}
+	const directories = missingDirectories(plan.root, files);
 	const stage = stagePath(plan.root);
 	mkdirSync(stage, { mode: 0o700 });
 	const journal = join(stage, 'journal.json');
 	try {
 		writeExclusive(
 			journal,
-			JSON.stringify({ files, root: plan.root, version: 1 }),
+			JSON.stringify({ directories, files, root: plan.root, version: 1 }),
 			0o600
 		);
 		for (let index = 0; index < files.length; index += 1) {
@@ -418,18 +651,20 @@ export const applyGeneration = (plan: ApplicationPlan): string[] => {
 			targetPath(plan.root, file.path);
 			const staged = join(stage, `${index}.tmp`);
 			writeExclusive(staged, file.content, 0o644);
-			// Exclusive hard-link publication keeps partial writes out of application files.
-			linkSync(staged, target);
+			publish(staged, target, file.content, join(stage, `${index}.copy`));
 		}
-		validateStage(stage, files);
-		rmSync(stage, { recursive: true });
+		validateStage(stage, files.length);
+		removeStage(stage, files.length);
 		return files.map((file) => file.path);
 	} catch (error) {
 		try {
 			recoverGeneration(plan.root);
-		} catch {
+		} catch (recoveryError) {
+			// The message names both failures; `cause` keeps the original error.
+			// oxlint-disable-next-line preserve-caught-error
 			throw new Error(
-				'Generation failed and recovery needs inspection. The recovery record was preserved.'
+				`Generation failed (${describeError(error)}) and recovery needs inspection (${describeError(recoveryError)}). The recovery record was preserved.`,
+				{ cause: error }
 			);
 		}
 		throw error;

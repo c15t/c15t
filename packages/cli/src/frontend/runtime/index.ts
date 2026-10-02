@@ -1,17 +1,17 @@
-import { runFrontendCommand } from '../index';
-import type { FrontendCommandContext } from '../index';
-import { applyGeneration, planGeneration, recoverGeneration } from './files';
-import type { ApplicationPlan } from './files';
+import { runFrontendCommand } from '../index.ts';
+import type { FrontendCommandContext } from '../index.ts';
+import { applyGeneration, planGeneration, recoverGeneration } from './files.ts';
+import type { ApplicationPlan } from './files.ts';
 import {
 	installGenerationDependencies,
 	requireNativeInstaller,
-} from './install';
-import type { PackageManager } from './install';
+} from './install.ts';
+import type { PackageManager } from './install.ts';
 
-export { applyGeneration, planGeneration, recoverGeneration } from './files';
-export type { ApplicationPlan, PlannedFile } from './files';
-export { installGenerationDependencies } from './install';
-export type { PackageManager } from './install';
+export { applyGeneration, planGeneration, recoverGeneration } from './files.ts';
+export type { ApplicationPlan, PlannedFile } from './files.ts';
+export { installGenerationDependencies } from './install.ts';
+export type { PackageManager } from './install.ts';
 
 /** Explicit runtime configuration owned by the host CLI. */
 export interface GenerationRuntimeOptions {
@@ -102,6 +102,7 @@ export const parseGenerationWorkflowArguments = (
  * @param options Application directory, package manager, and cancellation from the host.
  * @returns The reviewed plan and completed file/installation operations.
  * @throws {Error} For invalid inputs, conflicting files, recovery problems, or installation failure.
+ * Installation failure and cancellation after apply list the created files in the message.
  * @example
  * await runGenerationWorkflow(['generate', '--apply'], {
  *   generation: { framework: 'react', backendURL: projectBackendURL },
@@ -132,12 +133,22 @@ export const runGenerationWorkflow = async (
 	const created = flags.apply ? applyGeneration(plan) : [];
 	let installed = false;
 	if (flags.apply && !flags.skipInstall && options.packageManager) {
-		await installGenerationDependencies(
-			plan.root,
-			plan.dependencies,
-			options.packageManager,
-			options.signal
-		);
+		try {
+			// Cancellation after apply reports like mid-install cancellation.
+			await installGenerationDependencies(
+				plan.root,
+				plan.dependencies,
+				options.packageManager,
+				options.signal
+			);
+		} catch (error) {
+			if (!created.length || !(error instanceof Error)) {
+				throw error;
+			}
+			throw new Error(`${error.message} Created: ${created.join(', ')}.`, {
+				cause: error,
+			});
+		}
 		installed = true;
 	}
 	return {

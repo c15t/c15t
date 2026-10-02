@@ -7,6 +7,7 @@ import {
 	readFile,
 	realpath,
 	link,
+	lstat,
 	symlink,
 	unlink,
 	rm,
@@ -570,9 +571,75 @@ it('recovers native interrupted applies and preserves identical replacement file
 		['c15t', 'generate', '--resume', '--apply', '--skip-install'],
 		{ cwd: app, encoding: 'utf8' }
 	);
-	expect(replaced.status).toBe(1);
-	expect(replaced.stderr).toContain('changed since apply');
-	expect(await readFile(join(stage, 'journal.json'), 'utf8')).toContain(app);
+	expect(replaced.status, replaced.stderr).toBe(0);
+	// The replacement belongs to the user, so it stays and is not recreated.
+	expect(JSON.parse(replaced.stdout).created).toEqual(
+		plan.files.slice(1).map((file: { path: string }) => file.path)
+	);
+	await Promise.all(
+		plan.files.map((file: { path: string }) => unlink(join(app, file.path)))
+	);
+	await interrupt();
+	await unlink(join(app, plan.files[0].path));
+	await unlink(join(stage, '0.tmp'));
+	await writeFile(join(app, plan.files[0].path), 'user file\n');
+	const foreign = spawnSync(
+		runtimeBinary,
+		['c15t', 'generate', '--resume', '--apply', '--skip-install'],
+		{ cwd: app, encoding: 'utf8' }
+	);
+	// A journaled target without its temp was never published by c15t.
+	expect(foreign.status).toBe(1);
+	expect(foreign.stderr).toContain('Refusing to overwrite');
+	expect(await readFile(join(app, plan.files[0].path), 'utf8')).toBe(
+		'user file\n'
+	);
+	await expect(readFile(join(stage, 'journal.json'))).rejects.toMatchObject({
+		code: 'ENOENT',
+	});
+});
+
+it('recovers native leftovers from a crash during cleanup and copied files', async () => {
+	const app = await realpath(await mkdtemp(join(directory, 'cleanup-')));
+	await writeFile(join(app, 'package.json'), '{}');
+	const stage = join(app, '.c15t-native-generation');
+	const resume = () =>
+		spawnSync(
+			runtimeBinary,
+			['c15t', 'generate', '--resume', '--apply', '--skip-install'],
+			{ cwd: app, encoding: 'utf8' }
+		);
+	await mkdir(stage);
+	await writeFile(join(stage, '0.tmp'), 'A\n');
+	await link(join(stage, '0.tmp'), join(app, 'a.ts'));
+	const cleaned = resume();
+	expect(cleaned.status, cleaned.stderr).toBe(0);
+	expect(JSON.parse(cleaned.stdout).recovered).toBe(true);
+	expect(await readFile(join(app, 'a.ts'), 'utf8')).toBe('A\n');
+	await mkdir(stage);
+	const files = [
+		{ content: 'A\n', exists: false, path: 'copied/a.ts' },
+		{ content: 'B\n', exists: false, path: 'copied/b.ts' },
+	];
+	await writeFile(
+		join(stage, 'journal.json'),
+		JSON.stringify({ directories: ['copied'], files, root: app, version: 1 })
+	);
+	await mkdir(join(app, 'copied'));
+	/* oxlint-disable no-await-in-loop */
+	for (const [index, file] of files.entries()) {
+		await writeFile(join(stage, `${index}.tmp`), file.content);
+		await writeFile(join(app, file.path), file.content);
+		const { dev, ino } = await lstat(join(app, file.path));
+		await writeFile(join(stage, `${index}.copy`), JSON.stringify({ dev, ino }));
+	}
+	/* oxlint-enable no-await-in-loop */
+	const copied = resume();
+	expect(copied.status, copied.stderr).toBe(0);
+	expect(JSON.parse(copied.stdout).recovered).toBe(true);
+	await expect(lstat(join(app, 'copied'))).rejects.toMatchObject({
+		code: 'ENOENT',
+	});
 });
 it('rejects native symlink targets without writing through them', async () => {
 	const app = await mkdtemp(join(directory, 'symlink-'));

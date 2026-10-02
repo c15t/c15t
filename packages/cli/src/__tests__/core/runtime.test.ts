@@ -199,23 +199,23 @@ it('recovers hard-linked generated files and refuses new plans until recovery', 
 	expect(existsSync(join(root, 'src/privacy.ts'))).toBe(false);
 	expect(recoverGeneration(root)).toBe(false);
 });
-it.each(['edited', 'identical replacement'])(
-	'preserves all files when recovery finds an %s',
-	(change) => {
-		const stage = interrupted();
-		const target = join(root, 'README.c15t.md');
-		if (change === 'identical replacement') {
-			unlinkSync(target);
-		}
-		writeFileSync(
-			target,
-			change === 'edited' ? 'user changes' : generation.files['README.c15t.md']
-		);
-		expect(() => recoverGeneration(root)).toThrow('changed since apply');
-		expect(existsSync(join(root, 'src/privacy.ts'))).toBe(true);
-		expect(existsSync(stage)).toBe(true);
-	}
-);
+it('preserves all files when recovery finds an edited generated file', () => {
+	const stage = interrupted();
+	writeFileSync(join(root, 'README.c15t.md'), 'user changes');
+	expect(() => recoverGeneration(root)).toThrow('changed since apply');
+	expect(existsSync(join(root, 'src/privacy.ts'))).toBe(true);
+	expect(existsSync(stage)).toBe(true);
+});
+it('keeps an identical replacement and removes the files it still owns', () => {
+	const stage = interrupted();
+	const target = join(root, 'README.c15t.md');
+	unlinkSync(target);
+	writeFileSync(target, generation.files['README.c15t.md']);
+	expect(recoverGeneration(root)).toBe(true);
+	expect(readFileSync(target, 'utf8')).toBe(generation.files['README.c15t.md']);
+	expect(existsSync(join(root, 'src/privacy.ts'))).toBe(false);
+	expect(existsSync(stage)).toBe(false);
+});
 it.each([
 	'traversal',
 	'foreign root',
@@ -371,4 +371,208 @@ it('revalidates the application manifest before applying a reviewed plan', () =>
 	symlinkSync(join(root, 'missing'), join(root, 'package.json'));
 	expect(() => applyGeneration(plan)).toThrow('symlink');
 	expect(existsSync(join(root, 'src'))).toBe(false);
+});
+
+const stagePath = () => join(root, '.c15t-native-generation');
+const three = {
+	dependencies: [],
+	files: { 'a.ts': 'A\n', 'b.ts': 'B\n', 'c.ts': 'C\n' },
+	instructions: [],
+};
+const linkError = (code: string) =>
+	Object.assign(new Error(`${code}: link failed`), { code });
+/** Run `before` ahead of the nth hard-link publication, then link for real. */
+const beforeLink = (call: number, before: (target: string) => void) => {
+	const link = fs.linkSync;
+	let calls = 0;
+	vi.spyOn(fs, 'linkSync').mockImplementation((existing, target) => {
+		calls += 1;
+		if (calls === call) {
+			before(String(target));
+		}
+		link(existing, target);
+	});
+	syncBuiltinESMExports();
+};
+
+it('rolls back published files and keeps a file another process created', () => {
+	const plan = planGeneration(root, three);
+	beforeLink(2, (target) => writeFileSync(target, 'theirs\n'));
+	expect(() => applyGeneration(plan)).toThrow('EEXIST');
+	expect(existsSync(join(root, 'a.ts'))).toBe(false);
+	expect(readFileSync(join(root, 'b.ts'), 'utf8')).toBe('theirs\n');
+	expect(existsSync(join(root, 'c.ts'))).toBe(false);
+	expect(existsSync(stagePath())).toBe(false);
+	expect(recoverGeneration(root)).toBe(false);
+});
+
+it('leaves journaled targets alone when their temp was never written', () => {
+	const stage = stagePath();
+	mkdirSync(stage);
+	const files = [
+		{ content: 'A\n', exists: false, path: 'a.ts' },
+		{ content: 'B\n', exists: false, path: 'b.ts' },
+	];
+	writeFileSync(
+		join(stage, 'journal.json'),
+		JSON.stringify({ files, root, version: 1 })
+	);
+	writeFileSync(join(stage, '0.tmp'), 'A\n');
+	linkSync(join(stage, '0.tmp'), join(root, 'a.ts'));
+	writeFileSync(join(root, 'b.ts'), 'B\n');
+	expect(recoverGeneration(root)).toBe(true);
+	expect(existsSync(join(root, 'a.ts'))).toBe(false);
+	expect(readFileSync(join(root, 'b.ts'), 'utf8')).toBe('B\n');
+	expect(existsSync(stage)).toBe(false);
+});
+
+it.each(['journal removed first', 'temp removed first'])(
+	'recovers a crash during final cleanup: %s',
+	(order) => {
+		const stage = interrupted();
+		unlinkSync(
+			join(stage, order === 'journal removed first' ? 'journal.json' : '0.tmp')
+		);
+		expect(recoverGeneration(root)).toBe(true);
+		expect(existsSync(stage)).toBe(false);
+		// Files whose ownership can no longer be proven stay in place.
+		expect(readFileSync(join(root, 'README.c15t.md'), 'utf8')).toBe(
+			'instructions\n'
+		);
+		expect(existsSync(join(root, 'src/privacy.ts'))).toBe(
+			order === 'journal removed first'
+		);
+		expect(() =>
+			applyGeneration(planGeneration(root, generation))
+		).not.toThrow();
+		expect(readFileSync(join(root, 'src/privacy.ts'), 'utf8')).toBe('hello\n');
+	}
+);
+
+it.each(['EXDEV', 'EPERM', 'ENOTSUP'])(
+	'publishes exclusive copies when hard links fail with %s',
+	(code) => {
+		vi.spyOn(fs, 'linkSync').mockImplementation(() => {
+			throw linkError(code);
+		});
+		syncBuiltinESMExports();
+		expect(applyGeneration(planGeneration(root, generation))).toEqual([
+			'README.c15t.md',
+			'src/privacy.ts',
+		]);
+		expect(readFileSync(join(root, 'src/privacy.ts'), 'utf8')).toBe('hello\n');
+		expect(existsSync(stagePath())).toBe(false);
+	}
+);
+
+it('rolls back copied files without touching a conflicting file', () => {
+	const plan = planGeneration(root, three);
+	const write = fs.openSync;
+	let copies = 0;
+	vi.spyOn(fs, 'linkSync').mockImplementation(() => {
+		throw linkError('EXDEV');
+	});
+	vi.spyOn(fs, 'openSync').mockImplementation((path, flags, mode) => {
+		if (String(path) === join(root, 'b.ts')) {
+			copies += 1;
+			writeFileSync(path, 'theirs\n');
+		}
+		return write(path, flags, mode);
+	});
+	syncBuiltinESMExports();
+	expect(() => applyGeneration(plan)).toThrow('EEXIST');
+	expect(copies).toBe(1);
+	expect(existsSync(join(root, 'a.ts'))).toBe(false);
+	expect(readFileSync(join(root, 'b.ts'), 'utf8')).toBe('theirs\n');
+	expect(existsSync(stagePath())).toBe(false);
+});
+
+it('recovers interrupted copies only when their recorded identity matches', () => {
+	const stage = stagePath();
+	mkdirSync(stage);
+	const files = [
+		{ content: 'A\n', exists: false, path: 'a.ts' },
+		{ content: 'B\n', exists: false, path: 'b.ts' },
+	];
+	writeFileSync(
+		join(stage, 'journal.json'),
+		JSON.stringify({ files, root, version: 1 })
+	);
+	for (const [index, file] of files.entries()) {
+		writeFileSync(join(stage, `${index}.tmp`), file.content);
+		writeFileSync(join(root, file.path), file.content);
+		const { dev, ino } = fs.lstatSync(join(root, file.path));
+		writeFileSync(join(stage, `${index}.copy`), JSON.stringify({ dev, ino }));
+	}
+	// An identical replacement is a different file and belongs to the user.
+	unlinkSync(join(root, 'b.ts'));
+	writeFileSync(join(root, 'b.ts'), 'B\n');
+	expect(recoverGeneration(root)).toBe(true);
+	expect(existsSync(join(root, 'a.ts'))).toBe(false);
+	expect(readFileSync(join(root, 'b.ts'), 'utf8')).toBe('B\n');
+	expect(existsSync(stage)).toBe(false);
+});
+
+it('removes directories created by a rolled-back apply only when empty', () => {
+	mkdirSync(join(root, 'src'));
+	const plan = planGeneration(root, {
+		dependencies: [],
+		files: {
+			'lib/a.ts': 'A\n',
+			'src/consent/a.ts': 'A\n',
+			'src/consent/deep/b.ts': 'B\n',
+		},
+		instructions: [],
+	});
+	beforeLink(3, () => {
+		writeFileSync(join(root, 'lib/user.ts'), 'mine\n');
+		throw linkError('EIO');
+	});
+	expect(() => applyGeneration(plan)).toThrow('EIO');
+	expect(existsSync(join(root, 'src'))).toBe(true);
+	expect(existsSync(join(root, 'src/consent'))).toBe(false);
+	expect(readFileSync(join(root, 'lib/user.ts'), 'utf8')).toBe('mine\n');
+	expect(existsSync(stagePath())).toBe(false);
+});
+
+it('names the original failure when rollback also fails', () => {
+	const plan = planGeneration(root, three);
+	beforeLink(2, (target) => {
+		writeFileSync(target, 'theirs\n');
+		// An edit to an already published file blocks automatic rollback.
+		writeFileSync(join(root, 'a.ts'), 'edited\n');
+	});
+	let failure: unknown;
+	try {
+		applyGeneration(plan);
+	} catch (error) {
+		failure = error;
+	}
+	expect(failure).toBeInstanceOf(Error);
+	expect((failure as Error).message).toMatch(
+		/EEXIST.*changed since apply: a\.ts.*preserved/u
+	);
+	expect((failure as Error).cause).toMatchObject({ code: 'EEXIST' });
+	expect(existsSync(stagePath())).toBe(true);
+});
+
+it('reports cancellation between apply and install with the created files', async () => {
+	const bin = join(root, 'bin');
+	mkdirSync(bin);
+	writeFileSync(join(bin, 'npm'), '#!/bin/sh\necho ran > installer-ran\n');
+	chmodSync(join(bin, 'npm'), 0o755);
+	vi.stubEnv('PATH', `${bin}:${process.env.PATH}`);
+	const controller = new AbortController();
+	beforeLink(1, () => controller.abort());
+	await expect(
+		runGenerationWorkflow(
+			['generate', '--apply'],
+			{ generation: { framework: 'react', mode: 'offline' } },
+			{ cwd: root, packageManager: 'npm', signal: controller.signal }
+		)
+	).rejects.toThrow(
+		/cancelled\. Generated files remain\. Created: .*src\/consent\/consent-manager\.tsx/u
+	);
+	expect(existsSync(join(root, 'src/consent/consent-manager.tsx'))).toBe(true);
+	expect(existsSync(join(root, 'installer-ran'))).toBe(false);
 });
