@@ -117,6 +117,12 @@ export const recordDecision = Effect.fn('decision.record')(
 		);
 
 		const created = yield* insertOnce({
+			// Any unique index, not only one on exactly `dedupeKey`: a database
+			// changed by hand, such as one indexed on `(tenantId, dedupeKey)`,
+			// would otherwise fail every consent save on Postgres. The other
+			// unique index the migrator creates is the random primary key.
+			// `migrate --plan` reports the missing index.
+			anyUniqueConflict: true,
 			conflictOn: 'dedupeKey',
 			into: 'runtimePolicyDecision',
 			values: {
