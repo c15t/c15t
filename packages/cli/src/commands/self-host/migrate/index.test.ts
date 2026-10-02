@@ -53,6 +53,7 @@ const report = (over: Record<string, unknown> = {}) =>
 		{ retained: [] },
 		{ blocked: undefined },
 		{ applied: false },
+		{ drift: [] },
 		over
 	);
 
