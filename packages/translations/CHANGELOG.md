@@ -1,5 +1,23 @@
 # @c15t/translations
 
+## 2.3.0-canary-20260930161603
+
+### Minor Changes
+
+- 808ece2: Support IAB TCF 2.4 and TCF Policies v5.0.b.
+
+  - `IABConsentDialog` shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+  - `__tcfapi` TC data includes `vendor.disclosedVendors`.
+  - `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+  - Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+  - Decoding a TC string keeps vendor IDs above 1000.
+
+  No migration needed. Existing TC strings stay valid.
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+
 ## 2.2.1
 
 ### Patch Changes

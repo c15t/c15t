@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/schema",
-	"version": "2.2.0",
+	"version": "2.3.0-canary-20260930161603",
 	"description": "Framework-agnostic Valibot schemas and TypeScript types for c15t consent management",
 	"keywords": [
 		"consent",
