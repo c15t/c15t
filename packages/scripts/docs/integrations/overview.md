@@ -1,7 +1,7 @@
 ---
 title: Integrations
 description: Find all c15t integrations for analytics, tag managers,
-  advertising, chat and embedded content.
+  advertising, email and SMS, chat and embedded content.
 group: integrations
 ---
 
@@ -82,6 +82,12 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | [Crisp](./crisp.md)           | `crisp`     | `functionality` | Waits for effective permission |
 | [Front Chat](./front-chat.md) | `frontChat` | `functionality` | Waits for effective permission |
 | [Intercom](./intercom.md)     | `intercom`  | `functionality` | Waits for effective permission |
+
+## Email and SMS
+
+| Integration             | Helper    | Category                      | Loading behavior                                           |
+| ----------------------- | --------- | ----------------------------- | ---------------------------------------------------------- |
+| [Klaviyo](./klaviyo.md) | `klaviyo` | `marketing` and `measurement` | Waits for both; optional forms-only mode needs `marketing` |
 
 ## Ads and pixels
 

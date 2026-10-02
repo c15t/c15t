@@ -10,7 +10,10 @@ import {
 	getBuiltInScriptIntegrationBySubpath,
 	getBuiltInScriptIntegrationByVendor,
 } from './registry';
-import type { BuiltInScriptIntegrationKey } from './registry';
+import type {
+	BuiltInScriptIntegrationKey,
+	IntegrationConsentCondition,
+} from './registry';
 import {
 	linkedinInsights,
 	linkedinInsightsManifest,
@@ -111,6 +114,7 @@ import {
 	vercelAnalytics,
 	vercelAnalyticsManifest,
 } from './vendors/analytics/vercel-analytics';
+import { klaviyo, klaviyoManifest } from './vendors/email-and-sms/klaviyo';
 import { crisp, crispManifest } from './vendors/functional/crisp';
 import { frontChat, frontChatManifest } from './vendors/functional/front-chat';
 import { intercom, intercomManifest } from './vendors/functional/intercom';
@@ -264,6 +268,14 @@ const helperParityCases = {
 			src: 'https://widget.intercom.io/widget/abc123',
 		},
 		script: intercom({ appId: 'abc123' }),
+	},
+	klaviyo: {
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://static.klaviyo.com/onsite/js/AbC123/klaviyo.js',
+		},
+		script: klaviyo({ publicApiKey: 'AbC123' }),
 	},
 	linkedinInsights: {
 		expected: {
@@ -500,6 +512,7 @@ const vendorManifests = [
 	crispManifest,
 	frontChatManifest,
 	intercomManifest,
+	klaviyoManifest,
 	metaPixelManifest,
 	openaiPixelManifest,
 	pinterestTagManifest,
@@ -525,6 +538,20 @@ const getPublicScriptExportSubpaths =
 			)
 			.map((key) => key.replace('./', ''));
 	};
+
+const getConditionCategories = function getConditionCategories(
+	condition: IntegrationConsentCondition
+): string[] {
+	if (typeof condition === 'string') {
+		return [condition];
+	}
+	if ('not' in condition) {
+		return getConditionCategories(condition.not);
+	}
+	const operands = 'and' in condition ? condition.and : condition.or;
+	expect(operands.length).toBeGreaterThan(0);
+	return operands.flatMap((operand) => getConditionCategories(operand));
+};
 
 const expectUnique = function expectUnique(
 	values: readonly string[],
@@ -571,7 +598,11 @@ describe('script integration registry', () => {
 
 		for (const integration of builtInScriptIntegrations) {
 			expect(integrationCategories).toContain(integration.integrationCategory);
-			expect(validConsentCategories).toContain(integration.consentCategory);
+			for (const category of getConditionCategories(
+				integration.consentCategory
+			)) {
+				expect(validConsentCategories).toContain(category);
+			}
 		}
 	});
 

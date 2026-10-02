@@ -55,6 +55,7 @@ import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
 import { segment } from '../src/vendors/analytics/segment';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
+import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
 import { crisp } from '../src/vendors/functional/crisp';
 import { frontChat } from '../src/vendors/functional/front-chat';
 import { intercom } from '../src/vendors/functional/intercom';
@@ -73,6 +74,12 @@ const check = function check(
 	detail: string
 ): LiveProbeCheckResult {
 	return { detail, ok };
+};
+
+type KlaviyoWindow = Window & {
+	klaviyoModulesObject?: {
+		companyId?: string;
+	};
 };
 
 type PromptwatchWindow = Window & {
@@ -1128,6 +1135,35 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		// a real workspace id (repo-secret follow-up).
 		tier: 'loader-only',
 		vendor: 'intercom',
+	},
+	{
+		// Klaviyo.js is a small account-keyed loader that appends the onsite
+		// modules (forms, tracking, identity) from both static hosts.
+		allowUrlSubstrings: [
+			'static.klaviyo.com/onsite/js/',
+			'static-tracking.klaviyo.com/onsite/js/',
+		],
+		// Matches the guard in Klaviyo's object snippet: an existing
+		// `window.klaviyo` is kept, so the queue must exist before load.
+		bootstrapCheck: () =>
+			check(
+				typeof window.klaviyo?.identify === 'function' &&
+					Array.isArray(window._klOnsite) &&
+					window._klOnsite.length === 0,
+				'klaviyo object and empty _klOnsite queue seeded before load'
+			),
+		createScript: () => klaviyo({ publicApiKey: 'c15tfk' }),
+		loaderUrlSubstring: 'static.klaviyo.com/onsite/js/c15tfk/klaviyo.js',
+		notes:
+			'The loader serves its module manifest for any well-formed key, so the probe asserts the real runtime against a placeholder account. Form configuration and every a.klaviyo.com request are blocked; this does not validate a real account.',
+		runtimeCheck: () =>
+			check(
+				(window as KlaviyoWindow).klaviyoModulesObject?.companyId === 'c15tfk',
+				'klaviyoModulesObject registered for the placeholder account after Klaviyo.js executed'
+			),
+		runtimeReplacedGlobals: ['klaviyo'],
+		tier: 'full',
+		vendor: 'klaviyo',
 	},
 	{
 		bootstrapCheck: () => {

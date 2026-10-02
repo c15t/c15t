@@ -851,6 +851,11 @@ export default defineDocsConfig({
 					title: 'Chat and support',
 				},
 				{
+					pages: ['klaviyo'],
+					slug: 'email-and-sms',
+					title: 'Email and SMS',
+				},
+				{
 					pages: [
 						'meta-pixel',
 						'openai-pixel',

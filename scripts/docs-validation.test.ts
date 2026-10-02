@@ -191,6 +191,7 @@ test('integration navigation covers every vendor helper and both embeds', async 
 		'tag-managers',
 		'analytics',
 		'chat-and-support',
+		'email-and-sms',
 		'ads-and-pixels',
 	]);
 	const vendors = Object.entries(scriptsPackage.exports)
