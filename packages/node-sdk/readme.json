@@ -1,29 +1,28 @@
 {
-	"title": "@c15t/node-sdk: Type-Safe Node.js API Client",
-	"description": "Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent records, privacy preferences, and backend automation.",
+	"title": "@c15t/node-sdk: Node.js client for the c15t consent API",
+	"description": "Typed client for hosted and self-hosted c15t backends. Check consent before sending email, link users after sign-in, export a user's consent records, publish legal document releases from CI and read banner experiment results.",
 	"features": [
-		"Type-safe API client with full TypeScript support",
-		"Works with hosted c15t instances on inth.com and self-hosted @c15t/backend deployments",
-		"Read and write consent records, subjects, and privacy preferences from Node.js",
-		"Flexible client configuration with authentication and custom headers",
-		"Supports dynamic base URL and API prefix configuration",
-		"Built on top of @orpc/client for robust API interactions",
-		"Comprehensive error handling and URL validation"
+		"One `createC15tClient()` call with an explicit backend URL. No environment variables are read",
+		"Methods resolve to `{ ok: true, data }` or `{ ok: false, error }` and never reject. Error codes are typed per method",
+		"Key-only methods (`subjects.list`, `experiments.summary`, `legalDocuments.publish`) exist only on a client created with an API key",
+		"Input is validated before anything is sent, and response dates are `Date` objects",
+		"Per-attempt timeouts and retries for network errors, timeouts and 408, 429, 500, 502, 503 and 504, honouring `Retry-After`",
+		"A typed mock client in `@c15t/node-sdk/testing`"
 	],
 	"prerequisites": [
-		"Node.js 20.19 or later",
-		"A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)"
+		"Node.js 20.19 or later, or another runtime with `fetch`, `AbortSignal.any` and `crypto.randomUUID`",
+		"A hosted [c15t instance](https://inth.com) or a [self-hosted backend](https://c15t.com/docs/self-host/quickstart)"
 	],
-	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk\n```"],
+	"manualInstallation": ["", "```bash\npnpm add @c15t/node-sdk@alpha\n```"],
 	"usage": [
-		"Import `c15tClient` from `@c15t/node-sdk`",
-		"Configure with a base URL and token, or set `C15T_API_URL` and `C15T_API_TOKEN` so the client picks them up automatically",
-		"Call API methods on `client.meta`, `client.subjects`, etc. — every method is fully typed",
-
-		"```ts\n// server.ts\nimport { c15tClient } from '@c15t/node-sdk'\n\n// Auto-configure from C15T_API_URL + C15T_API_TOKEN env vars\nconst client = c15tClient()\n\n// Or pass options explicitly\n// const client = c15tClient({\n//   baseUrl: process.env.C15T_API_URL!,\n//   token: process.env.C15T_API_TOKEN!,\n// })\n\ntry {\n  const status = await client.meta.status()\n  console.log('c15t API status:', status)\n\n  const subject = await client.subjects.create({\n    type: 'cookie_banner',\n    subjectId: 'sub_123',\n    domain: 'example.com',\n    preferences: { analytics: true },\n    givenAt: Date.now(),\n  })\n  console.log('Created subject', subject.id)\n} catch (error) {\n  console.error('c15t request failed:', error)\n}\n```"
+		"Create a client with the URL where the backend is mounted, path included. Pass `apiKey` for the key-only methods",
+		"Call a method and check `result.ok` before reading `result.data`, or use `unwrap(result)` to throw the error instead",
+		"```ts\n// server.ts\nimport { createC15tClient } from '@c15t/node-sdk';\n\nconst apiKey = process.env.C15T_API_KEY;\nif (!apiKey) throw new Error('Set C15T_API_KEY');\n\nconst c15t = createC15tClient({\n  baseUrl: 'https://app.example.com/api/c15t',\n  apiKey,\n});\n\nconst result = await c15t.consents.check({\n  externalId: user.id,\n  types: ['marketing_communications'],\n});\n\nif (result.ok && result.data.results.marketing_communications.hasConsent) {\n  await sendNewsletter(user);\n} else if (!result.ok) {\n  console.error(result.error.code, result.error.requestId);\n}\n```"
 	],
+	"docsLink": "https://c15t.com/docs/self-host/api/node-sdk",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Common Use Cases": "- Sync consent records between your application and c15t\n- Build admin tooling around hosted or self-hosted consent APIs\n- Automate privacy preference workflows from server-side jobs\n- Integrate c15t consent records with internal data systems"
+		"Methods": "| Method | API key |\n| --- | --- |\n| `consents.check({ externalId, types })` | No |\n| `subjects.identify(id, { externalId, identityProvider })` | No |\n| `subjects.get(id, { types })` | No |\n| `subjects.create(input)` | No |\n| `subjects.list({ externalId })` | Required |\n| `legalDocuments.publish(type, { version, hash, effectiveDate })` | Required |\n| `experiments.summary(id, { from, to, domain })` | Required |\n| `status()`, `init()`, `manifest()` | No |\n\nEvery method takes `{ signal, timeoutMs, headers, retry, requestId }` as its last argument.",
+		"Upgrading from v2": "`c15tClient()` and the `C15TClient` class are replaced by `createC15tClient()`. Results replace `ResponseContext`, `C15TError` is now `C15tError`, and `subjects.patch` is now `subjects.identify`. See the [migration guide](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk)."
 	}
 }

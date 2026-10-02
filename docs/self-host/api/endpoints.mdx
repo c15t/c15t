@@ -9,7 +9,9 @@ group: self-host
 All paths are relative to the backend's mount point. With
 `basePath: '/api/c15t'`, `/manifest` is available at `/api/c15t/manifest`.
 The framework adapters call these endpoints for you. Prefer the adapter unless
-you are building a custom transport or server integration.
+you are building a custom transport or server integration. For server code,
+the [Node.js SDK](/docs/self-host/api/node-sdk) wraps these endpoints with typed
+inputs, results and retries.
 
 | Method and path | Purpose | API key |
 | --- | --- | --- |
@@ -185,6 +187,9 @@ Use a server environment variable containing a configured API key:
 curl 'http://localhost:3000/api/c15t/subjects?externalId=customer-123' \
   -H "Authorization: Bearer $C15T_API_KEY"
 ```
+
+From Node.js, `subjects.list` in the [Node.js SDK](/docs/self-host/api/node-sdk#export-a-users-records)
+makes the same request.
 
 Missing or invalid keys return `401` on protected routes. Invalid input returns
 an error body containing `message` and `cause.code`; individual validation paths

@@ -487,9 +487,23 @@ consent's `givenAt`, both ends inclusive. A date without a time is the whole
 of that day in UTC: `from=2026-09-01` starts at midnight and `to=2026-09-30`
 runs to the end of the 30th, so the example above covers all of September. A
 `from` later than `to` is a 400. `domain` narrows to one domain name. An
-experiment id no consent carries returns `arms: []`. The
-`@c15t/node-sdk` client exposes the same call as
-`client.experiments.summary(id, { from, to, domain })`.
+experiment id no consent carries returns `arms: []`.
+
+From server code, the [Node.js SDK](/docs/self-host/api/node-sdk#read-an-experiment-summary)
+makes the same call. Create the client with an API key; `from` and `to` also
+take a `Date`:
+
+```ts
+const c15t = createC15tClient({
+	baseUrl: 'https://app.example.com/api/c15t',
+	apiKey,
+});
+
+const result = await c15t.experiments.summary('banner-shape', {
+	from: '2026-09-01',
+	to: '2026-09-30',
+});
+```
 
 The summary counts choices. The other half of an opt-in rate, the visitors
 each arm's banner was owed to, is on the session reports `/init` produces

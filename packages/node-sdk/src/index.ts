@@ -1,80 +1,74 @@
-import { C15TClient } from './client';
-import type { C15TClientOptions } from './types';
-
 /**
- * Creates a type-safe C15T client instance
+ * Typed client for the c15t consent API, for server code.
  *
- * @param options - Configuration options for the client. If not provided,
- *                  falls back to C15T_API_URL and C15T_API_TOKEN environment variables.
- * @returns A C15TClient instance for interacting with the C15T API
- *
- * @example
- * ```typescript
- * // Auto-configure from environment variables
- * const client = c15tClient();
- *
- * // Or provide explicit options
- * const client = c15tClient({
- *   baseUrl: "https://api.example.com",
- *   token: "your-auth-token"
- * });
- *
- * // Check API status
- * const status = await client.meta.status();
- *
- * // Initialize consent manager
- * const init = await client.meta.init();
- *
- * // Create a subject with consent
- * const subject = await client.subjects.create({
- *   type: 'cookie_banner',
- *   subjectId: 'sub_123',
- *   domain: 'example.com',
- *   preferences: { analytics: true },
- *   givenAt: Date.now(),
- * });
- * ```
+ * @packageDocumentation
  */
-export const c15tClient = function c15tClient(
-	options?: C15TClientOptions
-): C15TClient {
-	return new C15TClient(options);
-};
 
-// Re-export schema types for convenience
+export { createC15tClient } from './client';
 export type {
-	CheckConsentOutput,
-	CheckConsentQuery,
+	C15tClient,
+	C15tConsents,
+	C15tExperiments,
+	C15tLegalDocuments,
+	C15tPublicClient,
+	C15tPublicSubjects,
+	C15tSubjects,
+} from './client';
+export type {
+	C15tCheckConsentInput,
+	C15tCheckConsentOutput,
+	C15tCreateSubjectInput,
+	C15tExperimentSummaryRequest,
+	C15tGetSubjectRequest,
+	C15tIdentifySubjectInput,
+	C15tInitRequest,
+	C15tManifestRequest,
+	C15tManifestResult,
+	C15tPublishLegalDocumentInput,
+} from './contract';
+export { C15tConfigurationError } from './configuration-error';
+export type { C15tConfigurationIssue } from './configuration-error';
+export {
+	C15T_API_ERROR_CODES,
+	C15T_CLIENT_ERROR_CODES,
+	C15tError,
+	isC15tError,
+} from './errors';
+export type {
+	C15tApiErrorCode,
+	C15tClientErrorCode,
+	C15tErrorCode,
+	C15tIssue,
+	StalePolicyReason,
+} from './errors';
+export type {
+	C15tCallOptions,
+	C15tClientOptions,
+	C15tRequestEvent,
+	C15tRetryOptions,
+} from './options';
+export { unwrap } from './result';
+export type {
+	C15tDataOf,
+	C15tErrorCodeOf,
+	C15tFailure,
+	C15tResult,
+	C15tSuccess,
+} from './result';
+export type {
 	ConsentCheckResult,
 	ConsentItem,
-	ExperimentSummaryOutput,
-	ExperimentSummaryQuery,
+	ConsentManifest,
+	ConsentPolicyType,
 	ExperimentArmSummary,
-	GetSubjectInput,
+	ExperimentSummaryOutput,
 	GetSubjectOutput,
-	GetSubjectParams,
-	GetSubjectQuery,
 	InitOutput,
+	LegalDocumentCurrentOutput,
+	LegalDocumentPolicyType,
 	ListSubjectsOutput,
-	ListSubjectsQuery,
-	PatchSubjectFullInput,
 	PatchSubjectOutput,
-	PostSubjectInput,
 	PostSubjectOutput,
 	StatusOutput,
 	SubjectItem,
 } from '@c15t/schema/types';
-// Export the client class for direct instantiation
-export { C15TClient } from './client';
-// Export custom error class
-export { C15TError, isC15TError } from './error';
-export type { FetcherContext } from './fetcher';
-// Export fetcher utilities for advanced usage
-export { createResponseContext, fetcher, resolveUrl } from './fetcher';
-// Export types
-export type {
-	C15TClientOptions,
-	FetchOptions,
-	ResponseContext,
-	RetryConfig,
-} from './types';

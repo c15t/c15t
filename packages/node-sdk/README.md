@@ -7,7 +7,7 @@
   </a>
 </p>
 
-# @c15t/node-sdk: Type-Safe Node.js API Client
+# @c15t/node-sdk: Node.js client for the c15t consent API
 
 <p>
 <a href="https://www.npmjs.com/package/@c15t/node-sdk"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/%40c15t%2Fnode-sdk.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/npm/%40c15t%2Fnode-sdk.svg?variant=outline&mode=light" alt="Latest NPM Version"></picture></a>
@@ -18,71 +18,79 @@
 <a href="https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fnode-sdk"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=dark"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=light" alt="Made by Inth"></picture></a>
 </p>
 
-Type-safe Node.js SDK for hosted and self-hosted c15t consent APIs, consent records, privacy preferences, and backend automation.
+Typed client for hosted and self-hosted c15t backends. Check consent before sending email, link users after sign-in, export a user's consent records, publish legal document releases from CI and read banner experiment results.
 
 ## Key Features
 
-- Type-safe API client with full TypeScript support
-- Works with hosted c15t instances on inth.com and self-hosted @c15t/backend deployments
-- Read and write consent records, subjects, and privacy preferences from Node.js
-- Flexible client configuration with authentication and custom headers
-- Supports dynamic base URL and API prefix configuration
-- Built on top of @orpc/client for robust API interactions
-- Comprehensive error handling and URL validation
+- One `createC15tClient()` call with an explicit backend URL. No environment variables are read
+- Methods resolve to `{ ok: true, data }` or `{ ok: false, error }` and never reject. Error codes are typed per method
+- Key-only methods (`subjects.list`, `experiments.summary`, `legalDocuments.publish`) exist only on a client created with an API key
+- Input is validated before anything is sent, and response dates are `Date` objects
+- Per-attempt timeouts and retries for network errors, timeouts and 408, 429, 500, 502, 503 and 504, honouring `Retry-After`
+- A typed mock client in `@c15t/node-sdk/testing`
 
 ## Prerequisites
 
-- Node.js 20.19 or later
-- A hosted [c15t instance](https://inth.com) (free sign-up) or [self-hosted deployment](https://c15t.com/docs/self-host/quickstart)
+- Node.js 20.19 or later, or another runtime with `fetch`, `AbortSignal.any` and `crypto.randomUUID`
+- A hosted [c15t instance](https://inth.com) or a [self-hosted backend](https://c15t.com/docs/self-host/quickstart)
 
 ## Manual Installation
 
 ```bash
-pnpm add @c15t/node-sdk
+pnpm add @c15t/node-sdk@alpha
 ```
 
 ## Usage
 
-1. Import `c15tClient` from `@c15t/node-sdk`
-2. Configure with a base URL and token, or set `C15T_API_URL` and `C15T_API_TOKEN` so the client picks them up automatically
-3. Call API methods on `client.meta`, `client.subjects`, etc. — every method is fully typed
+1. Create a client with the URL where the backend is mounted, path included. Pass `apiKey` for the key-only methods
+2. Call a method and check `result.ok` before reading `result.data`, or use `unwrap(result)` to throw the error instead
 
 ```ts
 // server.ts
-import { c15tClient } from '@c15t/node-sdk'
+import { createC15tClient } from '@c15t/node-sdk';
 
-// Auto-configure from C15T_API_URL + C15T_API_TOKEN env vars
-const client = c15tClient()
+const apiKey = process.env.C15T_API_KEY;
+if (!apiKey) throw new Error('Set C15T_API_KEY');
 
-// Or pass options explicitly
-// const client = c15tClient({
-//   baseUrl: process.env.C15T_API_URL!,
-//   token: process.env.C15T_API_TOKEN!,
-// })
+const c15t = createC15tClient({
+  baseUrl: 'https://app.example.com/api/c15t',
+  apiKey,
+});
 
-try {
-  const status = await client.meta.status()
-  console.log('c15t API status:', status)
+const result = await c15t.consents.check({
+  externalId: user.id,
+  types: ['marketing_communications'],
+});
 
-  const subject = await client.subjects.create({
-    type: 'cookie_banner',
-    subjectId: 'sub_123',
-    domain: 'example.com',
-    preferences: { analytics: true },
-    givenAt: Date.now(),
-  })
-  console.log('Created subject', subject.id)
-} catch (error) {
-  console.error('c15t request failed:', error)
+if (result.ok && result.data.results.marketing_communications.hasConsent) {
+  await sendNewsletter(user);
+} else if (!result.ok) {
+  console.error(result.error.code, result.error.requestId);
 }
 ```
 
-## Common Use Cases
+## Documentation
 
-- Sync consent records between your application and c15t
-- Build admin tooling around hosted or self-hosted consent APIs
-- Automate privacy preference workflows from server-side jobs
-- Integrate c15t consent records with internal data systems
+For further information, guides, and examples visit the [reference documentation](https://c15t.com/docs/self-host/api/node-sdk).
+
+## Methods
+
+| Method | API key |
+| --- | --- |
+| `consents.check({ externalId, types })` | No |
+| `subjects.identify(id, { externalId, identityProvider })` | No |
+| `subjects.get(id, { types })` | No |
+| `subjects.create(input)` | No |
+| `subjects.list({ externalId })` | Required |
+| `legalDocuments.publish(type, { version, hash, effectiveDate })` | Required |
+| `experiments.summary(id, { from, to, domain })` | Required |
+| `status()`, `init()`, `manifest()` | No |
+
+Every method takes `{ signal, timeoutMs, headers, retry, requestId }` as its last argument.
+
+## Upgrading from v2
+
+`c15tClient()` and the `C15TClient` class are replaced by `createC15tClient()`. Results replace `ResponseContext`, `C15TError` is now `C15tError`, and `subjects.patch` is now `subjects.identify`. See the [migration guide](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk).
 
 ## Support
 

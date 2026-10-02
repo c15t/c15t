@@ -45,14 +45,16 @@ export const patchSubjectFullInputSchema = v.object({
 
 /**
  * PATCH /subject/:id output schema
+ *
+ * `identityProvider` is always present: the backend stores `'external'` when
+ * the request omits it.
  */
 export const patchSubjectOutputSchema = v.object({
 	subject: v.object({
 		externalId: v.string(),
-
 		id: v.string(),
+		identityProvider: v.string(),
 	}),
-	success: v.boolean(),
 });
 
 /**

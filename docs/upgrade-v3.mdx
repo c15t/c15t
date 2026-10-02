@@ -24,6 +24,8 @@ group: reference
 - Visitors' existing choices keep working. v3 reads the v2 cookie.
 - A self-hosted backend takes `database` instead of `adapter`, and needs a
   schema migration.
+- `@c15t/node-sdk` has a new client, `createC15tClient()`. Its methods return
+  results instead of throwing, and it reads no environment variables.
 
 ## Upgrade in this order
 
@@ -39,7 +41,8 @@ group: reference
    and [other options](#rename-options-and-components).
 6. If you self-host, [upgrade the backend](#upgrade-a-self-hosted-backend) in the
    same release as the clients.
-7. [Check the result](#check-the-migration).
+7. If server code calls the API, [update the Node.js SDK](#update-the-nodejs-sdk).
+8. [Check the result](#check-the-migration).
 
 ## Replace the packages
 
@@ -433,6 +436,69 @@ The migrator recognizes the v2 schema, adopts it, and adds the v3 tables and
 columns. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
 covers the details, and the [backend quickstart](/docs/self-host/quickstart)
 shows a complete v3 config and route.
+
+## Update the Node.js SDK
+
+Install `@c15t/node-sdk@alpha`. The v2 client is gone: create one with
+`createC15tClient()` and pass the backend URL and API key yourself.
+
+<CommandTabs command="@c15t/node-sdk@alpha" mode="install" />
+
+{/* example: fragment */}
+
+```ts
+import { createC15tClient } from '@c15t/node-sdk';
+
+const apiKey = process.env.C15T_API_KEY;
+if (!apiKey) throw new Error('Set C15T_API_KEY');
+
+const c15t = createC15tClient({
+	baseUrl: 'https://app.example.com/api/c15t',
+	apiKey,
+});
+
+const result = await c15t.consents.check({
+	externalId: 'user_123',
+	types: ['privacy_policy', 'marketing_communications'],
+});
+if (result.ok) {
+	console.log(result.data.results.privacy_policy.hasConsent);
+}
+```
+
+| v2 | v3 |
+| --- | --- |
+| `c15tClient(options)`, `new C15TClient(options)` | `createC15tClient(options)` |
+| `C15T_API_URL`, `C15T_API_TOKEN` read from the environment | Not read. Pass `baseUrl` and `apiKey`. |
+| `token` | `apiKey` |
+| `prefix` | Part of `baseUrl`, such as `https://app.example.com/api/c15t` |
+| `timeout` | `timeoutMs`, per attempt |
+| `retryConfig` | `retry: { maxRetries, initialDelayMs, maxDelayMs }`, or `false` |
+| `debug`, `C15T_DEBUG` | `onEvent` |
+| `client.meta.status()`, `client.status()` | `c15t.status()` |
+| `client.meta.init()`, `client.init()` | `c15t.init({ language, country, region, gpc })` |
+| `getSubject(id, { type: 'a,b' })` | `subjects.get(id, { types: ['a', 'b'] })` |
+| `createSubject(input)` | `subjects.create(input)`. `givenAt` also takes a `Date`. |
+| `patchSubject(id, input)`, `subjects.patch(id, input)` | `subjects.identify(id, { externalId, identityProvider })` |
+| `listSubjects({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
+| `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })` |
+| `summarizeExperiment(id, query)`, `experiments.summary(id, query)` | `experiments.summary(id, { from, to, domain })`, on a client with `apiKey` |
+| `ResponseContext` with `data: T \| null` | `{ ok: true, data } \| { ok: false, error }`. Check `ok` first. |
+| `unwrap()`, `expect()` on the response | `unwrap(result)`, imported from `@c15t/node-sdk` |
+| `unwrapOr()`, `map()` on the response | Check `result.ok` |
+| `throw: true` | `unwrap(result)` |
+| `onSuccess`, `onError` | Check `result.ok` after the call |
+| `C15TError`, `isC15TError()` | `C15tError`, `isC15tError(error, ...codes)` |
+| `$fetch`, `fetcher`, `resolveUrl`, `createResponseContext` | Removed. Pass a custom `fetch` to `createC15tClient` if you need one. |
+| `createMockClient`, `createMockResponse`, `createMockErrorResponse` | `createMockC15tClient`, `ok`, `err` from `@c15t/node-sdk/testing` |
+
+`patchSubject` returned `{ success, subject }`. `subjects.identify` returns
+`{ subject }`, and `subject.identityProvider` is always set. Dates in
+responses, such as `givenAt` and `createdAt`, are now `Date` objects rather
+than strings.
+
+The new client also adds `manifest()` and `legalDocuments.publish()`. See the
+[Node.js SDK reference](/docs/self-host/api/node-sdk).
 
 ## Check the migration
 

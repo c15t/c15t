@@ -1,5 +1,7 @@
-import { c15tClient } from '@c15t/node-sdk';
+// #region docs:node-sdk-client
+import { createC15tClient } from '@c15t/node-sdk';
 
-export const consentClient = c15tClient({
+export const c15t = createC15tClient({
 	baseUrl: process.env.C15T_API_URL || 'http://localhost:5173/api/self-host',
 });
+// #endregion docs:node-sdk-client
