@@ -2,6 +2,7 @@
 title: Meta Pixel
 description: Load the Meta Pixel only after marketing consent with the c15t
   metaPixel helper, guard fbq event calls, and check it in DevTools.
+icon: meta
 group: integrations
 ---
 

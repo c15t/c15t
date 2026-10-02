@@ -2,6 +2,7 @@
 title: Google Tag
 description: Load gtag.js for Google Analytics or Google Ads with c15t Consent
   Mode v2 signals, and verify the consent commands in DevTools.
+icon: google-analytics
 group: integrations
 ---
 
