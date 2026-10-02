@@ -59,17 +59,26 @@ export const commands: CliCommand[] = [
 	{
 		action: async (context) =>
 			(await import('./auth')).loginCommand.action(context),
-		description: 'Sign in using the installed Inth CLI.',
+		description:
+			'Sign in to Inth. Without a terminal, use --email for an approval link and code, or set INTH_TOKEN.',
+		examples: [
+			'c15t login',
+			'c15t login --email you@example.com',
+			'c15t login --email you@example.com --json',
+			'c15t login --complete --json',
+		],
 		flags: authFlags,
 		hint: 'Authenticate with Inth',
 		label: 'Login',
 		name: 'login',
-		usage: 'c15t login [--no-browser]',
+		usage:
+			'c15t login [--no-browser] | --email <email> | --complete [--timeout <seconds>]',
 	},
 	{
 		action: async (context) =>
 			(await import('./auth')).logoutCommand.action(context),
-		description: 'Log out of Inth.',
+		description:
+			'Sign out of the Inth session shared with the inth CLI, and remove old c15t credentials.',
 		hint: 'Clear stored credentials',
 		label: 'Logout',
 		name: 'logout',

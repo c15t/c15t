@@ -1,5 +1,6 @@
 import { z } from 'zod';
 
+import { withLegacySessionNotice } from '../auth/legacy';
 import { CliError } from '../core/errors';
 import { runInth } from '../inth/runner';
 import type { Instance } from '../types';
@@ -63,8 +64,17 @@ export class ControlPlaneClient {
 		this.config = config;
 	}
 
+	/** Run Inth, explaining a leftover pre-Inth c15t session when signed out. */
+	private async run(args: string[]): Promise<unknown> {
+		try {
+			return await runInth(args, this.config);
+		} catch (error) {
+			throw await withLegacySessionNotice(error);
+		}
+	}
+
 	private async detail(args: string[]): Promise<unknown> {
-		const value = await runInth(args, this.config);
+		const value = await this.run(args);
 		const parsed = z
 			.object({ data: z.unknown(), success: z.literal(true) })
 			.safeParse(value);
@@ -83,10 +93,10 @@ export class ControlPlaneClient {
 		do {
 			// Each page depends on the preceding cursor.
 			// oxlint-disable-next-line no-await-in-loop
-			const value = await runInth(
-				[...args, ...(cursor ? ['--cursor', cursor] : [])],
-				this.config
-			);
+			const value = await this.run([
+				...args,
+				...(cursor ? ['--cursor', cursor] : []),
+			]);
 			const parsed = z
 				.object({
 					data: z.array(z.unknown()),

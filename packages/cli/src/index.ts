@@ -184,8 +184,6 @@ export type { CliCommand, CliContext, CliFlag } from './context/types';
 export { createCliLogger } from './utils/logger';
 export type { CliLogger } from './utils/logger';
 
-export { runInth, resolveInthExecutable } from './inth/runner';
-export type { InthOptions } from './inth/runner';
 export {
 	ControlPlaneClient,
 	createControlPlaneClient,

@@ -14,8 +14,8 @@ import { CliError } from '../core/errors';
 const assertDirectory = async (directory: string): Promise<void> => {
 	const entry = await lstat(directory);
 	if (!entry.isDirectory() || entry.isSymbolicLink()) {
-		throw new CliError('CONFIG_INVALID', {
-			details: '.c15t must be a regular application directory.',
+		throw new CliError('PROJECT_PREFERENCE_INVALID', {
+			details: '.c15t must be a regular directory, not a symlink.',
 		});
 	}
 };
@@ -46,9 +46,11 @@ export const getSelectedInstanceId = async (
 		if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
 			return null;
 		}
-		throw new CliError('CONFIG_INVALID', {
-			details:
-				'Invalid .c15t/project.json. Select a project again to replace it.',
+		if (error instanceof CliError) {
+			throw error;
+		}
+		throw new CliError('PROJECT_PREFERENCE_INVALID', {
+			details: 'The file is not valid JSON with a selectedProject string.',
 		});
 	}
 };

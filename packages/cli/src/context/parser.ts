@@ -105,6 +105,18 @@ export const authFlags: CliFlag[] = [
 		['--no-browser'],
 		'Print the verification URL without opening a browser.'
 	),
+	stringFlag(
+		['--email'],
+		'Get an approval link and code for this email instead of browser login.'
+	),
+	booleanFlag(
+		['--complete'],
+		'Wait for approval of an --email login and finish signing in.'
+	),
+	stringFlag(
+		['--timeout'],
+		'Seconds to wait for --email approval, 1 to 3600. Default: 600.'
+	),
 ];
 
 const primaryName = (flag: CliFlag): string =>

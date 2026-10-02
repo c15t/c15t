@@ -15,6 +15,11 @@ export const ERROR_CATALOG = {
 		hint: 'Review any agent edits before trying again',
 		message: 'Agent setup did not complete',
 	},
+	AGENT_NOT_STARTED: {
+		code: 'AGENT_NOT_STARTED',
+		hint: 'Install the Codex CLI and make sure `codex` is on PATH, or run with --plan to copy the setup prompt',
+		message: 'Agent setup did not start',
+	},
 	API_ERROR: {
 		code: 'API_ERROR',
 		hint: 'Check the error details and try again',
@@ -149,6 +154,25 @@ export const ERROR_CATALOG = {
 		hint: 'Run `c15t projects list` to see available projects',
 		message: 'Project not found',
 	},
+
+	// --- Inth Errors ---
+	INTH_CRASHED: {
+		code: 'INTH_CRASHED',
+		hint: `Run the command again. If it keeps failing, report it at ${URLS.GITHUB}/issues`,
+		message: 'The Inth executable stopped unexpectedly',
+	},
+	INTH_UNAVAILABLE: {
+		code: 'INTH_UNAVAILABLE',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Follow the details above to restore the Inth executable, or pass --backend-url to `c15t setup` to skip hosted account commands',
+		message: 'The Inth executable for hosted account commands is unavailable',
+	},
+	INTH_UNSUPPORTED_PLATFORM: {
+		code: 'INTH_UNSUPPORTED_PLATFORM',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Login, status and projects are unavailable here, and INTH_TOKEN cannot help without the executable. Pass --backend-url to `c15t setup`, or use `c15t setup offline`',
+		message: 'Hosted account commands are not supported on this platform',
+	},
 	LAYOUT_NOT_FOUND: {
 		code: 'LAYOUT_NOT_FOUND',
 		hint: 'Make sure you have app/layout.tsx or pages/_app.tsx',
@@ -184,6 +208,12 @@ export const ERROR_CATALOG = {
 		code: 'PACKAGE_MANAGER_NOT_FOUND',
 		hint: 'Make sure npm, yarn, pnpm, or bun is installed',
 		message: 'Could not detect package manager',
+	},
+	PROJECT_PREFERENCE_INVALID: {
+		code: 'PROJECT_PREFERENCE_INVALID',
+		docs: `${URLS.DOCS}/cli/commands/hosted`,
+		hint: 'Delete .c15t/project.json (and .c15t itself if it is a symlink), then run `c15t projects select`',
+		message: 'Invalid project selection in .c15t/project.json',
 	},
 	SUBCOMMAND_REQUIRED: {
 		code: 'SUBCOMMAND_REQUIRED',
