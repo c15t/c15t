@@ -1,5 +1,17 @@
 # @c15t/react
 
+## 2.3.0
+
+### Minor Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
+### Patch Changes
+
+- Updated dependencies [184b491]
+  - c15t@2.3.0
+  - @c15t/ui@2.2.2
+
 ## 2.3.0-canary-20260930161603
 
 ### Minor Changes
