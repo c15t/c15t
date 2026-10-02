@@ -1,6 +1,6 @@
-import { DEFAULT_OFFLINE_RULES } from './options';
-import { generateScriptsArrayValue, generateScriptsImport } from './scripts';
-import type { BoilerplateOptions, BoilerplateTemplate } from './types';
+import { DEFAULT_OFFLINE_RULES } from './options.ts';
+import { generateScriptsArrayValue, generateScriptsImport } from './scripts.ts';
+import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
 /** Generates an explicitly owned browser runtime for headless applications. */
 export const generateJavaScriptBoilerplate = (

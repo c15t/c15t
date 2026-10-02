@@ -101,6 +101,7 @@ Conventions not enforced by tooling (hold new code to these; older code has exce
 | `AGENTS.md`, `SKILL.md` + `docs/` in the packages listed in `scripts/generate-package-docs.ts` | `scripts/generate-package-docs.ts` (leadtype — see the `leadtype` skill), runs during those packages' builds | `docs/**/*.mdx` + `docs/docs.config.ts` |
 | `README.md` in packages that have a `readme.json` | `bun run generate:readmes` | that package's `readme.json` |
 | `packages/*/src/version.ts` | `genversion` via each package's `prebuild` | package.json version |
+| `packages/cli/src/generate/version.ts` | `packages/cli/scripts/write-version.ts` via `prebuild`, `pretest`, and `check-types` | package.json version |
 | `dist/`, `dist-types/`, `coverage/` | builds/tests | — |
 | `.docs/` | `bun run setup:docs` (private docs-site template; maintainers only) | — |
 

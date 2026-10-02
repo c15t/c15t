@@ -1,6 +1,6 @@
-import { DEFAULT_OFFLINE_RULES } from './options';
-import { generateScriptsArrayValue, generateScriptsImport } from './scripts';
-import type { BoilerplateOptions, BoilerplateTemplate } from './types';
+import { DEFAULT_OFFLINE_RULES } from './options.ts';
+import { generateScriptsArrayValue, generateScriptsImport } from './scripts.ts';
+import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
 /**
  * Generate a Svelte 5 provider and transport configuration, also for SvelteKit.

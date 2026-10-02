@@ -65,6 +65,29 @@ describe.skipIf(process.platform === 'win32')(
 			);
 		});
 
+		it('falls back to the Windows clipboard under WSL with UTF-16 input', async () => {
+			vi.stubGlobal('process', { ...process, platform: 'linux' });
+			vi.stubEnv('WSL_DISTRO_NAME', 'Ubuntu');
+			await tool('wl-copy', 'exit 1');
+			await tool('clip.exe');
+			const prompt = 'Set up c15t\n日本語 👋';
+			expect(await copyToClipboard(prompt)).toBe(true);
+			expect(await readFile(join(directory, 'contents'))).toEqual(
+				Buffer.concat([
+					Buffer.from([0xff, 0xfe]),
+					Buffer.from(prompt, 'utf16le'),
+				])
+			);
+		});
+
+		it('ignores clip.exe outside WSL', async () => {
+			vi.stubGlobal('process', { ...process, platform: 'linux' });
+			vi.stubEnv('WSL_DISTRO_NAME', '');
+			vi.stubEnv('WSL_INTEROP', '');
+			await tool('clip.exe');
+			expect(await copyToClipboard('setup prompt')).toBe(false);
+		});
+
 		it('reports unavailable clipboard tools without rejecting', async () => {
 			vi.stubGlobal('process', { ...process, platform: 'linux' });
 			expect(await copyToClipboard('setup prompt')).toBe(false);

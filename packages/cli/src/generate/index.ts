@@ -1,24 +1,27 @@
-import { generateAstroBoilerplate } from './astro';
-import { getInstallSpecifier } from './dependencies';
-import { generateJavaScriptBoilerplate } from './javascript';
-import { generateReactBoilerplate } from './react';
-import { SCRIPT_SNIPPETS } from './scripts';
-import { generateSolidBoilerplate } from './solid';
-import { generateSvelteBoilerplate } from './svelte';
-import { generateTanStackStartBoilerplate } from './tanstack-start';
+import { generateAstroBoilerplate } from './astro.ts';
+import { readBackendURL } from './backend-url.ts';
+import { getInstallSpecifier } from './dependencies.ts';
+import { generateJavaScriptBoilerplate } from './javascript.ts';
+import { generateReactBoilerplate } from './react.ts';
+import { SCRIPT_SNIPPETS } from './scripts.ts';
+import { generateSolidBoilerplate } from './solid.ts';
+import { generateSvelteBoilerplate } from './svelte.ts';
+import { generateTanStackStartBoilerplate } from './tanstack-start.ts';
+import { isBoilerplateFramework } from './types.ts';
 import type {
 	BoilerplateFramework,
 	BoilerplateOptions,
 	BoilerplateTemplate,
-} from './types';
-import { generateVueBoilerplate } from './vue';
+} from './types.ts';
+import { generateVueBoilerplate } from './vue.ts';
 
 export type {
 	BoilerplateFramework,
 	BoilerplateOptions,
 	BoilerplateTemplate,
-} from './types';
-export { getInstallSpecifier, packageTag } from './dependencies';
+} from './types.ts';
+export { getInstallSpecifier, packageTag } from './dependencies.ts';
+export { boilerplateFrameworks } from './types.ts';
 
 /** Explicit inputs for standalone v3 generation in another CLI. */
 export interface GenerateOptions {
@@ -33,7 +36,7 @@ export interface GenerateOptions {
 /** A filesystem-free plan. The host owns validation against existing files and writes. */
 export interface GenerationPlan {
 	files: Record<string, string>;
-	/** Registry installation arguments, including @alpha for c15t packages. */
+	/** Registry installation arguments, with c15t packages on the CLI's release line. */
 	dependencies: string[];
 	instructions: string[];
 }
@@ -48,20 +51,7 @@ const validateOptions = (options: BoilerplateOptions): BoilerplateOptions => {
 				'Hosted generation requires --backend-url or a selected project with a backend URL.'
 			);
 		}
-		let url: URL;
-		try {
-			url = new URL(options.backendURL);
-		} catch {
-			throw new Error('Supply a valid HTTP or HTTPS URL with --backend-url.');
-		}
-		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-			throw new Error(
-				'Hosted generation requires an HTTP or HTTPS backend URL.'
-			);
-		}
-		if (url.username || url.password) {
-			throw new Error('Use a backend URL without embedded credentials.');
-		}
+		readBackendURL(options.backendURL);
 	} else if (options.backendURL) {
 		throw new Error('A backend URL requires hosted mode.');
 	}
@@ -118,7 +108,8 @@ export const generateBoilerplateTemplate = (
 };
 
 /**
- * Create a standalone integration plan with alpha installation arguments.
+ * Create a standalone integration plan. Installation arguments pin c15t
+ * packages to the release line of the CLI that published this source.
  * @param options Explicit framework and consent configuration.
  * @returns Files relative to the app, including a README with wiring instructions.
  * @throws {Error} When inputs are invalid or the output directory escapes the application.
@@ -157,50 +148,55 @@ export const generate = (options: GenerateOptions): GenerationPlan => {
 };
 
 const readFramework = (framework: string): BoilerplateFramework => {
-	switch (framework) {
-		case 'next-app':
-		case 'next-pages':
-		case 'react':
-		case 'javascript':
-		case 'tanstack-start':
-		case 'vue':
-		case 'nuxt':
-		case 'svelte':
-		case 'sveltekit':
-		case 'solid':
-		case 'astro':
-			return framework;
-		default:
-			throw new Error(`Unknown framework: ${framework}`);
+	if (!isBoilerplateFramework(framework)) {
+		throw new Error(`Unknown framework: ${framework}`);
 	}
+	return framework;
 };
+
+const generationFlags = [
+	'--mode',
+	'--framework',
+	'--backend-url',
+	'--scripts',
+	'--output',
+];
+
+/** One value flag, read from `--flag value` or `--flag=value`. */
+interface GenerationFlag {
+	flag: string;
+	value: string;
+	/** Arguments read, so the caller can skip a separate value. */
+	length: 1 | 2;
+}
 
 const readGenerationFlag = (
 	args: string[],
 	index: number,
 	seenFlags: string[]
-): string => {
+): GenerationFlag => {
 	const argument = args[index] ?? '';
-	if (
-		![
-			'--mode',
-			'--framework',
-			'--backend-url',
-			'--scripts',
-			'--output',
-		].includes(argument)
-	) {
-		throw new Error(`Unsupported generation flag: ${argument}`);
+	const separator = argument.indexOf('=');
+	const flag = separator < 0 ? argument : argument.slice(0, separator);
+	if (!generationFlags.includes(flag)) {
+		throw new Error(`Unsupported generation flag: ${flag}`);
 	}
-	if (seenFlags.includes(argument)) {
-		throw new Error(`Supply ${argument} only once.`);
+	if (seenFlags.includes(flag)) {
+		throw new Error(`Supply ${flag} only once.`);
 	}
-	seenFlags.push(argument);
+	seenFlags.push(flag);
+	if (separator >= 0) {
+		const value = argument.slice(separator + 1);
+		if (!value) {
+			throw new Error(`Missing value for ${flag}`);
+		}
+		return { flag, length: 1, value };
+	}
 	const value = args[index + 1] ?? '';
 	if (!value || value.startsWith('--')) {
-		throw new Error(`Missing value for ${argument}`);
+		throw new Error(`Missing value for ${flag}`);
 	}
-	return value;
+	return { flag, length: 2, value };
 };
 
 const readMode = (currentMode: string, inputMode: string): string => {
@@ -212,7 +208,8 @@ const readMode = (currentMode: string, inputMode: string): string => {
 
 /**
  * Parse standalone generation arguments with defaults supplied by a host CLI.
- * @param args Arguments after `generate`. Explicit arguments override host defaults.
+ * @param args Arguments after `generate`. Explicit arguments override host
+ * defaults. Value flags accept `--flag value` and `--flag=value`.
  * @param defaults Framework, mode, backend URL, integrations, and output from the host.
  * @returns Explicit generation options. Backend and output validation runs during generation.
  * @throws {Error} When arguments are missing, conflicting, or unsupported.
@@ -236,9 +233,9 @@ export const parseGenerateOptions = (
 			mode = readMode(mode, argument);
 			continue;
 		}
-		const value = readGenerationFlag(args, index, seenFlags);
-		index += 1;
-		switch (argument) {
+		const { flag, length, value } = readGenerationFlag(args, index, seenFlags);
+		index += length - 1;
+		switch (flag) {
 			case '--mode':
 				mode = readMode(mode, value);
 				break;
@@ -258,7 +255,7 @@ export const parseGenerateOptions = (
 					.filter((script) => script.length > 0);
 				break;
 			default:
-				throw new Error(`Unsupported generation flag: ${argument}`);
+				throw new Error(`Unsupported generation flag: ${flag}`);
 		}
 	}
 	mode ||= defaults.mode ?? '';

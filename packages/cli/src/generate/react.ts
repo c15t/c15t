@@ -1,6 +1,6 @@
-import { DEFAULT_OFFLINE_RULES } from './options';
-import { generateScriptsArrayValue, generateScriptsImport } from './scripts';
-import type { BoilerplateOptions, BoilerplateTemplate } from './types';
+import { DEFAULT_OFFLINE_RULES } from './options.ts';
+import { generateScriptsArrayValue, generateScriptsImport } from './scripts.ts';
+import type { BoilerplateOptions, BoilerplateTemplate } from './types.ts';
 
 /** Generates a provider and stock UI without rewriting the application root. */
 export const generateReactBoilerplate = (

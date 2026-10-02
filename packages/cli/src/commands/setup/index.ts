@@ -6,7 +6,11 @@ import {
 	resolveInstance,
 } from '../../control-plane';
 import { CliError } from '../../core/errors';
-import { createAgentSetupPlan, launchAgentSetup } from '../../frontend/agent';
+import {
+	createAgentSetupPlan,
+	isAgentNotStartedError,
+	launchAgentSetup,
+} from '../../frontend/agent';
 import type { AgentSetupOptions } from '../../frontend/agent';
 import { copyToClipboard } from '../../utils/clipboard';
 
@@ -82,6 +86,19 @@ const readAgentOptions = (
 	};
 };
 
+/**
+ * Show the prompt so it can be copied or redirected as-is. Terminal sessions
+ * bypass the logger, whose prompt UI prefixes each line with a gutter.
+ * Without a terminal, the logger's message channel already writes raw lines.
+ */
+const writePrompt = (context: CliContext, prompt: string) => {
+	if (context.flags['non-interactive'] === true) {
+		context.logger.message(prompt);
+	} else {
+		process.stdout.write(`\n${prompt}\n\n`);
+	}
+};
+
 /** Run opt-in agent setup, bypassing the scaffold and AST setup workflows. */
 export const setupWithAgent = async (context: CliContext): Promise<unknown> => {
 	const { flags } = context;
@@ -105,13 +122,16 @@ export const setupWithAgent = async (context: CliContext): Promise<unknown> => {
 	}
 	if (preview) {
 		if (!flags.json) {
-			context.logger.message(plan.prompt);
-			const copied = await copyToClipboard(plan.prompt);
-			context.logger.message(
-				copied
-					? 'Setup prompt copied to clipboard.'
-					: 'Could not copy to clipboard. Copy the setup prompt above manually.'
-			);
+			writePrompt(context, plan.prompt);
+			// Status goes to the diagnostic channel (stderr without a terminal),
+			// so redirecting stdout captures only the prompt.
+			if (await copyToClipboard(plan.prompt)) {
+				context.logger.success('Setup prompt copied to clipboard.');
+			} else {
+				context.logger.warn(
+					'Could not copy to clipboard. Copy the setup prompt above manually.'
+				);
+			}
 		}
 		return { launched: false, ...plan };
 	}
@@ -135,11 +155,15 @@ export const setupWithAgent = async (context: CliContext): Promise<unknown> => {
 		}
 		return { agent: plan.agent, exitCode, launched: true };
 	} catch (error) {
-		throw controller.signal.aborted
-			? new CliError('CANCELLED', {
-					details: 'Review any agent edits already made.',
-				})
-			: CliError.from(error, 'AGENT_FAILED');
+		if (controller.signal.aborted) {
+			throw new CliError('CANCELLED', {
+				details: 'Review any agent edits already made.',
+			});
+		}
+		if (isAgentNotStartedError(error)) {
+			throw new CliError('AGENT_NOT_STARTED', { details: error.message });
+		}
+		throw CliError.from(error, 'AGENT_FAILED');
 	} finally {
 		process.off('SIGINT', cancel);
 		process.off('SIGTERM', cancel);

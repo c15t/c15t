@@ -1,24 +1,24 @@
-import { generate, parseGenerateOptions } from '../generate';
-import type { GenerateOptions, GenerationPlan } from '../generate';
+import { generate, parseGenerateOptions } from '../generate/index.ts';
+import type { GenerateOptions, GenerationPlan } from '../generate/index.ts';
 import {
 	listProjects,
 	requireProjectBackendURL,
 	resolveProject,
 	selectProject,
-} from './projects';
-import type { HostedProject, ProjectListResult } from './projects';
-import { getAuthenticationStatus } from './status';
-import type { AuthenticationSnapshot, AuthenticationStatus } from './status';
+} from './projects.ts';
+import type { HostedProject, ProjectListResult } from './projects.ts';
+import { getAuthenticationStatus } from './status.ts';
+import type { AuthenticationSnapshot, AuthenticationStatus } from './status.ts';
 
 export {
 	listProjects,
 	requireProjectBackendURL,
 	resolveProject,
 	selectProject,
-} from './projects';
-export type { HostedProject, ProjectListResult } from './projects';
-export { getAuthenticationStatus } from './status';
-export type { AuthenticationSnapshot, AuthenticationStatus } from './status';
+} from './projects.ts';
+export type { HostedProject, ProjectListResult } from './projects.ts';
+export { getAuthenticationStatus } from './status.ts';
+export type { AuthenticationSnapshot, AuthenticationStatus } from './status.ts';
 
 /** Explicit frontend state supplied by Inth or a standalone CLI adapter. */
 export interface FrontendCommandContext {

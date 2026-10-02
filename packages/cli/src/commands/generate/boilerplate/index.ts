@@ -7,6 +7,10 @@ import { CliError } from '../../../core/errors';
 import { findLayoutFile } from '../../../detection/layout';
 import { generateBoilerplateTemplate } from '../../../generate';
 import {
+	boilerplateFrameworks,
+	isBoilerplateFramework,
+} from '../../../generate/types';
+import {
 	clearGenerationJournal,
 	recoverGeneration,
 	saveGenerationJournal,
@@ -20,29 +24,14 @@ import { SCRIPT_SNIPPETS } from '../templates/shared/scripts';
 import { planBoilerplateDependencies } from './package-source';
 import type { BoilerplateFramework, BoilerplateOptions } from './types';
 
-export const boilerplateFrameworks: readonly BoilerplateFramework[] = [
-	'next-app',
-	'next-pages',
-	'react',
-	'javascript',
-	'tanstack-start',
-	'vue',
-	'nuxt',
-	'svelte',
-	'sveltekit',
-	'solid',
-	'astro',
-];
-
-const isFramework = (value: string): value is BoilerplateFramework =>
-	boilerplateFrameworks.some((framework) => framework === value);
+export { boilerplateFrameworks } from '../../../generate/types';
 
 const resolveFramework = async (
 	context: CliContext
 ): Promise<BoilerplateFramework> => {
 	const explicit = context.flags.framework;
 	if (typeof explicit === 'string') {
-		if (!isFramework(explicit)) {
+		if (!isBoilerplateFramework(explicit)) {
 			throw new CliError('FLAG_INVALID', {
 				details: `Unknown framework "${explicit}". Choose: ${boilerplateFrameworks.join(', ')}.`,
 			});
@@ -182,7 +171,10 @@ const readOptions = (
 			details: `Unknown script. Choose: ${Object.keys(SCRIPT_SNIPPETS).join(', ')}.`,
 		});
 	}
-	if (typeof flags.framework === 'string' && !isFramework(flags.framework)) {
+	if (
+		typeof flags.framework === 'string' &&
+		!isBoilerplateFramework(flags.framework)
+	) {
 		throw new CliError('FLAG_INVALID', {
 			details: `Unknown framework "${flags.framework}". Choose: ${boilerplateFrameworks.join(', ')}.`,
 		});

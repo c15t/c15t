@@ -1,31 +1,18 @@
-/**
- * npm channel for portable v3 hosts, which do not import the Node CLI version.
- * Bare c15t packages intentionally use alpha while latest is v2. Explicit
- * version or tag specifiers are preserved.
- */
-export const packageTag = 'alpha';
+import { c15tReleaseSpecifier, withC15tRelease } from './release.ts';
 
 /**
- * Select the v3 npm channel for bare c15t package names.
+ * npm specifier for the `c15t` package on this CLI's release line: the
+ * dist-tag for a prerelease CLI (`alpha`, `canary`) and the major version for
+ * a stable one. Other packages can resolve differently; use
+ * `getInstallSpecifier` for a specific dependency.
+ */
+export const packageTag = c15tReleaseSpecifier();
+
+/**
+ * Pin bare c15t package names to the CLI's release line, the same rule the
+ * Node CLI uses for its own installs.
  * @param dependency Package name or an explicit package specifier.
- * @returns An alpha specifier for c15t, preserving other and explicit specifiers.
+ * @returns A release-line specifier for c15t, preserving other and explicit specifiers.
  */
-export const getInstallSpecifier = (dependency: string): string => {
-	if (dependency === 'c15t') {
-		return `c15t@${packageTag}`;
-	}
-	if (dependency.startsWith('@c15t/') && !dependency.includes('@', 1)) {
-		return `${dependency}@${packageTag}`;
-	}
-	return dependency;
-};
-
-/**
- * Get the bare package name from a registry dependency specifier.
- * @param dependency Package name, optionally followed by a version or tag.
- * @returns The name used to look up dependencies in an application manifest.
- */
-export const getDependencyName = (dependency: string): string => {
-	const versionIndex = dependency.indexOf('@', 1);
-	return versionIndex < 0 ? dependency : dependency.slice(0, versionIndex);
-};
+export const getInstallSpecifier = (dependency: string): string =>
+	withC15tRelease(dependency);

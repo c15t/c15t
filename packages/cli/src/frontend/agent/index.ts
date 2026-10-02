@@ -1,10 +1,27 @@
 import { spawn } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 
-import type { AgentSetupPlan } from './prompt';
+import type { AgentSetupPlan } from './prompt.ts';
 
-export { createAgentSetupPlan, DEFAULT_C15T_SETUP_PROMPT } from './prompt';
-export type { AgentSetupOptions, AgentSetupPlan } from './prompt';
+export { createAgentSetupPlan, DEFAULT_C15T_SETUP_PROMPT } from './prompt.ts';
+export type { AgentSetupOptions, AgentSetupPlan } from './prompt.ts';
+
+/** Error name for launches that failed before the agent could edit anything. */
+export const AGENT_NOT_STARTED_ERROR = 'AgentNotStartedError';
+
+const notStarted = (message: string): Error => {
+	const error = new Error(message);
+	error.name = AGENT_NOT_STARTED_ERROR;
+	return error;
+};
+
+/**
+ * Check whether a launch failed before the agent ran.
+ * @param error Value thrown by launchAgentSetup.
+ * @returns Whether the project cannot contain agent edits from this launch.
+ */
+export const isAgentNotStartedError = (error: unknown): error is Error =>
+	error instanceof Error && error.name === AGENT_NOT_STARTED_ERROR;
 
 /**
  * Launch installed Codex interactively with its existing approval settings.
@@ -12,7 +29,8 @@ export type { AgentSetupOptions, AgentSetupPlan } from './prompt';
  * @param plan Task returned by createAgentSetupPlan.
  * @param signal Optional cancellation, terminating the direct child process.
  * @returns The agent's exit code, or 130 when interrupted by a signal.
- * @throws {Error} When the agent cannot start or the caller cancels.
+ * @throws {Error} When the agent cannot start or the caller cancels. Errors
+ * raised before Codex runs satisfy isAgentNotStartedError.
  */
 export const launchAgentSetup = async (
 	projectRoot: string,
@@ -21,10 +39,10 @@ export const launchAgentSetup = async (
 ): Promise<number> => {
 	signal?.throwIfAborted();
 	if (plan.agent !== 'codex' || !plan.prompt || plan.prompt.includes('\0')) {
-		throw new Error('Expected a Codex setup task.');
+		throw notStarted('Expected a Codex setup task.');
 	}
 	if (process.platform === 'win32') {
-		throw new Error(
+		throw notStarted(
 			'Launching Codex setup is unavailable on Windows. Use --plan to copy the prompt and run it in Codex manually.'
 		);
 	}
@@ -54,7 +72,7 @@ export const launchAgentSetup = async (
 					);
 				} else if (failure) {
 					reject(
-						new Error(
+						notStarted(
 							'Could not start Codex. Install the Codex CLI and ensure its executable is on PATH.'
 						)
 					);

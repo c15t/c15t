@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getAuthenticationStatus, runFrontendCommand } from '../../frontend';
 import type { FrontendCommandContext, HostedProject } from '../../frontend';
+import { parseGenerationWorkflowArguments } from '../../frontend/runtime';
 import { generate, runGenerateCommand } from '../../generate';
 
 const projects: HostedProject[] = [
@@ -134,6 +135,28 @@ describe('host-owned frontend commands', () => {
 				})
 			).toThrow('HTTP or HTTPS');
 		}
+	});
+
+	it('forwards --flag=value generation arguments through the native runtime', () => {
+		const args = [
+			'generate',
+			'--mode=offline',
+			'--framework=react',
+			'--scripts=google-tag',
+			'--output=src/privacy',
+			'--plan',
+		];
+		const { forwarded } = parseGenerationWorkflowArguments(args);
+		expect(forwarded).toEqual(args.slice(0, -1));
+		expect(runFrontendCommand(forwarded)).toEqual({
+			command: 'generate',
+			data: generate({
+				framework: 'react',
+				mode: 'offline',
+				output: 'src/privacy',
+				scripts: ['google-tag'],
+			}),
+		});
 	});
 
 	it('lists and selects projects without changing the host selection', () => {

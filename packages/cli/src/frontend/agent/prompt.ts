@@ -1,4 +1,7 @@
-import { SCRIPT_SNIPPETS } from '../../generate/scripts';
+import { readBackendURL } from '../../generate/backend-url.ts';
+import { describeC15tRelease } from '../../generate/release.ts';
+import { SCRIPT_SNIPPETS } from '../../generate/scripts.ts';
+import { isBoilerplateFramework } from '../../generate/types.ts';
 
 /** Public inputs for agent-driven frontend setup. Hosts keep credentials private. */
 export interface AgentSetupOptions {
@@ -14,7 +17,10 @@ export interface AgentSetupPlan {
 	prompt: string;
 }
 
-/** Default c15t v3 task, shared by standalone and embedded CLIs. */
+/**
+ * Default c15t v3 task, shared by standalone and embedded CLIs. Package
+ * specifiers follow the release line of the CLI that published this source.
+ */
 export const DEFAULT_C15T_SETUP_PROMPT = `Integrate or migrate this application's frontend to c15t v3.
 
 1. Read the project's agent instructions, package.json, and lockfile. Identify
@@ -25,10 +31,12 @@ export const DEFAULT_C15T_SETUP_PROMPT = `Integrate or migrate this application'
    Hosted mode requires a provisioned HTTP or HTTPS consent backend URL. Ask
    for missing inputs; never invent a backend URL or integration ID.
 3. Show a frontend setup plan. Install or update only the required c15t
-   packages using the @alpha tag and the project's package manager. Read their
-   installed AGENTS.md, docs/README.md, and bundled quickstart, migration,
-   styling, and script docs before writing integration code. Inspect installed
-   types when guidance is missing. Use APIs from that installed version.
+   packages with the project's package manager.
+   ${describeC15tRelease()}
+   Read their installed AGENTS.md, docs/README.md, and bundled quickstart,
+   migration, styling, and script docs before writing integration code. Inspect
+   installed types when guidance is missing. Use APIs from that installed
+   version.
 4. Adapt the existing application rather than overwriting it with a template.
    Preserve routing, providers, consent choices, styles, and unrelated code.
    Prefer prebuilt UI and theme tokens. Use @c15t/integrations helpers for
@@ -46,7 +54,8 @@ include authentication tokens or other secrets in the task or your report.`;
  * Build a frontend task without reading files, credentials, or network state.
  * @param options Public configuration supplied by the user or host CLI.
  * @returns A Codex task that can be inspected before launch.
- * @throws {Error} When explicit configuration is invalid or conflicting.
+ * @throws {Error} When explicit configuration is invalid or conflicting,
+ * including backend URLs with whitespace, control characters, or credentials.
  * @example
  * const plan = createAgentSetupPlan({ backendURL: 'https://consent.example.com' });
  */
@@ -57,37 +66,16 @@ export const createAgentSetupPlan = (
 	if (mode && !['hosted', 'offline', 'custom'].includes(mode)) {
 		throw new Error('Choose hosted, offline, or custom mode.');
 	}
+	let backendURL: string | undefined;
 	if (options.backendURL) {
 		if (mode !== 'hosted') {
 			throw new Error('A backend URL requires hosted mode.');
 		}
-		const url = new URL(options.backendURL);
-		if (
-			!['http:', 'https:'].includes(url.protocol) ||
-			url.username ||
-			url.password
-		) {
-			throw new Error(
-				'Use an HTTP or HTTPS backend URL without embedded credentials.'
-			);
-		}
+		// Embed the parsed URL, never the raw input, so the prompt shows
+		// exactly the endpoint the agent will configure.
+		backendURL = readBackendURL(options.backendURL);
 	}
-	if (
-		options.framework &&
-		![
-			'next-app',
-			'next-pages',
-			'react',
-			'javascript',
-			'tanstack-start',
-			'vue',
-			'nuxt',
-			'svelte',
-			'sveltekit',
-			'solid',
-			'astro',
-		].includes(options.framework)
-	) {
+	if (options.framework && !isBoilerplateFramework(options.framework)) {
 		throw new Error(`Unknown framework: ${options.framework}`);
 	}
 	for (const script of options.scripts ?? []) {
@@ -98,7 +86,7 @@ export const createAgentSetupPlan = (
 	// Select named fields so host authentication state cannot enter the prompt.
 	const configuration = JSON.stringify(
 		{
-			backendURL: options.backendURL,
+			backendURL,
 			framework: options.framework,
 			mode,
 			scripts: options.scripts?.length ? options.scripts : undefined,
