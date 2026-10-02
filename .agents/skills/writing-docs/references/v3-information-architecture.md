@@ -20,7 +20,8 @@ and Changelog. Project and Legal pages belong in the footer.
 5. Frameworks, in selector order: Next.js, TanStack Start, React, Nuxt, Vue,
    Astro, Svelte, SvelteKit, HTML (script tag), JavaScript.
 6. Integrations: Integrations (the overview) and Custom integrations, then the
-   groups Embeds, Tag managers, Analytics, Chat and support, Ads and pixels.
+   groups Embeds, Tag managers, Analytics, Chat and support, Email and SMS, Ads
+   and pixels.
 7. Backend: Overview, Self-host the backend (the quickstart), then the groups
    Guides and Reference.
 8. CLI: CLI overview, CLI quickstart, Agents and automation, then the Commands group,

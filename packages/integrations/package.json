@@ -21,6 +21,7 @@
 		"gtm",
 		"heap",
 		"hightouch",
+		"klaviyo",
 		"lgpd",
 		"linkedin-insights",
 		"logrocket",
@@ -180,6 +181,11 @@
 			"types": "./dist-types/vendors/analytics/vercel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/vercel-analytics.js",
 			"default": "./dist/vendors/analytics/vercel-analytics.js"
+		},
+		"./klaviyo": {
+			"types": "./dist-types/vendors/email-and-sms/klaviyo.d.ts",
+			"import": "./dist/vendors/email-and-sms/klaviyo.js",
+			"default": "./dist/vendors/email-and-sms/klaviyo.js"
 		},
 		"./crisp": {
 			"types": "./dist-types/vendors/functional/crisp.d.ts",

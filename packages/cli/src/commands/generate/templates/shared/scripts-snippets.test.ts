@@ -44,6 +44,7 @@ describe('script snippets', () => {
 			'segment',
 			'logrocket',
 			'front-chat',
+			'klaviyo',
 		];
 
 		expect(generateScriptsImport(selected)).toBe(
@@ -52,6 +53,7 @@ describe('script snippets', () => {
 				"import { segment } from '@c15t/integrations/segment';",
 				"import { logRocket } from '@c15t/integrations/logrocket';",
 				"import { frontChat } from '@c15t/integrations/front-chat';",
+				"import { klaviyo } from '@c15t/integrations/klaviyo';",
 			].join('\n')
 		);
 
@@ -60,5 +62,8 @@ describe('script snippets', () => {
 		expect(config).toContain("segment({ writeKey: 'YOUR_WRITE_KEY' })");
 		expect(config).toContain("logRocket({ appId: 'org-slug/app-slug' })");
 		expect(config).toContain("frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })");
+		expect(config).toContain(
+			"klaviyo({ publicApiKey: 'YOUR_PUBLIC_API_KEY' })"
+		);
 	});
 });
