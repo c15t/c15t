@@ -285,6 +285,7 @@ const generateDocsConfig = () => {
 							'rudderstack',
 							'segment',
 							'rybbit-analytics',
+							'statable-analytics',
 							'umami-analytics',
 							'vercel-analytics',
 						],

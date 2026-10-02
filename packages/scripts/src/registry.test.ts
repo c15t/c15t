@@ -99,6 +99,10 @@ import {
 } from './vendors/analytics/rybbit-analytics';
 import { segment, segmentManifest } from './vendors/analytics/segment';
 import {
+	statableAnalytics,
+	statableAnalyticsManifest,
+} from './vendors/analytics/statable-analytics';
+import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
 } from './vendors/analytics/umami-analytics';
@@ -172,6 +176,14 @@ const helperParityCases = {
 			alwaysLoad: undefined,
 			persistAfterConsentRevoked: undefined,
 			src: 'https://static.cloudflareinsights.com/beacon.min.js',
+		},
+	},
+	statableAnalytics: {
+		script: statableAnalytics({ siteId: '12345' }),
+		expected: {
+			alwaysLoad: undefined,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://statable.com/js/12345/s.js',
 		},
 	},
 	clearbit: {
@@ -453,6 +465,7 @@ const vendorManifests = [
 	adobeAnalyticsManifest,
 	amplitudeManifest,
 	cloudflareWebAnalyticsManifest,
+	statableAnalyticsManifest,
 	clearbitManifest,
 	clarityManifest,
 	databuddyManifest,

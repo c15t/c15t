@@ -466,6 +466,16 @@ export const builtInScriptIntegrations = [
 		integrationCategory: 'ads-and-pixels',
 		consentCategory: 'marketing',
 	},
+	{
+		key: 'statableAnalytics',
+		vendor: 'statable-analytics',
+		label: 'Statable',
+		hint: 'Cookieless, EU-based analytics',
+		docsSlug: 'statable-analytics',
+		packageSubpath: 'statable-analytics',
+		integrationCategory: 'analytics',
+		consentCategory: 'measurement',
+	},
 ] as const satisfies readonly IntegrationRegistryEntry[];
 
 /**

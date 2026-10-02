@@ -95,6 +95,7 @@ describe('live vendor probe configs', () => {
 			'linkedin-insights',
 			'matomo-analytics',
 			'segment',
+			'statable-analytics',
 			'vercel-analytics',
 		]);
 	});

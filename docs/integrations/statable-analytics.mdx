@@ -1,0 +1,120 @@
+---
+title: Statable
+description: Load Statable cookieless analytics after measurement consent using the site id embedded in the tracker path.
+group: integrations
+---
+
+[Statable](https://statable.com/) is a cookieless, EU-based analytics service. Your numeric site id is embedded directly in the tracker path (`/js/{siteId}/s.js`) and mirrored to the script's `data-id` attribute, so no separate API key is required.
+
+## Integrate with c15t
+
+<Tabs items={['React', 'Next.js', 'JavaScript']}>
+  <Tab value="React">
+    ```tsx
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/react';
+    import { statableAnalytics } from '@c15t/scripts/statable-analytics';
+
+    const scripts = [statableAnalytics({ siteId: '12345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: 'https://your-instance.c15t.dev',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="Next.js">
+    ```tsx
+    'use client';
+
+    import { type ReactNode } from 'react';
+    import { ConsentManagerProvider } from '@c15t/nextjs';
+    import { statableAnalytics } from '@c15t/scripts/statable-analytics';
+
+    const scripts = [statableAnalytics({ siteId: '12345' })];
+
+    export function ConsentProvider({ children }: { children: ReactNode }) {
+      return (
+        <ConsentManagerProvider
+          options={{
+            mode: 'hosted',
+            backendURL: '/api/c15t',
+            scripts,
+          }}
+        >
+          {children}
+        </ConsentManagerProvider>
+      );
+    }
+    ```
+  </Tab>
+
+  <Tab value="JavaScript">
+    ```ts
+    import { getOrCreateConsentRuntime } from 'c15t';
+    import { statableAnalytics } from '@c15t/scripts/statable-analytics';
+
+    getOrCreateConsentRuntime({
+      mode: 'hosted',
+      backendURL: 'https://your-instance.c15t.dev',
+      scripts: [statableAnalytics({ siteId: '12345' })],
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Options
+
+```ts
+statableAnalytics({
+  siteId: '12345',
+  scriptUrl: 'https://cdn.example.com/{siteId}/s.js',
+  trackingApi: 'https://ingest.statable.com/api/event',
+});
+```
+
+- `siteId` (required) accepts a string or finite number; blank input throws `statableAnalytics: missing siteId` and non-numeric or non-finite values throw `statableAnalytics: invalid siteId`. Every finite numeric form is accepted (0, negatives, decimals, scientific notation).
+- `scriptUrl` (optional) overrides the tracker URL. Every `{siteId}` placeholder is replaced with the resolved site id. Leave it unset to use `https://statable.com/js/{siteId}/s.js`.
+- `trackingApi` (optional) sets the event ingestion endpoint via the `data-tracking-api` attribute. The tracker posts to this value **as-is** — it does not append `/api/event` — so provide a complete endpoint including the path (for example `https://ingest.statable.com/api/event`). Without `trackingApi`, the tracker derives the endpoint from the script host (`new URL(currentScript.src).origin + '/api/event'`); when you serve the tracker from a CDN via `scriptUrl`, a complete `trackingApi` is required or events are posted to the CDN and lost. Blank values are ignored.
+
+## Plan requirement
+
+The standalone tracker at `/js/{siteId}/s.js` is available only on plans that include it. Statable's **Hobby** plan does not include the standalone tracker — its script ships with the site widget. If you are on Hobby, use the installation snippet generated from your Statable widget instead of this integration.
+
+## Custom events
+
+Call `window.statable.t(...)` only after the tracker has loaded and measurement consent is granted:
+
+```ts
+window.statable?.t?.('signup', { plan: 'pro' });
+```
+
+Statable's documented JS API does **not** queue or replay calls made before the tracker initializes. c15t therefore installs no bootstrap stub; pre-creating `window.statable` would make the live tracker skip initialization with `window.statable ||= {…}` and silently drop events.
+
+## Consent behaviour
+
+The script uses the `measurement` category and loads only when that consent is granted. On revocation, c15t removes its script element. Removing a script does not undo code that already executed — the tracker's history wrappers, event listeners, and background timers keep running. Rely on c15t's reload-on-revocation behaviour to stop tracking after consent is withdrawn, and check measurement consent before manual `t(...)` calls.
+
+## Privacy note
+
+Statable's tracker transmits the full page URL, including query string and fragment; Statable states it strips these during ingestion. If your URLs may contain sensitive data (tokens, identifiers, personal details), assess that risk before enabling the integration.
+
+## Types
+
+### StatableAnalyticsOptions
+
+<AutoTypeTable path="./packages/scripts/src/vendors/analytics/statable-analytics.ts" name="StatableAnalyticsOptions" />
+
+### Script
+
+<AutoTypeTable path="./packages/core/src/libs/script-loader/types.ts" name="Script" />
