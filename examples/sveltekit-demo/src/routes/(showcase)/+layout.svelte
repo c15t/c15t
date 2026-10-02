@@ -1,10 +1,13 @@
 <script lang="ts">
-	import { dev } from '$app/environment';
+	import { dev } from '$app/env';
+	import {
+		PUBLIC_CLARITY_ID,
+		PUBLIC_DEVTOOLS_IAB,
+		PUBLIC_GOOGLE_TAG_ID,
+		PUBLIC_META_PIXEL_ID,
+		PUBLIC_TIKTOK_PIXEL_ID,
+	} from '$app/env/public';
 	import { page } from '$app/state';
-	import { env } from '$env/dynamic/public';
-	import { createDemoScripts } from '$lib/consent-manager/demo-scripts';
-	import { themePresetStore } from '$lib/consent-manager/theme-store.svelte';
-	import ThemeTokens from '$lib/consent-manager/ThemeTokens.svelte';
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -17,6 +20,10 @@
 	} from '@c15t/svelte';
 	import { baseTranslations } from '@c15t/translations/all';
 
+	import { createDemoScripts } from '#lib/consent-manager/demo-scripts.js';
+	import { themePresetStore } from '#lib/consent-manager/theme-store.svelte.js';
+	import ThemeTokens from '#lib/consent-manager/ThemeTokens.svelte';
+
 	import '@c15t/svelte/styles.css';
 	import '@c15t/svelte/iab/styles.css';
 
@@ -24,13 +31,13 @@
 	const devTools = dev ? import('@c15t/svelte/devtools') : null;
 	// The theme showcase renders its own provider and theme tokens.
 	const isThemeShowcase = $derived(page.url.pathname === '/theme');
-	const isIabPlayground = dev && env.PUBLIC_DEVTOOLS_IAB === 'true';
+	const isIabPlayground = dev && PUBLIC_DEVTOOLS_IAB === 'true';
 	const scripts = dev
 		? createDemoScripts({
-				clarity: env.PUBLIC_CLARITY_ID,
-				googleTag: env.PUBLIC_GOOGLE_TAG_ID,
-				metaPixel: env.PUBLIC_META_PIXEL_ID,
-				tiktokPixel: env.PUBLIC_TIKTOK_PIXEL_ID,
+				clarity: PUBLIC_CLARITY_ID,
+				googleTag: PUBLIC_GOOGLE_TAG_ID,
+				metaPixel: PUBLIC_META_PIXEL_ID,
+				tiktokPixel: PUBLIC_TIKTOK_PIXEL_ID,
 			})
 		: [];
 

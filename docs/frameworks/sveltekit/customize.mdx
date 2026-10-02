@@ -29,8 +29,8 @@ already uses your brand. Install `@c15t/ui`, which has the generator:
 
 <CommandTabs command="@c15t/ui@alpha" mode="install" />
 
-Put the theme in a `$lib/server` module. SvelteKit refuses to import those
-modules into browser code, so the generator never reaches the bundle:
+Put the theme in a module under `src/lib/server`. SvelteKit refuses to import
+server-only modules into browser code, so the generator never reaches the bundle:
 
 <include src="../../shared/examples/sveltekit-demo/theme.mdx" />
 

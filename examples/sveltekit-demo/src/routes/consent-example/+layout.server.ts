@@ -1,9 +1,10 @@
 // #region docs:layout-server title="src/routes/+layout.server.ts"
-import { building } from '$app/environment';
-// #hide docs
-import { testBackend } from '$lib/test-backend';
-// #endhide docs
+import { building } from '$app/env';
 import { loadConsent } from '@c15t/svelte/kit';
+// #hide docs
+
+import { testBackend } from '#lib/test-backend.js';
+// #endhide docs
 
 import type { LayoutServerLoad } from './$types';
 

@@ -94,13 +94,32 @@ An absolute URL is fetched over the network. A relative one, such as a route
 elsewhere in your app, is fetched with `event.fetch` inside the app and is
 never resolved against the request's `Host` header.
 
-### Deploy to an edge adapter
+### Keep background work alive after the response
 
 The handlers use only `fetch`, so they run on Node and edge adapters alike.
-Cloudflare and Vercel edge stop work once a response is sent. There the
-handlers hand the background refresh and the visit report to
-`event.platform.context.waitUntil` automatically. On another runtime with its own lifetime API, pass
-`onBackgroundRevalidate(promise, event)` and register the promise there.
+Some runtimes stop work once a response is sent, which would cut off the
+background manifest refresh and the visit report. When the adapter exposes
+`event.platform.context.waitUntil`, the handlers register that work there
+automatically. Netlify does, as do Cloudflare and Vercel edge on SvelteKit 2.
+
+SvelteKit 3's Cloudflare adapter no longer puts `waitUntil` on
+`event.platform`, and its Vercel adapter has no edge runtime. On those, pass
+the platform's own `waitUntil` as `onBackgroundRevalidate`:
+
+{/* example: fragment */}
+
+```ts title="src/routes/api/c15t/[...path]/+server.ts (partial)"
+import { waitUntil } from 'cloudflare:workers'; // Vercel: '@vercel/functions'
+
+export const { GET } = createSvelteKitConsentRouteHandlers({
+	backendURL: 'https://your-project.inth.app',
+	onBackgroundRevalidate: (promise) => waitUntil(promise),
+});
+```
+
+Without it, those runtimes can cut the refresh and the visit report short.
+Requests keep getting the cached manifest, but it can stay stale for longer,
+and the backend misses those visits.
 
 ## Resolve request context once with c15tHandle
 
@@ -130,7 +149,8 @@ handle's values for that call.
 
 A prerendered page is built once and sent to every visitor, so it cannot
 contain one visitor's consent. SvelteKit runs the root layout load while it
-builds those pages, and `building` from `$app/environment` is `true` then.
+builds those pages, and `building` from `$app/env` (`$app/environment` on
+SvelteKit 2) is `true` then.
 The quickstart's load returns no prefetch in that case, so prerendering a page
 needs only the page option:
 

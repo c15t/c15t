@@ -1,9 +1,9 @@
-import { BENCHMARK_POLICY_RESOLUTION } from '$lib/bench/policy';
 import { translations } from '@c15t/translations/en';
 import type { RequestHandler } from '@sveltejs/kit';
-import { json } from '@sveltejs/kit';
 import { writePolicyResolutionWire } from 'c15t';
 import type { InitOutput } from 'c15t';
+
+import { BENCHMARK_POLICY_RESOLUTION } from '#lib/bench/policy.js';
 
 const response = {
 	branding: 'c15t',
@@ -40,6 +40,6 @@ const headers = {
 	'cache-control': 'no-store',
 };
 
-export const GET: RequestHandler = () => json(response, { headers });
+export const GET: RequestHandler = () => Response.json(response, { headers });
 
-export const POST: RequestHandler = () => json(response, { headers });
+export const POST: RequestHandler = () => Response.json(response, { headers });

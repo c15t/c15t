@@ -410,6 +410,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const bannerCount = await page
 		.locator(`[data-testid="${bannerRootTestId}"]`)
 		.count();
+	const bannerPosition = await page.evaluate((testId) => {
+		const root = document.querySelector(`[data-testid="${testId}"]`);
+		return root ? getComputedStyle(root).position : null;
+	}, bannerRootTestId);
 
 	return {
 		...state,
@@ -419,6 +423,7 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 		bannerCount,
 		// Element Timing only; the probe's own reading is not a fallback.
 		bannerPaintMs: performanceObserverInfo.bannerPaintMs,
+		bannerPosition,
 		initRequestsAfterLoad: initRequests,
 		manifestRequestsAfterLoad: manifestRequests,
 	};
@@ -467,6 +472,7 @@ const assertSampleBannerState = function assertSampleBannerState(
 	assertVisitBannerState({
 		activeUI: sample.activeUI,
 		bannerCount: sample.bannerCount,
+		bannerPosition: sample.bannerPosition,
 		hasStoredChoice: visit === 'fresh' ? undefined : sample.hasConsented,
 		scenario,
 		visit,

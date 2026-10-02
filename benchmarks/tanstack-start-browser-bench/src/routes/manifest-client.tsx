@@ -2,6 +2,7 @@ import { createFileRoute } from '@tanstack/react-router';
 
 import { BenchmarkPageShell } from '../bench/page-shell';
 import { TanstackManifestClientBenchmarkProvider } from '../bench/provider';
+import { consentStylesheetHead } from '../bench/stylesheets';
 
 const ManifestClientPage = () => (
 	<TanstackManifestClientBenchmarkProvider scenario="manifest-client">
@@ -11,5 +12,6 @@ const ManifestClientPage = () => (
 
 export const Route = createFileRoute('/manifest-client')({
 	component: ManifestClientPage,
+	head: consentStylesheetHead,
 	ssr: false,
 });

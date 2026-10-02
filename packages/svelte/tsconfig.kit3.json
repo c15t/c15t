@@ -1,0 +1,19 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"noEmit": true,
+		"paths": {
+			"@c15t/iab": ["../iab/src/index.ts"],
+			"@c15t/iab/*": ["../iab/src/*"],
+			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
+			"@c15t/schema/*": ["../schema/dist-types/*"],
+			"@c15t/core": ["../core/dist-types/index.d.ts"],
+			"@c15t/core/*": ["../core/dist-types/*"],
+			"~/*": ["../core/src/*", "./src/lib/*"],
+			"@sveltejs/kit": ["./node_modules/sveltekit-3/types/index.d.ts"],
+			"@sveltejs/kit/*": ["./node_modules/sveltekit-3/types/index.d.ts"]
+		}
+	},
+	"include": ["src/lib/kit/*.ts", "type-tests/handle-kit3.ts"],
+	"exclude": ["node_modules", "dist", "src/**/__tests__/**"]
+}

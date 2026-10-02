@@ -1,5 +1,4 @@
 import type { RequestHandler } from '@sveltejs/kit';
-import { text } from '@sveltejs/kit';
 
 export const GET: RequestHandler = ({ params }) => {
 	const { id } = params;
@@ -8,7 +7,7 @@ export const GET: RequestHandler = ({ params }) => {
 		`window.__c15tScriptBench && (window.__c15tScriptBench.scriptEvents[${JSON.stringify(id)}] = performance.now());`,
 	].join('\n');
 
-	return text(body, {
+	return new Response(body, {
 		headers: {
 			'cache-control': 'no-store',
 			'content-type': 'application/javascript; charset=utf-8',

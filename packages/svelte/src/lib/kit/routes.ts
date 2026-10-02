@@ -53,9 +53,11 @@ const MANIFEST_ROUTE_SUFFIX = '/manifest';
 
 /**
  * Hands a promise to the `waitUntil` a SvelteKit adapter exposes on
- * `event.platform.context` (Cloudflare Workers and Pages, Vercel edge), so a
- * background refresh outlives the response on runtimes that would cancel
- * it. A no-op where the adapter provides none.
+ * `event.platform.context` (Netlify, and Cloudflare and Vercel edge on
+ * SvelteKit 2), so a background refresh outlives the response on runtimes
+ * that would cancel it. A no-op where the adapter provides none, which
+ * includes SvelteKit 3's Cloudflare and Vercel adapters; apps there pass
+ * the platform's `waitUntil` as `onBackgroundRevalidate`.
  */
 export const waitUntilFromEvent = function waitUntilFromEvent(
 	revalidation: Promise<void>,
@@ -204,8 +206,9 @@ export type SvelteKitConsentRouteHandlersFor<
  * Origin a relative `backendURL` or `manifestURL` is resolved against. It is
  * never contacted: a request to it goes to `event.fetch` as a path, which
  * SvelteKit answers in-process. Resolving against `event.url` instead would
- * let the client choose the host, because on adapter-node without `ORIGIN`
- * `event.url` takes its host from the request's `Host` header. Loopback, so
+ * let the client choose the host, because on adapter-node without
+ * `paths.origin` (`ORIGIN` in SvelteKit 2) `event.url` takes its host from
+ * the request's `Host` header. Loopback, so
  * the proxy's cleartext rules treat the in-process hop as local.
  */
 const IN_PROCESS_ORIGIN = 'http://localhost';

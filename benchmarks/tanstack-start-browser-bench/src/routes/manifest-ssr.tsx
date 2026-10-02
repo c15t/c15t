@@ -5,6 +5,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { getManifestConsentState } from '../bench/loaders';
 import { BenchmarkPageShell } from '../bench/page-shell';
 import { TanstackManifestBenchmarkProvider } from '../bench/provider';
+import { consentStylesheetHead } from '../bench/stylesheets';
 
 /**
  * Inlined by Vite at build time. When the root route mounts the provider
@@ -39,4 +40,5 @@ const routeConsentOptions = ROOT_PROVIDER
 export const Route = createFileRoute('/manifest-ssr')({
 	...routeConsentOptions,
 	component: ManifestSSRPage,
+	head: consentStylesheetHead,
 });

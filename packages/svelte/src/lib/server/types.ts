@@ -60,10 +60,12 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * Resolve a relative `backendURL` against the request's `forwarded`,
 	 * `x-forwarded-host` and `x-forwarded-proto` headers. Any client can
 	 * send those, so set this only behind a proxy that sets them and drops
-	 * incoming ones. SvelteKit's own `ORIGIN`, `HOST_HEADER` and
-	 * `PROTOCOL_HEADER` settings already shape `event.url`, which is usually
-	 * the better place to configure this. Also forwards those three headers
-	 * to the backend, which is skipped otherwise.
+	 * incoming ones. Setting the origin where SvelteKit builds `event.url`
+	 * is usually the better place to configure this: `paths.origin` in
+	 * SvelteKit 3 (adapter-node's `ORIGIN` in SvelteKit 2, which SvelteKit 3
+	 * ignores), or the adapter's `HOST_HEADER` and `PROTOCOL_HEADER`. Also
+	 * forwards those three headers to the backend, which is skipped
+	 * otherwise.
 	 *
 	 * @defaultValue false
 	 */

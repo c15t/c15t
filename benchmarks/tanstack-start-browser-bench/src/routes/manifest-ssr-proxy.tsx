@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { getManifestConsentState } from '../bench/loaders';
 import { BenchmarkPageShell } from '../bench/page-shell';
 import { TanstackManifestBenchmarkProvider } from '../bench/provider';
+import { consentStylesheetHead } from '../bench/stylesheets';
 
 /**
  * Same prefetch as `manifest-ssr`, but the root talks to the proxy
@@ -29,5 +30,6 @@ const ManifestSSRProxyPage = () => {
 export const Route = createFileRoute('/manifest-ssr-proxy')({
 	...consentLoaderOptions,
 	component: ManifestSSRProxyPage,
+	head: consentStylesheetHead,
 	loader: () => getManifestConsentState(),
 });

@@ -43,9 +43,21 @@ export interface ConsentManifestOptions extends ManifestSourceConfig {
 	 * this request, with the request event, so the host can keep it alive
 	 * past the response on runtimes that stop detached work once a response
 	 * is sent. Defaults to handing it to `event.platform.context.waitUntil`
-	 * when the adapter provides one (Cloudflare, Vercel edge); nothing is
-	 * registered otherwise. The promise never rejects. Not called when the
+	 * when the adapter provides one (Netlify, and Cloudflare and Vercel edge
+	 * on SvelteKit 2); nothing is registered otherwise. SvelteKit 3's
+	 * Cloudflare and Vercel adapters provide none, so pass the platform's
+	 * `waitUntil` there. The promise never rejects. Not called when the
 	 * manifest is fresh or the request itself waits on the upstream.
+	 *
+	 * @example
+	 * ```ts
+	 * import { waitUntil } from 'cloudflare:workers';
+	 *
+	 * export const { GET } = createSvelteKitConsentRouteHandlers({
+	 *   backendURL: 'https://your-project.inth.app',
+	 *   onBackgroundRevalidate: (promise) => waitUntil(promise),
+	 * });
+	 * ```
 	 */
 	onBackgroundRevalidate?: (
 		revalidation: Promise<void>,

@@ -1,0 +1,3 @@
+/* App stylesheet with c15t's styles imported, one file per page. */
+@import '@c15t/nextjs/styles.css';
+@import './app.css';

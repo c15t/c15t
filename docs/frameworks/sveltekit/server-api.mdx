@@ -52,10 +52,12 @@ SvelteKit answers it in-process and the request never leaves the server. A
 client's `x-forwarded-host` does not change it. Two options change that:
 
 - With your own `fetch`, the call goes over the network to the origin of
-  `event.url`. SvelteKit builds that origin from the adapter's `ORIGIN`, or
-  its `PROTOCOL_HEADER` and `HOST_HEADER` settings. Without `ORIGIN`,
-  `adapter-node` takes the host from the request's `Host` header, so set
-  `ORIGIN` or pass an absolute `backendURL`.
+  `event.url`. `adapter-node` builds that origin from `paths.origin` in
+  SvelteKit 3 (the `ORIGIN` variable in SvelteKit 2), or from its
+  `PROTOCOL_HEADER` and `HOST_HEADER` settings. With none of them, it takes
+  the host from the request's `Host` header, so set the origin or pass an
+  absolute `backendURL`. SvelteKit 3's `adapter-node` ignores `ORIGIN`
+  without a warning; move it to `paths.origin` when you upgrade.
 - `trustForwardedHeaders: true` resolves against the forwarding headers
   instead. When they name another host, `event.fetch` sends the call there
   over the network. Set it only when your proxy overwrites those headers.
@@ -123,7 +125,7 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 | `manifestURL` | `string` | none | A manifest URL of its own, such as a CDN. Wins over `backendURL`. Absolute or `/`-relative. |
 | `proxy` | `true` or `{ paths?, cookieNames? }` | off | Forwards consent writes to `backendURL`. See [save consent through your own origin](./rendering#save-consent-through-your-own-origin). |
 | `reportSessions` | `boolean` | `true` | Reports each resolved visit to the backend's `/sessions`, so Inth counts visitors it never served `/init` to. |
-| `onBackgroundRevalidate` | `(promise, event) => void` | the adapter's `waitUntil` | Keeps background manifest refreshes and session reports alive on runtimes that stop work after the response. |
+| `onBackgroundRevalidate` | `(promise, event) => void` | `event.platform.context.waitUntil`, when the adapter provides it | Keeps background manifest refreshes and session reports alive on runtimes that stop work after the response. SvelteKit 3's Cloudflare and Vercel adapters provide none; see [keep background work alive](./rendering#keep-background-work-alive-after-the-response). |
 | `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | a plain `GET` | Fetches the Global Vendor List under an IAB policy. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch used for an absolute `backendURL` or `manifestURL`, and for the vendor list. |
 

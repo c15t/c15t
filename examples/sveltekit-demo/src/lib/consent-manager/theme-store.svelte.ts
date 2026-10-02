@@ -1,4 +1,4 @@
-import { browser } from '$app/environment';
+import { browser } from '$app/env';
 
 import { themePresets } from './theme-presets';
 import type { ThemePresetName } from './theme-presets';

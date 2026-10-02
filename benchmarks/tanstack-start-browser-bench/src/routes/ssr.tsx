@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router';
 import { getDirectInitConsentState } from '../bench/loaders';
 import { BenchmarkPageShell } from '../bench/page-shell';
 import { TanstackPrefetchedBenchmarkProvider } from '../bench/provider';
+import { consentStylesheetHead } from '../bench/stylesheets';
 
 const SSRPage = () => {
 	// oxlint-disable-next-line no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
@@ -22,5 +23,6 @@ const SSRPage = () => {
 export const Route = createFileRoute('/ssr')({
 	...consentLoaderOptions,
 	component: SSRPage,
+	head: consentStylesheetHead,
 	loader: () => getDirectInitConsentState(),
 });

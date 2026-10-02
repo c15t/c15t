@@ -6,12 +6,6 @@
 	 * gets no `experiment` option.
 	 */
 	import { page } from '$app/state';
-	import { scripts } from '$lib/example-scripts';
-	import {
-		experimentCallbacks,
-		experimentFromSearch,
-	} from '$lib/experiment.svelte';
-	import { testBackend } from '$lib/test-backend';
 	import {
 		ConsentBanner,
 		ConsentDialog,
@@ -19,6 +13,15 @@
 		ConsentManagerProvider,
 		hosted,
 	} from '@c15t/svelte';
+
+	import { scripts } from '#lib/example-scripts.js';
+	import {
+		experimentCallbacks,
+		experimentFromSearch,
+	} from '#lib/experiment.svelte.js';
+	// #hide docs
+	import { testBackend } from '#lib/test-backend.js';
+	// #endhide docs
 
 	import '@c15t/svelte/styles.css';
 
