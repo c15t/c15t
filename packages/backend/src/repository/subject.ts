@@ -34,8 +34,8 @@
 import { generateEntityId } from '@c15t/schema';
 import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient, Statement } from 'effect/unstable/sql';
-import type { SqlError } from 'effect/unstable/sql';
+import { SqlClient, Statement } from 'effect/sql';
+import type { SqlError } from 'effect/sql';
 
 import { insertOnce } from '../db/insert-once';
 import { tenantScope } from '../db/tenant';

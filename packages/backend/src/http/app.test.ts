@@ -10,7 +10,7 @@
 
 import { listSubjectsOutputSchema } from '@c15t/schema';
 import { Effect, ManagedRuntime } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 import * as v from 'valibot';
 import { afterEach, assert, beforeEach, describe, it, vi } from 'vitest';
 

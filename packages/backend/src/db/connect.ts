@@ -30,7 +30,7 @@
 
 // oxlint-disable-next-line max-classes-per-file -- Preserve declaration order, interface shape, and public compatibility.
 import { Effect, Layer, Redacted } from 'effect';
-import type { SqlClient } from 'effect/unstable/sql';
+import type { SqlClient } from 'effect/sql';
 
 /** A database this backend can connect to, described rather than constructed. */
 export type DatabaseConfig =

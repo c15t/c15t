@@ -1,6 +1,6 @@
 import type { PolicyRule } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { createConsentKernel } from '../../../core/src/kernel';

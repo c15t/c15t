@@ -16,7 +16,7 @@ import { up as hotPathIndexes } from '@c15t/backend/db/migrations/2-hot-path-ind
 import { buildConsentManifestFromConfig } from '@c15t/schema';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { onConflict, readThenWrite } from './write';
 import type { WriteResult } from './write';

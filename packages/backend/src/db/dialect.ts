@@ -58,7 +58,7 @@
  */
 
 import { Data, Effect } from 'effect';
-import { SqlClient, Statement } from 'effect/unstable/sql';
+import { SqlClient, Statement } from 'effect/sql';
 
 /** The SQL engines c15t supports. MongoDB is not among them — RFC 0004 §2. */
 export type Dialect = 'postgres' | 'mysql' | 'sqlite';

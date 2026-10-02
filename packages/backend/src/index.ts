@@ -47,7 +47,7 @@
  *
  * Database drivers are optional peers, reached through `./sql/*` or loaded on
  * demand by `database: { dialect }`. Domain code depends on `SqlClient` from
- * `effect/unstable/sql`, never on a driver package directly.
+ * `effect/sql`, never on a driver package directly.
  *
  * Policy authoring is re-exported rather than reimplemented: the matchers,
  * presets and runtime inspection live in `@c15t/schema` and are shared with

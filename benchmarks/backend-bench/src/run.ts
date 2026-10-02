@@ -24,7 +24,7 @@ import { up as baseline } from '@c15t/backend/db/migrations/1-baseline';
 import { up as hotPathIndexes } from '@c15t/backend/db/migrations/2-hot-path-indexes';
 import { PgliteClient } from '@effect/sql-pglite';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { chunkedFanout, joined } from './arms';
 import type { ArmResult } from './arms';
