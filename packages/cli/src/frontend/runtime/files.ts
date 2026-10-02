@@ -244,10 +244,21 @@ const writeExclusive = (path: string, content: string, mode: number): void => {
 	}
 };
 
-/** Filesystem identity recorded for a file published by copying. */
+/** Device and inode of a live file. */
 interface FileIdentity {
 	dev: number;
 	ino: number;
+}
+
+/**
+ * Identity recorded for a file published by copying. A deleted copy's inode
+ * can be reused at once, so size and microsecond timestamps help tell a later
+ * replacement apart from the copy.
+ */
+interface CopyIdentity extends FileIdentity {
+	ctimeUs: number;
+	mtimeUs: number;
+	size: number;
 }
 
 // Copies the fields explicitly: scriptc does not width-coerce Stats records.
@@ -256,8 +267,22 @@ const identityOf = (entry: Stats): FileIdentity => ({
 	ino: entry.ino,
 });
 
+const copyIdentityOf = (entry: Stats): CopyIdentity => ({
+	ctimeUs: Math.round(entry.ctimeMs * 1000),
+	dev: entry.dev,
+	ino: entry.ino,
+	mtimeUs: Math.round(entry.mtimeMs * 1000),
+	size: entry.size,
+});
+
 const sameIdentity = (entry: FileIdentity, other: FileIdentity): boolean =>
 	entry.dev === other.dev && entry.ino === other.ino;
+
+const sameCopy = (entry: CopyIdentity, other: CopyIdentity): boolean =>
+	sameIdentity(entry, other) &&
+	entry.ctimeUs === other.ctimeUs &&
+	entry.mtimeUs === other.mtimeUs &&
+	entry.size === other.size;
 
 const lstatOrNull = (path: string): Stats | null => {
 	try {
@@ -290,26 +315,23 @@ const unsupportedLinkCodes = [
 ];
 
 /**
- * Create the target exclusively and record its identity before writing contents.
- * The record lets recovery tell this copy apart from a file created by anyone else.
+ * Create the target exclusively, write its contents, then record its identity.
+ * The record lets recovery tell this copy apart from a file created by anyone
+ * else. A crash before the record leaves a file recovery won't claim; when it
+ * is complete, the next plan accepts it as matching.
  */
 const publishCopy = (target: string, content: string, record: string): void => {
 	const descriptor = openExclusive(target, 0o644);
-	let unrecorded: FileIdentity | null = null;
+	// The open descriptor keeps this inode alive, so it cannot be reused yet.
+	const opened = identityOf(fstatSync(descriptor));
 	try {
-		const entry = fstatSync(descriptor);
-		unrecorded = identityOf(entry);
-		writeExclusive(record, JSON.stringify(identityOf(entry)), 0o600);
-		unrecorded = null;
 		writeAll(descriptor, content);
+		const created = copyIdentityOf(fstatSync(descriptor));
+		writeExclusive(record, JSON.stringify(created), 0o600);
 	} catch (error) {
-		// Without a record, recovery cannot prove ownership, so remove the empty file now.
-		const current = unrecorded ? lstatOrNull(target) : null;
-		if (
-			unrecorded &&
-			current &&
-			sameIdentity(identityOf(current), unrecorded)
-		) {
+		// Without a record, recovery cannot prove ownership, so remove the copy now.
+		const current = lstatOrNull(target);
+		if (current && sameIdentity(identityOf(current), opened)) {
 			unlinkSync(target);
 		}
 		throw error;
@@ -456,7 +478,7 @@ const removeStage = (stage: string, count: number): void => {
 const readCopyIdentity = (
 	stage: string,
 	index: number
-): FileIdentity | null => {
+): CopyIdentity | null => {
 	const record = readExisting(join(stage, `${index}.copy`));
 	if (record === null) {
 		return null;
@@ -465,7 +487,7 @@ const readCopyIdentity = (
 	try {
 		identity = JSON.parse(record);
 	} catch {
-		// A torn record was written before the copy received any contents.
+		// A torn record cannot prove ownership.
 		return null;
 	}
 	if (
@@ -474,11 +496,23 @@ const readCopyIdentity = (
 		!('dev' in identity) ||
 		typeof identity.dev !== 'number' ||
 		!('ino' in identity) ||
-		typeof identity.ino !== 'number'
+		typeof identity.ino !== 'number' ||
+		!('ctimeUs' in identity) ||
+		typeof identity.ctimeUs !== 'number' ||
+		!('mtimeUs' in identity) ||
+		typeof identity.mtimeUs !== 'number' ||
+		!('size' in identity) ||
+		typeof identity.size !== 'number'
 	) {
 		return null;
 	}
-	return { dev: identity.dev, ino: identity.ino };
+	return {
+		ctimeUs: identity.ctimeUs,
+		dev: identity.dev,
+		ino: identity.ino,
+		mtimeUs: identity.mtimeUs,
+		size: identity.size,
+	};
 };
 
 /**
@@ -503,7 +537,7 @@ const ownedTarget = (
 	const copied = readCopyIdentity(stage, index);
 	if (
 		!sameIdentity(identityOf(published), identityOf(staged)) &&
-		!(copied && sameIdentity(identityOf(published), copied))
+		!(copied && sameCopy(copyIdentityOf(published), copied))
 	) {
 		return null;
 	}

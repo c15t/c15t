@@ -168,8 +168,10 @@ conflicts, symlink targets and symlink ancestors, including dangling symlinks.
 The application root itself resolves to its real directory.
 
 Files stage in `.c15t-native-generation` and publish with exclusive hard links.
-Where hard links are unavailable, apply creates each file exclusively and records
-its identity before writing, so existing files are never replaced. An interrupted
+Where hard links are unavailable, apply creates each file exclusively, so existing
+files are never replaced, and records the copy's identity after writing it. A
+copied file that the filesystem cannot tell apart from an identical replacement
+may be removed during recovery and written again on resume. An interrupted
 apply blocks further generation. Use `--resume --apply` with the original command
 to recover and regenerate. Recovery checks every record and generated file before
 removing files it published. Files it cannot prove it published, including

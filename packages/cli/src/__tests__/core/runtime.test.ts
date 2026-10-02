@@ -501,12 +501,34 @@ it('recovers interrupted copies only when their recorded identity matches', () =
 	for (const [index, file] of files.entries()) {
 		writeFileSync(join(stage, `${index}.tmp`), file.content);
 		writeFileSync(join(root, file.path), file.content);
-		const { dev, ino } = fs.lstatSync(join(root, file.path));
-		writeFileSync(join(stage, `${index}.copy`), JSON.stringify({ dev, ino }));
+		const { ctimeMs, dev, ino, mtimeMs, size } = fs.lstatSync(
+			join(root, file.path)
+		);
+		writeFileSync(
+			join(stage, `${index}.copy`),
+			JSON.stringify({
+				ctimeUs: Math.round(ctimeMs * 1000),
+				dev,
+				ino,
+				mtimeUs: Math.round(mtimeMs * 1000),
+				size,
+			})
+		);
 	}
-	// An identical replacement is a different file and belongs to the user.
+	// An identical replacement is a different file and belongs to the user, even
+	// when the filesystem hands it the deleted copy's inode.
 	unlinkSync(join(root, 'b.ts'));
 	writeFileSync(join(root, 'b.ts'), 'B\n');
+	const later = new Date(Date.now() + 60_000);
+	fs.utimesSync(join(root, 'b.ts'), later, later);
+	// Model inode reuse deterministically: the record now names the replacement's
+	// device and inode, but keeps the copy's size and timestamps.
+	const replacement = fs.lstatSync(join(root, 'b.ts'));
+	const record = JSON.parse(readFileSync(join(stage, '1.copy'), 'utf8'));
+	writeFileSync(
+		join(stage, '1.copy'),
+		JSON.stringify({ ...record, dev: replacement.dev, ino: replacement.ino })
+	);
 	expect(recoverGeneration(root)).toBe(true);
 	expect(existsSync(join(root, 'a.ts'))).toBe(false);
 	expect(readFileSync(join(root, 'b.ts'), 'utf8')).toBe('B\n');

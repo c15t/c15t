@@ -630,8 +630,19 @@ it('recovers native leftovers from a crash during cleanup and copied files', asy
 	for (const [index, file] of files.entries()) {
 		await writeFile(join(stage, `${index}.tmp`), file.content);
 		await writeFile(join(app, file.path), file.content);
-		const { dev, ino } = await lstat(join(app, file.path));
-		await writeFile(join(stage, `${index}.copy`), JSON.stringify({ dev, ino }));
+		const { ctimeMs, dev, ino, mtimeMs, size } = await lstat(
+			join(app, file.path)
+		);
+		await writeFile(
+			join(stage, `${index}.copy`),
+			JSON.stringify({
+				ctimeUs: Math.round(ctimeMs * 1000),
+				dev,
+				ino,
+				mtimeUs: Math.round(mtimeMs * 1000),
+				size,
+			})
+		);
 	}
 	/* oxlint-enable no-await-in-loop */
 	const copied = resume();
