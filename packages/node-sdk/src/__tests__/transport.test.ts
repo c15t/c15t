@@ -1149,3 +1149,99 @@ describe('review regressions', () => {
 		expect(error.reason).toBe(reason === 'future-reason' ? undefined : reason);
 	});
 });
+
+describe('calendar date validation', () => {
+	it.each([
+		'2026-02-30',
+		'2025-02-29',
+		'1900-02-29',
+		'2026-04-31',
+		'2026-02-30T12:00:00Z',
+		'2026-02-30T12:00:00+05:30',
+	])(
+		'rejects an impossible effective date before publishing: %s',
+		async (effectiveDate) => {
+			const fetchMock = vi.fn<typeof fetch>();
+			const client = createClient(fetchMock);
+			await expect(
+				client.legalDocuments.publish('privacy_policy', {
+					effectiveDate,
+					hash: 'sha256:x',
+					version: '1',
+				})
+			).resolves.toMatchObject({
+				error: {
+					code: 'INVALID_INPUT',
+					issues: expect.arrayContaining([
+						expect.objectContaining({ path: ['effectiveDate'] }),
+					]),
+				},
+				ok: false,
+			});
+			expect(fetchMock).not.toHaveBeenCalled();
+		}
+	);
+	it.each([
+		'2024-02-29',
+		'2000-02-29',
+		'2026-02-28T23:30:00-05:00',
+		'2026-03-01T00:30:00+05:30',
+	])(
+		'preserves a valid calendar date and its timezone: %s',
+		async (effectiveDate) => {
+			const fetchMock = vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(json({ policy: { effectiveDate } }));
+			const client = createClient(fetchMock);
+			await expect(
+				client.legalDocuments.publish('privacy_policy', {
+					effectiveDate,
+					hash: 'sha256:x',
+					version: '1',
+				})
+			).resolves.toMatchObject({ ok: true });
+			expect(await sentRequest(fetchMock).json()).toMatchObject({
+				effectiveDate,
+			});
+		}
+	);
+});
+
+describe('manifest validation', () => {
+	it.each([
+		{},
+		{ branding: 'c15t', revision: 'r1' },
+		{ branding: 'c15t', schemaVersion: 2 },
+		{ revision: 'r1', schemaVersion: 2 },
+		{ branding: 'c15t', revision: 'r1', schemaVersion: 1 },
+		{ branding: 'c15t', revision: 42, schemaVersion: 2 },
+		{ branding: true, revision: 'r1', schemaVersion: 2 },
+		{ branding: 'unknown', revision: 'r1', schemaVersion: 2 },
+	])(
+		'rejects missing or invalid required manifest fields: %o',
+		async (body) => {
+			const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(json(body));
+			const client = createClient(fetchMock);
+			await expect(client.manifest()).resolves.toMatchObject({
+				error: { code: 'UNEXPECTED_RESPONSE', status: 200 },
+				ok: false,
+			});
+			expect(fetchMock).toHaveBeenCalledTimes(1);
+		}
+	);
+	it.each(['c15t', 'inth', 'consent', 'none'])(
+		'accepts supported manifest branding: %s',
+		async (branding) => {
+			const body = { branding, revision: 'r1', schemaVersion: 2 };
+			const client = createClient(
+				vi
+					.fn<typeof fetch>()
+					.mockResolvedValue(json(body, { headers: { etag: '"r1"' } }))
+			);
+			await expect(client.manifest()).resolves.toMatchObject({
+				data: { etag: '"r1"', manifest: body, status: 'modified' },
+				ok: true,
+			});
+		}
+	);
+});

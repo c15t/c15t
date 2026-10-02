@@ -17,6 +17,7 @@ import {
 	patchSubjectInputSchema,
 	postSubjectInputSchema,
 } from '@c15t/schema';
+import { brandingValues } from '@c15t/schema/types';
 import type {
 	CheckConsentOutput,
 	ConsentItem,
@@ -220,7 +221,11 @@ const checkDateLike = (
 	}
 	return typeof value === 'string' &&
 		ISO_DATE_OR_TIMESTAMP.test(value) &&
-		!Number.isNaN(Date.parse(value))
+		!Number.isNaN(Date.parse(value)) &&
+		// Parsing can normalize February 30 into March. Check the written
+		// calendar day separately so timezone offsets do not change it.
+		new Date(value.slice(0, 10)).toISOString().slice(0, 10) ===
+			value.slice(0, 10)
 		? []
 		: [{ message: 'Expected a Date or an ISO 8601 string.', path }];
 };
@@ -471,9 +476,19 @@ const manifest = defineEndpoint({
 		if (response.status === 304) {
 			return { etag, status: 'not-modified' };
 		}
+		const value = asObject(body, 'body');
+		if (
+			value.schemaVersion !== 2 ||
+			typeof value.revision !== 'string' ||
+			!brandingValues.some((branding) => branding === value.branding)
+		) {
+			throw new DecodeError(
+				'Expected manifest schemaVersion 2, a string revision and a supported branding value.'
+			);
+		}
 		return {
 			etag,
-			manifest: asObject(body, 'body') as unknown as ConsentManifest,
+			manifest: value as unknown as ConsentManifest,
 			status: 'modified',
 		};
 	},

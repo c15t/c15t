@@ -362,7 +362,8 @@ console.log(`Published ${policy.type} ${policy.version} as ${policy.id}`);
 
 `type` is `privacy_policy`, `dpa` or `terms_and_conditions`, or one of them
 with a suffix such as `terms_and_conditions_b2b`. `effectiveDate` takes a
-`Date` or an ISO 8601 string. Publishing the same hash again with the same
+`Date` or an ISO 8601 string. Impossible calendar dates such as `2026-02-30`
+return `INVALID_INPUT` before publishing. Publishing the same hash again with the same
 version and date changes nothing, so a rerun job is safe. The same hash with a
 different version or date returns `CONFLICT`. See
 [legal-document snapshots](/docs/self-host/guides/legal-document-snapshot-integration)
@@ -411,7 +412,9 @@ if (manifest.ok && manifest.data.status === 'modified') {
 `language` and `gpc` from the request you are handling; otherwise the backend
 sees your server's location. `manifest` returns
 `{ status: 'modified', manifest, etag }`, or `{ status: 'not-modified', etag }`
-when `ifNoneMatch` matches the current manifest. Prefer the framework adapters
+when `ifNoneMatch` matches the current manifest. A response missing the required
+manifest fields or using an unsupported schema version or branding value returns
+`UNEXPECTED_RESPONSE`. Prefer the framework adapters
 for rendering the banner; see [data fetching](/docs/concepts/data-fetching).
 
 ## Call options
