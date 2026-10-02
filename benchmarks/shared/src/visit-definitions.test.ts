@@ -86,6 +86,29 @@ describe('assertVisitBannerState', () => {
 			})
 		).not.toThrow();
 	});
+
+	it('rejects a fresh visit whose banner rendered without the stylesheet', () => {
+		// What the Next.js bench measured before it imported styles.css: the
+		// banner root stayed in normal flow and its text became the LCP.
+		expect(() =>
+			assertVisitBannerState({
+				activeUI: 'banner',
+				bannerCount: 1,
+				bannerPosition: 'static',
+				scenario: 'client',
+				visit: 'fresh',
+			})
+		).toThrow('without the stock stylesheet (position=static)');
+		expect(() =>
+			assertVisitBannerState({
+				activeUI: 'banner',
+				bannerCount: 1,
+				bannerPosition: 'fixed',
+				scenario: 'client',
+				visit: 'fresh',
+			})
+		).not.toThrow();
+	});
 });
 
 describe('describeColdState', () => {

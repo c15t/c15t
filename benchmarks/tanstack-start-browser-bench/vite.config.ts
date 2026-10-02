@@ -29,16 +29,24 @@ export default defineConfig({
 	envPrefix: ['VITE_', 'C15T_'],
 	plugins: [tanstackStart(), viteReact()],
 	resolve: {
-		alias: {
-			'#bench-root-shell': fileURLToPath(
-				new URL(
-					rootProvider
-						? './src/bench/root-shell-provider.tsx'
-						: './src/bench/root-shell.tsx',
-					import.meta.url
-				)
-			),
-			'@c15t/react/iab': adapterRequire.resolve('@c15t/react/iab'),
-		},
+		alias: [
+			{
+				find: '#bench-root-shell',
+				replacement: fileURLToPath(
+					new URL(
+						rootProvider
+							? './src/bench/root-shell-provider.tsx'
+							: './src/bench/root-shell.tsx',
+						import.meta.url
+					)
+				),
+			},
+			// Exact match: a string alias also rewrites
+			// `@c15t/react/iab/styles.css` to `iab.js/styles.css`.
+			{
+				find: /^@c15t\/react\/iab$/u,
+				replacement: adapterRequire.resolve('@c15t/react/iab'),
+			},
+		],
 	},
 });

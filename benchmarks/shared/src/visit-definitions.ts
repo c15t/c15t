@@ -64,15 +64,23 @@ export interface VisitBannerObservation {
 	bannerInServerHtml?: boolean;
 	/** Whether the page restored an explicit choice, when the probe reports it. */
 	hasStoredChoice?: boolean;
+	/**
+	 * Computed `position` of the first banner root, or `null` when none is in
+	 * the DOM. Omit it when the harness does not read it. The
+	 * stock stylesheet makes it `fixed`; anything else means the page measured
+	 * an unstyled banner, whose text flows into the page and can become LCP.
+	 */
+	bannerPosition?: string | null;
 }
 
 /**
  * Throw when a visit's banner state contradicts its label: a fresh visitor
- * must see the banner, and a saved-consent visitor must not see it in the
- * server HTML or after hydration.
+ * must see a styled banner, and a saved-consent visitor must not see it in
+ * the server HTML or after hydration.
  *
  * @param observation - What the harness saw on the settled page.
- * @throws {Error} When the observed banner state does not match the visit kind.
+ * @throws {Error} When the observed banner state does not match the visit
+ * kind, or a fresh visit's banner rendered without the stock stylesheet.
  */
 export const assertVisitBannerState = function assertVisitBannerState(
 	observation: VisitBannerObservation
@@ -84,11 +92,17 @@ export const assertVisitBannerState = function assertVisitBannerState(
 		activeUI,
 		bannerInServerHtml,
 		hasStoredChoice,
+		bannerPosition,
 	} = observation;
 	if (expectsBanner(visit)) {
 		if (bannerCount === 0 && activeUI !== 'banner') {
 			throw new Error(
 				`${scenario}: a fresh visit must show the consent banner, but none rendered`
+			);
+		}
+		if (bannerCount > 0 && bannerPosition && bannerPosition !== 'fixed') {
+			throw new Error(
+				`${scenario}: the consent banner rendered without the stock stylesheet (position=${String(bannerPosition)}). Import the adapter's styles.css in the bench app.`
 			);
 		}
 		return;

@@ -17,6 +17,8 @@ import { NextjsBenchmarkProbe } from './probe';
 import { getState } from './state';
 import type { NextjsBenchScenario } from './state';
 
+import './with-consent.css';
+
 const consentCategories = [
 	'necessary',
 	'functionality',
