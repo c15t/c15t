@@ -65,7 +65,6 @@ describe('hosted()', () => {
 		const init = {
 			branding: 'c15t',
 			hasConsented: false,
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: 'BE' },
 			policy: {
 				consentDefaults: {},

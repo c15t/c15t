@@ -61,7 +61,6 @@ const deferred = function deferred() {
 const initResponse = () =>
 	Response.json({
 		branding: 'c15t',
-		jurisdiction: 'GDPR',
 		location: { countryCode: 'DE', regionCode: null },
 		translations: { language: 'en', translations: { common: {} } },
 	});

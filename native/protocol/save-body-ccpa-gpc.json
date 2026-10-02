@@ -352,7 +352,6 @@
 		"transport": {
 			"body": {
 				"branding": "c15t",
-				"jurisdiction": "CCPA",
 				"location": {
 					"countryCode": "US",
 					"regionCode": "CA"

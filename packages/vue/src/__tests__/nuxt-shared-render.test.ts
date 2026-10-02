@@ -86,7 +86,6 @@ const resolution = writePolicyResolutionWire(
 
 const visitorInit: InitOutput = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	policyResolution: resolution,
 	translations: { language: 'en', translations },

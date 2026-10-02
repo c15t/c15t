@@ -13,6 +13,7 @@ import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { singleTenant } from '../db/tenant';
 import {
 	countByExternalId,
@@ -29,6 +30,7 @@ const migrate = Effect.gen(function* migrate() {
 	yield* receipts;
 	yield* vendorChoice;
 	yield* attribution;
+	yield* optionalJurisdiction;
 	yield* indexes;
 });
 

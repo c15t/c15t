@@ -32,7 +32,6 @@ type StoryActiveUI = 'banner' | 'manager' | null;
 
 export const storybookInit: InitOutput = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: {
 		countryCode: 'DE',
 		regionCode: null,

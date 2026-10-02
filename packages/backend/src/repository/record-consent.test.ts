@@ -17,6 +17,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { singleTenant } from '../db/tenant';
 import { submit } from './record-consent';
 
@@ -30,6 +31,7 @@ const setup = Effect.gen(function* setup() {
 	yield* receipts;
 	yield* vendorChoice;
 	yield* attribution;
+	yield* optionalJurisdiction;
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql.unsafe(`insert into "domain" ("id","name","createdAt","updatedAt")
 		values ('dom_1','example.com',now(),now())`);
@@ -42,7 +44,6 @@ const request = {
 	decision: {
 		dedupeKey: 'default|fp_1|country|DE|none|gdpr',
 		fingerprint: 'fp_1',
-		jurisdiction: 'gdpr',
 		matchedBy: 'country',
 		model: 'opt_in',
 		policyId: 'pol_1',

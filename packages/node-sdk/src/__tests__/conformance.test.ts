@@ -164,7 +164,7 @@ describe('success shapes', () => {
 			countryCode: 'DE',
 			regionCode: 'BE',
 		});
-		expect(data.jurisdiction).toBeDefined();
+		expect(data).not.toHaveProperty('jurisdiction');
 	});
 
 	it('manifest answers 200 with an etag, then not-modified for that etag', async () => {

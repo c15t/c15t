@@ -226,7 +226,6 @@ const buildInitOutput = function buildInitOutput(
 	});
 	const init: InitOutput = {
 		branding: 'c15t',
-		jurisdiction: 'GDPR',
 		location: {
 			countryCode: 'DE',
 			regionCode: null,

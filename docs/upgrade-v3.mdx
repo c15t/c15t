@@ -433,9 +433,27 @@ npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
 ```
 
 The migrator recognizes the v2 schema, adopts it, and adds the v3 tables and
-columns. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
+columns. Apply it before the v3 backend serves traffic: v3 records policy
+decisions without the v2 `jurisdiction` label, which the migration makes
+nullable. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
 covers the details, and the [backend quickstart](/docs/self-host/quickstart)
 shows a complete v3 config and route.
+
+### Remove `disableGeoLocation`
+
+v3 removes the `disableGeoLocation` manifest option. Policy rules decide by
+country and region, and a rule with `match: { isDefault: true }` already applies
+everywhere. To resolve every visitor as one location, set the country in the
+client's `overrides`, for example `overrides: { country: 'US' }`. See
+[runtime options](/docs/frameworks/javascript/api/runtime).
+
+### Stop reading `jurisdiction`
+
+`/init` responses, session reports and `sessions.onReport` no longer carry a
+`jurisdiction` label such as `GDPR`. Read the matched policy from
+`policyResolution` instead, or the report's `policy`, `country` and `region`.
+The backend still accepts `jurisdiction` in a v2 client's save request and
+ignores it.
 
 ## Update the Node.js SDK
 

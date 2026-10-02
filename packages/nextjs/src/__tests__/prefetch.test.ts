@@ -52,7 +52,6 @@ const createInitOutput = function createInitOutput(
 ) {
 	return {
 		branding: 'c15t',
-		jurisdiction: 'GDPR',
 		location: { countryCode: null, regionCode: null },
 		translations: { language: 'en', translations: { common: {} } },
 		...overrides,

@@ -471,7 +471,6 @@ describe('init route', () => {
 
 		expect(response.headers.get('cache-control')).toBe('private, no-store');
 		expect(await response.json()).toMatchObject({
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE' },
 			policyResolution: { policy: { id: 'eu-opt-in' }, status: 'matched' },
 		});
@@ -563,6 +562,12 @@ describe('init route', () => {
 	});
 
 	test('falls back to a proxied GET /init through serverFetch', async () => {
+		const acmeVendor = {
+			category: 'marketing',
+			id: 'acme',
+			name: 'Acme',
+			privacyPolicyUrl: 'https://acme.example/privacy',
+		};
 		// RFC 0001 §3: an older backend with no /manifest must not break consent.
 		// The proxy has to go through serverFetch too, or a relative backendURL
 		// throws ERR_INVALID_URL in Node.
@@ -573,9 +578,11 @@ describe('init route', () => {
 			}
 			return new Response(
 				JSON.stringify({
-					jurisdiction: 'NONE',
 					location: { countryCode: null, regionCode: null },
+					resolvedPrivacySignals: { gpc: true },
 					translations: { language: 'en', translations: {} },
+					vendorListVersion: '2026-09',
+					vendors: [acmeVendor],
 				}),
 				{
 					headers: { 'content-type': 'application/json' },
@@ -586,7 +593,13 @@ describe('init route', () => {
 
 		const response = await callInitRoute({ 'x-c15t-country': 'DE' });
 
-		expect(await response.json()).toMatchObject({ jurisdiction: 'NONE' });
+		const body = await response.json();
+		expect(body).toMatchObject({
+			resolvedPrivacySignals: { gpc: true },
+			vendorListVersion: '2026-09',
+			vendors: [acmeVendor],
+		});
+		expect(body).not.toHaveProperty('jurisdiction');
 		expect(mocks.serverFetch).toHaveBeenLastCalledWith(
 			'/api/self-host/init',
 			expect.objectContaining({

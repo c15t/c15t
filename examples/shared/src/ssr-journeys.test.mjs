@@ -311,10 +311,6 @@ const hasInitTranslation = function hasInitTranslation(init) {
 	return Boolean(init.translations?.translations?.cookieBanner?.title);
 };
 
-const hasInitJurisdiction = function hasInitJurisdiction(init) {
-	return typeof init.jurisdiction === 'string' && init.jurisdiction.length > 0;
-};
-
 const hasMarketingCategory = function hasMarketingCategory(init) {
 	return (
 		Array.isArray(init.policyResolution?.policy?.scope) &&
@@ -431,7 +427,6 @@ const verifyNuxtNitroRoutes = async function verifyNuxtNitroRoutes(app) {
 		`${app.label}: nitro matched policy`
 	);
 	assertEqual(init.branding, 'c15t', `${app.label}: nitro init branding`);
-	assert(hasInitJurisdiction(init), `${app.label}: nitro init jurisdiction`);
 	assertEqual(
 		init.location?.countryCode,
 		'FR',

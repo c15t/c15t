@@ -38,7 +38,6 @@ const rule: PolicyRule = {
 
 const init = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'US', regionCode: 'CA' },
 	policyResolution: writePolicyResolutionWire(
 		resolvePolicyRules({ countryCode: null, regionCode: null, rules: [rule] })

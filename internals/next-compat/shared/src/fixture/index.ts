@@ -114,7 +114,6 @@ export const buildInitResponse = function buildInitResponse(
 ) {
 	return {
 		branding: 'c15t',
-		jurisdiction: countryCode === 'US' ? 'CCPA' : 'GDPR',
 		location: {
 			countryCode,
 			regionCode: null,

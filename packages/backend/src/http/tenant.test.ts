@@ -32,6 +32,7 @@ import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -73,6 +74,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// Untenanted so every tenant's instance can reference them; the

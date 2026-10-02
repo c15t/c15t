@@ -87,7 +87,6 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 			new Response(
 				JSON.stringify({
 					branding: 'c15t',
-					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
 					policyResolution: POLICY_RESOLUTION,
 					translations: { language: 'en', translations: { common: {} } },
@@ -286,7 +285,6 @@ describe('ConsentRoot: config picks the transport', () => {
 					? jsonResponse({ ok: true, subjectId: 'sub_saved' })
 					: jsonResponse({
 							branding: 'c15t',
-							jurisdiction: 'GDPR',
 							location: { countryCode: 'DE', regionCode: null },
 							policyDecision: {
 								country: 'DE',
@@ -400,7 +398,6 @@ describe('ConsentRoot: config picks the transport', () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			jsonResponse({
 				branding: 'c15t',
-				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				policyResolution: writePolicyResolutionWire(
 					policyFixture({}, { id: 'gdpr' }).initialPolicyResolution

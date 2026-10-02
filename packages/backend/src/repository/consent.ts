@@ -60,7 +60,6 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress?: string | null;
 	readonly userAgent?: string | null;
-	readonly jurisdiction?: string | null;
 	readonly jurisdictionModel?: string | null;
 	readonly tcString?: string | null;
 	readonly uiSource?: string | null;
@@ -355,7 +354,8 @@ const rowValues = (
 	givenAt: submission.givenAt,
 	id,
 	ipAddress: submission.ipAddress ?? null,
-	jurisdiction: submission.jurisdiction ?? null,
+	// 2.x stored a regulation label here; v3 does not derive one.
+	jurisdiction: null,
 	jurisdictionModel: submission.jurisdictionModel ?? null,
 	metadata:
 		submission.metadata === undefined

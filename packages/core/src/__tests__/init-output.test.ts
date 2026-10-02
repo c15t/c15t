@@ -143,7 +143,6 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		const config = initOutputToKernelConfig(
 			{
 				branding: 'c15t',
-				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				// oxlint-disable-next-line typescript/no-explicit-any -- minimal policy fixture
 				policyResolution: POLICY,

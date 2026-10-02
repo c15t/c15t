@@ -53,10 +53,15 @@ export interface PolicySnapshotClaims {
 	readonly matchedBy: string;
 	readonly country: string | null;
 	readonly region: string | null;
-	readonly jurisdiction: string;
 	readonly model: string;
 	readonly tenantId?: string;
+	/** The raw `Accept-Language` header the request carried. */
 	readonly language?: string;
+	/**
+	 * The language `/init` served. Absent from tokens minted by earlier
+	 * alphas, which carry only `language`.
+	 */
+	readonly servedLanguage?: string;
 }
 
 const resolveIssuer = function resolveIssuer(
@@ -112,12 +117,12 @@ export const createPolicySnapshotToken =
 			fingerprint: claims.fingerprint,
 			iat,
 			iss: resolveIssuer(options),
-			jurisdiction: claims.jurisdiction,
 			language: claims.language,
 			matchedBy: claims.matchedBy,
 			model: claims.model,
 			policyId: claims.policyId,
 			region: claims.region,
+			servedLanguage: claims.servedLanguage,
 			sub: claims.policyId,
 			tenantId: claims.tenantId,
 		};

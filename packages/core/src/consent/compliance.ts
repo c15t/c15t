@@ -1,5 +1,3 @@
-import type { InitOutput, JurisdictionCode } from '@c15t/schema/types';
-
 import type { AllConsentNames } from './consent-types';
 /**
  * @packageDocumentation
@@ -65,40 +63,3 @@ export interface NamespaceProps {
 	 */
 	namespace?: string;
 }
-
-/**
- * Represents location information for the user.
- *
- * @remarks
- * Contains country and region codes to determine applicable privacy regulations.
- *
- * @example
- * ```typescript
- * const location: LocationInfo = {
- *   countryCode: 'GB',
- *   regionCode: 'ENG'
- * };
- * ```
- *
- * @public
- */
-export interface LocationInfo {
-	/** ISO country code (e.g., 'US', 'GB', 'DE') */
-	countryCode: string | null;
-
-	/** Region or state code within the country (e.g., 'CA', 'ENG') */
-	regionCode: string | null;
-
-	/** Jurisdiction code (e.g. 'GDPR') */
-	jurisdiction: JurisdictionCode | null;
-}
-
-/**
- * Response from the consent banner API.
- *
- * @remarks
- * Contains information about whether to show the consent banner and why.
- *
- * @public
- */
-export type ConsentBannerResponse = InitOutput;

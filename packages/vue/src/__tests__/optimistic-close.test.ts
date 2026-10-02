@@ -73,7 +73,6 @@ const translations: TranslationsResponse = {
 
 const init: InitOutput = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	policyResolution: writePolicyResolutionWire(
 		resolvePolicyRules({

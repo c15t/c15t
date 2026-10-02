@@ -27,7 +27,6 @@ const claims = {
 	country: 'DE',
 	fingerprint: 'fp_1',
 	gpc: false,
-	jurisdiction: 'gdpr',
 	language: 'de',
 	matchedBy: 'country',
 	model: 'opt_in',

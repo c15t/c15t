@@ -1,9 +1,9 @@
 /**
  * Decision deduplication, and the tenant boundary that runs through it.
  *
- * `dedupeKey` is client-supplied and its unique constraint is on the column
- * alone — the shape shipped 2.0.0 created, present in every production
- * database. That combination let two tenants sending the same key collide:
+ * The unique constraint on `dedupeKey` is on the column alone — the shape
+ * shipped 2.0.0 created, present in every production database. That let two
+ * tenants resolving the same decision collide:
  * the second lost the conflict and was handed **the first tenant's decision
  * row**, so its consent record cited another tenant's evidence.
  *
@@ -23,24 +23,30 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
 const input = {
 	dedupeKey: 'shared|key',
 	fingerprint: 'fp_1',
-	jurisdiction: 'gdpr',
 	matchedBy: 'country',
 	model: 'opt-in',
 	policyId: 'pol_1',
 };
 
 describe('scopedDedupeKey', () => {
-	it('leaves a single-tenant key untouched', async () => {
-		// Load-bearing for adoption: a 2.x database upgraded in place keeps
-		// producing byte-identical keys, so its existing decision rows still
-		// deduplicate instead of every decision being recorded a second time.
-		assert.strictEqual(await scopedDedupeKey(undefined, 'abc'), 'abc');
+	it('hashes a single-tenant key', async () => {
+		const key = await scopedDedupeKey(undefined, 'abc');
+		assert.match(key, /^d_[0-9a-f]{64}$/u);
+		assert.strictEqual(await scopedDedupeKey(undefined, 'abc'), key);
+	});
+
+	it('keeps single-tenant and tenanted keys apart', async () => {
+		assert.notStrictEqual(
+			await scopedDedupeKey(undefined, 'abc'),
+			await scopedDedupeKey('tenant_a', 'abc')
+		);
 	});
 
 	it('qualifies a tenanted key', async () => {
@@ -51,11 +57,16 @@ describe('scopedDedupeKey', () => {
 
 	it('stays within the MySQL column width whatever goes in', async () => {
 		// `dedupeKey` is `indexedText`, which is varchar(255) on MySQL because
-		// MySQL cannot index TEXT without a prefix length. Concatenating the
-		// tenant would push a key that already fitted past the limit, so a
-		// submission that recorded fine before scoping would start failing.
-		const key = await scopedDedupeKey('tenant_a', 'x'.repeat(4000));
-		assert.isBelow(key.length, 255);
+		// MySQL cannot index TEXT without a prefix length. The key carries the
+		// visitor's language, so its raw length is not bounded by the server.
+		const keys = await Promise.all(
+			[undefined, 'tenant_a'].map((tenantId) =>
+				scopedDedupeKey(tenantId, 'x'.repeat(4000))
+			)
+		);
+		for (const key of keys) {
+			assert.isBelow(key.length, 255);
+		}
 	});
 
 	it('does not collide across a shared separator', async () => {
@@ -81,6 +92,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 
 					const a = yield* recordDecision(input).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
@@ -169,6 +181,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 
 					// Scoping must not cost idempotency, which is the whole point of
 					// the key.
@@ -195,22 +208,29 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 
 					const first = yield* recordDecision(input);
 					const second = yield* recordDecision(input);
 
 					assert.strictEqual(first.id, second.id);
 
-					// Stored unqualified, so a database adopted from 2.x matches its
-					// existing rows rather than duplicating them.
 					const sql = yield* SqlClient.SqlClient;
-					const rows = yield* sql<{ dedupeKey: string }>`
-						select ${sql('dedupeKey')} from ${sql('runtimePolicyDecision')}
+					const rows = yield* sql<{
+						dedupeKey: string;
+						jurisdiction: string | null;
+					}>`
+						select ${sql('dedupeKey')}, ${sql('jurisdiction')}
+						from ${sql('runtimePolicyDecision')}
 					`;
-					assert.deepStrictEqual(
-						rows.map((row) => row.dedupeKey),
-						['shared|key']
-					);
+					assert.deepStrictEqual(rows, [
+						{
+							dedupeKey: yield* Effect.promise(() =>
+								scopedDedupeKey(undefined, input.dedupeKey)
+							),
+							jurisdiction: null,
+						},
+					]);
 				}).pipe(Effect.provide(engine.client), Effect.provide(singleTenant)),
 			{ timeout: 60_000 }
 		);

@@ -30,7 +30,6 @@ const matched: PolicyResolution = {
 const payload = {
 	branding: 'c15t',
 	cmpId: 123,
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	policy: { id: rule.id, model: 'opt-in' },
 	policySnapshotToken: 'stale-token',
