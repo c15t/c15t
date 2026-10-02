@@ -178,7 +178,7 @@ const readLocals = function readLocals(
  *
  * Per-call inputs beat the handle's. A route that passes `country` is naming
  * the country for that page, and silently keeping the handle's would render
- * one jurisdiction and forward another.
+ * one policy and forward another.
  */
 const resolveBase = async function resolveBase(
 	event: RequestEvent,

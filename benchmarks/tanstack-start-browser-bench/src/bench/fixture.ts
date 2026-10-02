@@ -106,7 +106,6 @@ const policyResolution = writePolicyResolutionWire(resolution);
 
 export const benchConsentInitResponse = {
 	branding: 'c15t',
-	jurisdiction: 'NONE',
 	location: {
 		countryCode: null,
 		regionCode: null,

@@ -29,6 +29,7 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
 import { resolveOptions } from './evlog';
@@ -56,6 +57,7 @@ const withApp = async <A>(
 			yield* receipts;
 			yield* vendorChoice;
 			yield* attribution;
+			yield* optionalJurisdiction;
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`
 				insert into ${sql('domain')} ${sql.insert({

@@ -34,7 +34,6 @@ export const Default: Story = {
 		setup() {
 			const init = {
 				branding: storybookInit.branding,
-				jurisdiction: storybookInit.jurisdiction,
 				location: devToolsPrefetch.initialLocation,
 				policyResolution: writePolicyResolutionWire(
 					devToolsPrefetch.initialPolicyResolution

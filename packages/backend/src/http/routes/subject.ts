@@ -252,7 +252,6 @@ export const register = function register({
 						givenAt: prepared.givenAt,
 						identityProvider: input.identityProvider ?? null,
 						ipAddress: prepared.ipAddress,
-						jurisdiction: prepared.jurisdiction,
 						jurisdictionModel: prepared.jurisdictionModel ?? null,
 						metadata: prepared.metadata,
 						policyId: policy.id,

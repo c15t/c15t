@@ -229,7 +229,6 @@ describe('init output', () => {
 	];
 	const output = {
 		branding: 'c15t' as const,
-		jurisdiction: 'GDPR' as const,
 		location: { countryCode: 'DE', regionCode: null },
 		policyResolution: {
 			policy: null,

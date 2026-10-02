@@ -227,22 +227,18 @@ export type PolicyResolutionStatus =
 	| 'no-match'
 	| 'failed';
 
-/** A `{ title, description }` pair served in full. */
+/**
+ * A `{ title, description }` pair. Either may be absent; the built-in
+ * surfaces fall back to English string by string.
+ */
 export interface KernelTranslationPair {
-	description: string;
-	title: string;
-}
-
-/** The same pair from a backend that serves partial copy. */
-export interface KernelTranslationPairPartial {
 	description?: string;
 	title?: string;
 }
 
 /**
  * Copy for the vendor rows nested under a category in the preference centre.
- * Every field is optional on the wire so a backend that predates vendor rows
- * still validates; the surfaces fill the gaps from bundled defaults.
+ * The surfaces fill gaps from bundled defaults.
  */
 export interface KernelVendorListCopy {
 	/** Hint shown while the parent category is off, so vendor switches are disabled. */
@@ -260,11 +256,6 @@ export interface KernelDialogCopy extends KernelTranslationPair {
 	vendors?: KernelVendorListCopy;
 }
 
-/** The same dialog copy from a backend that serves partial copy. */
-export interface KernelDialogCopyPartial extends KernelTranslationPairPartial {
-	vendors?: KernelVendorListCopy;
-}
-
 /**
  * Cookie banner copy.
  *
@@ -275,24 +266,8 @@ export interface KernelCookieBannerCopy extends KernelTranslationPair {
 	noticeTitle?: string;
 }
 
-/** Cookie banner copy from a backend that serves partial copy. */
-export interface KernelCookieBannerCopyPartial extends KernelTranslationPairPartial {
-	noticeDescription?: string;
-	noticeTitle?: string;
-}
-
 /** Copy for the labels a consent surface renders as actions. */
 export interface KernelCommonCopy {
-	acceptAll: string;
-	acknowledge?: string;
-	customize: string;
-	dismiss?: string;
-	rejectAll: string;
-	save: string;
-}
-
-/** Action labels from a backend that serves partial copy. */
-export interface KernelCommonCopyPartial {
 	acceptAll?: string;
 	acknowledge?: string;
 	customize?: string;
@@ -304,57 +279,21 @@ export interface KernelCommonCopyPartial {
 /**
  * Translation groups as `/init` serves them.
  *
- * The native cores carry this bundle through untouched, so a host that renders
- * copy the built-in surfaces do not name still finds the whole payload.
+ * The backend sends a complete bundle; a custom transport may send only what
+ * it overrides, so every string is optional. The native cores carry this
+ * bundle through untouched, so a host that renders copy the built-in surfaces
+ * do not name still finds the whole payload.
  */
 export interface KernelTranslationGroups {
 	common: KernelCommonCopy;
-	/** Copy for the placeholder a gated embed shows while denied. */
-	consentGate: {
-		actionButton: string;
-		title: string;
-	};
-	consentManagerDialog: KernelDialogCopy;
-	consentTypes: Record<AllConsentNames, KernelTranslationPair>;
-	cookieBanner: KernelCookieBannerCopy;
-	legalLinks: {
-		cookiePolicy: string;
-		privacyPolicy: string;
-		termsOfService: string;
-	};
-	rights?: {
-		optOut?: string;
-		preferences?: string;
-	};
-}
-
-/**
- * Translation groups from an older backend.
- *
- * Every group and every string inside one may be absent, which is a supported
- * shape rather than a degraded one: the built-in surfaces fall back to English
- * string by string.
- */
-export interface KernelTranslationGroupsPartial {
-	common: KernelCommonCopyPartial;
 	/** Copy for the placeholder a gated embed shows while denied. */
 	consentGate?: {
 		actionButton?: string;
 		title?: string;
 	};
-	consentManagerDialog: KernelDialogCopyPartial;
-	consentTypes: Partial<Record<AllConsentNames, KernelTranslationPairPartial>>;
-	cookieBanner: KernelCookieBannerCopyPartial;
-	/**
-	 * `consentGate` under its name before the rename, as a backend from
-	 * before it serves the copy. The cores carry it through untouched.
-	 *
-	 * @deprecated Read `consentGate`; an older backend still sends `frame`.
-	 */
-	frame?: {
-		actionButton?: string;
-		title?: string;
-	};
+	consentManagerDialog: KernelDialogCopy;
+	consentTypes: Partial<Record<AllConsentNames, KernelTranslationPair>>;
+	cookieBanner: KernelCookieBannerCopy;
 	legalLinks?: {
 		cookiePolicy?: string;
 		privacyPolicy?: string;
@@ -366,16 +305,8 @@ export interface KernelTranslationGroupsPartial {
 	};
 }
 
-/**
- * The `translations` field of an `/init` response.
- *
- * A union rather than one all-optional shape, because a complete bundle is a
- * promise a host can rely on and a partial one is not, and rendering a blank
- * button is the cost of confusing the two.
- */
-export type KernelTranslationBundle =
-	| KernelTranslationGroups
-	| KernelTranslationGroupsPartial;
+/** The `translations` field of an `/init` response. */
+export type KernelTranslationBundle = KernelTranslationGroups;
 
 /**
  * The translation bundle carried on the snapshot.

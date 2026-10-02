@@ -46,9 +46,7 @@
 
 import {
 	buildConsentManifestFromConfig,
-	checkJurisdiction,
-	getRegionFromHeaders,
-	headersToRecord,
+	getTranslationsData,
 	POLICY_OPTIONAL_CATEGORIES,
 	postSubjectInputSchema,
 	resolveInitFromManifest,
@@ -124,7 +122,6 @@ export interface ResolvedDecision {
 		| 'write_time_fallback';
 	/** Canonical rule authenticated by the snapshot or asserted resolution. */
 	readonly rule: ResolvedPolicyRule;
-	readonly jurisdiction: string;
 	readonly language: string | undefined;
 }
 
@@ -142,7 +139,6 @@ export interface PreparedSubmission {
 	readonly decision: ResolvedDecision | undefined;
 	readonly consentAction: string | undefined;
 	readonly validUntil: Date | undefined;
-	readonly jurisdiction: string;
 	readonly jurisdictionModel: string | undefined;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
@@ -200,25 +196,27 @@ const packById = (
 ): ConsentManifestPolicyPack | undefined =>
 	manifest.policyPacks?.find((pack) => pack.rule.id === policyId);
 
-/** 2.x's dedupe key for a runtime decision, byte for byte. */
+/**
+ * The inputs that make two runtime decisions the same decision. The
+ * repository hashes it and adds the tenant; see `scopedDedupeKey`.
+ *
+ * The parts are JSON-encoded rather than joined, so `("a|b", "c")` and
+ * `("a", "b|c")` cannot collide on a shared separator.
+ */
 const buildDedupeKey = (input: {
-	tenantId: string | undefined;
 	fingerprint: string;
 	matchedBy: string;
 	countryCode: string | null;
 	regionCode: string | null;
-	jurisdiction: string;
 	language: string | undefined;
 }): string =>
-	[
-		input.tenantId ?? 'default',
+	JSON.stringify([
 		input.fingerprint,
 		input.matchedBy,
-		input.countryCode ?? 'none',
-		input.regionCode ?? 'none',
-		input.jurisdiction,
-		input.language ?? 'none',
-	].join('|');
+		input.countryCode,
+		input.regionCode,
+		input.language ?? null,
+	]);
 
 const asString = (value: unknown): string | undefined =>
 	typeof value === 'string' ? value : undefined;
@@ -234,15 +232,13 @@ const asNullableString = (value: unknown): string | null =>
 const decisionFromClaims = (
 	claims: Record<string, unknown>,
 	manifest: ConsentManifest,
-	context: SubmissionContext,
 	late: boolean
 ): ResolvedDecision | 'malformed' | 'policy-changed' => {
 	const policyId = asString(claims.policyId);
 	const fingerprint = asString(claims.fingerprint);
 	const matchedBy = asString(claims.matchedBy);
-	const jurisdiction = asString(claims.jurisdiction);
 	const model = asString(claims.model);
-	if (!policyId || !fingerprint || !matchedBy || !jurisdiction || !model) {
+	if (!policyId || !fingerprint || !matchedBy || !model) {
 		return 'malformed';
 	}
 	if (manifest.policyFailure) {
@@ -259,7 +255,22 @@ const decisionFromClaims = (
 	const { rule } = pack;
 	const countryCode = asNullableString(claims.country);
 	const regionCode = asNullableString(claims.region);
-	const language = asString(claims.language);
+	// The signed served language when the token has one. Tokens from earlier
+	// alphas carry only the raw `Accept-Language` header, so the served
+	// language is resolved from it the way `/init` resolves it, against the
+	// rule the token names.
+	const language = parseLanguage(
+		asString(claims.servedLanguage) ??
+			getTranslationsData(
+				asString(claims.language) ?? 'en',
+				manifest.translations?.customTranslations,
+				{
+					baseTranslations,
+					i18n: manifest.translations?.i18n,
+					policyI18n: rule.i18n,
+				}
+			).language
+	);
 	return {
 		input: {
 			categories: rule.scope,
@@ -267,14 +278,11 @@ const decisionFromClaims = (
 			dedupeKey: buildDedupeKey({
 				countryCode,
 				fingerprint,
-				jurisdiction,
 				language,
 				matchedBy,
 				regionCode,
-				tenantId: context.tenantId,
 			}),
 			fingerprint,
-			jurisdiction,
 			language,
 			matchedBy,
 			model,
@@ -284,7 +292,6 @@ const decisionFromClaims = (
 			proofConfig: rule.proof,
 			regionCode,
 		},
-		jurisdiction,
 		language,
 		rule,
 		source: late ? 'snapshot_token_replayed' : 'snapshot_token',
@@ -299,8 +306,7 @@ const decisionFromClaims = (
  */
 const decisionFromAssertedInputs = (
 	input: CookieBannerInput,
-	manifest: ConsentManifest,
-	context: SubmissionContext
+	manifest: ConsentManifest
 ): ResolvedDecision | StalePolicyError | undefined => {
 	const resolved = resolveInitFromManifest(
 		manifest,
@@ -333,7 +339,9 @@ const decisionFromAssertedInputs = (
 			reason: 'decision-mismatch',
 		});
 	}
-	const language = input.language ? parseLanguage(input.language) : undefined;
+	// The language the resolver served for these inputs, which is what a
+	// token for the same visit carries.
+	const language = parseLanguage(resolved.translations.language);
 	const rule = decision.policy;
 	return {
 		input: {
@@ -342,14 +350,11 @@ const decisionFromAssertedInputs = (
 			dedupeKey: buildDedupeKey({
 				countryCode: resolved.location.countryCode,
 				fingerprint: decision.fingerprints.policy,
-				jurisdiction: resolved.jurisdiction,
 				language,
 				matchedBy: decision.matchedBy,
 				regionCode: resolved.location.regionCode,
-				tenantId: context.tenantId,
 			}),
 			fingerprint: decision.fingerprints.policy,
-			jurisdiction: resolved.jurisdiction,
 			language,
 			matchedBy: decision.matchedBy,
 			model: rule.model,
@@ -359,7 +364,6 @@ const decisionFromAssertedInputs = (
 			proofConfig: rule.proof,
 			regionCode: resolved.location.regionCode,
 		},
-		jurisdiction: resolved.jurisdiction,
 		language,
 		rule,
 		source: 'write_time_fallback',
@@ -411,7 +415,6 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 			const decision = decisionFromClaims(
 				verification.payload,
 				manifest,
-				context,
 				verification.late
 			);
 			if (decision === 'policy-changed') {
@@ -441,7 +444,7 @@ const resolveDecision = Effect.fn('submission.resolveDecision')(
 					reason: 'incomplete-inputs',
 				});
 			}
-			const decision = decisionFromAssertedInputs(input, manifest, context);
+			const decision = decisionFromAssertedInputs(input, manifest);
 			if (decision instanceof StalePolicyError) {
 				return yield* decision;
 			}
@@ -826,15 +829,6 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		const cookieBanner = asCookieBanner(input);
 		const decision = yield* resolveDecision(cookieBanner, manifest, context);
 
-		const headerRecord = headersToRecord(context.headers);
-		const { country, region } = getRegionFromHeaders(headerRecord);
-		// Same rule the resolver applies: geo disabled means GDPR everywhere.
-		const jurisdiction =
-			decision?.jurisdiction ??
-			(manifest.defaults?.disableGeoLocation
-				? 'GDPR'
-				: checkJurisdiction(country ?? null, region ?? null));
-
 		const categories = resolveCategories(
 			input.preferences,
 			cookieBanner,
@@ -869,7 +863,6 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			grantedCodes,
 			input,
 			ipAddress: proof.ipAddress,
-			jurisdiction,
 			jurisdictionModel: model,
 			metadata: proof.metadata,
 			userAgent: proof.userAgent,

@@ -83,8 +83,9 @@ const deriveBackendURL = function deriveBackendURL(
  *
  * A manifest whose packs all match by default or fallback — "one banner
  * for everyone" — resolves the same everywhere, so the browser can do it
- * without a round trip. Anything keyed by country or region, or the
- * jurisdiction defaults that apply without packs, needs a location.
+ * without a round trip. So does a manifest without packs, which resolves
+ * to `unconfigured` or `no-match` wherever the visitor is. Anything keyed by
+ * country or region needs a location.
  *
  * @param manifest - The manifest.
  * @returns `true` when a country is required for a faithful answer.
@@ -92,14 +93,7 @@ const deriveBackendURL = function deriveBackendURL(
 export const manifestNeedsLocation = function manifestNeedsLocation(
 	manifest: ConsentManifest
 ): boolean {
-	if (manifest.defaults?.disableGeoLocation) {
-		return false;
-	}
-	const packs = manifest.policyPacks ?? [];
-	if (packs.length === 0) {
-		return true;
-	}
-	return packs.some(
+	return (manifest.policyPacks ?? []).some(
 		(pack) =>
 			(pack.match.countries?.length ?? 0) > 0 ||
 			(pack.match.regions?.length ?? 0) > 0

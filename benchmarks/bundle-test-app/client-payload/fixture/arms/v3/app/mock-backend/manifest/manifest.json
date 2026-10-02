@@ -1,9 +1,6 @@
 {
 	"appName": "c15t-client-payload",
 	"branding": "none",
-	"defaults": {
-		"disableGeoLocation": false
-	},
 	"policyPacks": [
 		{
 			"fingerprints": {

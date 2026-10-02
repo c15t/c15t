@@ -3,10 +3,6 @@ import type { BaseTranslations } from '@c15t/translations/all';
 
 import type { InitOutput } from '../api/init';
 import type { brandingValues } from './constants';
-import {
-	checkJurisdiction,
-	getJurisdictionFromLocation,
-} from './jurisdiction-runtime';
 import { createDeterministicFingerprintSync } from './policy-fingerprint';
 import {
 	matchPolicyRules,
@@ -50,10 +46,6 @@ export interface ConsentManifestTranslationInputs {
 	i18n?: I18nOptions;
 }
 
-export interface ConsentManifestDefaults {
-	disableGeoLocation?: boolean;
-}
-
 export interface ConsentManifestIAB {
 	enabled: boolean;
 	customVendors?: InitOutput['customVendors'];
@@ -71,7 +63,6 @@ export interface ConsentManifest {
 	tenantId?: string;
 	appName?: string;
 	branding: ConsentManifestBranding;
-	defaults?: ConsentManifestDefaults;
 	policyPacks?: ConsentManifestPolicyPack[];
 	/**
 	 * Present when the configured rules were invalid. Every request then
@@ -282,9 +273,6 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 		countryCode: inputs.country ?? null,
 		regionCode: inputs.region ?? null,
 	};
-	const jurisdiction = getJurisdictionFromLocation(location, {
-		disableGeoLocation: manifest.defaults?.disableGeoLocation,
-	});
 	const resolution = resolvePolicyResolutionFromManifest(manifest, location);
 	const resolvedPolicy =
 		resolution.status === 'matched' ? resolution.policy : undefined;
@@ -313,7 +301,6 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 
 	return {
 		branding: manifest.branding,
-		jurisdiction,
 		location,
 		policyResolution,
 		translations: responseTranslations as InitOutput['translations'],
@@ -335,8 +322,6 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 	};
 };
 
-export { checkJurisdiction };
-
 /**
  * The configuration a consent manifest is built from.
  *
@@ -347,7 +332,6 @@ export { checkJurisdiction };
 export interface ConsentManifestConfig {
 	readonly appName?: string;
 	readonly branding?: ConsentManifest['branding'];
-	readonly disableGeoLocation?: boolean;
 	readonly policyRules?: readonly PolicyRule[];
 	readonly customTranslations?: ConsentManifest['translations'] extends
 		| { customTranslations?: infer T }
@@ -431,7 +415,6 @@ export const buildConsentManifestFromConfig =
 			appName: config.appName,
 			branding: config.branding || 'c15t',
 			cmpId: config.iab?.cmpId,
-			defaults: { disableGeoLocation: config.disableGeoLocation },
 			iab: buildGvlReference(config),
 			policyFailure,
 			policyPacks,

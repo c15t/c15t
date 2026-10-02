@@ -2,30 +2,22 @@ import * as v from 'valibot';
 
 import { brandingSchema } from '~/shared/branding';
 import { globalVendorListSchema } from '~/shared/gvl';
-import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
 import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
 import { vendorSchema } from '~/shared/vendor';
 
 /**
- * Title and description schema for translations
+ * A title and description pair. Either may be omitted; the client fills
+ * gaps from its bundled copy.
  */
 export const titleDescriptionSchema = v.object({
-	description: v.string(),
-	title: v.string(),
-});
-
-/**
- * Partial title and description schema
- */
-export const partialTitleDescriptionSchema = v.object({
 	description: v.optional(v.string()),
 	title: v.optional(v.string()),
 });
 
 /**
  * Cookie banner copy. The notice pair is used when the resolved policy
- * requires a `notice` prompt; older backends omit it.
+ * requires a `notice` prompt.
  */
 export const cookieBannerTranslationsSchema = v.object({
 	...titleDescriptionSchema.entries,
@@ -33,20 +25,7 @@ export const cookieBannerTranslationsSchema = v.object({
 	noticeTitle: v.optional(v.string()),
 });
 
-/**
- * Partial cookie banner copy for older backend versions
- */
-export const partialCookieBannerTranslationsSchema = v.object({
-	...partialTitleDescriptionSchema.entries,
-	noticeDescription: v.optional(v.string()),
-	noticeTitle: v.optional(v.string()),
-});
-
-/**
- * Copy for the vendor rows nested under a category in the preference
- * center. Every field is optional so a backend that predates vendor rows
- * still validates and the bundled defaults fill the gaps.
- */
+/** Copy for the vendor rows nested under a category in the preference center. */
 export const vendorListTranslationsSchema = v.optional(
 	v.object({
 		disabledByCategory: v.optional(v.string()),
@@ -56,26 +35,15 @@ export const vendorListTranslationsSchema = v.optional(
 	})
 );
 
-/**
- * Preference center copy, with the vendor rows' copy alongside.
- */
+/** Preference center copy, with the vendor rows' copy alongside. */
 export const consentManagerDialogTranslationsSchema = v.object({
 	...titleDescriptionSchema.entries,
 	vendors: vendorListTranslationsSchema,
 });
 
 /**
- * Partial preference center copy for older backend versions
- */
-export const partialConsentManagerDialogTranslationsSchema = v.object({
-	...partialTitleDescriptionSchema.entries,
-	vendors: vendorListTranslationsSchema,
-});
-
-/**
  * Labels for persistent rights a surface exposes when no prompt action
  * covers them, such as the opt-out and preferences links on a notice.
- * Optional so older backends still validate.
  */
 export const rightsTranslationsSchema = v.optional(
 	v.object({
@@ -85,103 +53,45 @@ export const rightsTranslationsSchema = v.optional(
 );
 
 /**
- * Complete translations schema for newer backend versions
- * All fields are required for full functionality
+ * Copy served by `/init`.
+ *
+ * The backend sends a complete bundle for the resolved language. Keys stay
+ * optional because the client merges them over its bundled copy, so a
+ * custom transport may send only what it overrides.
  */
-export const completeTranslationsSchema = v.object({
+export const translationsSchema = v.object({
 	common: v.object({
-		acceptAll: v.string(),
+		acceptAll: v.optional(v.string()),
 		acknowledge: v.optional(v.string()),
-		customize: v.string(),
+		customize: v.optional(v.string()),
 		dismiss: v.optional(v.string()),
-		rejectAll: v.string(),
-		save: v.string(),
+		rejectAll: v.optional(v.string()),
+		save: v.optional(v.string()),
 	}),
-	consentGate: v.object({
-		actionButton: v.string(),
-		title: v.string(),
-	}),
+	consentGate: v.optional(
+		v.object({
+			actionButton: v.optional(v.string()),
+			title: v.optional(v.string()),
+		})
+	),
 	consentManagerDialog: consentManagerDialogTranslationsSchema,
 	consentTypes: v.object({
-		experience: titleDescriptionSchema,
-		functionality: titleDescriptionSchema,
-		marketing: titleDescriptionSchema,
-		measurement: titleDescriptionSchema,
-		necessary: titleDescriptionSchema,
+		experience: v.optional(titleDescriptionSchema),
+		functionality: v.optional(titleDescriptionSchema),
+		marketing: v.optional(titleDescriptionSchema),
+		measurement: v.optional(titleDescriptionSchema),
+		necessary: v.optional(titleDescriptionSchema),
 	}),
 	cookieBanner: cookieBannerTranslationsSchema,
-	legalLinks: v.object({
-		cookiePolicy: v.string(),
-
-		privacyPolicy: v.string(),
-		termsOfService: v.string(),
-	}),
-	rights: rightsTranslationsSchema,
-});
-
-/** `ConsentGate` placeholder copy from a backend that serves partial copy. */
-const consentGateTranslationsSchema = v.partial(
-	v.object({
-		actionButton: v.optional(v.string()),
-		title: v.optional(v.string()),
-	})
-);
-
-/**
- * Partial translations schema for backward compatibility with older backend versions
- * Allows missing fields to gracefully degrade functionality
- */
-export const partialTranslationsSchema = v.object({
-	common: v.partial(
-		v.object({
-			acceptAll: v.optional(v.string()),
-			acknowledge: v.optional(v.string()),
-			customize: v.optional(v.string()),
-			dismiss: v.optional(v.string()),
-			rejectAll: v.optional(v.string()),
-			save: v.optional(v.string()),
-		})
-	),
-	consentGate: v.optional(consentGateTranslationsSchema),
-	consentManagerDialog: partialConsentManagerDialogTranslationsSchema,
-	consentTypes: v.partial(
-		v.object({
-			experience: partialTitleDescriptionSchema,
-			functionality: partialTitleDescriptionSchema,
-			marketing: partialTitleDescriptionSchema,
-			measurement: partialTitleDescriptionSchema,
-			necessary: partialTitleDescriptionSchema,
-		})
-	),
-	cookieBanner: partialCookieBannerTranslationsSchema,
-	/**
-	 * `consentGate` copy under its name before the rename, as an older
-	 * backend serves it. Clients read it as `consentGate`.
-	 *
-	 * @deprecated Serve `consentGate` instead.
-	 */
-	frame: v.optional(consentGateTranslationsSchema),
 	legalLinks: v.optional(
-		v.partial(
-			v.object({
-				cookiePolicy: v.optional(v.string()),
-
-				privacyPolicy: v.optional(v.string()),
-				termsOfService: v.optional(v.string()),
-			})
-		)
+		v.object({
+			cookiePolicy: v.optional(v.string()),
+			privacyPolicy: v.optional(v.string()),
+			termsOfService: v.optional(v.string()),
+		})
 	),
 	rights: rightsTranslationsSchema,
 });
-
-/**
- * Union schema that accepts both complete and partial translations
- * Provides backward compatibility while maintaining type safety
- */
-export const translationsSchema = v.union([
-	completeTranslationsSchema,
-	partialTranslationsSchema,
-]);
 
 /**
  * Location schema for init output
@@ -237,7 +147,6 @@ export const initOutputSchema = v.object({
 			vendorListVersion: v.number(),
 		})
 	),
-	jurisdiction: jurisdictionCodeSchema,
 	location: locationSchema,
 	/** Explicit, versioned policy outcome for every complete response. */
 	policyResolution: policyResolutionWireSchema,

@@ -99,7 +99,6 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 
 		expect(init).toMatchObject({
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: {
 				countryCode: 'DE',
 				regionCode: 'BE',

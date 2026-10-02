@@ -385,7 +385,6 @@ describe('resolveManifestInit', () => {
 
 		expect(init).toMatchObject({
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: 'BE' },
 			policyResolution: {
 				matchedBy: 'country',

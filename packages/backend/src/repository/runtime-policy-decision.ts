@@ -2,20 +2,20 @@
  * Runtime policy decisions.
  *
  * A decision records *why* a given consent was collected the way it was: which
- * policy matched, under which jurisdiction, with which UI. It is the evidence
+ * policy matched, for which location and language, with which UI. It is the evidence
  * behind a consent record, so it has to be reproducible — the same inputs must
  * resolve to the same decision row rather than accumulating near-duplicates
  * that make an audit ambiguous.
  *
  * Deduplication is on `dedupeKey`, which the caller derives from fingerprint,
- * match reason, geo and jurisdiction. That key is unique in the schema, so the
+ * match reason, geo and language. That key is unique in the schema, so the
  * database enforces it rather than the application hoping.
  *
  * ## The key is namespaced by tenant here, not scoped by the constraint
  *
  * The unique is on `dedupeKey` alone — that is the shape shipped 2.0.0 created,
- * and it is in every production database. Two tenants sending the same
- * client-supplied key therefore collide: the second loses the conflict and is
+ * and it is in every production database. Two tenants resolving the same
+ * decision would therefore collide: the second loses the conflict and is
  * handed **the first tenant's decision row**, so its consent record ends up
  * citing another tenant's evidence.
  *
@@ -31,10 +31,9 @@
  * and no constraint change. `buildLegalDocumentPolicyId` already derives its id
  * the same way.
  *
- * Only namespaced when a tenant is set, deliberately: a single-tenant database
- * adopted from 2.x keeps producing byte-identical keys, so its existing rows
- * still deduplicate rather than every decision being recorded a second time
- * after the upgrade.
+ * v3 keys never match 2.x rows: the policy fingerprint in them is a different
+ * hash. A database upgraded from 2.x records each decision once more on first
+ * use, then deduplicates as before. Old consents keep pointing at old rows.
  */
 
 import { generateEntityId, hashSha256Hex } from '@c15t/schema';
@@ -50,7 +49,6 @@ export interface DecisionInput {
 	readonly matchedBy: string;
 	readonly countryCode?: string | null;
 	readonly regionCode?: string | null;
-	readonly jurisdiction: string;
 	readonly language?: string | null;
 	readonly model: string;
 	readonly dedupeKey: string;
@@ -64,31 +62,19 @@ export interface DecisionInput {
 }
 
 /**
- * The stored key: bounded and tenant-qualified when there is a tenant,
- * untouched when there is not.
+ * The stored key: hashed, and tenant-qualified when there is a tenant.
  *
- * Concatenating `${tenantId}|${dedupeKey}` was the obvious form and overflows:
- * the column is `indexedText`, which is `varchar(255)` on MySQL because MySQL
- * cannot index TEXT without a prefix length. A client-supplied key already near
- * that width would push past it once prefixed, so a key that recorded fine
- * before scoping would start failing. Hashing bounds it at 71 characters
- * whatever goes in — the same thing `buildLegalDocumentPolicyId` does, for the
- * same reason.
- *
- * The lengths are part of the hashed input, so `("a|b", "c")` and `("a", "b|c")`
- * cannot collide on a shared separator.
- *
- * Untouched without a tenant, deliberately: a single-tenant database adopted
- * from 2.x keeps producing byte-identical keys, so its existing rows still
- * deduplicate rather than every decision being written a second time after the
- * upgrade.
+ * Hashing bounds the key at 66 characters whatever goes in. The column is
+ * `indexedText`, which is `varchar(255)` on MySQL because MySQL cannot index
+ * TEXT without a prefix length. `buildLegalDocumentPolicyId` does the same,
+ * for the same reason.
  */
 export const scopedDedupeKey = async (
 	tenantId: string | undefined,
 	dedupeKey: string
 ): Promise<string> => {
 	if (tenantId === undefined) {
-		return dedupeKey;
+		return `d_${await hashSha256Hex(JSON.stringify([dedupeKey]))}`;
 	}
 
 	const digest = await hashSha256Hex(JSON.stringify([tenantId, dedupeKey]));
@@ -134,7 +120,8 @@ export const recordDecision = Effect.fn('decision.record')(
 				dialogUi: json(input.dialogUi),
 				fingerprint: input.fingerprint,
 				id,
-				jurisdiction: input.jurisdiction,
+				// 2.x stored a regulation label here. Nullable since migration 7.
+				jurisdiction: null,
 				language: input.language ?? null,
 				matchedBy: input.matchedBy,
 				model: input.model,

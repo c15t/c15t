@@ -79,19 +79,26 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['auth0', 'clerk'])
 		)
 	),
-	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
+	/**
+	 * Regulation label a 2.x client sends. Accepted so those clients keep
+	 * validating; the backend ignores it.
+	 *
+	 * @deprecated v3 clients do not send it.
+	 */
 	jurisdiction: v.optional(
 		v.pipe(
 			v.string(),
-			v.description("Jurisdiction code resolved for the subject's location."),
-			v.examples(['GDPR', 'UK_GDPR', 'CCPA'])
+			v.description('Ignored. Sent by 2.x clients only.'),
+			v.examples(['GDPR'])
 		)
 	),
 	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
 	jurisdictionModel: v.optional(
 		v.pipe(
 			v.string(),
-			v.description('Consent model used for the resolved jurisdiction.'),
+			v.description(
+				'Consent model the client applied. Used when no policy decision is available.'
+			),
 			v.examples(['opt-in', 'opt-out', 'iab'])
 		)
 	),

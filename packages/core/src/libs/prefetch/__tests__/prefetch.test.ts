@@ -31,7 +31,6 @@ describe('prefetch utilities', () => {
 				JSON.stringify({
 					branding: 'c15t',
 					gvl: null,
-					jurisdiction: 'CCPA',
 					location: { countryCode: 'US', regionCode: 'CA' },
 					translations: { language: 'de', translations: {} },
 				}),
@@ -94,7 +93,6 @@ describe('prefetch utilities', () => {
 					JSON.stringify({
 						branding: 'c15t',
 						gvl: null,
-						jurisdiction: 'GDPR',
 						location: { countryCode: 'DE', regionCode: 'BE' },
 						translations: { language: 'de', translations: {} },
 					}),
@@ -145,7 +143,7 @@ describe('prefetch utilities', () => {
 			value: false,
 		});
 		const fetchSpy = vi.fn().mockResolvedValue(
-			new Response(JSON.stringify({ jurisdiction: 'GDPR' }), {
+			new Response(JSON.stringify({ branding: 'c15t' }), {
 				headers: { 'content-type': 'application/json' },
 				status: 200,
 			})
@@ -186,7 +184,6 @@ describe('prefetch utilities', () => {
 					JSON.stringify({
 						branding: 'c15t',
 						gvl: null,
-						jurisdiction: 'CCPA',
 						location: { countryCode: 'US', regionCode: 'CA' },
 						translations: { language: 'en', translations: {} },
 					}),

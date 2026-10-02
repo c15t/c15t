@@ -43,7 +43,6 @@ import { createManifestTransport } from '../transports/manifest';
 // Deliberately missing the negotiated field: tests exercise untrusted responses.
 const BASE_INIT = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	translations: { language: 'de', translations: {} as never },
 } as unknown as InitOutput;

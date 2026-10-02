@@ -76,7 +76,7 @@ curl -i 'http://localhost:3000/api/c15t/sessions' \
   -H 'X-C15T-Version: 3.0.0' \
   -H 'X-C15T-Client-IP: 203.0.113.42' \
   -H 'User-Agent: Mozilla/5.0' \
-  -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"jurisdiction":"GDPR","country":"DE","region":null,"language":"de","gpc":false}'
+  -d '{"source":"route","revision":"…","resolution":"matched","policy":{"id":"eu-opt-in","fingerprint":"…","matchedBy":"country","model":"opt-in"},"country":"DE","region":null,"language":"de","gpc":false}'
 ```
 
 A framework server that resolves consent from a cached manifest never calls

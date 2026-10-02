@@ -152,7 +152,6 @@ describe('initOutputSchema', () => {
 	test('carries policyResolution next to the v2 fields', () => {
 		const output = v.parse(initOutputSchema, {
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
 			translations: {
@@ -206,7 +205,6 @@ describe('initOutputSchema', () => {
 		};
 		const output = v.parse(initOutputSchema, {
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
 			translations: { language: 'en', translations },
@@ -228,11 +226,10 @@ describe('initOutputSchema', () => {
 		};
 		const base = {
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
 		};
-		// Complete branch: every required field present.
+		// A complete bundle, as the backend serves it.
 		const complete = v.parse(initOutputSchema, {
 			...base,
 			translations: {
@@ -265,7 +262,7 @@ describe('initOutputSchema', () => {
 		expect(
 			complete.translations.translations.consentManagerDialog.vendors
 		).toEqual(vendors);
-		// Partial branch: a backend that only translated the privacy link.
+		// A custom transport that only overrides the privacy link.
 		const partial = v.parse(initOutputSchema, {
 			...base,
 			translations: {
@@ -288,7 +285,6 @@ describe('initOutputSchema', () => {
 	test('accepts partial translations that omit the new keys', () => {
 		const output = v.parse(initOutputSchema, {
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			policyResolution: JSON.parse(JSON.stringify(matched)) as unknown,
 			translations: {
@@ -308,7 +304,7 @@ describe('initOutputSchema', () => {
 		expect(parsed.rights?.optOut).toBe('Opt out');
 	});
 
-	test("keeps an older backend's frame copy for clients to read as consentGate", () => {
+	test('drops the v2 jurisdiction label and frame copy', () => {
 		const output = v.parse(initOutputSchema, {
 			branding: 'c15t',
 			jurisdiction: 'GDPR',
@@ -325,8 +321,7 @@ describe('initOutputSchema', () => {
 				},
 			},
 		});
-		expect(output.translations.translations).toMatchObject({
-			frame: { actionButton: 'Allow {category}', title: 'Blocked' },
-		});
+		expect(output).not.toHaveProperty('jurisdiction');
+		expect(output.translations.translations).not.toHaveProperty('frame');
 	});
 });

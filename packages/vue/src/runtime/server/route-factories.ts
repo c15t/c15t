@@ -396,14 +396,16 @@ export const createInitRoute = function createInitRoute(
 				customVendors: mapped.customVendors,
 				gvl: mapped.gvl,
 				gvlReference: mapped.gvlReference,
-				jurisdiction: payload.jurisdiction,
 				location: payload.location,
 				policyResolution: writePolicyResolutionWire(
 					readPolicyResolutionWire(mapped.policyResolution)
 				),
 				policySnapshotToken: mapped.policySnapshotToken,
+				resolvedPrivacySignals: mapped.resolvedPrivacySignals,
 				subjectId: mapped.subjectId,
 				translations: payload.translations,
+				vendorListVersion: mapped.vendorListVersion,
+				vendors: mapped.vendors,
 			};
 			return negotiateInit(
 				output,

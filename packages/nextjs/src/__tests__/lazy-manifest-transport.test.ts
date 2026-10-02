@@ -222,7 +222,6 @@ describe('lazyHosted', () => {
 			Promise.resolve(
 				jsonResponse({
 					branding: 'c15t',
-					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
 					translations: { language: 'de', translations: { common: {} } },
 				})

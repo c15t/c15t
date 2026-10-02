@@ -114,7 +114,6 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	const policy = normalizePolicyRule(rule);
 	nuxt.response = {
 		branding: 'none',
-		jurisdiction: 'GDPR',
 		location: { countryCode: 'DE', regionCode: null },
 		policyResolution: writePolicyResolutionWire({
 			fingerprints: createPolicyRuleFingerprints(policy),
@@ -357,7 +356,6 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 	nuxt.manifest = false;
 	nuxt.response = {
 		branding: 'none',
-		jurisdiction: 'GDPR',
 		location: { countryCode: 'DE', regionCode: null },
 		policyResolution: writePolicyResolutionWire({
 			fingerprints: createPolicyRuleFingerprints(policy),

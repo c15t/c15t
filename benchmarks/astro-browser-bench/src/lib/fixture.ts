@@ -140,7 +140,6 @@ const policy = {
 /** Pre-resolved `/init` payload, for the direct (hosted) arm. */
 export const benchConsentInitResponse = {
 	branding: 'c15t',
-	jurisdiction: 'NONE',
 	location: {
 		countryCode: null,
 		regionCode: null,
