@@ -24,7 +24,7 @@ import { join } from 'node:path';
 import { assert, describe, expect, it } from '@effect/vitest';
 import { Effect, ManagedRuntime } from 'effect';
 import type { Layer } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { resetDatabase } from './__tests__/engines';
 import type { DatabaseConfig } from './db/connect';

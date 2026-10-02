@@ -34,6 +34,32 @@ PostgreSQL also supports `schema` for isolating c15t tables. For MySQL, choose t
 database through the connection URL. For SQLite, choose a dedicated durable file.
 An in-memory database is suitable for disposable tests, not retained history.
 
+## Connect through a PostgreSQL pooler
+
+`@effect/sql-pg` caches named prepared statements on each connection. A pooler
+in transaction mode, such as PgBouncer or a provider's pooled connection URL,
+can route the next query to a connection that never prepared the statement, and
+the query fails. Connect directly, or pass a client layer with prepared
+statements turned off:
+
+{/* example: fragment */}
+
+```ts title="c15t-backend.config.ts"
+import { defineConfig } from '@c15t/backend';
+import { PgClient } from '@effect/sql-pg';
+import { Redacted } from 'effect';
+
+const url = process.env.DATABASE_URL;
+if (!url) throw new Error('Set DATABASE_URL');
+export default defineConfig({
+	database: PgClient.layer({ url: Redacted.make(url), prepare: false }),
+});
+```
+
+A client layer bypasses the `schema` option. To keep c15t's tables in their own
+schema, add `startupOptions: '-c search_path=c15t'` to the layer, and check that
+your pooler forwards startup options.
+
 ## Apply and verify migrations
 
 ```bash

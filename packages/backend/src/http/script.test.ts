@@ -3,7 +3,7 @@
  */
 import { policyRulePresets } from '@c15t/schema/types';
 import { Effect, ManagedRuntime } from 'effect';
-import type { SqlClient } from 'effect/unstable/sql';
+import type { SqlClient } from 'effect/sql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';

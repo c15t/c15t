@@ -31,8 +31,8 @@
 import { EXPERIMENT_SUMMARY_ACTIONS } from '@c15t/schema';
 import type { ExperimentSummaryAction } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
-import type { SqlError, Statement } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
+import type { SqlError, Statement } from 'effect/sql';
 
 import { tenantScope } from '../db/tenant';
 import type { Tenant } from '../db/tenant';

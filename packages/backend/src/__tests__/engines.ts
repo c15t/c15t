@@ -41,7 +41,7 @@ import { PgClient } from '@effect/sql-pg';
 import { PgliteClient } from '@effect/sql-pglite';
 import { SqliteClient } from '@effect/sql-sqlite-node';
 import { Effect, Layer, Redacted } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import type { Tenant } from '../db/tenant';

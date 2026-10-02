@@ -30,8 +30,8 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
-import type { SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
+import type { SqlError } from 'effect/sql';
 
 import { apply, LEDGER_TABLE, plan } from './adopt';
 import type { ApplyOptions } from './adopt';

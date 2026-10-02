@@ -18,7 +18,7 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import * as Dialect from '../dialect';
 

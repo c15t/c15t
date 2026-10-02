@@ -13,7 +13,7 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 /** `list.handler.ts:13`. Reproduced exactly. */
 const SUBJECT_ID_BATCH_SIZE = 500;

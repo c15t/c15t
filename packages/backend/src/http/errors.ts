@@ -11,7 +11,7 @@
 
 // oxlint-disable-next-line max-classes-per-file -- Preserve declaration order, interface shape, and public compatibility.
 import { Data } from 'effect';
-import type { SqlError } from 'effect/unstable/sql';
+import type { SqlError } from 'effect/sql';
 
 /** A request referenced something that does not exist. */
 export class NotFoundError extends Data.TaggedError('NotFoundError')<{

@@ -34,8 +34,8 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
-import type { SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
+import type { SqlError } from 'effect/sql';
 
 /** A database classification the migrator knows how to handle. */
 export type DatabaseClassification =

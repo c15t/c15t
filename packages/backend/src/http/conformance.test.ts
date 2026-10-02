@@ -10,7 +10,7 @@
 import { CASES } from '@c15t/backend-conformance';
 import type { Backend, SeedFixture } from '@c15t/backend-conformance';
 import { Effect, ManagedRuntime } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 
 import { ENGINES, resetDatabase } from '../__tests__/engines';

@@ -16,9 +16,9 @@
 		"@c15t/backend": "workspace:*",
 		"@c15t/benchmarking": "workspace:*",
 		"@c15t/schema": "workspace:*",
-		"@effect/sql-pglite": "4.0.0-beta.102",
+		"@effect/sql-pglite": "4.0.0",
 		"@electric-sql/pglite": "latest",
-		"effect": "4.0.0-beta.102"
+		"effect": "4.0.0"
 	},
 	"devDependencies": {
 		"@c15t/typescript-config": "workspace:*",

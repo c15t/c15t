@@ -11,7 +11,7 @@
 import { POLICY_CONTRACT_HEADER, POLICY_CONTRACT_VERSION } from '@c15t/schema';
 import { isOriginTrusted } from '@c15t/schema/geo';
 import type { ManagedRuntime } from 'effect';
-import type { SqlClient } from 'effect/unstable/sql';
+import type { SqlClient } from 'effect/sql';
 import { Hono } from 'hono';
 import { openAPIRouteHandler } from 'hono-openapi';
 

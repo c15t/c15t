@@ -11,7 +11,7 @@
 
 import { generateDeterministicId } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { insertOnce } from '../db/insert-once';
 import { currentTenantId, tenantScope } from '../db/tenant';
