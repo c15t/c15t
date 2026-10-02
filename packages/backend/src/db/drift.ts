@@ -28,11 +28,20 @@ const DEDUPE_COLUMN = 'dedupeKey';
  * already part of the key's value, so `dedupeKey` alone is the right scope.
  */
 export const missingDedupeIndex = function missingDedupeIndex(
-	quote: (name: string) => string
+	dialect: Dialect.Dialect
 ): string {
-	return `${DECISION_TABLE} has no unique index on ${DEDUPE_COLUMN} alone, so repeated policy decisions are stored as separate rows. Check for duplicate ${DEDUPE_COLUMN} values, then run: create unique index ${quote(
+	const quote = Dialect.escaperFor(dialect);
+	// Concurrently on Postgres, so adding the index does not block writes to
+	// a large table. A failed concurrent build leaves an invalid index behind.
+	const postgres = dialect === 'postgres';
+	const statement = `create unique index ${postgres ? 'concurrently ' : ''}${quote(
 		`${DECISION_TABLE}_${DEDUPE_COLUMN}_key`
 	)} on ${quote(DECISION_TABLE)} (${quote(DEDUPE_COLUMN)})`;
+	return `${DECISION_TABLE} has no unique index on ${DEDUPE_COLUMN} alone, so repeated policy decisions are stored as separate rows. Check for duplicate ${DEDUPE_COLUMN} values, then run: ${statement}${
+		postgres
+			? '. If an earlier attempt failed and left an invalid index with that name, drop it first.'
+			: ''
+	}`;
 };
 
 const tableExists = Effect.gen(function* tableExists() {
@@ -58,16 +67,28 @@ const tableExists = Effect.gen(function* tableExists() {
 });
 
 /**
- * The column lists of every full (non-partial) unique index on the decision
- * table, each joined with commas in index order. Unique constraints count:
- * every engine backs them with a unique index.
+ * The key parts of every full (non-partial), valid, non-deferrable unique
+ * index on the decision table, each joined with commas. Unique constraints count: every
+ * engine backs them with a unique index.
+ *
+ * A part that is not a whole column, such as an expression or a MySQL prefix
+ * of one, reads as `?`, so an index on `(dedupeKey, lower(x))` or on a
+ * prefix of `dedupeKey` never matches `dedupeKey` alone. Postgres `INCLUDE`
+ * columns are left out: they do not take part in uniqueness. A deferrable
+ * Postgres constraint is left out too: `on conflict` cannot use it.
  */
 const uniqueIndexColumns = Effect.gen(function* uniqueIndexColumns() {
 	const sql = yield* SqlClient.SqlClient;
 	const rows = yield* sql.onDialectOrElse({
 		mysql: () =>
 			sql<{ columns: string }>`
-				select group_concat(column_name order by seq_in_index) as columns
+				select group_concat(
+					case
+						when column_name is not null and sub_part is null then column_name
+						else '?'
+					end
+					order by seq_in_index
+				) as columns
 				from information_schema.statistics
 				where table_schema = database()
 					and table_name = ${DECISION_TABLE}
@@ -76,21 +97,26 @@ const uniqueIndexColumns = Effect.gen(function* uniqueIndexColumns() {
 			`,
 		orElse: () =>
 			sql<{ columns: string }>`
-				select string_agg(a.attname, ',' order by k.ord) as columns
+				select string_agg(coalesce(a.attname, '?'), ',' order by k.ord) as columns
 				from pg_index i
 				join pg_class t on t.oid = i.indrelid
 				join pg_namespace n on n.oid = t.relnamespace
 				cross join lateral unnest(i.indkey) with ordinality as k(attnum, ord)
-				join pg_attribute a on a.attrelid = t.oid and a.attnum = k.attnum
+				left join pg_attribute a
+					on a.attrelid = t.oid and a.attnum = k.attnum and k.attnum > 0
 				where n.nspname = current_schema()
 					and t.relname = ${DECISION_TABLE}
 					and i.indisunique
+					and i.indisvalid
+					and i.indisready
+					and i.indimmediate
 					and i.indpred is null
+					and k.ord <= i.indnkeyatts
 				group by i.indexrelid
 			`,
 		sqlite: () =>
 			sql<{ columns: string }>`
-				select group_concat(ii.name) as columns
+				select group_concat(coalesce(ii.name, '?')) as columns
 				from pragma_index_list(${DECISION_TABLE}) il,
 					pragma_index_info(il.name) ii
 				where il."unique" = 1 and il.partial = 0
@@ -112,7 +138,7 @@ export const findSchemaDrift = Effect.gen(function* findSchemaDrift() {
 	const indexes = yield* uniqueIndexColumns;
 	const drift: string[] = [];
 	if (!indexes.includes(DEDUPE_COLUMN)) {
-		drift.push(missingDedupeIndex(Dialect.escaperFor(yield* Dialect.current)));
+		drift.push(missingDedupeIndex(yield* Dialect.current));
 	}
 	return drift as readonly string[];
 });

@@ -133,6 +133,34 @@ for (const engine of ENGINES) {
 		);
 
 		it.effect(
+			'fails rather than return an unwritten id when another unique index conflicts',
+			() =>
+				Effect.gen(function* gen() {
+					yield* resetDatabase;
+					yield* createCompositeDedupeTable;
+					const sql = yield* SqlClient.SqlClient;
+					const quote = Dialect.escaperFor(yield* Dialect.current);
+					yield* sql.unsafe(
+						`create unique index ${quote('decision_fingerprint')} on ${quote(
+							'runtimePolicyDecision'
+						)} (${quote('fingerprint')})`
+					);
+
+					yield* recordDecision(input).pipe(
+						Effect.provide(tenantLayer('tenant_a'))
+					);
+					const other = yield* Effect.exit(
+						recordDecision({ ...input, dedupeKey: 'other|key' }).pipe(
+							Effect.provide(tenantLayer('tenant_a'))
+						)
+					);
+
+					assert.strictEqual(other._tag, 'Failure');
+				}).pipe(Effect.provide(engine.client)),
+			{ timeout: 60_000 }
+		);
+
+		it.effect(
 			'the same key from one tenant is one decision',
 			() =>
 				Effect.gen(function* gen() {
