@@ -1018,3 +1018,134 @@ describe('the client never rejects', () => {
 		]);
 	});
 });
+
+describe('review regressions', () => {
+	it.each([
+		{},
+		{ cookie_banner: { hasConsent: false, isLatestPolicy: true } },
+		{
+			cookie_banner: null,
+			privacy_policy: { hasConsent: true, isLatestPolicy: true },
+		},
+		{
+			cookie_banner: { hasConsent: 'false', isLatestPolicy: true },
+			privacy_policy: { hasConsent: false, isLatestPolicy: true },
+		},
+		{
+			cookie_banner: { hasConsent: false, isLatestPolicy: 'true' },
+			privacy_policy: { hasConsent: false, isLatestPolicy: true },
+		},
+		{
+			cookie_banner: { hasConsent: false },
+			privacy_policy: { hasConsent: false, isLatestPolicy: true },
+		},
+		{
+			cookie_banner: { hasConsent: false, isLatestPolicy: true },
+			extra: {},
+			privacy_policy: { hasConsent: false, isLatestPolicy: true },
+		},
+	])('rejects incomplete or malformed consent results: %o', async (results) => {
+		const fetchMock = vi
+			.fn<typeof fetch>()
+			.mockResolvedValue(json({ results }));
+		const client = createClient(fetchMock);
+		await expect(
+			client.consents.check({
+				externalId: 'user_1',
+				types: ['cookie_banner', 'privacy_policy'],
+			})
+		).resolves.toMatchObject({
+			error: { code: 'UNEXPECTED_RESPONSE', status: 200 },
+			ok: false,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
+	it('preserves false consent values and suffixed policy types', async () => {
+		const results = {
+			cookie_banner: { hasConsent: false, isLatestPolicy: true },
+			terms_and_conditions_b2b: { hasConsent: true, isLatestPolicy: false },
+		};
+		const client = createClient(
+			vi.fn<typeof fetch>().mockResolvedValue(json({ results }))
+		);
+		await expect(
+			client.consents.check({
+				externalId: 'user_1',
+				types: ['cookie_banner', 'terms_and_conditions_b2b'],
+			})
+		).resolves.toMatchObject({ data: { results }, ok: true });
+	});
+
+	it.each(['bigint', 'cycle', 'toJSON'])(
+		'returns INVALID_INPUT when metadata cannot serialize: %s',
+		async (kind) => {
+			const metadata: Record<string, unknown> = {};
+			if (kind === 'bigint') {
+				metadata.count = 1n;
+			}
+			if (kind === 'cycle') {
+				metadata.self = metadata;
+			}
+			if (kind === 'toJSON') {
+				metadata.toJSON = () => {
+					throw new Error('cannot serialize');
+				};
+			}
+			const fetchMock = vi.fn<typeof fetch>();
+			const client = createClient(fetchMock);
+			await expect(
+				client.subjects.create({
+					domain: 'example.com',
+					givenAt: Date.now(),
+					metadata,
+					preferences: { necessary: true },
+					subjectId: 'sub_abc',
+					type: 'cookie_banner',
+				})
+			).resolves.toMatchObject({
+				error: { code: 'INVALID_INPUT', issues: expect.any(Array) },
+				ok: false,
+			});
+			expect(fetchMock).not.toHaveBeenCalled();
+		}
+	);
+
+	it('returns a result when timeout signal creation throws', async () => {
+		vi.spyOn(AbortSignal, 'timeout').mockImplementation(() => {
+			throw new RangeError('out of range');
+		});
+		const fetchMock = vi.fn<typeof fetch>();
+		const client = createClient(fetchMock);
+		await expect(client.status()).resolves.toMatchObject({
+			error: { code: 'INVALID_INPUT' },
+			ok: false,
+		});
+		expect(fetchMock).not.toHaveBeenCalled();
+	});
+
+	it.each([
+		'policy-changed',
+		'decision-mismatch',
+		'incomplete-inputs',
+		'future-reason',
+		undefined,
+	])('narrows the stale-policy reason from the wire: %s', async (reason) => {
+		const client = createClient(
+			vi
+				.fn<typeof fetch>()
+				.mockResolvedValue(apiError(422, { code: 'STALE_POLICY', reason }))
+		);
+		const error = errorOf(
+			await client.subjects.create({
+				domain: 'example.com',
+				givenAt: Date.now(),
+				preferences: { necessary: true },
+				subjectId: 'sub_abc',
+				type: 'cookie_banner',
+			})
+		);
+		expect(error.code).toBe('STALE_POLICY');
+		expect(error.reason).toBe(reason === 'future-reason' ? undefined : reason);
+	});
+});

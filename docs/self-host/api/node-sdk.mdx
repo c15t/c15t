@@ -75,7 +75,7 @@ on a client without a key, they return `MISSING_API_KEY` and send nothing.
 | `apiKey` | None | Sent as `Authorization: Bearer`. Adds the key-only methods. |
 | `fetch` | `globalThis.fetch` | `fetch` implementation, for tracing, proxies or tests. |
 | `headers` | `{}` | Headers sent with every request. |
-| `timeoutMs` | `10000` | Deadline for one attempt, reading the response body included. |
+| `timeoutMs` | `10000` | Deadline for one attempt, reading the response body included. An integer from `1` to `2147483647` milliseconds. |
 | `retry` | `{ maxRetries: 2, initialDelayMs: 200, maxDelayMs: 5000 }` | [Retry settings](#retries-and-timeouts), or `false` to never retry. |
 | `onEvent` | None | Called for each request, response and retry. |
 
@@ -134,8 +134,8 @@ Every `C15tError` also has `message`, `status` (when a response arrived),
 `requestId` (when something was sent) and `retryable`. `retryable` says whether
 the same call could succeed later; the client has already retried by the time
 you see it. A `STALE_POLICY` error carries `reason`: `policy-changed`,
-`decision-mismatch` or `incomplete-inputs`. `error.toJSON()` gives a plain
-object for logs.
+`decision-mismatch` or `incomplete-inputs`. An unrecognized reason from the
+backend is `undefined`. `error.toJSON()` gives a plain object for logs.
 
 ### Throw instead with `unwrap`
 
@@ -210,7 +210,8 @@ if (result.ok && result.data.results.marketing_communications.hasConsent) {
 `results` has a key for every type you request, so
 `results.marketing_communications` needs no `?`. A type with no record, or one
 the backend does not know, comes back as
-`{ hasConsent: false, isLatestPolicy: false }`.
+`{ hasConsent: false, isLatestPolicy: false }`. A response missing a requested
+type or containing non-boolean consent flags returns `UNEXPECTED_RESPONSE`.
 
 `hasConsent` means a record of that type exists. The check does not read the
 record's `preferences`, so record a `marketing_communications` consent only
@@ -439,7 +440,9 @@ Pass the ID of the request you are handling as `requestId` to match your logs
 with the backend's. The client owns `Accept`, `Authorization`, `Content-Type`,
 `x-request-id`, `x-c15t-version` and `x-c15t-policy-contract`; a header you pass
 with one of those names is replaced. An invalid call option returns
-`INVALID_INPUT` instead of throwing.
+`INVALID_INPUT` instead of throwing. Request bodies that cannot be serialized
+as JSON, such as metadata containing a bigint or circular reference, also
+return `INVALID_INPUT` before sending.
 
 ## Retries and timeouts
 
@@ -455,6 +458,10 @@ record when it receives the same consent, link or release twice.
   A `Retry-After` longer than `maxDelayMs` stops retrying and returns the error.
 - Every attempt sends the same `x-request-id`.
 - `maxRetries` can be 0 to 10.
+
+`initialDelayMs` and `maxDelayMs` must be integers from `0` to `2147483647`
+milliseconds. `timeoutMs` must be an integer from `1` to `2147483647`. Larger
+values can overflow Node.js timers to 1 ms, so the client rejects them.
 
 `timeoutMs` applies to each attempt, reading the response body included. The
 default worst case is three 10-second attempts plus the waits. To cap the whole
@@ -554,4 +561,4 @@ fields for the rest of the result.
 ## Upgrade from v2
 
 The v2 `c15tClient()` and its flat methods are gone. See
-[Migrate to v3](/docs/upgrade-v3#update-the-node-sdk) for the mapping.
+[Migrate to v3](/docs/upgrade-v3#update-the-nodejs-sdk) for the mapping.

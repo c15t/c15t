@@ -12,12 +12,14 @@ export interface C15tRetryOptions {
 	/**
 	 * Upper bound of the first backoff, in milliseconds. Each retry doubles it,
 	 * and the actual delay is a random value below the bound (full jitter).
+	 * Must be an integer from 0 to 2147483647.
 	 * @default 200
 	 */
 	readonly initialDelayMs?: number;
 	/**
 	 * Longest the client waits before a retry, in milliseconds. A
 	 * `Retry-After` longer than this ends retrying instead.
+	 * Must be an integer from 0 to 2147483647.
 	 * @default 5000
 	 */
 	readonly maxDelayMs?: number;
@@ -77,6 +79,7 @@ export interface C15tClientOptions {
 	readonly headers?: Readonly<Record<string, string>>;
 	/**
 	 * Deadline for one attempt in milliseconds, response body included.
+	 * Must be an integer from 1 to 2147483647.
 	 * @default 10000
 	 */
 	readonly timeoutMs?: number;
@@ -128,6 +131,8 @@ export interface ResolvedOptions {
 
 export const DEFAULT_TIMEOUT_MS = 10_000;
 export const MAX_RETRIES_LIMIT = 10;
+// Node clamps larger timer delays to 1ms, including AbortSignal.timeout.
+const MAX_TIMER_DELAY_MS = 2_147_483_647;
 export const NO_RETRY: ResolvedRetry = {
 	initialDelayMs: 0,
 	maxDelayMs: 0,
@@ -147,8 +152,11 @@ const isRecord = (value: unknown): value is Readonly<Record<string, unknown>> =>
 const isNonNegativeInteger = (value: unknown): value is number =>
 	typeof value === 'number' && Number.isInteger(value) && value >= 0;
 
-const isPositiveFinite = (value: unknown): value is number =>
-	typeof value === 'number' && Number.isFinite(value) && value > 0;
+const isTimerDelay = (value: unknown): value is number =>
+	isNonNegativeInteger(value) && value <= MAX_TIMER_DELAY_MS;
+
+const isTimeout = (value: unknown): value is number =>
+	isTimerDelay(value) && value > 0;
 
 const decodeBaseUrl = (
 	value: unknown,
@@ -262,16 +270,16 @@ export const decodeRetry = function decodeRetry(
 		});
 		valid = false;
 	}
-	if (!isNonNegativeInteger(initialDelayMs)) {
+	if (!isTimerDelay(initialDelayMs)) {
 		issues.push({
-			message: 'Use a non-negative integer number of milliseconds.',
+			message: `Use an integer from 0 to ${MAX_TIMER_DELAY_MS} milliseconds.`,
 			option: `${option}.initialDelayMs`,
 		});
 		valid = false;
 	}
-	if (!isNonNegativeInteger(maxDelayMs)) {
+	if (!isTimerDelay(maxDelayMs)) {
 		issues.push({
-			message: 'Use a non-negative integer number of milliseconds.',
+			message: `Use an integer from 0 to ${MAX_TIMER_DELAY_MS} milliseconds.`,
 			option: `${option}.maxDelayMs`,
 		});
 		valid = false;
@@ -339,9 +347,9 @@ export const decodeOptions = function decodeOptions(
 	const headers = decodeHeaders(options.headers, 'headers', issues);
 
 	const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
-	if (!isPositiveFinite(timeoutMs)) {
+	if (!isTimeout(timeoutMs)) {
 		issues.push({
-			message: 'Use a positive number of milliseconds.',
+			message: `Use an integer from 1 to ${MAX_TIMER_DELAY_MS} milliseconds.`,
 			option: 'timeoutMs',
 		});
 	}
@@ -400,9 +408,9 @@ export const decodeCallOptions = function decodeCallOptions(
 		issues.push({ message: 'Pass an AbortSignal.', option: 'options.signal' });
 	}
 	const timeoutMs = options.timeoutMs ?? client.timeoutMs;
-	if (!isPositiveFinite(timeoutMs)) {
+	if (!isTimeout(timeoutMs)) {
 		issues.push({
-			message: 'Use a positive number of milliseconds.',
+			message: `Use an integer from 1 to ${MAX_TIMER_DELAY_MS} milliseconds.`,
 			option: 'options.timeoutMs',
 		});
 	}
@@ -421,6 +429,6 @@ export const decodeCallOptions = function decodeCallOptions(
 		requestId: typeof requestId === 'string' ? requestId : '',
 		retry: decodeRetry(options.retry, 'options.retry', issues, client.retry),
 		signal: signal instanceof AbortSignal ? signal : undefined,
-		timeoutMs: isPositiveFinite(timeoutMs) ? timeoutMs : client.timeoutMs,
+		timeoutMs: isTimeout(timeoutMs) ? timeoutMs : client.timeoutMs,
 	};
 };

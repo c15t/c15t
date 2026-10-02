@@ -12,11 +12,12 @@ import {
 import type { C15tConfigurationIssue } from './configuration-error';
 import { DecodeError } from './contract';
 import type { Endpoint } from './contract';
-import { C15tError } from './errors';
+import { C15tError, isStalePolicyReason } from './errors';
 import type {
 	C15tApiErrorCode,
 	C15tClientErrorCode,
 	C15tIssue,
+	StalePolicyReason,
 } from './errors';
 import { decodeCallOptions } from './options';
 import type {
@@ -135,7 +136,7 @@ const wait = (ms: number, signal: AbortSignal | undefined): Promise<boolean> =>
 interface ErrorBody {
 	message?: string;
 	code?: string;
-	reason?: string;
+	reason?: StalePolicyReason;
 }
 
 /** The backend's error body: `{ message, cause: { code, reason? } }`. */
@@ -160,7 +161,7 @@ const readErrorBody = (text: string): ErrorBody => {
 	if (typeof cause?.code === 'string') {
 		parsed.code = cause.code;
 	}
-	if (typeof cause?.reason === 'string') {
+	if (isStalePolicyReason(cause?.reason)) {
 		parsed.reason = cause.reason;
 	}
 	return parsed;
@@ -177,6 +178,21 @@ type AttemptOutcome<Data, Code extends string> =
 const failure = <Code extends string>(
 	error: C15tError<Code>
 ): C15tFailure<Code> => ({ error, ok: false });
+
+const invalidInput = (
+	endpoint: { readonly name: string },
+	cause: unknown
+): C15tFailure<'INVALID_INPUT'> => {
+	const message = cause instanceof Error ? cause.message : String(cause);
+	return failure(
+		new C15tError({
+			cause,
+			code: 'INVALID_INPUT',
+			issues: [{ message }],
+			message: `Invalid input for ${endpoint.name}: ${message}`,
+		})
+	);
+};
 
 const aborted = (
 	endpoint: { readonly name: string },
@@ -202,16 +218,17 @@ const describeIssues = (issues: readonly C15tIssue[]): string =>
 		)
 		.join('; ');
 
-const decodeSuccess = <Data, Code extends C15tApiErrorCode>(
-	endpoint: Endpoint<string, never, Data, Code>,
+const decodeSuccess = <Input, Data, Code extends C15tApiErrorCode>(
+	endpoint: Endpoint<string, Input, Data, Code>,
 	response: Response,
 	text: string,
-	requestId: string
+	requestId: string,
+	input: Input
 ): C15tResult<Data, Code> => {
 	try {
 		const body: unknown = text === '' ? null : JSON.parse(text);
 		const success: C15tSuccess<Data> = {
-			data: endpoint.decode(body, response),
+			data: endpoint.decode(body, response, input),
 			headers: response.headers,
 			ok: true,
 			requestId,
@@ -234,10 +251,11 @@ const decodeSuccess = <Data, Code extends C15tApiErrorCode>(
 	}
 };
 
-const classifyResponse = async <Data, Code extends C15tApiErrorCode>(
-	endpoint: Endpoint<string, never, Data, Code>,
+const classifyResponse = async <Input, Data, Code extends C15tApiErrorCode>(
+	endpoint: Endpoint<string, Input, Data, Code>,
 	response: Response,
-	requestId: string
+	requestId: string,
+	input: Input
 ): Promise<AttemptOutcome<Data, Code>> => {
 	const text = await response.text();
 	const accepts =
@@ -246,7 +264,7 @@ const classifyResponse = async <Data, Code extends C15tApiErrorCode>(
 	if (accepts(response.status)) {
 		return {
 			kind: 'done',
-			result: decodeSuccess(endpoint, response, text, requestId),
+			result: decodeSuccess(endpoint, response, text, requestId, input),
 		};
 	}
 
@@ -289,25 +307,22 @@ const classifyResponse = async <Data, Code extends C15tApiErrorCode>(
 };
 
 /** Everything one call needs across its attempts. */
-interface CallPlan<Data, Code extends C15tApiErrorCode> {
+interface CallPlan<Input, Data, Code extends C15tApiErrorCode> {
 	readonly options: ResolvedOptions;
-	readonly endpoint: Endpoint<string, never, Data, Code>;
+	readonly input: Input;
+	readonly endpoint: Endpoint<string, Input, Data, Code>;
 	readonly call: ResolvedCallOptions;
 	readonly url: URL;
 	readonly init: Omit<RequestInit, 'signal'>;
 }
 
 /** Sends one attempt and classifies what came back. */
-const attemptOnce = async <Data, Code extends C15tApiErrorCode>(
-	plan: CallPlan<Data, Code>,
+const attemptOnce = async <Input, Data, Code extends C15tApiErrorCode>(
+	plan: CallPlan<Input, Data, Code>,
 	attempt: number
 ): Promise<AttemptOutcome<Data, Code>> => {
 	const { call, endpoint, options } = plan;
-	const timeout = AbortSignal.timeout(call.timeoutMs);
-	const signal =
-		call.signal === undefined
-			? timeout
-			: AbortSignal.any([call.signal, timeout]);
+	let timeout: AbortSignal | undefined;
 	const eventBase = {
 		attempt,
 		method: endpoint.method,
@@ -318,9 +333,19 @@ const attemptOnce = async <Data, Code extends C15tApiErrorCode>(
 	emit(options, { ...eventBase, type: 'request' });
 
 	try {
+		timeout = AbortSignal.timeout(call.timeoutMs);
+		const signal =
+			call.signal === undefined
+				? timeout
+				: AbortSignal.any([call.signal, timeout]);
 		const response = await options.fetch(plan.url, { ...plan.init, signal });
 		// The body is read under the same signal, so the timeout covers it.
-		const outcome = await classifyResponse(endpoint, response, call.requestId);
+		const outcome = await classifyResponse(
+			endpoint,
+			response,
+			call.requestId,
+			plan.input
+		);
 		emit(options, {
 			...eventBase,
 			durationMs: Date.now() - startedAt,
@@ -334,6 +359,9 @@ const attemptOnce = async <Data, Code extends C15tApiErrorCode>(
 				kind: 'done',
 				result: aborted(endpoint, call.requestId, error),
 			};
+		}
+		if (timeout === undefined) {
+			return { kind: 'done', result: invalidInput(endpoint, error) };
 		}
 		const timedOut = timeout.aborted;
 		const transportError = new C15tError({
@@ -354,8 +382,8 @@ const attemptOnce = async <Data, Code extends C15tApiErrorCode>(
 };
 
 /** Runs attempts until one is final or the retry budget is spent. */
-const runAttempts = async <Data, Code extends C15tApiErrorCode>(
-	plan: CallPlan<Data, Code>,
+const runAttempts = async <Input, Data, Code extends C15tApiErrorCode>(
+	plan: CallPlan<Input, Data, Code>,
 	attempt: number
 ): Promise<C15tResult<Data, Code>> => {
 	const { call, endpoint, options } = plan;
@@ -431,55 +459,60 @@ export const send = async function send<
 	input: Input,
 	rawCallOptions: unknown
 ): Promise<C15tResult<Data, Code>> {
-	const optionIssues: C15tConfigurationIssue[] = [];
-	const call = decodeCallOptions(rawCallOptions, options, optionIssues);
+	try {
+		const optionIssues: C15tConfigurationIssue[] = [];
+		const call = decodeCallOptions(rawCallOptions, options, optionIssues);
 
-	const issues = await collectIssues(endpoint, input, optionIssues);
-	if (issues.length > 0) {
-		return failure(
-			new C15tError({
-				code: 'INVALID_INPUT',
-				issues,
-				message: `Invalid input for ${endpoint.name}: ${describeIssues(issues)}`,
-			})
+		const issues = await collectIssues(endpoint, input, optionIssues);
+		if (issues.length > 0) {
+			return failure(
+				new C15tError({
+					code: 'INVALID_INPUT',
+					issues,
+					message: `Invalid input for ${endpoint.name}: ${describeIssues(issues)}`,
+				})
+			);
+		}
+
+		if (endpoint.auth === 'api-key' && options.apiKey === undefined) {
+			return failure(
+				new C15tError({
+					code: 'MISSING_API_KEY',
+					message: `${endpoint.name} needs an API key. Pass apiKey to createC15tClient.`,
+				})
+			);
+		}
+
+		const prepared = endpoint.prepare(input);
+		const hasBody = prepared.body !== undefined;
+		const init: RequestInit = {
+			headers: {
+				...normalizeHeaders(call.headers),
+				...normalizeHeaders(prepared.headers ?? {}),
+				...ownedHeaders(options, call.requestId, hasBody),
+			},
+			method: endpoint.method,
+		};
+		if (hasBody) {
+			init.body = JSON.stringify(prepared.body);
+		}
+
+		return runAttempts(
+			{
+				call,
+				endpoint: endpoint as Endpoint<string, Input, Data, Code>,
+				init,
+				input,
+				options,
+				url: buildUrl(
+					options.baseUrl,
+					buildPath(endpoint.path, prepared.params),
+					prepared.query
+				),
+			},
+			0
 		);
+	} catch (error) {
+		return invalidInput(endpoint, error);
 	}
-
-	if (endpoint.auth === 'api-key' && options.apiKey === undefined) {
-		return failure(
-			new C15tError({
-				code: 'MISSING_API_KEY',
-				message: `${endpoint.name} needs an API key. Pass apiKey to createC15tClient.`,
-			})
-		);
-	}
-
-	const prepared = endpoint.prepare(input);
-	const hasBody = prepared.body !== undefined;
-	const init: RequestInit = {
-		headers: {
-			...normalizeHeaders(call.headers),
-			...normalizeHeaders(prepared.headers ?? {}),
-			...ownedHeaders(options, call.requestId, hasBody),
-		},
-		method: endpoint.method,
-	};
-	if (hasBody) {
-		init.body = JSON.stringify(prepared.body);
-	}
-
-	return runAttempts(
-		{
-			call,
-			endpoint: endpoint as Endpoint<string, never, Data, Code>,
-			init,
-			options,
-			url: buildUrl(
-				options.baseUrl,
-				buildPath(endpoint.path, prepared.params),
-				prepared.query
-			),
-		},
-		0
-	);
 };

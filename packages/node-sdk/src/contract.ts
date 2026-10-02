@@ -76,7 +76,7 @@ export interface Endpoint<
 	 * Turns a success body into `Data`. Throws when the body does not have the
 	 * documented shape, which the client reports as `UNEXPECTED_RESPONSE`.
 	 */
-	readonly decode: (body: unknown, response: Response) => Data;
+	readonly decode: (body: unknown, response: Response, input: Input) => Data;
 }
 
 /** An endpoint of any shape, for code that handles them generically. */
@@ -666,9 +666,20 @@ const identifySubject = defineEndpoint({
 
 const checkConsent = defineEndpoint({
 	auth: 'none',
-	decode: (body): CheckConsentOutput => {
+	decode: (body, _response, input): CheckConsentOutput => {
 		const value = asObject(body, 'body');
-		asObject(value.results, 'results');
+		const results = asObject(value.results, 'results');
+		for (const type of new Set([...Object.keys(results), ...input.types])) {
+			const result = asObject(results[type], `results.${type}`);
+			if (
+				typeof result.hasConsent !== 'boolean' ||
+				typeof result.isLatestPolicy !== 'boolean'
+			) {
+				throw new DecodeError(
+					`Expected results.${type}.hasConsent and isLatestPolicy to be booleans.`
+				);
+			}
+		}
 		return value as CheckConsentOutput;
 	},
 	errorCodes: ['DATABASE_ERROR', 'EXTERNAL_ID_REQUIRED', 'TYPE_REQUIRED'],

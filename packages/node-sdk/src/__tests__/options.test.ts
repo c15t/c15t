@@ -204,6 +204,11 @@ describe('createC15tClient options', () => {
 	it.each([
 		['retry', 'off', ['retry']],
 		['timeoutMs', Number.POSITIVE_INFINITY, ['timeoutMs']],
+		['timeoutMs', 1.5, ['timeoutMs']],
+		['timeoutMs', 2 ** 31, ['timeoutMs']],
+		['timeoutMs', 2 ** 32, ['timeoutMs']],
+		['retry', { initialDelayMs: 2 ** 31 }, ['retry.initialDelayMs']],
+		['retry', { maxDelayMs: 2 ** 31 }, ['retry.maxDelayMs']],
 		['headers', ['x-a', 'b'], ['headers']],
 	])('refuses %s: %o', (option, value, expected) => {
 		const issues = issuesFor({
@@ -227,6 +232,14 @@ describe('call options', () => {
 	it.each([
 		[{ timeoutMs: -1 }, ['options', 'timeoutMs']],
 		[{ timeoutMs: Number.NaN }, ['options', 'timeoutMs']],
+		[{ timeoutMs: 1.5 }, ['options', 'timeoutMs']],
+		[{ timeoutMs: 2 ** 31 }, ['options', 'timeoutMs']],
+		[{ timeoutMs: 2 ** 32 }, ['options', 'timeoutMs']],
+		[
+			{ retry: { initialDelayMs: 2 ** 31 } },
+			['options', 'retry', 'initialDelayMs'],
+		],
+		[{ retry: { maxDelayMs: 2 ** 31 } }, ['options', 'retry', 'maxDelayMs']],
 		[{ requestId: '' }, ['options', 'requestId']],
 		[{ signal: 'stop' }, ['options', 'signal']],
 		[{ headers: { 'x-count': 2 } }, ['options', 'headers']],
@@ -260,5 +273,21 @@ describe('call options', () => {
 			['id'],
 		]);
 		expect(error.message).toContain('options.timeoutMs');
+	});
+});
+
+it('accepts the largest supported timeout and retry delays', async () => {
+	const fetchMock = okFetch();
+	const timeoutMs = 2 ** 31 - 1;
+	const retry = { initialDelayMs: timeoutMs, maxDelayMs: timeoutMs };
+	const client = createC15tClient({
+		baseUrl: 'https://api.test',
+		fetch: fetchMock,
+		retry,
+		timeoutMs,
+	});
+	await expect(client.status()).resolves.toMatchObject({ ok: true });
+	await expect(client.status({ retry, timeoutMs })).resolves.toMatchObject({
+		ok: true,
 	});
 });

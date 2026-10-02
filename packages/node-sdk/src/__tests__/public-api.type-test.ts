@@ -10,12 +10,11 @@
 
 import { expectTypeOf } from 'vitest';
 
-import { createC15tClient, isC15tError, unwrap } from '../index';
+import { C15tError, createC15tClient, isC15tError, unwrap } from '../index';
 import type {
 	C15tClient,
 	C15tClientErrorCode,
 	C15tDataOf,
-	C15tError,
 	C15tErrorCodeOf,
 	C15tPublicClient,
 	ConsentCheckResult,
@@ -262,3 +261,20 @@ createMockC15tClient({
 err('STALE_POLICY', { reason: 'policy-changed' });
 // @ts-expect-error reason only applies to STALE_POLICY.
 err('NOT_FOUND', { reason: 'policy-changed' });
+
+const knownReason = new C15tError({
+	code: 'STALE_POLICY',
+	message: 'stale',
+	reason: 'policy-changed',
+});
+const unknownReason = new C15tError({
+	code: 'STALE_POLICY',
+	message: 'stale',
+	// @ts-expect-error Only documented stale-policy reasons are accepted.
+	reason: 'future-reason',
+});
+
+expectTypeOf(knownReason.reason).toEqualTypeOf<StalePolicyReason | undefined>();
+expectTypeOf(unknownReason.reason).toEqualTypeOf<
+	StalePolicyReason | undefined
+>();

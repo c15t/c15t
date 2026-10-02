@@ -68,6 +68,17 @@ export type StalePolicyReason =
 	| 'incomplete-inputs'
 	| 'policy-changed';
 
+/**
+ * Narrows a wire value to a documented stale-policy reason.
+ * @internal
+ */
+export const isStalePolicyReason = (
+	value: unknown
+): value is StalePolicyReason =>
+	value === 'decision-mismatch' ||
+	value === 'incomplete-inputs' ||
+	value === 'policy-changed';
+
 /** One input validation problem, as the schema reported it. */
 export interface C15tIssue {
 	readonly message: string;
@@ -88,7 +99,7 @@ export interface C15tErrorInit<Code extends string> {
 	readonly code: Code;
 	readonly message: string;
 	readonly status?: number | undefined;
-	readonly reason?: string | undefined;
+	readonly reason?: StalePolicyReason | undefined;
 	readonly requestId?: string | undefined;
 	readonly retryable?: boolean | undefined;
 	readonly issues?: readonly C15tIssue[] | undefined;
@@ -154,7 +165,9 @@ export class C15tError<Code extends string = C15tErrorCode> extends Error {
 		this.code = init.code;
 		this.status = init.status;
 		this.reason = (
-			init.code === 'STALE_POLICY' ? init.reason : undefined
+			init.code === 'STALE_POLICY' && isStalePolicyReason(init.reason)
+				? init.reason
+				: undefined
 		) as ReasonFor<Code>;
 		this.requestId = init.requestId;
 		this.retryable = init.retryable ?? false;
