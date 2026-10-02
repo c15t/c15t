@@ -40,4 +40,6 @@ export const runsSetupWithoutPrompts = (
 	mode?: string
 ): boolean =>
 	['setup', 'generate'].includes(commandName ?? '') &&
-	(isBoilerplateSetup(flags) || usesExplicitSetup(flags, mode));
+	(flags.codex === true ||
+		isBoilerplateSetup(flags) ||
+		usesExplicitSetup(flags, mode));

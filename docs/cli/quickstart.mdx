@@ -19,6 +19,10 @@ the CLI would create or change under `data.edits`, with its current and
 proposed contents, and the packages it would install under
 `data.dependencies`. Pass `--cwd path/to/app` to run from another directory.
 
+With `--backend-url`, setup does not sign in to Inth, so it works on every
+platform. To choose a project from your Inth account instead, sign in with
+`c15t login` and see [hosted projects](/docs/cli/commands/hosted).
+
 ## Apply the setup
 
 When the plan looks right, apply it:
@@ -49,6 +53,19 @@ npx @c15t/cli@alpha setup
 In a terminal, setup asks for the backend mode, UI style, theme and scripts.
 Without a terminal, pass the mode and inputs as flags; the CLI does not guess
 missing values. See [setup](/docs/cli/commands/setup) for every flag.
+
+## Setup with Codex
+
+Let your installed Codex CLI adapt the integration to an existing application:
+
+```bash
+npx @c15t/cli@alpha setup --codex hosted --backend-url https://your-project.inth.app
+```
+
+Replace the URL with your Inth project's backend URL. The agent receives the
+c15t v3 frontend task, installs required packages from `@alpha`, and reads their
+bundled docs. Add `--plan` to inspect the prompt before launching Codex. See
+[agent setup](/docs/cli/automation#agent-setup-and-v3-migration-workflow).
 
 ## Check the result
 

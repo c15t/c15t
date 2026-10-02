@@ -5,6 +5,11 @@ import { detectFramework } from '../../../context/framework-detection';
 import type { CliContext } from '../../../context/types';
 import { CliError } from '../../../core/errors';
 import { findLayoutFile } from '../../../detection/layout';
+import { generateBoilerplateTemplate } from '../../../generate';
+import {
+	boilerplateFrameworks,
+	isBoilerplateFramework,
+} from '../../../generate/types';
 import {
 	clearGenerationJournal,
 	recoverGeneration,
@@ -16,38 +21,17 @@ import {
 	createFile,
 } from '../templates/shared/file-plan';
 import { SCRIPT_SNIPPETS } from '../templates/shared/scripts';
-import { generateJavaScriptBoilerplate } from './javascript';
 import { planBoilerplateDependencies } from './package-source';
-import { generateReactBoilerplate } from './react';
-import type {
-	BoilerplateFramework,
-	BoilerplateOptions,
-	BoilerplateTemplate,
-} from './types';
+import type { BoilerplateFramework, BoilerplateOptions } from './types';
 
-export const boilerplateFrameworks: readonly BoilerplateFramework[] = [
-	'next-app',
-	'next-pages',
-	'react',
-	'javascript',
-	'tanstack-start',
-	'vue',
-	'nuxt',
-	'svelte',
-	'sveltekit',
-	'solid',
-	'astro',
-];
-
-const isFramework = (value: string): value is BoilerplateFramework =>
-	boilerplateFrameworks.some((framework) => framework === value);
+export { boilerplateFrameworks } from '../../../generate/types';
 
 const resolveFramework = async (
 	context: CliContext
 ): Promise<BoilerplateFramework> => {
 	const explicit = context.flags.framework;
 	if (typeof explicit === 'string') {
-		if (!isFramework(explicit)) {
+		if (!isBoilerplateFramework(explicit)) {
 			throw new CliError('FLAG_INVALID', {
 				details: `Unknown framework "${explicit}". Choose: ${boilerplateFrameworks.join(', ')}.`,
 			});
@@ -187,7 +171,10 @@ const readOptions = (
 			details: `Unknown script. Choose: ${Object.keys(SCRIPT_SNIPPETS).join(', ')}.`,
 		});
 	}
-	if (typeof flags.framework === 'string' && !isFramework(flags.framework)) {
+	if (
+		typeof flags.framework === 'string' &&
+		!isBoilerplateFramework(flags.framework)
+	) {
 		throw new CliError('FLAG_INVALID', {
 			details: `Unknown framework "${flags.framework}". Choose: ${boilerplateFrameworks.join(', ')}.`,
 		});
@@ -199,37 +186,7 @@ const readOptions = (
 	};
 };
 
-/** Produces framework-specific integration files using the local v3 API contract. */
-export const generateBoilerplateTemplate = async (
-	options: BoilerplateOptions
-): Promise<BoilerplateTemplate> => {
-	switch (options.framework) {
-		case 'next-app':
-		case 'next-pages':
-		case 'react':
-			return generateReactBoilerplate(options);
-		case 'javascript':
-			return generateJavaScriptBoilerplate(options);
-		case 'vue':
-		case 'nuxt':
-			return (await import('./vue')).generateVueBoilerplate(options);
-		case 'svelte':
-		case 'sveltekit':
-			return (await import('./svelte')).generateSvelteBoilerplate(options);
-		case 'astro':
-			return (await import('./astro')).generateAstroBoilerplate(options);
-		case 'solid':
-			return (await import('./solid')).generateSolidBoilerplate(options);
-		case 'tanstack-start':
-			return (
-				await import('./tanstack-start')
-			).generateTanStackStartBoilerplate(options);
-		default:
-			throw new CliError('FLAG_INVALID', {
-				details: 'Unknown boilerplate framework.',
-			});
-	}
-};
+export { generateBoilerplateTemplate } from '../../../generate';
 
 /** Reject output outside the project, including paths routed through symlinks. */
 const checkOutputPath = async (root: string, target: string): Promise<void> => {

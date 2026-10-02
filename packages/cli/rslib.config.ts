@@ -21,8 +21,13 @@ export default defineConfig({
 	},
 	source: {
 		entry: {
+			agent: './src/frontend/agent/index.ts',
 			bin: './src/bin.ts',
+			commands: './src/commands/registry.ts',
+			frontend: './src/frontend/index.ts',
+			generate: './src/generate/index.ts',
 			index: './src/index.ts',
+			runtime: './src/frontend/runtime/index.ts',
 		},
 	},
 	tools: {

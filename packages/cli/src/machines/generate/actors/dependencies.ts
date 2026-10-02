@@ -144,23 +144,26 @@ export const runPackageManagerInstall = async function runPackageManagerInstall(
 
 	let command: string;
 	let args: string[];
+	const requested = dependencies.map((dependency) =>
+		withC15tRelease(dependency)
+	);
 
 	switch (packageManager) {
 		case 'npm':
 			command = 'npm';
-			args = ['install', ...dependencies];
+			args = ['install', ...requested];
 			break;
 		case 'yarn':
 			command = 'yarn';
-			args = ['add', ...dependencies];
+			args = ['add', ...requested];
 			break;
 		case 'pnpm':
 			command = 'pnpm';
-			args = ['add', ...dependencies];
+			args = ['add', ...requested];
 			break;
 		case 'bun':
 			command = 'bun';
-			args = ['add', ...dependencies];
+			args = ['add', ...requested];
 			break;
 		default:
 			throw new Error(`Unsupported package manager: ${packageManager}`);
@@ -230,17 +233,20 @@ export const getManualInstallCommand = function getManualInstallCommand(
 	dependencies: string[],
 	packageManager: PackageManager
 ): string {
+	const requested = dependencies.map((dependency) =>
+		withC15tRelease(dependency)
+	);
 	switch (packageManager) {
 		case 'npm':
-			return `npm install ${dependencies.join(' ')}`;
+			return `npm install ${requested.join(' ')}`;
 		case 'yarn':
-			return `yarn add ${dependencies.join(' ')}`;
+			return `yarn add ${requested.join(' ')}`;
 		case 'pnpm':
-			return `pnpm add ${dependencies.join(' ')}`;
+			return `pnpm add ${requested.join(' ')}`;
 		case 'bun':
-			return `bun add ${dependencies.join(' ')}`;
+			return `bun add ${requested.join(' ')}`;
 		default:
-			return `npm install ${dependencies.join(' ')}`;
+			return `npm install ${requested.join(' ')}`;
 	}
 };
 

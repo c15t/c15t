@@ -68,6 +68,9 @@ export const setupFlags: CliFlag[] = [
 	booleanFlag(['--resume'], 'Resume an interrupted setup.'),
 	booleanFlag(['--debug'], 'Log setup state transitions.'),
 ];
+export const agentSetupFlags: CliFlag[] = [
+	booleanFlag(['--codex'], 'Run frontend setup with the installed Codex CLI.'),
+];
 export const codemodFlags: CliFlag[] = [
 	booleanFlag(['--dry-run'], 'Report changes without writing files.'),
 	booleanFlag(['--all'], 'Run all applicable legacy codemods.'),
@@ -76,10 +79,13 @@ export const codemodFlags: CliFlag[] = [
 	stringFlag(['--to'], 'Target c15t version.'),
 ];
 export const projectFlags: CliFlag[] = [
-	stringFlag(['--organization'], 'Organization slug for a new project.'),
+	stringFlag(
+		['--organization'],
+		'Inth organization ID or slug for a new project.'
+	),
 	stringFlag(['--region'], 'Region for a new project.'),
 	stringFlag(['--project'], 'Project ID, name, or organization/name.'),
-	stringFlag(['--name'], 'Slug for a new project.'),
+	stringFlag(['--name'], 'Name for a new project.'),
 ];
 export const migrationFlags: CliFlag[] = [
 	booleanFlag(
@@ -98,6 +104,18 @@ export const authFlags: CliFlag[] = [
 	booleanFlag(
 		['--no-browser'],
 		'Print the verification URL without opening a browser.'
+	),
+	stringFlag(
+		['--email'],
+		'Get an approval link and code for this email instead of browser login.'
+	),
+	booleanFlag(
+		['--complete'],
+		'Wait for approval of an --email login and finish signing in.'
+	),
+	stringFlag(
+		['--timeout'],
+		'Seconds to wait for --email approval, 1 to 3600. Default: 600.'
 	),
 ];
 

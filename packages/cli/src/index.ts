@@ -67,10 +67,17 @@ const failureResult = (
 	if (hint) {
 		logger.info(hint);
 	}
+	let exitCode = failure.code === 'CANCELLED' ? 130 : 1;
+	if (
+		failure.code === 'AGENT_FAILED' &&
+		typeof failure.context?.exitCode === 'number'
+	) {
+		({ exitCode } = failure.context);
+	}
 	return {
 		command,
 		error: { code: failure.code, hint, message },
-		exitCode: failure.code === 'CANCELLED' ? 130 : 1,
+		exitCode,
 		schemaVersion: 1,
 		success: false,
 	};
@@ -177,7 +184,6 @@ export type { CliCommand, CliContext, CliFlag } from './context/types';
 export { createCliLogger } from './utils/logger';
 export type { CliLogger } from './utils/logger';
 
-export { authenticate } from './auth/authenticate';
 export {
 	ControlPlaneClient,
 	createControlPlaneClient,

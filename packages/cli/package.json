@@ -44,7 +44,9 @@
 		"dist-types",
 		"AGENTS.md",
 		"SKILL.md",
-		"docs"
+		"docs",
+		"src/generate/**/*.ts",
+		"src/frontend/**/*.ts"
 	],
 	"type": "module",
 	"main": "./dist/index.mjs",
@@ -55,7 +57,35 @@
 			"import": "./dist/index.mjs",
 			"default": "./dist/index.mjs"
 		},
-		"./package.json": "./package.json"
+		"./package.json": "./package.json",
+		"./generate": {
+			"types": "./dist-types/generate/index.d.ts",
+			"import": "./dist/generate.mjs",
+			"default": "./dist/generate.mjs"
+		},
+		"./generate/source": "./src/generate/index.ts",
+		"./commands": {
+			"types": "./dist-types/commands/registry.d.ts",
+			"import": "./dist/commands.mjs",
+			"default": "./dist/commands.mjs"
+		},
+		"./frontend": {
+			"types": "./dist-types/frontend/index.d.ts",
+			"import": "./dist/frontend.mjs",
+			"default": "./dist/frontend.mjs"
+		},
+		"./frontend/source": "./src/frontend/index.ts",
+		"./frontend/runtime": {
+			"types": "./dist-types/frontend/runtime/index.d.ts",
+			"import": "./dist/runtime.mjs",
+			"default": "./dist/runtime.mjs"
+		},
+		"./frontend/agent": {
+			"types": "./dist-types/frontend/agent/index.d.ts",
+			"import": "./dist/agent.mjs",
+			"default": "./dist/agent.mjs"
+		},
+		"./frontend/agent/source": "./src/frontend/agent/index.ts"
 	},
 	"publishConfig": {
 		"access": "public",
@@ -66,20 +96,24 @@
 	"scripts": {
 		"build": "rslib build && bun ../../scripts/normalize-dist-types.mjs",
 		"build:docs": "bun ../../scripts/generate-package-docs.ts @c15t/cli",
-		"check-types": "tsc --noEmit",
-		"dev": "sh -c 'rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
+		"check-types": "bun prebuild && tsc --noEmit",
+		"dev": "sh -c 'bun prebuild && rslib build --no-dts --no-clean && rslib build --watch --no-dts --no-clean'",
 		"fmt": "bun oxfmt .",
 		"knip": "knip",
 		"lint": "bun oxlint ./src",
-		"prepack": "bun run build:docs",
+		"prebuild": "bun scripts/write-version.ts",
+		"prepack": "bun prebuild && bun run build:docs",
+		"pretest": "bun prebuild",
 		"start": "node ./dist/bin.mjs",
 		"test": "vitest run",
+		"test:native": "vitest run --config vitest.native.config.ts",
 		"test:watch": "vitest"
 	},
 	"dependencies": {
 		"@c15t/backend": "workspace:*",
 		"@c15t/integrations": "workspace:*",
 		"@clack/prompts": "1.7.0",
+		"@inth/cli": "0.0.4",
 		"c12": "3.3.3",
 		"evlog": "^2.19.2",
 		"fs-extra": "11.3.6",

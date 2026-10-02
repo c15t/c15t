@@ -1,6 +1,7 @@
 import { URLS } from '../constants';
 import {
 	authFlags,
+	agentSetupFlags,
 	codemodFlags,
 	migrationFlags,
 	projectFlags,
@@ -18,9 +19,13 @@ const openUrl = async (context: CliContext, url: string) => {
 	return { url };
 };
 const setup: CliCommand = {
-	action: async (context) => (await import('./generate')).generate(context),
+	action: async (context) =>
+		context.flags.codex === true
+			? (await import('./setup')).setupWithAgent(context)
+			: (await import('./generate')).generate(context),
 	description: 'Set up c15t in a supported project.',
-	flags: setupFlags,
+	examples: ['c15t setup --codex', 'c15t setup --codex --plan --json'],
+	flags: [...setupFlags, ...agentSetupFlags],
 	hint: 'Set up consent management',
 	label: 'Setup',
 	name: 'setup',
@@ -30,7 +35,15 @@ const setup: CliCommand = {
 /** Command metadata is shared by parsing, help, and the interactive menu. */
 export const commands: CliCommand[] = [
 	setup,
-	{ ...setup, description: 'Alias for setup.', hidden: true, name: 'generate' },
+	{
+		...setup,
+		action: async (context) => (await import('./generate')).generate(context),
+		description: 'Generate c15t integration files.',
+		examples: undefined,
+		flags: setupFlags,
+		hidden: true,
+		name: 'generate',
+	},
 	{
 		action: async (context) =>
 			(await import('./codemods')).codemodsCommand.action(context),
@@ -46,17 +59,26 @@ export const commands: CliCommand[] = [
 	{
 		action: async (context) =>
 			(await import('./auth')).loginCommand.action(context),
-		description: 'Authenticate with Inth using a device code.',
+		description:
+			'Sign in to Inth. Without a terminal, use --email for an approval link and code, or set INTH_TOKEN.',
+		examples: [
+			'c15t login',
+			'c15t login --email you@example.com',
+			'c15t login --email you@example.com --json',
+			'c15t login --complete --json',
+		],
 		flags: authFlags,
 		hint: 'Authenticate with Inth',
 		label: 'Login',
 		name: 'login',
-		usage: 'c15t login [--no-browser]',
+		usage:
+			'c15t login [--no-browser] | --email <email> | --complete [--timeout <seconds>]',
 	},
 	{
 		action: async (context) =>
 			(await import('./auth')).logoutCommand.action(context),
-		description: 'Log out of Inth.',
+		description:
+			'Sign out of the Inth session shared with the inth CLI, and remove old c15t credentials.',
 		hint: 'Clear stored credentials',
 		label: 'Logout',
 		name: 'logout',
@@ -77,7 +99,7 @@ export const commands: CliCommand[] = [
 		examples: [
 			'c15t projects list --json',
 			'c15t projects select my-project --json',
-			'c15t projects create my-app --organization my-org --region us-east-1 --json',
+			'c15t projects create my-app --organization <organization-id> --region <region-id> --json',
 		],
 		flags: projectFlags,
 		hint: 'Manage hosted projects',

@@ -27,15 +27,27 @@ For TanStack Start, Vue, Nuxt, Svelte, SvelteKit, Solid and Astro, pass
 `--framework`. That selects [framework boilerplate](./boilerplate.md),
 which has its own options.
 
+## Setup with Codex
+
+Use `setup --codex` to give your installed Codex CLI the default c15t v3
+frontend task. Add `--plan --json` to inspect the prompt without launching it.
+With `--plan` or `--dry-run`, the CLI prints the prompt to stdout as plain
+text, copies it to your clipboard and confirms the copy. If clipboard access
+fails, copy the printed prompt or redirect it with `> prompt.txt`; status
+messages stay out of the redirected file. `--json` exports the prompt without
+accessing the clipboard.
+See [agent setup](../automation.md#agent-setup-and-v3-migration-workflow)
+for inputs and requirements. `generate` keeps the deterministic setup workflow.
+
 ## Choose the mode and backend
 
 Pass the mode as the first argument or with `--mode`:
 
-| Mode      | Backend                                                                                                                                                                              |
-| --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `hosted`  | Inth or a [self-hosted backend](https://c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the default set by `projects select`. |
-| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                |
-| `custom`  | Your own transport.                                                                                                                                                                  |
+| Mode      | Backend                                                                                                                                                                                             |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hosted`  | Inth or a [self-hosted backend](https://c15t.com/docs/self-host/overview). Requires `--backend-url`, or an Inth project through `--project` or the application preference set by `projects select`. |
+| `offline` | No backend. Choices stay in the browser. Not recommended for production environments.                                                                                                               |
+| `custom`  | Your own transport.                                                                                                                                                                                 |
 
 The older mode names `c15t` and `self-hosted` map to `hosted`. Setup refuses an
 Inth project that is still provisioning, because it has no backend URL yet.
@@ -48,7 +60,7 @@ Inth project that is still provisioning, because it has no backend URL yet.
 | `--apply`                                       | Write the file edits and install missing packages.                                                                                                                                                                       |
 | `--skip-install`                                | Write the file edits without running a package manager.                                                                                                                                                                  |
 | `--backend-url <url>`                           | Use this HTTP or HTTPS backend URL.                                                                                                                                                                                      |
-| `--project <id or organization/name>`           | Use the backend URL of a signed-in Inth project.                                                                                                                                                                         |
+| `--project <id, name or organization/name>`     | Use the backend URL of a signed-in Inth project.                                                                                                                                                                         |
 | `--proxy`                                       | Add a Next.js rewrite to the hosted backend. Hosted Next.js only.                                                                                                                                                        |
 | `--ssr`                                         | Start consent resolution on the server in a hosted Next.js App Router app. The wrapper passes the pending result to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
 | `--devtools`                                    | Include c15t DevTools.                                                                                                                                                                                                   |
