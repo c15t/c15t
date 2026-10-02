@@ -24,7 +24,7 @@ import type { ConsentManifestConfig } from '@c15t/schema';
 import type { IpAddressConfig } from '@c15t/schema/geo';
 import { Effect, Layer } from 'effect';
 import type { ManagedRuntime } from 'effect';
-import type { SqlClient } from 'effect/unstable/sql';
+import type { SqlClient } from 'effect/sql';
 import type { Context, Hono } from 'hono';
 
 import { layer as tenantLayer } from '../db/tenant';

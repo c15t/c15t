@@ -29,7 +29,7 @@
  */
 
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 /** Encodes one value for the connected engine. */
 export type Encoder = (value: unknown) => unknown;

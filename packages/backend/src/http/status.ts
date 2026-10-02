@@ -12,8 +12,8 @@
 import { getIpAddress } from '@c15t/schema/geo';
 import type { IpAddressConfig } from '@c15t/schema/geo';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
-import type { SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
+import type { SqlError } from 'effect/sql';
 
 import { readInitSignals } from './init';
 

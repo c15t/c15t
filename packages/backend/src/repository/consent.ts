@@ -33,8 +33,8 @@ import type {
 	VendorChoiceWire,
 } from '@c15t/schema';
 import { Data, Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
-import type { SqlError } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
+import type { SqlError } from 'effect/sql';
 import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';

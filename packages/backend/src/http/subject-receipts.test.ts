@@ -11,7 +11,7 @@
 
 import type { PolicyRule } from '@c15t/schema';
 import { Effect } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 
 import { ENGINES } from '../__tests__/engines';

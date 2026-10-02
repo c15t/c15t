@@ -7,6 +7,7 @@
 export type IntegrationCategory =
 	| 'analytics'
 	| 'ads-and-pixels'
+	| 'email-and-sms'
 	| 'functional'
 	| 'tag-manager';
 
@@ -22,6 +23,19 @@ export type IntegrationConsentCategory =
 	| 'experience'
 	| 'measurement'
 	| 'marketing';
+
+/**
+ * Consent condition a built-in integration requires by default.
+ *
+ * Usually a single category. Vendors whose one script serves several purposes
+ * use a compound condition, such as `{ and: ['marketing', 'measurement'] }`.
+ * The shape mirrors `HasCondition` from `@c15t/core`.
+ */
+export type IntegrationConsentCondition =
+	| IntegrationConsentCategory
+	| { readonly and: readonly IntegrationConsentCondition[] }
+	| { readonly or: readonly IntegrationConsentCondition[] }
+	| { readonly not: IntegrationConsentCondition };
 
 /**
  * Display metadata for an integration category.
@@ -60,8 +74,8 @@ export interface IntegrationRegistryEntry {
 	packageSubpath: string;
 	/** Product area used for grouping and discovery. */
 	integrationCategory: IntegrationCategory;
-	/** Default consent bucket expected from the generated script. */
-	consentCategory: IntegrationConsentCategory;
+	/** Default consent category or condition expected from the generated script. */
+	consentCategory: IntegrationConsentCondition;
 }
 
 /**
@@ -78,6 +92,10 @@ export const BUILT_IN_INTEGRATION_CATEGORIES = [
 	{
 		key: 'ads-and-pixels',
 		label: 'Ads & Pixels',
+	},
+	{
+		key: 'email-and-sms',
+		label: 'Email & SMS',
 	},
 	{
 		key: 'functional',
@@ -395,6 +413,16 @@ export const builtInScriptIntegrations = [
 		label: 'Intercom',
 		packageSubpath: 'intercom',
 		vendor: 'intercom',
+	},
+	{
+		consentCategory: { and: ['marketing', 'measurement'] },
+		docsSlug: 'klaviyo',
+		hint: 'Email and SMS signup forms and onsite tracking',
+		integrationCategory: 'email-and-sms',
+		key: 'klaviyo',
+		label: 'Klaviyo',
+		packageSubpath: 'klaviyo',
+		vendor: 'klaviyo',
 	},
 	{
 		consentCategory: 'marketing',

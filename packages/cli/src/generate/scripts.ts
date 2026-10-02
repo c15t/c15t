@@ -97,6 +97,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "intercom({ appId: 'YOUR_APP_ID' })",
 		importName: 'intercom',
 	},
+	klaviyo: {
+		example: "klaviyo({ publicApiKey: 'YOUR_PUBLIC_API_KEY' })",
+		importName: 'klaviyo',
+	},
 	'linkedin-insights': {
 		example: "linkedinInsights({ id: 'XXXXXXX' })",
 		importName: 'linkedinInsights',

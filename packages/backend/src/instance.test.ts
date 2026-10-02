@@ -18,7 +18,7 @@ import type { ConsentManifestConfig } from '@c15t/schema/types';
 import { PgliteClient } from '@effect/sql-pglite';
 import { assert, describe, expect, it } from '@effect/vitest';
 import { Effect, Layer, ManagedRuntime } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
 
 import { toLayer } from './db/connect';
 import { up as baseline } from './db/migrations/1-baseline';

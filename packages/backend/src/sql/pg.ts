@@ -6,7 +6,7 @@
  * place in the package that imports it, so the optional boundary is a single
  * file rather than a constraint scattered through the codebase.
  *
- * Everything downstream depends on `SqlClient` from `effect/unstable/sql`, not
+ * Everything downstream depends on `SqlClient` from `effect/sql`, not
  * on this module — see `src/sql/README` guidance in RFC 0004 §2. Composition
  * happens once, at the runtime edge.
  *

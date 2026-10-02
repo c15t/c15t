@@ -25,8 +25,8 @@
  */
 
 import { Context, Effect, Layer } from 'effect';
-import { SqlClient } from 'effect/unstable/sql';
-import type { Statement } from 'effect/unstable/sql';
+import { SqlClient } from 'effect/sql';
+import type { Statement } from 'effect/sql';
 
 /**
  * The tenant a request belongs to.

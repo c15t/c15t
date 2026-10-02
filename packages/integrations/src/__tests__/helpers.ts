@@ -260,7 +260,7 @@ export const expectScriptMatchesIntegration =
 		const matchedIntegration = getBuiltInScriptIntegration(key);
 
 		expect(script.id, key).toBe(matchedIntegration.vendor);
-		expect(script.category, key).toBe(matchedIntegration.consentCategory);
+		expect(script.category, key).toEqual(matchedIntegration.consentCategory);
 		expect(script.alwaysLoad, key).toBe(expected.alwaysLoad);
 		expect(script.persistAfterConsentRevoked, key).toBe(
 			expected.persistAfterConsentRevoked
