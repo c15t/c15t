@@ -13,7 +13,7 @@ import {
 import type { ConsentStoreState } from '../../store/type';
 import { allConsentNames, type ConsentState } from '../../types';
 import type { GlobalVendorList } from '../../types/iab-tcf';
-import { deleteConsentFromStorage, saveConsentToStorage } from '../cookie';
+import { saveConsentToStorage } from '../cookie';
 import { determineModel } from '../determine-model';
 import { hasGlobalPrivacyControlSignal } from '../global-privacy-control';
 import {
@@ -61,6 +61,7 @@ function calculateAutoGrantedConsents(
  * @param iabEnabled - Whether IAB mode is enabled
  * @param consentInfo - Current consent info from store
  * @param gpcOverride - Optional override for the GPC signal (true/false to force, undefined to use browser)
+ * @param isTransportFallback - Whether init data came from the hosted outage fallback
  * @returns Object containing consent model and auto-granted consents
  */
 function computeAutoGrantInfo(
@@ -69,7 +70,8 @@ function computeAutoGrantInfo(
 	consentInfo: ConsentStoreState['consentInfo'],
 	policyModel?: 'opt-in' | 'opt-out' | 'none' | 'iab',
 	gpcOverride?: boolean,
-	policyGpc?: boolean
+	policyGpc?: boolean,
+	isTransportFallback = false
 ) {
 	const consentModel =
 		policyModel === 'none'
@@ -86,8 +88,10 @@ function computeAutoGrantInfo(
 			: hasGlobalPrivacyControlSignal()
 		: false;
 
-	// Auto-grant only when no regulation applies and no existing consent
+	// Auto-grant only when no regulation applies and no existing consent.
+	// A transport fallback is not an authoritative policy, so it never grants.
 	const shouldAutoGrantConsents =
+		!isTransportFallback &&
 		(consentModel === null || consentModel === 'opt-out') &&
 		consentInfo === null;
 
@@ -125,7 +129,8 @@ function buildStoreUpdate(
 		consentInfo,
 		data.policy?.model,
 		config.get().overrides?.gpc,
-		data.policy?.consent?.gpc
+		data.policy?.consent?.gpc,
+		initSourceMetadata?.initDataSource === 'offline-fallback'
 	);
 
 	// Build base update
@@ -163,7 +168,7 @@ function buildStoreUpdate(
 	};
 
 	// Show banner if no existing consent and regulation applies
-	if (consentInfo === null) {
+	if (consentInfo === null || consentInfo.requiresReconsent) {
 		if (data.policy?.ui?.mode) {
 			update.activeUI = data.policy.ui.mode;
 		} else {
@@ -305,7 +310,10 @@ function getDefaultConsents(
 	consentTypes: ConsentStoreState['consentTypes']
 ): ConsentState {
 	return consentTypes.reduce((acc, consent) => {
-		acc[consent.name] = consent.defaultValue;
+		acc[consent.name] =
+			consent.disabled === true
+				? consent.defaultValue
+				: consent.name === 'necessary';
 		return acc;
 	}, {} as ConsentState);
 }
@@ -336,41 +344,72 @@ export async function updateStore(
 	initSourceMetadata?: InitSourceMetadata
 ): Promise<void> {
 	const { set, get } = config;
-	const initialState = get();
-	const currentPolicyFingerprint = data.policy
-		? await createMaterialPolicyFingerprint(data.policy)
-		: undefined;
+	const isTransportFallback =
+		initSourceMetadata?.initDataSource === 'offline-fallback';
+	const currentPolicyFingerprint =
+		!isTransportFallback && data.policy
+			? await createMaterialPolicyFingerprint(data.policy)
+			: undefined;
+	// A visitor may save while the fingerprint is being calculated.
+	// Read the latest choice and metadata before any storage write-back.
+	const currentState = get();
 
-	if (initialState.consentInfo && currentPolicyFingerprint) {
+	if (currentState.consentInfo && currentPolicyFingerprint) {
 		const storedPolicyFingerprint =
-			initialState.consentInfo.materialPolicyFingerprint;
+			currentState.consentInfo.materialPolicyFingerprint;
 
 		if (
 			storedPolicyFingerprint &&
 			storedPolicyFingerprint !== currentPolicyFingerprint
 		) {
-			const resetConsents = getDefaultConsents(initialState.consentTypes);
-			deleteConsentFromStorage(undefined, initialState.storageConfig);
+			const resetConsents = getDefaultConsents(currentState.consentTypes);
+			// Keep the choice and identity so opt-out/no-banner defaults cannot
+			// turn a rejection into a grant. Old grants need fresh confirmation.
+			const consentInfo = {
+				...currentState.consentInfo,
+				requiresReconsent: true,
+			};
+			// Revoke in memory first so a failed write cannot leave old grants
+			// active for this page.
 			set({
 				consents: resetConsents,
 				selectedConsents: resetConsents,
-				consentInfo: null,
+				consentInfo,
 			});
-		} else if (!storedPolicyFingerprint) {
+			try {
+				saveConsentToStorage(
+					{ consents: resetConsents, consentInfo },
+					undefined,
+					currentState.storageConfig
+				);
+			} catch (error) {
+				console.warn('Failed to persist consent re-prompt state:', error);
+			}
+		} else if (
+			!storedPolicyFingerprint &&
+			!currentState.consentInfo.requiresReconsent
+		) {
 			const updatedConsentInfo = {
-				...initialState.consentInfo,
+				...currentState.consentInfo,
 				materialPolicyFingerprint: currentPolicyFingerprint,
 			};
 			saveConsentToStorage(
 				{
-					consents: initialState.consents,
+					consents: currentState.consents,
 					consentInfo: updatedConsentInfo,
 				},
 				undefined,
-				initialState.storageConfig
+				currentState.storageConfig
 			);
 			set({ consentInfo: updatedConsentInfo });
 		}
+	}
+
+	if (isTransportFallback || get().consentInfo?.requiresReconsent) {
+		// A transport failure changes effective permissions only. Leave the
+		// durable choice and its authoritative fingerprint untouched.
+		const consents = getDefaultConsents(get().consentTypes);
+		set({ consents, selectedConsents: consents });
 	}
 
 	const { consentInfo } = get();
@@ -416,7 +455,8 @@ export async function updateStore(
 		consentInfo,
 		data.policy?.model,
 		get().overrides?.gpc,
-		data.policy?.consent?.gpc
+		data.policy?.consent?.gpc,
+		isTransportFallback
 	);
 
 	// Build and apply store update (pass effectiveIABEnabled so model is correctly set)

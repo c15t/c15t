@@ -2,7 +2,7 @@
 
 /**
  * @packageDocumentation
- * Provides the IAB TCF 2.3 compliant cookie banner component.
+ * Provides the IAB TCF 2.4 compliant cookie banner component.
  * Implements an accessible, pre-built banner following IAB requirements.
  */
 
@@ -69,10 +69,10 @@ export interface IABConsentBannerProps {
 }
 
 /**
- * IAB TCF 2.3 compliant cookie consent banner.
+ * IAB TCF 2.4 compliant cookie consent banner.
  *
  * @remarks
- * This component implements the required IAB TCF 2.3 UI elements:
+ * This component implements the required IAB TCF 2.4 UI elements:
  * - Partner count disclosure
  * - Purpose summary
  * - Legitimate interest notice

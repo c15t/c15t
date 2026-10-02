@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Dës sinn erfuerderlech fir d’Funktionalitéit an d’Sécherheet vum Site. Geméiss IAB TCF kënnt Dir net géint dës speziell Zwecker protestéieren.',
 			},
+			features: {
+				title: 'Fonctiounen',
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+			},
 			vendorList: {
 				search: 'Ubidder sichen...',
 				showingCount: '{filtered} vun {total} Ubidder',

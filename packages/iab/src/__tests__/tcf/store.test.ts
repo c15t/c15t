@@ -90,7 +90,7 @@ const sampleGVL: GlobalVendorList = {
 		},
 		2: {
 			id: 2,
-			name: 'Actively scan device characteristics',
+			name: 'Identify devices based on information actively requested',
 			description: 'Test special feature 2',
 			illustrations: [],
 		},

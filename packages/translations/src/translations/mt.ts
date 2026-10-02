@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Dawn huma meħtieġa għall-funzjonalità u s-sigurtà tas-sit. Skont l-IAB TCF, ma tistax toġġezzjona għal dawn l-għanijiet speċjali.',
 			},
+			features: {
+				title: 'Karatteristiċi',
+				description:
+					'Dawn il-mezzi ta’ pproċessar jistgħu jintużaw biss biex jintlaħaq skop wieħed jew diversi skopijiet li għalihom tingħata għażla f’dan l-avviż.',
+			},
 			vendorList: {
 				search: 'Fittex bejjiegħa...',
 				showingCount: 'Qed jintwerew {filtered} minn {total} bejjiegħ',

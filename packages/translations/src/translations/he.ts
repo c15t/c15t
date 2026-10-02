@@ -92,6 +92,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'אלו נדרשות לתפקוד ואבטחת האתר. על פי IAB TCF, אינך יכול להתנגד למטרות מיוחדות אלו.',
 			},
+			features: {
+				title: 'תכונות',
+				description:
+					'אמצעי עיבוד אלה יכולים לשמש אך ורק לשם השגת מטרה אחת או יותר, שלגביהן ניתנה לכם אפשרות בחירה בהודעה זו.',
+			},
 			vendorList: {
 				search: 'חפש ספקים...',
 				showingCount: '{filtered} מתוך {total} ספקים',

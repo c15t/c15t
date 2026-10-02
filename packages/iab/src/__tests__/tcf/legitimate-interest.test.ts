@@ -1,5 +1,5 @@
 /**
- * Legitimate Interest Tests for IAB TCF 2.3
+ * Legitimate Interest Tests for IAB TCF 2.4
  *
  * These tests verify correct behavior for legitimate interest handling:
  * - LI defaults to allowed (true) for vendors declaring LI

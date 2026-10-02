@@ -1,5 +1,5 @@
 /**
- * Policy Test Vectors for IAB TCF 2.3 Compliance Testing
+ * Policy Test Vectors for IAB TCF 2.4 Compliance Testing
  *
  * Contains predefined consent states for testing various IAB TCF scenarios.
  *
@@ -229,7 +229,7 @@ export const CONSENT_SPECIAL_FEATURES: TCFConsentData = {
 	vendorLegitimateInterests: {},
 	specialFeatureOptIns: {
 		1: true, // Precise geolocation
-		2: true, // Device scanning
+		2: true, // Identify devices based on information actively requested
 	},
 	vendorsDisclosed: {
 		1: true,

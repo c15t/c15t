@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Deze zijn vereist voor de functionaliteit en beveiliging van de site. Volgens IAB TCF kunt u geen bezwaar maken tegen deze speciale doeleinden.',
 			},
+			features: {
+				title: 'Functies',
+				description:
+					'Deze verwerkingsmethoden mogen uitsluitend worden gebruikt ter verwezenlijking van een of meerdere doeleinden waarvoor u in deze kennisgeving de keuze krijgt.',
+			},
 			vendorList: {
 				search: 'Zoek leveranciers...',
 				showingCount: '{filtered} van {total} leveranciers',

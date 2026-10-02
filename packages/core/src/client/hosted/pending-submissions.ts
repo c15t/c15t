@@ -33,18 +33,21 @@ export function checkPendingConsentSubmissions(
 	const pendingSubmissionsKey = PENDING_CONSENT_KEY;
 
 	// Don't attempt to access localStorage in SSR context
-	if (typeof window === 'undefined' || !window.localStorage) {
+	if (typeof window === 'undefined') {
 		return;
 	}
 
 	try {
-		// Test localStorage access first
-		window.localStorage.setItem('c15t-storage-test-key', 'test');
-		window.localStorage.removeItem('c15t-storage-test-key');
+		const storage = window.localStorage;
+		if (!storage) {
+			return;
+		}
 
-		const pendingSubmissionsStr = window.localStorage.getItem(
-			pendingSubmissionsKey
-		);
+		// Test localStorage access first
+		storage.setItem('c15t-storage-test-key', 'test');
+		storage.removeItem('c15t-storage-test-key');
+
+		const pendingSubmissionsStr = storage.getItem(pendingSubmissionsKey);
 		if (!pendingSubmissionsStr) {
 			return; // No pending submissions
 		}
@@ -54,7 +57,7 @@ export function checkPendingConsentSubmissions(
 		);
 		if (!pendingSubmissions.length) {
 			// Clean up empty array
-			window.localStorage.removeItem(pendingSubmissionsKey);
+			storage.removeItem(pendingSubmissionsKey);
 			return;
 		}
 
@@ -187,13 +190,17 @@ export function checkPendingIdentifySubmissions(
 	) => Promise<void>
 ) {
 	// Don't attempt to access localStorage in SSR context
-	if (typeof window === 'undefined' || !window.localStorage) {
+	if (typeof window === 'undefined') {
 		return;
 	}
 
 	try {
-		const pendingSubmissionsStr =
-			window.localStorage.getItem(PENDING_IDENTIFY_KEY);
+		const storage = window.localStorage;
+		if (!storage) {
+			return;
+		}
+
+		const pendingSubmissionsStr = storage.getItem(PENDING_IDENTIFY_KEY);
 		if (!pendingSubmissionsStr) {
 			return; // No pending submissions
 		}
@@ -203,7 +210,7 @@ export function checkPendingIdentifySubmissions(
 		);
 		if (!pendingSubmissions.length) {
 			// Clean up empty array
-			window.localStorage.removeItem(PENDING_IDENTIFY_KEY);
+			storage.removeItem(PENDING_IDENTIFY_KEY);
 			return;
 		}
 

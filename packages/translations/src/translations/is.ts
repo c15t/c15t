@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Þetta er nauðsynlegt fyrir virkni og öryggi vefsins. Samkvæmt IAB TCF geturðu ekki andmælt þessum sérstöku markmiðum.',
 			},
+			features: {
+				title: 'Eiginleikar',
+				description:
+					'Þessar vinnsluaðferðir má eingöngu nota til að ná einum eða fleiri þeirra tilganga sem þér er gefinn kostur á að velja í þessari tilkynningu.',
+			},
 			vendorList: {
 				search: 'Leita að söluaðilum...',
 				showingCount: '{filtered} af {total} söluaðilum',

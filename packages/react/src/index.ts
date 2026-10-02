@@ -79,7 +79,7 @@ export {
 	type YouTubeSrcSource,
 	type YouTubeVideoIdSource,
 } from './components/integrations';
-// IAB TCF 2.3 Components — moved to @c15t/react/iab subpath.
+// IAB TCF 2.4 Components — moved to @c15t/react/iab subpath.
 // Import from '@c15t/react/iab' instead of '@c15t/react'.
 
 export { ConsentButton } from './components/shared/primitives/button';

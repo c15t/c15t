@@ -1,7 +1,7 @@
 /**
  * IAB TCF Spec Compliance Tests
  *
- * These tests verify compliance with the IAB TCF 2.3 specification.
+ * These tests verify compliance with the IAB TCF 2.4 specification.
  *
  * @see https://github.com/InteractiveAdvertisingBureau/GDPR-Transparency-and-Consent-Framework
  * @vitest-environment jsdom
@@ -54,7 +54,7 @@ describe('IAB TCF Spec Compliance', () => {
 		storageMock.cleanup();
 	});
 
-	describe('TCF 2.3 API Compliance', () => {
+	describe('TCF 2.4 API Compliance', () => {
 		describe('__tcfapi Function', () => {
 			it('should be a function on window', () => {
 				expect(typeof window.__tcfapi).toBe('function');
@@ -379,7 +379,7 @@ describe('IAB TCF Spec Compliance', () => {
 		});
 	});
 
-	describe('TCF 2.3 vendorsDisclosed Compliance', () => {
+	describe('TCF 2.4 vendorsDisclosed Compliance', () => {
 		it('should encode vendorsDisclosed in TC String', async () => {
 			const consentData = createMockTCFConsentAllGranted();
 

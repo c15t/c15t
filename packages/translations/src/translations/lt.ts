@@ -99,6 +99,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Jos reikalingos svetainės funkcionalumui ir saugumui užtikrinti. Pagal IAB TCF negalite nesutikti su šiais specialiais tikslais.',
 			},
+			features: {
+				title: 'Funkcijos',
+				description:
+					'Šie apdorojimo būdai gali būti naudojami tik siekiant vieno ar kelių tikslų, dėl kurių Jums šiame pranešime suteikiamas pasirinkimas.',
+			},
 			vendorList: {
 				search: 'Ieškoti tiekėjų...',
 				showingCount: 'Rodoma {filtered} iš {total} tiekėjų',

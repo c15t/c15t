@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/scripts",
-	"version": "2.2.0",
+	"version": "2.3.0-canary-20260930161603",
 	"description": "Consent-aware script integrations for Google Tag Manager, Google Consent Mode v2, GA4, Google Ads, Meta Pixel, and more.",
 	"keywords": [
 		"c15t",
@@ -28,6 +28,7 @@
 		"linkedin-insights",
 		"microsoft-uet",
 		"x-pixel",
+		"pinterest-tag",
 		"analytics-consent",
 		"consent-mode",
 		"consent-mode-v2",
@@ -127,6 +128,11 @@
 			"import": "./dist/vendors/analytics/mixpanel-analytics.js",
 			"require": "./dist/vendors/analytics/mixpanel-analytics.cjs"
 		},
+		"./one-dollar-stats": {
+			"types": "./dist-types/vendors/analytics/one-dollar-stats.d.ts",
+			"import": "./dist/vendors/analytics/one-dollar-stats.js",
+			"require": "./dist/vendors/analytics/one-dollar-stats.cjs"
+		},
 		"./pirsch": {
 			"types": "./dist-types/vendors/analytics/pirsch.d.ts",
 			"import": "./dist/vendors/analytics/pirsch.js",
@@ -172,6 +178,11 @@
 			"import": "./dist/vendors/functional/crisp.js",
 			"require": "./dist/vendors/functional/crisp.cjs"
 		},
+		"./front-chat": {
+			"types": "./dist-types/vendors/functional/front-chat.d.ts",
+			"import": "./dist/vendors/functional/front-chat.js",
+			"require": "./dist/vendors/functional/front-chat.cjs"
+		},
 		"./intercom": {
 			"types": "./dist-types/vendors/functional/intercom.d.ts",
 			"import": "./dist/vendors/functional/intercom.js",
@@ -216,6 +227,11 @@
 			"types": "./dist-types/vendors/ads-and-pixels/x-pixel.d.ts",
 			"import": "./dist/vendors/ads-and-pixels/x-pixel.js",
 			"require": "./dist/vendors/ads-and-pixels/x-pixel.cjs"
+		},
+		"./pinterest-tag": {
+			"types": "./dist-types/vendors/ads-and-pixels/pinterest-tag.d.ts",
+			"import": "./dist/vendors/ads-and-pixels/pinterest-tag.js",
+			"require": "./dist/vendors/ads-and-pixels/pinterest-tag.cjs"
 		},
 		"./registry": {
 			"types": "./dist-types/registry.d.ts",

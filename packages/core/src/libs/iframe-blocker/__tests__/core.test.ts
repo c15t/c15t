@@ -120,17 +120,35 @@ describe('createIframeBlocker', () => {
 			);
 		});
 
-		it('should throw error for invalid category attribute', () => {
-			const blocker = createIframeBlocker();
+		it('should keep iframes with an invalid category blocked, even with every consent granted', () => {
+			const warnSpy = vi
+				.spyOn(console, 'warn')
+				.mockImplementation(() => undefined);
+			const blocker = createIframeBlocker(
+				{},
+				{
+					necessary: true,
+					functionality: true,
+					experience: true,
+					marketing: true,
+					measurement: true,
+				}
+			);
 
 			// Create iframe with invalid category
 			const iframe = document.createElement('iframe');
+			iframe.src = 'https://youtube.com/embed/123';
 			iframe.setAttribute('data-category', 'invalid-category');
 			document.body.appendChild(iframe);
 
 			expect(() => {
 				blocker.processIframes();
-			}).toThrow('Invalid category attribute "invalid-category"');
+			}).not.toThrow();
+			expect(iframe.src).toBe('');
+			expect(warnSpy).toHaveBeenCalledWith(
+				expect.stringContaining('invalid data-category "invalid-category"')
+			);
+			warnSpy.mockRestore();
 		});
 	});
 

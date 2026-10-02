@@ -1,5 +1,22 @@
 # @c15t/cli
 
+## 2.3.0-canary-20260930161603
+
+### Patch Changes
+
+- fd7a7c3: Add a consent-gated OneDollarStats integration with optional hostname validation, tracker data attributes, and CLI setup support.
+- b01c4b0: Add a Front Chat integration that loads after functionality consent, forwards CSP nonces, and supports optional session cleanup. Include Front Chat in the CLI integration chooser and generated provider setup.
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- ad0ce98: Add a Pinterest Tag integration. `pinterestTag()` from `@c15t/scripts/pinterest-tag` recreates Pinterest's v3 base code (the `pintrk` queue stub, `load`, `setconsent`, and `page`), loads `core.js` behind marketing consent, and keeps the script loaded after revocation so `pintrk('setconsent', false)` can stop tracking and clear Pinterest's first-party cookies. `pinterestTagEvent()` provides typed standard and custom event tracking. The CLI `generate` command now offers Pinterest Tag as a script snippet.
+- Updated dependencies [fd7a7c3]
+- Updated dependencies [b01c4b0]
+- Updated dependencies [9c613d4]
+- Updated dependencies [d651989]
+- Updated dependencies [ad0ce98]
+  - @c15t/scripts@2.3.0-canary-20260930161603
+  - @c15t/backend@2.3.0-canary-20260930161603
+  - @c15t/logger@2.1.1-canary-20260930161603
+
 ## 2.2.1
 
 ### Patch Changes

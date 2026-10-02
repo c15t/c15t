@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Disse er nødvendige for sidens funktionalitet og sikkerhed. Ifølge IAB TCF kan du ikke gøre indsigelse mod disse særlige formål.',
 			},
+			features: {
+				title: 'Funktioner',
+				description:
+					'Disse behandlingsmetoder kan udelukkende anvendes til ét eller flere formål, som du får mulighed for at vælge mellem i denne meddelelse.',
+			},
 			vendorList: {
 				search: 'Søg leverandører...',
 				showingCount: 'Viser {filtered} af {total} leverandører',

@@ -38,7 +38,7 @@ group: reference
   | Preset | Model | UI | Matches |
   |--------|-------|----|---------|
   | `europeOptIn()` | `opt-in` | banner | EEA + UK countries + geo fallback |
-  | `europeIab()` | `iab` | banner | EEA + UK countries + geo fallback (TCF 2.3) |
+  | `europeIab()` | `iab` | banner | EEA + UK countries + geo fallback (TCF 2.4) |
   | `californiaOptOut()` | `opt-out` | none | US-CA region |
   | `quebecOptIn()` | `opt-in` | banner | CA-QC region |
   | `worldNoBanner()` | `none` | none | default fallback |
@@ -73,7 +73,7 @@ group: reference
   | `model: 'opt-out'`, `ui.mode: 'none'` | No banner, everything loads immediately — user opts out via a "Do Not Sell" link |
   | `model: 'none'`, `ui.mode: 'none'` | No banner, all categories auto-granted silently |
   | `model: 'opt-in'`, `ui.mode: 'dialog'` | Full-screen dialog, nothing loads until the user consents |
-  | `model: 'iab'`, `ui.mode: 'banner'` | IAB TCF 2.3 banner with vendor-level controls |
+  | `model: 'iab'`, `ui.mode: 'banner'` | IAB TCF 2.4 banner with vendor-level controls |
 </section>
 
 <section id="resolution-flow">
@@ -190,6 +190,8 @@ group: reference
   ## Re-Prompting on Policy Change
 
   When you change a policy in a way that affects consent semantics — like adding a category, changing the consent model, or modifying allowed actions — c15t automatically re-prompts returning users.
+
+  A material policy change invalidates previous grants but keeps the user's choice record and denials. Optional categories stay denied until the user makes a new choice. The resolved policy controls whether a banner or dialog appears; a no-banner policy does not silently grant previously rejected categories. A temporary hosted initialization failure does not count as an authoritative policy change.
 
   This works through the **material policy fingerprint**: a hash of only the consent-affecting fields (model, categories, scope, allowed actions, grouped action layout, direction, proof settings). Presentation-only changes like copy, button styling, or scroll lock do not trigger re-prompts.
 

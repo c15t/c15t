@@ -107,6 +107,7 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 		let vendorConsents: Record<number, boolean> = {};
 		let vendorLegitInterests: Record<number, boolean> = {};
 		let specialFeatureOptins: Record<number, boolean> = {};
+		let disclosedVendors: Record<number, boolean> = {};
 
 		// Decode TC string if present
 		if (tcString) {
@@ -117,6 +118,7 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 				vendorConsents = decoded.vendorConsents;
 				vendorLegitInterests = decoded.vendorLegitimateInterests;
 				specialFeatureOptins = decoded.specialFeatureOptIns;
+				disclosedVendors = decoded.vendorsDisclosed;
 			} catch {
 				// Invalid TC string, use empty values
 			}
@@ -146,6 +148,7 @@ export function createCMPApi(config: CMPApiConfig): CMPApi {
 			vendor: {
 				consents: vendorConsents,
 				legitimateInterests: vendorLegitInterests,
+				disclosedVendors,
 			},
 			specialFeatureOptins,
 			publisher: {

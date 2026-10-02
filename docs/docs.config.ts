@@ -278,6 +278,7 @@ const generateDocsConfig = () => {
 							'hightouch',
 							'logrocket',
 							'plausible-analytics',
+							'one-dollar-stats',
 							'posthog',
 							'promptwatch',
 							'pirsch',
@@ -290,7 +291,7 @@ const generateDocsConfig = () => {
 					},
 					{
 						title: 'Functional',
-						pages: ['crisp', 'intercom'],
+						pages: ['crisp', 'front-chat', 'intercom'],
 					},
 					{
 						title: 'Ads & Pixels',
@@ -302,6 +303,7 @@ const generateDocsConfig = () => {
 							'microsoft-uet',
 							'snapchat-pixel',
 							'x-pixel',
+							'pinterest-tag',
 						],
 					},
 				],

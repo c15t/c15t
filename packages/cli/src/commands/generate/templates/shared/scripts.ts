@@ -64,6 +64,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example:
 			"matomoAnalytics({ matomoUrl: 'https://analytics.example.com', siteId: 1 })",
 	},
+	'one-dollar-stats': {
+		importName: 'oneDollarStats',
+		example: 'oneDollarStats()',
+	},
 	posthog: {
 		importName: 'posthog',
 		example: "posthog({ id: 'phc_XXXXXXXXXX' })",
@@ -130,6 +134,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		importName: 'crisp',
 		example: "crisp({ websiteId: 'YOUR_WEBSITE_ID' })",
 	},
+	'front-chat': {
+		importName: 'frontChat',
+		example: "frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })",
+	},
 	intercom: {
 		importName: 'intercom',
 		example: "intercom({ appId: 'YOUR_APP_ID' })",
@@ -161,6 +169,10 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 	'x-pixel': {
 		importName: 'xPixel',
 		example: "xPixel({ pixelId: 'oXXXX' })",
+	},
+	'pinterest-tag': {
+		importName: 'pinterestTag',
+		example: "pinterestTag({ tagId: 'XXXXXXXX' })",
 	},
 };
 

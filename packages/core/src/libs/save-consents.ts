@@ -224,9 +224,12 @@ export async function saveConsents({
 				previousDeniedCategories: previousConsentCategoryLists.deniedCategories,
 			}
 		: null;
-	const materialPolicyFingerprint = lastBannerFetchData?.policy
-		? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
-		: undefined;
+	const isTransportFallback = get().initDataSource === 'offline-fallback';
+	const materialPolicyFingerprint = isTransportFallback
+		? consentInfo?.materialPolicyFingerprint
+		: lastBannerFetchData?.policy
+			? await createMaterialPolicyFingerprint(lastBannerFetchData.policy)
+			: undefined;
 
 	// Get or generate subjectId
 	// If we have a subjectId from previous consent, reuse it
@@ -251,9 +254,32 @@ export async function saveConsents({
 		time: givenAt,
 		subjectId,
 		materialPolicyFingerprint,
+		...(isTransportFallback || consentInfo?.requiresReconsent
+			? { requiresReconsent: isTransportFallback }
+			: {}),
 		...(externalId ? { externalId } : {}),
 		...(identityProvider ? { identityProvider } : {}),
 	};
+	// Grants chosen under the outage fallback need fresh confirmation under the
+	// hosted policy, so submit only the denials from such a choice.
+	const unconfirmedGrants = isTransportFallback
+		? consentTypes.filter(
+				(consent) =>
+					consent.disabled !== true && requestPreferences[consent.name] === true
+			)
+		: [];
+	const submittedPreferences: Partial<ConsentState> = { ...requestPreferences };
+	for (const consent of unconfirmedGrants) {
+		delete submittedPreferences[consent.name];
+	}
+	const submittedAction = unconfirmedGrants.length > 0 ? 'custom' : type;
+	const shouldSubmit =
+		unconfirmedGrants.length === 0 ||
+		consentTypes.some(
+			(consent) =>
+				consent.disabled !== true &&
+				submittedPreferences[consent.name] === false
+		);
 
 	// Check if we need to reload the page due to consent revocation
 	const needsReload = shouldReloadOnConsentChange(
@@ -287,9 +313,9 @@ export async function saveConsents({
 	if (needsReload) {
 		// Store pending sync data for API call after reload
 		const pendingSync: PendingConsentSync = {
-			type,
+			type: submittedAction,
 			subjectId,
-			preferences: requestPreferences,
+			preferences: submittedPreferences,
 			givenAt,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model,
@@ -301,10 +327,12 @@ export async function saveConsents({
 		};
 
 		try {
-			localStorage.setItem(
-				PENDING_CONSENT_SYNC_KEY,
-				JSON.stringify(pendingSync)
-			);
+			if (shouldSubmit) {
+				localStorage.setItem(
+					PENDING_CONSENT_SYNC_KEY,
+					JSON.stringify(pendingSync)
+				);
+			}
 		} catch {
 			// localStorage might be unavailable, continue with reload anyway
 			// Consent is already persisted via the store's set() call
@@ -341,18 +369,22 @@ export async function saveConsents({
 		emitConsentChanged?.(consentChangedPayload);
 	}
 
+	if (!shouldSubmit) {
+		return;
+	}
+
 	// Send consent to API in the background - the UI is already updated
 	const consent = await manager.setConsent({
 		body: {
 			type: 'cookie_banner',
 			domain: window.location.hostname,
-			preferences: requestPreferences,
+			preferences: submittedPreferences,
 			subjectId,
 			jurisdiction: locationInfo?.jurisdiction ?? undefined,
 			jurisdictionModel: model ?? undefined,
 			givenAt,
 			uiSource: options?.uiSource ?? 'api',
-			consentAction: type,
+			consentAction: submittedAction,
 			policySnapshotToken: lastBannerFetchData?.policySnapshotToken,
 			...(externalId ? { externalSubjectId: externalId } : {}),
 			...(identityProvider ? { identityProvider } : {}),

@@ -1,5 +1,17 @@
 # @c15t/backend
 
+## 2.3.0-canary-20260930161603
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- d651989: Recognize Netlify's `x-country` geolocation header.
+- Updated dependencies [9c613d4]
+- Updated dependencies [808ece2]
+  - @c15t/logger@2.1.1-canary-20260930161603
+  - @c15t/schema@2.3.0-canary-20260930161603
+  - @c15t/translations@2.3.0-canary-20260930161603
+
 ## 2.2.1
 
 ### Patch Changes

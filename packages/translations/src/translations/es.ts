@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Estas son necesarias para la funcionalidad y seguridad del sitio. Según el TCF de IAB, no puedes oponerte a estos propósitos especiales.',
 			},
+			features: {
+				title: 'Características',
+				description:
+					'Estos medios de tratamiento pueden utilizarse únicamente para uno o varios fines para los que se te da la opción en este aviso.',
+			},
 			vendorList: {
 				search: 'Buscar proveedores...',
 				showingCount: '{filtered} de {total} proveedores',

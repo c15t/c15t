@@ -187,7 +187,7 @@ export const demoScenarios: DemoScenario[] = [
 		label: 'Europe IAB',
 		group: 'preset',
 		country: 'FR',
-		description: 'Shipped preset for IAB TCF 2.3 across Europe.',
+		description: 'Shipped preset for IAB TCF 2.4 across Europe.',
 		policy: policyPackPresets.europeIab(),
 	},
 	{

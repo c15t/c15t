@@ -31,7 +31,7 @@ function createStubPingData(): PingData {
 		cmpVersion: version,
 		cmpId: 0,
 		gvlVersion: 0,
-		tcfPolicyVersion: 5, // TCF 2.3
+		tcfPolicyVersion: 5, // TCF 2.4
 	};
 }
 

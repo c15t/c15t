@@ -97,6 +97,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					'Need on vajalikud saidi toimimiseks ja turvalisuseks. IAB TCF-i kohaselt ei saa nendele erieesmärkidele vastu vaielda.',
 			},
+			features: {
+				title: 'Omadused',
+				description:
+					'Sellist töötlemist saab kasutada ainult ühe või mitme sellise eesmärgi saavutamiseks, millega nõustumiseks teile selles teatises valik antakse.',
+			},
 			vendorList: {
 				search: 'Otsi teenusepakkujaid...',
 				showingCount: 'Kuvatakse {filtered} / {total} teenusepakkujat',

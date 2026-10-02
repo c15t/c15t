@@ -17,7 +17,7 @@ const LANGUAGE_OPTIONS = [
 const MODEL_LABELS: Record<string, string> = {
 	'opt-in': 'Opt-in',
 	'opt-out': 'Opt-out',
-	iab: 'IAB TCF 2.3',
+	iab: 'IAB TCF 2.4',
 	none: 'No banner',
 };
 

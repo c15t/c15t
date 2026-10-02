@@ -111,6 +111,16 @@ export interface IABPreferenceCenterTranslations {
 		title: string;
 		tooltip: string;
 	};
+	/** Informational Features section (TCF Policies v5.0.b). */
+	features?: {
+		/** Section heading. */
+		title: string;
+		/**
+		 * Explains that Features only serve the purposes the user chooses.
+		 * Used when the vendor list has no `standardTexts.features`.
+		 */
+		description: string;
+	};
 	vendorList: {
 		search: string;
 		/**

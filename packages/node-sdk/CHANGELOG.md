@@ -1,5 +1,16 @@
 # @c15t/node-sdk
 
+## 2.3.0-canary-20260930161603
+
+### Patch Changes
+
+- 9c613d4: Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+- Updated dependencies [9c613d4]
+- Updated dependencies [808ece2]
+- Updated dependencies [d651989]
+  - @c15t/backend@2.3.0-canary-20260930161603
+  - @c15t/schema@2.3.0-canary-20260930161603
+
 ## 2.2.1
 
 ### Patch Changes

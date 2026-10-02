@@ -7,7 +7,7 @@ export type Model = 'opt-in' | 'opt-out' | 'iab' | null;
  *
  * - 'opt-in' - Requires explicit consent before non-essential cookies or tracking. (GDPR Style)
  * - 'opt-out' - Allows processing until the user exercises a right to opt out. (CCPA Style)
- * - 'iab' - IAB TCF 2.3 mode for programmatic advertising compliance. (GDPR jurisdictions only)
+ * - 'iab' - IAB TCF 2.4 mode for programmatic advertising compliance. (GDPR jurisdictions only)
  *
  * @param jurisdiction - The user's jurisdiction
  * @param iabEnabled - Whether IAB TCF mode is enabled in configuration

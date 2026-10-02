@@ -26,13 +26,19 @@ describe('script snippets', () => {
 	});
 
 	it('generates matching imports and config calls', () => {
-		const selected = ['microsoft-clarity', 'segment', 'logrocket'];
+		const selected = [
+			'microsoft-clarity',
+			'segment',
+			'logrocket',
+			'front-chat',
+		];
 
 		expect(generateScriptsImport(selected)).toBe(
 			[
 				"import { clarity } from '@c15t/scripts/microsoft-clarity';",
 				"import { segment } from '@c15t/scripts/segment';",
 				"import { logRocket } from '@c15t/scripts/logrocket';",
+				"import { frontChat } from '@c15t/scripts/front-chat';",
 			].join('\n')
 		);
 
@@ -40,5 +46,6 @@ describe('script snippets', () => {
 		expect(config).toContain("clarity({ id: 'YOUR_PROJECT_ID' })");
 		expect(config).toContain("segment({ writeKey: 'YOUR_WRITE_KEY' })");
 		expect(config).toContain("logRocket({ appId: 'org-slug/app-slug' })");
+		expect(config).toContain("frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })");
 	});
 });

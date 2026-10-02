@@ -29,7 +29,7 @@ Self-hostable consent management backend for c15t. Powers cookie banners, consen
 - Audit Logging: Comprehensive logging of all consent-related actions
 - Domain Management: Handle multiple domains and subdomains
 - Policy Management: Version and manage consent policies
-- IAB TCF 2.3 support: Configure GVL, CMP registration, and custom vendors
+- IAB TCF 2.4 support: Configure GVL, CMP registration, and custom vendors
 
 ## Prerequisites
 

@@ -98,6 +98,11 @@ export const translations: CompleteTranslations = {
 				tooltip:
 					"Tá siad seo riachtanach d'fheidhmiúlacht agus slándáil an tsuímh. De réir IAB TCF, ní féidir leat cur in aghaidh na gcuspóirí speisialta seo.",
 			},
+			features: {
+				title: 'Gnéithe',
+				description:
+					'These means of processing can be used solely in pursuit of one or several purposes for which you are given a choice in this notice.',
+			},
 			vendorList: {
 				search: 'Cuardaigh soláthróirí...',
 				showingCount: '{filtered} as {total} soláthróir',
