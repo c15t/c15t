@@ -85,5 +85,6 @@ pinterestTagEvent('checkout', {
 - A choice saved while the consent store is starting up is kept.
 - The iframe blocker skips nodes it can't read instead of stopping. An iframe with an invalid or empty `data-category` now stays blocked and logs a console warning, so check the console for a mistyped category after upgrading. → [Iframe blocking](/docs/frameworks/react/iframe-blocking)
 - Exported types resolve under `Node16` and `NodeNext` module resolution without `skipLibCheck`.
+- The `@c15t/dev-tools` panel can be closed again when the OS or browser has reduced motion turned on. Before, the close button and backdrop did nothing.
 
 <ContributorBlock usernames={["BurnedChris", "bennajah", "prashantbhudwal", "KayleeWilliams"]} title="Thank you to our contributors" />

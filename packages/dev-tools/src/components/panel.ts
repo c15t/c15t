@@ -64,6 +64,22 @@ function getPositionClass(position: DevToolsPosition): string {
 	}
 }
 
+/**
+ * Upper bound on how long closing waits for the exit animation
+ * (`--c15t-duration-fast`, 100ms by default) before finishing anyway.
+ */
+const PANEL_EXIT_FALLBACK_MS = 400;
+
+/**
+ * Whether the element has a CSS animation that will emit `animationend`.
+ * False under `prefers-reduced-motion: reduce`, where the exit classes set
+ * `animation: none`.
+ */
+function hasExitAnimation(element: HTMLElement): boolean {
+	const animationName = window.getComputedStyle(element).animationName;
+	return animationName !== '' && animationName !== 'none';
+}
+
 function formatRetryDelay(delayMs: number | null): string {
 	if (delayMs === null) {
 		return 'n/a';
@@ -107,6 +123,8 @@ export function createPanel(options: PanelOptions): PanelInstance {
 
 	let removePortal: (() => void) | null = null;
 	let isAnimatingOut = false;
+	let exitTimeoutId: ReturnType<typeof setTimeout> | null = null;
+	let removeExitListener: (() => void) | null = null;
 	let draggable: DraggableInstance | null = null;
 	let dropdownMenu: DropdownMenuInstance | null = null;
 	let hasPreferenceTrigger = false;
@@ -509,30 +527,59 @@ export function createPanel(options: PanelOptions): PanelInstance {
 			panelElement.classList.add(animationStyles.animateExit);
 		}
 
-		// Wait for animation to complete
-		panelElement.addEventListener(
-			'animationend',
-			() => {
-				if (backdropElement) {
-					backdropElement.remove();
-					backdropElement = null;
-				}
-				if (panelElement) {
-					panelElement.remove();
-					panelElement = null;
-				}
-				contentContainer = null;
-				footerElement = null;
-				isAnimatingOut = false;
+		// Reduced motion sets `animation: none`, so animationend would never fire
+		if (!hasExitAnimation(panelElement)) {
+			finishClose();
+			return;
+		}
 
-				// Show floating button
-				floatingButton.style.display = '';
+		const exitingPanel = panelElement;
+		const handleAnimationEnd = (event: Event): void => {
+			// Ignore animations from children bubbling up
+			if (event.target === exitingPanel) {
+				finishClose();
+			}
+		};
+		exitingPanel.addEventListener('animationend', handleAnimationEnd);
+		removeExitListener = () => {
+			exitingPanel.removeEventListener('animationend', handleAnimationEnd);
+		};
 
-				// Update state
-				stateManager.setOpen(false);
-			},
-			{ once: true }
-		);
+		// Fallback for when the animation is interrupted or never runs
+		exitTimeoutId = setTimeout(finishClose, PANEL_EXIT_FALLBACK_MS);
+	}
+
+	function clearExitWait(): void {
+		if (exitTimeoutId !== null) {
+			clearTimeout(exitTimeoutId);
+			exitTimeoutId = null;
+		}
+		if (removeExitListener) {
+			removeExitListener();
+			removeExitListener = null;
+		}
+	}
+
+	function finishClose(): void {
+		clearExitWait();
+
+		if (backdropElement) {
+			backdropElement.remove();
+			backdropElement = null;
+		}
+		if (panelElement) {
+			panelElement.remove();
+			panelElement = null;
+		}
+		contentContainer = null;
+		footerElement = null;
+		isAnimatingOut = false;
+
+		// Show floating button
+		floatingButton.style.display = '';
+
+		// Update state
+		stateManager.setOpen(false);
 	}
 
 	/**
@@ -593,6 +640,7 @@ export function createPanel(options: PanelOptions): PanelInstance {
 		update,
 
 		destroy: () => {
+			clearExitWait();
 			unsubscribeState();
 			unsubscribeStore();
 			unsubscribeDiagnostics();
