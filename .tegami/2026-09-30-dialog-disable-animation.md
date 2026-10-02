@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/svelte': patch
-  '@c15t/browser': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Open the preference dialog without animation when `disableAnimation` is set

@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/react': patch
-  '@c15t/nextjs': patch
-  '@c15t/tanstack-start': patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
 ---
 
 ### Load new copy from `useSetLanguage()` and fix composed banner parts

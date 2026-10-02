@@ -1,3 +1,366 @@
+## @c15t/svelte@3.0.0-alpha.4 (alpha)
+
+### Resolve a relative backendURL against the request, not forwarding headers
+
+A relative `backendURL` or `manifestURL` no longer resolves against client-controlled forwarding headers. The server helpers previously built the backend origin from `x-forwarded-host`, `x-forwarded-proto` or `referer` when present, so a request that set them could make the server send its `/init` or manifest request, with the request's cookies and forwarded headers, to another host.
+
+A relative URL now resolves against the URL the framework resolved the request under (`event.url` in SvelteKit, `request.url` in Next.js route handlers, TanStack Start and Astro), or against the `host` header where no request URL exists (Next.js `resolveConsent`, `fetchSSRData`). A bare `host` resolves over `https` for a domain name and over `http` for `localhost`, an IP address, or a single-label host such as `app:3000`. The `referer` header is no longer used.
+
+Apps behind a proxy that sets forwarding headers and drops incoming ones can opt back in with `trustForwardedHeaders: true` on SvelteKit `loadConsent` and `resolveConsent`, Next.js `resolveConsent`, `createNextConsentRouteHandlers` and `createPagesApiHandlers`, and `@c15t/react/server` `fetchSSRData` and `normalizeBackendURL`, matching the existing TanStack Start option. The rule lives in `resolveRequestBackendURL` and `resolveRequestOrigin`, new exports of `@c15t/core/server`, which every server adapter now shares. With the option set, the forwarded host and the forwarded scheme apply independently, so a proxy that keeps `host` and only sets `x-forwarded-proto` or `x-forwarded-ssl` still decides the scheme.
+
+The SvelteKit and `@c15t/react/server` helpers also stop passing the client's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers to the backend, including when `forwardHeaders` names them in SvelteKit. `extractRelevantHeaders` in both packages leaves them out unless called with `{ trustForwardedHeaders: true }`. `fetchSSRData` still makes its `/init` request when those headers are the only ones besides `host`; it just does not forward them.
+
+`resolveBackendURL` from `@c15t/schema/types` is deprecated in favor of `resolveRequestBackendURL`. It now follows the same rule by default: it reads only the `host` header, and ignores `x-forwarded-*` and `referer` unless its new third argument is `{ trustForwardedHeaders: true }`, which restores the previous resolution order. The forwarded values are now validated like `host`: the first entry of a comma-separated list is used, a scheme other than `http` or `https` is ignored, and a host that is not a bare authority resolves to `null`.
+
+### Update documentation links
+
+Point documentation links in CLI prompts and errors, runtime warnings, TSDoc, package READMEs and package homepages at the current c15t.com docs pages. The old addresses led to pages that were moved or removed.
+
+### Show only necessary when a site declares no categories
+
+A site that declares no categories, through `consentCategories`, scripts, network rules, vendors or discovered frames, now offers only Strictly necessary under a permissive policy, as in v2. The banner still appears when the policy asks for a choice. Accept all, Reject all and Save each record an acknowledgement that keeps the banner dismissed after reload, and hosted and manifest modes send a consent receipt for necessary alone. The acknowledgement expires with the policy's choice validity or a policy change, and a category declared later asks again. Strict policies and IAB TCF policies still offer their whole scope.
+
+The Astro server now judges a visitor against the categories the page's `consentCategories`, `scripts` and network rules declare, so it renders the same banner decision as the browser. Browser `hasConsented()` and the `after-consent` trigger treat the acknowledgement as a decision.
+
+In React Native, the Swift and Kotlin cores apply the same rule when the app sets no `consentCategories`: a permissive policy offers only Necessary, any save records the acknowledgement and sends the necessary-only receipt, and strict policies still offer their whole scope. A declared list now also narrows what Accept all and Reject all confirm, as on the web.
+
+### Forward consent saves through the SvelteKit consent route
+
+`createSvelteKitConsentRouteHandlers` answered `GET` only, so a provider
+using `hosted({ url: '/api/c15t' })` got `405` on every save. Pass
+`proxy: true` and the handlers add `POST`, `PATCH`, `PUT`, `DELETE` and
+`OPTIONS`, which forward to `backendURL`. `GET` forwards paths other than
+`init` and `manifest`, which are still resolved in-process. Only those
+exact rest paths stay local, so a `paths` entry such as `reports/manifest`
+is forwarded. Export all six from the catch-all route:
+
+```ts
+// src/routes/api/c15t/[...path]/+server.ts
+export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
+	createSvelteKitConsentRouteHandlers({ backendURL, proxy: true });
+```
+
+The option and its rules match `createConsentServerRoute({ proxy })` in
+`@c15t/tanstack-start`: only `subjects`, `subjects/:id`, `init`,
+`manifest`, `health`, `status` and any `paths` you add are forwarded, and
+anything else gets `404`. Cookies are forwarded only when `cookieNames`
+names them. The client address comes from `event.getClientAddress()`, and
+`x-forwarded-host` and `x-forwarded-proto` from `event.url`.
+
+A relative `backendURL` or `manifestURL`, such as `/api/self-host`, is now
+fetched through `event.fetch`, so SvelteKit answers it in-process. The
+route handlers used to resolve it against `event.url`, which on
+adapter-node without `ORIGIN` takes its host from the client's `Host`
+header, so a forged header could send the manifest, init or proxied
+request to a host of the client's choosing and return its response. The
+`fetch` option now applies to absolute URLs only.
+
+To a remote backend over plain `http:`, the proxy sends only the public
+browser headers: no cookies, no custom headers and no `x-forwarded-for`.
+Such a backend no longer sees the visitor's IP address, so it cannot use it
+for geolocation or rate limiting; use an `https:` backend URL to keep it.
+Loopback `http:` backends still receive all three.
+
+The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
+`resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
+helpers, and both adapters use them. Each adapter supplies only what its
+framework can trust for the forwarding headers. Both proxies now answer
+`504` with a JSON body when the backend misses the deadline and `502` when
+it cannot be reached, instead of a framework error page. They also stop
+passing `TE`, `Trailer` and any header the backend's `Connection` value
+names on to the browser. TanStack Start's proxy otherwise behaves as
+before.
+
+### Start the banner's entry from the stylesheet, and keep the collator off the init path
+
+Canonical sets and fingerprint keys were sorted with
+`String.prototype.localeCompare`, whose first call initialises the ICU
+collator on the main thread before the banner can show. They now use a
+comparator that applies the same root-collation order to printable ASCII
+directly and only falls back to the collator for other strings, so every
+fingerprint stays byte-identical.
+
+Every framework also started the banner's entry transition its own way: the
+script tag and Svelte inserted the hidden state, forced a layout and flipped
+the class; React rendered hidden and flipped after a timer; Vue handed the
+flip to `Transition`; Astro's prerendered banner did not animate at all.
+`@c15t/ui` now carries the entry as `@starting-style` states, the
+`bannerEntering`, `overlayEntering`, `dialogEntering` and `contentEntering`
+classes, and each framework renders the banner in its visible state with the
+entering class. The transition runs from the first frame with no hidden
+render or layout read, and it runs the same way whether the banner arrives
+from the server or the client. Astro's prerendered banner now fades in at
+first paint like the others. Browsers without `@starting-style` show the
+banner in place; the script tag keeps its class flip for them.
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### A/B test banner presentation with any flag provider
+
+Add an `experiment` option for A/B tests on banner and preferences presentation. Your `presentation` is the `control` arm; `arms` lists what every other arm changes. Pass the `arm` your feature flag resolved (Vercel Flags, PostHog, LaunchDarkly, GrowthBook, Statsig), or a `split` such as `{ control: 60, wall: 40 }` for c15t to pick. `defineExperiment()` infers the arm names, so a misspelled `arm` or `split` key is a type error.
+
+```ts
+experiment: {
+  id: 'banner-shape',
+  arms: { wall: { prompt: { variant: 'wall' } } },
+  arm: flagValue, // or split: { control: 60, wall: 40 }
+}
+```
+
+The arm is merged over `presentation` and exposed as `snapshot.experiment` (React and Vue `useExperiment()`, Svelte `state.experiment`, browser `client.presentation`). It rides on `surface:shown` and `choice:recorded` and is saved with the choice as `metadata.experiment`, but only once the banner has shown it in the current page. A returning visitor who changes their choice from a footer link is not counted toward an arm they never saw.
+
+When c15t picks the arm, it does so when the page starts, before `/init`, and holds the banner until the arm is checked, so the visitor never sees one banner swap for another; on a server-rendered page the banner appears after hydration. The arm is stored as `{ id, arm }` under `c15t-experiment-v1` once the banner has shown it. Nothing is stored for a visitor who is never prompted or for an arm from your flag, and no identifier is stored.
+
+Arm validation loads as its own chunk, only when `experiment` is set, so a site without an experiment ships none of it. It is also exported from `c15t/experiment`, where `validateExperiment()` lets a test fail a build on a rejected arm.
+
+Nothing in the experiment throws into the page. An undeclared `arm` or an unusable `split` logs an error and runs no experiment. An arm that trips a presentation diagnostic under the visitor's policy is not shown to that visitor, who sees `control` and is not counted, unless `acknowledgeDiagnostics: true`, which is recorded with the arm.
+
+`@c15t/astro` resolves the arm on the server: per request through `consentMiddleware({ experimentArm })` from `@c15t/astro/middleware` with `middleware: false`, or one fixed `arm`. Arms vary presentation and theme, not copy.
+
+An arm can also carry `theme` overrides (`arms: { bold: { theme: { colors: { primary: '#0a0a0a' } } } }`), merged one token group deep over the host `theme`. Read the merged theme with React `useResolvedTheme()`, Vue `useResolvedTheme(theme)`, Svelte `getConsentManager().theme` and browser `client.theme`. In React, render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+
+### Support SvelteKit 3
+
+`@c15t/svelte` now accepts `@sveltejs/kit` 2 or 3 as a peer dependency. Before, npm refused to install it next to SvelteKit 3 with an `ERESOLVE` peer conflict.
+
+`c15tHandle()` now returns its own `C15tHandle` type, exported from `@c15t/svelte/kit`, instead of SvelteKit's `Handle`. SvelteKit 3 moved `Handle` from `@sveltejs/kit` to `@sveltejs/kit/hooks`, so with the default `skipLibCheck` the old return type became `any` in SvelteKit 3 apps. `C15tHandle` is assignable to `Handle` in both versions, so `export const handle = c15tHandle()` and `sequence(c15tHandle(), yourHandle)` work unchanged.
+
+SvelteKit 3's Cloudflare adapter no longer exposes `waitUntil` on `event.platform`, and its Vercel adapter has no edge runtime. On those platforms, pass the platform's `waitUntil` as `onBackgroundRevalidate` to `createSvelteKitConsentRouteHandlers`, so background manifest refreshes and visit reports finish after the response:
+
+```ts title="src/routes/api/c15t/[...path]/+server.ts"
+import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
+import { waitUntil } from 'cloudflare:workers'; // Vercel: '@vercel/functions'
+
+export const { GET } = createSvelteKitConsentRouteHandlers({
+	backendURL: 'https://your-project.inth.app',
+	onBackgroundRevalidate: (promise) => waitUntil(promise),
+});
+```
+
+If you pass `loadConsent` a relative `backendURL` together with your own `fetch`, the call goes to the origin of `event.url`. SvelteKit 3's `adapter-node` ignores the `ORIGIN` environment variable without a warning and takes the host from the `Host` header instead, so move `ORIGIN` to `paths.origin` in the `sveltekit()` options, or pass an absolute `backendURL`.
+
+If you self-host `@c15t/backend` inside a SvelteKit 3 route, import it dynamically in the route. A static import can fail the build with `Invalid export` for that route. See the [self-hosting quickstart](https://c15t.com/docs/self-host/quickstart#sveltekit).
+
+### Load the Tailwind 3 PostCSS plugin from the package you installed
+
+Every package that publishes a c15t stylesheet now exports the Tailwind 3 PostCSS plugin as `<package>/postcss-tailwind3`, so you no longer install `@c15t/ui` just to list it:
+
+- `c15t/postcss-tailwind3` for apps that install `c15t` (React, Next.js, TanStack Start, Vue, Nuxt and Astro)
+- `@c15t/svelte/postcss-tailwind3` for Svelte and SvelteKit
+- `@c15t/browser/postcss-tailwind3` for script tag pages that style the light DOM
+- `@c15t/react/postcss-tailwind3`, `@c15t/nextjs/postcss-tailwind3`, `@c15t/tanstack-start/postcss-tailwind3`, `@c15t/vue/postcss-tailwind3` and `@c15t/astro/postcss-tailwind3` for apps that install an adapter directly
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'c15t/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Each one re-exports `@c15t/ui/postcss-tailwind3`, so configs that already list that name keep working. The plugin must still come before `tailwindcss`.
+
+`c15t setup` now adds the plugin from the package it installs, `c15t/postcss-tailwind3`, or `@c15t/react/postcss-tailwind3` and `@c15t/nextjs/postcss-tailwind3` in apps that installed those directly, and no longer installs `@c15t/ui` for Tailwind 3. It leaves a config alone when any c15t `postcss-tailwind3` entry, including `@c15t/ui/postcss-tailwind3`, already runs before `tailwindcss`.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### Apply every `theme.slots` style in Svelte
+
+Every stock banner, dialog and preference widget part now takes both the classes and the `style` of its slot. Svelte used to drop `style` on most parts, write camelCase keys such as `backgroundColor` as invalid CSS, ignore `consentDialogOverlay`, and give legal links the classes of the description slot around them. `consentWidgetAccordion` and `toggle` now reach the category list and the category switches, and the IAB banner and dialog now apply their root, card, header and footer slots. Legal links now keep only their stock class, as in React and Vue.
+
+Numeric `style` values get `px` where the property takes a unit, as in React: `{ padding: 8 }` renders `padding:8px`, and unitless properties such as `opacity` or `zIndex` keep the bare number.
+
+### Open the preference dialog without animation when `disableAnimation` is set
+
+The Svelte and script-tag preference dialogs no longer fade and scale in when `disableAnimation` is on. Their overlay and panel now carry `data-disable-animation`, as the Vue dialog does.
+
+### Mirror a `.dark` class when `colorScheme` is unset in Svelte
+
+`ConsentManagerProvider` with no `colorScheme` now copies a `dark` class on `<html>` into `c15t-dark` and follows it as it changes, as the React and Vue providers do. Before, an unset `colorScheme` left `c15t-dark` alone, so a site theme switch that toggled `dark` never reached the consent UI. Pass `colorScheme: null` to keep managing `c15t-dark` yourself.
+
+### Accept `disableAnimation` on the Svelte dialogs
+
+`ConsentDialog` and `IABConsentDialog` take a `disableAnimation` prop that overrides the provider's `disableAnimation` for that dialog, as `ConsentBanner` and the React dialogs already do.
+
+The IAB dialog's backdrop now fades in when the dialog opens, like the consent dialog's and the banners'. It used to appear at full opacity at once. `disableAnimation` on the dialog or the provider turns the fade off, and so does a reduced-motion preference.
+
+### Open the preference dialog with focus on its first control
+
+The consent dialog and the IAB dialog used to focus their own container on
+open and draw a focus ring around the whole card for keyboard users. They now
+focus the first tabbable control inside the panel, the way dialog libraries
+such as Base UI do, so the ring lands on a control. Screen readers still
+announce the title and description as focus enters, through the panel's
+`aria-labelledby` and `aria-describedby`. Blocking banners keep focusing
+their container so no action button is favored. `setupFocusTrap` in
+`@c15t/ui` takes an `initialFocus` option, and the React hook, Svelte action
+and Vue composable pass it through.
+
+### Pass the backend URL to the server helpers
+
+**Breaking.** The server helpers no longer read c15t configuration from environment variables. Pass `backendURL` or `manifestURL` to them. If you keep the URL in an environment variable, read it in your own code and pass the value.
+
+| Helper | No longer read |
+| --- | --- |
+| `createNextConsentRouteHandlers`, `createPagesApiHandlers` (`c15t/next/api`, `c15t/next/pages`) | `C15T_BACKEND_URL`, `NEXT_PUBLIC_C15T_BACKEND_URL`, `C15T_MANIFEST_URL`, `C15T_MANIFEST_REVALIDATE_SECONDS` |
+| `createConsentServerRoute` (`c15t/tanstack-start/api`) | `C15T_BACKEND_URL`, `VITE_C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+| `createSvelteKitConsentRouteHandlers` (`@c15t/svelte/kit`) | `C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+| `manifest()` mode and its injected routes (`c15t/astro`) | `C15T_BACKEND_URL`, `PUBLIC_C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+
+These helpers now take a required options argument. Without `backendURL` or `manifestURL`, each request throws, for example `@c15t/nextjs/api: pass backendURL or manifestURL.` Astro's `manifest()` without a `backendURL` or an inline `manifest` fails when `astro.config` loads. `manifestRevalidateSeconds` defaults to `300`.
+
+The ready-made handlers built from environment variables are removed: `GET` and `manifestGET` from `c15t/next/api` and `@c15t/nextjs/api`, and `GET`, `manifestGET` and `initGET` from `c15t/tanstack-start/api` and `@c15t/tanstack-start/api`.
+
+Before:
+
+```ts title="app/api/c15t/manifest/route.ts"
+export { manifestGET as GET } from 'c15t/next/api';
+```
+
+After:
+
+```ts title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+
+import { consentConfig } from '@/c15t.config';
+
+export const { manifestGET: GET } =
+	createNextConsentRouteHandlers(consentConfig);
+```
+
+The init route takes `GET` from the same call. You can pass options instead of a config, for example `createNextConsentRouteHandlers({ backendURL: 'https://your-project.inth.app' })`.
+
+`c15t setup` writes the chosen backend URL into the generated components, `c15t.config.ts` and the `next.config` rewrite as a string. Quotes and backslashes in the URL are escaped, so they no longer break the generated `next.config`. It no longer writes `.env.local` or `.env.example`, no longer asks whether to store the URL in a `.env` file, and no longer accepts `--env`.
+
+### Keep app `i18n.messages` overrides when the backend sends translations
+
+In hosted and manifest mode, the translations from `/init`, from a server prefetch or from a manifest replaced the app's `i18n.messages` for the same language, so a key overridden in code showed the backend's copy instead. This affected React, Next.js and TanStack Start through the React provider, Svelte and SvelteKit (including `resolveConsent()` prefetches), Astro and `@c15t/browser`.
+
+The backend copy is now the base for the visitor's language and the app's `i18n.messages` for that language are deep-merged over it. An app key replaces the backend's text when it differs from c15t's built-in copy for that language, or for its primary language. A key that repeats the built-in text does not hide the backend's copy, so an app that passes the stock bundles to enable languages, such as `{ ...baseTranslations.de }`, still shows edits made on the backend, while a customized key still wins. Keys the backend does not supply keep the app's copy, so a language the backend does not send still shows the app's copy in full. Overrides for other languages are not applied. A regional language such as `de-AT` uses the overrides under `de` when there is no `de-AT` entry.
+
+Built-in copy is known for English and, once `@c15t/translations/all` has loaded, for every bundled language. Without it, every app key counts as a customization. `@c15t/translations` adds `getStockTranslations()` for this, and `/all` registers its languages when it loads. The package now lists `dist/all.js` under `sideEffects`, so a bare `import '@c15t/translations/all'` survives tree shaking.
+
+Astro also deep-merges `i18n.messages` now. Before, a partial override such as `{ cookieBanner: { title } }` replaced the whole `cookieBanner` section and left its other keys empty. A regional `i18n.locale` or `Accept-Language` such as `de-AT` now renders over the `de` bundle instead of English.
+
+`@c15t/core` now exports `offline()`, a mode for `createConsentRuntime()` that resolves policy rules locally. A language set through the kernel, with `overrides.language` or `kernel.set.language()`, switches the copy when c15t's built-in copy or `i18n.messages` has that language, falling back to the primary language, so `de-AT` uses German copy. Built-in copy covers English, and every bundled language once `@c15t/translations/all` has loaded. A language with no copy gets the startup copy back, still labelled with the startup language. The language a server prefetch detected from `Accept-Language` does not switch the copy until the app has asked for a different language. `@c15t/browser` uses this transport, so `data-language`, the `overrides.language` option and `setLanguage()` now switch the copy in offline mode. The Svelte `offline()` mode is unchanged. The JavaScript, Vue and Solid boilerplate from `@c15t/cli generate` now uses core's `offline()`, and the generated offline kernel config passes `translationsFor` with `baseTranslations` from `@c15t/translations/all`, so generated projects switch to any bundled language too. The CLI installs `@c15t/translations` for that config.
+
+`createOfflineTransport()` accepts `translationsFor` and `detectedLanguage` options with the same behavior. Without `translationsFor` it still relabels its copy with the requested language, as before.
+
+`@c15t/core` also adds a `translationOverrides` kernel option, the `applyTranslationOverrides()` and `resolveLocalTranslations()` helpers, and an optional `translationsFor` on the transport factory context.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
+### Remove the unused `policyRules` option from `ConsentManagerProvider`
+
+`ConsentManagerOptions` accepted `policyRules`, but no Svelte transport read
+it: `offline()` resolved its own rules or the recommended pack, so rules
+passed to the provider were ignored without a warning. The option is gone
+from the type, which matches `ConsentProvider` in `@c15t/react`. Pass rules
+to the transport instead:
+
+```svelte
+<ConsentManagerProvider mode={offline({ policyRules: [rule] })}>
+```
+
+Code that passed `policyRules` to the provider now fails type checking.
+Its behavior does not change, because the option never had an effect.
+
+### Warn in development when `theme` tokens have nowhere to apply
+
+`ConsentManagerProvider` applies slots and `consentActions` from `theme`,
+but it does not turn colors, radii, typography, spacing, shadows or motion
+into CSS in the browser. Passing them without a stylesheet did nothing and
+said nothing. In development the provider now logs a warning when `theme`
+has tokens and the page has no `<style id="c15t-theme">`. The warning
+says to put the `--c15t-*` variables, or the CSS from `generateThemeCSS`,
+in your stylesheet and drop the tokens from `theme`. An app that already
+compiles its theme into a stylesheet silences it the same way. Production
+builds skip the check.
+
+### Keep a `ConsentDialog` held open by `open` on screen after Escape
+
+With `open={true}`, pressing Escape closed the dialog, which then mounted
+again as a new element and moved focus. The dialog now follows `open`, as
+`ConsentDialog` does in `@c15t/react`: Escape sets the active UI to `'none'`,
+and the dialog stays until `open` turns `false`. Without `open`, Escape
+closes the dialog as before.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### An undeclared vendor reads as not allowed
+
+Breaking change: reading vendor consent for an id that no `vendors` entry, script slug or backend vendor list declares now returns `false`. Before, React's `useVendorAllowed`, Astro's `client.isVendorAllowed` and `@c15t/browser`'s `isVendorAllowed` returned `true` for such an id without checking any category, so a typo or a missing declaration read as allowed before the visitor consented. In development, c15t logs one warning per undeclared id that names the missing declaration. Declare every vendor you read, for example `vendors: [{ id: 'youtube', category: 'measurement', ... }]`.
+
+The rule lives in one helper, `isVendorAllowed(snapshot, vendorId, now?)`, exported from `c15t` and `@c15t/core`. A declared vendor keeps its behaviour: it is allowed when its category condition passes and, outside an IAB policy, the visitor has not switched it off.
+
+Vue gains `useVendorAllowed(vendorId)`, which returns a computed boolean and is auto-imported in Nuxt. The Svelte consent manager from `getConsentManager()` gains `isVendorAllowed(vendorId)`.
+
+Scripts, iframes and network rules that carry an undeclared `vendor` slug are gated as before: they follow their category.
+
+### Pass `shadow` from `ConsentDevTools` to the DevTools panel
+
+`ConsentDevTools` in `@c15t/svelte`, `@c15t/react` and `@c15t/vue` accepted
+`shadow` in its props type but never passed it to `createDevTools`, so the
+panel always mounted inside a shadow root. The Vue component did not
+declare the prop at all. `shadow={false}` now mounts the panel in the light
+DOM, with its stylesheet in `<head>`, as the `@c15t/dev-tools` option
+describes. Leaving `shadow` out keeps the shadow root.
+
+### Add trigger slots and keep slot classes under `noStyle`
+
+`theme.slots` gains `consentDialogTrigger` and `consentDialogTriggerIcon` for the floating button that reopens the preference center and its icon, the parts React and Vue style with `components.trigger.root` and `components.trigger.icon`. The Svelte `ConsentDialogTrigger` applies both, including a slot's `style`.
+
+`resolveStyles` now keeps theme slot classes and styles under `noStyle` and drops only the stock classes. Before, a component that passed its own `noStyle` flag lost the theme slot's classes, and one that passed a `baseClassName` kept the stock class. In `@c15t/svelte`, the banner, dialog and widget parts now keep their `theme.slots` classes when `noStyle` is set, and the widget's footer button group reads `consentWidgetFooterSubGroup` instead of `consentWidgetFooter`.
+
+### Stop the floating trigger's transitions when `disableAnimation` is set
+
+The floating dialog trigger and the trigger toolbar now carry `data-disable-animation` when the provider's `disableAnimation` is on, and the stylesheet then drops their hover and snap-to-corner transitions. They already stop under `prefers-reduced-motion: reduce`.
+
 ## @c15t/svelte@3.0.0-alpha.3 (alpha)
 
 ### Mount collapsed preference content on first open

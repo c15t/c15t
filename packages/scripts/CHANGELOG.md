@@ -1,3 +1,36 @@
+## @c15t/scripts@3.0.0-alpha.3 (alpha)
+
+### Update documentation links
+
+Point documentation links in CLI prompts and errors, runtime warnings, TSDoc, package READMEs and package homepages at the current c15t.com docs pages. The old addresses led to pages that were moved or removed.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### Rename the vendor integrations package
+
+Replace `@c15t/scripts` with `@c15t/integrations` in v3 dependencies and imports.
+Vendor subpaths, helper names, and the `scripts` configuration option stay the
+same. `@c15t/scripts` remains available as a deprecated compatibility package
+throughout v3, re-exporting the same implementation and types. Compatibility
+ends in v4; previously published versions remain available on npm.
+
+The CLI installs and imports `@c15t/integrations` in generated applications.
+Run `c15t codemods scripts-to-integrations --dry-run --json` to preview import
+changes in JavaScript and TypeScript files, then repeat without `--dry-run` to
+apply them. Update package dependencies and Vue or Svelte component imports
+separately.
+
 ## @c15t/scripts@3.0.0-alpha.2 (alpha)
 
 ### Encode and enforce IAB publisher restrictions

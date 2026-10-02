@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/svelte': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Keep a `ConsentDialog` held open by `open` on screen after Escape

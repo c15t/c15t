@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/core': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Gate iframes after a client router replaces the page body

@@ -1,3 +1,190 @@
+## @c15t/tanstack-start@3.0.0-alpha.4 (alpha)
+
+### Resolve a relative backendURL against the request, not forwarding headers
+
+A relative `backendURL` or `manifestURL` no longer resolves against client-controlled forwarding headers. The server helpers previously built the backend origin from `x-forwarded-host`, `x-forwarded-proto` or `referer` when present, so a request that set them could make the server send its `/init` or manifest request, with the request's cookies and forwarded headers, to another host.
+
+A relative URL now resolves against the URL the framework resolved the request under (`event.url` in SvelteKit, `request.url` in Next.js route handlers, TanStack Start and Astro), or against the `host` header where no request URL exists (Next.js `resolveConsent`, `fetchSSRData`). A bare `host` resolves over `https` for a domain name and over `http` for `localhost`, an IP address, or a single-label host such as `app:3000`. The `referer` header is no longer used.
+
+Apps behind a proxy that sets forwarding headers and drops incoming ones can opt back in with `trustForwardedHeaders: true` on SvelteKit `loadConsent` and `resolveConsent`, Next.js `resolveConsent`, `createNextConsentRouteHandlers` and `createPagesApiHandlers`, and `@c15t/react/server` `fetchSSRData` and `normalizeBackendURL`, matching the existing TanStack Start option. The rule lives in `resolveRequestBackendURL` and `resolveRequestOrigin`, new exports of `@c15t/core/server`, which every server adapter now shares. With the option set, the forwarded host and the forwarded scheme apply independently, so a proxy that keeps `host` and only sets `x-forwarded-proto` or `x-forwarded-ssl` still decides the scheme.
+
+The SvelteKit and `@c15t/react/server` helpers also stop passing the client's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers to the backend, including when `forwardHeaders` names them in SvelteKit. `extractRelevantHeaders` in both packages leaves them out unless called with `{ trustForwardedHeaders: true }`. `fetchSSRData` still makes its `/init` request when those headers are the only ones besides `host`; it just does not forward them.
+
+`resolveBackendURL` from `@c15t/schema/types` is deprecated in favor of `resolveRequestBackendURL`. It now follows the same rule by default: it reads only the `host` header, and ignores `x-forwarded-*` and `referer` unless its new third argument is `{ trustForwardedHeaders: true }`, which restores the previous resolution order. The forwarded values are now validated like `host`: the first entry of a comma-separated list is used, a scheme other than `http` or `https` is ignored, and a host that is not a bare authority resolves to `null`.
+
+### Require a TanStack Start release with the server-function XSS fix
+
+The `@tanstack/react-start` peer range now starts at 1.168.60, and `@tanstack/react-router` at 1.170.41, the release Start 1.168.60 pins. Earlier Start releases from 1.143.12 are affected by CVE-2026-102989, a reflected XSS in server-function responses (GHSA-qx66-fv34-fjm8). Package managers now warn when an app installs `@c15t/tanstack-start` next to an affected Start release. Upgrade both packages together.
+
+### Forward consent saves through the SvelteKit consent route
+
+`createSvelteKitConsentRouteHandlers` answered `GET` only, so a provider
+using `hosted({ url: '/api/c15t' })` got `405` on every save. Pass
+`proxy: true` and the handlers add `POST`, `PATCH`, `PUT`, `DELETE` and
+`OPTIONS`, which forward to `backendURL`. `GET` forwards paths other than
+`init` and `manifest`, which are still resolved in-process. Only those
+exact rest paths stay local, so a `paths` entry such as `reports/manifest`
+is forwarded. Export all six from the catch-all route:
+
+```ts
+// src/routes/api/c15t/[...path]/+server.ts
+export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
+	createSvelteKitConsentRouteHandlers({ backendURL, proxy: true });
+```
+
+The option and its rules match `createConsentServerRoute({ proxy })` in
+`@c15t/tanstack-start`: only `subjects`, `subjects/:id`, `init`,
+`manifest`, `health`, `status` and any `paths` you add are forwarded, and
+anything else gets `404`. Cookies are forwarded only when `cookieNames`
+names them. The client address comes from `event.getClientAddress()`, and
+`x-forwarded-host` and `x-forwarded-proto` from `event.url`.
+
+A relative `backendURL` or `manifestURL`, such as `/api/self-host`, is now
+fetched through `event.fetch`, so SvelteKit answers it in-process. The
+route handlers used to resolve it against `event.url`, which on
+adapter-node without `ORIGIN` takes its host from the client's `Host`
+header, so a forged header could send the manifest, init or proxied
+request to a host of the client's choosing and return its response. The
+`fetch` option now applies to absolute URLs only.
+
+To a remote backend over plain `http:`, the proxy sends only the public
+browser headers: no cookies, no custom headers and no `x-forwarded-for`.
+Such a backend no longer sees the visitor's IP address, so it cannot use it
+for geolocation or rate limiting; use an `https:` backend URL to keep it.
+Loopback `http:` backends still receive all three.
+
+The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
+`resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
+helpers, and both adapters use them. Each adapter supplies only what its
+framework can trust for the forwarding headers. Both proxies now answer
+`504` with a JSON body when the backend misses the deadline and `502` when
+it cannot be reached, instead of a framework error page. They also stop
+passing `TE`, `Trailer` and any header the backend's `Connection` value
+names on to the browser. TanStack Start's proxy otherwise behaves as
+before.
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### Load the Tailwind 3 PostCSS plugin from the package you installed
+
+Every package that publishes a c15t stylesheet now exports the Tailwind 3 PostCSS plugin as `<package>/postcss-tailwind3`, so you no longer install `@c15t/ui` just to list it:
+
+- `c15t/postcss-tailwind3` for apps that install `c15t` (React, Next.js, TanStack Start, Vue, Nuxt and Astro)
+- `@c15t/svelte/postcss-tailwind3` for Svelte and SvelteKit
+- `@c15t/browser/postcss-tailwind3` for script tag pages that style the light DOM
+- `@c15t/react/postcss-tailwind3`, `@c15t/nextjs/postcss-tailwind3`, `@c15t/tanstack-start/postcss-tailwind3`, `@c15t/vue/postcss-tailwind3` and `@c15t/astro/postcss-tailwind3` for apps that install an adapter directly
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'c15t/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Each one re-exports `@c15t/ui/postcss-tailwind3`, so configs that already list that name keep working. The plugin must still come before `tailwindcss`.
+
+`c15t setup` now adds the plugin from the package it installs, `c15t/postcss-tailwind3`, or `@c15t/react/postcss-tailwind3` and `@c15t/nextjs/postcss-tailwind3` in apps that installed those directly, and no longer installs `@c15t/ui` for Tailwind 3. It leaves a config alone when any c15t `postcss-tailwind3` entry, including `@c15t/ui/postcss-tailwind3`, already runs before `tailwindcss`.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### Load new copy from `useSetLanguage()` and fix composed banner parts
+
+`useSetLanguage()` now runs init again after storing the language, so the banner and dialog switch to that language without a separate `init()` call. Setting the current language does nothing, and a disabled provider stores the language without running init. With a `runtime` passed to `ConsentProvider`, the runtime reinitializes itself.
+
+The React `offline()` mode, also exported by `@c15t/nextjs` and `@c15t/tanstack-start`, is now core's `offline()`. A language from `useSetLanguage()` or `overrides.language` switches the copy when the bundled translations or `i18n.messages` have that language, and a language with no copy keeps the default copy. The language a server prefetch detected from `Accept-Language` still does not switch the copy, including when `prefetch` is a pending promise.
+
+`ConsentProvider` logs a development warning when `options.callbacks` is passed together with `runtime`. The runtime runs the callbacks its owner passed to `createConsentRuntime({ callbacks })`, and the provider's own callbacks were dropped without notice. The options type for a borrowed runtime now rejects `callbacks`.
+
+Composed banner parts:
+
+- `ConsentBanner.Card` fills a callback ref and keeps its focus trap. Before, a callback ref replaced the ref the trap read, so a blocking card did not trap focus.
+- `ConsentBanner.Title` and `ConsentDialog.HeaderTitle` with `asChild` render the child element, such as an `h1`, in place of the `h2`. Before, the child was nested inside the `h2`. `ConsentBanner.Overlay` now honors `asChild` too. `ConsentBanner.Description` and `ConsentDialog.HeaderDescription` with `asChild` and no child element render their default markup instead of nothing.
+- `ConsentBanner.AcceptButton`, `RejectButton` and `CustomizeButton` placed by hand now carry `data-action="accept"`, `"reject"` and `"customize"`, as they do in the stock banner, and pick up `theme.consentActions.accept`, `.reject` and `.customize`. An explicit `data-action` or `consentAction` prop still wins.
+
+### Pass the backend URL to the server helpers
+
+**Breaking.** The server helpers no longer read c15t configuration from environment variables. Pass `backendURL` or `manifestURL` to them. If you keep the URL in an environment variable, read it in your own code and pass the value.
+
+| Helper | No longer read |
+| --- | --- |
+| `createNextConsentRouteHandlers`, `createPagesApiHandlers` (`c15t/next/api`, `c15t/next/pages`) | `C15T_BACKEND_URL`, `NEXT_PUBLIC_C15T_BACKEND_URL`, `C15T_MANIFEST_URL`, `C15T_MANIFEST_REVALIDATE_SECONDS` |
+| `createConsentServerRoute` (`c15t/tanstack-start/api`) | `C15T_BACKEND_URL`, `VITE_C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+| `createSvelteKitConsentRouteHandlers` (`@c15t/svelte/kit`) | `C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+| `manifest()` mode and its injected routes (`c15t/astro`) | `C15T_BACKEND_URL`, `PUBLIC_C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+
+These helpers now take a required options argument. Without `backendURL` or `manifestURL`, each request throws, for example `@c15t/nextjs/api: pass backendURL or manifestURL.` Astro's `manifest()` without a `backendURL` or an inline `manifest` fails when `astro.config` loads. `manifestRevalidateSeconds` defaults to `300`.
+
+The ready-made handlers built from environment variables are removed: `GET` and `manifestGET` from `c15t/next/api` and `@c15t/nextjs/api`, and `GET`, `manifestGET` and `initGET` from `c15t/tanstack-start/api` and `@c15t/tanstack-start/api`.
+
+Before:
+
+```ts title="app/api/c15t/manifest/route.ts"
+export { manifestGET as GET } from 'c15t/next/api';
+```
+
+After:
+
+```ts title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+
+import { consentConfig } from '@/c15t.config';
+
+export const { manifestGET: GET } =
+	createNextConsentRouteHandlers(consentConfig);
+```
+
+The init route takes `GET` from the same call. You can pass options instead of a config, for example `createNextConsentRouteHandlers({ backendURL: 'https://your-project.inth.app' })`.
+
+`c15t setup` writes the chosen backend URL into the generated components, `c15t.config.ts` and the `next.config` rewrite as a string. Quotes and backslashes in the URL are escaped, so they no longer break the generated `next.config`. It no longer writes `.env.local` or `.env.example`, no longer asks whether to store the URL in a `.env` file, and no longer accepts `--env`.
+
+### Load only the dialog link from its subpath
+
+`@c15t/nextjs/components/consent-dialog-link`, `@c15t/tanstack-start/components/consent-dialog-link` and their `c15t/next` and `c15t/tanstack-start` equivalents now export only `ConsentDialogLink`. They pointed at the whole adapter entry, so importing the link pulled in the rest of the adapter.
+
+### Resolve unknown locations on static pages with the manifest's own policy
+
+`createStaticConsentResolver` from `@c15t/tanstack-start/static` now starts a visitor with no known location on the manifest's unknown-location policy (its `fallback` pack, else its `default` pack), as `@c15t/nextjs/static` already did and as server rendering does when location headers are missing. It previously picked the strictest pack in the manifest and applied it to everyone, including packs scoped to other countries. A manifest with no fallback or default pack now resolves to a failed `insufficient-inputs` result, and the client applies its safe fallback.
+
+Geo data that isn't a non-empty string, such as a numeric `country` or a blank `regionCode` from the geo endpoint, now counts as an unknown location. It previously reached the policy resolver and could end up in `location.countryCode`. String values are trimmed.
+
+The static resolver now lives in `@c15t/core/static` (also available as `c15t/static`), and both framework `static` entries re-export it. `resolveStrictestDefaultInit` is renamed to `resolveUnknownLocationInit`. The old name still works in `@c15t/nextjs/static` and `@c15t/tanstack-start/static` and is marked deprecated.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
 ## @c15t/tanstack-start@3.0.0-alpha.3 (alpha)
 
 ### Encode and enforce IAB publisher restrictions

@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/vue': patch
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Ship the stock dark palette in Vue and Nuxt

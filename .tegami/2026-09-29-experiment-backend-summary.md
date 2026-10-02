@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/backend': minor
-  '@c15t/schema': minor
-  '@c15t/node-sdk': minor
-  'c15t': minor
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/node-sdk":
+    replay:
+      - exit-prerelease(npm:@c15t/node-sdk)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Index experiment attribution and summarise choices per arm

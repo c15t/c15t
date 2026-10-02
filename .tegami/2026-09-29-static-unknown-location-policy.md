@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/core': patch
-  '@c15t/nextjs': patch
-  '@c15t/tanstack-start': patch
-  'c15t': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Resolve unknown locations on static pages with the manifest's own policy

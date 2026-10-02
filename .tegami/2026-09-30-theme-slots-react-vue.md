@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/ui': minor
-  '@c15t/react': minor
-  '@c15t/vue': minor
-  '@c15t/astro': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Apply `theme.slots` in React and Vue

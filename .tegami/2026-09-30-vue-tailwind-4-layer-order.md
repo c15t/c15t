@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/vue': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Keep Vue components styled next to Tailwind 4

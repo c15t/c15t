@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/svelte': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Warn in development when `theme` tokens have nowhere to apply

@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Let the page decide the scheme with `colorScheme: null`

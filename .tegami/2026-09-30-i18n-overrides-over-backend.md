@@ -1,12 +1,26 @@
 ---
 packages:
-  "@c15t/core": patch
-  "@c15t/react": patch
-  "@c15t/svelte": patch
-  "@c15t/astro": patch
-  "@c15t/browser": patch
-  "@c15t/cli": patch
-  "@c15t/translations": patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
+  "@c15t/translations":
+    replay:
+      - exit-prerelease(npm:@c15t/translations)
 ---
 
 ### Keep app `i18n.messages` overrides when the backend sends translations

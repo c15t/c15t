@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/svelte': patch
-  '@c15t/core': patch
-  '@c15t/tanstack-start': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
 ---
 
 ### Forward consent saves through the SvelteKit consent route

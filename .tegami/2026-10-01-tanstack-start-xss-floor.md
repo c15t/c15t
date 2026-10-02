@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/tanstack-start': patch
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
 ---
 
 ### Require a TanStack Start release with the server-function XSS fix

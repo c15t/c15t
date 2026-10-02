@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Pass a CSP nonce and the remaining runtime options through `@c15t/browser`
