@@ -1,5 +1,11 @@
 # @c15t/scripts
 
+## 2.3.0
+
+### Minor Changes
+
+- 184b491: Read the [c15t 2.3.0 changelog](https://c15t.com/changelog/2.3.0) for the complete release notes and upgrade context.
+
 ## 2.3.0-canary-20260930161603
 
 ### Minor Changes

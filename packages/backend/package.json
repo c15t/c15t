@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/backend",
-	"version": "2.3.0-canary-20260930161603",
+	"version": "2.3.0",
 	"description": "Self-hostable consent management backend for c15t with policy resolution, audit logs, geolocation, and storage adapters.",
 	"keywords": [
 		"consent",
