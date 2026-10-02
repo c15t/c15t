@@ -1,5 +1,11 @@
 # @c15t/dev-tools
 
+## 2.3.0-canary-20261002100231
+
+### Patch Changes
+
+- f2b2318: Fix the DevTools panel getting stuck open when `prefers-reduced-motion: reduce` is enabled. The close button and backdrop now close the panel right away when there is no exit animation, and closing falls back to a timeout if `animationend` never fires.
+
 ## 2.3.0-canary-20260930161603
 
 ### Patch Changes
