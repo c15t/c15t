@@ -1,4 +1,8 @@
-/** npm channel used by v3 CLI dependency installation. */
+/**
+ * npm channel for portable v3 hosts, which do not import the Node CLI version.
+ * Bare c15t packages intentionally use alpha while latest is v2. Explicit
+ * version or tag specifiers are preserved.
+ */
 export const packageTag = 'alpha';
 
 /**

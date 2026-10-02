@@ -87,7 +87,9 @@ export const selectAction = async (context: CliContext) => {
 	context.telemetry.trackEvent(TelemetryEventName.PROJECT_SELECTED, {
 		projectId: project.id,
 	});
-	context.logger.success(`Selected default project: ${project.name}`);
+	context.logger.success(
+		`Selected project for this application: ${project.name}`
+	);
 	return { project };
 };
 
@@ -218,14 +220,14 @@ export const projectsCommand: CliCommand = {
 		},
 		{
 			action: selectAction,
-			description: 'Select the account default project used by setup',
-			hint: 'Select default project',
+			description: 'Select the project used by setup in this application',
+			hint: 'Select project',
 			label: 'Select',
 			name: 'select',
 		},
 		{
 			action: createAction,
-			description: 'Create and select a development project',
+			description: 'Create a project and select it for this application',
 			hint: 'Create project',
 			label: 'Create',
 			name: 'create',

@@ -7,6 +7,15 @@ import { getInstallSpecifier } from '../../generate/dependencies';
 /** Package managers supported by native frontend generation. */
 export type PackageManager = 'npm' | 'pnpm' | 'yarn' | 'bun';
 
+/** Reject unsupported native installer launches before applying application files. @internal */
+export const requireNativeInstaller = (): void => {
+	if (process.platform === 'win32') {
+		throw new Error(
+			'Native frontend dependency installation is unavailable on Windows. Use --skip-install and install dependencies manually.'
+		);
+	}
+};
+
 /**
  * Install dependencies after successfully applying generation files.
  * @param projectRoot Application directory in which to install dependencies.
@@ -31,6 +40,7 @@ export const installGenerationDependencies = async (
 	if (!dependencies.length) {
 		return;
 	}
+	requireNativeInstaller();
 	const root = realpathSync(projectRoot);
 	const manifest = join(root, 'package.json');
 	const entry = lstatSync(manifest);

@@ -229,7 +229,7 @@ local SDK mocks cannot prove a real vendor's tracking behavior.
 
 See [benchmark commands and profiles](../benchmarks/README.md#ci-comparisons).
 
-`cli-native.yml` runs the packed CLI frontend suite on Linux and macOS for CLI
+`cli-native.yml` runs the packed CLI frontend suite on Linux and macOS 15 or newer for CLI
 changes and v3 pushes. It installs `@scriptc/compiler@0.2.0` in the runner's
 temporary directory, compiles with dynamic support disabled, and exercises
 plans, file apply, conflicts, symlinks, interrupted recovery and alpha installer

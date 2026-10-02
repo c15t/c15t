@@ -9,6 +9,30 @@ import { getInstallSpecifier } from '../../generate/dependencies';
 import { toCamelCase } from '../../generate/scripts';
 
 describe('reusable generation', () => {
+	it.each([undefined, '', 'not-a-url'])(
+		'explains how to supply a hosted backend URL: %s',
+		(backendURL) => {
+			expect(() =>
+				runGenerateCommand(['hosted', '--framework', 'react'], {
+					backendURL,
+				})
+			).toThrow('--backend-url');
+		}
+	);
+	it('accepts the mode flag forwarded by a host and rejects conflicting modes', () => {
+		expect(
+			runGenerateCommand(['--mode', 'offline', '--framework', 'react'])
+		).toEqual(generate({ framework: 'react', mode: 'offline' }));
+		expect(() =>
+			runGenerateCommand([
+				'hosted',
+				'--mode',
+				'offline',
+				'--framework',
+				'react',
+			])
+		).toThrow('one mode');
+	});
 	it('deduplicates integrations without mutating the caller inputs', () => {
 		const scripts = ['google-tag', 'google-tag'];
 		expect(generate({ framework: 'react', mode: 'offline', scripts })).toEqual(

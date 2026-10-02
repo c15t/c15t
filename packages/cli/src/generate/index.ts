@@ -43,7 +43,17 @@ const validateOptions = (options: BoilerplateOptions): BoilerplateOptions => {
 		throw new Error('Choose hosted or offline mode.');
 	}
 	if (options.mode === 'hosted') {
-		const url = new URL(options.backendURL ?? '');
+		if (!options.backendURL) {
+			throw new Error(
+				'Hosted generation requires --backend-url or a selected project with a backend URL.'
+			);
+		}
+		let url: URL;
+		try {
+			url = new URL(options.backendURL);
+		} catch {
+			throw new Error('Supply a valid HTTP or HTTPS URL with --backend-url.');
+		}
 		if (url.protocol !== 'http:' && url.protocol !== 'https:') {
 			throw new Error(
 				'Hosted generation requires an HTTP or HTTPS backend URL.'
@@ -172,9 +182,13 @@ const readGenerationFlag = (
 ): string => {
 	const argument = args[index] ?? '';
 	if (
-		!['--framework', '--backend-url', '--scripts', '--output'].includes(
-			argument
-		)
+		![
+			'--mode',
+			'--framework',
+			'--backend-url',
+			'--scripts',
+			'--output',
+		].includes(argument)
 	) {
 		throw new Error(`Unsupported generation flag: ${argument}`);
 	}
@@ -187,6 +201,13 @@ const readGenerationFlag = (
 		throw new Error(`Missing value for ${argument}`);
 	}
 	return value;
+};
+
+const readMode = (currentMode: string, inputMode: string): string => {
+	if (currentMode) {
+		throw new Error('Supply exactly one mode.');
+	}
+	return inputMode;
 };
 
 /**
@@ -212,15 +233,15 @@ export const parseGenerateOptions = (
 	for (let index = 0; index < args.length; index += 1) {
 		const argument = args[index] ?? '';
 		if (!argument.startsWith('-')) {
-			if (mode) {
-				throw new Error('Supply exactly one mode.');
-			}
-			mode = argument;
+			mode = readMode(mode, argument);
 			continue;
 		}
 		const value = readGenerationFlag(args, index, seenFlags);
 		index += 1;
 		switch (argument) {
+			case '--mode':
+				mode = readMode(mode, value);
+				break;
 			case '--framework':
 				framework = value;
 				break;

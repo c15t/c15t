@@ -167,8 +167,10 @@ Recovery checks every record and generated file before removing owned files.
 Edited files, replacements even with identical contents, unexpected staging
 contents, and malformed records remain for inspection. Empty generated directories
 can remain after recovery. This supports process interruption; it does not promise
-recovery from filesystem corruption or power loss. A partially written journal
-requires inspection. The Node runner's `.c15t-generation.json` uses its own recovery
+recovery from filesystem corruption or power loss. Recovery removes an incomplete
+journal only when there are no staged files or unexpected contents, leaving
+application files untouched. A partial journal with staged files requires
+inspection. The Node runner's `.c15t-generation.json` uses its own recovery
 path and cannot be resumed by this runtime.
 
 Dependency installation runs after file apply commits. npm, pnpm, yarn, and Bun
@@ -179,6 +181,10 @@ and `node_modules` do not roll back. For manual installation, use `--skip-instal
 and the returned dependencies. `planGeneration`, `applyGeneration`,
 `recoverGeneration`, `installGenerationDependencies`, and
 `parseGenerationWorkflowArguments` expose the same steps separately.
+
+Native dependency installation is supported on macOS and Linux. On Windows,
+use `--skip-install` and install the returned dependencies manually. A workflow
+that requests installation on Windows fails before writing application files.
 
 ## Compile native frontend commands with scriptc
 
@@ -235,6 +241,14 @@ Replace the example URL with the exact endpoint provisioned for the project. The
 
 ## Agent setup and v3 migration workflow
 
+Launching Codex through the CLI is supported on macOS and Linux. On Windows,
+use `--plan` to copy the prompt and run it in Codex manually.
+
+Use `c15t setup --codex --plan` to print the setup prompt and copy it to your
+clipboard without launching Codex. The CLI confirms a successful copy or tells
+you to copy the printed prompt manually if clipboard access fails. `--dry-run`
+does the same. Add `--json` to export the prompt without clipboard access.
+
 Launch your installed Codex CLI from the application directory:
 
 ```bash
@@ -246,7 +260,8 @@ Replace the example URL with the provisioned consent backend URL. With an Inth
 connection, `--project <id|name>` resolves that project's backend URL.
 Use either `--project` or `--backend-url`. `--framework` and `--scripts` provide
 optional hints. Explicitly select `offline` or `custom` when needed. Without a
-mode, the task asks the agent to confirm it with you.
+mode, the task asks the agent to confirm it with you. The prompt includes a
+public inputs section only when you supply configuration.
 
 Codex receives the default c15t v3 frontend task and named public inputs. It
 inspects the application, proposes a setup plan, installs required c15t packages

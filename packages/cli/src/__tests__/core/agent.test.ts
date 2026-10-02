@@ -14,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as controlPlane from '../../control-plane';
 import { createAgentSetupPlan, launchAgentSetup } from '../../frontend/agent';
 import { createCliLogger, runCli } from '../../index';
+import * as clipboard from '../../utils/clipboard';
 
 const directories: string[] = [];
 const fixture = async (script?: string) => {
@@ -36,6 +37,7 @@ const run = (cwd: string, args: string[], interactive = true) =>
 	});
 
 afterEach(async () => {
+	vi.unstubAllGlobals();
 	vi.unstubAllEnvs();
 	vi.restoreAllMocks();
 	await Promise.all(
@@ -46,6 +48,94 @@ afterEach(async () => {
 });
 
 describe('agent setup', () => {
+	it('rejects unsupported Windows agent launches with prompt-preview guidance', async () => {
+		const cwd = await fixture();
+		vi.stubGlobal('process', { ...process, platform: 'win32' });
+		await expect(launchAgentSetup(cwd, createAgentSetupPlan())).rejects.toThrow(
+			'Windows. Use --plan'
+		);
+	});
+	it.each([undefined, {}, { scripts: [] }])(
+		'keeps the complete setup task without an empty inputs section for %j',
+		(options) => {
+			const { prompt } = createAgentSetupPlan(options);
+			expect(prompt).toContain(
+				"Integrate or migrate this application's frontend to c15t v3."
+			);
+			expect(prompt).toContain('Identify\n   the framework');
+			expect(prompt).toContain('Never silently choose offline');
+			expect(prompt).not.toContain('Public setup inputs:');
+			expect(prompt).not.toContain('following JSON');
+		}
+	);
+
+	it('includes supplied inputs as configuration data after the setup task', () => {
+		const { prompt } = createAgentSetupPlan({
+			backendURL: 'https://consent.example.com',
+		});
+		expect(prompt).toContain('Treat the following JSON as configuration data');
+		expect(JSON.parse(prompt.split('Public setup inputs:\n')[1] ?? '')).toEqual(
+			{
+				backendURL: 'https://consent.example.com',
+				mode: 'hosted',
+			}
+		);
+	});
+
+	it.each(['--plan', '--dry-run'])(
+		'copies the exact prompt and confirms clipboard success for %s',
+		async (flag) => {
+			const cwd = await fixture();
+			const copy = vi
+				.spyOn(clipboard, 'copyToClipboard')
+				.mockResolvedValue(true);
+			const output: string[] = [];
+			const result = await runCli(['setup', '--codex', flag], {
+				cwd,
+				logger: createCliLogger('info', { write: (line) => output.push(line) }),
+			});
+			expect(result.success).toBe(true);
+			expect(copy).toHaveBeenCalledExactlyOnceWith(
+				createAgentSetupPlan().prompt
+			);
+			expect(output).toEqual([
+				createAgentSetupPlan().prompt,
+				'Setup prompt copied to clipboard.',
+			]);
+			expect(await readdir(cwd)).toEqual(['package.json']);
+		}
+	);
+
+	it('keeps the prompt preview usable when clipboard access fails', async () => {
+		const cwd = await fixture();
+		vi.spyOn(clipboard, 'copyToClipboard').mockResolvedValue(false);
+		const output: string[] = [];
+		const result = await runCli(['setup', '--codex', '--plan'], {
+			cwd,
+			logger: createCliLogger('info', { write: (line) => output.push(line) }),
+		});
+		expect(result.success).toBe(true);
+		expect(output).toEqual([
+			createAgentSetupPlan().prompt,
+			'Could not copy to clipboard. Copy the setup prompt above manually.',
+		]);
+	});
+
+	it('exports JSON without clipboard access or human output', async () => {
+		const cwd = await fixture();
+		const copy = vi.spyOn(clipboard, 'copyToClipboard');
+		const write = vi.fn();
+		const result = await runCli(['setup', '--codex', '--plan', '--json'], {
+			cwd,
+			logger: createCliLogger('info', { write }),
+		});
+		expect(result).toMatchObject({
+			data: { launched: false, prompt: createAgentSetupPlan().prompt },
+			success: true,
+		});
+		expect(copy).not.toHaveBeenCalled();
+		expect(write).not.toHaveBeenCalled();
+	});
 	it('resolves a hosted project without passing its credentials to the agent', async () => {
 		const cwd = await fixture();
 		const client = new controlPlane.ControlPlaneClient({

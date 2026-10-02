@@ -2,7 +2,10 @@ import { runFrontendCommand } from '../index';
 import type { FrontendCommandContext } from '../index';
 import { applyGeneration, planGeneration, recoverGeneration } from './files';
 import type { ApplicationPlan } from './files';
-import { installGenerationDependencies } from './install';
+import {
+	installGenerationDependencies,
+	requireNativeInstaller,
+} from './install';
 import type { PackageManager } from './install';
 
 export { applyGeneration, planGeneration, recoverGeneration } from './files';
@@ -61,9 +64,13 @@ export const parseGenerationWorkflowArguments = (
 		} else {
 			forwarded.push(argument);
 			if (
-				['--framework', '--backend-url', '--scripts', '--output'].includes(
-					argument
-				)
+				[
+					'--mode',
+					'--framework',
+					'--backend-url',
+					'--scripts',
+					'--output',
+				].includes(argument)
 			) {
 				index += 1;
 				forwarded.push(args[index] ?? '');
@@ -115,6 +122,9 @@ export const runGenerationWorkflow = async (
 		throw new Error(
 			'Supply a package manager from the host or use --skip-install.'
 		);
+	}
+	if (flags.apply && !flags.skipInstall && result.data.dependencies.length) {
+		requireNativeInstaller();
 	}
 	const recovered = flags.resume ? recoverGeneration(options.cwd) : false;
 	const plan = planGeneration(options.cwd, result.data);

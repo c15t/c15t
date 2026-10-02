@@ -23,6 +23,11 @@ export const launchAgentSetup = async (
 	if (plan.agent !== 'codex' || !plan.prompt || plan.prompt.includes('\0')) {
 		throw new Error('Expected a Codex setup task.');
 	}
+	if (process.platform === 'win32') {
+		throw new Error(
+			'Launching Codex setup is unavailable on Windows. Use --plan to copy the prompt and run it in Codex manually.'
+		);
+	}
 	const child = spawn('codex', ['--', plan.prompt], {
 		cwd: realpathSync(projectRoot),
 		stdio: 'inherit',

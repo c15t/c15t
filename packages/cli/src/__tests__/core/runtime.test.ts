@@ -1,4 +1,4 @@
-import {
+import fs, {
 	chmodSync,
 	existsSync,
 	linkSync,
@@ -11,6 +11,7 @@ import {
 	unlinkSync,
 	writeFileSync,
 } from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -35,8 +36,77 @@ beforeEach(() => {
 	writeFileSync(join(root, 'package.json'), '{}');
 });
 afterEach(() => {
+	vi.restoreAllMocks();
+	syncBuiltinESMExports();
+	vi.unstubAllGlobals();
 	vi.unstubAllEnvs();
 	rmSync(root, { force: true, recursive: true });
+});
+
+it('removes an unpublished stage after a journal write fails and permits retry', () => {
+	const plan = planGeneration(root, generation);
+	const failure = new Error('ENOSPC: journal could not be persisted');
+	vi.spyOn(fs, 'fsyncSync').mockImplementationOnce(() => {
+		throw failure;
+	});
+	syncBuiltinESMExports();
+	expect(() => applyGeneration(plan)).toThrow(failure);
+	expect(existsSync(join(root, '.c15t-native-generation'))).toBe(false);
+	expect(existsSync(join(root, 'README.c15t.md'))).toBe(false);
+	expect(applyGeneration(planGeneration(root, generation))).toHaveLength(2);
+});
+
+it.each([undefined, '{'])(
+	'recovers an unpublished stage with journal %s',
+	(journal) => {
+		const stage = join(root, '.c15t-native-generation');
+		mkdirSync(stage);
+		if (journal !== undefined) {
+			writeFileSync(join(stage, 'journal.json'), journal);
+		}
+		writeFileSync(join(root, 'user-file'), 'keep');
+		expect(recoverGeneration(root)).toBe(true);
+		expect(existsSync(stage)).toBe(false);
+		expect(readFileSync(join(root, 'user-file'), 'utf8')).toBe('keep');
+		expect(() => planGeneration(root, generation)).not.toThrow();
+	}
+);
+
+it('preserves an incomplete journal with unexpected staged contents', () => {
+	const stage = join(root, '.c15t-native-generation');
+	mkdirSync(stage);
+	writeFileSync(join(stage, 'foreign'), 'keep');
+	expect(() => recoverGeneration(root)).toThrow();
+	expect(readFileSync(join(stage, 'foreign'), 'utf8')).toBe('keep');
+});
+
+it('rejects Windows dependency launches before publishing files but allows skip-install', async () => {
+	vi.stubGlobal('process', { ...process, platform: 'win32' });
+	const args = [
+		'generate',
+		'--mode',
+		'offline',
+		'--framework',
+		'react',
+		'--apply',
+	];
+	await expect(
+		runGenerationWorkflow(args, {}, { cwd: root, packageManager: 'npm' })
+	).rejects.toThrow('Windows');
+	expect(existsSync(join(root, 'src'))).toBe(false);
+	await expect(
+		installGenerationDependencies(root, ['react'], 'npm')
+	).rejects.toThrow('Windows');
+	await expect(
+		installGenerationDependencies(root, [], 'npm')
+	).resolves.toBeUndefined();
+	const applied = await runGenerationWorkflow(
+		[...args, '--skip-install'],
+		{},
+		{ cwd: root }
+	);
+	expect(applied.applied).toBe(true);
+	expect(applied.installed).toBe(false);
 });
 
 const interrupted = () => {

@@ -335,7 +335,19 @@ export const recoverGeneration = (projectRoot: string): boolean => {
 		}
 		throw error;
 	}
-	const files = readRecovery(root, stage);
+	let files: PlannedFile[];
+	try {
+		files = readRecovery(root, stage);
+	} catch (error) {
+		if (!missing(error) && !(error instanceof SyntaxError)) {
+			throw error;
+		}
+		// An incomplete journal with no staged files cannot establish ownership
+		// of application files. Remove only the unpublished recovery directory.
+		validateStage(stage, []);
+		rmSync(stage, { recursive: true });
+		return true;
+	}
 	validateStage(stage, files);
 	// Validate the entire record and current state before removing any file.
 	for (let index = 0; index < files.length; index += 1) {
@@ -390,12 +402,12 @@ export const applyGeneration = (plan: ApplicationPlan): string[] => {
 	const stage = stagePath(plan.root);
 	mkdirSync(stage, { mode: 0o700 });
 	const journal = join(stage, 'journal.json');
-	writeExclusive(
-		journal,
-		JSON.stringify({ files, root: plan.root, version: 1 }),
-		0o600
-	);
 	try {
+		writeExclusive(
+			journal,
+			JSON.stringify({ files, root: plan.root, version: 1 }),
+			0o600
+		);
 		for (let index = 0; index < files.length; index += 1) {
 			const file = files[index];
 			if (!file) {

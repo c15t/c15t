@@ -235,29 +235,32 @@ afterAll(async () => {
 	}
 });
 
-it.each(['default', 'offline'])(
-	'matches Node agent inputs for %s setup',
-	(preset) => {
-		const args = ['--plan', preset];
-		const native = spawnSync(agentBinary, args, {
-			encoding: 'utf8',
-			env: { ...process.env, PATH: '' },
-		});
-		const node = spawnSync(process.execPath, [agentNodeHost, ...args], {
-			encoding: 'utf8',
-		});
-		expect(native.status, native.stderr).toBe(0);
-		expect(node.status, node.stderr).toBe(0);
-		const nativePrompt = JSON.parse(native.stdout).prompt.split(
-			'Public setup inputs:\n'
-		);
-		const nodePrompt = JSON.parse(node.stdout).prompt.split(
-			'Public setup inputs:\n'
-		);
-		expect(nativePrompt[0]).toBe(nodePrompt[0]);
-		expect(JSON.parse(nativePrompt[1])).toEqual(JSON.parse(nodePrompt[1]));
-	}
-);
+it.each([
+	['default', undefined],
+	['offline', { mode: 'offline' }],
+] as const)('matches Node agent inputs for %s setup', (preset, inputs) => {
+	const args = ['--plan', preset];
+	const native = spawnSync(agentBinary, args, {
+		encoding: 'utf8',
+		env: { ...process.env, PATH: '' },
+	});
+	const node = spawnSync(process.execPath, [agentNodeHost, ...args], {
+		encoding: 'utf8',
+	});
+	expect(native.status, native.stderr).toBe(0);
+	expect(node.status, node.stderr).toBe(0);
+	const nativePrompt = JSON.parse(native.stdout).prompt.split(
+		'Public setup inputs:\n'
+	);
+	const nodePrompt = JSON.parse(node.stdout).prompt.split(
+		'Public setup inputs:\n'
+	);
+	expect(nativePrompt[0]).toBe(nodePrompt[0]);
+	expect(nativePrompt[1] ? JSON.parse(nativePrompt[1]) : undefined).toEqual(
+		inputs
+	);
+	expect(nodePrompt[1] ? JSON.parse(nodePrompt[1]) : undefined).toEqual(inputs);
+});
 
 it.each([
 	'react',
@@ -311,6 +314,7 @@ it.each(
 		['offline'],
 		['offline', '--framework', 'unknown'],
 		['hosted', '--framework', 'react'],
+		['hosted', '--framework', 'react', '--backend-url', 'not-a-url'],
 		['hosted', '--framework', 'react', '--backend-url', 'ftp://example.com'],
 		['offline', '--framework', 'react', '--scripts', 'unknown'],
 		['offline', '--framework', 'react', '--output', '../outside'],
@@ -324,6 +328,57 @@ it.each(
 	expect(result.stdout).toBe('');
 	expect(result.stderr).not.toBe('');
 });
+
+it('accepts a forwarded mode flag in static generation', () => {
+	const args = [
+		'c15t',
+		'generate',
+		'--mode',
+		'offline',
+		'--framework',
+		'react',
+	];
+	const native = spawnSync(binary, args, { encoding: 'utf8' });
+	const node = spawnSync(process.execPath, [nodeHost, ...args], {
+		encoding: 'utf8',
+	});
+	expect(native.status, native.stderr).toBe(0);
+	expect(node.status, node.stderr).toBe(0);
+	expect(JSON.parse(native.stdout)).toEqual(JSON.parse(node.stdout));
+});
+
+it.each(['missing', 'partial'])(
+	'recovers an unpublished native stage with a %s journal',
+	async (kind) => {
+		const app = await mkdtemp(join(directory, 'unpublished-'));
+		await writeFile(join(app, 'package.json'), '{}');
+		await writeFile(join(app, 'user-file'), 'keep');
+		const stage = join(app, '.c15t-native-generation');
+		await mkdir(stage);
+		if (kind === 'partial') {
+			await writeFile(join(stage, 'journal.json'), '{');
+		}
+		const result = spawnSync(
+			runtimeBinary,
+			[
+				'c15t',
+				'generate',
+				'--mode',
+				'offline',
+				'--resume',
+				'--apply',
+				'--skip-install',
+			],
+			{ cwd: app, encoding: 'utf8', env: { ...process.env, PATH: '' } }
+		);
+		expect(result.status, result.stderr).toBe(0);
+		expect(JSON.parse(result.stdout).recovered).toBe(true);
+		expect(await readFile(join(app, 'user-file'), 'utf8')).toBe('keep');
+		await expect(readFile(join(stage, 'journal.json'))).rejects.toMatchObject({
+			code: 'ENOENT',
+		});
+	}
+);
 
 it.each(
 	[

@@ -8,6 +8,7 @@ import {
 import { CliError } from '../../core/errors';
 import { createAgentSetupPlan, launchAgentSetup } from '../../frontend/agent';
 import type { AgentSetupOptions } from '../../frontend/agent';
+import { copyToClipboard } from '../../utils/clipboard';
 
 const readAgentOptions = (
 	context: CliContext,
@@ -105,6 +106,12 @@ export const setupWithAgent = async (context: CliContext): Promise<unknown> => {
 	if (preview) {
 		if (!flags.json) {
 			context.logger.message(plan.prompt);
+			const copied = await copyToClipboard(plan.prompt);
+			context.logger.message(
+				copied
+					? 'Setup prompt copied to clipboard.'
+					: 'Could not copy to clipboard. Copy the setup prompt above manually.'
+			);
 		}
 		return { launched: false, ...plan };
 	}
