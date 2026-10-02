@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/vue': minor
-  '@c15t/dev-tools': minor
-  '@c15t/react': patch
-  c15t: minor
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Inspect consent from a c15t tab in Nuxt DevTools

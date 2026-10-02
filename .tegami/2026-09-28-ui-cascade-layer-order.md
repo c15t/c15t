@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/astro': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Keep c15t styles above Tailwind v4 preflight

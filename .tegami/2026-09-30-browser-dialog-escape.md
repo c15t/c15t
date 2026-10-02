@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Close the preference dialog on Escape wherever focus is

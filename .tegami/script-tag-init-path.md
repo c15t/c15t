@@ -1,13 +1,29 @@
 ---
 packages:
-  '@c15t/schema': patch
-  'c15t': patch
-  '@c15t/ui': patch
-  '@c15t/browser': patch
-  '@c15t/react': patch
-  '@c15t/svelte': patch
-  '@c15t/vue': patch
-  '@c15t/astro': patch
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Start the banner's entry from the stylesheet, and keep the collator off the init path

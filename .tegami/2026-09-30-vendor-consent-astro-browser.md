@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/astro': minor
-  '@c15t/browser': minor
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Granular vendor consent in Astro and the script tag

@@ -1,3 +1,124 @@
+## @c15t/schema@3.0.0-alpha.3 (alpha)
+
+### Resolve a relative backendURL against the request, not forwarding headers
+
+A relative `backendURL` or `manifestURL` no longer resolves against client-controlled forwarding headers. The server helpers previously built the backend origin from `x-forwarded-host`, `x-forwarded-proto` or `referer` when present, so a request that set them could make the server send its `/init` or manifest request, with the request's cookies and forwarded headers, to another host.
+
+A relative URL now resolves against the URL the framework resolved the request under (`event.url` in SvelteKit, `request.url` in Next.js route handlers, TanStack Start and Astro), or against the `host` header where no request URL exists (Next.js `resolveConsent`, `fetchSSRData`). A bare `host` resolves over `https` for a domain name and over `http` for `localhost`, an IP address, or a single-label host such as `app:3000`. The `referer` header is no longer used.
+
+Apps behind a proxy that sets forwarding headers and drops incoming ones can opt back in with `trustForwardedHeaders: true` on SvelteKit `loadConsent` and `resolveConsent`, Next.js `resolveConsent`, `createNextConsentRouteHandlers` and `createPagesApiHandlers`, and `@c15t/react/server` `fetchSSRData` and `normalizeBackendURL`, matching the existing TanStack Start option. The rule lives in `resolveRequestBackendURL` and `resolveRequestOrigin`, new exports of `@c15t/core/server`, which every server adapter now shares. With the option set, the forwarded host and the forwarded scheme apply independently, so a proxy that keeps `host` and only sets `x-forwarded-proto` or `x-forwarded-ssl` still decides the scheme.
+
+The SvelteKit and `@c15t/react/server` helpers also stop passing the client's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers to the backend, including when `forwardHeaders` names them in SvelteKit. `extractRelevantHeaders` in both packages leaves them out unless called with `{ trustForwardedHeaders: true }`. `fetchSSRData` still makes its `/init` request when those headers are the only ones besides `host`; it just does not forward them.
+
+`resolveBackendURL` from `@c15t/schema/types` is deprecated in favor of `resolveRequestBackendURL`. It now follows the same rule by default: it reads only the `host` header, and ignores `x-forwarded-*` and `referer` unless its new third argument is `{ trustForwardedHeaders: true }`, which restores the previous resolution order. The forwarded values are now validated like `host`: the first entry of a comma-separated list is used, a scheme other than `http` or `https` is ignored, and a host that is not a bare authority resolves to `null`.
+
+### Update documentation links
+
+Point documentation links in CLI prompts and errors, runtime warnings, TSDoc, package READMEs and package homepages at the current c15t.com docs pages. The old addresses led to pages that were moved or removed.
+
+### Start the banner's entry from the stylesheet, and keep the collator off the init path
+
+Canonical sets and fingerprint keys were sorted with
+`String.prototype.localeCompare`, whose first call initialises the ICU
+collator on the main thread before the banner can show. They now use a
+comparator that applies the same root-collation order to printable ASCII
+directly and only falls back to the collator for other strings, so every
+fingerprint stays byte-identical.
+
+Every framework also started the banner's entry transition its own way: the
+script tag and Svelte inserted the hidden state, forced a layout and flipped
+the class; React rendered hidden and flipped after a timer; Vue handed the
+flip to `Transition`; Astro's prerendered banner did not animate at all.
+`@c15t/ui` now carries the entry as `@starting-style` states, the
+`bannerEntering`, `overlayEntering`, `dialogEntering` and `contentEntering`
+classes, and each framework renders the banner in its visible state with the
+entering class. The transition runs from the first frame with no hidden
+render or layout read, and it runs the same way whether the banner arrives
+from the server or the client. Astro's prerendered banner now fades in at
+first paint like the others. Browsers without `@starting-style` show the
+banner in place; the script tag keeps its class flip for them.
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### One tenant setting, refused when it is unsafe, and recovery for visitors whose subject ID another tenant holds
+
+A self-hosted backend now names its tenant in one place: the instance's `tenantId`. `manifest.tenantId` is removed from the backend configuration. It never scoped a database query, but it did scope policy snapshot tokens when the instance had no `tenantId`, so a config that set only that one issued tokens for a tenant while writing every consent with a null tenant. Built manifests no longer carry it. `ConsentManifest.tenantId` stays on the wire type for other manifest producers.
+
+`c15tInstance` and `createApp` check the tenant when the instance is built. They throw when `tenantId` is empty, padded with whitespace or not a string (a `null` from a JavaScript config used to scope every query to `tenantId = NULL`, which matches nothing), and when the config still sets `manifest.tenantId`, rather than ignoring it. The new `requireTenantId: true` option makes a missing `tenantId` throw too. Set it on every instance that shares a database with other tenants. Without it, an instance whose tenant lookup returned `undefined` starts in the single-tenant scope and writes consents with a null tenant, which the tenant that owns them never reads.
+
+Subject IDs are chosen by the browser and are unique across the whole database. A save naming a subject ID that another tenant holds was answered `400 CONFLICT`, on every save, with no way for the visitor to recover. It is now `409 SUBJECT_CONFLICT`. `@c15t/core` responds by giving the visitor a new subject ID, moving any queued saves to it, and sending the choice once more. Every open tab moves to the same new ID. A consent recorded again with different receipts, purposes or vendor grants is now `409 CONFLICT` instead of `400`. The hosted and manifest transports treat both as permanent refusals, so the kernel no longer replays them from its queue.
+
+### Migration
+
+- Remove `tenantId` from the backend's `manifest` block and set it on the instance. If the instance already sets the same value, delete the manifest one. If it set only `manifest.tenantId`, the instance has been writing rows with a null tenant: setting `tenantId` scopes it to that tenant, and those rows stop appearing in its reads.
+- Code that matched `400` with `cause.code: 'CONFLICT'` from `POST /subjects` should expect `409`, and `SUBJECT_CONFLICT` for a subject ID held by another tenant. `PUT /legal-documents` conflicts are still `400 CONFLICT`.
+- A manifest built from a config that set `tenantId` gets a new `revision`, so cached manifests refresh once.
+
+### Index experiment attribution and summarise choices per arm
+
+Summarise banner experiments from the backend. Migration `6-experiment-attribution` adds `experimentId`, `experimentArm` and `timeToDecisionMs` columns to `consent`, indexed on `(tenantId, experimentId, experimentArm)`, and `POST /subjects` fills them from `metadata.experiment` and `metadata.timeToDecisionMs` while leaving `metadata` untouched. Values over 128 characters or malformed are dropped rather than failing the save. `GET /experiments/:id/summary` (API key) returns `arms: [{ arm, choices, byAction, bySurface, medianTimeToDecisionMs }]`, choices per arm split by stored `consentAction` (`byAction` always carries `accept_all`, `reject_all`, `opt_out`, `custom` and `unknown`) and `uiSource`, with the median time to decision, filtered by `from`, `to` and `domain`; the response is validated against the new `experimentSummaryOutputSchema` in `@c15t/schema`, and `@c15t/node-sdk` exposes it as `client.experiments.summary(id, { from, to, domain })`. The summary counts choices; the visitors each arm was owed to arrive on the session reports `/init` produces, so an opt-in rate divides the two.
+
+### Replace the Node.js client with `createC15tClient`
+
+`@c15t/node-sdk` has a new client. Create it with `createC15tClient({ baseUrl, apiKey })`. Every method resolves to `{ ok: true, data }` or `{ ok: false, error }` and never rejects, and `error.code` is typed per method. Input is checked before anything is sent, response dates are `Date` objects, and calls retry network errors, timeouts and 408, 429, 500, 502, 503 and 504, honouring `Retry-After`. A client created without `apiKey` has no `subjects.list`, `experiments.summary` or `legalDocuments.publish`. New methods: `manifest()` and `legalDocuments.publish()`. `@c15t/node-sdk/testing` exports `createMockC15tClient`, `ok` and `err`.
+
+`patchSubjectOutputSchema` in `@c15t/schema` now matches what the backend sends: it drops `success` and adds `subject.identityProvider`.
+
+### Breaking changes
+
+- `c15tClient()` and the `C15TClient` class are removed. Use `createC15tClient()`.
+- The client no longer reads `C15T_API_URL`, `C15T_API_TOKEN` or `C15T_DEBUG`. Pass `baseUrl` and `apiKey`.
+- `token` is now `apiKey`, `timeout` is `timeoutMs`, and `retryConfig` is `retry`. `prefix` and `debug` are removed; put the path in `baseUrl` and use `onEvent` for logging.
+- The flat methods (`getSubject`, `checkConsent`, `patchSubject` and the rest) and `client.meta` are removed. Use the namespaced methods and `status()` and `init()`.
+- `subjects.patch` is now `subjects.identify`, and returns `{ subject }` without `success`.
+- `consent.check({ externalId, type: 'a,b' })` is now `consents.check({ externalId, types: ['a', 'b'] })`. `subjects.get` takes `{ types }` the same way.
+- `ResponseContext` and its `unwrap`, `unwrapOr`, `expect` and `map` are replaced by result objects and the `unwrap(result)` helper. The `throw`, `onSuccess` and `onError` call options are removed.
+- `C15TError` and `isC15TError` are now `C15tError` and `isC15tError`.
+- `$fetch`, `fetcher`, `resolveUrl` and `createResponseContext` are no longer exported. Pass `fetch` to the client instead.
+- `createMockClient`, `createMockResponse` and `createMockErrorResponse` are replaced by `createMockC15tClient`, `ok` and `err`.
+
+See [Migrate to v3](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk) for the full mapping.
+
+Consent checks reject malformed results or missing requested policy types as `UNEXPECTED_RESPONSE`. Non-serializable request bodies and invalid per-call timers return `INVALID_INPUT`. Timeouts accept integers from 1 to 2147483647 milliseconds; retry delays accept integers from 0 to 2147483647. Invalid client settings throw `C15tConfigurationError`. Unknown stale-policy reasons are exposed as `undefined`.
+
+Reject impossible calendar dates before publishing legal documents or querying experiment summaries. Manifest responses require schema version 2, a string revision and a supported branding value; invalid responses return `UNEXPECTED_RESPONSE`.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
 ## @c15t/schema@3.0.0-alpha.2 (alpha)
 
 ### Record consent saves replayed after the policy token expired

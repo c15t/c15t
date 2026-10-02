@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/svelte': patch
-  '@c15t/ui': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Accept `disableAnimation` on the Svelte dialogs

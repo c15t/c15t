@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': patch
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Install c15t packages that match the CLI

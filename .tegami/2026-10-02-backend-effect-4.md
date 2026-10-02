@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/backend': minor
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
 ---
 
 ### Run the backend on Effect 4.0.0

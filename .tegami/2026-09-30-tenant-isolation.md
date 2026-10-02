@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/backend': minor
-  '@c15t/schema': minor
-  '@c15t/core': patch
-  'c15t': patch
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### One tenant setting, refused when it is unsafe, and recovery for visitors whose subject ID another tenant holds

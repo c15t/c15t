@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/svelte': patch
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Apply every `theme.slots` style in Svelte

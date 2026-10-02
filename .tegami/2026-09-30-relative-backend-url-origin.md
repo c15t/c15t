@@ -1,12 +1,26 @@
 ---
 packages:
-  '@c15t/core': patch
-  '@c15t/svelte': patch
-  '@c15t/nextjs': patch
-  '@c15t/react': patch
-  '@c15t/tanstack-start': patch
-  '@c15t/astro': patch
-  '@c15t/schema': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
 ---
 
 ### Resolve a relative backendURL against the request, not forwarding headers

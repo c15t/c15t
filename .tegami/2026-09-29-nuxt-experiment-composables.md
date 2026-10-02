@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/vue': patch
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Auto-import the experiment composables in Nuxt

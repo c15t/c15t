@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/astro': patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Deep-merge `i18n.messages` in Astro

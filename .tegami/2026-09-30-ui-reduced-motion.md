@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/browser': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Stop banner and dialog motion under reduced motion in every adapter

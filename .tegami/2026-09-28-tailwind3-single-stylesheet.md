@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/cli': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Use `styles.css` with Tailwind 3

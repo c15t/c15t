@@ -1,13 +1,29 @@
 ---
 packages:
-  '@c15t/browser': patch
-  '@c15t/cli': patch
-  '@c15t/react': patch
-  '@c15t/schema': patch
-  '@c15t/scripts': patch
-  '@c15t/svelte': patch
-  '@c15t/translations': patch
-  '@c15t/ui': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/scripts":
+    replay:
+      - exit-prerelease(npm:@c15t/scripts)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/translations":
+    replay:
+      - exit-prerelease(npm:@c15t/translations)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Update documentation links

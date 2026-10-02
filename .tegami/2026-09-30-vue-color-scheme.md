@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/vue': patch
-  c15t: patch
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Add `colorScheme` and dark theme tokens to Vue and Nuxt

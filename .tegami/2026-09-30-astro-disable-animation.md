@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/astro': patch
-  c15t: patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Add `disableAnimation` to Astro

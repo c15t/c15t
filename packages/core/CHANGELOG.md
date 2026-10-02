@@ -1,3 +1,219 @@
+## @c15t/core@3.0.0-alpha.4 (alpha)
+
+### Resolve a relative backendURL against the request, not forwarding headers
+
+A relative `backendURL` or `manifestURL` no longer resolves against client-controlled forwarding headers. The server helpers previously built the backend origin from `x-forwarded-host`, `x-forwarded-proto` or `referer` when present, so a request that set them could make the server send its `/init` or manifest request, with the request's cookies and forwarded headers, to another host.
+
+A relative URL now resolves against the URL the framework resolved the request under (`event.url` in SvelteKit, `request.url` in Next.js route handlers, TanStack Start and Astro), or against the `host` header where no request URL exists (Next.js `resolveConsent`, `fetchSSRData`). A bare `host` resolves over `https` for a domain name and over `http` for `localhost`, an IP address, or a single-label host such as `app:3000`. The `referer` header is no longer used.
+
+Apps behind a proxy that sets forwarding headers and drops incoming ones can opt back in with `trustForwardedHeaders: true` on SvelteKit `loadConsent` and `resolveConsent`, Next.js `resolveConsent`, `createNextConsentRouteHandlers` and `createPagesApiHandlers`, and `@c15t/react/server` `fetchSSRData` and `normalizeBackendURL`, matching the existing TanStack Start option. The rule lives in `resolveRequestBackendURL` and `resolveRequestOrigin`, new exports of `@c15t/core/server`, which every server adapter now shares. With the option set, the forwarded host and the forwarded scheme apply independently, so a proxy that keeps `host` and only sets `x-forwarded-proto` or `x-forwarded-ssl` still decides the scheme.
+
+The SvelteKit and `@c15t/react/server` helpers also stop passing the client's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers to the backend, including when `forwardHeaders` names them in SvelteKit. `extractRelevantHeaders` in both packages leaves them out unless called with `{ trustForwardedHeaders: true }`. `fetchSSRData` still makes its `/init` request when those headers are the only ones besides `host`; it just does not forward them.
+
+`resolveBackendURL` from `@c15t/schema/types` is deprecated in favor of `resolveRequestBackendURL`. It now follows the same rule by default: it reads only the `host` header, and ignores `x-forwarded-*` and `referer` unless its new third argument is `{ trustForwardedHeaders: true }`, which restores the previous resolution order. The forwarded values are now validated like `host`: the first entry of a comma-separated list is used, a scheme other than `http` or `https` is ignored, and a host that is not a bare authority resolves to `null`.
+
+### Show only necessary when a site declares no categories
+
+A site that declares no categories, through `consentCategories`, scripts, network rules, vendors or discovered frames, now offers only Strictly necessary under a permissive policy, as in v2. The banner still appears when the policy asks for a choice. Accept all, Reject all and Save each record an acknowledgement that keeps the banner dismissed after reload, and hosted and manifest modes send a consent receipt for necessary alone. The acknowledgement expires with the policy's choice validity or a policy change, and a category declared later asks again. Strict policies and IAB TCF policies still offer their whole scope.
+
+The Astro server now judges a visitor against the categories the page's `consentCategories`, `scripts` and network rules declare, so it renders the same banner decision as the browser. Browser `hasConsented()` and the `after-consent` trigger treat the acknowledgement as a decision.
+
+In React Native, the Swift and Kotlin cores apply the same rule when the app sets no `consentCategories`: a permissive policy offers only Necessary, any save records the acknowledgement and sends the necessary-only receipt, and strict policies still offer their whole scope. A declared list now also narrows what Accept all and Reject all confirm, as on the web.
+
+### Forward consent saves through the SvelteKit consent route
+
+`createSvelteKitConsentRouteHandlers` answered `GET` only, so a provider
+using `hosted({ url: '/api/c15t' })` got `405` on every save. Pass
+`proxy: true` and the handlers add `POST`, `PATCH`, `PUT`, `DELETE` and
+`OPTIONS`, which forward to `backendURL`. `GET` forwards paths other than
+`init` and `manifest`, which are still resolved in-process. Only those
+exact rest paths stay local, so a `paths` entry such as `reports/manifest`
+is forwarded. Export all six from the catch-all route:
+
+```ts
+// src/routes/api/c15t/[...path]/+server.ts
+export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
+	createSvelteKitConsentRouteHandlers({ backendURL, proxy: true });
+```
+
+The option and its rules match `createConsentServerRoute({ proxy })` in
+`@c15t/tanstack-start`: only `subjects`, `subjects/:id`, `init`,
+`manifest`, `health`, `status` and any `paths` you add are forwarded, and
+anything else gets `404`. Cookies are forwarded only when `cookieNames`
+names them. The client address comes from `event.getClientAddress()`, and
+`x-forwarded-host` and `x-forwarded-proto` from `event.url`.
+
+A relative `backendURL` or `manifestURL`, such as `/api/self-host`, is now
+fetched through `event.fetch`, so SvelteKit answers it in-process. The
+route handlers used to resolve it against `event.url`, which on
+adapter-node without `ORIGIN` takes its host from the client's `Host`
+header, so a forged header could send the manifest, init or proxied
+request to a host of the client's choosing and return its response. The
+`fetch` option now applies to absolute URLs only.
+
+To a remote backend over plain `http:`, the proxy sends only the public
+browser headers: no cookies, no custom headers and no `x-forwarded-for`.
+Such a backend no longer sees the visitor's IP address, so it cannot use it
+for geolocation or rate limiting; use an `https:` backend URL to keep it.
+Loopback `http:` backends still receive all three.
+
+The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
+`resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
+helpers, and both adapters use them. Each adapter supplies only what its
+framework can trust for the forwarding headers. Both proxies now answer
+`504` with a JSON body when the backend misses the deadline and `502` when
+it cannot be reached, instead of a framework error page. They also stop
+passing `TE`, `Trailer` and any header the backend's `Connection` value
+names on to the browser. TanStack Start's proxy otherwise behaves as
+before.
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### A/B test banner presentation with any flag provider
+
+Add an `experiment` option for A/B tests on banner and preferences presentation. Your `presentation` is the `control` arm; `arms` lists what every other arm changes. Pass the `arm` your feature flag resolved (Vercel Flags, PostHog, LaunchDarkly, GrowthBook, Statsig), or a `split` such as `{ control: 60, wall: 40 }` for c15t to pick. `defineExperiment()` infers the arm names, so a misspelled `arm` or `split` key is a type error.
+
+```ts
+experiment: {
+  id: 'banner-shape',
+  arms: { wall: { prompt: { variant: 'wall' } } },
+  arm: flagValue, // or split: { control: 60, wall: 40 }
+}
+```
+
+The arm is merged over `presentation` and exposed as `snapshot.experiment` (React and Vue `useExperiment()`, Svelte `state.experiment`, browser `client.presentation`). It rides on `surface:shown` and `choice:recorded` and is saved with the choice as `metadata.experiment`, but only once the banner has shown it in the current page. A returning visitor who changes their choice from a footer link is not counted toward an arm they never saw.
+
+When c15t picks the arm, it does so when the page starts, before `/init`, and holds the banner until the arm is checked, so the visitor never sees one banner swap for another; on a server-rendered page the banner appears after hydration. The arm is stored as `{ id, arm }` under `c15t-experiment-v1` once the banner has shown it. Nothing is stored for a visitor who is never prompted or for an arm from your flag, and no identifier is stored.
+
+Arm validation loads as its own chunk, only when `experiment` is set, so a site without an experiment ships none of it. It is also exported from `c15t/experiment`, where `validateExperiment()` lets a test fail a build on a rejected arm.
+
+Nothing in the experiment throws into the page. An undeclared `arm` or an unusable `split` logs an error and runs no experiment. An arm that trips a presentation diagnostic under the visitor's policy is not shown to that visitor, who sees `control` and is not counted, unless `acknowledgeDiagnostics: true`, which is recorded with the arm.
+
+`@c15t/astro` resolves the arm on the server: per request through `consentMiddleware({ experimentArm })` from `@c15t/astro/middleware` with `middleware: false`, or one fixed `arm`. Arms vary presentation and theme, not copy.
+
+An arm can also carry `theme` overrides (`arms: { bold: { theme: { colors: { primary: '#0a0a0a' } } } }`), merged one token group deep over the host `theme`. Read the merged theme with React `useResolvedTheme()`, Vue `useResolvedTheme(theme)`, Svelte `getConsentManager().theme` and browser `client.theme`. In React, render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+
+### Keep blocking iframes past an unreadable iframe or an empty category
+
+The iframe blocker now skips an iframe the page can't read, not only an unreadable node that contains it. Before, one such iframe made `createIframeBlocker` throw on startup and stopped each later pass early, so other consent-gated iframes loaded. The on-demand watcher in `@c15t/react` had the same gap.
+
+An empty `data-category` is now treated like an unknown category: the iframe stays blocked and logs a console warning. Before, it counted as no category, so the iframe loaded without consent.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### Report banner impressions and time to decision
+
+Report banner and dialog impressions, not only choices. The kernel emits a `surface:shown` event when the banner or the dialog becomes visible and records the first impression time of each surface in `snapshot.surfaceShownAt`, so a late subscriber can still read it. Provider callbacks gain `onSurfaceShown` (React and Vue/Nuxt `callbacks.onSurfaceShown`); `@c15t/browser` dispatches `c15t:surfaceShown`; dev-tools log the event. A recorded choice now carries `timeToDecisionMs` (impression to action) on the `choice:recorded` event, on `onChoiceRecorded`, and on the saved consent as `metadata.timeToDecisionMs`. `kernel.commands.save()` accepts a `uiSource` override, and the React `uiSource` prop now reaches the save payload, so `ConsentWidget` saves are attributed to `widget` instead of the active banner. The never-fired `onBannerFetched` callback and `OnBannerFetchedPayload` type are removed.
+
+`kernel.markLive()` is public: an adapter that renders from a server-resolved prefetch and never calls `init()` calls it after hydration, so the server-rendered banner still counts as an impression. The core runtime, the React provider (and so Next.js and TanStack Start) and the Vue runtime (and so Nuxt) do this; before, an SSR page with a resolved prefetch never emitted `surface:shown`.
+
+`consentAction` on a saved choice now stays `all` or `necessary` when the host displays only a subset of the policy scope (`consentCategories`). It names the action the visitor took; `confirmed` names the categories it covered. Before, a narrowed accept-all was recorded as `custom`.
+
+A choice saved while a `notice` prompt is owed now records the notice dismissal with it. Before, a visitor who opened the preference center from an opt-out notice and rejected was shown the notice again.
+
+### One tenant setting, refused when it is unsafe, and recovery for visitors whose subject ID another tenant holds
+
+A self-hosted backend now names its tenant in one place: the instance's `tenantId`. `manifest.tenantId` is removed from the backend configuration. It never scoped a database query, but it did scope policy snapshot tokens when the instance had no `tenantId`, so a config that set only that one issued tokens for a tenant while writing every consent with a null tenant. Built manifests no longer carry it. `ConsentManifest.tenantId` stays on the wire type for other manifest producers.
+
+`c15tInstance` and `createApp` check the tenant when the instance is built. They throw when `tenantId` is empty, padded with whitespace or not a string (a `null` from a JavaScript config used to scope every query to `tenantId = NULL`, which matches nothing), and when the config still sets `manifest.tenantId`, rather than ignoring it. The new `requireTenantId: true` option makes a missing `tenantId` throw too. Set it on every instance that shares a database with other tenants. Without it, an instance whose tenant lookup returned `undefined` starts in the single-tenant scope and writes consents with a null tenant, which the tenant that owns them never reads.
+
+Subject IDs are chosen by the browser and are unique across the whole database. A save naming a subject ID that another tenant holds was answered `400 CONFLICT`, on every save, with no way for the visitor to recover. It is now `409 SUBJECT_CONFLICT`. `@c15t/core` responds by giving the visitor a new subject ID, moving any queued saves to it, and sending the choice once more. Every open tab moves to the same new ID. A consent recorded again with different receipts, purposes or vendor grants is now `409 CONFLICT` instead of `400`. The hosted and manifest transports treat both as permanent refusals, so the kernel no longer replays them from its queue.
+
+### Migration
+
+- Remove `tenantId` from the backend's `manifest` block and set it on the instance. If the instance already sets the same value, delete the manifest one. If it set only `manifest.tenantId`, the instance has been writing rows with a null tenant: setting `tenantId` scopes it to that tenant, and those rows stop appearing in its reads.
+- Code that matched `400` with `cause.code: 'CONFLICT'` from `POST /subjects` should expect `409`, and `SUBJECT_CONFLICT` for a subject ID held by another tenant. `PUT /legal-documents` conflicts are still `400 CONFLICT`.
+- A manifest built from a config that set `tenantId` gets a new `revision`, so cached manifests refresh once.
+
+### Check iframes on demand with `processIframes()`
+
+`iframeBlocker: { disableAutomaticBlocking: true }` is now usable outside React. The consent runtime from `@c15t/core/runtime` has a `processIframes()` method, and `@c15t/browser` exposes it as `client.processIframes()` and `c15t.processIframes()`. Each call pauses gated frames (`data-category` or `data-vendor`) that consent does not allow and restores the ones it does. With automatic blocking on, the blocker still does this by itself. `c15t.push(['processIframes'])` runs once the policy has resolved.
+
+### Gate iframes after a client router replaces the page body
+
+The iframe blocker now watches the document root instead of the `<body>` it saw at startup. Astro's `ClientRouter` and Turbo replace `<body>` on navigation, so gated iframes on a page reached by client-side navigation used to keep their `data-src` after consent was granted, and kept loading their `src` after it was denied, until the next consent change. The blocker also now starts watching when it runs from a script in `<head>`, before `<body>` exists.
+
+### Keep app `i18n.messages` overrides when the backend sends translations
+
+In hosted and manifest mode, the translations from `/init`, from a server prefetch or from a manifest replaced the app's `i18n.messages` for the same language, so a key overridden in code showed the backend's copy instead. This affected React, Next.js and TanStack Start through the React provider, Svelte and SvelteKit (including `resolveConsent()` prefetches), Astro and `@c15t/browser`.
+
+The backend copy is now the base for the visitor's language and the app's `i18n.messages` for that language are deep-merged over it. An app key replaces the backend's text when it differs from c15t's built-in copy for that language, or for its primary language. A key that repeats the built-in text does not hide the backend's copy, so an app that passes the stock bundles to enable languages, such as `{ ...baseTranslations.de }`, still shows edits made on the backend, while a customized key still wins. Keys the backend does not supply keep the app's copy, so a language the backend does not send still shows the app's copy in full. Overrides for other languages are not applied. A regional language such as `de-AT` uses the overrides under `de` when there is no `de-AT` entry.
+
+Built-in copy is known for English and, once `@c15t/translations/all` has loaded, for every bundled language. Without it, every app key counts as a customization. `@c15t/translations` adds `getStockTranslations()` for this, and `/all` registers its languages when it loads. The package now lists `dist/all.js` under `sideEffects`, so a bare `import '@c15t/translations/all'` survives tree shaking.
+
+Astro also deep-merges `i18n.messages` now. Before, a partial override such as `{ cookieBanner: { title } }` replaced the whole `cookieBanner` section and left its other keys empty. A regional `i18n.locale` or `Accept-Language` such as `de-AT` now renders over the `de` bundle instead of English.
+
+`@c15t/core` now exports `offline()`, a mode for `createConsentRuntime()` that resolves policy rules locally. A language set through the kernel, with `overrides.language` or `kernel.set.language()`, switches the copy when c15t's built-in copy or `i18n.messages` has that language, falling back to the primary language, so `de-AT` uses German copy. Built-in copy covers English, and every bundled language once `@c15t/translations/all` has loaded. A language with no copy gets the startup copy back, still labelled with the startup language. The language a server prefetch detected from `Accept-Language` does not switch the copy until the app has asked for a different language. `@c15t/browser` uses this transport, so `data-language`, the `overrides.language` option and `setLanguage()` now switch the copy in offline mode. The Svelte `offline()` mode is unchanged. The JavaScript, Vue and Solid boilerplate from `@c15t/cli generate` now uses core's `offline()`, and the generated offline kernel config passes `translationsFor` with `baseTranslations` from `@c15t/translations/all`, so generated projects switch to any bundled language too. The CLI installs `@c15t/translations` for that config.
+
+`createOfflineTransport()` accepts `translationsFor` and `detectedLanguage` options with the same behavior. Without `translationsFor` it still relabels its copy with the requested language, as before.
+
+`@c15t/core` also adds a `translationOverrides` kernel option, the `applyTranslationOverrides()` and `resolveLocalTranslations()` helpers, and an optional `translationsFor` on the transport factory context.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
+### Resolve unknown locations on static pages with the manifest's own policy
+
+`createStaticConsentResolver` from `@c15t/tanstack-start/static` now starts a visitor with no known location on the manifest's unknown-location policy (its `fallback` pack, else its `default` pack), as `@c15t/nextjs/static` already did and as server rendering does when location headers are missing. It previously picked the strictest pack in the manifest and applied it to everyone, including packs scoped to other countries. A manifest with no fallback or default pack now resolves to a failed `insufficient-inputs` result, and the client applies its safe fallback.
+
+Geo data that isn't a non-empty string, such as a numeric `country` or a blank `regionCode` from the geo endpoint, now counts as an unknown location. It previously reached the policy resolver and could end up in `location.countryCode`. String values are trimmed.
+
+The static resolver now lives in `@c15t/core/static` (also available as `c15t/static`), and both framework `static` entries re-export it. `resolveStrictestDefaultInit` is renamed to `resolveUnknownLocationInit`. The old name still works in `@c15t/nextjs/static` and `@c15t/tanstack-start/static` and is marked deprecated.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### An undeclared vendor reads as not allowed
+
+Breaking change: reading vendor consent for an id that no `vendors` entry, script slug or backend vendor list declares now returns `false`. Before, React's `useVendorAllowed`, Astro's `client.isVendorAllowed` and `@c15t/browser`'s `isVendorAllowed` returned `true` for such an id without checking any category, so a typo or a missing declaration read as allowed before the visitor consented. In development, c15t logs one warning per undeclared id that names the missing declaration. Declare every vendor you read, for example `vendors: [{ id: 'youtube', category: 'measurement', ... }]`.
+
+The rule lives in one helper, `isVendorAllowed(snapshot, vendorId, now?)`, exported from `c15t` and `@c15t/core`. A declared vendor keeps its behaviour: it is allowed when its category condition passes and, outside an IAB policy, the visitor has not switched it off.
+
+Vue gains `useVendorAllowed(vendorId)`, which returns a computed boolean and is auto-imported in Nuxt. The Svelte consent manager from `getConsentManager()` gains `isVendorAllowed(vendorId)`.
+
+Scripts, iframes and network rules that carry an undeclared `vendor` slug are gated as before: they follow their category.
+
 ## @c15t/core@3.0.0-alpha.3 (alpha)
 
 ### Encode and enforce IAB publisher restrictions

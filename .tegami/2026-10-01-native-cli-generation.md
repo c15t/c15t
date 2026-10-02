@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': minor
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Native frontend workflows, `setup --codex`, and Inth accounts

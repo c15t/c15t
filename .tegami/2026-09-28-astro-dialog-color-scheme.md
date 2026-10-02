@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/astro': minor
-  '@c15t/react': patch
-  '@c15t/ui': patch
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Keep the Astro color scheme when a dialog opens

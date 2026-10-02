@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/node-sdk': major
-  '@c15t/schema': patch
+  "@c15t/node-sdk":
+    replay:
+      - exit-prerelease(npm:@c15t/node-sdk)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
 ---
 
 ### Replace the Node.js client with `createC15tClient`

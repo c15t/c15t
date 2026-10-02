@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/dev-tools': patch
-  '@c15t/react': patch
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Match the DevTools panel to its host theme

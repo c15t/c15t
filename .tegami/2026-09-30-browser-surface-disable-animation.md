@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Set `disableAnimation` per surface and from the script tag

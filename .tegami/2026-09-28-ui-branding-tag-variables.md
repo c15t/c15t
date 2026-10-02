@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/ui': minor
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Add CSS variables for the "Secured by" tag

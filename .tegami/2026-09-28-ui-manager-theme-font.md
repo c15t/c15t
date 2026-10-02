@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/ui': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Use the theme font in the preference list

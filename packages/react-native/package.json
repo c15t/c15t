@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/react-native",
-	"version": "3.0.0-alpha.1",
+	"version": "3.0.0-alpha.2",
 	"description": "React Native consent management SDK with a native consent kernel for iOS and Android: banner, preference center, and consent-gated loading.",
 	"keywords": [
 		"android",

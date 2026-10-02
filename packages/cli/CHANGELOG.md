@@ -1,3 +1,197 @@
+## @c15t/cli@3.0.0-alpha.4 (alpha)
+
+### Update documentation links
+
+Point documentation links in CLI prompts and errors, runtime warnings, TSDoc, package READMEs and package homepages at the current c15t.com docs pages. The old addresses led to pages that were moved or removed.
+
+### Migrate Node module imports to the integrations package
+
+The `scripts-to-integrations` codemod now recognizes `require` functions
+created by Node's imported `createRequire()`, including aliased imports. It
+leaves custom functions and shadowed parameters unchanged. Codemods also scan
+`.mts`, `.cts`, `.mjs`, and `.cjs` source files.
+
+### Load the Tailwind 3 PostCSS plugin from the package you installed
+
+Every package that publishes a c15t stylesheet now exports the Tailwind 3 PostCSS plugin as `<package>/postcss-tailwind3`, so you no longer install `@c15t/ui` just to list it:
+
+- `c15t/postcss-tailwind3` for apps that install `c15t` (React, Next.js, TanStack Start, Vue, Nuxt and Astro)
+- `@c15t/svelte/postcss-tailwind3` for Svelte and SvelteKit
+- `@c15t/browser/postcss-tailwind3` for script tag pages that style the light DOM
+- `@c15t/react/postcss-tailwind3`, `@c15t/nextjs/postcss-tailwind3`, `@c15t/tanstack-start/postcss-tailwind3`, `@c15t/vue/postcss-tailwind3` and `@c15t/astro/postcss-tailwind3` for apps that install an adapter directly
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'c15t/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Each one re-exports `@c15t/ui/postcss-tailwind3`, so configs that already list that name keep working. The plugin must still come before `tailwindcss`.
+
+`c15t setup` now adds the plugin from the package it installs, `c15t/postcss-tailwind3`, or `@c15t/react/postcss-tailwind3` and `@c15t/nextjs/postcss-tailwind3` in apps that installed those directly, and no longer installs `@c15t/ui` for Tailwind 3. It leaves a config alone when any c15t `postcss-tailwind3` entry, including `@c15t/ui/postcss-tailwind3`, already runs before `tailwindcss`.
+
+### Native frontend workflows, `setup --codex`, and Inth accounts
+
+**Breaking:** account commands now run through Inth. `c15t login`, `logout`,
+`status`, and `projects` use the bundled Inth executable and share its session
+with the `inth` CLI. The `authenticate` export is removed, and control-plane
+adapters take a working directory, organization, and abort signal instead of
+tokens or an API URL. Sessions stored in `~/.c15t/config.json` are no longer
+read; run `c15t login` again. `c15t logout` deletes that file.
+
+Inth ships binaries for macOS on Apple silicon, glibc Linux on x64 and arm64,
+and Windows on x64. On other platforms, including Intel Macs and Alpine, account
+commands fail with `INTH_UNSUPPORTED_PLATFORM`. Pass `--backend-url` or use
+offline mode there.
+
+For agents and CI, `c15t login --email <email>` prints an approval URL and code,
+and `c15t login --complete` finishes sign-in. `INTH_TOKEN` also works.
+
+`c15t setup --codex` hands frontend setup to the Codex CLI. Add `--plan` to
+print the task and copy it to the clipboard instead, or `--plan --json` to
+get it as JSON.
+
+New exports let other CLIs run c15t frontend setup without Node:
+
+- `@c15t/cli/generate` builds generation plans.
+- `@c15t/cli/frontend` handles setup, project selection, and status with
+  host-supplied state.
+- `@c15t/cli/frontend/runtime` applies plans to disk, recovers interrupted
+  applies, and installs packages with npm, pnpm, yarn, or Bun.
+- `@c15t/cli/frontend/agent` builds and launches the Codex task.
+- `@c15t/cli/commands` exposes the command registry.
+
+The generate and frontend modules also ship as TypeScript source for static
+compilation. Generated installs follow the CLI's release line.
+
+Codex launch and native dependency installation support macOS and Linux. On
+Windows, use `--plan` and `--skip-install`.
+
+### Pass the backend URL to the server helpers
+
+**Breaking.** The server helpers no longer read c15t configuration from environment variables. Pass `backendURL` or `manifestURL` to them. If you keep the URL in an environment variable, read it in your own code and pass the value.
+
+| Helper | No longer read |
+| --- | --- |
+| `createNextConsentRouteHandlers`, `createPagesApiHandlers` (`c15t/next/api`, `c15t/next/pages`) | `C15T_BACKEND_URL`, `NEXT_PUBLIC_C15T_BACKEND_URL`, `C15T_MANIFEST_URL`, `C15T_MANIFEST_REVALIDATE_SECONDS` |
+| `createConsentServerRoute` (`c15t/tanstack-start/api`) | `C15T_BACKEND_URL`, `VITE_C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+| `createSvelteKitConsentRouteHandlers` (`@c15t/svelte/kit`) | `C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+| `manifest()` mode and its injected routes (`c15t/astro`) | `C15T_BACKEND_URL`, `PUBLIC_C15T_BACKEND_URL`, `C15T_MANIFEST_URL` |
+
+These helpers now take a required options argument. Without `backendURL` or `manifestURL`, each request throws, for example `@c15t/nextjs/api: pass backendURL or manifestURL.` Astro's `manifest()` without a `backendURL` or an inline `manifest` fails when `astro.config` loads. `manifestRevalidateSeconds` defaults to `300`.
+
+The ready-made handlers built from environment variables are removed: `GET` and `manifestGET` from `c15t/next/api` and `@c15t/nextjs/api`, and `GET`, `manifestGET` and `initGET` from `c15t/tanstack-start/api` and `@c15t/tanstack-start/api`.
+
+Before:
+
+```ts title="app/api/c15t/manifest/route.ts"
+export { manifestGET as GET } from 'c15t/next/api';
+```
+
+After:
+
+```ts title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+
+import { consentConfig } from '@/c15t.config';
+
+export const { manifestGET: GET } =
+	createNextConsentRouteHandlers(consentConfig);
+```
+
+The init route takes `GET` from the same call. You can pass options instead of a config, for example `createNextConsentRouteHandlers({ backendURL: 'https://your-project.inth.app' })`.
+
+`c15t setup` writes the chosen backend URL into the generated components, `c15t.config.ts` and the `next.config` rewrite as a string. Quotes and backslashes in the URL are escaped, so they no longer break the generated `next.config`. It no longer writes `.env.local` or `.env.example`, no longer asks whether to store the URL in a `.env` file, and no longer accepts `--env`.
+
+### Keep app `i18n.messages` overrides when the backend sends translations
+
+In hosted and manifest mode, the translations from `/init`, from a server prefetch or from a manifest replaced the app's `i18n.messages` for the same language, so a key overridden in code showed the backend's copy instead. This affected React, Next.js and TanStack Start through the React provider, Svelte and SvelteKit (including `resolveConsent()` prefetches), Astro and `@c15t/browser`.
+
+The backend copy is now the base for the visitor's language and the app's `i18n.messages` for that language are deep-merged over it. An app key replaces the backend's text when it differs from c15t's built-in copy for that language, or for its primary language. A key that repeats the built-in text does not hide the backend's copy, so an app that passes the stock bundles to enable languages, such as `{ ...baseTranslations.de }`, still shows edits made on the backend, while a customized key still wins. Keys the backend does not supply keep the app's copy, so a language the backend does not send still shows the app's copy in full. Overrides for other languages are not applied. A regional language such as `de-AT` uses the overrides under `de` when there is no `de-AT` entry.
+
+Built-in copy is known for English and, once `@c15t/translations/all` has loaded, for every bundled language. Without it, every app key counts as a customization. `@c15t/translations` adds `getStockTranslations()` for this, and `/all` registers its languages when it loads. The package now lists `dist/all.js` under `sideEffects`, so a bare `import '@c15t/translations/all'` survives tree shaking.
+
+Astro also deep-merges `i18n.messages` now. Before, a partial override such as `{ cookieBanner: { title } }` replaced the whole `cookieBanner` section and left its other keys empty. A regional `i18n.locale` or `Accept-Language` such as `de-AT` now renders over the `de` bundle instead of English.
+
+`@c15t/core` now exports `offline()`, a mode for `createConsentRuntime()` that resolves policy rules locally. A language set through the kernel, with `overrides.language` or `kernel.set.language()`, switches the copy when c15t's built-in copy or `i18n.messages` has that language, falling back to the primary language, so `de-AT` uses German copy. Built-in copy covers English, and every bundled language once `@c15t/translations/all` has loaded. A language with no copy gets the startup copy back, still labelled with the startup language. The language a server prefetch detected from `Accept-Language` does not switch the copy until the app has asked for a different language. `@c15t/browser` uses this transport, so `data-language`, the `overrides.language` option and `setLanguage()` now switch the copy in offline mode. The Svelte `offline()` mode is unchanged. The JavaScript, Vue and Solid boilerplate from `@c15t/cli generate` now uses core's `offline()`, and the generated offline kernel config passes `translationsFor` with `baseTranslations` from `@c15t/translations/all`, so generated projects switch to any bundled language too. The CLI installs `@c15t/translations` for that config.
+
+`createOfflineTransport()` accepts `translationsFor` and `detectedLanguage` options with the same behavior. Without `translationsFor` it still relabels its copy with the requested language, as before.
+
+`@c15t/core` also adds a `translationOverrides` kernel option, the `applyTranslationOverrides()` and `resolveLocalTranslations()` helpers, and an optional `translationsFor` on the transport factory context.
+
+### Add a Klaviyo integration
+
+`klaviyo()` from `@c15t/integrations/klaviyo` loads Klaviyo.js, which serves both signup forms and onsite tracking, only once marketing and measurement are both allowed. Pass `category` to use a different consent condition. `mode: 'forms-only'` loads on marketing alone and sets Klaviyo's `__kla_off` cookie before the bundle runs, so forms render while Klaviyo's web tracking stays off. The helper installs Klaviyo's queued `klaviyo` object and sends no `identify` or `track` calls of its own. Unlike Klaviyo's snippet, awaiting, serializing or stringifying that object before Klaviyo.js loads queues nothing, so it cannot stall the calls queued after it.
+
+Registry entries can now declare a compound consent condition in `consentCategory`, such as `{ and: ['marketing', 'measurement'] }`, and there is a new `email-and-sms` integration category. Code that reads `consentCategory` as a string must handle the object form. The CLI offers Klaviyo in its integration picker.
+
+### Use `styles.css` with Tailwind 3
+
+Tailwind 3 apps now import the same stylesheet as every other setup, such as `c15t/react/styles.css` or `c15t/next/styles.css`, and run `@c15t/ui/postcss-tailwind3` before `tailwindcss`. The plugin previously skipped the entry stylesheets, so Tailwind 3 apps had to pick `styles.tw3.css`, and the dialog stylesheet still needed the plugin. It now also flattens `styles.css` and `iab/styles.css`, handles c15t rules that Vite or `postcss-import` inline into your own stylesheet, and covers `@c15t/browser/styles.css` for light-DOM setups, where Tailwind 3 previously dropped the rules without an error and its preflight stripped the banner's button padding and borders.
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'@c15t/ui/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Use the object form: Vite's PostCSS config loader rejects plugin names in an array.
+
+Import the stylesheet above your `@tailwind` directives. `postcss-import` ignores an `@import` that follows other rules, so the previously documented position between `@tailwind components` and `@tailwind utilities` dropped the c15t rules in Vite apps. When the plugin is missing, Tailwind 3's build error now shows a comment naming it.
+
+`c15t setup` now imports `styles.css` for Tailwind 3 and adds the plugin to your PostCSS config, replacing an existing `styles.tw3.css` import. Before this, it imported `styles.tw3.css` without the plugin, and the build failed on the dialog stylesheet. Setup also installs `@c15t/ui`, so pnpm can resolve the plugin. It edits the active plugin list, including `[name, options]` tuples, and ignores commented-out examples. If the config passes an imported `tailwindcss` binding, lists the c15t plugin after `tailwindcss`, or has no single plugin list to edit, if `package.json` holds the PostCSS config, or if several config files exist, setup prints the change to make instead of guessing which one your build reads. The v1 to v2 `add-stylesheet-imports` codemod keeps importing `styles.tw3.css`, because the plugin does not exist in v2.
+
+`styles.tw3.css` and `iab/styles.tw3.css` still ship and work with the plugin.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### Warn that Create React App cannot run the Tailwind 3 plugin
+
+Create React App (`react-scripts`) builds CSS with its own PostCSS setup and never reads `postcss.config.js`, so c15t's Tailwind 3 PostCSS plugin (`c15t/postcss-tailwind3`) cannot run and a Tailwind 3 build fails on c15t's dialog stylesheet. `c15t setup` still added the plugin to a `postcss.config.js` it found and reported success.
+
+For Tailwind 3 apps that depend on `react-scripts`, setup now leaves PostCSS config alone, with or without a config file, and warns instead. To fix the build, add the plugin before `tailwindcss` through CRACO, eject, or move the app to Vite.
+
+Interactive setup now shows this warning and the existing "add the plugin by hand" step, which it previously logged only at debug level. `--non-interactive` setup logs them and returns them in a new `warnings` array, which `--json` output includes.
+
+### Install c15t packages that match the CLI
+
+`c15t setup --apply` and the interactive setup now install c15t packages from the CLI's own release line instead of npm `latest`. A prerelease CLI installs every c15t package from its dist-tag, for example `c15t@alpha` from a 3.0.0 alpha CLI. A stable CLI pins only the packages released together with it, such as `c15t` and `@c15t/dev-tools`, to its major version, for example `c15t@3`. Packages that version on their own, such as `@c15t/ui`, `@c15t/integrations` and `@c15t/svelte`, install from `latest` on a stable CLI. Rerunning setup keeps c15t packages the app already declares on the same release line. A c15t package declared on another major or prerelease channel, such as `@c15t/react@^2` in a v2 app, is installed again from the CLI's line so it matches the code setup writes. Compound ranges such as `>=2 <3` and `^2 || ^3` count by the versions they admit. Under a prerelease CLI, a range that names no prerelease and also admits an earlier major, such as `>=2` or `*`, is installed again, because npm resolves it to the earlier stable release, and so is a dist-tag other than the CLI's own, such as `latest`. `workspace:`, `link:`, `file:` and `portal:` ranges are left as they are, and so are dist-tags under a stable CLI.
+
+`c15t generate` boilerplate now lists the same pinned install command for its c15t packages, and the generated README no longer says the files target unpublished APIs.
+
+### Rename the vendor integrations package
+
+Replace `@c15t/scripts` with `@c15t/integrations` in v3 dependencies and imports.
+Vendor subpaths, helper names, and the `scripts` configuration option stay the
+same. `@c15t/scripts` remains available as a deprecated compatibility package
+throughout v3, re-exporting the same implementation and types. Compatibility
+ends in v4; previously published versions remain available on npm.
+
+The CLI installs and imports `@c15t/integrations` in generated applications.
+Run `c15t codemods scripts-to-integrations --dry-run --json` to preview import
+changes in JavaScript and TypeScript files, then repeat without `--dry-run` to
+apply them. Update package dependencies and Vue or Svelte component imports
+separately.
+
 ## @c15t/cli@3.0.0-alpha.3 (alpha)
 
 ### Encode and enforce IAB publisher restrictions

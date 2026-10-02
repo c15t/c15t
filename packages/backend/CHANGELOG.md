@@ -1,3 +1,80 @@
+## @c15t/backend@3.0.0-alpha.4 (alpha)
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### One tenant setting, refused when it is unsafe, and recovery for visitors whose subject ID another tenant holds
+
+A self-hosted backend now names its tenant in one place: the instance's `tenantId`. `manifest.tenantId` is removed from the backend configuration. It never scoped a database query, but it did scope policy snapshot tokens when the instance had no `tenantId`, so a config that set only that one issued tokens for a tenant while writing every consent with a null tenant. Built manifests no longer carry it. `ConsentManifest.tenantId` stays on the wire type for other manifest producers.
+
+`c15tInstance` and `createApp` check the tenant when the instance is built. They throw when `tenantId` is empty, padded with whitespace or not a string (a `null` from a JavaScript config used to scope every query to `tenantId = NULL`, which matches nothing), and when the config still sets `manifest.tenantId`, rather than ignoring it. The new `requireTenantId: true` option makes a missing `tenantId` throw too. Set it on every instance that shares a database with other tenants. Without it, an instance whose tenant lookup returned `undefined` starts in the single-tenant scope and writes consents with a null tenant, which the tenant that owns them never reads.
+
+Subject IDs are chosen by the browser and are unique across the whole database. A save naming a subject ID that another tenant holds was answered `400 CONFLICT`, on every save, with no way for the visitor to recover. It is now `409 SUBJECT_CONFLICT`. `@c15t/core` responds by giving the visitor a new subject ID, moving any queued saves to it, and sending the choice once more. Every open tab moves to the same new ID. A consent recorded again with different receipts, purposes or vendor grants is now `409 CONFLICT` instead of `400`. The hosted and manifest transports treat both as permanent refusals, so the kernel no longer replays them from its queue.
+
+### Migration
+
+- Remove `tenantId` from the backend's `manifest` block and set it on the instance. If the instance already sets the same value, delete the manifest one. If it set only `manifest.tenantId`, the instance has been writing rows with a null tenant: setting `tenantId` scopes it to that tenant, and those rows stop appearing in its reads.
+- Code that matched `400` with `cause.code: 'CONFLICT'` from `POST /subjects` should expect `409`, and `SUBJECT_CONFLICT` for a subject ID held by another tenant. `PUT /legal-documents` conflicts are still `400 CONFLICT`.
+- A manifest built from a config that set `tenantId` gets a new `revision`, so cached manifests refresh once.
+
+### Index experiment attribution and summarise choices per arm
+
+Summarise banner experiments from the backend. Migration `6-experiment-attribution` adds `experimentId`, `experimentArm` and `timeToDecisionMs` columns to `consent`, indexed on `(tenantId, experimentId, experimentArm)`, and `POST /subjects` fills them from `metadata.experiment` and `metadata.timeToDecisionMs` while leaving `metadata` untouched. Values over 128 characters or malformed are dropped rather than failing the save. `GET /experiments/:id/summary` (API key) returns `arms: [{ arm, choices, byAction, bySurface, medianTimeToDecisionMs }]`, choices per arm split by stored `consentAction` (`byAction` always carries `accept_all`, `reject_all`, `opt_out`, `custom` and `unknown`) and `uiSource`, with the median time to decision, filtered by `from`, `to` and `domain`; the response is validated against the new `experimentSummaryOutputSchema` in `@c15t/schema`, and `@c15t/node-sdk` exposes it as `client.experiments.summary(id, { from, to, domain })`. The summary counts choices; the visitors each arm was owed to arrive on the session reports `/init` produces, so an opt-in rate divides the two.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### Run the backend on Effect 4.0.0
+
+`@c15t/backend` now depends on the stable `effect@4.0.0` instead of `4.0.0-beta.102`. Its database driver peers moved to match, so install `@effect/sql-pg`, `@effect/sql-mysql2` or `@effect/sql-sqlite-node` at `4.0.0`. A beta driver no longer satisfies the peer range. If you pass your own `SqlClient` layer, import from `effect/sql` instead of `effect/unstable/sql`.
+
+`@effect/sql-pg` 4.0.0 replaces the `pg` package with its own PostgreSQL client and caches named prepared statements by default. Direct connections need no change. Behind a pooler in transaction mode, such as PgBouncer or a provider's pooled URL, queries can fail because the next connection never prepared the statement. Pass `PgClient.layer({ url, prepare: false })` as `database`; the [database setup guide](https://c15t.com/docs/self-host/guides/database-setup) shows the full config.
+
 ## @c15t/backend@3.0.0-alpha.3 (alpha)
 
 ### Encode and enforce IAB publisher restrictions

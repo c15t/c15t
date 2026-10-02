@@ -1,3 +1,225 @@
+## @c15t/ui@3.0.0-alpha.4 (alpha)
+
+### Update documentation links
+
+Point documentation links in CLI prompts and errors, runtime warnings, TSDoc, package READMEs and package homepages at the current c15t.com docs pages. The old addresses led to pages that were moved or removed.
+
+### Apply `theme.slots` in React and Vue
+
+`theme.slots` now styles the stock parts in React and Vue, as it already did in Svelte, Astro and the script tag. Each slot maps onto the matching `components` part (`consentDialogCard` onto `dialog.card`, `toggle` onto `switch.root`), and `components` wins where both set the same attribute. A slot with `noStyle: true` drops that part's stock classes and keeps the slot's and the part's own classes, as in the other adapters; a slot that sets only `noStyle` applies too. React used to accept `theme.slots` in its types and ignore it.
+
+The `frame` and `consentDialogFooter` slot keys are removed: no adapter read them. Style the stock dialog's footer with `consentWidgetFooter`, and the `ConsentGate` placeholder with the new `consentGate` slots.
+
+In Vue, the assigned experiment arm's `theme.slots` merge over the host theme's, as they already did in React, so an arm that changes only a slot renders its classes and styles.
+
+A numeric length in a slot style, such as `{ padding: 8 }`, now renders as `8px` in Vue too. Vue writes style objects as given, so the number used to be dropped.
+
+### Lay out banner actions by card width
+
+The banner footer now switches layout on the card's width instead of the viewport's, so `--consent-banner-max-width` works on wide screens. A card narrower than 22rem puts Reject and Accept on one row and Customize on a full-width row below, where the buttons used to overflow the card. The default 440px card keeps its single row.
+
+The `widget` chip is 20rem wide by default, so it now uses the same two-row footer on every screen size.
+
+### Start the banner's entry from the stylesheet, and keep the collator off the init path
+
+Canonical sets and fingerprint keys were sorted with
+`String.prototype.localeCompare`, whose first call initialises the ICU
+collator on the main thread before the banner can show. They now use a
+comparator that applies the same root-collation order to printable ASCII
+directly and only falls back to the collator for other strings, so every
+fingerprint stays byte-identical.
+
+Every framework also started the banner's entry transition its own way: the
+script tag and Svelte inserted the hidden state, forced a layout and flipped
+the class; React rendered hidden and flipped after a timer; Vue handed the
+flip to `Transition`; Astro's prerendered banner did not animate at all.
+`@c15t/ui` now carries the entry as `@starting-style` states, the
+`bannerEntering`, `overlayEntering`, `dialogEntering` and `contentEntering`
+classes, and each framework renders the banner in its visible state with the
+entering class. The transition runs from the first frame with no hidden
+render or layout read, and it runs the same way whether the banner arrives
+from the server or the client. Astro's prerendered banner now fades in at
+first paint like the others. Browsers without `@starting-style` show the
+banner in place; the script tag keeps its class flip for them.
+
+### Unwrap every c15t stylesheet for Tailwind 3
+
+`@c15t/ui/postcss-tailwind3` now unwraps the `@layer` blocks of every built stylesheet a c15t package publishes, not only those of `@c15t/ui` and `@c15t/browser`. Two setups failed before:
+
+- `@import '@c15t/svelte/styles.css'` in an app stylesheet. Tailwind 3 treated c15t's rules as part of its own components layer and purged them, leaving the Svelte and SvelteKit banner unstyled.
+- `@c15t/astro/styles.css`, which Astro injects on every page. The Astro build failed with "`@layer components` is used but no matching `@tailwind components` directive is present".
+
+The plugin also recognizes c15t stylesheets whose path carries a query, such as the `?transform-only` Astro adds to the dialog stylesheet.
+
+A stylesheet under `packages/<name>/dist/` of a workspace only counts as c15t's when that package's `package.json` is named `c15t` or `@c15t/*`. Before, any `packages/ui/dist` or `packages/browser/dist` stylesheet matched, so another monorepo's own packages could lose their `@layer` blocks.
+
+### Keep the Astro color scheme when a dialog opens
+
+With `colorScheme: 'dark'` or `'system'`, opening the preference dialog with `ui: 'react'` removed `c15t-dark` from `<html>` unless the page also had a `dark` class, so the banner and dialog turned light. The dialog islands now leave the class to the page's colour-scheme setting. The provider option types in `@c15t/react` and `@c15t/ui` now accept `colorScheme: null`, which the providers already treated as "leave the class alone".
+
+Set `colorScheme: 'none'` when your site's own theme switch sets `c15t-dark`. c15t then emits no colour-scheme script and never adds or removes the class, on boot, after ClientRouter navigations or when a dialog opens.
+
+### Use the theme's motion tokens on the floating trigger
+
+The floating dialog trigger now times its hover and snap transitions with `--c15t-duration-slow`, `--c15t-easing-out` and `--c15t-easing-in-out`. It read variables no theme sets, so `theme.motion` never reached it.
+
+### Keep c15t styles above Tailwind v4 preflight
+
+The layered stylesheets (`styles.css`, `styles/dialog.css`, `styles/primitives.css` and `iab/styles.css`) and `@c15t/astro/styles.css` now open with Tailwind v4's layer order, `@layer properties, theme, base, components, utilities;`. Cascade layers rank by the order they are first named, so a page that loaded c15t's stylesheet before Tailwind's put `components` below Tailwind's `base`, and preflight removed the banner's padding and borders. This happened on Astro sites using Tailwind v4, where the integration injects c15t's stylesheet first, and in apps that import c15t's stylesheet above their own. The order now holds whichever sheet loads first.
+
+Without Tailwind the extra layers stay empty. If your CSS declares its own layer order, load that statement before c15t's stylesheet. The `.tw3.css` files are unchanged, and `@c15t/ui/postcss-tailwind3` removes the statement for Tailwind 3.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### Accept `disableAnimation` on the Svelte dialogs
+
+`ConsentDialog` and `IABConsentDialog` take a `disableAnimation` prop that overrides the provider's `disableAnimation` for that dialog, as `ConsentBanner` and the React dialogs already do.
+
+The IAB dialog's backdrop now fades in when the dialog opens, like the consent dialog's and the banners'. It used to appear at full opacity at once. `disableAnimation` on the dialog or the provider turns the fade off, and so does a reduced-motion preference.
+
+### Apply `generateThemeCSS` output wherever it lands in the page
+
+A theme rendered with `generateThemeCSS` used the same selectors as the
+default tokens in `styles.css`, so whichever came later in the document won.
+SvelteKit writes `<svelte:head>` content before its stylesheet links, so a
+theme rendered there, as the SvelteKit guide shows, was replaced by the
+defaults. The generated selectors now carry one more specificity point
+(`:root:root`, `.c15t-theme-root.c15t-theme-root`), so in the document the
+theme overrides the defaults before or after the stylesheet. Inside a shadow
+root, `:host` keeps the defaults' specificity, so the theme still has to come
+after the stylesheet there; the script tag's mount already writes it last.
+This covers `ConsentTheme` in
+React, Next.js and TanStack Start, Astro's server-rendered theme and the
+script tag's `theme` option too.
+
+Your own CSS that sets `--c15t-*` variables on plain `:root` next to a
+generated theme now loses to the theme. Put those values in the theme, or
+raise the selector to `:root:root`.
+
+### Add CSS variables for the "Secured by" tag
+
+Restyle the branding tag on the banner and dialog with `--consent-branding-tag-background-color`, `--consent-branding-tag-border-color`, `--consent-branding-tag-text-color`, `--consent-branding-tag-mark-color` and `--consent-branding-tag-shadow`. `--consent-branding-tag-attached-edge-width` draws a border on the edge where the tag meets the card, which has none by default.
+
+Without these variables set, the tag looks the same as before.
+
+### Open the preference dialog with focus on its first control
+
+The consent dialog and the IAB dialog used to focus their own container on
+open and draw a focus ring around the whole card for keyboard users. They now
+focus the first tabbable control inside the panel, the way dialog libraries
+such as Base UI do, so the ring lands on a control. Screen readers still
+announce the title and description as focus enters, through the panel's
+`aria-labelledby` and `aria-describedby`. Blocking banners keep focusing
+their container so no action button is favored. `setupFocusTrap` in
+`@c15t/ui` takes an `initialFocus` option, and the React hook, Svelte action
+and Vue composable pass it through.
+
+### Fix IAB feature styling, accessibility, and Astro script escaping
+
+Apply theme spacing and typography to the IAB feature section. Hide decorative
+feature disclosure arrows from screen readers in Vue. Escape Astro client module
+paths and adapter names when generating page scripts.
+
+### Remove unused banner card animation rules
+
+The banner and IAB banner stylesheets no longer carry `.card[data-state]` animation rules or the `--consent-banner-entry-animation`, `--consent-banner-exit-animation`, `--iab-consent-banner-entry-animation` and `--iab-consent-banner-exit-animation` variables that fed them. No banner ever set `data-state` on its card, so the rules never applied. The banners animate through their visible, hidden and entering classes as before. The `iab-consent-banner.css` animations export keeps its keyframes.
+
+`setupColorScheme()` no longer throws where `matchMedia` is missing, as in some embedded webviews. `'system'` is light there. The motion token TSDoc now gives the real duration defaults: 80ms, 150ms and 200ms.
+
+### Let the theme reach legal links, the ConsentGate placeholder and IAB highlights
+
+Several parts of the UI used fixed values instead of theme tokens, so a custom `theme` left them on c15t's defaults. They now follow the theme:
+
+- Legal links use `colors.primary`. In dark mode they use the dark primary, which is lighter than the previous fixed blue.
+- The ConsentGate placeholder takes its font, colors, radius and shadow from the theme.
+- The IAB dialog's selected-vendor banner and search focus ring are tints of `colors.primary` instead of a fixed blue.
+- A disabled switch's outline uses `colors.border`, so it no longer shows a light ring in dark mode.
+- The preference accordion and vendor list focus rings use `colors.primary`, with the same dark-mode fix as legal links. Their arrows and category descriptions are shades of `colors.textMuted`, matching the old greys with the default theme.
+- The dialog and banner entrance springs, accordion and collapsible fades, tab transitions and the placeholder fade-in use the `motion` easings and durations.
+- The IAB dialog title and banner title use `typography.fontSize.lg`, and the dialog footer and legal links use `fontSize.sm`.
+
+With the default theme, the light-mode changes are small shifts in shade and easing.
+
+### Keep Vue components styled next to Tailwind 4
+
+Vue components import their stylesheets one component at a time, and Vite links those stylesheets ahead of the app's CSS when they share a chunk. The first of them declared `@layer components` before Tailwind 4 declared `base`, so Tailwind's preflight removed the banner's padding, borders and button backgrounds. Each `@c15t/ui/styles/components/*.css` file now opens with Tailwind 4's layer order, `@layer properties, theme, base, components, utilities;`, as the aggregate stylesheets already did.
+
+The dialog trigger stylesheet now keeps its rules in `@layer components` as well, so a Tailwind utility passed to the Vue trigger overrides it the same way it does in React.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
+### Use the theme font in the preference list
+
+The preference list in the consent dialog and consent widget now uses `typography.fontFamily` from your theme, like the dialog's title and buttons. It used a fixed system font stack before, so a themed dialog showed its category rows in a different font.
+
+### Keep fixed elements still when a consent dialog locks scrolling
+
+A blocking banner or dialog no longer shifts the page sideways on systems that show classic scrollbars, such as Windows, Linux and macOS with "Always show scrollbars" enabled. The scroll lock used to pad `<body>` by the scrollbar width, which kept in-flow content in place but still widened the viewport, so fixed headers, right-aligned controls and side panels jumped by the scrollbar width. It now sets `scrollbar-gutter: stable` on `<html>` while the page is locked, so the viewport keeps its width. Pages without a visible scrollbar get no gutter, and a `stable` gutter the page already sets is left alone. Browsers without `scrollbar-gutter` support still get the `<body>` padding.
+
+The lock now also works on pages that set `overflow` on `<html>`, where hiding `<body>` overflow alone did not stop the page scrolling, and it restores inline `overflow-x` or `overflow-y` values it replaced instead of clearing them.
+
+### Use `styles.css` with Tailwind 3
+
+Tailwind 3 apps now import the same stylesheet as every other setup, such as `c15t/react/styles.css` or `c15t/next/styles.css`, and run `@c15t/ui/postcss-tailwind3` before `tailwindcss`. The plugin previously skipped the entry stylesheets, so Tailwind 3 apps had to pick `styles.tw3.css`, and the dialog stylesheet still needed the plugin. It now also flattens `styles.css` and `iab/styles.css`, handles c15t rules that Vite or `postcss-import` inline into your own stylesheet, and covers `@c15t/browser/styles.css` for light-DOM setups, where Tailwind 3 previously dropped the rules without an error and its preflight stripped the banner's button padding and borders.
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'@c15t/ui/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Use the object form: Vite's PostCSS config loader rejects plugin names in an array.
+
+Import the stylesheet above your `@tailwind` directives. `postcss-import` ignores an `@import` that follows other rules, so the previously documented position between `@tailwind components` and `@tailwind utilities` dropped the c15t rules in Vite apps. When the plugin is missing, Tailwind 3's build error now shows a comment naming it.
+
+`c15t setup` now imports `styles.css` for Tailwind 3 and adds the plugin to your PostCSS config, replacing an existing `styles.tw3.css` import. Before this, it imported `styles.tw3.css` without the plugin, and the build failed on the dialog stylesheet. Setup also installs `@c15t/ui`, so pnpm can resolve the plugin. It edits the active plugin list, including `[name, options]` tuples, and ignores commented-out examples. If the config passes an imported `tailwindcss` binding, lists the c15t plugin after `tailwindcss`, or has no single plugin list to edit, if `package.json` holds the PostCSS config, or if several config files exist, setup prints the change to make instead of guessing which one your build reads. The v1 to v2 `add-stylesheet-imports` codemod keeps importing `styles.tw3.css`, because the plugin does not exist in v2.
+
+`styles.tw3.css` and `iab/styles.tw3.css` still ship and work with the plugin.
+
+### Keep checked switches inside their track in right-to-left languages
+
+In Arabic, Hebrew and other right-to-left copy, a checked switch in the preference dialog now moves its thumb to the left end of the track. The rule only matched a `dir` attribute on the switch itself, which no adapter sets, so the thumb slid past the track's edge.
+
+### Stop banner and dialog motion under reduced motion in every adapter
+
+The `prefers-reduced-motion: reduce` rules now use the same selectors as the rules that animate each part, so they win wherever an adapter puts the class. They were one class lighter for the banner and dialog, so Vue, Nuxt and Astro banners still slid in for visitors who asked for less motion. The fix also covers the sidebar dialog, secondary and dark button hovers, tab triggers, the accordion row and the IAB tab indicator.
+
+### Add trigger slots and keep slot classes under `noStyle`
+
+`theme.slots` gains `consentDialogTrigger` and `consentDialogTriggerIcon` for the floating button that reopens the preference center and its icon, the parts React and Vue style with `components.trigger.root` and `components.trigger.icon`. The Svelte `ConsentDialogTrigger` applies both, including a slot's `style`.
+
+`resolveStyles` now keeps theme slot classes and styles under `noStyle` and drops only the stock classes. Before, a component that passed its own `noStyle` flag lost the theme slot's classes, and one that passed a `baseClassName` kept the stock class. In `@c15t/svelte`, the banner, dialog and widget parts now keep their `theme.slots` classes when `noStyle` is set, and the widget's footer button group reads `consentWidgetFooterSubGroup` instead of `consentWidgetFooter`.
+
+### Stop the floating trigger's transitions when `disableAnimation` is set
+
+The floating dialog trigger and the trigger toolbar now carry `data-disable-animation` when the provider's `disableAnimation` is on, and the stylesheet then drops their hover and snap-to-corner transitions. They already stop under `prefers-reduced-motion: reduce`.
+
 ## @c15t/ui@3.0.0-alpha.3 (alpha)
 
 ### Render theme CSS on the server

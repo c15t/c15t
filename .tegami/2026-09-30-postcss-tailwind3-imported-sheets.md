@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/ui': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
 ---
 
 ### Unwrap every c15t stylesheet for Tailwind 3

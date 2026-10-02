@@ -1,3 +1,281 @@
+## @c15t/vue@3.0.0-alpha.4 (alpha)
+
+### Resolve Nuxt visitors in the browser on prerendered and cached routes
+
+Nuxt pages that are prerendered, or cached by a `cache`, `swr`, `isr` or `prerender` route rule, no longer carry the consent records, location and request headers of the render that produced them. That HTML is served to every visitor, so it now renders without the banner, and the browser requests the visitor's policy and reads their stored choice after hydration. Before, the browser reused the build-time or first visitor's result and skipped its own policy request, and a visitor who rejected saw the banner again after a reload.
+
+In the browser, a newer denial kept in localStorage now also applies on top of the records the server read from the request cookie, instead of being overwritten by them.
+
+### Apply `theme.slots` in React and Vue
+
+`theme.slots` now styles the stock parts in React and Vue, as it already did in Svelte, Astro and the script tag. Each slot maps onto the matching `components` part (`consentDialogCard` onto `dialog.card`, `toggle` onto `switch.root`), and `components` wins where both set the same attribute. A slot with `noStyle: true` drops that part's stock classes and keeps the slot's and the part's own classes, as in the other adapters; a slot that sets only `noStyle` applies too. React used to accept `theme.slots` in its types and ignore it.
+
+The `frame` and `consentDialogFooter` slot keys are removed: no adapter read them. Style the stock dialog's footer with `consentWidgetFooter`, and the `ConsentGate` placeholder with the new `consentGate` slots.
+
+In Vue, the assigned experiment arm's `theme.slots` merge over the host theme's, as they already did in React, so an arm that changes only a slot renders its classes and styles.
+
+A numeric length in a slot style, such as `{ padding: 8 }`, now renders as `8px` in Vue too. Vue writes style objects as given, so the number used to be dropped.
+
+### Show only necessary when a site declares no categories
+
+A site that declares no categories, through `consentCategories`, scripts, network rules, vendors or discovered frames, now offers only Strictly necessary under a permissive policy, as in v2. The banner still appears when the policy asks for a choice. Accept all, Reject all and Save each record an acknowledgement that keeps the banner dismissed after reload, and hosted and manifest modes send a consent receipt for necessary alone. The acknowledgement expires with the policy's choice validity or a policy change, and a category declared later asks again. Strict policies and IAB TCF policies still offer their whole scope.
+
+The Astro server now judges a visitor against the categories the page's `consentCategories`, `scripts` and network rules declare, so it renders the same banner decision as the browser. Browser `hasConsented()` and the `after-consent` trigger treat the acknowledgement as a decision.
+
+In React Native, the Swift and Kotlin cores apply the same rule when the app sets no `consentCategories`: a permissive policy offers only Necessary, any save records the acknowledgement and sends the necessary-only receipt, and strict policies still offer their whole scope. A declared list now also narrows what Accept all and Reject all confirm, as on the web.
+
+### Load new copy when the Vue consent language changes
+
+Assigning a new language to `useConsentLanguage()` now runs init again, so the banner and dialog switch to that language without a separate `commands.init()` call. Assigning the current language does nothing. The Nuxt `ConsentRoot` now takes the same `language` prop as the Vue `ConsentRoot`.
+
+A `country`, `language` or `region` prop on the Vue or Nuxt `ConsentRoot` no longer runs an extra init on every page load. A prop equal to what the server already resolved, such as the prefetched language, runs none; a different value is sent with the startup init, or with one init when the server prefetched. Init no longer runs during server rendering. Changing a prop after the page has loaded still runs init once.
+
+### Start the banner's entry from the stylesheet, and keep the collator off the init path
+
+Canonical sets and fingerprint keys were sorted with
+`String.prototype.localeCompare`, whose first call initialises the ICU
+collator on the main thread before the banner can show. They now use a
+comparator that applies the same root-collation order to printable ASCII
+directly and only falls back to the collator for other strings, so every
+fingerprint stays byte-identical.
+
+Every framework also started the banner's entry transition its own way: the
+script tag and Svelte inserted the hidden state, forced a layout and flipped
+the class; React rendered hidden and flipped after a timer; Vue handed the
+flip to `Transition`; Astro's prerendered banner did not animate at all.
+`@c15t/ui` now carries the entry as `@starting-style` states, the
+`bannerEntering`, `overlayEntering`, `dialogEntering` and `contentEntering`
+classes, and each framework renders the banner in its visible state with the
+entering class. The transition runs from the first frame with no hidden
+render or layout read, and it runs the same way whether the banner arrives
+from the server or the client. Astro's prerendered banner now fades in at
+first paint like the others. Browsers without `@starting-style` show the
+banner in place; the script tag keeps its class flip for them.
+
+### Count each experiment arm's visitors through `/init`
+
+The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+
+On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+
+The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+
+Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
+
+Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+
+### A/B test banner presentation with any flag provider
+
+Add an `experiment` option for A/B tests on banner and preferences presentation. Your `presentation` is the `control` arm; `arms` lists what every other arm changes. Pass the `arm` your feature flag resolved (Vercel Flags, PostHog, LaunchDarkly, GrowthBook, Statsig), or a `split` such as `{ control: 60, wall: 40 }` for c15t to pick. `defineExperiment()` infers the arm names, so a misspelled `arm` or `split` key is a type error.
+
+```ts
+experiment: {
+  id: 'banner-shape',
+  arms: { wall: { prompt: { variant: 'wall' } } },
+  arm: flagValue, // or split: { control: 60, wall: 40 }
+}
+```
+
+The arm is merged over `presentation` and exposed as `snapshot.experiment` (React and Vue `useExperiment()`, Svelte `state.experiment`, browser `client.presentation`). It rides on `surface:shown` and `choice:recorded` and is saved with the choice as `metadata.experiment`, but only once the banner has shown it in the current page. A returning visitor who changes their choice from a footer link is not counted toward an arm they never saw.
+
+When c15t picks the arm, it does so when the page starts, before `/init`, and holds the banner until the arm is checked, so the visitor never sees one banner swap for another; on a server-rendered page the banner appears after hydration. The arm is stored as `{ id, arm }` under `c15t-experiment-v1` once the banner has shown it. Nothing is stored for a visitor who is never prompted or for an arm from your flag, and no identifier is stored.
+
+Arm validation loads as its own chunk, only when `experiment` is set, so a site without an experiment ships none of it. It is also exported from `c15t/experiment`, where `validateExperiment()` lets a test fail a build on a rejected arm.
+
+Nothing in the experiment throws into the page. An undeclared `arm` or an unusable `split` logs an error and runs no experiment. An arm that trips a presentation diagnostic under the visitor's policy is not shown to that visitor, who sees `control` and is not counted, unless `acknowledgeDiagnostics: true`, which is recorded with the arm.
+
+`@c15t/astro` resolves the arm on the server: per request through `consentMiddleware({ experimentArm })` from `@c15t/astro/middleware` with `middleware: false`, or one fixed `arm`. Arms vary presentation and theme, not copy.
+
+An arm can also carry `theme` overrides (`arms: { bold: { theme: { colors: { primary: '#0a0a0a' } } } }`), merged one token group deep over the host `theme`. Read the merged theme with React `useResolvedTheme()`, Vue `useResolvedTheme(theme)`, Svelte `getConsentManager().theme` and browser `client.theme`. In React, render its tokens with `<ConsentTheme theme={useResolvedTheme()} />`.
+
+### Fetch a `manifestURL` in the browser from the plain Vue plugin
+
+With the plain Vue plugin, setting `manifestURL` without `manifest` now selects client manifest mode: the browser fetches that manifest and resolves the policy itself. Before, it selected server mode and called `/api/c15t/init`, a route only the Nuxt module registers. The Nuxt module is unchanged: its `manifest` option defaults to `false`, so a `manifestURL` there needs `manifest: 'server'` or `manifest: 'client'` as well.
+
+### Load the Tailwind 3 PostCSS plugin from the package you installed
+
+Every package that publishes a c15t stylesheet now exports the Tailwind 3 PostCSS plugin as `<package>/postcss-tailwind3`, so you no longer install `@c15t/ui` just to list it:
+
+- `c15t/postcss-tailwind3` for apps that install `c15t` (React, Next.js, TanStack Start, Vue, Nuxt and Astro)
+- `@c15t/svelte/postcss-tailwind3` for Svelte and SvelteKit
+- `@c15t/browser/postcss-tailwind3` for script tag pages that style the light DOM
+- `@c15t/react/postcss-tailwind3`, `@c15t/nextjs/postcss-tailwind3`, `@c15t/tanstack-start/postcss-tailwind3`, `@c15t/vue/postcss-tailwind3` and `@c15t/astro/postcss-tailwind3` for apps that install an adapter directly
+
+```js title="postcss.config.mjs"
+export default {
+	plugins: {
+		'c15t/postcss-tailwind3': {},
+		tailwindcss: {},
+		autoprefixer: {},
+	},
+};
+```
+
+Each one re-exports `@c15t/ui/postcss-tailwind3`, so configs that already list that name keep working. The plugin must still come before `tailwindcss`.
+
+`c15t setup` now adds the plugin from the package it installs, `c15t/postcss-tailwind3`, or `@c15t/react/postcss-tailwind3` and `@c15t/nextjs/postcss-tailwind3` in apps that installed those directly, and no longer installs `@c15t/ui` for Tailwind 3. It leaves a config alone when any c15t `postcss-tailwind3` entry, including `@c15t/ui/postcss-tailwind3`, already runs before `tailwindcss`.
+
+### Show the Vue dialog trigger after the prompt under `after-consent`
+
+`triggerShowWhen: 'after-consent'`, the default, now hides the floating `ConsentDialogTrigger` until the policy owes no prompt: a choice is saved or a notice is dismissed. Before, only `'never'` was checked, so the trigger showed next to an unanswered banner. Set `triggerShowWhen: 'always'` to keep it visible while the banner is open.
+
+### Rename the remaining `frame` names to `consentGate`
+
+**Breaking.** `ConsentGate` was called `Frame`, and several names still said so. They now say `consentGate`:
+
+- The translations section `frame` is now `consentGate` (`consentGate.title`, `consentGate.actionButton`, `consentGate.policyBlocked`, `consentGate.loading` and `consentGate.error`) in every bundled language, in `CompleteTranslations` and `Translations`, in the `/init` response schema, in `@c15t/backend` responses and in the React Native translation types. `FrameTranslations` is now `ConsentGateTranslations`, and the old name stays as a deprecated alias.
+- The stylesheet `@c15t/ui/styles/components/frame` is now `@c15t/ui/styles/components/consent-gate`, and its custom properties are `--consent-gate-*` instead of `--frame-*`.
+- The placeholder's test ids are `consent-gate-placeholder` and `consent-gate-button` instead of `frame-placeholder` and `frame-open-dialog`. Its title now has `consent-gate-title`.
+
+Copy under the old key still works. When custom translations, `i18n.messages`, stored copy or an older backend's `/init` response has `frame`, c15t reads it as `consentGate`, with `consentGate` winning key by key when both are set, and logs a warning once outside production. `@c15t/translations` exports the conversion as `migrateLegacyTranslationKeys`. The `frame` stylesheet subpaths stay as deprecated aliases of `consent-gate` for this alpha.
+
+`theme.slots` has a `consentGate` family for the placeholder: `consentGate` for the card, `consentGateTitle` and `consentGateButton`. React, Next.js, TanStack Start, Vue and Svelte apply them. React and Vue also take the same parts as `components['consent-gate'].root`, `.title` and `.button`, and `components` wins where both set an attribute. `consentGateButton` applies on top of `buttonPrimary`.
+
+### Report banner impressions and time to decision
+
+Report banner and dialog impressions, not only choices. The kernel emits a `surface:shown` event when the banner or the dialog becomes visible and records the first impression time of each surface in `snapshot.surfaceShownAt`, so a late subscriber can still read it. Provider callbacks gain `onSurfaceShown` (React and Vue/Nuxt `callbacks.onSurfaceShown`); `@c15t/browser` dispatches `c15t:surfaceShown`; dev-tools log the event. A recorded choice now carries `timeToDecisionMs` (impression to action) on the `choice:recorded` event, on `onChoiceRecorded`, and on the saved consent as `metadata.timeToDecisionMs`. `kernel.commands.save()` accepts a `uiSource` override, and the React `uiSource` prop now reaches the save payload, so `ConsentWidget` saves are attributed to `widget` instead of the active banner. The never-fired `onBannerFetched` callback and `OnBannerFetchedPayload` type are removed.
+
+`kernel.markLive()` is public: an adapter that renders from a server-resolved prefetch and never calls `init()` calls it after hydration, so the server-rendered banner still counts as an impression. The core runtime, the React provider (and so Next.js and TanStack Start) and the Vue runtime (and so Nuxt) do this; before, an SSR page with a resolved prefetch never emitted `surface:shown`.
+
+`consentAction` on a saved choice now stays `all` or `necessary` when the host displays only a subset of the policy scope (`consentCategories`). It names the action the visitor took; `confirmed` names the categories it covered. Before, a narrowed accept-all was recorded as `custom`.
+
+A choice saved while a `notice` prompt is owed now records the notice dismissal with it. Before, a visitor who opened the preference center from an opt-out notice and rejected was shown the notice again.
+
+### Ship the stock dark palette in Vue and Nuxt
+
+The token CSS that Vue and Nuxt write into `<style id="c15t-css-vars">` now carries the stock dark colors under the `.dark` and `.c15t-dark` selectors, as the React and Svelte stylesheet does. With `colorScheme` and `theme` unset, a `dark` class on `<html>` used to switch the class but leave the light colors in place.
+
+### Type `nonce`, `iframeBlocker`, `storageConfig`, `domain` and `app.config.ts` for Nuxt
+
+The Nuxt module options now accept `nonce`, `iframeBlocker`, `storageConfig` and `domain`, which the runtime already read. The `c15t` key of `app.config.ts` is now typed, including when the module is registered as `c15t/vue`, and accepts `networkBlocker.onRequestBlocked`. Module options pass through JSON and cannot hold that callback, so set it in `app.config.ts`.
+
+### Open the preference dialog with focus on its first control
+
+The consent dialog and the IAB dialog used to focus their own container on
+open and draw a focus ring around the whole card for keyboard users. They now
+focus the first tabbable control inside the panel, the way dialog libraries
+such as Base UI do, so the ring lands on a control. Screen readers still
+announce the title and description as focus enters, through the panel's
+`aria-labelledby` and `aria-describedby`. Blocking banners keep focusing
+their container so no action button is favored. `setupFocusTrap` in
+`@c15t/ui` takes an `initialFocus` option, and the React hook, Svelte action
+and Vue composable pass it through.
+
+### Fix IAB feature styling, accessibility, and Astro script escaping
+
+Apply theme spacing and typography to the IAB feature section. Hide decorative
+feature disclosure arrows from screen readers in Vue. Escape Astro client module
+paths and adapter names when generating page scripts.
+
+### Add `colorScheme` and dark theme tokens to Vue and Nuxt
+
+The Vue plugin and the Nuxt module accept `colorScheme`, with the same values as the React and Svelte providers. `'light'` and `'dark'` force a scheme, `'system'` follows `prefers-color-scheme` as the visitor changes it, and leaving it unset mirrors a `dark` class on `<html>` into `c15t-dark`. `null` leaves `c15t-dark` to the site. Before, Vue never set `c15t-dark`, so the dark component styles only applied when the site set that class itself.
+
+Both also accept `theme`, the same token object `@c15t/react` takes, including `theme.dark`. Its tokens go into the `<style id="c15t-css-vars">` element with `tokens`, and win where both set a variable. Vue still reads slot overrides from `components`.
+
+```ts
+// nuxt.config.ts
+export default defineNuxtConfig({
+	c15t: {
+		colorScheme: 'system',
+		theme: { dark: { primary: '#7fd1a8' } },
+	},
+	modules: ['@c15t/vue'],
+});
+```
+
+Nuxt renders an inline script in `<head>` that sets `c15t-dark` for `'dark'` and `'system'`, with the configured `nonce`, so a dark visitor's first paint is already dark. `generateTokensCSS()` takes the scheme and theme as a second argument for plain Vue server rendering. A plugin given a borrowed `runtime` leaves the class to the host, as it does the tokens.
+
+### Translate the Vue preferences link and match the consent gate placeholder to React
+
+`ConsentPreferencesLink` now defaults to the `consentManagerDialog.title` translation instead of the fixed text "Privacy settings".
+
+The `ConsentGate` placeholder was the fixed text "Content requires permission.". It now renders the same placeholder as the React and Svelte gates: the `consentGate.title` text with the category name and a button labelled with `consentGate.actionButton` that opens the preference center. The gate also adds its category to the categories the preference center lists. Under a strict policy that leaves the category out, the placeholder shows `consentGate.policyBlocked` and no button.
+
+Both components use the visitor's language once init has delivered copy, and English until then. Slot content, including the gate's `placeholder` slot, still replaces the defaults.
+
+### Keep Vue components styled next to Tailwind 4
+
+Vue components import their stylesheets one component at a time, and Vite links those stylesheets ahead of the app's CSS when they share a chunk. The first of them declared `@layer components` before Tailwind 4 declared `base`, so Tailwind's preflight removed the banner's padding, borders and button backgrounds. Each `@c15t/ui/styles/components/*.css` file now opens with Tailwind 4's layer order, `@layer properties, theme, base, components, utilities;`, as the aggregate stylesheets already did.
+
+The dialog trigger stylesheet now keeps its rules in `@layer components` as well, so a Tailwind utility passed to the Vue trigger overrides it the same way it does in React.
+
+### Support IAB TCF 2.4
+
+c15t now follows TCF 2.4 and TCF Policies v5.0.b. Existing TC strings stay valid.
+
+- The IAB preference centre shows Features in their own section with the IAB standard text and no controls. Special Purposes stay locked.
+- `__tcfapi` TC data includes `vendor.disclosedVendors`.
+- `isServiceSpecific` is deprecated. TC strings always set IsServiceSpecific=1.
+- Vendors that declare only Special Purposes no longer get a legitimate interest bit.
+- GVL schemas keep unknown fields, so `standardTexts` survives the backend cache.
+
+### Migration
+
+Headless IAB UIs: `resolveIABDialogDisplayModel` now returns Features in `featureRows` instead of `essentialRows`. Render them without a control, under `featuresStandardText` or your `features.description` translation when it is `null`.
+
+### Inspect consent from a c15t tab in Nuxt DevTools
+
+In development, the Nuxt module adds a c15t tab to Nuxt DevTools. The tab shows the DevTools panels for the app's consent kernel, including events and consent actions, and follows the DevTools light or dark theme. Production builds don't register the tab. Set `devtools: false` in the module options to turn it off.
+
+`c15t/vue/devtools` and `@c15t/vue/devtools` now export `ConsentDevToolsPanel`, which fills its parent element instead of floating over the page. `createDevTools` accepts `embedded: true` for the same layout, and can render into a same-origin iframe while it inspects the page that owns the kernel.
+
+Embedded panels, including the TanStack Devtools plugin from `c15t/react/devtools`, no longer show their own c15t header, because the host already names the panel.
+
+### Accept `disableAnimation` on the Vue banners and dialogs
+
+`consent-banner.vue`, `consent-manager.vue` and the IAB banner and dialog take a `disableAnimation` prop that overrides the config's `disableAnimation` for that surface, as the React components do. Left unset, they follow the config.
+
+### Ship a c15t skill and the v3 guides in every package
+
+Each package now ships a `SKILL.md` next to `AGENTS.md`, telling coding agents
+how to pick a setup, which rules to follow and how to verify consent, with
+links into the bundled Markdown. `@c15t/core`, `@c15t/react`, `@c15t/nextjs`,
+`@c15t/scripts`, `@c15t/browser`, `@c15t/integrations` and `@c15t/cli` publish
+it for the first time.
+
+The bundled docs follow the rewritten v3 guides: concept pages, a setup
+chooser, a full page set for every framework, and a new HTML guide for the
+script tag in `@c15t/browser`. `@c15t/iab` points its homepage and README at
+the new IAB page.
+
+### Keep `colorScheme: null` in Nuxt
+
+`colorScheme: null` under the `c15t` key of `nuxt.config.ts` or in `app.config.ts` now leaves the `c15t-dark` class on `<html>` to the site, as it does in Vue, React and Svelte. Nuxt merges options in a way that drops `null`, so it used to behave like an unset `colorScheme` and copy a `dark` class. A `null` passed as inline module options (`modules: [['@c15t/vue', { colorScheme: null }]]`) is still dropped by Nuxt before the module sees it; set it under the `c15t` key instead.
+
+### An undeclared vendor reads as not allowed
+
+Breaking change: reading vendor consent for an id that no `vendors` entry, script slug or backend vendor list declares now returns `false`. Before, React's `useVendorAllowed`, Astro's `client.isVendorAllowed` and `@c15t/browser`'s `isVendorAllowed` returned `true` for such an id without checking any category, so a typo or a missing declaration read as allowed before the visitor consented. In development, c15t logs one warning per undeclared id that names the missing declaration. Declare every vendor you read, for example `vendors: [{ id: 'youtube', category: 'measurement', ... }]`.
+
+The rule lives in one helper, `isVendorAllowed(snapshot, vendorId, now?)`, exported from `c15t` and `@c15t/core`. A declared vendor keeps its behaviour: it is allowed when its category condition passes and, outside an IAB policy, the visitor has not switched it off.
+
+Vue gains `useVendorAllowed(vendorId)`, which returns a computed boolean and is auto-imported in Nuxt. The Svelte consent manager from `getConsentManager()` gains `isVendorAllowed(vendorId)`.
+
+Scripts, iframes and network rules that carry an undeclared `vendor` slug are gated as before: they follow their category.
+
+### Pass `shadow` from `ConsentDevTools` to the DevTools panel
+
+`ConsentDevTools` in `@c15t/svelte`, `@c15t/react` and `@c15t/vue` accepted
+`shadow` in its props type but never passed it to `createDevTools`, so the
+panel always mounted inside a shadow root. The Vue component did not
+declare the prop at all. `shadow={false}` now mounts the panel in the light
+DOM, with its stylesheet in `<head>`, as the `@c15t/dev-tools` option
+describes. Leaving `shadow` out keeps the shadow root.
+
+### Auto-import the experiment composables in Nuxt
+
+Nuxt auto-imports `useExperiment()` and `useResolvedPresentation()`, so a page can read the assigned banner-experiment arm without importing from `c15t/vue/vue-plugin`.
+
+### Apply Vue theme tokens before the first paint
+
+The Nuxt module now adds the `tokens` CSS variables to the page head from its plugin, so server-rendered and prerendered HTML carries them on every page, with the configured `nonce`. The plain Vue plugin adds them to `document.head` when it is installed, before the first render, and removes them when the last app using them unmounts. A second app on the same page reuses the element, and a `<style id="c15t-css-vars">` rendered by the server is left in place. Before, the Vue `ConsentRoot` set them only after mount, so the first paint used the defaults, and surfaces composed without a `ConsentRoot` never got them.
+
+For plain Vue apps rendered on the server, `generateTokensCSS()` from `@c15t/vue/vue-plugin` returns the same CSS to put in a `<style id="c15t-css-vars">` element in the server HTML.
+
+### Stop the floating trigger's transitions when `disableAnimation` is set
+
+The floating dialog trigger and the trigger toolbar now carry `data-disable-animation` when the provider's `disableAnimation` is on, and the stylesheet then drops their hover and snap-to-corner transitions. They already stop under `prefers-reduced-motion: reduce`.
+
 ## @c15t/vue@3.0.0-alpha.3 (alpha)
 
 ### Mount collapsed preference content on first open

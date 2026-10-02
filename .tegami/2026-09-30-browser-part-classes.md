@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Style stock UI parts with `theme.slots`, `::part()` and `stylesheetURLs`
