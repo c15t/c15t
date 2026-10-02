@@ -1,9 +1,13 @@
 <script lang="ts">
-	import ForceBannerShow from '$lib/components/ForceBannerShow.svelte';
-	import { minimalTheme, darkTheme } from '$lib/consent-manager/theme-presets';
-	import ThemeTokens from '$lib/consent-manager/ThemeTokens.svelte';
 	import { ConsentBanner, ConsentManagerProvider, offline } from '@c15t/svelte';
 	import type { Theme } from '@c15t/svelte';
+
+	import ForceBannerShow from '#lib/components/ForceBannerShow.svelte';
+	import {
+		minimalTheme,
+		darkTheme,
+	} from '#lib/consent-manager/theme-presets.js';
+	import ThemeTokens from '#lib/consent-manager/ThemeTokens.svelte';
 
 	type ButtonName = 'accept' | 'reject' | 'customize';
 	type LayoutConfig = (ButtonName | ButtonName[])[];

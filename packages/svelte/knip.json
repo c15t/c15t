@@ -20,8 +20,13 @@
 		"tsc",
 		"vitest"
 	],
-	"ignore": ["**/*.spec.{js,ts}", "**/*.test.{js,ts}", "**/__tests__/**"],
-	"ignoreDependencies": ["@c15t/typescript-config", "c15t"],
+	"ignore": [
+		"**/*.spec.{js,ts}",
+		"**/*.test.{js,ts}",
+		"**/__tests__/**",
+		"type-tests/**"
+	],
+	"ignoreDependencies": ["@c15t/typescript-config", "c15t", "sveltekit-3"],
 	"rules": {
 		"exports": "warn",
 		"types": "warn",

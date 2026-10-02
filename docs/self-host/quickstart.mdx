@@ -108,10 +108,15 @@ route, converting the h3 event with `toWebRequest()`:
 
 ### SvelteKit
 
-The SvelteKit example creates `handler` with `c15tInstance()` at module level
-and forwards each request to it:
+The SvelteKit example creates its `c15tInstance()` as `backend` in
+`src/lib/server/c15t-backend.ts`. The route at `/api/self-host` imports that
+module dynamically on the first request and forwards each request to it:
 
 <include src="../shared/examples/sveltekit-demo/self-host-route.mdx" />
+
+Keep the import dynamic on SvelteKit 3. A static import lets the build place
+modules the backend shares with its lazily loaded chunks in the route's own
+chunk, and SvelteKit then fails the build with `Invalid export` for the route.
 
 ### Another server
 

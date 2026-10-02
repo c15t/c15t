@@ -1,7 +1,18 @@
 {/* Generated from examples/sveltekit-demo/src/routes/api/self-host/[...all]/+server.ts (docs:self-host-route) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```ts title="src/routes/api/self-host/[...all]/+server.ts"
-const handleRequest: RequestHandler = ({ request }) => handler.handler(request);
+import type { RequestHandler } from './$types';
+
+// Load the backend on first request, in its own chunk. SvelteKit 3 builds
+// with Rolldown, which can otherwise move modules the backend shares with
+// lazily loaded chunks into this route's chunk and export them from it, and
+// SvelteKit rejects a route that exports anything besides its handlers.
+const loadBackend = () => import('#lib/server/c15t-backend.js');
+
+const handleRequest: RequestHandler = async ({ request }) => {
+	const { backend } = await loadBackend();
+	return backend.handler(request);
+};
 
 export const GET = handleRequest;
 export const POST = handleRequest;

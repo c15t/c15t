@@ -1,31 +1,36 @@
 ---
 title: Content Security Policy
-description: Write a Content Security Policy for a SvelteKit app using c15t with kit.csp, covering vendor hosts, the server-rendered theme style and style attributes.
+description: Write a Content Security Policy for a SvelteKit app using c15t with SvelteKit's csp option, covering vendor hosts, the server-rendered theme style and style attributes.
 group: frameworks
 ---
 
-## Configure kit.csp
+## Configure csp
 
-SvelteKit writes the `Content-Security-Policy` header when you set `kit.csp`
-in `svelte.config.js`. It adds nonces or hashes to its own inline scripts. Add
-the hosts c15t and your vendors need to the directives:
+SvelteKit writes the `Content-Security-Policy` header when you set its `csp`
+option. In SvelteKit 3 that option goes to the `sveltekit()` plugin in
+`vite.config.ts`. SvelteKit adds nonces or hashes to its own inline scripts.
+Add the hosts c15t and your vendors need to the directives:
 
 {/* example: fragment */}
 
-```js title="svelte.config.js (partial)"
-const config = {
-	kit: {
-		csp: {
-			mode: 'auto',
-			directives: {
-				'connect-src': ['self', 'https://your-project.inth.app'],
-				'frame-src': ['https://www.youtube-nocookie.com'],
-				'script-src': ['self', 'https://<vendor-script-host>'],
+```ts title="vite.config.ts (partial)"
+export default defineConfig({
+	plugins: [
+		sveltekit({
+			csp: {
+				mode: 'auto',
+				directives: {
+					'connect-src': ['self', 'https://your-project.inth.app'],
+					'frame-src': ['https://www.youtube-nocookie.com'],
+					'script-src': ['self', 'https://<vendor-script-host>'],
+				},
 			},
-		},
-	},
-};
+		}),
+	],
+});
 ```
+
+On SvelteKit 2, set the same `csp` object as `kit.csp` in `svelte.config.js`.
 
 Replace `https://your-project.inth.app` with the backend URL from your Inth
 project, and list each vendor's script host.
@@ -39,7 +44,7 @@ list has no `'strict-dynamic'`.
 
 The `<style id="c15t-theme">` element from
 [customize](./customize#render-brand-tokens-on-the-server) is inline CSS that
-you render with `{@html}`. `kit.csp` adds no nonce or hash to it, so a
+you render with `{@html}`. SvelteKit's `csp` option adds no nonce or hash to it, so a
 `style-src` without `'unsafe-inline'` blocks it and the banner falls back to
 the stock colors. Either add the SHA-256 hash of the element's text to
 `style-src`, which stays fixed while the theme does not change, or switch to
