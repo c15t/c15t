@@ -10,9 +10,13 @@
  * ```ts
  * // pages/index.tsx
  * import { resolveConsent } from '@c15t/nextjs/pages';
+ * import { consentConfig } from '../consent.config';
  *
+ * // `consentConfig.backendURL` is the backend itself. A render never
+ * // fetches the app's own `/api/c15t` routes; with a same-origin
+ * // `manifestURL` it reads `${backendURL}/manifest` through the cache.
  * export const getServerSideProps = async ({ req }) => ({
- * 	props: { state: await resolveConsent({ backendURL: '/api/c15t', req }) },
+ * 	props: { state: await resolveConsent({ config: consentConfig, req }) },
  * });
  * ```
  */

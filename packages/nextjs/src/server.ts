@@ -1,46 +1,26 @@
-import {
-	deferInitGvl,
-	experimentArmRef,
-	mergeInitResponseIntoKernelConfig,
-	c15tProtocolHeaders,
-	mapInitOutputToInitResponse,
-} from '@c15t/core';
-import type { KernelOverrides, ServerExperiment } from '@c15t/core';
-import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
-import { resolveRequestBackendURL } from '@c15t/core/server';
-import { readProducerPolicyContract } from '@c15t/core/transports';
-import { createManifestTransport } from '@c15t/core/transports/manifest';
 /**
  * `@c15t/nextjs/server` server-only helpers.
  *
  * `resolveConsent()` reads the incoming Next.js request (cookies + headers
- * via `next/headers`), optionally asks the backend or the cached manifest
- * for the visitor's policy, and produces a JSON-serializable `ConsentState`.
- * A Server Component passes it as a plain prop to the client `ConsentRoot`,
- * which creates one kernel per mount so concurrent requests do not share
- * runtime state.
+ * via `next/headers`) and hands the facts to `resolveRequestConsent` from
+ * `@c15t/core/server`, which owns the request read, the policy prefetch, the
+ * forwarding rule, the budget and the merge. A Server Component passes the
+ * result as a plain prop to the client `ConsentRoot`, which creates one
+ * kernel per mount so concurrent requests do not share runtime state.
  *
  * This file imports `next/headers` and must only be called in a Server
  * Component or route handler. It is NOT marked `'use server'` because it
  * is a plain async function, not an action.
  */
+import type { ServerExperiment } from '@c15t/core';
 import {
-	DEFAULT_RESOLVE_TIMEOUT_MS,
-	fetchCachedManifest,
-	withResolutionBudget,
-} from '@c15t/core/transports/manifest-cache';
-import type { InitOutput } from '@c15t/schema/types';
-import {
-	CONSENT_EXPERIMENT_HEADER,
-	formatExperimentHeader,
-} from '@c15t/schema/types';
-import { baseTranslations } from '@c15t/translations/all';
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	resolveRequestConsent,
+} from '@c15t/core/server';
+import type { ConsentManifest } from '@c15t/schema/types';
+import { cache } from 'react';
 
 import type { ConsentConfig } from './config';
-import {
-	consentInputsToOverrides,
-	extractConsentRequestInputs,
-} from './headers';
 import type { ConsentState } from './types';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -76,23 +56,41 @@ export interface NextRequestContext {
 	headers: () => Awaitable<Headers>;
 }
 
-const defaultNextRequestContext: NextRequestContext = {
-	async cookies() {
-		const nextHeaders = await import('next/headers.js');
-		return nextHeaders.cookies();
-	},
-	async headers() {
+/** The request facts the core resolver needs. */
+interface NextRequestFacts {
+	headers: Headers;
+	cookie: string;
+}
+
+/**
+ * Reads the App Router request once per render. `cache()` shares the read
+ * between a layout and a page that both resolve consent.
+ *
+ * Consent depends on the request clock, which Next forbids in a runtime
+ * prefetch (`partialPrefetching`). `connection()` marks this work
+ * request-time: it hangs in prerenders and resolves at once in real
+ * requests, so a prerendered page never carries one visitor's consent.
+ */
+const readAppRouterRequest = (cache ?? ((read) => read))(
+	async (): Promise<NextRequestFacts> => {
 		const [nextHeaders, nextServer] = await Promise.all([
 			import('next/headers.js'),
 			import('next/server.js'),
 		]);
-		// Consent depends on the request clock, which Next forbids in a
-		// runtime prefetch (`partialPrefetching`). `connection()` marks this
-		// work request-time: it hangs in prerenders and resolves at once in
-		// real requests.
 		await nextServer.connection?.();
-		return (await nextHeaders.headers()) as Headers;
-	},
+		const headers = (await nextHeaders.headers()) as Headers;
+		const cookie =
+			headers.get('cookie') ?? (await nextHeaders.cookies()).toString();
+		return { cookie, headers };
+	}
+);
+
+const readRequestContext = async function readRequestContext(
+	request: NextRequestContext
+): Promise<NextRequestFacts> {
+	const headers = await request.headers();
+	const cookie = headers.get('cookie') ?? (await request.cookies()).toString();
+	return { cookie, headers };
 };
 
 /**
@@ -130,60 +128,6 @@ export interface ConsentRequestOptions {
 }
 
 /**
- * The request-only part of `resolveConsent()`: the visitor's state from
- * cookies and headers alone, before any backend or manifest call.
- *
- * What it reads:
- * - Cookie, defaulting to `c15t`, read with the persistence parser.
- * - `x-vercel-ip-country`, `cf-ipcountry`, or `x-country` for geo.
- * - `x-vercel-ip-country-region` or `cf-region-code` for region.
- * - The first `accept-language` entry for language.
- *
- * Reads the clock only after the caller awaited `request.headers()`, so the
- * default App Router context has already marked the work request-time.
- */
-const readConsentRequest = async function readConsentRequest(
-	options: ConsentRequestOptions,
-	request: NextRequestContext,
-	headerStore: Headers
-): Promise<ConsentState> {
-	const now = options.now ?? Date.now();
-	const cookieHeader =
-		headerStore.get('cookie') ?? (await request.cookies()).toString();
-	const initialRecords = readStoredRecordsFromCookieHeader(
-		cookieHeader,
-		options.cookieName ? { storageKey: options.cookieName } : undefined,
-		now
-	);
-
-	const inputs = extractConsentRequestInputs(headerStore, {
-		country: options.country,
-		language: options.language,
-	});
-
-	const overrides: KernelOverrides = {};
-	if (inputs.country) {
-		overrides.country = inputs.country;
-	}
-	if (inputs.region) {
-		overrides.region = inputs.region;
-	}
-	if (inputs.language) {
-		overrides.language = inputs.language;
-	}
-	const state: ConsentState = {
-		initialPrivacySignals: { gpc: inputs.gpc },
-		initialRecords,
-		now,
-	};
-	if (Object.keys(overrides).length > 0) {
-		state.initialOverrides = overrides;
-	}
-
-	return state;
-};
-
-/**
  * Type alias re-exported so consumers can stay within `@c15t/nextjs`.
  */
 export type { KernelConfig } from '@c15t/core';
@@ -204,7 +148,9 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * A relative URL resolves against the request's `host` header: over
 	 * `https` for a domain name, and over `http` for `localhost`, an IP
 	 * address or a single-label host such as `app:3000`. `x-forwarded-*`
-	 * headers are ignored unless `trustForwardedHeaders` is set.
+	 * headers are ignored unless `trustForwardedHeaders` is set. A URL on
+	 * this app's own consent routes (`/api/c15t`, or the `config` routes) is
+	 * never fetched: point it at the backend itself.
 	 *
 	 * Without a backend URL the helper returns the cookie- and header-only
 	 * state and performs no network call. Overrides `config.backendURL`.
@@ -212,18 +158,21 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	backendURL?: string;
 
 	/**
-	 * A `defineConsentConfig` result. Supplies `backendURL` and `manifestURL`
-	 * defaults; the explicit fields on this options bag win.
+	 * A `defineConsentConfig` result. Supplies `backendURL` and the manifest
+	 * source; the explicit fields on this options bag win. A same-origin
+	 * `config.manifestURL` names the manifest route your handlers serve, so
+	 * the render reads what that route reads, `${backendURL}/manifest`,
+	 * through the same process cache instead of fetching its own route.
 	 */
 	config?: ConsentConfig;
 
 	/**
-	 * Same-origin or absolute `GET /manifest` URL. When set, the helper
-	 * resolves init locally from the manifest and does not call `/init`.
-	 * The manifest is read through the in-process manifest cache whatever the
-	 * URL points at, so concurrent renders share one request, a fresh copy
-	 * answers from memory, and a failing source is retried with backoff
-	 * instead of on every render. Overrides `config.manifestURL`.
+	 * Absolute `GET /manifest` URL, or a same-origin path that is not one of
+	 * this app's consent routes. When set, the helper resolves init locally
+	 * from the manifest and does not call `/init`. The manifest is read
+	 * through the in-process manifest cache, so concurrent renders share one
+	 * request, a fresh copy answers from memory, and a failing source is
+	 * retried with backoff instead of on every render.
 	 */
 	manifestURL?: string;
 
@@ -231,7 +180,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * Inline manifest for hosts that already loaded it. Takes precedence over
 	 * `manifestURL` and keeps the request path backend-free.
 	 */
-	manifest?: Parameters<typeof createManifestTransport>[0]['manifest'];
+	manifest?: ConsentManifest;
 
 	/**
 	 * Override fetch. Useful for testing or for wiring Vercel's
@@ -240,19 +189,21 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * Forward additional request headers onto the backend call. Cookies,
-	 * `x-forwarded-for`, and `user-agent` from the incoming request are
-	 * forwarded automatically (see {@link DEFAULT_FORWARD_HEADERS}). Use this for
-	 * authentication tokens or custom tracing headers.
+	 * Request headers to forward onto the backend call, such as an
+	 * authentication token. Backend `/init` always gets the resolved geo,
+	 * language and GPC, the user agent, and, over `https` or to a loopback
+	 * host, the consent cookie alone, never the rest of the cookie jar. The
+	 * manifest request carries only these headers. `cookie` and
+	 * `x-forwarded-*` cannot be named here.
 	 */
 	forwardHeaders?: string[];
 
 	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the request's
 	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
-	 * of `host`. Any client can send those headers, and the backend call
-	 * carries the visitor's cookies, so set this only behind a proxy that
-	 * sets them and drops incoming ones.
+	 * of `host`, and forward the visitor IP to backend `/init`. Any client
+	 * can send those headers, so set this only behind a proxy that sets them
+	 * and drops incoming ones.
 	 *
 	 * @default false
 	 */
@@ -268,15 +219,15 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	onError?: (error: unknown) => void;
 
 	/**
-	 * Longest the render waits for the visitor's policy, in milliseconds,
-	 * counted from the manifest or `/init` request. When it runs out the
-	 * helper returns the request-only state: no consent UI in the server
-	 * HTML, optional categories denied, and gated scripts and embeds blocked.
-	 * The browser then resolves the policy after hydration and shows the
-	 * banner. In manifest mode the request keeps running and fills the cache
-	 * for the next render; pass `waitUntil` so the platform keeps it alive.
-	 * `false` waits for the manifest cache's own request timeout (5 seconds)
-	 * or, for backend `/init`, the fetch implementation's.
+	 * Longest the render waits for the visitor's policy, in milliseconds.
+	 * When it runs out the helper returns the request-only state: no consent
+	 * UI in the server HTML, optional categories denied, and gated scripts
+	 * and embeds blocked. The browser then resolves the policy after
+	 * hydration and shows the banner. In manifest mode the request keeps
+	 * running and fills the cache for the next render; pass `waitUntil` so
+	 * the platform keeps it alive. `false` (or `Infinity`) waits for the
+	 * upstream's own timeout; any other value that is not a finite,
+	 * non-negative number uses the default.
 	 *
 	 * @default 500
 	 */
@@ -323,10 +274,13 @@ const isProduction = function isProduction(): boolean {
 	return nodeEnv === 'production';
 };
 
+const isPath = (url: string | undefined): url is string =>
+	url !== undefined && url.startsWith('/') && !url.startsWith('//');
+
 const reportPrefetchError = function reportPrefetchError(
 	options: ResolveConsentOptions,
-	url: string,
-	error: unknown
+	error: unknown,
+	url: string | undefined
 ): void {
 	if (options.onError) {
 		options.onError(error);
@@ -337,346 +291,41 @@ const reportPrefetchError = function reportPrefetchError(
 	}
 	const message = error instanceof Error ? error.message : String(error);
 	console.warn(
-		`[c15t] resolveConsent: request to ${url} failed (${message}); rendering with the request-only state and letting the client retry.`
-	);
-};
-
-const createInitHeadersFromOverrides = function createInitHeadersFromOverrides(
-	overrides: Readonly<KernelOverrides>
-): Record<string, string> {
-	const headersLocal: Record<string, string> = {};
-	if (overrides.country) {
-		headersLocal['x-c15t-country'] = overrides.country;
-	}
-	if (overrides.region) {
-		headersLocal['x-c15t-region'] = overrides.region;
-	}
-	if (overrides.language) {
-		headersLocal['accept-language'] = overrides.language;
-	}
-	if (overrides.gpc !== undefined) {
-		headersLocal['sec-gpc'] = overrides.gpc ? '1' : '0';
-	}
-	return headersLocal;
-};
-
-/**
- * Headers forwarded onto the backend call: the incoming cookies plus any
- * explicitly requested request headers.
- */
-const pickRequestHeaders = function pickRequestHeaders(
-	requestHeaders: Headers,
-	names: readonly string[] | undefined
-): Record<string, string> {
-	const picked: Record<string, string> = {};
-	for (const name of names ?? []) {
-		const value = requestHeaders.get(name);
-		if (value) {
-			picked[name.toLowerCase()] = value;
-		}
-	}
-	return picked;
-};
-
-/**
- * Request headers forwarded to the backend on every server-side `/init`.
- *
- * The backend geolocates from the client IP when no CDN geo header is
- * present, and records the user agent with the consent decision, so both
- * have to travel with a server-initiated call the way they do with a
- * browser-initiated one. `forwardHeaders` adds to this list.
- */
-export const DEFAULT_FORWARD_HEADERS = [
-	'x-forwarded-for',
-	'user-agent',
-] as const;
-
-const createForwardHeaders = function createForwardHeaders(
-	cookieHeader: string,
-	requestHeaders: Headers,
-	forwardHeaders: readonly string[] | undefined
-): Record<string, string> {
-	const forward: Record<string, string> = {};
-	if (cookieHeader) {
-		forward.cookie = cookieHeader;
-	}
-	for (const key of [...DEFAULT_FORWARD_HEADERS, ...(forwardHeaders ?? [])]) {
-		const value = requestHeaders.get(key);
-		if (value) {
-			forward[key.toLowerCase()] = value;
-		}
-	}
-	return forward;
-};
-
-const canDeferHostedGvl = (
-	options: ResolveConsentOptions,
-	forward: Record<string, string>,
-	requestHeaders: Headers
-): boolean =>
-	!options.fetch &&
-	!forward.cookie &&
-	!options.forwardHeaders?.some((name) => requestHeaders.has(name));
-
-/** The render budget in milliseconds, or `undefined` for none. */
-const resolveTimeoutMs = function resolveTimeoutMs(
-	options: ResolveConsentOptions
-): number | undefined {
-	if (options.timeoutMs === false) {
-		return undefined;
-	}
-	return options.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS;
-};
-
-const fetchHostedInit = async function fetchHostedInit(input: {
-	backendURL: string;
-	fetch?: typeof globalThis.fetch;
-	headers: Record<string, string>;
-	deferGvl: boolean;
-	timeoutMs: number | undefined;
-}): Promise<ReturnType<typeof mapInitOutputToInitResponse>> {
-	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!fetchImpl) {
-		throw new Error('resolveConsent: no fetch available.');
-	}
-	const response = await fetchImpl(`${input.backendURL}/init`, {
-		cache: 'no-store',
-		credentials: 'include',
-		headers: {
-			accept: 'application/json',
-			...c15tProtocolHeaders,
-			...input.headers,
-		},
-		method: 'GET',
-		signal:
-			input.timeoutMs === undefined
-				? undefined
-				: AbortSignal.timeout(Math.max(0, input.timeoutMs)),
-	});
-	if (!response.ok) {
-		throw new Error(
-			`resolveConsent: /init responded ${response.status} ${response.statusText}`
-		);
-	}
-	const payload: InitOutput = await response.json();
-	return mapInitOutputToInitResponse(
-		input.deferGvl
-			? deferInitGvl(payload, `${input.backendURL}/init`, 'init', input.headers)
-			: payload,
-		input.headers,
-		{
-			producerContract: readProducerPolicyContract(response.headers),
-		}
+		`[c15t] resolveConsent: request to ${url ?? 'the backend'} failed (${message}); rendering with the request-only state and letting the client retry.`
 	);
 };
 
 /**
- * The request's experiment arm while the visitor has no stored choice: a
- * visitor who already chose is not shown the banner, so is not counted.
+ * Where the render resolves from: the backend, the manifest source, the
+ * mode, and this app's own consent routes (never fetched).
  */
-const undecidedExperiment = function undecidedExperiment(
-	options: ResolveConsentOptions,
-	base: ConsentState
-): { id: string; arm: string } | undefined {
-	return options.experiment && !base.initialRecords?.choice
-		? experimentArmRef(options.experiment)
-		: undefined;
-};
-
-/** The `/init` header for an arm, or none. */
-const experimentHeaders = function experimentHeaders(
-	experiment: { id: string; arm: string } | undefined
-): Record<string, string> {
-	return experiment
-		? { [CONSENT_EXPERIMENT_HEADER]: formatExperimentHeader(experiment) }
-		: {};
-};
-
-const resolveInitWithManifest = function resolveInitWithManifest(input: {
-	absoluteBackend: string;
-	base: ConsentState;
-	deferGvl: boolean;
-	forward: Record<string, string>;
-	manifest: NonNullable<ResolveConsentOptions['manifest']>;
-	manifestInputs: ReturnType<typeof extractConsentRequestInputs>;
-	options: ResolveConsentOptions;
-	requestHeaders: Headers;
-}) {
-	const { absoluteBackend, base, deferGvl, manifestInputs, options } = input;
-	const transport = createManifestTransport({
-		backendURL: absoluteBackend,
-		baseTranslations,
-		deferGvl,
-		fetch: options.fetch,
-		gvlRoute: deferGvl ? options.config?.initURL : undefined,
-		headers: input.forward,
-		inputs: manifestInputs,
-		manifest: input.manifest,
-		report:
-			options.reportSessions === false
-				? undefined
-				: {
-						adapter: '@c15t/nextjs',
-						// As configured, not request-resolved: a relative backend is
-						// this app's proxy, which means no report.
-						backendURL: options.backendURL ?? options.config?.backendURL,
-						headers: input.requestHeaders,
-						source: 'render',
-						waitUntil: options.waitUntil,
-					},
-	});
-	const experiment = undecidedExperiment(options, base);
-	return transport.init({
-		...(experiment && { experiment }),
-		overrides: {
-			...(base.initialOverrides ?? {}),
-			...consentInputsToOverrides({ ...manifestInputs, gpc: undefined }),
-		},
-		user: base.initialUser ?? null,
-	});
-};
-
-const resolveFromManifest = async function resolveFromManifest(input: {
-	absoluteBackend: string;
-	absoluteManifest: string | null | undefined;
-	base: ConsentState;
-	forward: Record<string, string>;
-	options: ResolveConsentOptions;
-	requestHeaders: Headers;
-}): Promise<ConsentState> {
-	const { absoluteBackend, absoluteManifest, base, options } = input;
-	const manifestInputs = extractConsentRequestInputs(input.requestHeaders, {
-		country: options.country,
-		language: options.language,
-	});
-	const deferGvl = !options.fetch && Object.keys(input.forward).length === 0;
-	const timeoutMs = resolveTimeoutMs(options);
-	const startedAt = Date.now();
-	const remainingMs = (): number | undefined =>
-		timeoutMs === undefined
-			? undefined
-			: Math.max(0, timeoutMs - (Date.now() - startedAt));
-
-	try {
-		// Read through the in-process cache whatever the URL is: the app's own
-		// manifest route or the backend itself. Concurrent renders share one
-		// request, a failing source is retried with backoff, and `timeoutMs`
-		// bounds the wait while the request finishes in the background.
-		const manifest =
-			options.manifest ??
-			(
-				await fetchCachedManifest({
-					fetch: options.fetch,
-					headers: input.forward,
-					onBackgroundRevalidate: options.waitUntil,
-					sourceURL: absoluteManifest as string,
-					timeoutMs,
-				})
-			).manifest;
-		const response = await withResolutionBudget(
-			resolveInitWithManifest({ ...input, deferGvl, manifest, manifestInputs }),
-			remainingMs()
-		);
-		return mergeInitResponseIntoKernelConfig(base, response);
-	} catch (error) {
-		reportPrefetchError(
-			options,
-			absoluteManifest ?? `${absoluteBackend}/manifest`,
-			error
-		);
-		return base;
+const resolveSource = function resolveSource(options: ResolveConsentOptions) {
+	const { config } = options;
+	const backendURL = options.backendURL ?? config?.backendURL;
+	// A same-origin config manifest URL is the handlers' own route, which
+	// serves `${backendURL}/manifest`; the render reads that directly.
+	const manifestURL =
+		options.manifestURL ??
+		(isPath(config?.manifestURL) ? undefined : config?.manifestURL);
+	let mode: 'hosted' | 'manifest' | undefined;
+	if (options.manifest || options.manifestURL || config?.manifestURL) {
+		mode = 'manifest';
+	} else if (backendURL) {
+		mode = 'hosted';
 	}
-};
-
-/** {@link resolveConsent} without the experiment it carries back. */
-const resolveConsentState = async function resolveConsentState(
-	options: ResolveConsentOptions
-): Promise<ConsentState> {
-	const request = options.request ?? defaultNextRequestContext;
-	const requestHeaders = await request.headers();
-	const base = await readConsentRequest(options, request, requestHeaders);
-
-	const backendURL = options.backendURL ?? options.config?.backendURL;
-	if (!backendURL) {
-		return base;
+	const ownRoutes = [DEFAULT_CONSENT_ROUTE_PREFIX];
+	for (const route of [config?.manifestURL, config?.initURL]) {
+		if (isPath(route)) {
+			ownRoutes.push(route);
+		}
 	}
-	const manifestURL = options.manifestURL ?? options.config?.manifestURL;
-	const requestCookies = await request.cookies();
-
-	// Never from client-supplied forwarding headers unless the app opts in:
-	// the backend call below carries the request's cookies.
-	const resolution = {
-		headers: requestHeaders,
-		trustForwardedHeaders: options.trustForwardedHeaders,
+	return {
+		backendURL,
+		gvlRoute: isPath(config?.initURL) ? config.initURL : undefined,
+		manifestURL,
+		mode,
+		ownRoutes,
 	};
-	const absoluteBackend = resolveRequestBackendURL(backendURL, resolution);
-	if (!absoluteBackend) {
-		reportPrefetchError(
-			options,
-			backendURL,
-			new Error(
-				'backendURL could not be resolved from the request host; pass an absolute URL or make sure the host header reaches the server.'
-			)
-		);
-		return base;
-	}
-	const absoluteManifest = manifestURL
-		? resolveRequestBackendURL(manifestURL, resolution)
-		: undefined;
-	if (manifestURL && !absoluteManifest) {
-		reportPrefetchError(
-			options,
-			manifestURL,
-			new Error(
-				'manifestURL could not be resolved from the request host; pass an absolute URL or make sure the host header reaches the server.'
-			)
-		);
-		return base;
-	}
-
-	if (options.manifest || absoluteManifest) {
-		// The manifest is public policy data, so the fetch carries only the
-		// headers the caller asked for: no cookies, client IP, or user agent.
-		return await resolveFromManifest({
-			absoluteBackend,
-			absoluteManifest,
-			base,
-			forward: pickRequestHeaders(requestHeaders, options.forwardHeaders),
-			options,
-			requestHeaders,
-		});
-	}
-
-	const forward = createForwardHeaders(
-		requestCookies.toString(),
-		requestHeaders,
-		options.forwardHeaders
-	);
-
-	try {
-		const timeoutMs = resolveTimeoutMs(options);
-		const response = await withResolutionBudget(
-			fetchHostedInit({
-				backendURL: absoluteBackend,
-				// A browser reference cannot replay private server credentials or a
-				// custom fetch implementation. Preserve the fetched list in that case.
-				deferGvl: canDeferHostedGvl(options, forward, requestHeaders),
-				fetch: options.fetch,
-				headers: {
-					...forward,
-					...createInitHeadersFromOverrides(base.initialOverrides ?? {}),
-					...experimentHeaders(undecidedExperiment(options, base)),
-					'sec-gpc': base.initialPrivacySignals?.gpc ? '1' : '0',
-				},
-				timeoutMs,
-			}),
-			timeoutMs
-		);
-		return mergeInitResponseIntoKernelConfig(base, response);
-	} catch (error) {
-		reportPrefetchError(options, `${absoluteBackend}/init`, error);
-		return base;
-	}
 };
 
 /**
@@ -686,17 +335,18 @@ const resolveConsentState = async function resolveConsentState(
  *    request.
  * 2. With a backend URL (`backendURL` or `config.backendURL`), calls
  *    `${backendURL}/init` server-side with the request context, or resolves
- *    init from the cached manifest when `manifest` or `manifestURL` is set.
+ *    init from the cached manifest when `manifest`, `manifestURL` or
+ *    `config.manifestURL` is set.
  * 3. Folds the response into a `ConsentState` so first paint is correct
  *    without waiting for a client roundtrip.
  *
  * Without a backend URL, step 2 is skipped and the request-only state is
- * returned with no network call. If the backend call fails, or does not
- * answer within `timeoutMs` (500 ms by default), the request-only state is
- * returned too: no consent UI is rendered on the server, optional categories
- * stay denied, and `ConsentRoot` resolves the policy on mount. The failure
- * reaches `onError` when provided, and is otherwise logged outside
- * production.
+ * returned with no network call. If the backend call fails, does not
+ * answer within `timeoutMs` (500 ms by default), or points at this app's
+ * own consent routes, the request-only state is returned too: no consent UI
+ * is rendered on the server, optional categories stay denied, and
+ * `ConsentRoot` resolves the policy on mount. The failure reaches `onError`
+ * when provided, and is otherwise logged outside production.
  *
  * Each call reads fresh headers and never caches across requests, so
  * concurrent requests stay isolated.
@@ -715,10 +365,26 @@ const resolveConsentState = async function resolveConsentState(
 export const resolveConsent = async function resolveConsent(
 	options: ResolveConsentOptions = {}
 ): Promise<ConsentState> {
-	const state = await resolveConsentState(options);
-	// Every path carries the experiment, so the client runs the arm this
-	// request counted even when the backend call failed.
-	return options.experiment
-		? { ...state, experiment: options.experiment }
-		: state;
+	const facts = options.request
+		? await readRequestContext(options.request)
+		: await readAppRouterRequest();
+	return (await resolveRequestConsent({
+		...resolveSource(options),
+		adapter: '@c15t/nextjs',
+		experiment: options.experiment,
+		fetch: options.fetch,
+		forwardHeaders: options.forwardHeaders,
+		manifest: options.manifest,
+		now: options.now,
+		onError: (error, url) => reportPrefetchError(options, error, url),
+		overrides: { country: options.country, language: options.language },
+		reportSessions: options.reportSessions,
+		request: facts,
+		storage: options.cookieName
+			? { storageKey: options.cookieName }
+			: undefined,
+		timeoutMs: options.timeoutMs,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+		waitUntil: options.waitUntil,
+	})) as ConsentState;
 };
