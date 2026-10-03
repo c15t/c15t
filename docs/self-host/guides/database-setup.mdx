@@ -52,13 +52,37 @@ import { Redacted } from 'effect';
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
 export default defineConfig({
-	database: PgClient.layer({ url: Redacted.make(url), prepare: false }),
+	database: PgClient.layer({
+		url: Redacted.make(url),
+		prepare: false,
+		startupParameters: { timezone: 'UTC' },
+	}),
 });
 ```
 
-A client layer bypasses the `schema` option. To keep c15t's tables in their own
-schema, add `startupOptions: '-c search_path=c15t'` to the layer, and check that
-your pooler forwards startup options.
+A client layer bypasses the `schema` option and the UTC session that c15t sets
+on its own connections. To keep c15t's tables in their own schema, add
+`startupOptions: '-c search_path=c15t'` to the layer, and check that your pooler
+forwards startup options.
+
+## Store timestamps in UTC
+
+The backend stores every timestamp, including each consent's `givenAt`, as UTC
+in columns without a time zone. Connections built from a `database` config set
+this up themselves and override any time zone in the URL:
+
+- PostgreSQL sessions use `timezone=UTC`.
+- MySQL connections set the mysql2 `timezone` option to `Z`.
+- SQLite stores epoch milliseconds, so it has no time zone to set.
+
+A client layer you build yourself needs the same setting. Without it, a server
+outside UTC stores every time shifted by its offset. For `PgClient.layer`, pass
+`startupParameters: { timezone: 'UTC' }`, as in the pooler example. For
+`MysqlClient.layer`, add `timezone=Z` to the connection URL.
+
+A v2 backend writing to the same database stores times in its Node.js process's
+time zone. Run it with `TZ=UTC`, or the two backends read different times from
+the same rows.
 
 ## Apply and verify migrations
 
