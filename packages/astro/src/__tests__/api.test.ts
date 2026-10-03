@@ -1,3 +1,8 @@
+/**
+ * Wiring of `@c15t/astro/api` onto the core consent route handler. The
+ * route behaviour itself is pinned once, in
+ * `packages/core/src/server/__tests__/consent-route.test.ts`.
+ */
 import {
 	buildConsentManifestFromConfig,
 	policyRulePresets,
@@ -9,15 +14,13 @@ import {
 	clearManifestCache,
 	createConsentRouteHandlers,
 	resolveManifestSourceURL,
+	waitUntilFromLocals,
 } from '../api';
-import { resolveManifestInit } from '../api/manifest-init';
 import { resolveOptions } from '../integration';
 import { hostedMode, manifestMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 
-// Built through the shared builder so the fixture is exactly what a real
-// backend serves — a hand-written stand-in silently resolves to `none`.
 const MANIFEST = await buildConsentManifestFromConfig({
 	branding: 'c15t',
 	policyRules: [
@@ -26,630 +29,161 @@ const MANIFEST = await buildConsentManifestFromConfig({
 	],
 });
 
-const makeRequest = function makeRequest(
-	url = 'https://site.example.com/api/c15t/init',
-	headers: Record<string, string> = {}
-): Request {
-	return new Request(url, { headers: new Headers(headers) });
-};
+const BACKEND = 'https://consent.example.com';
 
-const makeManifestRequest = function makeManifestRequest(
-	headers: Record<string, string> = {}
-): Request {
-	return makeRequest('https://site.example.com/api/c15t/manifest', headers);
-};
+const request = (path: string, headers: Record<string, string> = {}) =>
+	new Request(`https://site.example.com${path}`, { headers });
 
-const jsonResponse = function jsonResponse(
-	body: unknown,
-	headers: Record<string, string> = {}
-): Response {
-	return new Response(JSON.stringify(body), {
-		headers: { 'content-type': 'application/json', ...headers },
-		status: 200,
-	});
-};
-
-const options = function options(
+const options = (
 	astroOptions: C15tAstroOptions = {
-		mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+		mode: manifestMode({ backendURL: BACKEND }),
 	}
-) {
-	return resolveOptions(astroOptions);
-};
+) => resolveOptions(astroOptions);
+
+const upstream = () =>
+	vi.fn<typeof globalThis.fetch>(() =>
+		Promise.resolve(
+			Response.json(MANIFEST, { headers: { 'cache-control': 's-maxage=60' } })
+		)
+	);
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 	clearManifestCache();
-	vi.useRealTimers();
 });
 
-describe('resolveManifestSourceURL', () => {
-	it('derives the manifest URL from the backend URL', () => {
-		expect(resolveManifestSourceURL(makeRequest(), options())).toBe(
-			'https://consent.example.com/manifest'
-		);
-	});
-
-	it('prefers an explicit manifest URL', () => {
-		expect(
-			resolveManifestSourceURL(
-				makeRequest(),
-				options({
-					mode: manifestMode({
-						backendURL: 'https://consent.example.com',
-						manifestURL: 'https://cdn.example.com/manifest.json',
-					}),
-				})
-			)
-		).toBe('https://cdn.example.com/manifest.json');
-	});
-
-	it('resolves a same-origin backend against the request', () => {
-		expect(
-			resolveManifestSourceURL(
-				makeRequest('https://site.example.com/api/c15t/init', {
-					host: 'site.example.com',
-					'x-forwarded-proto': 'https',
+describe('createConsentRouteHandlers', () => {
+	it('reads the manifest from the mode: manifestURL, backendURL or the hosted URL', async () => {
+		for (const [mode, expected] of [
+			[manifestMode({ backendURL: BACKEND }), `${BACKEND}/manifest`],
+			[
+				manifestMode({
+					backendURL: BACKEND,
+					manifestURL: 'https://cdn.example.com/m.json',
 				}),
-				options({ mode: hostedMode({ url: '/api/consent' }) })
-			)
-		).toBe('https://site.example.com/api/consent/manifest');
-	});
-
-	it('ignores a forwarded host the caller supplied', () => {
-		expect(
-			resolveManifestSourceURL(
-				makeRequest('https://site.example.com/api/c15t/init', {
-					'x-forwarded-host': 'attacker.example.net',
-					'x-forwarded-proto': 'https',
-				}),
-				options({ mode: hostedMode({ url: '/api/consent' }) })
-			)
-		).toBe('https://site.example.com/api/consent/manifest');
-	});
-
-	it('says what is missing when nothing is configured', () => {
-		expect(() =>
-			resolveManifestSourceURL(makeRequest(), {
-				...options({ mode: hostedMode({ url: '/api/consent' }) }),
-				mode: { type: 'manifest' },
-			})
-		).toThrowError('@c15t/astro: pass backendURL or manifestURL.');
-	});
-
-	it('ignores C15T_BACKEND_URL, PUBLIC_C15T_BACKEND_URL, and C15T_MANIFEST_URL', () => {
-		vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
-		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
-		vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
-		try {
-			expect(() =>
-				resolveManifestSourceURL(makeRequest(), {
-					...options(),
-					mode: { type: 'manifest' },
-				})
-			).toThrowError('@c15t/astro: pass backendURL or manifestURL.');
-		} finally {
-			vi.unstubAllEnvs();
+				'https://cdn.example.com/m.json',
+			],
+			[
+				hostedMode({ url: '/api/self-host' }),
+				'https://site.example.com/api/self-host/manifest',
+			],
+		] as const) {
+			clearManifestCache();
+			const fetch = upstream();
+			// oxlint-disable-next-line no-await-in-loop -- one mode at a time keeps the failing case readable.
+			await createConsentRouteHandlers({
+				fetch,
+				options: options({ mode }),
+			}).manifest(request('/api/c15t/manifest'));
+			expect(fetch.mock.calls[0]?.[0]).toBe(expected);
 		}
-	});
-
-	it('rejects an invalid backend or manifest URL', () => {
-		expect(() =>
-			resolveManifestSourceURL(makeRequest(), {
-				...options(),
-				mode: { backendURL: 'consent', type: 'manifest' },
-			})
-		).toThrowError('@c15t/astro: invalid backend URL.');
-		expect(() =>
-			resolveManifestSourceURL(makeRequest(), {
-				...options(),
-				mode: { manifestURL: 'consent/manifest', type: 'manifest' },
-			})
-		).toThrowError('@c15t/astro: invalid manifest URL.');
-	});
-});
-
-describe('manifest caching through the routes', () => {
-	it('fetches the manifest once and serves the second request from memory', async () => {
-		const fetchImpl = vi.fn(() =>
-			jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
+		expect(resolveManifestSourceURL(request('/api/c15t/init'), options())).toBe(
+			`${BACKEND}/manifest`
 		);
+	});
+
+	it('resolves an inline manifest without fetching it', async () => {
+		const fetch = upstream();
 		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
-
-		await handlers.init(makeRequest());
-		await handlers.init(makeRequest());
-
-		// Each init also reports its session; only the manifest read counts.
-		expect(
-			fetchImpl.mock.calls.filter(([url]) => String(url).endsWith('/manifest'))
-		).toHaveLength(1);
-	});
-
-	it('revalidates with the stored ETag once the entry goes stale', async () => {
-		vi.useFakeTimers({ shouldAdvanceTime: true });
-		const fetchImpl = vi
-			.fn()
-			.mockResolvedValueOnce(
-				jsonResponse(MANIFEST, {
-					'cache-control': 'public, s-maxage=1',
-					etag: 'W/"v1"',
-				})
-			)
-			.mockResolvedValueOnce(
-				new Response(null, {
-					headers: { 'cache-control': 'public, s-maxage=1' },
-					status: 304,
-				})
-			);
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
-
-		await handlers.manifest(makeManifestRequest());
-		// Push past the backend's 1s s-maxage instead of sleeping for it.
-		vi.setSystemTime(Date.now() + 1100);
-		const response = await handlers.manifest(makeManifestRequest());
-
-		expect(fetchImpl).toHaveBeenCalledTimes(2);
-		const [, init] = fetchImpl.mock.calls[1] as [string, RequestInit];
-		expect((init.headers as Record<string, string>)['if-none-match']).toBe(
-			'W/"v1"'
-		);
-		// The 304 reuses the cached body rather than serving an empty one.
-		expect(await response.json()).toEqual(MANIFEST);
-	});
-
-	it.each([
-		// Cloudflare adapter for Astro 6 and later. It keeps a `runtime.ctx`
-		// getter that throws, so that must never be read.
-		[
-			'locals.cfContext',
-			(waitUntil: (promise: Promise<unknown>) => void) => ({
-				cfContext: { waitUntil },
-				get runtime(): never {
-					throw new Error('Astro.locals.runtime was removed');
-				},
-			}),
-		],
-		// Cloudflare adapter for Astro 5.
-		[
-			'locals.runtime.ctx',
-			(waitUntil: (promise: Promise<unknown>) => void) => ({
-				runtime: { ctx: { waitUntil } },
-			}),
-		],
-	])(
-		"defaults to the adapter's %s.waitUntil for a stale read's refresh",
-		async (_location, makeLocals) => {
-			vi.useFakeTimers();
-			const fetchImpl = vi.fn(() =>
-				Promise.resolve(
-					jsonResponse(MANIFEST, {
-						'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
-						etag: 'W/"v1"',
-					})
-				)
-			);
-			const registered: Promise<unknown>[] = [];
-			// Same shape the injected routes pass: the request plus `{ locals }`.
-			const locals = makeLocals((promise) => {
-				registered.push(promise);
-			});
-			const handlers = createConsentRouteHandlers({
-				fetch: fetchImpl,
-				options: options(),
-			});
-
-			await handlers.manifest(makeManifestRequest(), { locals });
-			expect(registered).toHaveLength(0);
-
-			vi.setSystemTime(Date.now() + 1500);
-			await handlers.manifest(makeManifestRequest(), { locals });
-			expect(registered).toHaveLength(1);
-			await expect(registered[0]).resolves.toBeUndefined();
-			expect(fetchImpl).toHaveBeenCalledTimes(2);
-		}
-	);
-
-	it("hands a stale read's refresh to onBackgroundRevalidate", async () => {
-		vi.useFakeTimers();
-		const fetchImpl = vi.fn(() =>
-			Promise.resolve(
-				jsonResponse(MANIFEST, {
-					'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
-					etag: 'W/"v1"',
-				})
-			)
-		);
-		const registered: Promise<void>[] = [];
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			onBackgroundRevalidate: (refresh) => {
-				registered.push(refresh);
-			},
-			options: options(),
-		});
-
-		await handlers.manifest(makeManifestRequest());
-		expect(registered).toHaveLength(0);
-
-		vi.setSystemTime(Date.now() + 1500);
-		await handlers.manifest(makeManifestRequest());
-		expect(registered).toHaveLength(1);
-		await expect(registered[0]).resolves.toBeUndefined();
-		expect(fetchImpl).toHaveBeenCalledTimes(2);
-	});
-
-	it('surfaces a failing backend', async () => {
-		const fetchImpl = vi.fn(
-			() => new Response('nope', { status: 502, statusText: 'Bad Gateway' })
-		);
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
-		await expect(handlers.init(makeRequest())).rejects.toThrowError(/502/u);
-	});
-});
-
-describe('route handlers', () => {
-	it('resolves init from the manifest and forbids caching it', async () => {
-		const fetchImpl = vi.fn(() =>
-			jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
-		);
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
-		const german = (await (
-			await handlers.init(
-				makeRequest('https://site.example.com/api/c15t/init', {
-					'accept-language': 'de',
-					'x-c15t-country': 'DE',
-				})
-			)
-		).json()) as {
-			translations: { language: string };
-			policy: { model: string };
-		};
-
-		expect(german.translations.language).toBe('de');
-		expect(german.policyResolution.policy.model).toBe('opt-in');
-
-		// The same manifest, a different country, a different decision.
-		const american = (await (
-			await handlers.init(
-				makeRequest('https://site.example.com/api/c15t/init', {
-					'x-c15t-country': 'US',
-				})
-			)
-		).json()) as { policyResolution: { policy: { prompt: string } } };
-		expect(american.policyResolution.policy.prompt).toBe('none');
-
-		const response = await handlers.init(makeRequest());
-		expect(response.headers.get('cache-control')).toBe('private, no-store');
-	});
-
-	it('reports the resolved session to the backend, detached', async () => {
-		const fetchImpl = vi.fn((input: string) =>
-			Promise.resolve(
-				input.endsWith('/sessions')
-					? new Response(null, { status: 204 })
-					: jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
-			)
-		);
-		const registered: Promise<void>[] = [];
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl as never,
-			onBackgroundRevalidate: (task) => {
-				registered.push(task);
-			},
-			options: options(),
-		});
-
-		await handlers.init(
-			makeRequest('https://site.example.com/api/c15t/init', {
-				cookie: 'c15t=secret',
-				'user-agent': 'Mozilla/5.0',
-				'x-c15t-country': 'DE',
-				'x-forwarded-for': '203.0.113.42',
-			})
-		);
-		expect(registered).toHaveLength(1);
-		await registered[0];
-
-		const report = fetchImpl.mock.calls.find(
-			([url]) => url === 'https://consent.example.com/sessions'
-		);
-		expect(report).toBeDefined();
-		const init = report?.[1] as RequestInit;
-		const headers = init.headers as Record<string, string>;
-		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
-		expect(headers).not.toHaveProperty('cookie');
-		expect(JSON.parse(init.body as string)).toMatchObject({
-			adapter: '@c15t/astro',
-			country: 'DE',
-			source: 'route',
-		});
-	});
-
-	it('a HEAD probe of the init route sends no report', async () => {
-		const fetchImpl = vi.fn((_input: string) =>
-			Promise.resolve(
-				jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
-			)
-		);
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl as never,
-			options: options(),
-		});
-		const response = await handlers.init(
-			new Request('https://site.example.com/api/c15t/init', {
-				method: 'HEAD',
-			})
-		);
-		expect(response.status).toBe(200);
-		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 0);
-		});
-		expect(
-			fetchImpl.mock.calls.some(
-				([url]) => url === 'https://consent.example.com/sessions'
-			)
-		).toBe(false);
-	});
-
-	it('sends no report to a backend named only in the environment', async () => {
-		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
-		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://consent.example.com');
-		try {
-			const fetchImpl = vi.fn(() => jsonResponse(MANIFEST));
-			const registered: Promise<void>[] = [];
-			const handlers = createConsentRouteHandlers({
-				fetch: fetchImpl as never,
-				onBackgroundRevalidate: (task) => {
-					registered.push(task);
-				},
-				options: options({ mode: manifestMode({ manifest: MANIFEST }) }),
-			});
-			const response = await handlers.init(makeRequest());
-			await Promise.all(registered);
-			expect(response.status).toBe(200);
-			expect(fetchImpl).not.toHaveBeenCalled();
-		} finally {
-			vi.unstubAllEnvs();
-		}
-	});
-
-	it('sends no report when the mode turns reporting off', async () => {
-		const fetchImpl = vi.fn(() =>
-			jsonResponse(MANIFEST, { 'cache-control': 'public, s-maxage=300' })
-		);
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
+			fetch,
 			options: options({
-				mode: manifestMode({
-					backendURL: 'https://consent.example.com',
-					reportSessions: false,
-				}),
+				mode: manifestMode({ backendURL: BACKEND, manifest: MANIFEST }),
 			}),
 		});
-		await handlers.init(makeRequest());
-		expect(fetchImpl).toHaveBeenCalledTimes(1);
-	});
-
-	it('answers init without a vendor list when the GVL fetch fails', async () => {
-		const iabManifest = await buildConsentManifestFromConfig({
-			branding: 'c15t',
-			iab: {
-				cmpId: 10,
-				enabled: true,
-				gvl: { url: 'https://vendor-list.example.com/gvl.json' },
-			},
-			policyRules: [policyRulePresets.europeIab()],
-		});
-		const handlers = createConsentRouteHandlers({
-			fetch: () => Promise.resolve(jsonResponse(iabManifest)),
-			fetchGvl: () => Promise.reject(new Error('gvl is down')),
-			options: options(),
-		});
-
 		const response = await handlers.init(
-			makeRequest('https://site.example.com/api/c15t/init', {
-				'x-c15t-country': 'DE',
-			})
+			request('/api/c15t/init', { 'x-c15t-country': 'DE' })
 		);
-
-		// `gvl` is nullable by contract; the route is not.
 		expect(response.status).toBe(200);
-		expect(((await response.json()) as { gvl: unknown }).gvl).toBeNull();
+		expect(
+			fetch.mock.calls.filter(([url]) => !String(url).endsWith('/sessions'))
+		).toEqual([]);
 	});
 
 	it('applies the configured locale to init, not just Accept-Language', async () => {
 		const handlers = createConsentRouteHandlers({
-			fetch: () => Promise.resolve(jsonResponse(MANIFEST)),
+			fetch: upstream(),
 			options: options({
 				i18n: { locale: 'de' },
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				mode: manifestMode({ backendURL: BACKEND, reportSessions: false }),
 			}),
 		});
-
-		const payload = (await (
+		const payload = await (
 			await handlers.init(
-				makeRequest('https://site.example.com/api/c15t/init', {
+				request('/api/c15t/init', {
 					'accept-language': 'fr',
 					'x-c15t-country': 'DE',
 				})
 			)
-		).json()) as { translations: { language: string } };
-
+		).json();
 		expect(payload.translations.language).toBe('de');
 	});
 
-	it('passes the backend cache headers through on /manifest', async () => {
-		const fetchImpl = vi.fn(() =>
-			jsonResponse(MANIFEST, {
-				'cache-control': 'public, s-maxage=600, stale-while-revalidate=86400',
-				etag: 'W/"abc"',
-			})
-		);
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
+	it.each([
+		[
+			'reportSessions: false',
+			manifestMode({ backendURL: BACKEND, reportSessions: false }),
+		],
+		['hosted mode', hostedMode({ url: BACKEND })],
+	])('sends no session report for %s', async (_, mode) => {
+		const fetch = upstream();
+		await createConsentRouteHandlers({
+			fetch,
+			options: options({ mode }),
+		}).init(request('/api/c15t/init'));
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
 		});
-		const response = await handlers.manifest(
-			makeRequest('https://site.example.com/api/c15t/manifest?language=fr')
-		);
-
-		expect(response.headers.get('cache-control')).toBe(
-			'public, s-maxage=600, stale-while-revalidate=86400'
-		);
-		expect(response.headers.get('etag')).toBe('W/"abc"');
-		expect(await response.json()).toEqual(MANIFEST);
-
-		const [url] = fetchImpl.mock.calls[0] as [string];
-		expect(url).toContain('language=fr');
+		expect(
+			fetch.mock.calls.some(([url]) => String(url).endsWith('/sessions'))
+		).toBe(false);
 	});
 
-	it('answers If-None-Match with 304 and no body', async () => {
-		const fetchImpl = vi.fn(() =>
-			jsonResponse(MANIFEST, {
-				'cache-control': 'public, s-maxage=600',
-				etag: 'W/"abc"',
-			})
-		);
+	it('GET dispatches between the two routes by path', async () => {
 		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
+			fetch: upstream(),
 			options: options(),
 		});
-
-		await handlers.manifest(makeManifestRequest());
-		const response = await handlers.manifest(
-			makeManifestRequest({ 'if-none-match': 'W/"abc"' })
-		);
-
-		expect(response.status).toBe(304);
-		expect(response.body).toBeNull();
-		// The validators still have to come back on a 304.
-		expect(response.headers.get('etag')).toBe('W/"abc"');
-		expect(response.headers.get('cache-control')).toBe('public, s-maxage=600');
+		const manifest = await handlers.GET(request('/api/c15t/manifest'));
+		const init = await handlers.GET(request('/api/c15t/init'));
+		expect(manifest.headers.get('cache-control')).toBe('s-maxage=60');
+		expect(init.headers.get('cache-control')).toBe('private, no-store');
 	});
 
-	it('serves the body when the ETag does not match', async () => {
-		const fetchImpl = vi.fn(() => jsonResponse(MANIFEST, { etag: 'W/"abc"' }));
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
+	it('registers detached work with the waitUntil on locals', async () => {
+		const waitUntil = vi.fn();
+		await createConsentRouteHandlers({
+			fetch: upstream(),
 			options: options(),
+		}).init(request('/api/c15t/init'), {
+			locals: { cfContext: { waitUntil } },
 		});
-		const response = await handlers.manifest(
-			makeManifestRequest({ 'if-none-match': 'W/"stale"' })
-		);
-
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual(MANIFEST);
-	});
-
-	it('echoes the resolved overrides so GPC survives the SSR path', async () => {
-		const fetchImpl = vi.fn(() => jsonResponse(MANIFEST));
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
-		const payload = (await (
-			await handlers.init(
-				makeRequest('https://site.example.com/api/c15t/init', {
-					'accept-language': 'de',
-					'sec-gpc': '1',
-					'x-c15t-country': 'DE',
-					'x-c15t-region': 'BY',
-				})
-			)
-		).json()) as { resolvedOverrides: Record<string, unknown> };
-
-		expect(payload.resolvedPrivacySignals).toEqual({ gpc: true });
-		expect(payload.resolvedOverrides).toEqual({
-			country: 'DE',
-			language: 'de',
-			region: 'BY',
-		});
-	});
-
-	it('dispatches GET between the two routes by path', async () => {
-		const fetchImpl = vi.fn(() => jsonResponse(MANIFEST));
-		const handlers = createConsentRouteHandlers({
-			fetch: fetchImpl,
-			options: options(),
-		});
-
-		const manifestResponse = await handlers.GET(makeManifestRequest());
-		expect(await manifestResponse.json()).toEqual(MANIFEST);
-
-		const initResponse = await handlers.GET(makeRequest());
-		expect(initResponse.headers.get('cache-control')).toBe('private, no-store');
+		expect(waitUntil).toHaveBeenCalledTimes(1);
 	});
 });
 
-it.each([false, true])(
-	'forwards adjusted Age on manifest responses, conditional=%s',
-	async (conditional) => {
-		const clock = vi.spyOn(Date, 'now').mockReturnValue(0);
-		const fetch = vi.fn(() =>
-			jsonResponse(MANIFEST, {
-				age: '55',
-				'cache-control': 's-maxage=60',
-				etag: '"v1"',
-			})
-		);
-		const handlers = createConsentRouteHandlers({ fetch, options: options() });
-		const first = await handlers.manifest(makeManifestRequest());
-		expect(first.headers.get('age')).toBe('55');
-		clock.mockReturnValue(2000);
-		const second = await handlers.manifest(
-			makeManifestRequest(conditional ? { 'if-none-match': '"v1"' } : {})
-		);
-		expect(second.status).toBe(conditional ? 304 : 200);
-		expect(second.headers.get('age')).toBe('57');
-		expect(second.headers.get('cache-control')).toBe('s-maxage=60');
-		expect(fetch).toHaveBeenCalledTimes(1);
-	}
-);
-
-it.each(['default', 'fetch', 'fetchGvl'] as const)(
-	'preserves vendor loading context for %s Astro manifest resolution',
-	async (loader) => {
-		const manifest = await buildConsentManifestFromConfig({
-			branding: 'c15t',
-			iab: {
-				cmpId: 28,
-				enabled: true,
-				gvl: { url: 'https://vendors.example/list.json' },
+describe('waitUntilFromLocals', () => {
+	it('prefers locals.cfContext and never reads the Astro 6 runtime getter then', () => {
+		const cfContext = { waitUntil: vi.fn() };
+		const locals = {
+			cfContext,
+			get runtime(): never {
+				throw new Error('Astro 6 removed locals.runtime');
 			},
-			policyRules: [policyRulePresets.europeIab()],
-		});
-		const fetch = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
-		vi.stubGlobal('fetch', fetch);
-		try {
-			const result = await resolveManifestInit({
-				fetch: loader === 'fetch' ? fetch : undefined,
-				fetchGvl:
-					loader === 'fetchGvl'
-						? () => Promise.resolve(completeGVL)
-						: undefined,
-				gvlRoute: '/api/c15t/init',
-				inputs: { country: 'DE' },
-				manifest,
-			});
-			expect(result.gvl).toEqual(loader === 'default' ? null : completeGVL);
-			expect(Boolean(result.gvlReference)).toBe(loader === 'default');
-		} finally {
-			vi.unstubAllGlobals();
-		}
-	}
-);
+		};
+		const task = Promise.resolve();
+		waitUntilFromLocals(task, locals);
+		expect(cfContext.waitUntil).toHaveBeenCalledWith(task);
+	});
+
+	it('falls back to locals.runtime.ctx before Astro 6', () => {
+		const ctx = { waitUntil: vi.fn() };
+		const task = Promise.resolve();
+		waitUntilFromLocals(task, { runtime: { ctx } });
+		expect(ctx.waitUntil).toHaveBeenCalledWith(task);
+		expect(() => waitUntilFromLocals(task, undefined)).not.toThrow();
+	});
+});
 
 it('serves Astro manifest SSR references through the same-origin init route', async () => {
 	const manifest = await buildConsentManifestFromConfig({
@@ -665,58 +199,34 @@ it('serves Astro manifest SSR references through the same-origin init route', as
 		throw new Error('Expected IAB manifest');
 	}
 	manifest.iab.gvl = { url: 'https://server-only.example/list.json' };
-	const upstream = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
-	vi.stubGlobal('fetch', upstream);
-	try {
-		const resolved = options({
-			endpoints: { initPath: '/privacy/init' },
-			mode: manifestMode({ manifest }),
-		});
-		const context = await resolveConsentContext({
-			headers: new Headers({ 'x-c15t-country': 'DE' }),
-			options: resolved,
-			url: 'https://site.example.com/page',
-		});
-		const reference = context.config.initialIab?.gvlReference;
-		expect(context.config.initialIab?.gvl).toBeNull();
-		expect(reference?.url).toBe(
-			`/privacy/init?c15t-gvl=${completeGVL.vendorListVersion}&language=en`
-		);
-		const handlers = createConsentRouteHandlers({ options: resolved });
-		const init = await handlers.init(
-			makeRequest('https://site.example.com/privacy/init', {
-				'x-c15t-country': 'DE',
-			})
-		);
-		const initPayload = await init.json();
-		expect(initPayload.gvlReference.url).toBe(reference?.url);
-		expect(init.headers.get('cache-control')).toBe('private, no-store');
-		const response = await handlers.init(
-			makeRequest(
-				new URL(reference?.url ?? '', 'https://site.example.com').href
-			)
-		);
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual(completeGVL);
-		expect(response.headers.get('cache-control')).toBe('public, max-age=86400');
-		const mismatch = await handlers.init(
-			makeRequest(
-				`https://site.example.com/privacy/init?c15t-gvl=${completeGVL.vendorListVersion + 1}&language=en`
-			)
-		);
-		expect(mismatch.status).toBe(409);
-		expect(mismatch.headers.get('cache-control')).toBe('no-store');
-		const french = await handlers.init(
-			makeRequest(
-				`https://site.example.com/privacy/init?c15t-gvl=${completeGVL.vendorListVersion}&language=fr`
-			)
-		);
-		expect(french.status).toBe(200);
-		expect(upstream).toHaveBeenCalledWith(
-			'https://server-only.example/list.json',
-			expect.objectContaining({ headers: { 'accept-language': 'fr' } })
-		);
-	} finally {
-		vi.unstubAllGlobals();
-	}
+	const gvlUpstream = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
+	vi.stubGlobal('fetch', gvlUpstream);
+	const resolved = options({
+		endpoints: { initPath: '/privacy/init' },
+		mode: manifestMode({
+			backendURL: BACKEND,
+			manifest,
+			reportSessions: false,
+		}),
+	});
+	const context = await resolveConsentContext({
+		headers: new Headers({ 'x-c15t-country': 'DE' }),
+		options: resolved,
+		url: 'https://site.example.com/page',
+	});
+	const reference = context.config.initialIab?.gvlReference;
+	expect(context.config.initialIab?.gvl).toBeNull();
+	expect(reference?.url).toBe(
+		`/privacy/init?c15t-gvl=${completeGVL.vendorListVersion}&language=en`
+	);
+	const handlers = createConsentRouteHandlers({ options: resolved });
+	const init = await handlers.init(
+		request('/privacy/init', { 'x-c15t-country': 'DE' })
+	);
+	expect((await init.json()).gvlReference.url).toBe(reference?.url);
+	const list = await handlers.init(request(reference?.url ?? ''));
+	expect(list.status).toBe(200);
+	expect(await list.json()).toEqual(completeGVL);
+	// The render, the init route and the list request share one download.
+	expect(gvlUpstream).toHaveBeenCalledTimes(1);
 });

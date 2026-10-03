@@ -1,45 +1,36 @@
 import { deferInitGvlToRoute } from '@c15t/core';
 /**
- * Manifest resolution shared by the injected routes and the middleware.
+ * Manifest resolution for the middleware's server render.
  *
- * Both paths need the same three steps: work out where the manifest lives
- * for this request, get it through the process-wide cache in
- * `@c15t/core/server`, and resolve `/init` from it locally. Keeping them on
- * one implementation is what makes manifest mode cheap — a per-render
- * transport would carry its own memo and re-fetch the manifest on every
- * page render, which is exactly the cost manifest mode exists to remove.
+ * It reads the manifest through the process-wide cache in
+ * `@c15t/core/server` and resolves `/init` with the same core function the
+ * injected routes use (`resolveConsentInit`), so a render and the init
+ * route agree on the policy, the vendor list and the session report. A
+ * per-render transport would carry its own memo and re-fetch the manifest
+ * on every page render, which is exactly the cost manifest mode exists to
+ * remove.
  */
 import {
+	fetchCachedGvl,
 	fetchCachedManifest,
-	reportConsentSession,
+	resolveConsentInit,
 	resolveRequestBackendURL,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
-import type { ManifestFetch } from '@c15t/core/server';
-import {
-	consentInputsToOverrides,
-	resolveInitFromManifest,
-} from '@c15t/schema/types';
+import type { ConsentRouteFetchGvl, ManifestFetch } from '@c15t/core/server';
 import type {
 	ConsentManifest,
-	ConsentManifestGVLReference,
 	ConsentRequestHeaderInputs,
 	ConsentSessionSource,
-	GlobalVendorList,
 	InitOutput,
 } from '@c15t/schema/types';
-import { baseTranslations } from '@c15t/translations/all';
 
 import type { C15tResolvedOptions } from '../types';
 
 const MANIFEST_ROUTE_SUFFIX = '/manifest';
 
 /** Fetches the Global Vendor List when the resolved policy is IAB. */
-export type FetchGvl = (input: {
-	reference: ConsentManifestGVLReference;
-	language: string;
-	fetch: ManifestFetch;
-}) => Promise<GlobalVendorList | null>;
+export type FetchGvl = ConsentRouteFetchGvl;
 
 /**
  * The parts of a request URL resolution needs.
@@ -151,43 +142,6 @@ export const loadConsentManifest = async function loadConsentManifest(input: {
 	return manifest;
 };
 
-const shouldFetchGvl = function shouldFetchGvl(
-	manifest: ConsentManifest,
-	payload: InitOutput
-): boolean {
-	return (
-		manifest.iab?.enabled === true &&
-		manifest.iab.gvl !== undefined &&
-		payload.policyResolution?.status === 'matched' &&
-		payload.policyResolution.policy.model === 'iab'
-	);
-};
-
-/**
- * How long to wait for the Global Vendor List before giving up on it. The
- * list is a nice-to-have on this path; the response is not, and an open
- * request would hold the page or the route open with it.
- */
-const GVL_FETCH_TIMEOUT_MS = 5000;
-
-/** Plain `GET` of the manifest's GVL reference. */
-export const defaultFetchGvl: FetchGvl = async function defaultFetchGvl(input) {
-	const response = await input.fetch(input.reference.url, {
-		headers: { 'accept-language': input.language },
-		method: 'GET',
-		signal: AbortSignal.timeout(GVL_FETCH_TIMEOUT_MS),
-	});
-	if (response.status === 204) {
-		return null;
-	}
-	if (!response.ok) {
-		throw new Error(
-			`@c15t/astro: GVL responded ${response.status} ${response.statusText}`
-		);
-	}
-	return (await response.json()) as GlobalVendorList;
-};
-
 /** An `InitOutput` carrying the overrides the request implied. */
 export type ResolvedInitOutput = InitOutput & {
 	resolvedOverrides?: Record<string, unknown>;
@@ -240,11 +194,13 @@ export const resolveSessionReportURL = function resolveSessionReportURL(
 };
 
 /**
- * Resolve one request's `/init` payload from an already-loaded manifest.
+ * Resolve one request's `/init` payload from an already-loaded manifest,
+ * with the core rule the init route uses.
  *
  * @param input - The manifest, the request inputs, and the GVL seams.
  * @returns The resolved init payload, with `resolvedOverrides` echoed back.
- *   `gvl` is `null` when the vendor list could not be fetched.
+ * @throws {Error} When the vendor list an IAB policy needs cannot be loaded; the
+ * render then leaves the policy to the browser.
  */
 export const resolveManifestInit = async function resolveManifestInit(input: {
 	manifest: ConsentManifest;
@@ -256,62 +212,36 @@ export const resolveManifestInit = async function resolveManifestInit(input: {
 	/** Session report to send once resolved. Absent means none. */
 	report?: SessionReportTarget;
 }): Promise<ResolvedInitOutput> {
-	const { inputs, manifest } = input;
-	const payload = resolveInitFromManifest(
+	const { inputs, manifest, report } = input;
+	const reference = manifest.iab?.gvl;
+	const payload = await resolveConsentInit({
+		inputs: { ...inputs, language: inputs.language ?? 'en' },
+		loadGvl: reference
+			? (language) =>
+					input.fetchGvl
+						? input.fetchGvl({
+								fetch: (input.fetch ??
+									globalThis.fetch.bind(globalThis)) as typeof globalThis.fetch,
+								language,
+								reference,
+							})
+						: fetchCachedGvl({
+								fetch: input.fetch,
+								language,
+								url: reference.url,
+							})
+			: undefined,
 		manifest,
-		{
-			country: inputs.country,
-			gpc: inputs.gpc,
-			language: inputs.language ?? 'en',
-			region: inputs.region,
-		},
-		{ baseTranslations }
-	) as ResolvedInitOutput;
-
-	const fetchImpl =
-		input.fetch ?? (globalThis.fetch?.bind(globalThis) as ManifestFetch);
-	if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl && fetchImpl) {
-		const language = payload.translations.language.split('-')[0] || 'en';
-		try {
-			payload.gvl = await (input.fetchGvl ?? defaultFetchGvl)({
-				fetch: fetchImpl,
-				language,
-				reference: manifest.iab.gvl,
-			});
-		} catch {
-			// `gvl` is nullable by contract, and neither the init route nor
-			// the SSR path has a boundary above this. A vendor list the
-			// client can treat as unavailable beats a 500.
-			payload.gvl = null;
-		}
-	}
-
-	if (input.report?.backendURL && !input.report.abandoned?.()) {
-		reportConsentSession({
-			adapter: '@c15t/astro',
-			backendURL: input.report.backendURL,
-			experiment: input.report.experiment,
-			fetch: input.fetch as typeof globalThis.fetch | undefined,
-			headers: input.report.headers,
-			init: payload,
-			inputs,
-			manifest,
-			method: input.report.method,
-			source: input.report.source,
-			waitUntil: input.report.waitUntil,
-		});
-	}
-
-	// The resolver's inputs are the only place GPC survives on the SSR
-	// path — the browser never sends `Sec-GPC` to the init route when the
-	// page was server-rendered. Echo them back so the kernel folds the
-	// same overrides it would have derived client-side.
-	payload.resolvedOverrides = consentInputsToOverrides({
-		country: inputs.country,
-		language: inputs.language,
-		region: inputs.region,
+		report: report
+			? {
+					...report,
+					adapter: '@c15t/astro',
+					fetch: input.fetch as typeof globalThis.fetch | undefined,
+				}
+			: undefined,
 	});
-	payload.resolvedPrivacySignals = { gpc: inputs.gpc };
+	// The route serves only lists from the shared cache; a caller's own
+	// fetch keeps its list inline.
 	return input.gvlRoute && !input.fetch && !input.fetchGvl
 		? deferInitGvlToRoute(payload, input.gvlRoute)
 		: payload;
