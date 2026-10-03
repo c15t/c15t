@@ -1,5 +1,6 @@
 import { C15T_POLICY_CONTRACT_HEADER } from '@c15t/core';
 import type { ExternalConsentSource } from '@c15t/core/runtime';
+import { resolveManifestInit } from '@c15t/core/transports/manifest-cache';
 import {
 	normalizePolicyRule,
 	createConsentManifestPolicyPack,
@@ -23,7 +24,6 @@ import { renderToString } from 'vue/server-renderer';
 import ConsentBanner from '../runtime/components/prompt.vue';
 import { useConsentKernelContext } from '../runtime/composables/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
-import { resolveManifestInit } from '../runtime/server/manifest-mode';
 
 const nuxt = vi.hoisted(() => ({
 	cached: undefined as InitOutput | undefined,

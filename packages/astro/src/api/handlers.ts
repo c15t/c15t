@@ -221,13 +221,13 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 		);
 		const query = new URL(request.url).searchParams.toString();
 		const result = await fetchCachedManifest({
-			config: { manifestURL },
 			fetch: handlerOptions.fetch,
 			onBackgroundRevalidate: bindBackgroundRevalidate(
 				handlerOptions,
 				lifetime
 			),
 			query,
+			sourceURL: manifestURL,
 		});
 
 		const headers = new Headers({ 'content-type': 'application/json' });

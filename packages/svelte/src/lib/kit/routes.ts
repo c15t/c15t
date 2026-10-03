@@ -391,9 +391,9 @@ export const createSvelteKitConsentRouteHandlers =
 		const resolveInit = async (event: RequestEvent): Promise<Response> => {
 			const source = resolveManifestSource(event, options);
 			const { manifest } = await fetchCachedManifest({
-				config: { manifestURL: source.manifestURL },
 				fetch: source.fetch,
 				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
+				sourceURL: source.manifestURL,
 			});
 
 			const listResponse = await serveGvlReference(event.request, (language) =>
@@ -473,10 +473,10 @@ export const createSvelteKitConsentRouteHandlers =
 			const source = resolveManifestSource(event, options);
 			const query = event.url.searchParams.toString();
 			const result = await fetchCachedManifest({
-				config: { manifestURL: source.manifestURL },
 				fetch: source.fetch,
 				onBackgroundRevalidate: bindBackgroundRevalidate(options, event),
 				query,
+				sourceURL: source.manifestURL,
 			});
 
 			const headers = new Headers({ 'content-type': 'application/json' });

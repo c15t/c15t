@@ -105,11 +105,6 @@
 			"import": "./shims/libs/generate-subject-id.js",
 			"default": "./shims/libs/generate-subject-id.js"
 		},
-		"./libs/manifest-cache": {
-			"types": "./shims/libs/manifest-cache.d.ts",
-			"import": "./shims/libs/manifest-cache.js",
-			"default": "./shims/libs/manifest-cache.js"
-		},
 		"./modules/clear-on-revocation": {
 			"types": "./shims/modules/clear-on-revocation.d.ts",
 			"import": "./shims/modules/clear-on-revocation.js",

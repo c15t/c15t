@@ -5,6 +5,7 @@
  * whether a relative `backendURL` resolves at all — both silent failures if
  * they regress, since the app still renders either way.
  */
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
 	buildConsentManifestFromConfig,
@@ -17,11 +18,6 @@ import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { resolveNuxtTimeoutMs } from '../runtime/manifest';
-import {
-	clearManifestRouteCache,
-	fetchCachedManifest,
-	MANIFEST_DEDUPE_TTL_SECONDS,
-} from '../runtime/server/manifest-mode';
 import {
 	createInitRoute,
 	createManifestRoute,
@@ -106,14 +102,14 @@ const callInitRoute = callRoute(
 );
 
 beforeEach(() => {
-	clearManifestRouteCache();
+	clearManifestCache();
 	mocks.useRuntimeConfig.mockReturnValue({
 		public: { c15t: { backendURL: '/api/self-host' } },
 	});
 });
 
 afterEach(() => {
-	clearManifestRouteCache();
+	clearManifestCache();
 	vi.clearAllMocks();
 });
 
@@ -260,57 +256,6 @@ describe('manifest route caching headers', () => {
 
 		expect(response.status).toBe(304);
 		expect(await response.text()).toBe('');
-	});
-});
-
-describe('fetchCachedManifest upstream dedupe', () => {
-	const config = { manifestURL: 'https://backend.example/manifest' };
-
-	test('dedupes for a short floor when the backend sends no Cache-Control', async () => {
-		// Regression: the route no longer uses `defineCachedEventHandler` (it
-		// stamped its own headers over the backend's), so the in-process cache
-		// is the only thing standing between an older backend and one upstream
-		// fetch per request.
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchMock = vi.fn(async () => manifestResponse({}));
-
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 2000 });
-
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-
-		await fetchCachedManifest({
-			config,
-			fetch: fetchMock,
-			now: 1000 + MANIFEST_DEDUPE_TTL_SECONDS * 1000 + 1,
-		});
-
-		expect(fetchMock).toHaveBeenCalledTimes(2);
-	});
-
-	test('honours an explicit no-store by never reusing the response', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchMock = vi.fn(async () =>
-			manifestResponse({ 'cache-control': 'no-store' })
-		);
-
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1001 });
-
-		expect(fetchMock).toHaveBeenCalledTimes(2);
-	});
-
-	test('prefers the backend s-maxage over the dedupe floor', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchMock = vi.fn(async () =>
-			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
-		);
-
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
-		// Well past the dedupe floor, well inside s-maxage.
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 30_000 });
-
-		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 });
 

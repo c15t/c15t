@@ -1,11 +1,14 @@
 /**
  * In-process consent-manifest cache for server adapters.
  *
- * Framework server routes (Nuxt, TanStack Start, ...) that proxy the backend's
- * `GET /manifest` and resolve `GET /init` locally share this module so the
- * caching rules live in one place: honour the backend's `s-maxage`, revalidate
- * with `ETag`, respect `no-store`, and collapse bursts for backends that send
- * no shared-cache TTL at all.
+ * Every framework server layer (Next.js, Nuxt, SvelteKit, Astro, TanStack
+ * Start) that proxies the backend's `GET /manifest` or resolves `GET /init`
+ * locally reads the manifest through {@link fetchCachedManifest} here, so the
+ * caching rules and the process cache live in one place: honour the
+ * backend's `s-maxage`, revalidate with `ETag`, respect `no-store`, and
+ * collapse bursts for backends that send no shared-cache TTL at all.
+ * `@c15t/core/server` re-exports the same function and cache without the
+ * init resolver.
  *
  * Like `@c15t/core/transports/manifest`, this module resolves init with
  * `@c15t/schema` and imports every translation language. Import it from
@@ -39,6 +42,8 @@ export {
 	MANIFEST_FETCH_TIMEOUT_MS,
 	MANIFEST_PASSTHROUGH_HEADERS,
 	ManifestUnavailableError,
+	parseCacheDirectiveSeconds,
+	resolveManifestCacheTtlSeconds,
 	resolveManifestSourceURL,
 	withResolutionBudget,
 } from '../libs/manifest-cache-runtime';

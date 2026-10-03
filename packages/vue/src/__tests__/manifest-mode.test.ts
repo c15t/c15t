@@ -1,3 +1,8 @@
+import {
+	clearManifestCache,
+	getResolverInputsFromHeaders,
+	resolveManifestInit,
+} from '@c15t/core/transports/manifest-cache';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { flushPromises } from '@vue/test-utils';
@@ -9,13 +14,6 @@ import {
 	getNuxtInitFetchTarget,
 	startVueConsentRuntime,
 } from '../runtime/kernel';
-import {
-	clearManifestRouteCache,
-	fetchCachedManifest,
-	getManifestSMaxAge,
-	getResolverInputsFromHeaders,
-	resolveManifestInit,
-} from '../runtime/server/manifest-mode';
 
 type WindowWithC15t = Window & {
 	c15t?: {
@@ -80,7 +78,7 @@ function createManifestFixture(): ConsentManifest {
 }
 
 afterEach(() => {
-	clearManifestRouteCache();
+	clearManifestCache();
 	vi.restoreAllMocks();
 	vi.unstubAllGlobals();
 	delete (window as WindowWithC15t).c15t;
@@ -109,52 +107,6 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			},
 		});
 		expect(init.translations.language).toBe('de');
-	});
-
-	test('derives manifest cache TTL from backend s-maxage', async () => {
-		const manifest = createManifestFixture();
-		const fetchMock = vi.fn(
-			(_input: RequestInfo | URL, _init?: RequestInit) =>
-				new Response(JSON.stringify(manifest), {
-					headers: {
-						'cache-control': 'public, s-maxage=60, stale-while-revalidate=120',
-						'content-type': 'application/json',
-						etag: '"manifest-rev-1"',
-					},
-					status: 200,
-				})
-		);
-		const config = {
-			manifestURL: 'https://backend.example/manifest',
-		} satisfies Partial<ConsentConfig>;
-
-		const first = await fetchCachedManifest({
-			config,
-			fetch: fetchMock as unknown as typeof fetch,
-			now: 1000,
-		});
-		const second = await fetchCachedManifest({
-			config,
-			fetch: fetchMock as unknown as typeof fetch,
-			now: 59_000,
-		});
-		const third = await fetchCachedManifest({
-			config,
-			fetch: fetchMock as unknown as typeof fetch,
-			now: 62_000,
-		});
-
-		expect(getManifestSMaxAge(first.headers['cache-control'])).toBe(60);
-		expect(first.sMaxAge).toBe(60);
-		expect(second.manifest).toBe(first.manifest);
-		expect(fetchMock).toHaveBeenCalledTimes(2);
-		expect(fetchMock.mock.calls[1]?.[1]).toMatchObject({
-			headers: {
-				'if-none-match': '"manifest-rev-1"',
-				'x-c15t-policy-contract': '1',
-			},
-		});
-		expect(third.manifest.revision).toBe('manifest-rev-1');
 	});
 
 	test('maps Sec-GPC through to resolver inputs', () => {

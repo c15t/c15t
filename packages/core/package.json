@@ -94,11 +94,6 @@
 			"import": "./dist/generate-subject-id.js",
 			"default": "./dist/generate-subject-id.js"
 		},
-		"./libs/manifest-cache": {
-			"types": "./dist-types/libs/manifest-cache.d.ts",
-			"import": "./dist/manifest-cache.js",
-			"default": "./dist/manifest-cache.js"
-		},
 		"./modules/clear-on-revocation": {
 			"types": "./dist-types/modules/clear-on-revocation/index.d.ts",
 			"import": "./dist/clear-on-revocation.js",

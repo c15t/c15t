@@ -9,7 +9,7 @@
 
 import { createConsentKernel } from '@c15t/core';
 import type { KernelConfig } from '@c15t/core';
-import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';

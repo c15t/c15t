@@ -35,7 +35,6 @@ export default defineConfig({
 			'consent-record.js': './consent-record/index.js',
 			'generate-subject-id.js': './libs/generate-subject-id.js',
 			'iframe-blocker.js': './modules/iframe-blocker/index.js',
-			'manifest-cache.js': './libs/manifest-cache.js',
 			'network-blocker.js': './modules/network-blocker/index.js',
 			'network-hold.js': './modules/network-blocker/hold.js',
 			'persistence.js': './modules/persistence/index.js',

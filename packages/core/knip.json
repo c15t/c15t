@@ -15,7 +15,6 @@
 		"./src/server/index.ts",
 		"./src/static.ts",
 		"./src/runtime/index.ts",
-		"./src/libs/manifest-cache.ts",
 		"./src/transports/manifest-cache.ts"
 	],
 	"ignoreBinaries": ["oxfmt", "oxlint", "rslib", "tsc", "vitest"],

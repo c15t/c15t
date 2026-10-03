@@ -6,13 +6,18 @@ import {
 } from '@c15t/core';
 import {
 	fetchCachedGvl,
+	fetchCachedManifest,
 	getManifestAge,
 	getResolverInputsFromHeaders,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	ManifestUnavailableError,
 	reportConsentSession,
+	resolveManifestInit,
+	resolveManifestSourceURL,
 	resolveSessionReportBackendURL,
 	withResolutionBudget,
 } from '@c15t/core/transports/manifest-cache';
+import type { ManifestFetch } from '@c15t/core/transports/manifest-cache';
 import {
 	parsePolicyContractHeader,
 	readPolicyResolutionWire,
@@ -35,13 +40,7 @@ import type { EventHandlerRequest, H3Event } from 'h3';
 import { joinURL } from 'ufo';
 
 import type { ConsentConfig } from '../config';
-import {
-	C15T_TIMEOUT_HEADER,
-	fetchCachedManifest,
-	ManifestUnavailableError,
-	resolveManifestInit,
-} from './manifest-mode';
-import type { ManifestFetch } from './manifest-mode';
+import { C15T_TIMEOUT_HEADER } from '../manifest';
 
 interface C15TNitroRuntimeConfig {
 	c15t?: Record<string, unknown>;
@@ -119,10 +118,10 @@ export const createManifestRoute = function createManifestRoute(
 		const config = readConsentConfig(runtimeConfig);
 		const url = getRequestURL(event);
 		const manifest = await fetchCachedManifest({
-			config,
 			fetch: dependencies.fetch,
 			onBackgroundRevalidate: bindBackgroundRevalidate(dependencies, event),
 			query: url.searchParams.toString(),
+			sourceURL: resolveManifestSourceURL(config),
 		});
 
 		setResponseHeader(event, 'content-type', 'application/json');
@@ -263,9 +262,9 @@ export const createInitRoute = function createInitRoute(
 
 		try {
 			const manifest = await fetchCachedManifest({
-				config,
 				fetch: dependencies.fetch,
 				onBackgroundRevalidate: background,
+				sourceURL: resolveManifestSourceURL(config),
 				timeoutMs,
 			});
 			const gvlSource = manifest.manifest.iab?.gvl;

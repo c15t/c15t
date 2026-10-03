@@ -30,14 +30,19 @@ export {
 } from './consent-proxy';
 export type { FetchCachedGvlOptions } from './gvl-cache';
 export { clearGvlCache, fetchCachedGvl } from './gvl-cache';
+// The same entry point and process cache as
+// `@c15t/core/transports/manifest-cache`, without the init resolver and its
+// translation imports.
 export type {
 	CachedManifestResponse,
 	FetchCachedManifestOptions,
+	ManifestCache,
 	ManifestFetch,
-	ManifestSourceConfig,
-} from './manifest-cache';
+	ManifestSourceOptions,
+} from '../libs/manifest-cache-runtime';
 export {
 	clearManifestCache,
+	createManifestCache,
 	createManifestRequestURL,
 	fetchCachedManifest,
 	getManifestAge,
@@ -47,7 +52,7 @@ export {
 	MANIFEST_PASSTHROUGH_HEADERS,
 	ManifestUnavailableError,
 	resolveManifestSourceURL,
-} from './manifest-cache';
+} from '../libs/manifest-cache-runtime';
 
 export {
 	createStaticManifestModule,

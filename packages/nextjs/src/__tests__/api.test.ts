@@ -1,5 +1,5 @@
 import { clearGvlCache } from '@c15t/core';
-import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 

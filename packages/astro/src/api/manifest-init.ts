@@ -143,10 +143,10 @@ export const loadConsentManifest = async function loadConsentManifest(input: {
 	}
 	const manifestURL = resolveManifestSourceFrom(input.source, input.options);
 	const { manifest } = await fetchCachedManifest({
-		config: { manifestURL },
 		fetch: input.fetch,
 		onBackgroundRevalidate: input.onBackgroundRevalidate,
 		query: input.query,
+		sourceURL: manifestURL,
 	});
 	return manifest;
 };

@@ -4,7 +4,7 @@
  * the response into the ConsentState, and hands it to the client
  * `ConsentRoot` for first-paint accurate rendering.
  */
-import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,

@@ -5,15 +5,15 @@ import {
 	fetchCachedGvl,
 } from '@c15t/core';
 import {
-	fetchCachedManifest as fetchManifestThroughCache,
-	getManifestAge,
-	parseCacheDirectiveSeconds,
-} from '@c15t/core/libs/manifest-cache';
-import {
 	reportConsentSession,
 	resolveRequestBackendURL,
 	resolveSessionReportBackendURL,
 } from '@c15t/core/server';
+import {
+	fetchCachedManifest as fetchManifestThroughCache,
+	getManifestAge,
+	parseCacheDirectiveSeconds,
+} from '@c15t/core/transports/manifest-cache';
 import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
@@ -224,19 +224,19 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	);
 	// Two layers on purpose. `next.revalidate` reaches the App Router Data
 	// Cache; the in-process cache covers the Pages Router and any other
-	// runtime without one, and adds ETag revalidation on top.
+	// runtime without one, and adds ETag revalidation on top. The cache sends
+	// the same `accept` and protocol headers itself, so only the fetch hint
+	// is passed.
 	const {
-		headers: nextHeaders,
-		method,
+		headers: _headers,
+		method: _method,
 		...init
 	} = createManifestFetchInit(options);
-	void method;
 	const cached = await fetchManifestThroughCache({
 		fetch: options.fetch,
-		headers: nextHeaders as Record<string, string>,
 		init,
 		onBackgroundRevalidate: options.onBackgroundRevalidate,
-		url: manifestURL,
+		sourceURL: manifestURL,
 	});
 
 	const cacheControl =

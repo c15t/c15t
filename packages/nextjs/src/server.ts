@@ -6,6 +6,10 @@ import {
 	mapInitOutputToInitResponse,
 } from '@c15t/core';
 import type { KernelOverrides, ServerExperiment } from '@c15t/core';
+import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import { resolveRequestBackendURL } from '@c15t/core/server';
+import { readProducerPolicyContract } from '@c15t/core/transports';
+import { createManifestTransport } from '@c15t/core/transports/manifest';
 /**
  * `@c15t/nextjs/server` server-only helpers.
  *
@@ -24,11 +28,7 @@ import {
 	DEFAULT_RESOLVE_TIMEOUT_MS,
 	fetchCachedManifest,
 	withResolutionBudget,
-} from '@c15t/core/libs/manifest-cache';
-import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
-import { resolveRequestBackendURL } from '@c15t/core/server';
-import { readProducerPolicyContract } from '@c15t/core/transports';
-import { createManifestTransport } from '@c15t/core/transports/manifest';
+} from '@c15t/core/transports/manifest-cache';
 import type { InitOutput } from '@c15t/schema/types';
 import {
 	CONSENT_EXPERIMENT_HEADER,
@@ -569,8 +569,8 @@ const resolveFromManifest = async function resolveFromManifest(input: {
 					fetch: options.fetch,
 					headers: input.forward,
 					onBackgroundRevalidate: options.waitUntil,
+					sourceURL: absoluteManifest as string,
 					timeoutMs,
-					url: absoluteManifest as string,
 				})
 			).manifest;
 		const response = await withResolutionBudget(

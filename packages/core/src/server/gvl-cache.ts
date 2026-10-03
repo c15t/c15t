@@ -1,12 +1,12 @@
 /** Server entrypoint for the shared GVL cache implementation. */
 import type { GlobalVendorList } from '@c15t/schema/types';
 
+import type { ManifestFetch } from '../libs/manifest-cache-runtime';
 import {
 	clearGvlCache as clearCache,
 	fetchCachedGvl as fetchGvl,
 } from '../transports/gvl-cache';
 import type { GvlCache } from '../transports/gvl-cache';
-import type { ManifestFetch } from './manifest-cache';
 
 const cache: GvlCache = new Map();
 
