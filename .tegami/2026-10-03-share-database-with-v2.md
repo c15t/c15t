@@ -1,8 +1,6 @@
 ---
 packages:
-  "@c15t/backend":
-    replay:
-      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/backend": patch
 ---
 
 ### Share a database with a v2 backend
