@@ -114,7 +114,7 @@ above, plus:
 
 | Member | What it does |
 | --- | --- |
-| `update(options)` | Apply the provider's new options. Pass the whole option set each time; the runtime compares it with the previous one and applies only what changed. |
+| `update(options)` | Apply the provider's new options. Pass the whole option set each time; the runtime compares it with the previous one and applies only what changed. Returns a promise that settles once every change has applied. |
 | `setEnabled(enabled)` | Turn consent management off or on. Off renders a separate permissive kernel that grants every category and shows no UI; only the script loader runs, and no request waits for the network blocker. On renders the visitor's kernel again, with their records, and adopts the prefetch again. It runs `/init` instead when there is no prefetch, or when overrides or the language changed while it was off. |
 | `enabled` | Whether consent management is on. |
 | `kernel` | The kernel to render. It changes when `enabled` changes. |
@@ -133,6 +133,11 @@ above, plus:
 | `iframeBlocker` | `false` removes the blocker. A new `disableAutomaticBlocking` rebuilds it. |
 | `callbacks`, `reloadOnConsentRevoked` | Read when an event fires, so the latest values apply. |
 
+`enabled` and `overrides` apply before `update()` returns. The rest of the
+comparison loads with the first `update()`, so a provider whose options never
+change after mount does not download it; those changes apply once it has
+loaded, and the returned promise settles then.
+
 `nonce`, `scriptLoader.onDebug` and the network blocker's `logBlockedRequests`
 and `onRequestBlocked` are read when their module starts. Every other option is
 read once. Storage counts among them: persistence keeps reading and writing
@@ -142,9 +147,11 @@ production, a change to `mode`, `i18n`, `experiment`, `persistence` or
 
 `prefetch` may also be a promise, for example the result of a server helper
 that a framework streams to the browser, when `modules` includes
-`streamPrefetch` from `c15t/runtime`. Without it, a pending prefetch is ignored
-with a warning outside production, and the runtime requests the policy itself.
-That keeps the code out of providers that never stream. The runtime starts with a provisional
+`streamPrefetch` from `c15t/runtime`, or `lazyStreamPrefetch` from
+`c15t/runtime/provider`, which loads that code only for a runtime whose prefetch
+is a promise. Without either, a pending prefetch is ignored with a warning
+outside production, and the runtime requests the policy itself. That keeps the
+code out of providers that never stream. The runtime starts with a provisional
 policy, so no consent surface shows, and its first `/init` waits for the
 promise and applies the result instead of sending a request. A result without
 a policy is applied as a baseline (records, location, language) and the
@@ -159,7 +166,18 @@ made before the module has loaded are queued and replayed. A module that
 fails to load stays inactive and, outside production, logs a warning. Keep
 `watchRevocationReload` static, because it has to see the first save, and
 prefer a static `createPersistence`, because a lazy one shows a returning
-visitor the banner until it has loaded.
+visitor the banner until it has loaded. When the script loader is lazy, data
+clearing subscribes once it has loaded, so revocation callbacks still run before
+browser data is removed. IAB mounts through the `mountIAB` module
+(`mountRuntimeIAB`, included in `defaultRuntimeModules`); without it `iab` is
+ignored.
+
+Import from `c15t/runtime/provider` when your provider loads modules on
+demand. It exports `createConsentProviderRuntime`, `lazyRuntimeModule` and
+`lazyStreamPrefetch`, and none of the modules `defaultRuntimeModules` imports
+statically. Some bundlers, esbuild among them, keep a module in the first chunk
+when it is imported statically anywhere in the graph, even unused, and also
+through `import()`.
 
 ## Other exports
 
@@ -172,6 +190,7 @@ visitor the banner until it has loaded.
 | `defaultRuntimeModules` | The module factories `createConsentRuntime` mounts. |
 | `lazyRuntimeModule(load)` | Wrap a module factory so its module loads through a dynamic `import()` on first use. |
 | `streamPrefetch` | Add to the provider runtime's modules to accept a `prefetch` promise. |
+| `mountRuntimeIAB` | The `mountIAB` module: mounts the CMP once the kernel knows its `cmpId`. |
 
 ## Check it works
 

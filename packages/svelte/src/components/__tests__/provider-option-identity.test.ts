@@ -86,7 +86,8 @@ describe('ConsentManagerProvider option identity', () => {
 		});
 		await flush();
 
-		expect(identify).toHaveBeenCalledOnce();
+		// Identity follows once the update module has loaded.
+		await vi.waitFor(() => expect(identify).toHaveBeenCalledOnce());
 		expect(identify.mock.calls[0]?.[0]).toMatchObject({
 			externalId: 'user_2',
 		});

@@ -46,6 +46,7 @@ import { createScriptLoader } from '../modules/script-loader';
 import { createWindowDebug } from '../modules/window-debug';
 import type { ConsentState } from '../types';
 import { assembleConsentRuntime } from './assemble';
+import { mountRuntimeIAB } from './iab-mount';
 import { lazyRuntimeModule } from './lazy-module';
 import type {
 	ConsentRuntime,
@@ -88,6 +89,8 @@ export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
 export { isIABConfigured } from './iab-options';
 export { createLazyIABFactory } from './lazy-iab';
 export { lazyRuntimeModule } from './lazy-module';
+export { mountRuntimeIAB } from './iab-mount';
+export type { RuntimeIABMountOptions } from './iab-mount';
 
 /**
  * Every consent category granted.
@@ -148,6 +151,7 @@ export const defaultRuntimeModules: ConsentRuntimeModules = {
 	createPersistence,
 	createScriptLoader,
 	createWindowDebug,
+	mountIAB: mountRuntimeIAB,
 	watchRevocationReload,
 };
 

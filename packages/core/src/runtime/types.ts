@@ -61,6 +61,7 @@ import type {
 	KernelUser,
 	Unsubscribe,
 } from '../types';
+import type { RuntimeIABMountOptions } from './iab-mount';
 
 /** Script-loader tuning accepted by {@link ConsentRuntimeOptions}. */
 export interface RuntimeScriptLoaderOptions {
@@ -237,6 +238,13 @@ export interface ConsentRuntimeModules {
 	watchRevocationReload: (options: RevocationReloadOptions) => () => void;
 	/** Mounted on `start()` unless `windowDebug: false`. */
 	createWindowDebug: (options: WindowDebugOptions) => WindowDebugHandle;
+	/**
+	 * Mounts the IAB CMP on `start()` while enabled, when the options set
+	 * `iab` and `createIAB`. Pass `mountRuntimeIAB` from `@c15t/core/runtime`
+	 * (`defaultRuntimeModules` does). Without it `iab` is ignored, so a host
+	 * that renders IAB another way ships none of the mounting code.
+	 */
+	mountIAB?: (options: RuntimeIABMountOptions) => () => void;
 	/**
 	 * Lets the provider runtime accept a `prefetch` that is still a promise.
 	 * Pass `streamPrefetch` from `@c15t/core/runtime`. Without it a pending
@@ -623,8 +631,13 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * module turned on or off is mounted or unmounted. Callbacks are always
 	 * read from the latest set. A change to `mode`, `i18n`, `experiment`,
 	 * `persistence` or `storageConfig` logs a warning outside production.
+	 *
+	 * New overrides and `enabled` apply at once. The rest of the comparison
+	 * loads with the first `update()`, so a provider whose options never
+	 * change does not ship it; the returned promise resolves once every
+	 * change has applied.
 	 */
-	update: (options: ConsentRuntimeUpdate) => void;
+	update: (options: ConsentRuntimeUpdate) => Promise<void>;
 	/**
 	 * Subscribe to {@link ConsentProviderRuntime.kernel},
 	 * {@link ConsentRuntime.iab} or {@link ConsentProviderRuntime.enabled}

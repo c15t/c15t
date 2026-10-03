@@ -160,6 +160,11 @@
 			"import": "./shims/runtime/controls.js",
 			"default": "./shims/runtime/controls.js"
 		},
+		"./runtime/provider": {
+			"types": "./shims/runtime/provider.d.ts",
+			"import": "./shims/runtime/provider.js",
+			"default": "./shims/runtime/provider.js"
+		},
 		"./react": {
 			"types": "./shims/react.d.ts",
 			"import": "./shims/react.js",

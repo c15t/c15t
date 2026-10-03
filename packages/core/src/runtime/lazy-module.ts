@@ -64,6 +64,35 @@
  * });
  * ```
  */
+const LOADED = Symbol('c15t-lazy-module-loaded');
+
+/**
+ * Run `next` once a module handle from {@link lazyRuntimeModule} has loaded
+ * (or failed to), the point from which it is subscribed to the kernel; at
+ * once for a handle that was real from the start. Lets a module that must
+ * subscribe after another wait for it.
+ *
+ * @param handle - A module handle, lazy or not.
+ * @param next - What to run after it.
+ * @internal
+ */
+export const afterModuleLoaded = function afterModuleLoaded(
+	handle: { dispose: () => void } | null | undefined,
+	next: () => void
+): void {
+	const loaded = (handle as { [LOADED]?: Promise<void> } | null | undefined)?.[
+		LOADED
+	];
+	if (!loaded) {
+		next();
+		return;
+	}
+	void (async () => {
+		await loaded;
+		next();
+	})();
+};
+
 /**
  * Wrap a module factory so the module loads on first use.
  *
@@ -88,7 +117,7 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 		let inner: Handle | null = null;
 		let disposed = false;
 		const queued: [PropertyKey, unknown[]][] = [];
-		void (async () => {
+		const loaded = (async () => {
 			try {
 				const create = await load();
 				if (disposed) {
@@ -119,6 +148,9 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 		})();
 		return new Proxy({} as Handle, {
 			get(_target, method) {
+				if (method === LOADED) {
+					return loaded;
+				}
 				if (method === 'dispose') {
 					return () => {
 						disposed = true;

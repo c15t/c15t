@@ -148,6 +148,11 @@
 			"types": "./dist-types/runtime/controls.d.ts",
 			"import": "./dist/runtime/controls.js",
 			"default": "./dist/runtime/controls.js"
+		},
+		"./runtime/provider": {
+			"types": "./dist-types/runtime/provider.d.ts",
+			"import": "./dist/runtime/provider.js",
+			"default": "./dist/runtime/provider.js"
 		}
 	},
 	"publishConfig": {
