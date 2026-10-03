@@ -32,7 +32,7 @@ const nuxt = vi.hoisted(() => ({
 		| undefined,
 	fetchHeaders: [] as Record<string, string>[],
 	headers: {} as Record<string, string | undefined>,
-	manifest: false,
+	manifest: false as boolean | 'client',
 	requests: 0,
 	response: undefined as InitOutput | undefined,
 	state: new Map<string, ShallowRef<unknown>>(),
@@ -447,4 +447,37 @@ test('an `ssr: false` route asks for the policy before the app mounts', async ()
 	} finally {
 		app.unmount();
 	}
+});
+
+test('an `ssr: false` route in client manifest mode starts once the app mounts', async () => {
+	nuxt.manifest = 'client';
+	nuxt.headers = {};
+	const requests: string[] = [];
+	vi.stubGlobal(
+		'fetch',
+		vi.fn((input: RequestInfo | URL) => {
+			requests.push(String(input));
+			return Promise.resolve(new Response('{}', { status: 503 }));
+		})
+	);
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+			payload: { serverRendered?: boolean };
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	const app = createApp(defineComponent({ render: () => null }));
+	const hooks: string[] = [];
+	await plugin({
+		hook: (name) => hooks.push(name),
+		payload: {},
+		vueApp: app,
+	});
+	// The manifest request left when the runtime was built; starting before
+	// the mount would only put work in front of it.
+	await vi.waitFor(() =>
+		expect(requests.some((url) => url.includes('/manifest'))).toBe(true)
+	);
+	expect(hooks).toContain('app:mounted');
 });

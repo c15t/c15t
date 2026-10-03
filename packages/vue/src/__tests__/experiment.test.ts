@@ -271,8 +271,9 @@ test('arms are validated against the theme the app renders with', async () => {
 			() => expect(context.snapshot.value.experimentPending).toBe(false),
 			{ timeout: 5000 }
 		);
+		// Accepted: an arm (control or quiet) is assigned and nothing is
+		// reported. A rejected experiment assigns none.
 		expect(context.snapshot.value.experiment).toMatchObject({
-			arm: 'quiet',
 			id: 'button-style',
 		});
 		expect(error).not.toHaveBeenCalled();

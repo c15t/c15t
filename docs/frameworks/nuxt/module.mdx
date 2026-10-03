@@ -28,7 +28,8 @@ the whole setup.
 In the browser, the plugin starts the consent modules once the app has
 mounted. A page with `ssr: false` has no server HTML to hydrate, so there the
 plugin starts them before the mount, and the policy request runs while the
-app mounts. Starting reads the stored choice, applies Global Privacy Control,
+app mounts. With `manifest: 'client'` the manifest request starts as soon as
+the plugin runs, and the modules still start after the mount. Starting reads the stored choice, applies Global Privacy Control,
 and starts the script loader, clear-on-revocation, the network blocker, the
 iframe blocker and, under an IAB policy, the IAB module.
 

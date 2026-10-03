@@ -173,9 +173,11 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	provideVueConsentContext(nuxtApp.vueApp, context);
 
 	if (typeof window !== 'undefined') {
-		if (nuxtApp.payload.serverRendered) {
+		if (nuxtApp.payload.serverRendered || !initFetchTarget) {
 			// Start after hydration, so the first client render matches the
-			// server's HTML.
+			// server's HTML. Client manifest mode also starts here: its
+			// manifest and resolver requests left when the runtime was built,
+			// so starting earlier would only put work in front of the mount.
 			nuxtApp.hook('app:mounted', () => context.start());
 		} else {
 			// No server markup to match (`ssr: false`): start now, so `/init`
