@@ -1,12 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { setupColorScheme } from '../color-scheme';
 import {
 	getFocusableElements,
 	getTextDirection,
 	firstTabbable,
 	tabbableElements,
 	setupFocusTrap,
-	setupColorScheme,
 	setupScrollLock,
 	setupTextDirection,
 } from '../dom';

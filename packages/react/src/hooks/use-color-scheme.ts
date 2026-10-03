@@ -1,6 +1,6 @@
 'use client';
 
-import { setupColorScheme } from '@c15t/ui/utils';
+import { setupColorScheme } from '@c15t/ui/utils/color-scheme';
 import { useEffect } from 'react';
 
 export type ColorScheme = 'light' | 'dark' | 'system' | null;
