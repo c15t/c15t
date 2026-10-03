@@ -133,10 +133,14 @@ above, plus:
 | `iframeBlocker` | `false` removes the blocker. A new `disableAutomaticBlocking` rebuilds it. |
 | `callbacks`, `reloadOnConsentRevoked` | Read when an event fires, so the latest values apply. |
 
-`enabled` and `overrides` apply before `update()` returns. The rest of the
-comparison loads with the first `update()`, so a provider whose options never
-change after mount does not download it; those changes apply once it has
-loaded, and the returned promise settles then.
+`enabled`, `overrides` and `consentCategories` apply before `update()`
+returns. The rest of the comparison loads with the first `update()` in which
+some option is a new value. Calling `update()` with the option values the
+runtime already has, as a mount-time effect does, downloads nothing. Those
+changes apply once it has loaded, and the returned promise settles then. Until
+the network blocker has new or wider rules, requests they match are held, the
+way the runtime holds requests from construction until the blocker loads, so
+none goes out unchecked.
 
 `nonce`, `scriptLoader.onDebug` and the network blocker's `logBlockedRequests`
 and `onRequestBlocked` are read when their module starts. Every other option is

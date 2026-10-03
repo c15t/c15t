@@ -157,6 +157,43 @@ afterEach(() => {
 });
 
 describe('update()', () => {
+	test('requests new network rules match are held until the update has applied them', async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn(() => Promise.resolve(new Response('ok')));
+		window.fetch = network as unknown as typeof window.fetch;
+		try {
+			const fakes = createFakeModules();
+			const first = [{ category: 'marketing', domain: 'first.example' }];
+			const next = [{ category: 'marketing', domain: 'next.example' }];
+			const options: ConsentProviderRuntimeOptions = {
+				mode: custom(createTransport()),
+				networkBlocker: { rules: first as never },
+			};
+			const runtime = create(options, fakes.modules);
+			runtime.start();
+
+			const applied = runtime.update({
+				...options,
+				networkBlocker: { rules: next as never },
+			});
+			const request = window.fetch('https://next.example/pixel');
+			await Promise.resolve();
+			// Sent before the blocker had the rule, it would have gone out.
+			expect(network).not.toHaveBeenCalled();
+
+			await applied;
+			expect(fakes.blockers[0]?.rules).toEqual([first, next]);
+			// Released through the updated blocker (a fake that sends it).
+			await request;
+			expect(network).toHaveBeenCalledWith(
+				'https://next.example/pixel',
+				undefined
+			);
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('`enabled` and overrides apply at once; the rest once the returned promise settles', async () => {
 		const options: ConsentProviderRuntimeOptions = {
 			consentCategories: ['marketing'],
@@ -171,6 +208,10 @@ describe('update()', () => {
 			overrides: { country: 'FR' },
 		});
 		expect(runtime.enabled).toBe(false);
+		// Configured categories decide what is granted: they apply now.
+		expect(runtime.kernel.getSnapshot().consentCategories).toEqual([
+			'measurement',
+		]);
 		await applied;
 		await runtime.update({ ...options, overrides: { country: 'FR' } });
 

@@ -12,7 +12,6 @@
  *
  * @internal
  */
-import type { AllConsentNames } from '../consent/consent-types';
 import type { hostExperiment } from '../libs/experiment';
 import type { extractConsentNamesFromCondition } from '../libs/has';
 import type { declareOwnedVendors, resolveVendors } from '../libs/vendors';
@@ -76,7 +75,6 @@ export interface ProviderUpdateHost {
 	main: BuiltProviderRuntime;
 	/** The provider's token among the owners of its vendor slugs. */
 	ownerSource: symbol;
-	setConsentCategories: (categories: AllConsentNames[] | undefined) => void;
 	tools: ProviderUpdateTools;
 }
 
@@ -280,7 +278,7 @@ const syncModules = function syncModules(
  * @param previous - The options last applied.
  * @param current - The options to apply.
  * @param withModules - Whether to bring mounted modules up to `current`;
- * `false` before `start()` and after `enabled` mounted them again.
+ * `false` before `start()`.
  * @internal
  */
 export const applyProviderUpdate = function applyProviderUpdate(
@@ -302,12 +300,6 @@ export const applyProviderUpdate = function applyProviderUpdate(
 	const user = normalizeKernelUser(current.user);
 	if (userKey(user) !== userKey(normalizeKernelUser(previous.user))) {
 		void host.main.runtime.identify(user);
-	}
-	if (
-		JSON.stringify(current.consentCategories) !==
-		JSON.stringify(previous.consentCategories)
-	) {
-		host.setConsentCategories(current.consentCategories);
 	}
 	if (vendorsKey(current) !== vendorsKey(previous)) {
 		redeclareVendors(host, current);

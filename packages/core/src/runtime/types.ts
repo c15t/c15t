@@ -632,10 +632,12 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * read from the latest set. A change to `mode`, `i18n`, `experiment`,
 	 * `persistence` or `storageConfig` logs a warning outside production.
 	 *
-	 * New overrides and `enabled` apply at once. The rest of the comparison
-	 * loads with the first `update()`, so a provider whose options never
-	 * change does not ship it; the returned promise resolves once every
-	 * change has applied.
+	 * New overrides, `enabled` and `consentCategories` apply at once, and
+	 * requests that new network blocker rules match are held until the
+	 * blocker has those rules. The rest of the comparison loads on demand,
+	 * with the first `update()` in which some option is a new value, so
+	 * options handed back unchanged load nothing. The returned promise
+	 * resolves once every change has applied.
 	 */
 	update: (options: ConsentRuntimeUpdate) => Promise<void>;
 	/**

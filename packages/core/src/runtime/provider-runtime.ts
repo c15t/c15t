@@ -24,6 +24,7 @@ import { hostExperiment } from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
+import type { NetworkHold } from '../modules/network-blocker/hold';
 import { assembleConsentRuntime, storageFor } from './assemble';
 import { afterModuleLoaded } from './lazy-module';
 import type * as ProviderUpdateModule from './provider-update';
@@ -55,37 +56,30 @@ const LIVE_OPTIONS = new Set<PropertyKey>([
 	'vendors',
 ]);
 
-const isPromiseLike = function isPromiseLike<Value>(
-	value: Value | PromiseLike<Value> | undefined
-): value is PromiseLike<Value> {
-	return typeof (value as PromiseLike<Value> | undefined)?.then === 'function';
-};
-
-/** The prefetch known now: none while a promise is still pending. */
-const syncPrefetch = function syncPrefetch(
-	prefetch: ConsentProviderRuntimeOptions['prefetch']
-): RuntimePrefetch | undefined {
-	return isPromiseLike(prefetch) ? undefined : prefetch;
-};
-
-const isProduction = function isProduction(): boolean {
-	return (
-		(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
-			?.NODE_ENV === 'production'
-	);
-};
-
-const warnInDevelopment = function warnInDevelopment(message: string): void {
-	if (!isProduction()) {
-		console.warn(message);
-	}
-};
-
 /** Overrides compared without regard to key order. */
 const overridesKey = function overridesKey(
 	overrides: ConsentRuntimeUpdate['overrides']
 ): string {
 	return JSON.stringify(Object.entries(overrides ?? {}).sort());
+};
+
+/**
+ * Whether any option is a new value. `update()` loads the update module
+ * only then: a provider that hands back the options it already gave (Svelte's
+ * update effect also runs on mount) downloads nothing. The module compares
+ * values itself, so a new object holding the same values loads it and
+ * changes nothing.
+ */
+const changed = function changed(
+	applied: ConsentRuntimeUpdate,
+	next: ConsentRuntimeUpdate
+): boolean {
+	for (const key in { ...applied, ...next }) {
+		if (applied[key as 'user'] !== next[key as 'user']) {
+			return true;
+		}
+	}
+	return false;
 };
 
 /** The scripts and rules whose slugs declare vendors. */
@@ -205,13 +199,17 @@ export const createConsentProviderRuntime =
 		modules: ConsentRuntimeModules
 	): ConsentProviderRuntime {
 		const initial = options;
+		// The prefetch known now: none while a promise is still pending.
+		const knownPrefetch =
+			typeof (initial.prefetch as PromiseLike<unknown> | undefined)?.then ===
+			'function'
+				? undefined
+				: (initial.prefetch as RuntimePrefetch | undefined);
 		let current: ConsentRuntimeUpdate = options;
 		let enabled = options.enabled ?? true;
 		let started = false;
 		let disposed = false;
 		let overridesChanged = false;
-		// `enabled` mounted every module again since the last update applied.
-		let remounted = false;
 		const listeners = new Set<() => void>();
 		const notify = function notify() {
 			for (const listener of listeners) {
@@ -234,9 +232,15 @@ export const createConsentProviderRuntime =
 			// it only after construction.
 			const built: { runtime?: ConsentRuntime } = {};
 			const { streamPrefetch } = modules;
-			const pending = on && isPromiseLike(initial.prefetch);
-			if (pending && !streamPrefetch) {
-				warnInDevelopment(
+			// A promise: the only prefetch not known now.
+			const pending = on && initial.prefetch !== knownPrefetch;
+			if (
+				pending &&
+				!streamPrefetch &&
+				(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
+					?.env?.NODE_ENV !== 'production'
+			) {
+				console.warn(
 					'c15t: `prefetch` is a promise, but the runtime was created without `streamPrefetch` in its modules. It is ignored and the runtime requests the policy itself.'
 				);
 			}
@@ -265,10 +269,9 @@ export const createConsentProviderRuntime =
 						// overrides or the language changed before start or while
 						// disabled, the prefetch answers for other inputs: start
 						// asks the backend instead.
-						const prefetch = syncPrefetch(initial.prefetch);
-						return prefetch && overridesChanged
-							? { ...prefetch, initialPolicyPending: true }
-							: prefetch;
+						return knownPrefetch && overridesChanged
+							? { ...knownPrefetch, initialPolicyPending: true }
+							: knownPrefetch;
 					}
 					const source = LIVE_OPTIONS.has(key) ? current : initial;
 					return source[key as keyof ConsentRuntimeUpdate];
@@ -383,7 +386,6 @@ export const createConsentProviderRuntime =
 			},
 			main,
 			ownerSource,
-			setConsentCategories: (categories) => setConsentCategories(categories),
 			tools: {
 				afterModuleLoaded,
 				declareOwnedVendors,
@@ -396,17 +398,38 @@ export const createConsentProviderRuntime =
 				storageFor,
 			},
 		};
-		const applyUpdate = async function applyUpdate(): Promise<void> {
-			updater ??= import('./provider-update');
-			const { applyProviderUpdate } = await updater;
-			if (disposed || applied === current) {
-				return;
+		/**
+		 * Load the update module and apply what changed. `hold` holds the
+		 * requests new network rules match until the blocker has them; it is
+		 * released through the updated blocker, or fails closed when the
+		 * update never applies.
+		 */
+		const applyUpdate = async function applyUpdate(
+			hold: NetworkHold | undefined
+		): Promise<void> {
+			// With nothing new, a hold here is for rules an earlier update set
+			// and this one put back before it applied; the blocker still has
+			// these.
+			if (changed(applied, current)) {
+				let apply: typeof ProviderUpdateModule.applyProviderUpdate;
+				try {
+					updater ??= import('./provider-update');
+					apply = (await updater).applyProviderUpdate;
+				} catch (error) {
+					hold?.block();
+					throw error;
+				}
+				if (disposed) {
+					hold?.block();
+					return;
+				}
+				if (applied !== current) {
+					const previous = applied;
+					applied = current;
+					apply(host, previous, current, started);
+				}
 			}
-			const previous = applied;
-			applied = current;
-			const syncModules = started && !remounted;
-			remounted = false;
-			applyProviderUpdate(host, previous, current, syncModules);
+			hold?.release()();
 		};
 
 		const runtime: ConsentRuntime = main.runtime;
@@ -497,14 +520,37 @@ export const createConsentProviderRuntime =
 					overridesKey(current.overrides) !== overridesKey(previous.overrides)
 				) {
 					runtime.setOverrides(current.overrides ?? {});
-					overridesChanged ||= !started || !enabled;
 					if (started && enabled) {
 						void runtime.reinit();
+					} else {
+						// The next `start()` asks the backend instead of adopting
+						// the prefetch.
+						overridesChanged = true;
 					}
 				}
 				// Mounts every module again from the new options.
 				setEnabled(current.enabled ?? true);
-				return applyUpdate();
+				// Categories decide what is granted, so they apply now too.
+				if (
+					JSON.stringify(current.consentCategories) !==
+					JSON.stringify(previous.consentCategories)
+				) {
+					setConsentCategories(current.consentCategories);
+				}
+				// New or wider network rules reach the blocker with the update
+				// module. Until then, hold what they match, as the runtime holds
+				// requests from construction until the blocker loads.
+				const before = previous.networkBlocker || undefined;
+				const after = current.networkBlocker || undefined;
+				const hold =
+					started &&
+					enabled &&
+					after &&
+					after.enabled !== false &&
+					(after.rules !== before?.rules || before?.enabled === false)
+						? holdNetworkRequests(after.rules)
+						: undefined;
+				return applyUpdate(hold);
 			},
 		};
 		return Object.setPrototypeOf(provider, runtime) as ConsentProviderRuntime;
