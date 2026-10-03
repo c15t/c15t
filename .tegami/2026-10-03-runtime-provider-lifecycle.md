@@ -18,8 +18,9 @@ of everything `createConsentRuntime` does, it has:
 - `setEnabled(enabled)`, `enabled` and `subscribe(listener)`. Turning
   `enabled` off renders a separate permissive kernel and keeps the visitor's
   records for when it is turned back on.
-- A `prefetch` that is still a promise. The first `/init` waits for it and
-  applies the result instead of sending a request.
+- A `prefetch` that is still a promise, when `streamPrefetch` is in its
+  modules. The first `/init` waits for it and applies the result instead of
+  sending a request.
 - A choice of module loading: pass `defaultRuntimeModules`, or swap a factory
   for `lazyRuntimeModule(() => import(...))`.
 

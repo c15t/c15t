@@ -140,7 +140,10 @@ read once. Outside production, a change to `mode`, `i18n` or `experiment` logs
 a warning; create a new runtime to change them.
 
 `prefetch` may also be a promise, for example the result of a server helper
-that a framework streams to the browser. The runtime starts with a provisional
+that a framework streams to the browser, when `modules` includes
+`streamPrefetch` from `c15t/runtime`. Without it, a pending prefetch is ignored
+with a warning outside production, and the runtime requests the policy itself.
+That keeps the code out of providers that never stream. The runtime starts with a provisional
 policy, so no consent surface shows, and its first `/init` waits for the
 promise and applies the result instead of sending a request. A result without
 a policy is applied as a baseline (records, location, language) and the
@@ -166,6 +169,7 @@ visitor the banner until it has loaded.
 | `createConsentProviderRuntime(options, modules)` | The runtime for a framework provider. See [runtime for a framework provider](#runtime-for-a-framework-provider). |
 | `defaultRuntimeModules` | The module factories `createConsentRuntime` mounts. |
 | `lazyRuntimeModule(load)` | Wrap a module factory so its module loads through a dynamic `import()` on first use. |
+| `streamPrefetch` | Add to the provider runtime's modules to accept a `prefetch` promise. |
 
 ## Check it works
 
