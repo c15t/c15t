@@ -1,5 +1,11 @@
+/**
+ * Every way an input reaches the snapshot agrees with the full evaluator,
+ * and an input that changes nothing keeps the snapshot reference and
+ * notifies nobody. The kernel skips derivation for unchanged inputs; these
+ * tests pin that the shortcut is never observable.
+ */
 import { enTranslations } from '@c15t/translations';
-import { afterEach, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '..';
 import {
@@ -12,121 +18,220 @@ import {
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { evaluateConsentRecord } from '../../consent-record/evaluate';
-import type { ConsentSnapshot } from '../../types';
-import { createDispatcher } from '../dispatch';
-import {
-	evaluateExternalPermissions,
-	normalizeExternalPermissions,
-} from '../external-permissions';
-import { buildNextSnapshot, snapshotChanged } from '../patch';
+import type {
+	ConsentKernel,
+	ConsentSnapshot,
+	InitResponse,
+	KernelConfig,
+} from '../../types';
 import type { SnapshotPatch } from '../patch';
-import { createRuntime } from '../runtime';
-import { buildInitialSnapshot, DEFAULT_IAB, freezeSnapshot } from '../snapshot';
+
+beforeEach(() => {
+	vi.spyOn(Date, 'now').mockReturnValue(NOW);
+});
 
 afterEach(() => vi.restoreAllMocks());
 
-const checkCommit = (initial: ConsentSnapshot, patch: SnapshotPatch) => {
-	const emit = vi.fn();
-	const listener = vi.fn();
-	const runtime = createRuntime({
-		dispatcher: createDispatcher(),
-		emit,
-		initialDraft: null,
-		initialSnapshot: initial,
-	});
-	runtime.subscribe(listener);
-	const candidate = buildNextSnapshot(initial, patch);
-	const changed = snapshotChanged(initial, candidate);
-	const expected = changed ? freezeSnapshot(candidate) : initial;
-	expect(runtime.commit(patch)).toBe(changed);
-	const actual = runtime.getSnapshot();
-	expect(actual).toEqual(expected);
-	if (!changed) {
-		expect(actual).toBe(initial);
+/** Derived fields match a full evaluation of the snapshot's own inputs. */
+const expectFullDerivation = function expectFullDerivation(
+	snapshot: ConsentSnapshot
+): void {
+	if (snapshot.externalPermissions) {
+		expect(snapshot.effectivePermissions).toEqual(snapshot.externalPermissions);
+		expect(snapshot.promptRequirement).toEqual({ kind: 'none' });
+		expect(snapshot.nextDeadline).toBeNull();
+		return;
 	}
-	expect(listener).toHaveBeenCalledTimes(changed ? 1 : 0);
-	expect(emit).toHaveBeenCalledTimes(
-		expected.effectivePermissions === initial.effectivePermissions ? 0 : 1
-	);
-	const evaluation = actual.externalPermissions
-		? evaluateExternalPermissions(actual.externalPermissions)
-		: evaluateConsentRecord({
-				choice: actual.explicitChoice,
-				gpc: actual.privacySignals.gpc.active,
-				noticeDismissal: actual.noticeDismissal,
-				now: patch.now ?? initial.evaluatedAt,
-				policy: actual.evaluationPolicy,
-			});
-	expect(actual.effectivePermissions).toEqual(evaluation.permissions);
-	expect(actual.promptRequirement).toEqual(evaluation.promptRequirement);
-	expect(actual.restrictions).toEqual(evaluation.restrictions);
-	expect(actual.nextDeadline).toBe(evaluation.nextDeadline);
-	return actual;
+	const evaluation = evaluateConsentRecord({
+		choice: snapshot.explicitChoice,
+		gpc: snapshot.privacySignals.gpc.active,
+		noticeDismissal: snapshot.noticeDismissal,
+		now: snapshot.evaluatedAt,
+		policy: snapshot.evaluationPolicy,
+	});
+	expect(snapshot.effectivePermissions).toEqual(evaluation.permissions);
+	expect(snapshot.promptRequirement).toEqual(evaluation.promptRequirement);
+	expect(snapshot.restrictions).toEqual(evaluation.restrictions);
+	expect(snapshot.nextDeadline).toBe(evaluation.nextDeadline);
 };
 
-test('every patch input agrees with full snapshot derivation', () => {
-	const initial = buildInitialSnapshot({ now: NOW });
-	const patches: Record<keyof SnapshotPatch, SnapshotPatch> = {
-		activeUI: { activeUI: 'dialog' },
-		branding: { branding: 'consent' },
-		consentCategories: { consentCategories: ['necessary', 'measurement'] },
+/**
+ * Run `operation` and check what subscribers saw: nothing when the
+ * snapshot kept its reference, the resulting snapshot last otherwise.
+ */
+const observe = async function observe(
+	kernel: ConsentKernel,
+	operation: (kernel: ConsentKernel) => unknown
+): Promise<{ before: ConsentSnapshot; after: ConsentSnapshot }> {
+	const before = kernel.getSnapshot();
+	const listener = vi.fn();
+	const unsubscribe = kernel.subscribe(listener);
+	await operation(kernel);
+	unsubscribe();
+	const after = kernel.getSnapshot();
+	if (after === before) {
+		expect(listener).not.toHaveBeenCalled();
+	} else {
+		expect(listener).toHaveBeenLastCalledWith(after);
+		expect(Object.isFrozen(after)).toBe(true);
+	}
+	expectFullDerivation(after);
+	return { after, before };
+};
+
+interface Operation {
+	config?: KernelConfig;
+	/** What the transport answers `init()` with. */
+	response?: InitResponse;
+	run: (kernel: ConsentKernel) => unknown;
+	/** Whether running it twice must leave the second run a no-op. */
+	idempotent: boolean;
+	/** The input leaves every derived field as it was. */
+	unchanged?: true;
+}
+
+/** `init()` answered by `response`; the fold re-creates objects each time. */
+const initWith = (response: InitResponse): Operation => ({
+	idempotent: false,
+	response,
+	run: (kernel) => kernel.commands.init(),
+});
+
+const VENDORS = {
+	declared: [
+		{
+			category: 'marketing' as const,
+			id: 'meta-pixel',
+			presentable: false,
+			source: 'script' as const,
+		},
+	],
+	listVersion: null,
+};
+
+/** One gate, so a repeated call is the same input. */
+const SHOW_ARM = () => true;
+
+const EXPERIMENT = {
+	acknowledgedDiagnostics: false,
+	arm: 'a',
+	assignedBy: 'host' as const,
+	id: 'exp',
+};
+
+test('every snapshot input agrees with the full evaluator', async () => {
+	const resolution = matchedResolution(optOutRule());
+	// One operation per patchable input, so a new input cannot go untested.
+	const operations: Record<keyof SnapshotPatch, Operation> = {
+		activeUI: { idempotent: true, run: (k) => k.set.activeUI('dialog') },
+		branding: initWith({ branding: 'consent' }),
+		consentCategories: {
+			idempotent: true,
+			run: (k) => k.set.consentCategories(['necessary', 'measurement']),
+		},
 		experiment: {
-			experiment: {
-				acknowledgedDiagnostics: false,
-				arm: 'a',
-				assignedBy: 'host',
-				id: 'exp',
-			},
+			idempotent: true,
+			run: (k) => k.set.experiment(EXPERIMENT),
 		},
-		experimentPending: { experimentPending: true },
-		explicitChoice: { explicitChoice: explicitChoice({ marketing: true }) },
+		experimentPending: {
+			config: {
+				initialExperiment: EXPERIMENT,
+				initialExperimentPending: true,
+			},
+			idempotent: true,
+			run: (k) => k.set.experiment(EXPERIMENT, SHOW_ARM),
+		},
+		// Hydration validates into fresh records, so a repeat is a new input.
+		explicitChoice: {
+			idempotent: false,
+			run: (k) => k.hydrate({ choice: explicitChoice({ marketing: true }) }),
+		},
 		externalPermissions: {
-			externalPermissions: normalizeExternalPermissions({ measurement: true }),
+			config: { initialExternalPermissions: {} },
+			idempotent: false,
+			run: (k) => k.set.externalPermissions({ measurement: true }),
 		},
-		iab: { iab: { ...DEFAULT_IAB, enabled: true } },
-		location: { location: { countryCode: 'DE', regionCode: null } },
+		iab: { idempotent: true, run: (k) => k.set.iab({ enabled: true }) },
+		location: initWith({ location: { countryCode: 'DE', regionCode: null } }),
 		noticeDismissal: {
-			noticeDismissal: {
-				dismissedAt: NOW,
-				fingerprint: initial.evaluationPolicy.notice.fingerprint,
-				version: 1,
-			},
-		},
-		now: { now: NOW + 1000 },
-		overrides: { overrides: { gpc: true } },
-		policyPending: { policyPending: true },
-		policySnapshotToken: { policySnapshotToken: 'token' },
-		privacyDetected: { privacyDetected: true },
-		resolution: { resolution: matchedResolution(optOutRule()) },
-		subject: { subject: { subjectId: 'sub_test' } },
-		translations: {
-			translations: { language: 'en', translations: enTranslations },
-		},
-		user: { user: { externalId: 'visitor' } },
-		vendorChoice: {
-			vendorChoice: {
-				confirmedAt: NOW - 1,
-				denied: ['meta-pixel'],
-				version: 1,
-			},
-		},
-		vendors: {
-			vendors: {
-				declared: [
-					{
-						category: 'marketing',
-						id: 'meta-pixel',
-						presentable: false,
-						source: 'script',
+			config: { initialPolicyResolution: matchedResolution(noticeRule()) },
+			idempotent: false,
+			run: (k) =>
+				k.hydrate({
+					noticeDismissal: {
+						dismissedAt: NOW,
+						fingerprint: k.getSnapshot().evaluationPolicy.notice.fingerprint,
+						version: 1,
 					},
-				],
-				listVersion: null,
-			},
+				}),
 		},
+		// Inside the current evaluation's interval: the snapshot is kept.
+		now: {
+			idempotent: true,
+			run: (k) => k.refresh(NOW + 1000),
+			unchanged: true,
+		},
+		overrides: {
+			idempotent: false,
+			run: (k) => k.set.overrides({ gpc: true }),
+		},
+		policyPending: {
+			...initWith({}),
+			config: { initialPolicyPending: true },
+		},
+		policySnapshotToken: initWith({
+			policyResolution: { ...resolution, version: 1 },
+			policySnapshotToken: 'token',
+		}),
+		privacyDetected: {
+			idempotent: true,
+			run: (k) => k.set.privacySignals({ gpc: true }),
+		},
+		resolution: initWith({ policyResolution: { ...resolution, version: 1 } }),
+		subject: { idempotent: true, run: (k) => k.set.subjectId('sub_test') },
+		translations: initWith({
+			translations: { language: 'en', translations: enTranslations },
+		}),
+		user: {
+			idempotent: false,
+			run: (k) => k.commands.identify({ externalId: 'visitor' }),
+		},
+		vendorChoice: {
+			idempotent: false,
+			run: (k) =>
+				k.hydrate({
+					vendorChoice: {
+						confirmedAt: NOW - 1,
+						denied: ['meta-pixel'],
+						version: 1,
+					},
+				}),
+		},
+		vendors: { idempotent: true, run: (k) => k.set.vendors(VENDORS) },
 	};
-	for (const patch of Object.values(patches)) {
-		const next = checkCommit(initial, patch);
-		checkCommit(next, patch);
+
+	for (const [input, operation] of Object.entries(operations)) {
+		const kernel = createConsentKernel({
+			now: NOW,
+			...operation.config,
+			initRetry: false,
+			transport: { init: () => Promise.resolve(operation.response ?? {}) },
+		});
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- one kernel at a time
+			const first = await observe(kernel, operation.run);
+			expect(first.after === first.before, input).toBe(
+				operation.unchanged === true
+			);
+			// oxlint-disable-next-line no-await-in-loop -- one kernel at a time
+			const second = await observe(kernel, operation.run);
+			// A repeat of an idempotent input keeps the snapshot it produced.
+			expect(operation.idempotent ? second.after : second.before, input).toBe(
+				second.before
+			);
+		} finally {
+			kernel.dispose();
+		}
 	}
 });
 
@@ -155,8 +260,8 @@ test('no-op init retains the initial time and snapshot but emits lifecycle event
 	}
 });
 
-test('choice expiry and backwards clocks always match the full evaluator', () => {
-	const initial = buildInitialSnapshot({
+test('choice expiry and backwards clocks always match the full evaluator', async () => {
+	const kernel = createConsentKernel({
 		initialRecords: choiceRecords({
 			experience: true,
 			functionality: true,
@@ -165,21 +270,22 @@ test('choice expiry and backwards clocks always match the full evaluator', () =>
 		}),
 		now: NOW,
 	});
+	const initial = kernel.getSnapshot();
 	const deadline = initial.nextDeadline;
 	if (deadline === null) {
 		throw new Error('Expected a choice expiry');
 	}
-	const before = checkCommit(initial, { now: deadline - 1 });
-	expect(before).toBe(initial);
-	const expired = checkCommit(before, { now: deadline });
-	expect(expired.effectivePermissions.marketing).toBe(false);
-	const rewound = checkCommit(expired, { now: deadline - 1 });
-	expect(rewound.effectivePermissions.marketing).toBe(true);
+	const before = await observe(kernel, (k) => k.refresh(deadline - 1));
+	expect(before.after).toBe(initial);
+	const expired = await observe(kernel, (k) => k.refresh(deadline));
+	expect(expired.after.effectivePermissions.marketing).toBe(false);
+	const rewound = await observe(kernel, (k) => k.refresh(deadline - 1));
+	expect(rewound.after.effectivePermissions.marketing).toBe(true);
 });
 
-test('notice expiry and clearing records keep their full derivation', () => {
+test('notice expiry and clearing records keep their full derivation', async () => {
 	const resolution = matchedResolution(noticeRule());
-	const initial = buildInitialSnapshot({
+	const config: KernelConfig = {
 		initialPolicyResolution: resolution,
 		initialRecords: {
 			noticeDismissal: {
@@ -190,41 +296,50 @@ test('notice expiry and clearing records keep their full derivation', () => {
 			subject: { subjectId: 'sub_test' },
 		},
 		now: NOW,
-	});
-	const deadline = initial.nextDeadline;
+	};
+	const omitted = createConsentKernel(config);
+	const kept = await observe(omitted, (k) =>
+		k.hydrate({ noticeDismissal: undefined, subject: undefined })
+	);
+	expect(kept.after).toBe(kept.before);
+	omitted.dispose();
+
+	const cleared = createConsentKernel(config);
+	const reset = await observe(cleared, (k) =>
+		k.hydrate({ noticeDismissal: null, subject: null })
+	);
+	expect(reset.after.promptRequirement.kind).toBe('notice');
+	cleared.dispose();
+
+	const kernel = createConsentKernel(config);
+	const deadline = kernel.getSnapshot().nextDeadline;
 	if (deadline === null) {
 		throw new Error('Expected a notice expiry');
 	}
-	checkCommit(initial, { noticeDismissal: undefined, subject: undefined });
-	checkCommit(initial, { noticeDismissal: null, subject: null });
-	const expired = checkCommit(initial, { now: deadline });
-	expect(expired.promptRequirement.kind).toBe('notice');
-	expect(checkCommit(expired, { now: NOW }).promptRequirement.kind).toBe(
-		'none'
+	const expired = await observe(kernel, (k) => k.refresh(deadline));
+	expect(expired.after.promptRequirement.kind).toBe('notice');
+	const rewound = await observe(kernel, (k) => k.refresh(NOW));
+	expect(rewound.after.promptRequirement.kind).toBe('none');
+});
+
+test('a repeated privacy signal is a no-op and a new one re-derives', async () => {
+	const kernel = createConsentKernel({ now: NOW });
+	const same = await observe(kernel, (k) =>
+		k.set.privacySignals({ gpc: false })
 	);
+	expect(same.after).toBe(same.before);
+	const changed = await observe(kernel, (k) =>
+		k.set.privacySignals({ gpc: true })
+	);
+	expect(changed.after.privacySignals.gpc.detected).toBe(true);
+	await observe(kernel, (k) =>
+		k.hydrate({ choice: explicitChoice({ marketing: true }) })
+	);
+	kernel.dispose();
 });
 
-test('reusing a mutable patch still observes changed privacy and record inputs', () => {
-	const initial = buildInitialSnapshot({ now: NOW });
-	const runtime = createRuntime({
-		dispatcher: createDispatcher(),
-		emit: vi.fn(),
-		initialDraft: null,
-		initialSnapshot: initial,
-	});
-	const patch: SnapshotPatch = { privacyDetected: false };
-	expect(runtime.commit(patch)).toBe(false);
-	patch.privacyDetected = true;
-	expect(runtime.commit(patch)).toBe(true);
-	expect(runtime.getSnapshot().privacySignals.gpc.detected).toBe(true);
-	patch.explicitChoice = explicitChoice({ marketing: true });
-	const expected = checkCommit(runtime.getSnapshot(), patch);
-	runtime.commit(patch);
-	expect(runtime.getSnapshot()).toEqual(expected);
-});
-
-test('an unchanged patch still normalizes incompatible initial IAB authority', () => {
-	const initial = buildInitialSnapshot({
+test('an unchanged refresh still normalizes incompatible initial IAB authority', async () => {
+	const kernel = createConsentKernel({
 		initialIab: {
 			authority: {
 				choiceFingerprint: 'choice-v1:stale',
@@ -241,44 +356,38 @@ test('an unchanged patch still normalizes incompatible initial IAB authority', (
 		},
 		now: NOW,
 	});
-	expect(initial.iab?.authority).not.toBeNull();
-	const next = checkCommit(initial, { now: NOW + 1, policyPending: false });
-	expect(next.iab?.authority).toBeNull();
+	expect(kernel.getSnapshot().iab?.authority).not.toBeNull();
+	const { after } = await observe(kernel, (k) => k.refresh(NOW + 1));
+	expect(after.iab?.authority).toBeNull();
 });
 
-test('a live kernel stamps an unchanged patch like the full derivation', () => {
-	const initial = buildInitialSnapshot({ now: NOW });
+test('a live kernel stamps an unchanged snapshot like the full derivation', async () => {
+	const kernel = createConsentKernel({ now: NOW });
+	const initial = kernel.getSnapshot();
 	expect(initial.activeUI).toBe('banner');
-	const emit = vi.fn();
-	const listener = vi.fn();
-	const runtime = createRuntime({
-		dispatcher: createDispatcher(),
-		emit,
-		initialDraft: null,
-		initialSnapshot: initial,
-	});
-	runtime.subscribe(listener);
-	runtime.markLive(NOW + 5);
+	const shown = vi.fn();
+	kernel.events.on('surface:shown', shown);
 
-	const actual = runtime.getSnapshot();
-	const expected = freezeSnapshot({
-		...buildNextSnapshot(initial, { now: NOW + 5 }),
+	const { after } = await observe(kernel, (k) => k.markLive(NOW + 5));
+
+	// Only the clock, the revision and the stamp move; `observe` checked the
+	// derived fields against a full evaluation at the new time.
+	expect(after).toEqual({
+		...initial,
+		evaluatedAt: NOW + 5,
+		revision: initial.revision + 1,
 		surfaceShownAt: { banner: NOW + 5, dialog: null },
 	});
-	expect(actual).toEqual(expected);
-	expect(actual.evaluatedAt).toBe(NOW + 5);
-	expect(actual.revision).toBe(initial.revision + 1);
-	expect(Object.isFrozen(actual)).toBe(true);
-	expect(Object.isFrozen(actual.surfaceShownAt)).toBe(true);
-	expect(listener).toHaveBeenCalledExactlyOnceWith(actual);
-	expect(emit).toHaveBeenCalledExactlyOnceWith({
+	expect(after.evaluatedAt).toBe(NOW + 5);
+	expect(Object.isFrozen(after.surfaceShownAt)).toBe(true);
+	expect(shown).toHaveBeenCalledExactlyOnceWith({
 		shownAt: NOW + 5,
-		snapshot: actual,
+		snapshot: after,
 		surface: 'banner',
 		type: 'surface:shown',
 	});
 
-	// The impression is recorded; the same patch is a no-op afterwards.
-	expect(runtime.commit({ now: NOW + 5 })).toBe(false);
-	expect(runtime.getSnapshot()).toBe(actual);
+	// The impression is recorded; the same evaluation is a no-op afterwards.
+	const repeat = await observe(kernel, (k) => k.refresh(NOW + 5));
+	expect(repeat.after).toBe(after);
 });

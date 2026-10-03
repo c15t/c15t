@@ -13,18 +13,18 @@ import {
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import type {
+	ConsentSnapshot,
+	InitResponse,
 	KernelConfig,
 	KernelVendorsState,
 	ResolvedVendor,
 	SavePayload,
 	KernelTransport,
 } from '../../types';
-import { applyInitResponse } from '../apply-init-response';
 import { createKernel as assembleKernel } from '../index';
-import { validateVendorChoice } from '../records';
+import { validateVendorChoice } from '../record-validation';
 import { createMemoryOutboxStore } from '../save-outbox';
 import type { SaveOutboxStore } from '../save-outbox';
-import { buildInitialSnapshot } from '../snapshot';
 
 afterEach(() => {
 	vi.restoreAllMocks();
@@ -108,15 +108,18 @@ describe('validateVendorChoice', () => {
 
 describe('snapshot vendor state', () => {
 	test('an empty declared list still keeps its version', () => {
-		const snap = buildInitialSnapshot({
+		const snap = assembleKernel({
 			initialVendors: { declared: [], listVersion: '2026-09' },
 			now: NOW,
-		});
+		}).getSnapshot();
 		expect(snap.vendors).toEqual({ declared: [], listVersion: '2026-09' });
 	});
 
 	test('construction copies declared vendors and seeds no denial', () => {
-		const snap = buildInitialSnapshot({ initialVendors: vendors, now: NOW });
+		const snap = assembleKernel({
+			initialVendors: vendors,
+			now: NOW,
+		}).getSnapshot();
 		expect(snap.vendors?.declared).toHaveLength(3);
 		expect(snap.vendors?.listVersion).toBe('2026-09');
 		expect(snap.vendorChoice).toBeNull();
@@ -889,11 +892,41 @@ describe('save with vendors', () => {
 	});
 });
 
+/**
+ * The snapshot before and after `init()` answered by each response in turn.
+ * The policy contract is omitted unless a response carries one, so the
+ * fold falls back safely and only vendors and records are under test.
+ */
+const initWith = async function initWith(
+	overrides: KernelConfig,
+	...responses: InitResponse[]
+) {
+	const init = vi.fn();
+	for (const response of responses) {
+		init.mockResolvedValueOnce(response);
+	}
+	const kernel = createKernel({
+		...overrides,
+		initRetry: false,
+		transport: { init },
+	});
+	const before = kernel.getSnapshot();
+	const after: ConsentSnapshot[] = [];
+	for (const _ of responses) {
+		// oxlint-disable-next-line no-await-in-loop -- inits run in order
+		await kernel.commands.init();
+		after.push(kernel.getSnapshot());
+	}
+	kernel.dispose();
+	return { after, before };
+};
+
 describe('server records and init', () => {
-	test('init folds backend vendors under code-declared presentation', () => {
-		const current = buildInitialSnapshot({ initialVendors: vendors, now: NOW });
-		const { patch } = applyInitResponse(
-			current,
+	test('init folds backend vendors under code-declared presentation', async () => {
+		const {
+			after: [snapshot],
+		} = await initWith(
+			{},
 			{
 				policyResolution: {
 					fingerprints: matchedResolution(optInRule()).fingerprints,
@@ -918,67 +951,28 @@ describe('server records and init', () => {
 						privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
 					},
 				],
-			},
-			NOW
+			}
 		);
-		expect(patch.vendors?.listVersion).toBe('2026-10');
-		expect(patch.vendors?.declared.map((vendor) => vendor.id)).toEqual([
+		expect(snapshot?.vendors?.listVersion).toBe('2026-10');
+		expect(snapshot?.vendors?.declared.map((vendor) => vendor.id)).toEqual([
 			'cdn',
 			'google-analytics',
 			'intercom',
 			'meta-pixel',
 		]);
 		expect(
-			patch.vendors?.declared.find((vendor) => vendor.id === 'meta-pixel')?.name
+			snapshot?.vendors?.declared.find((vendor) => vendor.id === 'meta-pixel')
+				?.name
 		).toBe('Meta Pixel');
 	});
 
-	test('a newer all-granted server map clears an older local denial', () => {
-		const current = buildInitialSnapshot({
-			initialRecords: {
-				...choiceRecords({ marketing: true }),
-				vendorChoice: {
-					confirmedAt: NOW - 10,
-					denied: ['meta-pixel'],
-					version: 1,
-				},
-			},
-			initialVendors: vendors,
-			now: NOW,
-		});
-		const { patch } = applyInitResponse(
-			current,
+	test('a newer all-granted server map clears an older local denial', async () => {
+		const {
+			after: [snapshot],
+		} = await initWith(
 			{
-				policyResolution: undefined,
-				records: {
-					vendorChoice: { confirmedAt: NOW - 5, denied: [], version: 1 },
-				},
-			},
-			NOW
-		);
-		expect(patch.vendorChoice).toEqual({
-			confirmedAt: NOW - 5,
-			denied: [],
-			version: 1,
-		});
-	});
-
-	test('granting the last denied vendor survives an older server denial that lands afterwards', () => {
-		const current = buildInitialSnapshot({
-			initialRecords: {
-				...choiceRecords({ marketing: true }),
-				// The visitor lifted a denial at NOW - 2 ...
-				vendorChoice: { confirmedAt: NOW - 2, denied: [], version: 1 },
-			},
-			initialVendors: vendors,
-			now: NOW,
-		});
-		// ... and a server read taken earlier still carries the denial.
-		const { patch } = applyInitResponse(
-			current,
-			{
-				policyResolution: undefined,
-				records: {
+				initialRecords: {
+					...choiceRecords({ marketing: true }),
 					vendorChoice: {
 						confirmedAt: NOW - 10,
 						denied: ['meta-pixel'],
@@ -986,33 +980,66 @@ describe('server records and init', () => {
 					},
 				},
 			},
-			NOW
+			{
+				records: {
+					vendorChoice: { confirmedAt: NOW - 5, denied: [], version: 1 },
+				},
+			}
 		);
-		expect(patch.vendorChoice).toBe(current.vendorChoice);
+		expect(snapshot?.vendorChoice).toEqual({
+			confirmedAt: NOW - 5,
+			denied: [],
+			version: 1,
+		});
 	});
 
-	test('a later init replaces the previous backend vendor list', () => {
-		const current = buildInitialSnapshot({
-			initialVendors: {
-				declared: [
-					...vendors.declared,
-					{
-						category: 'experience',
-						id: 'old-backend',
-						name: 'Old',
-						presentable: true,
-						privacyPolicyUrl: 'https://example.com/old',
-						source: 'manifest',
-					},
-				],
-				listVersion: '1',
-			},
-			now: NOW,
-		});
-		const { patch } = applyInitResponse(
-			current,
+	test('granting the last denied vendor survives an older server denial that lands afterwards', async () => {
+		const {
+			before,
+			after: [snapshot],
+		} = await initWith(
 			{
-				policyResolution: undefined,
+				initialRecords: {
+					...choiceRecords({ marketing: true }),
+					// The visitor lifted a denial at NOW - 2 ...
+					vendorChoice: { confirmedAt: NOW - 2, denied: [], version: 1 },
+				},
+			},
+			// ... and a server read taken earlier still carries the denial.
+			{
+				records: {
+					vendorChoice: {
+						confirmedAt: NOW - 10,
+						denied: ['meta-pixel'],
+						version: 1,
+					},
+				},
+			}
+		);
+		expect(snapshot?.vendorChoice).toBe(before.vendorChoice);
+	});
+
+	test('a later init replaces the previous backend vendor list', async () => {
+		const {
+			after: [snapshot],
+		} = await initWith(
+			{
+				initialVendors: {
+					declared: [
+						...vendors.declared,
+						{
+							category: 'experience',
+							id: 'old-backend',
+							name: 'Old',
+							presentable: true,
+							privacyPolicyUrl: 'https://example.com/old',
+							source: 'manifest',
+						},
+					],
+					listVersion: '1',
+				},
+			},
+			{
 				vendorListVersion: '2',
 				vendors: [
 					{
@@ -1022,11 +1049,10 @@ describe('server records and init', () => {
 						privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
 					},
 				],
-			},
-			NOW
+			}
 		);
-		expect(patch.vendors?.listVersion).toBe('2');
-		expect(patch.vendors?.declared.map((vendor) => vendor.id)).toEqual([
+		expect(snapshot?.vendors?.listVersion).toBe('2');
+		expect(snapshot?.vendors?.declared.map((vendor) => vendor.id)).toEqual([
 			'cdn',
 			'google-analytics',
 			'intercom',
@@ -1034,65 +1060,52 @@ describe('server records and init', () => {
 		]);
 	});
 
-	test('a replacement list without a version drops the previous label', () => {
-		const current = buildInitialSnapshot({
+	test('a replacement list without a version drops the previous label', async () => {
+		const config: KernelConfig = {
 			initialVendors: { declared: [], listVersion: '1' },
-			now: NOW,
+		};
+		const {
+			after: [replaced],
+		} = await initWith(config, {
+			vendors: [
+				{
+					category: 'experience',
+					id: 'intercom',
+					name: 'Intercom',
+					privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
+				},
+			],
 		});
-		const replaced = applyInitResponse(
-			current,
-			{
-				policyResolution: undefined,
-				vendors: [
-					{
-						category: 'experience',
-						id: 'intercom',
-						name: 'Intercom',
-						privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
-					},
-				],
-			},
-			NOW
-		);
 		// The old label described the old list.
-		expect(replaced.patch.vendors?.listVersion).toBeNull();
+		expect(replaced?.vendors?.listVersion).toBeNull();
 		// A version-only response relabels the current declarations.
-		const relabelled = applyInitResponse(
-			current,
-			{ policyResolution: undefined, vendorListVersion: '2' },
-			NOW
-		);
-		expect(relabelled.patch.vendors?.listVersion).toBe('2');
+		const {
+			after: [relabelled],
+		} = await initWith(config, { vendorListVersion: '2' });
+		expect(relabelled?.vendors?.listVersion).toBe('2');
 	});
 
-	test('server vendor records merge newest-wins on init', () => {
-		const current = buildInitialSnapshot({
-			initialRecords: {
-				...choiceRecords({ marketing: true }),
-				vendorChoice: {
-					confirmedAt: NOW - 10,
-					denied: ['meta-pixel'],
-					version: 1,
+	test('server vendor records merge newest-wins on init', async () => {
+		const {
+			before,
+			after: [older, newer],
+		} = await initWith(
+			{
+				initialRecords: {
+					...choiceRecords({ marketing: true }),
+					vendorChoice: {
+						confirmedAt: NOW - 10,
+						denied: ['meta-pixel'],
+						version: 1,
+					},
 				},
 			},
-			initialVendors: vendors,
-			now: NOW,
-		});
-		const older = applyInitResponse(
-			current,
 			{
-				policyResolution: undefined,
 				records: {
 					vendorChoice: { confirmedAt: NOW - 20, denied: [], version: 1 },
 				},
 			},
-			NOW
-		);
-		expect(older.patch.vendorChoice).toBe(current.vendorChoice);
-		const newer = applyInitResponse(
-			current,
 			{
-				policyResolution: undefined,
 				records: {
 					vendorChoice: {
 						confirmedAt: NOW - 5,
@@ -1100,10 +1113,10 @@ describe('server records and init', () => {
 						version: 1,
 					},
 				},
-			},
-			NOW
+			}
 		);
-		expect(newer.patch.vendorChoice?.denied).toEqual(['google-analytics']);
+		expect(older?.vendorChoice).toBe(before.vendorChoice);
+		expect(newer?.vendorChoice?.denied).toEqual(['google-analytics']);
 	});
 });
 

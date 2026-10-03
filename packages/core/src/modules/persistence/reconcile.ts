@@ -38,7 +38,7 @@ import type {
 	ExplicitChoice,
 	NoticeDismissal,
 } from '../../consent-record/types';
-import { mergeNewestChoice } from '../../kernel/records';
+import { mergeNewestChoice } from '../../kernel/record-validation';
 import type {
 	ConsentSnapshot,
 	HydrationRecords,

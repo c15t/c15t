@@ -3,19 +3,22 @@
  *
  * The kernel is the single source of truth for consent state. It owns
  * a frozen snapshot, a snapshot-listener set, and a typed event bus.
- * Concerns are split across siblings:
+ * It is organised by concept:
  *
- * - `snapshot.ts`             — initial-state construction + freezing.
- * - `patch.ts`                — `SnapshotPatch` shape + pure derivation.
- * - `records.ts`              — validation for hydration records.
- * - `runtime.ts`              — commit, hydrate, refresh, timers, GPC detection.
- * - `apply-init-response.ts`  — pure transport-response folder.
- * - `setters.ts`              — `kernel.set.*` (sync mutators).
- * - `commands.ts`             — `kernel.commands.*` (async I/O).
- * - `save-outbox/`            — sending recorded choices, the replay queue
- *                               and its storage seam.
- * - `events.ts`               — typed event bus.
- * - `dispatch.ts`             — ordered, isolated listener delivery.
+ * - `init-lifecycle.ts` — start, `init()` attempts, retry and fencing, the
+ *                         `/init` fold, the deadline timer, and the one
+ *                         visibility and one online listener.
+ * - `choice.ts`         — `save()`, `dismissNotice()` and drafts; hands each
+ *                         recorded action to the save outbox.
+ * - `records.ts`        — the records boundary: validation, `hydrate()`,
+ *                         server-record merge, `identify()`, subject id.
+ * - `save-outbox/`      — sending recorded choices, the replay queue and
+ *                         its storage seam.
+ * - `setters.ts`        — the remaining `kernel.set.*` inputs.
+ *
+ * They all write through `runtime.ts`, the snapshot cell, which derives
+ * through `patch.ts` and `snapshot.ts` and delivers through `dispatch.ts`
+ * and `events.ts`.
  *
  * Invariants:
  * - `createConsentKernel()` has zero side effects. No window writes, no
@@ -35,9 +38,11 @@
  *   delivered before any transition a listener starts in response.
  */
 import type { ConsentKernel, KernelConfig } from '../types';
-import { buildCommands } from './commands';
+import { createChoiceRecorder } from './choice';
 import { createDispatcher } from './dispatch';
 import { createEventBus } from './events';
+import { createInitLifecycle } from './init-lifecycle';
+import { createRecordsBoundary } from './records';
 import { createRuntime } from './runtime';
 import { createBrowserOutboxStore, createSaveOutbox } from './save-outbox';
 import type { SaveOutboxOptions } from './save-outbox';
@@ -87,15 +92,15 @@ export const createKernel = function createKernel(
 	const runtime = createRuntime({
 		dispatcher,
 		emit: eventBus.emit,
-		initialDraft: buildDraft(config.initialDraft),
 		initialSnapshot,
+		// oxlint-disable-next-line no-use-before-define -- Commits run only after assembly.
+		onDeadlineChange: () => lifecycle.armDeadline(),
 	});
-	const set = buildSetters(runtime, config);
 	const outbox = createSaveOutbox({
 		// Tests pass `() => import('./save-outbox/queue')` or a fake of it.
 		loadQueue: seams.loadOutboxQueue as SaveOutboxOptions['loadQueue'],
-		// oxlint-disable-next-line no-use-before-define -- Called only after a send, once the commands exist.
-		retryWhenOnline: () => commandHandle.retryWhenOnline(),
+		// oxlint-disable-next-line no-use-before-define -- Called only after a send, once the lifecycle exists.
+		retryWhenOnline: () => lifecycle.retryWhenOnline(),
 		runtime,
 		store: seams.outboxStore ?? createBrowserOutboxStore(),
 		transport,
@@ -106,17 +111,32 @@ export const createKernel = function createKernel(
 	eventBus.on('records:cleared', () => {
 		void outbox.clear();
 	});
-	const commandHandle = buildCommands({
+	const lifecycle = createInitLifecycle({
 		initRetry: config.initRetry,
 		outbox,
 		runtime,
 		translationOverrides: config.translationOverrides,
 		transport,
 	});
+	const records = createRecordsBoundary({
+		runtime,
+		start: lifecycle.start,
+		transport,
+	});
+	const choice = createChoiceRecorder({
+		initialDraft: buildDraft(config.initialDraft),
+		outbox,
+		runtime,
+	});
 
 	return {
-		commands: commandHandle.commands,
-		dispose: commandHandle.dispose,
+		commands: {
+			dismissNotice: choice.dismissNotice,
+			identify: records.identify,
+			init: lifecycle.init,
+			save: choice.save,
+		},
+		dispose: lifecycle.dispose,
 		events: {
 			emit: eventBus.emit,
 			on: eventBus.on,
@@ -124,10 +144,15 @@ export const createKernel = function createKernel(
 		getRecordsGeneration: runtime.getGeneration,
 		getServerSnapshot: () => serverSnapshot,
 		getSnapshot: runtime.getSnapshot,
-		hydrate: runtime.hydrate,
+		hydrate: records.hydrate,
 		markLive: runtime.markLive,
-		refresh: runtime.refresh,
-		set,
+		refresh: lifecycle.refresh,
+		set: {
+			...buildSetters(runtime, config),
+			draft: choice.draft,
+			subjectId: records.setSubjectId,
+			vendorDraft: choice.vendorDraft,
+		},
 		subscribe: runtime.subscribe,
 	};
 };

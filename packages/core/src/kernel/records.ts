@@ -1,245 +1,225 @@
 /**
- * Validation for records that enter the kernel without creating a choice:
- * SSR seeds, storage hydration and server-mapped receipts.
+ * The records boundary: how stored and server records enter the kernel
+ * without creating a choice.
  *
- * Pure. Every record is checked with the reviewed validators against the
- * supplied `now`; one invalid record rejects the whole input so nothing is
- * salvaged from a broken record.
+ * - Every record is validated (`record-validation.ts`) against the time it
+ *   applies at; one invalid record rejects the whole input.
+ * - `hydrate()` replaces records (SSR seeds, storage, a clear with `null`s).
+ *   Replacing or clearing the choice or the subject bumps the records
+ *   generation, which fences every async read or save started before it.
+ * - Server records (an `/init` response, a subject read after `identify()`)
+ *   merge newest-wins per category and never remove local standing state,
+ *   so a delayed server read cannot overwrite a newer local action.
+ * - `identify()` and `set.subjectId` change who the records belong to.
+ *
+ * Clearing is `hydrate()` with `null`s followed by `records:cleared`, which
+ * the save outbox listens for.
  */
-import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
 import type {
-	ConsentSubject,
-	ExplicitChoice,
-	NoticeDismissal,
-} from '../consent-record/types';
+	ConsentSnapshot,
+	HydrationRecords,
+	HydrationResult,
+	KernelTransport,
+	KernelUser,
+} from '../types';
+import type { SnapshotPatch } from './patch';
 import {
-	checkTimestamp,
-	isNonEmptyString,
-	isPlainRecord,
-	ownKeys,
-	ownValue,
-	validateExplicitChoice,
-	validateNoticeDismissal,
-} from '../consent-record/validation';
-import type { RecordIssue } from '../consent-record/validation';
-import { isValidVendorId } from '../libs/vendors';
-import type { HydrationRecords, VendorChoice } from '../types';
+	mergeNewestChoice,
+	mergeNewestVendorChoice,
+	validateHydrationRecords,
+} from './record-validation';
+import type { ValidatedRecords } from './record-validation';
+import type { KernelRuntime } from './runtime';
 
-/** Validated records with the same omit/clear semantics as the input. */
-export interface ValidatedRecords {
-	choice?: ExplicitChoice | null;
-	subject?: ConsentSubject | null;
-	noticeDismissal?: NoticeDismissal | null;
-	vendorChoice?: VendorChoice | null;
+/**
+ * The patch server records make: the newest receipt per category, the
+ * newest notice dismissal and vendor decision, and subject fields filled
+ * in without dropping local identifiers.
+ */
+export const foldServerRecords = function foldServerRecords(
+	current: ConsentSnapshot,
+	records: ValidatedRecords,
+	now: number
+): SnapshotPatch {
+	const patch: SnapshotPatch = { now };
+	if (records.choice !== undefined) {
+		patch.explicitChoice = mergeNewestChoice(
+			current.explicitChoice,
+			records.choice
+		);
+	}
+	if (records.noticeDismissal !== undefined) {
+		const local = current.noticeDismissal;
+		const incoming = records.noticeDismissal;
+		patch.noticeDismissal =
+			incoming && (!local || incoming.dismissedAt > local.dismissedAt)
+				? incoming
+				: local;
+	}
+	if (records.subject !== undefined) {
+		patch.subject = records.subject
+			? { ...current.subject, ...records.subject }
+			: current.subject;
+	}
+	if (records.vendorChoice !== undefined) {
+		patch.vendorChoice = mergeNewestVendorChoice(
+			current.vendorChoice,
+			records.vendorChoice
+		);
+	}
+	return patch;
+};
+
+export interface RecordsBoundaryOptions {
+	runtime: KernelRuntime;
+	transport: KernelTransport | undefined;
+	/** Starts the lifecycle; hydration counts as a lifecycle command. */
+	start: () => void;
 }
 
-export type ValidateRecordsResult =
-	| { ok: true; records: ValidatedRecords }
-	| { ok: false; issues: RecordIssue[] };
-
-const SUBJECT_KEYS = ['subjectId', 'externalId', 'identityProvider'] as const;
-
-const validateSubject = function validateSubject(
-	input: unknown,
-	issues: RecordIssue[]
-): ConsentSubject | null {
-	if (!isPlainRecord(input)) {
-		issues.push({ code: 'not-an-object', path: 'subject' });
-		return null;
-	}
-	const subject: ConsentSubject = {};
-	let any = false;
-	for (const key of ownKeys(input)) {
-		if (!SUBJECT_KEYS.includes(key as (typeof SUBJECT_KEYS)[number])) {
-			issues.push({ code: 'unknown-key', path: `subject.${key}` });
-			continue;
-		}
-		const value = ownValue(input, key);
-		if (value === undefined) {
-			continue;
-		}
-		if (!isNonEmptyString(value)) {
-			issues.push({ code: 'invalid-identifier', path: `subject.${key}` });
-			continue;
-		}
-		subject[key as (typeof SUBJECT_KEYS)[number]] = value;
-		any = true;
-	}
-	return any ? subject : null;
-};
+export interface RecordsBoundary {
+	hydrate: (records: HydrationRecords) => HydrationResult;
+	identify: (user: KernelUser) => Promise<void>;
+	setSubjectId: (id: string | null) => void;
+}
 
 /**
- * Validates a version 1 vendor denial list: a past timestamp and a list of
- * non-empty string ids. Duplicates collapse; the result is sorted so two
- * lists with the same members compare equal by value.
+ * Create the records boundary of one kernel.
  */
-export const validateVendorChoice = function validateVendorChoice(
-	input: unknown,
-	now: number
-): { ok: true; record: VendorChoice } | { ok: false; issues: RecordIssue[] } {
-	if (!isPlainRecord(input)) {
-		return { issues: [{ code: 'not-an-object', path: '' }], ok: false };
-	}
-	if (ownValue(input, 'version') !== 1) {
-		return {
-			issues: [{ code: 'unsupported-version', path: 'version' }],
-			ok: false,
-		};
-	}
-	const issues: RecordIssue[] = [];
-	for (const key of ownKeys(input)) {
-		if (key !== 'version' && key !== 'confirmedAt' && key !== 'denied') {
-			issues.push({ code: 'unknown-key', path: key });
+export const createRecordsBoundary = function createRecordsBoundary({
+	runtime,
+	transport,
+	start,
+}: RecordsBoundaryOptions): RecordsBoundary {
+	const { getSnapshot, commit, emit } = runtime;
+	// Bumped by every `identify()` so a subject read started by an earlier
+	// identify cannot apply after a later one.
+	let identifyGeneration = 0;
+
+	const applyRecords = function applyRecords(
+		records: HydrationRecords,
+		fromServer: boolean
+	): HydrationResult {
+		const at = records.now ?? runtime.now();
+		const validated = validateHydrationRecords(records, at);
+		if (validated.ok === false) {
+			return validated;
 		}
-	}
-	const confirmedAt = ownValue(input, 'confirmedAt');
-	const timestampIssue = checkTimestamp(confirmedAt, now);
-	if (timestampIssue) {
-		issues.push({ code: timestampIssue, path: 'confirmedAt' });
-	}
-	const rawDenied = ownValue(input, 'denied');
-	const denied = new Set<string>();
-	if (Array.isArray(rawDenied)) {
-		for (const [index, entry] of rawDenied.entries()) {
-			// The same slug shape a declaration must have. A stored id outside
-			// it would ride into every later grant map and fail the wire schema.
-			if (!isNonEmptyString(entry) || !isValidVendorId(entry)) {
-				issues.push({ code: 'invalid-identifier', path: `denied[${index}]` });
-				continue;
+		start();
+		const before = getSnapshot();
+		let patch: SnapshotPatch;
+		let reset = false;
+		if (fromServer) {
+			patch = foldServerRecords(before, validated.records, at);
+		} else {
+			const { choice, ...rest } = validated.records;
+			patch = { ...rest, now: at };
+			if (choice !== undefined) {
+				patch.explicitChoice = choice;
 			}
-			denied.add(entry);
+			reset = choice === null || rest.subject === null;
+			if (reset && before.iab) {
+				patch.iab = { ...before.iab, authority: null, tcString: null };
+			}
 		}
-	} else {
-		issues.push({ code: 'not-an-object', path: 'denied' });
-	}
-	if (issues.length > 0) {
-		return { issues, ok: false };
-	}
+		const changed = commit(patch);
+		const after = getSnapshot();
+		if (
+			reset ||
+			after.explicitChoice !== before.explicitChoice ||
+			after.subject !== before.subject
+		) {
+			runtime.invalidateRecords();
+		}
+		return { changed, ok: true };
+	};
+
+	const loadSubjectRecord = async function loadSubjectRecord(
+		subjectId: string | null,
+		identifyAttempt: number
+	): Promise<void> {
+		if (!transport?.loadSubjectRecord || !subjectId) {
+			return;
+		}
+		// The read is bound to the subject it was requested for and to the
+		// records generation at request time. A clear, a newer identify or a
+		// subject switch while it was in flight makes the result stale.
+		const generation = runtime.getGeneration();
+		try {
+			const records = await transport.loadSubjectRecord(subjectId);
+			const stale =
+				identifyAttempt !== identifyGeneration ||
+				runtime.getGeneration() !== generation ||
+				(getSnapshot().subject?.subjectId ?? null) !== subjectId;
+			if (records && !stale) {
+				// Newest receipt per category wins: a local refusal made while
+				// the server read was in flight is never overwritten.
+				const result = applyRecords(records, true);
+				if (result.ok === false) {
+					emit({
+						command: 'loadSubjectRecord',
+						error: new Error('c15t: server record rejected by validation'),
+						type: 'command:error',
+					});
+				}
+			}
+		} catch (error) {
+			emit({ command: 'loadSubjectRecord', error, type: 'command:error' });
+		}
+	};
+
 	return {
-		ok: true,
-		record: {
-			confirmedAt: confirmedAt as number,
-			denied: [...denied].sort(),
-			version: 1,
+		hydrate: (records) => applyRecords(records, false),
+
+		async identify(user) {
+			if (getSnapshot().externalPermissions) {
+				return;
+			}
+			identifyGeneration += 1;
+			const attempt = identifyGeneration;
+			const generation = runtime.getGeneration();
+			const { subject, iab } = getSnapshot();
+			const subjectId = subject?.subjectId ?? null;
+			const patch: SnapshotPatch = { user: { ...user } };
+			if (iab) {
+				patch.iab = { ...iab, authority: null, tcString: null };
+			}
+			runtime.announce(patch, 'user:identified', true);
+			if (transport?.identify) {
+				try {
+					await transport.identify({ ...user }, subjectId);
+				} catch (error) {
+					emit({ command: 'identify', error, type: 'command:error' });
+					throw error;
+				}
+			}
+			if (
+				attempt !== identifyGeneration ||
+				runtime.getGeneration() !== generation ||
+				(getSnapshot().subject?.subjectId ?? null) !== subjectId
+			) {
+				return;
+			}
+			await loadSubjectRecord(subjectId, attempt);
+		},
+
+		setSubjectId(id) {
+			const { subject, iab } = getSnapshot();
+			if ((subject?.subjectId ?? null) === id) {
+				return;
+			}
+			runtime.invalidateRecords();
+			const patch: SnapshotPatch = {};
+			if (iab) {
+				patch.iab = { ...iab, authority: null, tcString: null };
+			}
+			if (id === null) {
+				const { subjectId: _dropped, ...rest } = subject ?? {};
+				patch.subject = Object.keys(rest).length > 0 ? rest : null;
+			} else {
+				patch.subject = { ...subject, subjectId: id };
+			}
+			commit(patch);
 		},
 	};
-};
-
-/**
- * Validate hydration input. Keys that are omitted stay omitted so the
- * caller can preserve current values; `null` passes through as an explicit
- * clear.
- */
-export const validateHydrationRecords = function validateHydrationRecords(
-	input: HydrationRecords,
-	now: number
-): ValidateRecordsResult {
-	const issues: RecordIssue[] = [];
-	const records: ValidatedRecords = {};
-
-	if (input.choice !== undefined) {
-		if (input.choice === null) {
-			records.choice = null;
-		} else {
-			const result = validateExplicitChoice(input.choice, now);
-			if (result.ok === true) {
-				records.choice = result.record;
-			} else {
-				issues.push(
-					...result.issues.map((issue) => ({
-						...issue,
-						path: `choice.${issue.path}`,
-					}))
-				);
-			}
-		}
-	}
-	if (input.subject !== undefined) {
-		records.subject =
-			input.subject === null ? null : validateSubject(input.subject, issues);
-	}
-	if (input.noticeDismissal !== undefined) {
-		if (input.noticeDismissal === null) {
-			records.noticeDismissal = null;
-		} else {
-			const result = validateNoticeDismissal(input.noticeDismissal, now);
-			if (result.ok === true) {
-				records.noticeDismissal = result.record;
-			} else {
-				issues.push(
-					...result.issues.map((issue) => ({
-						...issue,
-						path: `noticeDismissal.${issue.path}`,
-					}))
-				);
-			}
-		}
-	}
-	if (input.vendorChoice !== undefined) {
-		if (input.vendorChoice === null) {
-			records.vendorChoice = null;
-		} else {
-			const result = validateVendorChoice(input.vendorChoice, now);
-			if (result.ok === true) {
-				records.vendorChoice = result.record;
-			} else {
-				issues.push(
-					...result.issues.map((issue) => ({
-						...issue,
-						path: `vendorChoice.${issue.path}`,
-					}))
-				);
-			}
-		}
-	}
-
-	if (issues.length > 0) {
-		return { issues, ok: false };
-	}
-	return { ok: true, records };
-};
-
-/**
- * Keep the newer of two vendor denial lists. Ties keep the current one, so
- * a delayed server read never replaces a newer local action.
- */
-export const mergeNewestVendorChoice = function mergeNewestVendorChoice(
-	current: VendorChoice | null,
-	incoming: VendorChoice | null
-): VendorChoice | null {
-	if (!current) {
-		return incoming;
-	}
-	if (!incoming) {
-		return current;
-	}
-	// An empty list is a real, timestamped "nothing denied" decision, so it
-	// takes part in newest-wins like any other and is never folded to `null`.
-	return incoming.confirmedAt > current.confirmedAt ? incoming : current;
-};
-
-/**
- * Merge two choices keeping the newest receipt per category. Ties keep the
- * current receipt. Used for server-mapped records so a delayed read never
- * replaces a newer local action.
- */
-export const mergeNewestChoice = function mergeNewestChoice(
-	current: ExplicitChoice | null,
-	incoming: ExplicitChoice | null
-): ExplicitChoice | null {
-	if (!current) {
-		return incoming;
-	}
-	if (!incoming) {
-		return current;
-	}
-	const categories: ExplicitChoice['categories'] = { ...current.categories };
-	for (const category of OPTIONAL_CONSENT_CATEGORIES) {
-		const theirs = incoming.categories[category];
-		const ours = categories[category];
-		if (theirs && (!ours || theirs.confirmedAt > ours.confirmedAt)) {
-			categories[category] = theirs;
-		}
-	}
-	return { categories, version: 3 };
 };

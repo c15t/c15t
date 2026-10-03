@@ -1,9 +1,13 @@
 /**
- * Synchronous setters exposed at `kernel.set.*`.
+ * Synchronous setters exposed at `kernel.set.*` for the inputs that are
+ * neither a choice nor a record: surfaces, categories, overrides, signals,
+ * the experiment, IAB and vendor declarations.
  *
  * Each setter computes a `SnapshotPatch` and hands it to the runtime,
- * which re-derives dependent fields and skips no-ops. `set.draft` stages draft values for a no-input `save()` and never grants
- * anything.
+ * which re-derives dependent fields, skips no-ops and keeps the deadline
+ * timer current. `set.draft` and `set.vendorDraft` belong to choice
+ * recording (`choice.ts`); `set.subjectId` to the records boundary
+ * (`records.ts`).
  */
 import type { AllConsentNames } from '../consent/consent-types';
 import type { ExperimentAssignment, ExperimentGate } from '../libs/experiment';
@@ -12,7 +16,6 @@ import {
 	sameDeclaredVendors,
 	withoutSourceVendors,
 } from '../libs/vendors';
-import type { PresentedSelection } from '../policy';
 import type {
 	ConsentState,
 	KernelActiveUI,
@@ -25,18 +28,13 @@ import type {
 } from '../types';
 import { normalizeExternalPermissions } from './external-permissions';
 import type { KernelRuntime } from './runtime';
-import {
-	buildDraft,
-	copyIABAuthority,
-	DEFAULT_IAB,
-	DEFAULT_VENDORS,
-} from './snapshot';
+import { copyIABAuthority, DEFAULT_IAB, DEFAULT_VENDORS } from './snapshot';
 
 /**
  * Merge an IAB patch onto the current IAB slice, returning the next
  * slice plus a `changed` flag.
  */
-export const mergeIab = function mergeIab(
+const mergeIab = function mergeIab(
 	current: KernelIABState | null,
 	input: Partial<KernelIABState>
 ): { next: KernelIABState; changed: boolean } {
@@ -58,11 +56,6 @@ export const mergeIab = function mergeIab(
 	return { changed, next };
 };
 
-/**
- * Merge a vendor patch onto the current vendor slice. Declared lists merge
- * by id with the existing entry's presentation winning, so a manifest
- * arriving after config never overwrites a name the publisher set in code.
- */
 /** A declaration and its nested conditions, owned by the kernel from here on. */
 const copyDeclaredVendor = function copyDeclaredVendor(
 	vendor: ResolvedVendor
@@ -80,7 +73,12 @@ const copyDeclaredVendor = function copyDeclaredVendor(
 	return copy;
 };
 
-export const mergeVendors = function mergeVendors(
+/**
+ * Merge a vendor patch onto the current vendor slice. Declared lists merge
+ * by id with the existing entry's presentation winning, so a manifest
+ * arriving after config never overwrites a name the publisher set in code.
+ */
+const mergeVendors = function mergeVendors(
 	current: KernelVendorsState | null,
 	input: Partial<KernelVendorsState>,
 	options: { replaceSource?: VendorSource } = {}
@@ -122,40 +120,6 @@ export const mergeVendors = function mergeVendors(
 	return { changed, next };
 };
 
-/** Merge staged per-vendor grants. `null` clears the draft. */
-export const mergeVendorDraft = function mergeVendorDraft(
-	current: Readonly<Record<string, boolean>> | null,
-	input: Record<string, boolean> | null
-): Record<string, boolean> | null {
-	if (input === null) {
-		return null;
-	}
-	const next: Record<string, boolean> = { ...current };
-	let any = false;
-	for (const [id, value] of Object.entries(input)) {
-		if (typeof value === 'boolean' && id.length > 0) {
-			next[id] = value;
-			any = true;
-		}
-	}
-	if (any) {
-		return next;
-	}
-	return current ? { ...current } : null;
-};
-
-/** Merge staged draft values. `null` input clears the draft. */
-export const mergeDraft = function mergeDraft(
-	current: PresentedSelection | null,
-	input: Partial<ConsentState>
-): PresentedSelection | null {
-	const patch = buildDraft(input);
-	if (!patch) {
-		return current;
-	}
-	return { ...current, ...patch };
-};
-
 /**
  * Build the `kernel.set.*` object given the kernel runtime.
  */
@@ -163,7 +127,7 @@ export const buildSetters = function buildSetters(
 	runtime: KernelRuntime,
 	config: KernelConfig
 ) {
-	const { batch, getSnapshot, commit, emit } = runtime;
+	const { getSnapshot, commit, announce } = runtime;
 
 	let configured = config.consentCategories
 		? [...config.consentCategories]
@@ -189,7 +153,6 @@ export const buildSetters = function buildSetters(
 			consentCategories: next,
 			now: runtime.now(),
 		});
-		runtime.armDeadlineTimer();
 	};
 
 	return {
@@ -209,9 +172,6 @@ export const buildSetters = function buildSetters(
 		): void {
 			configured = categories ? [...categories] : [];
 			updateCategories();
-		},
-		draft(input: Partial<ConsentState>): void {
-			runtime.setDraft(mergeDraft(runtime.getDraft(), input));
 		},
 		experiment(
 			assignment: ExperimentAssignment | null,
@@ -234,38 +194,34 @@ export const buildSetters = function buildSetters(
 			if (!changed) {
 				return;
 			}
-			batch(() => {
-				if (commit({ iab: next })) {
-					emit({ snapshot: getSnapshot(), type: 'iab:set' });
-				}
-			});
+			announce({ iab: next }, 'iab:set');
 		},
 		language(code: string): void {
 			const snapshot = getSnapshot();
 			if (snapshot.overrides.language === code) {
 				return;
 			}
-			batch(() => {
-				commit({ overrides: { ...snapshot.overrides, language: code } });
-				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
-			});
+			announce(
+				{ overrides: { ...snapshot.overrides, language: code } },
+				'overrides:set',
+				true
+			);
 		},
 		overrides(input: KernelOverrides): void {
-			const snapshot = getSnapshot();
-			const at = runtime.now();
-			batch(() => {
-				commit({ now: at, overrides: { ...snapshot.overrides, ...input } });
-				emit({ snapshot: getSnapshot(), type: 'overrides:set' });
-			});
-			runtime.armDeadlineTimer();
+			announce(
+				{
+					now: runtime.now(),
+					overrides: { ...getSnapshot().overrides, ...input },
+				},
+				'overrides:set',
+				true
+			);
 		},
 		privacySignals(input: { gpc?: boolean }): void {
 			if (input.gpc === undefined) {
 				return;
 			}
-			const at = runtime.now();
-			commit({ now: at, privacyDetected: input.gpc === true });
-			runtime.armDeadlineTimer();
+			commit({ now: runtime.now(), privacyDetected: input.gpc === true });
 		},
 		registerConsentCategories(categories: readonly AllConsentNames[]): void {
 			if (!categories.length) {
@@ -280,28 +236,6 @@ export const buildSetters = function buildSetters(
 				updateCategories();
 			}
 		},
-		subjectId(id: string | null): void {
-			const { subject, iab } = getSnapshot();
-			const iabPatch = iab
-				? { iab: { ...iab, authority: null, tcString: null } }
-				: {};
-			if ((subject?.subjectId ?? null) === id) {
-				return;
-			}
-			runtime.invalidateRecords();
-			if (id === null) {
-				const { subjectId: _dropped, ...rest } = subject ?? {};
-				commit({
-					subject: Object.keys(rest).length > 0 ? rest : null,
-					...iabPatch,
-				});
-				return;
-			}
-			commit({ subject: { ...subject, subjectId: id }, ...iabPatch });
-		},
-		vendorDraft(input: Record<string, boolean> | null): void {
-			runtime.setVendorDraft(mergeVendorDraft(runtime.getVendorDraft(), input));
-		},
 		vendors(
 			input: Partial<KernelVendorsState>,
 			options?: { replaceSource?: VendorSource }
@@ -314,11 +248,7 @@ export const buildSetters = function buildSetters(
 			if (!changed) {
 				return;
 			}
-			batch(() => {
-				if (commit({ vendors: next })) {
-					emit({ snapshot: getSnapshot(), type: 'vendors:set' });
-				}
-			});
+			announce({ vendors: next }, 'vendors:set');
 		},
 	};
 };

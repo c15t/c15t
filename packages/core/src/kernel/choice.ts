@@ -1,18 +1,19 @@
 /**
- * Async commands exposed at `kernel.commands.*`.
+ * Choice recording: the only way a visitor's decision enters the kernel.
  *
- * Commands are the I/O boundary of the kernel: each one optionally
- * delegates to a transport for network I/O, but otherwise operates on
- * snapshot data only. Commands emit their lifecycle events
- * (`*:started`, `*:completed`, `command:error`).
+ * - `save()` records an explicit choice, or acknowledges a choice prompt
+ *   with no category to decide. It captures one action time before any
+ *   yield, network call or persistence, commits the choice, the vendor
+ *   decision and any notice it acknowledges in one commit, and then hands
+ *   the action's payload to the save outbox (`save-outbox/`), which owns
+ *   sending, queueing, replay and subject reassignment.
+ * - `dismissNotice()` records the local notice dismissal only.
+ * - Drafts stage what a no-input `save()` confirms. They are bound to the
+ *   choice contract they were presented under and dropped, never
+ *   restamped, when that contract changes.
  *
- * Only `save()` records an explicit choice, or acknowledges a choice prompt
- * with no category to decide, and it captures one action time before any
- * yield, network call or persistence. It then hands the action's payload to
- * the save outbox (`save-outbox/`), which owns sending, queueing, replay
- * and subject reassignment. `dismissNotice()` records the local
- * dismissal only. `init()` folds a complete transport
- * response and installs the deadline timer.
+ * Every action is attributed to the surface it was made on, with the time
+ * from that surface's first impression and the experiment arm it ran.
  */
 
 import { recordCategoryPatch } from '../consent-record/record';
@@ -31,122 +32,20 @@ import type {
 	ConsentSnapshot,
 	ConsentState,
 	ExplicitChoice,
-	InitContext,
-	InitResult,
-	KernelConfig,
+	KernelEvent,
 	KernelIABAuthority,
-	KernelTransport,
-	KernelUser,
 	NoticeDismissal,
 	NoticeDismissResult,
 	SaveInput,
 	SavePayload,
 	SaveResult,
-	VendorChoice,
 	SaveUISource,
-	KernelEvent,
+	VendorChoice,
 } from '../types';
-import { applyInitResponse } from './apply-init-response';
 import type { SnapshotPatch } from './patch';
 import type { KernelRuntime } from './runtime';
 import type { SaveOutbox } from './save-outbox';
-import { copyIABAuthority, isPromptSurface } from './snapshot';
-
-const DEFAULT_MAX_ATTEMPTS = 5;
-const DEFAULT_BASE_DELAY_MS = 1000;
-const DEFAULT_MAX_DELAY_MS = 30_000;
-
-interface InitRetryPolicy {
-	maxAttempts: number;
-	baseDelayMs: number;
-	maxDelayMs: number;
-}
-
-const normalizeNonNegativeNumber = function normalizeNonNegativeNumber(
-	value: number | undefined,
-	fallback: number
-): number {
-	return typeof value === 'number' && Number.isFinite(value) && value >= 0
-		? value
-		: fallback;
-};
-
-const resolveInitRetryPolicy = function resolveInitRetryPolicy(
-	config: KernelConfig['initRetry']
-): InitRetryPolicy | null {
-	if (config === false) {
-		return null;
-	}
-
-	return {
-		baseDelayMs: normalizeNonNegativeNumber(
-			config?.baseDelayMs,
-			DEFAULT_BASE_DELAY_MS
-		),
-		maxAttempts: Math.max(
-			1,
-			Math.floor(
-				normalizeNonNegativeNumber(config?.maxAttempts, DEFAULT_MAX_ATTEMPTS)
-			)
-		),
-		maxDelayMs: normalizeNonNegativeNumber(
-			config?.maxDelayMs,
-			DEFAULT_MAX_DELAY_MS
-		),
-	};
-};
-
-const getRetryDelay = function getRetryDelay(
-	policy: InitRetryPolicy,
-	attempt: number
-): number {
-	const exponentialDelay = policy.baseDelayMs * 2 ** (attempt - 1);
-	const cappedDelay = Math.min(exponentialDelay, policy.maxDelayMs);
-	const jitterMultiplier = 0.5 + Math.random() * 0.5;
-	return Math.floor(cappedDelay * jitterMultiplier);
-};
-
-const isProduction = function isProduction(): boolean {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	return nodeEnv === 'production';
-};
-
-const warnInitFailure = function warnInitFailure(
-	nextRetryMs: number | null
-): void {
-	if (isProduction()) {
-		return;
-	}
-
-	const retryMessage =
-		nextRetryMs === null
-			? 'No retry is scheduled.'
-			: `A retry is scheduled in ${nextRetryMs} ms.`;
-	console.warn(
-		`[c15t] Backend/manifest init failed. The consent banner is withheld and optional categories stay denied. ${retryMessage}`
-	);
-};
-
-/**
- * Patch that clears every policy-derived field for a transport failure
- * before the safe fallback applies. A stale permissive policy must not
- * survive a failed init.
- */
-const failedResolutionPatch = function failedResolutionPatch(
-	current: ConsentSnapshot,
-	now: number
-): SnapshotPatch {
-	const patch: SnapshotPatch = {
-		now,
-		policySnapshotToken: null,
-		resolution: { policy: null, reason: 'transport', status: 'failed' },
-	};
-	if (current.iab?.enabled) {
-		patch.iab = { ...current.iab, enabled: false };
-	}
-	return patch;
-};
+import { buildDraft, copyIABAuthority, isPromptSurface } from './snapshot';
 
 /**
  * Values one save input confirms. Object input is passed through untouched
@@ -828,365 +727,122 @@ const applySaveAuthority = function applySaveAuthority(
 };
 
 /**
- * Dependencies required by `buildCommands`.
+ * Which surface a save is attributed to and, when that surface has a
+ * recorded impression, the milliseconds from it to the action. Unknown
+ * for a non-prompt surface, a surface never shown, or a clock that moved
+ * backwards; then `timeToDecisionMs` is omitted rather than negative.
  */
-export interface CommandDeps {
+const saveAttribution = function saveAttribution(
+	current: ConsentSnapshot,
+	requested: SaveUISource | undefined,
+	actionAt: number
+): {
+	uiSource: SaveUISource;
+	timeToDecisionMs?: number;
+	experiment?: ExperimentAssignment;
+} {
+	const uiSource = requested ?? current.activeUI;
+	const attribution: ReturnType<typeof saveAttribution> = { uiSource };
+	// The arm the visitor acted under, captured with the action so a
+	// later reassignment cannot relabel this choice. Only once the banner
+	// has shown it in this page: a returning visitor who changes their
+	// choice from a footer link never saw the arm's banner.
+	if (current.experiment && current.surfaceShownAt.banner !== null) {
+		attribution.experiment = current.experiment;
+	}
+	if (!isPromptSurface(uiSource)) {
+		return attribution;
+	}
+	const shownAt = current.surfaceShownAt[uiSource];
+	if (shownAt === null || actionAt < shownAt) {
+		return attribution;
+	}
+	attribution.timeToDecisionMs = actionAt - shownAt;
+	return attribution;
+};
+
+/** Merge staged draft values. Invalid values are ignored. */
+const mergeDraft = function mergeDraft(
+	current: PresentedSelection | null,
+	input: Partial<ConsentState>
+): PresentedSelection | null {
+	const patch = buildDraft(input);
+	if (!patch) {
+		return current;
+	}
+	return { ...current, ...patch };
+};
+
+/** Merge staged per-vendor grants. `null` clears the draft. */
+const mergeVendorDraft = function mergeVendorDraft(
+	current: Readonly<Record<string, boolean>> | null,
+	input: Record<string, boolean> | null
+): Record<string, boolean> | null {
+	if (input === null) {
+		return null;
+	}
+	const next: Record<string, boolean> = { ...current };
+	let any = false;
+	for (const [id, value] of Object.entries(input)) {
+		if (typeof value === 'boolean' && id.length > 0) {
+			next[id] = value;
+			any = true;
+		}
+	}
+	if (any) {
+		return next;
+	}
+	return current ? { ...current } : null;
+};
+
+/**
+ * A staged value bound to the choice contract it was presented under. Read
+ * back only while that contract holds: a draft presented under an earlier
+ * choice contract is stale once the policy changed materially.
+ */
+const createBoundDraft = function createBoundDraft<Values>(
+	getSnapshot: () => ConsentSnapshot,
+	initial: Values | null
+) {
+	const fingerprint = () => getSnapshot().evaluationPolicy.choice.fingerprint;
+	let bound: { fingerprint: string; values: Values } | null = initial
+		? { fingerprint: fingerprint(), values: initial }
+		: null;
+	return {
+		get: (): Values | null =>
+			bound && bound.fingerprint === fingerprint() ? bound.values : null,
+		set(values: Values | null): void {
+			bound = values ? { fingerprint: fingerprint(), values } : null;
+		},
+	};
+};
+
+export interface ChoiceRecorderOptions {
 	runtime: KernelRuntime;
-	transport: KernelTransport | undefined;
-	initRetry: KernelConfig['initRetry'];
-	/** App message overrides applied over every init response's copy. */
-	translationOverrides?: KernelConfig['translationOverrides'];
-	/**
-	 * Takes each recorded action from here on. Its `retryWhenOnline` must
-	 * call the returned `retryWhenOnline`.
-	 */
-	outbox: SaveOutbox;
+	/** Takes each recorded action from here on. */
+	outbox: Pick<SaveOutbox, 'send'>;
+	/** Draft values staged by config. */
+	initialDraft: PresentedSelection | null;
 }
 
 /**
- * Build the `kernel.commands.*` object given the kernel's runtime deps.
+ * Create the choice recorder of one kernel: `commands.save`,
+ * `commands.dismissNotice`, `set.draft` and `set.vendorDraft`.
  */
-// oxlint-disable-next-line max-lines-per-function -- Commands share retry and timer state through closures.
-export const buildCommands = function buildCommands(deps: CommandDeps) {
-	const { runtime, transport, initRetry, translationOverrides, outbox } = deps;
+// oxlint-disable-next-line max-lines-per-function -- save() keeps the order of one action visible.
+export const createChoiceRecorder = function createChoiceRecorder({
+	runtime,
+	outbox,
+	initialDraft,
+}: ChoiceRecorderOptions) {
 	const { batch, getSnapshot, commit, emit } = runtime;
-	const retryPolicy = resolveInitRetryPolicy(initRetry);
-	let disposed = false;
-	// Bumped by every explicit `init()`. An attempt that resolves after a newer
-	// init started is stale: it must not apply its response, touch retry
-	// state, or start a replay. `dispose()` deliberately leaves the generation
-	// alone so an in-flight init still lands when React StrictMode disposes
-	// and reuses the same kernel without calling init again.
-	let initGeneration = 0;
-	let onlineListenerInstalled = false;
-	let visibilityListenerInstalled = false;
-	let pendingRetryAttempt: number | null = null;
-	let retryInFlight = false;
-	let retryTimer: ReturnType<typeof setTimeout> | null = null;
-	// Bumped by every `identify()` so a subject read started by an earlier
-	// identify cannot apply after a later one.
-	let identifyGeneration = 0;
+	const draft = createBoundDraft<PresentedSelection>(getSnapshot, initialDraft);
+	const vendorDraft = createBoundDraft<Readonly<Record<string, boolean>>>(
+		getSnapshot,
+		null
+	);
 
-	const getBrowserWindow = function getBrowserWindow(): Window | null {
-		return typeof window === 'undefined' ? null : window;
-	};
-
-	const clearRetryTimer = function clearRetryTimer(): void {
-		if (retryTimer !== null) {
-			clearTimeout(retryTimer);
-			retryTimer = null;
-		}
-	};
-
-	const removeVisibilityListener = function removeVisibilityListener(): void {
-		if (
-			!visibilityListenerInstalled ||
-			typeof document === 'undefined' ||
-			typeof document.removeEventListener !== 'function'
-		) {
-			return;
-		}
-		// oxlint-disable-next-line no-use-before-define
-		document.removeEventListener('visibilitychange', onVisibilityChange);
-		visibilityListenerInstalled = false;
-	};
-
-	const ensureVisibilityListener = function ensureVisibilityListener(): void {
-		if (
-			disposed ||
-			visibilityListenerInstalled ||
-			typeof document === 'undefined' ||
-			typeof document.addEventListener !== 'function'
-		) {
-			return;
-		}
-		// oxlint-disable-next-line no-use-before-define
-		document.addEventListener('visibilitychange', onVisibilityChange);
-		visibilityListenerInstalled = true;
-	};
-
-	const isDocumentVisible = function isDocumentVisible(): boolean {
-		return (
-			typeof document === 'undefined' || document.visibilityState !== 'hidden'
-		);
-	};
-
-	/**
-	 * Which surface a save is attributed to and, when that surface has a
-	 * recorded impression, the milliseconds from it to the action. Unknown
-	 * for a non-prompt surface, a surface never shown, or a clock that moved
-	 * backwards; then `timeToDecisionMs` is omitted rather than negative.
-	 */
-	const saveAttribution = function saveAttribution(
-		current: ConsentSnapshot,
-		requested: SaveUISource | undefined,
-		actionAt: number
-	): {
-		uiSource: SaveUISource;
-		timeToDecisionMs?: number;
-		experiment?: ExperimentAssignment;
-	} {
-		const uiSource = requested ?? current.activeUI;
-		const attribution: ReturnType<typeof saveAttribution> = { uiSource };
-		// The arm the visitor acted under, captured with the action so a
-		// later reassignment cannot relabel this choice. Only once the banner
-		// has shown it in this page: a returning visitor who changes their
-		// choice from a footer link never saw the arm's banner.
-		if (current.experiment && current.surfaceShownAt.banner !== null) {
-			attribution.experiment = current.experiment;
-		}
-		if (!isPromptSurface(uiSource)) {
-			return attribution;
-		}
-		const shownAt = current.surfaceShownAt[uiSource];
-		if (shownAt === null || actionAt < shownAt) {
-			return attribution;
-		}
-		attribution.timeToDecisionMs = actionAt - shownAt;
-		return attribution;
-	};
-
-	/** Finalize local init while preserving its precomputed resolution. */
-	const finalizeWithoutTransport = function finalizeWithoutTransport(
-		now: number
-	): void {
-		const patch: SnapshotPatch = { now, policyPending: false };
-		batch(() => {
-			if (commit(patch)) {
-				emit({ snapshot: getSnapshot(), type: 'init:applied' });
-			}
-		});
-	};
-
-	const replaySaves = function replaySaves(): void {
-		if (!disposed) {
-			void outbox.replay();
-		}
-	};
-
-	const runInitAttempt = async function runInitAttempt(
-		attempt: number
-	): Promise<InitResult> {
-		emit({ type: 'command:init:started' });
-		runtime.start();
-		// One clock read: the impression stamped here and a local finalize
-		// evaluate at the same instant.
-		const startedAt = runtime.now();
-		runtime.markLive(startedAt);
-
-		if (!transport?.init) {
-			finalizeWithoutTransport(startedAt);
-			runtime.armDeadlineTimer();
-			const result: InitResult = { ok: true };
-			emit({ result, type: 'command:init:completed' });
-			replaySaves();
-			return result;
-		}
-
-		const generation = initGeneration;
-		const recordsGeneration = runtime.getGeneration();
-		const completeSuperseded = function completeSuperseded(
-			error: unknown
-		): InitResult {
-			const result: InitResult = { error, ok: false };
-			emit({ result, type: 'command:init:completed' });
-			return result;
-		};
-
-		try {
-			const snapshot = getSnapshot();
-			const ctx: InitContext = {
-				overrides: snapshot.overrides,
-				user: snapshot.user,
-			};
-			// A visitor with a stored choice is not shown the banner, so only
-			// an undecided visitor counts toward the arm.
-			if (snapshot.experiment && snapshot.explicitChoice === null) {
-				ctx.experiment = {
-					arm: snapshot.experiment.arm,
-					id: snapshot.experiment.id,
-				};
-			}
-			const response = await transport.init(ctx);
-			if (generation !== initGeneration) {
-				return completeSuperseded(
-					new Error('c15t: init attempt superseded by a newer init()')
-				);
-			}
-			const now = runtime.now();
-			const current = getSnapshot();
-			const recordsAreCurrent =
-				recordsGeneration === runtime.getGeneration() &&
-				snapshot.subject?.subjectId === current.subject?.subjectId &&
-				snapshot.user === current.user;
-			// Policy can still resolve after clear or identification changes,
-			// but the old request no longer owns this subject's stored records.
-			const acceptedResponse = recordsAreCurrent
-				? response
-				: {
-						...response,
-						records: undefined,
-						subjectId: undefined,
-					};
-			const applied = applyInitResponse(
-				current,
-				acceptedResponse,
-				now,
-				translationOverrides
-			);
-			if (applied.recordIssues && !isProduction()) {
-				console.warn(
-					'[c15t] Ignored invalid server records on init.',
-					applied.recordIssues
-				);
-			}
-			batch(() => {
-				const changed = commit(applied.patch);
-				if (changed || snapshot.policyPending) {
-					emit({ snapshot: getSnapshot(), type: 'init:applied' });
-				}
-			});
-			runtime.armDeadlineTimer();
-			clearRetryTimer();
-			pendingRetryAttempt = null;
-			removeVisibilityListener();
-			const result: InitResult = { ok: true };
-			emit({ result, type: 'command:init:completed' });
-			replaySaves();
-			return result;
-		} catch (error) {
-			if (generation !== initGeneration) {
-				return completeSuperseded(error);
-			}
-			emit({ command: 'init', error, type: 'command:error' });
-			const now = runtime.now();
-			commit(failedResolutionPatch(getSnapshot(), now));
-			runtime.armDeadlineTimer();
-			const nextRetryMs =
-				retryPolicy && attempt < retryPolicy.maxAttempts && !disposed
-					? getRetryDelay(retryPolicy, attempt)
-					: null;
-			emit({ attempt, error, nextRetryMs, type: 'init:failed' });
-			warnInitFailure(nextRetryMs);
-			if (nextRetryMs !== null) {
-				// oxlint-disable-next-line no-use-before-define
-				scheduleRetry(attempt + 1, nextRetryMs);
-			}
-			const result: InitResult = { error, ok: false };
-			emit({ result, type: 'command:init:completed' });
-			return result;
-		}
-	};
-
-	const executeRetry = async function executeRetry(
-		attempt: number
-	): Promise<void> {
-		try {
-			await runInitAttempt(attempt);
-		} finally {
-			retryInFlight = false;
-		}
-	};
-
-	const runPendingRetry = function runPendingRetry(): void {
-		if (disposed || retryInFlight || pendingRetryAttempt === null) {
-			return;
-		}
-		if (!isDocumentVisible()) {
-			ensureVisibilityListener();
-			return;
-		}
-
-		const attempt = pendingRetryAttempt;
-		pendingRetryAttempt = null;
-		removeVisibilityListener();
-		retryInFlight = true;
-		void executeRetry(attempt);
-	};
-
-	const onVisibilityChange = function onVisibilityChange(): void {
-		if (isDocumentVisible()) {
-			runPendingRetry();
-		}
-	};
-
-	const scheduleRetry = function scheduleRetry(
-		attempt: number,
-		delayMs: number
-	): void {
-		if (disposed) {
-			return;
-		}
-		clearRetryTimer();
-		pendingRetryAttempt = attempt;
-		// oxlint-disable-next-line no-use-before-define
-		ensureOnlineListener();
-		retryTimer = setTimeout(() => {
-			retryTimer = null;
-			runPendingRetry();
-		}, delayMs);
-	};
-
-	const onOnline = function onOnline(): void {
-		if (disposed) {
-			return;
-		}
-		void outbox.replay();
-		if (pendingRetryAttempt !== null) {
-			clearRetryTimer();
-			runPendingRetry();
-		}
-	};
-
-	const ensureOnlineListener = function ensureOnlineListener(): void {
-		const browserWindow = getBrowserWindow();
-		if (
-			disposed ||
-			onlineListenerInstalled ||
-			!browserWindow ||
-			typeof browserWindow.addEventListener !== 'function'
-		) {
-			return;
-		}
-		browserWindow.addEventListener('online', onOnline);
-		onlineListenerInstalled = true;
-	};
-
-	const loadSubjectRecord = async function loadSubjectRecord(
-		subjectId: string | null,
-		identifyAttempt: number
-	): Promise<void> {
-		if (!transport?.loadSubjectRecord || !subjectId) {
-			return;
-		}
-		// The read is bound to the subject it was requested for and to the
-		// records generation at request time. A clear, a newer identify or a
-		// subject switch while it was in flight makes the result stale.
-		const generation = runtime.getGeneration();
-		try {
-			const records = await transport.loadSubjectRecord(subjectId);
-			const stale =
-				identifyAttempt !== identifyGeneration ||
-				runtime.getGeneration() !== generation ||
-				(getSnapshot().subject?.subjectId ?? null) !== subjectId;
-			if (records && !stale) {
-				// Newest receipt per category wins: a local refusal made while
-				// the server read was in flight is never overwritten.
-				const result = runtime.mergeServerRecords(records);
-				if (result.ok === false) {
-					emit({
-						command: 'loadSubjectRecord',
-						error: new Error('c15t: server record rejected by validation'),
-						type: 'command:error',
-					});
-				}
-			}
-		} catch (error) {
-			emit({ command: 'loadSubjectRecord', error, type: 'command:error' });
-		}
-	};
-
-	const commands = {
+	return {
 		dismissNotice(): Promise<NoticeDismissResult> {
 			const snapshot = getSnapshot();
 			if (snapshot.promptRequirement.kind !== 'notice') {
@@ -1224,59 +880,11 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				}
 				emit(event);
 			});
-			runtime.armDeadlineTimer();
 			return Promise.resolve({ dismissal, ok: true });
 		},
 
-		async identify(user: KernelUser): Promise<void> {
-			if (getSnapshot().externalPermissions) {
-				return;
-			}
-			identifyGeneration += 1;
-			const attempt = identifyGeneration;
-			const generation = runtime.getGeneration();
-			const { subject, iab } = getSnapshot();
-			const subjectId = subject?.subjectId ?? null;
-			const patch: SnapshotPatch = { user: { ...user } };
-			if (iab) {
-				patch.iab = { ...iab, authority: null, tcString: null };
-			}
-			batch(() => {
-				commit(patch);
-				emit({ snapshot: getSnapshot(), type: 'user:identified' });
-			});
-			if (transport?.identify) {
-				try {
-					await transport.identify({ ...user }, subjectId);
-				} catch (error) {
-					emit({ command: 'identify', error, type: 'command:error' });
-					throw error;
-				}
-			}
-			if (
-				attempt !== identifyGeneration ||
-				runtime.getGeneration() !== generation ||
-				(getSnapshot().subject?.subjectId ?? null) !== subjectId
-			) {
-				return;
-			}
-			await loadSubjectRecord(subjectId, attempt);
-		},
-
-		init(): Promise<InitResult> {
-			if (getSnapshot().externalPermissions) {
-				return Promise.resolve({ ok: true });
-			}
-			// An explicit init re-arms a disposed kernel. React StrictMode runs
-			// effect cleanup (which disposes) and then re-mounts with the same
-			// memoized kernel and calls init again; retries must work after that.
-			disposed = false;
-			runtime.rearm();
-			initGeneration += 1;
-			clearRetryTimer();
-			pendingRetryAttempt = null;
-			removeVisibilityListener();
-			return runInitAttempt(1);
+		draft(input: Partial<ConsentState>): void {
+			draft.set(mergeDraft(draft.get(), input));
 		},
 
 		// oxlint-disable-next-line complexity -- One action records categories and vendors together in a fixed order.
@@ -1334,7 +942,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			// toggle is recorded even when no category receipt is owed.
 			const nextVendorChoice = resolveVendorSelection(
 				before,
-				runtime.getVendorDraft(),
+				vendorDraft.get(),
 				input,
 				explicitVendors,
 				actionAt,
@@ -1345,7 +953,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			if (owedNothing && !vendorsChanged) {
 				// Same as the no-op branch below: a staged value the selection
 				// ignored must not survive to a later save.
-				runtime.setVendorDraft(null);
+				vendorDraft.set(null);
 				emit({ result: owedNothing, type: 'command:save:completed' });
 				return owedNothing;
 			}
@@ -1367,7 +975,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			} else {
 				const selection = resolveSaveSelection(
 					before,
-					runtime.getDraft(),
+					draft.get(),
 					input,
 					context?.categories
 				);
@@ -1398,7 +1006,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 				// A staged vendor value the selection ignored (undeclared, disabled)
 				// is dropped too, or a later declaration would let an unrelated save
 				// apply it.
-				runtime.setVendorDraft(null);
+				vendorDraft.set(null);
 				const result: SaveResult = {
 					confirmed: [],
 					ok: true,
@@ -1410,8 +1018,8 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 
 			const subjectId = before.subject?.subjectId ?? generateSubjectId();
 			const subject = saveSubject(before, subjectId);
-			runtime.setDraft(null);
-			runtime.setVendorDraft(null);
+			draft.set(null);
+			vendorDraft.set(null);
 			const patch: SnapshotPatch = {
 				now: currentTime,
 				subject,
@@ -1479,7 +1087,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 					confirmedCategories[category] = decision.value;
 				}
 			}
-			runtime.armDeadlineTimer();
 
 			// Built once so a queued replay records when the visitor decided,
 			// not when the retry ran, and derives the same backend consent id.
@@ -1513,28 +1120,9 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			emit({ result, type: 'command:save:completed' });
 			return result;
 		},
+
+		vendorDraft(input: Record<string, boolean> | null): void {
+			vendorDraft.set(mergeVendorDraft(vendorDraft.get(), input));
+		},
 	};
-
-	const dispose = function dispose(): void {
-		if (disposed) {
-			return;
-		}
-		disposed = true;
-		clearRetryTimer();
-		pendingRetryAttempt = null;
-		removeVisibilityListener();
-		runtime.stopTimers();
-
-		const browserWindow = getBrowserWindow();
-		if (
-			onlineListenerInstalled &&
-			browserWindow &&
-			typeof browserWindow.removeEventListener === 'function'
-		) {
-			browserWindow.removeEventListener('online', onOnline);
-		}
-		onlineListenerInstalled = false;
-	};
-
-	return { commands, dispose, retryWhenOnline: ensureOnlineListener };
 };
