@@ -3,8 +3,10 @@
  *
  * Nothing here touches the DOM or the kernel. The consent route handler
  * (`createConsentRouteHandler`) answers `/manifest` and `/init` for every
- * host integration (Next.js, Nuxt, SvelteKit, Astro, TanStack Start); the
- * rest are the pieces it is built from, for adapters that need one alone.
+ * host integration (Next.js, Nuxt, SvelteKit, Astro, TanStack Start), and
+ * `resolveRequestConsent` resolves the consent state a server render hands
+ * the client; the rest are the pieces they are built from, for adapters
+ * that need one alone.
  * Each export is its own module, so a bundle that imports only
  * `resolveRequestBackendURL` does not pull in the init resolver.
  */
@@ -46,6 +48,19 @@ export {
 	readWaitUntil,
 	resolveConsentInit,
 } from './consent-route';
+export type {
+	ConsentRequestFacts,
+	RequestConsentMode,
+	RequestConsentRead,
+	RequestConsentState,
+	ResolveRequestConsentOptions,
+} from './request-consent';
+export {
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	readRequestConsent,
+	resolveRenderBudgetMs,
+	resolveRequestConsent,
+} from './request-consent';
 export type { FetchCachedGvlOptions } from './gvl-cache';
 export {
 	clearGvlCache,
