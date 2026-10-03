@@ -347,7 +347,7 @@ describe('manifest source URLs', () => {
 		);
 	});
 
-	test('appends a query with the right separator', () => {
+	test('appends a query and sorts every parameter by name', () => {
 		expect(createManifestRequestURL({ sourceURL: SOURCE_URL })).toBe(
 			SOURCE_URL
 		);
@@ -359,7 +359,36 @@ describe('manifest source URLs', () => {
 				query: 'a=1',
 				sourceURL: `${SOURCE_URL}?x=y`,
 			})
-		).toBe(`${SOURCE_URL}?x=y&a=1`);
+		).toBe(`${SOURCE_URL}?a=1&x=y`);
+	});
+
+	test('normalises the URL part of the cache key', () => {
+		const sorted = `${SOURCE_URL}?a=1&b=2`;
+		for (const query of ['b=2&a=1', 'a=1&b=2', '?b=2&a=1']) {
+			expect(createManifestRequestURL({ query, sourceURL: SOURCE_URL })).toBe(
+				sorted
+			);
+		}
+		expect(
+			createManifestRequestURL({
+				query: 'b=2',
+				sourceURL: `${SOURCE_URL}?a=1#x`,
+			})
+		).toBe(sorted);
+		expect(
+			createManifestRequestURL({ query: '', sourceURL: `${SOURCE_URL}?` })
+		).toBe(SOURCE_URL);
+		// Repeated names keep their order; encodings converge.
+		expect(
+			createManifestRequestURL({
+				query: 'v=2&lang=de%20x&v=1',
+				sourceURL: SOURCE_URL,
+			})
+		).toBe(`${SOURCE_URL}?lang=de+x&v=2&v=1`);
+		// A relative source cannot be parsed and is joined as before.
+		expect(
+			createManifestRequestURL({ query: 'b=2&a=1', sourceURL: '/manifest' })
+		).toBe('/manifest?b=2&a=1');
 	});
 
 	test('lists the headers a proxying route forwards, without vary', () => {
@@ -1700,5 +1729,62 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			setTimeout(resolve, 5);
 		});
 		expect(cache.get(SOURCE_URL)).toBeUndefined();
+	});
+});
+
+describe('one cache key rule', () => {
+	test('reorders of the same query read one entry and one upstream request', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 0,
+			query: 'preview=1&language=de',
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1,
+			query: 'language=de&preview=1',
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 2,
+			sourceURL: `${SOURCE_URL}?language=de&preview=1#ignored`,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+			`${SOURCE_URL}?language=de&preview=1`
+		);
+	});
+
+	test('headers the cache already sends do not split the key', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			headers: { Accept: 'application/json' },
+			now: 0,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			headers: { accept: 'application/manifest+json' },
+			now: 2,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 });
