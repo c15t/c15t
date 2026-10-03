@@ -40,6 +40,7 @@ import { createDispatcher } from './dispatch';
 import { createEventBus } from './events';
 import { createRuntime } from './runtime';
 import { createBrowserOutboxStore, createSaveOutbox } from './save-outbox';
+import type { SaveOutboxOptions } from './save-outbox';
 import type { SaveOutboxStore } from './save-outbox/store';
 import { buildSetters } from './setters';
 import { buildDraft, buildInitialSnapshot } from './snapshot';
@@ -57,6 +58,11 @@ export interface KernelSeams {
 	 * store (localStorage under a Web Lock, memory without localStorage).
 	 */
 	outboxStore?: SaveOutboxStore;
+	/**
+	 * Loads the outbox's queue module (`./save-outbox/queue`), which is
+	 * code-split. Defaults to a dynamic import of it.
+	 */
+	loadOutboxQueue?: () => Promise<unknown>;
 }
 
 /**
@@ -86,6 +92,10 @@ export const createKernel = function createKernel(
 	});
 	const set = buildSetters(runtime, config);
 	const outbox = createSaveOutbox({
+		// Tests pass `() => import('./save-outbox/queue')` or a fake of it.
+		loadQueue: seams.loadOutboxQueue as SaveOutboxOptions['loadQueue'],
+		// oxlint-disable-next-line no-use-before-define -- Called only after a send, once the commands exist.
+		retryWhenOnline: () => commandHandle.retryWhenOnline(),
 		runtime,
 		store: seams.outboxStore ?? createBrowserOutboxStore(),
 		transport,
@@ -128,8 +138,5 @@ export const createKernel = function createKernel(
  * Pure: takes plain config, returns a kernel handle. No I/O. See the
  * file-level invariants above for guarantees.
  */
-export const createConsentKernel = function createConsentKernel(
-	config: KernelConfig = {}
-): ConsentKernel {
-	return createKernel(config);
-};
+export const createConsentKernel: (config?: KernelConfig) => ConsentKernel =
+	createKernel;

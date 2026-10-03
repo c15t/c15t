@@ -11,7 +11,8 @@
  * - {@link createBrowserOutboxStore}: localStorage under a Web Lock, shared
  *   by every tab of the origin. The default.
  * - {@link createMemoryOutboxStore}: one in-memory copy, shared by every
- *   kernel given the same store. Tests and hosts without localStorage.
+ *   kernel given the same store. Tests, and the browser store's fallback
+ *   without localStorage.
  */
 
 import {
@@ -52,51 +53,12 @@ export interface SaveOutboxStore {
 	transact: <Result>(run: (tx: OutboxTransaction) => Result) => Promise<Result>;
 }
 
-/**
- * An outbox store held in memory. Kernels given the same store share it
- * the way tabs share the browser store, which is how tests run two tabs
- * against one queue.
- *
- * Values are kept serialized, so nothing the outbox reads back aliases an
- * object it wrote.
- */
-export const createMemoryOutboxStore =
-	function createMemoryOutboxStore(): SaveOutboxStore {
-		const slots = new Map<OutboxSlot, string>();
-		const tx: OutboxTransaction = {
-			read(slot) {
-				const text = slots.get(slot);
-				return text === undefined ? undefined : JSON.parse(text);
-			},
-			write(slot, value) {
-				if (value.length === 0) {
-					slots.delete(slot);
-				} else {
-					slots.set(slot, JSON.stringify(value));
-				}
-			},
-		};
-		let tail: Promise<void> = Promise.resolve();
-		return {
-			async transact(run) {
-				const previous = tail;
-				let done: () => void = () => undefined;
-				tail = new Promise((resolve) => {
-					done = resolve;
-				});
-				await previous;
-				try {
-					return run(tx);
-				} finally {
-					done();
-				}
-			},
-		};
-	};
+/** The part of `Storage` a store uses. */
+type TextStorage = Pick<Storage, 'getItem' | 'removeItem' | 'setItem'>;
 
 /** Browser globals the browser store reads, injectable for its own tests. */
 export interface BrowserOutboxEnvironment {
-	localStorage: () => Storage | null;
+	localStorage: () => TextStorage | null;
 	locks: () => LockManager | null;
 }
 
@@ -144,13 +106,19 @@ const SLOT_KEYS: Record<OutboxSlot, string> = {
 export const createBrowserOutboxStore = function createBrowserOutboxStore(
 	environment: BrowserOutboxEnvironment = browserEnvironment
 ): SaveOutboxStore {
-	const memory = createMemoryOutboxStore();
+	const values = new Map<string, string>();
+	const memory: TextStorage = {
+		getItem: (key) => values.get(key) ?? null,
+		removeItem: (key) => {
+			values.delete(key);
+		},
+		setItem: (key, value) => {
+			values.set(key, value);
+		},
+	};
 	return {
 		async transact(run) {
-			const storage = environment.localStorage();
-			if (!storage) {
-				return memory.transact(run);
-			}
+			const storage = environment.localStorage() ?? memory;
 			const tx: OutboxTransaction = {
 				read(slot) {
 					try {
@@ -172,7 +140,7 @@ export const createBrowserOutboxStore = function createBrowserOutboxStore(
 					}
 				},
 			};
-			const locks = environment.locks();
+			const locks = storage === memory ? null : environment.locks();
 			if (!locks) {
 				return run(tx);
 			}
@@ -184,3 +152,18 @@ export const createBrowserOutboxStore = function createBrowserOutboxStore(
 		},
 	};
 };
+
+/**
+ * An outbox store held in memory: the browser store's own fallback, with no
+ * localStorage. Kernels given the same store share it the way tabs share
+ * the browser store, which is how tests run two tabs against one queue.
+ * Transactions are synchronous, so each one runs alone; values are kept
+ * serialized, so nothing the outbox reads back aliases an object it wrote.
+ */
+export const createMemoryOutboxStore =
+	function createMemoryOutboxStore(): SaveOutboxStore {
+		return createBrowserOutboxStore({
+			localStorage: () => null,
+			locks: () => null,
+		});
+	};

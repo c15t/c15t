@@ -836,7 +836,10 @@ export interface CommandDeps {
 	initRetry: KernelConfig['initRetry'];
 	/** App message overrides applied over every init response's copy. */
 	translationOverrides?: KernelConfig['translationOverrides'];
-	/** Takes each recorded action from here on. */
+	/**
+	 * Takes each recorded action from here on. Its `retryWhenOnline` must
+	 * call the returned `retryWhenOnline`.
+	 */
 	outbox: SaveOutbox;
 }
 
@@ -955,6 +958,12 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		});
 	};
 
+	const replaySaves = function replaySaves(): void {
+		if (!disposed) {
+			void outbox.replay();
+		}
+	};
+
 	const runInitAttempt = async function runInitAttempt(
 		attempt: number
 	): Promise<InitResult> {
@@ -970,7 +979,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			runtime.armDeadlineTimer();
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
-			void outbox.replay();
+			replaySaves();
 			return result;
 		}
 
@@ -1043,7 +1052,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			removeVisibilityListener();
 			const result: InitResult = { ok: true };
 			emit({ result, type: 'command:init:completed' });
-			void outbox.replay();
+			replaySaves();
 			return result;
 		} catch (error) {
 			if (generation !== initGeneration) {
@@ -1122,6 +1131,7 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		if (disposed) {
 			return;
 		}
+		void outbox.replay();
 		if (pendingRetryAttempt !== null) {
 			clearRetryTimer();
 			runPendingRetry();
@@ -1262,7 +1272,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 			// memoized kernel and calls init again; retries must work after that.
 			disposed = false;
 			runtime.rearm();
-			outbox.rearm();
 			initGeneration += 1;
 			clearRetryTimer();
 			pendingRetryAttempt = null;
@@ -1515,7 +1524,6 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		pendingRetryAttempt = null;
 		removeVisibilityListener();
 		runtime.stopTimers();
-		outbox.dispose();
 
 		const browserWindow = getBrowserWindow();
 		if (
@@ -1528,5 +1536,5 @@ export const buildCommands = function buildCommands(deps: CommandDeps) {
 		onlineListenerInstalled = false;
 	};
 
-	return { commands, dispose };
+	return { commands, dispose, retryWhenOnline: ensureOnlineListener };
 };

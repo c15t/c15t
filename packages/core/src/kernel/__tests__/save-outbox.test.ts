@@ -304,14 +304,15 @@ describe('save outbox: queue and replay', () => {
 	});
 
 	test('replay skips an entry another tab already replayed', async () => {
-		// Transactions, in order: enqueue, replay listing, per-entry check.
-		// Another tab drains the queue right before the per-entry check.
+		// Transactions, in order: enqueue, the replay's "anything queued?"
+		// read, its listing, the per-entry check. Another tab drains the
+		// queue right before the per-entry check.
 		let transactions = 0;
 		const racing: SaveOutboxStore = {
 			transact: (run) =>
 				store.transact((tx) => {
 					transactions += 1;
-					if (transactions === 3) {
+					if (transactions === 4) {
 						tx.write('saves', []);
 					}
 					return run(tx);
@@ -333,7 +334,7 @@ describe('save outbox: queue and replay', () => {
 		await kernel.commands.save('all');
 		await kernel.commands.init();
 		await vi.waitFor(() => {
-			expect(transactions).toBeGreaterThanOrEqual(4);
+			expect(transactions).toBeGreaterThanOrEqual(5);
 		});
 
 		expect(saveSpy).toHaveBeenCalledTimes(1);
@@ -1279,6 +1280,57 @@ describe('save outbox: subject reassignment', () => {
 		expect(new Set(sentUnderNewId)).toEqual(new Set([idA]));
 		tabA.dispose();
 		tabB.dispose();
+	});
+});
+
+describe('save outbox: queue module loading', () => {
+	test('a failed save is kept when the queue module cannot load', async () => {
+		// The queue code loads on demand. When the network that failed the
+		// save also fails that load, the save is appended as is and the next
+		// replay normalizes and sends it.
+		const save = vi
+			.fn()
+			.mockRejectedValueOnce(new Error('save offline'))
+			.mockResolvedValue({ ok: true });
+		const offline = createKernel(
+			{ transport: { save } },
+			{
+				loadOutboxQueue: () =>
+					Promise.reject(new Error('chunk failed to load')),
+				outboxStore: store,
+			}
+		);
+		await offline.commands.save('all');
+		expect(await queued()).toMatchObject([
+			{ attempts: 0, payload: save.mock.calls[0]?.[0] },
+		]);
+		offline.dispose();
+
+		const online = kernelOn({
+			transport: { init: vi.fn().mockResolvedValue({}), save },
+		});
+		await online.commands.init();
+		await vi.waitFor(async () => {
+			expect(await queued()).toEqual([]);
+		});
+		expect(save).toHaveBeenCalledTimes(2);
+		expect(save.mock.calls[1]?.[0]).toEqual(save.mock.calls[0]?.[0]);
+		online.dispose();
+	});
+
+	test('a successful save with nothing queued never loads the queue module', async () => {
+		const loadOutboxQueue = vi.fn(() => import('../save-outbox/queue'));
+		const save = vi.fn().mockResolvedValue({ ok: true });
+		const kernel = createKernel(
+			{ transport: { init: vi.fn().mockResolvedValue({}), save } },
+			{ loadOutboxQueue, outboxStore: store }
+		);
+		await kernel.commands.init();
+		await expect(kernel.commands.save('all')).resolves.toMatchObject({
+			ok: true,
+		});
+		expect(loadOutboxQueue).not.toHaveBeenCalled();
+		kernel.dispose();
 	});
 });
 
