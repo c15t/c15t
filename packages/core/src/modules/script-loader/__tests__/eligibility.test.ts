@@ -12,6 +12,7 @@ import {
 	isEligible,
 } from '../eligibility';
 import { normalizeScripts } from '../normalize';
+import { scriptLoaderTools } from '../tools';
 import type { Script } from '../types';
 
 const snapshotForKernel = function snapshotForKernel(
@@ -26,13 +27,13 @@ describe('buildReconcilePass', () => {
 			initialIab: { enabled: true },
 			initialPolicyResolution: matchedResolution(iabRule()),
 		});
-		const pass = buildReconcilePass(snap);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
 		expect(pass.isIabMode).toBe(true);
 	});
 
 	test('forwards consents directly when no policy scope is in play', () => {
 		const snap = snapshotForKernel({});
-		const pass = buildReconcilePass(snap);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
 		expect(pass.consents).toBe(snap.effectivePermissions);
 	});
 });
@@ -42,15 +43,18 @@ describe('isEligible', () => {
 
 	test('alwaysLoad short-circuits to true', () => {
 		const snap = snapshotForKernel(kernelOpts);
-		const pass = buildReconcilePass(snap);
-		const [entry] = normalizeScripts([
-			{
-				alwaysLoad: true,
-				category: 'marketing',
-				id: 's',
-				src: 'https://x.example/s.js',
-			},
-		]);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
+		const [entry] = normalizeScripts(
+			[
+				{
+					alwaysLoad: true,
+					category: 'marketing',
+					id: 's',
+					src: 'https://x.example/s.js',
+				},
+			],
+			scriptLoaderTools.isVendorId
+		);
 		if (!entry) {
 			throw new Error('entry');
 		}
@@ -62,15 +66,22 @@ describe('isEligible', () => {
 		// IAB mode with iab=null is not a real runtime state (the IAB
 		// module would have set the slice), but we exercise the guard.
 		const snap = snapshotForKernel({});
-		const pass = { ...buildReconcilePass(snap), iab: null, isIabMode: true };
-		const [entry] = normalizeScripts([
-			{
-				category: 'marketing',
-				id: 's',
-				src: 'https://x.example/s.js',
-				vendorId: 'v1',
-			},
-		]);
+		const pass = {
+			...buildReconcilePass(snap, scriptLoaderTools),
+			iab: null,
+			isIabMode: true,
+		};
+		const [entry] = normalizeScripts(
+			[
+				{
+					category: 'marketing',
+					id: 's',
+					src: 'https://x.example/s.js',
+					vendorId: 'v1',
+				},
+			],
+			scriptLoaderTools.isVendorId
+		);
 		if (!entry) {
 			throw new Error('entry');
 		}
@@ -81,10 +92,11 @@ describe('isEligible', () => {
 		const snap = snapshotForKernel({
 			initialRecords: choiceRecords({ marketing: true }),
 		});
-		const pass = buildReconcilePass(snap);
-		const [entry] = normalizeScripts([
-			{ category: 'marketing', id: 's', src: 'https://x.example/s.js' },
-		]);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
+		const [entry] = normalizeScripts(
+			[{ category: 'marketing', id: 's', src: 'https://x.example/s.js' }],
+			scriptLoaderTools.isVendorId
+		);
 		if (!entry) {
 			throw new Error('entry');
 		}
@@ -93,10 +105,11 @@ describe('isEligible', () => {
 
 	test('simpleCategory denies when consent is false', () => {
 		const snap = snapshotForKernel({});
-		const pass = buildReconcilePass(snap);
-		const [entry] = normalizeScripts([
-			{ category: 'marketing', id: 's', src: 'https://x.example/s.js' },
-		]);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
+		const [entry] = normalizeScripts(
+			[{ category: 'marketing', id: 's', src: 'https://x.example/s.js' }],
+			scriptLoaderTools.isVendorId
+		);
 		if (!entry) {
 			throw new Error('entry');
 		}
@@ -105,7 +118,7 @@ describe('isEligible', () => {
 
 	test('throws when simpleCategory references an unknown consent name', () => {
 		const snap = snapshotForKernel({});
-		const pass = buildReconcilePass(snap);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
 		const script = {
 			category: 'analytics' as Script['category'],
 			id: 's',

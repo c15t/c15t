@@ -7,8 +7,7 @@
  * a `Map<>` argument so callers don't have to plumb identity through.
  */
 import type { AllConsentNames } from '../../consent/consent-types';
-import { isValidVendorId } from '../../libs/vendors';
-import type { NormalizedScript, Script } from './types';
+import type { NormalizedScript, Script, ScriptLoaderTools } from './types';
 
 const anonymizedElementIds = new Map<string, string>();
 
@@ -33,7 +32,8 @@ export const generateRandomId = function generateRandomId(): string {
  * always produces the same output.
  */
 export const normalizeScripts = function normalizeScripts(
-	scripts: Script[]
+	scripts: Script[],
+	isVendorId: ScriptLoaderTools['isVendorId']
 ): NormalizedScript[] {
 	return scripts.map((script) => ({
 		hasIabMeta: Boolean(
@@ -50,7 +50,7 @@ export const normalizeScripts = function normalizeScripts(
 		// An invalid slug is ignored here too, so the gate never denies on a
 		// vendor the preference surface cannot present or the wire cannot carry.
 		vendor:
-			typeof script.vendor === 'string' && isValidVendorId(script.vendor)
+			typeof script.vendor === 'string' && isVendorId(script.vendor)
 				? script.vendor
 				: null,
 	}));

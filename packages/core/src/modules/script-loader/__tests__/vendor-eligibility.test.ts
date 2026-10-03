@@ -11,6 +11,7 @@ import { buildCallbackInfo } from '../callbacks';
 import { buildReconcilePass, hasScriptConsent } from '../eligibility';
 import { createScriptLoader } from '../index';
 import { normalizeScripts } from '../normalize';
+import { scriptLoaderTools } from '../tools';
 import type { Script } from '../types';
 
 /** The slugs these tests deny, declared so the gate honors the denial. */
@@ -48,30 +49,39 @@ const script = (overrides: Partial<Script> = {}): Script => ({
 
 describe('script vendor eligibility', () => {
 	test('normalization keeps a non-empty vendor slug', () => {
-		const [withVendor, without] = normalizeScripts([
-			script(),
-			script({ id: 'b', vendor: '' }),
-		]);
+		const [withVendor, without] = normalizeScripts(
+			[script(), script({ id: 'b', vendor: '' })],
+			scriptLoaderTools.isVendorId
+		);
 		expect(withVendor?.vendor).toBe('meta-pixel');
 		expect(without?.vendor).toBeNull();
 	});
 
 	test('the pass carries the denial set only when something is denied', () => {
-		expect(buildReconcilePass(snapshotFor([])).vendorDenied).toBeNull();
 		expect(
-			buildReconcilePass(snapshotFor(['meta-pixel'])).vendorDenied?.has(
-				'meta-pixel'
-			)
+			buildReconcilePass(snapshotFor([]), scriptLoaderTools).vendorDenied
+		).toBeNull();
+		expect(
+			buildReconcilePass(
+				snapshotFor(['meta-pixel']),
+				scriptLoaderTools
+			).vendorDenied?.has('meta-pixel')
 		).toBe(true);
 	});
 
 	test('a denied vendor blocks the simple-category fast path and the tree path', () => {
-		const pass = buildReconcilePass(snapshotFor(['meta-pixel']));
-		const [simple, tree, other] = normalizeScripts([
-			script(),
-			script({ category: { or: ['marketing', 'measurement'] }, id: 'tree' }),
-			script({ id: 'other', vendor: 'other' }),
-		]);
+		const pass = buildReconcilePass(
+			snapshotFor(['meta-pixel']),
+			scriptLoaderTools
+		);
+		const [simple, tree, other] = normalizeScripts(
+			[
+				script(),
+				script({ category: { or: ['marketing', 'measurement'] }, id: 'tree' }),
+				script({ id: 'other', vendor: 'other' }),
+			],
+			scriptLoaderTools.isVendorId
+		);
 		if (!(simple && tree && other)) {
 			throw new Error('expected three normalized scripts');
 		}
@@ -82,8 +92,8 @@ describe('script vendor eligibility', () => {
 
 	test('the vendor slug is ignored in IAB mode', () => {
 		const snap = snapshotFor(['meta-pixel'], true);
-		const pass = buildReconcilePass(snap);
-		const [entry] = normalizeScripts([script()]);
+		const pass = buildReconcilePass(snap, scriptLoaderTools);
+		const [entry] = normalizeScripts([script()], scriptLoaderTools.isVendorId);
 		if (!entry) {
 			throw new Error('expected a normalized script');
 		}
@@ -94,15 +104,23 @@ describe('script vendor eligibility', () => {
 
 	test('callback info reports the vendor grant outside IAB mode only', () => {
 		const denied = buildCallbackInfo(
+			scriptLoaderTools,
 			script(),
 			snapshotFor(['meta-pixel']),
 			false,
 			'el'
 		);
 		expect(denied.vendor).toEqual({ granted: false, id: 'meta-pixel' });
-		const granted = buildCallbackInfo(script(), snapshotFor([]), true, 'el');
+		const granted = buildCallbackInfo(
+			scriptLoaderTools,
+			script(),
+			snapshotFor([]),
+			true,
+			'el'
+		);
 		expect(granted.vendor).toEqual({ granted: true, id: 'meta-pixel' });
 		const iab = buildCallbackInfo(
+			scriptLoaderTools,
 			script(),
 			snapshotFor(['meta-pixel'], true),
 			true,
@@ -110,6 +128,7 @@ describe('script vendor eligibility', () => {
 		);
 		expect(iab.vendor).toBeUndefined();
 		const plain = buildCallbackInfo(
+			scriptLoaderTools,
 			script({ vendor: undefined }),
 			snapshotFor([]),
 			true,
@@ -172,10 +191,14 @@ describe('script-owned vendor declarations', () => {
 				.getSnapshot()
 				.vendors?.declared.map((vendor) => [vendor.id, vendor.source])
 		).toEqual([['meta-pixel', 'script']]);
-		const [entry] = normalizeScripts([script()]);
+		const [entry] = normalizeScripts([script()], scriptLoaderTools.isVendorId);
 		expect(entry).toBeDefined();
 		expect(
-			entry && hasScriptConsent(entry, buildReconcilePass(kernel.getSnapshot()))
+			entry &&
+				hasScriptConsent(
+					entry,
+					buildReconcilePass(kernel.getSnapshot(), scriptLoaderTools)
+				)
 		).toBe(false);
 		loader.dispose();
 		kernel.dispose();

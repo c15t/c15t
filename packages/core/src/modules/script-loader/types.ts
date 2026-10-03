@@ -11,18 +11,55 @@
  */
 
 import type { AllConsentNames } from '../../consent/consent-types';
+import type { extractConsentNamesFromCondition } from '../../libs/has';
 import type {
 	Script,
 	ScriptCallbackInfo,
 } from '../../libs/script-loader/types';
+import type {
+	declareOwnedVendors,
+	forgetOwnedVendors,
+	isValidVendorId,
+} from '../../libs/vendors';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
 	KernelIABState,
 } from '../../types';
+import type {
+	deniedVendorIds,
+	evaluateConsent,
+	getEffectiveGateState,
+	has,
+} from '../has';
 
 export type { Script, ScriptCallbackInfo };
+
+/**
+ * What the script loader calls but does not import, so it can load on
+ * demand as one self-contained chunk. Vendor ownership keeps state per
+ * kernel, so these are always the shared implementations; the public
+ * entry passes them.
+ * @internal
+ */
+export interface ScriptLoaderTools {
+	/** `extractConsentNamesFromCondition`. */
+	categoriesOf: typeof extractConsentNamesFromCondition;
+	/** `declareOwnedVendors`. */
+	declareOwners: typeof declareOwnedVendors;
+	/** `deniedVendorIds`. */
+	deniedVendors: typeof deniedVendorIds;
+	/** `evaluateConsent`. */
+	evaluate: typeof evaluateConsent;
+	/** `forgetOwnedVendors`. */
+	forgetOwners: typeof forgetOwnedVendors;
+	/** `getEffectiveGateState`. */
+	gateState: typeof getEffectiveGateState;
+	has: typeof has;
+	/** `isValidVendorId`. */
+	isVendorId: typeof isValidVendorId;
+}
 
 /**
  * Structured debug event emitted at every reconcile / mount / unmount /
@@ -108,6 +145,7 @@ export interface NormalizedScript {
  */
 export interface ReconcilePass {
 	snapshot: ConsentSnapshot;
+	tools: Pick<ScriptLoaderTools, 'evaluate' | 'has'>;
 	consents: ConsentState;
 	isIabMode: boolean;
 	iab: KernelIABState | null;

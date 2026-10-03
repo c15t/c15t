@@ -8,10 +8,12 @@
  * keeps them out of the first-load chunk: esbuild's code splitting, for
  * one, puts a module that is both imported statically (even unused) and
  * through `import()` into a chunk the entry loads. A provider that loads
- * those modules on demand imports from here instead. Its
- * `lazyStreamPrefetch` likewise loads the streamed-prefetch code only for a
- * runtime whose `prefetch` is a promise; `streamPrefetchWith` wraps a
- * resolver the host imported itself.
+ * those modules on demand imports from here instead:
+ * `onDemandRuntimeModules` loads the script loader, the network blocker,
+ * data clearing and a `consentSource` connection each as one chunk, only
+ * when the page configures them. `lazyStreamPrefetch` likewise loads the
+ * streamed-prefetch code only for a runtime whose `prefetch` is a promise;
+ * `streamPrefetchWith` wraps a resolver the host imported itself.
  *
  * @example
  * ```ts
@@ -22,6 +24,10 @@
  * ```
  */
 export { lazyRuntimeModule } from './lazy-module';
+// A star export, so a bundle that never reads these leaves the module, and
+// the tools it imports, out: esbuild puts a named re-export's module in
+// every chunk that imports this entry.
+export * from './on-demand';
 export { createConsentProviderRuntime } from './provider-runtime';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
 export type { ResolveStreamedInit } from './stream-mode';

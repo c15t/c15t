@@ -15,7 +15,12 @@
 import type { ConsentSnapshot } from '../../types';
 import { buildCallbackInfo, hasAnyCallback, invokeCallback } from './callbacks';
 import type { ElementIdResolver } from './normalize';
-import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
+import type {
+	PendingMount,
+	Script,
+	ScriptLoaderDebugEvent,
+	ScriptLoaderTools,
+} from './types';
 
 /**
  * Dependencies shared by the mount/unmount/flush helpers. The factory
@@ -23,6 +28,8 @@ import type { PendingMount, Script, ScriptLoaderDebugEvent } from './types';
  * closure capture and remain testable.
  */
 export interface MountDeps {
+	/** Consent reads for callback payloads. */
+	tools: Pick<ScriptLoaderTools, 'deniedVendors' | 'gateState'>;
 	/** Stop lifecycle callbacks when disposal is requested during mounting. */
 	isDisposed: () => boolean;
 	/** Latest kernel state for callbacks completing after consent changes. */
@@ -70,6 +77,7 @@ const completionContext = (
 		info:
 			hasAnyCallback(current.script) || deps.hasDebugListener
 				? buildCallbackInfo(
+						deps.tools,
 						current.script,
 						snapshot,
 						current.hasConsent,
@@ -158,6 +166,7 @@ export const mountScript = function mountScript(
 		if (typeof script.onConsentChange === 'function' || deps.hasDebugListener) {
 			const existing = deps.loadedElements.get(script.id) ?? undefined;
 			const info = buildCallbackInfo(
+				deps.tools,
 				script,
 				snapshot,
 				hasConsent,
@@ -181,6 +190,7 @@ export const mountScript = function mountScript(
 
 	if (script.callbackOnly === true) {
 		const info = buildCallbackInfo(
+			deps.tools,
 			script,
 			snapshot,
 			hasConsent,
@@ -226,6 +236,7 @@ export const mountScript = function mountScript(
 		deps.loadedElements.set(script.id, element);
 		if (typeof script.onConsentChange === 'function' || deps.hasDebugListener) {
 			const info = buildCallbackInfo(
+				deps.tools,
 				script,
 				snapshot,
 				hasConsent,
@@ -282,7 +293,14 @@ export const mountScript = function mountScript(
 	// debug listener is registered. Hot path in mount bursts.
 	const infoCallers = hasAnyCallback(script) || deps.hasDebugListener;
 	const info = infoCallers
-		? buildCallbackInfo(script, snapshot, hasConsent, elementId, element)
+		? buildCallbackInfo(
+				deps.tools,
+				script,
+				snapshot,
+				hasConsent,
+				elementId,
+				element
+			)
 		: undefined;
 	if (info) {
 		invokeCallback(script, 'onBeforeLoad', info, deps.emit);
@@ -429,6 +447,7 @@ export const unmountScript = function unmountScript(
 		deps.loadedElements.delete(script.id);
 		if (typeof script.onConsentChange === 'function') {
 			const info = buildCallbackInfo(
+				deps.tools,
 				script,
 				snapshot,
 				hasConsent,
@@ -459,7 +478,13 @@ export const unmountScript = function unmountScript(
 	deps.ownedScriptIds.delete(script.id);
 
 	if (typeof script.onConsentChange === 'function') {
-		const info = buildCallbackInfo(script, snapshot, hasConsent, elementId);
+		const info = buildCallbackInfo(
+			deps.tools,
+			script,
+			snapshot,
+			hasConsent,
+			elementId
+		);
 		invokeCallback(script, 'onConsentChange', info, deps.emit);
 	}
 

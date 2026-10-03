@@ -176,12 +176,46 @@ browser data is removed. IAB mounts through the `mountIAB` module
 (`mountRuntimeIAB`, included in `defaultRuntimeModules`); without it `iab` is
 ignored.
 
+`onDemandRuntimeModules` loads the script loader, the network blocker, data
+clearing and a `consentSource` connection on demand, each as one chunk that
+imports nothing your first chunk has. Spread it into `modules` next to the
+modules you import statically:
+
+{/* example: fragment */}
+
+```ts
+import { watchRevocationReload } from 'c15t';
+import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
+import { createPersistence } from 'c15t/modules/persistence';
+import { createWindowDebug } from 'c15t/modules/window-debug';
+import {
+	createConsentProviderRuntime,
+	onDemandRuntimeModules,
+} from 'c15t/runtime/provider';
+
+const runtime = createConsentProviderRuntime(options, {
+	...onDemandRuntimeModules,
+	createIframeBlocker,
+	createPersistence,
+	createWindowDebug,
+	watchRevocationReload,
+});
+```
+
+A page that configures none of those modules never downloads them. Consented
+scripts mount once the script loader has loaded, matching requests stay held
+until the network blocker has, and optional categories stay denied until a
+`consentSource` connects. A module you load yourself with `lazyRuntimeModule`
+works the same way, but if it imports code your first chunk also uses, bundlers
+that split shared code (Vite, esbuild) move that code into extra chunks the
+first load then fetches.
+
 Import from `c15t/runtime/provider` when your provider loads modules on
-demand. It exports `createConsentProviderRuntime`, `lazyRuntimeModule` and
-`lazyStreamPrefetch`, and none of the modules `defaultRuntimeModules` imports
-statically. Some bundlers, esbuild among them, keep a module in the first chunk
-when it is imported statically anywhere in the graph, even unused, and also
-through `import()`.
+demand. It exports `createConsentProviderRuntime`, `onDemandRuntimeModules`,
+`lazyRuntimeModule` and `lazyStreamPrefetch`, and none of the modules
+`defaultRuntimeModules` imports statically. Some bundlers, esbuild among them,
+keep a module in the first chunk when it is imported statically anywhere in the
+graph, even unused, and also through `import()`.
 
 ## Other exports
 

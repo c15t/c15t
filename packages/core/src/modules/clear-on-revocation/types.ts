@@ -1,6 +1,7 @@
 import type { OptionalConsentCategory } from '../../consent-record/types';
 import type { StorageConfig } from '../../libs/cookie/types';
 import type { ConsentKernel } from '../../types';
+import type { getEffectiveGateState } from '../has';
 
 /** A cookie name or nonempty prefix ending in `*`, with optional scope. */
 export interface ClearOnRevocationCookie {
@@ -41,4 +42,20 @@ export interface ClearOnRevocationOptions {
 export interface ClearOnRevocationHandle {
 	/** Stop observing consent. Does not delete browser data. */
 	dispose: () => void;
+}
+
+/**
+ * What data clearing calls but does not import, so it can load on demand
+ * as one self-contained chunk. The public entry passes the shared
+ * implementations.
+ * @internal
+ */
+export interface ClearOnRevocationTools {
+	/** `getEffectiveGateState`. */
+	gateState: typeof getEffectiveGateState;
+	optionalConsentCategories: readonly OptionalConsentCategory[];
+	/** c15t's own keys besides the configurable consent key. */
+	protectedStorageKeys: readonly string[];
+	/** The default consent storage key. */
+	storageKey: string;
 }

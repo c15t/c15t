@@ -5,6 +5,7 @@ import {
 	NOW,
 } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
+import { evaluateConsent } from '../../has';
 import { evaluateBlock } from '../decide';
 import { createNetworkBlocker } from '../index';
 
@@ -46,12 +47,22 @@ describe('network rules with a vendor slug', () => {
 			},
 		];
 		expect(
-			evaluateBlock(new URL('https://www.facebook.com/tr'), 'GET', rules, snap)
-				.shouldBlock
+			evaluateBlock(
+				new URL('https://www.facebook.com/tr'),
+				'GET',
+				rules,
+				snap,
+				evaluateConsent
+			).shouldBlock
 		).toBe(true);
 		expect(
-			evaluateBlock(new URL('https://ad.doubleclick.net/x'), 'GET', rules, snap)
-				.shouldBlock
+			evaluateBlock(
+				new URL('https://ad.doubleclick.net/x'),
+				'GET',
+				rules,
+				snap,
+				evaluateConsent
+			).shouldBlock
 		).toBe(false);
 	});
 });

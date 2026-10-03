@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 
 import { choiceRecords } from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
+import { evaluateConsent } from '../../has';
 import { evaluateBlock } from '../decide';
 import type { NetworkBlockerRule } from '../types';
 
@@ -23,7 +24,8 @@ describe('evaluateBlock', () => {
 			new URL('https://allowed.example/foo'),
 			'GET',
 			[makeRule()],
-			snap
+			snap,
+			evaluateConsent
 		);
 		expect(decision.shouldBlock).toBe(false);
 	});
@@ -34,7 +36,8 @@ describe('evaluateBlock', () => {
 			new URL('https://tracker.example/foo'),
 			'GET',
 			[makeRule()],
-			snap
+			snap,
+			evaluateConsent
 		);
 		expect(decision.shouldBlock).toBe(true);
 		expect(decision.rule?.id).toBe('r');
@@ -48,7 +51,8 @@ describe('evaluateBlock', () => {
 			new URL('https://tracker.example/foo'),
 			'GET',
 			[makeRule()],
-			snap
+			snap,
+			evaluateConsent
 		);
 		expect(decision.shouldBlock).toBe(false);
 	});
@@ -61,7 +65,8 @@ describe('evaluateBlock', () => {
 			new URL('https://tracker.example/foo'),
 			'GET',
 			[ruleA, ruleB],
-			snap
+			snap,
+			evaluateConsent
 		);
 		expect(decision.rule?.id).toBe('a');
 	});
@@ -73,13 +78,15 @@ describe('evaluateBlock', () => {
 			new URL('https://tracker.example/api/track'),
 			'GET',
 			[rule],
-			snap
+			snap,
+			evaluateConsent
 		);
 		const passed = evaluateBlock(
 			new URL('https://tracker.example/api/health'),
 			'GET',
 			[rule],
-			snap
+			snap,
+			evaluateConsent
 		);
 		expect(blocked.shouldBlock).toBe(true);
 		expect(passed.shouldBlock).toBe(false);
@@ -92,13 +99,15 @@ describe('evaluateBlock', () => {
 			new URL('https://tracker.example/'),
 			'POST',
 			[rule],
-			snap
+			snap,
+			evaluateConsent
 		);
 		const passed = evaluateBlock(
 			new URL('https://tracker.example/'),
 			'GET',
 			[rule],
-			snap
+			snap,
+			evaluateConsent
 		);
 		expect(blocked.shouldBlock).toBe(true);
 		expect(passed.shouldBlock).toBe(false);
