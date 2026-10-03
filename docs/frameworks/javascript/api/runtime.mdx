@@ -36,7 +36,7 @@ Only `mode` is required.
 | `reloadOnConsentRevoked` | `boolean` | `true` | Reload after an accept, reject or save turns off a category or vendor that was allowed, once the save request finishes. |
 | `callbacks` | `{ onChoiceRecorded?, onPermissionsChanged?, onError?, onBeforeConsentRevocationReload? }` | none | See [callbacks](/docs/frameworks/javascript/callbacks). |
 | `overrides` | `{ country?, region?, language?, gpc? }` | none | Decision inputs the page knows. |
-| `prefetch` | kernel configuration | none | A server-resolved init answer. With a resolved policy, `start()` skips the `/init` request. |
+| `prefetch` | kernel configuration | none | A server-resolved init answer. With a resolved policy, `start()` skips the `/init` request. A prefetch marked `initialPolicyPending` is provisional, so `start()` still sends it. |
 | `policyRules` | `PolicyRule[]` | none | Rules a local transport resolves. |
 | `i18n` | `{ locale?, messages }` | English | Initial language, and messages that override the bundled or backend copy key by key for the same language. See [translations](/docs/frameworks/javascript/translations). |
 | `presentation` | `{ prompt?, preferences? }` | none | Layout and blocking, for UIs that call `resolveConsentPresentation`. |
@@ -56,7 +56,11 @@ Only `mode` is required.
 
 1. the `window.c15t` debug object, unless `windowDebug: false`;
 2. persistence, which reads stored choices;
-3. the `/init` request, unless a resolved `prefetch` makes it redundant;
+3. the `/init` request. With a resolved `prefetch` it adopts that answer
+   instead: the choice is evaluated at the server's clock, the banner the
+   server rendered counts as the first impression, a detected Global Privacy
+   Control signal is honoured, and `init:applied` fires as it would for a
+   response;
 4. the script loader, when `scripts` is not empty;
 5. the network blocker, when configured;
 6. the iframe blocker, unless `iframeBlocker: false`;
@@ -67,8 +71,15 @@ Only `mode` is required.
 code. A second call does nothing. The callback bridge and the reload watcher
 attach at construction, so they hear events from the first `start()`.
 
-Network blocker rules hold matching requests from construction, before
-`start()` installs the blocker. The blocker then decides each held request.
+In a client-only app, with no server-rendered markup to hydrate, you can call
+`start()` before the first render: the `/init` request then runs while the app
+mounts, and nothing waits for it. With server-rendered markup, call it after
+hydration so the first browser render matches the server's.
+
+The network blocker and data clearing are opt-in, so they load as separate
+chunks, and only when configured. Network blocker rules hold matching requests
+from construction until the blocker has loaded and decides each one. Data
+clearing waits for the policy anyway.
 
 `runtime.dispose()` undoes everything in reverse, then disposes the kernel.
 A runtime disposed before it started blocks the requests it was holding.
@@ -82,15 +93,68 @@ A runtime disposed before it started blocks the requests it was holding.
 | `started` | Whether `start()` has run and the runtime is not disposed. |
 | `identify(user)` | Link the consent record to a user. Failures surface through `onError`, not a rejection. |
 | `setOverrides(overrides)` | Replace the country, region, language and GPC inputs. |
-| `reinit()` | Run `/init` again, for example after `setOverrides`. |
+| `reinit()` | Run `/init` again, for example after `setOverrides`. Does nothing while disabled. |
+| `setLanguage(code)` | Show the copy in another language. Does nothing for the current language; otherwise runs `/init` again, unless the runtime is disabled or uses `consentSource`. |
 | `processIframes()` | Pause gated iframes that consent does not allow and restore the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. Does nothing before `start()`, after `dispose()` or with `iframeBlocker: false`. |
 | `reconcileStorage()` | Read stored records again and apply changes another runtime or tab made. Returns whether anything changed. |
-| `clearRecords()` | Delete stored choices and reset the kernel's records. |
+| `clearRecords()` | Delete stored choices and reset the kernel's records: choice, notice dismissal, subject and vendor choice. Saves still queued for the cleared subject are dropped. |
 | `consentCategories` | `necessary` plus the categories in the current choice scope. |
-| `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. |
+| `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. `undefined` drops the configured list. |
+| `experiment` | The experiment the runtime runs: the one a ready `prefetch` carries, otherwise the `experiment` option. Resolve presentation and theme against it. |
 | `stageVendorConsent(vendorId, granted)`, `resetVendorDraft()` | Stage or drop a vendor-level choice for the next save. |
 | `iab` | The CMP handle under IAB, or `null`. |
 | `onIABChange(listener)` | Called when `iab` is mounted or removed. Returns an unsubscribe function. |
+
+## Runtime for a framework provider
+
+`createConsentRuntime` is for a page that configures consent once. A framework
+provider whose options follow its props uses
+`createConsentProviderRuntime(options, modules)` instead. It has every member
+above, plus:
+
+| Member | What it does |
+| --- | --- |
+| `update(options)` | Apply the provider's new options. Pass the whole option set each time; the runtime compares it with the previous one and applies only what changed. |
+| `setEnabled(enabled)` | Turn consent management off or on. Off renders a separate permissive kernel that grants every category and shows no UI; only the script loader runs. On renders the visitor's kernel again, with their records, and runs `/init` or adopts the prefetch again. |
+| `enabled` | Whether consent management is on. |
+| `kernel` | The kernel to render. It changes when `enabled` changes. |
+| `subscribe(listener)` | Called when `kernel`, `iab` or `enabled` changes. Read them again in the listener. Returns an unsubscribe function. |
+
+`update()` applies these options to a running runtime:
+
+| Option | On change |
+| --- | --- |
+| `enabled` | Same as `setEnabled()`. |
+| `user` | The new user is identified. The user the runtime was created with is sent with `/init` and every save, and is not identified separately. |
+| `overrides` | The overrides are set and `/init` runs again. Key order does not count as a change. Before `start()`, `start()` then sends `/init` instead of adopting the prefetch. |
+| `consentCategories` | The configured categories are replaced. |
+| `vendors`, `scripts`, network blocker `rules` | Vendors are declared again. Scripts go to the script loader, rules to the network blocker. A loader starts when scripts first appear. |
+| `networkBlocker` | New `rules` and `enabled` apply. `false` removes the blocker; options where there were none add one. |
+| `iframeBlocker` | `false` removes the blocker. A new `disableAutomaticBlocking` rebuilds it. |
+| `storageConfig.storageKey` | Data clearing restarts so it keeps protecting the new key. |
+| `callbacks`, `reloadOnConsentRevoked` | Read when an event fires, so the latest values apply. |
+
+`nonce`, `scriptLoader.onDebug` and the network blocker's `logBlockedRequests`
+and `onRequestBlocked` are read when their module starts. Every other option is
+read once. Outside production, a change to `mode`, `i18n` or `experiment` logs
+a warning; create a new runtime to change them.
+
+`prefetch` may also be a promise, for example the result of a server helper
+that a framework streams to the browser. The runtime starts with a provisional
+policy, so no consent surface shows, and its first `/init` waits for the
+promise and applies the result instead of sending a request. A result without
+a policy is applied as a baseline (records, location, language) and the
+request is sent with those overrides. A rejected promise sends the request as
+if there were no prefetch. Records cleared while the promise is pending stay
+cleared. An experiment in a streamed result arrives too late to run.
+
+`modules` decides how each module loads. Pass `defaultRuntimeModules` to load
+them the way `createConsentRuntime` does. To keep a module out of the first
+chunk, replace its factory with `lazyRuntimeModule(() => import(...))`: calls
+made before the module has loaded are queued and replayed. Keep
+`watchRevocationReload` static, because it has to see the first save, and
+prefer a static `createPersistence`, because a lazy one shows a returning
+visitor the banner until it has loaded.
 
 ## Other exports
 
@@ -99,6 +163,9 @@ A runtime disposed before it started blocks the requests it was holding.
 | `createLazyIABFactory(loader)` | Wrap a dynamic `import('@c15t/iab')` so the IAB code loads as a separate chunk when the runtime mounts IAB. Pass its `create` as `createIAB`. |
 | `isIABConfigured(iab)` | Whether an `iab` option turns IAB on. |
 | `wireRuntimeCallbacks({ kernel, callbacks })` | Attach the four callbacks to a kernel you own. Returns a disposer. |
+| `createConsentProviderRuntime(options, modules)` | The runtime for a framework provider. See [runtime for a framework provider](#runtime-for-a-framework-provider). |
+| `defaultRuntimeModules` | The module factories `createConsentRuntime` mounts. |
+| `lazyRuntimeModule(load)` | Wrap a module factory so its module loads through a dynamic `import()` on first use. |
 
 ## Check it works
 
