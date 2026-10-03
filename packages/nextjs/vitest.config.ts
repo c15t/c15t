@@ -70,6 +70,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/runtime/controls.ts'
 				),
+				'@c15t/core/runtime/provider': resolve(
+					__dirname,
+					'../core/src/runtime/provider.ts'
+				),
 				'@c15t/core/runtime': resolve(
 					__dirname,
 					'../core/src/runtime/index.ts'

@@ -145,8 +145,11 @@ test('keeps the kernel across rerenders and synchronizes identity and geographic
 		</ConsentProvider>
 	);
 	expect(kernel).toBe(first);
-	expect(kernel.getSnapshot().user?.externalId).toBe('second');
 	expect(kernel.getSnapshot().overrides.country).toBe('FR');
+	// Identity follows once the runtime's update module has loaded.
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().user?.externalId).toBe('second')
+	);
 	await vi.waitFor(() => expect(init).toHaveBeenCalledTimes(1));
 });
 

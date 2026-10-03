@@ -1,26 +1,18 @@
 /**
- * The provider starts the iframe blocker when a gated iframe is on the page.
+ * The provider loads the iframe blocker when a gated iframe is on the page.
  *
  * Every page used to download and run the blocker at mount, iframes or
- * not. It now starts on the first `data-category` or `data-vendor` iframe,
- * through a dynamic `import()`. A gated frame that arrives with a `src`
- * while the blocker is on its way is paused the way the blocker pauses a
- * denied one, so it cannot load before consent allows it.
- *
- * The test server does not split chunks (the runtime entry imports the
- * blocker module for `defaultRuntimeModules`; production bundles drop that
- * import), so the mock counts and holds back `createIframeBlocker` rather
- * than the module's evaluation. The bundle benchmark checks that the
- * blocker stays out of the first-load chunk.
+ * not. It now loads on the first `data-category` or `data-vendor` iframe.
+ * A gated frame that arrives with a `src` while the chunk is on its way is
+ * paused the way the blocker pauses a denied one, so it cannot load before
+ * consent allows it.
  *
  * The tests share one module registry and run in order: the first checks
- * that nothing started; the second holds the blocker back to test the
- * window before it arrives.
+ * that nothing loaded; the second holds the chunk back to test the window
+ * before it arrives.
  */
 import { createConsentKernel } from '@c15t/core';
 import type { ConsentKernel, KernelVendorsState } from '@c15t/core';
-import type { IframeBlockerOptions } from '@c15t/core/modules/iframe-blocker';
-import type * as IframeBlockerModule from '@c15t/core/modules/iframe-blocker';
 import { useContext, useEffect } from 'react';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -40,29 +32,11 @@ const blockerModule = vi.hoisted(() => {
 	return { gate, loads: 0, release: () => release() };
 });
 
-// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is when the provider starts the blocker. The factory counts starts, can hold the blocker back, and runs the real module.
+// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is when the provider evaluates this module. The factory counts loads, can hold the chunk back, and returns the real module.
 vi.mock('@c15t/core/modules/iframe-blocker', async (importOriginal) => {
-	const original = await importOriginal<typeof IframeBlockerModule>();
-	return {
-		...original,
-		createIframeBlocker: (options: IframeBlockerOptions) => {
-			blockerModule.loads += 1;
-			let real: ReturnType<typeof original.createIframeBlocker> | null = null;
-			let disposed = false;
-			void blockerModule.gate.then(() => {
-				if (!disposed) {
-					real = original.createIframeBlocker(options);
-				}
-			});
-			return {
-				dispose: () => {
-					disposed = true;
-					real?.dispose();
-				},
-				processAllIframes: () => real?.processAllIframes(),
-			};
-		},
-	};
+	blockerModule.loads += 1;
+	await blockerModule.gate;
+	return await importOriginal();
 });
 
 const FRAME_URL = 'https://frames.c15t.test/embed';

@@ -27,18 +27,18 @@ import type {
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
+import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
 	createConsentProviderRuntime,
 	lazyRuntimeModule,
-	streamPrefetch,
-} from '@c15t/core/runtime';
+	lazyStreamPrefetch,
+} from '@c15t/core/runtime/provider';
 import type {
-	ConsentControlOptions,
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
 	ConsentRuntime,
 	ConsentRuntimeModules,
-} from '@c15t/core/runtime';
+} from '@c15t/core/runtime/provider';
 import { applyThemeSlots } from '@c15t/ui/utils';
 import type { ReactNode } from 'react';
 import {
@@ -305,7 +305,8 @@ export type ConsentProviderProps =
  * - the iframe blocker, when the first gated iframe is on the page; until
  *   then a watcher pauses gated frames consent does not allow.
  *
- * `streamPrefetch` lets `prefetch` be a promise a server streams in.
+ * `lazyStreamPrefetch` lets `prefetch` be a promise a server streams in,
+ * and loads that code only when it is one.
  */
 const reactRuntimeModules =
 	function reactRuntimeModules(): ConsentRuntimeModules {
@@ -327,7 +328,7 @@ const reactRuntimeModules =
 					(await import('@c15t/core/modules/script-loader')).createScriptLoader
 			),
 			createWindowDebug,
-			streamPrefetch,
+			streamPrefetch: lazyStreamPrefetch,
 			watchRevocationReload,
 		};
 	};
@@ -445,7 +446,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		apply(next) {
 			if (next !== options) {
 				options = next;
-				runtime.update(toRuntimeOptions(next));
+				void runtime.update(toRuntimeOptions(next));
 			}
 		},
 		mount() {

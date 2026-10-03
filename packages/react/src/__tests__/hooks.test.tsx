@@ -464,9 +464,12 @@ describe('v3 react: network blocker lifecycle', () => {
 				</ConsentProvider>
 			);
 
-			expect((await window.fetch('https://first.example.com/x')).status).toBe(
-				200
-			);
+			// New rules reach the blocker once the runtime's update module loads.
+			await vi.waitFor(async () => {
+				expect((await window.fetch('https://first.example.com/x')).status).toBe(
+					200
+				);
+			});
 			expect((await window.fetch('https://second.example.com/x')).status).toBe(
 				451
 			);
