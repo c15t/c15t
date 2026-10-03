@@ -22,8 +22,12 @@ this provider and passes it server-resolved state.
 ## Provider options
 
 Keep the provider mounted across client navigation. It reads `mode`,
-`prefetch`, `persistence`, `clearOnRevocation` and the module options once,
-when it mounts. Remount the provider to change them.
+`prefetch`, `persistence`, `storageConfig`, `clearOnRevocation`, `i18n` and
+`experiment` once, when it mounts. Outside production, changing `mode`,
+`i18n`, `experiment`, `persistence` or `storageConfig` logs a warning. Remount
+the provider to change them. `scripts`, `vendors`, `networkBlocker`,
+`iframeBlocker`, `consentCategories`, `overrides`, `user`, `callbacks` and
+`enabled` apply when they change.
 
 | Option | Purpose |
 | --- | --- |

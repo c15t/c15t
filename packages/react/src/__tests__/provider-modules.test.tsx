@@ -1,5 +1,6 @@
 import type { ClearOnRevocationConfig, ConsentKernel } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
+import type * as ScriptLoaderModule from '@c15t/core/modules/script-loader';
 import { useContext, useEffect } from 'react';
 import { afterEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -9,12 +10,21 @@ import { offline } from '../index';
 import { ConsentProvider } from '../provider';
 import { policyFixture } from './policy-fixture';
 
-const scriptModuleRequests = () =>
-	performance
-		.getEntriesByType('resource')
-		.filter(({ name }) =>
-			name.includes('/core/src/modules/script-loader/index.ts')
-		);
+const loaderStarts = vi.hoisted(() => ({ count: 0 }));
+
+// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is when the provider starts the script loader. The test server does not split chunks, so count starts and run the real loader.
+vi.mock('@c15t/core/modules/script-loader', async (importOriginal) => {
+	const original = await importOriginal<typeof ScriptLoaderModule>();
+	return {
+		...original,
+		createScriptLoader: (
+			options: Parameters<typeof original.createScriptLoader>[0]
+		) => {
+			loaderStarts.count += 1;
+			return original.createScriptLoader(options);
+		},
+	};
+});
 
 let kernel: ConsentKernel;
 const Capture = () => {
@@ -38,9 +48,6 @@ afterEach(() => {
 });
 
 test('loads scripts only when added and preserves cleanup ordering and initial config', async () => {
-	// Vite's module graph can fill the browser's default resource buffer.
-	performance.setResourceTimingBufferSize(5000);
-	performance.clearResourceTimings();
 	const initialCleanup: ClearOnRevocationConfig = {
 		marketing: { localStorage: ['cleanup:ready'] },
 		measurement: { localStorage: ['analytics:visitor'] },
@@ -68,7 +75,7 @@ test('loads scripts only when added and preserves cleanup ordering and initial c
 	await vi.waitFor(() =>
 		expect(localStorage.getItem('cleanup:ready')).toBeNull()
 	);
-	expect(scriptModuleRequests()).toHaveLength(0);
+	expect(loaderStarts.count).toBe(0);
 
 	const onBeforeLoad = vi.fn();
 	const onConsentChange = vi.fn(({ hasConsent }: { hasConsent: boolean }) => {
@@ -93,7 +100,7 @@ test('loads scripts only when added and preserves cleanup ordering and initial c
 	await vi.waitFor(() =>
 		expect(localStorage.getItem('cleanup:ready')).toBeNull()
 	);
-	expect(scriptModuleRequests()).toHaveLength(1);
+	expect(loaderStarts.count).toBe(1);
 	localStorage.setItem('analytics:visitor', 'visitor');
 	localStorage.setItem('analytics:replacement', 'keep');
 	await kernel.commands.save({ measurement: false });
@@ -113,7 +120,7 @@ test('loads scripts only when added and preserves cleanup ordering and initial c
 	expect(onBeforeLoad).toHaveBeenCalledTimes(2);
 	await screen.rerender(provider(scripts, replacementCleanup));
 	await vi.waitFor(() => expect(onBeforeLoad).toHaveBeenCalledTimes(3));
-	expect(scriptModuleRequests()).toHaveLength(1);
+	expect(loaderStarts.count).toBe(1);
 	await screen.rerender(
 		<ConsentProvider options={{ mode, persistence: false, prefetch, scripts }}>
 			<Capture />

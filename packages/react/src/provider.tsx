@@ -3,69 +3,57 @@
 import {
 	applyExperimentAssignment,
 	applyExperimentTheme,
-	extractConsentNamesFromCondition,
-	watchRevocationReload,
-	createConsentKernel,
-	disabledPolicyResolution,
-	kernelConfigToInitResponse,
-	declareOwnedVendors,
-	forgetOwnedVendors,
-	resolveLocalTranslations,
-	resolveVendors,
 	hostExperiment,
-	seedExperiment,
-	startExperiment,
+	watchRevocationReload,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
+	Callbacks,
 	ClearOnRevocationConfig,
 	ConsentExperiment,
-	ExperimentState,
-	ConsentPresentation,
-	Callbacks,
-	StartExperimentOptions,
 	ConsentKernel,
+	ConsentPresentation,
+	ExperimentState,
 	I18nConfig,
-	KernelTransport,
-	InitContext,
-	InitResponse,
 	KernelConfig,
-	KernelEvent,
 	KernelOverrides,
-	KernelTranslations,
 	KernelUser,
 	LegalLinks,
-	ProviderTransportContext,
 	ProviderTransportFactory,
 	StorageConfig,
-	TranslationsResponse,
 	User,
 	Vendor,
 } from '@c15t/core';
-import type { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import type { Script } from '@c15t/core/modules/script-loader';
+import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import {
-	createWindowDebug,
-	resolveWindowDebugMode,
-} from '@c15t/core/modules/window-debug';
-import type { WindowDebugMode } from '@c15t/core/modules/window-debug';
-import type { ConsentControlOptions, ConsentRuntime } from '@c15t/core/runtime';
-import { connectConsentSource } from '@c15t/core/runtime/controls';
-import { deepMergeTranslations } from '@c15t/translations';
-import type { Translations } from '@c15t/translations';
+	createConsentProviderRuntime,
+	lazyRuntimeModule,
+	streamPrefetch,
+} from '@c15t/core/runtime';
+import type {
+	ConsentControlOptions,
+	ConsentProviderRuntime,
+	ConsentProviderRuntimeOptions,
+	ConsentRuntime,
+	ConsentRuntimeModules,
+} from '@c15t/core/runtime';
 import { applyThemeSlots } from '@c15t/ui/utils';
 import type { ReactNode } from 'react';
 import {
-	useContext,
+	useCallback,
 	useEffect,
+	useLayoutEffect,
 	useMemo,
-	useRef,
+	useReducer,
 	useState,
 	useSyncExternalStore,
 } from 'react';
 
 import type { DialogPreload } from './chunk-warming';
 import { KernelContext, ProviderServicesContext } from './context';
+import type { ProviderServices } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
 import type {
@@ -73,23 +61,15 @@ import type {
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
 } from './module-hooks';
-import { useIframeBlockerOnDemand } from './module-hooks/iframe-blocker';
+import { createIframeBlockerOnDemand } from './module-hooks/iframe-blocker';
 import type { UseIframeBlockerOptions } from './module-hooks/iframe-blocker';
-import { useEarlyNetworkHold } from './module-hooks/network-hold';
-import { usePersistence } from './module-hooks/persistence';
+import { UNCOMMITTED_HOLD_MS } from './module-hooks/network-hold';
 import { V3ThemeProvider } from './theme-provider';
 import type { ReactUIOptions } from './types/manager';
 import type { ReactComponentSlots } from './types/slots';
 import type { V3UIConfigValue } from './ui-config-context';
-import { defaultTranslationConfig } from './utils/default-translation-config';
 
-const loadNetworkBlockerModule = () =>
-	import('@c15t/core/modules/network-blocker');
-const loadScriptLoaderModule = () => import('@c15t/core/modules/script-loader');
-const loadClearOnRevocationModule = () =>
-	import('@c15t/core/modules/clear-on-revocation');
-
-/** Replaced by the app's bundler; see the theme-token warning below. */
+/** Replaced by the app's bundler; see the development warnings below. */
 declare const process: { env: { NODE_ENV?: string } };
 
 /** Events emitted by the mounted provider without snapshot-derived consent aliases. */
@@ -164,6 +144,12 @@ export interface ConsentProviderOptions
 	 * ```
 	 */
 	mode: ProviderTransportFactory;
+	/**
+	 * Where the visitor's choice is stored. Read once, like `persistence`:
+	 * the stored records and the data clearing that protects them stay at
+	 * the location the provider mounted with. Outside production, a change
+	 * logs a warning; remount the provider to move storage.
+	 */
 	storageConfig?: StorageConfig;
 	user?: User | KernelUser;
 	overrides?: KernelOverrides;
@@ -231,6 +217,10 @@ export interface ConsentProviderOptions
 	 * is paused.
 	 */
 	iframeBlocker?: UseIframeBlockerOptions | false;
+	/**
+	 * Store the visitor's choice in a cookie and localStorage. On by default.
+	 * Read once, when the provider mounts; see `storageConfig`.
+	 */
 	persistence?: boolean | UsePersistenceOptions;
 	i18n?: Partial<I18nConfig>;
 	/** Categories to offer alongside discovered integration categories, within policy scope. */
@@ -301,1191 +291,286 @@ export type ConsentProviderProps =
 	| OwnedRuntimeProviderProps
 	| ExternalRuntimeProviderProps;
 
-const DEFAULT_TRANSLATIONS: KernelTranslations = {
-	language: 'en',
-	translations: defaultTranslationConfig.translations.en as never,
-};
-
-const normalizeUser = function normalizeUser(
-	user: ConsentProviderOptions['user']
-): KernelUser | undefined {
-	if (!user) {
-		return undefined;
-	}
-	if ('externalId' in user) {
-		return user;
-	}
-	return {
-		externalId: user.id,
-		identityProvider: user.identityProvider,
-	};
-};
-
-const resolveI18nTranslations = function resolveI18nTranslations(
-	i18n: Partial<I18nConfig> | undefined
-): KernelTranslations | undefined {
-	if (!i18n?.messages) {
-		return undefined;
-	}
-	const language =
-		i18n.locale ?? defaultTranslationConfig.defaultLanguage ?? 'en';
-	const fallbackTranslations = defaultTranslationConfig.translations
-		.en as TranslationsResponse;
-	const selected =
-		i18n.messages[language] ?? i18n.messages.en ?? fallbackTranslations;
-	const base =
-		defaultTranslationConfig.translations[
-			language as keyof typeof defaultTranslationConfig.translations
-		] ?? fallbackTranslations;
-	return {
-		language,
-		translations: deepMergeTranslations(
-			base as Translations,
-			selected as Partial<Translations>
-		) as TranslationsResponse,
-	};
-};
-
-const getEnabled = function getEnabled(
-	options: ConsentProviderOptions
-): boolean {
-	return options.enabled ?? true;
-};
-
 /**
- * What a first-init source resolved to: an init response to apply instead
- * of calling the transport, or the context the transport should be called
- * with when the source had no policy to offer.
- */
-interface FirstInitResolution {
-	response?: InitResponse | null;
-	context?: InitContext;
-}
-
-type FirstInitSource = (ctx: InitContext) => Promise<FirstInitResolution>;
-
-/**
- * Wrap a transport so its first `init()` is answered by `source` — a
- * server-supplied payload that arrives asynchronously (a pending
- * `prefetch` promise, or the deprecated `ssrData`). When the source yields
- * no response the real transport init runs with the context the source
- * returned. Later inits (overrides changes, `enabled` flips, retries) go
- * straight to the transport.
- */
-const withFirstInitSource = function withFirstInitSource(
-	transport: KernelTransport,
-	source: FirstInitSource
-): KernelTransport {
-	let used = false;
-	return {
-		...transport,
-		async init(ctx) {
-			if (used) {
-				return transport.init?.(ctx) ?? {};
-			}
-			used = true;
-			const resolution = await source(ctx);
-			if (resolution.response) {
-				return resolution.response;
-			}
-			return transport.init?.(resolution.context ?? ctx) ?? {};
-		},
-	};
-};
-
-const isPromiseLike = function isPromiseLike<Value>(
-	value: Value | PromiseLike<Value> | undefined
-): value is PromiseLike<Value> {
-	return typeof (value as PromiseLike<Value> | undefined)?.then === 'function';
-};
-
-/**
- * The part of `prefetch` available at kernel construction: the config
- * itself when it was passed resolved, an empty config while a promise is
- * still pending.
- */
-const resolveSyncPrefetch = function resolveSyncPrefetch(
-	options: ConsentProviderOptions
-): KernelConfig {
-	const { prefetch } = options;
-	if (!prefetch || isPromiseLike(prefetch)) {
-		return {};
-	}
-	return prefetch;
-};
-
-/**
- * The experiment this provider runs: the one a server helper resolved into
- * a ready `prefetch`, otherwise `options.experiment`. A streamed `prefetch`
- * arrives after mount, too late to choose the experiment.
- */
-const providerExperiment = function providerExperiment(
-	options: ConsentProviderOptions
-): ConsentExperiment | undefined {
-	const { prefetch } = options;
-	return hostExperiment(
-		options.experiment,
-		isPromiseLike(prefetch) ? undefined : prefetch
-	);
-};
-
-const warnStreamedExperiment = function warnStreamedExperiment() {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv === 'production') {
-		return;
-	}
-	console.warn(
-		'c15t ConsentProvider: the streamed consent state carries an experiment, but the provider mounted before it arrived and runs none. Await resolveConsent(), or also pass `experiment` to the provider options.'
-	);
-};
-
-const hasKeys = function hasKeys(
-	value: KernelOverrides | undefined
-): value is KernelOverrides {
-	return value !== undefined && Object.keys(value).length > 0;
-};
-
-const warnPrefetchRejected = function warnPrefetchRejected(error: unknown) {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv === 'production') {
-		return;
-	}
-	console.warn(
-		'c15t ConsentProvider: prefetch rejected; using transport init.',
-		error
-	);
-};
-
-/**
- * Apply the baseline fields of a policy-less prefetch (persisted consents,
- * subject, geo/language) to a live kernel. Done through the setters rather
- * than the init path so a returning visitor's stored choice holds even if
- * the transport init that follows fails.
- */
-const applyBaselinePrefetch = function applyBaselinePrefetch(
-	kernel: ConsentKernel,
-	config: KernelConfig,
-	providerOverrides: KernelOverrides | undefined,
-	recordsGeneration: number | undefined
-) {
-	const overrides = {
-		...(config.initialOverrides ?? {}),
-		...(providerOverrides ?? {}),
-	};
-	if (hasKeys(overrides)) {
-		kernel.set.overrides(overrides);
-	}
-	if (
-		config.initialRecords &&
-		kernel.getRecordsGeneration() === recordsGeneration
-	) {
-		kernel.hydrate(config.initialRecords);
-	}
-};
-
-/**
- * First-init source for a pending `prefetch` promise. A resolved config
- * with a policy becomes the init response outright (no network init); a
- * policy-less config is applied as a baseline and the transport init runs
- * with its overrides. Provider `overrides` win over the server's, matching
- * the synchronous prefetch merge.
- */
-const createPrefetchSource = function createPrefetchSource(
-	prefetch: Promise<ConsentProviderPrefetch>,
-	providerOverrides: KernelOverrides | undefined,
-	getKernel: () => ConsentKernel | null,
-	runsExperiment: boolean,
-	onResolved: (config: KernelConfig) => void
-): FirstInitSource {
-	return async (ctx) => {
-		const recordsGeneration = getKernel()?.getRecordsGeneration();
-		let config: ConsentProviderPrefetch;
-		try {
-			config = (await prefetch) ?? {};
-		} catch (error) {
-			warnPrefetchRejected(error);
-			return {};
-		}
-		if (config.experiment && !runsExperiment) {
-			warnStreamedExperiment();
-		}
-		onResolved(config);
-
-		const response = kernelConfigToInitResponse(config);
-		if (response) {
-			const resolvedOverrides = {
-				...(response.resolvedOverrides ?? {}),
-				...(providerOverrides ?? {}),
-			};
-			if (hasKeys(resolvedOverrides)) {
-				response.resolvedOverrides = resolvedOverrides;
-			}
-			return { response };
-		}
-
-		const kernel = getKernel();
-		if (kernel) {
-			applyBaselinePrefetch(
-				kernel,
-				config,
-				providerOverrides,
-				recordsGeneration
-			);
-		}
-		return {
-			context: {
-				overrides: {
-					...ctx.overrides,
-					...(config.initialOverrides ?? {}),
-					...(providerOverrides ?? {}),
-				},
-				user: ctx.user,
-			},
-		};
-	};
-};
-
-const withPrefetchPromise = function withPrefetchPromise(
-	transport: KernelTransport,
-	options: ConsentProviderOptions,
-	getKernel: () => ConsentKernel | null,
-	onResolved: (config: KernelConfig) => void
-): KernelTransport {
-	const { prefetch } = options;
-	if (!isPromiseLike(prefetch)) {
-		return transport;
-	}
-	return withFirstInitSource(
-		transport,
-		createPrefetchSource(
-			Promise.resolve(prefetch),
-			options.overrides,
-			getKernel,
-			options.experiment !== undefined,
-			onResolved
-		)
-	);
-};
-
-const getProviderMode = function getProviderMode(
-	options: ConsentProviderOptions
-): ProviderTransportFactory {
-	if (typeof options.mode !== 'function') {
-		throw new Error(
-			'c15t ConsentProvider: set mode to hosted(), offline(), or custom().'
-		);
-	}
-	return options.mode;
-};
-
-const resolveInitialPolicyPending = function resolveInitialPolicyPending(
-	enabled: boolean,
-	prefetch: KernelConfig
-): boolean {
-	return (
-		prefetch.initialPolicyPending ??
-		(enabled && !prefetch.initialPolicyResolution)
-	);
-};
-
-const warnVendorDeclaration = function warnVendorDeclaration(
-	message: string
-): void {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv !== 'production') {
-		console.warn(message);
-	}
-};
-
-/**
- * Declared vendors for the kernel: code declarations and script slugs merged
- * over whatever a server prefetch already resolved. A resolved prefetch
- * skips the initial `init()`, so nothing would merge backend vendors later.
- */
-const resolveProviderVendors = function resolveProviderVendors(
-	options: ConsentProviderOptions,
-	integrations: readonly { vendor?: string; category: Script['category'] }[],
-	prefetch: KernelConfig
-): KernelConfig['initialVendors'] {
-	const declared = resolveVendors({
-		config: options.vendors,
-		existing: prefetch.initialVendors?.declared,
-		onWarn: warnVendorDeclaration,
-		owners: integrations,
-	});
-	const listVersion = prefetch.initialVendors?.listVersion ?? null;
-	return declared.length > 0 || listVersion !== null
-		? { declared, listVersion }
-		: undefined;
-};
-
-// oxlint-disable-next-line complexity -- Resolves provider SSR options and external authority without changing streaming prefetch.
-const createProviderKernel = function createProviderKernel(
-	options: ConsentProviderOptions
-): ConsentKernel {
-	const enabled = getEnabled(options);
-	const prefetch = resolveSyncPrefetch(options);
-	const i18nTranslations =
-		resolveI18nTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
-
-	// A pending prefetch resolves after the transport exists. The context
-	// reads the resolved config from then on, so a transport that checks it
-	// at init time (offline's detected `Accept-Language`) sees the server's
-	// values rather than the empty placeholder.
-	let transportPrefetch: KernelConfig = prefetch;
-	const transportContext: ProviderTransportContext = {
-		consentCategories: options.consentCategories,
-		get prefetch() {
-			return transportPrefetch;
-		},
-		translations: i18nTranslations,
-		translationsFor: (language) =>
-			resolveLocalTranslations(language, options.i18n?.messages),
-	};
-	const baseTransport = getProviderMode(options)(transportContext);
-
-	// The prefetch source needs the kernel it is about to feed (baseline
-	// setters on a policy-less config), but the transport must exist before
-	// the kernel does. Late-bind it: init only runs once the kernel exists.
-	const kernelRef: { current: ConsentKernel | null } = { current: null };
-	const transport = withPrefetchPromise(
-		baseTransport,
-		options,
-		() => kernelRef.current,
-		(resolved) => {
-			transportPrefetch = resolved;
-		}
-	);
-
-	const integrations = [
-		...(options.scripts ?? []),
-		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-	];
-	const initialVendors = resolveProviderVendors(
-		options,
-		integrations,
-		prefetch
-	);
-	// A prefetched or host-resolved arm is known before any render, so the
-	// server snapshot carries it and hydration renders the same variant.
-	// Built-in assignment holds the prompt until the browser picked the arm.
-	const experimentSeed = enabled
-		? seedExperiment(
-				providerExperiment(options),
-				prefetch.initialExperiment,
-				!!prefetch.initialPolicyResolution && !prefetch.initialPolicyPending
-			)
-		: {};
-
-	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
-	const kernel = createConsentKernel({
-		...prefetch,
-		consentCategories: options.consentCategories,
-		inferredConsentCategories: [
-			...integrations.flatMap((integration) =>
-				extractConsentNamesFromCondition(integration.category)
-			),
-			// A vendor declared in code or already resolved by a server prefetch
-			// makes its category selectable; a resolved prefetch skips init, so
-			// nothing would register it later.
-			...(initialVendors?.declared ?? []).flatMap((vendor) =>
-				extractConsentNamesFromCondition(vendor.category)
-			),
-		],
-		initialExperiment: experimentSeed.initialExperiment,
-		initialExperimentPending: experimentSeed.initialExperimentPending,
-		initialVendors,
-		initialExternalPermissions:
-			enabled && options.consentSource ? {} : undefined,
-		initialRecords:
-			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
-		initialPrivacySignals: enabled ? prefetch.initialPrivacySignals : undefined,
-		// An empty shell has no expiring records to evaluate. A stable seed
-		// avoids reading the clock during Next.js static prerender; init
-		// takes the real clock after mount. Prepared records retain their clock.
-		now:
-			prefetch.now ??
-			prefetch.initialRecords?.now ??
-			(prefetch.initialRecords ? undefined : 0),
-		transport,
-		initialPolicyResolution: enabled
-			? prefetch.initialPolicyResolution
-			: disabledPolicyResolution(),
-		initialOverrides: {
-			...(prefetch.initialOverrides ?? {}),
-			...(options.overrides ?? {}),
-		},
-		initialUser: normalizeUser(options.user) ?? prefetch.initialUser,
-		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
-		// A backend, manifest or prefetch supplies the base copy; the app's
-		// own messages for the active language win key by key.
-		translationOverrides: options.i18n?.messages,
-		// The synthetic categories fallback is a placeholder for whatever the
-		// transport's init resolves — mark it provisional so no surface renders
-		// copy/actions that init may replace (mid-read copy swap, CLS, consent
-		// recorded against a placeholder policy). Real initial policies
-		// (prefetch/SSR/offline config) stay authoritative and render at once.
-		initialPolicyPending: options.consentSource
-			? false
-			: resolveInitialPolicyPending(enabled, prefetch),
-	});
-	kernelRef.current = kernel;
-	return kernel;
-};
-
-const stringifyError = function stringifyError(error: unknown): string {
-	if (error instanceof Error) {
-		return error.message;
-	}
-	if (typeof error === 'string') {
-		return error;
-	}
-	try {
-		return JSON.stringify(error);
-	} catch {
-		return String(error);
-	}
-};
-
-const useProviderCallbacks = function useProviderCallbacks(
-	kernel: ConsentKernel,
-	callbacks: ConsentProviderCallbacks | undefined,
-	reloadOnConsentRevoked: boolean | undefined
-) {
-	const callbacksRef = useRef(callbacks);
-	const reloadRef = useRef(reloadOnConsentRevoked);
-
-	useEffect(() => {
-		callbacksRef.current = callbacks;
-		reloadRef.current = reloadOnConsentRevoked;
-	}, [callbacks, reloadOnConsentRevoked]);
-
-	useEffect(
-		() =>
-			watchRevocationReload({
-				getOnBeforeReload: () =>
-					callbacksRef.current?.onBeforeConsentRevocationReload,
-				isEnabled: () => reloadRef.current !== false,
-				kernel,
-			}),
-		[kernel]
-	);
-
-	useEffect(() => {
-		const subscriptions = [
-			// Vendors the backend declares arrive with init. Their categories
-			// become selectable the same way a code-declared vendor's do. The
-			// kernel's inferred set only grows, so a category that lost its last
-			// vendor stays selectable until remount; that matches how a removed
-			// script's category behaves today.
-			kernel.events.on('init:applied', ({ snapshot }) => {
-				const declared = snapshot.vendors?.declared ?? [];
-				if (declared.length > 0) {
-					kernel.set.registerConsentCategories(
-						declared.flatMap((vendor) =>
-							extractConsentNamesFromCondition(vendor.category)
-						)
-					);
-				}
-			}),
-			kernel.events.on('choice:recorded', ({ type: _type, ...event }) => {
-				callbacksRef.current?.onChoiceRecorded?.(event);
-			}),
-			kernel.events.on('permissions:changed', ({ snapshot, previous }) => {
-				callbacksRef.current?.onPermissionsChanged?.({ previous, snapshot });
-			}),
-			kernel.events.on('surface:shown', ({ type: _type, ...event }) => {
-				callbacksRef.current?.onSurfaceShown?.(event);
-			}),
-
-			kernel.events.on(
-				'command:error',
-				(event: Extract<KernelEvent, { type: 'command:error' }>) => {
-					callbacksRef.current?.onError?.({
-						error: stringifyError(event.error),
-					});
-				}
-			),
-		];
-
-		return () => {
-			for (const unsubscribe of subscriptions) {
-				unsubscribe();
-			}
-		};
-	}, [kernel]);
-};
-
-const serializeInitialOnlyOptions = function serializeInitialOnlyOptions(
-	options: ConsentProviderOptions
-): string {
-	return JSON.stringify({
-		experiment: providerExperiment(options),
-		i18n: options.i18n,
-		mode: options.mode?.kind,
-	});
-};
-
-const useProviderOptionSync = function useProviderOptionSync(
-	kernel: ConsentKernel,
-	options: ConsentProviderOptions,
-	enabled: boolean,
-	owns: boolean
-) {
-	const previousEnabledRef = useRef(enabled);
-	const previousUserRef = useRef<string | null>(null);
-	const previousOverridesRef = useRef<string | null>(null);
-	const initialOnlyRef = useRef<string | null>(null);
-
-	useEffect(() => {
-		if (!owns) {
-			return;
-		}
-		const nextUser = normalizeUser(options.user);
-		const serialized = JSON.stringify(nextUser ?? null);
-		if (previousUserRef.current === null) {
-			previousUserRef.current = serialized;
-			return;
-		}
-		if (previousUserRef.current !== serialized) {
-			previousUserRef.current = serialized;
-			if (nextUser) {
-				void (async () => {
-					try {
-						await kernel.commands.identify(nextUser);
-					} catch {
-						// Provider callbacks receive the command:error event.
-					}
-				})();
-			}
-		}
-	}, [kernel, options.user, owns]);
-
-	useEffect(() => {
-		if (!owns) {
-			return;
-		}
-		const serialized = JSON.stringify(options.overrides ?? {});
-		if (previousOverridesRef.current === null) {
-			previousOverridesRef.current = serialized;
-			return;
-		}
-		if (previousOverridesRef.current !== serialized) {
-			previousOverridesRef.current = serialized;
-			kernel.set.overrides(options.overrides ?? {});
-			if (enabled) {
-				void kernel.commands.init();
-			}
-		}
-	}, [enabled, kernel, options.overrides, owns]);
-
-	useEffect(() => {
-		if (!owns || previousEnabledRef.current === enabled) {
-			return;
-		}
-		previousEnabledRef.current = enabled;
-		if (enabled) {
-			return;
-		}
-		kernel.set.activeUI('none');
-	}, [enabled, kernel, owns]);
-
-	// `vendors` is a live option like `scripts`: a list supplied or replaced
-	// after the first render is merged into the kernel and its categories
-	// registered, so the preference center shows the rows. Scripts and rules
-	// are part of the same picture, since their slugs declare vendors too: a
-	// change to either recomputes the code-declared set.
-	const previousVendorsRef = useRef<string | null>(null);
-	// The provider's own scripts and rules are one owner among several: a
-	// `useScriptLoader` or `useNetworkBlocker` hook elsewhere in the tree
-	// declares its own slugs under its own token, and the kernel keeps every
-	// module's contribution, so a slug both name stays under both categories
-	// whichever updates.
-	const ownerSourceRef = useRef<symbol>(Symbol('consent-provider'));
-	useEffect(() => {
-		if (!owns) {
-			return;
-		}
-		const owners = [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		];
-		const serialized = JSON.stringify([
-			options.vendors ?? [],
-			owners.map((owner) => [owner.vendor ?? null, owner.category]),
-		]);
-		if (previousVendorsRef.current === null) {
-			previousVendorsRef.current = serialized;
-			// The initial snapshot already carries these owners; register them
-			// so a later update from another module keeps them.
-			declareOwnedVendors(kernel, owners, ownerSourceRef.current);
-			return;
-		}
-		if (previousVendorsRef.current === serialized) {
-			return;
-		}
-		previousVendorsRef.current = serialized;
-		// Resolved against the backend entries the kernel already holds, so a
-		// script that starts naming a backend vendor's slug attaches to that
-		// entry as an owner and survives the backend dropping it later. The
-		// owners they remembered are dropped first: the registry below is
-		// the whole owner set, and a stale owner would otherwise keep a
-		// vendor declared after both its script and the backend let it go.
-		const current = kernel.getSnapshot().vendors?.declared ?? [];
-		const declared = resolveVendors({
-			config: options.vendors,
-			existing: current.flatMap((vendor) => {
-				// A backend copy a config entry shadows counts too: replacing the
-				// config source restores it, so it needs the same cleanup.
-				const manifest =
-					vendor.source === 'manifest' ? vendor : vendor.shadowed;
-				if (manifest?.source !== 'manifest') {
-					return [];
-				}
-				const { ownerCategory: _stale, ...rest } = manifest;
-				return [rest];
-			}),
-			onWarn: warnVendorDeclaration,
-		});
-		// The provider owns the config source outright: its previous entries
-		// are replaced, so a vendor the parent removed disappears, while a
-		// backend entry a config copy shadowed comes back. The owners are then
-		// declared under this provider's token, which rebuilds every slug the
-		// old or new list names from what all modules declare.
-		kernel.set.vendors({ declared }, { replaceSource: 'config' });
-		declareOwnedVendors(kernel, owners, ownerSourceRef.current);
-		const names = [
-			...declared.flatMap((vendor) =>
-				extractConsentNamesFromCondition(vendor.category)
-			),
-			...owners.flatMap((owner) =>
-				extractConsentNamesFromCondition(owner.category)
-			),
-		];
-		if (names.length > 0) {
-			kernel.set.registerConsentCategories(names);
-		}
-	}, [kernel, options.networkBlocker, options.scripts, options.vendors, owns]);
-	useEffect(
-		() => () => {
-			// Forgetting drops the slugs only this provider named. The ref is
-			// reset with it so a remount, StrictMode's included, declares them
-			// again at once instead of finding nothing changed. The provider's
-			// own loader and blocker put the same slugs back when their lazy
-			// import lands, so this only closes the window until then; no
-			// synchronous assertion can see the difference, which is why it
-			// has no test of its own.
-			forgetOwnedVendors(kernel, ownerSourceRef.current);
-			previousVendorsRef.current = null;
-		},
-		[kernel]
-	);
-
-	useEffect(() => {
-		const nodeEnv = (
-			globalThis as { process?: { env?: { NODE_ENV?: string } } }
-		).process?.env?.NODE_ENV;
-		if (nodeEnv === 'production') {
-			return;
-		}
-		const serialized = serializeInitialOnlyOptions(options);
-		if (initialOnlyRef.current === null) {
-			initialOnlyRef.current = serialized;
-			return;
-		}
-		if (initialOnlyRef.current !== serialized) {
-			initialOnlyRef.current = serialized;
-			console.warn(
-				'c15t ConsentProvider: remount to change mode, i18n or experiment.'
-			);
-		}
-	}, [options]);
-};
-
-const ProviderCallbacksMount = ({
-	kernel,
-	callbacks,
-	reloadOnConsentRevoked,
-}: {
-	kernel: ConsentKernel;
-	callbacks?: ConsentProviderCallbacks;
-	reloadOnConsentRevoked?: boolean;
-}) => {
-	useProviderCallbacks(kernel, callbacks, reloadOnConsentRevoked);
-	return null;
-};
-
-const InitMount = ({
-	enabled,
-	kernel,
-	prepared,
-}: {
-	enabled: boolean;
-	kernel: ConsentKernel;
-	prepared: boolean;
-}) => {
-	const initialized = useRef(false);
-	const hydrated = useRef(false);
-	useEffect(() => {
-		if (!enabled) {
-			initialized.current = false;
-			return;
-		}
-		if (initialized.current) {
-			return;
-		}
-		initialized.current = true;
-		if (prepared) {
-			kernel.hydrate({
-				now: hydrated.current
-					? Date.now()
-					: kernel.getServerSnapshot().evaluatedAt,
-			});
-			hydrated.current = true;
-			// No init call marks this kernel live, so do it here: the banner
-			// the server rendered is the visitor's first impression.
-			kernel.markLive();
-			const { gpc } = kernel.getSnapshot().privacySignals;
-			if (gpc.detected && gpc.active) {
-				// Hydration stays read-only; activate the detected signal through
-				// the public setter after the prepared snapshot has committed.
-				kernel.set.privacySignals({ gpc: true });
-			}
-		} else {
-			kernel.commands.init();
-		}
-	}, [enabled, kernel, prepared]);
-	return null;
-};
-
-const EMPTY_SCRIPTS: Script[] = [];
-
-const ScriptsAndCleanupMount = ({
-	clearOnRevocation,
-	storageConfig,
-	nonce,
-	options,
-	scripts = EMPTY_SCRIPTS,
-}: {
-	clearOnRevocation?: ClearOnRevocationConfig;
-	storageConfig?: StorageConfig;
-	nonce?: string;
-	options?: UseScriptLoaderOptions;
-	scripts?: Script[];
-}) => {
-	const kernel = useContext(KernelContext);
-	const handleRef = useRef<{
-		dispose: () => void;
-		updateScripts: (scripts: Script[]) => void;
-	} | null>(null);
-	const cleanupRef = useRef<{ dispose: () => void } | null>(null);
-	const cleanupFactoryRef = useRef<{
-		config: ClearOnRevocationConfig;
-		create: typeof createClearOnRevocation;
-	} | null>(null);
-	const latestCleanupRef = useRef({ config: clearOnRevocation, storageConfig });
-	const [needsScriptLoader, setNeedsScriptLoader] = useState(
-		scripts.length > 0
-	);
-	const latestScriptsRef = useRef(scripts);
-	const latestOptionsRef = useRef(options);
-	const latestNonceRef = useRef(nonce);
-	if (scripts.length > 0 && !needsScriptLoader) {
-		setNeedsScriptLoader(true);
-	}
-
-	useEffect(() => {
-		latestCleanupRef.current = { config: clearOnRevocation, storageConfig };
-		latestScriptsRef.current = scripts;
-		latestOptionsRef.current = options;
-		latestNonceRef.current = nonce;
-	}, [clearOnRevocation, storageConfig, nonce, options, scripts]);
-
-	// When scripts first appear, reattach cleanup after their loader so
-	// revocation callbacks finish before browser data is removed.
-	useEffect(() => {
-		if (!kernel) {
-			return;
-		}
-		let disposed = false;
-		void (async () => {
-			if (needsScriptLoader) {
-				const { createScriptLoader } = await loadScriptLoaderModule();
-				if (disposed) {
-					return;
-				}
-				handleRef.current = createScriptLoader({
-					kernel,
-					nonce: latestNonceRef.current,
-					onDebug: latestOptionsRef.current?.onDebug,
-					scripts: latestScriptsRef.current,
-				});
-			}
-			const { config } = latestCleanupRef.current;
-			if (config) {
-				const { createClearOnRevocation } = await loadClearOnRevocationModule();
-				if (disposed) {
-					return;
-				}
-				cleanupFactoryRef.current = { config, create: createClearOnRevocation };
-				cleanupRef.current = createClearOnRevocation({
-					config,
-					kernel,
-					storageConfig: latestCleanupRef.current.storageConfig,
-				});
-			}
-		})();
-		return () => {
-			disposed = true;
-			cleanupRef.current?.dispose();
-			cleanupRef.current = null;
-			cleanupFactoryRef.current = null;
-			handleRef.current?.dispose();
-			handleRef.current = null;
-		};
-	}, [kernel, needsScriptLoader]);
-
-	const protectedStorageKey = storageConfig?.storageKey;
-	useEffect(() => {
-		const factory = cleanupFactoryRef.current;
-		if (!kernel || !factory) {
-			return;
-		}
-		cleanupRef.current?.dispose();
-		cleanupRef.current = factory.create({
-			config: factory.config,
-			kernel,
-			storageConfig: { storageKey: protectedStorageKey },
-		});
-	}, [kernel, protectedStorageKey]);
-
-	useEffect(() => {
-		handleRef.current?.updateScripts(scripts);
-	}, [scripts]);
-
-	return null;
-};
-
-const IframeBlockerMount = ({
-	options,
-}: {
-	options?: UseIframeBlockerOptions;
-}) => {
-	useIframeBlockerOnDemand(options);
-	return null;
-};
-
-const NetworkBlockerMount = ({
-	options,
-}: {
-	options: UseNetworkBlockerOptions;
-}) => {
-	const kernel = useContext(KernelContext);
-	const handleRef = useRef<{
-		dispose: () => void;
-		updateRules: (rules: UseNetworkBlockerOptions['rules']) => void;
-		setEnabled: (enabled: boolean) => void;
-	} | null>(null);
-	const latestOptionsRef = useRef(options);
-	// The blocker loads after mount. Hold matching requests from this render
-	// on, before any child renders or runs an effect; the blocker replays them.
-	const earlyHold = useEarlyNetworkHold(options.rules, options.enabled);
-
-	useEffect(() => {
-		latestOptionsRef.current = options;
-	}, [options]);
-
-	useEffect(() => {
-		if (!kernel) {
-			return;
-		}
-		let disposed = false;
-		const hold = earlyHold.claim(
-			latestOptionsRef.current.rules,
-			latestOptionsRef.current.enabled
-		);
-		void (async () => {
-			const { createNetworkBlocker } = await loadNetworkBlockerModule();
-			if (disposed) {
-				return;
-			}
-			const latest = latestOptionsRef.current;
-			const created = createNetworkBlocker({
-				enabled: latest.enabled,
-				hold,
-				kernel,
-				logBlockedRequests: latest.logBlockedRequests,
-				onRequestBlocked: latest.onRequestBlocked,
-				rules: latest.rules,
-			});
-			handleRef.current = created;
-		})();
-		return () => {
-			disposed = true;
-			handleRef.current?.dispose();
-			handleRef.current = null;
-			earlyHold.unmount();
-		};
-	}, [earlyHold, kernel]);
-
-	useEffect(() => {
-		handleRef.current?.updateRules(options.rules);
-	}, [options.rules]);
-
-	useEffect(() => {
-		if (options.enabled !== undefined) {
-			handleRef.current?.setEnabled(options.enabled);
-		}
-	}, [options.enabled]);
-
-	return null;
-};
-
-const PersistenceMount = ({
-	options,
-	clearRef,
-}: {
-	options?: UsePersistenceOptions;
-	clearRef: { current: (() => void) | null };
-}) => {
-	const handle = usePersistence(options);
-	useEffect(() => {
-		clearRef.current = handle.clear;
-		return () => {
-			clearRef.current = null;
-		};
-	}, [handle, clearRef]);
-	return null;
-};
-
-/**
- * Runs the experiment once the browser has hydrated stored records:
- * mounted after persistence so a returning visitor's subject id seeds the
- * arm. The controller loads as its own chunk; a held prompt waits for it.
- */
-const ExperimentMount = ({
-	experiment,
-	kernel,
-	options,
-}: {
-	experiment: ConsentExperiment;
-	kernel: ConsentKernel;
-	options: ExperimentHostOptions;
-}) => {
-	useEffect(
-		() => startExperiment({ ...options, experiment, kernel }),
-		[experiment, kernel, options]
-	);
-	return null;
-};
-
-/**
- * The services context: record clearing, the resolved presentation and
- * language changes.
- */
-const useProviderServices = function useProviderServices({
-	clearRef,
-	consentSource,
-	enabled,
-	experiment,
-	externalRuntime,
-	kernel,
-	presentation,
-}: {
-	clearRef: { current: (() => void) | null };
-	consentSource: ConsentProviderOptions['consentSource'];
-	enabled: boolean;
-	experiment: ConsentExperiment | undefined;
-	externalRuntime: ConsentRuntime | undefined;
-	kernel: ConsentKernel;
-	presentation: ConsentPresentation | undefined;
-}) {
-	return useMemo(
-		() => ({
-			clearRecords: () => {
-				if (externalRuntime) {
-					externalRuntime.clearRecords();
-					return;
-				}
-				if (clearRef.current) {
-					clearRef.current();
-				} else {
-					kernel.hydrate({
-						choice: null,
-						noticeDismissal: null,
-						subject: null,
-						vendorChoice: null,
-					});
-					kernel.events.emit({ type: 'records:cleared' });
-				}
-			},
-			getConsentCategories: () => {
-				const snapshot = kernel.getSnapshot();
-				return [
-					'necessary' as const,
-					...(snapshot.evaluationPolicy.choiceScope ??
-						snapshot.policyRule.scope),
-				];
-			},
-			getPresentation: () =>
-				applyExperimentAssignment(
-					presentation,
-					experiment,
-					kernel.getSnapshot().experiment
-				),
-			setLanguage: (code: string) => {
-				if (code === kernel.getSnapshot().overrides.language) {
-					return;
-				}
-				kernel.set.language(code);
-				if (externalRuntime) {
-					void externalRuntime.reinit();
-					return;
-				}
-				// A disabled provider renders a permissive kernel with no policy
-				// to fetch, and an external authority replaces init entirely.
-				if (enabled && !consentSource) {
-					void kernel.commands.init();
-				}
-			},
-		}),
-		[
-			clearRef,
-			kernel,
-			presentation,
-			experiment,
-			externalRuntime,
-			enabled,
-			consentSource,
-		]
-	);
-};
-
-/** The host inputs the experiment controller merges each arm over. */
-type ExperimentHostOptions = Omit<
-	StartExperimentOptions,
-	'experiment' | 'kernel'
->;
-
-/** What the provider creates once, at mount, and keeps for its lifetime. */
-interface OwnedProviderRuntime {
-	clearOnRevocation: ClearOnRevocationConfig | undefined;
-	consentSource: ConsentProviderOptions['consentSource'];
-	disabledKernel: ConsentKernel | undefined;
-	/**
-	 * The experiment read at mount. Validation, assignment and attribution
-	 * all derive from it, so presentation and theme resolve against it too;
-	 * a later `options.experiment` is ignored. Remount to change it.
-	 */
-	experiment: ConsentExperiment | undefined;
-	/** Host inputs each arm is validated against, read at mount. */
-	experimentOptions: ExperimentHostOptions;
-	external: ConsentRuntime | undefined;
-	kernel: ConsentKernel;
-}
-
-const createOwnedProviderRuntime = function createOwnedProviderRuntime(
-	props: ConsentProviderProps,
-	options: ConsentProviderOptions
-): OwnedProviderRuntime {
-	return {
-		clearOnRevocation: options.clearOnRevocation,
-		consentSource: options.consentSource,
-		disabledKernel: props.runtime
-			? undefined
-			: createProviderKernel({ ...options, enabled: false }),
-		experiment: providerExperiment(options),
-		experimentOptions: {
-			presentation: options.presentation,
-			storageConfig: options.storageConfig,
-			theme: options.theme,
-		},
-		external: props.runtime,
-		kernel:
-			props.runtime?.kernel ??
-			createProviderKernel({ ...options, enabled: true }),
-	};
-};
-
-const WindowDebugMount = ({
-	pkg,
-	mode,
-}: {
-	pkg: string;
-	mode: WindowDebugMode;
-}) => {
-	useEffect(() => {
-		// The module is tiny and dependency-free; `createWindowDebug` itself
-		// guards against pages that made `window.c15t` non-writable.
-		const handle = createWindowDebug({ mode, pkg });
-		return () => handle.dispose();
-	}, [mode, pkg]);
-
-	return null;
-};
-
-const normalizePersistenceOptions = function normalizePersistenceOptions(
-	options: ConsentProviderOptions
-): UsePersistenceOptions | false {
-	if (options.persistence === false) {
-		return false;
-	}
-	const { storageConfig } = options;
-	const prepared = !!resolveSyncPrefetch(options).initialRecords;
-	if (options.persistence === true || options.persistence === undefined) {
-		return { skipHydration: prepared, storageConfig };
-	}
-	return {
-		...options.persistence,
-		skipHydration: options.persistence.skipHydration ?? prepared,
-		storageConfig: options.persistence.storageConfig ?? storageConfig,
-	};
-};
-
-/**
- * Picks the kernels a provider renders.
+ * The modules a provider-built runtime mounts. Persistence, window debug
+ * and the revocation reload are static: a returning visitor's choice must
+ * apply before the banner shows, and the reload has to see the first save.
+ * The rest load on demand, so a page that configures none of them never
+ * downloads them:
  *
- * A borrowed runtime follows the `runtime` prop, so consumers move to a
- * replacement and release the previous kernel. A kernel the provider built
- * stays initial-only, like `mode`.
+ * - the script loader and data clearing, when `scripts` or
+ *   `clearOnRevocation` is set;
+ * - the network blocker, when `networkBlocker` is set; the runtime holds
+ *   matching requests from construction until it lands;
+ * - the iframe blocker, when the first gated iframe is on the page; until
+ *   then a watcher pauses gated frames consent does not allow.
+ *
+ * `streamPrefetch` lets `prefetch` be a promise a server streams in.
  */
-const selectProviderKernels = function selectProviderKernels(
-	owned: {
-		disabledKernel: ConsentKernel | undefined;
-		external: ConsentRuntime | undefined;
-		kernel: ConsentKernel;
-	},
-	runtime: ConsentRuntime | undefined,
-	enabled: boolean
-) {
-	const external = owned.external ? (runtime ?? owned.external) : undefined;
-	const active = external?.kernel ?? owned.kernel;
-	return {
-		active,
-		external,
-		rendered: enabled ? active : (owned.disabledKernel ?? active),
+const reactRuntimeModules =
+	function reactRuntimeModules(): ConsentRuntimeModules {
+		return {
+			createClearOnRevocation: lazyRuntimeModule(
+				async () =>
+					(await import('@c15t/core/modules/clear-on-revocation'))
+						.createClearOnRevocation
+			),
+			createIframeBlocker: createIframeBlockerOnDemand,
+			createNetworkBlocker: lazyRuntimeModule(
+				async () =>
+					(await import('@c15t/core/modules/network-blocker'))
+						.createNetworkBlocker
+			),
+			createPersistence,
+			createScriptLoader: lazyRuntimeModule(
+				async () =>
+					(await import('@c15t/core/modules/script-loader')).createScriptLoader
+			),
+			createWindowDebug,
+			streamPrefetch,
+			watchRevocationReload,
+		};
 	};
+
+const toRuntimeOptions = function toRuntimeOptions(
+	options: ConsentProviderOptions
+): ConsentProviderRuntimeOptions {
+	return { ...options, pkg: options.__debugPkg ?? '@c15t/react' };
+};
+
+/**
+ * A runtime the provider built during a render, with what it needs to tell
+ * whether React kept that render.
+ */
+interface OwnedRuntimeEntry {
+	readonly runtime: ConsentProviderRuntime;
+	/** Hand the runtime new options; it applies only what changed. */
+	apply: (options: ConsentProviderOptions) => void;
+	/**
+	 * Start the runtime for a commit that kept it. Returns the cleanup for
+	 * that mount, or `null` when the runtime was disposed before any commit
+	 * used it and the provider must build another.
+	 */
+	mount: () => (() => void) | null;
+}
+
+interface PendingEntry {
+	/** The network rules held from construction, or `null` for none. */
+	holdKey: string | null;
+	/** Creation order, for finding the renders React threw away. */
+	sequence: number;
+	expire: () => void;
+}
+
+/** Runtimes built during a render that has not committed yet. */
+const uncommitted = new Set<PendingEntry>();
+let entrySequence = 0;
+
+/**
+ * Build the runtime for a provider render.
+ *
+ * Construction is free of DOM and storage effects with one exception: a
+ * runtime with network blocker rules holds matching requests from now on,
+ * so children's mount effects cannot send them before the blocker loads.
+ * React can throw a render away without committing it (StrictMode's second
+ * render in React 18, a render that suspends before its first commit), and
+ * nothing would dispose a runtime built in it. So a runtime starts out
+ * uncommitted: the commit that keeps one disposes the runtimes earlier
+ * renders built for the same rules, while its own hold still covers their
+ * requests, and any runtime still uncommitted after
+ * {@link UNCOMMITTED_HOLD_MS} disposes itself, failing what it held as
+ * blocked. On the server nothing is held and nothing is tracked.
+ */
+const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
+	initialOptions: ConsentProviderOptions
+): OwnedRuntimeEntry {
+	const { networkBlocker } = initialOptions;
+	const runtime = createConsentProviderRuntime(
+		toRuntimeOptions(initialOptions),
+		reactRuntimeModules()
+	);
+	let options = initialOptions;
+	let expired = false;
+	let committed = false;
+	// Mount effects run so far; a deferred dispose checks it.
+	let mounts = 0;
+	let timer: ReturnType<typeof setTimeout> | undefined;
+	entrySequence += 1;
+	const pending: PendingEntry = {
+		expire() {
+			uncommitted.delete(pending);
+			clearTimeout(timer);
+			expired = true;
+			runtime.dispose();
+		},
+		holdKey:
+			initialOptions.enabled !== false &&
+			networkBlocker &&
+			networkBlocker.enabled !== false
+				? JSON.stringify(networkBlocker.rules)
+				: null,
+		sequence: entrySequence,
+	};
+	if (typeof window === 'undefined') {
+		committed = true;
+	} else {
+		uncommitted.add(pending);
+		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
+	}
+
+	const commit = function commit(): boolean {
+		if (expired) {
+			return false;
+		}
+		if (committed) {
+			return true;
+		}
+		committed = true;
+		uncommitted.delete(pending);
+		clearTimeout(timer);
+		if (pending.holdKey !== null) {
+			for (const other of uncommitted) {
+				if (
+					other.sequence < pending.sequence &&
+					other.holdKey === pending.holdKey
+				) {
+					other.expire();
+				}
+			}
+		}
+		return true;
+	};
+
+	return {
+		apply(next) {
+			if (next !== options) {
+				options = next;
+				runtime.update(toRuntimeOptions(next));
+			}
+		},
+		mount() {
+			if (!commit()) {
+				return null;
+			}
+			mounts += 1;
+			const mount = mounts;
+			// Idempotent: StrictMode's replayed mount finds it started.
+			runtime.start();
+			return () => {
+				// StrictMode replays the mount in the same task; only a real
+				// unmount leaves the count where this cleanup found it.
+				queueMicrotask(() => {
+					if (mounts === mount) {
+						runtime.dispose();
+					}
+				});
+			};
+		},
+		runtime,
+	};
+};
+
+/**
+ * Holds the provider's runtime. Creating the holder is pure, so StrictMode
+ * calling the `useState` initializer twice costs nothing; the runtime is
+ * built on the first `get()`, during the first render, so the server render
+ * and the first client render use its kernel.
+ */
+const createRuntimeHolder = function createRuntimeHolder() {
+	let entry: OwnedRuntimeEntry | null = null;
+	return {
+		get(options: ConsentProviderOptions): OwnedRuntimeEntry {
+			entry ??= createOwnedRuntimeEntry(options);
+			return entry;
+		},
+		reset() {
+			entry = null;
+		},
+	};
+};
+
+const increment = (count: number): number => count + 1;
+
+/**
+ * The provider-built runtime: one per provider instance. `undefined` when
+ * the provider renders a borrowed runtime.
+ */
+const useOwnedRuntime = function useOwnedRuntime(
+	options: ConsentProviderOptions | undefined
+): { entry: OwnedRuntimeEntry; rebuild: () => void } | undefined {
+	// oxlint-disable-next-line react/hook-use-state -- Created once, during the first render.
+	const [holder] = useState(createRuntimeHolder);
+	const [, rerender] = useReducer(increment, 0);
+	const rebuild = useCallback(() => {
+		holder.reset();
+		rerender();
+	}, [holder]);
+	return options ? { entry: holder.get(options), rebuild } : undefined;
+};
+
+/** A layout effect in the browser; nothing to run on the server. */
+const useBrowserLayoutEffect =
+	typeof document === 'undefined' ? useEffect : useLayoutEffect;
+
+/**
+ * Drives a provider-built runtime: hands it new options, then starts and
+ * disposes it. Rendered before the provider's children, so the runtime
+ * starts (stored choice applied, `/init` sent or the prefetch adopted,
+ * modules mounted) before their mount effects run.
+ */
+const OwnedRuntimeLifecycle = ({
+	entry,
+	options,
+	rebuild,
+}: {
+	entry: OwnedRuntimeEntry;
+	options: ConsentProviderOptions;
+	rebuild: () => void;
+}) => {
+	// Before paint, so an `enabled` change never shows a frame of the
+	// previous kernel.
+	useBrowserLayoutEffect(() => entry.apply(options), [entry, options]);
+
+	useEffect(() => {
+		const unmount = entry.mount();
+		if (!unmount) {
+			rebuild();
+			return;
+		}
+		return unmount;
+	}, [entry, rebuild]);
+
+	return null;
+};
+
+const subscribeNothing = (): (() => void) => () => undefined;
+
+const isPromiseLike = function isPromiseLike(
+	value: unknown
+): value is PromiseLike<unknown> {
+	return (
+		typeof (value as PromiseLike<unknown> | undefined)?.then === 'function'
+	);
 };
 
 /**
  * v3 ConsentProvider.
  *
- * Retains the enabled kernel while disabled mode uses a separate permissive
- * kernel, so toggling enabled preserves recorded choices. Provides the active
- * kernel via context and wires the curated v2-like options surface to v3
- * modules. It does not mirror the
- * snapshot into React state; selector hooks still subscribe directly to
- * the kernel through `useSyncExternalStore`.
+ * Builds one consent runtime (`createConsentProviderRuntime`) per mounted
+ * provider and renders its kernel: the kernel goes into context, and
+ * selector hooks subscribe to it through `useSyncExternalStore`. New
+ * options reach the runtime through `update()`, which applies only what
+ * changed; `mode`, `i18n`, `experiment`, `prefetch`, `persistence`,
+ * `storageConfig` and `clearOnRevocation` are read once. While `enabled` is
+ * `false` the runtime renders a separate permissive kernel, so toggling it
+ * keeps the visitor's records.
  *
  * Pass `runtime` to render a runtime someone else created. The provider
- * then borrows its kernel and mounts none of the side-effecting modules —
- * no second `init()`, no second persistence handle, no second `window.c15t`
- * — and does not dispose it on unmount. Handing it a different runtime
- * switches the tree to that runtime's kernel; switching between a borrowed
- * runtime and a provider-built kernel still needs a remount.
+ * then borrows its kernel and starts nothing — no second `init()`, no
+ * second persistence handle, no second `window.c15t` — and does not
+ * dispose it on unmount. Handing it a different runtime switches the tree
+ * to that runtime's kernel; switching between a borrowed runtime and a
+ * provider-built one still needs a remount.
  *
  * @example
  * ```tsx
@@ -1499,76 +584,70 @@ const selectProviderKernels = function selectProviderKernels(
  * </ConsentProvider>
  * ```
  */
-// oxlint-disable-next-line complexity -- Provider selects owned or borrowed lifecycle and renders the optional modules.
+// oxlint-disable-next-line complexity -- Provider selects owned or borrowed lifecycle and renders its contexts.
 export const ConsentProvider = (props: ConsentProviderProps) => {
 	const { children } = props;
 	const options = (props.options ?? {}) as ConsentProviderOptions;
-	const enabled = getEnabled(options);
-	const [owned, setOwned] = useState(() =>
-		createOwnedProviderRuntime(props, options)
+	// Read at mount: moving between a borrowed and a provider-built runtime
+	// needs a remount. A borrowed runtime follows the prop.
+	// oxlint-disable-next-line react/hook-use-state -- Read once, at mount.
+	const [mountedRuntime] = useState(() => props.runtime);
+	const owned = useOwnedRuntime(mountedRuntime ? undefined : options);
+	const providerRuntime = owned?.entry.runtime;
+	const borrowed = mountedRuntime
+		? (props.runtime ?? mountedRuntime)
+		: undefined;
+	const runtime = (providerRuntime ?? borrowed) as ConsentRuntime;
+	// A provider runtime swaps kernels when `enabled` changes.
+	const kernel: ConsentKernel = useSyncExternalStore(
+		providerRuntime ? providerRuntime.subscribe : subscribeNothing,
+		() => runtime.kernel,
+		() => runtime.kernel
 	);
-	void setOwned;
-	const { clearOnRevocation: initialClearOnRevocation, experiment } = owned;
-	const {
-		active: activeKernel,
-		external: externalRuntime,
-		rendered: kernel,
-	} = selectProviderKernels(owned, props.runtime, enabled);
-	const ownsRuntime = externalRuntime === undefined;
-	useEffect(() => {
-		if (ownsRuntime || options.consentCategories !== undefined) {
-			kernel.set.consentCategories(options.consentCategories);
-		}
-	}, [kernel, ownsRuntime, options.consentCategories]);
-	const clearRef = useRef<(() => void) | null>(null);
-	const services = useProviderServices({
-		clearRef,
-		consentSource: owned.consentSource,
-		enabled,
-		experiment,
-		externalRuntime,
-		kernel,
-		presentation: options.presentation,
-	});
-	const persistenceOptions = owned.consentSource
-		? undefined
-		: normalizePersistenceOptions(options);
-	const { scripts, networkBlocker } = options;
-	useEffect(() => {
-		if (!ownsRuntime || !owned.consentSource || !enabled) {
-			return;
-		}
-		return connectConsentSource(kernel, owned.consentSource);
-	}, [enabled, kernel, owned, ownsRuntime]);
-	const windowDebugPkg = options.__debugPkg ?? '@c15t/react';
-	// `mode` is optional when a runtime is handed in — its owner picked the
-	// transport, and this provider mounts no `window.c15t` either way.
-	const windowDebugMode = ownsRuntime
-		? resolveWindowDebugMode(options.mode)
-		: 'hosted';
+	// The runtime validated and assigns arms from its own experiment. A
+	// borrowed runtime without one renders the options' experiment, read at
+	// mount like everything else about it.
+	// oxlint-disable-next-line react/hook-use-state -- Read once, at mount.
+	const [borrowedExperiment] = useState(() =>
+		mountedRuntime
+			? (mountedRuntime.experiment ??
+				hostExperiment(
+					options.experiment,
+					isPromiseLike(options.prefetch) ? undefined : options.prefetch
+				))
+			: undefined
+	);
+	const experiment = providerRuntime
+		? providerRuntime.experiment
+		: borrowedExperiment;
 
-	useProviderOptionSync(activeKernel, options, enabled, ownsRuntime);
-	const lifecycle = useRef(0);
+	const borrowedCategories = borrowed ? options.consentCategories : undefined;
 	useEffect(() => {
-		if (!ownsRuntime) {
-			return;
+		if (borrowed && borrowedCategories !== undefined) {
+			borrowed.setConsentCategories(borrowedCategories);
 		}
-		lifecycle.current += 1;
-		const generation = lifecycle.current;
-		return () => {
-			queueMicrotask(() => {
-				if (lifecycle.current === generation) {
-					owned.kernel.dispose();
-					owned.disabledKernel?.dispose();
-				}
-			});
-		};
-	}, [owned, ownsRuntime]);
+	}, [borrowed, borrowedCategories]);
+
+	const { presentation } = options;
+	const services = useMemo<ProviderServices>(
+		() => ({
+			clearRecords: () => runtime.clearRecords(),
+			getConsentCategories: () => runtime.consentCategories,
+			getPresentation: () =>
+				applyExperimentAssignment(
+					presentation,
+					experiment,
+					kernel.getSnapshot().experiment
+				),
+			setLanguage: (code: string) => runtime.setLanguage(code),
+		}),
+		[experiment, kernel, presentation, runtime]
+	);
 
 	// Development only. A borrowed runtime already runs the callbacks its
 	// owner passed to `createConsentRuntime()`; attaching the provider's as
 	// well would split one app's handlers across two places.
-	const hasBorrowedCallbacks = !ownsRuntime && options.callbacks !== undefined;
+	const hasBorrowedCallbacks = !!borrowed && options.callbacks !== undefined;
 	useEffect(() => {
 		if (process.env.NODE_ENV === 'production' || !hasBorrowedCallbacks) {
 			return;
@@ -1663,71 +742,6 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 
 	useColorScheme(options.colorScheme);
 
-	// Everything under `ownsRuntime` is a side-effecting module the runtime
-	// already mounts. A borrowed runtime renders none of it.
-	const providerChildren = (
-		<>
-			{ownsRuntime ? (
-				<>
-					<ProviderCallbacksMount
-						kernel={kernel}
-						callbacks={options.callbacks}
-						reloadOnConsentRevoked={options.reloadOnConsentRevoked}
-					/>
-					<WindowDebugMount
-						pkg={windowDebugPkg}
-						mode={windowDebugMode}
-					/>
-					{enabled && persistenceOptions ? (
-						<PersistenceMount
-							options={persistenceOptions}
-							clearRef={clearRef}
-						/>
-					) : null}
-					{enabled && experiment && !externalRuntime && !owned.consentSource ? (
-						<ExperimentMount
-							experiment={experiment}
-							kernel={kernel}
-							options={owned.experimentOptions}
-						/>
-					) : null}
-					<InitMount
-						enabled={enabled && !owned.consentSource}
-						prepared={!!resolveSyncPrefetch(options).initialPolicyResolution}
-						kernel={kernel}
-					/>
-					{(scripts && scripts.length > 0) ||
-					(enabled && initialClearOnRevocation) ? (
-						<ScriptsAndCleanupMount
-							clearOnRevocation={enabled ? initialClearOnRevocation : undefined}
-							storageConfig={
-								persistenceOptions
-									? persistenceOptions.storageConfig
-									: options.storageConfig
-							}
-							nonce={options.nonce}
-							options={options.scriptLoader}
-							scripts={scripts}
-						/>
-					) : null}
-					{enabled && options.iframeBlocker !== false ? (
-						<IframeBlockerMount options={options.iframeBlocker} />
-					) : null}
-					{enabled && networkBlocker ? (
-						<NetworkBlockerMount options={networkBlocker} />
-					) : null}
-				</>
-			) : null}
-			{externalRuntime ? (
-				<ExternalIABProvider runtime={externalRuntime}>
-					{children}
-				</ExternalIABProvider>
-			) : (
-				children
-			)}
-		</>
-	);
-
 	return (
 		<KernelContext.Provider value={kernel}>
 			<ProviderServicesContext.Provider value={services}>
@@ -1735,7 +749,20 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					themeConfig={themeContextValue}
 					uiConfig={uiConfigValue}
 				>
-					{providerChildren}
+					{owned ? (
+						<OwnedRuntimeLifecycle
+							entry={owned.entry}
+							options={options}
+							rebuild={owned.rebuild}
+						/>
+					) : null}
+					{borrowed ? (
+						<ExternalIABProvider runtime={borrowed}>
+							{children}
+						</ExternalIABProvider>
+					) : (
+						children
+					)}
 				</V3ThemeProvider>
 			</ProviderServicesContext.Provider>
 		</KernelContext.Provider>

@@ -691,6 +691,31 @@ describe('a streamed prefetch', () => {
 		expect(transport.init).not.toHaveBeenCalled();
 	});
 
+	test('a config with a policy keeps its records, and runtime overrides win over its overrides', async () => {
+		const transport = createTransport();
+		const runtime = create(
+			{
+				mode: custom(transport),
+				overrides: { country: 'US' },
+				persistence: false,
+				prefetch: Promise.resolve({
+					...RESOLVED_PREFETCH,
+					initialOverrides: { country: 'DE' },
+					initialRecords: { subject: { subjectId: 'sub_server' } },
+				}),
+			},
+			streaming
+		);
+		runtime.start();
+
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().policyPending).toBe(false)
+		);
+		expect(runtime.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+		expect(runtime.kernel.getSnapshot().overrides.country).toBe('US');
+		expect(transport.init).not.toHaveBeenCalled();
+	});
+
 	test('a config without a policy is a baseline: its records apply and the transport init runs with its overrides', async () => {
 		const transport = createTransport();
 		const runtime = create(
