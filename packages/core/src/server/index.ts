@@ -1,9 +1,12 @@
 /**
  * `@c15t/core/server` — server-only helpers shared by host framework layers.
  *
- * Nothing here touches the DOM or the kernel; it is the piece every host
- * integration (Next.js, Nuxt, SvelteKit, TanStack Start) would otherwise
- * hand-roll identically behind its own `/manifest` route.
+ * Nothing here touches the DOM or the kernel. The consent route handler
+ * (`createConsentRouteHandler`) answers `/manifest` and `/init` for every
+ * host integration (Next.js, Nuxt, SvelteKit, Astro, TanStack Start); the
+ * rest are the pieces it is built from, for adapters that need one alone.
+ * Each export is its own module, so a bundle that imports only
+ * `resolveRequestBackendURL` does not pull in the init resolver.
  */
 export type {
 	BuildConsentProxyRequestHeadersInput,
@@ -28,11 +31,29 @@ export {
 	rewriteProxySetCookie,
 	stripIdentityForCleartext,
 } from './consent-proxy';
+export type {
+	ConsentInitReport,
+	ConsentRouteFetchGvl,
+	ConsentRouteHandler,
+	ConsentRouteHandlerOptions,
+	ConsentRouteName,
+	ConsentRouteRequestContext,
+	ResolveConsentInitOptions,
+} from './consent-route';
+export {
+	CONSENT_ROUTE_TIMEOUT_HEADER,
+	createConsentRouteHandler,
+	readWaitUntil,
+	resolveConsentInit,
+} from './consent-route';
 export type { FetchCachedGvlOptions } from './gvl-cache';
-export { clearGvlCache, fetchCachedGvl } from './gvl-cache';
+export {
+	clearGvlCache,
+	fetchCachedGvl,
+	GVL_FETCH_TIMEOUT_MS,
+} from './gvl-cache';
 // The same entry point and process cache as
-// `@c15t/core/transports/manifest-cache`, without the init resolver and its
-// translation imports.
+// `@c15t/core/transports/manifest-cache`.
 export type {
 	CachedManifestResponse,
 	FetchCachedManifestOptions,
