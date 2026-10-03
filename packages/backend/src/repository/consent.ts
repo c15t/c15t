@@ -49,6 +49,12 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	 * nothing here is stamped or renewed on the way in.
 	 */
 	readonly choice?: SubjectChoiceWire | null;
+	/**
+	 * True when `choice` was built by this backend from the submitted
+	 * preferences because the save carried no receipts, as a 2.x client's
+	 * does. Such receipts hold nothing the purposes and preferences did not.
+	 */
+	readonly choiceFromPreferences?: boolean;
 	/** Per-vendor grants this submission carried, in wire form, stored as sent. */
 	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly metadata?: unknown;
@@ -342,15 +348,18 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
 		// A 2.x backend sharing the database writes no receipts, and this
 		// backend turns every receipt-less save into `legacy-v2` receipts, so a
-		// retry of a save the 2.x backend recorded would always be refused here.
-		// That retry is the same act when the row's purposes were readable and
-		// matched above, so its receipts are not compared; the row keeps none.
-		// A row whose purposes cannot be read proves nothing, so it still is.
-		const legacyRow =
+		// 2.x client's retry of a save the 2.x backend recorded would always be
+		// refused here. Its receipts were built from the same preferences as
+		// its purposes, which were read and matched above, so they are not
+		// compared; the row keeps none. Receipts a client sent can grant or
+		// refuse what its purposes do not show, and a row whose purposes cannot
+		// be read proves nothing, so both are still compared.
+		const legacyRetry =
+			submission.choiceFromPreferences === true &&
 			stored !== undefined &&
 			(stored.choice === null || stored.choice === undefined) &&
 			normalisePurposeIds(stored.purposeIds) !== undefined;
-		if (!legacyRow) {
+		if (!legacyRetry) {
 			yield* assertSameChoice(stored?.choice, submission.choice);
 		}
 		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);

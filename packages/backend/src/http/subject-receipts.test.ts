@@ -451,6 +451,33 @@ for (const engine of ENGINES) {
 			assert.strictEqual(changed.status, 409);
 		});
 
+		it('compares receipts a client sends against a row with none', async () => {
+			// A v3 client's receipts can carry what its purposes do not: a grant
+			// left out of the preference map, or a new refusal. Neither may be
+			// acknowledged against a row that does not hold it, whether the row
+			// came from 2.x or from a v3 save with only `necessary`.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+
+			const refusal = await harness.json('POST', '/subjects', {
+				...save,
+				choice: { categories: { marketing: receipt(false) }, version: 3 },
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(refusal.status, 409);
+
+			await rewriteAs2xRow(harness);
+			const grant = await harness.json('POST', '/subjects', {
+				...save,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+			});
+			assert.strictEqual(grant.status, 409);
+		});
+
 		it('refuses a retry against a 2.x row whose purposes cannot be read', async () => {
 			// Nothing on the row can be compared with the retry, so accepting it
 			// would answer 200 for grants the row does not hold.

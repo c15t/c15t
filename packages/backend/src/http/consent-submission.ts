@@ -133,6 +133,11 @@ export interface PreparedSubmission {
 	readonly input: PostSubjectInput;
 	readonly givenAt: Date;
 	readonly choice: SubjectChoiceWire | undefined;
+	/**
+	 * True when `choice` was built here from a save that carried no receipts,
+	 * as a 2.x client's does, rather than sent by the client.
+	 */
+	readonly choiceFromPreferences: boolean;
 	/** Per-vendor grants this act carried, stored as sent. */
 	readonly vendorChoice: VendorChoiceWire | undefined;
 	/** Granted codes after scope filtering, for `purposeIds`. */
@@ -746,6 +751,7 @@ interface ResolvedCategories {
 	appliedPreferences: Record<string, boolean> | undefined;
 	grantedCodes: string[];
 	choice: SubjectChoiceWire | undefined;
+	choiceFromPreferences: boolean;
 }
 
 /**
@@ -778,6 +784,7 @@ const resolveCategories = (
 	}
 
 	let choice = cookieBanner?.choice;
+	let choiceFromPreferences = false;
 	if (choice) {
 		const issue = checkChoice(choice, appliedPreferences ?? {}, decision, now);
 		if (issue) {
@@ -785,8 +792,9 @@ const resolveCategories = (
 		}
 	} else if (cookieBanner && appliedPreferences) {
 		choice = legacyReceiptsFromPreferences(appliedPreferences, givenAt);
+		choiceFromPreferences = choice !== undefined;
 	}
-	return { appliedPreferences, choice, grantedCodes };
+	return { appliedPreferences, choice, choiceFromPreferences, grantedCodes };
 };
 
 /**
@@ -845,7 +853,8 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 		if (categories instanceof BadRequestError) {
 			return yield* categories;
 		}
-		const { appliedPreferences, grantedCodes, choice } = categories;
+		const { appliedPreferences, grantedCodes, choice, choiceFromPreferences } =
+			categories;
 
 		const vendorChoice = cookieBanner?.vendorChoice;
 		if (vendorChoice) {
@@ -863,6 +872,7 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			appliedPreferences,
 			attribution: attributionFields(input.metadata),
 			choice,
+			choiceFromPreferences,
 			consentAction: deriveConsentAction(input.consentAction, model),
 			decision,
 			givenAt,

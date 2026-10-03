@@ -239,7 +239,7 @@ describe('assertSamePurposes', () => {
 
 describe('assertSameSubmission against a row with no receipts', () => {
 	// The row a 2.x backend writes: purposes, and no `choice`. This backend
-	// sends receipts for every save, so they cannot be compared with it.
+	// builds receipts for a 2.x client's save, so they cannot be compared.
 	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
 		Effect.runPromise(Effect.result(effect));
 	const retry = {
@@ -254,6 +254,7 @@ describe('assertSameSubmission against a row with no receipts', () => {
 			},
 			version: 3 as const,
 		},
+		choiceFromPreferences: true,
 		purposeIds: ['a', 'b'],
 	};
 	const row = (purposeIds: unknown) => ({
@@ -275,6 +276,18 @@ describe('assertSameSubmission against a row with no receipts', () => {
 
 	it('refuses a retry whose purposes differ', async () => {
 		const result = await run(assertSameSubmission(row({ json: ['a'] }), retry));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('compares receipts a client sent', async () => {
+		// A client's receipts can grant or refuse what its purposes do not
+		// show, and a v3 save with only `necessary` also stores no receipts.
+		const result = await run(
+			assertSameSubmission(row({ json: ['a', 'b'] }), {
+				...retry,
+				choiceFromPreferences: false,
+			})
+		);
 		assert.strictEqual(result._tag, 'Failure');
 	});
 
