@@ -50,39 +50,21 @@
  * request middleware.
  */
 
-import {
-	experimentArmRef,
-	mergeInitResponseIntoKernelConfig,
-	mergeInitOutputIntoKernelConfig,
-} from '@c15t/core';
+import { mergeInitOutputIntoKernelConfig } from '@c15t/core';
 import type {
 	ExperimentState,
 	KernelConfig,
 	ServerExperiment,
 } from '@c15t/core';
-import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import {
-	CONSENT_PROXY_FORWARDING_HEADERS,
-	filterCookieHeader,
-	stripIdentityForCleartext,
+	DEFAULT_CONSENT_ROUTE_PREFIX,
+	resolveRequestConsent,
 } from '@c15t/core/server';
-import { createManifestTransport } from '@c15t/core/transports/manifest';
-import {
-	DEFAULT_RESOLVE_TIMEOUT_MS,
-	fetchCachedManifest,
-	resolveManifestSourceURL,
-	withResolutionBudget,
-} from '@c15t/core/transports/manifest-cache';
 import type { ManifestCache } from '@c15t/core/transports/manifest-cache';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
-import { baseTranslations } from '@c15t/translations/all';
 
-import {
-	consentInputsToOverrides,
-	extractConsentRequestInputs,
-} from './headers';
+import { trimTrailingSlashes } from './libs/path';
 import { readConsentInputs } from './libs/request-inputs';
-import { isSelfRoute, resolveRequestURL } from './libs/request-url';
 
 type Awaitable<Value> = Promise<Value> | Value;
 
@@ -93,9 +75,6 @@ export type { ManifestCache } from '@c15t/core/transports/manifest-cache';
  * `getRequest()` from `@tanstack/react-start/server`.
  */
 export type ConsentRequestSource = Request | (() => Awaitable<Request>);
-
-/** Default same-origin prefix served by `createConsentServerRoute()`. */
-const DEFAULT_ROUTE_PREFIX = '/api/c15t';
 
 /**
  * The core merge helpers type their result as the full `KernelConfig`. They
@@ -110,29 +89,15 @@ const stripTransport = function stripTransport({
 };
 
 /**
- * Consent inputs for a request: what `consentRequestMiddleware` remembered
- * when it ran (so overrides survive immutable headers), otherwise the raw
- * headers, with explicit `country`/`language` options winning either way.
+ * Whether this render is TanStack Start's build-time prerender, which writes
+ * HTML every visitor is served. The Start plugin sets `TSS_PRERENDERING`
+ * for the whole prerender run.
  */
-const resolveRequestInputs = function resolveRequestInputs(
-	request: Request,
-	options: Pick<ConsentRequestOptions, 'country' | 'language'>
-) {
-	const remembered = readConsentInputs(request);
-	if (!remembered) {
-		return extractConsentRequestInputs(request.headers, {
-			country: options.country,
-			language: options.language,
-		});
-	}
-	const inputs = { ...remembered };
-	if (options.country) {
-		inputs.country = options.country;
-	}
-	if (options.language) {
-		inputs.language = options.language;
-	}
-	return inputs;
+const isPrerendering = function isPrerendering(): boolean {
+	const env = (
+		globalThis as { process?: { env?: Record<string, string | undefined> } }
+	).process?.env;
+	return env?.TSS_PRERENDERING === 'true';
 };
 
 const readCurrentRequest = async function readCurrentRequest(
@@ -181,48 +146,6 @@ export interface ConsentRequestOptions {
 	 */
 	request?: ConsentRequestSource;
 }
-
-/**
- * The cookie-and-headers half of {@link resolveConsent}: the state the
- * request alone determines, before any manifest is consulted.
- *
- * What it reads:
- * - Cookie, defaulting to `c15t`, read with the persistence parser. A
- *   returning visitor therefore hydrates with `initialHasConsented: true`
- *   and no banner is server-rendered.
- * - CDN geo headers (`cf-ipcountry`, `x-vercel-ip-country`, ...) and the
- *   `x-c15t-*` overrides written by `consentRequestMiddleware()`.
- * - The negotiated `accept-language` entry and the `sec-gpc` signal.
- *
- * It does not fetch from the backend, does not set cookies (writes happen
- * client-side via the persistence module), and does not cache across
- * requests.
- */
-const readRequestState = function readRequestState(
-	request: Request,
-	options: ConsentRequestOptions
-): ConsentState {
-	const cookieHeader = request.headers.get('cookie') ?? undefined;
-	const now = options.now ?? Date.now();
-	const initialRecords = readStoredRecordsFromCookieHeader(
-		cookieHeader,
-		options.cookieName ? { storageKey: options.cookieName } : undefined,
-		now
-	);
-	const inputs = resolveRequestInputs(request, options);
-	const overrides = consentInputsToOverrides({ ...inputs, gpc: undefined });
-	const state: ConsentState = {
-		initialPrivacySignals: { gpc: inputs.gpc },
-		initialRecords,
-		now,
-	};
-
-	if (Object.keys(overrides).length > 0) {
-		state.initialOverrides = overrides;
-	}
-
-	return state;
-};
 
 /**
  * Type alias re-exported so consumers can stay within
@@ -367,163 +290,64 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/**
 	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
 	 * Set this explicitly to route deferred public vendor lists through it.
-	 * Without it, lists use the manifest URL directly. Self-route detection
-	 * still checks `/api/c15t` by default.
+	 * Without it, lists use the manifest URL directly. The render never
+	 * fetches a URL under this prefix (`/api/c15t` by default) on its own
+	 * origin.
 	 */
 	routePrefix?: string;
+
+	/**
+	 * The HTML this render produces is served to every visitor. A shared
+	 * render reads no cookie or geo header, carries no stored consent,
+	 * clock, privacy signal or experiment, and skips the manifest prefetch,
+	 * so the browser resolves the visitor itself. Defaults to `true` while
+	 * TanStack Start prerenders (`TSS_PRERENDERING`), `false` otherwise.
+	 */
+	shared?: boolean;
 }
-
-const collectForwardHeaders = function collectForwardHeaders(
-	request: Request,
-	names: string[] | undefined,
-	cookieNames: readonly string[] | undefined
-): Record<string, string> {
-	const forward: Record<string, string> = {};
-	const cookie = request.headers.get('cookie');
-	const scopedCookie =
-		cookie && cookieNames ? filterCookieHeader(cookie, cookieNames) : undefined;
-	if (scopedCookie) {
-		forward.cookie = scopedCookie;
-	}
-	for (const name of names ?? []) {
-		const lower = name.toLowerCase();
-		if (lower === 'cookie' || CONSENT_PROXY_FORWARDING_HEADERS.has(lower)) {
-			// Cookies travel only through `cookieNames`, never as a whole, and
-			// hop-chain headers are never copied from the visitor.
-			continue;
-		}
-		const value = request.headers.get(name);
-		if (value) {
-			forward[lower] = value;
-		}
-	}
-	return forward;
-};
-
-const loadManifest = async function loadManifest(
-	options: ResolveConsentOptions & { backendURL: string },
-	request: Request,
-	forward: Record<string, string>,
-	timeoutMs: number | undefined
-): Promise<{ backendURL: string; manifest: ConsentManifest } | null> {
-	const trust = options.trustForwardedHeaders ?? false;
-	const backendURL = resolveRequestURL(options.backendURL, request, trust);
-	if (!backendURL) {
-		return null;
-	}
-	if (options.manifest) {
-		return { backendURL, manifest: options.manifest };
-	}
-	const manifestURL = options.manifestURL
-		? resolveRequestURL(options.manifestURL, request, trust)
-		: undefined;
-	if (options.manifestURL && !manifestURL) {
-		return null;
-	}
-	const sourceURL = resolveManifestSourceURL({
-		backendURL,
-		manifestURL: manifestURL ?? undefined,
-	});
-	if (
-		isSelfRoute(sourceURL, request, options.routePrefix ?? DEFAULT_ROUTE_PREFIX)
-	) {
-		// Fetching the app's own consent route from inside SSR would wait on
-		// the very server that is rendering this request.
-		return null;
-	}
-	const cached = await fetchCachedManifest({
-		cache: options.cache,
-		fetch: options.fetch,
-		headers: stripIdentityForCleartext(forward, sourceURL),
-		onBackgroundRevalidate: options.onBackgroundRevalidate,
-		sourceURL,
-		timeoutMs,
-	});
-	return { backendURL, manifest: cached.manifest };
-};
 
 /** {@link resolveConsent} without the experiment it carries back. */
 const resolveConsentState = async function resolveConsentState(
 	options: ResolveConsentOptions
 ): Promise<ConsentState> {
 	const request = await readCurrentRequest(options.request);
-	const base = readRequestState(request, options);
 	const { backendURL } = options;
-	if (!backendURL) {
-		return base;
-	}
-
-	const timeoutMs =
-		options.timeoutMs === false
-			? undefined
-			: (options.timeoutMs ?? DEFAULT_RESOLVE_TIMEOUT_MS);
-	const startedAt = Date.now();
-	try {
-		const forward = collectForwardHeaders(
-			request,
-			options.forwardHeaders,
-			options.cookieNames
-		);
-		const loaded = await loadManifest(
-			{ ...options, backendURL },
-			request,
-			forward,
-			timeoutMs
-		);
-		if (!loaded) {
-			return base;
-		}
-		const inputs = resolveRequestInputs(request, options);
-		const deferGvl = !options.fetch && Object.keys(forward).length === 0;
-		const transport = createManifestTransport({
-			backendURL: loaded.backendURL,
-			baseTranslations,
-			deferGvl,
-			fetch: options.fetch,
-			gvlRoute:
-				deferGvl && options.routePrefix
-					? `${options.routePrefix}/init`
-					: undefined,
-			headers: forward,
-			inputs,
-			manifest: loaded.manifest,
-			report:
-				options.reportSessions === false
-					? undefined
-					: {
-							adapter: '@c15t/tanstack-start',
-							// As configured, not request-resolved: a relative backend
-							// is this app's proxy, which means no report.
-							backendURL: options.backendURL,
-							headers: request.headers,
-							source: 'render',
-							waitUntil: options.onBackgroundRevalidate,
-						},
-		});
-		// A visitor who already chose is not shown the banner, so is not
-		// counted toward the arm.
-		const experiment =
-			options.experiment && !base.initialRecords?.choice
-				? experimentArmRef(options.experiment)
-				: undefined;
-		const response = await withResolutionBudget(
-			transport.init({
-				...(experiment && { experiment }),
-				overrides: {
-					...(base.initialOverrides ?? {}),
-					...consentInputsToOverrides({ ...inputs, gpc: undefined }),
-				},
-				user: base.initialUser ?? null,
-			}),
-			timeoutMs === undefined
-				? undefined
-				: Math.max(0, timeoutMs - (Date.now() - startedAt))
-		);
-		return stripTransport(mergeInitResponseIntoKernelConfig(base, response));
-	} catch {
-		// Silent degradation. Client-side init will retry.
-		return base;
-	}
+	const routePrefix = trimTrailingSlashes(
+		options.routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX
+	);
+	return await resolveRequestConsent({
+		adapter: '@c15t/tanstack-start',
+		backendURL,
+		cache: options.cache,
+		cookieNames: options.cookieNames,
+		experiment: options.experiment,
+		fetch: options.fetch,
+		forwardHeaders: options.forwardHeaders,
+		gvlRoute: options.routePrefix ? `${routePrefix}/init` : undefined,
+		manifest: backendURL ? options.manifest : undefined,
+		manifestURL: options.manifestURL,
+		// TanStack Start resolves from the manifest only; without a backend
+		// the client runs init through the same-origin route.
+		mode: backendURL ? 'manifest' : undefined,
+		now: options.now,
+		overrides: { country: options.country, language: options.language },
+		ownRoutes: [routePrefix],
+		reportSessions: options.reportSessions,
+		request: {
+			headers: request.headers,
+			// What `consentRequestMiddleware` normalized for this request, so
+			// overrides survive runtimes with immutable headers.
+			inputs: readConsentInputs(request),
+			url: request.url,
+		},
+		shared: options.shared ?? isPrerendering(),
+		storage: options.cookieName
+			? { storageKey: options.cookieName }
+			: undefined,
+		timeoutMs: options.timeoutMs,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+		waitUntil: options.onBackgroundRevalidate,
+	});
 };
 
 /**
@@ -552,12 +376,7 @@ const resolveConsentState = async function resolveConsentState(
 export const resolveConsent = async function resolveConsent(
 	options: ResolveConsentOptions = {}
 ): Promise<ConsentState> {
-	const state = await resolveConsentState(options);
-	// Every path carries the experiment, so the client runs the arm this
-	// request counted even when the backend call failed.
-	return options.experiment
-		? { ...state, experiment: options.experiment }
-		: state;
+	return await resolveConsentState(options);
 };
 
 /**
