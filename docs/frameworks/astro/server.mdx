@@ -110,6 +110,12 @@ In `manifest()` mode the integration adds two on-demand routes:
 | `GET /api/c15t/init` | The policy for this request, resolved from the cached manifest. The browser calls it on prerendered pages and after a failed server resolution |
 | `GET /api/c15t/manifest` | Your project's public policy file, proxied from the backend with its cache headers |
 
+The routes are the consent route handler from `@c15t/core/server`, shared
+with the Next.js, TanStack Start, SvelteKit and Nuxt adapters. A vendor list that cannot be loaded
+fails the init request rather than answering `gvl: null`, which the browser
+would read as "IAB is off". The manifest route passes upstream only a
+`language` query parameter that looks like a language tag.
+
 The server keeps the manifest in memory and refreshes it in the background.
 On Cloudflare, c15t hands that refresh to the adapter's `waitUntil`, so the
 request context stays alive until it finishes. The browser saves consent to

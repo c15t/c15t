@@ -72,7 +72,7 @@ What the route serves:
 
 | Request | Handled by |
 | --- | --- |
-| `GET /api/c15t/init` | The route, from the cached manifest, for this request's location, language and privacy signal |
+| `GET /api/c15t/init` or `GET /api/c15t` | The route, from the cached manifest, for this request's location, language and privacy signal |
 | `GET /api/c15t/manifest` | The route, passing the backend's cached manifest through |
 | `POST /api/c15t/subjects` and other consent paths | Forwarded to your backend because `proxy: true` |
 | Any other path | `404`, so the route is never an open proxy |

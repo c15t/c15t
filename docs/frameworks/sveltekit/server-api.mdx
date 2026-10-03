@@ -112,7 +112,7 @@ manifest mode. The options argument is required. Export them from a catch-all ro
 
 | Returned | Serves |
 | --- | --- |
-| `GET` | `/manifest` paths to `manifest`, every other path to `init`. |
+| `GET` | `manifest` below the rest parameter to `manifest`, `init` or the route root to `init`. Any other path is forwarded with `proxy` on and answers `404` without it. On a route without a rest parameter, a path ending in `/manifest` goes to `manifest` and anything else to `init`. |
 | `init` | The visitor's resolved policy, like the backend's `/init`, with `Cache-Control: private, no-store`. Under an IAB policy it also serves the Global Vendor List. |
 | `manifest` | The cached policy manifest, with the backend's `Cache-Control` and `ETag`. Answers `If-None-Match` with `304`. |
 
@@ -126,7 +126,7 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 | `proxy` | `true` or `{ paths?, cookieNames? }` | off | Forwards consent writes to `backendURL`. See [save consent through your own origin](./rendering#save-consent-through-your-own-origin). |
 | `reportSessions` | `boolean` | `true` | Reports each resolved visit to the backend's `/sessions`, so Inth counts visitors it never served `/init` to. |
 | `onBackgroundRevalidate` | `(promise, event) => void` | `event.platform.context.waitUntil`, when the adapter provides it | Keeps background manifest refreshes and session reports alive on runtimes that stop work after the response. SvelteKit 3's Cloudflare and Vercel adapters provide none; see [keep background work alive](./rendering#keep-background-work-alive-after-the-response). |
-| `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | a plain `GET` | Fetches the Global Vendor List under an IAB policy. |
+| `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | the shared server cache, with a five-second deadline | Fetches the Global Vendor List under an IAB policy. A rejection fails the init request instead of answering `gvl: null`. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch used for an absolute `backendURL` or `manifestURL`, and for the vendor list. |
 
 With an options object that sets neither `backendURL` nor `manifestURL`, each
@@ -145,6 +145,17 @@ serve, such as `/api/c15t`, or the route requests itself. A relative
 
 The manifest is cached in memory per server process for as long as its
 `s-maxage` allows, then served stale while it refreshes in the background.
+The `manifest` handler passes upstream only a `language` query parameter that
+looks like a language tag; the visitor's other parameters never reach the
+backend. When the manifest cannot be read and `backendURL` is set, `init` asks
+the backend's own `/init`, which covers backends without `/manifest`.
+
+These handlers are built on the consent route handler in `@c15t/core/server`,
+shared with the Next.js, TanStack Start, Astro and Nuxt adapters. `init`
+answers with `x-c15t-policy-contract: 1`. A browser that declares another
+policy contract gets a failed `unsupported-contract` resolution, and a
+resolution that did not match carries no snapshot token, vendor list, CMP ID
+or custom vendors.
 
 ## resolveConsent
 
