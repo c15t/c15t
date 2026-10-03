@@ -6,6 +6,13 @@
  * cookie/localStorage work does not sit on the user interaction path
  * that just updated the kernel and UI.
  *
+ * The write runs in the very next macrotask (`setTimeout(0)`), and the
+ * kernel's save outbox counts on it: a save is sent no earlier than the
+ * macrotask after the commit whose listener scheduled the write, and timers
+ * with the same delay run in the order they were set, so the recorded
+ * choice is stored before its request leaves. A longer delay would break
+ * that ordering.
+ *
  * Pure: takes a `write` callback, returns `{ schedule, flush, cancel }`.
  */
 export interface WriteScheduler {

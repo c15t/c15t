@@ -650,7 +650,14 @@ export type KernelEvent =
 			/** An external authority should open its preferences. */
 			type: 'preferences:requested';
 	  }
-	| { type: 'records:cleared' }
+	| {
+			/**
+			 * The visitor's stored records were cleared. The kernel drops its
+			 * queued saves and subject reassignments, so nothing from before
+			 * the clear replays.
+			 */
+			type: 'records:cleared';
+	  }
 	| {
 			/** An explicit accept, reject or save recorded a choice. */
 			type: 'choice:recorded';

@@ -50,12 +50,7 @@ import type {
 	CookieWriteReport,
 	StorageConfig,
 } from '../../libs/cookie';
-import {
-	PENDING_SAVES_STORAGE_KEY,
-	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
-	STORAGE_KEY,
-	STORAGE_KEY_V2,
-} from '../../libs/storage-keys';
+import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { choiceSinceEpoch } from './epoch';
 import {
 	decodeClearEpoch,
@@ -1241,10 +1236,13 @@ export const writeStoredClearEpoch = function writeStoredClearEpoch(
 /**
  * Removes explicit choices (configured and legacy keys, cookie and
  * localStorage), the notice dismissal and the vendor denials with their
- * cookie projections, the legacy `<key>-privacy` record an alpha may have
- * left, and the queued backend replays with their subject reassignments. Cookie deletion uses the same
- * domain handling as writes so a cross-subdomain cookie is actually
- * removed.
+ * cookie projections, and the legacy `<key>-privacy` record an alpha may
+ * have left. Cookie deletion uses the same domain handling as writes so a
+ * cross-subdomain cookie is actually removed.
+ *
+ * Queued backend replays and subject reassignments are the kernel's save
+ * outbox: the kernel drops them under the outbox lock on the
+ * `records:cleared` event that follows a clear.
  */
 export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	cookie?: CookieOptions,
@@ -1255,8 +1253,6 @@ export const clearStoredConsentRecords = function clearStoredConsentRecords(
 	clearStoredNoticeDismissal(config, cookie);
 	clearLegacyPrivacyRecord(config, cookie);
 	clearStoredVendorChoice(config, cookie);
-	removeLocalStorageKey(PENDING_SAVES_STORAGE_KEY);
-	removeLocalStorageKey(SUBJECT_REASSIGNMENTS_STORAGE_KEY);
 	// Addon bytes must be removed even when the addon is not mounted.
 	removeLocalStorageKey('c15t-iab-authority-v1');
 	removeLocalStorageKey('euconsent-v2');

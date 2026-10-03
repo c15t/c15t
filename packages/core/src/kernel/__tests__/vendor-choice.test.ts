@@ -1,6 +1,6 @@
 /**
  * Vendor-level consent through the kernel's public boundaries: hydration,
- * save, bulk actions, events, the transport payload and replay narrowing.
+ * save, bulk actions, events, the transport payload and in-flight narrowing.
  */
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -12,17 +12,18 @@ import {
 	NOW,
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
-import { createConsentKernel } from '../../index';
-import { PENDING_SAVES_STORAGE_KEY } from '../../libs/storage-keys';
 import type {
+	KernelConfig,
 	KernelVendorsState,
 	ResolvedVendor,
 	SavePayload,
 	KernelTransport,
 } from '../../types';
 import { applyInitResponse } from '../apply-init-response';
+import { createKernel as assembleKernel } from '../index';
 import { validateVendorChoice } from '../records';
-import { selectSavePayload } from '../save-selection';
+import { createMemoryOutboxStore } from '../save-outbox';
+import type { SaveOutboxStore } from '../save-outbox';
 import { buildInitialSnapshot } from '../snapshot';
 
 afterEach(() => {
@@ -61,17 +62,21 @@ const vendors: KernelVendorsState = {
 };
 
 const createKernel = function createKernel(
-	overrides: Parameters<typeof createConsentKernel>[0] = {}
+	overrides: KernelConfig = {},
+	outboxStore: SaveOutboxStore = createMemoryOutboxStore()
 ) {
 	vi.spyOn(Date, 'now').mockReturnValue(NOW);
-	return createConsentKernel({
-		initialPolicyResolution: matchedResolution(
-			optInRule({ categories: ['marketing', 'measurement'] })
-		),
-		initialVendors: vendors,
-		now: NOW,
-		...overrides,
-	});
+	return assembleKernel(
+		{
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing', 'measurement'] })
+			),
+			initialVendors: vendors,
+			now: NOW,
+			...overrides,
+		},
+		{ outboxStore }
+	);
 };
 
 describe('validateVendorChoice', () => {
@@ -1102,51 +1107,6 @@ describe('server records and init', () => {
 	});
 });
 
-describe('replay narrowing', () => {
-	test('a narrowed replay keeps the vendor grant map for its caller to judge', () => {
-		const payload: SavePayload = {
-			choice: choiceRecords({ marketing: true, measurement: true })
-				.choice as SavePayload['choice'],
-			confirmed: {
-				actionAt: NOW,
-				categories: { marketing: true, measurement: true },
-			},
-			consentAction: 'all',
-			consents: {
-				experience: false,
-				functionality: false,
-				marketing: true,
-				measurement: true,
-				necessary: true,
-			},
-			model: 'opt-in',
-			overrides: {},
-			policySnapshotToken: null,
-			subject: { subjectId: 'sub_test' },
-			subjectId: 'sub_test',
-			uiSource: 'dialog',
-			user: null,
-			vendorChoice: {
-				confirmedAt: NOW,
-				grants: { 'meta-pixel': false },
-				version: 1,
-			},
-		};
-		const narrowed = selectSavePayload(
-			payload,
-			(category) => category === 'marketing'
-		);
-		expect(narrowed).not.toBeNull();
-		// Narrowing the receipts says nothing about the map: it was the
-		// visitor's whole vendor decision and only a newer map supersedes it.
-		expect(narrowed?.vendorChoice).toEqual(payload.vendorChoice);
-		expect(Object.keys(narrowed?.confirmed.categories ?? {})).toEqual([
-			'marketing',
-		]);
-		expect(selectSavePayload(payload, () => true)).toBe(payload);
-	});
-});
-
 describe('in-flight saves', () => {
 	test('a failed save queues its vendor map when only a category was superseded', async () => {
 		// One combined action: categories plus a vendor denial. While it is
@@ -1164,25 +1124,8 @@ describe('in-flight saves', () => {
 					})
 			)
 			.mockResolvedValue({ ok: true });
-		// The queue lives in `window.localStorage`; the kernel suite runs in
-		// Node, so a minimal window stands in for it.
-		const values = new Map<string, string>();
-		const events = new EventTarget();
-		vi.stubGlobal('window', {
-			addEventListener: events.addEventListener.bind(events),
-			localStorage: {
-				getItem: (key: string) => values.get(key) ?? null,
-				key: (index: number) => [...values.keys()][index] ?? null,
-				get length() {
-					return values.size;
-				},
-				removeItem: (key: string) => values.delete(key),
-				setItem: (key: string, value: string) => values.set(key, value),
-			},
-			removeEventListener: events.removeEventListener.bind(events),
-		});
-		const enqueued: SavePayload[] = [];
-		const kernel = createKernel({ transport: { save } });
+		const outboxStore = createMemoryOutboxStore();
+		const kernel = createKernel({ transport: { save } }, outboxStore);
 		const pending = kernel.commands.save(
 			{ marketing: true, measurement: true },
 			{ vendors: { 'meta-pixel': false } }
@@ -1199,17 +1142,16 @@ describe('in-flight saves', () => {
 		await kernel.commands.save({ measurement: false });
 		fail?.(new Error('offline'));
 		await pending;
-		for (const entry of JSON.parse(
-			values.get(PENDING_SAVES_STORAGE_KEY) ?? '[]'
-		) as { payload: SavePayload }[]) {
-			enqueued.push(entry.payload);
-		}
+		const enqueued = await outboxStore.transact((tx) =>
+			((tx.read('saves') ?? []) as { payload: SavePayload }[]).map(
+				(entry) => entry.payload
+			)
+		);
 		expect(enqueued).toHaveLength(1);
 		expect(Object.keys(enqueued[0]?.confirmed.categories ?? {})).toEqual([
 			'marketing',
 		]);
 		expect(enqueued[0]?.vendorChoice?.grants['meta-pixel']).toBe(false);
-		vi.unstubAllGlobals();
 		kernel.dispose();
 	});
 
