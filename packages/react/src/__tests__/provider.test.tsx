@@ -178,6 +178,31 @@ test('a prefetch still marked pending is not adopted: the provider asks /init', 
 	);
 });
 
+test('an offline IAB policy resolves: IAB renders in the tree, so the transport does not reject it', async () => {
+	const iabPolicy = {
+		categories: ['measurement' as const, 'marketing' as const],
+		id: 'iab',
+		match: { fallback: true },
+		model: 'iab' as const,
+		prompt: 'choice' as const,
+		scopeMode: 'permissive' as const,
+	};
+	await render(
+		<ConsentProvider
+			options={{
+				mode: offline({ policyRules: [iabPolicy] }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().policyPending).toBe(false)
+	);
+	expect(kernel.getSnapshot().resolution.status).toBe('matched');
+});
+
 test('disposes the kernel on unmount', async () => {
 	const screen = await render(
 		<ConsentProvider

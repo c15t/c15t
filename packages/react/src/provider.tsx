@@ -349,10 +349,35 @@ const reactRuntimeModules = function reactRuntimeModules(
 	};
 };
 
+/**
+ * React renders IAB through `IABProvider` in the tree, not through the
+ * runtime's `iab` option, so the provider cannot tell the transport whether
+ * IAB is on. Leave the transport's `iabEnabled` unset rather than `false`:
+ * with `false`, `offline()` rejects a policy pack that uses `model: 'iab'`
+ * and no banner shows. The context keeps its other members, live getters
+ * included, through its prototype.
+ */
+const withTreeIAB = function withTreeIAB(
+	mode: ProviderTransportFactory
+): ProviderTransportFactory {
+	if (typeof mode !== 'function') {
+		return mode;
+	}
+	return Object.assign(
+		(context: Parameters<ProviderTransportFactory>[0]) =>
+			mode(Object.create(context, { iabEnabled: { value: undefined } })),
+		{ kind: mode.kind }
+	);
+};
+
 const toRuntimeOptions = function toRuntimeOptions(
 	options: ConsentProviderOptions
 ): ConsentProviderRuntimeOptions {
-	return { ...options, pkg: options.__debugPkg ?? '@c15t/react' };
+	return {
+		...options,
+		mode: withTreeIAB(options.mode),
+		pkg: options.__debugPkg ?? '@c15t/react',
+	};
 };
 
 /**
