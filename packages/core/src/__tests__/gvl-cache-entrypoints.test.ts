@@ -86,3 +86,21 @@ describe.each([
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
 });
+
+test('the server and transport entry points read one process cache', async () => {
+	const fetch = vi
+		.fn<typeof globalThis.fetch>()
+		.mockImplementation(() =>
+			Promise.resolve(response({ 'cache-control': 'max-age=600' }))
+		);
+	try {
+		await server.fetchCachedGvl({ fetch, language: 'en', now: 0, url });
+		await transport.fetchCachedGvl({ fetch, language: 'en', now: 1, url });
+		expect(fetch).toHaveBeenCalledTimes(1);
+		server.clearGvlCache();
+		await transport.fetchCachedGvl({ fetch, language: 'en', now: 2, url });
+		expect(fetch).toHaveBeenCalledTimes(2);
+	} finally {
+		transport.clearGvlCache();
+	}
+});
