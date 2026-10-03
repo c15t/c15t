@@ -416,10 +416,10 @@ describe('manifest source URLs', () => {
 				sourceURL: SOURCE_URL,
 			})
 		).toBe(`${SOURCE_URL}?lang=de+x&v=2&v=1`);
-		// A relative source cannot be parsed and is joined as before.
+		// A relative source follows the same rule.
 		expect(
 			createManifestRequestURL({ query: 'b=2&a=1', sourceURL: '/manifest' })
-		).toBe('/manifest?b=2&a=1');
+		).toBe('/manifest?a=1&b=2');
 	});
 
 	test('lists the headers a proxying route forwards, without vary', () => {

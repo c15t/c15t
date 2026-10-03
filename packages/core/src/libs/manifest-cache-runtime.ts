@@ -610,10 +610,10 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
  * name (repeated names keep their relative order), re-encoded the way
  * `URLSearchParams` serialises them, and any empty `?` or `#fragment`
  * dropped. `?b=2&a=1`, `?a=1&b=2` and `?a=1&b=2#x` therefore read and fill
- * one entry. Parameter values are not validated here; a route that forwards
- * a visitor's raw query still mints one key per distinct value, which the
- * cache's `maxEntries` bound caps. A source URL that does not parse as an
- * absolute URL is joined as-is.
+ * one entry. The part before `?` is kept as written, so a read without any
+ * query costs two string scans on the hot path. Parameter values are not
+ * validated here; a route that forwards a visitor's raw query still mints
+ * one key per distinct value, which the cache's `maxEntries` bound caps.
  *
  * @param input - The source URL and an already-encoded query string such as
  * `language=de`, with or without a leading `?`.
@@ -624,28 +624,30 @@ export const createManifestRequestURL =
 		sourceURL: string;
 		query?: string;
 	}): string {
-		const query = input.query?.startsWith('?')
+		const { sourceURL } = input;
+		const hashIndex = sourceURL.indexOf('#');
+		const withoutFragment =
+			hashIndex === -1 ? sourceURL : sourceURL.slice(0, hashIndex);
+		const queryIndex = withoutFragment.indexOf('?');
+		const base =
+			queryIndex === -1
+				? withoutFragment
+				: withoutFragment.slice(0, queryIndex);
+		const sourceQuery =
+			queryIndex === -1 ? '' : withoutFragment.slice(queryIndex + 1);
+		const extraQuery = input.query?.startsWith('?')
 			? input.query.slice(1)
-			: input.query;
-		let url: URL;
-		try {
-			url = new URL(input.sourceURL);
-		} catch {
-			if (!query) {
-				return input.sourceURL;
-			}
-			const separator = input.sourceURL.includes('?') ? '&' : '?';
-			return `${input.sourceURL}${separator}${query}`;
+			: (input.query ?? '');
+		if (!sourceQuery && !extraQuery) {
+			return base;
 		}
-		url.hash = '';
-		const params = new URLSearchParams(url.search);
-		for (const [name, value] of new URLSearchParams(query ?? '')) {
+		const params = new URLSearchParams(sourceQuery);
+		for (const [name, value] of new URLSearchParams(extraQuery)) {
 			params.append(name, value);
 		}
 		params.sort();
 		const search = params.toString();
-		url.search = search ? `?${search}` : '';
-		return url.href;
+		return search ? `${base}?${search}` : base;
 	};
 
 /** Options for {@link fetchCachedManifest}. */
