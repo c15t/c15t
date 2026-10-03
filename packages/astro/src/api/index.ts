@@ -13,18 +13,8 @@ export {
 	waitUntilFromLocals,
 } from './handlers';
 export type { ConsentRouteHandlerOptions, RequestLifetime } from './handlers';
-export {
-	loadConsentManifest,
-	resolveManifestInit,
-	resolveManifestSourceFrom,
-	resolveSessionReportURL,
-} from './manifest-init';
-export type {
-	FetchGvl,
-	RequestSource,
-	ResolvedInitOutput,
-	SessionReportTarget,
-} from './manifest-init';
+export { resolveManifestSourceFrom } from './manifest-init';
+export type { FetchGvl, RequestSource } from './manifest-init';
 export {
 	clearManifestCache,
 	createManifestRequestURL,

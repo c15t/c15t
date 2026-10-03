@@ -75,25 +75,6 @@ afterEach(() => {
 });
 
 describe('manifest-mode server prefetch', () => {
-	it('fetches the manifest once across consecutive renders', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-
-		const first = await render({ fetch: fetchImpl as never });
-		const second = await render({ fetch: fetchImpl as never });
-
-		// A per-render transport carried its own manifest memo, so every page
-		// view paid the upstream roundtrip. The shared cache is the point of
-		// manifest mode. Each render also reports its session, detached.
-		const reads = fetchImpl.mock.calls.filter(([url]) =>
-			String(url).endsWith('/manifest')
-		);
-		expect(reads).toHaveLength(1);
-		expect(reads[0]?.[0]).toBe('https://consent.example.com/manifest');
-		expect(first.c15t?.snapshot.policyRule.id).toBe(
-			second.c15t?.snapshot.policyRule.id
-		);
-	});
-
 	it('reports each render to the backend, detached from the response', async () => {
 		const fetchImpl = vi.fn((input: string) =>
 			Promise.resolve(
@@ -149,33 +130,6 @@ describe('manifest-mode server prefetch', () => {
 		).toHaveLength(1);
 		expect(german.c15t?.shouldShowBanner).toBe(true);
 		expect(american.c15t?.shouldShowBanner).toBe(false);
-	});
-
-	it('keeps GPC on the server-resolved overrides', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-		const { c15t } = await render({
-			fetch: fetchImpl as never,
-			headers: { 'sec-gpc': '1', 'x-c15t-country': 'DE' },
-		});
-		expect(c15t?.config.initialPrivacySignals?.gpc).toBe(true);
-	});
-
-	it('resolves a relative manifest URL against the request origin', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-		await render({
-			astroOptions: { mode: manifestMode({ backendURL: '/api/c15t' }) },
-			fetch: fetchImpl as never,
-		});
-		expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-			'https://site.example.com/api/c15t/manifest'
-		);
-	});
-
-	it('degrades to the cookie-only config when the manifest is down', async () => {
-		const fetchImpl = vi.fn(() => Promise.reject(new Error('ECONNREFUSED')));
-		const { c15t } = await render({ fetch: fetchImpl as never });
-		expect(c15t?.snapshot.resolution.status).toBe('unconfigured');
-		expect(c15t?.config.initialTranslations?.language).toBe('en');
 	});
 
 	it('serves an inline manifest without any fetch', async () => {

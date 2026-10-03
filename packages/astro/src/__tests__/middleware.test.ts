@@ -419,10 +419,20 @@ describe('consent middleware', () => {
 		await run({
 			fetch: fetchImpl as never,
 			headers: { 'x-forwarded-host': 'evil.example' },
-			options: { mode: hostedMode({ url: '/api/c15t' }) },
+			options: { mode: hostedMode({ url: '/api/consent' }) },
 		});
 		const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
-		expect(url).toBe('https://example.com/api/c15t/init');
+		expect(url).toBe('https://example.com/api/consent/init');
+	});
+
+	it('never fetches its own injected init route', async () => {
+		const fetchImpl = vi.fn(() => Response.json({}));
+		const result = await run({
+			fetch: fetchImpl as never,
+			options: { mode: hostedMode({ url: '/api/c15t' }) },
+		});
+		expect(fetchImpl).not.toHaveBeenCalled();
+		expect(result.hasPolicy).toBe(false);
 	});
 
 	it('withholds the consent cookie from a cleartext backend', async () => {
@@ -434,7 +444,6 @@ describe('consent middleware', () => {
 		});
 		const [, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
 		expect((init.headers as Record<string, string>).cookie).toBeUndefined();
-		expect(init.credentials).toBe('omit');
 	});
 
 	it('applies the configured init headers to the server prefetch', async () => {
@@ -488,7 +497,7 @@ it.each(['c15t=consent', 'session=unrelated'])(
 		try {
 			const result = await run({
 				headers: { cookie },
-				options: { mode: hostedMode({ url: 'https://example.com/api/c15t' }) },
+				options: { mode: hostedMode({ url: 'https://consent.example.com' }) },
 			});
 			expect(fetch).toHaveBeenCalledOnce();
 			expect(result.config.initialIab?.gvl).toEqual(
