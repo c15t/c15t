@@ -106,6 +106,9 @@ for (const target of selectedTargets()) {
 					};
 				};
 				// Readiness has already rendered App Router and warmed its manifest.
+				// The Pages Router is compiled apart from the App Router and keeps
+				// its own process cache, which its first render fills.
+				await fetch(`${server.baseURL}/pages-router`);
 				const before = await readRequests();
 				expect(before.manifestRequests.length).toBeGreaterThan(0);
 				expect(before.initRequests).toHaveLength(0);

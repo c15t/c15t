@@ -325,6 +325,48 @@ describe('target resolution', () => {
 			expect(fetch).toHaveBeenCalledTimes(1);
 		});
 
+		test('an adapter with no own routes fetches a same-origin /api/c15t backend', async () => {
+			const fetch = upstream();
+			const state = await render({
+				backendURL: '/api/c15t',
+				fetch,
+				ownRoutes: [],
+			});
+			expect(String(fetch.mock.calls[0]?.[0])).toBe(`${APP}/api/c15t/init`);
+			expect(state.initialPolicyResolution?.status).toBe('matched');
+		});
+
+		test('a render reached by its own origin’s render request stops there', async () => {
+			const fetch = upstream();
+			await render({ backendURL: '/api/self-host', fetch });
+			const marked = Object.fromEntries(sentHeaders(fetch, '/init'));
+			// A page answered that request (an unmounted backend prefix) and its
+			// render resolves again with the headers it received.
+			const onError = vi.fn();
+			const nested = await render({
+				backendURL: '/api/self-host',
+				fetch,
+				headers: marked,
+				onError,
+			});
+			expect(fetch).toHaveBeenCalledTimes(1);
+			expect(nested.initialPolicyResolution).toBeUndefined();
+			expect(onError.mock.calls[0]?.[1]).toBe(`${APP}/api/self-host/init`);
+			// A backend on another origin is still asked.
+			await render({ backendURL: BACKEND, fetch, headers: marked });
+			expect(callsTo(fetch, BACKEND)).toHaveLength(1);
+		});
+
+		test('only same-origin requests carry the render marker', async () => {
+			const fetch = upstream();
+			await render({ backendURL: BACKEND, fetch });
+			await render({ backendURL: '/api/self-host', fetch });
+			const remote = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+			const own = new Headers(fetch.mock.calls[1]?.[1]?.headers);
+			const added = [...own.keys()].filter((name) => !remote.has(name));
+			expect(added).toHaveLength(1);
+		});
+
 		test('an in-process fetch reaches the own init route with the budget header', async () => {
 			const fetch = upstream();
 			const localFetch = vi.fn<ManifestFetch>(() =>

@@ -13,13 +13,11 @@
  * is a plain async function, not an action.
  */
 import type { ServerExperiment } from '@c15t/core';
-import {
-	DEFAULT_CONSENT_ROUTE_PREFIX,
-	resolveRequestConsent,
-} from '@c15t/core/server';
+import { resolveRequestConsent } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
-import { cache } from 'react';
+import * as React from 'react';
 
+import { createManifestFetchInit } from './api';
 import type { ConsentConfig } from './config';
 import type { ConsentState } from './types';
 
@@ -63,6 +61,15 @@ interface NextRequestFacts {
 }
 
 /**
+ * React's per-request memo. A namespace read, so React 18 (Pages Router),
+ * which has no `cache`, gets the read unmemoized instead of a link error.
+ */
+const memoize: <Read extends () => Promise<NextRequestFacts>>(
+	read: Read
+) => Read =
+	(React as { cache?: <Read>(read: Read) => Read }).cache ?? ((read) => read);
+
+/**
  * Reads the App Router request once per render. `cache()` shares the read
  * between a layout and a page that both resolve consent.
  *
@@ -71,19 +78,17 @@ interface NextRequestFacts {
  * request-time: it hangs in prerenders and resolves at once in real
  * requests, so a prerendered page never carries one visitor's consent.
  */
-const readAppRouterRequest = (cache ?? ((read) => read))(
-	async (): Promise<NextRequestFacts> => {
-		const [nextHeaders, nextServer] = await Promise.all([
-			import('next/headers.js'),
-			import('next/server.js'),
-		]);
-		await nextServer.connection?.();
-		const headers = (await nextHeaders.headers()) as Headers;
-		const cookie =
-			headers.get('cookie') ?? (await nextHeaders.cookies()).toString();
-		return { cookie, headers };
-	}
-);
+const readAppRouterRequest = memoize(async (): Promise<NextRequestFacts> => {
+	const [nextHeaders, nextServer] = await Promise.all([
+		import('next/headers.js'),
+		import('next/server.js'),
+	]);
+	await nextServer.connection?.();
+	const headers = (await nextHeaders.headers()) as Headers;
+	const cookie =
+		headers.get('cookie') ?? (await nextHeaders.cookies()).toString();
+	return { cookie, headers };
+});
 
 const readRequestContext = async function readRequestContext(
 	request: NextRequestContext
@@ -148,9 +153,12 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * A relative URL resolves against the request's `host` header: over
 	 * `https` for a domain name, and over `http` for `localhost`, an IP
 	 * address or a single-label host such as `app:3000`. `x-forwarded-*`
-	 * headers are ignored unless `trustForwardedHeaders` is set. A URL on
-	 * this app's own consent routes (`/api/c15t`, or the `config` routes) is
-	 * never fetched: point it at the backend itself.
+	 * headers are ignored unless `trustForwardedHeaders` is set. A
+	 * same-origin prefix such as `/api/c15t` is fetched like any backend, so
+	 * it must reach one (a rewrite or a mounted backend); passing the
+	 * backend's own URL saves that hop. A URL under the `config.manifestURL`
+	 * or `config.initURL` routes is never fetched: those are this app's
+	 * handlers.
 	 *
 	 * Without a backend URL the helper returns the cookie- and header-only
 	 * state and performs no network call. Overrides `config.backendURL`.
@@ -298,6 +306,11 @@ const reportPrefetchError = function reportPrefetchError(
 /**
  * Where the render resolves from: the backend, the manifest source, the
  * mode, and this app's own consent routes (never fetched).
+ *
+ * The own routes are only the handler routes the config names. Next.js
+ * mounts nothing under a default prefix: `/api/c15t` in the docs is the
+ * backend prefix, reached through a rewrite or a mounted backend, so it is
+ * fetched like any other backend URL.
  */
 const resolveSource = function resolveSource(options: ResolveConsentOptions) {
 	const { config } = options;
@@ -313,7 +326,7 @@ const resolveSource = function resolveSource(options: ResolveConsentOptions) {
 	} else if (backendURL) {
 		mode = 'hosted';
 	}
-	const ownRoutes = [DEFAULT_CONSENT_ROUTE_PREFIX];
+	const ownRoutes: string[] = [];
 	for (const route of [config?.manifestURL, config?.initURL]) {
 		if (isPath(route)) {
 			ownRoutes.push(route);
@@ -342,8 +355,9 @@ const resolveSource = function resolveSource(options: ResolveConsentOptions) {
  *
  * Without a backend URL, step 2 is skipped and the request-only state is
  * returned with no network call. If the backend call fails, does not
- * answer within `timeoutMs` (500 ms by default), or points at this app's
- * own consent routes, the request-only state is returned too: no consent UI
+ * answer within `timeoutMs` (500 ms by default), or points at the
+ * `config.manifestURL` or `config.initURL` handler routes, the request-only
+ * state is returned too: no consent UI
  * is rendered on the server, optional categories stay denied, and
  * `ConsentRoot` resolves the policy on mount. The failure reaches `onError`
  * when provided, and is otherwise logged outside production.
@@ -375,6 +389,12 @@ export const resolveConsent = async function resolveConsent(
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
 		manifest: options.manifest,
+		// The manifest route's Data Cache hint, so a render and the route
+		// share the Next.js Data Cache as well as the process cache.
+		manifestFetchInit: { next: createManifestFetchInit().next } as Omit<
+			RequestInit,
+			'headers' | 'method'
+		>,
 		now: options.now,
 		onError: (error, url) => reportPrefetchError(options, error, url),
 		overrides: { country: options.country, language: options.language },

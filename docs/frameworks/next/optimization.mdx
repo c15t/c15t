@@ -106,8 +106,9 @@ The manifest URLs remain explicit in the current API. A configuration with only
 `backendURL` uses regular backend `/init` and can also use this rewrite. That
 setup must not have a local manifest init handler intercepting `/api/c15t/init`.
 
-Keep using `consentConfig` for `resolveConsent` and `ConsentRoot`. Omit a
-separate `ConsentRoot` `backendURL` prop because it overrides the shared value.
+Keep using `consentConfig` for `ConsentRoot`. Omit a separate `ConsentRoot`
+`backendURL` prop because it overrides the shared value. `resolveConsent` also
+takes `consentConfig`, plus the upstream URL described next.
 
 ### Keep route handlers pointed upstream
 
@@ -128,6 +129,26 @@ Make the same change in the
 [optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route)
 if you added one, and in Pages Router `createPagesApiHandlers` calls. A
 `manifestURL` handler option must also point upstream.
+
+Pass the same upstream URL to `resolveConsent`. With `consentConfig` alone the
+render would read `/api/c15t/manifest`, which is your own manifest route, so it
+skips the request and the browser resolves the policy instead. The explicit
+`backendURL` wins over the config's, and the render reads the upstream manifest
+through the same in-process cache as the route:
+
+{/* example: fragment */}
+
+```tsx title="app/layout.tsx"
+const state = resolveConsent({
+	config: consentConfig,
+	backendURL: 'https://your-project.inth.app',
+});
+```
+
+Use the same options in Pages Router `getServerSideProps`, together with `req`.
+A configuration with only `backendURL: '/api/c15t'` works without this:
+`resolveConsent` calls `/api/c15t/init` through the rewrite. Passing the
+upstream URL still saves that request a trip through your own server.
 
 ### Check rewrite precedence
 

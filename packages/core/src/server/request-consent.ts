@@ -102,6 +102,14 @@ import type { RequestHeaderSource } from './request-origin';
 export const DEFAULT_CONSENT_ROUTE_PREFIX = '/api/c15t';
 
 /**
+ * Marks a hosted request a render sends to its own origin. If a page answers
+ * it (an unmounted backend prefix, say) and that page resolves consent too,
+ * the second render sees the marker and does not fetch its origin again, so
+ * a self-fetch stops after one hop instead of recursing.
+ */
+const RENDER_REQUEST_HEADER = 'x-c15t-render-request';
+
+/**
  * The state a server render hands the client: a `KernelConfig` without the
  * transport (functions do not serialize), plus the experiment it ran.
  */
@@ -207,6 +215,12 @@ export interface ResolveRequestConsentOptions {
 	 * serverless hosts, and fails behind deployment protection. The render
 	 * then gets the request-only state and `onError` hears why. With
 	 * {@link localFetch}, a `/`-relative target goes in-process instead.
+	 *
+	 * Other same-origin targets (a backend mounted in the app, or a rewrite
+	 * to one) are fetched. A hosted request to the request's origin is
+	 * marked, and a render whose own request carries that mark does not
+	 * fetch its origin again, so a prefix that answers with a page cannot
+	 * loop.
 	 *
 	 * @default ['/api/c15t']
 	 */
@@ -536,6 +550,8 @@ interface Target {
 	fetch: ManifestFetch;
 	/** Answered by the adapter's in-process fetch. */
 	inProcess: boolean;
+	/** Fetched over the network from the request's own origin. */
+	sameOrigin: boolean;
 }
 
 /**
@@ -628,7 +644,12 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 
 	const resolveTarget = function resolveTarget(url: string): Target {
 		if (options.localFetch && isPath(url)) {
-			return { fetch: options.localFetch, inProcess: true, url };
+			return {
+				fetch: options.localFetch,
+				inProcess: true,
+				sameOrigin: false,
+				url,
+			};
 		}
 		const absolute = resolveRequestBackendURL(url, {
 			headers: options.request.headers,
@@ -642,6 +663,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 				return {
 					fetch: options.localFetch,
 					inProcess: true,
+					sameOrigin: false,
 					url: `${parsed.pathname}${parsed.search}`,
 				};
 			}
@@ -658,9 +680,20 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 				absolute
 			);
 		}
+		const sameOrigin = new URL(absolute).origin === requestOrigin();
+		if (
+			sameOrigin &&
+			readHeader(options.request.headers, RENDER_REQUEST_HEADER) !== undefined
+		) {
+			throw new RequestConsentError(
+				`${options.adapter}: this request came from a server render on this origin, so the render it started does not fetch ${absolute} again. A page answered that render's request; check that the backend URL reaches the backend.`,
+				absolute
+			);
+		}
 		return {
 			fetch: configuredFetch() as ManifestFetch,
 			inProcess: false,
+			sameOrigin,
 			url: absolute,
 		};
 	};
@@ -905,6 +938,9 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 				headers[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader(arm);
 			}
 			Object.assign(headers, c15tProtocolHeaders);
+			if (target.sameOrigin) {
+				headers[RENDER_REQUEST_HEADER] = '1';
+			}
 			const left = remaining();
 			if (target.inProcess && left !== undefined) {
 				// An in-process route may not see an abort; it bounds its own

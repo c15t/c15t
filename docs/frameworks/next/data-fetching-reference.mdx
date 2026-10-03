@@ -212,14 +212,20 @@ are ignored, because any client can send them and the `/init` call carries the
 visitor's consent cookie to the resolved host. When no `host` header is
 available, `resolveConsent` reports the error and returns the baseline state.
 
-A render never fetches your own consent routes: a URL on the request's origin
-under `/api/c15t`, or under the `config.manifestURL` and `config.initURL`
-routes. Waiting on the server that is rendering the page costs a second
-function invocation on serverless hosts, fails behind deployment protection,
-and can stall a dev server. `resolveConsent` reports the URL and returns the
-baseline state instead. Point `backendURL` at the backend itself, or at a
-same-origin backend outside those routes, such as an in-process
-`@c15t/backend` under `/api/self-host`.
+A render never fetches your own handler routes: a URL on the request's origin
+under `config.manifestURL` or `config.initURL`. `resolveConsent` reports the URL
+and returns the baseline state instead. Give it the backend URL your handlers
+use, as [Optimization](/docs/frameworks/next/optimization#keep-route-handlers-pointed-upstream)
+shows for the `/api/c15t` prefix.
+
+Any other same-origin `backendURL` is a backend reached through your app, such
+as `/api/c15t` with a rewrite or a mounted `@c15t/backend`. `resolveConsent`
+calls its `/init` like any backend. That request goes back through your own
+server, which costs a second function invocation on serverless hosts and fails
+behind deployment protection; the render then returns the baseline state and
+the browser resolves the policy. Pass the backend's own URL to skip the hop.
+If the prefix reaches no backend and a page answers instead, that page's
+`resolveConsent` sees the request came from a render and does not fetch again.
 
 Behind a proxy that sets `x-forwarded-host` and `x-forwarded-proto` and drops
 the values a client sends, pass `trustForwardedHeaders: true` to resolve

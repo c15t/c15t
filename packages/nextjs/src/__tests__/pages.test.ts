@@ -217,6 +217,39 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 		expect(url).toBe('https://app.example.com/api/consent/manifest');
 		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});
+
+	test('a /api/c15t backend prefix is asked for /init from getServerSideProps', async () => {
+		const fetchSpy = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+			new Response(
+				JSON.stringify(
+					createInitOutput({
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						),
+					})
+				),
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
+			)
+		);
+
+		const config = await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy,
+			req: {
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-proto': 'https',
+					'x-vercel-ip-country': 'DE',
+				},
+			},
+		});
+
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			'https://app.example.com/api/c15t/init'
+		);
+		expect(config.initialPolicyResolution?.status).toBe('matched');
+	});
 });
 
 describe('@c15t/nextjs/pages: API bridge', () => {

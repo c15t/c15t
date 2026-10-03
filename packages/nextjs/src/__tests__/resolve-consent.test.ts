@@ -112,19 +112,76 @@ describe('resolveConsent wiring', () => {
 		expect(state.initialPolicyResolution?.status).toBe('matched');
 	});
 
-	test('never fetches its own /api/c15t route, and says so outside production', async () => {
+	test('a /api/c15t backend prefix (rewrite or mounted backend) is asked for /init', async () => {
+		// Next.js mounts no c15t handler at /api/c15t: the docs use it as the
+		// backend prefix, through a rewrite or a backend catch-all route.
 		const fetch = backend();
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const state = await resolveConsent({
 			backendURL: '/api/c15t',
+			fetch,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+		});
+		expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
+			'https://app.example.com/api/c15t/init',
+		]);
+		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+		expect(headers.get('x-c15t-country')).toBe('DE');
+		expect(state.initialPolicyResolution?.status).toBe('matched');
+	});
+
+	test('a render reached by another render’s own request does not fetch its origin again', async () => {
+		const fetch = backend();
+		const first = await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch,
+			request: requestOf({}),
+		});
+		expect(first.initialPolicyResolution?.status).toBe('matched');
+		// An unmounted prefix answers with a page whose layout resolves again,
+		// carrying the headers the first render sent.
+		const sent = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const nested = await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch,
+			request: requestOf(Object.fromEntries(sent)),
+		});
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect(nested.initialPolicyResolution).toBeUndefined();
+		expect(String(warn.mock.calls[0]?.[0])).toContain(
+			'https://app.example.com/api/c15t/init'
+		);
+	});
+
+	test('never fetches the config’s own handler routes, and says so outside production', async () => {
+		const fetch = backend();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const config = defineConsentConfig({
+			backendURL: '/api/c15t',
+			manifestURL: '/api/c15t/manifest',
+		});
+		const state = await resolveConsent({
+			config,
 			fetch,
 			request: requestOf({}),
 		});
 		expect(fetch).not.toHaveBeenCalled();
 		expect(state.initialPolicyResolution).toBeUndefined();
 		expect(String(warn.mock.calls[0]?.[0])).toContain(
-			'https://app.example.com/api/c15t/init'
+			'https://app.example.com/api/c15t/manifest'
 		);
+		// The handler's own upstream resolves it, as the docs describe.
+		const resolved = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			config,
+			fetch,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+		});
+		expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
+			'https://consent.example.com/manifest',
+		]);
+		expect(resolved.initialPolicyResolution?.status).toBe('matched');
 	});
 
 	test('onError replaces the warning; production stays quiet', async () => {
