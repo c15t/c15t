@@ -1,9 +1,3 @@
-import {
-	deferInitGvlToRoute,
-	serveGvlReference,
-	c15tProtocolHeaders,
-	fetchCachedGvl,
-} from '@c15t/core';
 /**
  * `@c15t/tanstack-start/api` same-origin consent routes.
  *
@@ -35,39 +29,17 @@ import {
  * route so `ConsentRoot` can use `backendURL="/api/c15t"`; see
  * {@link ConsentServerRouteOptions.proxy}.
  */
-import {
-	fetchCachedManifest,
-	getManifestAge,
-	getResolverInputsFromHeaders,
-	MANIFEST_PASSTHROUGH_HEADERS,
-	reportConsentSession,
-	resolveManifestInit,
-	resolveManifestSourceURL,
-	resolveSessionReportBackendURL,
-} from '@c15t/core/transports/manifest-cache';
-import type { ManifestCache } from '@c15t/core/transports/manifest-cache';
+import { createConsentRouteHandler } from '@c15t/core/server';
 import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
+	ConsentProxyOptions,
+	ConsentRouteFetchGvl,
+	ConsentRouteRequestContext,
+	ManifestCache,
+} from '@c15t/core/server';
 
-import { filterCookieHeader } from './libs/cookies';
-import { trimPathSlashes, trimTrailingSlashes } from './libs/path';
-import {
-	FORWARDING_HEADERS,
-	proxyConsentRequest,
-	resolveProxyOptions,
-	stripIdentityForCleartext,
-} from './libs/proxy';
-import type { ConsentProxyOptions } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
-import { resolveRequestURL } from './libs/request-url';
 
-export type { ConsentProxyOptions } from './libs/proxy';
-
-const INIT_CACHE_CONTROL = 'private, no-store';
+export type { ConsentProxyOptions } from '@c15t/core/server';
 
 /** Options for {@link createConsentServerRoute}. */
 export interface ConsentServerRouteOptions {
@@ -94,11 +66,7 @@ export interface ConsentServerRouteOptions {
 	 * Custom Global Vendor List fetcher. Called only when the manifest
 	 * enables IAB and the resolved policy is the IAB model.
 	 */
-	fetchGvl?: (input: {
-		reference: ConsentManifestGVLReference;
-		language: string;
-		fetch: typeof globalThis.fetch;
-	}) => Promise<GlobalVendorList | null>;
+	fetchGvl?: ConsentRouteFetchGvl;
 
 	/**
 	 * Manifest cache to read through. Defaults to the module-level cache
@@ -232,122 +200,6 @@ export type ConsentServerRouteHandlersFor<
 	? ConsentProxyRouteHandlers
 	: ConsentServerRouteHandlers;
 
-const resolveBackendURL = function resolveBackendURL(
-	request: Request,
-	options: ConsentServerRouteOptions
-): string {
-	const { backendURL } = options;
-	if (!backendURL) {
-		throw new Error(
-			'@c15t/tanstack-start/api: pass backendURL or manifestURL.'
-		);
-	}
-	const resolved = resolveRequestURL(
-		backendURL,
-		request,
-		options.trustForwardedHeaders ?? false
-	);
-	if (!resolved) {
-		throw new Error('@c15t/tanstack-start/api: invalid backendURL.');
-	}
-	return resolved;
-};
-
-/**
- * Where the init route reports sessions, when it can: an absolute backend,
- * read as configured rather than resolved against the request. A relative
- * `/api/c15t` resolved to this app's origin is this very route's proxy,
- * not a backend, and means no report; nothing is inferred from a manifest
- * URL.
- */
-const resolveReportBackendURL = function resolveReportBackendURL(
-	options: ConsentServerRouteOptions
-): string | undefined {
-	return resolveSessionReportBackendURL({ backendURL: options.backendURL });
-};
-
-const resolveSourceURL = function resolveSourceURL(
-	request: Request,
-	options: ConsentServerRouteOptions
-): string {
-	const { manifestURL } = options;
-	if (manifestURL) {
-		const resolved = resolveRequestURL(
-			manifestURL,
-			request,
-			options.trustForwardedHeaders ?? false
-		);
-		if (!resolved) {
-			throw new Error('@c15t/tanstack-start/api: invalid manifestURL.');
-		}
-		return resolved;
-	}
-	return resolveManifestSourceURL({
-		backendURL: resolveBackendURL(request, options),
-	});
-};
-
-/** A conservative BCP 47 shape: primary subtag plus up to two subtags. */
-const LANGUAGE_TAG = /^[a-z]{2,3}(?:-[a-z0-9]{2,8}){0,2}$/u;
-
-/**
- * Canonical `?language` for the upstream manifest request. The value keys
- * the shared manifest cache, so anything that is not a plausible language
- * tag is dropped rather than allowed to mint an unbounded set of entries.
- */
-const readLanguageQuery = function readLanguageQuery(
-	request: Request
-): string | undefined {
-	const raw = new URL(request.url).searchParams.get('language');
-	if (!raw) {
-		return undefined;
-	}
-	const language = raw.trim().toLowerCase();
-	return LANGUAGE_TAG.test(language) ? `language=${language}` : undefined;
-};
-
-const shouldFetchGvl = function shouldFetchGvl(
-	manifest: ConsentManifest,
-	payload: InitOutput
-) {
-	return (
-		manifest.iab?.enabled === true &&
-		manifest.iab.gvl !== undefined &&
-		payload.policyResolution?.status === 'matched' &&
-		payload.policyResolution.policy.model === 'iab'
-	);
-};
-
-const defaultFetchGvl = function defaultFetchGvl(input: {
-	reference: ConsentManifestGVLReference;
-	language: string;
-	fetch: typeof globalThis.fetch;
-}): Promise<GlobalVendorList | null> {
-	return fetchCachedGvl({
-		fetch: input.fetch,
-		headers: c15tProtocolHeaders,
-		label: '@c15t/tanstack-start/api',
-		language: input.language,
-		url: input.reference.url,
-	});
-};
-
-/**
- * The splat below the route prefix. Prefers the router's `_splat` param;
- * without one (tests, custom mounts) it takes the last path segment, which
- * is enough for `manifest` and `init`.
- */
-const readSplat = function readSplat(
-	context: ConsentRouteHandlerContext
-): string {
-	const splat = context.params?._splat;
-	if (splat !== undefined) {
-		return trimPathSlashes(splat);
-	}
-	const { pathname } = new URL(context.request.url);
-	return trimTrailingSlashes(pathname).split('/').pop() ?? '';
-};
-
 /**
  * Creates the same-origin consent route handlers.
  *
@@ -373,185 +225,47 @@ export const createConsentServerRoute = function createConsentServerRoute<
 	Options extends ConsentServerRouteOptions = ConsentServerRouteOptions,
 >(options: Options): ConsentServerRouteHandlersFor<Options> {
 	const resolved: ConsentServerRouteOptions = options;
-	const proxyOptions = resolveProxyOptions(
-		resolved.proxy,
-		resolved.trustForwardedHeaders ?? false
-	);
+	const handle = createConsentRouteHandler({
+		adapter: '@c15t/tanstack-start',
+		backendURL: resolved.backendURL,
+		cache: resolved.cache,
+		fetch: resolved.fetch,
+		fetchGvl: resolved.fetchGvl,
+		manifestURL: resolved.manifestURL,
+		proxy: resolved.proxy,
+		reportSessions: resolved.reportSessions,
+		trustForwardedHeaders: resolved.trustForwardedHeaders,
+	});
 
 	/**
-	 * Credentials for the manifest fetch behind the intercepted `manifest`
-	 * and `init` routes: the cookies `proxy.cookieNames` names and the extra
-	 * `proxy.forwardHeaders`, so a backend that gates `/manifest` on them
-	 * still serves it. The manifest cache partitions by these headers, so keep
-	 * them tenant-level rather than per visitor.
+	 * The request as core sees it: the router's `_splat` (absent in tests
+	 * and custom mounts, where the last path segment decides), and the
+	 * inputs the request middleware already resolved, so the init route
+	 * agrees with the render.
 	 */
-	const manifestRequestHeaders = function manifestRequestHeaders(
-		request: Request
-	): Record<string, string> | undefined {
-		if (!proxyOptions) {
-			return undefined;
-		}
-		const headers: Record<string, string> = {};
-		const cookie = request.headers.get('cookie');
-		const scoped =
-			cookie && proxyOptions.cookieNames
-				? filterCookieHeader(cookie, proxyOptions.cookieNames)
-				: undefined;
-		if (scoped) {
-			headers.cookie = scoped;
-		}
-		const extras =
-			typeof resolved.proxy === 'object'
-				? (resolved.proxy.forwardHeaders ?? [])
-				: [];
-		for (const name of extras) {
-			const lower = name.toLowerCase();
-			// Hop-chain headers are never copied from the browser; the manifest
-			// fetch carries no trusted branch to rebuild them from.
-			if (lower === 'cookie' || FORWARDING_HEADERS.has(lower)) {
-				continue;
-			}
-			const value = request.headers.get(lower);
-			if (value) {
-				headers[lower] = value;
-			}
-		}
-		return Object.keys(headers).length > 0 ? headers : undefined;
+	const contextFor = function contextFor(
+		{ params, request }: ConsentRouteHandlerContext,
+		route?: ConsentRouteRequestContext['route']
+	): ConsentRouteRequestContext {
+		return {
+			inputs: readConsentInputs(request),
+			path: params?._splat,
+			route,
+			waitUntil: resolved.onBackgroundRevalidate,
+		};
 	};
 
-	const manifestGET: ConsentRouteHandler = async ({ request }) => {
-		const sourceURL = resolveSourceURL(request, resolved);
-		const credentials = stripIdentityForCleartext(
-			manifestRequestHeaders(request),
-			sourceURL
-		);
-		const cached = await fetchCachedManifest({
-			cache: resolved.cache,
-			fetch: resolved.fetch,
-			headers: credentials,
-			onBackgroundRevalidate: resolved.onBackgroundRevalidate,
-			query: readLanguageQuery(request),
-			sourceURL,
-		});
-
-		const headers = new Headers({ 'content-type': 'application/json' });
-		for (const name of MANIFEST_PASSTHROUGH_HEADERS) {
-			const value = cached.headers[name];
-			if (value) {
-				headers.set(name, value);
-			}
-		}
-		if (credentials) {
-			// The in-process cache is partitioned by these credentials; a shared
-			// cache in front of this route is keyed by URL only, so it must not
-			// reuse a credentialed manifest for the next visitor.
-			headers.set('cache-control', 'private, no-store');
-			headers.delete('etag');
-			headers.delete('last-modified');
-		} else {
-			// Downstream caches count the remaining lifetime, not a fresh TTL.
-			headers.set('age', String(getManifestAge(cached)));
-		}
-
-		const { etag } = cached.headers;
-		if (etag && request.headers.get('if-none-match') === etag) {
-			return new Response(null, { headers, status: 304 });
-		}
-		return new Response(JSON.stringify(cached.manifest), {
-			headers,
-			status: 200,
-		});
-	};
-
-	const initGET: ConsentRouteHandler = async ({ request }) => {
-		const initSourceURL = resolveSourceURL(request, resolved);
-		const cached = await fetchCachedManifest({
-			cache: resolved.cache,
-			fetch: resolved.fetch,
-			headers: stripIdentityForCleartext(
-				manifestRequestHeaders(request),
-				initSourceURL
-			),
-			onBackgroundRevalidate: resolved.onBackgroundRevalidate,
-			sourceURL: initSourceURL,
-		});
-		const listResponse = await serveGvlReference(request, (language) =>
-			cached.manifest.iab?.gvl
-				? (resolved.fetchGvl ?? defaultFetchGvl)({
-						fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
-						language,
-						reference: cached.manifest.iab.gvl,
-					})
-				: Promise.resolve(null)
-		);
-		if (listResponse) {
-			return listResponse;
-		}
-		const remembered = readConsentInputs(request);
-		const inputs = remembered
-			? { ...remembered, language: remembered.language ?? 'en' }
-			: getResolverInputsFromHeaders(request.headers);
-		const payload = resolveManifestInit({ inputs, manifest: cached.manifest });
-
-		if (shouldFetchGvl(cached.manifest, payload) && cached.manifest.iab?.gvl) {
-			const language = payload.translations.language.split('-')[0] || 'en';
-			payload.gvl = await (resolved.fetchGvl ?? defaultFetchGvl)({
-				fetch: resolved.fetch ?? globalThis.fetch.bind(globalThis),
-				language,
-				reference: cached.manifest.iab.gvl,
-			});
-		}
-
-		if (resolved.reportSessions !== false) {
-			reportConsentSession({
-				adapter: '@c15t/tanstack-start',
-				backendURL: resolveReportBackendURL(resolved),
-				fetch: resolved.fetch,
-				headers: request.headers,
-				init: payload,
-				inputs,
-				manifest: cached.manifest,
-				method: request.method,
-				source: 'route',
-				waitUntil: resolved.onBackgroundRevalidate,
-			});
-		}
-
-		return Response.json(
-			deferInitGvlToRoute(payload, new URL(request.url).pathname),
-			{
-				headers: { 'cache-control': INIT_CACHE_CONTROL },
-			}
-		);
-	};
-
-	const notFound = () =>
-		Promise.resolve(Response.json({ error: 'Not found' }, { status: 404 }));
-
+	const GET: ConsentRouteHandler = (context) =>
+		handle(context.request, contextFor(context));
+	const manifestGET: ConsentRouteHandler = (context) =>
+		handle(context.request, contextFor(context, 'manifest'));
+	const initGET: ConsentRouteHandler = (context) =>
+		handle(context.request, contextFor(context, 'init'));
 	const proxyHandler: ConsentRouteHandler = (context) =>
-		proxyOptions
-			? proxyConsentRequest({
-					backendURL: resolveBackendURL(context.request, resolved),
-					fetch: resolved.fetch,
-					options: proxyOptions,
-					path: readSplat(context),
-					request: context.request,
-				})
-			: notFound();
-
-	const GET: ConsentRouteHandler = (context) => {
-		switch (readSplat(context)) {
-			case 'manifest':
-				return manifestGET(context);
-			case 'init':
-				return initGET(context);
-			default:
-				return proxyHandler(context);
-		}
-	};
+		handle(context.request, contextFor(context, 'proxy'));
 
 	const handlers: ConsentServerRouteHandlers = { GET, initGET, manifestGET };
-	if (!proxyOptions) {
+	if (!resolved.proxy) {
 		return handlers as ConsentServerRouteHandlersFor<Options>;
 	}
 	const proxied: ConsentProxyRouteHandlers = {

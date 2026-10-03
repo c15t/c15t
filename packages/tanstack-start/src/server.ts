@@ -61,6 +61,11 @@ import type {
 	ServerExperiment,
 } from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import {
+	CONSENT_PROXY_FORWARDING_HEADERS,
+	filterCookieHeader,
+	stripIdentityForCleartext,
+} from '@c15t/core/server';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {
 	DEFAULT_RESOLVE_TIMEOUT_MS,
@@ -76,8 +81,6 @@ import {
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 } from './headers';
-import { filterCookieHeader } from './libs/cookies';
-import { FORWARDING_HEADERS, stripIdentityForCleartext } from './libs/proxy';
 import { readConsentInputs } from './libs/request-inputs';
 import { isSelfRoute, resolveRequestURL } from './libs/request-url';
 
@@ -384,7 +387,7 @@ const collectForwardHeaders = function collectForwardHeaders(
 	}
 	for (const name of names ?? []) {
 		const lower = name.toLowerCase();
-		if (lower === 'cookie' || FORWARDING_HEADERS.has(lower)) {
+		if (lower === 'cookie' || CONSENT_PROXY_FORWARDING_HEADERS.has(lower)) {
 			// Cookies travel only through `cookieNames`, never as a whole, and
 			// hop-chain headers are never copied from the visitor.
 			continue;
