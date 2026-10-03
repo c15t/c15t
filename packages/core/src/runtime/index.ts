@@ -1,3 +1,7 @@
+import type {
+	ClearOnRevocationHandle,
+	ClearOnRevocationOptions,
+} from '../modules/clear-on-revocation/types';
 /**
  * `@c15t/core/runtime` — the framework-agnostic consent runtime.
  *
@@ -32,6 +36,10 @@
  * ```
  */
 import { createIframeBlocker } from '../modules/iframe-blocker';
+import type {
+	NetworkBlockerHandle,
+	NetworkBlockerOptions,
+} from '../modules/network-blocker/types';
 import { createPersistence } from '../modules/persistence';
 import { watchRevocationReload } from '../modules/revocation-reload';
 import { createScriptLoader } from '../modules/script-loader';
@@ -99,6 +107,24 @@ export const ALL_CONSENTS_GRANTED: ConsentState = {
 	necessary: true,
 };
 
+const loadClearOnRevocation = function loadClearOnRevocation(
+	options: ClearOnRevocationOptions
+): ClearOnRevocationHandle {
+	return lazyRuntimeModule(async () => {
+		const module = await import('../modules/clear-on-revocation');
+		return module.createClearOnRevocation;
+	})(options);
+};
+
+const loadNetworkBlocker = function loadNetworkBlocker(
+	options: NetworkBlockerOptions
+): NetworkBlockerHandle {
+	return lazyRuntimeModule(async () => {
+		const module = await import('../modules/network-blocker');
+		return module.createNetworkBlocker;
+	})(options);
+};
+
 /**
  * The module factories `createConsentRuntime` mounts. Pass them to
  * `createConsentProviderRuntime` to do the same, or spread them and swap
@@ -113,15 +139,12 @@ export const ALL_CONSENTS_GRANTED: ConsentState = {
  * revocation before it loaded is still cleared, a moment later.
  */
 export const defaultRuntimeModules: ConsentRuntimeModules = {
-	createClearOnRevocation: lazyRuntimeModule(async () => {
-		const module = await import('../modules/clear-on-revocation');
-		return module.createClearOnRevocation;
-	}),
+	// Arrow functions rather than calls, so the object stays free of side
+	// effects and a bundler drops it, and the modules it names, from a host
+	// that never reads it.
+	createClearOnRevocation: (options) => loadClearOnRevocation(options),
 	createIframeBlocker,
-	createNetworkBlocker: lazyRuntimeModule(async () => {
-		const module = await import('../modules/network-blocker');
-		return module.createNetworkBlocker;
-	}),
+	createNetworkBlocker: (options) => loadNetworkBlocker(options),
 	createPersistence,
 	createScriptLoader,
 	createWindowDebug,

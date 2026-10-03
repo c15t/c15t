@@ -49,6 +49,7 @@ import type {
  *   schedule one coalesced `reconcile()`. `dispose()` removes the
  *   listeners and cancels the scheduled run.
  */
+import { clearKernelRecords } from '../../kernel/clear-records';
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import type { ConsentSnapshot, HydrationRecords } from '../../types';
 import {
@@ -646,17 +647,7 @@ export const createPersistence = function createPersistence(
 				writeStoredClearEpoch(epoch, storageConfig);
 			}
 			observe();
-			// The kernel's clear sequence (`kernel/clear-records.ts`), inlined:
-			// React does not use the runtime yet, and a shared helper costs it
-			// bytes until it does.
-			kernel.hydrate({
-				choice: null,
-				noticeDismissal: null,
-				now: at,
-				subject: null,
-				vendorChoice: null,
-			});
-			kernel.events.emit({ type: 'records:cleared' });
+			clearKernelRecords(kernel, at);
 		},
 		dispose() {
 			if (disposed) {
