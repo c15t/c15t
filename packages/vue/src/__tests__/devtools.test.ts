@@ -12,10 +12,7 @@ import ConsentDevToolsDefault, {
 	DevTools,
 } from '../devtools';
 import { consentConfigKey } from '../runtime/composables/config';
-import {
-	createVueConsentKernelContext,
-	startVueConsentRuntime,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import { symbolKernelContext, symbolKernel } from '../runtime/utils/symbols';
 
 const KernelProvider = defineComponent({
@@ -122,7 +119,8 @@ describe('@c15t/vue/devtools', () => {
 			config,
 			kernelConfig: { transport: {} },
 		});
-		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		context.start();
+		const { dispose } = context;
 		const Root = defineComponent({
 			setup() {
 				provide(symbolKernel, context.kernel);

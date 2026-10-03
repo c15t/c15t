@@ -9,10 +9,7 @@ import { defineComponent, h, inject } from 'vue';
 import { createIAB } from '../../../iab/src';
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
 import { c15tVue } from '../index';
-import {
-	createVueConsentKernelContext,
-	startVueConsentRuntime,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import { symbolKernel } from '../runtime/utils/symbols';
 
 const createRuntime = function createRuntime(): ConsentRuntime {
@@ -75,7 +72,7 @@ describe('createVueConsentKernelContext with an external runtime', () => {
 	});
 });
 
-describe('startVueConsentRuntime with an external runtime', () => {
+describe('starting a context around an external runtime', () => {
 	test('mounts none of the modules the runtime already owns', () => {
 		const runtime = createRuntime();
 		expect(runtime.kernel.getSnapshot().policyPending).toBe(false);
@@ -86,11 +83,8 @@ describe('startVueConsentRuntime with an external runtime', () => {
 		const context = createVueConsentKernelContext({ config: {}, runtime });
 
 		localStorage.setItem('analytics:visitor', 'owner');
-		const stop = startVueConsentRuntime(context, {
-			clearOnRevocation: {
-				measurement: { localStorage: ['analytics:visitor'] },
-			},
-		});
+		context.start();
+		const { dispose: stop } = context;
 		expect(localStorage.getItem('analytics:visitor')).toBe('owner');
 		localStorage.removeItem('analytics:visitor');
 

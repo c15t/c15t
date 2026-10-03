@@ -11,10 +11,7 @@ import { createApp, defineComponent, h, nextTick, shallowRef } from 'vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentDraft } from '../runtime/composables/draft';
 import { useResolvedPresentation } from '../runtime/composables/experiment';
-import {
-	createVueConsentKernelContext,
-	startVueConsentRuntime,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import type { RuntimeConsentConfig } from '../runtime/kernel';
 import { symbolKernelContext } from '../runtime/utils/symbols';
 
@@ -51,7 +48,8 @@ const start = function start(overrides: Partial<ConsentExperiment> = {}) {
 		config,
 		kernelConfig: { initialPolicyResolution: resolution },
 	});
-	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	context.start();
+	const { dispose } = context;
 	return { context, dispose };
 };
 
@@ -120,7 +118,8 @@ test('an untouched draft reseeds from the assigned arm; an edited one is kept', 
 		// Seeded before assignment, from the base presentation.
 		expect(draft.values.value.marketing).toBe(false);
 		draft.values.value.measurement = true;
-		dispose = startVueConsentRuntime(context, config, { runInit: false });
+		context.start();
+		({ dispose } = context);
 		await vi.waitFor(() =>
 			expect(context.snapshot.value.experimentPending).toBe(false)
 		);
@@ -169,7 +168,8 @@ test('an untouched draft picks up the assigned arm defaults', async () => {
 	let dispose: () => void = () => undefined;
 	try {
 		expect(draft.values.value.marketing).toBe(false);
-		dispose = startVueConsentRuntime(context, config, { runInit: false });
+		context.start();
+		({ dispose } = context);
 		await vi.waitFor(() =>
 			expect(context.snapshot.value.experimentPending).toBe(false)
 		);
@@ -232,5 +232,49 @@ test('a host variant is on the server snapshot and survives start', () => {
 		expect(context.snapshot.value.experiment).toEqual(expected);
 	} finally {
 		dispose();
+	}
+});
+
+test('arms are validated against the theme the app renders with', async () => {
+	const error = vi.spyOn(console, 'error').mockImplementation(() => {
+		// A rejected experiment is reported here.
+	});
+	// The arm makes reject as prominent as accept, which the configured
+	// theme already does; without the theme the arm looks lopsided.
+	const config: RuntimeConsentConfig = {
+		consentCategories: ['measurement', 'marketing'],
+		experiment: {
+			arms: {
+				quiet: {
+					theme: {
+						consentActions: { reject: { mode: 'filled', variant: 'primary' } },
+					},
+				},
+			},
+			id: 'button-style',
+		},
+		theme: {
+			consentActions: {
+				accept: { mode: 'filled', variant: 'primary' },
+				reject: { mode: 'stroke', variant: 'neutral' },
+			},
+		},
+	};
+	const context = createVueConsentKernelContext({
+		config,
+		kernelConfig: { initialPolicyResolution: resolution },
+	});
+	context.start();
+	try {
+		await vi.waitFor(() =>
+			expect(context.snapshot.value.experimentPending).toBe(false)
+		);
+		expect(context.snapshot.value.experiment).toMatchObject({
+			arm: 'quiet',
+			id: 'button-style',
+		});
+		expect(error).not.toHaveBeenCalled();
+	} finally {
+		context.dispose();
 	}
 });

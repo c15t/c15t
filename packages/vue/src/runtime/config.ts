@@ -8,6 +8,7 @@ import type {
 import type {
 	ConsentControlOptions,
 	ConsentRuntimeOptions,
+	RuntimeIABOptions,
 } from '@c15t/core/runtime';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
 import type { InitOutput } from '@c15t/schema/types';
@@ -120,6 +121,24 @@ export interface ConsentConfig
 	experiment?: ConsentExperiment;
 	/** Receives kernel events only when the corresponding change occurs. */
 	callbacks?: ConsentRuntimeOptions['callbacks'];
+	/**
+	 * IAB TCF publisher settings for the CMP c15t mounts under an `iab`
+	 * policy: `publisherRestrictions`, `publisherCountryCode`, `vendors`,
+	 * `customVendors`, `cmpVersion`, and `cmpId` or `gvl` when the backend
+	 * does not supply them. Fields left out come from `/init`. `false`
+	 * mounts no CMP.
+	 *
+	 * @example
+	 * ```ts
+	 * iab: {
+	 * 	publisherCountryCode: 'DE',
+	 * 	publisherRestrictions: [
+	 * 		{ purposeId: 2, restrictionType: 1, vendorIds: [755] },
+	 * 	],
+	 * }
+	 * ```
+	 */
+	iab?: RuntimeIABOptions;
 	/**
 	 * Light or dark for the banner and dialogs, through the `c15t-dark`
 	 * class on `<html>`.

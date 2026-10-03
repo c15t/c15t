@@ -10,10 +10,7 @@ import { nextTick } from 'vue';
 import ConsentManager from '../runtime/components/manager.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import {
-	createVueConsentKernelContext,
-	startVueConsentRuntime,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -141,7 +138,8 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 				trapFocus: false,
 			} as ConsentConfig;
 			const context = createVueConsentKernelContext({ config, prefetch: init });
-			const stop = startVueConsentRuntime(context, config, { runInit: false });
+			context.start();
+			const { dispose: stop } = context;
 			const offError = context.kernel.events.on('command:error', onError);
 			context.activeUI.value = 'manager';
 			const wrapper = mount(ConsentManager, {
@@ -228,7 +226,8 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 			trapFocus: false,
 		} as ConsentConfig;
 		const context = createVueConsentKernelContext({ config, prefetch: init });
-		const stop = startVueConsentRuntime(context, config, { runInit: false });
+		context.start();
+		const { dispose: stop } = context;
 		expect(context.kernel.getSnapshot().activeUI).toBe('banner');
 		context.activeUI.value = 'manager';
 		const wrapper = mount(ConsentManager, {
