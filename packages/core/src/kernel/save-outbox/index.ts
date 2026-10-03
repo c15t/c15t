@@ -12,6 +12,8 @@
  * The send path loads with the kernel. Everything that reads the stored
  * queue (validation, replay, reassignment) is in `queue.ts`, imported the
  * first time it is needed, so a visitor with nothing queued never loads it.
+ * A failed save never waits for it: until it has loaded, the entry is
+ * appended as is and normalized on the next read.
  *
  * Interface:
  * - Write before send. `send()` makes no transport call before the
@@ -52,6 +54,7 @@ import type {
 } from '../../types';
 import type { KernelRuntime } from '../runtime';
 import type { QueueWorker, QueueWorkerOptions } from './queue';
+import { queueTools } from './queue-tools';
 import type { SaveOutboxStore } from './store';
 import {
 	liveSupersession,
@@ -121,7 +124,7 @@ export const createSaveOutbox = function createSaveOutbox({
 		if (!worker) {
 			try {
 				const { createQueueWorker } = await loadQueue();
-				worker ??= createQueueWorker({ runtime, store });
+				worker ??= createQueueWorker({ runtime, store, tools: queueTools });
 			} catch {
 				// Offline and never loaded: callers fall back or skip.
 			}
@@ -134,18 +137,20 @@ export const createSaveOutbox = function createSaveOutbox({
 	};
 
 	/**
-	 * Queue what `current()` still holds. Without the queue module (the
-	 * network that just failed this save is down and the module never
-	 * loaded) the entry is appended as is; the next read normalizes it.
+	 * Queue what `current()` still holds. Until the queue module has loaded,
+	 * the entry is appended as is and the module starts loading; its next
+	 * read normalizes the list. A failed save therefore settles without
+	 * waiting for code, and is kept even when the network that failed it
+	 * cannot deliver the module either.
 	 */
 	const enqueue = async function enqueue(
 		current: () => SavePayload | null
 	): Promise<void> {
-		const queue = await loadWorker();
-		if (queue) {
-			await queue.enqueue(current);
+		if (worker) {
+			await worker.enqueue(current);
 			return;
 		}
+		void loadWorker();
 		await store.transact((tx) => {
 			const payload = current();
 			const stored = tx.read('saves');

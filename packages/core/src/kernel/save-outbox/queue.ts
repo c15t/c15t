@@ -14,22 +14,47 @@
  * used up their attempts.
  */
 
-import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
-import {
+import type { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
+import type {
 	isPlainRecord,
 	validateExplicitChoice,
 } from '../../consent-record/validation';
 import { isExperimentAssignment } from '../../libs/experiment-record';
-import { generateSubjectId } from '../../libs/generate-subject-id';
-import {
+import type { generateSubjectId } from '../../libs/generate-subject-id';
+import type {
 	isConsentSaveRejection,
 	isSubjectConflict,
 } from '../../transports/save-rejection';
 import type { ConsentSubject, KernelTransport, SavePayload } from '../../types';
 import type { KernelRuntime } from '../runtime';
 import type { OutboxTransaction, SaveOutboxStore } from './store';
-import { supersededBy, withoutSuperseded, withSubjectId } from './supersession';
-import type { PendingSaveEntry } from './supersession';
+import type {
+	PendingSaveEntry,
+	supersededBy,
+	withoutSuperseded,
+	withSubjectId,
+} from './supersession';
+
+/**
+ * The first-load functions the queue calls. The outbox passes them in
+ * (`queue-tools.ts`) instead of this module importing them, so the queue
+ * loads as one chunk that imports nothing the first load has. A value
+ * import of a first-load module makes bundlers that split shared code
+ * (Rolldown in Nuxt) move that module into a first-load file of its own.
+ *
+ * @internal
+ */
+export interface QueueTools {
+	generateSubjectId: typeof generateSubjectId;
+	isConsentSaveRejection: typeof isConsentSaveRejection;
+	isPlainRecord: typeof isPlainRecord;
+	isSubjectConflict: typeof isSubjectConflict;
+	optionalCategories: typeof OPTIONAL_CONSENT_CATEGORIES;
+	supersededBy: typeof supersededBy;
+	validateExplicitChoice: typeof validateExplicitChoice;
+	withoutSuperseded: typeof withoutSuperseded;
+	withSubjectId: typeof withSubjectId;
+}
 
 const MAX_PENDING_SAVE_AGE_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_REPLAY_ATTEMPTS = 10;
@@ -41,279 +66,297 @@ interface SubjectReassignment {
 	at: number;
 }
 
-// ---------------------------------------------------------------------------
-// Stored entry validation
-// ---------------------------------------------------------------------------
+/**
+ * Validation and normalization of the stored lists, over the first-load
+ * functions the outbox passed in.
+ */
+// oxlint-disable-next-line max-lines-per-function -- The stored-list readers share the validators.
+const createStoredLists = function createStoredLists(tools: QueueTools) {
+	const {
+		isPlainRecord,
+		optionalCategories,
+		supersededBy,
+		validateExplicitChoice,
+		withoutSuperseded,
+	} = tools;
 
-const isBooleanRecord = function isBooleanRecord(value: unknown): boolean {
-	return (
-		isPlainRecord(value) &&
-		Object.values(value).every((item) => typeof item === 'boolean')
-	);
-};
+	// ---------------------------------------------------------------------------
+	// Stored entry validation
+	// ---------------------------------------------------------------------------
 
-const isScalarRecord = function isScalarRecord(value: unknown): boolean {
-	return (
-		isPlainRecord(value) &&
-		Object.values(value).every(
-			(item) =>
-				typeof item === 'string' ||
-				typeof item === 'number' ||
-				typeof item === 'boolean'
-		)
-	);
-};
+	const isBooleanRecord = function isBooleanRecord(value: unknown): boolean {
+		return (
+			isPlainRecord(value) &&
+			Object.values(value).every((item) => typeof item === 'boolean')
+		);
+	};
 
-const isOptionalString = function isOptionalString(value: unknown): boolean {
-	return value === undefined || typeof value === 'string';
-};
+	const isScalarRecord = function isScalarRecord(value: unknown): boolean {
+		return (
+			isPlainRecord(value) &&
+			Object.values(value).every(
+				(item) =>
+					typeof item === 'string' ||
+					typeof item === 'number' ||
+					typeof item === 'boolean'
+			)
+		);
+	};
 
-const isOptionalFiniteNumber = function isOptionalFiniteNumber(
-	value: unknown
-): boolean {
-	return (
-		value === undefined || (typeof value === 'number' && Number.isFinite(value))
-	);
-};
+	const isOptionalString = function isOptionalString(value: unknown): boolean {
+		return value === undefined || typeof value === 'string';
+	};
 
-const isSaveUser = function isSaveUser(value: unknown): boolean {
-	if (value === null) {
-		return true;
-	}
-	if (!isPlainRecord(value) || typeof value.externalId !== 'string') {
-		return false;
-	}
-	return (
-		isOptionalString(value.externalIdType) &&
-		isOptionalString(value.identityProvider) &&
-		(value.properties === undefined || isScalarRecord(value.properties))
-	);
-};
+	const isOptionalFiniteNumber = function isOptionalFiniteNumber(
+		value: unknown
+	): boolean {
+		return (
+			value === undefined ||
+			(typeof value === 'number' && Number.isFinite(value))
+		);
+	};
 
-const isSubject = function isSubject(value: unknown): boolean {
-	return (
-		isPlainRecord(value) &&
-		isOptionalString(value.subjectId) &&
-		isOptionalString(value.externalId) &&
-		isOptionalString(value.identityProvider)
-	);
-};
+	const isSaveUser = function isSaveUser(value: unknown): boolean {
+		if (value === null) {
+			return true;
+		}
+		if (!isPlainRecord(value) || typeof value.externalId !== 'string') {
+			return false;
+		}
+		return (
+			isOptionalString(value.externalIdType) &&
+			isOptionalString(value.identityProvider) &&
+			(value.properties === undefined || isScalarRecord(value.properties))
+		);
+	};
 
-const isConfirmedCoverage = function isConfirmedCoverage(
-	value: unknown
-): boolean {
-	if (!isPlainRecord(value) || !isPlainRecord(value.categories)) {
-		return false;
-	}
-	if (
-		typeof value.actionAt !== 'number' ||
-		!Number.isSafeInteger(value.actionAt) ||
-		value.actionAt < 0
-	) {
-		return false;
-	}
-	const known = new Set<string>(OPTIONAL_CONSENT_CATEGORIES);
-	return Object.entries(value.categories).every(
-		([key, item]) => known.has(key) && typeof item === 'boolean'
-	);
-};
+	const isSubject = function isSubject(value: unknown): boolean {
+		return (
+			isPlainRecord(value) &&
+			isOptionalString(value.subjectId) &&
+			isOptionalString(value.externalId) &&
+			isOptionalString(value.identityProvider)
+		);
+	};
 
-const isDecisionInputs = (value: unknown): boolean =>
-	value === undefined ||
-	(isPlainRecord(value) &&
-		(value.policyId === null ||
-			(typeof value.policyId === 'string' &&
-				value.policyId.length > 0 &&
-				typeof value.fingerprint === 'string' &&
-				value.fingerprint.length > 0)) &&
-		(value.country === null || typeof value.country === 'string') &&
-		(value.region === null || typeof value.region === 'string') &&
-		typeof value.language === 'string' &&
-		typeof value.gpc === 'boolean');
+	const isConfirmedCoverage = function isConfirmedCoverage(
+		value: unknown
+	): boolean {
+		if (!isPlainRecord(value) || !isPlainRecord(value.categories)) {
+			return false;
+		}
+		if (
+			typeof value.actionAt !== 'number' ||
+			!Number.isSafeInteger(value.actionAt) ||
+			value.actionAt < 0
+		) {
+			return false;
+		}
+		const known = new Set<string>(optionalCategories);
+		return Object.entries(value.categories).every(
+			([key, item]) => known.has(key) && typeof item === 'boolean'
+		);
+	};
 
-const isVendorChoicePayload = function isVendorChoicePayload(
-	value: unknown
-): boolean {
-	return (
+	const isDecisionInputs = (value: unknown): boolean =>
 		value === undefined ||
 		(isPlainRecord(value) &&
-			value.version === 1 &&
-			typeof value.confirmedAt === 'number' &&
-			Number.isSafeInteger(value.confirmedAt) &&
-			value.confirmedAt >= 0 &&
-			isBooleanRecord(value.grants))
-	);
-};
+			(value.policyId === null ||
+				(typeof value.policyId === 'string' &&
+					value.policyId.length > 0 &&
+					typeof value.fingerprint === 'string' &&
+					value.fingerprint.length > 0)) &&
+			(value.country === null || typeof value.country === 'string') &&
+			(value.region === null || typeof value.region === 'string') &&
+			typeof value.language === 'string' &&
+			typeof value.gpc === 'boolean');
 
-// Validate every persisted payload field before replaying it.
-// oxlint-disable-next-line complexity
-const isSavePayload = function isSavePayload(
-	value: unknown
-): value is SavePayload {
-	if (!isPlainRecord(value)) {
-		return false;
-	}
-	if (
-		!isSubject(value.subject) ||
-		!isDecisionInputs(value.decisionInputs) ||
-		!isConfirmedCoverage(value.confirmed) ||
-		!validateExplicitChoice(value.choice, Date.now()).ok
-	) {
-		return false;
-	}
+	const isVendorChoicePayload = function isVendorChoicePayload(
+		value: unknown
+	): boolean {
+		return (
+			value === undefined ||
+			(isPlainRecord(value) &&
+				value.version === 1 &&
+				typeof value.confirmedAt === 'number' &&
+				Number.isSafeInteger(value.confirmedAt) &&
+				value.confirmedAt >= 0 &&
+				isBooleanRecord(value.grants))
+		);
+	};
 
-	const validModel =
-		value.model === null ||
-		value.model === 'opt-in' ||
-		value.model === 'opt-out' ||
-		value.model === 'iab' ||
-		value.model === 'none';
-	const validUiSource =
-		value.uiSource === null ||
-		value.uiSource === 'none' ||
-		value.uiSource === 'banner' ||
-		value.uiSource === 'dialog' ||
-		value.uiSource === 'widget';
-	const validAction =
-		value.consentAction === 'all' ||
-		value.consentAction === 'necessary' ||
-		value.consentAction === 'custom';
-
-	return (
-		typeof value.subjectId === 'string' &&
-		isBooleanRecord(value.consents) &&
-		isPlainRecord(value.overrides) &&
-		isSaveUser(value.user) &&
-		validModel &&
-		validUiSource &&
-		validAction &&
-		isOptionalFiniteNumber(value.givenAt) &&
-		isOptionalFiniteNumber(value.timeToDecisionMs) &&
-		(value.experiment === undefined ||
-			isExperimentAssignment(value.experiment)) &&
-		(value.policySnapshotToken === null ||
-			typeof value.policySnapshotToken === 'string') &&
-		(value.tcString === undefined ||
-			value.tcString === null ||
-			typeof value.tcString === 'string') &&
-		isVendorChoicePayload(value.vendorChoice)
-	);
-};
-
-const isPendingSaveEntry = function isPendingSaveEntry(
-	value: unknown
-): value is PendingSaveEntry {
-	return (
-		isPlainRecord(value) &&
-		isSavePayload(value.payload) &&
-		typeof value.queuedAt === 'number' &&
-		Number.isFinite(value.queuedAt) &&
-		value.queuedAt >= 0 &&
-		typeof value.attempts === 'number' &&
-		Number.isInteger(value.attempts) &&
-		value.attempts >= 0
-	);
-};
-
-const isSubjectReassignment = function isSubjectReassignment(
-	value: unknown
-): value is SubjectReassignment {
-	return (
-		isPlainRecord(value) &&
-		typeof value.from === 'string' &&
-		typeof value.to === 'string' &&
-		typeof value.at === 'number' &&
-		Number.isFinite(value.at)
-	);
-};
-
-// ---------------------------------------------------------------------------
-// Stored lists
-// ---------------------------------------------------------------------------
-
-/**
- * The valid, live entries in action order, each narrowed by every later
- * entry so no stale category replays over a newer one.
- */
-const normalizePendingSaves = function normalizePendingSaves(
-	value: unknown,
-	now: number
-): PendingSaveEntry[] {
-	if (!Array.isArray(value)) {
-		return [];
-	}
-
-	const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
-	const entries: PendingSaveEntry[] = [];
-	for (const entry of value) {
+	// Validate every persisted payload field before replaying it.
+	// oxlint-disable-next-line complexity
+	const isSavePayload = function isSavePayload(
+		value: unknown
+	): value is SavePayload {
+		if (!isPlainRecord(value)) {
+			return false;
+		}
 		if (
-			!isPendingSaveEntry(entry) ||
-			entry.queuedAt < cutoff ||
-			entry.attempts >= MAX_REPLAY_ATTEMPTS
+			!isSubject(value.subject) ||
+			!isDecisionInputs(value.decisionInputs) ||
+			!isConfirmedCoverage(value.confirmed) ||
+			!validateExplicitChoice(value.choice, Date.now()).ok
 		) {
-			continue;
+			return false;
 		}
-		entries.push(entry);
-	}
-	entries.sort(
-		(left, right) =>
-			left.payload.confirmed.actionAt - right.payload.confirmed.actionAt ||
-			left.queuedAt - right.queuedAt
-	);
-	return entries.flatMap((entry, index) => {
-		let payload: SavePayload | null = entry.payload;
-		for (const later of entries.slice(index + 1)) {
-			if (payload) {
-				payload = withoutSuperseded(
-					payload,
-					supersededBy(payload, later.payload)
-				);
+
+		const validModel =
+			value.model === null ||
+			value.model === 'opt-in' ||
+			value.model === 'opt-out' ||
+			value.model === 'iab' ||
+			value.model === 'none';
+		const validUiSource =
+			value.uiSource === null ||
+			value.uiSource === 'none' ||
+			value.uiSource === 'banner' ||
+			value.uiSource === 'dialog' ||
+			value.uiSource === 'widget';
+		const validAction =
+			value.consentAction === 'all' ||
+			value.consentAction === 'necessary' ||
+			value.consentAction === 'custom';
+
+		return (
+			typeof value.subjectId === 'string' &&
+			isBooleanRecord(value.consents) &&
+			isPlainRecord(value.overrides) &&
+			isSaveUser(value.user) &&
+			validModel &&
+			validUiSource &&
+			validAction &&
+			isOptionalFiniteNumber(value.givenAt) &&
+			isOptionalFiniteNumber(value.timeToDecisionMs) &&
+			(value.experiment === undefined ||
+				isExperimentAssignment(value.experiment)) &&
+			(value.policySnapshotToken === null ||
+				typeof value.policySnapshotToken === 'string') &&
+			(value.tcString === undefined ||
+				value.tcString === null ||
+				typeof value.tcString === 'string') &&
+			isVendorChoicePayload(value.vendorChoice)
+		);
+	};
+
+	const isPendingSaveEntry = function isPendingSaveEntry(
+		value: unknown
+	): value is PendingSaveEntry {
+		return (
+			isPlainRecord(value) &&
+			isSavePayload(value.payload) &&
+			typeof value.queuedAt === 'number' &&
+			Number.isFinite(value.queuedAt) &&
+			value.queuedAt >= 0 &&
+			typeof value.attempts === 'number' &&
+			Number.isInteger(value.attempts) &&
+			value.attempts >= 0
+		);
+	};
+
+	const isSubjectReassignment = function isSubjectReassignment(
+		value: unknown
+	): value is SubjectReassignment {
+		return (
+			isPlainRecord(value) &&
+			typeof value.from === 'string' &&
+			typeof value.to === 'string' &&
+			typeof value.at === 'number' &&
+			Number.isFinite(value.at)
+		);
+	};
+
+	// ---------------------------------------------------------------------------
+	// Stored lists
+	// ---------------------------------------------------------------------------
+
+	/**
+	 * The valid, live entries in action order, each narrowed by every later
+	 * entry so no stale category replays over a newer one.
+	 */
+	const normalizePendingSaves = function normalizePendingSaves(
+		value: unknown,
+		now: number
+	): PendingSaveEntry[] {
+		if (!Array.isArray(value)) {
+			return [];
+		}
+
+		const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
+		const entries: PendingSaveEntry[] = [];
+		for (const entry of value) {
+			if (
+				!isPendingSaveEntry(entry) ||
+				entry.queuedAt < cutoff ||
+				entry.attempts >= MAX_REPLAY_ATTEMPTS
+			) {
+				continue;
 			}
+			entries.push(entry);
 		}
-		return payload ? [{ ...entry, payload }] : [];
-	});
-};
+		entries.sort(
+			(left, right) =>
+				left.payload.confirmed.actionAt - right.payload.confirmed.actionAt ||
+				left.queuedAt - right.queuedAt
+		);
+		return entries.flatMap((entry, index) => {
+			let payload: SavePayload | null = entry.payload;
+			for (const later of entries.slice(index + 1)) {
+				if (payload) {
+					payload = withoutSuperseded(
+						payload,
+						supersededBy(payload, later.payload)
+					);
+				}
+			}
+			return payload ? [{ ...entry, payload }] : [];
+		});
+	};
 
-/** The queued saves, rewriting the stored list when normalizing changed it. */
-const readPendingSaves = function readPendingSaves(
-	tx: OutboxTransaction,
-	now = Date.now()
-): PendingSaveEntry[] {
-	const stored = tx.read('saves');
-	if (stored === undefined) {
-		return [];
-	}
-	const normalized = normalizePendingSaves(stored, now);
-	if (JSON.stringify(normalized) !== JSON.stringify(stored)) {
-		tx.write('saves', normalized);
-	}
-	return normalized;
-};
+	/** The queued saves, rewriting the stored list when normalizing changed it. */
+	const readPendingSaves = function readPendingSaves(
+		tx: OutboxTransaction,
+		now = Date.now()
+	): PendingSaveEntry[] {
+		const stored = tx.read('saves');
+		if (stored === undefined) {
+			return [];
+		}
+		const normalized = normalizePendingSaves(stored, now);
+		if (JSON.stringify(normalized) !== JSON.stringify(stored)) {
+			tx.write('saves', normalized);
+		}
+		return normalized;
+	};
 
-/**
- * Stored reassignments, dropping malformed ones and those no queued save can
- * still need: older than a queued save may live, and with no save left
- * queued under the old id. A tab still on the old id can queue a save days
- * after the reassignment, and that save needs the record for as long as it
- * waits.
- */
-const readReassignments = function readReassignments(
-	tx: OutboxTransaction,
-	now = Date.now()
-): SubjectReassignment[] {
-	const stored = tx.read('reassignments');
-	if (!Array.isArray(stored)) {
-		return [];
-	}
-	const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
-	const queued = new Set(
-		readPendingSaves(tx, now).map((entry) => entry.payload.subjectId)
-	);
-	return stored.filter(
-		(item): item is SubjectReassignment =>
-			isSubjectReassignment(item) &&
-			(item.at >= cutoff || queued.has(item.from))
-	);
+	/**
+	 * Stored reassignments, dropping malformed ones and those no queued save can
+	 * still need: older than a queued save may live, and with no save left
+	 * queued under the old id. A tab still on the old id can queue a save days
+	 * after the reassignment, and that save needs the record for as long as it
+	 * waits.
+	 */
+	const readReassignments = function readReassignments(
+		tx: OutboxTransaction,
+		now = Date.now()
+	): SubjectReassignment[] {
+		const stored = tx.read('reassignments');
+		if (!Array.isArray(stored)) {
+			return [];
+		}
+		const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
+		const queued = new Set(
+			readPendingSaves(tx, now).map((entry) => entry.payload.subjectId)
+		);
+		return stored.filter(
+			(item): item is SubjectReassignment =>
+				isSubjectReassignment(item) &&
+				(item.at >= cutoff || queued.has(item.from))
+		);
+	};
+
+	return { normalizePendingSaves, readPendingSaves, readReassignments };
 };
 
 const isSamePendingSave = function isSamePendingSave(
@@ -333,6 +376,7 @@ type ReplayOutcome = 'saved' | 'retry' | 'rejected';
 export interface QueueWorkerOptions {
 	runtime: KernelRuntime;
 	store: SaveOutboxStore;
+	tools: QueueTools;
 }
 
 /** The queue operations of one outbox. */
@@ -354,8 +398,19 @@ export interface QueueWorker {
 export const createQueueWorker = function createQueueWorker({
 	runtime,
 	store,
+	tools,
 }: QueueWorkerOptions): QueueWorker {
 	const { batch, commit, emit, getSnapshot } = runtime;
+	const {
+		generateSubjectId,
+		isConsentSaveRejection,
+		isSubjectConflict,
+		supersededBy,
+		withoutSuperseded,
+		withSubjectId,
+	} = tools;
+	const { normalizePendingSaves, readPendingSaves, readReassignments } =
+		createStoredLists(tools);
 	// Subject ids this kernel replaced after the backend refused them as
 	// another tenant's, old to the claim for the new one. A live save and a
 	// replay can both hit the same refusal; this sends both to one new id
