@@ -344,7 +344,8 @@ describe('manifest()', () => {
 		client.start();
 
 		await client.ready();
-		client.setLanguage('en');
+		// The current language is a no-op; another one resolves again.
+		client.setLanguage('de');
 		await vi.waitFor(() => {
 			expect(client.getSnapshot().revision).toBeGreaterThan(1);
 		});
