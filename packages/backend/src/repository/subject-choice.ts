@@ -166,21 +166,41 @@ export const decodeStoredChoice = function decodeStoredChoice(
 		: { kind: 'unreadable' };
 };
 
+/**
+ * A JSON column value without the 2.x envelope.
+ *
+ * The 2.x backend wrote JSON columns through its ORM as `{ json: value }`,
+ * and some adapters stored that envelope as-is, so a 2.x row can hold
+ * `{"json": ["pur_measurement"]}` where a v3 row holds the bare array. Run
+ * after any string parse, since SQLite returns the envelope as text.
+ *
+ * @internal
+ */
+export const unwrapLegacyJson = (value: unknown): unknown =>
+	value !== null &&
+	typeof value === 'object' &&
+	!Array.isArray(value) &&
+	'json' in value
+		? (value as { json: unknown }).json
+		: value;
+
 /** Stored `purposeIds` as codes, or `undefined` when nothing was granted. */
 export const decodePreferences = function decodePreferences(
 	purposeIds: unknown,
 	codesById: ReadonlyMap<string, string>
 ): Record<string, boolean> | undefined {
-	const parsed = (() => {
-		if (typeof purposeIds !== 'string') {
-			return purposeIds;
-		}
-		try {
-			return JSON.parse(purposeIds) as unknown;
-		} catch {
-			return undefined;
-		}
-	})();
+	const parsed = unwrapLegacyJson(
+		(() => {
+			if (typeof purposeIds !== 'string') {
+				return purposeIds;
+			}
+			try {
+				return JSON.parse(purposeIds) as unknown;
+			} catch {
+				return undefined;
+			}
+		})()
+	);
 	if (!Array.isArray(parsed) || parsed.length === 0) {
 		return undefined;
 	}

@@ -39,6 +39,7 @@ import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
+import { unwrapLegacyJson } from './subject-choice';
 
 export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly purposeIds: readonly string[];
@@ -144,9 +145,14 @@ const safeParse = (value: string): unknown => {
 	}
 };
 
-/** Stored `purposeIds`, which SQLite hands back as a JSON string. */
+/**
+ * Stored `purposeIds`, which SQLite hands back as a JSON string and a 2.x
+ * row holds inside a `{ json }` envelope.
+ */
 const normalisePurposeIds = (value: unknown): string[] | undefined => {
-	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	const parsed = unwrapLegacyJson(
+		typeof value === 'string' ? safeParse(value) : value
+	);
 	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
 };
 
@@ -191,6 +197,14 @@ const storedChoice = (value: unknown): SubjectChoiceWire | null => {
  * Same reasoning as the purpose check: the id covers identity and not what
  * was confirmed, so a resubmission with different receipts looks like a
  * retry at the key level and has to be refused on content.
+ *
+ * One asymmetry is allowed, as for vendor maps: a stored row with no
+ * receipts against a replay that carries some. A 2.x backend sharing the
+ * database writes no receipts, and this backend turns every receipt-less
+ * save into `legacy-v2` receipts, so a retry of a save the 2.x backend
+ * recorded would otherwise always be refused. That replay is the same act.
+ * The purpose check still refuses one whose grants differ, and the row
+ * keeps no receipts. The other direction stays a conflict.
  */
 const assertSameChoice = Effect.fn('consent.assertSameChoice')(
 	function* assertSameChoice(
@@ -199,7 +213,7 @@ const assertSameChoice = Effect.fn('consent.assertSameChoice')(
 	) {
 		const stored = canonicalChoice(storedChoice(storedRaw));
 		const incoming = canonicalChoice(submitted);
-		if (stored === incoming) {
+		if (stored === incoming || storedRaw === null || storedRaw === undefined) {
 			return;
 		}
 		return yield* new ConsentPurposeConflictError({

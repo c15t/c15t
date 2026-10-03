@@ -204,6 +204,20 @@ describe('assertSamePurposes', () => {
 		assert.strictEqual(result._tag, 'Success');
 	});
 
+	it('compares a 2.x row through its json envelope', async () => {
+		// Postgres and MySQL return the envelope as an object, SQLite as text.
+		const results = await Promise.all(
+			[{ json: ['a', 'b'] }, '{"json":["a","b"]}'].flatMap((stored) => [
+				run(assertSamePurposes(stored, ['b', 'a'])),
+				run(assertSamePurposes(stored, ['a'])),
+			])
+		);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Success', 'Failure', 'Success', 'Failure']
+		);
+	});
+
 	it('says nothing about a row it cannot read', async () => {
 		// Unparseable or absent is not evidence of a mismatch, and refusing on
 		// it would turn a storage oddity into a rejected consent.

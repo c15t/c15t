@@ -48,6 +48,23 @@ const receipt = (value: boolean, confirmedAt = T0) => ({
 	value,
 });
 
+/**
+ * Rewrites the only consent row as the 2.x backend stores it: no receipts,
+ * and `purposeIds` inside the `{ json }` envelope its ORM wrote.
+ */
+const rewriteAs2xRow = (harness: HttpHarness) =>
+	harness.runtime.runPromise(
+		Effect.gen(function* rewrite() {
+			const sql = yield* SqlClient.SqlClient;
+			const rows = yield* sql<{ purposeIds: unknown }>`
+				select ${sql('purposeIds')} from ${sql('consent')}
+			`;
+			const stored = rows[0]?.purposeIds;
+			const ids = typeof stored === 'string' ? JSON.parse(stored) : stored;
+			yield* sql`update ${sql('consent')} set ${sql('choice')} = null, ${sql('purposeIds')} = ${JSON.stringify({ json: ids })}`;
+		})
+	);
+
 const base = {
 	domain: 'example.com',
 	subjectId: 'sub_receipts1',
@@ -379,6 +396,59 @@ for (const engine of ENGINES) {
 				},
 				version: 3,
 			});
+		});
+
+		it('reads a 2.x row whose purposes sit in a json envelope', async () => {
+			// The 2.x backend wrote `purposeIds: { json: [...] }`, and its Kysely
+			// adapter stored the envelope as-is. That row is the visitor's newest
+			// act, so it has to read as the grant it holds, not as nothing that
+			// also clears the earlier v3 grant.
+			await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T1,
+				preferences: { marketing: false, measurement: true, necessary: true },
+			});
+			await rewriteAs2xRow(harness);
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true, T0) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					measurement: {
+						basis: { kind: 'legacy-v2' },
+						confirmedAt: T1,
+						value: true,
+					},
+				},
+				version: 3,
+			});
+		});
+
+		it('accepts a retry of a save the 2.x backend recorded', async () => {
+			// The 2.x backend stored the save but its response was lost, and the
+			// retry reached this backend. The row has no receipts, while this
+			// backend turns the retry's preferences into receipts.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+			await rewriteAs2xRow(harness);
+
+			const retry = await harness.json('POST', '/subjects', save);
+			assert.strictEqual(retry.status, 200);
+
+			const changed = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: false, measurement: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
 		});
 
 		it('skips a row whose stored receipts cannot be read rather than salvaging its grants', async () => {
