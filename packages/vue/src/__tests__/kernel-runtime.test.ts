@@ -811,7 +811,7 @@ test('runtime clears configured storage when permission is revoked', async () =>
 	localStorage.setItem('analytics:visitor', 'visitor');
 	localStorage.setItem('application:setting', 'keep');
 	await context.kernel.commands.save('none');
-	// Data clearing loads on demand and sweeps denied categories once it has.
+	// Data clearing subscribes once the script loader has, then sweeps.
 	await vi.waitFor(() =>
 		expect(localStorage.getItem('analytics:visitor')).toBeNull()
 	);
