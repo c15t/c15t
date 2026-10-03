@@ -34,6 +34,12 @@ Behaviour that changes:
   Consented scripts mount once the script loader has loaded, matching
   requests stay held until the network blocker has, and optional categories
   stay denied until a `consentSource` connects.
+- The Nuxt module stops Nuxt adding `rel="prefetch"` hints for c15t chunks
+  a page loads only when it configures them or after its first banner (the
+  modules above, live option updates, the save path and the preference
+  dialog, which c15t warms after the page's `load` event). The IAB banner,
+  the experiment controller and the client manifest resolver keep their
+  hints.
 - Changes to the Nuxt `c15t` app config while the page runs, such as
   `updateAppConfig()`, now reach the runtime: scripts, network and iframe
   blocking, vendors, categories, callbacks and `reloadOnConsentRevoked` follow

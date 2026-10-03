@@ -15,6 +15,7 @@ import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
 import type { C15tNuxtConfig, ModuleOptions } from './nuxt-options';
+import { stopPrefetchingConsentChunks } from './prefetch';
 import {
 	DEVTOOLS_ICON_ROUTE,
 	DEVTOOLS_PAGE_ROUTE,
@@ -226,6 +227,13 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				src: resolver.resolve('./runtime/plugin-client-manifest.nuxt'),
 			});
 		}
+
+		// c15t loads what a page needs when it needs it; Nuxt would prefetch
+		// every lazy c15t chunk on every page, and each finished download
+		// queues main-thread work in front of the banner.
+		nuxt.hook('build:manifest', (manifest) => {
+			stopPrefetchingConsentChunks(manifest, nuxt.options.srcDir);
+		});
 
 		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {
 			addDevToolsTab(nuxt, (path) => resolver.resolve(path));
