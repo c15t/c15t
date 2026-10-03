@@ -167,22 +167,32 @@ export const decodeStoredChoice = function decodeStoredChoice(
 };
 
 /**
- * A JSON column value without the 2.x envelope.
+ * Whether a JSON column value is the envelope the 2.x backend wrote.
  *
- * The 2.x backend wrote JSON columns through its ORM as `{ json: value }`,
- * and some adapters stored that envelope as-is, so a 2.x row can hold
- * `{"json": ["pur_measurement"]}` where a v3 row holds the bare array. Run
- * after any string parse, since SQLite returns the envelope as text.
+ * The 2.x backend has written JSON columns as `{ json: value }` since
+ * September 2025, and fumadb stores that envelope as-is on every adapter, so
+ * a 2.x row holds `{"json": ["pur_measurement"]}` where a v3 row holds the
+ * bare array. This backend never writes one. Run after any string parse,
+ * since SQLite returns the envelope as text.
+ *
+ * @internal
+ */
+export const isLegacyJsonEnvelope = (
+	value: unknown
+): value is { json: unknown } =>
+	value !== null &&
+	typeof value === 'object' &&
+	!Array.isArray(value) &&
+	'json' in value;
+
+/**
+ * A JSON column value without the 2.x envelope. See
+ * {@link isLegacyJsonEnvelope}.
  *
  * @internal
  */
 export const unwrapLegacyJson = (value: unknown): unknown =>
-	value !== null &&
-	typeof value === 'object' &&
-	!Array.isArray(value) &&
-	'json' in value
-		? (value as { json: unknown }).json
-		: value;
+	isLegacyJsonEnvelope(value) ? value.json : value;
 
 /** Stored `purposeIds` as codes, or `undefined` when nothing was granted. */
 export const decodePreferences = function decodePreferences(

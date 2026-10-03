@@ -279,6 +279,13 @@ describe('assertSameSubmission against a row with no receipts', () => {
 		assert.strictEqual(result._tag, 'Failure');
 	});
 
+	it('compares receipts against a row this backend wrote', async () => {
+		// A v3 save with only `necessary` stores no receipts either, but its
+		// purposes are a bare list. A retry adding a refusal is a new act.
+		const result = await run(assertSameSubmission(row(['a', 'b']), retry));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
 	it('compares receipts a client sent', async () => {
 		// A client's receipts can grant or refuse what its purposes do not
 		// show, and a v3 save with only `necessary` also stores no receipts.

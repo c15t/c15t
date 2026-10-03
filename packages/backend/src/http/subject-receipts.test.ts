@@ -478,6 +478,24 @@ for (const engine of ENGINES) {
 			assert.strictEqual(grant.status, 409);
 		});
 
+		it('refuses a refusal added to a v3 row with no receipts', async () => {
+			// A save with only `necessary` stores no receipts, like a 2.x row. A
+			// receipt-less retry that adds a refusal grants the same purposes,
+			// but the refusal would never be stored, so it is a different act.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+
+			const retry = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(retry.status, 409);
+		});
+
 		it('refuses a retry against a 2.x row whose purposes cannot be read', async () => {
 			// Nothing on the row can be compared with the retry, so accepting it
 			// would answer 200 for grants the row does not hold.

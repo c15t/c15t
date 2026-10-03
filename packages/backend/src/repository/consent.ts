@@ -39,7 +39,7 @@ import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
-import { unwrapLegacyJson } from './subject-choice';
+import { isLegacyJsonEnvelope, unwrapLegacyJson } from './subject-choice';
 
 export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly purposeIds: readonly string[];
@@ -160,6 +160,12 @@ const normalisePurposeIds = (value: unknown): string[] | undefined => {
 		typeof value === 'string' ? safeParse(value) : value
 	);
 	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
+};
+
+/** Whether stored `purposeIds` are a readable list in the 2.x envelope. */
+const writtenBy2x = (value: unknown): boolean => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return isLegacyJsonEnvelope(parsed) && Array.isArray(parsed.json);
 };
 
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
@@ -351,14 +357,17 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 		// 2.x client's retry of a save the 2.x backend recorded would always be
 		// refused here. Its receipts were built from the same preferences as
 		// its purposes, which were read and matched above, so they are not
-		// compared; the row keeps none. Receipts a client sent can grant or
-		// refuse what its purposes do not show, and a row whose purposes cannot
-		// be read proves nothing, so both are still compared.
+		// compared; the row keeps none. That holds only for a row 2.x wrote,
+		// which never stored refusals: this backend also leaves `choice` empty
+		// for a save with only `necessary`, and a retry adding a refusal to
+		// that row is a different act. So the row must carry the `{ json }`
+		// envelope only 2.x writes. Receipts a client sent can grant or refuse
+		// what its purposes do not show, so they are always compared.
 		const legacyRetry =
 			submission.choiceFromPreferences === true &&
 			stored !== undefined &&
 			(stored.choice === null || stored.choice === undefined) &&
-			normalisePurposeIds(stored.purposeIds) !== undefined;
+			writtenBy2x(stored.purposeIds);
 		if (!legacyRetry) {
 			yield* assertSameChoice(stored?.choice, submission.choice);
 		}
