@@ -290,3 +290,39 @@ test('scripts infer marketing and measurement without a category list and keep a
 	expect(reloaded.kernel.getSnapshot().activeUI).toBe('none');
 	expect(reloaded.kernel.getSnapshot().promptRequirement.kind).toBe('none');
 });
+
+test.each([
+	['no subject', undefined, 'sub_backend'],
+	['its own subject', 'sub_stored', 'sub_stored'],
+] as const)(
+	'a prefetch that names only a subject hydrates a stored grant with %s',
+	(_label, storedSubject, expectedSubject) => {
+		const now = Date.now();
+		const grant = {
+			basis: { fingerprint: policy.fingerprints.choice, kind: 'choice-v1' },
+			confirmedAt: now - 1000,
+			value: true,
+		};
+		localStorage.setItem(
+			'c15t',
+			JSON.stringify({
+				categories: { measurement: grant },
+				...(storedSubject && { subject: { subjectId: storedSubject } }),
+				version: 3,
+			})
+		);
+		const runtime = createRuntime({
+			prefetch: {
+				initRetry: false,
+				initialPolicyResolution: policy,
+				initialRecords: { subject: { subjectId: 'sub_backend' } },
+				now,
+			},
+		});
+		runtime.start();
+		const snapshot = runtime.kernel.getSnapshot();
+		// No record seed: a stored grant applies too, not only a newer denial.
+		expect(snapshot.explicitChoice?.categories.measurement?.value).toBe(true);
+		expect(snapshot.subject?.subjectId).toBe(expectedSubject);
+	}
+);
