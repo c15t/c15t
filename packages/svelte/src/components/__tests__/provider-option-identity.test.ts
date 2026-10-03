@@ -49,7 +49,9 @@ describe('ConsentManagerProvider option identity', () => {
 
 		await flush();
 		expect(init).toHaveBeenCalledTimes(1);
-		expect(identify).toHaveBeenCalledTimes(1);
+		// The initial user travels with init and every save; only a change
+		// is identified, as in React and the browser client.
+		expect(identify).not.toHaveBeenCalled();
 
 		await rerender({
 			mode: custom(transport),
@@ -59,10 +61,10 @@ describe('ConsentManagerProvider option identity', () => {
 		await flush();
 
 		expect(init).toHaveBeenCalledTimes(1);
-		expect(identify).toHaveBeenCalledTimes(1);
+		expect(identify).not.toHaveBeenCalled();
 	});
 
-	test('a real user change still identifies once more', async () => {
+	test('a real user change identifies once', async () => {
 		const identify = vi.fn().mockResolvedValue({ ok: true });
 		const transport: KernelTransport = {
 			identify,
@@ -76,7 +78,7 @@ describe('ConsentManagerProvider option identity', () => {
 		});
 
 		await flush();
-		expect(identify).toHaveBeenCalledTimes(1);
+		expect(identify).not.toHaveBeenCalled();
 
 		await rerender({
 			mode: custom(transport),
@@ -84,8 +86,8 @@ describe('ConsentManagerProvider option identity', () => {
 		});
 		await flush();
 
-		expect(identify).toHaveBeenCalledTimes(2);
-		expect(identify.mock.calls[1]?.[0]).toMatchObject({
+		expect(identify).toHaveBeenCalledOnce();
+		expect(identify.mock.calls[0]?.[0]).toMatchObject({
 			externalId: 'user_2',
 		});
 	});
