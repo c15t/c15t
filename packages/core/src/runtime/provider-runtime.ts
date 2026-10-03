@@ -26,19 +26,9 @@ import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkBlockerHandle } from '../modules/network-blocker/types';
 import type { ScriptLoaderHandle } from '../modules/script-loader/types';
-import type {
-	ProviderTransportContext,
-	ProviderTransportFactory,
-} from '../transports/mode';
-import type {
-	ConsentKernel,
-	KernelConfig,
-	KernelTransport,
-	KernelUser,
-} from '../types';
+import type { KernelUser } from '../types';
 import { assembleConsentRuntime, storageFor } from './assemble';
 import { normalizeKernelUser } from './runtime-kernel';
-import { resolveStreamedInit } from './streamed-prefetch';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -134,55 +124,6 @@ const initialOnlyKey = function initialOnlyKey(
 		options.i18n,
 		hostExperiment(options.experiment, syncPrefetch(options.prefetch)),
 	]);
-};
-
-/**
- * The `mode` factory with its transport's first `init()` answered by a
- * prefetch promise. The transport context reports the resolved config from
- * then on, so a transport that reads it at init time (offline's detected
- * `Accept-Language`) sees the server's values rather than the placeholder.
- */
-const streamPrefetch = function streamPrefetch(
-	mode: ProviderTransportFactory,
-	prefetch: PromiseLike<RuntimePrefetch>,
-	options: ConsentProviderRuntimeOptions,
-	getKernel: () => ConsentKernel | undefined
-): ProviderTransportFactory {
-	const factory = (context: ProviderTransportContext): KernelTransport => {
-		let resolved: KernelConfig | undefined;
-		const transport = mode({
-			...context,
-			get prefetch() {
-				return resolved ?? context.prefetch;
-			},
-		});
-		let used = false;
-		return {
-			...transport,
-			init(initContext) {
-				if (used) {
-					return transport.init?.(initContext) ?? Promise.resolve({});
-				}
-				used = true;
-				const kernel = getKernel() ?? null;
-				return resolveStreamedInit({
-					context: initContext,
-					kernel,
-					onResolved: (config) => {
-						resolved = config;
-					},
-					overrides: options.overrides,
-					prefetch,
-					// Read before any await: a clear that lands while the
-					// prefetch streams must win over the records it carries.
-					recordsGeneration: kernel?.getRecordsGeneration(),
-					runsExperiment: options.experiment !== undefined,
-					transport,
-				});
-			},
-		};
-	};
-	return Object.assign(factory, { kind: mode.kind });
 };
 
 interface Replaceable<Options, Handle extends { dispose: () => void }> {
@@ -312,15 +253,22 @@ export const createConsentProviderRuntime =
 			// Filled in below; the streamed mode and the module defaults read
 			// it only after construction.
 			const built: { runtime?: ConsentRuntime } = {};
-			const streamed = on && isPromiseLike(initial.prefetch);
-			const mode = streamed
-				? streamPrefetch(
-						initial.mode,
-						initial.prefetch as PromiseLike<RuntimePrefetch>,
-						initial,
-						() => built.runtime?.kernel
-					)
-				: initial.mode;
+			const { streamPrefetch } = modules;
+			const pending = on && isPromiseLike(initial.prefetch);
+			if (pending && !streamPrefetch) {
+				warnInDevelopment(
+					'c15t: `prefetch` is a promise, but the runtime was created without `streamPrefetch` in its modules. It is ignored and the runtime requests the policy itself.'
+				);
+			}
+			const mode =
+				pending && streamPrefetch
+					? streamPrefetch(
+							initial.mode,
+							initial.prefetch as PromiseLike<RuntimePrefetch>,
+							initial,
+							() => built.runtime?.kernel
+						)
+					: initial.mode;
 			const view = new Proxy({} as ConsentRuntimeOptions, {
 				get: (_target, key) => {
 					if (key === 'enabled') {
@@ -541,8 +489,18 @@ export const createConsentProviderRuntime =
 		};
 
 		const runtime: ConsentRuntime = main.runtime;
-		return {
-			clearRecords: () => runtime.clearRecords(),
+		// Records, identity, IAB, iframes and storage belong to the main
+		// runtime whatever `enabled` is; those members come from it unchanged.
+		const provider: Omit<
+			ConsentProviderRuntime,
+			| 'clearRecords'
+			| 'experiment'
+			| 'iab'
+			| 'identify'
+			| 'onIABChange'
+			| 'processIframes'
+			| 'reconcileStorage'
+		> = {
 			get consentCategories() {
 				return active().runtime.consentCategories;
 			},
@@ -559,17 +517,9 @@ export const createConsentProviderRuntime =
 			get enabled() {
 				return enabled;
 			},
-			experiment: runtime.experiment,
-			get iab() {
-				return runtime.iab;
-			},
-			identify: (user) => runtime.identify(user),
 			get kernel() {
 				return active().runtime.kernel;
 			},
-			onIABChange: (listener) => runtime.onIABChange(listener),
-			processIframes: () => runtime.processIframes(),
-			reconcileStorage: () => runtime.reconcileStorage(),
 			async reinit() {
 				if (enabled) {
 					await runtime.reinit();
@@ -659,4 +609,5 @@ export const createConsentProviderRuntime =
 				}
 			},
 		};
+		return Object.setPrototypeOf(provider, runtime) as ConsentProviderRuntime;
 	};

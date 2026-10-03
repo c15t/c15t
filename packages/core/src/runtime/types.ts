@@ -237,6 +237,18 @@ export interface ConsentRuntimeModules {
 	watchRevocationReload: (options: RevocationReloadOptions) => () => void;
 	/** Mounted on `start()` unless `windowDebug: false`. */
 	createWindowDebug: (options: WindowDebugOptions) => WindowDebugHandle;
+	/**
+	 * Lets the provider runtime accept a `prefetch` that is still a promise.
+	 * Pass `streamPrefetch` from `@c15t/core/runtime`. Without it a pending
+	 * prefetch is ignored (with a warning outside production) and the runtime
+	 * requests the policy itself, so hosts that never stream ship none of it.
+	 */
+	streamPrefetch?: (
+		mode: ProviderTransportFactory,
+		prefetch: PromiseLike<RuntimePrefetch>,
+		options: Pick<ConsentProviderRuntimeOptions, 'experiment' | 'overrides'>,
+		getKernel: () => ConsentKernel | undefined
+	) => ProviderTransportFactory;
 }
 
 /**
@@ -402,7 +414,8 @@ export interface ConsentProviderRuntimeOptions extends Omit<
 	 * {@link ConsentRuntimeOptions.prefetch}, or the pending promise of one.
 	 *
 	 * A promise lets the host render before the server result arrives
-	 * (React streams it through Suspense). The runtime starts with a
+	 * (React streams it through Suspense); it needs `streamPrefetch` in the
+	 * runtime's modules. The runtime starts with a
 	 * provisional policy, so no consent surface shows, and its first
 	 * `init()` applies the resolved config in place of the network request.
 	 * A config that resolves without a policy is applied as a baseline and

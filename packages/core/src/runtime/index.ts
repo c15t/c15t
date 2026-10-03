@@ -46,6 +46,7 @@ import type {
 } from './types';
 
 export { createConsentProviderRuntime } from './provider-runtime';
+export { streamPrefetch } from './streamed-prefetch';
 export { connectConsentSource } from './controls';
 export type { ConsentControlOptions } from './controls';
 export {

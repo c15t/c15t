@@ -1,8 +1,8 @@
 /**
  * The first `init()` of a runtime whose `prefetch` was a promise.
  *
- * Part of the provider runtime only, so a page-level runtime never ships
- * it.
+ * A host that streams its prefetch passes {@link streamPrefetch} in the
+ * provider runtime's modules; one that never does ships none of this.
  *
  * - A config that resolves with a policy becomes the init response
  *   outright: no network request. The runtime's own `overrides` win over
@@ -14,10 +14,12 @@
  *   visitor's choice holds even when that init fails.
  * - A rejected promise is logged outside production and the transport's
  *   init runs as though there were no prefetch.
- *
- * @internal
  */
 import { kernelConfigToInitResponse } from '../transports/init-output';
+import type {
+	ProviderTransportContext,
+	ProviderTransportFactory,
+} from '../transports/mode';
 import type {
 	ConsentKernel,
 	InitContext,
@@ -26,7 +28,7 @@ import type {
 	KernelOverrides,
 	KernelTransport,
 } from '../types';
-import type { RuntimePrefetch } from './types';
+import type { ConsentProviderRuntimeOptions, RuntimePrefetch } from './types';
 
 const hasKeys = function hasKeys(value: KernelOverrides): boolean {
 	return Object.keys(value).length > 0;
@@ -118,4 +120,62 @@ export const resolveStreamedInit = async function resolveStreamedInit(
 			overrides: { ...context.overrides, ...baseline },
 		}) ?? {}
 	);
+};
+
+/**
+ * Wrap a `mode` factory so its transport's first `init()` is answered by a
+ * prefetch promise. The transport context reports the resolved config from
+ * then on, so a transport that reads it at init time (offline's detected
+ * `Accept-Language`) sees the server's values rather than the placeholder.
+ *
+ * Pass it as `streamPrefetch` in `createConsentProviderRuntime`'s modules to
+ * accept a `prefetch` that is still a promise.
+ *
+ * @param mode - The runtime's transport factory.
+ * @param prefetch - The pending prefetch.
+ * @param options - The runtime's `overrides` and `experiment`.
+ * @param getKernel - The kernel being initialized, once it exists.
+ * @returns A transport factory of the same kind.
+ */
+export const streamPrefetch = function streamPrefetch(
+	mode: ProviderTransportFactory,
+	prefetch: PromiseLike<RuntimePrefetch>,
+	options: Pick<ConsentProviderRuntimeOptions, 'experiment' | 'overrides'>,
+	getKernel: () => ConsentKernel | undefined
+): ProviderTransportFactory {
+	const factory = (context: ProviderTransportContext): KernelTransport => {
+		let resolved: KernelConfig | undefined;
+		const transport = mode({
+			...context,
+			get prefetch() {
+				return resolved ?? context.prefetch;
+			},
+		});
+		let used = false;
+		return {
+			...transport,
+			init(initContext) {
+				if (used) {
+					return transport.init?.(initContext) ?? Promise.resolve({});
+				}
+				used = true;
+				const kernel = getKernel() ?? null;
+				return resolveStreamedInit({
+					context: initContext,
+					kernel,
+					onResolved: (config) => {
+						resolved = config;
+					},
+					overrides: options.overrides,
+					prefetch,
+					// Read before any await: a clear that lands while the
+					// prefetch streams must win over the records it carries.
+					recordsGeneration: kernel?.getRecordsGeneration(),
+					runsExperiment: options.experiment !== undefined,
+					transport,
+				});
+			},
+		};
+	};
+	return Object.assign(factory, { kind: mode.kind });
 };

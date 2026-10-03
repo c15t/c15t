@@ -15,6 +15,7 @@ import {
 	createConsentProviderRuntime,
 	defaultRuntimeModules,
 	lazyRuntimeModule,
+	streamPrefetch,
 } from '../index';
 import type {
 	ConsentProviderRuntime,
@@ -483,13 +484,18 @@ describe('the enabled toggle', () => {
 });
 
 describe('a streamed prefetch', () => {
+	const streaming = { ...defaultRuntimeModules, streamPrefetch };
+
 	test('answers the first init in place of the network request', async () => {
 		const transport = createTransport();
 		const stream = Promise.withResolvers<RuntimePrefetch>();
-		const runtime = create({
-			mode: custom(transport),
-			prefetch: stream.promise,
-		});
+		const runtime = create(
+			{
+				mode: custom(transport),
+				prefetch: stream.promise,
+			},
+			streaming
+		);
 		runtime.start();
 		// Until it arrives no consent surface shows.
 		expect(runtime.kernel.getSnapshot().policyPending).toBe(true);
@@ -506,14 +512,17 @@ describe('a streamed prefetch', () => {
 
 	test('a config without a policy is a baseline: its records apply and the transport init runs with its overrides', async () => {
 		const transport = createTransport();
-		const runtime = create({
-			mode: custom(transport),
-			prefetch: Promise.resolve({
-				initialOverrides: { country: 'DE' },
-				initialRecords: choiceRecords({ marketing: true }),
-				now: NOW,
-			}),
-		});
+		const runtime = create(
+			{
+				mode: custom(transport),
+				prefetch: Promise.resolve({
+					initialOverrides: { country: 'DE' },
+					initialRecords: choiceRecords({ marketing: true }),
+					now: NOW,
+				}),
+			},
+			streaming
+		);
 		runtime.start();
 
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
@@ -528,10 +537,13 @@ describe('a streamed prefetch', () => {
 			// Logged outside production.
 		});
 		const transport = createTransport();
-		const runtime = create({
-			mode: custom(transport),
-			prefetch: Promise.reject(new Error('stream failed')),
-		});
+		const runtime = create(
+			{
+				mode: custom(transport),
+				prefetch: Promise.reject(new Error('stream failed')),
+			},
+			streaming
+		);
 		runtime.start();
 
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
@@ -540,11 +552,14 @@ describe('a streamed prefetch', () => {
 	test('records cleared while it streams are not brought back', async () => {
 		const transport = createTransport();
 		const stream = Promise.withResolvers<RuntimePrefetch>();
-		const runtime = create({
-			mode: custom(transport),
-			persistence: false,
-			prefetch: stream.promise,
-		});
+		const runtime = create(
+			{
+				mode: custom(transport),
+				persistence: false,
+				prefetch: stream.promise,
+			},
+			streaming
+		);
 		runtime.start();
 		runtime.clearRecords();
 
@@ -555,6 +570,20 @@ describe('a streamed prefetch', () => {
 
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
 		expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
+	});
+
+	test('without `streamPrefetch` a pending prefetch is ignored and the runtime asks itself', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {
+			// Warned outside production.
+		});
+		const transport = createTransport();
+		const runtime = create({
+			mode: custom(transport),
+			prefetch: Promise.resolve(RESOLVED_PREFETCH),
+		});
+		runtime.start();
+
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
 	});
 });
 
