@@ -8,7 +8,7 @@ import {
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { applyInitResponse, readInitResolution } from '../apply-init-response';
-import { applyPatch } from '../patch';
+import { buildNextSnapshot } from '../patch';
 import { buildInitialSnapshot } from '../snapshot';
 
 const LEGACY_OPT_OUT = {
@@ -78,13 +78,13 @@ describe('applyInitResponse', () => {
 	});
 
 	test('a complete response replaces a prior matched resolution', () => {
-		const snap = applyPatch(buildInitialSnapshot({ now: NOW }), {
+		const snap = buildNextSnapshot(buildInitialSnapshot({ now: NOW }), {
 			policySnapshotToken: 'tok',
 			resolution: matchedResolution(optOutRule({ prompt: 'none' })),
 		});
 		expect(snap.effectivePermissions.marketing).toBe(true);
 		const { patch } = applyInitResponse(snap, {}, NOW);
-		const next = applyPatch(snap, patch);
+		const next = buildNextSnapshot(snap, patch);
 		expect(next.resolution.status).toBe('failed');
 		expect(next.policySnapshotToken).toBeNull();
 		expect(next.effectivePermissions.marketing).toBe(false);
@@ -148,7 +148,7 @@ describe('applyInitResponse', () => {
 		);
 		expect(applied.patch.subject).toEqual({ subjectId: 'sub_server' });
 		expect(applied.recordIssues).toBeNull();
-		const next = applyPatch(snap, applied.patch);
+		const next = buildNextSnapshot(snap, applied.patch);
 		expect(next.effectivePermissions.measurement).toBe(true);
 		expect(next.effectivePermissions.marketing).toBe(false);
 	});
@@ -186,7 +186,7 @@ describe('applyInitResponse', () => {
 			},
 			NOW
 		);
-		const next = applyPatch(snap, patch);
+		const next = buildNextSnapshot(snap, patch);
 		expect(next.policySnapshotToken).toBe('tok-1');
 		expect(next.policyRule).toEqual(resolution.policy);
 		expect(next.model).toBe('opt-out');
