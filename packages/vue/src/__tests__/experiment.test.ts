@@ -266,8 +266,10 @@ test('arms are validated against the theme the app renders with', async () => {
 	});
 	context.start();
 	try {
-		await vi.waitFor(() =>
-			expect(context.snapshot.value.experimentPending).toBe(false)
+		// The experiment controller loads as its own chunk.
+		await vi.waitFor(
+			() => expect(context.snapshot.value.experimentPending).toBe(false),
+			{ timeout: 5000 }
 		);
 		expect(context.snapshot.value.experiment).toMatchObject({
 			arm: 'quiet',
