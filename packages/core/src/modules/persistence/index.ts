@@ -646,6 +646,9 @@ export const createPersistence = function createPersistence(
 				writeStoredClearEpoch(epoch, storageConfig);
 			}
 			observe();
+			// The kernel's clear sequence (`kernel/clear-records.ts`), inlined:
+			// React does not use the runtime yet, and a shared helper costs it
+			// bytes until it does.
 			kernel.hydrate({
 				choice: null,
 				noticeDismissal: null,

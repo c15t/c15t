@@ -706,7 +706,10 @@ it('forwards cleanup targets to its shared runtime', async () => {
 	await booted.acceptAll();
 	localStorage.setItem('analytics:visitor', 'visitor');
 	await booted.rejectAll();
-	expect(localStorage.getItem('analytics:visitor')).toBeNull();
+	// Data clearing loads on demand and sweeps what is denied when it lands.
+	await vi.waitFor(() =>
+		expect(localStorage.getItem('analytics:visitor')).toBeNull()
+	);
 });
 
 it('opens the external CMP and never records its decisions as c15t choices', async () => {

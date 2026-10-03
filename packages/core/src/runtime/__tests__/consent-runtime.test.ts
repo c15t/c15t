@@ -8,14 +8,20 @@ import { baseTranslations } from '@c15t/translations/all';
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { createIframeBlocker } from '../../modules/iframe-blocker';
+import { createNetworkBlocker } from '../../modules/network-blocker';
 import { holdNetworkRequests } from '../../modules/network-blocker/hold';
+import { createPersistence } from '../../modules/persistence';
+import { createScriptLoader } from '../../modules/script-loader';
 import { resolveLocalTranslations } from '../../translations';
 import { custom } from '../../transports/mode';
 import { offline } from '../../transports/offline';
 import type { KernelTransport } from '../../types';
 import {
+	createConsentProviderRuntime,
 	createConsentRuntime,
 	createRuntimeKernel,
+	defaultRuntimeModules,
 	hasResolvedPrefetch,
 } from '../index';
 import type { ConsentRuntimeIABHandle } from '../types';
@@ -1054,5 +1060,246 @@ describe('revocation reload', () => {
 		});
 		expect(onBeforeConsentRevocationReload).not.toHaveBeenCalled();
 		expect(reload).not.toHaveBeenCalled();
+	});
+});
+
+/**
+ * One lifecycle in core. Where React's provider, Vue's kernel and Svelte's
+ * context had their own copies, these pin the behaviour the runtime keeps.
+ */
+describe('lifecycle verbs', () => {
+	const choice = {
+		categories: {
+			marketing: {
+				basis: { kind: 'legacy-v2' as const },
+				confirmedAt: 1,
+				value: false,
+			},
+		},
+		version: 3 as const,
+	};
+
+	test('`clearRecords()` without persistence clears every record, vendors included, and announces it', () => {
+		// Vue's copy left `vendorChoice` behind, so a cleared visitor kept
+		// their vendor denials.
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			persistence: false,
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialRecords: {
+					choice,
+					subject: { subjectId: 'sub_1' },
+					vendorChoice: { confirmedAt: 1, denied: ['ads'], version: 1 },
+				},
+				now: 2,
+			},
+		});
+		const cleared = vi.fn();
+		runtime.kernel.events.on('records:cleared', cleared);
+
+		runtime.clearRecords();
+
+		const snapshot = runtime.kernel.getSnapshot();
+		expect(snapshot.explicitChoice).toBeNull();
+		expect(snapshot.subject).toBeNull();
+		expect(snapshot.vendorChoice).toBeNull();
+		// The save outbox listens for this to drop the cleared subject's saves.
+		expect(cleared).toHaveBeenCalledOnce();
+		runtime.dispose();
+	});
+
+	test('`clearRecords()` with persistence clears storage and announces it', async () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			prefetch: RESOLVED_PREFETCH,
+		});
+		runtime.start();
+		await runtime.kernel.commands.save('all');
+		const cleared = vi.fn();
+		runtime.kernel.events.on('records:cleared', cleared);
+
+		runtime.clearRecords();
+
+		expect(cleared).toHaveBeenCalledOnce();
+		expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
+		expect(document.cookie).not.toContain('c15t=');
+		runtime.dispose();
+	});
+
+	test('a prefetch still marked pending is not adopted: `start()` runs init', async () => {
+		// React treated any prefetch with a policy as resolved; the policy of
+		// a provisional prefetch is a placeholder, so the runtime asks.
+		const transport = createTransport();
+		const runtime = createConsentRuntime({
+			mode: custom(transport),
+			prefetch: { ...RESOLVED_PREFETCH, initialPolicyPending: true },
+		});
+
+		runtime.start();
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
+		runtime.dispose();
+	});
+
+	test('adopting a resolved prefetch marks the kernel live, honours a detected GPC signal and replays `init:applied`', () => {
+		const runtime = createConsentRuntime({
+			mode: custom(createTransport()),
+			prefetch: {
+				...RESOLVED_PREFETCH,
+				initialPrivacySignals: { gpc: true },
+				now: 1000,
+			},
+		});
+		const applied = vi.fn();
+		runtime.kernel.events.on('init:applied', applied);
+
+		runtime.start();
+
+		const snapshot = runtime.kernel.getSnapshot();
+		expect(snapshot.surfaceShownAt.banner).not.toBeNull();
+		expect(snapshot.privacySignals.gpc.detected).toBe(true);
+		expect(applied).toHaveBeenCalledOnce();
+		runtime.dispose();
+	});
+
+	test('`dispose()` tears modules down in reverse start order, before the kernel', () => {
+		// Vue disposed in push order, so the script loader went before the
+		// blockers that still read from the kernel.
+		const order: string[] = [];
+		const tracked = <Handle extends { dispose: () => void }>(
+			name: string,
+			handle: Handle
+		): Handle => ({
+			...handle,
+			dispose: () => {
+				order.push(name);
+				handle.dispose();
+			},
+		});
+		const runtime = createConsentProviderRuntime(
+			{
+				mode: custom(createTransport()),
+				networkBlocker: { rules: [] },
+				prefetch: RESOLVED_PREFETCH,
+				scripts: [{ callbackOnly: true, category: 'measurement', id: 'a' }],
+			},
+			{
+				...defaultRuntimeModules,
+				createIframeBlocker: (options) =>
+					tracked('iframe', createIframeBlocker(options)),
+				createNetworkBlocker: (options) =>
+					tracked('network', createNetworkBlocker(options)),
+				createPersistence: (options) =>
+					tracked('persistence', createPersistence(options)),
+				createScriptLoader: (options) =>
+					tracked('scripts', createScriptLoader(options)),
+			}
+		);
+		runtime.start();
+		const { kernel } = runtime;
+		runtime.kernel.subscribe(() => {
+			order.push('kernel still notifies');
+		});
+
+		runtime.dispose();
+
+		expect(order.filter((entry) => entry !== 'kernel still notifies')).toEqual([
+			'iframe',
+			'network',
+			'scripts',
+			'persistence',
+		]);
+		expect(kernel.getSnapshot()).toBeDefined();
+	});
+
+	test('the IAB factory receives the configured publisher options over what the backend sent', () => {
+		// Vue mounted IAB from `cmpId` alone, which reset the publisher's
+		// restrictions and custom vendors.
+		const createIAB = vi.fn().mockReturnValue(createIABHandle());
+		const publisherRestrictions = [
+			{ purposeId: 2, restrictionType: 0, vendorIds: [1] },
+		];
+		const customVendors = [{ id: 'own', name: 'Own', purposes: [1] }];
+		const runtime = createConsentRuntime({
+			createIAB,
+			iab: {
+				customVendors: customVendors as never,
+				publisherCountryCode: 'DE',
+				publisherRestrictions: publisherRestrictions as never,
+			},
+			mode: custom(createTransport()),
+		});
+
+		runtime.start();
+		runtime.kernel.set.iab({ cmpId: 9, enabled: true });
+
+		expect(createIAB.mock.calls[0]?.[0]).toMatchObject({
+			cmpId: 9,
+			customVendors,
+			publisherCountryCode: 'DE',
+			publisherRestrictions,
+		});
+		runtime.dispose();
+	});
+
+	test('`setLanguage()` switches the language and asks the backend again, once', async () => {
+		const transport = createTransport();
+		const runtime = createConsentRuntime({
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+		});
+		runtime.start();
+
+		runtime.setLanguage('de');
+		runtime.setLanguage('de');
+
+		expect(runtime.kernel.getSnapshot().overrides.language).toBe('de');
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
+		runtime.dispose();
+	});
+
+	test('`setLanguage()` does not ask a backend while disabled or under an external source', async () => {
+		const disabledTransport = createTransport();
+		const disabled = createConsentRuntime({
+			enabled: false,
+			mode: custom(disabledTransport),
+		});
+		disabled.setLanguage('de');
+
+		const externalTransport = createTransport();
+		const external = createConsentRuntime({
+			consentSource: {
+				getPermissions: () => null,
+				openPreferences: vi.fn(),
+				subscribe: () => () => undefined,
+			},
+			mode: custom(externalTransport),
+		});
+		external.setLanguage('de');
+
+		await Promise.resolve();
+		expect(disabledTransport.init).not.toHaveBeenCalled();
+		expect(externalTransport.init).not.toHaveBeenCalled();
+		disabled.dispose();
+		external.dispose();
+	});
+
+	test('`experiment` is the one a ready prefetch carries, otherwise the option', () => {
+		const option = { arms: { a: {} }, id: 'option' };
+		const server = { arm: 'b', arms: { b: {} }, id: 'server' };
+		const fromOption = createConsentRuntime({
+			experiment: option,
+			mode: custom(createTransport()),
+		});
+		const fromServer = createConsentRuntime({
+			experiment: option,
+			mode: custom(createTransport()),
+			prefetch: { ...RESOLVED_PREFETCH, experiment: server },
+		});
+
+		expect(fromOption.experiment).toBe(option);
+		expect(fromServer.experiment).toBe(server);
+		fromOption.dispose();
+		fromServer.dispose();
 	});
 });

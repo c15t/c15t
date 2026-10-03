@@ -18,14 +18,36 @@ import type {
 	ExperimentState,
 } from '../libs/experiment';
 import type { ConsentPresentation } from '../libs/policy-actions';
-import type { ClearOnRevocationConfig } from '../modules/clear-on-revocation';
-import type { IframeBlockerOptions } from '../modules/iframe-blocker';
+import type {
+	ClearOnRevocationConfig,
+	ClearOnRevocationHandle,
+	ClearOnRevocationOptions,
+} from '../modules/clear-on-revocation/types';
+import type {
+	IframeBlockerHandle,
+	IframeBlockerOptions,
+} from '../modules/iframe-blocker/types';
 import type {
 	NetworkBlockerConfig,
+	NetworkBlockerHandle,
+	NetworkBlockerOptions,
 	NetworkBlockerRule,
-} from '../modules/network-blocker';
-import type { PersistenceOptions } from '../modules/persistence';
-import type { Script, ScriptLoaderDebugEvent } from '../modules/script-loader';
+} from '../modules/network-blocker/types';
+import type {
+	PersistenceHandle,
+	PersistenceOptions,
+} from '../modules/persistence/types';
+import type { RevocationReloadOptions } from '../modules/revocation-reload';
+import type {
+	Script,
+	ScriptLoaderDebugEvent,
+	ScriptLoaderHandle,
+	ScriptLoaderOptions,
+} from '../modules/script-loader/types';
+import type {
+	WindowDebugHandle,
+	WindowDebugOptions,
+} from '../modules/window-debug/types';
 import type { Callbacks } from '../options/callbacks';
 import type { IABConfig } from '../options/iab';
 import type { User } from '../options/user';
@@ -176,6 +198,48 @@ export interface ExternalConsentSource {
 }
 
 /**
+ * Server-prepared kernel configuration a runtime starts from. An
+ * `experiment` the server resolved runs instead of the `experiment` option.
+ */
+export type RuntimePrefetch = Omit<KernelConfig, 'transport' | 'initialDraft'> &
+	ExperimentState;
+
+/**
+ * The browser modules a runtime mounts, as factories.
+ *
+ * `createConsentRuntime` mounts `defaultRuntimeModules`.
+ * `createConsentProviderRuntime` takes them from the caller, so a host can
+ * hand in factories that load their module with a dynamic `import()` (see
+ * `lazyRuntimeModule`) and keep it out of its first-load JavaScript. A
+ * factory must return its handle synchronously; a lazy one returns a
+ * stand-in that queues calls until the module lands.
+ */
+export interface ConsentRuntimeModules {
+	/** Mounted on `start()` while enabled, unless `persistence: false`. */
+	createPersistence: (options: PersistenceOptions) => PersistenceHandle;
+	/** Mounted on `start()` when `scripts` is not empty, enabled or not. */
+	createScriptLoader: (options: ScriptLoaderOptions) => ScriptLoaderHandle;
+	/** Mounted on `start()` while enabled when `networkBlocker` is set. */
+	createNetworkBlocker: (
+		options: NetworkBlockerOptions
+	) => NetworkBlockerHandle;
+	/** Mounted on `start()` while enabled unless `iframeBlocker: false`. */
+	createIframeBlocker: (options: IframeBlockerOptions) => IframeBlockerHandle;
+	/** Mounted on `start()` while enabled when `clearOnRevocation` is set. */
+	createClearOnRevocation: (
+		options: ClearOnRevocationOptions
+	) => ClearOnRevocationHandle;
+	/**
+	 * Attached at construction. It reads the synchronous
+	 * `save:started → recorded → completed` sequence, so it has to be in
+	 * place before the first save: pass the real `watchRevocationReload`.
+	 */
+	watchRevocationReload: (options: RevocationReloadOptions) => () => void;
+	/** Mounted on `start()` unless `windowDebug: false`. */
+	createWindowDebug: (options: WindowDebugOptions) => WindowDebugHandle;
+}
+
+/**
  * Framework-independent lifecycle options. Adapters add presentation options.
  * External sources are initial-only; recreate the runtime to change authority.
  */
@@ -222,9 +286,10 @@ export interface ConsentRuntimeOptions {
 	/**
 	 * Server-prefetched kernel configuration, for SSR without a flash. An
 	 * `experiment` the server resolved runs instead of the `experiment`
-	 * option.
+	 * option. With a resolved policy, `start()` adopts it instead of sending
+	 * the `/init` request. The provider runtime also accepts a promise.
 	 */
-	prefetch?: Omit<KernelConfig, 'transport' | 'initialDraft'> & ExperimentState;
+	prefetch?: RuntimePrefetch;
 	/** Host presentation, separate from policy semantics. */
 	presentation?: ConsentPresentation;
 	/**
@@ -315,6 +380,47 @@ export interface ConsentRuntimeOptions {
 }
 
 /**
+ * Options of {@link ConsentProviderRuntime}: everything
+ * {@link ConsentRuntimeOptions} takes, and a `prefetch` that may still be a
+ * promise.
+ *
+ * Options {@link ConsentProviderRuntime.update} applies to a running
+ * runtime: `enabled`, `user`, `overrides`, `consentCategories`, `scripts`,
+ * `vendors`, `networkBlocker`, `iframeBlocker`, `callbacks`,
+ * `reloadOnConsentRevoked`, and the `storageConfig.storageKey` that
+ * `clearOnRevocation` protects. `nonce`, `scriptLoader.onDebug` and the
+ * network blocker's `logBlockedRequests` and `onRequestBlocked` are read
+ * when their module mounts. Every other option is read once: create a new
+ * runtime to change it.
+ */
+export interface ConsentProviderRuntimeOptions extends Omit<
+	ConsentRuntimeOptions,
+	'prefetch'
+> {
+	/**
+	 * Server-prefetched kernel configuration, as on
+	 * {@link ConsentRuntimeOptions.prefetch}, or the pending promise of one.
+	 *
+	 * A promise lets the host render before the server result arrives
+	 * (React streams it through Suspense). The runtime starts with a
+	 * provisional policy, so no consent surface shows, and its first
+	 * `init()` applies the resolved config in place of the network request.
+	 * A config that resolves without a policy is applied as a baseline and
+	 * the transport's init runs; a rejected promise falls through to the
+	 * transport's init. A streamed experiment arrives too late to run.
+	 */
+	prefetch?: RuntimePrefetch | PromiseLike<RuntimePrefetch>;
+}
+
+/**
+ * The option set {@link ConsentProviderRuntime.update} takes: the whole
+ * current options, the way a component re-renders with all of its props.
+ * `mode` may be left out; it is read once.
+ */
+export type ConsentRuntimeUpdate = Omit<ConsentProviderRuntimeOptions, 'mode'> &
+	Partial<Pick<ConsentProviderRuntimeOptions, 'mode'>>;
+
+/**
  * A started or startable consent runtime.
  *
  * Construction is SSR-safe and free of storage and DOM side effects, so a server can read
@@ -325,8 +431,28 @@ export interface ConsentRuntimeOptions {
 export interface ConsentRuntime {
 	/** The consent kernel. Adapters subscribe to it for reactivity. */
 	readonly kernel: ConsentKernel;
-	/** Clear receipts, identity and persisted records. */
+	/**
+	 * The experiment this runtime validates, assigns and attributes: the one
+	 * a ready `prefetch` carries, otherwise the `experiment` option. Hosts
+	 * resolve presentation and theme against it.
+	 */
+	readonly experiment: ConsentExperiment | undefined;
+	/**
+	 * Clear receipts, identity and persisted records.
+	 *
+	 * Runs one sequence: through persistence when it is mounted (storage,
+	 * then memory), otherwise in memory. Either way it ends with the
+	 * `records:cleared` event, which drops the cleared subject's queued saves.
+	 */
 	clearRecords: () => void;
+	/**
+	 * Show the consent copy in another language.
+	 *
+	 * A no-op when it is already the language. Otherwise the language is set
+	 * and, while enabled and not under an external `consentSource`, `init()`
+	 * runs again so a backend can answer in it.
+	 */
+	setLanguage: (language: string) => void;
 	/** The mounted IAB CMP, or `null` while IAB is off or not yet ready. */
 	readonly iab: ConsentRuntimeIABHandle | null;
 	/** Categories surfaced in the UI. See {@link ConsentRuntime.setConsentCategories}. */
@@ -336,10 +462,16 @@ export interface ConsentRuntime {
 	/**
 	 * Mount every browser side effect: persistence, script loader, network
 	 * and iframe blockers, IAB, `window.c15t`, and the initial
-	 * `kernel.commands.init()`.
+	 * `kernel.commands.init()`, or the adoption of a resolved prefetch
+	 * (evaluated at the server's clock, marked live, GPC honoured,
+	 * `init:applied` replayed) in its place.
 	 *
 	 * Idempotent, and a no-op when there is no `document` — call it
-	 * unconditionally from a mount hook.
+	 * unconditionally from a mount hook. Calling it before the first render
+	 * is fine when there is no server-rendered markup to hydrate (a client-
+	 * only app): the `/init` request then overlaps the mount instead of
+	 * waiting for it, and nothing blocks the render. With server markup,
+	 * call it after hydration so the first client render matches the server.
 	 */
 	start: () => void;
 	/** Tear down everything {@link ConsentRuntime.start} mounted, in reverse, then the kernel. */
@@ -412,8 +544,11 @@ export interface ConsentRuntime {
 	 * ```
 	 */
 	processIframes: () => void;
-	/** Replace configured categories; retain categories discovered from integrations. */
-	setConsentCategories: (categories: AllConsentNames[]) => void;
+	/**
+	 * Replace configured categories; retain categories discovered from
+	 * integrations. `undefined` drops the configured list.
+	 */
+	setConsentCategories: (categories: AllConsentNames[] | undefined) => void;
 	/**
 	 * Stage one vendor's grant for the next `save()`. Never a grant on its
 	 * own: gates only change once the save records it. Distinct from
@@ -427,4 +562,61 @@ export interface ConsentRuntime {
 	onIABChange: (
 		listener: (handle: ConsentRuntimeIABHandle | null) => void
 	) => Unsubscribe;
+}
+
+/**
+ * A runtime for a framework provider: a {@link ConsentRuntime} whose
+ * options follow the component's props.
+ *
+ * Built by `createConsentProviderRuntime`. It adds what a component needs
+ * and a page-level host does not: {@link ConsentProviderRuntime.update} for
+ * new props, the `enabled` toggle, and a `prefetch` that may still be
+ * streaming. Hosts that configure once use `createConsentRuntime` and do
+ * not load this code.
+ */
+export interface ConsentProviderRuntime extends ConsentRuntime {
+	/**
+	 * The consent kernel. Adapters subscribe to it for reactivity.
+	 *
+	 * While the runtime is disabled this is a separate permissive kernel, so
+	 * turning `enabled` off and on keeps the visitor's records. It changes
+	 * only through {@link ConsentProviderRuntime.setEnabled} (or `update`
+	 * with a new `enabled`), and {@link ConsentProviderRuntime.subscribe}
+	 * reports the change.
+	 */
+	readonly kernel: ConsentKernel;
+	/** Whether consent management is on. See {@link ConsentRuntimeOptions.enabled}. */
+	readonly enabled: boolean;
+	/**
+	 * Turn consent management on or off without a new runtime.
+	 *
+	 * Off swaps {@link ConsentProviderRuntime.kernel} for a permissive kernel
+	 * that grants every category and shows no UI, and unmounts persistence,
+	 * the blockers, IAB, data clearing and the experiment. Only the script
+	 * loader runs, so gated scripts load. On swaps back and mounts them
+	 * again; the runtime then runs `init()`, or adopts its resolved prefetch
+	 * again at the current clock. The prompt stays closed until something
+	 * opens it. Subscribers of {@link ConsentProviderRuntime.subscribe} are
+	 * notified.
+	 */
+	setEnabled: (enabled: boolean) => void;
+	/**
+	 * Apply a component's new options.
+	 *
+	 * Live options (listed on {@link ConsentProviderRuntimeOptions}) are
+	 * compared with the previous set and only what changed is applied: a new
+	 * user is identified, new overrides are set and `init()` runs again,
+	 * vendors are re-declared, scripts and rules go to their modules, a
+	 * module turned on or off is mounted or unmounted. Callbacks are always
+	 * read from the latest set. A change to `mode`, `i18n` or `experiment`
+	 * logs a warning outside production.
+	 */
+	update: (options: ConsentRuntimeUpdate) => void;
+	/**
+	 * Subscribe to {@link ConsentProviderRuntime.kernel},
+	 * {@link ConsentRuntime.iab} or {@link ConsentProviderRuntime.enabled}
+	 * changing. Read them again in the listener. Consent state changes
+	 * arrive through `kernel.subscribe`, not here.
+	 */
+	subscribe: (listener: () => void) => Unsubscribe;
 }

@@ -310,3 +310,45 @@ describe('runtime experiments', () => {
 		runtime.dispose();
 	});
 });
+
+describe('the host theme', () => {
+	// The host styles accept and reject unequally; the arm evens them out.
+	// Only the arm merged over the host theme is valid, so this pins that
+	// the runtime validates arms against `theme`. Vue's copy left it out.
+	const evening: ConsentExperiment = {
+		arms: {
+			quiet: {
+				theme: {
+					consentActions: { reject: { mode: 'filled', variant: 'primary' } },
+				},
+			},
+		},
+		id: 'button-style',
+	};
+	const uneven = {
+		consentActions: {
+			accept: { mode: 'filled', variant: 'primary' },
+			reject: { mode: 'stroke', variant: 'neutral' },
+		},
+	} as const;
+
+	test('validates arms against the theme they render with', async () => {
+		const error = vi.spyOn(console, 'error').mockImplementation(() => {
+			// Rejected arms are reported here.
+		});
+		const runtime = createConsentRuntime({
+			experiment: evening,
+			mode: custom(createTransport()),
+			theme: uneven,
+		});
+		runtime.start();
+		await settled(runtime);
+		// Without the host theme the arm trips a diagnostic, the experiment is
+		// rejected and no arm is recorded.
+		expect(runtime.kernel.getSnapshot().experiment).toMatchObject({
+			id: 'button-style',
+		});
+		expect(error).not.toHaveBeenCalled();
+		runtime.dispose();
+	});
+});

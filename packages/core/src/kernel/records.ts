@@ -12,8 +12,8 @@
  *   so a delayed server read cannot overwrite a newer local action.
  * - `identify()` and `set.subjectId` change who the records belong to.
  *
- * Clearing is `hydrate()` with `null`s followed by `records:cleared`, which
- * the save outbox listens for.
+ * Clearing (`clear-records.ts`) is `hydrate()` with `null`s followed by
+ * `records:cleared`, which the save outbox listens for.
  */
 import type {
 	ConsentSnapshot,

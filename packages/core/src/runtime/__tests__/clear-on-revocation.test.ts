@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { writePolicyResolutionWire } from '@c15t/schema/types';
-import { afterEach, beforeEach, expect, test } from 'vitest';
+import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
 import {
 	matchedResolution,
@@ -21,6 +21,15 @@ const config = {
 	},
 };
 const resolution = matchedResolution(optInRule());
+
+/**
+ * Data clearing loads on demand (it is opt-in), so it starts working once
+ * its chunk has landed.
+ */
+const startAndLoad = async (runtime: ConsentRuntime) => {
+	runtime.start();
+	await vi.dynamicImportSettled();
+};
 
 const seed = () => {
 	document.cookie = '_analytics=visitor; path=/';
@@ -63,11 +72,11 @@ afterEach(() => {
 	}
 });
 
-test('construction is inert; startup clears denied storage after hydration', () => {
+test('construction is inert; startup clears denied storage after hydration', async () => {
 	seed();
 	const runtime = createRuntime();
 	expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
-	runtime.start();
+	await startAndLoad(runtime);
 	expect(document.cookie).not.toContain('_analytics=');
 	expect(localStorage.getItem('analytics:visitor')).toBeNull();
 	expect(sessionStorage.getItem('analytics:session')).toBeNull();
@@ -101,7 +110,7 @@ test('preserves a persisted grant on reload, then clears before public callbacks
 			},
 		},
 	});
-	reloaded.start();
+	await startAndLoad(reloaded);
 	expect(reloaded.kernel.getSnapshot().effectivePermissions.measurement).toBe(
 		true
 	);
@@ -123,7 +132,7 @@ test('waits for hosted policy resolution instead of sweeping the provisional fal
 	runtime.kernel.events.on('command:init:completed', () =>
 		applied.resolve(undefined)
 	);
-	runtime.start();
+	await startAndLoad(runtime);
 	expect(runtime.kernel.getSnapshot().policyPending).toBe(true);
 	expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
 	pending.resolve({

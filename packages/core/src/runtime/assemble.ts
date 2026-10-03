@@ -1,0 +1,436 @@
+/**
+ * The consent runtime: a kernel plus every opt-in module, wired, with a
+ * lifecycle hosts drive and do not re-derive.
+ *
+ * - `start()` mounts the modules, then runs `init()` or adopts a resolved
+ *   prefetch; `dispose()` undoes it in reverse, the kernel last.
+ * - `clearRecords()` is the one clear sequence.
+ * - `setLanguage()` switches copy and asks the backend again.
+ *
+ * The modules come in through {@link ConsentRuntimeModules}. Options are
+ * read when they are used, not copied at construction, so the provider
+ * runtime (`provider-runtime.ts`) can hand in a live view of a component's
+ * props and stop and start the runtime around the same kernel. A host that
+ * configures once never loads that code.
+ */
+import type { AllConsentNames } from '../consent/consent-types';
+import { clearKernelRecords } from '../kernel/clear-records';
+import { hostExperiment, startExperiment } from '../libs/experiment';
+import { extractConsentNamesFromCondition } from '../libs/has';
+import type { IframeBlockerHandle } from '../modules/iframe-blocker/types';
+import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
+import type { NetworkHold } from '../modules/network-blocker/hold';
+import type { PersistenceHandle } from '../modules/persistence/types';
+import { resolveWindowDebugMode } from '../modules/window-debug';
+import type { ConsentKernel } from '../types';
+import { wireRuntimeCallbacks } from './callbacks';
+import { connectConsentSource } from './controls';
+import {
+	createRuntimeKernel,
+	hasResolvedPrefetch,
+	normalizeKernelUser,
+} from './runtime-kernel';
+import type {
+	ConsentRuntime,
+	ConsentRuntimeIABFactoryOptions,
+	ConsentRuntimeIABHandle,
+	ConsentRuntimeModules,
+	ConsentRuntimeOptions,
+	RuntimeIABOptions,
+} from './types';
+
+/** What the provider runtime needs beyond the public interface. @internal */
+export interface AssembledRuntime {
+	runtime: ConsentRuntime;
+	/**
+	 * Unmount every module and `window.c15t` and detach callbacks, keeping
+	 * the kernel and its records. `start()` mounts them again, then adopts
+	 * the prefetch at the current clock or runs `init()`.
+	 */
+	stop: () => void;
+}
+
+/** The storage `persistence` resolves to, from one option set. @internal */
+export const storageFor = function storageFor(
+	options: Pick<
+		ConsentRuntimeOptions,
+		'consentSource' | 'persistence' | 'storageConfig'
+	>
+): ConsentRuntimeOptions['storageConfig'] {
+	return (
+		(!options.consentSource && typeof options.persistence === 'object'
+			? options.persistence.storageConfig
+			: undefined) ?? options.storageConfig
+	);
+};
+
+const normalizeIABOptions = function normalizeIABOptions(
+	kernel: ConsentKernel,
+	iab: RuntimeIABOptions | undefined
+): Omit<ConsentRuntimeIABFactoryOptions, 'kernel'> | null {
+	if (iab === false || !iab || iab.enabled === false) {
+		return null;
+	}
+	const currentIab = kernel.getSnapshot().iab;
+	const cmpId = iab.cmpId ?? currentIab?.cmpId;
+	if (typeof cmpId !== 'number') {
+		return null;
+	}
+	return {
+		cmpId,
+		cmpVersion:
+			typeof iab.cmpVersion === 'string'
+				? Number(iab.cmpVersion)
+				: iab.cmpVersion,
+		customVendors: iab.customVendors ?? currentIab?.customVendors,
+		gvl: iab.gvl ?? currentIab?.gvl ?? undefined,
+		gvlURL: iab.gvlURL,
+		isServiceSpecific: iab.isServiceSpecific,
+		publisherCountryCode: iab.publisherCountryCode,
+		publisherRestrictions: iab.publisherRestrictions,
+		vendors: iab.vendors,
+	};
+};
+
+/**
+ * Build a runtime from options and module factories.
+ *
+ * @param options - The runtime configuration, read when used.
+ * @param modules - The module factories to mount.
+ * @returns The runtime and its `stop()`.
+ * @throws {Error} When `mode` is not a transport factory.
+ * @internal
+ */
+// oxlint-disable-next-line max-lines-per-function -- One cohesive lifecycle: construct, start, stop, dispose.
+export const assembleConsentRuntime = function assembleConsentRuntime(
+	options: ConsentRuntimeOptions,
+	modules: ConsentRuntimeModules
+): AssembledRuntime {
+	const { consentSource } = options;
+	const enabled = options.enabled ?? true;
+	const experiment = hostExperiment(options.experiment, options.prefetch);
+	const kernel = createRuntimeKernel(options);
+	// `start()` installs the blocker, often after the host rendered its
+	// children. Hold matching requests until then; the blocker takes over this
+	// runtime's hold and replays them. A runtime disposed before it started
+	// ends its hold itself, failing what it held closed. Either way, other
+	// callers' holds stay in place.
+	let hold: NetworkHold | null =
+		enabled &&
+		options.networkBlocker &&
+		options.networkBlocker.enabled !== false
+			? holdNetworkRequests(options.networkBlocker.rules)
+			: null;
+
+	let iabHandle: ConsentRuntimeIABHandle | null = null;
+	let iframeBlocker: IframeBlockerHandle | null = null;
+	let persistenceHandle: PersistenceHandle | null = null;
+	let started = false;
+	let disposed = false;
+	let adopted = false;
+
+	const iabListeners = new Set<
+		(handle: ConsentRuntimeIABHandle | null) => void
+	>();
+	const emitIAB = function emitIAB(handle: ConsentRuntimeIABHandle | null) {
+		iabHandle = handle;
+		for (const listener of iabListeners) {
+			listener(handle);
+		}
+	};
+
+	// Attached at construction, so they hear events from the first `start()`.
+	const wire = (): (() => void)[] => [
+		wireRuntimeCallbacks({
+			callbacks: options.callbacks,
+			kernel,
+		}),
+		modules.watchRevocationReload({
+			getOnBeforeReload: () =>
+				options.callbacks?.onBeforeConsentRevocationReload,
+			isEnabled: () => options.reloadOnConsentRevoked !== false,
+			kernel,
+		}),
+		// Vendors the backend declares arrive with init. Their categories
+		// become selectable the same way a code-declared vendor's do at
+		// construction.
+		kernel.events.on('init:applied', ({ snapshot }) => {
+			const declared = snapshot.vendors?.declared ?? [];
+			if (declared.length > 0) {
+				kernel.set.registerConsentCategories(
+					declared.flatMap((vendor) =>
+						extractConsentNamesFromCondition(vendor.category)
+					)
+				);
+			}
+		}),
+	];
+	// Teardown runs in reverse push order, so the wiring, pushed first, is
+	// detached after every module that reads from the kernel.
+	let disposers: (() => void)[] = wire();
+
+	const runInit = async function runInit(): Promise<void> {
+		if (disposed || consentSource || !enabled) {
+			return;
+		}
+		await kernel.commands.init();
+	};
+
+	const startIAB = function startIAB() {
+		const { createIAB } = options;
+		if (!(enabled && createIAB && options.iab) || consentSource) {
+			return;
+		}
+		let mounted = false;
+		const mountWhenReady = function mountWhenReady() {
+			if (mounted) {
+				return;
+			}
+			const iabOptions = normalizeIABOptions(kernel, options.iab);
+			if (!iabOptions) {
+				return;
+			}
+			mounted = true;
+			const handle = createIAB({ ...iabOptions, kernel });
+			emitIAB(handle);
+			disposers.push(() => {
+				handle.dispose();
+				mounted = false;
+				emitIAB(null);
+			});
+		};
+
+		mountWhenReady();
+		// A hosted backend can return `cmpId` and the GVL from `/init`, so
+		// keep watching until the snapshot carries enough to mount.
+		disposers.push(kernel.subscribe(mountWhenReady));
+	};
+
+	const stop = function stop(): void {
+		started = false;
+		for (const dispose of disposers.reverse()) {
+			dispose();
+		}
+		disposers = [];
+	};
+
+	const runtime: ConsentRuntime = {
+		clearRecords() {
+			if (persistenceHandle) {
+				persistenceHandle.clear();
+				return;
+			}
+			clearKernelRecords(kernel);
+		},
+		get consentCategories(): AllConsentNames[] {
+			const snapshot = kernel.getSnapshot();
+			return [
+				'necessary',
+				...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
+			];
+		},
+		dispose() {
+			disposed = true;
+			stop();
+			kernel.dispose();
+			// No blocker took the hold over, so nothing else ends it, and
+			// nothing checked consent for what it held: those requests fail
+			// as blocked rather than wait for the rest of the page.
+			hold?.block();
+			hold = null;
+			iabListeners.clear();
+		},
+		experiment,
+		get iab() {
+			return iabHandle;
+		},
+		async identify(user) {
+			const nextUser = normalizeKernelUser(user);
+			if (!nextUser) {
+				return;
+			}
+			try {
+				await kernel.commands.identify(nextUser);
+			} catch {
+				// Surfaced through the `command:error` event and `onError`.
+			}
+		},
+		kernel,
+		onIABChange(listener) {
+			iabListeners.add(listener);
+			return function unsubscribeIAB() {
+				iabListeners.delete(listener);
+			};
+		},
+		processIframes() {
+			iframeBlocker?.processAllIframes();
+		},
+		reconcileStorage() {
+			return persistenceHandle?.reconcile() ?? false;
+		},
+		reinit: runInit,
+		resetVendorDraft() {
+			kernel.set.vendorDraft(null);
+		},
+		setConsentCategories(categories) {
+			kernel.set.consentCategories(categories);
+		},
+		setLanguage(language) {
+			if (language !== kernel.getSnapshot().overrides.language) {
+				kernel.set.language(language);
+				void runInit();
+			}
+		},
+		setOverrides(overrides) {
+			kernel.set.overrides(overrides);
+		},
+		stageVendorConsent(vendorId, granted) {
+			kernel.set.vendorDraft({ [vendorId]: granted });
+		},
+		// oxlint-disable-next-line complexity -- Starts the runtime modules in dependency order.
+		start() {
+			if (started || disposed || typeof document === 'undefined') {
+				return;
+			}
+			started = true;
+			if (disposers.length === 0) {
+				disposers = wire();
+			}
+
+			if (options.windowDebug !== false) {
+				const windowDebug = modules.createWindowDebug({
+					mode: resolveWindowDebugMode(options.mode),
+					pkg: options.pkg ?? '@c15t/core',
+				});
+				disposers.push(() => windowDebug.dispose());
+			}
+
+			const { persistence: persistenceOption } = options;
+			if (enabled && !consentSource && persistenceOption !== false) {
+				const { skipHydration, sync } =
+					typeof persistenceOption === 'object' ? persistenceOption : {};
+				const persistence = modules.createPersistence({
+					kernel,
+					skipHydration:
+						skipHydration ?? Boolean(options.prefetch?.initialRecords),
+					storageConfig: storageFor(options),
+					sync,
+				});
+				persistenceHandle = persistence;
+				disposers.push(() => {
+					persistence.dispose();
+					persistenceHandle = null;
+				});
+			}
+			if (enabled && consentSource) {
+				disposers.push(connectConsentSource(kernel, consentSource));
+				kernel.events.emit({
+					snapshot: kernel.getSnapshot(),
+					type: 'init:applied',
+				});
+			}
+			// After hydration, so a returning visitor's subject id seeds the
+			// arm. The controller loads as its own chunk; a held prompt waits.
+			if (enabled && experiment && !consentSource) {
+				disposers.push(
+					startExperiment({
+						experiment,
+						kernel,
+						presentation: options.presentation,
+						storageConfig: options.storageConfig,
+						theme: options.theme,
+					})
+				);
+			}
+
+			// A server-resolved prefetch already holds the init answer; asking
+			// for it again is one request per page load on every SSR route.
+			if (enabled && !consentSource) {
+				if (hasResolvedPrefetch(options.prefetch)) {
+					// What the server rendered is the visitor's first impression,
+					// so evaluate at its clock; a restart evaluates now.
+					kernel.hydrate({
+						now: adopted ? Date.now() : kernel.getServerSnapshot().evaluatedAt,
+					});
+					adopted = true;
+					// No init call marks this kernel live, so do it here.
+					kernel.markLive();
+					const { gpc } = kernel.getSnapshot().privacySignals;
+					if (gpc.detected && gpc.active) {
+						kernel.set.privacySignals({ gpc: true });
+					}
+					// The prefetch stands in for the response, so replay the event
+					// the applied response would have raised.
+					kernel.events.emit({
+						snapshot: kernel.getSnapshot(),
+						type: 'init:applied',
+					});
+				} else {
+					void runInit();
+				}
+			}
+
+			// Not gated on `enabled`: a disabled runtime grants every category, so
+			// the loader mounts the configured scripts straight away. Skipping it
+			// would silently drop every consent-gated integration on a site that
+			// turned consent management off.
+			if (options.scripts && options.scripts.length > 0) {
+				const loader = modules.createScriptLoader({
+					kernel,
+					nonce: options.nonce,
+					onDebug: options.scriptLoader?.onDebug,
+					scripts: options.scripts,
+				});
+				disposers.push(() => loader.dispose());
+			}
+
+			if (enabled && options.networkBlocker) {
+				// Never omitted: without a hold, the blocker ends every caller's
+				// hold, including ones a disabled blocker must not.
+				const claimed = hold ?? NOT_HELD;
+				hold = null;
+				const blocker = modules.createNetworkBlocker({
+					enabled: options.networkBlocker.enabled,
+					hold: claimed,
+					kernel,
+					logBlockedRequests: options.networkBlocker.logBlockedRequests,
+					onRequestBlocked: options.networkBlocker.onRequestBlocked,
+					rules: options.networkBlocker.rules,
+				});
+				disposers.push(() => {
+					blocker.dispose();
+					// A lazy blocker disposed before it loaded never took the hold
+					// over, and nothing checked consent for what it held: fail it
+					// closed. A no-op once a blocker took over.
+					claimed.block();
+				});
+			}
+
+			if (enabled && options.iframeBlocker !== false) {
+				const blocker = modules.createIframeBlocker({
+					kernel,
+					...(options.iframeBlocker ?? {}),
+				});
+				iframeBlocker = blocker;
+				disposers.push(() => {
+					iframeBlocker = null;
+					blocker.dispose();
+				});
+			}
+
+			startIAB();
+			if (enabled && options.clearOnRevocation) {
+				const cleanup = modules.createClearOnRevocation({
+					config: options.clearOnRevocation,
+					kernel,
+					storageConfig: storageFor(options),
+				});
+				disposers.push(() => cleanup.dispose());
+			}
+		},
+		get started() {
+			return started;
+		},
+	};
+	return { runtime, stop };
+};

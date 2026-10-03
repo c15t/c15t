@@ -67,7 +67,8 @@ it.each(['direct init', 'queued config'])(
 		api.init(configuration === 'direct init' ? options : undefined);
 		await api.ready();
 		expect(api.has('measurement')).toBe(false);
-		expectAnalyticsCleared();
+		// Data clearing loads on demand, then sweeps denied categories.
+		await vi.waitFor(expectAnalyticsCleared);
 
 		await api.acceptAll();
 		await vi.waitFor(() =>
