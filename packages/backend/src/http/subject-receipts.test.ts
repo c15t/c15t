@@ -48,6 +48,23 @@ const receipt = (value: boolean, confirmedAt = T0) => ({
 	value,
 });
 
+/**
+ * Rewrites the only consent row as the 2.x backend stores it: no receipts,
+ * and `purposeIds` inside the `{ json }` envelope its ORM wrote.
+ */
+const rewriteAs2xRow = (harness: HttpHarness) =>
+	harness.runtime.runPromise(
+		Effect.gen(function* rewrite() {
+			const sql = yield* SqlClient.SqlClient;
+			const rows = yield* sql<{ purposeIds: unknown }>`
+				select ${sql('purposeIds')} from ${sql('consent')}
+			`;
+			const stored = rows[0]?.purposeIds;
+			const ids = typeof stored === 'string' ? JSON.parse(stored) : stored;
+			yield* sql`update ${sql('consent')} set ${sql('choice')} = null, ${sql('purposeIds')} = ${JSON.stringify({ json: ids })}`;
+		})
+	);
+
 const base = {
 	domain: 'example.com',
 	subjectId: 'sub_receipts1',
@@ -379,6 +396,127 @@ for (const engine of ENGINES) {
 				},
 				version: 3,
 			});
+		});
+
+		it('reads a 2.x row whose purposes sit in a json envelope', async () => {
+			// The 2.x backend wrote `purposeIds: { json: [...] }`, and its Kysely
+			// adapter stored the envelope as-is. That row is the visitor's newest
+			// act, so it has to read as the grant it holds, not as nothing that
+			// also clears the earlier v3 grant.
+			await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T1,
+				preferences: { marketing: false, measurement: true, necessary: true },
+			});
+			await rewriteAs2xRow(harness);
+			await harness.json('POST', '/subjects', {
+				...base,
+				choice: { categories: { marketing: receipt(true, T0) }, version: 3 },
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+
+			const read = await harness.json('GET', `/subjects/${base.subjectId}`);
+			assert.deepStrictEqual(read.body.subjectChoice, {
+				categories: {
+					measurement: {
+						basis: { kind: 'legacy-v2' },
+						confirmedAt: T1,
+						value: true,
+					},
+				},
+				version: 3,
+			});
+		});
+
+		it('accepts a retry of a save the 2.x backend recorded', async () => {
+			// The 2.x backend stored the save but its response was lost, and the
+			// retry reached this backend. The row has no receipts, while this
+			// backend turns the retry's preferences into receipts.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+			await rewriteAs2xRow(harness);
+
+			const retry = await harness.json('POST', '/subjects', save);
+			assert.strictEqual(retry.status, 200);
+
+			const changed = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: false, measurement: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
+		});
+
+		it('compares receipts a client sends against a row with none', async () => {
+			// A v3 client's receipts can carry what its purposes do not: a grant
+			// left out of the preference map, or a new refusal. Neither may be
+			// acknowledged against a row that does not hold it, whether the row
+			// came from 2.x or from a v3 save with only `necessary`.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+
+			const refusal = await harness.json('POST', '/subjects', {
+				...save,
+				choice: { categories: { marketing: receipt(false) }, version: 3 },
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(refusal.status, 409);
+
+			await rewriteAs2xRow(harness);
+			const grant = await harness.json('POST', '/subjects', {
+				...save,
+				choice: { categories: { marketing: receipt(true) }, version: 3 },
+			});
+			assert.strictEqual(grant.status, 409);
+		});
+
+		it('refuses a refusal added to a v3 row with no receipts', async () => {
+			// A save with only `necessary` stores no receipts, like a 2.x row. A
+			// receipt-less retry that adds a refusal grants the same purposes,
+			// but the refusal would never be stored, so it is a different act.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+
+			const retry = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: false, necessary: true },
+			});
+			assert.strictEqual(retry.status, 409);
+		});
+
+		it('refuses a retry against a 2.x row whose purposes cannot be read', async () => {
+			// Nothing on the row can be compared with the retry, so accepting it
+			// would answer 200 for grants the row does not hold.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: false, measurement: false, necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+			await harness.runtime.runPromise(
+				Effect.gen(function* corrupt() {
+					const sql = yield* SqlClient.SqlClient;
+					yield* sql`update ${sql('consent')} set ${sql('choice')} = null, ${sql('purposeIds')} = ${'{"json":{"json":["pur_x"]}}'}`;
+				})
+			);
+
+			const changed = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
 		});
 
 		it('skips a row whose stored receipts cannot be read rather than salvaging its grants', async () => {

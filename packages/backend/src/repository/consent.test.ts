@@ -17,7 +17,12 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { singleTenant } from '../db/tenant';
-import { assertSamePurposes, assertSameVendors, record } from './consent';
+import {
+	assertSamePurposes,
+	assertSameSubmission,
+	assertSameVendors,
+	record,
+} from './consent';
 
 // Tests run single-tenant unless a case says otherwise; the scope is a
 // service, so a query cannot run without one.
@@ -204,6 +209,20 @@ describe('assertSamePurposes', () => {
 		assert.strictEqual(result._tag, 'Success');
 	});
 
+	it('compares a 2.x row through its json envelope', async () => {
+		// Postgres and MySQL return the envelope as an object, SQLite as text.
+		const results = await Promise.all(
+			[{ json: ['a', 'b'] }, '{"json":["a","b"]}'].flatMap((stored) => [
+				run(assertSamePurposes(stored, ['b', 'a'])),
+				run(assertSamePurposes(stored, ['a'])),
+			])
+		);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Success', 'Failure', 'Success', 'Failure']
+		);
+	});
+
 	it('says nothing about a row it cannot read', async () => {
 		// Unparseable or absent is not evidence of a mismatch, and refusing on
 		// it would turn a storage oddity into a rejected consent.
@@ -214,6 +233,82 @@ describe('assertSamePurposes', () => {
 		assert.strictEqual(
 			(await run(assertSamePurposes('not json', ['a'])))._tag,
 			'Success'
+		);
+	});
+});
+
+describe('assertSameSubmission against a row with no receipts', () => {
+	// The row a 2.x backend writes: purposes, and no `choice`. This backend
+	// builds receipts for a 2.x client's save, so they cannot be compared.
+	const run = <A>(effect: Effect.Effect<A, unknown, never>) =>
+		Effect.runPromise(Effect.result(effect));
+	const retry = {
+		...submission,
+		choice: {
+			categories: {
+				marketing: {
+					basis: { kind: 'legacy-v2' as const },
+					confirmedAt: GIVEN_AT.getTime(),
+					value: true,
+				},
+			},
+			version: 3 as const,
+		},
+		choiceFromPreferences: true,
+		purposeIds: ['a', 'b'],
+	};
+	const row = (purposeIds: unknown) => ({
+		choice: null,
+		purposeIds,
+		vendorChoice: null,
+	});
+
+	it('accepts a retry whose purposes match', async () => {
+		const results = await Promise.all([
+			run(assertSameSubmission(row({ json: ['b', 'a'] }), retry)),
+			run(assertSameSubmission(row('{"json":["a","b"]}'), retry)),
+		]);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Success', 'Success']
+		);
+	});
+
+	it('refuses a retry whose purposes differ', async () => {
+		const result = await run(assertSameSubmission(row({ json: ['a'] }), retry));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('compares receipts against a row this backend wrote', async () => {
+		// A v3 save with only `necessary` stores no receipts either, but its
+		// purposes are a bare list. A retry adding a refusal is a new act.
+		const result = await run(assertSameSubmission(row(['a', 'b']), retry));
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('compares receipts a client sent', async () => {
+		// A client's receipts can grant or refuse what its purposes do not
+		// show, and a v3 save with only `necessary` also stores no receipts.
+		const result = await run(
+			assertSameSubmission(row({ json: ['a', 'b'] }), {
+				...retry,
+				choiceFromPreferences: false,
+			})
+		);
+		assert.strictEqual(result._tag, 'Failure');
+	});
+
+	it('refuses a retry it cannot check', async () => {
+		// Unreadable purposes pass the purpose check, so the receipts are the
+		// only evidence left. Waiving them would accept any grant.
+		const results = await Promise.all([
+			run(assertSameSubmission(row({ json: { json: ['a', 'b'] } }), retry)),
+			run(assertSameSubmission(row('not json'), retry)),
+			run(assertSameSubmission(undefined, retry)),
+		]);
+		assert.deepStrictEqual(
+			results.map((result) => result._tag),
+			['Failure', 'Failure', 'Failure']
 		);
 	});
 });

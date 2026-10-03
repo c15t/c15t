@@ -152,6 +152,24 @@ export const loadDriver = <A>(
 	);
 
 /**
+ * Appends a Postgres startup option to a connection URL.
+ *
+ * Appended to any existing `options`, not substituted for them. A connection
+ * string carrying `?options=-c statement_timeout=5s` would otherwise lose that
+ * silently — the same class of bug as dropping `sslmode`. Postgres applies
+ * repeated `-c` settings in order, so an appended one wins.
+ */
+const withStartupOption = (url: string, option: string): string => {
+	const parsed = new URL(url);
+	const existing = parsed.searchParams.get('options');
+	parsed.searchParams.set(
+		'options',
+		existing ? `${existing} ${option}` : option
+	);
+	return parsed.toString();
+};
+
+/**
  * Puts a schema on the connection's `search_path`.
  *
  * Done on the connection rather than by qualifying every table name, because
@@ -183,18 +201,36 @@ export const withSearchPath = function withSearchPath(
 		);
 	}
 
+	return withStartupOption(url, `-c search_path=${schema}`);
+};
+
+/**
+ * Pins a Postgres connection's session time zone to UTC.
+ *
+ * Timestamp columns are `timestamp` without a time zone, and the driver binds
+ * a `Date` as `timestamptz`, so Postgres converts it to the session's zone on
+ * the way in. Reads decode the stored wall clock as UTC. Outside a UTC
+ * session, every stored time is shifted by the zone's offset, and a 2.x
+ * backend sharing the database reads different instants from the same rows.
+ * Overrides any `timezone` the URL sets: c15t stores UTC on every connection.
+ *
+ * @internal
+ */
+export const withPostgresUtc = (url: string): string =>
+	withStartupOption(url, '-c timezone=UTC');
+
+/**
+ * Pins a MySQL connection to UTC.
+ *
+ * mysql2 writes and reads `datetime` values in the Node process's local zone
+ * unless told otherwise, so a server outside UTC would store shifted times.
+ * Overrides any `timezone` the URL sets.
+ *
+ * @internal
+ */
+export const withMysqlUtc = (url: string): string => {
 	const parsed = new URL(url);
-	// Appended to any existing `options`, not substituted for them. A connection
-	// string carrying `?options=-c timezone=UTC` would otherwise lose that
-	// silently — the same class of bug as dropping `sslmode`, which this
-	// function already takes care to preserve.
-	const existing = parsed.searchParams.get('options');
-	parsed.searchParams.set(
-		'options',
-		existing
-			? `${existing} -c search_path=${schema}`
-			: `-c search_path=${schema}`
-	);
+	parsed.searchParams.set('timezone', 'Z');
 	return parsed.toString();
 };
 
@@ -214,7 +250,9 @@ const fromConfig = (
 					// them out of logs and error messages by construction.
 					({ PgClient }) =>
 						PgClient.layer({
-							url: Redacted.make(withSearchPath(config.url, config.schema)),
+							url: Redacted.make(
+								withPostgresUtc(withSearchPath(config.url, config.schema))
+							),
 						})
 				)
 			);
@@ -223,7 +261,7 @@ const fromConfig = (
 				Effect.map(
 					loadDriver('mysql', () => import('@effect/sql-mysql2')),
 					({ MysqlClient }) =>
-						MysqlClient.layer({ url: Redacted.make(config.url) })
+						MysqlClient.layer({ url: Redacted.make(withMysqlUtc(config.url)) })
 				)
 			);
 		case 'sqlite':

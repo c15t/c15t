@@ -45,6 +45,8 @@ export interface ConsentSubmissionRequest {
 	readonly purposeIds: readonly string[];
 	/** v3 receipts this act confirmed, only those categories. */
 	readonly choice?: SubjectChoiceWire | null;
+	/** See {@link ConsentSubmission.choiceFromPreferences}. */
+	readonly choiceFromPreferences?: boolean;
 	/** Per-vendor grants this act carried, the complete map. */
 	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly givenAt: Date;
@@ -114,6 +116,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 
 	const submission: ConsentSubmission = {
 		choice: request.choice,
+		choiceFromPreferences: request.choiceFromPreferences,
 		consentAction: request.consentAction,
 		domainId: request.domainId,
 		experimentArm: request.experimentArm,
