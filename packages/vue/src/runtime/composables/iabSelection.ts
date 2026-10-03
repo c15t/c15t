@@ -1,6 +1,4 @@
 import { getIABControls } from '@c15t/core';
-import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
-import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import { computed } from 'vue';
 import type { Ref } from 'vue';
 
@@ -41,12 +39,18 @@ export const createDefaultIabSelection =
 		};
 	};
 
+/** The preference centre tab, shared by every IAB surface on the page. */
+const useIabPreferenceTab =
+	function useIabPreferenceTab(): Ref<IabPreferenceTab> {
+		return createVueState<IabPreferenceTab>(
+			'c15t:iab-preference-tab',
+			() => 'purposes'
+		);
+	};
+
 export const useConsentIabStore = function useConsentIabStore() {
 	const context = useConsentKernelContext();
-	const tab = createVueState<IabPreferenceTab>(
-		'c15t:iab-preference-tab',
-		() => 'purposes'
-	);
+	const tab = useIabPreferenceTab();
 
 	return computed<ConsentIabSelection>({
 		get: () => {
@@ -90,108 +94,24 @@ export const useConsentIabSelection =
 		});
 	};
 
-export const buildAcceptAllIab = function buildAcceptAllIab(
-	gvlData: GlobalVendorList,
-	vendors: NonIABVendor[],
-	tab: IabPreferenceTab
-): ConsentIabSelection {
-	const purposeConsents: Record<number, boolean> = {};
-	const purposeLegitimateInterests: Record<number, boolean> = {};
-	for (const purposeId of Object.keys(gvlData.purposes)) {
-		purposeConsents[Number(purposeId)] = true;
-		purposeLegitimateInterests[Number(purposeId)] = true;
-	}
-
-	const vendorConsents: Record<string, boolean> = {};
-	const vendorLegitimateInterests: Record<string, boolean> = {};
-	for (const [vendorId, vendor] of Object.entries(gvlData.vendors)) {
-		const id = String(vendorId);
-		if (vendor.purposes && vendor.purposes.length > 0) {
-			vendorConsents[id] = true;
-		}
-		if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
-			vendorLegitimateInterests[id] = true;
-		}
-	}
-	for (const vendor of vendors) {
-		const id = String(vendor.id);
-		if (vendor.purposes && vendor.purposes.length > 0) {
-			vendorConsents[id] = true;
-		}
-		if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
-			vendorLegitimateInterests[id] = true;
-		}
-	}
-
-	const specialFeatureOptIns: Record<number, boolean> = {};
-	for (const featureId of Object.keys(gvlData.specialFeatures ?? {})) {
-		specialFeatureOptIns[Number(featureId)] = true;
-	}
-
-	return {
-		preferenceCenterTab: tab,
-		purposeConsents,
-		purposeLegitimateInterests,
-		specialFeatureOptIns,
-		vendorConsents,
-		vendorLegitimateInterests,
-	};
-};
-
-export const buildRejectAllIab = function buildRejectAllIab(
-	gvlData: GlobalVendorList,
-	vendors: NonIABVendor[],
-	tab: IabPreferenceTab
-): ConsentIabSelection {
-	const purposeConsents: Record<number, boolean> = { 1: true };
-	const purposeLegitimateInterests: Record<number, boolean> = {};
-	for (const purposeId of Object.keys(gvlData.purposes)) {
-		if (Number(purposeId) !== 1) {
-			purposeConsents[Number(purposeId)] = false;
-			purposeLegitimateInterests[Number(purposeId)] = false;
-		}
-	}
-
-	const vendorConsents: Record<string, boolean> = {};
-	const vendorLegitimateInterests: Record<string, boolean> = {};
-	for (const [vendorId, vendor] of Object.entries(gvlData.vendors)) {
-		const id = String(vendorId);
-		if (vendor.purposes && vendor.purposes.length > 0) {
-			vendorConsents[id] = false;
-		}
-		if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
-			vendorLegitimateInterests[id] = false;
-		}
-	}
-	for (const vendor of vendors) {
-		const id = String(vendor.id);
-		if (vendor.purposes && vendor.purposes.length > 0) {
-			vendorConsents[id] = false;
-		}
-		if (vendor.legIntPurposes && vendor.legIntPurposes.length > 0) {
-			vendorLegitimateInterests[id] = false;
-		}
-	}
-
-	const specialFeatureOptIns: Record<number, boolean> = {};
-	for (const featureId of Object.keys(gvlData.specialFeatures ?? {})) {
-		specialFeatureOptIns[Number(featureId)] = false;
-	}
-
-	return {
-		preferenceCenterTab: tab,
-		purposeConsents,
-		purposeLegitimateInterests,
-		specialFeatureOptIns,
-		vendorConsents,
-		vendorLegitimateInterests,
-	};
-};
-
+/**
+ * Save the visitor's IAB choice and encode its TC string.
+ *
+ * `'all'` and `'none'` go through the mounted CMP handle's `acceptAll()` /
+ * `rejectAll()`, the same blanket React and Svelte apply, so every adapter
+ * records the same purposes, vendors and special features. Without a
+ * mounted handle there is no CMP to encode a TC string, so a blanket
+ * records nothing.
+ *
+ * @returns A function that waits for the vendor list, applies `input` and
+ * saves. It rejects when the list fails to load or the runtime's CMP handle
+ * changes while it waits.
+ */
 export const useConsentIabSave = function useConsentIabSave() {
 	const init = useConsentInit();
 	const kernel = useConsentKernel();
 	const selection = useConsentIabSelection();
+	const preferenceTab = useIabPreferenceTab();
 	const context = useConsentKernelContext();
 
 	return async (input: IabConsentSaveInput, tab?: IabPreferenceTab) => {
@@ -202,36 +122,30 @@ export const useConsentIabSave = function useConsentIabSave() {
 				'IAB action cancelled because the consent runtime changed.'
 			);
 		}
-		const listed = init.value?.gvl;
-		if (!listed) {
+
+		if (input === 'all' || input === 'none') {
+			if (!controls) {
+				return;
+			}
+			if (tab) {
+				setVueRefValue(preferenceTab, tab);
+			}
+			if (input === 'all') {
+				controls.acceptAll();
+			} else {
+				controls.rejectAll();
+			}
+			await controls.save();
 			return;
 		}
-		// Grant or refuse the legal basis each vendor may use once publisher
-		// restrictions apply, not the one the list declares.
-		const gvlData = applyPublisherRestrictionsToGVL(
-			listed,
-			kernel.getSnapshot().iab?.publisherRestrictions
-		);
 
-		const customVendors = init.value?.customVendors ?? [];
-		const resolvedTab = tab ?? selection.value.preferenceCenterTab;
-
-		if (input === 'all') {
-			setVueRefValue(
-				selection,
-				buildAcceptAllIab(gvlData, customVendors, resolvedTab)
-			);
-		} else if (input === 'none') {
-			setVueRefValue(
-				selection,
-				buildRejectAllIab(gvlData, customVendors, resolvedTab)
-			);
-		} else {
-			setVueRefValue(selection, {
-				...input,
-				preferenceCenterTab: tab ?? input.preferenceCenterTab,
-			});
+		if (!init.value?.gvl) {
+			return;
 		}
+		setVueRefValue(selection, {
+			...input,
+			preferenceCenterTab: tab ?? input.preferenceCenterTab,
+		});
 		if (controls) {
 			await controls.save();
 		} else {
