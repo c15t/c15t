@@ -452,6 +452,33 @@ describe('update()', () => {
 
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
 	});
+
+	test('storage is read once: a new storage key warns and records stay under the first', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			// Asserted below.
+		});
+		const transport = createTransport();
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+			storageConfig: { storageKey: 'first-key' },
+		};
+		const runtime = create(options);
+		runtime.start();
+
+		// An equal storage config in a new object is not a change.
+		runtime.update({ ...options, storageConfig: { storageKey: 'first-key' } });
+		expect(warn).not.toHaveBeenCalled();
+
+		runtime.update({ ...options, storageConfig: { storageKey: 'next-key' } });
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
+
+		await runtime.kernel.commands.save('all');
+		await vi.waitFor(() =>
+			expect(localStorage.getItem('first-key')).not.toBeNull()
+		);
+		expect(localStorage.getItem('next-key')).toBeNull();
+	});
 });
 
 describe('the enabled toggle', () => {

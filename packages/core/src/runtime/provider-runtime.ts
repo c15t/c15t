@@ -51,7 +51,6 @@ const LIVE_OPTIONS = new Set<PropertyKey>([
 	'reloadOnConsentRevoked',
 	'scriptLoader',
 	'scripts',
-	'storageConfig',
 	'user',
 	'vendors',
 ]);
@@ -116,13 +115,24 @@ const vendorsKey = function vendorsKey(options: ConsentRuntimeUpdate): string {
 	]);
 };
 
+/**
+ * What the read-once options a warning compares come to. Storage is among
+ * them: persistence reads and writes one location for the runtime's life,
+ * and data clearing protects that same location, so neither follows a new
+ * `storageConfig` or `persistence`.
+ */
 const initialOnlyKey = function initialOnlyKey(
 	options: ConsentRuntimeUpdate
 ): string {
+	const { persistence } = options;
 	return JSON.stringify([
 		options.mode?.kind,
 		options.i18n,
 		hostExperiment(options.experiment, syncPrefetch(options.prefetch)),
+		storageFor(options),
+		typeof persistence === 'object'
+			? [persistence.skipHydration, persistence.sync]
+			: persistence !== false,
 	]);
 };
 
@@ -484,12 +494,6 @@ export const createConsentProviderRuntime =
 						: null
 				);
 			}
-			if (
-				target.cleanup.current() &&
-				storageFor(current)?.storageKey !== storageFor(previous)?.storageKey
-			) {
-				target.cleanup.replace({ storageConfig: storageFor(current) });
-			}
 		};
 
 		const setConsentCategories = function setConsentCategories(
@@ -589,7 +593,7 @@ export const createConsentProviderRuntime =
 					initialOnlyKey(current) !== initialOnlyKey(previous)
 				) {
 					console.warn(
-						'c15t: `mode`, `i18n` and `experiment` are read once. Create a new runtime (remount the provider) to change them.'
+						'c15t: `mode`, `i18n`, `experiment`, `persistence` and `storageConfig` are read once. Create a new runtime (remount the provider) to change them.'
 					);
 				}
 				const user = normalizeKernelUser(current.user);

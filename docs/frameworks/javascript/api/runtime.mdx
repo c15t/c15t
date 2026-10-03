@@ -131,13 +131,14 @@ above, plus:
 | `vendors`, `scripts`, network blocker `rules` | Vendors are declared again. Scripts go to the script loader, rules to the network blocker. A loader starts when scripts first appear. |
 | `networkBlocker` | New `rules` and `enabled` apply; leaving `enabled` out turns the blocker on. Requests new rules match wait until the blocker has them, including while an on-demand blocker loads. `false` removes the blocker; options where there were none add one. |
 | `iframeBlocker` | `false` removes the blocker. A new `disableAutomaticBlocking` rebuilds it. |
-| `storageConfig.storageKey` | Data clearing restarts so it keeps protecting the new key. |
 | `callbacks`, `reloadOnConsentRevoked` | Read when an event fires, so the latest values apply. |
 
 `nonce`, `scriptLoader.onDebug` and the network blocker's `logBlockedRequests`
 and `onRequestBlocked` are read when their module starts. Every other option is
-read once. Outside production, a change to `mode`, `i18n` or `experiment` logs
-a warning; create a new runtime to change them.
+read once. Storage counts among them: persistence keeps reading and writing
+where it started, and data clearing keeps protecting that location. Outside
+production, a change to `mode`, `i18n`, `experiment`, `persistence` or
+`storageConfig` logs a warning; create a new runtime to change them.
 
 `prefetch` may also be a promise, for example the result of a server helper
 that a framework streams to the browser, when `modules` includes

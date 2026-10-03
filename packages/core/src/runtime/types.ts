@@ -398,12 +398,12 @@ export interface ConsentRuntimeOptions {
  *
  * Options {@link ConsentProviderRuntime.update} applies to a running
  * runtime: `enabled`, `user`, `overrides`, `consentCategories`, `scripts`,
- * `vendors`, `networkBlocker`, `iframeBlocker`, `callbacks`,
- * `reloadOnConsentRevoked`, and the `storageConfig.storageKey` that
- * `clearOnRevocation` protects. `nonce`, `scriptLoader.onDebug` and the
+ * `vendors`, `networkBlocker`, `iframeBlocker`, `callbacks` and
+ * `reloadOnConsentRevoked`. `nonce`, `scriptLoader.onDebug` and the
  * network blocker's `logBlockedRequests` and `onRequestBlocked` are read
- * when their module mounts. Every other option is read once: create a new
- * runtime to change it.
+ * when their module mounts. Every other option is read once, storage
+ * included (`persistence`, `storageConfig`): create a new runtime to
+ * change it.
  */
 export interface ConsentProviderRuntimeOptions extends Omit<
 	ConsentRuntimeOptions,
@@ -621,8 +621,8 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * user is identified, new overrides are set and `init()` runs again,
 	 * vendors are re-declared, scripts and rules go to their modules, a
 	 * module turned on or off is mounted or unmounted. Callbacks are always
-	 * read from the latest set. A change to `mode`, `i18n` or `experiment`
-	 * logs a warning outside production.
+	 * read from the latest set. A change to `mode`, `i18n`, `experiment`,
+	 * `persistence` or `storageConfig` logs a warning outside production.
 	 */
 	update: (options: ConsentRuntimeUpdate) => void;
 	/**
