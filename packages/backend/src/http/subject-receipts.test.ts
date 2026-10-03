@@ -451,6 +451,29 @@ for (const engine of ENGINES) {
 			assert.strictEqual(changed.status, 409);
 		});
 
+		it('refuses a retry against a 2.x row whose purposes cannot be read', async () => {
+			// Nothing on the row can be compared with the retry, so accepting it
+			// would answer 200 for grants the row does not hold.
+			const save = {
+				...base,
+				givenAt: T0,
+				preferences: { marketing: false, measurement: false, necessary: true },
+			};
+			await harness.json('POST', '/subjects', save);
+			await harness.runtime.runPromise(
+				Effect.gen(function* corrupt() {
+					const sql = yield* SqlClient.SqlClient;
+					yield* sql`update ${sql('consent')} set ${sql('choice')} = null, ${sql('purposeIds')} = ${'{"json":{"json":["pur_x"]}}'}`;
+				})
+			);
+
+			const changed = await harness.json('POST', '/subjects', {
+				...save,
+				preferences: { marketing: true, measurement: false, necessary: true },
+			});
+			assert.strictEqual(changed.status, 409);
+		});
+
 		it('skips a row whose stored receipts cannot be read rather than salvaging its grants', async () => {
 			await harness.json('POST', '/subjects', {
 				...base,

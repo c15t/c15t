@@ -197,14 +197,6 @@ const storedChoice = (value: unknown): SubjectChoiceWire | null => {
  * Same reasoning as the purpose check: the id covers identity and not what
  * was confirmed, so a resubmission with different receipts looks like a
  * retry at the key level and has to be refused on content.
- *
- * One asymmetry is allowed, as for vendor maps: a stored row with no
- * receipts against a replay that carries some. A 2.x backend sharing the
- * database writes no receipts, and this backend turns every receipt-less
- * save into `legacy-v2` receipts, so a retry of a save the 2.x backend
- * recorded would otherwise always be refused. That replay is the same act.
- * The purpose check still refuses one whose grants differ, and the row
- * keeps no receipts. The other direction stays a conflict.
  */
 const assertSameChoice = Effect.fn('consent.assertSameChoice')(
 	function* assertSameChoice(
@@ -213,7 +205,7 @@ const assertSameChoice = Effect.fn('consent.assertSameChoice')(
 	) {
 		const stored = canonicalChoice(storedChoice(storedRaw));
 		const incoming = canonicalChoice(submitted);
-		if (stored === incoming || storedRaw === null || storedRaw === undefined) {
+		if (stored === incoming) {
 			return;
 		}
 		return yield* new ConsentPurposeConflictError({
@@ -348,7 +340,19 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 		submission: ConsentSubmission
 	) {
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
-		yield* assertSameChoice(stored?.choice, submission.choice);
+		// A 2.x backend sharing the database writes no receipts, and this
+		// backend turns every receipt-less save into `legacy-v2` receipts, so a
+		// retry of a save the 2.x backend recorded would always be refused here.
+		// That retry is the same act when the row's purposes were readable and
+		// matched above, so its receipts are not compared; the row keeps none.
+		// A row whose purposes cannot be read proves nothing, so it still is.
+		const legacyRow =
+			stored !== undefined &&
+			(stored.choice === null || stored.choice === undefined) &&
+			normalisePurposeIds(stored.purposeIds) !== undefined;
+		if (!legacyRow) {
+			yield* assertSameChoice(stored?.choice, submission.choice);
+		}
 		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
 	}
 );
