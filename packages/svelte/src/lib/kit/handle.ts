@@ -8,14 +8,31 @@
  * re-parses the same headers and the same cookie. This runs that work once and
  * publishes it on `event.locals.c15t`.
  */
-import { extractConsentRequestInputs } from '@c15t/schema/types';
+import { readRequestConsent } from '@c15t/core/server';
+import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
-import { resolveConsent } from '../server';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
 /** Options for {@link c15tHandle}. */
-export type C15tHandleOptions = ConsentRequestOptions;
+export interface C15tHandleOptions extends ConsentRequestOptions {
+	/**
+	 * Every page this handle serves is shared between visitors, as during a
+	 * prerender. The handle then reads no cookie or geo header and leaves
+	 * no stored consent, clock or privacy signal on `event.locals.c15t`, and
+	 * `loadConsent` makes no upstream call. Pass SvelteKit's `building`
+	 * flag: from `$app/environment` in SvelteKit 2, `$app/env` in
+	 * SvelteKit 3.
+	 *
+	 * @example
+	 * ```ts
+	 * import { building } from '$app/environment';
+	 *
+	 * export const handle = c15tHandle({ shared: building });
+	 * ```
+	 */
+	shared?: boolean;
+}
 
 /**
  * The `handle` hook signature, assignable to SvelteKit's `Handle` in both
@@ -43,7 +60,7 @@ export type C15tHandle = (input: {
  */
 const normalizeRequestHeaders = function normalizeRequestHeaders(
 	headers: Headers,
-	inputs: ReturnType<typeof extractConsentRequestInputs>
+	inputs: ConsentRequestHeaderInputs
 ): void {
 	try {
 		if (inputs.country) {
@@ -100,27 +117,34 @@ export const c15tHandle = function c15tHandle(
 ): C15tHandle {
 	return async ({ event, resolve }) => {
 		const { headers } = event.request;
-		const inputs = extractConsentRequestInputs(headers, {
-			country: options.country,
-			language: options.language,
-			region: options.region,
+		// A prerendered page is one HTML file for every visitor: no cookie or
+		// geo header of whoever triggered the build belongs in it.
+		const { inputs, state: config } = readRequestConsent({
+			adapter: '@c15t/svelte',
+			overrides: {
+				country: options.country,
+				language: options.language,
+				region: options.region,
+			},
+			request: { headers, url: event.url },
+			shared: options.shared === true,
+			storage: options.cookieName
+				? { storageKey: options.cookieName }
+				: undefined,
 		});
-		normalizeRequestHeaders(headers, inputs);
-
-		const config = await resolveConsent({
-			cookieName: options.cookieName,
-			country: inputs.country,
-			headers,
-			language: inputs.language,
-			region: inputs.region,
-		});
+		if (!options.shared) {
+			normalizeRequestHeaders(headers, inputs);
+		}
 
 		const locals: C15tLocals = { config, inputs };
 		if (options.cookieName !== undefined) {
 			locals.cookieName = options.cookieName;
 		}
+		if (options.shared) {
+			locals.shared = true;
+		}
 		(event.locals as { c15t?: C15tLocals }).c15t = locals;
 
-		return resolve(event);
+		return await resolve(event);
 	};
 };

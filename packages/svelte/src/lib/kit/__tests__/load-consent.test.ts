@@ -1,16 +1,20 @@
-import { c15tProtocolHeaders } from '@c15t/core';
+/**
+ * Wiring tests for `loadConsent` on top of `resolveRequestConsent` from
+ * `@c15t/core/server`. The core suite pins the rules (forwarding, budget,
+ * self-route guard, deferral, experiment); these check what SvelteKit
+ * supplies: the inputs `c15tHandle` normalized, `event.url`, `event.fetch`
+ * as the in-process fetch, the platform's `waitUntil`, and the shared flag.
+ */
 import { clearManifestCache } from '@c15t/core/server';
 import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
-import { beforeEach, describe, expect, test, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { completeGVL } from '../../../../../iab/src/__tests__/fixtures/gvl-sample';
 import { c15tHandle } from '../handle';
 import { loadConsent } from '../load-consent';
 import { createSvelteKitConsentRouteHandlers } from '../routes';
-import type { C15tLocals } from '../types';
 import { CONSENTED_COOKIE, createEvent } from './event';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -36,12 +40,14 @@ const INIT_PAYLOAD = {
 	translations: { language: 'de', translations: {} },
 };
 
-const jsonResponse = function jsonResponse(body: unknown, status = 200) {
-	return new Response(JSON.stringify(body), {
-		headers: { 'content-type': 'application/json' },
-		status,
-	});
-};
+const answer = () =>
+	vi.fn<typeof globalThis.fetch>(() =>
+		Promise.resolve(
+			new Response(JSON.stringify(INIT_PAYLOAD), {
+				headers: { 'x-c15t-policy-contract': '1' },
+			})
+		)
+	);
 
 /** Runs `c15tHandle` so `event.locals.c15t` is populated, as in a real app. */
 const withHandle = async function withHandle(
@@ -55,511 +61,159 @@ const withHandle = async function withHandle(
 	return event;
 };
 
-/** The same stored consent, under a caller-chosen storage key. */
 const CUSTOM_COOKIE = CONSENTED_COOKIE.replace('c15t=', 'my-consent=');
 
+beforeEach(() => {
+	clearManifestCache();
+});
+
+afterEach(() => {
+	vi.useRealTimers();
+});
+
 describe('loadConsent', () => {
-	beforeEach(() => {
-		clearManifestCache();
-	});
-
-	test('reuses the config the handle already computed', async () => {
-		const event = await withHandle(
-			createEvent({
-				headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'DE' },
-			})
-		);
-
-		const config = await loadConsent(event);
-
-		expect(config).toBe((event.locals as { c15t: C15tLocals }).c15t.config);
-		expect(config.initialRecords?.choice).not.toBeNull();
-		expect(config.initialOverrides?.country).toBe('DE');
-	});
-
-	test('per-call inputs beat the ones the handle resolved', async () => {
+	test('reads the inputs the handle normalized; per-call inputs win', async () => {
 		const event = await withHandle(
 			createEvent({
 				headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'CA' },
 			})
 		);
+		const fromHandle = await loadConsent(event);
+		expect(fromHandle.initialOverrides?.country).toBe('CA');
+		expect(fromHandle.initialRecords?.choice).not.toBeNull();
 
-		const config = await loadConsent(event, { country: 'DE' });
-
-		expect(config.initialOverrides?.country).toBe('DE');
-	});
-
-	test('falls back to reading the request itself when the handle is absent', async () => {
-		const event = createEvent({
-			headers: { 'cf-ipcountry': 'FR', cookie: CONSENTED_COOKIE },
-		});
-
-		const config = await loadConsent(event);
-
-		expect(config.initialRecords?.choice).not.toBeNull();
-		expect(config.initialOverrides?.country).toBe('FR');
+		const perCall = await loadConsent(event, { country: 'DE' });
+		expect(perCall.initialOverrides?.country).toBe('DE');
 	});
 
 	test('keeps the handle cookie name when a per-call input overrides', async () => {
-		// A route naming its own country must not move the cookie read back
-		// to the default `c15t` key.
-		const event = await withHandle(
-			createEvent({
-				headers: { cookie: CUSTOM_COOKIE, 'x-c15t-country': 'CA' },
-			}),
-			{ cookieName: 'my-consent' }
-		);
-
-		const config = await loadConsent(event, { country: 'DE' });
-
-		expect(config.initialRecords?.choice).not.toBeNull();
-		expect(config.initialOverrides?.country).toBe('DE');
-	});
-
-	test('hosted mode reuses the handle cookie name', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
 		const event = await withHandle(
 			createEvent({ headers: { cookie: CUSTOM_COOKIE } }),
 			{ cookieName: 'my-consent' }
 		);
-
-		const config = await loadConsent(event, {
-			backendURL: 'https://api.example.com',
-			country: 'DE',
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-		});
-
+		const config = await loadConsent(event, { country: 'DE' });
 		expect(config.initialRecords?.choice).not.toBeNull();
 	});
 
-	test('a per-call cookie name still beats the handle one', async () => {
-		const event = await withHandle(
-			createEvent({ headers: { cookie: CONSENTED_COOKIE } }),
-			{ cookieName: 'my-consent' }
-		);
-
-		const config = await loadConsent(event, { cookieName: 'c15t' });
-
-		expect(config.initialRecords?.choice).not.toBeNull();
-	});
-
-	test('manifest mode folds the same-origin init route into the config', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
+	test('initRoute resolves through event.fetch with the request inputs', async () => {
+		const fetch = answer();
 		const event = createEvent({
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-			headers: { 'x-c15t-country': 'DE' },
-		});
-
-		const config = await loadConsent(event, { initRoute: '/api/c15t' });
-
-		expect(fetchImpl).toHaveBeenCalledWith('/api/c15t', {
-			headers: { ...c15tProtocolHeaders, 'x-c15t-country': 'DE' },
-			signal: expect.any(AbortSignal),
-		});
-		expect(config.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
-		expect(config.initialPolicyResolution?.policyId).toBe('eu-opt-in');
-		expect(config.initialOverrides?.country).toBe('DE');
-	});
-
-	test.each(['999', 'invalid'])(
-		'rejects an unsupported init-route producer contract %s',
-		async (contract) => {
-			const event = createEvent({
-				fetch: vi.fn(() =>
-					Promise.resolve(
-						Response.json(INIT_PAYLOAD, {
-							headers: { 'x-c15t-policy-contract': contract },
-						})
-					)
-				) as typeof globalThis.fetch,
-			});
-			const config = await loadConsent(event, { initRoute: '/api/c15t' });
-			expect(config.initialPolicyResolution).toMatchObject({
-				reason: 'unsupported-contract',
-				status: 'failed',
-			});
-		}
-	);
-
-	test('restates geo, language and GPC on the same-origin init call', async () => {
-		// event.fetch only inherits cookie/authorization, so anything the init
-		// route needs to resolve the policy has to be passed explicitly.
-		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
-		const event = createEvent({
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+			fetch,
 			headers: {
-				'accept-language': 'de-DE,de;q=0.9',
-				'cf-ipcountry': 'DE',
+				'accept-language': 'de-DE',
 				'sec-gpc': '1',
+				'x-c15t-country': 'DE',
 			},
 		});
-
 		const config = await loadConsent(event, { initRoute: '/api/c15t' });
-
-		expect(fetchImpl.mock.calls[0]?.[1]?.headers).toEqual({
-			...c15tProtocolHeaders,
-			'accept-language': 'de',
-			'sec-gpc': '1',
-			'x-c15t-country': 'DE',
-		});
-		expect(config.initialPrivacySignals?.gpc).toBe(true);
+		expect(fetch.mock.calls[0]?.[0]).toBe('/api/c15t');
+		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+		expect(headers.get('x-c15t-country')).toBe('DE');
+		expect(headers.get('accept-language')).toBe('de');
+		expect(headers.get('sec-gpc')).toBe('1');
+		expect(headers.get('x-c15t-timeout-ms')).toMatch(/^\d+$/u);
+		expect(config.initialPolicyResolution?.policyId).toBe('eu-opt-in');
 	});
 
-	test('option overrides reach the init route instead of the raw headers', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
-		const event = createEvent({
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-			headers: { 'cf-ipcountry': 'DE' },
-		});
-
-		await loadConsent(event, {
-			country: 'CA',
-			initRoute: '/api/c15t',
-			region: 'QC',
-		});
-
-		expect(fetchImpl.mock.calls[0]?.[1]?.headers).toEqual({
-			...c15tProtocolHeaders,
-			'x-c15t-country': 'CA',
-			'x-c15t-region': 'QC',
-		});
-	});
-
-	test('degrades to the cookie-only config when the init route fails', async () => {
-		const event = createEvent({
-			fetch: (() =>
-				Promise.resolve(
-					jsonResponse({}, 500)
-				)) as unknown as typeof globalThis.fetch,
-			headers: { cookie: CONSENTED_COOKIE },
-		});
-
-		const config = await loadConsent(event, { initRoute: '/api/c15t' });
-
-		expect(config.initialRecords?.choice).not.toBeNull();
-		expect(config.initialPolicyResolution).toBeUndefined();
-	});
-
-	test('degrades to the cookie-only config when the init route throws', async () => {
-		const event = createEvent({
-			fetch: (() =>
-				Promise.reject(
-					new Error('offline')
-				)) as unknown as typeof globalThis.fetch,
-			headers: { cookie: CONSENTED_COOKIE },
-		});
-
-		const config = await loadConsent(event, { initRoute: '/api/c15t' });
-
-		expect(config.initialRecords?.choice).not.toBeNull();
-	});
-
-	test('hosted mode calls the backend /init directly', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
-		const event = createEvent({ headers: { 'cf-ipcountry': 'DE' } });
-
-		const config = await loadConsent(event, {
-			backendURL: 'https://api.example.com',
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-		});
-
-		expect(fetchImpl.mock.calls[0]?.[0]).toBe('https://api.example.com/init');
-		expect(config.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
-	});
-
-	test('returns the base config when no mode is configured', async () => {
-		const event = createEvent({ headers: { 'cf-ipcountry': 'DE' } });
-
-		const config = await loadConsent(event);
-
-		expect(config).toMatchObject({ initialOverrides: { country: 'DE' } });
-	});
-
-	test('returns a JSON-serializable config', async () => {
-		const event = createEvent({
-			fetch: (() =>
-				Promise.resolve(
-					jsonResponse(INIT_PAYLOAD)
-				)) as unknown as typeof globalThis.fetch,
-			headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'DE' },
-		});
-
-		const config = await loadConsent(event, { initRoute: '/api/c15t' });
-
-		expect(JSON.parse(JSON.stringify(config))).toEqual(config);
-	});
-});
-
-describe('loadConsent time budget', () => {
-	/** A fetch that answers only when its request is aborted. */
-	const hangingFetch = function hangingFetch() {
-		const signals: (AbortSignal | undefined)[] = [];
-		const fetchImpl = vi.fn(
-			(_input: RequestInfo | URL, init?: RequestInit) =>
-				new Promise<Response>((_resolve, reject) => {
-					signals.push(init?.signal ?? undefined);
-					init?.signal?.addEventListener('abort', () =>
-						reject(new DOMException('aborted', 'AbortError'))
-					);
+	test('initRoute reaches the real route handler in-process', async () => {
+		const upstream = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(
+				new Response(JSON.stringify(MANIFEST_FIXTURE), {
+					headers: { 'cache-control': 'public, s-maxage=300' },
 				})
+			)
 		);
-		return { fetchImpl, signals };
-	};
-
-	beforeEach(() => {
-		clearManifestCache();
-		vi.useFakeTimers();
-		return () => {
-			vi.useRealTimers();
-		};
-	});
-
-	test('stops waiting for a hanging init route after 500 ms', async () => {
-		const { fetchImpl } = hangingFetch();
-		const event = createEvent({
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-			headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'DE' },
-		});
-		let settled: Awaited<ReturnType<typeof loadConsent>> | undefined;
-		void loadConsent(event, { initRoute: '/api/c15t' }).then((config) => {
-			settled = config;
-		});
-
-		await vi.advanceTimersByTimeAsync(499);
-		expect(settled).toBeUndefined();
-		await vi.advanceTimersByTimeAsync(1);
-
-		expect(settled?.initialRecords?.choice).not.toBeNull();
-		expect(settled?.initialOverrides?.country).toBe('DE');
-		expect(settled?.initialPolicyResolution).toBeUndefined();
-	});
-
-	test('aborts a hosted /init that outlives timeoutMs', async () => {
-		const { fetchImpl, signals } = hangingFetch();
-		const event = createEvent({
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-			headers: { cookie: CONSENTED_COOKIE },
-		});
-		const pending = loadConsent(event, {
+		const { GET } = createSvelteKitConsentRouteHandlers({
 			backendURL: 'https://api.example.com',
-			timeoutMs: 200,
+			fetch: upstream,
+			reportSessions: false,
 		});
-
-		await vi.advanceTimersByTimeAsync(200);
-		const config = await pending;
-
-		expect(fetchImpl.mock.calls[0]?.[0]).toBe('https://api.example.com/init');
-		expect(signals[0]?.aborted).toBe(true);
-		expect(config.initialRecords?.choice).not.toBeNull();
-		expect(config.initialPolicyResolution).toBeUndefined();
-	});
-
-	test.each([Number.NaN, -1, Number.POSITIVE_INFINITY])(
-		'uses the 500 ms default for timeoutMs %s',
-		async (timeoutMs) => {
-			const { fetchImpl } = hangingFetch();
-			const event = createEvent({
-				fetch: fetchImpl as unknown as typeof globalThis.fetch,
-				headers: { 'x-c15t-country': 'DE' },
-			});
-			let settled = false;
-			void loadConsent(event, { initRoute: '/api/c15t', timeoutMs }).then(
-				() => {
-					settled = true;
-				}
-			);
-
-			await vi.advanceTimersByTimeAsync(499);
-			expect(settled).toBe(false);
-			await vi.advanceTimersByTimeAsync(1);
-			expect(settled).toBe(true);
-		}
-	);
-
-	test('keeps a response that arrives within the budget', async () => {
-		const event = createEvent({
-			fetch: (() =>
-				new Promise((resolve) => {
-					setTimeout(() => resolve(jsonResponse(INIT_PAYLOAD)), 400);
-				})) as unknown as typeof globalThis.fetch,
-			headers: { 'x-c15t-country': 'DE' },
-		});
-		const pending = loadConsent(event, { initRoute: '/api/c15t' });
-
-		await vi.advanceTimersByTimeAsync(400);
-
-		expect((await pending).initialPolicyResolution?.policy.id).toBe(
-			'eu-opt-in'
-		);
-	});
-
-	test('timeoutMs: false waits for a slow upstream', async () => {
-		const event = createEvent({
-			fetch: (() =>
-				new Promise((resolve) => {
-					setTimeout(() => resolve(jsonResponse(INIT_PAYLOAD)), 5000);
-				})) as unknown as typeof globalThis.fetch,
-			headers: { 'x-c15t-country': 'DE' },
-		});
-		const pending = loadConsent(event, {
-			initRoute: '/api/c15t',
-			timeoutMs: false,
-		});
-
-		await vi.advanceTimersByTimeAsync(5000);
-
-		expect((await pending).initialPolicyResolution?.policy.id).toBe(
-			'eu-opt-in'
-		);
-	});
-});
-
-test.each(['public', 'custom', 'cookie', 'authorization'] as const)(
-	'preserves the %s hosted SvelteKit GVL loading contract',
-	async (mode) => {
-		const fetch = vi.fn(() =>
-			Promise.resolve(Response.json({ ...INIT_PAYLOAD, gvl: completeGVL }))
-		);
-		const headers = new Headers();
-		if (mode === 'cookie') {
-			headers.set('cookie', 'session=private');
-		}
-		if (mode === 'authorization') {
-			headers.set('authorization', 'Bearer private');
-		}
-		const event = createEvent({ fetch, headers: Object.fromEntries(headers) });
-		const config = await loadConsent(event, {
-			backendURL: 'https://api.example.com',
-			fetch: mode === 'custom' ? fetch : undefined,
-		});
-		expect(fetch).toHaveBeenCalledOnce();
-		expect(config.initialIab?.gvl).toEqual(
-			mode === 'public' ? null : completeGVL
-		);
-		expect(Boolean(config.initialIab?.gvlReference)).toBe(mode === 'public');
-	}
-);
-
-describe('loadConsent with a slow init route', () => {
-	beforeEach(() => {
-		clearManifestCache();
-	});
-
-	/**
-	 * `event.fetch` for a same-origin route, as SvelteKit runs it: the route
-	 * handler gets a nested event whose request carries the caller's signal,
-	 * and the caller stops waiting when that signal aborts.
-	 */
-	const inProcessFetch = function inProcessFetch(
-		handler: (event: ReturnType<typeof createEvent>) => Promise<Response>,
-		platform: unknown
-	): typeof globalThis.fetch {
-		return ((input: RequestInfo | URL, init?: RequestInit) => {
+		const event = createEvent({ headers: { 'x-c15t-country': 'DE' } });
+		(event as { fetch: typeof globalThis.fetch }).fetch = (input, init) => {
 			const request = new Request(
 				new URL(String(input), 'http://localhost:5173/'),
 				init
 			);
-			const nested = createEvent({ url: request.url });
-			(nested as { request: Request }).request = request;
-			(nested as { platform?: unknown }).platform = platform;
-			const aborted = new Promise<never>((_resolve, reject) => {
-				request.signal.addEventListener(
-					'abort',
-					() => reject(new DOMException('aborted', 'AbortError')),
-					{ once: true }
-				);
+			const nested = createEvent({
+				route: { id: '/api/c15t/[...path]', params: { path: '' } },
+				url: request.url,
 			});
-			return Promise.race([handler(nested), aborted]);
-		}) as typeof globalThis.fetch;
-	};
-
-	test('keeps the abandoned route alive and leaves the session report to the browser', async () => {
-		const manifestGate = Promise.withResolvers<undefined>();
-		const reports: string[] = [];
-		const upstream = vi.fn(
-			async (input: RequestInfo | URL, init?: RequestInit) => {
-				if (String(input).endsWith('/sessions')) {
-					reports.push(String(init?.body));
-					return new Response(null, { status: 204 });
-				}
-				await manifestGate.promise;
-				return new Response(JSON.stringify(MANIFEST_FIXTURE), {
-					headers: { 'cache-control': 'public, s-maxage=300' },
-				});
-			}
-		);
-		const { init } = createSvelteKitConsentRouteHandlers({
-			backendURL: 'https://api.example.com',
-			fetch: upstream as unknown as typeof globalThis.fetch,
-		});
-		const registered: Promise<unknown>[] = [];
-		const platform = {
-			context: {
-				waitUntil: (task: Promise<unknown>) => {
-					registered.push(task);
-				},
-			},
+			(nested as { request: Request }).request = request;
+			return GET(nested);
 		};
-		const page = () => {
-			const event = createEvent({ headers: { 'x-c15t-country': 'DE' } });
-			(event as { fetch: typeof globalThis.fetch }).fetch = inProcessFetch(
-				init,
-				platform
-			);
-			(event as { platform?: unknown }).platform = platform;
-			return event;
-		};
-
-		const first = await loadConsent(page(), {
-			initRoute: '/api/c15t/init',
-			timeoutMs: 20,
-		});
-		expect(first.initialPolicyResolution).toBeUndefined();
-		// The route registers its remaining work with the platform, next to
-		// the request loadConsent stopped waiting for.
-		expect(registered).toHaveLength(2);
-
-		manifestGate.resolve(undefined);
-		await Promise.all(registered);
-		// The browser inits again after hydration and reports this view.
-		expect(reports).toHaveLength(0);
-
-		// The fill finished and serves the next render inside the budget.
-		const second = await loadConsent(page(), {
-			initRoute: '/api/c15t/init',
-			timeoutMs: 20,
-		});
-		expect(second.initialPolicyResolution?.policy.id).toBe('eu-opt-in');
-		expect(
-			upstream.mock.calls.filter(([url]) => String(url).endsWith('/manifest'))
-		).toHaveLength(1);
-		await Promise.all(registered);
-		expect(reports).toHaveLength(1);
+		const config = await loadConsent(event, { initRoute: '/api/c15t' });
+		expect(config.initialPolicyResolution?.policyId).toBe('eu-opt-in');
 	});
-});
 
-describe('loadConsent with a relative backendURL', () => {
-	test('resolves against event.url, not a forged x-forwarded-host', async () => {
-		const fetchImpl = vi.fn(() => Promise.resolve(jsonResponse(INIT_PAYLOAD)));
+	test('a relative backendURL resolves against event.url and stays in-process', async () => {
+		const fetch = answer();
 		const event = createEvent({
+			fetch,
 			headers: {
-				cookie: CONSENTED_COOKIE,
 				host: 'attacker.example',
 				'x-forwarded-host': 'attacker.example',
-				'x-forwarded-proto': 'https',
 			},
 			url: 'http://localhost:5173/',
 		});
+		await loadConsent(event, { backendURL: '/api/self-host' });
+		expect(fetch.mock.calls[0]?.[0]).toBe('/api/self-host/init');
+	});
 
-		await loadConsent(event, {
-			backendURL: '/api/c15t',
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+	test('a cross-origin backend uses the configured fetch', async () => {
+		const fetch = answer();
+		const eventFetch = answer();
+		await loadConsent(createEvent({ fetch: eventFetch }), {
+			backendURL: 'https://api.example.com',
+			fetch,
 		});
+		expect(eventFetch).not.toHaveBeenCalled();
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://api.example.com/init'
+		);
+	});
 
-		expect(fetchImpl).toHaveBeenCalledTimes(1);
-		const [input] = fetchImpl.mock.calls[0] as unknown as [RequestInfo];
-		const target = new URL(typeof input === 'string' ? input : input.url);
-		expect(target.origin).toBe('http://localhost:5173');
-		expect(target.pathname).toBe('/api/c15t/init');
+	test('a slow init route renders without a decision and is kept alive', async () => {
+		vi.useFakeTimers();
+		const registered: Promise<unknown>[] = [];
+		const event = createEvent({
+			fetch: (_input, init) =>
+				new Promise((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () =>
+						reject(new DOMException('aborted', 'AbortError'))
+					);
+				}),
+		});
+		(event as { platform?: unknown }).platform = {
+			context: { waitUntil: (task: Promise<unknown>) => registered.push(task) },
+		};
+		const pending = loadConsent(event, { initRoute: '/api/c15t' });
+		await vi.advanceTimersByTimeAsync(500);
+		const config = await pending;
+		expect(config.initialPolicyResolution).toBeUndefined();
+		expect(registered).toHaveLength(1);
+	});
+
+	test('a prerender carries no visitor state and makes no request', async () => {
+		const fetch = answer();
+		const event = await withHandle(
+			createEvent({
+				fetch,
+				headers: { cookie: CONSENTED_COOKIE, 'x-c15t-country': 'DE' },
+			}),
+			{ shared: true }
+		);
+		expect((event.locals as { c15t: { config: unknown } }).c15t.config).toEqual(
+			{}
+		);
+		const config = await loadConsent(event, { initRoute: '/api/c15t' });
+		expect(fetch).not.toHaveBeenCalled();
+		expect(config).toEqual({});
+
+		const direct = await loadConsent(
+			createEvent({ fetch, headers: { cookie: CONSENTED_COOKIE } }),
+			{ initRoute: '/api/c15t', shared: true }
+		);
+		expect(direct).toEqual({});
+		expect(fetch).not.toHaveBeenCalled();
 	});
 });

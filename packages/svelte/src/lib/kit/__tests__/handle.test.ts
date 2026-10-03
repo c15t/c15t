@@ -92,7 +92,8 @@ describe('c15tHandle', () => {
 		const { locals } = await runHandle(event);
 
 		expect(locals.config).toMatchObject({
-			initialPrivacySignals: { gpc: false },
+			// No signal is not a decision: an absent header stays undefined.
+			initialPrivacySignals: { gpc: undefined },
 			initialRecords: { choice: null, subject: null },
 			now: expect.any(Number),
 		});

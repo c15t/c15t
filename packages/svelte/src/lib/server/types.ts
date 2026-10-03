@@ -64,8 +64,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * is usually the better place to configure this: `paths.origin` in
 	 * SvelteKit 3 (adapter-node's `ORIGIN` in SvelteKit 2, which SvelteKit 3
 	 * ignores), or the adapter's `HOST_HEADER` and `PROTOCOL_HEADER`. Also
-	 * forwards those three headers to the backend, which is skipped
-	 * otherwise.
+	 * forwards the visitor IP to the backend as `x-forwarded-for`, which is
+	 * skipped otherwise.
 	 *
 	 * @defaultValue false
 	 */
@@ -78,11 +78,23 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 */
 	frameworkFetch?: typeof globalThis.fetch;
 	/**
-	 * Extra request headers to forward to the backend. `forwarded`,
-	 * `x-forwarded-host` and `x-forwarded-proto` are skipped unless
-	 * `trustForwardedHeaders` is set.
+	 * Extra request headers to forward to the backend, such as a token a
+	 * private backend needs. They travel only over `https`, to a loopback
+	 * host, or in-process, like the consent cookie (the only cookie that is
+	 * ever forwarded). `cookie` and `forwarded`/`x-forwarded-*` cannot be
+	 * named here.
 	 */
 	forwardHeaders?: string[];
+	/**
+	 * Longest to wait for the backend `/init`, in milliseconds. When it runs
+	 * out the request-only state is returned and the browser resolves the
+	 * policy after hydration. `false` (or `Infinity`) waits for the upstream;
+	 * any other value that is not a finite, non-negative number uses the
+	 * default.
+	 *
+	 * @default 500
+	 */
+	timeoutMs?: number | false;
 	/**
 	 * The banner experiment with the arm this request runs, from your
 	 * feature flag. While the visitor has no stored choice, the server's

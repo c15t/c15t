@@ -25,6 +25,12 @@ export interface C15tLocals {
 	 * silently re-read the default `c15t` key and lose persisted consent.
 	 */
 	cookieName?: string;
+	/**
+	 * Set when the handle was told every render is shared (a prerender).
+	 * `loadConsent` then makes no upstream call and carries no visitor
+	 * state.
+	 */
+	shared?: true;
 }
 
 /** Normalized consent request context. Re-exported for `App.Locals` users. */
