@@ -239,6 +239,16 @@ export interface ConsentRuntimeModules {
 	/** Mounted on `start()` unless `windowDebug: false`. */
 	createWindowDebug: (options: WindowDebugOptions) => WindowDebugHandle;
 	/**
+	 * Connects a `consentSource` on `start()` while enabled. Pass
+	 * `connectConsentSource` from `@c15t/core/runtime/controls`, or a
+	 * wrapper that imports it on demand: until it connects, the kernel
+	 * grants no optional category.
+	 */
+	connectConsentSource: (
+		kernel: ConsentKernel,
+		source: ExternalConsentSource
+	) => Unsubscribe;
+	/**
 	 * Mounts the IAB CMP on `start()` while enabled, when the options set
 	 * `iab` and `createIAB`. Pass `mountRuntimeIAB` from `@c15t/core/runtime`
 	 * (`defaultRuntimeModules` does). Without it `iab` is ignored, so a host

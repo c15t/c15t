@@ -46,6 +46,7 @@ import { createScriptLoader } from '../modules/script-loader';
 import { createWindowDebug } from '../modules/window-debug';
 import type { ConsentState } from '../types';
 import { assembleConsentRuntime } from './assemble';
+import { connectConsentSource } from './controls';
 import { mountRuntimeIAB } from './iab-mount';
 import { lazyRuntimeModule } from './lazy-module';
 import type {
@@ -145,6 +146,7 @@ export const defaultRuntimeModules: ConsentRuntimeModules = {
 	// Arrow functions rather than calls, so the object stays free of side
 	// effects and a bundler drops it, and the modules it names, from a host
 	// that never reads it.
+	connectConsentSource,
 	createClearOnRevocation: (options) => loadClearOnRevocation(options),
 	createIframeBlocker,
 	createNetworkBlocker: (options) => loadNetworkBlocker(options),

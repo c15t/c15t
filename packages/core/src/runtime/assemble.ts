@@ -24,7 +24,6 @@ import type { PersistenceHandle } from '../modules/persistence/types';
 import type { ScriptLoaderHandle } from '../modules/script-loader/types';
 import { resolveWindowDebugMode } from '../modules/window-debug';
 import { wireRuntimeCallbacks } from './callbacks';
-import { connectConsentSource } from './controls';
 import { afterModuleLoaded } from './lazy-module';
 import {
 	createRuntimeKernel,
@@ -272,7 +271,7 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				});
 			}
 			if (enabled && consentSource) {
-				disposers.push(connectConsentSource(kernel, consentSource));
+				disposers.push(modules.connectConsentSource(kernel, consentSource));
 				kernel.events.emit({
 					snapshot: kernel.getSnapshot(),
 					type: 'init:applied',

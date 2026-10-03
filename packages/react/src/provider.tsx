@@ -321,10 +321,37 @@ export type ConsentProviderProps =
  * and loads that code only when it is one; a root that passes
  * `__resolveStreamedInit` has it in its first-load chunk instead.
  */
+/**
+ * Connects a `consentSource` once its module has loaded. Few sites borrow
+ * their decisions from another CMP, so the rest do not download it. Until
+ * it connects, the kernel grants no optional category.
+ */
+const connectConsentSourceOnDemand: ConsentRuntimeModules['connectConsentSource'] =
+	(kernel, source) => {
+		let disconnect: (() => void) | undefined;
+		let stopped = false;
+		void (async () => {
+			try {
+				const { connectConsentSource } =
+					await import('@c15t/core/runtime/controls');
+				if (!stopped) {
+					disconnect = connectConsentSource(kernel, source);
+				}
+			} catch {
+				// Not connected: optional categories stay denied.
+			}
+		})();
+		return () => {
+			stopped = true;
+			disconnect?.();
+		};
+	};
+
 const reactRuntimeModules = function reactRuntimeModules(
 	resolveStreamedInit: ResolveStreamedInit | undefined
 ): ConsentRuntimeModules {
 	return {
+		connectConsentSource: connectConsentSourceOnDemand,
 		createClearOnRevocation: lazyRuntimeModule(
 			async () =>
 				(await import('@c15t/core/modules/clear-on-revocation'))

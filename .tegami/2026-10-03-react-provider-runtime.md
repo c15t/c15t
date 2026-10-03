@@ -6,6 +6,8 @@ packages:
   "@c15t/nextjs": patch
   "@c15t/tanstack-start": patch
   "@c15t/svelte": patch
+  "@c15t/ui": major
+  "@c15t/astro": patch
 ---
 
 ### React provider on the shared runtime
@@ -32,15 +34,34 @@ Behaviour that changes:
   keeps `experiment` in the `/init` request the provider falls back to.
 - A provider rendered under a `consentSource` raises `init:applied` once the
   source is connected.
-- After mount, a new `user`, `consentCategories`, `vendors`, `scripts` or
-  blocker options apply once a small chunk has loaded, the first time options
-  change. `enabled` and `overrides` still apply at once.
+- After mount, a new `user`, `vendors`, `scripts` or blocker options apply
+  once a small chunk has loaded, the first time options change. `enabled`,
+  `overrides` and `consentCategories` still apply at once, and requests that
+  new network rules match are held until the blocker has them.
 
 `ConsentProvider` loads the code that applies a `prefetch` promise only when it
 gets one, so an app that never streams consent state doesn't download it.
 `ConsentRoot` in `@c15t/nextjs` and `@c15t/tanstack-start`, whose `state` is
 usually streamed, ships that code in its first-load chunk, so a streamed state
 applies as soon as it arrives instead of after one more request.
+
+`@c15t/react`'s index now re-exports its values in groups with `export *`.
+The names are the same. Under esbuild's code splitting, an app that imports
+only `ConsentProvider` or a hook no longer loads the dialog trigger, branding
+and draft modules on first load, because the deferred dialog no longer pulls
+every module the index names into the first chunk.
+
+`@c15t/ui`'s `setupColorScheme` moves to its own module,
+`@c15t/ui/utils/color-scheme`. A provider that sets the color scheme no longer
+shares a chunk with the dialog's focus-trap and scroll-lock helpers.
+`@c15t/astro` imports it from the new path.
+
+**Breaking.** `@c15t/ui/utils/dom` no longer exports `setupColorScheme`.
+Migration: import it from `@c15t/ui/utils/color-scheme` or `@c15t/ui/utils`.
+The old path is not kept as a re-export: Vite 8 (Rolldown) counts unused
+imports when it checks a build's chunks for cycles, and in TanStack Start that
+re-export closed one, so each module a lazy chunk shared with the route became
+its own first-load file.
 
 ### Provider runtime
 
@@ -52,6 +73,9 @@ applies as soon as it arrives instead of after one more request.
   modules in the first chunk under esbuild.
 - `update()` returns a promise that settles once every change has applied.
   The comparison behind it loads with the first `update()`.
+- A `consentSource` connects through a new `connectConsentSource` module
+  (part of `defaultRuntimeModules`). The React provider imports it on demand;
+  until it connects, no optional category is granted.
 - IAB mounts through a new `mountIAB` module (`mountRuntimeIAB`, part of
   `defaultRuntimeModules`). A provider that passes its own modules without it
   ignores `iab`.
