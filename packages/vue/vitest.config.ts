@@ -80,6 +80,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'@c15t/core/server': resolve(
+						__dirname,
+						'../core/src/server/index.ts'
+					),
+				},
+				{
 					'@c15t/core/runtime': resolve(
 						__dirname,
 						'../core/src/runtime/index.ts'
