@@ -314,10 +314,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 
 			const { persistence: persistenceOption } = options;
 			if (enabled && !consentSource && persistenceOption !== false) {
-				const { skipHydration, sync } =
+				const { now, skipHydration, sync } =
 					typeof persistenceOption === 'object' ? persistenceOption : {};
 				const persistence = modules.createPersistence({
 					kernel,
+					now,
 					skipHydration:
 						skipHydration ?? Boolean(options.prefetch?.initialRecords),
 					storageConfig: storageFor(options),
