@@ -26,22 +26,22 @@ import type {
 	KernelTransport,
 	ProviderTransportFactory,
 } from '@c15t/core';
-import { createClearOnRevocation } from '@c15t/core/modules/clear-on-revocation';
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
 import type { IframeBlockerOptions } from '@c15t/core/modules/iframe-blocker';
-import { createNetworkBlocker } from '@c15t/core/modules/network-blocker';
 import type {
 	BlockedRequestInfo,
 	NetworkBlockerRule,
 } from '@c15t/core/modules/network-blocker';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
-import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import { createLazyIABFactory, mountRuntimeIAB } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
-import { createConsentProviderRuntime } from '@c15t/core/runtime/provider';
+import {
+	createConsentProviderRuntime,
+	onDemandRuntimeModules,
+} from '@c15t/core/runtime/provider';
 import type {
 	ConsentProviderRuntime,
 	ConsentRuntime,
@@ -617,42 +617,20 @@ const mountIABUnderIABPolicy: NonNullable<ConsentRuntimeModules['mountIAB']> = (
 };
 
 /**
- * The runtime's modules for a Vue app. Every module that shares code with
- * the kernel is imported statically, as Vue always did. Loaded on demand,
- * the script loader, network blocker and data clearing made Vite (Rolldown)
- * split the kernel modules they share into extra first-load chunks: four
- * more preloads on every Nuxt page, and a banner 2 to 4 ms later on the
- * Nuxt bench. A `consentSource` connection shares nothing with the first
- * load, so it still loads only for apps that set one.
+ * The runtime's modules for a Vue app. Persistence, the iframe blocker and
+ * `window.c15t` are static: stored choices apply on mount and gated frames
+ * pause as soon as the app starts. The script loader, the network blocker
+ * (the runtime holds matching requests until it lands), data clearing and
+ * a `consentSource` connection load only for apps that configure them,
+ * each as one chunk that imports nothing the first load has.
  */
 const createVueRuntimeModules = function createVueRuntimeModules(
 	windowMode: 'hosted' | 'manifest'
 ): ConsentRuntimeModules {
 	return {
-		connectConsentSource: (kernel, source) => {
-			let disconnect: (() => void) | undefined;
-			let stopped = false;
-			void (async () => {
-				try {
-					const { connectConsentSource } =
-						await import('@c15t/core/runtime/controls');
-					if (!stopped) {
-						disconnect = connectConsentSource(kernel, source);
-					}
-				} catch {
-					// Not connected: optional categories stay denied.
-				}
-			})();
-			return () => {
-				stopped = true;
-				disconnect?.();
-			};
-		},
-		createClearOnRevocation,
+		...onDemandRuntimeModules,
 		createIframeBlocker,
-		createNetworkBlocker,
 		createPersistence,
-		createScriptLoader,
 		// Vue reports its manifest modes as `manifest`, which no transport
 		// factory kind names.
 		createWindowDebug: (options) =>

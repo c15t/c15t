@@ -29,8 +29,11 @@ Behaviour that changes:
 - A `Sec-GPC` signal from the request stays active when the browser reports
   `navigator.globalPrivacyControl === false`, as in every other adapter.
   Vue used to switch it off.
-- A `consentSource` connection loads as its own chunk, only for apps that
-  set one. Optional categories stay denied until it connects.
+- The script loader, network blocker, data clearing and a `consentSource`
+  connection load as separate chunks, only for apps that configure them.
+  Consented scripts mount once the script loader has loaded, matching
+  requests stay held until the network blocker has, and optional categories
+  stay denied until a `consentSource` connects.
 - Changes to the Nuxt `c15t` app config while the page runs, such as
   `updateAppConfig()`, now reach the runtime: scripts, network and iframe
   blocking, vendors, categories, callbacks and `reloadOnConsentRevoked` follow
