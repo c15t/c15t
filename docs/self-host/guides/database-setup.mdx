@@ -103,6 +103,12 @@ SQLite needs no conversion. The steps below assume every backend used the same
 zone. They cannot fix a database that backends in different zones wrote to,
 because a row does not record which backend wrote it.
 
+A zone with daylight saving time repeats an hour when clocks go back, so a
+stored time inside that hour matches two instants. The script picks one of
+them, and rows saved during the repeated hour can stay an hour off. Check those
+rows against another record of the time, such as request logs, before
+deploying.
+
 1. Stop every backend that writes to the database, v2 and v3.
 2. Back up the database.
 3. Run the script for your database, with `Europe/Berlin` replaced by the zone
@@ -136,6 +142,17 @@ update "auditLog" set
 commit;
 ```
 
+A database adopted from the pre-2.0 schema also keeps
+`consentPolicy.expirationDate` and the `consentRecord` table. Convert them in the
+same transaction, before `commit`:
+
+```sql
+update "consentPolicy" set
+	"expirationDate" = ("expirationDate" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentRecord" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+```
+
 For MySQL, `convert_tz` returns `NULL` when the server has no time zone tables.
 Check that `select convert_tz('2026-01-01 12:00:00', 'Europe/Berlin', '+00:00');`
 returns a time before running:
@@ -162,6 +179,15 @@ update consent set
 update auditLog set
 	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
 commit;
+```
+
+For a database adopted from the pre-2.0 schema, add these before `commit`:
+
+```sql
+update consentPolicy set
+	expirationDate = convert_tz(expirationDate, 'Europe/Berlin', '+00:00');
+update consentRecord set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
 ```
 
 Run the conversion once. A second run shifts every row again.
