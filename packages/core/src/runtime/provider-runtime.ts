@@ -16,16 +16,15 @@
  * runs while enabled. The permissive one exists only while disabled and
  * mounts nothing but the script loader. Both read their options through a
  * live view, so modules mounted on `start()` see the latest props, and
- * both build modules through replaceable handles, so a module whose
- * options changed is rebuilt without touching the others.
+ * both mount modules through slots, so the update module can rebuild one
+ * whose options changed without touching the others.
  */
 import type { AllConsentNames } from '../consent/consent-types';
-import { hostExperiment } from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
-import { assembleConsentRuntime, storageFor } from './assemble';
+import { assembleConsentRuntime } from './assemble';
 import { afterModuleLoaded } from './lazy-module';
 import type * as ProviderUpdateModule from './provider-update';
 import type { ProviderUpdateHost } from './provider-update';
@@ -90,77 +89,57 @@ const ownersOf = function ownersOf(options: ConsentRuntimeUpdate) {
 	];
 };
 
-/** A module factory whose mounted module the provider can rebuild. @internal */
-export interface Replaceable<Options, Handle extends { dispose: () => void }> {
-	/** The factory a runtime mounts through. */
+/**
+ * A module the provider can rebuild: the factory, what is mounted now and
+ * the options it was mounted with. The runtime keeps the stand-in handle
+ * and disposes it on stop; the update module swaps what is behind it.
+ * @internal
+ */
+export interface ModuleSlot<Options, Handle extends { dispose: () => void }> {
+	/** The factory a runtime mounts through; returns the stand-in. */
 	create: (options: Options) => Handle;
+	factory: (options: Options) => Handle;
 	/** The module now mounted, if any. */
-	current: () => Handle | null;
-	/**
-	 * Build the module again with changed options, or mount it when no
-	 * runtime has. `null` unmounts it.
-	 */
-	replace: (changes: Partial<Options> | null) => void;
+	inner: Handle | null;
+	/** The options it was last mounted with. */
+	last: Options | null;
+	/** The handle the runtime holds; forwards to `inner`. */
+	standIn: Handle;
 }
 
-/**
- * A module factory whose mounted module the provider can rebuild.
- *
- * The runtime keeps the stand-in handle and disposes it on stop; the
- * provider swaps what is behind it. A module the runtime never mounted
- * (configured after `start()`) is mounted here and torn down by `stop`.
- */
-const replaceable = function replaceable<
+const moduleSlot = function moduleSlot<
 	Options,
 	Handle extends { dispose: () => void },
->(
-	factory: (options: Options) => Handle,
-	initialOptions: () => NoInfer<Options>,
-	onDispose: (dispose: () => void) => void
-): Replaceable<Options, Handle> {
-	let inner: Handle | null = null;
-	let last: Options | null = null;
-	const standIn = new Proxy({} as Handle, {
+>(factory: (options: Options) => Handle): ModuleSlot<Options, Handle> {
+	const slot = { factory, inner: null, last: null } as ModuleSlot<
+		Options,
+		Handle
+	>;
+	slot.standIn = new Proxy({} as Handle, {
 		get: (_target, method) => {
+			const { inner } = slot;
 			// Symbols are not methods: a lazy module's load signal, for one.
 			if (typeof method === 'symbol') {
 				return (inner as Record<PropertyKey, unknown> | null)?.[method];
 			}
 			if (method === 'dispose') {
 				return () => {
-					inner?.dispose();
-					inner = null;
+					slot.inner?.dispose();
+					slot.inner = null;
 				};
 			}
 			return (...args: unknown[]) =>
-				(inner as Record<PropertyKey, (...a: unknown[]) => unknown> | null)?.[
-					method
-				]?.(...args);
+				(
+					slot.inner as Record<PropertyKey, (...a: unknown[]) => unknown> | null
+				)?.[method]?.(...args);
 		},
 	});
-
-	return {
-		create(options) {
-			last = options;
-			inner = factory(options);
-			return standIn;
-		},
-		current: () => inner,
-		replace(changes) {
-			const mountedByRuntime = last !== null && inner !== null;
-			inner?.dispose();
-			inner = null;
-			if (!changes) {
-				return;
-			}
-			const options = { ...(last ?? initialOptions()), ...changes };
-			last = options;
-			inner = factory(options);
-			if (!mountedByRuntime) {
-				onDispose(standIn.dispose);
-			}
-		},
+	slot.create = (options) => {
+		slot.last = options;
+		slot.inner = factory(options);
+		return slot.standIn;
 	};
+	return slot;
 };
 
 /**
@@ -278,35 +257,10 @@ export const createConsentProviderRuntime =
 				},
 			});
 			const track = (dispose: () => void) => extras.push(dispose);
-			const kernelOf = () => (built.runtime as ConsentRuntime).kernel;
-			const scripts = replaceable(
-				modules.createScriptLoader,
-				() => ({
-					kernel: kernelOf(),
-					nonce: current.nonce,
-					onDebug: current.scriptLoader?.onDebug,
-					scripts: [],
-				}),
-				track
-			);
-			const network = replaceable(
-				modules.createNetworkBlocker,
-				() => ({ hold: NOT_HELD, kernel: kernelOf(), rules: [] }),
-				track
-			);
-			const iframes = replaceable(
-				modules.createIframeBlocker,
-				() => ({ kernel: kernelOf() }),
-				track
-			);
-			const cleanup = replaceable(
-				modules.createClearOnRevocation,
-				() => ({
-					config: initial.clearOnRevocation ?? {},
-					kernel: kernelOf(),
-				}),
-				track
-			);
+			const scripts = moduleSlot(modules.createScriptLoader);
+			const network = moduleSlot(modules.createNetworkBlocker);
+			const iframes = moduleSlot(modules.createIframeBlocker);
+			const cleanup = moduleSlot(modules.createClearOnRevocation);
 			const assembled = assembleConsentRuntime(view, {
 				...modules,
 				createClearOnRevocation: cleanup.create,
@@ -384,6 +338,7 @@ export const createConsentProviderRuntime =
 			get enabled() {
 				return enabled;
 			},
+			initial,
 			main,
 			ownerSource,
 			tools: {
@@ -391,11 +346,9 @@ export const createConsentProviderRuntime =
 				declareOwnedVendors,
 				extractConsentNamesFromCondition,
 				holdNetworkRequests,
-				hostExperiment,
 				normalizeKernelUser,
 				notHeld: NOT_HELD,
 				resolveVendors,
-				storageFor,
 			},
 		};
 		/**

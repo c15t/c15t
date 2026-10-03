@@ -12,7 +12,6 @@
  *
  * @internal
  */
-import type { hostExperiment } from '../libs/experiment';
 import type { extractConsentNamesFromCondition } from '../libs/has';
 import type { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import type {
@@ -36,19 +35,22 @@ import type {
 	ScriptLoaderOptions,
 } from '../modules/script-loader/types';
 import type { KernelUser } from '../types';
-import type { storageFor } from './assemble';
 import type { afterModuleLoaded } from './lazy-module';
-import type { Replaceable } from './provider-runtime';
+import type { ModuleSlot } from './provider-runtime';
 import type { normalizeKernelUser } from './runtime-kernel';
-import type { ConsentRuntime, ConsentRuntimeUpdate } from './types';
+import type {
+	ConsentProviderRuntimeOptions,
+	ConsentRuntime,
+	ConsentRuntimeUpdate,
+} from './types';
 
-/** One of the provider's runtimes and its replaceable modules. */
+/** One of the provider's runtimes and its module slots. */
 export interface BuiltProviderRuntime {
 	runtime: ConsentRuntime;
-	scripts: Replaceable<ScriptLoaderOptions, ScriptLoaderHandle>;
-	network: Replaceable<NetworkBlockerOptions, NetworkBlockerHandle>;
-	iframes: Replaceable<IframeBlockerOptions, IframeBlockerHandle>;
-	cleanup: Replaceable<ClearOnRevocationOptions, ClearOnRevocationHandle>;
+	scripts: ModuleSlot<ScriptLoaderOptions, ScriptLoaderHandle>;
+	network: ModuleSlot<NetworkBlockerOptions, NetworkBlockerHandle>;
+	iframes: ModuleSlot<IframeBlockerOptions, IframeBlockerHandle>;
+	cleanup: ModuleSlot<ClearOnRevocationOptions, ClearOnRevocationHandle>;
 	/** Tear `dispose` down with this runtime's modules. */
 	track: (dispose: () => void) => void;
 }
@@ -59,11 +61,9 @@ export interface ProviderUpdateTools {
 	declareOwnedVendors: typeof declareOwnedVendors;
 	extractConsentNamesFromCondition: typeof extractConsentNamesFromCondition;
 	holdNetworkRequests: typeof holdNetworkRequests;
-	hostExperiment: typeof hostExperiment;
 	normalizeKernelUser: typeof normalizeKernelUser;
 	notHeld: NetworkHold;
 	resolveVendors: typeof resolveVendors;
-	storageFor: typeof storageFor;
 }
 
 /** What the update needs from the provider runtime. */
@@ -71,6 +71,8 @@ export interface ProviderUpdateHost {
 	/** The runtime rendered now: the permissive one while disabled. */
 	active: () => BuiltProviderRuntime;
 	readonly enabled: boolean;
+	/** The options the provider was created with. */
+	initial: ConsentProviderRuntimeOptions;
 	/** The runtime holding the records and policy. */
 	main: BuiltProviderRuntime;
 	/** The provider's token among the owners of its vendor slugs. */
@@ -125,29 +127,54 @@ const vendorsKey = function vendorsKey(options: ConsentRuntimeUpdate): string {
 };
 
 /**
- * What the read-once options a warning compares come to. Storage is among
- * them: persistence reads and writes one location for the runtime's life,
- * and data clearing protects that same location, so neither follows a new
+ * The read-once options a warning compares. Storage is among them:
+ * persistence reads and writes one location for the runtime's life, and
+ * data clearing protects that same location, so neither follows a new
  * `storageConfig` or `persistence`.
  */
 const initialOnlyKey = function initialOnlyKey(
-	tools: ProviderUpdateTools,
 	options: ConsentRuntimeUpdate
 ): string {
-	const { hostExperiment, storageFor } = tools;
-	const { persistence } = options;
+	const { persistence, prefetch } = options;
 	return JSON.stringify([
 		options.mode?.kind,
 		options.i18n,
-		hostExperiment(
+		// The server's experiment wins over the configured one.
+		(isPromiseLike(prefetch) ? undefined : prefetch)?.experiment ??
 			options.experiment,
-			isPromiseLike(options.prefetch) ? undefined : options.prefetch
-		),
-		storageFor(options),
+		options.storageConfig,
 		typeof persistence === 'object'
-			? [persistence.skipHydration, persistence.sync]
+			? [persistence.skipHydration, persistence.storageConfig, persistence.sync]
 			: persistence !== false,
 	]);
+};
+
+/**
+ * Build a slot's module again with changed options, or mount it when no
+ * runtime has. `null` unmounts it. A module the runtime did not mount is
+ * torn down with the runtime's modules.
+ */
+const replace = function replace<
+	Options,
+	Handle extends { dispose: () => void },
+>(
+	target: BuiltProviderRuntime,
+	slot: ModuleSlot<Options, Handle>,
+	changes: Partial<NoInfer<Options>> | null,
+	initialOptions: () => NoInfer<Options>
+): void {
+	const mountedByRuntime = slot.last !== null && slot.inner !== null;
+	slot.inner?.dispose();
+	slot.inner = null;
+	if (!changes) {
+		return;
+	}
+	const options = { ...(slot.last ?? initialOptions()), ...changes };
+	slot.last = options;
+	slot.inner = slot.factory(options);
+	if (!mountedByRuntime) {
+		target.track(slot.standIn.dispose);
+	}
 };
 
 /** Re-declare vendors after the vendors, scripts or rules changed. */
@@ -204,18 +231,27 @@ const syncModules = function syncModules(
 	const { afterModuleLoaded, holdNetworkRequests, notHeld } = host.tools;
 	const target = host.active();
 	const { enabled } = host;
+	const { kernel } = target.runtime;
 	if (current.scripts !== previous.scripts) {
-		const loader: ScriptLoaderHandle | null = target.scripts.current();
+		const loader: ScriptLoaderHandle | null = target.scripts.inner;
 		if (loader) {
 			loader.updateScripts(current.scripts ?? []);
 		} else if (current.scripts?.length) {
-			target.scripts.replace({ scripts: current.scripts });
+			replace(target, target.scripts, { scripts: current.scripts }, () => ({
+				kernel,
+				nonce: current.nonce,
+				onDebug: current.scriptLoader?.onDebug,
+				scripts: [],
+			}));
 			// Data clearing subscribes after the loader, so revocation
 			// callbacks finish before browser data is removed. A loader
 			// that loads on demand subscribes when its chunk lands.
-			afterModuleLoaded(target.scripts.current(), () => {
-				if (target.cleanup.current()) {
-					target.cleanup.replace({});
+			afterModuleLoaded(target.scripts.inner, () => {
+				if (target.cleanup.inner) {
+					replace(target, target.cleanup, {}, () => ({
+						config: host.initial.clearOnRevocation ?? {},
+						kernel,
+					}));
 				}
 			});
 		}
@@ -226,7 +262,8 @@ const syncModules = function syncModules(
 	}
 	const before = previous.networkBlocker || undefined;
 	const after = current.networkBlocker || undefined;
-	const blocker: NetworkBlockerHandle | null = target.network.current();
+	const blocker: NetworkBlockerHandle | null = target.network.inner;
+	const noRules = () => ({ hold: notHeld, kernel, rules: [] });
 	if (after && blocker) {
 		// Compared resolved: `{ rules }` alone means on.
 		const on = after.enabled !== false;
@@ -247,26 +284,29 @@ const syncModules = function syncModules(
 		// Hold matching requests until the blocker, possibly lazy, lands.
 		const hold =
 			after.enabled === false ? notHeld : holdNetworkRequests(after.rules);
-		target.network.replace({ ...after, hold });
+		replace(target, target.network, { ...after, hold }, noRules);
 		// A blocker that never loaded never took the hold over: fail
 		// what it held closed. A no-op once it did.
 		target.track(() => hold.block());
 	} else if (blocker) {
-		target.network.replace(null);
+		replace(target, target.network, null, noRules);
 	}
 	const iframeOn = current.iframeBlocker !== false;
 	if (
-		iframeOn !== Boolean(target.iframes.current()) ||
+		iframeOn !== Boolean(target.iframes.inner) ||
 		(current.iframeBlocker || undefined)?.disableAutomaticBlocking !==
 			(previous.iframeBlocker || undefined)?.disableAutomaticBlocking
 	) {
-		target.iframes.replace(
+		replace(
+			target,
+			target.iframes,
 			iframeOn
 				? {
 						disableAutomaticBlocking: (current.iframeBlocker || undefined)
 							?.disableAutomaticBlocking,
 					}
-				: null
+				: null,
+			() => ({ kernel })
 		);
 	}
 };
@@ -289,10 +329,7 @@ export const applyProviderUpdate = function applyProviderUpdate(
 ): void {
 	const { tools } = host;
 	const { normalizeKernelUser } = tools;
-	if (
-		!isProduction() &&
-		initialOnlyKey(tools, current) !== initialOnlyKey(tools, previous)
-	) {
+	if (!isProduction() && initialOnlyKey(current) !== initialOnlyKey(previous)) {
 		console.warn(
 			'c15t: `mode`, `i18n`, `experiment`, `persistence` and `storageConfig` are read once. Create a new runtime (remount the provider) to change them.'
 		);
