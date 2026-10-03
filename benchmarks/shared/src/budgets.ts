@@ -1156,10 +1156,21 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
 		},
 		{
+			// Moving code out of first load grows the deferred chunks by as much
+			// as it shrinks the initial ones, so deferred JavaScript gets more
+			// room than initial JavaScript. The total budget below still stops
+			// growth that is not offset by a smaller first load.
 			comparator: 'delta-bytes-lte',
 			description:
-				'Deferred consumer JavaScript may grow by at most 3 KiB gzip.',
+				'Deferred consumer JavaScript may grow by at most 12 KiB gzip.',
 			metric: 'lazyGzip',
+			threshold: 12_288,
+		},
+		{
+			comparator: 'delta-bytes-lte',
+			description:
+				'Initial plus deferred consumer JavaScript may grow by at most 3 KiB gzip.',
+			metric: 'gzipSize',
 			threshold: 3072,
 		},
 		...(scenario === 'ordinary-react' ? importBoundaryBudgets : []),
