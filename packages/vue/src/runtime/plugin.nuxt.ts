@@ -1,24 +1,15 @@
-import {
-	deferInitGvl,
-	C15T_POLICY_CONTRACT_HEADER,
-	c15tProtocolHeaders,
-} from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
-import {
-	CONSENT_EXPERIMENT_HEADER,
-	formatExperimentHeader,
-} from '@c15t/schema/types';
-import type { InitOutput } from '@c15t/schema/types';
+import type { RequestConsentState } from '@c15t/core/server';
 import { defu } from 'defu';
-import { computed } from 'vue';
+import { computed, markRaw, toRaw } from 'vue';
 
 import {
 	defineNuxtPlugin,
 	useAppConfig,
-	useFetch,
 	useHead,
 	useRequestEvent,
 	useRequestHeaders,
+	useRequestURL,
 	useRuntimeConfig,
 	useState as useNuxtState,
 } from '#imports';
@@ -38,11 +29,6 @@ import {
 	startVueConsentRuntime,
 } from './kernel';
 import type { RuntimeConsentConfig } from './kernel';
-import {
-	C15T_TIMEOUT_HEADER,
-	resolveManifestMode,
-	resolveNuxtTimeoutMs,
-} from './manifest';
 import { isSharedNuxtRender } from './shared-render';
 import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
 import {
@@ -127,7 +113,6 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	);
 	const headers = requestHeaders.value;
 	const initFetchTarget = getNuxtInitFetchTarget(config.value);
-	const manifestMode = resolveManifestMode(config.value);
 	const initialRecords = useNuxtState('c15t:records', () =>
 		config.value.consentSource || shared
 			? undefined
@@ -140,59 +125,46 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				)
 	);
 
-	const producerContract = useNuxtState<number | null | undefined>(
-		'c15t:producer-contract',
+	// The render resolves the visitor's consent once, on the server, and the
+	// payload carries the state to the browser. `import.meta.server` keeps
+	// the resolver, and the translations it bundles, out of the client build.
+	const prefetched = useNuxtState<RequestConsentState | undefined>(
+		'c15t:consent',
 		() => undefined
 	);
-	let prefetch: InitOutput | undefined;
-	if (initFetchTarget && !config.value.consentSource && !shared) {
-		// The render waits at most `timeoutMs` for policy. The same-origin init
-		// route runs in-process, where an abort signal does not reach it, so it
-		// is told the budget in a header; an absolute backend `/init` is a real
-		// request and `timeout` aborts it. The browser's own request waits.
-		const timeoutMs =
-			typeof window === 'undefined'
-				? resolveNuxtTimeoutMs(config.value)
-				: undefined;
-		const budgetHeaders: Record<string, string> =
-			timeoutMs !== undefined && manifestMode === 'server'
-				? { [C15T_TIMEOUT_HEADER]: String(timeoutMs) }
-				: {};
-		// The render's `/init` is the only one this page makes, so it carries
-		// a fixed experiment arm while the visitor has no stored choice.
-		const { experiment } = config.value;
-		if (experiment?.arm !== undefined && !initialRecords.value?.choice) {
-			budgetHeaders[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader({
-				arm: experiment.arm,
-				id: experiment.id,
-			});
+	if (
+		// Nuxt replaces `import.meta.server` at build time, so the client build
+		// drops this branch; elsewhere (unit tests) a missing `window` decides.
+		((import.meta as ImportMeta & { server?: boolean }).server ??
+			typeof window === 'undefined') &&
+		initFetchTarget &&
+		!config.value.consentSource &&
+		!shared
+	) {
+		// Read before the first await, while the Nuxt context is current.
+		const request = {
+			event: useRequestEvent(),
+			headers: useRequestHeaders(),
+			url: useRequestURL(),
+		};
+		const { resolveNuxtConsent } = await import('./server-consent');
+		const state = await resolveNuxtConsent(config.value, request);
+		// Only a resolved policy is worth the payload bytes; without one the
+		// browser runs init, and the records travel in `c15t:records`.
+		if (state.initialPolicyResolution !== undefined) {
+			// The cookie's records and clock already travel in `c15t:records`;
+			// only a subject the backend named is new.
+			const { initialRecords: records, now: _now, ...rest } = state;
+			const subject = records?.subject;
+			// Raw: the state holds frozen policy objects, which a reactive
+			// payload proxy cannot wrap.
+			prefetched.value = markRaw(
+				subject ? { ...rest, initialRecords: { subject } } : rest
+			);
 		}
-		const { data } = await useFetch<InitOutput>(initFetchTarget.url, {
-			baseURL: initFetchTarget.baseURL,
-			cache: manifestMode === 'server' ? undefined : 'no-store',
-			headers: { ...c15tProtocolHeaders, ...headers, ...budgetHeaders },
-			key: 'c15t:init',
-			onResponse({ response }) {
-				const value = response.headers.get(C15T_POLICY_CONTRACT_HEADER);
-				if (value === null) {
-					producerContract.value = undefined;
-				} else if (/^\d+$/u.test(value.trim())) {
-					producerContract.value = Number.parseInt(value.trim(), 10);
-				} else {
-					producerContract.value = null;
-				}
-			},
-			timeout: timeoutMs,
-			transform: (payload) =>
-				deferInitGvl(
-					payload,
-					`${initFetchTarget.baseURL?.replace(/\/$/u, '') ?? ''}${initFetchTarget.url}`,
-					'init',
-					headers
-				),
-		});
-		prefetch = data.value ?? undefined;
 	}
+	const prefetch = prefetched.value ? toRaw(prefetched.value) : undefined;
+	const hasPrefetch = prefetch?.initialPolicyResolution !== undefined;
 
 	nuxtApp.vueApp.provide(consentConfigKey, config);
 
@@ -200,8 +172,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		config: config.value as ConsentConfig,
 		headers,
 		initialRecords: initialRecords.value,
-		prefetch,
-		producerContract: producerContract.value,
+		prefetchState: hasPrefetch ? prefetch : undefined,
 	});
 
 	nuxtApp.vueApp.provide(symbolKernelContext, context);
@@ -216,7 +187,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			disposeRuntime = startVueConsentRuntime(
 				context,
 				config.value as ConsentConfig,
-				{ runInit: !prefetch }
+				{ runInit: !hasPrefetch }
 			);
 		});
 	}

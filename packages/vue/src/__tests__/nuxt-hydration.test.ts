@@ -16,7 +16,7 @@ import {
 	defineComponent,
 	h,
 	nextTick,
-	shallowRef,
+	ref,
 } from 'vue';
 import type { App, ShallowRef } from 'vue';
 import { renderToString } from 'vue/server-renderer';
@@ -26,7 +26,6 @@ import { useConsentKernelContext } from '../runtime/composables/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
 
 const nuxt = vi.hoisted(() => ({
-	cached: undefined as InitOutput | undefined,
 	consentSource: undefined as ExternalConsentSource | undefined,
 	experiment: undefined as
 		| { arm?: string; arms: Record<string, object>; id: string }
@@ -40,7 +39,8 @@ const nuxt = vi.hoisted(() => ({
 }));
 // oxlint-disable-next-line anti-slop/no-module-mocking -- Nuxt supplies this virtual module; the test preserves its request-state and fetch-cache semantics.
 vi.mock('#imports', async () => {
-	const { shallowRef: makeRef } = await import('vue');
+	// Deep, like Nuxt's payload state (`toRef(reactive(payload.state), key)`).
+	const { ref: makeRef } = await import('vue');
 	return {
 		defineNuxtPlugin: (plugin: unknown) => plugin,
 		useAppConfig: () => ({
@@ -54,29 +54,24 @@ vi.mock('#imports', async () => {
 				manifest: nuxt.manifest,
 			},
 		}),
-		useFetch: (
-			_url: string,
-			options: {
-				headers: Record<string, string>;
-				onResponse: (context: { response: { headers: Headers } }) => void;
-			}
-		) => {
-			nuxt.fetchHeaders.push(options.headers);
-			if (!nuxt.cached) {
-				expect(options.headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
-				options.onResponse({
-					response: {
-						headers: new Headers({ [C15T_POLICY_CONTRACT_HEADER]: '1' }),
-					},
-				});
-				nuxt.requests += 1;
-				nuxt.cached = nuxt.response;
-			}
-			return Promise.resolve({ data: makeRef(nuxt.cached) });
-		},
 		useHead: () => undefined,
-		useRequestEvent: () => undefined,
+		// Nitro's in-process fetch on the event answers the app's own routes.
+		useRequestEvent: () => ({
+			context: {},
+			fetch: (_input: string, init?: RequestInit) => {
+				const headers = Object.fromEntries(new Headers(init?.headers));
+				nuxt.fetchHeaders.push(headers);
+				expect(headers[C15T_POLICY_CONTRACT_HEADER]).toBe('1');
+				nuxt.requests += 1;
+				return Promise.resolve(
+					new Response(JSON.stringify(nuxt.response), {
+						headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
+					})
+				);
+			},
+		}),
 		useRequestHeaders: () => nuxt.headers,
+		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({ public: { c15t: {} } }),
 		useState: (key: string, init: () => unknown) => {
 			if (!nuxt.state.has(key)) {
@@ -91,7 +86,6 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 	vi.restoreAllMocks();
 	nuxt.state.clear();
-	nuxt.cached = undefined;
 	nuxt.consentSource = undefined;
 	nuxt.experiment = undefined;
 	nuxt.fetchHeaders = [];
@@ -210,7 +204,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 	nuxt.state = new Map(
 		(JSON.parse(payload) as [string, unknown][]).map(([key, value]) => [
 			key,
-			shallowRef(value),
+			ref(value),
 		])
 	);
 	nuxt.headers = {};

@@ -34,23 +34,10 @@ vi.mock('#imports', async () => {
 				iframeBlocker: false,
 			},
 		}),
-		useFetch: (
-			_url: string,
-			options: {
-				onResponse: (context: { response: { headers: Headers } }) => void;
-			}
-		) => {
-			nuxt.fetches += 1;
-			options.onResponse({
-				response: {
-					headers: new Headers({ [C15T_POLICY_CONTRACT_HEADER]: '1' }),
-				},
-			});
-			return Promise.resolve({ data: makeRef(nuxt.response) });
-		},
 		useHead: () => undefined,
 		useRequestEvent: () => nuxt.event,
 		useRequestHeaders: () => nuxt.headers,
+		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({ public: { c15t: {} } }),
 		useState: (key: string, init: () => unknown) => {
 			if (!nuxt.state.has(key)) {
@@ -123,6 +110,18 @@ const renderOnServer = async function renderOnServer(
 	const app = createSSRApp(Probe);
 	vi.stubGlobal('window', undefined);
 	vi.stubGlobal('document', undefined);
+	// The backend is remote, so the render asks it over the network.
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(() => {
+			nuxt.fetches += 1;
+			return Promise.resolve(
+				new Response(JSON.stringify(nuxt.response), {
+					headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
+				})
+			);
+		})
+	);
 	try {
 		await plugin({
 			hook: () => {

@@ -682,6 +682,11 @@ export const createVueConsentKernelContext =
 		config: RuntimeConsentConfig;
 		headers?: Record<string, string | undefined>;
 		prefetch?: InitOutput;
+		/**
+		 * The state a server render resolved for this request (Nuxt), used in
+		 * place of `prefetch`: the init is already folded in.
+		 */
+		prefetchState?: KernelConfig;
 		initialRecords?: HydrationRecords;
 		now?: number;
 		kernelConfig?: KernelConfig;
@@ -706,11 +711,13 @@ export const createVueConsentKernelContext =
 							? getNuxtInitFetchTarget(options.config)?.url
 							: undefined
 					);
-		const initialConfig = initOutputToKernelConfig(
-			options.prefetch ?? options.config.prefetch,
-			headers,
-			{ producerContract: options.producerContract }
-		);
+		const initialConfig =
+			options.prefetchState ??
+			initOutputToKernelConfig(
+				options.prefetch ?? options.config.prefetch,
+				headers,
+				{ producerContract: options.producerContract }
+			);
 		const records = prepareVueRecords(
 			initialConfig,
 			options.initialRecords ?? options.config.initialRecords,
@@ -736,7 +743,8 @@ export const createVueConsentKernelContext =
 			now:
 				options.now ??
 				options.initialRecords?.now ??
-				options.config.initialRecords?.now,
+				options.config.initialRecords?.now ??
+				initialConfig.now,
 			transport,
 			...options.kernelConfig,
 		};

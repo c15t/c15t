@@ -11,7 +11,6 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { C15T_TIMEOUT_HEADER, resolveNuxtTimeoutMs } from '../runtime/manifest';
 import {
 	createInitRoute,
 	createManifestRoute,
@@ -311,7 +310,6 @@ describe('init route', () => {
 	});
 
 	test('honours the render budget the SSR plugin sends', async () => {
-		expect(C15T_TIMEOUT_HEADER).toBe(CONSENT_ROUTE_TIMEOUT_HEADER);
 		mocks.serverFetch.mockImplementation(
 			(_url: string, init?: RequestInit) =>
 				new Promise((_resolve, reject) => {
@@ -321,13 +319,11 @@ describe('init route', () => {
 				})
 		);
 		const startedAt = Date.now();
-		const response = await callInitRoute({ [C15T_TIMEOUT_HEADER]: '20' });
+		const response = await callInitRoute({
+			[CONSENT_ROUTE_TIMEOUT_HEADER]: '20',
+		});
 		expect(response.ok).toBe(false);
 		expect(Date.now() - startedAt).toBeLessThan(2000);
-	});
-
-	test('sends a fractional timeoutMs as a budget header the route accepts', () => {
-		expect(String(resolveNuxtTimeoutMs({ timeoutMs: 500.5 }))).toBe('500');
 	});
 });
 

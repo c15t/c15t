@@ -60,8 +60,9 @@ export interface ConsentManifestNuxtConfig {
 	 * scripts and embeds blocked, and the browser resolves the policy after
 	 * hydration. In server manifest mode the manifest request keeps running
 	 * and fills the cache for the next request. Applies to the render only;
-	 * the browser's own init requests wait for the manifest. `false` removes
-	 * the budget.
+	 * the browser's own init requests wait for the manifest. `false` (or
+	 * `Infinity`) removes the budget; any other value that is not a finite,
+	 * non-negative number uses the default.
 	 *
 	 * @default 500
 	 */
