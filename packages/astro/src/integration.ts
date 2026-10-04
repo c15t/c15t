@@ -321,7 +321,7 @@ interface StaticRuntimeModule {
  * @param resolved - The resolved options.
  * @returns The factories to import statically.
  */
-export const pageStartModules = function pageStartModules(
+const pageStartModules = function pageStartModules(
 	options: C15tAstroOptions,
 	resolved: C15tResolvedOptions
 ): StaticRuntimeModule[] {

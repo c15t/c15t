@@ -213,10 +213,15 @@ into extra chunks the first load then fetches.
 
 Import from `c15t/runtime/provider` when your provider loads modules on
 demand. It exports `createConsentProviderRuntime`, `onDemandRuntimeModules`,
-`lazyRuntimeModule` and `lazyStreamPrefetch`, and none of the modules
-`defaultRuntimeModules` imports statically. Some bundlers, esbuild among them,
-keep a module in the first chunk when it is imported statically anywhere in the
-graph, even unused, and also through `import()`.
+`lazyRuntimeModule`, `lazyStreamPrefetch`, `mountRuntimeIAB` and
+`createConsentRuntimeWith`, and none of the modules `defaultRuntimeModules`
+imports statically. Some bundlers, esbuild among them, keep a module in the
+first chunk when it is imported statically anywhere in the graph, even unused,
+and also through `import()`.
+
+`createConsentRuntimeWith(options, modules)` is `createConsentRuntime` with the
+modules you choose, for a page that configures once (a script tag, an Astro
+page) and loads some modules on demand. The same lifecycle and handle apply.
 
 ## Other exports
 
