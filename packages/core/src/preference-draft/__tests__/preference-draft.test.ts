@@ -232,15 +232,39 @@ describe('staging', () => {
 		});
 	});
 
-	test('setDefaults moves unstaged categories and keeps staged ones', () => {
+	test('new defaults show at once on a clean draft', () => {
 		const { kernel } = setup();
 		const draft = createPreferenceDraft(kernel);
-		draft.set('marketing', true);
-		draft.setDefaults({ marketing: false, measurement: true });
+		draft.setDefaults({ marketing: true });
+		expect(draft.getState().values.marketing).toBe(true);
+	});
+
+	test('new defaults wait until a dirty draft is clean', async () => {
+		// An experiment arm assigned after the visitor started editing must
+		// not flip a switch they left alone and save a grant they never saw.
+		const { kernel } = setup();
+		const draft = createPreferenceDraft(kernel);
+		draft.set('measurement', true);
+		draft.setDefaults({ marketing: true });
+		expect(draft.getState().values.marketing).toBe(false);
+		expect(draft.toSaveInput()).toMatchObject({ marketing: false });
+		await draft.save();
+		// Saved and clean, the draft now shows the record.
 		expect(draft.getState().values).toMatchObject({
-			marketing: true,
+			marketing: false,
 			measurement: true,
 		});
+		draft.reset();
+		expect(draft.getState().values.marketing).toBe(false);
+	});
+
+	test('a dirty draft that turns clean picks up the new defaults', () => {
+		const { kernel } = setup();
+		const draft = createPreferenceDraft(kernel);
+		draft.set('measurement', true);
+		draft.setDefaults({ experience: true, marketing: true });
+		draft.set('measurement', false);
+		expect(draft.getState().values.marketing).toBe(true);
 	});
 
 	test('state keeps its identity until something changes, and unchanged slices keep theirs', () => {

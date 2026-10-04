@@ -13,7 +13,9 @@
  * - **Delta over the record.** Only moved values are staged. A newer record
  *   (another surface or tab saved, or this draft's own save landed) moves
  *   every untouched value, and a staged value the record now holds is no
- *   longer an edit.
+ *   longer an edit. New presentation defaults wait until the draft is
+ *   clean: they are not a record, and a dirty draft must not save a
+ *   default the visitor never saw.
  * - **Stale.** A dirty draft whose policy fingerprint, displayed categories
  *   or vendor surface changed since the visitor last saw a clean draft is
  *   stale. Saving it records nothing and resolves `{ ok: false }`; `reset()`
@@ -122,7 +124,8 @@ export interface PreferenceDraft {
 	reset: () => void;
 	/**
 	 * Replace the presentation defaults a category without a recorded choice
-	 * shows. Staged edits stay.
+	 * shows. A clean draft shows them at once; a dirty one keeps the
+	 * defaults the visitor saw until it is saved or reset.
 	 */
 	setDefaults: (defaults: Partial<ConsentState> | undefined) => void;
 	/**
@@ -359,6 +362,13 @@ export const createPreferenceDraft = function createPreferenceDraft(
 	options: PreferenceDraftOptions = {}
 ): PreferenceDraft {
 	let { defaults } = options;
+	/**
+	 * The defaults the visitor is looking at. New defaults (an experiment
+	 * arm assigned after mount) wait until nothing is staged, so a switch
+	 * the visitor left alone never flips under an edit and saves a grant
+	 * they did not see.
+	 */
+	let shownDefaults = defaults;
 	/** Staged categories, each different from the record. */
 	const staged = new Map<AllConsentNames, boolean>();
 	/** Staged vendors, each different from the record. */
@@ -382,13 +392,21 @@ export const createPreferenceDraft = function createPreferenceDraft(
 		const scope =
 			snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
 		const displayedCategories: AllConsentNames[] = ['necessary', ...scope];
-		baseline = recordedValues(snapshot, scope, defaults);
+		const isClean = () => staged.size === 0 && stagedVendors.size === 0;
+		if (isClean()) {
+			shownDefaults = defaults;
+		}
+		baseline = recordedValues(snapshot, scope, shownDefaults);
 		seeded = recordedVendors(snapshot);
 		toggleable = toggleableIds(snapshot);
 		// A staged value the record now holds is no longer an edit.
 		prune(staged, baseline);
 		prune(stagedVendors, seeded);
-		const isDirty = staged.size > 0 || stagedVendors.size > 0;
+		if (isClean() && shownDefaults !== defaults) {
+			shownDefaults = defaults;
+			baseline = recordedValues(snapshot, scope, shownDefaults);
+		}
+		const isDirty = !isClean();
 		const review = [
 			snapshot.evaluationPolicy.choice.fingerprint,
 			displayedCategories.join(','),
