@@ -564,11 +564,12 @@ test.each(['all', 'necessary'] as const)(
 		try {
 			const manager = required(captured.manager);
 			const kernel = required(captured.kernel);
-			// The draft's displayed categories, which the bulk choice covers.
+			// The draft's displayed categories, in the fixed display order, which
+			// the bulk choice covers.
 			expect(manager.consentCategories).toEqual([
 				'necessary',
-				'marketing',
 				'measurement',
+				'marketing',
 			]);
 			await manager.saveConsents(action);
 			const { categories } = required(kernel.getSnapshot().explicitChoice);
