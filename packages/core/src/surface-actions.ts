@@ -23,7 +23,8 @@
  * - Explicit navigation ({@link showConsentSurface}) supersedes every
  *   pending action on that kernel, even when it targets the same surface.
  *
- * Functions are standalone so a bundle keeps only the ones its adapter calls.
+ * Functions are standalone so a bundle keeps only the ones its adapter calls,
+ * and written as arrows: this module sits on every adapter's first load.
  */
 
 import { deriveActiveUI } from './policy';
@@ -41,7 +42,7 @@ const actions = new WeakMap<ConsentKernel, object>();
 const isOpen = (surface: KernelActiveUI): boolean =>
 	surface === 'banner' || surface === 'dialog';
 
-const beginAction = function beginAction(kernel: ConsentKernel): object {
+const beginAction = (kernel: ConsentKernel): object => {
 	const action = {};
 	actions.set(kernel, action);
 	return action;
@@ -58,16 +59,11 @@ const beginAction = function beginAction(kernel: ConsentKernel): object {
  * @param snapshot - The kernel snapshot.
  * @returns `true` when c15t should render its banner or dialog.
  */
-export const hasConsentUI = function hasConsentUI(
-	snapshot: ConsentSnapshot
-): boolean {
-	return (
-		!snapshot.externalPermissions &&
-		snapshot.resolution.status === 'matched' &&
-		(snapshot.policyRule.prompt !== 'none' ||
-			snapshot.policyRule.rights.length > 0)
-	);
-};
+export const hasConsentUI = (snapshot: ConsentSnapshot): boolean =>
+	!snapshot.externalPermissions &&
+	snapshot.resolution.status === 'matched' &&
+	(snapshot.policyRule.prompt !== 'none' ||
+		snapshot.policyRule.rights.length > 0);
 
 /**
  * Whether a preferences control should be offered: c15t owes consent UI, or
@@ -76,11 +72,8 @@ export const hasConsentUI = function hasConsentUI(
  * @param snapshot - The kernel snapshot.
  * @returns `true` when a "privacy settings" control has somewhere to go.
  */
-export const hasConsentPreferences = function hasConsentPreferences(
-	snapshot: ConsentSnapshot
-): boolean {
-	return Boolean(snapshot.externalPermissions) || hasConsentUI(snapshot);
-};
+export const hasConsentPreferences = (snapshot: ConsentSnapshot): boolean =>
+	Boolean(snapshot.externalPermissions) || hasConsentUI(snapshot);
 
 /**
  * Show a surface by explicit navigation.
@@ -91,16 +84,16 @@ export const hasConsentPreferences = function hasConsentPreferences(
  * @param kernel - The kernel the surface belongs to.
  * @param surface - `'banner'`, `'dialog'` or `'none'`.
  */
-export const showConsentSurface = function showConsentSurface(
+export const showConsentSurface = (
 	kernel: ConsentKernel,
 	surface: KernelActiveUI
-): void {
+): void => {
 	beginAction(kernel);
 	kernel.set.activeUI(surface);
 };
 
 /** Leave the surface for the one the kernel derives for this snapshot. */
-const settleSurface = function settleSurface(kernel: ConsentKernel): void {
+const settleSurface = (kernel: ConsentKernel): void => {
 	const snapshot = kernel.getSnapshot();
 	const next = deriveActiveUI(snapshot);
 	// A save that cleared the prompt already derived this in its commit.
@@ -125,11 +118,11 @@ const settleSurface = function settleSurface(kernel: ConsentKernel): void {
  * refused to save.
  * @returns The save's result. A rejected save rejects and closes nothing.
  */
-export const saveConsentSurface = function saveConsentSurface(
+export const saveConsentSurface = (
 	kernel: ConsentKernel,
 	save: () => Promise<SaveResult>,
 	canClose?: () => boolean
-): Promise<SaveResult> {
+): Promise<SaveResult> => {
 	const action = beginAction(kernel);
 	const before = kernel.getSnapshot();
 	const surface = before.activeUI;
@@ -150,13 +143,11 @@ export const saveConsentSurface = function saveConsentSurface(
 		return pending;
 	}
 	return pending.then((result) => {
-		const current = kernel.getSnapshot();
 		if (
 			result.ok &&
 			actions.get(kernel) === action &&
-			// A policy change re-derives the surface, so this also covers it.
-			current.activeUI === surface &&
-			(canClose?.() ?? true)
+			kernel.getSnapshot().activeUI === surface &&
+			canClose?.() !== false
 		) {
 			settleSurface(kernel);
 		}
@@ -175,18 +166,19 @@ export const saveConsentSurface = function saveConsentSurface(
  *
  * @param kernel - The kernel the CMP records into.
  * @param save - Applies any blanket and runs the CMP handle's `save()`.
- * @returns `{ ok: true }` when a new IAB authority was recorded under the
- * policy the visitor acted on.
+ * @returns `{ ok: true }` when a new IAB authority was recorded. The handle
+ * refuses an authority for a policy that changed while it encoded.
  * @throws {unknown} Whatever `save` throws, after restoring the surface.
  */
-export const saveIABConsentSurface = async function saveIABConsentSurface(
+export const saveIABConsentSurface = async (
 	kernel: ConsentKernel,
 	save: () => Promise<void> | void
-): Promise<SaveResult> {
+): Promise<SaveResult> => {
 	const action = beginAction(kernel);
 	const before = kernel.getSnapshot();
 	const surface = before.activeUI;
 	const open = isOpen(surface);
+	let recorded = false;
 	if (open) {
 		kernel.set.activeUI('none');
 	}
@@ -194,23 +186,17 @@ export const saveIABConsentSurface = async function saveIABConsentSurface(
 		await save();
 	} finally {
 		const after = kernel.getSnapshot();
+		recorded = after.iab?.authority !== before.iab?.authority;
 		if (
 			open &&
+			!recorded &&
 			actions.get(kernel) === action &&
-			after.activeUI === 'none' &&
-			after.iab?.authority === before.iab?.authority
+			after.activeUI === 'none'
 		) {
 			kernel.set.activeUI(surface);
 		}
 	}
-	const after = kernel.getSnapshot();
-	return {
-		ok:
-			Boolean(after.iab?.authority) &&
-			after.iab?.authority !== before.iab?.authority &&
-			after.evaluationPolicy.choice.fingerprint ===
-				before.evaluationPolicy.choice.fingerprint,
-	};
+	return { ok: recorded };
 };
 
 /** The CMP handle calls a blanket action needs. */
@@ -234,23 +220,19 @@ export interface ConsentSurfaceIAB {
  * @returns The save's result; `{ ok: false }` under an IAB policy with no
  * handle to record the TC string.
  */
-export const saveConsentBlanket = function saveConsentBlanket(
+export const saveConsentBlanket = (
 	kernel: ConsentKernel,
 	choice: 'all' | 'none',
 	iab?: ConsentSurfaceIAB | null
-): Promise<SaveResult> {
+): Promise<SaveResult> => {
 	const snapshot = kernel.getSnapshot();
-	if (snapshot.policyRule.model === 'iab' && snapshot.iab?.enabled !== false) {
-		return iab
-			? saveIABConsentSurface(kernel, () => {
-					if (choice === 'all') {
-						iab.acceptAll();
-					} else {
-						iab.rejectAll();
-					}
-					return iab.save();
-				})
-			: Promise.resolve({ ok: false });
+	if (snapshot.policyRule.model !== 'iab' || snapshot.iab?.enabled === false) {
+		return saveConsentSurface(kernel, () => kernel.commands.save(choice));
 	}
-	return saveConsentSurface(kernel, () => kernel.commands.save(choice));
+	return iab
+		? saveIABConsentSurface(kernel, () => {
+				iab[choice === 'all' ? 'acceptAll' : 'rejectAll']();
+				return iab.save();
+			})
+		: Promise.resolve({ ok: false });
 };

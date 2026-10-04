@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { saveConsentSurface } from '@c15t/core';
 import type { PresentationAction, SaveResult } from '@c15t/core';
+import { saveConsentSurface } from '@c15t/core/surface-actions';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 
 import '@c15t/ui/styles/components/consent-dialog.css';

@@ -69,6 +69,11 @@
 			"import": "./dist/experiment.js",
 			"default": "./dist/experiment.js"
 		},
+		"./surface-actions": {
+			"types": "./dist-types/surface-actions.d.ts",
+			"import": "./dist/surface-actions.js",
+			"default": "./dist/surface-actions.js"
+		},
 		"./consent-categories": {
 			"types": "./dist-types/consent-record/types.d.ts",
 			"import": "./dist/consent-categories.js",

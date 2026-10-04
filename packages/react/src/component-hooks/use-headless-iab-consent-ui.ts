@@ -1,6 +1,6 @@
 'use client';
 
-import { saveIABConsentSurface } from '@c15t/core';
+import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import { useCallback, useContext, useMemo } from 'react';
 

@@ -19,14 +19,7 @@
  * ```
  */
 
-import {
-	hasConsentPreferences,
-	hasConsentUI,
-	isVendorAllowed,
-	saveConsentBlanket,
-	saveConsentSurface,
-	showConsentSurface,
-} from '@c15t/core';
+import { isVendorAllowed } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -1332,6 +1325,13 @@ export const preloadDialog = async function preloadDialog(): Promise<void> {
 export { activateGatedScripts } from './browser/inline-scripts';
 export type { ConsentRuntime } from '@c15t/core/runtime';
 export type { ResolvedVendor, VendorChoice } from '@c15t/core';
+import {
+	hasConsentPreferences,
+	hasConsentUI,
+	saveConsentBlanket,
+	saveConsentSurface,
+	showConsentSurface,
+} from '@c15t/core/surface-actions';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
 export { registerDialogStyles } from './browser/dialog-styles';

@@ -13,7 +13,6 @@ import {
 	c15tProtocolHeaders,
 	createHostedTransport,
 	initOutputToKernelConfig,
-	showConsentSurface,
 	watchRevocationReload,
 } from '@c15t/core';
 import type {
@@ -50,6 +49,7 @@ import type {
 	ConsentRuntimeUpdate,
 	RuntimePrefetch,
 } from '@c15t/core/runtime/provider';
+import { showConsentSurface } from '@c15t/core/surface-actions';
 import type { ConsentActiveUI } from '@c15t/schema/config';
 import {
 	CONSENT_REQUEST_HEADER_NAMES,

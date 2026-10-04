@@ -42,11 +42,13 @@ import type {
 import {
 	applyExperimentAssignment,
 	applyExperimentTheme,
+	isVendorAllowed,
+} from '@c15t/core';
+import {
 	hasConsentPreferences,
 	hasConsentUI,
-	isVendorAllowed,
 	showConsentSurface,
-} from '@c15t/core';
+} from '@c15t/core/surface-actions';
 import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 
 import { ProviderServicesContext } from './context';

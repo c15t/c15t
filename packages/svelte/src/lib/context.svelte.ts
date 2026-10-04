@@ -5,13 +5,8 @@ import {
 	consentTypes as defaultConsentTypes,
 	defaultTranslationConfig,
 	has as evaluateHas,
-	hasConsentPreferences,
-	hasConsentUI,
 	isVendorAllowed,
 	resolveConsentPresentation,
-	saveConsentSurface,
-	saveIABConsentSurface,
-	showConsentSurface,
 	vendorsListedUnder,
 } from '@c15t/core';
 import type {
@@ -32,6 +27,13 @@ import type {
 	ResolvedVendor,
 	TranslationConfig,
 } from '@c15t/core';
+import {
+	hasConsentPreferences,
+	hasConsentUI,
+	saveConsentSurface,
+	saveIABConsentSurface,
+	showConsentSurface,
+} from '@c15t/core/surface-actions';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
 

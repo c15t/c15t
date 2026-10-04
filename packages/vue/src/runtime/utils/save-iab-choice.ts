@@ -1,5 +1,5 @@
-import { saveIABConsentSurface } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
+import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 
 /**
  * Close an IAB surface in the task that handled the click, then save.

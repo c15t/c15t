@@ -8,10 +8,6 @@ import {
 	forgetOwnedVendors,
 	isVendorAllowed,
 	policyRulePresets,
-	saveConsentBlanket,
-	saveConsentSurface,
-	saveIABConsentSurface,
-	showConsentSurface,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
@@ -30,6 +26,11 @@ import type {
 } from '@c15t/core';
 import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
+import {
+	saveConsentSurface,
+	saveIABConsentSurface,
+	showConsentSurface,
+} from '@c15t/core/surface-actions';
 import type { Theme } from '@c15t/ui/theme';
 
 import { createDeferred } from './deferred';
@@ -416,43 +417,39 @@ export const createConsentClient = function createConsentClient(
 		saveConsentSurface(kernel, () =>
 			kernel.commands.save(input, { categories: categories() })
 		);
-	const NOT_SAVED: SaveResult = { ok: false };
-	/** Report a failed save through `error` instead of rejecting. */
-	const reported = async (
-		save: () => Promise<SaveResult>
-	): Promise<SaveResult> => {
+	/**
+	 * Save an IAB choice through the CMP, applying a blanket first. The IAB
+	 * UI has no opt-in fallback: without the CMP and its vendor list it shows
+	 * the error, so this reports one and confirms nothing.
+	 */
+	const saveIAB = async (blanket?: 'acceptAll' | 'rejectAll') => {
+		const handle = runtime.iab;
+		const snapshot = kernel.getSnapshot();
 		try {
-			return await save();
+			if (
+				!(handle && snapshot.iab?.gvl && snapshot.policyRule.model === 'iab')
+			) {
+				throw new Error('IAB privacy settings are not ready.');
+			}
+			return await saveIABConsentSurface(kernel, () => {
+				if (blanket) {
+					handle[blanket]();
+				}
+				return handle.save();
+			});
 		} catch (error) {
 			emit('error', error instanceof Error ? error : new Error(String(error)));
-			return NOT_SAVED;
+			return { ok: false };
 		}
 	};
-	/** An IAB choice needs the CMP and its vendor list; say so otherwise. */
-	const iabReady = (): boolean => {
-		const snapshot = kernel.getSnapshot();
-		if (
-			runtime.iab &&
-			snapshot.iab?.gvl &&
-			snapshot.policyRule.model === 'iab'
-		) {
-			return true;
-		}
-		emit('error', new Error('IAB privacy settings are not ready.'));
-		return false;
-	};
-	const saveIAB = (): Promise<SaveResult> =>
-		iabReady()
-			? reported(() => saveIABConsentSurface(kernel, () => runtime.iab?.save()))
-			: Promise.resolve(NOT_SAVED);
-	// The IAB UI has no opt-in fallback: without a vendor list it shows the
-	// error and confirms nothing.
-	const saveBlanket = (choice: 'all' | 'none'): Promise<SaveResult> =>
-		kernel.getSnapshot().policyRule.model === 'iab' && !iabReady()
-			? Promise.resolve(NOT_SAVED)
-			: reported(() => saveConsentBlanket(kernel, choice, runtime.iab));
-	const acceptAll = (): Promise<SaveResult> => saveBlanket('all');
-	const rejectAll = (): Promise<SaveResult> => saveBlanket('none');
+	const acceptAll = (): Promise<SaveResult> =>
+		kernel.getSnapshot().policyRule.model === 'iab'
+			? saveIAB('acceptAll')
+			: saveSelection('all');
+	const rejectAll = (): Promise<SaveResult> =>
+		kernel.getSnapshot().policyRule.model === 'iab'
+			? saveIAB('rejectAll')
+			: saveSelection('none');
 
 	const onPageClick = function onPageClick(event: MouseEvent): void {
 		const action = resolvePageAction(event.target);

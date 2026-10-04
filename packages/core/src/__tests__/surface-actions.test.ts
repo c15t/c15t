@@ -6,22 +6,22 @@
  */
 import { describe, expect, test, vi } from 'vitest';
 
+import { createConsentKernel } from '../index';
+import type {
+	ConsentKernel,
+	KernelConfig,
+	KernelIABAuthority,
+	SaveResult,
+} from '../index';
 import {
-	createConsentKernel,
 	hasConsentPreferences,
 	hasConsentUI,
 	saveConsentBlanket,
 	saveConsentSurface,
 	saveIABConsentSurface,
 	showConsentSurface,
-} from '../index';
-import type {
-	ConsentKernel,
-	ConsentSurfaceIAB,
-	KernelConfig,
-	KernelIABAuthority,
-	SaveResult,
-} from '../index';
+} from '../surface-actions';
+import type { ConsentSurfaceIAB } from '../surface-actions';
 import {
 	choiceRecords,
 	iabRule,

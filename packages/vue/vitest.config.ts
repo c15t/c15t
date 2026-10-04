@@ -86,6 +86,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'@c15t/core/surface-actions': resolve(
+						__dirname,
+						'../core/src/surface-actions.ts'
+					),
+				},
+				{
 					'@c15t/core/runtime/controls': resolve(
 						__dirname,
 						'../core/src/runtime/controls.ts'

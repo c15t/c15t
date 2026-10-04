@@ -5,4 +5,4 @@
  * rules (close on the local record, which surface follows, which older save
  * loses) live in `@c15t/core`'s `saveConsentSurface`.
  */
-export { saveConsentSurface as saveConsentUI } from '@c15t/core';
+export { saveConsentSurface as saveConsentUI } from '@c15t/core/surface-actions';

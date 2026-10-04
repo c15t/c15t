@@ -80,6 +80,11 @@
 			"import": "./shims/experiment.js",
 			"default": "./shims/experiment.js"
 		},
+		"./surface-actions": {
+			"types": "./shims/surface-actions.d.ts",
+			"import": "./shims/surface-actions.js",
+			"default": "./shims/surface-actions.js"
+		},
 		"./consent-categories": {
 			"types": "./shims/consent-categories.d.ts",
 			"import": "./shims/consent-categories.js",

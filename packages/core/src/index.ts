@@ -37,15 +37,6 @@ export {
 } from './consent-record';
 export { createConsentKernel } from './kernel';
 export { disabledPolicyResolution } from './policy';
-export type { ConsentSurfaceIAB } from './surface-actions';
-export {
-	hasConsentPreferences,
-	hasConsentUI,
-	saveConsentBlanket,
-	saveConsentSurface,
-	saveIABConsentSurface,
-	showConsentSurface,
-} from './surface-actions';
 export {
 	resolveIABBannerSummary,
 	IAB_BANNER_MAX_DISPLAY_ITEMS,

@@ -3,7 +3,6 @@ import {
 	applyTranslationOverrides,
 	createConsentKernel,
 	defaultTranslationConfig,
-	hasConsentUI,
 } from '@c15t/core';
 import type {
 	ConsentSnapshot,
@@ -604,6 +603,7 @@ export type {
 	PromptProps,
 } from './banner/prompt-model';
 export type { KernelConfig } from '@c15t/core';
+import { hasConsentUI } from '@c15t/core/surface-actions';
 
 /**
  * The per-request identity the emission guard keys off — in practice
