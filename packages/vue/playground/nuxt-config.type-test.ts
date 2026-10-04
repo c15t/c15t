@@ -2,6 +2,7 @@
 // checks it through the playground, where Nuxt applies the module's type
 // augmentations the same way it does in an application.
 import type { BlockedRequestInfo } from '@c15t/core/modules/network-blocker';
+import type { NitroRouteConfig } from 'nitropack/types';
 import { expectTypeOf } from 'vitest';
 
 import type { ModuleOptions } from '../src/nuxt-options';
@@ -69,3 +70,14 @@ export const unknownAppConfig = defineAppConfig({
 		notAnOption: true,
 	},
 });
+
+// The early `/init` script for `ssr: false` pages: a module option, and a
+// route rule that turns it off for some routes.
+expectTypeOf<{ initPrefetch: false }>().toExtend<ModuleOptions>();
+expectTypeOf<NitroRouteConfig['c15t']>().toEqualTypeOf<
+	{ initPrefetch?: boolean } | undefined
+>();
+export const wrongRouteRule: NitroRouteConfig = {
+	// @ts-expect-error The route rule takes a boolean.
+	c15t: { initPrefetch: 'no' },
+};

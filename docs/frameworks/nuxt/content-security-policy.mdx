@@ -12,6 +12,7 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | --- | --- |
 | The `<style id="c15t-css-vars">` tag with your theme tokens, in the page head | `style-src` |
 | The components' CSS, which Nuxt bundles with your app | `style-src` |
+| On `ssr: false` pages with `manifest` unset, an inline `<script>` in the page head that starts `/init` | `script-src` |
 | Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in server mode | `connect-src 'self'` |
 | Consent saves to your backend's `/subjects`, and `manifestURL` in client mode | `connect-src` |
 | `<script>` elements the script loader creates for `scripts` | `script-src` |
@@ -37,6 +38,24 @@ Recompute the hash whenever you change `tokens`. When you set the module's
 `nonce` option, the tag carries that nonce, so a `style-src` that lists the
 same nonce allows it. When your policy already allows `'unsafe-inline'` for
 Nuxt's own styles, the tag needs nothing more.
+
+## Allow the early init script
+
+On a page with `ssr: false` and `manifest` unset, the module writes an inline
+`<script>` into the page head that requests your backend's `/init` before the
+app's JavaScript loads. A `script-src` without `'unsafe-inline'` blocks it, and
+the app then sends its own `/init` request after it loads, as it would without
+the script.
+
+- **With `nuxt-security`**, the script carries its per-request nonce. Nothing
+  more is needed.
+- **With the module's `nonce` option**, the script carries that nonce.
+- **With a hash-based policy**, the script's content is the same for every
+  visitor and changes only when you change `backendURL` or upgrade c15t. Copy
+  the `sha256-...` value from the browser's `Refused to execute inline script`
+  console error and add it to `script-src`.
+
+To leave the script out, set `initPrefetch: false` in the module options.
 
 ## Allow the backend
 

@@ -128,6 +128,17 @@ the manifest from `manifestURL` and resolves the policy in the browser. The
 banner appears after the manifest loads. `examples/nuxt` builds this setup
 when `C15T_NUXT_OUTPUT=static` is set.
 
+With `manifest` unset, the browser calls your backend's `/init` instead of
+downloading the manifest. The module then adds a small inline script to the
+head of every `ssr: false` page, prerendered ones included, that starts this
+request while the browser parses the HTML. The app uses that response once its
+JavaScript loads, so the policy request no longer waits for the app's bundle.
+The script contains your backend URL and nothing about the visitor. Turn it
+off with the module option `initPrefetch: false`, or for one route with
+`routeRules: { '/path': { c15t: { initPrefetch: false } } }`. Use the route
+rule when a client plugin changes c15t's configuration for that route, because
+the server cannot see that change and the early request would go unused.
+
 ## Module options
 
 The [Nuxt module](/docs/frameworks/nuxt/module#backend-and-rendering) page

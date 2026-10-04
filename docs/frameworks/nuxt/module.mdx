@@ -33,6 +33,11 @@ the plugin runs, and the modules still start after the mount. Starting reads the
 and starts the script loader, clear-on-revocation, the network blocker, the
 iframe blocker and, under an IAB policy, the IAB module.
 
+With `manifest` unset, the module also writes a small inline script into the
+head of each `ssr: false` page. It calls your backend's `/init` while the
+browser parses the HTML, and the plugin uses that response instead of sending
+its own request.
+
 ## nuxt.config.ts or app.config.ts
 
 The module merges the `c15t` key of `app/app.config.ts` over its options in
@@ -67,6 +72,7 @@ read once when the page loads.
 | `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
 | `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
 | `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` or `Infinity` waits as long as the backend takes; any other value that is not a finite, non-negative number uses the default. |
+| `initPrefetch` | `true` | Pages with `ssr: false` and `manifest` unset start `/init` from an inline script in the page head, before the app's JavaScript loads. Skipped when `consentSource`, `customFetch` or `experiment` is set. `false` turns it off. To turn it off for some routes, set the route rule `c15t: { initPrefetch: false }`. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy#allow-the-early-init-script). |
 | `reportSessions` | `true` | Server mode only. The init route reports each visitor it resolves to the backend, so Inth counts visitors it never served `/init` to. Needs an absolute `backendURL`. |
 
 [Rendering and deployment](/docs/frameworks/nuxt/rendering) explains which
