@@ -15,7 +15,10 @@
  */
 import type { ConsentKernel, ConsentSnapshot } from '../types';
 import type { StorageConfig } from './cookie';
-import { readStoredExperimentArm } from './experiment-storage';
+import {
+	readStoredExperimentArm,
+	writeStoredExperimentArm,
+} from './experiment-storage';
 import type {
 	ConsentPresentation,
 	PreferencesPresentation,
@@ -601,10 +604,13 @@ export const startExperiment = function startExperiment(
 	let stopped = false;
 	const attach = async (): Promise<void> => {
 		try {
-			const { createExperimentController } =
+			const { createExperimentControllerWith } =
 				await import('./experiment-assignment');
 			if (!stopped) {
-				detach = createExperimentController(options).dispose;
+				detach = createExperimentControllerWith(
+					options,
+					writeStoredExperimentArm
+				).dispose;
 			}
 		} catch (failure) {
 			console.error(
