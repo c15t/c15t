@@ -8,15 +8,16 @@
  * route's chunk only while its chunk graph has no static cycle, and its
  * cycle check counts every import record, used or not. One unused
  * re-export (`@c15t/ui/utils/dom` re-exporting `setupColorScheme`) was
- * enough to split every shared module into its own file: in this fixture
- * the provider route loaded 15 files first instead of 10, and the root
- * route 16 instead of 11.
+ * enough to split every shared module into its own file: when it was
+ * dropped, this fixture's provider route went from 15 first-load files to
+ * 10, and its root route from 16 to 11.
  *
  * `ConsentRoot` brings the code that applies a streamed state with it, so
  * the banner doesn't wait for one more request after hydration. Here the
  * provider route loads that code on demand, so Rolldown gives it a chunk
- * of its own that the root route loads first: 11 files there. An app whose
- * routes all use `ConsentRoot` keeps it in the root's chunk.
+ * of its own (and one for its runtime helpers) that the root route loads
+ * first: 10 files there. An app whose routes all use `ConsentRoot` keeps it
+ * in the root's chunk.
  */
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -118,15 +119,15 @@ const streamedInitModule = /core\/dist\/runtime\/streamed-init\.js$/u;
 
 describe('TanStack Start client chunks', () => {
 	test.each([
-		['root-route', 11],
-		['provider-route', 10],
+		['root-route', 10],
+		['provider-route', 8],
 	])(
 		'a %s loads at most %i files first',
 		async (route, bound) => {
-			// The route, the app entry, the provider chunk and seven chunks of
+			// The route, the app entry, the provider chunk and five chunks of
 			// helpers Rolldown still keeps apart: it checks each helper before
 			// the shared module that imports it, and never revisits it. The
-			// root route adds the streamed-state resolver.
+			// root route adds the streamed-state resolver and its helpers.
 			const { files } = await routeFirstLoad(route);
 			expect(files.length, files.join('\n')).toBeLessThanOrEqual(bound);
 		},

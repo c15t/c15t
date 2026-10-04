@@ -12,7 +12,7 @@ import type {
 import { useCallback, useContext, useEffect, useMemo } from 'react';
 
 import { GlobalThemeContext } from '../context/theme-context';
-import { useConsentSaveAction } from '../draft';
+import { useConsentSaveAction } from '../draft-context';
 import {
 	useActiveUI,
 	useDismissNotice,

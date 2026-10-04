@@ -54,6 +54,10 @@ const alias = {
 		__dirname,
 		'../core/src/runtime/controls.ts'
 	),
+	'@c15t/core/preference-draft': resolve(
+		__dirname,
+		'../core/src/preference-draft/index.ts'
+	),
 	'@c15t/core/runtime/provider': resolve(
 		__dirname,
 		'../core/src/runtime/provider.ts'
