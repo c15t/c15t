@@ -266,7 +266,6 @@ const createConsentState = function createConsentState(
 	options: ConsentControllerOptions
 ): ConsentManagerState {
 	const getSnapshotLocal = options.getSnapshot;
-	let actionSequence = 0;
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const controller: ConsentManagerState = {
@@ -408,30 +407,26 @@ const createConsentState = function createConsentState(
 		async saveConsents(type: SaveType) {
 			// The kernel this action started on, even if `enabled` swaps it.
 			const kernel = getKernel();
-			actionSequence += 1;
-			const sequence = actionSequence;
 			const draft = options.getDraft();
 			// The surface closes in this task once the kernel has recorded the
-			// choice; see `saveConsentSurface`. The draft follows the record.
+			// choice; see `saveConsentSurface`. The draft follows the record,
+			// so edits staged while the request runs stay staged. A stale
+			// draft rejects before recording and leaves the surface open.
 			const result = await saveConsentSurface(kernel, async () => {
 				if (type === 'custom') {
 					await draft.save(controller.consentCategories);
 					return { ok: true };
 				}
-				const pending = kernel.commands.save(type === 'all' ? 'all' : 'none', {
-					categories: controller.consentCategories,
-				});
-				// The kernel recorded the bulk choice in that call; the draft
-				// follows it now. (A bulk save that records nothing leaves the
-				// record, and so the reseeded draft, as it was.)
+				// No category list: the kernel narrows a bulk choice to its own
+				// choice scope, the categories the draft displays.
+				const pending = kernel.commands.save(type === 'all' ? 'all' : 'none');
+				// A bulk choice supersedes every staged edit, even one that
+				// records nothing new.
 				draft.reset();
 				return pending;
 			});
 			if (!result.ok) {
 				throw new Error('Unable to save preferences.');
-			}
-			if (type !== 'custom' && sequence === actionSequence) {
-				draft.reset();
 			}
 		},
 		get selectedConsents() {
@@ -444,7 +439,6 @@ const createConsentState = function createConsentState(
 			return options.getDraft().vendors;
 		},
 		setActiveUI(ui: ActiveUI) {
-			actionSequence += 1;
 			showConsentSurface(getKernel(), ui as KernelActiveUI);
 		},
 		setConsent(name: AllConsentNames, value: boolean) {
