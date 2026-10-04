@@ -3,7 +3,7 @@
  * route behaviour itself is pinned once, in
  * `packages/core/src/server/__tests__/consent-route.test.ts`.
  */
-import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
+import { clearManifestCache } from '@c15t/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {

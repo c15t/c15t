@@ -3,7 +3,7 @@
  * `getServerSideProps` and `pages/api` routes use the server helpers and
  * route handlers built for the App Router.
  */
-import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
+import { clearManifestCache } from '@c15t/core/server';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 

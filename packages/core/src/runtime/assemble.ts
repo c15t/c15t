@@ -218,12 +218,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			}
 		},
 		kernel,
-		subscribe(listener) {
-			iabListeners.add(listener);
-			return function unsubscribeIAB() {
-				iabListeners.delete(listener);
-			};
-		},
 		processIframes() {
 			iframeBlocker?.processAllIframes();
 		},
@@ -422,6 +416,12 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		},
 		get started() {
 			return started;
+		},
+		subscribe(listener) {
+			iabListeners.add(listener);
+			return function unsubscribeIAB() {
+				iabListeners.delete(listener);
+			};
 		},
 	};
 	const releaseHold = function releaseHold(): void {

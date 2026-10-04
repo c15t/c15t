@@ -5,7 +5,7 @@
  * check what the TanStack Start adapter supplies: the request, the
  * middleware's remembered inputs, the route prefix and the prerender flag.
  */
-import { createManifestCache } from '@c15t/core/transports/manifest-cache';
+import { createManifestCache } from '@c15t/core/server';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 

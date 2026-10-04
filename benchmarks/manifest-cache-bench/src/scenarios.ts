@@ -4,16 +4,13 @@
  * and a fresh CDN, drives some number of requests, and records per-request
  * latency (`perf.now()` around the `await`) plus outcome.
  *
- * These import `@c15t/core/transports/manifest-cache` directly — the public
+ * These import `@c15t/core/server` directly — the public
  * entry point — so the same file runs unchanged against the cache before
  * and after the in-flight stale-while-revalidate change: only the installed
  * `@c15t/core` build differs between runs.
  */
-import {
-	createManifestCache,
-	fetchCachedManifest,
-} from '@c15t/core/transports/manifest-cache';
-import type { FetchCachedManifestOptions } from '@c15t/core/transports/manifest-cache';
+import { createManifestCache, fetchCachedManifest } from '@c15t/core/server';
+import type { FetchCachedManifestOptions } from '@c15t/core/server';
 
 import { createSimulatedClock, createVercelCdn } from './vercel-cdn';
 import type { VercelCdn, VercelCdnCounters } from './vercel-cdn';

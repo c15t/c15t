@@ -13,11 +13,6 @@ import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
-	readFillFailures,
-	readRevalidationFloors,
-} from '../libs/manifest-cache-runtime';
-import * as server from '../server';
-import {
 	clearManifestCache,
 	createManifestCache,
 	createManifestRequestURL,
@@ -25,21 +20,26 @@ import {
 	getManifestAge,
 	getManifestSMaxAge,
 	getManifestStaleWhileRevalidate,
-	getResolverInputsFromHeaders,
 	MANIFEST_DEDUPE_TTL_SECONDS,
 	MANIFEST_FAILURE_RETRY_MAX_MS,
 	MANIFEST_FAILURE_RETRY_MIN_MS,
 	MANIFEST_FETCH_TIMEOUT_MS,
 	MANIFEST_PASSTHROUGH_HEADERS,
 	ManifestUnavailableError,
-	resolveManifestInit,
+	readFillFailures,
+	readRevalidationFloors,
 	resolveManifestSourceURL,
-	withResolutionBudget,
-} from '../transports/manifest-cache';
+} from '../libs/manifest-cache-runtime';
 import type {
 	CachedManifestResponse,
 	ManifestCache,
 	ManifestFetch,
+} from '../libs/manifest-cache-runtime';
+import * as server from '../server';
+import {
+	getResolverInputsFromHeaders,
+	resolveManifestInit,
+	withResolutionBudget,
 } from '../transports/manifest-cache';
 import { C15T_VERSION_HEADER } from '../transports/version-header';
 
