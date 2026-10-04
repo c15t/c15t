@@ -580,15 +580,6 @@ export interface ConsentRuntime {
 	 * integrations. `undefined` drops the configured list.
 	 */
 	setConsentCategories: (categories: AllConsentNames[] | undefined) => void;
-	/**
-	 * Stage one vendor's grant for the next `save()`. Never a grant on its
-	 * own: gates only change once the save records it. Distinct from
-	 * {@link ConsentRuntimeIABHandle.setVendorConsent}, which sets an IAB
-	 * vendor by numeric id and takes effect at once.
-	 */
-	stageVendorConsent: (vendorId: string, granted: boolean) => void;
-	/** Drop staged vendor grants without saving. */
-	resetVendorDraft: () => void;
 	/** Subscribe to {@link ConsentRuntime.iab} changing. */
 	onIABChange: (
 		listener: (handle: ConsentRuntimeIABHandle | null) => void

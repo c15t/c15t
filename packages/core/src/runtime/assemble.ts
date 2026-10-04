@@ -233,9 +233,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			return persistenceHandle?.reconcile() ?? false;
 		},
 		reinit: runInit,
-		resetVendorDraft() {
-			kernel.set.vendorDraft(null);
-		},
 		setConsentCategories(categories) {
 			kernel.set.consentCategories(categories);
 		},
@@ -247,9 +244,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		},
 		setOverrides(overrides) {
 			kernel.set.overrides(overrides);
-		},
-		stageVendorConsent(vendorId, granted) {
-			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
 		// oxlint-disable-next-line complexity -- Starts the runtime modules in dependency order.
 		start() {
