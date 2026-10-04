@@ -139,11 +139,17 @@ for (const engine of ENGINES) {
 					yield* resetDatabase;
 					yield* createCompositeDedupeTable;
 					const sql = yield* SqlClient.SqlClient;
-					const quote = Dialect.escaperFor(yield* Dialect.current);
+					const dialect = yield* Dialect.current;
+					const quote = Dialect.escaperFor(dialect);
+					// MySQL cannot index a TEXT column without a prefix length.
+					const fingerprint =
+						dialect === 'mysql'
+							? `${quote('fingerprint')}(64)`
+							: quote('fingerprint');
 					yield* sql.unsafe(
 						`create unique index ${quote('decision_fingerprint')} on ${quote(
 							'runtimePolicyDecision'
-						)} (${quote('fingerprint')})`
+						)} (${fingerprint})`
 					);
 
 					yield* recordDecision(input).pipe(
@@ -159,6 +165,40 @@ for (const engine of ENGINES) {
 				}).pipe(Effect.provide(engine.client)),
 			{ timeout: 60_000 }
 		);
+
+		if (engine.name === 'pglite' || engine.name === 'postgres') {
+			it.effect(
+				'deduplicates beside an unrelated deferrable unique constraint',
+				() =>
+					Effect.gen(function* gen() {
+						// Postgres checks every unique index for a conflict-free
+						// `on conflict do nothing` and rejects deferrable ones. With
+						// the expected dedupeKey index present, the targeted form is
+						// used and the deferrable constraint never comes into it.
+						yield* resetDatabase;
+						yield* baseline;
+						yield* receipts;
+						yield* vendorChoice;
+						yield* attribution;
+						const sql = yield* SqlClient.SqlClient;
+						yield* sql.unsafe(
+							'alter table "runtimePolicyDecision" add constraint "decision_fingerprint_deferrable" unique ("fingerprint") deferrable'
+						);
+
+						const first = yield* recordDecision(input).pipe(
+							Effect.provide(tenantLayer('tenant_a'))
+						);
+						const second = yield* recordDecision(input).pipe(
+							Effect.provide(tenantLayer('tenant_a'))
+						);
+
+						assert.isTrue(first.created);
+						assert.isFalse(second.created);
+						assert.strictEqual(first.id, second.id);
+					}).pipe(Effect.provide(engine.client)),
+				{ timeout: 60_000 }
+			);
+		}
 
 		it.effect(
 			'the same key from one tenant is one decision',

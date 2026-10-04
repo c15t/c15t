@@ -21,17 +21,23 @@ export interface InsertOnceOptions {
 	 */
 	readonly conflictOn: string;
 	/**
-	 * Treat a conflict on any unique index as the duplicate, rather than only
-	 * an index on exactly `conflictOn`.
+	 * When no unique index covers exactly `conflictOn`, treat a conflict on
+	 * any unique index as the duplicate instead of failing.
 	 *
-	 * Postgres rejects `on conflict (col)` outright when no unique index covers
-	 * exactly that column, so a database whose index differs from the one the
-	 * migrator creates fails every insert. With this set, Postgres and SQLite
-	 * write `on conflict do nothing` with no target. Use it only for a table
-	 * whose other unique indexes cannot collide, or a real conflict on one of
-	 * them is reported as a duplicate. MySQL already behaves this way.
+	 * Postgres and SQLite reject `on conflict (col)` outright when no unique
+	 * index covers exactly that column, so a database whose index differs from
+	 * the one the migrator creates fails every insert. With this set, that
+	 * rejection is retried as `on conflict do nothing` with no target. A
+	 * schema with the expected index never takes the retry, so it keeps the
+	 * targeted statement, which also tolerates unrelated deferrable unique
+	 * constraints that a targetless one cannot.
+	 *
+	 * Use it only for a table whose other unique indexes cannot collide, or a
+	 * real conflict on one of them is reported as a duplicate. MySQL already
+	 * behaves this way. The retry follows a failed statement, which aborts an
+	 * enclosing Postgres transaction, so use it only outside one.
 	 */
-	readonly anyUniqueConflict?: boolean;
+	readonly fallbackToAnyUnique?: boolean;
 	/** Column values. JSON columns must already be serialised. */
 	readonly values: Record<string, unknown>;
 }
@@ -51,6 +57,28 @@ export interface InsertOnceOptions {
  * });
  * ```
  */
+/**
+ * Whether the database rejected an `on conflict (col)` target because no
+ * unique index covers exactly that column: SQLSTATE 42P10 on Postgres, a
+ * plain error with a fixed message on SQLite.
+ */
+const isMissingConflictTarget = (error: SqlError.SqlError): boolean => {
+	const cause: unknown = error.reason.cause;
+	if (typeof cause !== 'object' || cause === null) {
+		return false;
+	}
+	if ('code' in cause && cause.code === '42P10') {
+		return true;
+	}
+	return (
+		'message' in cause &&
+		typeof cause.message === 'string' &&
+		cause.message.includes(
+			'ON CONFLICT clause does not match any PRIMARY KEY or UNIQUE constraint'
+		)
+	);
+};
+
 export const insertOnce = Effect.fn('db.insertOnce')(function* insertOnce(
 	options: InsertOnceOptions
 ) {
@@ -88,20 +116,25 @@ export const insertOnce = Effect.fn('db.insertOnce')(function* insertOnce(
 						: Effect.fail(error)
 				)
 			),
-		orElse: () =>
-			Effect.map(
-				options.anyUniqueConflict === true
-					? sql`
-							insert into ${into} ${values}
-							on conflict do nothing
-							returning ${conflictOn}
-						`
-					: sql`
-							insert into ${into} ${values}
-							on conflict (${conflictOn}) do nothing
-							returning ${conflictOn}
-						`,
+		orElse: () => {
+			const targeted = sql`
+				insert into ${into} ${values}
+				on conflict (${conflictOn}) do nothing
+				returning ${conflictOn}
+			`;
+			const anyUnique = sql`
+				insert into ${into} ${values}
+				on conflict do nothing
+				returning ${conflictOn}
+			`;
+			return Effect.map(
+				options.fallbackToAnyUnique === true
+					? targeted.pipe(
+							Effect.catchIf(isMissingConflictTarget, () => anyUnique)
+						)
+					: targeted,
 				(rows) => rows.length > 0
-			),
+			);
+		},
 	});
 });
