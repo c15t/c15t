@@ -96,6 +96,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'@c15t/core/preference-draft': resolve(
+						__dirname,
+						'../core/src/preference-draft/index.ts'
+					),
+				},
+				{
 					'@c15t/core/runtime': resolve(
 						__dirname,
 						'../core/src/runtime/index.ts'

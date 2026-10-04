@@ -70,6 +70,10 @@ const workspaceAliases = [
 		),
 	},
 	{
+		find: '@c15t/core/preference-draft',
+		replacement: resolve(__dirname, '../core/src/preference-draft/index.ts'),
+	},
+	{
 		find: '@c15t/core/server',
 		replacement: resolve(__dirname, '../core/src/server/index.ts'),
 	},

@@ -378,10 +378,13 @@ describe('ConsentManager widget composition', () => {
 				.mockResolvedValue({ ok: false });
 			button('save').click();
 			await flushPromises();
-			expect(save).toHaveBeenCalledWith({
-				functionality: true,
-				measurement: false,
-			});
+			expect(save).toHaveBeenCalledWith(
+				{
+					functionality: true,
+					measurement: false,
+				},
+				{}
+			);
 		} finally {
 			await cleanup(wrapper, context);
 		}
