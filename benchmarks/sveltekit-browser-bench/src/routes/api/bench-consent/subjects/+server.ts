@@ -1,10 +1,14 @@
-import { recordBenchConsentFixtureExecution } from '$lib/server/fixture';
+import {
+	applyBenchConsentLatency,
+	recordBenchConsentFixtureExecution,
+} from '$lib/server/fixture';
 import { json } from '@sveltejs/kit';
 
 import type { RequestHandler } from './$types';
 
 export const POST: RequestHandler = async ({ request }) => {
 	recordBenchConsentFixtureExecution('subjects');
+	await applyBenchConsentLatency();
 	// A body of literal `null` parses fine, so `.catch()` never runs and a
 	// property read would throw; a non-string `subjectId` would also travel
 	// straight back into the response.

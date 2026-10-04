@@ -24,14 +24,18 @@
  * - `BENCHMARK_EXPECTED_SUITES` — comma list restricting which expected
  *   suites are required (partial local runs); every suite by default
  * - `BENCHMARK_ENFORCE=true` — exit non-zero on any failure above
+ * - `C15T_BENCH_BACKEND_LATENCY_MS` (alias `C15T_BENCH_INIT_LATENCY_MS`) and
+ *   `C15T_BENCH_PROFILE` — the condition the browser benches ran under, which
+ *   their expected keys carry; 200 ms and `none` by default
  */
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { resolveBenchConditionFromEnv } from './src/browser';
 import {
 	budgetIdentity,
 	describeBudgetDifference,
-	expectedBenchmarkResults,
+	expectedBenchmarkResultsFor,
 } from './src/expected-results';
 import type { ExpectedBenchmarkResult } from './src/expected-results';
 import {
@@ -235,7 +239,9 @@ const evaluateBudgets = function evaluateBudgets(
 const selectExpected = function selectExpected(): ExpectedBenchmarkResult[] {
 	const suites = parseList(process.env.BENCHMARK_EXPECTED_SUITES);
 	const packages = parseList(process.env.BENCHMARK_EXPECTED_PACKAGES);
-	const selected = expectedBenchmarkResults
+	const selected = expectedBenchmarkResultsFor(
+		resolveBenchConditionFromEnv(process.env)
+	)
 		.filter(
 			(entry) =>
 				(!suites.length || suites.includes(entry.suite)) &&

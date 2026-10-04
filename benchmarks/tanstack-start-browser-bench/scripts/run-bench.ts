@@ -15,7 +15,9 @@ import {
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { tanstackBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
@@ -106,11 +108,7 @@ const warmupIterations = Number(
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ??
-		readCliFlag('--init-latency') ??
-		process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 const coldManifestMode =
@@ -316,11 +314,10 @@ const applyPageProfile = async function applyPageProfile(
 const resultScenarioName = function resultScenarioName(
 	scenario: string
 ): string {
-	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return scenario;
-	}
-
-	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return benchScenarioKey(scenario, {
+		backendLatencyMs,
+		profile: throttleProfile,
+	});
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -544,6 +541,7 @@ const writeScenarioResult = function writeScenarioResult(
 		metadata: {
 			...serverHtmlMetadata(serverHtml),
 			...coldStateMetadata(input.coldState),
+			backendLatencyMs,
 			bannerPaintMs: nullableMedian(
 				groupedSamples.map((sample) => sample.bannerPaintMs)
 			),
@@ -555,7 +553,6 @@ const writeScenarioResult = function writeScenarioResult(
 			fixtureManifestExecutions: fixtureCounts.manifest,
 			fixtureSubjectExecutions: fixtureCounts.subjects,
 			gitDirty: safeGitDirty(),
-			initLatencyMs,
 			profile: throttleProfile,
 			visit: input.visit,
 		},
@@ -901,7 +898,7 @@ const run = async function run() {
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
-		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+		[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 	};
 	if (coldManifestMode) {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());

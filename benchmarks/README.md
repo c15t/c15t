@@ -95,7 +95,8 @@ and uploads `runtime-benchmarks-<id>` with base, head, comparison and
 provenance files. The matrix `id` is the package name with `@c15t/` removed,
 for example `runtime-benchmarks-react-browser-bench` for
 `@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
-Sample counts, warmups and budget thresholds are unchanged.
+Sample counts, warmups and budget thresholds are unchanged. Browser benches
+run against the 200 ms backend described under the environment knobs below.
 
 `bundle` measures real Next route assets, publish tarballs and consumer import
 entries. Entry reports separate initial and deferred JavaScript with gzip and
@@ -225,28 +226,56 @@ BENCH_ITERATIONS=10 SCRIPT_COUNTS=5,10,25,50 bun run bench:script-count
 Browser benchmark runners also accept deterministic environment knobs:
 
 ```bash
-C15T_BENCH_ITERATIONS=1 bun run bench -- --profile none --init-latency-ms 0
-C15T_BENCH_ITERATIONS=10 bun run bench -- --profile mobile --init-latency-ms 200
+C15T_BENCH_ITERATIONS=1 bun run bench -- --profile none --backend-latency-ms 0
+C15T_BENCH_ITERATIONS=10 bun run bench -- --profile mobile
 ```
 
 - `--profile none|mobile` selects the Playwright CDP throttle profile. `mobile`
-  applies 4x CPU throttling and Fast-4G-like network conditions.
-- `--init-latency-ms <n>` forwards to `C15T_BENCH_INIT_LATENCY_MS`, making the
-  local deterministic init route delay by `n` milliseconds.
+  applies 4x CPU throttling and Fast-4G-like network conditions (170 ms RTT on
+  every request, assets included).
+- `--backend-latency-ms <n>` (or `C15T_BENCH_BACKEND_LATENCY_MS`) makes the
+  local consent backend answer after `n` milliseconds. **The default is 200 ms**,
+  so every bench measures against a backend a network hop away. Use `0` for a
+  quick local run. The old `--init-latency-ms`, `--init-latency` and
+  `C15T_BENCH_INIT_LATENCY_MS` names still work as aliases.
+- The delay applies to every consent-backend endpoint a bench calls: `/init`,
+  `/manifest` (including `304` revalidations), `/subjects` saves, and the
+  production consumer's `/sessions`. Requests that reach the backend through
+  the app's own `/api/c15t/*` routes or proxies, and server-side SSR fetches,
+  pay it too, as they would in production. Static assets, the app's HTML and
+  the bench's own `stats` control endpoints are not delayed.
+- `script-lifecycle-bench` keeps an instant backend. Its timed window awaits
+  `kernel.commands.save()`, so a fixed 200 ms save would become most of every
+  sample and hide the script loader work the bench exists to measure.
 - `--cold-manifest true` records manifest scenarios as separate `*-cold` and
   `*-steady` outputs. The server starts with a distinct manifest cache key for
   that run; request 1 is the cold manifest fill and requests 2..N are the
   steady cached path.
-- Results record `metadata.profile` and `metadata.initLatencyMs` alongside CLS,
-  banner element timing, first-HTML banner presence, and long-task metrics.
+- Results record `metadata.profile` and `metadata.backendLatencyMs` alongside
+  CLS, banner element timing, first-HTML banner presence, and long-task
+  metrics. Every browser-runtime scenario key carries the condition, for
+  example `ssr:profile-none:latency-200ms`, and so does the output file name.
+
+`scripts/benchmark-run.ts` applies the same latency to the base and head
+measurements (`--backend-latency-ms` or `C15T_BENCH_BACKEND_LATENCY_MS`,
+default 200) and records it in `provenance.json`. The comparison gate expects
+browser-runtime keys under that condition, read from the same variables and
+`C15T_BENCH_PROFILE`.
+
+With 200 ms on the backend, any arm that waits on it shows the round trip in
+its absolute timings: client arms in `bannerReadyMs`, SSR arms in TTFB. Budgets
+compare head against a base measured at the same latency. The percentage half
+of an `absolute-and-percent-lte` budget now divides by a larger base median,
+so on those arms the absolute half usually decides the result.
 
 Direct-init browser benchmark arms intentionally fetch `/init` with
-`cache: "no-store"` so every measured request pays `C15T_BENCH_INIT_LATENCY_MS`.
+`cache: "no-store"` so every measured request pays the backend latency.
 Manifest arms intentionally keep their framework/server manifest caching: SSR
 manifest arms resolve init from the cached server manifest, Next's manifest
 client arm fetches the same-origin cached manifest route in the browser, and
 Nuxt's client-manifest arm uses the module's same-origin manifest-backed init
-route. This asymmetry is the benchmark subject, not a harness accident.
+route. A cached manifest pays the latency once per cache fill. This asymmetry
+is the benchmark subject, not a harness accident.
 
 Bundle size is measured separately by `bundle-test-app` because it is build analysis rather than an iteration-based browser runtime benchmark.
 

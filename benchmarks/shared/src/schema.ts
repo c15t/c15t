@@ -129,6 +129,9 @@ export type BenchmarkMetadataValue = string | number | boolean | null;
 export interface BenchmarkMetadata {
 	[key: string]: BenchmarkMetadataValue | BenchmarkMetadataValue[] | undefined;
 	profile?: string;
+	/** Simulated consent-backend round trip the run applied, in ms. */
+	backendLatencyMs?: number;
+	/** @deprecated Older artifacts' name for `backendLatencyMs`. */
 	initLatencyMs?: number;
 }
 

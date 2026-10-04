@@ -12,6 +12,10 @@ import {
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
+import {
+	BENCH_BACKEND_LATENCY_ENV,
+	resolveBenchBackendLatencyMs,
+} from '../benchmarks/shared/src/browser';
 import { replaceBenchmarkFixtures } from './benchmark-overlay';
 import { createBenchmarkPlan } from './benchmark-plan';
 import { resolveBenchmarkRevisions } from './benchmark-revisions';
@@ -19,6 +23,19 @@ import { runCommand } from './browser-process';
 import { installBrowsers } from './install-browsers';
 
 const mode = process.argv[2] ?? 'quick';
+const readFlag = function readFlag(name: string): string | undefined {
+	const index = process.argv.indexOf(name);
+	if (index >= 0) {
+		return process.argv[index + 1];
+	}
+	const prefix = `${name}=`;
+	return process.argv
+		.find((arg) => arg.startsWith(prefix))
+		?.slice(prefix.length);
+};
+// Base and head both run against a consent backend that answers after this
+// many milliseconds (200 by default; `--backend-latency-ms 0` turns it off).
+const backendLatencyMs = resolveBenchBackendLatencyMs(readFlag, process.env);
 const { expectedPackages, packages, suites } = createBenchmarkPlan(
 	mode,
 	process.env.BENCHMARK_PACKAGE
@@ -37,6 +54,7 @@ const env = {
 	BENCHMARK_BASE_SHA: baseSha,
 	BENCH_ITERATIONS: mode === 'quick' ? '15' : '30',
 	BENCH_WARMUP_ITERATIONS: '3',
+	[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 	C15T_BENCH_ITERATIONS: mode === 'quick' ? '15' : '30',
 	C15T_BENCH_WARMUP_ITERATIONS: '3',
 	// Microsecond operations need enough iterations for JIT warmup and sampling.
@@ -45,7 +63,9 @@ const env = {
 };
 
 const measure = async function measure(cwd: string, sha: string, arm: string) {
-	process.stdout.write(`Measuring ${arm} ${sha} with the ${mode} suite.\n`);
+	process.stdout.write(
+		`Measuring ${arm} ${sha} with the ${mode} suite at ${backendLatencyMs} ms backend latency.\n`
+	);
 	rmSync(join(cwd, '.benchmarks/head'), { force: true, recursive: true });
 	await runCommand(
 		[
@@ -79,6 +99,7 @@ try {
 		join(report, 'provenance.json'),
 		JSON.stringify(
 			{
+				backendLatencyMs,
 				baseHarnessOverlay: true,
 				baseSha,
 				harnessDirty:

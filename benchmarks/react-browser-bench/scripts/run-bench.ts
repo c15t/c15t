@@ -14,7 +14,9 @@ import {
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { reactBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
@@ -116,11 +118,7 @@ const warmupIterations = Number(
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ??
-		readCliFlag('--init-latency') ??
-		process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 
@@ -334,11 +332,10 @@ const resultScenarioName = function resultScenarioName(
 		cssArm === 'styles' && scenario === 'banner-css'
 			? `${scenario}:css-styles`
 			: scenario;
-	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return name;
-	}
-
-	return `${name}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return benchScenarioKey(name, {
+		backendLatencyMs,
+		profile: throttleProfile,
+	});
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -568,6 +565,7 @@ const writeScenarioResult = function writeScenarioResult(
 		framework: 'react',
 		metadata: {
 			...serverHtmlMetadata(serverHtml),
+			backendLatencyMs,
 			bannerPaintMs: nullableMedian(
 				samples.map((sample) => sample.bannerPaintMs)
 			),
@@ -575,7 +573,6 @@ const writeScenarioResult = function writeScenarioResult(
 			...coldStateMetadata(input.coldState),
 			cssArm,
 			gitDirty: safeGitDirty(),
-			initLatencyMs,
 			profile: throttleProfile,
 			visit: input.visit,
 		},
@@ -824,7 +821,7 @@ const run = async function run() {
 			cwd: appDir,
 			env: {
 				...process.env,
-				C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+				[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 			},
 			stdio: ['ignore', 'pipe', 'pipe'],
 		}
@@ -853,8 +850,8 @@ const run = async function run() {
 		}
 
 		await runPolicyScenarios(browser, selectedPolicyScenarios, {
+			backendLatencyMs,
 			baseUrl: BASE_URL,
-			initLatencyMs,
 			iterations,
 			outputDir,
 			resultFileName,

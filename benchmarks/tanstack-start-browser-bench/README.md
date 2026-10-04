@@ -26,13 +26,14 @@ file that list it are historical.
 Fixture routes live under `src/routes/api/bench-consent/` and are a copy of
 the Next arm's `fixture.ts` (policy id, fingerprint, revision, and
 translations are byte-identical, so both arms resolve the same policy). They
-honour `C15T_BENCH_INIT_LATENCY_MS` and the `?cold=` token the same way.
+honour `C15T_BENCH_BACKEND_LATENCY_MS` (200 ms by default) and the `?cold=`
+token the same way.
 
 ## Running
 
 ```bash
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --iterations 15 --warmup 2
-bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --profile mobile --init-latency-ms 200
+bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --profile mobile --backend-latency-ms 200
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --scenario manifest-ssr-proxy
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --cold-manifest true
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --root-provider

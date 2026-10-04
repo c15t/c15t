@@ -202,7 +202,7 @@ interface PolicyRunOptions {
 	iterations: number;
 	warmupIterations: number;
 	throttleProfile: BenchThrottleProfileName;
-	initLatencyMs: number;
+	backendLatencyMs: number;
 	outputDir: string;
 	resultScenarioName: (scenario: string) => string;
 	resultFileName: (scenario: string) => string;
@@ -718,6 +718,7 @@ const writePolicyResult = function writePolicyResult(
 					usesManifestCache: false,
 				})
 			),
+			backendLatencyMs: options.backendLatencyMs,
 			consoleErrors: samples.flatMap((sample) => sample.consoleErrors),
 			cookieNames: mostCommon(
 				samples.map((sample) => sample.storage?.cookieNames.join(',') ?? null)
@@ -730,7 +731,6 @@ const writePolicyResult = function writePolicyResult(
 			hydrationPromptKind: mostCommon(
 				hydrationSamples.map((hydration) => hydration.promptKind)
 			),
-			initLatencyMs: options.initLatencyMs,
 			localStorageKeys: mostCommon(
 				samples.map(
 					(sample) => sample.storage?.localStorageKeys.join(',') ?? null

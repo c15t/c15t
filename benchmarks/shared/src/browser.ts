@@ -155,21 +155,127 @@ export const parseBenchThrottleProfile = function parseBenchThrottleProfile(
 	);
 };
 
-export const parseBenchInitLatencyMs = function parseBenchInitLatencyMs(
-	value: string | undefined
+/**
+ * Simulated consent-backend round trip, in milliseconds, that every browser
+ * bench applies unless told otherwise. A real backend is a network hop away;
+ * benching against an instant localhost backend hid whether code waits on it.
+ */
+export const DEFAULT_BENCH_BACKEND_LATENCY_MS = 200;
+
+/**
+ * Environment variable a runner reads and passes to its bench server. The
+ * fixture delays every consent-backend endpoint (init, manifest, subjects,
+ * sessions) by this many milliseconds, and server-side fetches of those
+ * endpoints pay it too. Static assets and app HTML are not delayed.
+ */
+export const BENCH_BACKEND_LATENCY_ENV = 'C15T_BENCH_BACKEND_LATENCY_MS';
+
+/** Older name of {@link BENCH_BACKEND_LATENCY_ENV}, still read as an alias. */
+export const BENCH_INIT_LATENCY_ENV = 'C15T_BENCH_INIT_LATENCY_MS';
+
+/** CLI flags that set the backend latency, in precedence order. */
+export const BENCH_BACKEND_LATENCY_FLAGS = [
+	'--backend-latency-ms',
+	'--init-latency-ms',
+	'--init-latency',
+] as const;
+
+/**
+ * Parse one backend-latency value. An absent or empty value selects
+ * {@link DEFAULT_BENCH_BACKEND_LATENCY_MS}; `0` turns the delay off.
+ *
+ * @param value - Raw flag or environment value.
+ * @param source - Flag or variable name, for the error message.
+ * @returns Whole milliseconds.
+ * @throws {Error} When the value is not a finite, non-negative number.
+ */
+export const parseBenchBackendLatencyMs = function parseBenchBackendLatencyMs(
+	value: string | undefined,
+	source: string = BENCH_BACKEND_LATENCY_ENV
 ): number {
-	if (!value) {
-		return 0;
+	if (value === undefined || value.trim() === '') {
+		return DEFAULT_BENCH_BACKEND_LATENCY_MS;
 	}
 
 	const parsed = Number(value);
 	if (!Number.isFinite(parsed) || parsed < 0) {
 		throw new Error(
-			`C15T_BENCH_INIT_LATENCY_MS must be a non-negative number. Received "${value}".`
+			`${source} must be a non-negative number. Received "${value}".`
 		);
 	}
 
 	return Math.round(parsed);
+};
+
+/**
+ * Resolve a runner's backend latency: the first CLI flag in
+ * {@link BENCH_BACKEND_LATENCY_FLAGS}, then {@link BENCH_BACKEND_LATENCY_ENV},
+ * then the {@link BENCH_INIT_LATENCY_ENV} alias, then the 200 ms default.
+ *
+ * @param readFlag - Reads one CLI flag's value, `undefined` when absent.
+ * @param env - Process environment.
+ * @returns Whole milliseconds.
+ *
+ * @example
+ * ```ts
+ * const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
+ * ```
+ */
+export const resolveBenchBackendLatencyMs =
+	function resolveBenchBackendLatencyMs(
+		readFlag: (name: string) => string | undefined,
+		env: Readonly<Record<string, string | undefined>>
+	): number {
+		for (const flag of BENCH_BACKEND_LATENCY_FLAGS) {
+			const value = readFlag(flag);
+			if (value !== undefined) {
+				return parseBenchBackendLatencyMs(value, flag);
+			}
+		}
+		for (const name of [BENCH_BACKEND_LATENCY_ENV, BENCH_INIT_LATENCY_ENV]) {
+			const value = env[name];
+			if (value !== undefined && value.trim() !== '') {
+				return parseBenchBackendLatencyMs(value, name);
+			}
+		}
+		return DEFAULT_BENCH_BACKEND_LATENCY_MS;
+	};
+
+/** Network condition a browser bench result was measured under. */
+export interface BenchCondition {
+	profile: BenchThrottleProfileName;
+	backendLatencyMs: number;
+}
+
+/**
+ * Resolve the condition from the environment alone, the way
+ * `scripts/benchmark-run.ts` hands it to every runner and to the gate.
+ *
+ * @param env - Process environment.
+ */
+export const resolveBenchConditionFromEnv =
+	function resolveBenchConditionFromEnv(
+		env: Readonly<Record<string, string | undefined>>
+	): BenchCondition {
+		return {
+			backendLatencyMs: resolveBenchBackendLatencyMs(() => undefined, env),
+			profile: parseBenchThrottleProfile(env.C15T_BENCH_PROFILE),
+		};
+	};
+
+/**
+ * Result scenario key carrying the condition, so results measured at
+ * different latencies or profiles never share a key.
+ *
+ * @param scenario - Scenario name, for example `ssr`.
+ * @param condition - Throttle profile and backend latency.
+ * @returns For example `ssr:profile-none:latency-200ms`.
+ */
+export const benchScenarioKey = function benchScenarioKey(
+	scenario: string,
+	condition: BenchCondition
+): string {
+	return `${scenario}:profile-${condition.profile}:latency-${condition.backendLatencyMs}ms`;
 };
 
 export const applyBenchThrottleProfile =

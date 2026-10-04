@@ -30,7 +30,9 @@ import {
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { sveltekitBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
@@ -201,11 +203,7 @@ const warmupIterations = Number(
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ??
-		readCliFlag('--init-latency') ??
-		process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 
@@ -447,11 +445,10 @@ const seedRepeatVisitorCookie = async function seedRepeatVisitorCookie(
 const resultScenarioName = function resultScenarioName(
 	scenario: string
 ): string {
-	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return scenario;
-	}
-
-	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return benchScenarioKey(scenario, {
+		backendLatencyMs,
+		profile: throttleProfile,
+	});
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -642,7 +639,7 @@ const run = async function run() {
 
 	const env = {
 		...process.env,
-		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+		[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 		HOST,
 		// adapter-node assumes https when nothing tells it otherwise, and the
 		// kit route handlers resolve the relative manifest URL against that
@@ -761,6 +758,7 @@ const run = async function run() {
 					metadata: {
 						...serverHtmlMetadata(serverHtml),
 						...coldStateMetadata(coldState),
+						backendLatencyMs,
 						bannerPaintMs: nullableMedian(
 							samples.map((sample) => sample.bannerPaintMs)
 						),
@@ -771,7 +769,6 @@ const run = async function run() {
 						fixtureManifestExecutions: fixtureCounts.manifest,
 						fixtureSubjectExecutions: fixtureCounts.subjects,
 						gitDirty: safeGitDirty(),
-						initLatencyMs,
 						profile: throttleProfile,
 						visit,
 						zeroConsentBaseline:
