@@ -158,6 +158,16 @@ describe('onDemandRuntimeModules', () => {
 	});
 });
 
+test('each on-demand factory is exported on its own', async () => {
+	const provider = await import('../provider');
+	expect({
+		connectConsentSource: provider.connectConsentSourceOnDemand,
+		createClearOnRevocation: provider.clearOnRevocationOnDemand,
+		createNetworkBlocker: provider.networkBlockerOnDemand,
+		createScriptLoader: provider.scriptLoaderOnDemand,
+	}).toEqual(onDemandRuntimeModules);
+});
+
 describe('createConsentRuntimeWith', () => {
 	test('a configure-once runtime mounts the modules it is given', async () => {
 		const onBeforeLoad = vi.fn();
@@ -251,5 +261,32 @@ describe('on-demand chunks', () => {
 		expect(
 			files.filter((file) => /\/(?:index|tools|hold)\.ts$/u.test(file))
 		).toEqual([]);
+	});
+
+	// A host that imports one factory and the others' modules statically
+	// (an Astro site with `scripts`) must not reach the others' `import()`:
+	// a bundler keeps a module that is also dynamically imported in a chunk
+	// of its own.
+	test.each([
+		[
+			'runtime/on-demand-clear-on-revocation.ts',
+			'../modules/clear-on-revocation/clear',
+		],
+		['runtime/on-demand-consent-source.ts', './controls'],
+		[
+			'runtime/on-demand-network-blocker.ts',
+			'../modules/network-blocker/blocker',
+		],
+		['runtime/on-demand-script-loader.ts', '../modules/script-loader/loader'],
+	])('%s loads only %s on demand', (entry, chunk) => {
+		// Relative only: TSDoc examples name the public entries.
+		const dynamic = reach(join(source, entry)).flatMap((file) =>
+			[
+				...readFileSync(file, 'utf8').matchAll(
+					/import\(\s*'(?<specifier>\.[^']*)'\s*\)/gu
+				),
+			].map((match) => match.groups?.specifier)
+		);
+		expect(dynamic).toEqual([chunk]);
 	});
 });

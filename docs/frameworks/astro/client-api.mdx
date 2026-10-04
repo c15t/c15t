@@ -216,7 +216,10 @@ collection on purpose.
 `syncSurfaceVisibility`, plus the attribute names `ACTION_ATTRIBUTE`,
 `DIALOG_ATTRIBUTE` and `DIALOG_TAB_ATTRIBUTE`. The integration calls them for
 you. You need them only to run c15t's client without the integration, as a
-test harness does.
+test harness does. The script loader, the network blocker and a
+`consentSource` connection come from the integration's page script, so
+`boot()` on its own throws when the options configure `scripts`,
+`networkBlocker` or `consentSource`.
 
 ## Check the client API
 

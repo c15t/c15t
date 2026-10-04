@@ -1,10 +1,11 @@
 /**
  * Which script loader the page runtime mounts: the one the boot script
- * registered (a site with `scripts`), else the on-demand chunk.
+ * registered (statically for a site with `scripts`), and none without one.
  *
  * Its own file, because the registration is page-wide.
  */
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
+import { scriptLoaderOnDemand } from '@c15t/core/runtime/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { boot, registerRuntimeModules } from '../client';
@@ -53,7 +54,14 @@ afterEach(() => {
 });
 
 describe('page runtime modules', () => {
-	it('loads the script loader on demand by default', async () => {
+	// First, before anything is registered: registration is page-wide.
+	it('fails loudly when scripts are configured but nothing registered a loader', () => {
+		expect(start).toThrow(/`scripts` needs the module/u);
+		expect(injected()).toBeNull();
+	});
+
+	it('mounts a registered on-demand script loader once it loads', async () => {
+		registerRuntimeModules({ createScriptLoader: scriptLoaderOnDemand });
 		start();
 		expect(injected()).toBeNull();
 		await vi.dynamicImportSettled();

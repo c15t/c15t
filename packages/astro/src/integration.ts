@@ -297,35 +297,43 @@ const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
 	};
 };
 
-/** A runtime module factory the boot script imports statically. */
-interface StaticRuntimeModule {
+/** A runtime module factory the boot script imports and registers. */
+interface PageRuntimeModule {
+	/** The `ConsentRuntimeModules` key it fills. */
 	name: 'connectConsentSource' | 'createNetworkBlocker' | 'createScriptLoader';
+	/** The export to import, when it differs from `name`. */
+	exportName?: string;
 	specifier: string;
 }
 
 /**
- * The on-demand runtime modules every page of this site starts with, which
- * the boot script therefore imports statically.
+ * The runtime modules this site's pages mount, which the boot script
+ * imports and registers.
  *
- * The client loads the script loader, the network blocker and a
- * `consentSource` connection on demand, so a site that configures none of
- * them never downloads them. A site that does would otherwise fetch each
- * one only after the boot script ran: for a returning visitor, consented
- * scripts and held requests would wait one more round trip. These options
- * are site-wide and known at build time, so the boot chunk carries the
- * modules instead, with no extra request and no URL to resolve. A
- * `clientEntrypoint` may add scripts or a `consentSource` the build cannot
- * see, so it keeps both static, as before.
+ * The client mounts none of the script loader, the network blocker and a
+ * `consentSource` connection by itself, so a site that configures none of
+ * them never downloads them. A site that does gets them statically: loaded
+ * on demand, each would arrive only after the boot script ran, and for a
+ * returning visitor consented scripts and held requests would wait one
+ * more round trip. These options are site-wide and known at build time, so
+ * the boot chunk carries the modules, with no extra request and no URL to
+ * resolve. A `clientEntrypoint` may add scripts or a `consentSource` the
+ * build cannot see, so it keeps both static, and it may add blocker rules,
+ * so it gets the on-demand blocker when the site configures none.
+ *
+ * The boot script imports each on-demand factory on its own: an `import()`
+ * of the statically imported script loader anywhere in the page's graph
+ * would keep it in a chunk of its own.
  *
  * @param options - The options passed to `c15t()`.
  * @param resolved - The resolved options.
- * @returns The factories to import statically.
+ * @returns The factories to import and register.
  */
-const pageStartModules = function pageStartModules(
+const pageRuntimeModules = function pageRuntimeModules(
 	options: C15tAstroOptions,
 	resolved: C15tResolvedOptions
-): StaticRuntimeModule[] {
-	const modules: StaticRuntimeModule[] = [];
+): PageRuntimeModule[] {
+	const modules: PageRuntimeModule[] = [];
 	if ((resolved.scripts?.length ?? 0) > 0 || options.clientEntrypoint) {
 		modules.push({
 			name: 'createScriptLoader',
@@ -336,6 +344,12 @@ const pageStartModules = function pageStartModules(
 		modules.push({
 			name: 'createNetworkBlocker',
 			specifier: '@c15t/core/modules/network-blocker',
+		});
+	} else if (options.clientEntrypoint) {
+		modules.push({
+			exportName: 'networkBlockerOnDemand',
+			name: 'createNetworkBlocker',
+			specifier: '@c15t/core/runtime/provider',
 		});
 	}
 	if (options.clientEntrypoint) {
@@ -378,13 +392,14 @@ const buildBootScript = function buildBootScript(
 		`registerDialogAdapter(${serializedUI}, async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
 		`registerDialogSurface(${serializedUI}, () => import(${quote(adapter.surfaceModule)}));`,
 	];
-	const staticModules = pageStartModules(options, resolved);
-	if (staticModules.length > 0) {
-		for (const { name, specifier } of staticModules) {
-			lines.push(`import { ${name} } from ${quote(specifier)};`);
+	const runtimeModules = pageRuntimeModules(options, resolved);
+	if (runtimeModules.length > 0) {
+		for (const { exportName, name, specifier } of runtimeModules) {
+			const binding = exportName ? `${exportName} as ${name}` : name;
+			lines.push(`import { ${binding} } from ${quote(specifier)};`);
 		}
 		lines.push(
-			`registerRuntimeModules({ ${staticModules.map(({ name }) => name).join(', ')} });`
+			`registerRuntimeModules({ ${runtimeModules.map(({ name }) => name).join(', ')} });`
 		);
 	}
 	// `?url` makes each stylesheet an emitted file and the import a string,

@@ -525,9 +525,14 @@ describe('astro:config:setup', () => {
 		});
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
 		expect(code).toContain(
-			'registerRuntimeModules({ createScriptLoader, connectConsentSource });'
+			'registerRuntimeModules({ createScriptLoader, createNetworkBlocker, connectConsentSource });'
 		);
-		expect(code).not.toContain('createNetworkBlocker');
+		// Its blocker rules are not known at build time: on demand, imported
+		// on its own so the boot chunk names no other module's chunk.
+		expect(code).toContain(
+			`import { networkBlockerOnDemand as createNetworkBlocker } from ${specifier('@c15t/core/runtime/provider')};`
+		);
+		expect(code).not.toContain('@c15t/core/modules/network-blocker');
 	});
 
 	it('threads a client entrypoint into the boot script', async () => {

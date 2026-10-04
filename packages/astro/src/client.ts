@@ -40,9 +40,9 @@ import type {
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
 import {
+	clearOnRevocationOnDemand,
 	createConsentRuntimeWith,
 	mountRuntimeIAB,
-	onDemandRuntimeModules,
 } from '@c15t/core/runtime/provider';
 import type { ConsentRuntimeModules } from '@c15t/core/runtime/provider';
 import {
@@ -646,30 +646,57 @@ const resolveAction = function resolveAction(
 const NO_VENDORS: readonly ResolvedVendor[] = [];
 
 /**
- * The runtime modules the page mounts. The script loader, network blocker,
- * data clearing and a `consentSource` connection load on demand, each only
- * when configured; persistence, the iframe blocker and the IAB mount load
- * with the page.
+ * Stands in for a module the page script did not register.
+ *
+ * The integration's page script registers the script loader, the network
+ * blocker and the `consentSource` connection whenever the site can
+ * configure them, so this only runs under `boot()` without the
+ * integration, which then fails loudly instead of dropping the option. A
+ * fallback `import()` of these modules here would keep a site's
+ * statically imported script loader in a chunk of its own.
+ *
+ * @param option - The option that needs the module.
+ * @throws {Error} Always.
+ */
+const notRegistered = function notRegistered(option: string): never {
+	throw new Error(
+		`@c15t/astro: \`${option}\` needs the module the integration's page script registers.`
+	);
+};
+
+/**
+ * The runtime modules the page mounts. Data clearing loads on demand;
+ * persistence, the iframe blocker and the IAB mount load with the page.
+ * The boot script registers the script loader, the network blocker and a
+ * `consentSource` connection for a site that can configure them.
  */
 let pageRuntimeModules: ConsentRuntimeModules = {
-	...onDemandRuntimeModules,
+	connectConsentSource: () => notRegistered('consentSource'),
+	createClearOnRevocation: clearOnRevocationOnDemand,
 	createIframeBlocker,
+	createNetworkBlocker: ({ hold }) => {
+		// Nothing will decide the held requests: fail them closed.
+		hold?.block();
+		return notRegistered('networkBlocker');
+	},
 	createPersistence,
+	createScriptLoader: () => notRegistered('scripts'),
 	createWindowDebug,
 	mountIAB: mountRuntimeIAB,
 	watchRevocationReload,
 };
 
 /**
- * Mount these module factories instead of their on-demand versions.
+ * Mount these module factories.
  *
  * The integration's boot script imports the script loader statically when
  * the site configures `scripts` (or a `clientEntrypoint` that may add
  * some), and the network blocker when it configures rules, so those ship
- * with the page instead of one round trip after it. Call before
+ * with the page instead of one round trip after it. A `clientEntrypoint`
+ * that may add blocker rules gets the on-demand blocker. Call before
  * {@link boot}.
  *
- * @param modules - Statically imported module factories.
+ * @param modules - The module factories to mount.
  * @internal
  */
 export const registerRuntimeModules = function registerRuntimeModules(

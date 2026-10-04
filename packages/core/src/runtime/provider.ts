@@ -15,7 +15,10 @@
  * streamed-prefetch code only for a runtime whose `prefetch` is a promise;
  * `streamPrefetchWith` wraps a resolver the host imported itself.
  * A host that configures once (the script tag, an Astro page) builds the
- * same modules into a runtime with `createConsentRuntimeWith`.
+ * same modules into a runtime with `createConsentRuntimeWith`, and can take
+ * the on-demand factories one at a time (`scriptLoaderOnDemand`,
+ * `networkBlockerOnDemand`, `clearOnRevocationOnDemand`,
+ * `connectConsentSourceOnDemand`) when it imports the rest statically.
  *
  * @example
  * ```ts
@@ -31,6 +34,16 @@ export { lazyRuntimeModule } from './lazy-module';
 // every chunk that imports this entry.
 // oxlint-disable-next-line oxc/no-barrel-file -- One module; the count is its tools' first-load imports, which the entry already has.
 export * from './on-demand';
+// Each on-demand factory on its own, from its own file, so a host that
+// imports one never names the others' chunks.
+// oxlint-disable-next-line oxc/no-barrel-file -- One module.
+export * from './on-demand-clear-on-revocation';
+// oxlint-disable-next-line oxc/no-barrel-file -- One module.
+export * from './on-demand-consent-source';
+// oxlint-disable-next-line oxc/no-barrel-file -- One module.
+export * from './on-demand-network-blocker';
+// oxlint-disable-next-line oxc/no-barrel-file -- One module.
+export * from './on-demand-script-loader';
 // Star exports for the same reason: configure-once hosts (the script tag,
 // Astro) read these, providers mostly do not.
 // oxlint-disable-next-line oxc/no-barrel-file -- One small module whose imports the entry already has.

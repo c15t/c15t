@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import type { ConsentSnapshot } from '@c15t/core';
+import { onDemandRuntimeModules } from '@c15t/core/runtime/provider';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetDialogStylesForTest } from '../browser/dialog-styles';
@@ -11,6 +12,7 @@ import {
 	getConsent,
 	getConsentClient,
 	registerDialogStyles,
+	registerRuntimeModules,
 	subscribe,
 	syncBannerVisibility,
 	syncSurfaceVisibility,
@@ -23,6 +25,10 @@ import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
 import { testResolution, testRule } from './policy-fixture';
+
+// The boot script registers these for a site that can configure them;
+// these suites boot without it.
+registerRuntimeModules(onDemandRuntimeModules);
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement', 'marketing'],

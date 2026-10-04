@@ -223,6 +223,41 @@ and also through `import()`.
 modules you choose, for a page that configures once (a script tag, an Astro
 page) and loads some modules on demand. The same lifecycle and handle apply.
 
+Each on-demand factory is also exported on its own: `scriptLoaderOnDemand`,
+`networkBlockerOnDemand`, `clearOnRevocationOnDemand` and
+`connectConsentSourceOnDemand`. Use them when you import some of those modules
+statically and load the rest on demand. Spreading `onDemandRuntimeModules`
+instead puts an `import()` of every module in your chunk, and a bundler keeps a
+module you also import statically in a chunk of its own:
+
+{/* example: fragment */}
+
+```ts
+import { watchRevocationReload } from 'c15t';
+import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
+import { createPersistence } from 'c15t/modules/persistence';
+import { createScriptLoader } from 'c15t/modules/script-loader';
+import { createWindowDebug } from 'c15t/modules/window-debug';
+import {
+	clearOnRevocationOnDemand,
+	connectConsentSourceOnDemand,
+	createConsentRuntimeWith,
+	networkBlockerOnDemand,
+} from 'c15t/runtime/provider';
+
+const runtime = createConsentRuntimeWith(options, {
+	connectConsentSource: connectConsentSourceOnDemand,
+	createClearOnRevocation: clearOnRevocationOnDemand,
+	createIframeBlocker,
+	createNetworkBlocker: networkBlockerOnDemand,
+	createPersistence,
+	createScriptLoader,
+	createWindowDebug,
+	watchRevocationReload,
+});
+runtime.start();
+```
+
 ## Other exports
 
 | Export from `c15t/runtime` | What it does |
