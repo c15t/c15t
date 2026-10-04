@@ -9,12 +9,12 @@ import type {
 	SaveUISource,
 } from '@c15t/core';
 import type { PreferenceDraft } from '@c15t/core/preference-draft';
+import { saveConsentSurface } from '@c15t/core/surface-actions';
 import { createContext, useCallback, useContext } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
 import { useResolvedPresentation } from './hooks';
 import { useCommittedRef } from './hooks/use-committed-ref';
-import { saveConsentUI } from './ui-save';
 
 /**
  * The draft a `ConsentDraftProvider` shares. Here, apart from the draft
@@ -110,7 +110,7 @@ export const useConsentSaveAction = function useConsentSaveAction() {
 			};
 			// A draft save that left edits staged (made while it ran, or a
 			// stale draft it refused) keeps the dialog open.
-			return saveConsentUI(
+			return saveConsentSurface(
 				kernel,
 				save,
 				() => input !== undefined || !draft?.getState().isDirty
