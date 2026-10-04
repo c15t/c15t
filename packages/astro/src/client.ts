@@ -19,7 +19,14 @@
  * ```
  */
 
-import { isVendorAllowed } from '@c15t/core';
+import {
+	hasConsentPreferences,
+	hasConsentUI,
+	isVendorAllowed,
+	saveConsentBlanket,
+	saveConsentSurface,
+	showConsentSurface,
+} from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -139,12 +146,21 @@ export interface AstroConsentClient {
 	) => Promise<void>;
 	/** Close the open dialog. */
 	closeDialog: () => void;
-	/** Accept every configured category. */
+	/**
+	 * Accept every category the policy offers. Under an IAB policy this
+	 * accepts every purpose and vendor through the CMP, so the TC string
+	 * records it. The open banner or dialog closes once the choice is
+	 * recorded locally, before the backend answers.
+	 */
 	acceptAll: () => Promise<void>;
-	/** Reject everything but strictly necessary. */
+	/**
+	 * Reject everything but strictly necessary, through the CMP under an IAB
+	 * policy. Closes the open surface like {@link AstroConsentClient.acceptAll}.
+	 */
 	rejectAll: () => Promise<void>;
 	/**
-	 * Save a specific set of consents.
+	 * Save a specific set of consents. The open banner or dialog closes once
+	 * the choice is recorded locally.
 	 *
 	 * @param consents - The categories to persist, and optionally per-vendor
 	 * grants under `vendors`.
@@ -487,41 +503,6 @@ const loadDialogChunks = async function loadDialogChunks(
 const dialogRecovery = new WeakMap<AstroConsentClient, () => Promise<void>>();
 
 /**
- * Show or hide the server-rendered banner to match the kernel.
- *
- * The server already decided the initial state, so this only has to keep
- * the DOM honest afterwards — after a save, or after a ClientRouter
- * navigation replaced the markup. A banner the server resolved as blocking
- * (`data-blocking="true"`) also locks scroll and traps focus in its card
- * while it is shown.
- *
- * @param snapshot - The current kernel snapshot.
- */
-/**
- * Whether a policy rule is resolved. An unconfigured, failed, or unmatched
- * resolution leaves nothing to consent to, so no consent surface renders.
- */
-const hasConsentPolicy = function hasConsentPolicy(
-	snapshot: ConsentSnapshot
-): boolean {
-	return snapshot.resolution.status === 'matched';
-};
-
-/**
- * Whether the resolved rule owes any consent UI. A prompt owes a banner and
- * a preference center; rights owe a way back to preferences. A `none` rule
- * with no rights owes neither, so no surface renders or opens while the
- * permissions it grants apply.
- */
-const hasConsentUi = function hasConsentUi(snapshot: ConsentSnapshot): boolean {
-	return (
-		hasConsentPolicy(snapshot) &&
-		(snapshot.policyRule.prompt !== 'none' ||
-			snapshot.policyRule.rights.length > 0)
-	);
-};
-
-/**
  * Resolve once the initial policy resolution has settled.
  *
  * A page whose server did not inline a resolution boots with the init still
@@ -562,8 +543,7 @@ const whenPolicySettled = function whenPolicySettled(
 export const syncSurfaceVisibility = function syncSurfaceVisibility(
 	snapshot: ConsentSnapshot
 ): void {
-	const owesUi =
-		Boolean(snapshot.externalPermissions) || hasConsentUi(snapshot);
+	const owesUi = hasConsentPreferences(snapshot);
 	for (const control of document.querySelectorAll<HTMLElement>(
 		'[data-c15t-surface="trigger"]'
 	)) {
@@ -574,6 +554,17 @@ export const syncSurfaceVisibility = function syncSurfaceVisibility(
 const BANNER_ROOT_SELECTOR =
 	'[data-testid="consent-banner-root"], [data-testid="iab-consent-banner-root"]';
 
+/**
+ * Show or hide the server-rendered banner to match the kernel.
+ *
+ * The server already decided the initial state, so this only has to keep
+ * the DOM honest afterwards — after a save, or after a ClientRouter
+ * navigation replaced the markup. A banner the server resolved as blocking
+ * (`data-blocking="true"`) also locks scroll and traps focus in its card
+ * while it is shown.
+ *
+ * @param snapshot - The current kernel snapshot.
+ */
 export const syncBannerVisibility = function syncBannerVisibility(
 	snapshot: ConsentSnapshot
 ): void {
@@ -729,11 +720,13 @@ const createClient = function createClient(
 	};
 
 	const client: AstroConsentClient = {
+		// Under an IAB policy the blanket goes through the CMP handle, so the
+		// TC string records it. Any surface closes on the local record.
 		async acceptAll() {
-			await runtime.kernel.commands.save('all');
+			await saveConsentBlanket(runtime.kernel, 'all', runtime.iab);
 		},
 		closeDialog() {
-			runtime.kernel.set.activeUI('none');
+			showConsentSurface(runtime.kernel, 'none');
 			dialog?.close();
 		},
 		dispose() {
@@ -785,14 +778,14 @@ const createClient = function createClient(
 				return;
 			}
 			if (extension.consentSource) {
-				runtime.kernel.set.activeUI('dialog');
+				showConsentSurface(runtime.kernel, 'dialog');
 				return;
 			}
 			// Decide against the settled resolution: an init still in flight is
 			// not "no policy". Nothing to open without a rule that owes UI, which
 			// excludes a `none` rule with no rights.
 			await whenPolicySettled(runtime.kernel);
-			if (disposed || !hasConsentUi(runtime.kernel.getSnapshot())) {
+			if (disposed || !hasConsentUI(runtime.kernel.getSnapshot())) {
 				return;
 			}
 			if (opening) {
@@ -867,15 +860,17 @@ const createClient = function createClient(
 			if (disposed) {
 				return;
 			}
-			runtime.kernel.set.activeUI('dialog');
+			showConsentSurface(runtime.kernel, 'dialog');
 		},
 		options,
 		async rejectAll() {
-			await runtime.kernel.commands.save('none');
+			await saveConsentBlanket(runtime.kernel, 'none', runtime.iab);
 		},
 		runtime,
 		async save(consents: AstroConsentSaveInput) {
-			await runtime.kernel.commands.save(consents);
+			await saveConsentSurface(runtime.kernel, () =>
+				runtime.kernel.commands.save(consents)
+			);
 		},
 		subscribe(listener) {
 			return runtime.kernel.subscribe(listener);

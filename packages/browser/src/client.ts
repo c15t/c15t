@@ -8,6 +8,10 @@ import {
 	forgetOwnedVendors,
 	isVendorAllowed,
 	policyRulePresets,
+	saveConsentBlanket,
+	saveConsentSurface,
+	saveIABConsentSurface,
+	showConsentSurface,
 } from '@c15t/core';
 import type {
 	AllConsentNames,
@@ -403,126 +407,52 @@ export const createConsentClient = function createConsentClient(
 		);
 	};
 
-	// Explicit navigation invalidates an older save's attempt to close the UI.
-	let navigation = 0;
-	const closeSurfaces = (): void => {
-		navigation += 1;
-		kernel.set.activeUI('none');
-	};
-	const openDialog = (): void => {
-		navigation += 1;
-		kernel.set.activeUI('dialog');
-	};
-	const showBanner = (): void => {
-		navigation += 1;
-		kernel.set.activeUI('banner');
-	};
-	/** Leave the surface for the banner only when a choice is still owed. */
-	const settleSurface = (): void => {
-		kernel.set.activeUI(
-			kernel.getSnapshot().promptRequirement.kind === 'none' ? 'none' : 'banner'
+	// Surfaces close and follow through core's surface actions: a save
+	// closes on the local record, explicit navigation supersedes it.
+	const closeSurfaces = (): void => showConsentSurface(kernel, 'none');
+	const openDialog = (): void => showConsentSurface(kernel, 'dialog');
+	const showBanner = (): void => showConsentSurface(kernel, 'banner');
+	const saveSelection = (input: SaveInput): Promise<SaveResult> =>
+		saveConsentSurface(kernel, () =>
+			kernel.commands.save(input, { categories: categories() })
 		);
-	};
-	const saveSelection = async (input: SaveInput): Promise<SaveResult> => {
-		navigation += 1;
-		const current = navigation;
-		const before = kernel.getSnapshot();
-		const surface = before.activeUI;
-		const { fingerprint } = before.evaluationPolicy.choice;
-		const pending = kernel.commands.save(input, { categories: categories() });
-		// The kernel records the choice and updates permissions before the
-		// transport runs (storage follows one task later, still ahead of the
-		// request). Close in this task and let the backend
-		// request finish in the background: its outcome never reopens the
-		// surface, and a failed request stays queued for replay.
-		const after = kernel.getSnapshot();
-		// A choice prompt with nothing to decide records an acknowledgement.
-		if (
-			after.explicitChoice !== before.explicitChoice ||
-			after.vendorChoice !== before.vendorChoice ||
-			after.noticeDismissal !== before.noticeDismissal
-		) {
-			if (surface !== 'none') {
-				settleSurface();
-			}
-			return pending;
-		}
-		// A save that recorded nothing new closes once it resolves.
-		const result = await pending;
-		if (
-			result.ok &&
-			surface !== 'none' &&
-			current === navigation &&
-			kernel.getSnapshot().activeUI === surface &&
-			fingerprint === kernel.getSnapshot().evaluationPolicy.choice.fingerprint
-		) {
-			settleSurface();
-		}
-		return result;
-	};
-	const saveIAB = async (blanket?: boolean): Promise<SaveResult> => {
-		const handle = runtime.iab;
-		if (
-			!handle ||
-			!kernel.getSnapshot().iab?.gvl ||
-			kernel.getSnapshot().policyRule.model !== 'iab'
-		) {
-			emit('error', new Error('IAB privacy settings are not ready.'));
-			return { ok: false };
-		}
-		navigation += 1;
-		const current = navigation;
-		const snapshot = kernel.getSnapshot();
-		// The surface closes in this task. An IAB choice commits once its TC
-		// string is encoded, which can wait on the TCF library but never on
-		// the backend. The surface comes back only when that local step
-		// recorded nothing, so the visitor can try again.
-		if (snapshot.activeUI !== 'none') {
-			kernel.set.activeUI('none');
-		}
-		const restoreIfUnrecorded = (): void => {
-			const next = kernel.getSnapshot();
-			if (
-				current === navigation &&
-				snapshot.activeUI !== 'none' &&
-				next.activeUI === 'none' &&
-				next.iab?.authority === snapshot.iab?.authority
-			) {
-				kernel.set.activeUI(snapshot.activeUI);
-			}
-		};
+	const NOT_SAVED: SaveResult = { ok: false };
+	/** Report a failed save through `error` instead of rejecting. */
+	const reported = async (
+		save: () => Promise<SaveResult>
+	): Promise<SaveResult> => {
 		try {
-			if (blanket === true) {
-				handle.acceptAll();
-			}
-			if (blanket === false) {
-				handle.rejectAll();
-			}
-			await handle.save();
-			const next = kernel.getSnapshot();
-			if (
-				!next.iab?.authority ||
-				next.evaluationPolicy.choice.fingerprint !==
-					snapshot.evaluationPolicy.choice.fingerprint
-			) {
-				restoreIfUnrecorded();
-				return { ok: false };
-			}
-			return { ok: true };
+			return await save();
 		} catch (error) {
-			restoreIfUnrecorded();
 			emit('error', error instanceof Error ? error : new Error(String(error)));
-			return { ok: false };
+			return NOT_SAVED;
 		}
 	};
-	const acceptAll = (): Promise<SaveResult> =>
-		kernel.getSnapshot().policyRule.model === 'iab'
-			? saveIAB(true)
-			: saveSelection('all');
-	const rejectAll = (): Promise<SaveResult> =>
-		kernel.getSnapshot().policyRule.model === 'iab'
-			? saveIAB(false)
-			: saveSelection('none');
+	/** An IAB choice needs the CMP and its vendor list; say so otherwise. */
+	const iabReady = (): boolean => {
+		const snapshot = kernel.getSnapshot();
+		if (
+			runtime.iab &&
+			snapshot.iab?.gvl &&
+			snapshot.policyRule.model === 'iab'
+		) {
+			return true;
+		}
+		emit('error', new Error('IAB privacy settings are not ready.'));
+		return false;
+	};
+	const saveIAB = (): Promise<SaveResult> =>
+		iabReady()
+			? reported(() => saveIABConsentSurface(kernel, () => runtime.iab?.save()))
+			: Promise.resolve(NOT_SAVED);
+	// The IAB UI has no opt-in fallback: without a vendor list it shows the
+	// error and confirms nothing.
+	const saveBlanket = (choice: 'all' | 'none'): Promise<SaveResult> =>
+		kernel.getSnapshot().policyRule.model === 'iab' && !iabReady()
+			? Promise.resolve(NOT_SAVED)
+			: reported(() => saveConsentBlanket(kernel, choice, runtime.iab));
+	const acceptAll = (): Promise<SaveResult> => saveBlanket('all');
+	const rejectAll = (): Promise<SaveResult> => saveBlanket('none');
 
 	const onPageClick = function onPageClick(event: MouseEvent): void {
 		const action = resolvePageAction(event.target);
@@ -569,7 +499,6 @@ export const createConsentClient = function createConsentClient(
 				return;
 			}
 			disposed = true;
-			navigation += 1;
 			started = false;
 			detachPageActions?.();
 			detachPageActions = null;

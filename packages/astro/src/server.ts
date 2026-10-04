@@ -3,6 +3,7 @@ import {
 	applyTranslationOverrides,
 	createConsentKernel,
 	defaultTranslationConfig,
+	hasConsentUI,
 } from '@c15t/core';
 import type {
 	ConsentSnapshot,
@@ -414,10 +415,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 		// The snapshot is the one a first-time visitor gets.
 		config,
 		decision: snapshot.resolution,
-		hasConsentUi:
-			snapshot.resolution.status === 'matched' &&
-			(snapshot.policyRule.prompt !== 'none' ||
-				snapshot.policyRule.rights.length > 0),
+		hasConsentUi: hasConsentUI(snapshot),
 		hasPolicy: snapshot.resolution.status === 'matched',
 		inputs,
 		options,
