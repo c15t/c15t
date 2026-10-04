@@ -1,10 +1,10 @@
-import { consentTypes, deniedVendorIds, vendorsListedUnder } from '@c15t/core';
+import { consentTypes, vendorsListedUnder } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentSnapshot,
-	ConsentState,
 	PresentationAction,
 } from '@c15t/core';
+import { createPreferenceDraft } from '@c15t/core/preference-draft';
 import type { CompleteTranslations } from '@c15t/translations';
 
 import { classes } from '../generated/styles';
@@ -175,11 +175,13 @@ const patchOpen = function patchOpen(row: Row, open: boolean): void {
 /**
  * The category list the preference centre renders.
  *
- * Toggles are a draft until the visitor saves, the way every other adapter
- * treats them; "Accept all" and "Reject all" bypass the draft. Each
- * category lists its declared vendors with a switch per vendor: vendor
- * switches stage into the same draft, are disabled while their category is
- * off in it, and Save records only the vendors the visitor moved.
+ * Toggles stage into a `@c15t/core/preference-draft` draft until the
+ * visitor saves, the way every other adapter treats them; "Accept all" and
+ * "Reject all" discard it. Each category lists its declared vendors with a
+ * switch per vendor: vendor switches stage into the same draft, are
+ * disabled while their category is off in it, and Save records only the
+ * vendors the visitor moved. When the policy or the vendor list changes
+ * under a staged edit, a notice asks the visitor to review before saving.
  *
  * @param ctx - The mount context.
  * @param options - Widget options.
@@ -193,14 +195,13 @@ export const createWidget = function createWidget(
 	const { noStyle, slot } = ctx;
 	const hideBranding = options.hideBranding ?? true;
 
-	let draft: Partial<ConsentState> = {};
-	// A map, not an object: a vendor id is any slug, and `constructor` would
-	// read an inherited member off a plain object.
-	const vendorDraft = new Map<string, boolean>();
+	const draft = createPreferenceDraft(ctx.client.kernel, {
+		defaults: ctx.client.presentation?.preferences?.defaults,
+	});
 	const openVendorCards = new Set<string>();
-	let { fingerprint } = ctx.client.getSnapshot().evaluationPolicy.choice;
 	let openItem: AllConsentNames | null = null;
 	let rows: Row[] = [];
+	let review: HTMLElement | null = null;
 	let renderedFrom: {
 		categories: string;
 		translations: ConsentSnapshot['translations'];
@@ -217,43 +218,26 @@ export const createWidget = function createWidget(
 		'consentWidget'
 	);
 
-	const isChecked = function isChecked(
-		snapshot: ConsentSnapshot,
-		name: AllConsentNames
-	): boolean {
-		if (name === 'necessary') {
-			return true;
-		}
-		return (
-			draft[name] ??
-			snapshot.explicitChoice?.categories[name]?.value ??
-			ctx.client.presentation?.preferences?.defaults?.[name] ??
-			(snapshot.policyRule.model === 'opt-out' ||
-				snapshot.policyRule.preselectedCategories.includes(name))
-		);
-	};
+	const isChecked = (name: AllConsentNames): boolean =>
+		draft.getState().values[name];
 
-	/** A vendor's grant as recorded: on unless the gate honors a denial. */
-	const recordedVendor = function recordedVendor(
-		snapshot: ConsentSnapshot,
-		vendorId: string
-	): boolean {
-		return !(deniedVendorIds(snapshot)?.has(vendorId) ?? false);
-	};
-
-	const isVendorChecked = function isVendorChecked(
-		snapshot: ConsentSnapshot,
-		vendorId: string
-	): boolean {
-		return vendorDraft.get(vendorId) ?? recordedVendor(snapshot, vendorId);
-	};
-
-	const patchVendors = function patchVendors(snapshot: ConsentSnapshot): void {
+	const patchVendors = function patchVendors(): void {
+		const { vendors } = draft.getState();
 		for (const row of rows) {
-			row.vendorList?.patch(isChecked(snapshot, row.name), (vendorId) =>
-				isVendorChecked(snapshot, vendorId)
+			row.vendorList?.patch(
+				isChecked(row.name),
+				(vendorId) => vendors[vendorId] ?? true
 			);
 		}
+	};
+
+	/** Show or hide the review notice and bring every switch up to date. */
+	const patchAll = function patchAll(): void {
+		for (const row of rows) {
+			patchSwitch(row, isChecked(row.name));
+		}
+		patchVendors();
+		review?.toggleAttribute('hidden', !draft.getState().isStale);
 	};
 
 	const setOpen = function setOpen(name: AllConsentNames): void {
@@ -264,22 +248,17 @@ export const createWidget = function createWidget(
 	};
 
 	const toggle = function toggle(name: AllConsentNames): void {
-		const next = !isChecked(ctx.client.getSnapshot(), name);
-		draft = { ...draft, [name]: next };
-		const row = rows.find((candidate) => candidate.name === name);
-		if (row) {
-			patchSwitch(row, next);
-		}
-		patchVendors(ctx.client.getSnapshot());
+		draft.set(name, !isChecked(name));
+		patchAll();
 	};
 
 	const toggleVendor = function toggleVendor(
 		vendorId: string,
 		granted: boolean
 	): void {
-		vendorDraft.set(vendorId, granted);
+		draft.setVendor(vendorId, granted);
 		// One vendor can sit under several categories; every row follows.
-		patchVendors(ctx.client.getSnapshot());
+		patchAll();
 	};
 
 	const buildRow = function buildRow(
@@ -379,7 +358,7 @@ export const createWidget = function createWidget(
 			vendorList,
 		};
 		patchOpen(row, openItem === name);
-		patchSwitch(row, isChecked(snapshot, name));
+		patchSwitch(row, isChecked(name));
 		return row;
 	};
 
@@ -410,31 +389,21 @@ export const createWidget = function createWidget(
 			label: (action) => labels[action],
 			noStyle,
 			onAction: (action) => {
-				const current = ctx.client.getSnapshot();
-				const pending: Partial<ConsentState> = {};
-				for (const category of ctx.client.consentCategories) {
-					if (category !== 'necessary') {
-						pending[category] = isChecked(current, category);
-					}
+				// Accept all and Reject all supersede every staged switch.
+				if (action === 'accept' || action === 'reject') {
+					draft.reset();
+					void (action === 'accept'
+						? ctx.client.acceptAll()
+						: ctx.client.rejectAll());
+					return;
 				}
-				// Only the vendors the visitor moved travel with the save, so an
-				// untouched vendor never renews its recorded confirmation time.
-				const vendors: Record<string, boolean> = {};
-				for (const [vendorId, granted] of vendorDraft) {
-					if (granted !== recordedVendor(current, vendorId)) {
-						vendors[vendorId] = granted;
-					}
-				}
-				// Accept all and Reject all clear every vendor denial, so the
-				// staged vendor switches do not travel with them.
-				if (action === 'accept') {
-					void ctx.client.acceptAll();
-				} else if (action === 'reject') {
-					void ctx.client.rejectAll();
-				} else if (Object.keys(vendors).length > 0) {
-					void ctx.client.save({ ...pending, vendors });
+				// The displayed categories and only the vendors the visitor
+				// moved; nothing while the draft is stale.
+				const input = draft.toSaveInput();
+				if (input) {
+					void ctx.client.save(input);
 				} else {
-					void ctx.client.save(pending);
+					patchAll();
 				}
 			},
 			slot,
@@ -445,13 +414,28 @@ export const createWidget = function createWidget(
 
 	const rebuild = function rebuild(snapshot: ConsentSnapshot): void {
 		const { t, dir } = resolveCopy(snapshot);
-		const categories = ctx.client.consentCategories;
+		const categories = draft.getState().displayedCategories;
 		element.replaceChildren();
 		element.setAttribute('dir', dir);
 		rows = categories.map((name) =>
 			buildRow(snapshot, resolveRowCopy(t, name), t)
 		);
-		patchVendors(snapshot);
+		review = h(
+			'div',
+			{ 'data-testid': 'consent-widget-review', role: 'alert' },
+			'The privacy policy changed. Review the current choices before saving. ',
+			h(
+				'button',
+				{
+					onclick: () => {
+						draft.reset();
+						patchAll();
+					},
+					type: 'button',
+				},
+				'Review choices'
+			)
+		);
 
 		const list = slot(
 			h('div', {
@@ -463,7 +447,8 @@ export const createWidget = function createWidget(
 		for (const row of rows) {
 			list.append(row.item);
 		}
-		element.append(list, buildFooter(snapshot, t));
+		element.append(review, list, buildFooter(snapshot, t));
+		patchAll();
 		const branding = slot(
 			renderBranding({
 				branding: snapshot.branding,
@@ -490,16 +475,11 @@ export const createWidget = function createWidget(
 	return {
 		element,
 		resetDraft() {
-			draft = {};
-			vendorDraft.clear();
+			draft.reset();
 		},
 		sync(snapshot) {
-			if (fingerprint !== snapshot.evaluationPolicy.choice.fingerprint) {
-				draft = {};
-				vendorDraft.clear();
-				({ fingerprint } = snapshot.evaluationPolicy.choice);
-			}
-			const categories = ctx.client.consentCategories.join(',');
+			draft.setDefaults(ctx.client.presentation?.preferences?.defaults);
+			const categories = draft.getState().displayedCategories.join(',');
 			if (
 				!renderedFrom ||
 				renderedFrom.categories !== categories ||
@@ -511,10 +491,7 @@ export const createWidget = function createWidget(
 				rebuild(snapshot);
 				return;
 			}
-			for (const row of rows) {
-				patchSwitch(row, isChecked(snapshot, row.name));
-			}
-			patchVendors(snapshot);
+			patchAll();
 		},
 	};
 };

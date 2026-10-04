@@ -482,6 +482,33 @@ describe('mountConsentUI', () => {
 		).toBeNull();
 	});
 
+	it('asks for review before saving a draft the policy changed under', async () => {
+		// The rule every adapter shares: a staged edit made under other
+		// categories is stale and saves nothing until the visitor reviews it.
+		const { root, client } = await mount();
+		query(root, 'consent-banner-customize-button').click();
+		expect(query(root, 'consent-widget-review').hidden).toBe(true);
+
+		query(root, 'consent-widget-switch-measurement').click();
+		client.runtime.setConsentCategories(['measurement']);
+		await vi.waitFor(() =>
+			expect(query(root, 'consent-widget-review').hidden).toBe(false)
+		);
+		const notice = query(root, 'consent-widget-review');
+
+		query(root, 'consent-widget-footer-save-button').click();
+		await Promise.resolve();
+		expect(client.getSnapshot().explicitChoice).toBeNull();
+
+		notice.querySelector('button')?.click();
+		expect(query(root, 'consent-widget-review').hidden).toBe(true);
+		expect(
+			query(root, 'consent-widget-switch-measurement').getAttribute(
+				'data-state'
+			)
+		).toBe('unchecked');
+	});
+
 	it('expands a category description from its trigger', async () => {
 		const { root } = await mount();
 		query(root, 'consent-banner-customize-button').click();
