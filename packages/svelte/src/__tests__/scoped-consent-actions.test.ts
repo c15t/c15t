@@ -445,7 +445,7 @@ describe('displayed consent actions', () => {
 				await tick();
 				manager.draft.reset();
 				const displayed =
-					scope === 'regional' ? ['marketing'] : ['marketing', 'measurement'];
+					scope === 'regional' ? ['marketing'] : ['measurement', 'marketing'];
 				expect(manager.consentCategories).toEqual(['necessary', ...displayed]);
 				kernel.set.activeUI('dialog');
 				await tick();
@@ -513,8 +513,8 @@ test('scripts infer the displayed categories without a configured list', async (
 		const kernel = required(captured.kernel);
 		expect(manager.consentCategories).toEqual([
 			'necessary',
-			'marketing',
 			'measurement',
+			'marketing',
 		]);
 		kernel.set.activeUI('dialog');
 		await tick();

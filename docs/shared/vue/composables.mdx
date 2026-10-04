@@ -95,7 +95,7 @@ group: reference
 
   | Field | Type | Meaning |
   | --- | --- | --- |
-  | `displayedCategories` | `ComputedRef<category[]>` | The categories the policy lets the visitor choose, `necessary` first, in the policy's order. |
+  | `displayedCategories` | `ComputedRef<category[]>` | The categories the policy lets the visitor choose, in the order necessary, functionality, measurement, experience, marketing. |
   | `values` | `Ref<Partial<Record<category, boolean>>>` | One value per category. Bind switches to it with `v-model`; a write to `necessary` or to a category the policy does not offer snaps back. |
   | `vendors` | `ComputedRef<Record<string, boolean>>` | One value per declared vendor. Change them with `setVendor(id, granted)`. |
   | `isDirty` | `ComputedRef<boolean>` | `true` while any value differs from the recorded choice. |

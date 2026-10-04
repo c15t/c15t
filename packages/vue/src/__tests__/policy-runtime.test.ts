@@ -127,14 +127,14 @@ test('a draft reads the raw grant under GPC and confirms only displayed categori
 			confirmed.push(event.confirmed)
 		);
 		await draft.save();
-		expect(confirmed).toEqual([['marketing', 'measurement']]);
+		expect(confirmed).toEqual([['measurement', 'marketing']]);
 	} finally {
 		app.unmount();
 		context.dispose();
 	}
 });
 
-test('a draft lists the displayed policy scope in policy order and confirms only it', async () => {
+test('a draft lists the displayed policy scope in consentTypes order and confirms only it', async () => {
 	const context = createVueConsentKernelContext({
 		config: {
 			consentCategories: [
@@ -165,12 +165,12 @@ test('a draft lists the displayed policy scope in policy order and confirms only
 	});
 	app.mount(document.createElement('div'));
 	try {
-		// Every framework lists the choice scope in the policy's order, not
-		// the configured order.
+		// Every framework lists the choice scope in consentTypes order. The
+		// resolved policy scope is sorted (marketing, measurement).
 		expect(draft.displayedCategories.value).toEqual([
 			'necessary',
-			'marketing',
 			'measurement',
+			'marketing',
 		]);
 		await draft.save();
 		expect(context.snapshot.value.explicitChoice?.categories).toEqual({

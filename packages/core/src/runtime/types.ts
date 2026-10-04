@@ -486,7 +486,11 @@ export interface ConsentRuntime {
 	setLanguage: (language: string) => void;
 	/** The mounted IAB CMP, or `null` while IAB is off or not yet ready. */
 	readonly iab: ConsentRuntimeIABHandle | null;
-	/** Categories surfaced in the UI. See {@link ConsentRuntime.setConsentCategories}. */
+	/**
+	 * Categories surfaced in the UI: `necessary` plus the choice scope, in
+	 * the fixed order of `consentTypes`, as the preference draft lists them.
+	 * See {@link ConsentRuntime.setConsentCategories}.
+	 */
 	readonly consentCategories: AllConsentNames[];
 	/** Whether {@link ConsentRuntime.start} has run and not been disposed. */
 	readonly started: boolean;

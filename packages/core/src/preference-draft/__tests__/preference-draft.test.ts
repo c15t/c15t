@@ -117,15 +117,39 @@ describe('seeding', () => {
 		});
 	});
 
-	test('displayed categories are necessary plus the choice scope in policy order, not the configured order', () => {
-		const { kernel } = setup({
-			consentCategories: ['measurement', 'marketing'],
-		});
+	test('displayed categories are necessary plus the choice scope in consentTypes order, not the policy or configured order', () => {
+		// The rule lists its categories in display order and the site
+		// configures another; resolving the rule sorts its scope.
+		const { kernel } = setup(
+			{
+				consentCategories: [
+					'marketing',
+					'experience',
+					'measurement',
+					'functionality',
+				],
+			},
+			optInRule({
+				categories: ['functionality', 'measurement', 'experience', 'marketing'],
+			})
+		);
 		const { choiceScope } = kernel.getSnapshot().evaluationPolicy;
-		expect(choiceScope).toEqual(['marketing', 'measurement']);
+		expect(choiceScope).toEqual([
+			'experience',
+			'functionality',
+			'marketing',
+			'measurement',
+		]);
+		const expected = [
+			'necessary',
+			'functionality',
+			'measurement',
+			'experience',
+			'marketing',
+		];
 		expect(
 			createPreferenceDraft(kernel).getState().displayedCategories
-		).toEqual(['necessary', 'marketing', 'measurement']);
+		).toEqual(expected);
 	});
 
 	test('a configured list narrows the displayed categories to the choice scope', () => {
@@ -426,7 +450,7 @@ describe('stale drafts', () => {
 		draft.set('measurement', true);
 		kernel.set.consentCategories(['measurement', 'marketing']);
 		expect(draft.getState()).toMatchObject({
-			displayedCategories: ['necessary', 'marketing', 'measurement'],
+			displayedCategories: ['necessary', 'measurement', 'marketing'],
 			isStale: true,
 		});
 	});

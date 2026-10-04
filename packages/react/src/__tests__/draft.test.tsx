@@ -79,7 +79,7 @@ test('a draft stages without touching the record, re-renders on edits and saves'
 	await expect
 		.element(screen.getByRole('status'))
 		.toHaveTextContent(
-			'{"categories":["necessary","marketing","measurement"],"dirty":false,"draft":false,"recorded":false}'
+			'{"categories":["necessary","measurement","marketing"],"dirty":false,"draft":false,"recorded":false}'
 		);
 	await screen.getByRole('button', { name: 'Stage' }).click();
 	await expect
@@ -196,10 +196,11 @@ test('the save action outside a draft provider saves what a fresh draft shows', 
 	const Probe = () => {
 		const save = useConsentSaveAction();
 		const snapshot = useSnapshot();
+		// Sorted: the record keeps the key order of the first save.
 		const recorded = Object.fromEntries(
-			Object.entries(snapshot.explicitChoice?.categories ?? {}).map(
-				([category, decision]) => [category, decision?.value]
-			)
+			Object.entries(snapshot.explicitChoice?.categories ?? {})
+				.toSorted(([left], [right]) => left.localeCompare(right))
+				.map(([category, decision]) => [category, decision?.value])
 		);
 		return (
 			<>

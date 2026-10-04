@@ -245,16 +245,19 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
 };
 
+/** Metadata for the displayed categories, in the draft's order. */
 const displayedConsentTypes = function displayedConsentTypes(
 	categories: readonly AllConsentNames[]
 ) {
-	const allowed =
+	const names =
 		categories.length > 0
-			? new Set(categories)
-			: new Set(allConsentNames as readonly AllConsentNames[]);
-	return defaultConsentTypes
-		.filter((type) => allowed.has(type.name))
-		.map((type) => ({ ...type, display: true }));
+			? categories
+			: (allConsentNames as readonly AllConsentNames[]);
+	return names.flatMap((name) =>
+		defaultConsentTypes
+			.filter((type) => type.name === name)
+			.map((type) => ({ ...type, display: true }))
+	);
 };
 
 const createConsentState = function createConsentState(

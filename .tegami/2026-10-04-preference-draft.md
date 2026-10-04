@@ -23,9 +23,10 @@ choices behave the same everywhere:
 - **Choices saved elsewhere.** When another surface or tab records a choice,
   switches the visitor left alone take the new value and moved ones keep
   theirs. React used to write the old values back on save.
-- **Category order.** Every preference form lists `necessary` and then the
-  policy's categories in the policy's order. Vue and `@c15t/browser` used
-  the configured `consentCategories` order.
+- **Category order.** Every preference form, and `runtime.consentCategories`,
+  lists categories in one fixed order: necessary, functionality,
+  measurement, experience, marketing. Vue and `@c15t/browser` used the
+  configured `consentCategories` order.
 - **Draft values.** `values` lists every category; ones the policy does not
   offer read `false`. Vue and Svelte listed only the displayed ones.
 - **Late defaults.** Presentation defaults from an experiment arm assigned

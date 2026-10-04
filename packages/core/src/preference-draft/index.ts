@@ -21,7 +21,8 @@
  *   stale. Saving it records nothing and resolves `{ ok: false }`; `reset()`
  *   reviews it. A clean draft follows the kernel and is never stale.
  * - **Displayed categories** are `necessary` plus the policy's choice scope,
- *   in the policy's order: what the kernel lets the visitor decide.
+ *   in the fixed order of `consentTypes`: what the kernel lets the visitor
+ *   decide. Resolving a policy sorts its scope, so it carries no order.
  * - **Vendor surface** is the set of vendor rows (id, `disabled`, category),
  *   independent of declaration order.
  * - **Bulk actions** (`'all'`, `'none'`) record under the current policy
@@ -32,6 +33,7 @@
  *
  * @packageDocumentation
  */
+import { displayedCategories as listDisplayed } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { vendorRenders } from '../libs/vendors';
 import { deniedVendorIds } from '../modules/has';
@@ -56,7 +58,10 @@ export interface PreferenceDraftState {
 	 * `false`.
 	 */
 	readonly values: Readonly<ConsentState>;
-	/** `necessary` plus the categories the policy lets the visitor decide. */
+	/**
+	 * `necessary` plus the categories the policy lets the visitor decide, in
+	 * the fixed order of `consentTypes`.
+	 */
 	readonly displayedCategories: readonly AllConsentNames[];
 	/**
 	 * Granted flag per declared vendor: a staged edit, else the record. A
@@ -334,7 +339,7 @@ export const createPreferenceDraft = function createPreferenceDraft(
 		derivedFrom = snapshot;
 		const scope =
 			snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
-		const displayedCategories: AllConsentNames[] = ['necessary', ...scope];
+		const displayedCategories = listDisplayed(scope);
 		const isClean = () => staged.size === 0 && stagedVendors.size === 0;
 		if (isClean()) {
 			shownDefaults = defaults;

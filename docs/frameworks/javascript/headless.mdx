@@ -86,7 +86,7 @@ React, Vue, Svelte and `@c15t/browser` preference dialogs use:
 
 | Field | What it holds |
 | --- | --- |
-| `displayedCategories` | `necessary` plus the categories the policy lets the visitor decide, in the policy's order. |
+| `displayedCategories` | `necessary` plus the categories the policy lets the visitor decide, always in the order necessary, functionality, measurement, experience, marketing. |
 | `values` | Each category's value: a staged edit, else the recorded choice, else the policy default. Categories outside `displayedCategories` read `false`. |
 | `vendors` | Each declared vendor's switch. Empty under an IAB policy. |
 | `isDirty` | Whether any staged value differs from the record. |

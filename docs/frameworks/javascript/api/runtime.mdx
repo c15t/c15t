@@ -98,7 +98,7 @@ A runtime disposed before it started blocks the requests it was holding.
 | `processIframes()` | Pause gated iframes that consent does not allow and restore the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. Does nothing before `start()`, after `dispose()` or with `iframeBlocker: false`. |
 | `reconcileStorage()` | Read stored records again and apply changes another runtime or tab made. Returns whether anything changed. |
 | `clearRecords()` | Delete stored choices and reset the kernel's records: choice, notice dismissal, subject and vendor choice. Saves still queued for the cleared subject are dropped. |
-| `consentCategories` | `necessary` plus the categories in the current choice scope. |
+| `consentCategories` | `necessary` plus the categories in the current choice scope, in the order the preference dialog lists them. |
 | `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. `undefined` drops the configured list. |
 | `experiment` | The experiment the runtime runs: the one a ready `prefetch` carries, otherwise the `experiment` option. Resolve presentation and theme against it. |
 | `iab` | The CMP handle under IAB, or `null`. |

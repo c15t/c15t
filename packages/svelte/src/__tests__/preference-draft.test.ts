@@ -55,8 +55,8 @@ test('the state API stages into the provider draft and follows a newer record', 
 		});
 		expect(manager.consentCategories).toEqual([
 			'necessary',
-			'marketing',
 			'measurement',
+			'marketing',
 		]);
 	} finally {
 		unmount();
