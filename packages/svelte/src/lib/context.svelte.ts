@@ -272,19 +272,9 @@ const createConsentState = function createConsentState(
 		get branding() {
 			return getSnapshotLocal().branding ?? 'c15t';
 		},
+		// The draft's displayed categories: `necessary` plus the choice scope.
 		get consentCategories(): AllConsentNames[] {
-			const configured = options.getConsentCategories();
-			const { scope } = getSnapshotLocal().policyRule;
-			return [
-				...new Set<AllConsentNames>([
-					'necessary',
-					...(configured.length === 0
-						? scope
-						: configured.filter((name) =>
-								scope.some((category) => category === name)
-							)),
-				]),
-			];
+			return options.getConsentCategories();
 		},
 		get draft() {
 			return options.getDraft();

@@ -370,8 +370,12 @@ describe('displayed consent actions', () => {
 					kernel.getSnapshot().explicitChoice?.categories.measurement
 				).toEqual(hiddenReceipt);
 				expect(manager.draft.isStale).toBe(false);
+				// Every category is listed; one outside the displayed scope is off.
 				expect(manager.selectedConsents).toEqual({
+					experience: false,
+					functionality: false,
 					marketing: true,
+					measurement: false,
 					necessary: true,
 				});
 			} finally {
