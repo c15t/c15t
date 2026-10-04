@@ -9,7 +9,8 @@
  * validates again and never emits a choice event.
  */
 import type { ConsentSubject } from '../../consent-record/types';
-import type { ConsentKernel, HydrationRecords } from '../../types';
+import type { InternalKernel } from '../../kernel/internals';
+import type { HydrationRecords } from '../../types';
 import {
 	choiceSinceEpoch,
 	noticeSinceEpoch,
@@ -284,7 +285,7 @@ export const readStoredRecordsFromCookieHeader =
  * `null` outside the browser.
  */
 export const hydrateFromStorage = function hydrateFromStorage(
-	kernel: ConsentKernel,
+	kernel: InternalKernel,
 	storageConfig: StorageConfig | undefined,
 	now: number
 ): StoredRecords | null {

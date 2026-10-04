@@ -7,7 +7,7 @@ import {
 	choiceRecords,
 	NOW,
 } from '../../../__tests__/fixtures/kernel-fixtures';
-import { createConsentKernel } from '../../../kernel';
+import { createKernel as createConsentKernel } from '../../../kernel';
 import { createIframeBlocker } from '../index';
 import { buildReconcilePass, reconcileIframe } from '../reconcile';
 

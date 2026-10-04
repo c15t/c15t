@@ -17,14 +17,15 @@ import {
 	NOW,
 	optInRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
-import { createConsentKernel } from '../../../kernel';
+import { createKernel as createConsentKernel } from '../../../kernel';
+import type { InternalKernel } from '../../../kernel/internals';
 import {
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY_V2,
 } from '../../../libs/storage-keys';
-import type { ConsentKernel, SaveResult } from '../../../types';
+import type { SaveResult } from '../../../types';
 import { watchRevocationReload } from '../../revocation-reload';
-import { createPersistence } from '../index';
+import { mountPersistence as createPersistence } from '../mount';
 import { readStoredConsentRecord } from '../record-storage';
 import { createWriterLoader } from '../writer-loader';
 import type { WriterLoader } from '../writer-loader';
@@ -88,7 +89,7 @@ const settle = async function settle<ResultType>(
 
 /** Store a choice through a handle whose write code is already loaded. */
 const seedChoice = async function seedChoice(
-	input: Parameters<ConsentKernel['commands']['save']>[0]
+	input: Parameters<InternalKernel['commands']['save']>[0]
 ): Promise<void> {
 	const seed = createConsentKernel({ now: Date.now() });
 	const handle = createPersistence({ kernel: seed });
@@ -99,7 +100,7 @@ const seedChoice = async function seedChoice(
 /** A kernel whose transport records what storage held when each save left. */
 const kernelWithTransport = function kernelWithTransport(
 	result: () => Promise<SaveResult> = () => Promise.resolve({ ok: true })
-): { kernel: ConsentKernel; storedAtSend: (string | null)[] } {
+): { kernel: InternalKernel; storedAtSend: (string | null)[] } {
 	const storedAtSend: (string | null)[] = [];
 	const kernel = createConsentKernel({
 		now: Date.now(),

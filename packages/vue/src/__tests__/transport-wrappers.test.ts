@@ -1,3 +1,4 @@
+import type { HydrationRecords, HydrationResult } from '@c15t/core';
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
@@ -8,6 +9,20 @@ import { afterEach, expect, test, vi } from 'vitest';
 
 import { createVueConsentKernelContext } from '../runtime/kernel';
 import type { RuntimeConsentConfig } from '../runtime/kernel';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 type FetchRequest = (
 	...args: Parameters<typeof fetch>
@@ -93,7 +108,7 @@ test.each(modes)(
 			producerContract: 1,
 		});
 		disposers.push(context.dispose);
-		context.kernel.hydrate({});
+		hydrateRecords(context.kernel, {});
 		expect(
 			fetchMock.mock.calls.filter(
 				([url]) => String(url) !== '/api/c15t/manifest'
@@ -145,7 +160,7 @@ test.each(modes)(
 			producerContract: 1,
 		});
 		disposers.push(context.dispose);
-		context.kernel.hydrate({});
+		hydrateRecords(context.kernel, {});
 		await context.kernel.commands.identify({ externalId: 'person' });
 		const requests = fetchMock.mock.calls.length;
 		context.kernel.set.privacySignals({ gpc: true });

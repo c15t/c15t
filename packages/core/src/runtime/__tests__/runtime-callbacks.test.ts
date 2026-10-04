@@ -3,6 +3,7 @@ import { resolvePolicyRules } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../kernel';
+import type { InternalKernel } from '../../kernel/internals';
 import { wireRuntimeCallbacks, stringifyRuntimeError } from '../callbacks';
 
 const resolution = resolvePolicyRules({
@@ -77,7 +78,9 @@ describe('runtime callbacks', () => {
 			callbacks: { onChoiceRecorded },
 			kernel,
 		});
-		kernel.hydrate({ choice: source.getSnapshot().explicitChoice });
+		(kernel as InternalKernel).hydrate({
+			choice: source.getSnapshot().explicitChoice,
+		});
 		expect(onChoiceRecorded).not.toHaveBeenCalled();
 		dispose();
 		source.dispose();
@@ -120,7 +123,7 @@ describe('runtime callbacks', () => {
 			callbacks: { onChoiceRecorded, onError },
 			kernel,
 		});
-		kernel.events.emit({
+		(kernel as InternalKernel).events.emit({
 			command: 'save',
 			error: new Error('failed'),
 			type: 'command:error',

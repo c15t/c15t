@@ -1,3 +1,4 @@
+import type { InternalKernel } from '../../../kernel/internals';
 /**
  * The interface between persistence's first-load part (`../index.ts`) and
  * its write code, which loads on demand.
@@ -7,7 +8,6 @@
  */
 import type { mergeNewestChoice } from '../../../kernel/record-validation';
 import type { deleteCookie, writeCookie } from '../../../libs/cookie';
-import type { ConsentKernel } from '../../../types';
 import type { clearStoredRecords } from '../clear';
 import type {
 	choiceSinceEpoch,
@@ -77,7 +77,7 @@ export interface PersistenceState {
 
 /** What one persistence handle shares with its writer. @internal */
 export interface PersistenceContext {
-	kernel: ConsentKernel;
+	kernel: InternalKernel;
 	storageConfig: StorageConfig | undefined;
 	now: () => number;
 	state: PersistenceState;

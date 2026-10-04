@@ -74,7 +74,6 @@ records a choice.
 | --- | --- |
 | `set.activeUI('banner' \| 'dialog' \| 'none')` | The surface your UI should show. |
 | `set.draft(values)` | Staged category values that a no-argument `save()` confirms. Never a grant. |
-| `set.vendorDraft(values)` | Staged vendor grants for the next save. `null` clears them. |
 | `set.overrides({ country, region, language, gpc })` | Decision inputs. Call `commands.init()` after it to resolve the policy again. |
 | `set.language(code)` | The language override. |
 | `set.privacySignals({ gpc })` | The detected GPC signal. c15t reads the browser's signal itself; use this to pass one detected elsewhere, such as a `Sec-GPC` request header. |
@@ -86,12 +85,11 @@ records a choice.
 
 ## Apply stored records
 
-`kernel.hydrate(records)` applies validated records, such as a choice read
-from a cookie, without counting as a visitor action. Omitted keys keep their
-value and `null` clears one. An invalid record rejects the whole call with
-`{ ok: false, issues }`. Hydration emits `permissions:changed` when
-permissions change, and never `choice:recorded`. The persistence module
-calls it for you.
+Pass validated records as `initialRecords` to `createConsentKernel()`, such
+as a choice read from a cookie with `readStoredRecordsFromCookieHeader()`.
+They apply without counting as a visitor action. In the browser,
+[`createPersistence()`](/docs/frameworks/javascript/modules/persistence)
+reads storage into the kernel on mount and keeps tabs in step afterwards.
 
 ## Events
 

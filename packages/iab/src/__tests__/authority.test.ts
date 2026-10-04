@@ -1,10 +1,12 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel, evaluateConsent } from '@c15t/core';
-import type { ConsentKernel, KernelTransport } from '@c15t/core';
-import {
-	createPersistence,
-	preloadPersistenceWriter,
-} from '@c15t/core/modules/persistence';
+import type {
+	ConsentKernel,
+	HydrationRecords,
+	HydrationResult,
+	KernelTransport,
+} from '@c15t/core';
+import { createPersistence } from '@c15t/core/modules/persistence';
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
@@ -18,6 +20,20 @@ import type { IABHandle } from '../index';
 import { PublisherRestrictionError } from '../tcf/publisher-restrictions';
 import { decodeTCString, generateTCString } from '../tcf/tc-string';
 import { completeGVL } from './fixtures/gvl-sample';
+
+/**
+ * Apply records the way persistence does. `hydrate` is a kernel verb only
+ * core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrate = (
+	kernel: ConsentKernel,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as ConsentKernel & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 const NOW = Date.UTC(2026, 8, 5, 12);
 const DAY = 86_400_000;
@@ -162,7 +178,7 @@ test('IAB rejection clears grants retained after category scope narrows', async 
 	original.dispose();
 
 	const kernel = makeKernel(undefined, ['marketing']);
-	kernel.hydrate({ choice: explicitChoice });
+	hydrate(kernel, { choice: explicitChoice });
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
 	disposers.push(addon.dispose);
 	expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(true);
@@ -242,7 +258,7 @@ test.each(['clear', 'dispose', 'draft'])(
 		addon.acceptAll();
 		const pending = addon.save();
 		if (change === 'clear') {
-			kernel.hydrate({ choice: null, subject: null });
+			hydrate(kernel, { choice: null, subject: null });
 		}
 		if (change === 'dispose') {
 			addon.dispose();
@@ -383,7 +399,7 @@ test('clearing during stored TC hydration cannot restore authority', async () =>
 	const kernel = makeKernel();
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
 	disposers.push(addon.dispose);
-	kernel.hydrate({ choice: null, subject: null });
+	hydrate(kernel, { choice: null, subject: null });
 	await vi.advanceTimersByTimeAsync(1);
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
 });
@@ -452,7 +468,7 @@ test('clearing during a pending transport never restores authority', async () =>
 	addon.acceptAll();
 	const save = addon.save();
 	await vi.waitFor(() => expect(send).toHaveBeenCalledTimes(1));
-	kernel.hydrate({ choice: null, subject: null });
+	hydrate(kernel, { choice: null, subject: null });
 	finish({ ok: true, subjectId: 'stale' });
 	await save;
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();
@@ -502,7 +518,7 @@ test.each(['clear', 'dispose', 'policy'] as const)(
 		addon.acceptAll();
 		const generate = addon.generateTCString();
 		if (change === 'clear') {
-			kernel.hydrate({ choice: null, subject: null });
+			hydrate(kernel, { choice: null, subject: null });
 		}
 		if (change === 'dispose') {
 			addon.dispose();
@@ -540,11 +556,12 @@ test.each(['invalid', 'pending', 'installed', 'unmounted'] as const)(
 		/* oxlint-enable vitest/no-conditional-expect */
 		persistence.clear();
 		// Storage is cleared once persistence's write code has loaded.
-		await preloadPersistenceWriter();
-		await vi.advanceTimersByTimeAsync(1);
-		expect(localStorage.getItem('c15t-iab-authority-v1')).toBeNull();
-		expect(localStorage.getItem('euconsent-v2')).toBeNull();
-		expect(document.cookie.includes('euconsent-v2=')).toBe(false);
+		await vi.waitFor(async () => {
+			await vi.advanceTimersByTimeAsync(1);
+			expect(localStorage.getItem('c15t-iab-authority-v1')).toBeNull();
+			expect(localStorage.getItem('euconsent-v2')).toBeNull();
+			expect(document.cookie.includes('euconsent-v2=')).toBe(false);
+		});
 		addon?.dispose();
 		kernel.dispose();
 		const reloaded = makeKernel();

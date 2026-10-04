@@ -1,10 +1,25 @@
 import { linkOpensDialog } from '@c15t/conformance/play/consent-dialog-link';
+import type { HydrationRecords, HydrationResult } from '@c15t/core';
 import buttonStyles from '@c15t/ui/styles/components/button';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentManager from '../../../packages/vue/src/runtime/components/manager.vue';
 import ConsentPreferencesLink from '../../../packages/vue/src/runtime/components/preferences-link.vue';
 import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 const meta = {
 	component: ConsentPreferencesLink,
@@ -25,7 +40,7 @@ export const Default: Story = {
 		setup() {
 			const { kernel } = setupStorybookConsent(null);
 			const snapshot = kernel.getSnapshot();
-			kernel.hydrate({
+			hydrateRecords(kernel, {
 				choice: {
 					categories: Object.fromEntries(
 						['functionality', 'measurement', 'experience', 'marketing'].map(

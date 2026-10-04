@@ -1,6 +1,21 @@
 import { createConsentKernel } from '@c15t/core';
 import type { InitResponse, KernelTransport } from '@c15t/core';
+import type { HydrationRecords, HydrationResult } from '@c15t/core';
 import { policyRulePresets, resolvePolicyRules } from '@c15t/schema/types';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 const requireCondition = (condition: unknown, message: string): void => {
 	if (!condition) {
@@ -145,7 +160,7 @@ export const createPolicyOperations = (
 				repeat.events.on('choice:recorded', () => {
 					choiceEvents += 1;
 				});
-				const hydrated = repeat.hydrate({
+				const hydrated = hydrateRecords(repeat, {
 					choice: saved.explicitChoice,
 					subject: saved.subject,
 				});

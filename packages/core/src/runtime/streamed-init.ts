@@ -20,6 +20,7 @@
  * - A rejected promise is logged outside production and the transport's
  *   init runs as though there were no prefetch.
  */
+import type { InternalKernel } from '../kernel/internals';
 import type { kernelConfigToInitResponse } from '../transports/init-output';
 import type {
 	ConsentKernel,
@@ -117,7 +118,7 @@ export const resolveStreamedInit = async function resolveStreamedInit(
 			config.initialRecords &&
 			kernel.getRecordsGeneration() === options.recordsGeneration
 		) {
-			kernel.hydrate(config.initialRecords);
+			(kernel as InternalKernel).hydrate(config.initialRecords);
 		}
 	}
 	return (

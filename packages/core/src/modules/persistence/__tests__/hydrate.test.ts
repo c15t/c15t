@@ -7,7 +7,7 @@ import {
 	explicitChoice,
 	NOW,
 } from '../../../__tests__/fixtures/kernel-fixtures';
-import { createConsentKernel } from '../../../kernel';
+import { createKernel as createConsentKernel } from '../../../kernel';
 import { deleteConsentFromStorage, setCookie } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import {

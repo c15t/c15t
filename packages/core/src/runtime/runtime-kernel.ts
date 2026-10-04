@@ -11,7 +11,8 @@ import { deepMergeTranslations } from '@c15t/translations';
 import type { I18nConfig } from '@c15t/translations';
 
 import type { AllConsentNames } from '../consent/consent-types';
-import { createConsentKernel } from '../kernel';
+import { createKernel } from '../kernel';
+import type { InternalKernel } from '../kernel/internals';
 import { hostExperiment, seedExperiment } from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { resolveVendors } from '../libs/vendors';
@@ -23,7 +24,6 @@ import {
 } from '../translations';
 import type { ProviderTransportContext } from '../transports/mode';
 import type {
-	ConsentKernel,
 	KernelConfig,
 	KernelTranslations,
 	KernelUser,
@@ -184,7 +184,7 @@ export const inferConsentCategories = function inferConsentCategories(
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const createRuntimeKernel = function createRuntimeKernel(
 	options: ConsentRuntimeOptions
-): ConsentKernel {
+): InternalKernel {
 	const enabled = options.enabled ?? true;
 	// The server's experiment is a runtime input, not kernel configuration.
 	const { experiment: serverExperiment, ...prefetch } = options.prefetch ?? {};
@@ -226,7 +226,7 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			)
 		: {};
 
-	return createConsentKernel({
+	return createKernel({
 		...prefetch,
 		consentCategories: options.consentCategories,
 		// Every declared vendor, from code or a resolved prefetch, makes its

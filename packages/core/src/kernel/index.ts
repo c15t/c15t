@@ -42,6 +42,7 @@ import { createChoiceRecorder } from './choice';
 import { createDispatcher } from './dispatch';
 import { createEventBus } from './events';
 import { createInitLifecycle } from './init-lifecycle';
+import type { InternalKernel } from './internals';
 import { createRecordsBoundary } from './records';
 import { createRuntime } from './runtime';
 import { createBrowserOutboxStore, createSaveOutbox } from './save-outbox';
@@ -79,7 +80,7 @@ export interface KernelSeams {
 export const createKernel = function createKernel(
 	config: KernelConfig = {},
 	seams: KernelSeams = {}
-): ConsentKernel {
+): InternalKernel {
 	const { transport } = config;
 	const dispatcher = createDispatcher();
 	const eventBus = createEventBus(dispatcher);
@@ -152,7 +153,6 @@ export const createKernel = function createKernel(
 			...buildSetters(runtime, config),
 			draft: choice.draft,
 			subjectId: records.setSubjectId,
-			vendorDraft: choice.vendorDraft,
 		},
 		subscribe: runtime.subscribe,
 	};

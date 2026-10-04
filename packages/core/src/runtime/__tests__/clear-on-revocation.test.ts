@@ -7,6 +7,7 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
+import type { InternalKernel } from '../../kernel/internals';
 import { custom } from '../../transports/mode';
 import type { InitResponse } from '../../types';
 import { createConsentRuntime } from '../index';
@@ -193,6 +194,6 @@ test('disposal disconnects cleanup and does not delete data', async () => {
 	seed();
 	runtime.dispose();
 	expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
-	runtime.kernel.hydrate({ choice: null });
+	(runtime.kernel as InternalKernel).hydrate({ choice: null });
 	expect(localStorage.getItem('analytics:visitor')).toBe('visitor');
 });

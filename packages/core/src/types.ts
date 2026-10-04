@@ -304,7 +304,7 @@ export interface HydrationRecords {
 	now?: number;
 }
 
-/** Result of `kernel.hydrate()`. */
+/** Result of applying stored records to a kernel. */
 export type HydrationResult =
 	| { ok: true; changed: boolean }
 	| { ok: false; issues: RecordIssue[] };
@@ -824,8 +824,11 @@ export interface ConsentKernel {
 	dispose: () => void;
 	/** Returns the current snapshot. Cheap, non-allocating. */
 	getSnapshot: () => ConsentSnapshot;
-	/** Invalidation token for addon work spanning an asynchronous boundary.
-	 * @internal
+	/**
+	 * A number that changes whenever the stored records are replaced:
+	 * hydrated, cleared or swapped for another subject's. An addon that
+	 * starts asynchronous work from the current records reads it first and
+	 * drops the result if it changed meanwhile, as `@c15t/iab` does.
 	 */
 	getRecordsGeneration: () => number;
 
@@ -840,42 +843,6 @@ export interface ConsentKernel {
 	 * Subscribe to snapshot changes. Returns an unsubscribe function.
 	 */
 	subscribe: (listener: Listener<ConsentSnapshot>) => Unsubscribe;
-
-	/**
-	 * Apply validated stored records without creating a choice. Emits
-	 * `permissions:changed` when permissions changed and nothing else. Marks
-	 * the lifecycle as started and installs the deadline timer. Hydration does
-	 * not write storage; the mounted adapter forwards browser detection
-	 * through set.privacySignals afterward.
-	 */
-	hydrate: (records: HydrationRecords) => HydrationResult;
-
-	/**
-	 * Mark the kernel live in a visitor's browser. `init()` does this on its
-	 * own; an adapter that renders from a server-resolved prefetch and never
-	 * calls `init()` must call it after hydration so a visible surface is
-	 * stamped as an impression (`surface:shown`, `snapshot.surfaceShownAt`)
-	 * and a later choice can carry `timeToDecisionMs`. Idempotent; a server
-	 * or test kernel that never goes live records no impression.
-	 *
-	 * @param at - Impression time for a surface already visible. Defaults to now.
-	 */
-	markLive: (at?: number) => void;
-
-	/**
-	 * Keep save requests from leaving until `until` settles, whether it
-	 * resolves or rejects. A request that already left is not held.
-	 *
-	 * A recorded choice is stored before its save request leaves: a writer
-	 * that stores it from a `choice:recorded` listener in the next macrotask
-	 * needs nothing, since the request waits that long anyway. Persistence
-	 * calls this from the listener while its write code is still loading,
-	 * with the promise of the write, so the first save after page load is
-	 * stored before it is sent too.
-	 *
-	 * @internal
-	 */
-	holdSaves: (until: Promise<unknown>) => void;
 
 	/**
 	 * Re-evaluate at `now` (default `Date.now()`). Gates call this before a
@@ -927,8 +894,6 @@ export interface ConsentKernel {
 			patch: Partial<KernelVendorsState>,
 			options?: { replaceSource?: VendorSource }
 		) => void;
-		/** Stage per-vendor grants a no-input `save()` confirms. Never a grant. */
-		vendorDraft: (input: Record<string, boolean> | null) => void;
 	};
 
 	/**
@@ -980,6 +945,5 @@ export interface ConsentKernel {
 			type: E,
 			listener: Listener<Extract<KernelEvent, { type: E }>>
 		) => Unsubscribe;
-		emit: (event: KernelEvent) => void;
 	};
 }

@@ -1,4 +1,4 @@
-import type { ConsentKernel } from '../types';
+import type { InternalKernel } from './internals';
 
 /**
  * Clear a kernel's records in memory and announce it.
@@ -16,7 +16,7 @@ import type { ConsentKernel } from '../types';
  * @internal
  */
 export const clearKernelRecords = function clearKernelRecords(
-	kernel: Pick<ConsentKernel, 'events' | 'hydrate'>,
+	kernel: Pick<InternalKernel, 'events' | 'hydrate'>,
 	now?: number
 ): void {
 	kernel.hydrate({

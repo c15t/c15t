@@ -128,22 +128,6 @@ const isVendorGrantMap = function isVendorGrantMap(
 	);
 };
 
-const sameVendorChoice = function sameVendorChoice(
-	left: VendorChoice | null,
-	right: VendorChoice | null
-): boolean {
-	if (left === right) {
-		return true;
-	}
-	if (!left || !right) {
-		return false;
-	}
-	return (
-		left.denied.length === right.denied.length &&
-		left.denied.every((id, index) => id === right.denied[index])
-	);
-};
-
 /** Ids a save may toggle: declared and not `disabled`. */
 const toggleableVendorIds = function toggleableVendorIds(
 	snapshot: ConsentSnapshot
@@ -155,22 +139,6 @@ const toggleableVendorIds = function toggleableVendorIds(
 		}
 	}
 	return ids;
-};
-
-/**
- * The state after every denial is lifted. A decision that once denied
- * something becomes an empty list that keeps its time, so a newest-wins
- * merge with an older server read cannot re-deny what the visitor just
- * granted. Nothing ever decided stays `null`.
- */
-const clearedVendorChoice = function clearedVendorChoice(
-	current: VendorChoice | null,
-	actionAt: number
-): VendorChoice | null {
-	if (current === null || current.denied.length === 0) {
-		return current;
-	}
-	return { confirmedAt: actionAt, denied: [], version: 1 };
 };
 
 /** Whether a narrowed bulk action names every category the visitor decides. */
@@ -360,7 +328,6 @@ const applyVendorGrants = function applyVendorGrants(
  */
 const resolveVendorSelection = function resolveVendorSelection(
 	snapshot: ConsentSnapshot,
-	draft: Readonly<Record<string, boolean>> | null,
 	input: SaveInput | undefined,
 	explicit: Record<string, boolean> | undefined,
 	actionAt: number,
@@ -372,8 +339,8 @@ const resolveVendorSelection = function resolveVendorSelection(
 	}
 	const bulk = input === 'all' || input === 'none';
 	if (bulk) {
-		// Vendors follow the category on a bulk action; explicit grants and the
-		// staged draft are both discarded so nothing survives as a denial.
+		// Vendors follow the category on a bulk action; explicit grants are
+		// discarded so nothing survives as a denial.
 		// A bulk action that covers every category the policy lets the
 		// visitor decide is the stock accept or reject all, whichever surface
 		// sent it: nothing outside it can hold a denial in place, so it
@@ -389,34 +356,20 @@ const resolveVendorSelection = function resolveVendorSelection(
 			actionAt
 		);
 	}
-	const grants = explicit ?? draft ?? undefined;
-	if (grants === undefined) {
+	if (explicit === undefined) {
 		return current;
 	}
 	const toggleable = toggleableVendorIds(snapshot);
-	const usable = Object.keys(grants).some((id) => toggleable.has(id));
+	const usable = Object.keys(explicit).some((id) => toggleable.has(id));
 	if (!usable) {
 		return current;
 	}
-	const denied = applyVendorGrants(snapshot, current?.denied, grants);
-	if (denied.length === 0) {
-		// An explicit grant is a decision even when it denies nothing: over
-		// `null` or an already-empty list it leaves a freshly timestamped
-		// empty record, so an older server denial arriving afterwards loses
-		// the merge to what the visitor chose. A staged draft only lifts.
-		return current === null || explicit !== undefined
-			? { confirmedAt: actionAt, denied: [], version: 1 }
-			: clearedVendorChoice(current, actionAt);
-	}
-	const next: VendorChoice = { confirmedAt: actionAt, denied, version: 1 };
-	// An explicit grant is a fresh confirmation even when the list is the same,
-	// like a category reconfirmation: a server read taken between the old time
-	// and now must not undo what the visitor just reaffirmed. A staged draft
-	// that changes nothing keeps the old time, so a no-input save is a no-op.
-	if (explicit !== undefined) {
-		return next;
-	}
-	return sameVendorChoice(current, next) ? current : next;
+	// A grant is a decision and a fresh confirmation even when it denies
+	// nothing or keeps the same list, like a category reconfirmation: an
+	// older server denial, or a server read taken between the old time and
+	// now, must not undo what the visitor just chose.
+	const denied = applyVendorGrants(snapshot, current?.denied, explicit);
+	return { confirmedAt: actionAt, denied, version: 1 };
 };
 
 /**
@@ -773,28 +726,6 @@ const mergeDraft = function mergeDraft(
 	return { ...current, ...patch };
 };
 
-/** Merge staged per-vendor grants. `null` clears the draft. */
-const mergeVendorDraft = function mergeVendorDraft(
-	current: Readonly<Record<string, boolean>> | null,
-	input: Record<string, boolean> | null
-): Record<string, boolean> | null {
-	if (input === null) {
-		return null;
-	}
-	const next: Record<string, boolean> = { ...current };
-	let any = false;
-	for (const [id, value] of Object.entries(input)) {
-		if (typeof value === 'boolean' && id.length > 0) {
-			next[id] = value;
-			any = true;
-		}
-	}
-	if (any) {
-		return next;
-	}
-	return current ? { ...current } : null;
-};
-
 /**
  * A staged value bound to the choice contract it was presented under. Read
  * back only while that contract holds: a draft presented under an earlier
@@ -827,7 +758,7 @@ export interface ChoiceRecorderOptions {
 
 /**
  * Create the choice recorder of one kernel: `commands.save`,
- * `commands.dismissNotice`, `set.draft` and `set.vendorDraft`.
+ * `commands.dismissNotice` and `set.draft`.
  */
 // oxlint-disable-next-line max-lines-per-function -- save() keeps the order of one action visible.
 export const createChoiceRecorder = function createChoiceRecorder({
@@ -837,10 +768,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 }: ChoiceRecorderOptions) {
 	const { batch, getSnapshot, commit, emit } = runtime;
 	const draft = createBoundDraft<PresentedSelection>(getSnapshot, initialDraft);
-	const vendorDraft = createBoundDraft<Readonly<Record<string, boolean>>>(
-		getSnapshot,
-		null
-	);
 
 	return {
 		dismissNotice(): Promise<NoticeDismissResult> {
@@ -942,7 +869,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			// toggle is recorded even when no category receipt is owed.
 			const nextVendorChoice = resolveVendorSelection(
 				before,
-				vendorDraft.get(),
 				input,
 				explicitVendors,
 				actionAt,
@@ -951,9 +877,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			const vendorsChanged = nextVendorChoice !== before.vendorChoice;
 			const owedNothing = saveUnderNoneRegime(before);
 			if (owedNothing && !vendorsChanged) {
-				// Same as the no-op branch below: a staged value the selection
-				// ignored must not survive to a later save.
-				vendorDraft.set(null);
 				emit({ result: owedNothing, type: 'command:save:completed' });
 				return owedNothing;
 			}
@@ -1003,10 +926,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 				: choiceAcknowledgement(before, actionAt);
 			if (!categoriesChanged && !vendorsChanged && !acknowledgement) {
 				// Nothing confirmed: no receipt, no choice event, no request, no write.
-				// A staged vendor value the selection ignored (undeclared, disabled)
-				// is dropped too, or a later declaration would let an unrelated save
-				// apply it.
-				vendorDraft.set(null);
 				const result: SaveResult = {
 					confirmed: [],
 					ok: true,
@@ -1019,7 +938,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			const subjectId = before.subject?.subjectId ?? generateSubjectId();
 			const subject = saveSubject(before, subjectId);
 			draft.set(null);
-			vendorDraft.set(null);
 			const patch: SnapshotPatch = {
 				now: currentTime,
 				subject,
@@ -1119,10 +1037,6 @@ export const createChoiceRecorder = function createChoiceRecorder({
 			});
 			emit({ result, type: 'command:save:completed' });
 			return result;
-		},
-
-		vendorDraft(input: Record<string, boolean> | null): void {
-			vendorDraft.set(mergeVendorDraft(vendorDraft.get(), input));
 		},
 	};
 };
