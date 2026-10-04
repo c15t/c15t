@@ -173,42 +173,12 @@ const setOwn = function setOwn(
 	});
 };
 
-const sameGrants = function sameGrants(
-	left: Readonly<Grants>,
-	right: Readonly<Grants>
-): boolean {
-	const keys = Object.keys(left);
-	return (
-		keys.length === Object.keys(right).length &&
-		keys.every((key) => Object.hasOwn(right, key) && left[key] === right[key])
-	);
-};
-
-const sameDefaults = function sameDefaults(
-	left: Partial<ConsentState> | undefined,
-	right: Partial<ConsentState> | undefined
-): boolean {
-	return (
-		left === right ||
-		(left !== undefined &&
-			right !== undefined &&
-			sameGrants(left as Grants, right as Grants))
-	);
-};
-
-/** Ids a save may change: declared and not `disabled`, mirroring the kernel. */
-const toggleableIds = function toggleableIds(
-	snapshot: ConsentSnapshot
-): ReadonlySet<string> {
-	const ids = new Set<string>();
-	if (snapshot.model !== 'iab') {
-		for (const vendor of snapshot.vendors?.declared ?? []) {
-			if (vendor.disabled !== true) {
-				ids.add(vendor.id);
-			}
-		}
-	}
-	return ids;
+/**
+ * `previous` when `next` serializes the same, so a part of the state that did
+ * not change keeps its identity and a selector over it does not re-render.
+ */
+const keep = function keep<Value>(previous: Value, next: Value): Value {
+	return JSON.stringify(previous) === JSON.stringify(next) ? previous : next;
 };
 
 /**
@@ -264,19 +234,25 @@ const recordedValues = function recordedValues(
 
 /**
  * Granted flag per declared vendor from the denials the gate honors, so a
- * stale denial for a vendor now declared `disabled` does not count.
+ * stale denial for a vendor now declared `disabled` does not count, and the
+ * ids a save may change: declared and not `disabled`, as in the kernel.
+ * Both are empty under an `iab` policy.
  */
 const recordedVendors = function recordedVendors(
 	snapshot: ConsentSnapshot
-): Grants {
+): [Grants, Set<string>] {
 	const grants: Grants = {};
+	const toggleable = new Set<string>();
 	if (snapshot.model !== 'iab') {
 		const denied = deniedVendorIds(snapshot);
 		for (const vendor of snapshot.vendors?.declared ?? []) {
 			setOwn(grants, vendor.id, !denied?.has(vendor.id));
+			if (vendor.disabled !== true) {
+				toggleable.add(vendor.id);
+			}
 		}
 	}
-	return grants;
+	return [grants, toggleable];
 };
 
 /** `value` over `base` for every staged key `include` accepts. */
@@ -304,37 +280,6 @@ const prune = function prune<KeyType extends string>(
 			staged.delete(key);
 		}
 	}
-};
-
-/**
- * `next`, keeping `previous` or any part of it that did not change, so a
- * selector over one slice does not re-render on an edit elsewhere.
- */
-const share = function share(
-	previous: PreferenceDraftState,
-	next: PreferenceDraftState
-): PreferenceDraftState {
-	const displayedCategories =
-		previous.displayedCategories.join(',') ===
-		next.displayedCategories.join(',')
-			? previous.displayedCategories
-			: next.displayedCategories;
-	const values = sameGrants(previous.values, next.values)
-		? previous.values
-		: next.values;
-	const vendors = sameGrants(previous.vendors, next.vendors)
-		? previous.vendors
-		: next.vendors;
-	if (
-		displayedCategories === previous.displayedCategories &&
-		values === previous.values &&
-		vendors === previous.vendors &&
-		next.isDirty === previous.isDirty &&
-		next.isStale === previous.isStale
-	) {
-		return previous;
-	}
-	return { ...next, displayedCategories, values, vendors };
 };
 
 /**
@@ -373,8 +318,6 @@ export const createPreferenceDraft = function createPreferenceDraft(
 	const staged = new Map<AllConsentNames, boolean>();
 	/** Staged vendors, each different from the record. */
 	const stagedVendors = new Map<string, boolean>();
-	/** Bumped by every edit, so an older bulk save cannot drop a newer one. */
-	let edits = 0;
 	/** What the visitor last saw while nothing was staged. */
 	let seen = '';
 	let derivedFrom: ConsentSnapshot | null = null;
@@ -397,8 +340,7 @@ export const createPreferenceDraft = function createPreferenceDraft(
 			shownDefaults = defaults;
 		}
 		baseline = recordedValues(snapshot, scope, shownDefaults);
-		seeded = recordedVendors(snapshot);
-		toggleable = toggleableIds(snapshot);
+		[seeded, toggleable] = recordedVendors(snapshot);
 		// A staged value the record now holds is no longer an edit.
 		prune(staged, baseline);
 		prune(stagedVendors, seeded);
@@ -415,16 +357,24 @@ export const createPreferenceDraft = function createPreferenceDraft(
 		if (!isDirty) {
 			seen = review;
 		}
-		const next: PreferenceDraftState = {
-			displayedCategories,
-			isDirty,
-			isStale: isDirty && seen !== review,
-			values: overlay(baseline, staged, (category) =>
-				displayedCategories.includes(category)
+		const values = overlay(baseline, staged, (category) =>
+			displayedCategories.includes(category)
+		);
+		const vendors = overlay(seeded, stagedVendors, (id) => toggleable.has(id));
+		const isStale = isDirty && seen !== review;
+		if (!previous) {
+			return { displayedCategories, isDirty, isStale, values, vendors };
+		}
+		return keep(previous, {
+			displayedCategories: keep(
+				previous.displayedCategories,
+				displayedCategories
 			),
-			vendors: overlay(seeded, stagedVendors, (id) => toggleable.has(id)),
-		};
-		return previous ? share(previous, next) : next;
+			isDirty,
+			isStale,
+			values: keep(previous.values, values),
+			vendors: keep(previous.vendors, vendors),
+		});
 	};
 
 	let state = derive(null);
@@ -464,7 +414,6 @@ export const createPreferenceDraft = function createPreferenceDraft(
 
 	const changed = function changed(any: boolean): void {
 		if (any) {
-			edits += 1;
 			refresh();
 		}
 	};
@@ -509,7 +458,6 @@ export const createPreferenceDraft = function createPreferenceDraft(
 	};
 
 	const reset = function reset(): void {
-		edits += 1;
 		staged.clear();
 		stagedVendors.clear();
 		refresh();
@@ -553,35 +501,18 @@ export const createPreferenceDraft = function createPreferenceDraft(
 			stageAll(false);
 		},
 		reset,
-		async save(saveOptions = {}) {
+		save(saveOptions = {}) {
 			const { categories, input, uiSource } = saveOptions;
-			const context = {
-				...(categories !== undefined && { categories }),
-				...(uiSource !== undefined && { uiSource }),
-			};
+			const context = { categories, uiSource };
 			if (input === 'all' || input === 'none') {
-				const before = kernel.getSnapshot();
-				const editsAtSave = edits;
 				const pending = kernel.commands.save(input, context);
-				const after = kernel.getSnapshot();
-				// The bulk choice supersedes every staged edit once it is
-				// recorded; one that recorded nothing new resets on success.
-				if (
-					after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice
-				) {
-					reset();
-					return pending;
-				}
-				const result = await pending;
-				if (result.ok && edits === editsAtSave) {
-					reset();
-				}
-				return result;
+				// The bulk choice supersedes every staged edit.
+				reset();
+				return pending;
 			}
 			const draftInput = toSaveInput(categories);
 			if (!draftInput) {
-				return { ok: false };
+				return Promise.resolve({ ok: false });
 			}
 			const pending = kernel.commands.save(draftInput, context);
 			// The record committed before the request: what it holds now stops
@@ -593,10 +524,8 @@ export const createPreferenceDraft = function createPreferenceDraft(
 			update({ [category]: value });
 		},
 		setDefaults(next) {
-			if (!sameDefaults(defaults, next)) {
-				defaults = next;
-				refresh();
-			}
+			defaults = next;
+			refresh();
 		},
 		setVendor(vendorId, granted) {
 			updateVendors({ [vendorId]: granted });
