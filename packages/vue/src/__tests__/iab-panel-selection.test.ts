@@ -52,12 +52,12 @@ const init = {
 		status: 'matched',
 	}),
 	translations: { language: 'en', translations: {} },
-} as InitOutput;
+} as unknown as InitOutput;
 
 const config = {
 	backendURL: 'https://consent.test',
 	customFetch: (() =>
-		Promise.resolve(Response.json({ ok: true }))) as typeof fetch,
+		Promise.resolve(Response.json({ ok: true }))) as unknown as typeof fetch,
 	disableAnimation: true,
 	hideBranding: true,
 	trapFocus: false,
