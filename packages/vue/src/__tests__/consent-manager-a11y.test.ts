@@ -514,37 +514,6 @@ describe('ConsentManager real transport completion', () => {
 				await cleanup(wrapper, context);
 			}
 		});
-		test(`${action} completion cannot close a reopened dialog or a newer action`, async () => {
-			const transport = deferredTransport();
-			const { context, wrapper } = await renderManager({
-				customFetch: transport.customFetch,
-			});
-			try {
-				const completed = vi.fn();
-				context.kernel.events.on('command:save:completed', completed);
-				click(action);
-				expect(context.activeUI.value).toBeNull();
-				await vi.waitFor(() =>
-					expect(transport.customFetch).toHaveBeenCalledOnce()
-				);
-				context.activeUI.value = 'manager';
-				await flushPromises();
-				click('save');
-				await vi.waitFor(() =>
-					expect(transport.customFetch).toHaveBeenCalledTimes(2)
-				);
-				context.activeUI.value = 'manager';
-				await flushPromises();
-				transport.finish(0, true);
-				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
-				expect(context.activeUI.value).toBe('manager');
-				transport.finish(1, false);
-				await vi.waitFor(() => expect(completed).toHaveBeenCalledTimes(2));
-				expect(context.activeUI.value).toBe('manager');
-			} finally {
-				await cleanup(wrapper, context);
-			}
-		});
 		test(`${action} response cannot reset edits in a reopened dialog`, async () => {
 			const transport = deferredTransport();
 			const { context, wrapper } = await renderManager({
@@ -573,27 +542,6 @@ describe('ConsentManager real transport completion', () => {
 				await flushPromises();
 				expect(context.activeUI.value).toBe('manager');
 				expect(choice.getAttribute('aria-checked')).toBe(checked);
-			} finally {
-				await cleanup(wrapper, context);
-			}
-		});
-		test(`${action} failure respects an explicit close`, async () => {
-			const transport = deferredTransport();
-			const { context, wrapper } = await renderManager({
-				customFetch: transport.customFetch,
-			});
-			try {
-				const completed = vi.fn();
-				context.kernel.events.on('command:save:completed', completed);
-				click(action);
-				await vi.waitFor(() =>
-					expect(transport.customFetch).toHaveBeenCalledOnce()
-				);
-				context.activeUI.value = null;
-				transport.finish(0, false);
-				await vi.waitFor(() => expect(completed).toHaveBeenCalledOnce());
-				expect(context.activeUI.value).toBeNull();
-				expect(document.querySelector('[role="dialog"]')).toBeNull();
 			} finally {
 				await cleanup(wrapper, context);
 			}

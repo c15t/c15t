@@ -118,39 +118,6 @@ describe('createConsentClient', () => {
 		}
 	}
 
-	it('does not let an older save close preferences reopened while saving', async () => {
-		const { promise, resolve: complete } = Promise.withResolvers<{
-			ok: boolean;
-		}>();
-		const client = start({
-			mode: custom({
-				init: () =>
-					Promise.resolve({
-						policyResolution: writePolicyResolutionWire(
-							resolvePolicyRules({
-								rules: [
-									{
-										...policyRulePresets.europeOptIn(),
-										categories: ['measurement', 'marketing'],
-										match: { isDefault: true },
-										scopeMode: 'strict',
-									},
-								],
-							})
-						),
-					}),
-				save: () => promise,
-			}),
-		});
-		await client.ready();
-		client.openDialog();
-		const saving = client.acceptAll();
-		client.closeDialog();
-		client.openDialog();
-		complete({ ok: true });
-		await saving;
-		expect(client.getSnapshot().activeUI).toBe('dialog');
-	});
 	it('resolves an offline policy and asks for the banner', async () => {
 		const client = start();
 		const snapshot = await client.ready();

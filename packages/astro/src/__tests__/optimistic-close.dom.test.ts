@@ -52,60 +52,47 @@ afterEach(async () => {
 	localStorage.clear();
 });
 
-for (const action of ['accept', 'reject', 'save'] as const) {
-	for (const outcome of ['pending', 'rejected'] as const) {
-		it(`closes the React island on ${action} before a ${outcome} save settles`, async () => {
-			const save = vi.fn(() =>
-				outcome === 'pending'
-					? Promise.withResolvers<{ ok: boolean }>().promise
-					: Promise.reject(new Error('offline'))
-			);
-			const runtime: ConsentRuntime = createConsentRuntime({
-				consentCategories: ['necessary', 'marketing', 'measurement'],
-				mode: custom({ save }),
-				persistence: false,
-				pkg: '@c15t/astro-test',
-				prefetch: { initialPolicyResolution: testResolution() },
-			});
-			cleanup.push(() => runtime.dispose());
-			registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
-			const target = document.createElement('div');
-			document.body.append(target);
-			cleanup.push(() => target.remove());
-			runtime.kernel.set.activeUI('dialog');
-			const handle: ConsentDialogHandle = await reactDialogAdapter.mount({
-				kind: 'preferences',
-				options: OPTIONS,
-				runtime,
-				target,
-			});
-			cleanup.push(() => handle.destroy());
-			const button = () =>
-				document.querySelector<HTMLButtonElement>(
-					`[data-testid="${
-						{
-							accept: 'consent-widget-footer-accept-all-button',
-							reject: 'consent-widget-reject-button',
-							save: 'consent-widget-footer-save-button',
-						}[action]
-					}"]`
-				);
-			await vi.waitFor(
-				() => expect(button()).not.toBeNull(),
-				ISLAND_RENDER_TIMEOUT
-			);
-			button()?.click();
-			// Closed in the click task, before the request starts.
-			expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
-			expect(save).not.toHaveBeenCalled();
-			expect(
-				runtime.kernel.getSnapshot().explicitChoice?.categories.marketing?.value
-			).toBe(action === 'accept');
-			await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-			await new Promise((resolve) => {
-				setTimeout(resolve, 20);
-			});
-			expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
-		});
-	}
-}
+// The sequences (close on the local record, a failed request never reopens)
+// are pinned at core's surface-actions interface. This checks the island
+// reaches them.
+it('closes the React island on save before a failed request settles', async () => {
+	const save = vi.fn(() => Promise.reject(new Error('offline')));
+	const runtime: ConsentRuntime = createConsentRuntime({
+		consentCategories: ['necessary', 'marketing', 'measurement'],
+		mode: custom({ save }),
+		persistence: false,
+		pkg: '@c15t/astro-test',
+		prefetch: { initialPolicyResolution: testResolution() },
+	});
+	cleanup.push(() => runtime.dispose());
+	registerDialogSurface('react', () => Promise.resolve(reactPanelSurface));
+	const target = document.createElement('div');
+	document.body.append(target);
+	cleanup.push(() => target.remove());
+	runtime.kernel.set.activeUI('dialog');
+	const handle: ConsentDialogHandle = await reactDialogAdapter.mount({
+		kind: 'preferences',
+		options: OPTIONS,
+		runtime,
+		target,
+	});
+	cleanup.push(() => handle.destroy());
+	const button = () =>
+		document.querySelector<HTMLButtonElement>(
+			'[data-testid="consent-widget-footer-save-button"]'
+		);
+	await vi.waitFor(
+		() => expect(button()).not.toBeNull(),
+		ISLAND_RENDER_TIMEOUT
+	);
+	button()?.click();
+	// Closed in the click task, before the request starts.
+	expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
+	expect(save).not.toHaveBeenCalled();
+	expect(runtime.kernel.getSnapshot().explicitChoice).not.toBeNull();
+	await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
+	await new Promise((resolve) => {
+		setTimeout(resolve, 20);
+	});
+	expect(runtime.kernel.getSnapshot().activeUI).toBe('none');
+});
