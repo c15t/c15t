@@ -12,7 +12,11 @@
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { NOW } from '../../../__tests__/fixtures/kernel-fixtures';
+import {
+	matchedResolution,
+	NOW,
+	optInRule,
+} from '../../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../../../kernel';
 import {
 	PENDING_SAVES_STORAGE_KEY,
@@ -331,12 +335,21 @@ describe('before the write code lands', () => {
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 	});
 
-	test('the write code starts loading in idle time after the load event', async () => {
+	test('once a banner is shown, the write code loads in idle time after the load event', async () => {
 		const { land, loader, loads } = heldBackLoader();
-		const kernel = createConsentKernel({ now: Date.now() });
+		const kernel = createConsentKernel({
+			consentCategories: ['marketing'],
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: ['marketing'] })
+			),
+			now: Date.now(),
+		});
 		createPersistence({ kernel }, loader);
+		// Nothing loads before a prompt is shown.
+		await vi.advanceTimersByTimeAsync(1000);
 		expect(loads()).toBe(0);
 
+		kernel.markLive();
 		// jsdom has no requestIdleCallback; the fallback delay stands in.
 		await vi.advanceTimersByTimeAsync(199);
 		expect(loads()).toBe(0);
@@ -351,6 +364,30 @@ describe('before the write code lands', () => {
 		await vi.advanceTimersByTimeAsync(0);
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 		await settle(saving);
+	});
+
+	test('a returning visitor who is not prompted does not load the write code', async () => {
+		const promptingKernel = () =>
+			createConsentKernel({
+				consentCategories: ['marketing'],
+				initialPolicyResolution: matchedResolution(
+					optInRule({ categories: ['marketing'] })
+				),
+				now: Date.now(),
+			});
+		const seed = promptingKernel();
+		const seeded = createPersistence({ kernel: seed });
+		await settle(seed.commands.save({ marketing: true }));
+		seeded.dispose();
+
+		const { loader, loads } = heldBackLoader();
+		const kernel = promptingKernel();
+		createPersistence({ kernel }, loader);
+		kernel.markLive();
+		expect(kernel.getSnapshot().activeUI).toBe('none');
+
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(loads()).toBe(0);
 	});
 });
 

@@ -7,8 +7,8 @@ packages:
 
 Persistence still reads stored records synchronously at startup, but the
 code that writes, reconciles and clears them now loads as its own chunk:
-in idle time after the page's `load` event, or at the first save, clear or
-reconciliation. Every entry that persists consent loads about 2.6 KB gzip
+in idle time after the page's `load` event once a banner or dialog has been
+shown, or at the first save, clear or reconciliation. Every entry that persists consent loads about 2.6 KB gzip
 less JavaScript up front.
 
 Until that chunk has loaded, a save waits for its record to be stored

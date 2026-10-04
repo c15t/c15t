@@ -43,8 +43,9 @@
  *   it lands run when it lands, in that order. So do writes requested
  *   before `dispose()`. The kernel's records are cleared at once.
  * - The write code starts loading on the first write, clear or
- *   reconciliation, or in idle time after the page's load event, whichever
- *   comes first. Once loaded it serves every later handle synchronously.
+ *   reconciliation, or, once a banner or dialog has been shown, in idle
+ *   time after the page's load event, whichever comes first. Once loaded it
+ *   serves every later handle synchronously.
  * - `clear()` cancels queued writes before it removes storage, so a
  *   pending flush cannot recreate what was just cleared. Its
  *   `records:cleared` event makes the kernel drop its queued saves.
@@ -407,13 +408,19 @@ export const createPersistence = function createPersistence(
 	}
 
 	if (!landedWriter() && listenable) {
-		// Load the write code before the visitor acts, so the first save
-		// rarely waits for it.
-		afterLoadWhenIdle(() => {
-			if (!disposed) {
-				void withWriter();
-			}
+		// Load the write code before the visitor acts on a banner or dialog,
+		// so the first save rarely waits for it. Only once one has been
+		// shown: it never competes with showing it, and a visitor with
+		// nothing to answer downloads it only if they act.
+		const stop = kernel.events.on('surface:shown', () => {
+			stop();
+			afterLoadWhenIdle(() => {
+				if (!disposed) {
+					void withWriter();
+				}
+			});
 		});
+		unsubscribers.push(stop);
 	}
 
 	const removeListeners = installListeners();

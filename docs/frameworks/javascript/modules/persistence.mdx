@@ -27,9 +27,10 @@ Stored records are read synchronously when the module starts, so a
 returning visitor's choice applies before the first banner renders.
 
 The code that writes, reconciles and clears records is a separate chunk.
-It starts loading in browser idle time after the page's `load` event, or at
-the first write, clear or reconciliation if one comes sooner. Until it has
-loaded:
+Once a banner or dialog has been shown, it starts loading in browser idle
+time after the page's `load` event. It also starts at the first write,
+clear or reconciliation if one comes sooner. A returning visitor who sees
+no prompt downloads it only when something needs it. Until it has loaded:
 
 - A save waits for its record to be stored before its backend request
   leaves, and before the save resolves. On the first save of a page load,
