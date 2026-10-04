@@ -21,6 +21,29 @@ choice survives reloads and later visits without a backend request.
 The cookie is readable by your server, so a server-rendered page can see the
 visitor's choice before any script runs.
 
+## When records are read and written
+
+Stored records are read synchronously when the module starts, so a
+returning visitor's choice applies before the first banner renders.
+
+The code that writes, reconciles and clears records is a separate chunk.
+It starts loading in browser idle time after the page's `load` event, or at
+the first write, clear or reconciliation if one comes sooner. Until it has
+loaded:
+
+- A save waits for its record to be stored before its backend request
+  leaves, and before the save resolves. On the first save of a page load,
+  this can add the time it takes to fetch the chunk.
+- `clear()` resets the kernel's records at once. Storage is cleared when the
+  chunk lands.
+- `reconcile()` returns `false` and runs when the chunk lands.
+- `pagehide` cannot store anything. A page restored from the back/forward
+  cache stores its pending records when the chunk lands. A page that unloads
+  first loses them, along with the save request still waiting for them.
+
+After the chunk has loaded, each write runs in the macrotask after the
+visitor acts, and `pagehide` runs any write still waiting.
+
 ## Name, domain and lifetime
 
 `storageConfig` sets where and how long records live:

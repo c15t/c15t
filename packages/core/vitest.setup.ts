@@ -7,6 +7,8 @@
 import { vi } from 'vitest';
 import 'vitest-localstorage-mock';
 
+import { preloadPersistenceWriter } from './src/modules/persistence';
+
 // Create simple storage implementation
 const mockStorage = {
 	clear: vi.fn(() => mockStorage.store.clear()),
@@ -98,3 +100,8 @@ export const createRejectingFetch = function createRejectingFetch(
 		return Promise.resolve(new Response());
 	});
 };
+
+// Persistence loads its write code on demand. Most tests drive a handle
+// synchronously, so load it once up front; `lazy-writer.test.ts` covers a
+// handle whose write code has not landed yet.
+await preloadPersistenceWriter();

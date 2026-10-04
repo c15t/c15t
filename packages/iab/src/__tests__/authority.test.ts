@@ -1,7 +1,10 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel, evaluateConsent } from '@c15t/core';
 import type { ConsentKernel, KernelTransport } from '@c15t/core';
-import { createPersistence } from '@c15t/core/modules/persistence';
+import {
+	createPersistence,
+	preloadPersistenceWriter,
+} from '@c15t/core/modules/persistence';
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
@@ -536,6 +539,8 @@ test.each(['invalid', 'pending', 'installed', 'unmounted'] as const)(
 		}
 		/* oxlint-enable vitest/no-conditional-expect */
 		persistence.clear();
+		// Storage is cleared once persistence's write code has loaded.
+		await preloadPersistenceWriter();
 		await vi.advanceTimersByTimeAsync(1);
 		expect(localStorage.getItem('c15t-iab-authority-v1')).toBeNull();
 		expect(localStorage.getItem('euconsent-v2')).toBeNull();

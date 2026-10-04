@@ -193,6 +193,7 @@ describe('on-demand chunks', () => {
 	test.each([
 		['modules/clear-on-revocation/clear.ts', 'modules/clear-on-revocation/'],
 		['modules/network-blocker/blocker.ts', 'modules/network-blocker/'],
+		['modules/persistence/writer/writer.ts', 'modules/persistence/writer/'],
 		['modules/script-loader/loader.ts', 'modules/script-loader/'],
 		['runtime/controls.ts', 'runtime/controls.ts'],
 		['runtime/provider-update.ts', 'runtime/provider-update.ts'],

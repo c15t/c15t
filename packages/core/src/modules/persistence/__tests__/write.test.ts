@@ -8,7 +8,11 @@ import { createConsentKernel } from '../../../kernel';
 import { deleteConsentFromStorage } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import { readStoredConsentRecord } from '../record-storage';
-import { buildStoredEnvelope, writeChoiceToStorage } from '../write';
+import { persistenceTools } from '../tools';
+import { createRecordStore } from '../writer/store';
+import { buildStoredEnvelope, writeChoiceToStorage } from '../writer/write';
+
+const store = createRecordStore(persistenceTools);
 
 beforeEach(() => {
 	vi.useFakeTimers();
@@ -50,7 +54,7 @@ describe('buildStoredEnvelope', () => {
 describe('writeChoiceToStorage', () => {
 	test('skips the write when no choice exists', () => {
 		const kernel = createConsentKernel({ now: NOW });
-		writeChoiceToStorage(kernel.getSnapshot(), null, undefined, NOW);
+		writeChoiceToStorage(store, kernel.getSnapshot(), null, undefined, NOW);
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toBeNull();
 		expect(document.cookie).toBe('');
 	});
@@ -58,7 +62,7 @@ describe('writeChoiceToStorage', () => {
 	test('writes the v3 envelope to localStorage and the cookie', async () => {
 		const kernel = createConsentKernel({ now: NOW });
 		await kernel.commands.save({ marketing: true });
-		writeChoiceToStorage(kernel.getSnapshot(), null, undefined, NOW);
+		writeChoiceToStorage(store, kernel.getSnapshot(), null, undefined, NOW);
 		expect(localStorage.getItem(STORAGE_KEY_V2)).toContain('"version":3');
 		expect(document.cookie).toContain(`${STORAGE_KEY_V2}=v=3&`);
 		const { selected } = readStoredConsentRecord(undefined, NOW);

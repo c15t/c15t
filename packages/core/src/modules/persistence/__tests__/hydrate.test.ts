@@ -18,8 +18,8 @@ import {
 import {
 	encodeNoticeDismissalCompact,
 	encodeStoredConsentEnvelopeCompact,
-} from '../record-codec';
-import { writeStoredConsentEnvelope } from '../record-storage';
+} from '../writer/encode';
+import { writeStoredConsentEnvelope } from './record-writes';
 
 beforeEach(() => {
 	localStorage.clear();

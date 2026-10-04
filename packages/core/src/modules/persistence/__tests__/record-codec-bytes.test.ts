@@ -22,19 +22,19 @@ import {
 	shortenFlatKeys,
 } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
+import type { StoredConsentEnvelope } from '../record-codec';
 import {
 	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
 	encodeStoredConsentEnvelopeCompact,
 	encodeStoredConsentEnvelopeJson,
-} from '../record-codec';
-import type { StoredConsentEnvelope } from '../record-codec';
+} from '../writer/encode';
 import {
 	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-} from '../record-storage';
+} from './record-writes';
 
 const TIME = 1_756_857_600_000;
 const SUBJECT_ID = 'sub_2VZxR7YmNpKq3WfLs8TgHd';

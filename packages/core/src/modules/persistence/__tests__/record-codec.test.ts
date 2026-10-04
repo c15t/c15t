@@ -11,13 +11,15 @@ import {
 	decodeClearEpoch,
 	decodeNoticeDismissal,
 	decodeStoredConsentEnvelopeCompact,
-	encodeNoticeDismissal,
-	encodeStoredConsentEnvelopeCompact,
-	encodeStoredConsentEnvelopeJson,
 	isCompactStoredConsentEnvelope,
 	validateStoredConsentEnvelope,
 } from '../record-codec';
 import type { StoredConsentEnvelope } from '../record-codec';
+import {
+	encodeNoticeDismissal,
+	encodeStoredConsentEnvelopeCompact,
+	encodeStoredConsentEnvelopeJson,
+} from '../writer/encode';
 
 const NOW = 1_800_000_000_000;
 const DAY = 86_400_000;

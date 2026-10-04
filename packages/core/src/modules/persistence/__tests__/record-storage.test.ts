@@ -10,18 +10,20 @@ import { evaluateConsentRecord } from '../../../consent-record/evaluate';
 import type { ChoiceBasis } from '../../../consent-record/types';
 import { setCookie } from '../../../libs/cookie';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../../libs/storage-keys';
-import { encodeStoredConsentEnvelopeCompact } from '../record-codec';
 import type { StoredConsentEnvelope } from '../record-codec';
 import {
-	clearStoredConsentRecords,
 	readRawStoredConsentCandidates,
 	readStoredConsentRecord,
 	readStoredConsentRecordFromCookieHeader,
 	readStoredNoticeDismissal,
 	resolveStorageKeys,
+} from '../record-storage';
+import { encodeStoredConsentEnvelopeCompact } from '../writer/encode';
+import {
+	clearStoredConsentRecords,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
-} from '../record-storage';
+} from './record-writes';
 
 const NOW = 1_800_000_000_000;
 const DAY = 86_400_000;
