@@ -118,6 +118,15 @@ shares: the dialog, `ConsentWidget` and your own UI.
 | `set(category, value)`, `setVendor(id, granted)` | The same as `setConsent` and `setSelectedVendor`. |
 | `reset()` | Discards unsaved changes. |
 
+The draft's code loads with the first preference surface, so a page that
+only shows the banner does not ship it. `ConsentWidget` and `ConsentDialog`
+bring it with them, and their switches render seeded on the first render,
+on the server too. Headless code that reads or writes the draft without
+either one starts the load itself: until it lands, `values` and `vendors`
+are empty objects and `isStale` is `false`, and they update reactively once
+it does. Writes made before then apply in order, `draft.reset()` drops
+them, and `saveConsents('custom')` waits for the draft before it records.
+
 When `isStale` is `true`, `saveConsents('custom')` throws "The policy changed.
 Review your preferences before saving." Show the visitor the current
 categories, call `draft.reset()`, and let them save again.

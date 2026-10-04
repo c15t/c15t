@@ -27,6 +27,7 @@ import type {
 	ResolvedVendor,
 	TranslationConfig,
 } from '@c15t/core';
+import type { createPreferenceDraft } from '@c15t/core/preference-draft';
 import {
 	hasConsentPreferences,
 	hasConsentUI,
@@ -192,6 +193,13 @@ export interface ConsentManagerState extends Pick<
 
 export interface ConsentContextValue {
 	readonly clearRecords: () => void;
+	/**
+	 * Start the provider's draft with the draft module a preference surface
+	 * imported, so it renders seeded values in its first render.
+	 *
+	 * @internal
+	 */
+	readonly provideDraft: (create: typeof createPreferenceDraft) => void;
 	readonly kernel: ConsentKernel;
 	readonly snapshot: ConsentSnapshot;
 	readonly state: ConsentManagerState;
@@ -222,6 +230,8 @@ export interface ConsentControllerOptions {
 	getPresentation: () => ConsentPresentation | undefined;
 	getExperiment?: () => ConsentExperiment | undefined;
 	getTheme?: () => Theme | undefined;
+	/** See {@link ConsentContextValue.provideDraft}. */
+	provideDraft: (create: typeof createPreferenceDraft) => void;
 }
 
 const toTranslationConfig = function toTranslationConfig(
@@ -500,6 +510,7 @@ export const setConsentContext = function setConsentContext(
 		get manager() {
 			return getKernel();
 		},
+		provideDraft: options.provideDraft,
 		get snapshot() {
 			return options.getSnapshot();
 		},

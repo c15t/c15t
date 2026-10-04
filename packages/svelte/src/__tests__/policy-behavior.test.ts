@@ -8,6 +8,7 @@ import { render, fireEvent, waitFor } from '@testing-library/svelte';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { ConsentContextValue } from '../lib/context.svelte';
+import { draftReady } from './draft-ready';
 import Fixture from './fixtures/policy-state-fixture.svelte';
 import { policyFixture } from './policy-fixture';
 
@@ -105,6 +106,7 @@ describe('policy records and Svelte controls', () => {
 				},
 			},
 		});
+		await draftReady(context.current.state);
 		expect(context.current.state.draft.values.marketing).toBe(true);
 		expect(context.current.snapshot.effectivePermissions.marketing).toBe(false);
 		await context.current.state.saveConsents('custom');
@@ -131,6 +133,7 @@ describe('policy records and Svelte controls', () => {
 				prefetch,
 			},
 		});
+		await draftReady(context.current.state);
 		context.current.state.setSelectedConsent('marketing', true);
 		prefetch = policyFixture({}, { copyRevision: 'changed' });
 		await context.current.kernel.commands.init();
