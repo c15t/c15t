@@ -21,8 +21,13 @@
  *   action's commit has notified every listener, so a local writer that
  *   handed its write to a macrotask from a listener (persistence schedules
  *   `setTimeout(0)`) lands it before the request leaves: timers with the
- *   same delay run in the order they were set. A writer that defers longer
- *   gives up that guarantee.
+ *   same delay run in the order they were set. A writer that cannot write
+ *   by then (persistence while its write code loads) holds the request
+ *   through `kernel.holdSaves()` (`hold()` here). `send()` waits for that
+ *   hold first, and without a transport `save` it resolves only after it,
+ *   so nothing that waits for a save's completion (a revocation reload)
+ *   overtakes the write either. A writer that defers longer without holding gives up
+ *   that guarantee.
  * - A save is only ever sent, queued or discarded for the part of it the
  *   current state still holds ({@link withoutSuperseded}). Once the stored
  *   records were replaced or cleared, or the visitor or the choice contract
@@ -97,6 +102,11 @@ export interface SaveOutbox {
 	 * it returns, and again under the store's lock once that is granted.
 	 */
 	clear: () => Promise<void>;
+	/**
+	 * Keep requests from leaving until `until` settles: a local write that
+	 * is not ready yet. Requests already sent are not held.
+	 */
+	hold: (until: Promise<unknown>) => void;
 }
 
 export interface SaveOutboxOptions {
@@ -123,6 +133,8 @@ export const createSaveOutbox = function createSaveOutbox({
 }: SaveOutboxOptions): SaveOutbox {
 	const { batch, commit, emit, getSnapshot } = runtime;
 	let worker: QueueWorker | undefined;
+	// What requests wait for after the pre-send macrotask: see `hold()`.
+	let held: Promise<unknown> | undefined;
 
 	/** The queue module, loaded once; `undefined` when it cannot load. */
 	const loadWorker = async function loadWorker(): Promise<
@@ -274,6 +286,11 @@ export const createSaveOutbox = function createSaveOutbox({
 				liveSupersession(actionSnapshot, current)
 			);
 		};
+		// A local write that is not ready yet holds the request, and without
+		// a request the save's completion, which a revocation reload waits for.
+		if (held) {
+			await held;
+		}
 		const save = transport?.save;
 		if (!save) {
 			return { confirmed, ok: true, subjectId: payload.subjectId };
@@ -338,6 +355,9 @@ export const createSaveOutbox = function createSaveOutbox({
 
 	return {
 		clear,
+		hold(until) {
+			held = Promise.allSettled([held, until]);
+		},
 		replay,
 		send: (payload, action) => sendAction(payload, action, true),
 	};
