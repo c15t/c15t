@@ -117,8 +117,8 @@
 			)
 		: undefined;
 	// Names the on-demand chunks this page starts with, so `c15tHandle` can
-	// preload them from the server-rendered head. The same string on the
-	// server and in the browser, so hydration keeps it.
+	// preload them from the server-rendered head. The same on the server and
+	// in the browser, so hydration keeps it.
 	const preloadMarker = ownsRuntime
 		? untrack(() => modulePreloadMarker(options))
 		: '';
@@ -384,7 +384,12 @@
 </script>
 
 <svelte:head>
-	{@html preloadMarker}
+	{#if preloadMarker}
+		<meta
+			name="c15t-modulepreload"
+			content={preloadMarker}
+		/>
+	{/if}
 </svelte:head>
 
 {#if children}

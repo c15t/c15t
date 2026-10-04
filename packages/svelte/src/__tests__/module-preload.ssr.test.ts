@@ -41,9 +41,10 @@ const renderPage = function renderPage(
 		},
 	});
 	// What `c15tHandle` does to the page once the plugin wrote the URLs.
-	return injectModulePreloads(head, HREFS);
+	return injectModulePreloads(`<head>${head}</head>`, HREFS);
 };
 
+/** The links the handle added. */
 const preloads = (head: string): string[] =>
 	[...head.matchAll(/<link rel="modulepreload"[^>]*>/gu)].map(([tag]) => tag);
 
@@ -63,7 +64,7 @@ describe('module preloads for on-demand chunks', () => {
 	test('a page without scripts or rules preloads nothing', () => {
 		const head = renderPage({});
 		expect(preloads(head)).toEqual([]);
-		expect(head).not.toContain('c15t:modulepreload');
+		expect(head).not.toContain('c15t-modulepreload');
 	});
 
 	test('a page with consent management disabled preloads no blocker', () => {

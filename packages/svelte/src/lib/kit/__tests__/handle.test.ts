@@ -140,14 +140,13 @@ describe('c15tHandle', () => {
 			},
 		];
 
-		// Without `c15tPreload()` the build names no chunk, so the marker
-		// goes and no link is added.
-		expect(
-			resolveOptions.transformPageChunk({
-				done: true,
-				html: '<head><!--c15t:modulepreload script-loader--></head>',
-			})
-		).toBe('<head></head>');
+		// Without `c15tPreload()` the build names no chunk, so no link is
+		// added.
+		const page =
+			'<head><meta name="c15t-modulepreload" content="script-loader"></head>';
+		expect(resolveOptions.transformPageChunk({ done: true, html: page })).toBe(
+			page
+		);
 		expect(
 			resolveOptions.transformPageChunk({ done: true, html: '<p>page</p>' })
 		).toBe('<p>page</p>');

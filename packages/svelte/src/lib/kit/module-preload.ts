@@ -1,13 +1,13 @@
 /**
- * Turns the provider's preload marker into `<link rel="modulepreload">`
- * tags while SvelteKit renders (or prerenders) a page.
+ * Adds `<link rel="modulepreload">` tags for the chunks a provider's
+ * preload marker names while SvelteKit renders (or prerenders) a page.
  *
  * SvelteKit builds the server before the client, so no server module can
  * know what the client build names a chunk. The `c15tPreload()` Vite plugin
  * from `@c15t/svelte/vite` closes that gap: once the client build has
  * written its chunks, it replaces the placeholders below in the server
  * output with each chunk's URL. Without the plugin (or in `vite dev`) the
- * placeholders stay, and the marker is dropped without a link.
+ * placeholders stay, and no link is added.
  */
 
 /** The on-demand chunks a page can preload. */
@@ -29,9 +29,10 @@ export const MODULE_PRELOAD_PLACEHOLDERS: Readonly<
 const chunkHrefs = (): Readonly<Record<PreloadChunkName, string>> =>
 	MODULE_PRELOAD_PLACEHOLDERS;
 
-const MARKER = /<!--c15t:modulepreload (?<body>[^>]*?)-->/gu;
+const MARKER = /<meta name="c15t-modulepreload" content="(?<body>[^"]*)"/gu;
 const NONCE = /^[\w+/=-]+$/u;
 const SCRIPT_NONCE = /<script\b[^>]*\snonce="(?<nonce>[\w+/=-]+)"/u;
+const HEAD_END = '</head>';
 
 const escapeAttribute = (value: string): string =>
 	value
@@ -44,34 +45,37 @@ const isChunkURL = (href: string | undefined): href is string =>
 	typeof href === 'string' && /\.m?js$/u.test(href);
 
 /**
- * Replace every preload marker in a page chunk with the links it names.
+ * Add a link for every chunk the page's preload markers name, at the end
+ * of `<head>`.
  *
- * The links take the marker's nonce (the provider's `nonce` option), else
- * the nonce SvelteKit put on its own scripts, so a nonce-based
- * `script-src` admits them.
+ * The end of `<head>`, because Svelte hydrates the head's markers and would
+ * trip over elements it did not render. The links take the marker's nonce
+ * (the provider's `nonce` option), else the nonce SvelteKit put on its own
+ * scripts, so a nonce-based `script-src` admits them.
  *
  * @param html - A chunk of the rendered page.
  * @param hrefs - Chunk URLs; the ones the plugin wrote by default.
- * @returns The chunk with each marker replaced; unchanged without one.
+ * @returns The chunk with the links; unchanged without a marker.
  * @internal
  */
 export const injectModulePreloads = function injectModulePreloads(
 	html: string,
 	hrefs: Readonly<Record<string, string>> = chunkHrefs()
 ): string {
-	if (!html.includes('<!--c15t:modulepreload ')) {
+	const headEnd = html.indexOf(HEAD_END);
+	if (headEnd === -1 || !html.includes('<meta name="c15t-modulepreload"')) {
 		return html;
 	}
 	const pageNonce = SCRIPT_NONCE.exec(html)?.groups?.nonce;
 	const seen = new Set<string>();
-	return html.replace(MARKER, (_marker, body: string) => {
-		const tokens = body.trim().split(/\s+/u);
+	let links = '';
+	for (const [, body = ''] of html.slice(0, headEnd).matchAll(MARKER)) {
+		const tokens = body.split(' ');
 		const ownNonce = tokens
 			.find((token) => token.startsWith('nonce='))
 			?.slice('nonce='.length);
 		const nonce = ownNonce && NONCE.test(ownNonce) ? ownNonce : pageNonce;
 		const nonceAttribute = nonce ? ` nonce="${nonce}"` : '';
-		let links = '';
 		for (const token of tokens) {
 			const href = Object.hasOwn(hrefs, token) ? hrefs[token] : undefined;
 			if (!isChunkURL(href) || seen.has(href)) {
@@ -80,6 +84,6 @@ export const injectModulePreloads = function injectModulePreloads(
 			seen.add(href);
 			links += `<link rel="modulepreload" href="${escapeAttribute(href)}"${nonceAttribute}>`;
 		}
-		return links;
-	});
+	}
+	return links ? html.slice(0, headEnd) + links + html.slice(headEnd) : html;
 };
