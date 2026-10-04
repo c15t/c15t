@@ -125,7 +125,31 @@ describe('c15tHandle', () => {
 		const event = createEvent();
 		const { resolve, response } = await runHandle(event);
 
-		expect(resolve).toHaveBeenCalledWith(event);
+		expect(resolve).toHaveBeenCalledWith(event, {
+			transformPageChunk: expect.any(Function),
+		});
 		expect(await response.text()).toBe('ok');
+	});
+
+	test("links the on-demand chunks a page's provider names", async () => {
+		const { resolve } = await runHandle(createEvent());
+		const [, resolveOptions] = resolve.mock.calls[0] as unknown as [
+			unknown,
+			{
+				transformPageChunk: (input: { done: boolean; html: string }) => string;
+			},
+		];
+
+		// Without `c15tPreload()` the build names no chunk, so the marker
+		// goes and no link is added.
+		expect(
+			resolveOptions.transformPageChunk({
+				done: true,
+				html: '<head><!--c15t:modulepreload script-loader--></head>',
+			})
+		).toBe('<head></head>');
+		expect(
+			resolveOptions.transformPageChunk({ done: true, html: '<p>page</p>' })
+		).toBe('<p>page</p>');
 	});
 });

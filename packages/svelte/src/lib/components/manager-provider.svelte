@@ -1,16 +1,24 @@
 <script lang="ts">
 	import type { ConsentKernel, ConsentSnapshot } from '@c15t/core';
-	import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
+	import {
+		applyExperimentAssignment,
+		applyExperimentTheme,
+		watchRevocationReload,
+	} from '@c15t/core';
+	import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
+	import { createPersistence } from '@c15t/core/modules/persistence';
+	import { createWindowDebug } from '@c15t/core/modules/window-debug';
 	import { createPreferenceDraft } from '@c15t/core/preference-draft';
 	import type { PreferenceDraft } from '@c15t/core/preference-draft';
 	import {
 		createConsentProviderRuntime,
-		defaultRuntimeModules,
-	} from '@c15t/core/runtime';
+		mountRuntimeIAB,
+		onDemandRuntimeModules,
+	} from '@c15t/core/runtime/provider';
 	import type {
 		ConsentProviderRuntime,
 		ConsentRuntime,
-	} from '@c15t/core/runtime';
+	} from '@c15t/core/runtime/provider';
 	import type { IABHandle } from '@c15t/iab';
 	import { setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
@@ -19,6 +27,7 @@
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import { isIABConfigured, lazyCreateIAB } from '../iab-loader';
+	import { modulePreloadMarker } from '../module-preload';
 	import { warnOnUnappliedThemeTokens } from '../theme-warning';
 	import type { ConsentManagerOptions } from '../types';
 
@@ -94,9 +103,25 @@
 	});
 	const ownedRuntime: ConsentProviderRuntime | undefined = ownsRuntime
 		? untrack(() =>
-				createConsentProviderRuntime(runtimeOptions(), defaultRuntimeModules)
+				createConsentProviderRuntime(runtimeOptions(), {
+					// The script loader, network blocker, data clearing and a
+					// `consentSource` connection load on demand, each only when
+					// configured.
+					...onDemandRuntimeModules,
+					createIframeBlocker,
+					createPersistence,
+					createWindowDebug,
+					mountIAB: mountRuntimeIAB,
+					watchRevocationReload,
+				})
 			)
 		: undefined;
+	// Names the on-demand chunks this page starts with, so `c15tHandle` can
+	// preload them from the server-rendered head. The same string on the
+	// server and in the browser, so hydration keeps it.
+	const preloadMarker = ownsRuntime
+		? untrack(() => modulePreloadMarker(options))
+		: '';
 	const runtime: ConsentRuntime =
 		externalRuntime ?? (ownedRuntime as ConsentRuntime);
 	// The runtime validated and assigned from the experiment it was created
@@ -357,6 +382,10 @@
 		stopDraft();
 	});
 </script>
+
+<svelte:head>
+	{@html preloadMarker}
+</svelte:head>
 
 {#if children}
 	{@render children()}

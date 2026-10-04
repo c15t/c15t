@@ -12,6 +12,7 @@ import { readRequestConsent } from '@c15t/core/server';
 import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
+import { injectModulePreloads } from './module-preload';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
 /** Options for {@link c15tHandle}. */
@@ -45,7 +46,15 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
  */
 export type C15tHandle = (input: {
 	event: RequestEvent;
-	resolve: (event: RequestEvent) => Response | Promise<Response>;
+	resolve: (
+		event: RequestEvent,
+		options?: {
+			transformPageChunk?: (input: {
+				done: boolean;
+				html: string;
+			}) => string | undefined;
+		}
+	) => Response | Promise<Response>;
 }) => Promise<Response>;
 
 /**
@@ -145,6 +154,12 @@ export const c15tHandle = function c15tHandle(
 		}
 		(event.locals as { c15t?: C15tLocals }).c15t = locals;
 
-		return await resolve(event);
+		// A page whose provider configures scripts or blocker rules names
+		// their on-demand chunks in its head; link them so the browser
+		// fetches them with the app's code. Prerendered pages too: the link
+		// is the same for every visitor.
+		return await resolve(event, {
+			transformPageChunk: ({ html }) => injectModulePreloads(html),
+		});
 	};
 };

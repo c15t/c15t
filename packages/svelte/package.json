@@ -60,6 +60,9 @@
 			],
 			"server": [
 				"./dist/server/index.d.ts"
+			],
+			"vite": [
+				"./dist/vite.d.ts"
 			]
 		}
 	},
@@ -94,6 +97,11 @@
 			"types": "./dist/server/index.d.ts",
 			"import": "./dist/server/index.js",
 			"default": "./dist/server/index.js"
+		},
+		"./vite": {
+			"types": "./dist/vite.d.ts",
+			"import": "./dist/vite.js",
+			"default": "./dist/vite.js"
 		},
 		".": {
 			"types": "./dist/index.d.ts",
