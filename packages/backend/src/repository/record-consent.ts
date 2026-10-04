@@ -57,7 +57,6 @@ export interface ConsentSubmissionRequest {
 	readonly timeToDecisionMs?: number | null;
 	readonly ipAddress: string | null;
 	readonly userAgent: string | null;
-	readonly jurisdiction?: string | null;
 	readonly jurisdictionModel?: string | null;
 	readonly tcString?: string | null;
 	readonly uiSource?: string | null;
@@ -123,7 +122,6 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 		experimentId: request.experimentId,
 		givenAt: request.givenAt,
 		ipAddress: request.ipAddress,
-		jurisdiction: request.jurisdiction,
 		jurisdictionModel: request.jurisdictionModel,
 		metadata: request.metadata,
 		policyId: request.policyId,

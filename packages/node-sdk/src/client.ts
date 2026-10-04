@@ -187,7 +187,7 @@ export interface C15tPublicClient {
 	) => Promise<C15tResult<StatusOutput, 'SERVICE_UNAVAILABLE'>>;
 
 	/**
-	 * Resolves the consent banner for a visitor: jurisdiction, translations,
+	 * Resolves the consent banner for a visitor: location, translations,
 	 * policies. Pass the visitor's context when calling from a server.
 	 */
 	init: (

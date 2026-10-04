@@ -361,8 +361,6 @@ export interface ConsentSnapshot {
 	readonly translations: Readonly<KernelTranslations> | null;
 	/** Branding identifier. */
 	readonly branding: KernelBranding | null;
-	/** Explainability metadata for how the policy was matched. */
-
 	/** Signed token for write-time consistency — sent back on save. */
 	readonly policySnapshotToken: string | null;
 
@@ -550,8 +548,6 @@ export interface InitResponse {
 	translations?: KernelTranslations;
 	/** Branding preference. */
 	branding?: KernelBranding;
-	/** Explainability metadata for policy resolution. */
-
 	/** Signed token for write-time consistency. Sent back on save. */
 	policySnapshotToken?: string;
 

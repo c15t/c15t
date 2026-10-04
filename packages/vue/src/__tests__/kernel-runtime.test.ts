@@ -44,7 +44,6 @@ type WindowWithC15t = Window & {
 
 const initFixture: InitOutput = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: {
 		countryCode: 'DE',
 		regionCode: null,

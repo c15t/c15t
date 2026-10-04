@@ -105,7 +105,6 @@ import type {
 	HydrationRecords,
 	InitOutput,
 	InitResponse,
-	JurisdictionCode,
 	KernelActiveUI,
 	KernelModel,
 	KernelOverrides,
@@ -897,8 +896,6 @@ interface Scenario {
 	policyRules: readonly PolicyRule[];
 	/** Geo the backend resolved for this request. Reaches the client as `location`. */
 	geo: { country: string | null; region: string | null };
-	/** Jurisdiction code the backend reports for that geo. */
-	jurisdiction: JurisdictionCode;
 	/** Privacy signals the device reports for this subject. */
 	gpc: boolean;
 	/** Pinned language, so translation selection never varies. */
@@ -936,7 +933,6 @@ const resolutionWireFor = function resolutionWireFor(
 const initBodyFor = function initBodyFor(scenario: Scenario): InitResponseBody {
 	const body: InitResponseBody = {
 		branding: 'c15t',
-		jurisdiction: scenario.jurisdiction,
 		location: {
 			countryCode: scenario.geo.country,
 			regionCode: scenario.geo.region,
@@ -1426,7 +1422,6 @@ const storedFor = function storedFor(
 const EU_SCENARIO: Scenario = {
 	geo: { country: 'DE', region: null },
 	gpc: false,
-	jurisdiction: 'GDPR',
 	language: DEFAULT_NATIVE_LANGUAGE,
 	policyRules: POLICY_RULES,
 	policySnapshotToken: 'tok-europe-opt-in',
@@ -1437,7 +1432,6 @@ const EU_SCENARIO: Scenario = {
 const CCPA_SCENARIO: Scenario = {
 	geo: { country: 'US', region: 'CA' },
 	gpc: false,
-	jurisdiction: 'CCPA',
 	language: DEFAULT_NATIVE_LANGUAGE,
 	policyRules: POLICY_RULES,
 	policySnapshotToken: 'tok-california-opt-out',
@@ -1455,7 +1449,6 @@ const GPC_SCENARIO: Scenario = {
 const NO_MATCH_SCENARIO: Scenario = {
 	geo: { country: 'DE', region: 'BE' },
 	gpc: false,
-	jurisdiction: 'GDPR',
 	language: DEFAULT_NATIVE_LANGUAGE,
 	policyRules: [policyRulePresets.californiaOptOut()],
 	policySnapshotToken: null,
@@ -1466,7 +1459,6 @@ const NO_MATCH_SCENARIO: Scenario = {
 const NOTICE_SCENARIO: Scenario = {
 	geo: { country: 'GB', region: null },
 	gpc: false,
-	jurisdiction: 'UK_GDPR',
 	language: DEFAULT_NATIVE_LANGUAGE,
 	policyRules: [NOTICE_RULE],
 	policySnapshotToken: 'tok-notice-only',
@@ -1478,7 +1470,6 @@ const NOTICE_SCENARIO: Scenario = {
 const STALE_POLICY_MINT_SCENARIO: Scenario = {
 	geo: { country: 'US', region: 'CA' },
 	gpc: false,
-	jurisdiction: 'CCPA',
 	language: DEFAULT_NATIVE_LANGUAGE,
 	policyRules: [stalePolicyRule('v1', 'fixture_california_opt_out')],
 	policySnapshotToken: 'tok-stale-mint',
@@ -1503,7 +1494,6 @@ const STALE_POLICY_REPLAY_SCENARIO: Scenario = {
 const NARROW_PERMISSIVE_OPT_IN_SCENARIO: Scenario = {
 	geo: { country: 'FR', region: null },
 	gpc: false,
-	jurisdiction: 'GDPR',
 	language: DEFAULT_NATIVE_LANGUAGE,
 	policyRules: [NARROW_PERMISSIVE_OPT_IN_RULE],
 	policySnapshotToken: 'tok-narrow-permissive-opt-in',

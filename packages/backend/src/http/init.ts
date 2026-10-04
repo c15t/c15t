@@ -156,7 +156,6 @@ export const buildInitResponse = async function buildInitResponse(
 		? resolved
 		: {
 				branding: resolved.branding,
-				jurisdiction: resolved.jurisdiction,
 				location: resolved.location,
 				policyResolution: writePolicyResolutionWire({
 					policy: null,
@@ -193,7 +192,6 @@ export const buildInitResponse = async function buildInitResponse(
 		{
 			country: signals.country,
 			fingerprint: resolution.fingerprints.policy,
-			jurisdiction: resolved.jurisdiction,
 			language: signals.language,
 			matchedBy: resolution.matchedBy,
 			model: resolution.policy.model,

@@ -170,11 +170,7 @@ export type {
 	ConsentType,
 } from './consent/consent-types';
 export { allConsentNames, consentTypes } from './consent/consent-types';
-export type {
-	ConsentBannerResponse,
-	LocationInfo,
-	NamespaceProps,
-} from './consent/compliance';
+export type { NamespaceProps } from './consent/compliance';
 
 // -- Consent conditions --------------------------------------------------------
 export type { HasCondition } from './libs/has';
@@ -283,7 +279,6 @@ export type { TranslationOverrides } from './translations';
 export type {
 	Branding,
 	InitOutput,
-	JurisdictionCode,
 	PolicyPrompt,
 	PolicyResolutionFailure,
 	PolicyRule,

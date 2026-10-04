@@ -677,7 +677,6 @@ for (const engine of ENGINES) {
 				{
 					country: 'DE',
 					fingerprint: decision.fingerprints.policy,
-					jurisdiction: 'GDPR',
 					language: 'en',
 					matchedBy: decision.matchedBy,
 					model: decision.policy.model,
@@ -728,7 +727,6 @@ for (const engine of ENGINES) {
 				{
 					country: 'DE',
 					fingerprint: decision.fingerprints.policy,
-					jurisdiction: 'GDPR',
 					language: header,
 					matchedBy: decision.matchedBy,
 					model: decision.policy.model,

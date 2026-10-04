@@ -120,7 +120,6 @@ export const buildConsentSessionReport = function buildConsentSessionReport(
 	const report: ConsentSessionReport = {
 		country: options.inputs?.country ?? null,
 		gpc: options.inputs?.gpc === true,
-		jurisdiction: options.init.jurisdiction,
 		language: options.init.translations.language,
 		policy:
 			resolution?.status === 'matched'

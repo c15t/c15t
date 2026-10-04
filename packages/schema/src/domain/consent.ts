@@ -14,7 +14,7 @@ export const consentSchema = v.object({
 	givenAt: v.optional(v.date(), () => new Date()),
 	id: v.string(),
 	ipAddress: v.nullish(v.string()),
-	/** Jurisdiction code (e.g., 'GDPR', 'UK_GDPR', 'CCPA') */
+	/** Regulation label 2.x recorded. v3 writes `null`. */
 	jurisdiction: v.nullish(v.string()),
 	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
 	jurisdictionModel: v.nullish(v.string()),

@@ -23,7 +23,6 @@ const clearCookies = function clearCookies(): void {
 
 const everywhereManifest: ConsentManifest = {
 	branding: 'c15t',
-	defaults: { disableGeoLocation: true },
 	policyPacks: [
 		createConsentManifestPolicyPack({
 			...policyRulePresets.europeOptIn(),
@@ -37,7 +36,6 @@ const everywhereManifest: ConsentManifest = {
 
 const geoManifest: ConsentManifest = {
 	...everywhereManifest,
-	defaults: {},
 	policyPacks: [
 		createConsentManifestPolicyPack(policyRulePresets.europeOptIn()),
 	],
@@ -62,22 +60,18 @@ afterEach(() => {
 });
 
 describe('manifestNeedsLocation', () => {
-	it('is false when geo is disabled or every pack is a default', () => {
+	it('is false when every pack is a default, or there are none', () => {
 		expect(manifestNeedsLocation(everywhereManifest)).toBe(false);
-		expect(manifestNeedsLocation({ ...everywhereManifest, defaults: {} })).toBe(
-			false
-		);
+		expect(
+			manifestNeedsLocation({ ...everywhereManifest, policyPacks: undefined })
+		).toBe(false);
+		expect(
+			manifestNeedsLocation({ ...everywhereManifest, policyPacks: [] })
+		).toBe(false);
 	});
 
-	it('is true for country packs and for jurisdiction defaults', () => {
+	it('is true for country packs', () => {
 		expect(manifestNeedsLocation(geoManifest)).toBe(true);
-		expect(
-			manifestNeedsLocation({
-				...everywhereManifest,
-				defaults: {},
-				policyPacks: undefined,
-			})
-		).toBe(true);
 	});
 });
 

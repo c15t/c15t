@@ -15,7 +15,6 @@ import { detachConsentSession, emitConsentSession } from './session';
 const report: ConsentSessionReport = {
 	country: 'DE',
 	gpc: false,
-	jurisdiction: 'GDPR',
 	language: 'de',
 	policy: null,
 	region: null,
