@@ -14,6 +14,8 @@
  * when the page configures them. `lazyStreamPrefetch` likewise loads the
  * streamed-prefetch code only for a runtime whose `prefetch` is a promise;
  * `streamPrefetchWith` wraps a resolver the host imported itself.
+ * A host that configures once (the script tag, an Astro page) builds the
+ * same modules into a runtime with `createConsentRuntimeWith`.
  *
  * @example
  * ```ts
@@ -29,6 +31,12 @@ export { lazyRuntimeModule } from './lazy-module';
 // every chunk that imports this entry.
 // oxlint-disable-next-line oxc/no-barrel-file -- One module; the count is its tools' first-load imports, which the entry already has.
 export * from './on-demand';
+// Star exports for the same reason: configure-once hosts (the script tag,
+// Astro) read these, providers mostly do not.
+// oxlint-disable-next-line oxc/no-barrel-file -- One small module whose imports the entry already has.
+export * from './runtime-with-modules';
+// oxlint-disable-next-line oxc/no-barrel-file -- One small module.
+export * from './iab-mount';
 export { createConsentProviderRuntime } from './provider-runtime';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
 export type { ResolveStreamedInit } from './stream-mode';

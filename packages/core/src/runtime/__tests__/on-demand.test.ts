@@ -20,6 +20,7 @@ import { createWindowDebug } from '../../modules/window-debug';
 import { custom } from '../../transports/mode';
 import { onDemandRuntimeModules } from '../on-demand';
 import { createConsentProviderRuntime } from '../provider-runtime';
+import { createConsentRuntimeWith } from '../runtime-with-modules';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -40,7 +41,7 @@ const RESOLVED_PREFETCH = {
 	}),
 };
 
-const runtimes: ConsentProviderRuntime[] = [];
+const runtimes: { dispose: () => void }[] = [];
 
 const create = function create(
 	options: Partial<ConsentProviderRuntimeOptions>
@@ -154,6 +155,44 @@ describe('onDemandRuntimeModules', () => {
 		expect(runtime.kernel.getSnapshot().effectivePermissions.measurement).toBe(
 			true
 		);
+	});
+});
+
+describe('createConsentRuntimeWith', () => {
+	test('a configure-once runtime mounts the modules it is given', async () => {
+		const onBeforeLoad = vi.fn();
+		const runtime = createConsentRuntimeWith(
+			{
+				mode: custom({
+					init: vi.fn().mockResolvedValue({}),
+					save: vi.fn().mockResolvedValue({ ok: true }),
+				}),
+				persistence: false,
+				prefetch: RESOLVED_PREFETCH,
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'measurement',
+						id: 'analytics',
+						onBeforeLoad,
+					},
+				],
+			},
+			{
+				...onDemandRuntimeModules,
+				createIframeBlocker,
+				createPersistence,
+				createWindowDebug,
+				watchRevocationReload,
+			}
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		await vi.dynamicImportSettled();
+		expect(onBeforeLoad).not.toHaveBeenCalled();
+
+		await runtime.kernel.commands.save('all');
+		expect(onBeforeLoad).toHaveBeenCalledOnce();
 	});
 });
 
