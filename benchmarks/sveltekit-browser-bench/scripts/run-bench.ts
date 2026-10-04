@@ -43,6 +43,13 @@ import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
 import { createRepeatVisitorCookie } from '@c15t/benchmarking/nuxt-repeat-visitor';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -416,24 +423,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		if (entries.length === 0) {
-			return null;
-		}
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			appScriptCount: ordered.length,
-			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scriptEntry = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-initiator'
+	);
 	const performanceObserverInfo = (await page.evaluate(
 		benchPerfMetricsExpression
 	)) as BenchPerfMetrics;
@@ -728,6 +721,7 @@ const run = async function run() {
 							'count',
 							samples.map((sample) => sample.appScriptCount ?? 0)
 						),
+						...summarizeIdlePreloadMetrics(samples),
 						summarizeMetric(
 							'ttfbMs',
 							'ms',
@@ -801,6 +795,7 @@ const run = async function run() {
 						'The client-manifest arm resolves the manifest in the browser; @c15t/svelte ships server-side manifest resolution, so that arm prices the alternative rather than a shipped mode.',
 						`Visit: ${visit}. Cold state: ${coldState.setup}.`,
 						...visitMetricGlossary,
+						...scriptTimingGlossary,
 					],
 					package: '@c15t/sveltekit-browser-bench',
 					runtime: 'playwright',

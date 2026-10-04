@@ -27,6 +27,13 @@ import {
 import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -379,24 +386,10 @@ const collectPageMetrics = async function collectPageMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		if (entries.length === 0) {
-			return null;
-		}
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			appScriptCount: ordered.length,
-			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scriptEntry = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-initiator'
+	);
 	const cssEntry = await page.evaluate(() => {
 		const entries = performance
 			.getEntriesByType('resource')
@@ -639,6 +632,7 @@ const writeScenarioResult = function writeScenarioResult(
 				'count',
 				samples.map((sample) => sample.appScriptCount ?? 0)
 			),
+			...summarizeIdlePreloadMetrics(samples),
 			summarizeMetric(
 				'cssBytes',
 				'bytes',
@@ -704,6 +698,7 @@ const writeScenarioResult = function writeScenarioResult(
 			'React browser bench runs with local deterministic init and subject endpoints.',
 			`Visit: ${input.visit}. Cold state: ${input.coldState.setup}.`,
 			...visitMetricGlossary,
+			...scriptTimingGlossary,
 		],
 		package: '@c15t/react-browser-bench',
 		runtime: 'playwright',

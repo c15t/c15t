@@ -8,14 +8,12 @@ import { fileURLToPath } from 'node:url';
 
 import type {
 	BenchPerfMetrics,
-	BenchScriptResourceMetrics,
 	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
-	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
 	parseBenchThrottleProfile,
@@ -30,6 +28,13 @@ import {
 import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -401,9 +406,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = (await page.evaluate(
-		benchScriptResourceExpression
-	)) as BenchScriptResourceMetrics | null;
+	const scriptEntry = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-or-module-url'
+	);
 	const performanceObserverInfo = (await page.evaluate(
 		benchPerfMetricsExpression
 	)) as BenchPerfMetrics;
@@ -591,6 +597,7 @@ const writeScenarioResult = function writeScenarioResult(
 				'count',
 				groupedSamples.map((sample) => sample.appScriptCount ?? 0)
 			),
+			...summarizeIdlePreloadMetrics(groupedSamples),
 			summarizeMetric(
 				'jsBytes',
 				'bytes',
@@ -681,6 +688,7 @@ const writeScenarioResult = function writeScenarioResult(
 				: []),
 			`Visit: ${input.visit}. Cold state: ${input.coldState.setup}.`,
 			...visitMetricGlossary,
+			...scriptTimingGlossary,
 		],
 		package: '@c15t/tanstack-start-browser-bench',
 		runtime: 'playwright',

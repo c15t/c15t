@@ -142,51 +142,6 @@ export const benchNavigationTimingExpression = `(() => {
 	};
 })()`;
 
-/**
- * Self-contained page-context expression that sums the app's JavaScript
- * resources. Counted by URL, not `initiatorType`: Next emits classic
- * `<script async>` tags (initiator `script`), while Vite hosts such as
- * TanStack Start ship `<link rel="modulepreload">` plus one module entry, and
- * Chromium reports the preloaded modules as `other`. Filtering on `script`
- * alone under-counts the module graph by an order of magnitude.
- * String for the same reason as `benchNavigationTimingExpression`.
- */
-export const benchScriptResourceExpression = `(() => {
-	const isScript = (entry) => {
-		if (entry.initiatorType === 'script') {
-			return true;
-		}
-		try {
-			return /\\.m?js$/u.test(new URL(entry.name).pathname);
-		} catch {
-			return false;
-		}
-	};
-	const entries = performance
-		.getEntriesByType('resource')
-		.filter((entry) => isScript(entry));
-	if (entries.length === 0) {
-		return null;
-	}
-	const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-	return {
-		appScriptCount: ordered.length,
-		firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-		jsBytes: ordered.reduce(
-			(sum, entry) => sum + (entry.transferSize || entry.encodedBodySize),
-			0
-		),
-		lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-	};
-})()`;
-
-export interface BenchScriptResourceMetrics {
-	appScriptCount: number;
-	firstAppScriptStartMs: number;
-	jsBytes: number;
-	lastAppScriptEndMs: number;
-}
-
 export const parseBenchThrottleProfile = function parseBenchThrottleProfile(
 	value: string | undefined
 ): BenchThrottleProfileName {
@@ -237,7 +192,8 @@ export const applyBenchThrottleProfile =
 
 /**
  * Builds the self-contained page-context init script that records CLS,
- * long tasks, page FCP/LCP, and four separate banner milestones:
+ * long tasks, page FCP/LCP, each `requestIdleCallback` task (for
+ * `script-timing.ts`), and four separate banner milestones:
  *
  * - `bannerDomMs`: the banner root first exists in the DOM (server HTML
  *   parsed or client insertion), whether or not it is styled or visible.
@@ -292,6 +248,42 @@ export const benchPerformanceObserverScript =
 		value: metrics,
 		configurable: true,
 	});
+
+	// Record each requestIdleCallback task so script-timing.ts can tell an
+	// idle-time preload from a script the page needed to start. The window
+	// runs until the next task, so it covers the callback's microtasks.
+	const idleTasks = [];
+	Object.defineProperty(window, '__c15tBenchIdleTasks', {
+		value: idleTasks,
+		configurable: true,
+	});
+	const nativeRequestIdleCallback = window.requestIdleCallback;
+	if (typeof nativeRequestIdleCallback === 'function') {
+		window.requestIdleCallback = function requestIdleCallback(
+			callback,
+			options
+		) {
+			return nativeRequestIdleCallback.call(
+				window,
+				(deadline) => {
+					const task = {
+						startMs: performance.now(),
+						endMs: null,
+						afterLoad: document.readyState === 'complete',
+					};
+					idleTasks.push(task);
+					const channel = new MessageChannel();
+					channel.port1.onmessage = () => {
+						task.endMs = performance.now();
+						channel.port1.close();
+					};
+					channel.port2.postMessage(null);
+					return callback(deadline);
+				},
+				options
+			);
+		};
+	}
 
 	const toPaintTime = (entry) => {
 		for (const value of [entry.renderTime, entry.loadTime, entry.startTime]) {

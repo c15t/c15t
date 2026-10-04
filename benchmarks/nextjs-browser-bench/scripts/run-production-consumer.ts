@@ -36,7 +36,6 @@ import { fileURLToPath } from 'node:url';
 
 import type {
 	BenchPerfMetrics,
-	BenchScriptResourceMetrics,
 	BenchStylesheetResource,
 	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
@@ -44,7 +43,6 @@ import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
-	benchScriptResourceExpression,
 	benchStylesheetResourcesExpression,
 	installBenchPerformanceObservers,
 	parseBenchInitLatencyMs,
@@ -79,6 +77,14 @@ import type {
 	BenchmarkResult,
 	MetricSampleSet,
 } from '@c15t/benchmarking/schema';
+import type {
+	BenchScriptResourceMetrics,
+	BenchScriptTiming,
+} from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	summarizeBenchScripts,
+} from '@c15t/benchmarking/script-timing';
 import { findStylesheetOverlap } from '@c15t/benchmarking/stylesheet-overlap';
 import type { StylesheetOverlap } from '@c15t/benchmarking/stylesheet-overlap';
 import {
@@ -674,9 +680,10 @@ const measureVisit = async function measureVisit(
 		>,
 		perf: (await page.evaluate(benchPerfMetricsExpression)) as BenchPerfMetrics,
 		promptSettledMs: state.promptSettledMs ?? null,
-		scripts: (await page.evaluate(
-			benchScriptResourceExpression
-		)) as BenchScriptResourceMetrics | null,
+		scripts: summarizeBenchScripts(
+			(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+			'script-or-module-url'
+		),
 		serverInitCalls: after.init - before.init,
 		serverManifestFetches: after.manifest - before.manifest,
 		stylesheets: (await page.evaluate(
