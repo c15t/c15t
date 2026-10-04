@@ -52,16 +52,10 @@ const kernel = useConsentKernel();
 const hasConsentUi = useHasConsentUi();
 
 const { presentation: surface } = useConsentPolicyActions('preferences');
-let pendingActions = 0;
 let actionSequence = 0;
 let applyingSave = false;
-const draftState = useConsentDraft(() => pendingActions === 0);
-const {
-	isStale,
-	reseedOnNextRecord,
-	reset: resetDraft,
-	save: saveDraft,
-} = draftState;
+const draftState = useConsentDraft();
+const { isDirty, isStale, reset: resetDraft, save: saveDraft } = draftState;
 
 const disableAnimation = computed(() =>
 	Boolean(props.disableAnimation ?? config.value.disableAnimation)
@@ -137,41 +131,36 @@ const onAction = async function onAction(action: PresentationAction) {
 	}
 	const sequence = actionSequence;
 	const fromManager = activeUI.value === 'manager';
-	pendingActions += 1;
+	let pending: Promise<SaveResult>;
 	try {
 		applyingSave = true;
-		let pending: Promise<SaveResult>;
-		try {
-			// The manager closes in this task once the kernel has recorded the
-			// choice, and the backend request finishes in the background; see
-			// `saveConsentSurface`. Reopening reseeds the draft from the record.
-			pending = saveConsentSurface(
-				kernel,
-				() => {
-					if (action === 'save') {
-						return saveDraft();
-					}
-					reseedOnNextRecord();
-					return save(action === 'accept' ? 'all' : 'none');
-				},
-				() => sequence === actionSequence
-			);
-			if (fromManager && activeUI.value !== 'manager') {
-				actionSequence += 1;
-			}
-		} finally {
-			applyingSave = false;
-		}
-		const result = await pending;
-		// The draft does not sync while an action is pending, so it follows
-		// the record once this action, and no newer one, has succeeded; a
-		// failed action keeps the visible draft for the visitor to retry.
-		if (result.ok && sequence === actionSequence) {
-			resetDraft();
+		// The manager closes in this task once the kernel has recorded the
+		// choice, and the backend request finishes in the background; see
+		// `saveConsentSurface`. The draft follows the record on its own, and
+		// reopening the manager reseeds it.
+		pending = saveConsentSurface(
+			kernel,
+			() => {
+				if (action === 'save') {
+					return saveDraft();
+				}
+				const bulk = save(action === 'accept' ? 'all' : 'none');
+				// Accept all and Reject all supersede every staged edit, even
+				// when they record nothing new.
+				resetDraft();
+				return bulk;
+			},
+			// A draft save that left edits staged (made while it ran, or a
+			// stale draft it refused) keeps the manager open.
+			() => sequence === actionSequence && !isDirty.value
+		);
+		if (fromManager && activeUI.value !== 'manager') {
+			actionSequence += 1;
 		}
 	} finally {
-		pendingActions -= 1;
+		applyingSave = false;
 	}
+	await pending;
 };
 provide(consentWidgetManagerKey, { draft: draftState, onAction });
 </script>

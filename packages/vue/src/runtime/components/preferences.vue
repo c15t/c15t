@@ -122,7 +122,6 @@ const {
 	values: draft,
 	displayedCategories: draftCategories,
 	isStale,
-	reseedOnNextRecord,
 	reset: resetDraft,
 	save: saveDraft,
 	setVendor,
@@ -233,12 +232,11 @@ const onAction = async function onAction(action: PresentationAction) {
 		await manager.onAction(action);
 		return;
 	}
-	if (action === 'accept') {
-		reseedOnNextRecord();
-		save('all');
-	} else if (action === 'reject') {
-		reseedOnNextRecord();
-		save('none');
+	if (action === 'accept' || action === 'reject') {
+		save(action === 'accept' ? 'all' : 'none');
+		// A bulk choice supersedes every staged edit, even one that records
+		// nothing new.
+		resetDraft();
 	} else if (action === 'save') {
 		await saveDraft();
 	}
