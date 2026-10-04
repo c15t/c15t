@@ -30,6 +30,23 @@ export interface ConsentModuleOptions {
 	 * DevTools for the app's consent kernel. @default true
 	 */
 	devtools?: boolean;
+	/**
+	 * Start the policy request from the HTML of `ssr: false` pages, before
+	 * the app's JavaScript loads. A small inline script in the page head
+	 * calls the backend's `/init`, and the app uses that response instead of
+	 * sending its own request. Applies when `manifest` is unset and no
+	 * `consentSource`, `customFetch` or `experiment` is configured;
+	 * server-rendered pages are unchanged.
+	 *
+	 * The script carries `nuxt-security`'s per-request nonce, or the
+	 * `nonce` option. Set `false` when your Content Security Policy cannot
+	 * allow it. To turn it off for some routes only, set
+	 * `routeRules: { '/path': { c15t: { initPrefetch: false } } }`, for
+	 * example where a client plugin changes c15t's config for that route.
+	 *
+	 * @default true
+	 */
+	initPrefetch?: boolean;
 }
 
 /** Options accepted by the Nuxt module. */
