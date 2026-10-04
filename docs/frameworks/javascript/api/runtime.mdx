@@ -101,7 +101,6 @@ A runtime disposed before it started blocks the requests it was holding.
 | `consentCategories` | `necessary` plus the categories in the current choice scope. |
 | `setConsentCategories(categories)` | Replace the configured categories. Discovered ones stay. `undefined` drops the configured list. |
 | `experiment` | The experiment the runtime runs: the one a ready `prefetch` carries, otherwise the `experiment` option. Resolve presentation and theme against it. |
-| `stageVendorConsent(vendorId, granted)`, `resetVendorDraft()` | Stage or drop a vendor-level choice for the next save. |
 | `iab` | The CMP handle under IAB, or `null`. |
 | `onIABChange(listener)` | Called when `iab` is mounted or removed. Returns an unsubscribe function. |
 

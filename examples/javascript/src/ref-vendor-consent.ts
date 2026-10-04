@@ -23,14 +23,13 @@ export const canVendorRun = function canVendorRun(
 	return isVendorAllowed(runtime.kernel.getSnapshot(), vendorId);
 };
 
-// Record one vendor switch. `save({})` records only the staged vendor;
-// `save()` with no argument would also confirm every displayed category.
+// Record one vendor switch. The empty category input confirms no category;
+// `save()` with no input would also confirm every displayed category.
 export const saveVendorSwitch = function saveVendorSwitch(
 	runtime: ConsentRuntime,
 	vendorId: string,
 	granted: boolean
 ): Promise<SaveResult> {
-	runtime.stageVendorConsent(vendorId, granted);
-	return runtime.kernel.commands.save({});
+	return runtime.kernel.commands.save({}, { vendors: { [vendorId]: granted } });
 };
 // #endregion docs:vendor-consent

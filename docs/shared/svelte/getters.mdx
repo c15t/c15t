@@ -112,9 +112,9 @@ shares: the dialog, `ConsentWidget` and your own UI.
 
 | Member | Behavior |
 | --- | --- |
-| `values` | Each category's draft value. Starts from the recorded choice, or from the policy's defaults before a choice. `selectedConsents` is the same object. |
+| `values` | Each category's draft value. Starts from the recorded choice, or from the policy's defaults before a choice. A choice saved elsewhere moves the values the visitor has not touched. Categories outside `consentCategories` read `false`. `selectedConsents` is the same object. |
 | `vendors` | Each declared vendor's draft grant. |
-| `isStale` | `true` when the policy or vendor list changed after the draft started. |
+| `isStale` | `true` when the policy, the displayed categories or the vendor list changed while the draft held an unsaved change. A draft with no unsaved change follows the policy and is never stale. |
 | `set(category, value)`, `setVendor(id, granted)` | The same as `setConsent` and `setSelectedVendor`. |
 | `reset()` | Discards unsaved changes. |
 

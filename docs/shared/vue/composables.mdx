@@ -95,10 +95,11 @@ group: reference
 
   | Field | Type | Meaning |
   | --- | --- | --- |
-  | `displayedCategories` | `Ref<category[]>` | The categories the policy lets the visitor choose, `necessary` first. |
-  | `values` | `Ref<Partial<Record<category, boolean>>>` | One value per displayed category. Bind switches to it with `v-model`. |
-  | `vendors` | `Ref<Record<string, boolean>>` | One value per declared vendor. Change them with `setVendor(id, granted)`. |
-  | `isStale` | `ComputedRef<boolean>` | `true` when the policy changed after the draft was filled. |
+  | `displayedCategories` | `ComputedRef<category[]>` | The categories the policy lets the visitor choose, `necessary` first, in the policy's order. |
+  | `values` | `Ref<Partial<Record<category, boolean>>>` | One value per category. Bind switches to it with `v-model`; a write to `necessary` or to a category the policy does not offer snaps back. |
+  | `vendors` | `ComputedRef<Record<string, boolean>>` | One value per declared vendor. Change them with `setVendor(id, granted)`. |
+  | `isDirty` | `ComputedRef<boolean>` | `true` while any value differs from the recorded choice. |
+  | `isStale` | `ComputedRef<boolean>` | `true` when the policy, the displayed categories or the vendor list changed while the draft held an unsaved change. |
   | `save()` | `() => Promise<{ ok: boolean }>` | Records `values` and changed vendors. Resolves `{ ok: false }` without saving while `isStale` is `true`. |
   | `reset()` | `() => void` | Refills the draft from the recorded choice and the policy. |
 

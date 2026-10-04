@@ -73,6 +73,37 @@ surfaces without recording anything. `kernel.commands.save()` records a choice:
 `{ measurement: true }` saves those categories. `dismissNotice()` records that
 the visitor saw a notice, not that they consented.
 
+## Build a preference form with a draft
+
+A preference form shows switches the visitor can move and keep moving before
+anything is recorded. `createPreferenceDraft(kernel)` from
+`c15t/preference-draft` holds those unsaved choices. It is the same draft the
+React, Vue, Svelte and `@c15t/browser` preference dialogs use:
+
+<include src="../../shared/examples/javascript/preference-draft.mdx" />
+
+`draft.getState()` returns what the form renders:
+
+| Field | What it holds |
+| --- | --- |
+| `displayedCategories` | `necessary` plus the categories the policy lets the visitor decide, in the policy's order. |
+| `values` | Each category's value: a staged edit, else the recorded choice, else the policy default. Categories outside `displayedCategories` read `false`. |
+| `vendors` | Each declared vendor's switch. Empty under an IAB policy. |
+| `isDirty` | Whether any staged value differs from the record. |
+| `isStale` | Whether the policy, the displayed categories or the vendor list changed under a staged edit. |
+
+`set(category, value)` and `setVendor(id, granted)` stage a switch;
+`draft.save()` records the displayed categories and only the vendors the
+visitor moved. While subscribed, the draft follows the record: when another
+surface or tab saves, switches the visitor left alone take the new value, and
+staged ones keep theirs. A stale draft records nothing and `save()` resolves
+`{ ok: false }` until `reset()`. `draft.save({ input: 'all' })` and
+`{ input: 'none' }` record a bulk choice under the current policy and drop
+every staged switch.
+
+Load the draft only where a preference form renders. Pages that show only a
+banner do not need it.
+
 ## Start and stop the runtime
 
 Subscribe before you start, so the UI renders the resolved policy the moment
