@@ -655,7 +655,7 @@ describe('createConsentRuntime', () => {
 			mode: custom(createTransport()),
 		});
 		const seen: (ConsentRuntimeIABHandle | null)[] = [];
-		runtime.onIABChange((next) => seen.push(next));
+		runtime.subscribe(() => seen.push(runtime.iab));
 
 		runtime.start();
 		expect(createIAB).not.toHaveBeenCalled();

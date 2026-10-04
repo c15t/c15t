@@ -126,12 +126,18 @@ test('tracks external IAB handle changes and unsubscribes on disposal', () => {
 		kernel: runtime.kernel,
 		persistence: false,
 	});
-	let changed: Parameters<ConsentRuntime['onIABChange']>[0] = () => {};
+	let notify: Parameters<ConsentRuntime['subscribe']>[0] = () => {};
+	let mounted: ConsentRuntime['iab'] = null;
 	const unsubscribe = vi.fn();
-	vi.spyOn(runtime, 'onIABChange').mockImplementation((listener) => {
-		changed = listener;
+	vi.spyOn(runtime, 'iab', 'get').mockImplementation(() => mounted);
+	vi.spyOn(runtime, 'subscribe').mockImplementation((listener) => {
+		notify = listener;
 		return unsubscribe;
 	});
+	const changed = (next: ConsentRuntime['iab']) => {
+		mounted = next;
+		notify();
+	};
 	const context = createVueConsentKernelContext({ config: {}, runtime });
 	try {
 		changed(handle);

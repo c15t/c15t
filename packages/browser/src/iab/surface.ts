@@ -412,7 +412,9 @@ export const createIABSurface = (
 			sync(client.getSnapshot());
 		})();
 	};
-	const unsubscribe = client.runtime.onIABChange(watch);
+	const unsubscribe = client.runtime.subscribe(() => {
+		watch(client.runtime.iab);
+	});
 	watch(client.runtime.iab);
 	return {
 		destroy: () => {

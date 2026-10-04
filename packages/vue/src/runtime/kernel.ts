@@ -837,13 +837,9 @@ export const createVueConsentKernelContext =
 			snapshot.value = next;
 		});
 		const iab = shallowRef(runtime.iab ?? undefined);
-		const unsubscribeIab = owned
-			? owned.subscribe(() => {
-					iab.value = owned?.iab ?? undefined;
-				})
-			: runtime.onIABChange((handle) => {
-					iab.value = handle ?? undefined;
-				});
+		const unsubscribeIab = runtime.subscribe(() => {
+			iab.value = runtime.iab ?? undefined;
+		});
 
 		const init = computed<VueConsentDisplayData | undefined>((previous) =>
 			reuseDisplayData(snapshotToDisplayData(snapshot.value), previous)

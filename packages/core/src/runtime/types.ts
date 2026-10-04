@@ -584,10 +584,12 @@ export interface ConsentRuntime {
 	 * integrations. `undefined` drops the configured list.
 	 */
 	setConsentCategories: (categories: AllConsentNames[] | undefined) => void;
-	/** Subscribe to {@link ConsentRuntime.iab} changing. */
-	onIABChange: (
-		listener: (handle: ConsentRuntimeIABHandle | null) => void
-	) => Unsubscribe;
+	/**
+	 * Subscribe to {@link ConsentRuntime.iab} changing: mounted, replaced or
+	 * removed. Read it again in the listener. Consent state changes arrive
+	 * through `kernel.subscribe`, not here.
+	 */
+	subscribe: (listener: () => void) => Unsubscribe;
 }
 
 /**

@@ -348,8 +348,8 @@
 
 	// The lazy handle queues calls until `@c15t/iab` lands and replays them,
 	// so the surfaces render against it as soon as it exists.
-	const unsubscribeIAB = runtime.onIABChange((next) => {
-		iabHandle = next as IABHandle | null;
+	const unsubscribeIAB = runtime.subscribe(() => {
+		iabHandle = runtime.iab as IABHandle | null;
 	});
 	// Turning `enabled` off renders a permissive kernel; follow it.
 	const unsubscribeRuntime = ownedRuntime?.subscribe(() => {
