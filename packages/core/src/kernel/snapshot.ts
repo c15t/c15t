@@ -16,10 +16,10 @@ import type {
 	ExplicitChoice,
 	OptionalConsentCategory,
 } from '../consent-record/types';
+import { deriveActiveUI } from '../derive-surface';
 import { deepFreeze } from '../libs/freeze-data';
 import {
 	buildEvaluationPolicy,
-	deriveActiveUI,
 	deriveModel,
 	resolveEffectivePolicy,
 } from '../policy';

@@ -27,7 +27,7 @@
  * and written as arrows: this module sits on every adapter's first load.
  */
 
-import { deriveActiveUI } from './policy';
+import { deriveActiveUI } from './derive-surface';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
