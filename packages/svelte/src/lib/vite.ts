@@ -176,8 +176,14 @@ export const c15tPreload = function c15tPreload(): C15tPreloadPlugin {
 			const setup = config.plugins.find(
 				(plugin) => plugin.name === 'vite-plugin-sveltekit-setup'
 			);
-			kit = (setup?.api as { options?: { kit?: KitConfigLike } } | undefined)
-				?.options?.kit;
+			// SvelteKit 2 nests its options under `kit` (svelte.config.js);
+			// SvelteKit 3 takes them flat, from `sveltekit({ ... })`.
+			const options = (
+				setup?.api as
+					| { options?: KitConfigLike & { kit?: KitConfigLike } }
+					| undefined
+			)?.options;
+			kit = options?.kit ?? options;
 		},
 		name: 'c15t:module-preload',
 		async writeBundle(_options, bundle) {

@@ -135,6 +135,29 @@ describe('c15tPreload', () => {
 		);
 	});
 
+	test('reads SvelteKit 3 options, which are not nested under kit', async () => {
+		const { file } = await setup();
+		const plugin = c15tPreload();
+		plugin.configResolved({
+			build: {},
+			plugins: [
+				{
+					api: { options: { outDir: '.svelte-kit', paths: { base: '/app' } } },
+					name: 'vite-plugin-sveltekit-setup',
+				},
+			],
+			root: path.resolve(path.dirname(file), '../../../..'),
+		});
+		await plugin.writeBundle.call(
+			{ environment: { name: 'client' } },
+			{},
+			CLIENT_BUNDLE
+		);
+		expect(await readFile(file, 'utf8')).toContain(
+			'/app/_app/immutable/chunks/a.js'
+		);
+	});
+
 	test('does nothing outside SvelteKit', async () => {
 		const { file } = await setup();
 		const plugin = c15tPreload();
