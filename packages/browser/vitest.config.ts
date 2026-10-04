@@ -130,7 +130,16 @@ export default mergeConfig(
 			},
 		],
 		resolve: {
-			alias: [{ find: '~', replacement: resolve(__dirname, './src') }],
+			alias: [
+				{ find: '~', replacement: resolve(__dirname, './src') },
+				// As in the script-tag builds: the suites drive the dialog
+				// synchronously. `dialog-surface.test.ts` covers the on-demand
+				// surface the ESM build ships, imported by another specifier.
+				{
+					find: /^\.\/dialog-surface$/u,
+					replacement: resolve(__dirname, './src/ui/dialog.ts'),
+				},
+			],
 		},
 		test: {
 			coverage: {

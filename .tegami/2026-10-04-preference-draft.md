@@ -37,7 +37,9 @@ choices behave the same everywhere:
 
 React's banner buttons no longer load the draft: it ships with the
 preference dialog, which takes about 1.4 KB gzip off the first load of a
-page that renders a banner.
+page that renders a banner. The `@c15t/browser` ES module build loads its
+preference dialog and the draft as a separate chunk, in idle time once the
+banner or trigger shows; the script-tag files stay one file each.
 
 **Breaking:** the runtime's `stageVendorConsent()` and `resetVendorDraft()`
 are removed. Pass vendors to the save

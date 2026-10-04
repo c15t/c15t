@@ -18,6 +18,12 @@ Install it with:
 
 <CommandTabs command="@c15t/browser@alpha" mode="install" />
 
+In the ES module build the preference dialog is a separate chunk. It starts
+loading in idle time once the banner or the trigger is on screen, and at the
+latest when the dialog opens, so a page that only shows the banner never
+downloads it. The script-tag files (`c15t.js`, `c15t.iab.js`) stay one file
+each.
+
 `@c15t/browser` is not part of the `c15t` package. Use one entry per page.
 Each creates its own client, and two clients on one page would each run the
 script loader and blockers.

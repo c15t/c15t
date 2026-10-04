@@ -21,6 +21,14 @@ import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
  * - `dist/c15t.iab.js` — an optional replacement with the CMP and IAB UI.
  * - `dist/c15t.devtools.js` — the DevTools panel as a second tag.
  */
+/**
+ * The ESM build loads the preference centre on demand
+ * (`ui/dialog-surface.ts`). A script tag has nowhere to load a chunk from,
+ * so the script-tag builds use the dialog module directly.
+ */
+const inlineDialog = () =>
+	new rspack.NormalModuleReplacementPlugin(/^\.\/dialog-surface$/u, './dialog');
+
 const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 	return {
 		autoExternal: false,
@@ -47,6 +55,7 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 						/^\.\/create-runtime$/u,
 						'./create-runtime-static'
 					),
+					inlineDialog(),
 					...(name === 'c15t.iab' ? [] : [iabBundleBoundary()]),
 				],
 			},
