@@ -4,8 +4,10 @@
  * and the preset's `waitUntil`. The route behaviour itself is pinned once,
  * in `packages/core/src/server/__tests__/consent-route.test.ts`.
  */
-import { CONSENT_ROUTE_TIMEOUT_HEADER } from '@c15t/core/server';
-import { clearManifestCache } from '@c15t/core/server';
+import {
+	clearManifestCache,
+	CONSENT_ROUTE_TIMEOUT_HEADER,
+} from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';

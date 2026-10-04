@@ -1,6 +1,10 @@
 import { createConsentKernel } from '@c15t/core';
-import type { InitResponse, KernelTransport } from '@c15t/core';
-import type { HydrationRecords, HydrationResult } from '@c15t/core';
+import type {
+	HydrationRecords,
+	HydrationResult,
+	InitResponse,
+	KernelTransport,
+} from '@c15t/core';
 import { policyRulePresets, resolvePolicyRules } from '@c15t/schema/types';
 
 /**

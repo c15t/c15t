@@ -1,8 +1,12 @@
 import { describe, expect, setSystemTime, test } from 'bun:test';
 
 import { createConsentKernel, safeFallbackPolicyRule } from '@c15t/core';
-import type { ConsentKernel, PolicyResolution } from '@c15t/core';
-import type { HydrationRecords, HydrationResult } from '@c15t/core';
+import type {
+	ConsentKernel,
+	HydrationRecords,
+	HydrationResult,
+	PolicyResolution,
+} from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 /** These meta-tests corrupt actual kernel observations, not a policy evaluator. */
 import { GVL, TCModel, TCString } from '@iabtechlabtcf/core';
