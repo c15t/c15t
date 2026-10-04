@@ -135,6 +135,11 @@
 			"import": "./shims/modules/persistence.js",
 			"default": "./shims/modules/persistence.js"
 		},
+		"./preference-draft": {
+			"types": "./shims/preference-draft.d.ts",
+			"import": "./shims/preference-draft.js",
+			"default": "./shims/preference-draft.js"
+		},
 		"./server": {
 			"types": "./shims/server.d.ts",
 			"import": "./shims/server.js",

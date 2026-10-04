@@ -124,6 +124,11 @@
 			"import": "./dist/persistence.js",
 			"default": "./dist/persistence.js"
 		},
+		"./preference-draft": {
+			"types": "./dist-types/preference-draft/index.d.ts",
+			"import": "./dist/preference-draft.js",
+			"default": "./dist/preference-draft.js"
+		},
 		"./server": {
 			"types": "./dist-types/server/index.d.ts",
 			"import": "./dist/server.js",
