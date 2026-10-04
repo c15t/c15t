@@ -28,14 +28,12 @@ wait for that extra request.
 Add the `c15tPreload()` Vite plugin so `c15tHandle` can link the chunk from
 the page's `<head>` with `<link rel="modulepreload">`:
 
-```ts title="vite.config.ts"
-import { c15tPreload } from '@c15t/svelte/vite';
-import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+{/* example: fragment */}
 
-export default defineConfig({
-	plugins: [sveltekit(), c15tPreload()],
-});
+```ts title="vite.config.ts (partial)"
+import { c15tPreload } from '@c15t/svelte/vite';
+
+export default defineConfig({ plugins: [sveltekit(), c15tPreload()] });
 ```
 
 SvelteKit builds the server before the client, so the server cannot know the
