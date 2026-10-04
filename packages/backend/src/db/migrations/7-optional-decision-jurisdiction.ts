@@ -10,8 +10,10 @@
  * a fresh install creates the column `not null` and this relaxes it.
  *
  * - Postgres: `drop not null`, a catalog-only change.
- * - MySQL: `modify` with the column's current type, read back from
- *   `information_schema` so an adopted database keeps its exact type.
+ * - MySQL: `modify` with the column's current definition, read back from
+ *   `show create table` with only `not null` changed, so an adopted
+ *   database keeps its type, character set, collation, default and comment.
+ *   `modify` replaces the whole definition, so any part left out is lost.
  * - SQLite has no way to alter a column's nullability, so the table is
  *   rebuilt: SQLite's own procedure, from the table's stored `create table`
  *   statement with only `not null` removed from this column. Starting from
@@ -80,6 +82,32 @@ export const relaxJurisdictionSql = function relaxJurisdictionSql(
 	);
 };
 
+/** The `jurisdiction` line of a MySQL `show create table` result. */
+const MYSQL_JURISDICTION_LINE = /^\s*`jurisdiction`\s.*$/mu;
+
+/**
+ * The `jurisdiction` column definition from a MySQL `show create table`
+ * result, with `NOT NULL` changed to `NULL`. MySQL prints the attributes in a
+ * fixed order (type, character set, collation, nullability, default,
+ * comment), so the first `NOT NULL` is the column's own. Throws when the
+ * column is missing or not `NOT NULL` rather than guessing. Exported for
+ * tests.
+ *
+ * @internal
+ */
+export const relaxMysqlJurisdictionColumn =
+	function relaxMysqlJurisdictionColumn(createTable: string): string {
+		const line = MYSQL_JURISDICTION_LINE.exec(createTable)?.[0]
+			.trim()
+			.replace(/,$/u, '');
+		if (line === undefined || !/\sNOT NULL\b/iu.test(line)) {
+			throw new Error(
+				`migration 7: no not-null ${JURISDICTION_COLUMN} column in ${DECISION_TABLE}`
+			);
+		}
+		return line.replace(/\sNOT NULL\b/iu, ' NULL');
+	};
+
 const isNullable = Effect.fn('migration.jurisdictionNullable')(
 	function* isNullable() {
 		const sql = yield* SqlClient.SqlClient;
@@ -113,18 +141,17 @@ const isNullable = Effect.fn('migration.jurisdictionNullable')(
 const relaxMysql = Effect.gen(function* relaxMysql() {
 	const sql = yield* SqlClient.SqlClient;
 	const quote = Dialect.escaperFor('mysql');
-	const rows = yield* sql<{ columnType: string }>`
-		select column_type as columnType from information_schema.columns
-		where table_schema = database()
-			and table_name = ${DECISION_TABLE}
-			and column_name = ${JURISDICTION_COLUMN}
-	`;
-	const columnType = rows[0]?.columnType ?? 'text';
-	yield* sql.unsafe(
-		`alter table ${quote(DECISION_TABLE)} modify ${quote(
-			JURISDICTION_COLUMN
-		)} ${columnType} null`
+	const rows = yield* sql.unsafe<Record<string, unknown>>(
+		`show create table ${quote(DECISION_TABLE)}`
 	);
+	const createTable = rows[0]?.['Create Table'];
+	if (typeof createTable !== 'string') {
+		return yield* Effect.die(
+			new Error(`migration 7: could not read ${DECISION_TABLE}'s definition`)
+		);
+	}
+	const column = relaxMysqlJurisdictionColumn(createTable);
+	yield* sql.unsafe(`alter table ${quote(DECISION_TABLE)} modify ${column}`);
 });
 
 const rebuildSqlite = Effect.gen(function* rebuildSqlite() {

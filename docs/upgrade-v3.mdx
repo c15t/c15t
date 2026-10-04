@@ -442,9 +442,12 @@ shows a complete v3 config and route.
 ### Remove `disableGeoLocation`
 
 v3 removes the `disableGeoLocation` manifest option. Policy rules decide by
-country and region, and a rule with `match: { isDefault: true }` already applies
-everywhere. To resolve every visitor as one location, set the country in the
-client's `overrides`, for example `overrides: { country: 'US' }`. See
+country and region. To show every visitor the same banner, configure one rule
+with `match: { isDefault: true }`. It applies wherever the visitor is, so the
+browser can resolve it without asking the backend for a location.
+
+To test one region's rule from anywhere, set the country in the client's
+`overrides`, for example `overrides: { country: 'US' }`. See
 [runtime options](/docs/frameworks/javascript/api/runtime).
 
 ### Stop reading `jurisdiction`

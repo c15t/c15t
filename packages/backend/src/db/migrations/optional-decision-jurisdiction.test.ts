@@ -21,6 +21,7 @@ import { up as attribution } from './6-experiment-attribution';
 import {
 	up as optionalJurisdiction,
 	relaxJurisdictionSql,
+	relaxMysqlJurisdictionColumn,
 } from './7-optional-decision-jurisdiction';
 
 const isNullable = Effect.gen(function* isNullable() {
@@ -203,6 +204,46 @@ for (const engine of ENGINES) {
 			{ timeout: 60_000 }
 		);
 
+		if (engine.name === 'mysql') {
+			it.effect(
+				"keeps the column's collation, default and comment",
+				() =>
+					Effect.gen(function* gen() {
+						yield* migrateToSix;
+						const sql = yield* SqlClient.SqlClient;
+						yield* sql.unsafe(
+							"alter table `runtimePolicyDecision` modify `jurisdiction` varchar(32) character set utf8mb4 collate utf8mb4_bin not null default 'NONE' comment 'v2 regulation label'"
+						);
+
+						yield* optionalJurisdiction;
+
+						const [column] = yield* sql<{
+							nullable: string;
+							columnType: string;
+							collation: string;
+							columnDefault: string;
+							comment: string;
+						}>`
+							select is_nullable as nullable, column_type as columnType,
+								collation_name as collation, column_default as columnDefault,
+								column_comment as comment
+							from information_schema.columns
+							where table_schema = database()
+								and table_name = 'runtimePolicyDecision'
+								and column_name = 'jurisdiction'
+						`;
+						assert.deepStrictEqual(column, {
+							collation: 'utf8mb4_bin',
+							columnDefault: 'NONE',
+							columnType: 'varchar(32)',
+							comment: 'v2 regulation label',
+							nullable: 'YES',
+						});
+					}).pipe(Effect.provide(engine.layer)),
+				{ timeout: 60_000 }
+			);
+		}
+
 		if (engine.name === 'sqlite') {
 			it.effect(
 				'rebuilds the table 2.0.0 created, keeping its own index',
@@ -380,6 +421,32 @@ describe('relaxJurisdictionSql', () => {
 	it('refuses a statement it does not recognise', () => {
 		assert.throws(() =>
 			relaxJurisdictionSql('create table "other" ("id" text)', 'copy')
+		);
+	});
+});
+
+describe('relaxMysqlJurisdictionColumn', () => {
+	const createTable = [
+		'CREATE TABLE `runtimePolicyDecision` (',
+		'  `id` varchar(255) NOT NULL,',
+		"  `jurisdiction` varchar(32) COLLATE utf8mb4_bin NOT NULL DEFAULT 'NOT NULL' COMMENT 'label',",
+		'  `model` text NOT NULL,',
+		'  PRIMARY KEY (`id`)',
+		') ENGINE=InnoDB',
+	].join('\n');
+
+	it('changes only the column nullability and keeps its other attributes', () => {
+		assert.strictEqual(
+			relaxMysqlJurisdictionColumn(createTable),
+			"`jurisdiction` varchar(32) COLLATE utf8mb4_bin NULL DEFAULT 'NOT NULL' COMMENT 'label'"
+		);
+	});
+
+	it('refuses a table without a not-null jurisdiction column', () => {
+		assert.throws(() =>
+			relaxMysqlJurisdictionColumn(
+				'CREATE TABLE `runtimePolicyDecision` (\n  `id` varchar(255) NOT NULL\n)'
+			)
 		);
 	});
 });
