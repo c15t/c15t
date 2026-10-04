@@ -97,7 +97,7 @@ the choice stays in effect and c15t retries the request later.
 | --- | --- |
 | `showBanner()`, `openDialog()`, `closeDialog()` | Change the surface c15t wants shown. Records nothing. |
 | `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. In offline mode the copy comes from the bundled translations and `i18n.messages`. See [translations](/docs/frameworks/javascript/translations). |
-| `setOverrides(overrides)` | Replaces the country, region, language and GPC inputs to policy matching. |
+| `setOverrides(overrides)` | Merges into the country, region, language and GPC inputs to policy matching. A key you pass replaces its value, `undefined` clears it, and a key you leave out stays. |
 | `mountUI(options?)` | Removes the stock UI and mounts it again with new UI options. Throws in the headless entry. |
 | `processIframes()` | Pauses gated iframes that consent does not allow and restores the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker#check-iframes-on-demand). |
 | `ui` | The mounted UI handle, with `host`, `root`, `update()` and `destroy()`, or `null`. |

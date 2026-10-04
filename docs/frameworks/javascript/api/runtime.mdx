@@ -92,7 +92,7 @@ A runtime disposed before it started blocks the requests it was holding.
 | `start()`, `dispose()` | Mount and unmount every browser side effect. |
 | `started` | Whether `start()` has run and the runtime is not disposed. |
 | `identify(user)` | Link the consent record to a user. Failures surface through `onError`, not a rejection. |
-| `setOverrides(overrides)` | Replace the country, region, language and GPC inputs. |
+| `setOverrides(overrides)` | Merge into the country, region, language and GPC inputs. A key you pass replaces its value, `undefined` clears it, and a key you leave out stays. |
 | `reinit()` | Run `/init` again, for example after `setOverrides`. Does nothing while disabled. |
 | `setLanguage(code)` | Show the copy in another language. Does nothing for the current language; otherwise runs `/init` again, unless the runtime is disabled or uses `consentSource`. |
 | `processIframes()` | Pause gated iframes that consent does not allow and restore the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. Does nothing before `start()`, after `dispose()` or with `iframeBlocker: false`. |

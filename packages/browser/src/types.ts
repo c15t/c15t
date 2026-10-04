@@ -450,9 +450,10 @@ export interface ConsentClient {
 	 */
 	setLanguage: (code: string) => void;
 	/**
-	 * Replace the geo, language and GPC context.
+	 * Merge into the geo, language and GPC context: a key you pass replaces
+	 * its value, `undefined` clears it, and a key you leave out stays.
 	 *
-	 * @param overrides - The new context.
+	 * @param overrides - The keys to change.
 	 */
 	setOverrides: (overrides: KernelOverrides) => void;
 	/**

@@ -518,7 +518,12 @@ export interface ConsentRuntime {
 	 * event and the `onError` callback.
 	 */
 	identify: (user: User | KernelUser | undefined) => Promise<void>;
-	/** Replace the kernel's decision-input overrides. */
+	/**
+	 * Merge decision-input overrides into the current ones: a key you pass
+	 * replaces its value, a key set to `undefined` clears it, and a key you
+	 * leave out keeps its value. Call {@link ConsentRuntime.reinit} after it
+	 * to resolve the policy again.
+	 */
 	setOverrides: (overrides: KernelOverrides) => void;
 	/**
 	 * Re-run `kernel.commands.init()` and evaluate the current records. A no-op when `enabled` is `false`.

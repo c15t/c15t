@@ -709,6 +709,15 @@ describe('createConsentRuntime', () => {
 
 		runtime.setOverrides({ country: 'FR' });
 		expect(runtime.kernel.getSnapshot().overrides.country).toBe('FR');
+		// Merged, not replaced: a key left out keeps its value.
+		runtime.setOverrides({ language: 'de' });
+		expect(runtime.kernel.getSnapshot().overrides).toMatchObject({
+			country: 'FR',
+			language: 'de',
+		});
+		runtime.setOverrides({ country: undefined });
+		expect(runtime.kernel.getSnapshot().overrides.country).toBeUndefined();
+		expect(runtime.kernel.getSnapshot().overrides.language).toBe('de');
 		runtime.dispose();
 	});
 

@@ -74,7 +74,7 @@ records a choice.
 | --- | --- |
 | `set.activeUI('banner' \| 'dialog' \| 'none')` | The surface your UI should show. |
 | `set.draft(values)` | Staged category values that a no-argument `save()` confirms. Never a grant. |
-| `set.overrides({ country, region, language, gpc })` | Decision inputs. Call `commands.init()` after it to resolve the policy again. |
+| `set.overrides({ country, region, language, gpc })` | Decision inputs, merged into the current ones; `undefined` clears a key. Call `commands.init()` after it to resolve the policy again. |
 | `set.language(code)` | The language override. |
 | `set.privacySignals({ gpc })` | The detected GPC signal. c15t reads the browser's signal itself; use this to pass one detected elsewhere, such as a `Sec-GPC` request header. |
 | `set.consentCategories(categories)` | The configured categories. Discovered categories stay. |
