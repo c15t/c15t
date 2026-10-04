@@ -907,13 +907,12 @@ describe('lazyRuntimeModule', () => {
 			}
 		);
 		runtime.start();
-		await new Promise((resolve) => {
-			setTimeout(resolve, 10);
-		});
+		await vi.dynamicImportSettled();
 		loaderGate.resolve(undefined);
-		await new Promise((resolve) => {
-			setTimeout(resolve, 10);
-		});
+		await loaderGate.promise;
+		// The loader's chunk, then data clearing's, which waits for it.
+		await vi.dynamicImportSettled();
+		await vi.dynamicImportSettled();
 
 		await runtime.kernel.commands.save('all');
 		await runtime.kernel.commands.save('none');
