@@ -16,9 +16,16 @@
  */
 import { spawn } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { once } from 'node:events';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join, resolve } from 'node:path';
+import {
+	existsSync,
+	readdirSync,
+	readFileSync,
+	statSync,
+	writeFileSync,
+} from 'node:fs';
+import { dirname, join, relative, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
@@ -100,6 +107,7 @@ type AstroBenchBuild = 'baseline' | 'hosted' | 'manifest' | 'scripts';
 const HOST = '127.0.0.1';
 const DEFAULT_PORT = 4353;
 const appDir = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const repoRoot = resolve(appDir, '..', '..');
 const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/browser-runtime/astro';
 const expectedServerShutdownCodes = new Set([0, 137, 143]);
@@ -140,8 +148,11 @@ const PORT = Number(
 	readCliFlag('--port') ?? process.env.C15T_BENCH_PORT ?? `${DEFAULT_PORT}`
 );
 const BASE_URL = `http://${HOST}:${PORT}`;
-/** Records the origin a build was made for, so a port change rebuilds. */
-const buildOriginFile = 'c15t-bench-origin.txt';
+/**
+ * Records the origin a build was made for and a hash of its inputs, so a
+ * port change, an app change or a package rebuild rebuilds it.
+ */
+const buildStampFile = 'c15t-bench-build.json';
 
 const iterations = Number(
 	readCliFlag('--iterations') ??
@@ -361,26 +372,158 @@ const runBuild = async function runBuild(build: AstroBenchBuild) {
 };
 
 /**
- * Origin a build was made for. Builds from before the marker existed were
- * always made for the default port.
+ * Every workspace package by name, so the fingerprint below can follow the
+ * app's `workspace:` dependencies to the builds it bundles.
  */
-const readBuildOrigin = function readBuildOrigin(build: AstroBenchBuild) {
-	const markerPath = join(appDir, buildOutDirs[build], buildOriginFile);
-	if (!existsSync(markerPath)) {
-		return `http://${HOST}:${DEFAULT_PORT}`;
+const readWorkspacePackages = function readWorkspacePackages(): Map<
+	string,
+	{ dependencies: string[]; directory: string }
+> {
+	const packages = new Map<
+		string,
+		{ dependencies: string[]; directory: string }
+	>();
+	for (const parent of ['packages', 'benchmarks', 'internals']) {
+		const parentDir = join(repoRoot, parent);
+		if (!existsSync(parentDir)) {
+			continue;
+		}
+		for (const entry of readdirSync(parentDir)) {
+			const manifestPath = join(parentDir, entry, 'package.json');
+			if (!existsSync(manifestPath)) {
+				continue;
+			}
+			const manifest = JSON.parse(readFileSync(manifestPath, 'utf8')) as {
+				dependencies?: Record<string, string>;
+				name?: string;
+			};
+			if (typeof manifest.name === 'string') {
+				packages.set(manifest.name, {
+					dependencies: Object.keys(manifest.dependencies ?? {}),
+					directory: join(parentDir, entry),
+				});
+			}
+		}
 	}
-	return readFileSync(markerPath, 'utf8').trim();
+	return packages;
 };
 
-const ensureBuild = async function ensureBuild(build: AstroBenchBuild) {
-	if (
-		existsSync(join(appDir, buildOutDirs[build], 'server', 'entry.mjs')) &&
-		readBuildOrigin(build) === BASE_URL
-	) {
+/** Files under `path` (or `path` itself), sorted, skipping `node_modules`. */
+const listFiles = function listFiles(path: string): string[] {
+	if (!existsSync(path)) {
+		return [];
+	}
+	if (!statSync(path).isDirectory()) {
+		return [path];
+	}
+	return readdirSync(path)
+		.filter((entry) => entry !== 'node_modules')
+		.sort()
+		.flatMap((entry) => listFiles(join(path, entry)));
+};
+
+/**
+ * A hash of everything an Astro build of this app reads: its own sources and
+ * config, and the built output of every workspace package it depends on,
+ * transitively. Turbo only rebuilds `dist` (the manifest variant), so the
+ * other variants must notice on their own that a package or the app changed
+ * since they were built. Content rather than mtimes, because a Turbo cache
+ * restore or a branch switch can leave newer code with older timestamps.
+ */
+const computeBuildInputHash = function computeBuildInputHash(): string {
+	const workspace = readWorkspacePackages();
+	const appManifest = JSON.parse(
+		readFileSync(join(appDir, 'package.json'), 'utf8')
+	) as {
+		dependencies?: Record<string, string>;
+		devDependencies?: Record<string, string>;
+	};
+	const pending = Object.keys({
+		...appManifest.dependencies,
+		...appManifest.devDependencies,
+	});
+	const visited = new Set<string>();
+	const inputs = [
+		join(appDir, 'astro.config.mjs'),
+		join(appDir, 'package.json'),
+		join(appDir, 'public'),
+		join(appDir, 'src'),
+	];
+	while (pending.length > 0) {
+		const name = pending.pop() as string;
+		const workspacePackage = workspace.get(name);
+		if (visited.has(name) || !workspacePackage) {
+			continue;
+		}
+		visited.add(name);
+		pending.push(...workspacePackage.dependencies);
+		const built = join(workspacePackage.directory, 'dist');
+		inputs.push(
+			existsSync(built) ? built : join(workspacePackage.directory, 'src'),
+			join(workspacePackage.directory, 'package.json')
+		);
+	}
+	const hash = createHash('sha256');
+	for (const file of inputs.flatMap(listFiles)) {
+		hash.update(relative(repoRoot, file));
+		hash.update('\0');
+		hash.update(readFileSync(file));
+		hash.update('\0');
+	}
+	return hash.digest('hex');
+};
+
+/** What a build was made from: the origin it was baked for and its inputs. */
+const readBuildStamp = function readBuildStamp(build: AstroBenchBuild): {
+	inputs?: string;
+	origin?: string;
+} {
+	const markerPath = join(appDir, buildOutDirs[build], buildStampFile);
+	if (!existsSync(markerPath)) {
+		return {};
+	}
+	try {
+		return JSON.parse(readFileSync(markerPath, 'utf8')) as {
+			inputs?: string;
+			origin?: string;
+		};
+	} catch {
+		return {};
+	}
+};
+
+/**
+ * Build a variant unless its output was made for this origin from exactly
+ * the current inputs. A variant with no stamp (a Turbo build of `dist`, or
+ * an older run) is rebuilt once, then reused while nothing changes.
+ */
+const ensureBuild = async function ensureBuild(
+	build: AstroBenchBuild,
+	inputs: string
+) {
+	const stamp = readBuildStamp(build);
+	let reason: string | null = null;
+	if (!existsSync(join(appDir, buildOutDirs[build], 'server', 'entry.mjs'))) {
+		reason = 'no build';
+	} else if (stamp.origin !== BASE_URL) {
+		reason = stamp.origin ? `built for ${stamp.origin}` : 'no build stamp';
+	} else if (stamp.inputs !== inputs) {
+		reason = 'sources or package builds changed';
+	}
+	if (reason === null) {
+		process.stdout.write(
+			`Reusing the ${build} build in ${buildOutDirs[build]}.\n`
+		);
 		return;
 	}
+	process.stdout.write(
+		`Building ${build} into ${buildOutDirs[build]} (${reason}).\n`
+	);
 	await runBuild(build);
-	writeFileSync(join(appDir, buildOutDirs[build], buildOriginFile), BASE_URL);
+	writeFileSync(
+		join(appDir, buildOutDirs[build], buildStampFile),
+		`${JSON.stringify({ inputs, origin: BASE_URL })}\n`
+	);
 };
 
 const applyPageProfile = async function applyPageProfile(
@@ -922,9 +1065,10 @@ const run = async function run() {
 	const builds = [
 		...new Set(scenarios.map((scenario) => scenario.build)),
 	] as AstroBenchBuild[];
+	const inputs = computeBuildInputHash();
 	await builds.reduce<Promise<void>>(async (previous, build) => {
 		await previous;
-		await ensureBuild(build);
+		await ensureBuild(build, inputs);
 	}, Promise.resolve());
 
 	const browser = await chromium.launch({
