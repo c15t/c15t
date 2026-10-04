@@ -24,7 +24,6 @@ import type {
 	ResolvedVendor,
 	Unsubscribe,
 } from '@c15t/core';
-import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
 import {
 	saveConsentSurface,
@@ -33,6 +32,7 @@ import {
 } from '@c15t/core/surface-actions';
 import type { Theme } from '@c15t/ui/theme';
 
+import { createBrowserRuntime } from './create-runtime';
 import { createDeferred } from './deferred';
 import { createGatedScriptActivator } from './gated-scripts';
 import { hasDecided } from './has-decided';
@@ -255,7 +255,7 @@ export const createConsentClient = function createConsentClient(
 		throw new Error('@c15t/browser: IAB requires the @c15t/browser/iab entry.');
 	}
 	const mode = resolveMode(options);
-	const runtime = createConsentRuntime({
+	const runtime = createBrowserRuntime({
 		callbacks: options.callbacks,
 		clearOnRevocation: options.clearOnRevocation,
 		consentCategories: options.consentCategories,

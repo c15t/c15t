@@ -449,6 +449,25 @@ describe('runtime options', () => {
 		});
 		expect(onDebug).toHaveBeenCalled();
 	});
+
+	it('runs scripts once the on-demand script loader lands', async () => {
+		const client = start({
+			scripts: [
+				{
+					category: 'necessary',
+					id: 'on-demand-probe',
+					textContent: 'window.__onDemandProbe = true;',
+				},
+			],
+		});
+		const probe = () =>
+			Array.from(document.scripts).some((script) =>
+				script.textContent?.includes('__onDemandProbe')
+			);
+		await client.ready();
+		await vi.dynamicImportSettled();
+		expect(probe()).toBe(true);
+	});
 });
 
 describe('processIframes', () => {

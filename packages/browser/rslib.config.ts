@@ -1,4 +1,4 @@
-import { defineConfig } from '@rslib/core';
+import { defineConfig, rspack } from '@rslib/core';
 
 import {
 	getRsdoctorPlugins,
@@ -39,7 +39,17 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 		// browserslist.
 		syntax: 'es2020' as const,
 		tools: {
-			rspack: { plugins: name === 'c15t.iab' ? [] : [iabBundleBoundary()] },
+			rspack: {
+				plugins: [
+					// One file has no chunk to load on demand, and an inlined
+					// `import()` only adds bytes: mount every module statically.
+					new rspack.NormalModuleReplacementPlugin(
+						/^\.\/create-runtime$/u,
+						'./create-runtime-static'
+					),
+					...(name === 'c15t.iab' ? [] : [iabBundleBoundary()]),
+				],
+			},
 		},
 	};
 };
