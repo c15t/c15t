@@ -56,5 +56,6 @@ context (`$derived`, `$effect` or markup).
 are removed. Pass vendors to the save
 (`kernel.commands.save({}, { vendors: { 'x-pixel': false } })`) or stage
 them on a preference draft. Vue's `useConsentDraft()` returns
-`displayedCategories` and `vendors` as computed refs and ignores its
-argument.
+`displayedCategories` and `vendors` as computed refs, takes no argument, and
+no longer has `reseedOnNextRecord()`; call `reset()` after a bulk save
+instead.

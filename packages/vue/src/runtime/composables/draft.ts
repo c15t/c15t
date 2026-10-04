@@ -11,14 +11,15 @@ import { useConsentKernelContext } from './kernel';
  * own: values the record changes move unless the visitor staged them, and a
  * policy or vendor-list change under a staged edit makes it stale.
  *
- * @param _shouldSyncChanges - Ignored. Kept so existing callers compile; the
- * draft no longer needs to pause while an action is pending.
+ * The draft is part of first load in Nuxt. Moving it behind the preference
+ * surfaces saved 675 B gzip but made Rolldown split `libs/has` into a file
+ * of its own, and on mobile one more first-load request cost more than the
+ * bytes saved.
+ *
  * @returns Refs for the draft's state and its actions.
  */
-export const useConsentDraft = function useConsentDraft(
-	_shouldSyncChanges?: () => boolean
-) {
-	const { kernel, snapshot } = useConsentKernelContext();
+export const useConsentDraft = function useConsentDraft() {
+	const { kernel } = useConsentKernelContext();
 	const presentation = useResolvedPresentation();
 	const draft = createPreferenceDraft(kernel, {
 		defaults: presentation.value?.preferences?.defaults,
@@ -59,37 +60,12 @@ export const useConsentDraft = function useConsentDraft(
 			follow();
 		}
 	);
-	/**
-	 * Set by this surface's bulk actions: the record change they cause drops
-	 * staged edits, since Accept all and Reject all supersede them.
-	 */
-	const bulk = { reseed: false };
-	watch(
-		[() => snapshot.value.explicitChoice, () => snapshot.value.vendorChoice],
-		() => {
-			if (bulk.reseed) {
-				bulk.reseed = false;
-				draft.reset();
-				follow();
-			}
-		},
-		{ flush: 'sync' }
-	);
 	return {
 		displayedCategories: computed(() => state.value.displayedCategories),
 		/** Whether any staged value differs from the record. */
 		isDirty: computed(() => state.value.isDirty),
 		isStale: computed(() => state.value.isStale),
-		/**
-		 * Let the next record change drop staged edits. Bulk actions call this
-		 * before saving so a staged vendor toggle follows Accept all and
-		 * Reject all instead of surviving them.
-		 */
-		reseedOnNextRecord() {
-			bulk.reseed = true;
-		},
 		reset() {
-			bulk.reseed = false;
 			draft.reset();
 			follow();
 		},
@@ -115,3 +91,6 @@ export const useConsentDraft = function useConsentDraft(
 		vendors: computed(() => state.value.vendors),
 	};
 };
+
+/** What `useConsentDraft()` returns. */
+export type ConsentDraft = ReturnType<typeof useConsentDraft>;
