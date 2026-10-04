@@ -70,9 +70,9 @@
 			"default": "./dist/experiment.js"
 		},
 		"./surface-actions": {
-			"types": "./dist-types/surface-actions.d.ts",
-			"import": "./dist/surface-actions.js",
-			"default": "./dist/surface-actions.js"
+			"types": "./dist-types/surface-actions/index.d.ts",
+			"import": "./dist/surface-actions/index.js",
+			"default": "./dist/surface-actions/index.js"
 		},
 		"./consent-categories": {
 			"types": "./dist-types/consent-record/types.d.ts",

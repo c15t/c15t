@@ -418,19 +418,13 @@ const createConsentState = function createConsentState(
 					await draft.save(controller.consentCategories);
 					return { ok: true };
 				}
-				const before = kernel.getSnapshot();
 				const pending = kernel.commands.save(type === 'all' ? 'all' : 'none', {
 					categories: controller.consentCategories,
 				});
-				// The record already holds the choice; the draft follows it now.
-				const after = kernel.getSnapshot();
-				if (
-					after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice ||
-					after.noticeDismissal !== before.noticeDismissal
-				) {
-					draft.reset();
-				}
+				// The kernel recorded the bulk choice in that call; the draft
+				// follows it now. (A bulk save that records nothing leaves the
+				// record, and so the reseeded draft, as it was.)
+				draft.reset();
 				return pending;
 			});
 			if (!result.ok) {
@@ -629,12 +623,10 @@ export const getHeadlessConsent = function getHeadlessConsent() {
  *
  * @internal
  */
-export const saveIABChoice = async function saveIABChoice(
+export const saveIABChoice: (
 	kernel: ConsentKernel,
 	save: () => Promise<void>
-): Promise<void> {
-	await saveIABConsentSurface(kernel, save);
-};
+) => Promise<unknown> = saveIABConsentSurface;
 
 export const getIAB = function getIAB(): SvelteIABState | null {
 	return getConsentContext().state.iab;

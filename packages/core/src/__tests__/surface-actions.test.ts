@@ -20,8 +20,8 @@ import {
 	saveConsentSurface,
 	saveIABConsentSurface,
 	showConsentSurface,
-} from '../surface-actions';
-import type { ConsentSurfaceIAB } from '../surface-actions';
+} from '../surface-actions/index';
+import type { ConsentSurfaceIAB } from '../surface-actions/index';
 import {
 	choiceRecords,
 	iabRule,

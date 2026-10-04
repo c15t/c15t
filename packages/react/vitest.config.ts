@@ -97,7 +97,7 @@ export default mergeConfig(
 				],
 				[
 					'@c15t/core/surface-actions',
-					resolve(__dirname, '../core/src/surface-actions.ts'),
+					resolve(__dirname, '../core/src/surface-actions/index.ts'),
 				],
 				['@c15t/core', resolve(__dirname, '../core/src/index.ts')],
 				['@c15t/schema/types', resolve(__dirname, '../schema/src/types.ts')],

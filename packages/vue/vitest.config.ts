@@ -88,7 +88,7 @@ export default mergeConfig(
 				{
 					'@c15t/core/surface-actions': resolve(
 						__dirname,
-						'../core/src/surface-actions.ts'
+						'../core/src/surface-actions/index.ts'
 					),
 				},
 				{

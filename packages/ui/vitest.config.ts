@@ -25,7 +25,10 @@ export default mergeConfig(
 				},
 				{
 					find: '@c15t/core/surface-actions',
-					replacement: resolve(__dirname, '../core/dist/surface-actions.js'),
+					replacement: resolve(
+						__dirname,
+						'../core/dist/surface-actions/index.js'
+					),
 				},
 				{
 					find: '@c15t/core',
