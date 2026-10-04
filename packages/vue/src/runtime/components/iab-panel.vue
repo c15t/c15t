@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
+import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import {
 	applyPublisherRestrictionsToGVL,
 	resolveIABBannerSummary,
@@ -35,7 +36,6 @@ import { useConsentPolicyActions } from '../composables/use-consent-policy-actio
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
 import { TabsContent, TabsList, TabsRoot, TabsTrigger } from '../primitives';
 import { useFocusTrap } from '../primitives/use-focus-trap';
-import { saveIABChoice } from '../utils/save-iab-choice';
 import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import IabFeatureItem from './iab-feature-item.vue';
@@ -67,9 +67,9 @@ const snapshot = useConsentSnapshot();
 const iabSelection = useConsentIabSelection();
 const kernel = useConsentKernel();
 const saveIab = useConsentIabSave();
-// The dialog closes in the click task; see `saveIABChoice`.
+// The dialog closes in the click task; see `saveIABConsentSurface`.
 const save = (...args: Parameters<typeof saveIab>) =>
-	saveIABChoice(kernel, () => saveIab(...args));
+	saveIABConsentSurface(kernel, () => saveIab(...args));
 
 const initValue = computed(() => toValue(init));
 const textDirection = computed(() =>

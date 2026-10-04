@@ -32,7 +32,6 @@ import {
 	hasConsentPreferences,
 	hasConsentUI,
 	saveConsentSurface,
-	saveIABConsentSurface,
 	showConsentSurface,
 } from '@c15t/core/surface-actions';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
@@ -619,19 +618,6 @@ export const getHeadlessConsent = function getHeadlessConsent() {
 		},
 	};
 };
-
-/**
- * Close an IAB surface in the task that handled the click, then save.
- *
- * The surface comes back only when nothing was recorded and no newer save
- * or explicit navigation came first; see `saveIABConsentSurface`.
- *
- * @internal
- */
-export const saveIABChoice: (
-	kernel: ConsentKernel,
-	save: () => Promise<void>
-) => Promise<unknown> = saveIABConsentSurface;
 
 export const getIAB = function getIAB(): SvelteIABState | null {
 	return getConsentContext().state.iab;
