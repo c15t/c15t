@@ -484,6 +484,52 @@ describe('astro:config:setup', () => {
 		expect(code).not.toMatch(/^import\s[^;]*@c15t\/astro\/(?:ui|islands)\//mu);
 	});
 
+	it('loads the script loader on demand for a site without scripts', async () => {
+		const { calls } = await runSetup({ mode: offlineMode() });
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).not.toContain('@c15t/core/modules/script-loader');
+		expect(code).not.toContain('@c15t/core/modules/network-blocker');
+		expect(code).not.toContain('registerRuntimeModules({');
+	});
+
+	it('ships the script loader and blocker with the page when configured', async () => {
+		const { calls } = await runSetup({
+			mode: offlineMode(),
+			networkBlocker: {
+				rules: [{ category: 'measurement', domain: 'example.com', id: 'ga' }],
+			},
+			scripts: [
+				{ category: 'measurement', id: 'ga', src: 'https://example.com/ga.js' },
+			],
+		});
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).toContain(
+			`import { createScriptLoader } from ${specifier('@c15t/core/modules/script-loader')};`
+		);
+		expect(code).toContain(
+			`import { createNetworkBlocker } from ${specifier('@c15t/core/modules/network-blocker')};`
+		);
+		expect(code).toContain(
+			'registerRuntimeModules({ createScriptLoader, createNetworkBlocker });'
+		);
+		// Registered before the runtime starts.
+		expect(code.indexOf('registerRuntimeModules({')).toBeLessThan(
+			code.indexOf('boot(options')
+		);
+	});
+
+	it('keeps what a client entrypoint may configure static', async () => {
+		const { calls } = await runSetup({
+			clientEntrypoint: './src/c15t.client.ts',
+			mode: offlineMode(),
+		});
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).toContain(
+			'registerRuntimeModules({ createScriptLoader, connectConsentSource });'
+		);
+		expect(code).not.toContain('createNetworkBlocker');
+	});
+
 	it('threads a client entrypoint into the boot script', async () => {
 		const { calls } = await runSetup({
 			clientEntrypoint: './src/c15t.client.ts',

@@ -297,6 +297,56 @@ const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
 	};
 };
 
+/** A runtime module factory the boot script imports statically. */
+interface StaticRuntimeModule {
+	name: 'connectConsentSource' | 'createNetworkBlocker' | 'createScriptLoader';
+	specifier: string;
+}
+
+/**
+ * The on-demand runtime modules every page of this site starts with, which
+ * the boot script therefore imports statically.
+ *
+ * The client loads the script loader, the network blocker and a
+ * `consentSource` connection on demand, so a site that configures none of
+ * them never downloads them. A site that does would otherwise fetch each
+ * one only after the boot script ran: for a returning visitor, consented
+ * scripts and held requests would wait one more round trip. These options
+ * are site-wide and known at build time, so the boot chunk carries the
+ * modules instead, with no extra request and no URL to resolve. A
+ * `clientEntrypoint` may add scripts or a `consentSource` the build cannot
+ * see, so it keeps both static, as before.
+ *
+ * @param options - The options passed to `c15t()`.
+ * @param resolved - The resolved options.
+ * @returns The factories to import statically.
+ */
+export const pageStartModules = function pageStartModules(
+	options: C15tAstroOptions,
+	resolved: C15tResolvedOptions
+): StaticRuntimeModule[] {
+	const modules: StaticRuntimeModule[] = [];
+	if ((resolved.scripts?.length ?? 0) > 0 || options.clientEntrypoint) {
+		modules.push({
+			name: 'createScriptLoader',
+			specifier: '@c15t/core/modules/script-loader',
+		});
+	}
+	if (resolved.networkBlocker) {
+		modules.push({
+			name: 'createNetworkBlocker',
+			specifier: '@c15t/core/modules/network-blocker',
+		});
+	}
+	if (options.clientEntrypoint) {
+		modules.push({
+			name: 'connectConsentSource',
+			specifier: '@c15t/core/runtime/controls',
+		});
+	}
+	return modules;
+};
+
 /**
  * Build the page script the integration injects.
  *
@@ -324,10 +374,19 @@ const buildBootScript = function buildBootScript(
 		JSON.stringify(resolveEntry(specifier));
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
-		`import { boot, registerDialogAdapter, registerDialogStyles, registerDialogSurface } from ${quote('@c15t/astro/client')};`,
+		`import { boot, registerDialogAdapter, registerDialogStyles, registerDialogSurface, registerRuntimeModules } from ${quote('@c15t/astro/client')};`,
 		`registerDialogAdapter(${serializedUI}, async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
 		`registerDialogSurface(${serializedUI}, () => import(${quote(adapter.surfaceModule)}));`,
 	];
+	const staticModules = pageStartModules(options, resolved);
+	if (staticModules.length > 0) {
+		for (const { name, specifier } of staticModules) {
+			lines.push(`import { ${name} } from ${quote(specifier)};`);
+		}
+		lines.push(
+			`registerRuntimeModules({ ${staticModules.map(({ name }) => name).join(', ')} });`
+		);
+	}
 	// `?url` makes each stylesheet an emitted file and the import a string,
 	// so no dialog rule reaches the page until the client links it.
 	if (resolved.styles !== false) {

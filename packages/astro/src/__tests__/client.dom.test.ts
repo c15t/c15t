@@ -765,6 +765,8 @@ it('opens the external CMP and never records its decisions as c15t choices', asy
 		},
 	});
 	expect(trigger.hidden).toBe(false);
+	// The consentSource connection loads on demand.
+	await vi.dynamicImportSettled();
 	await client.openDialog();
 	expect(openPreferences).toHaveBeenCalledOnce();
 	expect(client.getConsent().explicitChoice).toBeNull();
