@@ -20,11 +20,10 @@ import type { KernelTransport } from '../../types';
 import {
 	createConsentProviderRuntime,
 	createConsentRuntime,
-	createRuntimeKernel,
 	defaultRuntimeModules,
-	hasResolvedPrefetch,
 	lazyRuntimeModule,
 } from '../index';
+import { createRuntimeKernel, hasResolvedPrefetch } from '../runtime-kernel';
 import type { ConsentRuntimeIABHandle } from '../types';
 
 const createTransport = function createTransport(
