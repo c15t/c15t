@@ -40,6 +40,11 @@ provider's `nonce` prop cannot reuse it. Allow vendor hosts in `script-src`
 instead. Host sources still apply next to SvelteKit's nonces, as long as the
 list has no `'strict-dynamic'`.
 
+The `<link rel="modulepreload">` tags that `c15tHandle` adds for the script
+loader and network blocker chunks take the nonce SvelteKit put on its own
+scripts, unless the provider has a `nonce` of its own. The chunks are on your
+own origin, so `'self'` covers them too.
+
 ## Allow the generated theme
 
 The `<style id="c15t-theme">` element from

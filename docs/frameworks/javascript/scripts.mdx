@@ -40,6 +40,20 @@ const scripts = [
 [script loader](/docs/frameworks/javascript/modules/script-loader) page lists
 every field and callback.
 
+## When the script loader downloads
+
+With `@c15t/browser` from npm, the script loader is a separate chunk. It
+loads when c15t starts, and only if `scripts` is not empty, so a page without
+scripts never downloads it. On a page with scripts, the browser requests it
+after your JavaScript has run, which delays a returning visitor's consented
+scripts by one request.
+
+Your bundler names that chunk, so c15t cannot link it from your HTML. To
+start the download earlier, add a `<link rel="modulepreload">` for the chunk
+your build emits for `@c15t/core/dist/modules/script-loader/loader.js`. With
+Vite, `.vite/manifest.json` lists it under that path when `build.manifest` is
+on. The script-tag build, `c15t.js`, already contains the loader.
+
 ## Gate a snippet in your HTML
 
 `@c15t/browser` also runs `<script type="text/plain" data-c15t-category>`

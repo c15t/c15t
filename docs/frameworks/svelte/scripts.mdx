@@ -14,4 +14,10 @@ this file:
 
 Replace the placeholder PostHog project key and X Pixel ID with your own.
 
+The provider loads the script loader as a separate chunk, and only when
+`scripts` is not empty, so an app without scripts never downloads it. A
+single-page app has no server render to link the chunk from, so the browser
+requests it after your app's JavaScript has run. In SvelteKit, `c15tHandle`
+can [preload it](/docs/frameworks/sveltekit/scripts#preload-the-script-loader).
+
 <include src="../../shared/svelte/scripts.mdx" />
