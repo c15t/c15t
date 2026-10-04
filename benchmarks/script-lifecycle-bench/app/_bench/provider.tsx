@@ -1,10 +1,6 @@
 'use client';
 
-import {
-	createConsentKernel,
-	createHostedTransport,
-	deleteConsentFromStorage,
-} from '@c15t/core';
+import { createConsentKernel, createHostedTransport } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import type {
@@ -249,7 +245,8 @@ export const ScriptLifecycleProvider = ({
 		};
 
 		const initialize = async () => {
-			deleteConsentFromStorage();
+			// The consent cookie; storage is cleared below.
+			document.cookie = 'c15t=; Max-Age=0; path=/';
 			try {
 				window.localStorage.clear();
 				window.sessionStorage.clear();
