@@ -1,5 +1,6 @@
 'use client';
 
+import { saveIABConsentSurface } from '@c15t/core';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import { useCallback, useContext, useMemo } from 'react';
 
@@ -11,7 +12,6 @@ import {
 	useSetActiveUI,
 } from '../hooks';
 import { useIAB } from '../iab-context';
-import { saveIABConsentUI } from '../ui-save';
 
 export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 	const iab = useIAB();
@@ -39,7 +39,7 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 		[iab, setActiveUI]
 	);
 
-	// The surface closes in the click task; see `saveIABConsentUI`.
+	// The surface closes in the click task; see `saveIABConsentSurface`.
 	const saveChoice = useCallback(
 		async (selection?: 'accept' | 'reject') => {
 			if (!iab) {
@@ -50,7 +50,7 @@ export const useHeadlessIABConsentUI = function useHeadlessIABConsentUI() {
 			} else if (selection === 'reject') {
 				iab.rejectAll();
 			}
-			await (kernel ? saveIABConsentUI(kernel, iab.save) : iab.save());
+			await (kernel ? saveIABConsentSurface(kernel, iab.save) : iab.save());
 		},
 		[iab, kernel]
 	);

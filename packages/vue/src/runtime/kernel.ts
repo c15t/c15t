@@ -13,6 +13,7 @@ import {
 	c15tProtocolHeaders,
 	createHostedTransport,
 	initOutputToKernelConfig,
+	showConsentSurface,
 	watchRevocationReload,
 } from '@c15t/core';
 import type {
@@ -65,7 +66,6 @@ import {
 	isServerManifestModeEnabled,
 	resolveClientManifestURL,
 } from './manifest';
-import { invalidateIABChoice } from './utils/save-iab-choice';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -850,10 +850,8 @@ export const createVueConsentKernelContext =
 		);
 		const activeUI = computed<ConsentActiveUI>({
 			get: () => toVueActiveUI(snapshot.value.activeUI),
-			set: (value) => {
-				invalidateIABChoice(kernel);
-				kernel.set.activeUI(toKernelActiveUI(value));
-			},
+			// Explicit navigation supersedes a pending save.
+			set: (value) => showConsentSurface(kernel, toKernelActiveUI(value)),
 		});
 		const storedConsent = computed(() => snapshot.value.explicitChoice);
 

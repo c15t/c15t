@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import type { PresentationAction } from '@c15t/core';
+import { saveConsentSurface } from '@c15t/core';
+import type { PresentationAction, SaveResult } from '@c15t/core';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 
 import '@c15t/ui/styles/components/consent-dialog.css';
@@ -129,48 +130,33 @@ onUnmounted(() => {
 	actionSequence += 1;
 });
 
-/** Leave the manager for the banner only when a choice is still owed. */
-const closeManager = function closeManager() {
-	activeUI.value =
-		kernel.getSnapshot().promptRequirement.kind === 'none' ? null : 'banner';
-};
-
 const onAction = async function onAction(action: PresentationAction) {
 	actionSequence += 1;
+	if (action !== 'save' && action !== 'accept' && action !== 'reject') {
+		return;
+	}
 	const sequence = actionSequence;
 	const fromManager = activeUI.value === 'manager';
-	const before = kernel.getSnapshot();
 	pendingActions += 1;
 	try {
 		applyingSave = true;
-		let pending;
+		let pending: Promise<SaveResult>;
 		try {
-			if (action === 'save') {
-				pending = saveDraft();
-			} else if (action === 'accept') {
-				reseedOnNextRecord();
-				pending = save('all');
-			} else if (action === 'reject') {
-				reseedOnNextRecord();
-				pending = save('none');
-			}
-			// The kernel records the choice and updates permissions before
-			// the transport runs (storage follows one task later, still ahead
-			// of the request). Close in this task and
-			// leave the backend request to finish in the background: its
-			// outcome never reopens the manager, and reopening reseeds the
-			// draft from the record.
-			const after = kernel.getSnapshot();
-			if (
-				fromManager &&
-				sequence === actionSequence &&
-				// A choice prompt with nothing to decide records an
-				// acknowledgement instead of a choice.
-				(after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice ||
-					after.noticeDismissal !== before.noticeDismissal)
-			) {
-				closeManager();
+			// The manager closes in this task once the kernel has recorded the
+			// choice, and the backend request finishes in the background; see
+			// `saveConsentSurface`. Reopening reseeds the draft from the record.
+			pending = saveConsentSurface(
+				kernel,
+				() => {
+					if (action === 'save') {
+						return saveDraft();
+					}
+					reseedOnNextRecord();
+					return save(action === 'accept' ? 'all' : 'none');
+				},
+				() => sequence === actionSequence
+			);
+			if (fromManager && activeUI.value !== 'manager') {
 				actionSequence += 1;
 			}
 		} finally {
@@ -180,17 +166,8 @@ const onAction = async function onAction(action: PresentationAction) {
 		// The draft does not sync while an action is pending, so it follows
 		// the record once this action, and no newer one, has succeeded; a
 		// failed action keeps the visible draft for the visitor to retry.
-		if (result?.ok && sequence === actionSequence) {
+		if (result.ok && sequence === actionSequence) {
 			resetDraft();
-		}
-		// A save that recorded nothing new closes once it resolves.
-		if (
-			result?.ok &&
-			fromManager &&
-			sequence === actionSequence &&
-			activeUI.value === 'manager'
-		) {
-			closeManager();
 		}
 	} finally {
 		pendingActions -= 1;
