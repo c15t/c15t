@@ -85,7 +85,9 @@ type SvelteKitBenchScenario =
 	| 'ssr-manifest'
 	| 'client'
 	| 'client-manifest'
-	| 'repeat-visitor';
+	| 'repeat-visitor'
+	| 'scripts'
+	| 'repeat-visitor-scripts';
 
 interface SvelteKitBrowserBenchState {
 	scenario: SvelteKitBenchScenario;
@@ -107,6 +109,13 @@ interface SvelteKitBrowserBenchState {
 declare global {
 	interface Window {
 		__c15tSvelteBench?: SvelteKitBrowserBenchState;
+		/** Written by `$lib/script-probe.svelte` on the `scripts` arms. */
+		__c15tSvelteBenchScripts?: {
+			acceptClickMs?: number;
+			heldRequestMs?: number;
+		};
+		/** Written by the stand-in third-party script when it runs. */
+		__c15tBenchScriptExecutedMs?: number;
 	}
 }
 
@@ -208,6 +217,8 @@ const allScenarios = [
 	{ name: 'client', path: '/client' },
 	{ name: 'client-manifest', path: '/client-manifest' },
 	{ name: 'repeat-visitor', path: '/repeat-visitor' },
+	{ name: 'scripts', path: '/scripts' },
+	{ name: 'repeat-visitor-scripts', path: '/repeat-visitor-scripts' },
 ] as const satisfies readonly {
 	name: SvelteKitBenchScenario;
 	path: string;
@@ -225,6 +236,86 @@ if (scenarioFilter && scenarios.length === 0) {
 	);
 }
 
+/** The arms that seed a stored accept-all choice before load. */
+const isRepeatVisit = function isRepeatVisit(
+	scenario: SvelteKitBenchScenario
+): boolean {
+	return scenario === 'repeat-visitor' || scenario === 'repeat-visitor-scripts';
+};
+
+/** The arms that configure a consent-gated script and a blocker rule. */
+const isScriptsScenario = function isScriptsScenario(
+	scenario: SvelteKitBenchScenario
+): boolean {
+	return scenario === 'scripts' || scenario === 'repeat-visitor-scripts';
+};
+
+const benchScriptPath = '/bench-third-party.js';
+
+const scriptTimingMetricNames = [
+	'scriptStartMs',
+	'scriptExecutedMs',
+	'consentToScriptStartMs',
+	'consentToScriptExecutedMs',
+	'heldRequestMs',
+] as const;
+
+interface ScriptTimingSample {
+	/** Navigation start to the gated script's request start. */
+	scriptStartMs: number | null;
+	/** Navigation start to the gated script running. */
+	scriptExecutedMs: number | null;
+	/** Accept click to the gated script's request start (first visit). */
+	consentToScriptStartMs: number | null;
+	/** Accept click to the gated script running (first visit). */
+	consentToScriptExecutedMs: number | null;
+	/** How long the blocker held a matching request (returning visit). */
+	heldRequestMs: number | null;
+}
+
+/**
+ * When the consent-gated script started loading and ran, relative to
+ * navigation start and, after an accept click, to the click. Waits for the
+ * script to run, so call it once consent allows it.
+ */
+const collectScriptTiming = async function collectScriptTiming(
+	page: PlaywrightTypes.Page,
+	returning: boolean
+): Promise<ScriptTimingSample> {
+	await page.waitForFunction(
+		(waitForHold) =>
+			typeof window.__c15tBenchScriptExecutedMs === 'number' &&
+			(!waitForHold ||
+				typeof window.__c15tSvelteBenchScripts?.heldRequestMs === 'number'),
+		returning,
+		{ timeout: 30_000 }
+	);
+	const timing = await page.evaluate((path) => {
+		const entry = performance
+			.getEntriesByType('resource')
+			.find((candidate) => new URL(candidate.name).pathname === path);
+		return {
+			acceptClickMs: window.__c15tSvelteBenchScripts?.acceptClickMs ?? null,
+			executedMs: window.__c15tBenchScriptExecutedMs ?? null,
+			heldRequestMs: window.__c15tSvelteBenchScripts?.heldRequestMs ?? null,
+			startMs: entry?.startTime ?? null,
+		};
+	}, benchScriptPath);
+	const sinceAccept = (value: number | null) =>
+		value === null || timing.acceptClickMs === null
+			? null
+			: value - timing.acceptClickMs;
+	return {
+		consentToScriptExecutedMs: returning
+			? null
+			: sinceAccept(timing.executedMs),
+		consentToScriptStartMs: returning ? null : sinceAccept(timing.startMs),
+		heldRequestMs: timing.heldRequestMs,
+		scriptExecutedMs: timing.executedMs,
+		scriptStartMs: timing.startMs,
+	};
+};
+
 const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
 	scenario: SvelteKitBenchScenario
@@ -236,7 +327,7 @@ const measureInteractionLatency = async function measureInteractionLatency(
 		return performance.now() - startedAt;
 	}
 
-	if (scenario === 'repeat-visitor') {
+	if (isRepeatVisit(scenario)) {
 		const startedAt = performance.now();
 		await page.click('#open-preferences');
 		await page.waitForFunction(
@@ -455,6 +546,7 @@ type SvelteKitBrowserSample = Omit<
 > & {
 	scenario?: string;
 	interactionLatencyMs?: number;
+	scriptTiming?: ScriptTimingSample;
 };
 
 const budgetsForScenario = sveltekitBrowserBudgetsForScenario;
@@ -490,7 +582,7 @@ const isBaselineScenario = function isBaselineScenario(
 const visitForScenario = function visitForScenario(
 	scenario: SvelteKitBenchScenario
 ): BenchVisitKind {
-	return scenario === 'repeat-visitor' ? 'saved-accept' : 'fresh';
+	return isRepeatVisit(scenario) ? 'saved-accept' : 'fresh';
 };
 
 /**
@@ -501,7 +593,11 @@ const visitForScenario = function visitForScenario(
 const usesManifestCache = function usesManifestCache(
 	scenario: SvelteKitBenchScenario
 ): boolean {
-	return scenario.includes('manifest') || scenario === 'repeat-visitor';
+	return (
+		scenario.includes('manifest') ||
+		isRepeatVisit(scenario) ||
+		scenario === 'scripts'
+	);
 };
 
 const scenarioColdState = function scenarioColdState(
@@ -509,10 +605,9 @@ const scenarioColdState = function scenarioColdState(
 ): BenchColdState {
 	return describeColdState({
 		freshBrowserContext: true,
-		note:
-			scenario === 'repeat-visitor'
-				? 'stored-consent cookie seeded before load'
-				: undefined,
+		note: isRepeatVisit(scenario)
+			? 'stored-consent cookie seeded before load'
+			: undefined,
 		usesManifestCache: usesManifestCache(scenario),
 	});
 };
@@ -592,7 +687,7 @@ const run = async function run() {
 					async (previousIteration, index) => {
 						await previousIteration;
 						const context = await browser.newContext({ baseURL: BASE_URL });
-						if (scenario.name === 'repeat-visitor') {
+						if (isRepeatVisit(scenario.name)) {
 							await seedRepeatVisitorCookie(context);
 						}
 						const page = await context.newPage();
@@ -602,7 +697,7 @@ const run = async function run() {
 							scenario.name,
 							scenario.path
 						);
-						if (scenario.name === 'repeat-visitor') {
+						if (isRepeatVisit(scenario.name)) {
 							assertVisitBannerState({
 								activeUI: metrics.activeUI,
 								bannerCount: metrics.bannerCount,
@@ -619,12 +714,22 @@ const run = async function run() {
 								visit: 'fresh',
 							});
 						}
+						// A returning visitor's script loads with the page; a first
+						// visitor's loads after the accept click below.
+						const returningScriptTiming =
+							scenario.name === 'repeat-visitor-scripts'
+								? await collectScriptTiming(page, true)
+								: undefined;
 						const interactionLatencyMs = await measureInteractionLatency(
 							page,
 							scenario.name
 						);
+						const scriptTiming =
+							scenario.name === 'scripts'
+								? await collectScriptTiming(page, false)
+								: returningScriptTiming;
 						if (index >= warmupIterations) {
-							samples.push({ ...metrics, interactionLatencyMs });
+							samples.push({ ...metrics, interactionLatencyMs, scriptTiming });
 						}
 						await context.close();
 					},
@@ -649,7 +754,7 @@ const run = async function run() {
 						consentCount: 5,
 						localeCount: 1,
 						name: outputScenario,
-						scriptCount: 0,
+						scriptCount: isScriptsScenario(scenario.name) ? 1 : 0,
 						themeComplexity: 'minimal',
 					},
 					framework: 'svelte',
@@ -679,7 +784,7 @@ const run = async function run() {
 							'ms',
 							samples.map((sample) =>
 								// A stored-consent visit has no banner, so it has no banner time.
-								scenario.name === 'repeat-visitor'
+								isRepeatVisit(scenario.name)
 									? null
 									: (sample.bannerReadyMs ?? 0)
 							)
@@ -689,7 +794,7 @@ const run = async function run() {
 							'ms',
 							samples.map((sample) =>
 								// A stored-consent visit has no banner, so it has no banner time.
-								scenario.name === 'repeat-visitor'
+								isRepeatVisit(scenario.name)
 									? null
 									: (sample.bannerVisibleMs ?? 0)
 							)
@@ -789,10 +894,20 @@ const run = async function run() {
 							'ms',
 							samples.map((sample) => sample.interactionLatencyMs ?? 0)
 						),
+						...(isScriptsScenario(scenario.name)
+							? scriptTimingMetricNames.map((name) =>
+									summarizeNullableMetric(
+										name,
+										'ms',
+										samples.map((sample) => sample.scriptTiming?.[name] ?? null)
+									)
+								)
+							: []),
 					],
 					notes: [
 						'SvelteKit browser bench covers the @c15t/svelte/kit SSR paths (direct init and manifest), browser-side SPA arms, a pre-seeded repeat visitor, and zero-consent baseline floors.',
 						'The client-manifest arm resolves the manifest in the browser; @c15t/svelte ships server-side manifest resolution, so that arm prices the alternative rather than a shipped mode.',
+						'The scripts arms configure one measurement-gated script and a network-blocker rule over manifest SSR: scripts as a first visit (script timing after the accept click), repeat-visitor-scripts with stored consent (script timing from navigation start, plus how long a matching fetch sent before start() was held).',
 						`Visit: ${visit}. Cold state: ${coldState.setup}.`,
 						...visitMetricGlossary,
 						...scriptTimingGlossary,

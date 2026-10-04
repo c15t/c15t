@@ -161,14 +161,21 @@ const bundleRouteBudget = function bundleRouteBudget(
 };
 
 export const expectedBenchmarkResults: ExpectedBenchmarkResult[] = [
-	...['baseline', 'ssr', 'ssr-manifest', 'ssr-deferred', 'repeat-visitor'].map(
-		(scenario) =>
-			expect(
-				'@c15t/astro-browser-bench',
-				scenario,
-				'browser-runtime',
-				astroBrowserBudgetsForScenario(scenario)
-			)
+	...[
+		'baseline',
+		'ssr',
+		'ssr-manifest',
+		'ssr-deferred',
+		'repeat-visitor',
+		'scripts',
+		'repeat-visitor-scripts',
+	].map((scenario) =>
+		expect(
+			'@c15t/astro-browser-bench',
+			scenario,
+			'browser-runtime',
+			astroBrowserBudgetsForScenario(scenario)
+		)
 	),
 	...[
 		'baseline',
@@ -178,6 +185,8 @@ export const expectedBenchmarkResults: ExpectedBenchmarkResult[] = [
 		'client',
 		'client-manifest',
 		'repeat-visitor',
+		'scripts',
+		'repeat-visitor-scripts',
 	].map((scenario) =>
 		expect(
 			'@c15t/sveltekit-browser-bench',

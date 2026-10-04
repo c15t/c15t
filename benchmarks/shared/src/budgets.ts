@@ -764,7 +764,8 @@ const withoutBannerReadinessForStoredConsent =
 		budgets: MetricBudget[],
 		scenario: string
 	): MetricBudget[] {
-		return scenario === 'repeat-visitor'
+		return scenario === 'repeat-visitor' ||
+			scenario === 'repeat-visitor-scripts'
 			? budgets.filter((budget) => budget.metric !== 'bannerReadyMs')
 			: budgets;
 	};
@@ -1026,7 +1027,9 @@ export const sveltekitBrowserBudgetsForScenario =
 		if (
 			scenario === 'ssr' ||
 			scenario === 'ssr-manifest' ||
-			scenario === 'repeat-visitor'
+			scenario === 'repeat-visitor' ||
+			scenario === 'scripts' ||
+			scenario === 'repeat-visitor-scripts'
 		) {
 			return [
 				...withoutBannerReadinessForStoredConsent(shared, scenario),
