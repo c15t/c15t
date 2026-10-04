@@ -33,6 +33,7 @@ import type {
 	ManifestFetch,
 	ResolveRequestConsentOptions,
 } from '@c15t/core/server';
+import { hasConsentUI } from '@c15t/core/surface-actions';
 import {
 	DEFAULT_RESOLVE_TIMEOUT_MS,
 	withResolutionBudget,
@@ -603,7 +604,6 @@ export type {
 	PromptProps,
 } from './banner/prompt-model';
 export type { KernelConfig } from '@c15t/core';
-import { hasConsentUI } from '@c15t/core/surface-actions';
 
 /**
  * The per-request identity the emission guard keys off — in practice
