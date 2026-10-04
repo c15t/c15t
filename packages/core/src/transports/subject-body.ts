@@ -51,7 +51,7 @@ export interface SubjectPostBody {
 	givenAt: number;
 	/** Receipts for the categories this act confirmed. */
 	choice?: SubjectChoiceWire;
-	jurisdictionModel?: NonNullable<SavePayload['model']>;
+	model?: NonNullable<SavePayload['model']>;
 	uiSource?: NonNullable<SavePayload['uiSource']>;
 	consentAction: SavePayload['consentAction'];
 	policySnapshotToken?: string;
@@ -153,8 +153,8 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		// it so the backend derives the same consent id.
 		givenAt: payload.confirmed.actionAt,
 		identityProvider: payload.user?.identityProvider,
-		jurisdictionModel: payload.model ?? undefined,
 		metadata: buildMetadata(payload),
+		model: payload.model ?? undefined,
 		policySnapshotToken: payload.policySnapshotToken ?? undefined,
 		preferences: explicitPreferences(payload.choice),
 		subjectId: payload.subjectId,

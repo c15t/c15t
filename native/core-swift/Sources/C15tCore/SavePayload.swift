@@ -254,12 +254,12 @@ enum SubjectPostBodyBuilder {
         if let identityProvider = payload.user?.identityProvider {
             fields["identityProvider"] = .string(identityProvider)
         }
-        fields["jurisdictionModel"] = .string(payload.model.rawValue)
         if let properties = payload.user?.properties, !properties.isEmpty {
             fields["metadata"] = .object([
                 "userProperties": .object(properties.mapValues { .string($0) }),
             ])
         }
+        fields["model"] = .string(payload.model.rawValue)
         if let token = payload.policySnapshotToken {
             fields["policySnapshotToken"] = .string(token)
         }

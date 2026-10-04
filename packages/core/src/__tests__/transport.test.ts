@@ -2710,10 +2710,10 @@ describe('createHostedTransport: request shape', () => {
 			domain: 'localhost',
 			externalSubjectId: 'user-1',
 			identityProvider: 'app',
-			jurisdictionModel: 'opt-in',
 			metadata: {
 				userProperties: { beta: true, plan: 'pro' },
 			},
+			model: 'opt-in',
 			policySnapshotToken: 'snap-1',
 			preferences: {
 				experience: true,
@@ -2727,6 +2727,7 @@ describe('createHostedTransport: request shape', () => {
 			type: 'cookie_banner',
 			uiSource: 'banner',
 		});
+		expect(body).not.toHaveProperty('jurisdictionModel');
 		expect(body.givenAt).toBe(1_700_000_000_000);
 	});
 

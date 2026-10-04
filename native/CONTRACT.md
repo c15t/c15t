@@ -87,7 +87,7 @@ The model a device reports is not the model a device evaluates. `deriveModel` in
 `packages/core/src/policy.ts` runs an IAB rule as `iab` only once `@c15t/iab` is
 installed, and a device has nothing to install there: no registered `cmpId`, no
 per-vendor vector, no TC String. So both cores publish `opt-in` for the `model`
-of a snapshot running an IAB rule, and both send `jurisdictionModel: "opt-in"` on
+of a snapshot running an IAB rule, and both send `model: "opt-in"` on
 the write that follows it, while `resolution` keeps naming the IAB policy that
 matched. The rule's own model does move one byte: `IABTCF_gdprApplies` reads the
 stored rule, the way `packages/iab` does, so an IAB rule puts `1` on the bus where
