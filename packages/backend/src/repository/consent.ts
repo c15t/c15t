@@ -39,6 +39,7 @@ import * as v from 'valibot';
 
 import { insertOnce } from '../db/insert-once';
 import { encoder } from '../db/values';
+import { isLegacyJsonEnvelope, unwrapLegacyJson } from './subject-choice';
 
 export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	readonly purposeIds: readonly string[];
@@ -48,6 +49,12 @@ export interface ConsentSubmission extends ConsentSubmissionIdentity {
 	 * nothing here is stamped or renewed on the way in.
 	 */
 	readonly choice?: SubjectChoiceWire | null;
+	/**
+	 * True when `choice` was built by this backend from the submitted
+	 * preferences because the save carried no receipts, as a 2.x client's
+	 * does. Such receipts hold nothing the purposes and preferences did not.
+	 */
+	readonly choiceFromPreferences?: boolean;
 	/** Per-vendor grants this submission carried, in wire form, stored as sent. */
 	readonly vendorChoice?: VendorChoiceWire | null;
 	readonly metadata?: unknown;
@@ -144,10 +151,21 @@ const safeParse = (value: string): unknown => {
 	}
 };
 
-/** Stored `purposeIds`, which SQLite hands back as a JSON string. */
+/**
+ * Stored `purposeIds`, which SQLite hands back as a JSON string and a 2.x
+ * row holds inside a `{ json }` envelope.
+ */
 const normalisePurposeIds = (value: unknown): string[] | undefined => {
-	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	const parsed = unwrapLegacyJson(
+		typeof value === 'string' ? safeParse(value) : value
+	);
 	return Array.isArray(parsed) ? [...parsed].map(String).sort() : undefined;
+};
+
+/** Whether stored `purposeIds` are a readable list in the 2.x envelope. */
+const writtenBy2x = (value: unknown): boolean => {
+	const parsed = typeof value === 'string' ? safeParse(value) : value;
+	return isLegacyJsonEnvelope(parsed) && Array.isArray(parsed.json);
 };
 
 const sameIds = (a: readonly string[], b: readonly string[]): boolean =>
@@ -334,7 +352,25 @@ export const assertSameSubmission = Effect.fn('consent.assertSameSubmission')(
 		submission: ConsentSubmission
 	) {
 		yield* assertSamePurposes(stored?.purposeIds, submission.purposeIds);
-		yield* assertSameChoice(stored?.choice, submission.choice);
+		// A 2.x backend sharing the database writes no receipts, and this
+		// backend turns every receipt-less save into `legacy-v2` receipts, so a
+		// 2.x client's retry of a save the 2.x backend recorded would always be
+		// refused here. Its receipts were built from the same preferences as
+		// its purposes, which were read and matched above, so they are not
+		// compared; the row keeps none. That holds only for a row 2.x wrote,
+		// which never stored refusals: this backend also leaves `choice` empty
+		// for a save with only `necessary`, and a retry adding a refusal to
+		// that row is a different act. So the row must carry the `{ json }`
+		// envelope only 2.x writes. Receipts a client sent can grant or refuse
+		// what its purposes do not show, so they are always compared.
+		const legacyRetry =
+			submission.choiceFromPreferences === true &&
+			stored !== undefined &&
+			(stored.choice === null || stored.choice === undefined) &&
+			writtenBy2x(stored.purposeIds);
+		if (!legacyRetry) {
+			yield* assertSameChoice(stored?.choice, submission.choice);
+		}
 		yield* assertSameVendors(stored?.vendorChoice, submission.vendorChoice);
 	}
 );

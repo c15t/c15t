@@ -52,13 +52,145 @@ import { Redacted } from 'effect';
 const url = process.env.DATABASE_URL;
 if (!url) throw new Error('Set DATABASE_URL');
 export default defineConfig({
-	database: PgClient.layer({ url: Redacted.make(url), prepare: false }),
+	database: PgClient.layer({
+		url: Redacted.make(url),
+		prepare: false,
+		startupParameters: { timezone: 'UTC' },
+	}),
 });
 ```
 
-A client layer bypasses the `schema` option. To keep c15t's tables in their own
-schema, add `startupOptions: '-c search_path=c15t'` to the layer, and check that
-your pooler forwards startup options.
+A client layer bypasses the `schema` option and the UTC session that c15t sets
+on its own connections. To keep c15t's tables in their own schema, add
+`startupOptions: '-c search_path=c15t'` to the layer, and check that your pooler
+forwards startup options.
+
+## Store timestamps in UTC
+
+The backend stores every timestamp, including each consent's `givenAt`, as UTC
+in columns without a time zone. Connections built from a `database` config set
+this up themselves and override any time zone in the URL:
+
+- PostgreSQL sessions use `timezone=UTC`.
+- MySQL connections set the mysql2 `timezone` option to `Z`.
+- SQLite stores epoch milliseconds, so it has no time zone to set.
+
+A client layer you build yourself needs the same setting. Without it, a server
+outside UTC stores every time shifted by its offset. For `PgClient.layer`, pass
+`startupParameters: { timezone: 'UTC' }`, as in the pooler example. For
+`MysqlClient.layer`, add `timezone=Z` to the connection URL.
+
+A v2 backend writing to the same database stores times in its Node.js process's
+time zone. Run it with `TZ=UTC`, or the two backends read different times from
+the same rows.
+
+### Convert timestamps written outside UTC
+
+Earlier backends stored times in whatever zone their connection used. Once the
+backend reads every timestamp as UTC, rows written in another zone read as
+shifted by that zone's offset, and a retried save can be stored twice because
+its `givenAt` no longer matches. Convert those rows before deploying this
+version if any of these applied to a backend that wrote to the database:
+
+- PostgreSQL, v3: the database session time zone was not UTC. Check with
+  `show timezone;` on a connection made the same way as the backend's.
+- PostgreSQL or MySQL, v2: the Node.js process ran without `TZ=UTC` on a host
+  outside UTC.
+- MySQL, v3: the Node.js process ran outside UTC and the URL did not set
+  `timezone`.
+
+SQLite needs no conversion. The steps below assume every backend used the same
+zone. They cannot fix a database that backends in different zones wrote to,
+because a row does not record which backend wrote it.
+
+A zone with daylight saving time repeats an hour when clocks go back, so a
+stored time inside that hour matches two instants. The script picks one of
+them, and rows saved during the repeated hour can stay an hour off. Check those
+rows against another record of the time, such as request logs, before
+deploying.
+
+1. Stop every backend that writes to the database, v2 and v3.
+2. Back up the database.
+3. Run the script for your database, with `Europe/Berlin` replaced by the zone
+   the backends used.
+4. Deploy this backend version, and start any v2 backend with `TZ=UTC`.
+
+For PostgreSQL, run it with `search_path` set to the `schema` option if you use
+one:
+
+```sql
+begin;
+update "subject" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"updatedAt" = ("updatedAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "domain" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"updatedAt" = ("updatedAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentPolicy" set
+	"effectiveDate" = ("effectiveDate" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentPurpose" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"updatedAt" = ("updatedAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "runtimePolicyDecision" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consent" set
+	"givenAt" = ("givenAt" at time zone 'Europe/Berlin') at time zone 'UTC',
+	"validUntil" = ("validUntil" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "auditLog" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+commit;
+```
+
+A database adopted from the pre-2.0 schema also keeps
+`consentPolicy.expirationDate` and the `consentRecord` table. Convert them in the
+same transaction, before `commit`:
+
+```sql
+update "consentPolicy" set
+	"expirationDate" = ("expirationDate" at time zone 'Europe/Berlin') at time zone 'UTC';
+update "consentRecord" set
+	"createdAt" = ("createdAt" at time zone 'Europe/Berlin') at time zone 'UTC';
+```
+
+For MySQL, `convert_tz` returns `NULL` when the server has no time zone tables.
+Check that `select convert_tz('2026-01-01 12:00:00', 'Europe/Berlin', '+00:00');`
+returns a time before running:
+
+```sql
+start transaction;
+update subject set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00'),
+	updatedAt = convert_tz(updatedAt, 'Europe/Berlin', '+00:00');
+update domain set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00'),
+	updatedAt = convert_tz(updatedAt, 'Europe/Berlin', '+00:00');
+update consentPolicy set
+	effectiveDate = convert_tz(effectiveDate, 'Europe/Berlin', '+00:00'),
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+update consentPurpose set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00'),
+	updatedAt = convert_tz(updatedAt, 'Europe/Berlin', '+00:00');
+update runtimePolicyDecision set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+update consent set
+	givenAt = convert_tz(givenAt, 'Europe/Berlin', '+00:00'),
+	validUntil = convert_tz(validUntil, 'Europe/Berlin', '+00:00');
+update auditLog set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+commit;
+```
+
+For a database adopted from the pre-2.0 schema, add these before `commit`:
+
+```sql
+update consentPolicy set
+	expirationDate = convert_tz(expirationDate, 'Europe/Berlin', '+00:00');
+update consentRecord set
+	createdAt = convert_tz(createdAt, 'Europe/Berlin', '+00:00');
+```
+
+Run the conversion once. A second run shifts every row again.
 
 ## Apply and verify migrations
 

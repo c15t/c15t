@@ -166,21 +166,51 @@ export const decodeStoredChoice = function decodeStoredChoice(
 		: { kind: 'unreadable' };
 };
 
+/**
+ * Whether a JSON column value is the envelope the 2.x backend wrote.
+ *
+ * The 2.x backend has written JSON columns as `{ json: value }` since
+ * September 2025, and fumadb stores that envelope as-is on every adapter, so
+ * a 2.x row holds `{"json": ["pur_measurement"]}` where a v3 row holds the
+ * bare array. This backend never writes one. Run after any string parse,
+ * since SQLite returns the envelope as text.
+ *
+ * @internal
+ */
+export const isLegacyJsonEnvelope = (
+	value: unknown
+): value is { json: unknown } =>
+	value !== null &&
+	typeof value === 'object' &&
+	!Array.isArray(value) &&
+	'json' in value;
+
+/**
+ * A JSON column value without the 2.x envelope. See
+ * {@link isLegacyJsonEnvelope}.
+ *
+ * @internal
+ */
+export const unwrapLegacyJson = (value: unknown): unknown =>
+	isLegacyJsonEnvelope(value) ? value.json : value;
+
 /** Stored `purposeIds` as codes, or `undefined` when nothing was granted. */
 export const decodePreferences = function decodePreferences(
 	purposeIds: unknown,
 	codesById: ReadonlyMap<string, string>
 ): Record<string, boolean> | undefined {
-	const parsed = (() => {
-		if (typeof purposeIds !== 'string') {
-			return purposeIds;
-		}
-		try {
-			return JSON.parse(purposeIds) as unknown;
-		} catch {
-			return undefined;
-		}
-	})();
+	const parsed = unwrapLegacyJson(
+		(() => {
+			if (typeof purposeIds !== 'string') {
+				return purposeIds;
+			}
+			try {
+				return JSON.parse(purposeIds) as unknown;
+			} catch {
+				return undefined;
+			}
+		})()
+	);
 	if (!Array.isArray(parsed) || parsed.length === 0) {
 		return undefined;
 	}
