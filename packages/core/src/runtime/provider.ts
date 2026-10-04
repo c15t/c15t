@@ -27,6 +27,7 @@ export { lazyRuntimeModule } from './lazy-module';
 // A star export, so a bundle that never reads these leaves the module, and
 // the tools it imports, out: esbuild puts a named re-export's module in
 // every chunk that imports this entry.
+// oxlint-disable-next-line oxc/no-barrel-file -- One module; the count is its tools' first-load imports, which the entry already has.
 export * from './on-demand';
 export { createConsentProviderRuntime } from './provider-runtime';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
