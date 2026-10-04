@@ -30,8 +30,9 @@ feature, stay blocked.
 
 A save records the choice in the browser first and sends it to the backend
 afterwards. The stock banner, preference dialog and IAB surfaces in every
-framework adapter, and the browser client's `acceptAll()`, `rejectAll()`
-and `save()`, close without waiting for the backend. In order:
+framework adapter, and the `acceptAll()`, `rejectAll()` and `save()` methods
+of the browser and Astro clients, close without waiting for the backend. In
+order:
 
 1. In the click task, the explicit choice and effective permissions change,
    `onChoiceRecorded` and `onPermissionsChanged` run, gated scripts, iframes
@@ -65,6 +66,14 @@ IAB surfaces close in the click task too, but an IAB choice is recorded only
 after its TC string is encoded, which can wait for the TCF library to load.
 If that local step records nothing, for example because the vendor list
 failed to load, the surface comes back so the visitor can try again.
+
+Every adapter leaves the same surface after a save: the banner while the
+policy still owes a choice or a notice, and nothing once no prompt is owed,
+while the policy is still loading, or after it failed to resolve. A banner
+the visitor reopened closes too. A save that records nothing new, such as an
+unchanged selection, closes the surface when it resolves successfully. Opening
+or closing a surface, or starting another save, before then leaves the surface
+as the visitor set it.
 
 ## Preserve records during hydration
 
