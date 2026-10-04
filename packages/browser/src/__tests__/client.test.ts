@@ -133,6 +133,37 @@ describe('createConsentClient', () => {
 		]);
 	});
 
+	it('lists consentCategories in the fixed display order, as the dialog does', async () => {
+		// Configured as marketing, experience, measurement; the resolved
+		// policy scope is sorted alphabetically. The client follows neither:
+		// it lists the categories in the display order the preference draft
+		// uses in every framework.
+		const categories = ['marketing', 'experience', 'measurement'] as const;
+		const client = start({
+			consentCategories: [...categories],
+			policyRules: [
+				{
+					...policyRulePresets.europeOptIn(),
+					categories: [...categories],
+					match: { isDefault: true },
+					scopeMode: 'strict',
+				},
+			],
+		});
+		await client.ready();
+		expect(client.getSnapshot().policyRule.scope).toEqual([
+			'experience',
+			'marketing',
+			'measurement',
+		]);
+		expect(client.consentCategories).toEqual([
+			'necessary',
+			'measurement',
+			'experience',
+			'marketing',
+		]);
+	});
+
 	it('acceptAll grants the offered categories and closes the UI', async () => {
 		const client = start();
 		await client.ready();

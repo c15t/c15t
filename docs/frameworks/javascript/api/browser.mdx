@@ -65,7 +65,7 @@ lists everything `init` and `createConsentClient` accept.
 | `getSnapshot()` | `ConsentSnapshot` | The full state. See the [snapshot reference](/docs/frameworks/javascript/api/snapshot). |
 | `subscribe(listener)` | `() => void` | Call `listener` with each new snapshot. Returns an unsubscribe function. |
 | `on(event, listener)` | `() => void` | Listen for `ready`, `consent`, `ui` or `error`. |
-| `consentCategories` | `AllConsentNames[]` | The categories the dialog offers, `necessary` first. |
+| `consentCategories` | `AllConsentNames[]` | The categories the dialog offers, in a fixed order: `necessary`, `functionality`, `measurement`, `experience`, `marketing`, limited to the policy's categories. The order of the `consentCategories` option doesn't change it. |
 
 `has()` reads a permission, which says whether code may run now. Under an opt-out policy
 it is `true` before the visitor does anything. `hasConsented()` and
