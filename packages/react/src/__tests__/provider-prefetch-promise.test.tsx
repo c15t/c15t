@@ -23,7 +23,6 @@ const hostedInitOutput = function hostedInitOutput(): InitOutput {
 	return {
 		branding: 'c15t',
 		gvl: null,
-		jurisdiction: 'GDPR',
 		location: { countryCode: 'DE', regionCode: null },
 		policyResolution: writePolicyResolutionWire(
 			policyFixture({}, { categories: ['marketing'], id: 'gdpr' })

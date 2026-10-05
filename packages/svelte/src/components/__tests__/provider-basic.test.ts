@@ -125,7 +125,6 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 					cmpId: IAB_FIXTURE_CMP_ID,
 					customVendors: [],
 					gvl: MINIMAL_GVL,
-					jurisdiction: 'GDPR',
 					location: { countryCode: 'DE', regionCode: null },
 					policy: {
 						id: 'hosted-iab',

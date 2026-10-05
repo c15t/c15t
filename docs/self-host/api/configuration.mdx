@@ -62,7 +62,6 @@ pass logging callbacks when constructing the instance instead.
 | `policyRules` | Ordered canonical policy rules. Author this field, not the generated manifest's `policyPacks`. |
 | `appName` | Application name included in configuration. |
 | `branding` | Branding setting, defaulting to `c15t`. |
-| `disableGeoLocation` | Disables location-based resolution. Review the resulting default and fallback behavior. |
 | `customTranslations`, `i18n` | Translation overrides and locale configuration. |
 | `iab` | `enabled`, `cmpId`, `customVendors` and the GVL `endpoint`. |
 | `vendors`, `vendorListVersion` | Vendors offered for vendor-level consent outside IAB, returned from `/init` and merged with vendors declared in the client. The version label is shown to the visitor and surfaced to dev tools, never used to force re-consent; a saved vendor decision carries the grant map and its time, not the label. |

@@ -104,7 +104,6 @@ const REALISTIC_INIT_OUTPUT = {
 		vendorListVersion: 42,
 		vendors: {},
 	},
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: 'BE' },
 	policyResolution: {
 		...matchedResolution(

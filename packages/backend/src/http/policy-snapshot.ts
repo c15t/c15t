@@ -53,7 +53,6 @@ export interface PolicySnapshotClaims {
 	readonly matchedBy: string;
 	readonly country: string | null;
 	readonly region: string | null;
-	readonly jurisdiction: string;
 	readonly model: string;
 	readonly tenantId?: string;
 	/** The raw `Accept-Language` header the request carried. */
@@ -118,7 +117,6 @@ export const createPolicySnapshotToken =
 			fingerprint: claims.fingerprint,
 			iat,
 			iss: resolveIssuer(options),
-			jurisdiction: claims.jurisdiction,
 			language: claims.language,
 			matchedBy: claims.matchedBy,
 			model: claims.model,

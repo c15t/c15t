@@ -63,7 +63,6 @@ const buildInit = function buildInit(
 ): InitOutput {
 	return {
 		branding: 'c15t',
-		jurisdiction: 'GDPR',
 		location: { countryCode: 'US', regionCode: 'CA' },
 		policyResolution: writePolicyResolutionWire(
 			resolvePolicyRules({ countryCode: null, regionCode: null, rules: [rule] })

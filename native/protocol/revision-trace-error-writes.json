@@ -50,7 +50,6 @@
 		"transport": {
 			"body": {
 				"branding": "c15t",
-				"jurisdiction": "GDPR",
 				"location": {
 					"countryCode": "DE",
 					"regionCode": null
@@ -138,7 +137,6 @@
 				"transport": {
 					"body": {
 						"branding": "c15t",
-						"jurisdiction": "GDPR",
 						"location": {
 							"countryCode": "DE",
 							"regionCode": null
@@ -218,7 +216,6 @@
 				"transport": {
 					"body": {
 						"branding": "c15t",
-						"jurisdiction": "GDPR",
 						"location": {
 							"countryCode": "DE",
 							"regionCode": null
@@ -298,7 +295,6 @@
 				"transport": {
 					"body": {
 						"branding": "c15t",
-						"jurisdiction": "GDPR",
 						"location": {
 							"countryCode": "DE",
 							"regionCode": null

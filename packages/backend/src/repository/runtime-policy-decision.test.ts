@@ -23,13 +23,13 @@ import { up as baseline } from '../db/migrations/1-baseline';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { singleTenant, layer as tenantLayer } from '../db/tenant';
 import { recordDecision, scopedDedupeKey } from './runtime-policy-decision';
 
 const input = {
 	dedupeKey: 'shared|key',
 	fingerprint: 'fp_1',
-	jurisdiction: 'gdpr',
 	matchedBy: 'country',
 	model: 'opt-in',
 	policyId: 'pol_1',
@@ -92,6 +92,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 
 					const a = yield* recordDecision(input).pipe(
 						Effect.provide(tenantLayer('tenant_a'))
@@ -191,6 +192,7 @@ for (const engine of ENGINES) {
 						yield* receipts;
 						yield* vendorChoice;
 						yield* attribution;
+						yield* optionalJurisdiction;
 						const sql = yield* SqlClient.SqlClient;
 						yield* sql.unsafe(
 							'alter table "runtimePolicyDecision" add constraint "decision_fingerprint_deferrable" unique ("fingerprint") deferrable'
@@ -220,6 +222,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 
 					// Scoping must not cost idempotency, which is the whole point of
 					// the key.
@@ -246,6 +249,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* vendorChoice;
 					yield* attribution;
+					yield* optionalJurisdiction;
 
 					const first = yield* recordDecision(input);
 					const second = yield* recordDecision(input);
@@ -253,17 +257,21 @@ for (const engine of ENGINES) {
 					assert.strictEqual(first.id, second.id);
 
 					const sql = yield* SqlClient.SqlClient;
-					const rows = yield* sql<{ dedupeKey: string }>`
-						select ${sql('dedupeKey')} from ${sql('runtimePolicyDecision')}
+					const rows = yield* sql<{
+						dedupeKey: string;
+						jurisdiction: string | null;
+					}>`
+						select ${sql('dedupeKey')}, ${sql('jurisdiction')}
+						from ${sql('runtimePolicyDecision')}
 					`;
-					assert.deepStrictEqual(
-						rows.map((row) => row.dedupeKey),
-						[
-							yield* Effect.promise(() =>
+					assert.deepStrictEqual(rows, [
+						{
+							dedupeKey: yield* Effect.promise(() =>
 								scopedDedupeKey(undefined, input.dedupeKey)
 							),
-						]
-					);
+							jurisdiction: null,
+						},
+					]);
 				}).pipe(Effect.provide(engine.client), Effect.provide(singleTenant)),
 			{ timeout: 60_000 }
 		);

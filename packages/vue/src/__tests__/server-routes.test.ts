@@ -471,7 +471,6 @@ describe('init route', () => {
 
 		expect(response.headers.get('cache-control')).toBe('private, no-store');
 		expect(await response.json()).toMatchObject({
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE' },
 			policyResolution: { policy: { id: 'eu-opt-in' }, status: 'matched' },
 		});
@@ -579,7 +578,6 @@ describe('init route', () => {
 			}
 			return new Response(
 				JSON.stringify({
-					jurisdiction: 'NONE',
 					location: { countryCode: null, regionCode: null },
 					resolvedPrivacySignals: { gpc: true },
 					translations: { language: 'en', translations: {} },
@@ -595,12 +593,13 @@ describe('init route', () => {
 
 		const response = await callInitRoute({ 'x-c15t-country': 'DE' });
 
-		expect(await response.json()).toMatchObject({
-			jurisdiction: 'NONE',
+		const body = await response.json();
+		expect(body).toMatchObject({
 			resolvedPrivacySignals: { gpc: true },
 			vendorListVersion: '2026-09',
 			vendors: [acmeVendor],
 		});
+		expect(body).not.toHaveProperty('jurisdiction');
 		expect(mocks.serverFetch).toHaveBeenLastCalledWith(
 			'/api/self-host/init',
 			expect.objectContaining({

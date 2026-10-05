@@ -49,7 +49,6 @@ export interface DecisionInput {
 	readonly matchedBy: string;
 	readonly countryCode?: string | null;
 	readonly regionCode?: string | null;
-	readonly jurisdiction: string;
 	readonly language?: string | null;
 	readonly model: string;
 	readonly dedupeKey: string;
@@ -121,7 +120,8 @@ export const recordDecision = Effect.fn('decision.record')(
 				dialogUi: json(input.dialogUi),
 				fingerprint: input.fingerprint,
 				id,
-				jurisdiction: input.jurisdiction,
+				// 2.x stored a regulation label here. Nullable since migration 7.
+				jurisdiction: null,
 				language: input.language ?? null,
 				matchedBy: input.matchedBy,
 				model: input.model,

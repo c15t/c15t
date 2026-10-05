@@ -4,7 +4,7 @@
  * The composite `(tenantId, dedupeKey)` index is the shape a hand-edited
  * hosted schema had. The migrator never creates any of these; tests use them
  * to show the backend still saves against them and that `migrate --plan`
- * reports them.
+ * reports them. `jurisdiction` is nullable, as migration 7 leaves it.
  */
 
 import { Effect } from 'effect';
@@ -26,9 +26,15 @@ export const createUnindexedDecisionTable = Effect.gen(
 			createTableSql(
 				{
 					...spec,
-					columns: spec.columns.map((column) =>
-						column.name === 'dedupeKey' ? { ...column, unique: false } : column
-					),
+					columns: spec.columns.map((column) => {
+						if (column.name === 'dedupeKey') {
+							return { ...column, unique: false };
+						}
+						if (column.name === 'jurisdiction') {
+							return { ...column, nullable: true };
+						}
+						return column;
+					}),
 				},
 				Dialect.typesFor(dialect),
 				Dialect.escaperFor(dialect)

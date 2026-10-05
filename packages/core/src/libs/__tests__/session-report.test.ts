@@ -92,7 +92,6 @@ describe('buildConsentSessionReport', () => {
 	test('records no policy when nothing matched', () => {
 		const report = buildConsentSessionReport({
 			init: {
-				jurisdiction: 'NONE',
 				policyResolution: { policy: null, status: 'no-match', version: 1 },
 				translations: { language: 'en' },
 			} as never,

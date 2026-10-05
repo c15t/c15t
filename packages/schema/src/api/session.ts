@@ -1,7 +1,5 @@
 import * as v from 'valibot';
 
-import { jurisdictionCodeSchema } from '~/shared/jurisdiction';
-
 /**
  * Where an init resolution happened.
  *
@@ -59,7 +57,6 @@ export const consentSessionReportSchema = v.object({
 		})
 	),
 	gpc: v.boolean(),
-	jurisdiction: jurisdictionCodeSchema,
 	/** The language the resolution served, not the raw `Accept-Language`. */
 	language: v.string(),
 	/** `null` unless a policy rule matched. */

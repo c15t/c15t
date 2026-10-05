@@ -4,13 +4,11 @@ export {
 	type ConsentManifest,
 	type ConsentManifestBranding,
 	type ConsentManifestConfig,
-	type ConsentManifestDefaults,
 	type ConsentManifestGVLReference,
 	type ConsentManifestIAB,
 	type ConsentManifestPolicyFailure,
 	type ConsentManifestPolicyPack,
 	type ConsentManifestTranslationInputs,
-	checkJurisdiction,
 	createConsentManifestPolicyPack,
 	type ResolveInitFromManifestInputs,
 	type ResolveInitFromManifestOptions,
@@ -30,10 +28,7 @@ export {
 	type SessionReportInputs,
 } from './session-report';
 // Export constants separately for runtime-safe usage
-export {
-	brandingValues as brandingValuesConst,
-	jurisdictionCodes as jurisdictionCodesConst,
-} from './constants';
+export { brandingValues as brandingValuesConst } from './constants';
 export {
 	buildConsentId,
 	type ConsentSubmissionIdentity,
@@ -74,11 +69,6 @@ export {
 	gvlVendorSchema,
 	gvlVendorUrlSchema,
 } from './gvl';
-export {
-	type JurisdictionCode,
-	jurisdictionCodeSchema,
-	jurisdictionCodes,
-} from './jurisdiction';
 export {
 	type NonIABVendor,
 	type NonIABVendorConsent,

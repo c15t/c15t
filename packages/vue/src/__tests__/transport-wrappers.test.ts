@@ -28,7 +28,6 @@ const policy = normalizePolicyRule({
 const fingerprints = createPolicyRuleFingerprints(policy);
 const prefetch = {
 	branding: 'c15t' as const,
-	jurisdiction: 'GDPR' as const,
 	location: { countryCode: 'DE', regionCode: null },
 	policyResolution: writePolicyResolutionWire({
 		fingerprints,

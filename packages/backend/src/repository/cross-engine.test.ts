@@ -36,6 +36,7 @@ import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
+import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import { syncCurrent } from './legal-document';
@@ -59,6 +60,7 @@ const setup = Effect.gen(function* setup() {
 	yield* receipts;
 	yield* vendorChoice;
 	yield* attribution;
+	yield* optionalJurisdiction;
 	// Included because the index migration is itself engine-divergent — MySQL
 	// has no `create index if not exists` and cannot index a bare TEXT column.
 	yield* indexes;
@@ -167,7 +169,6 @@ for (const engine of ENGINES) {
 					const input = {
 						dedupeKey: 'default|fp_1|country|DE|none|gdpr',
 						fingerprint: 'fp_1',
-						jurisdiction: 'gdpr',
 						matchedBy: 'country',
 						model: 'opt_in',
 						policyId: 'pol_1',

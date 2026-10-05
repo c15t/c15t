@@ -136,7 +136,6 @@
 		"transport": {
 			"body": {
 				"branding": "c15t",
-				"jurisdiction": "GDPR",
 				"location": {
 					"countryCode": "FR",
 					"regionCode": null

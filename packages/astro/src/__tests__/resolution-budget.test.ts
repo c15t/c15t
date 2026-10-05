@@ -18,7 +18,6 @@ const MANIFEST = await buildConsentManifestFromConfig({
 const initResponse = (): Response =>
 	Response.json({
 		branding: 'c15t',
-		jurisdiction: 'NONE',
 		location: { countryCode: null, regionCode: null },
 		policyResolution: testWire(),
 		translations: { language: 'en', translations: {} },

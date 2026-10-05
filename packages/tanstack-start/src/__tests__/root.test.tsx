@@ -106,7 +106,6 @@ describe('ConsentRoot: transport selection', () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			Response.json({
 				branding: 'c15t',
-				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				translations: { language: 'en', translations: { common: {} } },
 			})
@@ -138,7 +137,6 @@ describe('ConsentRoot: transport selection', () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			Response.json({
 				branding: 'c15t',
-				jurisdiction: 'GDPR',
 				location: { countryCode: 'DE', regionCode: null },
 				translations: { language: 'en', translations: { common: {} } },
 			})

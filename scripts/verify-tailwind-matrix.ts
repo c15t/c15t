@@ -59,7 +59,6 @@ const SLOT_PADDING = { dark: '11px', light: '7px' } as const;
  */
 const initResponse: InitOutput = {
 	branding: 'c15t',
-	jurisdiction: 'GDPR',
 	location: { countryCode: 'DE', regionCode: null },
 	policyResolution: writePolicyResolutionWire(
 		resolvePolicyRules({

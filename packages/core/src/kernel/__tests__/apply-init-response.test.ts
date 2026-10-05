@@ -217,32 +217,6 @@ describe('applyInitResponse', () => {
 		});
 	});
 
-	test("an older backend's frame copy reads as consentGate", () => {
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
-		const snap = buildInitialSnapshot({ now: NOW });
-		const { patch } = applyInitResponse(
-			snap,
-			{
-				translations: {
-					language: 'en',
-					translations: {
-						common: {},
-						consentManagerDialog: {},
-						consentTypes: {},
-						cookieBanner: {},
-						frame: { actionButton: 'Allow {category}', title: 'Blocked' },
-					},
-				},
-			},
-			NOW
-		);
-		expect(patch.translations?.translations).toMatchObject({
-			consentGate: { actionButton: 'Allow {category}', title: 'Blocked' },
-		});
-		expect(patch.translations?.translations).not.toHaveProperty('frame');
-		warn.mockRestore();
-	});
-
 	test('initial copy and app overrides under frame read as consentGate', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const snap = buildInitialSnapshot({

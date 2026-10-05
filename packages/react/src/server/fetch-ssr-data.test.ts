@@ -27,7 +27,6 @@ describe('fetchSSRData', () => {
 	it('returns SSR metadata with cache-hit diagnostics and request duration', async () => {
 		const initResponse = {
 			branding: 'c15t',
-			jurisdiction: 'CCPA',
 			location: { countryCode: 'US', regionCode: 'CA' },
 			translations: { language: 'en', translations: {} },
 		};
@@ -70,7 +69,6 @@ describe('fetchSSRData', () => {
 	it('returns cache metadata for non-hit responses', async () => {
 		const initResponse = {
 			branding: 'c15t',
-			jurisdiction: 'GDPR',
 			location: { countryCode: 'DE', regionCode: null },
 			translations: { language: 'de', translations: {} },
 		};

@@ -169,7 +169,6 @@
 		"transport": {
 			"body": {
 				"branding": "c15t",
-				"jurisdiction": "UK_GDPR",
 				"location": {
 					"countryCode": "GB",
 					"regionCode": null

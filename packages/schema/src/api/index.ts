@@ -1,18 +1,17 @@
 export * from './consent';
 export * from './experiment';
 export {
-	completeTranslationsSchema,
+	consentManagerDialogTranslationsSchema,
 	cookieBannerTranslationsSchema,
 	type InitOutput,
 	initOutputSchema,
 	type LocationResponse,
 	locationSchema,
-	partialCookieBannerTranslationsSchema,
-	partialTranslationsSchema,
 	rightsTranslationsSchema,
 	type TranslationsResponse,
 	titleDescriptionSchema,
 	translationsSchema,
+	vendorListTranslationsSchema,
 } from './init';
 export * from './legal-document';
 

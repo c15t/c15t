@@ -362,7 +362,7 @@ describe('init with a matching policy', () => {
 			{
 				id: 'pol_default',
 				// isDefault so it matches regardless of geo, which keeps the case
-				// about the token rather than about jurisdiction matching.
+				// about the token rather than about geo matching.
 				match: { isDefault: true },
 				model: 'opt-in',
 				prompt: 'choice',
