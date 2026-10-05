@@ -79,7 +79,8 @@ placeholder IDs in generated script configuration before you deploy.
 In React and Next.js apps, setup adds c15t's `styles.css` import to your
 global CSS entry. It follows local CSS imports in the application entrypoint,
 including semicolon-free imports and aliases from `tsconfig.json` or
-`jsconfig.json`, then checks conventional global stylesheet paths. If it cannot
+`jsconfig.json`, then checks conventional global stylesheet paths. Aliases outside
+the project are skipped so setup can find a stylesheet inside the app. If it cannot
 find the stylesheet, setup warns you to add the import yourself.
 
 When you choose a theme preset, the generated provider renders `ConsentTheme`
@@ -93,6 +94,7 @@ component styles and removes the banner and dialog spacing. Setup leaves custom
 rules alone. Put other global resets in `@layer base` yourself; keep intentional
 component overrides outside that layer.
 
+Setup recognizes Tailwind CSS 3 version ranges, including `>=3.4.17 <4`.
 With Tailwind CSS 3 setup also:
 
 * Puts the import above the `@tailwind` directives, and replaces a

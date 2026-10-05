@@ -347,6 +347,16 @@ describe('Tailwind 3 detection', () => {
 		expect(isTailwindV3('3.4.17')).toBe(true);
 		expect(isTailwindV3('^3.4.17')).toBe(true);
 		expect(isTailwindV3('~3.3.0')).toBe(true);
+		expect(isTailwindV3('>=3.4.17 <4')).toBe(true);
+		expect(isTailwindV3('<4 >=3.4.17')).toBe(true);
+		expect(isTailwindV3('3.3 - 3.4')).toBe(true);
+		expect(isTailwindV3('^3.3 || ^3.4')).toBe(true);
+		expect(isTailwindV3('3.0.0-alpha.1')).toBe(true);
+		expect(isTailwindV3('>=3')).toBe(false);
+		expect(isTailwindV3('^3 || ^4')).toBe(false);
+		expect(isTailwindV3('>=4 <3')).toBe(false);
+		expect(isTailwindV3('30.0.0')).toBe(false);
+		expect(isTailwindV3('latest')).toBe(false);
 		expect(isTailwindV3('^4.1.0')).toBe(false);
 		expect(isTailwindV3(null)).toBe(false);
 	});

@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { updateAppStylesheetImports } from './css';
+import { collectFileEdits } from './shared/file-plan';
 
 const tempDirs: string[] = [];
 
@@ -34,6 +35,44 @@ afterEach(async () => {
 });
 
 describe('updateAppStylesheetImports', () => {
+	it('reports only a reset change when the import is already correct', async () => {
+		const { root } = await createProject({
+			'app/globals.css':
+				'@import "c15t/next/styles.css";\n* { padding: 0; margin: 0; }\n',
+		});
+		const result = await updateAppStylesheetImports({
+			packageName: 'c15t/next',
+			projectRoot: root,
+		});
+		expect(result.changes).toEqual([
+			'moved the universal spacing reset into @layer base',
+		]);
+	});
+	it('skips aliases outside the project and plans an internal fallback', async () => {
+		const { root: workspace } = await createProject({
+			'app/app/globals.css': 'body { color: black; }\n',
+			'app/app/layout.tsx': "import '@/globals.css';",
+			'app/tsconfig.json': JSON.stringify({
+				compilerOptions: { baseUrl: '.', paths: { '@/*': ['../shared/*'] } },
+			}),
+			'shared/globals.css': '* { padding: 0; margin: 0; }\n',
+		});
+		const root = join(workspace, 'app');
+		const { result, edits } = await collectFileEdits(
+			() =>
+				updateAppStylesheetImports({
+					entrypointPath: 'app/layout.tsx',
+					packageName: 'c15t/next',
+					projectRoot: root,
+				}),
+			{ projectRoot: root }
+		);
+		expect(result.filePath).toBe(join(root, 'app/globals.css'));
+		expect(edits).toHaveLength(1);
+		expect(await readFile(join(workspace, 'shared/globals.css'), 'utf8')).toBe(
+			'* { padding: 0; margin: 0; }\n'
+		);
+	});
 	it('plans a plain CSS reset without writing and preserves CRLF on apply', async () => {
 		const original = '* {\r\n\tpadding: 0;\r\n\tmargin: 0;\r\n}\r\n';
 		const { root } = await createProject({ 'app/globals.css': original });
@@ -86,22 +125,25 @@ describe('updateAppStylesheetImports', () => {
 			rule
 		);
 	});
-	it('keeps Tailwind 3 resets unlayered', async () => {
-		const rule = '* { padding: 0; margin: 0; }';
-		const { root } = await createProject({
-			'app/globals.css': `${rule}\n`,
-			'package.json': JSON.stringify({
-				devDependencies: { tailwindcss: '^3.4.17' },
-			}),
-		});
-		await updateAppStylesheetImports({
-			packageName: 'c15t/next',
-			projectRoot: root,
-		});
-		expect(await readFile(join(root, 'app/globals.css'), 'utf8')).not.toContain(
-			'@layer base'
-		);
-	});
+	it.each(['^3.4.17', '>=3.4.17 <4', '<4 >=3.4.17', '3.3 - 3.4'])(
+		'keeps Tailwind 3 resets unlayered for %s',
+		async (version) => {
+			const rule = '* { padding: 0; margin: 0; }';
+			const { root } = await createProject({
+				'app/globals.css': `${rule}\n`,
+				'package.json': JSON.stringify({
+					devDependencies: { tailwindcss: version },
+				}),
+			});
+			await updateAppStylesheetImports({
+				packageName: 'c15t/next',
+				projectRoot: root,
+			});
+			expect(
+				await readFile(join(root, 'app/globals.css'), 'utf8')
+			).not.toContain('@layer base');
+		}
+	);
 	it.each([
 		{
 			config: {},

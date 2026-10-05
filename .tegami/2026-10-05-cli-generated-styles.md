@@ -13,3 +13,6 @@ cannot be found.
 
 Move the starter universal margin and padding reset into the base layer for
 Tailwind CSS 4 and plain CSS apps, so it no longer collapses the banner and dialog.
+
+Recognize Tailwind 3 comparator ranges, skip stylesheet aliases outside the app,
+and report only the stylesheet edits setup actually makes.

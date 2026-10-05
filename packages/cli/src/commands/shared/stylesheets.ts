@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { Project } from 'ts-morph';
 
@@ -412,6 +412,15 @@ const resolveCssEntrypoint = async function resolveCssEntrypoint({
 					: // oxlint-disable-next-line no-await-in-loop -- Resolve each imported stylesheet before trying the next.
 						await resolveCssAlias(projectRoot, moduleSpecifier);
 				for (const candidatePath of candidates) {
+					const candidateRelative = relative(projectRoot, candidatePath);
+					if (
+						!moduleSpecifier.startsWith('.') &&
+						(candidateRelative === '..' ||
+							candidateRelative.startsWith(`..${sep}`) ||
+							isAbsolute(candidateRelative))
+					) {
+						continue;
+					}
 					searchedPaths.push(candidatePath);
 					// oxlint-disable-next-line no-await-in-loop -- Check each candidate before following it.
 					await resolvePlannedPath(candidatePath);
@@ -510,9 +519,12 @@ export const ensureGlobalCssStylesheetImports =
 			await writeFile(filePath, nextContent, 'utf-8');
 		}
 
-		const changes = desiredImports.map((importPath) =>
-			describeImportChange(content, managedPackages, importPath)
-		);
+		const changes =
+			importedContent === content
+				? []
+				: desiredImports.map((importPath) =>
+						describeImportChange(content, managedPackages, importPath)
+					);
 		if (nextContent !== importedContent) {
 			changes.push('moved the universal spacing reset into @layer base');
 		}
