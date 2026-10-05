@@ -199,7 +199,12 @@ npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --plan
 npx @c15t/cli@alpha self-host migrate --config ./c15t-backend.config.ts --apply
 ```
 
-Back up existing data first and review the plan. Run the app against the same
+Back up existing data first and review the plan. The plan also warns about
+schema changes made outside the migrator that the backend depends on, such as a
+`runtimePolicyDecision` table without a unique index on `dedupeKey` alone. The
+migrator does not repair these; each warning includes the statement to run.
+
+Run the app against the same
 database, schema and credentials, or the server can connect to a different,
 unmigrated database. A server that starts has not proven that writes and reads
 work; save a choice and read it back.
@@ -232,7 +237,8 @@ an intentional deployment step after reviewing a plan against a restored copy
 of an existing database. The CLI provides an interactive review instead.
 
 `plan()` is read-only. Reports include `adoption`, `pending`, `retained`,
-`blocked` and `applied`. Adoption recognizes supported older SQL schemas before
+`blocked`, `applied` and `drift`. `drift` lists schema problems the migrator
+found but does not fix. Adoption recognizes supported older SQL schemas before
 applying numbered migrations. A blocked report is a refusal to migrate an
 unrecognized or unsafe state, not permission to delete the ledger and retry.
 The package's `c15t_migrations` ledger tracks applied migrations.

@@ -38,6 +38,7 @@ import type { ApplyOptions } from './adopt';
 import { classify } from './classify';
 import type { DatabaseClassification } from './classify';
 import type { UnsupportedDialectError } from './dialect';
+import { findSchemaDrift } from './drift';
 import { up as baselineUp } from './migrations/1-baseline';
 import { up as indexesUp } from './migrations/2-hot-path-indexes';
 import { up as receiptsUp } from './migrations/3-consent-receipts-and-privacy-directives';
@@ -112,6 +113,12 @@ export interface MigrateReport {
 	readonly blocked: string | undefined;
 	/** False when this was a dry run. */
 	readonly applied: boolean;
+	/**
+	 * Schema changes the backend depends on that this database lacks and the
+	 * migrator does not make, as messages for the operator. Read after the
+	 * migrations on an apply, before them on a dry run.
+	 */
+	readonly drift: readonly string[];
 }
 
 /**
@@ -254,7 +261,8 @@ export const migrate = Effect.fn('db.migrate')(function* migrate(
 			{ pending: [] },
 			{ retained: adoption.retained },
 			{ blocked: adoption.blocked },
-			{ applied: false }
+			{ applied: false },
+			{ drift: [] }
 		) satisfies MigrateReport;
 	}
 
@@ -275,7 +283,8 @@ export const migrate = Effect.fn('db.migrate')(function* migrate(
 			{ pending: pending.map((migration) => migration.name) },
 			{ retained: adoption.retained },
 			{ blocked: undefined },
-			{ applied: false }
+			{ applied: false },
+			{ drift: yield* findSchemaDrift }
 		) satisfies MigrateReport;
 	}
 
@@ -294,6 +303,7 @@ export const migrate = Effect.fn('db.migrate')(function* migrate(
 		{ pending: pending.map((migration) => migration.name) },
 		{ retained: adoption.retained },
 		{ blocked: undefined },
-		{ applied: true }
+		{ applied: true },
+		{ drift: yield* findSchemaDrift }
 	) satisfies MigrateReport;
 });
