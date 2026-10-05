@@ -47,7 +47,10 @@
  *
  * This module imports `@tanstack/react-start/server` lazily and must only
  * run on the server: inside server functions, server route handlers, and
- * request middleware.
+ * request middleware. Route files still import `consentLoaderOptions` from
+ * it, and route definitions ship to the browser, so browser builds resolve
+ * this entry to `server-browser.ts` instead (the `browser` export
+ * condition). Keep the two export lists in step.
  */
 
 import { mergeInitOutputIntoKernelConfig } from '@c15t/core';
@@ -397,25 +400,7 @@ export const mergeInitIntoConsentState = function mergeInitIntoConsentState(
 
 // -- Route wiring ------------------------------------------------------------
 
-/**
- * Root route options that keep the consent loader from re-running on
- * client-side navigation. Spread them into `createRootRoute()` next to
- * the loader. The state only changes when the request changes, and a
- * client navigation reuses the same request context, so re-running would
- * only re-serialize the same value.
- *
- * @example
- * ```ts
- * export const Route = createRootRoute({
- *   ...consentLoaderOptions,
- *   loader: () => getConsentState(),
- * });
- * ```
- */
-export const consentLoaderOptions = {
-	shouldReload: false,
-	staleTime: Number.POSITIVE_INFINITY,
-} as const;
+export { consentLoaderOptions } from './libs/loader-options';
 
 /**
  * Builds the handler for the consent state server function.

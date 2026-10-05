@@ -89,6 +89,7 @@
 		},
 		"./server": {
 			"types": "./dist-types/server.d.ts",
+			"browser": "./dist/server-browser.js",
 			"import": "./dist/server.js",
 			"default": "./dist/server.js"
 		},
