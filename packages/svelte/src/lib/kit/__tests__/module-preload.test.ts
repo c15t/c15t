@@ -3,38 +3,33 @@ import { describe, expect, test } from 'vitest';
 import { injectModulePreloads } from '../module-preload';
 
 const HREFS = {
-	'network-blocker': '/_app/immutable/chunks/blocker.js',
-	'script-loader': '/_app/immutable/chunks/loader.js',
+	'loader-and-blocker': '/_app/immutable/chunks/gates.js',
 };
 
-const LOADER_LINK =
-	'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low">';
-const BLOCKER_LINK =
-	'<link rel="modulepreload" href="/_app/immutable/chunks/blocker.js" fetchpriority="low">';
+const LINK =
+	'<link rel="modulepreload" href="/_app/immutable/chunks/gates.js" fetchpriority="low">';
 
 const marker = (content: string): string =>
 	`<meta name="c15t-modulepreload" content="${content}">`;
 
 describe('injectModulePreloads', () => {
-	test('links each named chunk at the end of the head', () => {
-		const head = `<head><!--[-->${marker('script-loader network-blocker')}<!--]--><title>x</title>`;
+	test('links the named chunk at the end of the head', () => {
+		const head = `<head><!--[-->${marker('loader-and-blocker')}<!--]--><title>x</title>`;
 		expect(injectModulePreloads(`${head}</head><body></body>`, HREFS)).toBe(
-			`${head}${LOADER_LINK}${BLOCKER_LINK}</head><body></body>`
+			`${head}${LINK}</head><body></body>`
 		);
 	});
 
-	test('asks for every chunk at low priority', () => {
+	test('asks for the chunk at low priority', () => {
 		// At the default priority the links went ahead of app chunks the
 		// browser requests later and delayed hydration on HTTP/1.1.
 		const html = injectModulePreloads(
-			`<head>${marker('script-loader network-blocker')}</head>`,
+			`<head>${marker('loader-and-blocker')}</head>`,
 			HREFS
 		);
 		const links = html.match(/<link [^>]*>/gu) ?? [];
-		expect(links).toHaveLength(2);
-		for (const link of links) {
-			expect(link).toContain(' fetchpriority="low"');
-		}
+		expect(links).toEqual([LINK]);
+		expect(LINK).toContain(' fetchpriority="low"');
 	});
 
 	test('leaves a page without the marker untouched', () => {
@@ -43,18 +38,18 @@ describe('injectModulePreloads', () => {
 	});
 
 	test('adds nothing when the build wrote no URL', () => {
-		const html = `<head>${marker('script-loader')}</head>`;
+		const html = `<head>${marker('loader-and-blocker')}</head>`;
 		// The placeholders, as in `vite dev` or without `c15tPreload()`.
 		expect(injectModulePreloads(html)).toBe(html);
 		// An entry chunk already carries the module.
-		expect(injectModulePreloads(html, { ...HREFS, 'script-loader': '' })).toBe(
-			html
-		);
+		expect(
+			injectModulePreloads(html, { ...HREFS, 'loader-and-blocker': '' })
+		).toBe(html);
 	});
 
 	test('links each chunk once when two providers name it', () => {
 		const html = injectModulePreloads(
-			`<head>${marker('script-loader')}${marker('script-loader')}</head>`,
+			`<head>${marker('loader-and-blocker')}${marker('loader-and-blocker')}</head>`,
 			HREFS
 		);
 		expect(html.match(/rel="modulepreload"/gu)).toHaveLength(1);
@@ -63,28 +58,28 @@ describe('injectModulePreloads', () => {
 	test("takes SvelteKit's script nonce when the provider has none", () => {
 		expect(
 			injectModulePreloads(
-				`<head>${marker('script-loader')}</head><body><script nonce="kitN0nce">start()</script></body>`,
+				`<head>${marker('loader-and-blocker')}</head><body><script nonce="kitN0nce">start()</script></body>`,
 				HREFS
 			)
 		).toContain(
-			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low" nonce="kitN0nce">'
+			'<link rel="modulepreload" href="/_app/immutable/chunks/gates.js" fetchpriority="low" nonce="kitN0nce">'
 		);
 	});
 
 	test('prefers the provider nonce and refuses one that is not a nonce', () => {
 		expect(
 			injectModulePreloads(
-				`<head>${marker('script-loader nonce=own')}</head><script nonce="kit">`,
+				`<head>${marker('loader-and-blocker nonce=own')}</head><script nonce="kit">`,
 				HREFS
 			)
 		).toContain('nonce="own">');
 		// What Svelte renders for a nonce with quotes in it.
 		expect(
 			injectModulePreloads(
-				`<head>${marker('script-loader nonce=&quot;x&quot;onload=&quot;y')}</head>`,
+				`<head>${marker('loader-and-blocker nonce=&quot;x&quot;onload=&quot;y')}</head>`,
 				HREFS
 			)
-		).toContain(`${LOADER_LINK}</head>`);
+		).toContain(`${LINK}</head>`);
 	});
 
 	test('ignores names that are not chunks', () => {

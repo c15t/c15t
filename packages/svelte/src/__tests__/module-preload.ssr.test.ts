@@ -1,5 +1,5 @@
 /**
- * The provider names the on-demand chunks its page starts with, and
+ * The provider names the on-demand chunk its page starts with, and
  * `c15tHandle`'s page transform turns that into `<link rel="modulepreload">`.
  *
  * Runs in the `ssr` project, so the provider is server-compiled as it is
@@ -14,9 +14,11 @@ import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 
 const HREFS = {
-	'network-blocker': '/_app/immutable/chunks/blocker.js',
-	'script-loader': '/_app/immutable/chunks/loader.js',
+	'loader-and-blocker': '/_app/immutable/chunks/gates.js',
 };
+
+const LINK =
+	'<link rel="modulepreload" href="/_app/immutable/chunks/gates.js" fetchpriority="low">';
 
 const SCRIPT = {
 	category: 'measurement',
@@ -49,16 +51,18 @@ const preloads = (head: string): string[] =>
 	[...head.matchAll(/<link rel="modulepreload"[^>]*>/gu)].map(([tag]) => tag);
 
 describe('module preloads for on-demand chunks', () => {
-	test('a page with scripts preloads the script loader', () => {
-		expect(preloads(renderPage({ scripts: [SCRIPT] }))).toEqual([
-			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low">',
-		]);
+	test('a page with scripts preloads the loader-and-blocker chunk', () => {
+		expect(preloads(renderPage({ scripts: [SCRIPT] }))).toEqual([LINK]);
 	});
 
-	test('a page with blocker rules preloads the network blocker', () => {
-		expect(preloads(renderPage({ networkBlocker: BLOCKER }))).toEqual([
-			'<link rel="modulepreload" href="/_app/immutable/chunks/blocker.js" fetchpriority="low">',
-		]);
+	test('a page with blocker rules preloads the same chunk', () => {
+		expect(preloads(renderPage({ networkBlocker: BLOCKER }))).toEqual([LINK]);
+	});
+
+	test('a page with scripts and blocker rules preloads one chunk', () => {
+		expect(
+			preloads(renderPage({ networkBlocker: BLOCKER, scripts: [SCRIPT] }))
+		).toEqual([LINK]);
 	});
 
 	test('a page without scripts or rules preloads nothing', () => {
@@ -79,7 +83,7 @@ describe('module preloads for on-demand chunks', () => {
 		expect(
 			preloads(renderPage({ nonce: 'r4nd0m', scripts: [SCRIPT] }))
 		).toEqual([
-			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low" nonce="r4nd0m">',
+			'<link rel="modulepreload" href="/_app/immutable/chunks/gates.js" fetchpriority="low" nonce="r4nd0m">',
 		]);
 	});
 });

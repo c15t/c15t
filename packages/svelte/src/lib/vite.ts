@@ -1,9 +1,9 @@
 /**
  * `@c15t/svelte/vite` — build-time help for SvelteKit apps.
  *
- * The provider loads the script loader and the network blocker on demand.
- * {@link c15tPreload} lets `c15tHandle` preload them on the pages that
- * configure `scripts` or blocker rules, so those chunks arrive with the
+ * The provider loads the script loader and the network blocker on demand,
+ * as one chunk. {@link c15tPreload} lets `c15tHandle` preload it on the
+ * pages that configure `scripts` or blocker rules, so it arrives with the
  * app's code instead of one round trip after it.
  */
 import { readdir, readFile, writeFile } from 'node:fs/promises';
@@ -15,10 +15,8 @@ import type { PreloadChunkName } from './kit/module-preload.js';
 
 /** The `@c15t/core` module each on-demand chunk starts from. */
 const CHUNK_MODULES: Readonly<Record<PreloadChunkName, RegExp>> = {
-	'network-blocker':
-		/[\\/](?:@c15t[\\/]core|packages[\\/]core)[\\/](?:dist|src)[\\/]modules[\\/]network-blocker[\\/]blocker\.[cm]?[jt]s$/u,
-	'script-loader':
-		/[\\/](?:@c15t[\\/]core|packages[\\/]core)[\\/](?:dist|src)[\\/]modules[\\/]script-loader[\\/]loader\.[cm]?[jt]s$/u,
+	'loader-and-blocker':
+		/[\\/](?:@c15t[\\/]core|packages[\\/]core)[\\/](?:dist|src)[\\/]modules[\\/]loader-and-blocker\.[cm]?[jt]s$/u,
 };
 
 const CHUNK_NAMES = Object.keys(CHUNK_MODULES) as PreloadChunkName[];
@@ -74,7 +72,7 @@ export const resolveChunkHrefs = function resolveChunkHrefs(
 	bundle: Record<string, { type: string }>,
 	base: string
 ): Record<PreloadChunkName, string> {
-	const hrefs = { 'network-blocker': '', 'script-loader': '' };
+	const hrefs: Record<PreloadChunkName, string> = { 'loader-and-blocker': '' };
 	for (const output of Object.values(bundle)) {
 		if (output.type !== 'chunk') {
 			continue;
@@ -138,16 +136,15 @@ export const writeChunkHrefs = async function writeChunkHrefs(
 
 /**
  * Vite plugin that tells `c15tHandle` where the client build put the
- * script loader and network blocker chunks.
+ * chunk that holds the script loader and the network blocker.
  *
  * SvelteKit builds the server first, so the server cannot know client
  * chunk names. After the client build writes its chunks, this plugin
  * writes their URLs into the server output, before SvelteKit prerenders
  * and before an adapter copies it. `c15tHandle` then adds a
- * `<link rel="modulepreload">` for each chunk a page's provider starts
- * with: the script loader when `scripts` is non-empty, the network blocker
- * when it has rules. Pages without either get no link and never fetch the
- * chunks.
+ * `<link rel="modulepreload">` for that chunk to every page whose provider
+ * has non-empty `scripts` or blocker rules. Pages without either get no
+ * link and never fetch the chunk.
  *
  * Only builds are affected. Outside SvelteKit (a Vite single-page app)
  * the plugin does nothing: there is no server render to put a link in.

@@ -111,9 +111,9 @@ when you do not install the handle.
 3. reads the consent cookie,
 4. stores the result on `event.locals.c15t`, and
 5. on pages whose provider has `scripts` or network blocker rules, links
-   those chunks with `<link rel="modulepreload">` once the
+   the chunk that holds both with `<link rel="modulepreload">` once the
    [`c15tPreload()` Vite plugin](./scripts#preload-the-script-loader) has
-   written their URLs into the build.
+   written its URL into the build.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |

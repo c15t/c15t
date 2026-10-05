@@ -143,7 +143,7 @@ describe('c15tHandle', () => {
 		// Without `c15tPreload()` the build names no chunk, so no link is
 		// added.
 		const page =
-			'<head><meta name="c15t-modulepreload" content="script-loader"></head>';
+			'<head><meta name="c15t-modulepreload" content="loader-and-blocker"></head>';
 		expect(resolveOptions.transformPageChunk({ done: true, html: page })).toBe(
 			page
 		);

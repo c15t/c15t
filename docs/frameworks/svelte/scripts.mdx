@@ -14,8 +14,9 @@ this file:
 
 Replace the placeholder PostHog project key and X Pixel ID with your own.
 
-The provider loads the script loader as a separate chunk, and only when
-`scripts` is not empty, so an app without scripts never downloads it. A
+The provider loads the script loader as a separate chunk, shared with the
+[network blocker](./network-blocker), and only when `scripts` is not empty or
+the blocker has rules, so an app with neither never downloads it. A
 single-page app has no server render to link the chunk from, so the browser
 requests it after your app's JavaScript has run. A SvelteKit app can preload
 it from the server-rendered page; the SvelteKit scripts guide shows how.

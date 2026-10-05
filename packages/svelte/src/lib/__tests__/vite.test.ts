@@ -23,9 +23,8 @@ const chunk = (
 const CLIENT_BUNDLE = {
 	'_app/immutable/chunks/a.js': chunk('_app/immutable/chunks/a.js', [
 		`${CORE}/script-loader/loader.js`,
-	]),
-	'_app/immutable/chunks/b.js': chunk('_app/immutable/chunks/b.js', [
 		`${CORE}/network-blocker/blocker.js`,
+		`${CORE}/loader-and-blocker.js`,
 	]),
 	'_app/immutable/entry/app.js': chunk(
 		'_app/immutable/entry/app.js',
@@ -46,10 +45,9 @@ afterEach(async () => {
 });
 
 describe('resolveChunkHrefs', () => {
-	test('finds each chunk under the served base', () => {
+	test('finds the loader-and-blocker chunk under the served base', () => {
 		expect(resolveChunkHrefs(CLIENT_BUNDLE, '/docs')).toEqual({
-			'network-blocker': '/docs/_app/immutable/chunks/b.js',
-			'script-loader': '/docs/_app/immutable/chunks/a.js',
+			'loader-and-blocker': '/docs/_app/immutable/chunks/a.js',
 		});
 	});
 
@@ -60,13 +58,13 @@ describe('resolveChunkHrefs', () => {
 				[
 					`${CORE}/script-loader/loader.js`,
 					`${CORE}/network-blocker/blocker.js`,
+					`${CORE}/loader-and-blocker.js`,
 				],
 				true
 			),
 		};
 		expect(resolveChunkHrefs(bundle, '')).toEqual({
-			'network-blocker': '',
-			'script-loader': '',
+			'loader-and-blocker': '',
 		});
 	});
 });
@@ -105,8 +103,7 @@ describe('c15tPreload', () => {
 		await plugin.writeBundle.call({}, {}, CLIENT_BUNDLE);
 		expect(await readFile(file, 'utf8')).toBe(
 			`const hrefs = ${JSON.stringify({
-				'network-blocker': '/_app/immutable/chunks/b.js',
-				'script-loader': '/_app/immutable/chunks/a.js',
+				'loader-and-blocker': '/_app/immutable/chunks/a.js',
 			})};`
 		);
 	});
@@ -122,7 +119,7 @@ describe('c15tPreload', () => {
 			CLIENT_BUNDLE
 		);
 		expect(await readFile(file, 'utf8')).toContain(
-			MODULE_PRELOAD_PLACEHOLDERS['script-loader']
+			MODULE_PRELOAD_PLACEHOLDERS['loader-and-blocker']
 		);
 
 		await plugin.writeBundle.call(
@@ -168,7 +165,7 @@ describe('c15tPreload', () => {
 		});
 		await plugin.writeBundle.call({}, {}, CLIENT_BUNDLE);
 		expect(await readFile(file, 'utf8')).toContain(
-			MODULE_PRELOAD_PLACEHOLDERS['script-loader']
+			MODULE_PRELOAD_PLACEHOLDERS['loader-and-blocker']
 		);
 	});
 });
