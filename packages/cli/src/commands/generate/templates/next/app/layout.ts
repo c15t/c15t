@@ -16,7 +16,7 @@ import {
 	generateExpandedConsentBannerTemplate,
 	generateExpandedConsentDialogTemplate,
 	generateExpandedProviderTemplate,
-	generateExpandedThemeTemplate,
+	generateProjectThemeTemplate,
 } from '../../shared/expanded-components';
 import fs, { createFile } from '../../shared/file-plan';
 import { NEXTJS_CONFIG } from '../../shared/framework-config';
@@ -189,7 +189,8 @@ async function createExpandedConsentManagerComponents(
 		generateExpandedConsentBannerTemplate(NEXTJS_CONFIG);
 	const consentDialogContent =
 		generateExpandedConsentDialogTemplate(NEXTJS_CONFIG);
-	const themeContent = generateExpandedThemeTemplate(
+	const themeContent = await generateProjectThemeTemplate(
+		projectRoot,
 		expandedTheme,
 		NEXTJS_CONFIG
 	);
@@ -311,7 +312,8 @@ async function createPrebuiltConsentManagerComponents(
 
 	// Generate theme file when a theme is selected
 	if (hasTheme) {
-		const themeContent = generateExpandedThemeTemplate(
+		const themeContent = await generateProjectThemeTemplate(
+			projectRoot,
 			expandedTheme,
 			NEXTJS_CONFIG
 		);
@@ -358,7 +360,7 @@ export function updateAppLayout({
 	enableSSR = false,
 	enableDevTools = false,
 	uiStyle = 'prebuilt',
-	expandedTheme = 'tailwind',
+	expandedTheme = 'none',
 	selectedScripts,
 	layoutFilePath,
 }: UpdateAppLayoutOptions): Promise<{

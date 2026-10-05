@@ -10,8 +10,10 @@
  * Next.js App Router, TanStack Start, and other RSC frameworks.
  */
 
+import { detectFramework } from '~/context/framework-detection';
 import type { DevelopmentEnvironment } from '~/context/framework-detection';
 
+import { isTailwindV3 } from '../../../shared/postcss-config';
 import type { ExpandedTheme } from '../../prompts/expanded-theme';
 import { DEVTOOLS_COMPONENT, generateDevToolsImport } from './devtools';
 import type { FrameworkConfig } from './framework-config';
@@ -78,7 +80,7 @@ export const generateExpandedProviderTemplate =
 
 		return `'use client';
 
-${reactNodeImport}import { ConsentProvider${modeImport ? `, ${modeImport}` : ''} } from '${framework.importSource}';
+${reactNodeImport}import { ConsentProvider, ConsentTheme${modeImport ? `, ${modeImport}` : ''} } from '${framework.importSource}';
 ${typeImports}
 ${generateScriptsImport(selectedScripts)}
 ${devToolsImport}import ConsentBanner from './consent-banner';
@@ -99,6 +101,7 @@ export default function ConsentManagerClient(${propsDestructure}) {
 				${selectedScripts.length ? generateScriptsConfig(selectedScripts) : generateScriptsCommentPlaceholder()}
 			}}
 		>
+			<ConsentTheme theme={theme} />
 			<ConsentBanner />
 			<ConsentDialog />
 			${enableDevTools ? DEVTOOLS_COMPONENT : ''}
@@ -311,8 +314,21 @@ export const components: ReactComponentSlots = {
 };
 
 const generateTailwindTheme = function generateTailwindTheme(
-	framework: FrameworkConfig
+	framework: FrameworkConfig,
+	tailwindVersion?: string | null
 ): string {
+	const classes = (value: string): string =>
+		isTailwindV3(tailwindVersion ?? null)
+			? value
+					.split(' ')
+					.map((utility) =>
+						utility.replace(
+							/(?<variant>^|:)(?<utility>[^:]+)$/u,
+							'$<variant>!$<utility>'
+						)
+					)
+					.join(' ')
+			: value;
 	return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';
 
 /**
@@ -355,27 +371,27 @@ export const components: ReactComponentSlots = {
 	banner: {
 		card: {
 			className:
-				'border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md',
+				'${classes('border border-slate-200 bg-white/95 backdrop-blur-sm shadow-md')}',
 		},
-		title: { className: 'text-slate-900 font-semibold' },
+		title: { className: '${classes('text-slate-900 font-semibold')}' },
 	},
 	dialog: {
 		card: {
 			className:
-				'border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl',
+				'${classes('border border-slate-200 bg-white/95 backdrop-blur-md shadow-xl')}',
 		},
 	},
 	button: {
 		primary: {
 			className:
-				'bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors',
+				'${classes('bg-blue-600 text-white hover:bg-blue-700 shadow-sm transition-colors')}',
 		},
 		secondary: {
 			className:
-				'bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors',
+				'${classes('bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 transition-colors')}',
 		},
 	},
-	description: { banner: { className: 'text-slate-500' } },
+	description: { banner: { className: '${classes('text-slate-500')}' } },
 };
 `;
 };
@@ -492,16 +508,27 @@ export const components: ReactComponentSlots = {
 export const generateExpandedThemeTemplate =
 	function generateExpandedThemeTemplate(
 		theme: ExpandedTheme,
-		framework: FrameworkConfig
+		framework: FrameworkConfig,
+		tailwindVersion?: string | null
 	): string {
 		switch (theme) {
 			case 'tailwind':
-				return generateTailwindTheme(framework);
+				return generateTailwindTheme(framework, tailwindVersion);
 			case 'minimal':
 				return generateMinimalTheme(framework);
 			case 'dark':
 				return generateDarkTheme(framework);
 			default:
-				return generateTailwindTheme(framework);
+				return `import type { ReactComponentSlots, Theme } from '${framework.themeTypesImportSource}';\n\nexport const theme: Theme = {};\nexport const components: ReactComponentSlots = {};\n`;
 		}
 	};
+
+/** Generate a preset for the project's installed Tailwind major version. */
+export const generateProjectThemeTemplate = async (
+	projectRoot: string,
+	theme: ExpandedTheme,
+	framework: FrameworkConfig
+): Promise<string> => {
+	const { tailwindVersion } = await detectFramework(projectRoot);
+	return generateExpandedThemeTemplate(theme, framework, tailwindVersion);
+};

@@ -34,6 +34,82 @@ afterEach(async () => {
 });
 
 describe('updateAppStylesheetImports', () => {
+	it.each([
+		{
+			config: {},
+			entry: "import '../styles/site.css'",
+			name: 'semicolon-free import',
+		},
+		{
+			config: {},
+			entry: "import '../styles/site.css'; // global styles",
+			name: 'trailing comment',
+		},
+		{
+			config: {
+				'tsconfig.json':
+					'{ "compilerOptions": { "paths": { "@/*": ["./*"] } } }',
+			},
+			entry: "import '@/styles/site.css';",
+			name: 'tsconfig alias',
+		},
+		{
+			config: {
+				'jsconfig.json':
+					'{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["./*"] } } }',
+			},
+			entry: "import '@/styles/site.css';",
+			name: 'jsconfig alias',
+		},
+		{
+			config: {
+				'config/base.json':
+					'{ "compilerOptions": { "paths": { "@/*": ["../*"] } } }',
+				'tsconfig.json': '{ "extends": "./config/base.json" }',
+			},
+			entry: "import '@/styles/site.css';",
+			name: 'inherited alias',
+		},
+	])('finds the loaded stylesheet with $name', async ({ entry, config }) => {
+		const { root } = await createProject({
+			...config,
+			'app/layout.tsx': `${entry}\nexport default function Layout() { return null; }`,
+			'styles/site.css': '@import "tailwindcss";\n',
+		});
+		const result = await updateAppStylesheetImports({
+			entrypointPath: 'app/layout.tsx',
+			packageName: 'c15t/next',
+			projectRoot: root,
+		});
+		expect(result.filePath).toBe(join(root, 'styles/site.css'));
+		expect(await readFile(join(root, 'styles/site.css'), 'utf8')).toContain(
+			'@import "c15t/next/styles.css";'
+		);
+	});
+	it('ignores CSS module imports and commented-out imports', async () => {
+		const { root } = await createProject({
+			'app/layout.tsx':
+				"// import '../styles/unused.css';\nimport styles from '../styles/layout.module.css';\nimport '../styles/site.css'\nexport default function Layout() { return null; }",
+			'styles/layout.module.css': '/* untouched */',
+			'styles/site.css': '@import "tailwindcss";\n',
+			'styles/unused.css': '/* untouched */',
+		});
+		const options = {
+			entrypointPath: 'app/layout.tsx',
+			packageName: 'c15t/next' as const,
+			projectRoot: root,
+		};
+		expect((await updateAppStylesheetImports(options)).filePath).toBe(
+			join(root, 'styles/site.css')
+		);
+		expect((await updateAppStylesheetImports(options)).updated).toBe(false);
+		expect(await readFile(join(root, 'styles/unused.css'), 'utf8')).toBe(
+			'/* untouched */'
+		);
+		expect(await readFile(join(root, 'styles/layout.module.css'), 'utf8')).toBe(
+			'/* untouched */'
+		);
+	});
 	it('adds the React stylesheet to src/index.css for non-Tailwind apps', async () => {
 		const { root } = await createProject({
 			'src/index.css': ':root { color: #111827; }\n',

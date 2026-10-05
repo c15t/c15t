@@ -7,7 +7,7 @@ import type { ExpandedTheme, UIStyle } from '../../prompts';
 import { generateConsentComponent } from './components';
 import { getComponentsDirectory } from './directory';
 import {
-	generateExpandedThemeTemplate,
+	generateProjectThemeTemplate,
 	generateExpandedProviderTemplate,
 	generateExpandedConsentBannerTemplate,
 	generateExpandedConsentDialogTemplate,
@@ -89,7 +89,8 @@ export const createConsentManagerComponent =
 
 		// Generate theme file when a theme is selected
 		if (hasTheme) {
-			const themeContent = generateExpandedThemeTemplate(
+			const themeContent = await generateProjectThemeTemplate(
+				projectRoot,
 				expandedTheme ?? 'none',
 				framework
 			);

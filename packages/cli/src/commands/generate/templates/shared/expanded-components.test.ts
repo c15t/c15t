@@ -15,6 +15,36 @@ import {
 import { NEXTJS_CONFIG, REACT_CONFIG } from './framework-config';
 
 describe('expanded component templates', () => {
+	it('renders the expanded theme tokens as CSS', () => {
+		const template = generateExpandedProviderTemplate({
+			enableDevTools: false,
+			enableSSR: false,
+			framework: NEXTJS_CONFIG,
+			optionsText: 'mode: offline(),',
+		});
+		expect(template).toContain('<ConsentTheme theme={theme} />');
+	});
+	it('uses important utilities only for the Tailwind 3 preset', () => {
+		expect(
+			generateExpandedThemeTemplate('tailwind', NEXTJS_CONFIG, '^3.4.17')
+		).toContain('!bg-white/95');
+		expect(
+			generateExpandedThemeTemplate('tailwind', NEXTJS_CONFIG, '^3.4.17')
+		).toContain('hover:!bg-blue-700');
+		expect(
+			generateExpandedThemeTemplate('tailwind', NEXTJS_CONFIG, '^4.1.0')
+		).toContain('hover:bg-blue-700');
+		expect(
+			generateExpandedThemeTemplate('tailwind', NEXTJS_CONFIG, '^4.1.0')
+		).not.toContain('!bg-');
+	});
+	it('leaves the none preset empty', () => {
+		const template = generateExpandedThemeTemplate('none', NEXTJS_CONFIG);
+		expect(template).toContain('export const theme: Theme = {};');
+		expect(template).toContain(
+			'export const components: ReactComponentSlots = {};'
+		);
+	});
 	it('type-checks all theme presets against the public React theme and component types', () => {
 		const directory = mkdtempSync(join(tmpdir(), 'c15t-generated-themes-'));
 		const require = createRequire(import.meta.url);
