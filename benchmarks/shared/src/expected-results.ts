@@ -110,6 +110,9 @@ export const nextjsBrowserScenarios = [
 	'saved-consent-accept',
 	'saved-consent-reject',
 	'ssr-repeat',
+	'typical-install',
+	'typical-install-repeat',
+	'typical-install-returning',
 ] as const;
 
 export const nuxtBrowserScenarios = [

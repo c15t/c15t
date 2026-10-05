@@ -713,6 +713,19 @@ const SAVED_CONSENT_SCENARIOS = new Set([
 	'saved-consent-reject',
 ]);
 
+/** The Next.js typical-install arm: a first visit and two returning visits. */
+const NEXTJS_TYPICAL_INSTALL_SCENARIOS = new Set([
+	'typical-install',
+	'typical-install-repeat',
+	'typical-install-returning',
+]);
+
+/** Typical-install visits that carry the stored accept-all choice. */
+const NEXTJS_TYPICAL_INSTALL_RETURNING_SCENARIOS = new Set([
+	'typical-install-repeat',
+	'typical-install-returning',
+]);
+
 /**
  * Budgets for a saved-consent visit: a new browser context that carries the
  * cookies and localStorage of an accepted or rejected fresh visit. The
@@ -794,6 +807,15 @@ const nextjsInitRequestBudget = function nextjsInitRequestBudget(
 		// init request.
 		return undefined;
 	}
+	if (NEXTJS_TYPICAL_INSTALL_SCENARIOS.has(scenario)) {
+		return {
+			comparator: 'count-eq',
+			description:
+				'The quickstart install resolves consent on the server from the cached manifest and makes no browser init request.',
+			metric: 'initRequestsAfterLoad',
+			threshold: 0,
+		};
+	}
 	if (SAVED_CONSENT_SCENARIOS.has(scenario)) {
 		return {
 			comparator: 'count-eq',
@@ -828,7 +850,9 @@ export const nextjsBrowserBudgetsForScenario =
 	function nextjsBrowserBudgetsForScenario(scenario: string): MetricBudget[] {
 		const baseScenario = scenario.replace(/-(?:cold|steady)$/u, '');
 		const budgets =
-			SAVED_CONSENT_SCENARIOS.has(baseScenario) || baseScenario === 'ssr-repeat'
+			SAVED_CONSENT_SCENARIOS.has(baseScenario) ||
+			NEXTJS_TYPICAL_INSTALL_RETURNING_SCENARIOS.has(baseScenario) ||
+			baseScenario === 'ssr-repeat'
 				? savedConsentBrowserBudgets({ serverRendered: true })
 				: [...sharedBrowserBudgets];
 		const initRequest = nextjsInitRequestBudget(baseScenario);
