@@ -1,7 +1,9 @@
 import { join } from 'node:path';
 
 import { UMBRELLA_PACKAGE } from '~/constants';
+import { detectFramework } from '~/context/framework-detection';
 
+import { isTailwindV3 } from '../../shared/postcss-config';
 import { ensureGlobalCssStylesheetImports } from '../../shared/stylesheets';
 import type {
 	EnsureGlobalCssStylesheetImportsResult,
@@ -80,12 +82,14 @@ export const updateAppStylesheetImports =
 			options.projectRoot,
 			options.packageName
 		);
+		const { tailwindVersion } = await detectFramework(options.projectRoot);
 
 		return ensureGlobalCssStylesheetImports({
 			dryRun: options.dryRun,
 			entrypointPath: options.entrypointPath,
 			includeBase: true,
 			includeIab: options.includeIab ?? false,
+			layerStarterReset: !isTailwindV3(tailwindVersion),
 			packageName,
 			projectRoot: options.projectRoot,
 		});

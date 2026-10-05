@@ -120,6 +120,7 @@
 		"open": "11.0.0",
 		"package-manager-detector": "1.7.0",
 		"picocolors": "1.1.1",
+		"postcss": "8.5.16",
 		"ts-morph": "27.0.2",
 		"xstate": "^5.32.4",
 		"zod": "4.4.3"

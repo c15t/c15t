@@ -67,12 +67,17 @@ describe('generated project outcomes', () => {
 	])(
 		'generates working theme wiring for $entry with $uiStyle',
 		async ({ entry, uiStyle }) => {
+			const cssPath = entry.startsWith('pages/')
+				? 'styles/globals.css'
+				: 'app/globals.css';
+			const cssImport = entry.startsWith('pages/')
+				? '../styles/globals.css'
+				: './globals.css';
 			const options = await project(
 				{ next: '15', react: '19', tailwindcss: '3.4.17' },
 				{
-					[entry]:
-						'export default function Layout({ children }: { children: React.ReactNode }) { return <main>{children}</main>; }',
-					'app/globals.css':
+					[entry]: `import '${cssImport}';\nexport default function Layout({ children }: { children: React.ReactNode }) { return <main>{children}</main>; }`,
+					[cssPath]:
 						'@tailwind base;\n@tailwind components;\n@tailwind utilities;\n',
 					'postcss.config.mjs':
 						'export default { plugins: { tailwindcss: {} } };',
@@ -92,7 +97,7 @@ describe('generated project outcomes', () => {
 					'utf8'
 				)
 			).toContain('hover:!bg-blue-700');
-			expect(await readFile(join(root, 'app/globals.css'), 'utf8')).toContain(
+			expect(await readFile(join(root, cssPath), 'utf8')).toContain(
 				'@import "c15t/next/styles.css";'
 			);
 			expect(

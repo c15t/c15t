@@ -9,6 +9,7 @@ import {
 	writeFile,
 } from '../generate/templates/shared/file-plan';
 import { isTailwindV3 } from './postcss-config';
+import { layerStarterReset } from './starter-reset';
 
 const CSS_ENTRYPOINT_CANDIDATES = [
 	'app/globals.css',
@@ -52,6 +53,8 @@ export interface EnsureGlobalCssStylesheetImportsOptions {
 	entrypointPath?: string | null;
 	includeBase: boolean;
 	includeIab: boolean;
+	/** Move the stock universal reset below v3's layered component styles. */
+	layerStarterReset?: boolean;
 	dryRun?: boolean;
 }
 
@@ -484,12 +487,15 @@ export const ensureGlobalCssStylesheetImports =
 
 		const content = await readFile(filePath, 'utf-8');
 		const managedPackages = getManagedPackages(options.packageName);
-		const nextContent = insertImportsIntoCssContent(
+		const importedContent = insertImportsIntoCssContent(
 			content,
 			desiredImports,
 			managedPackages,
 			legacyTailwind3
 		);
+		const nextContent = options.layerStarterReset
+			? layerStarterReset(importedContent)
+			: importedContent;
 
 		if (nextContent === content) {
 			return {
@@ -507,6 +513,9 @@ export const ensureGlobalCssStylesheetImports =
 		const changes = desiredImports.map((importPath) =>
 			describeImportChange(content, managedPackages, importPath)
 		);
+		if (nextContent !== importedContent) {
+			changes.push('moved the universal spacing reset into @layer base');
+		}
 
 		return {
 			changes,

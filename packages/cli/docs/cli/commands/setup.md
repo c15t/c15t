@@ -86,6 +86,13 @@ When you choose a theme preset, the generated provider renders `ConsentTheme`
 to apply the tokens in `theme.ts`. Passing `theme` in the provider options alone
 does not generate CSS. The None preset keeps c15t's default styles.
 
+With Tailwind CSS 4, or without Tailwind, setup moves the starter universal reset
+`* { padding: 0; margin: 0; }` into `@layer base`. It also accepts the reset's
+optional `box-sizing: border-box`. An unlayered reset outranks c15t's layered
+component styles and removes the banner and dialog spacing. Setup leaves custom
+rules alone. Put other global resets in `@layer base` yourself; keep intentional
+component overrides outside that layer.
+
 With Tailwind CSS 3 setup also:
 
 * Puts the import above the `@tailwind` directives, and replaces a

@@ -34,6 +34,74 @@ afterEach(async () => {
 });
 
 describe('updateAppStylesheetImports', () => {
+	it('plans a plain CSS reset without writing and preserves CRLF on apply', async () => {
+		const original = '* {\r\n\tpadding: 0;\r\n\tmargin: 0;\r\n}\r\n';
+		const { root } = await createProject({ 'app/globals.css': original });
+		const options = { packageName: 'c15t/next' as const, projectRoot: root };
+		const plan = await updateAppStylesheetImports({ ...options, dryRun: true });
+		expect(plan.changes).toContain(
+			'moved the universal spacing reset into @layer base'
+		);
+		expect(await readFile(join(root, 'app/globals.css'), 'utf8')).toBe(
+			original
+		);
+		await updateAppStylesheetImports(options);
+		const css = await readFile(join(root, 'app/globals.css'), 'utf8');
+		expect(css).toContain('@layer base');
+		expect(css.replaceAll('\r\n', '')).not.toContain('\n');
+	});
+	it('puts a starter universal reset below layered component styles', async () => {
+		const { root } = await createProject({
+			'app/globals.css':
+				'@import "tailwindcss";\n\n* {\n  box-sizing: border-box;\n  padding: 0;\n  margin: 0;\n}\n\n.page { padding: 24px; }\n',
+			'package.json': JSON.stringify({
+				devDependencies: { tailwindcss: '^4.1.0' },
+			}),
+		});
+		const options = { packageName: 'c15t/next' as const, projectRoot: root };
+		const result = await updateAppStylesheetImports(options);
+		const css = await readFile(join(root, 'app/globals.css'), 'utf8');
+		expect(css).toMatch(/@layer base\s*\{\s*\*\s*\{/u);
+		expect(css).toContain('.page { padding: 24px; }');
+		expect(result.changes).toContain(
+			'moved the universal spacing reset into @layer base'
+		);
+		expect((await updateAppStylesheetImports(options)).updated).toBe(false);
+	});
+	it.each([
+		'@layer base { * { padding: 0; margin: 0; } }',
+		'/* * { padding: 0; margin: 0; } */',
+		'.page * { padding: 0; margin: 0; }',
+		'* { padding: 4px; margin: 0; }',
+		'* { padding: 0 !important; margin: 0; }',
+		'* { padding: 0; margin: 0; color: red; }',
+		'@media (width > 600px) { * { padding: 0; margin: 0; } }',
+	])('preserves custom or already layered rules: %s', async (rule) => {
+		const { root } = await createProject({ 'app/globals.css': `${rule}\n` });
+		await updateAppStylesheetImports({
+			packageName: 'c15t/next',
+			projectRoot: root,
+		});
+		expect(await readFile(join(root, 'app/globals.css'), 'utf8')).toContain(
+			rule
+		);
+	});
+	it('keeps Tailwind 3 resets unlayered', async () => {
+		const rule = '* { padding: 0; margin: 0; }';
+		const { root } = await createProject({
+			'app/globals.css': `${rule}\n`,
+			'package.json': JSON.stringify({
+				devDependencies: { tailwindcss: '^3.4.17' },
+			}),
+		});
+		await updateAppStylesheetImports({
+			packageName: 'c15t/next',
+			projectRoot: root,
+		});
+		expect(await readFile(join(root, 'app/globals.css'), 'utf8')).not.toContain(
+			'@layer base'
+		);
+	});
 	it.each([
 		{
 			config: {},
