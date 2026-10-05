@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { minVersion, subset, validRange } from 'semver';
 import { ts } from 'ts-morph';
 
 import {
@@ -73,13 +74,17 @@ export type EnsureTailwind3PostcssPluginResult =
  * Whether a `tailwindcss` dependency range targets Tailwind 3.
  *
  * @param version - The range from package.json, or null without Tailwind
- * @returns True for `3.x`, `^3.x` and `~3.x` ranges
+ * @returns True for nonempty ranges restricted to Tailwind 3
  */
 export const isTailwindV3 = function isTailwindV3(
 	version: string | null
 ): boolean {
+	if (!version || !validRange(version)) {
+		return false;
+	}
 	return (
-		version !== null && version !== undefined && /^(?:\^|~)?3/u.test(version)
+		minVersion(version) !== null &&
+		subset(version, '^3.0.0-0', { includePrerelease: true })
 	);
 };
 

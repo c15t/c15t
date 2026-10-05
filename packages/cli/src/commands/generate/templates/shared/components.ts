@@ -150,7 +150,7 @@ export const generateConsentComponent = function generateConsentComponent({
 	);
 	const namedImports = `ConsentDialog,
 	ConsentProvider,
-	ConsentBanner,${modeImports.map((name) => `\n\t${name},`).join('')}${needsDataType ? '\n\ttype ConsentState,' : ''}`;
+	ConsentBanner,${includeTheme ? '\n\tConsentTheme,' : ''}${modeImports.map((name) => `\n\t${name},`).join('')}${needsDataType ? '\n\ttype ConsentState,' : ''}`;
 
 	// Build framework props type import
 	const frameworkPropsImport = '';
@@ -222,7 +222,7 @@ import {
 ${frameworkPropsImport}${devToolsImport}${themeImport}${scriptsImport ? `${scriptsImport}\n` : ''}${preDocComment}${docComment}
 ${exportPrefix} ${componentName}(${propsDestructure}) {
 	return (
-		<ConsentProvider${providerProps}>
+		<ConsentProvider${providerProps}>${includeTheme ? '\n\t\t\t<ConsentTheme theme={theme} />' : ''}
 			<ConsentBanner />
 			<ConsentDialog />
 			${enableDevTools ? DEVTOOLS_COMPONENT : ''}

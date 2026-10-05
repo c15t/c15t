@@ -4,7 +4,7 @@ exports[`expanded component templates > generates a Next.js v3 SSR provider with
 "'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentProvider, hosted } from 'c15t/next';
+import { ConsentProvider, ConsentTheme, hosted } from 'c15t/next';
 import type { ConsentState } from 'c15t/next';
 
 import { lazy, Suspense } from 'react';
@@ -40,6 +40,7 @@ export default function ConsentManagerClient({ children, state }: Props) {
 				// ],
 			}}
 		>
+			<ConsentTheme theme={theme} />
 			<ConsentBanner />
 			<ConsentDialog />
 			<Suspense fallback={null}><DevTools /></Suspense>
@@ -54,7 +55,7 @@ exports[`expanded component templates > generates a React v3 provider with its D
 "'use client';
 
 import type { ReactNode } from 'react';
-import { ConsentProvider, offline } from 'c15t/react';
+import { ConsentProvider, ConsentTheme, offline } from 'c15t/react';
 
 
 import { lazy, Suspense } from 'react';
@@ -88,6 +89,7 @@ export default function ConsentManagerClient({ children }: Props) {
 				// ],
 			}}
 		>
+			<ConsentTheme theme={theme} />
 			<ConsentBanner />
 			<ConsentDialog />
 			<Suspense fallback={null}><DevTools /></Suspense>

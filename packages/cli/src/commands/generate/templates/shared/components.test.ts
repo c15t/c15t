@@ -17,8 +17,16 @@ describe('consent component template', () => {
 			expect(template).toMatch(
 				/options=\{\{[\s\S]*?\btheme,[\s\S]*?\bcomponents,/u
 			);
+			expect(template).toContain('<ConsentTheme theme={theme} />');
 		}
 	);
+	it('does not render theme CSS without a preset', () => {
+		const template = generateConsentComponent({
+			importSource: 'c15t/next',
+			optionsText: 'mode: offline(),',
+		});
+		expect(template).not.toContain('ConsentTheme');
+	});
 	it('generates a React v3 provider with its framework DevTools adapter', () => {
 		const template = generateConsentComponent({
 			devToolsImportSource: 'c15t/react/devtools',

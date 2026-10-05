@@ -77,7 +77,25 @@ placeholder IDs in generated script configuration before you deploy.
 ## Set up styles and Tailwind CSS
 
 In React and Next.js apps, setup adds c15t's `styles.css` import to your
-global CSS entry. With Tailwind CSS 3 it also:
+global CSS entry. It follows local CSS imports in the application entrypoint,
+including semicolon-free imports and aliases from `tsconfig.json` or
+`jsconfig.json`, then checks conventional global stylesheet paths. Aliases outside
+the project are skipped so setup can find a stylesheet inside the app. If it cannot
+find the stylesheet, setup warns you to add the import yourself.
+
+When you choose a theme preset, the generated provider renders `ConsentTheme`
+to apply the tokens in `theme.ts`. Passing `theme` in the provider options alone
+does not generate CSS. The None preset keeps c15t's default styles.
+
+With Tailwind CSS 4, or without Tailwind, setup moves the starter universal reset
+`* { padding: 0; margin: 0; }` into `@layer base`. It also accepts the reset's
+optional `box-sizing: border-box`. An unlayered reset outranks c15t's layered
+component styles and removes the banner and dialog spacing. Setup leaves custom
+rules alone. Put other global resets in `@layer base` yourself; keep intentional
+component overrides outside that layer.
+
+Setup recognizes Tailwind CSS 3 version ranges, including `>=3.4.17 <4`.
+With Tailwind CSS 3 setup also:
 
 * Puts the import above the `@tailwind` directives, and replaces a
   `styles.tw3.css` import from an earlier setup.
@@ -86,6 +104,9 @@ global CSS entry. With Tailwind CSS 3 it also:
   edits one `postcss.config.*` or `.postcssrc*` file, in either the object or
   the array form, and leaves a config that already runs a c15t
   `postcss-tailwind3` plugin alone.
+* Uses important modifiers in the Tailwind preset, such as `hover:!bg-blue-700`,
+  so the generated utilities override c15t's component styles. Tailwind CSS 4
+  uses ordinary utilities instead.
 
 Setup prints the PostCSS change to make by hand when it finds no config, finds
 several config files, finds the config in the `postcss` key of `package.json`,

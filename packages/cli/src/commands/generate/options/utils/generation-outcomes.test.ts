@@ -59,6 +59,74 @@ const project = async function project(
 };
 
 describe('generated project outcomes', () => {
+	it.each([
+		{ entry: 'app/layout.tsx', uiStyle: 'prebuilt' as const },
+		{ entry: 'app/layout.tsx', uiStyle: 'expanded' as const },
+		{ entry: 'pages/_app.tsx', uiStyle: 'prebuilt' as const },
+		{ entry: 'pages/_app.tsx', uiStyle: 'expanded' as const },
+	])(
+		'generates working theme wiring for $entry with $uiStyle',
+		async ({ entry, uiStyle }) => {
+			const cssPath = entry.startsWith('pages/')
+				? 'styles/globals.css'
+				: 'app/globals.css';
+			const cssImport = entry.startsWith('pages/')
+				? '../styles/globals.css'
+				: './globals.css';
+			const options = await project(
+				{ next: '15', react: '19', tailwindcss: '3.4.17' },
+				{
+					[entry]: `import '${cssImport}';\nexport default function Layout({ children }: { children: React.ReactNode }) { return <main>{children}</main>; }`,
+					[cssPath]:
+						'@tailwind base;\n@tailwind components;\n@tailwind utilities;\n',
+					'postcss.config.mjs':
+						'export default { plugins: { tailwindcss: {} } };',
+				}
+			);
+			await generateFiles({ ...options, expandedTheme: 'tailwind', uiStyle });
+			const root = options.context.projectRoot;
+			expect(
+				await readFile(
+					join(root, 'components/consent-manager/provider.tsx'),
+					'utf8'
+				)
+			).toContain('<ConsentTheme theme={theme} />');
+			expect(
+				await readFile(
+					join(root, 'components/consent-manager/theme.ts'),
+					'utf8'
+				)
+			).toContain('hover:!bg-blue-700');
+			expect(await readFile(join(root, cssPath), 'utf8')).toContain(
+				'@import "c15t/next/styles.css";'
+			);
+			expect(
+				await readFile(join(root, 'postcss.config.mjs'), 'utf8')
+			).toContain("'c15t/postcss-tailwind3'");
+		}
+	);
+	it('preserves both missing stylesheet and PostCSS warnings', async () => {
+		const options = await project(
+			{ next: '15', react: '19', tailwindcss: '3.4.17' },
+			{
+				'app/layout.tsx':
+					'export default function Layout() { return <html><body /></html>; }',
+			}
+		);
+		const result = await generateFiles(options);
+		expect(result.warnings).toHaveLength(2);
+		expect(result.warnings?.[0]).toContain('Import "c15t/next/styles.css"');
+		expect(result.warnings?.[1]).toContain('postcss-tailwind3');
+		expect(
+			await readFile(
+				join(
+					options.context.projectRoot,
+					'components/consent-manager/provider.tsx'
+				),
+				'utf8'
+			)
+		).not.toContain('./theme');
+	});
 	it('plans without writes and creates the vanilla config with selected scripts when applied', async () => {
 		const options = await project({ vite: '7' });
 		const plan = await planGenerateFiles({

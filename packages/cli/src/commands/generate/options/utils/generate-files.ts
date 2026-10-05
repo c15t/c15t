@@ -340,8 +340,10 @@ const generateFilesContent = async function generateFilesContent({
 			`${context.framework.framework} requires manual integration: ${context.framework.manualSetupUrl}`
 		);
 	}
+	const warnings: string[] = [];
 	const result: GenerateFilesResult = {
 		layoutUpdated: false,
+		warnings,
 	};
 
 	const {
@@ -432,24 +434,21 @@ const generateFilesContent = async function generateFilesContent({
 				)
 			);
 		} else {
-			spinner.stop(
-				formatLogMessage(
-					'warn',
-					`Could not find a global CSS entrypoint. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`
-				)
-			);
+			const warning = `Could not find a global CSS entrypoint. Import "${await resolveStylesheetPackageName(projectRoot, pkg)}/styles.css" in the global stylesheet loaded by your app. Checked: ${formatSearchedCssPaths(projectRoot, stylesheetResult.searchedPaths)}`;
+			warnings.push(warning);
+			spinner.stop(formatLogMessage('warn', warning));
 		}
 
 		if (isTailwindV3(context.framework.tailwindVersion)) {
-			Object.assign(
-				result,
-				await configureTailwind3Postcss({
-					cwd: context.cwd,
-					pkg,
-					projectRoot,
-					spinner,
-				})
-			);
+			const postcssResult = await configureTailwind3Postcss({
+				cwd: context.cwd,
+				pkg,
+				projectRoot,
+				spinner,
+			});
+			Object.assign(result, postcssResult, {
+				warnings: [...warnings, ...(postcssResult.warnings ?? [])],
+			});
 		}
 	}
 

@@ -1,5 +1,7 @@
 import { existsSync } from 'node:fs';
-import { dirname, join, relative, resolve } from 'node:path';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
+
+import { Project } from 'ts-morph';
 
 import {
 	readFile,
@@ -7,6 +9,7 @@ import {
 	writeFile,
 } from '../generate/templates/shared/file-plan';
 import { isTailwindV3 } from './postcss-config';
+import { layerStarterReset } from './starter-reset';
 
 const CSS_ENTRYPOINT_CANDIDATES = [
 	'app/globals.css',
@@ -24,9 +27,6 @@ const CSS_ENTRYPOINT_CANDIDATES = [
 	'app.css',
 	'src/App.css',
 ] as const;
-
-const LOCAL_CSS_IMPORT_RE =
-	/^\s*import(?:\s+[^'"]+\s+from\s+)?['"](?<capture1>[^'"]+\.css)['"];\s*$/gmu;
 
 const CSS_IMPORT_RE = /^\s*@import\b.+;\s*(?:(?:\/\*.*\*\/|\/\/.*)\s*)?$/u;
 const TAILWIND_V4_IMPORT_RE = /^\s*@import\s+['"]tailwindcss['"];\s*$/u;
@@ -53,6 +53,8 @@ export interface EnsureGlobalCssStylesheetImportsOptions {
 	entrypointPath?: string | null;
 	includeBase: boolean;
 	includeIab: boolean;
+	/** Move the stock universal reset below v3's layered component styles. */
+	layerStarterReset?: boolean;
 	dryRun?: boolean;
 }
 
@@ -84,9 +86,7 @@ const isNonModuleLocalCssImport = function isNonModuleLocalCssImport(
 	moduleSpecifier: string
 ): boolean {
 	return (
-		moduleSpecifier.startsWith('.') &&
-		moduleSpecifier.endsWith('.css') &&
-		!moduleSpecifier.endsWith('.module.css')
+		moduleSpecifier.endsWith('.css') && !moduleSpecifier.endsWith('.module.css')
 	);
 };
 
@@ -322,6 +322,69 @@ const describeImportChange = function describeImportChange(
 	return `added @import "${desiredImportPath}";`;
 };
 
+/** Resolve CSS aliases from the same tsconfig/jsconfig paths Next.js uses. */
+const resolveCssAlias = async (
+	projectRoot: string,
+	specifier: string
+): Promise<string[]> => {
+	const configPath = ['tsconfig.json', 'jsconfig.json']
+		.map((name) => join(projectRoot, name))
+		.find((file) => existsSync(file));
+	if (!configPath) {
+		return [];
+	}
+	await resolvePlannedPath(configPath);
+	let options;
+	try {
+		options = new Project({
+			skipAddingFilesFromTsConfig: true,
+			tsConfigFilePath: configPath,
+		}).getCompilerOptions();
+	} catch {
+		// A missing/invalid config must not prevent conventional CSS discovery.
+		return [];
+	}
+	// TypeScript records the defining config's directory for inherited paths.
+	const pathsBase =
+		'pathsBasePath' in options && typeof options.pathsBasePath === 'string'
+			? options.pathsBasePath
+			: dirname(configPath);
+	const base = options.baseUrl ?? pathsBase;
+	const mappings = Object.entries(options.paths ?? {}).sort(
+		([left], [right]) => {
+			if (left === specifier) {
+				return -1;
+			}
+			if (right === specifier) {
+				return 1;
+			}
+			return (
+				(right.split('*')[0] ?? '').length - (left.split('*')[0] ?? '').length
+			);
+		}
+	);
+	for (const [pattern, targets] of mappings) {
+		const star = pattern.indexOf('*');
+		const prefix = star < 0 ? pattern : pattern.slice(0, star);
+		const suffix = star < 0 ? '' : pattern.slice(star + 1);
+		if (
+			star < 0
+				? pattern !== specifier
+				: specifier.length < prefix.length + suffix.length ||
+					!specifier.startsWith(prefix) ||
+					!specifier.endsWith(suffix)
+		) {
+			continue;
+		}
+		const matched = specifier.slice(
+			prefix.length,
+			specifier.length - suffix.length
+		);
+		return targets.map((target) => resolve(base, target.replace('*', matched)));
+	}
+	return options.baseUrl ? [resolve(options.baseUrl, specifier)] : [];
+};
+
 const resolveCssEntrypoint = async function resolveCssEntrypoint({
 	projectRoot,
 	entrypointPath,
@@ -336,25 +399,39 @@ const resolveCssEntrypoint = async function resolveCssEntrypoint({
 		await resolvePlannedPath(resolvedEntrypointPath);
 		if (existsSync(resolvedEntrypointPath)) {
 			const entrypointContent = await readFile(resolvedEntrypointPath, 'utf-8');
-			for (const match of entrypointContent.matchAll(LOCAL_CSS_IMPORT_RE)) {
-				// oxlint-disable-next-line prefer-destructuring -- Preserve declaration order, interface shape, and public compatibility.
-				const moduleSpecifier = match[1];
-				if (!moduleSpecifier || !isNonModuleLocalCssImport(moduleSpecifier)) {
+			const project = new Project({ useInMemoryFileSystem: true });
+			const source = project.createSourceFile(
+				resolvedEntrypointPath,
+				entrypointContent
+			);
+			for (const declaration of source.getImportDeclarations()) {
+				const moduleSpecifier = declaration.getModuleSpecifierValue();
+				if (!isNonModuleLocalCssImport(moduleSpecifier)) {
 					continue;
 				}
-
-				const candidatePath = resolve(
-					dirname(resolvedEntrypointPath),
-					moduleSpecifier
-				);
-				searchedPaths.push(candidatePath);
-				// oxlint-disable-next-line no-await-in-loop -- Check each candidate before following it.
-				await resolvePlannedPath(candidatePath);
-				if (existsSync(candidatePath)) {
-					return {
-						filePath: candidatePath,
-						searchedPaths: dedupePaths(searchedPaths),
-					};
+				const candidates = moduleSpecifier.startsWith('.')
+					? [resolve(dirname(resolvedEntrypointPath), moduleSpecifier)]
+					: // oxlint-disable-next-line no-await-in-loop -- Resolve each imported stylesheet before trying the next.
+						await resolveCssAlias(projectRoot, moduleSpecifier);
+				for (const candidatePath of candidates) {
+					const candidateRelative = relative(projectRoot, candidatePath);
+					if (
+						!moduleSpecifier.startsWith('.') &&
+						(candidateRelative === '..' ||
+							candidateRelative.startsWith(`..${sep}`) ||
+							isAbsolute(candidateRelative))
+					) {
+						continue;
+					}
+					searchedPaths.push(candidatePath);
+					// oxlint-disable-next-line no-await-in-loop -- Check each candidate before following it.
+					await resolvePlannedPath(candidatePath);
+					if (existsSync(candidatePath)) {
+						return {
+							filePath: candidatePath,
+							searchedPaths: dedupePaths(searchedPaths),
+						};
+					}
 				}
 			}
 		}
@@ -421,12 +498,15 @@ export const ensureGlobalCssStylesheetImports =
 
 		const content = await readFile(filePath, 'utf-8');
 		const managedPackages = getManagedPackages(options.packageName);
-		const nextContent = insertImportsIntoCssContent(
+		const importedContent = insertImportsIntoCssContent(
 			content,
 			desiredImports,
 			managedPackages,
 			legacyTailwind3
 		);
+		const nextContent = options.layerStarterReset
+			? layerStarterReset(importedContent)
+			: importedContent;
 
 		if (nextContent === content) {
 			return {
@@ -441,9 +521,15 @@ export const ensureGlobalCssStylesheetImports =
 			await writeFile(filePath, nextContent, 'utf-8');
 		}
 
-		const changes = desiredImports.map((importPath) =>
-			describeImportChange(content, managedPackages, importPath)
-		);
+		const changes =
+			importedContent === content
+				? []
+				: desiredImports.map((importPath) =>
+						describeImportChange(content, managedPackages, importPath)
+					);
+		if (nextContent !== importedContent) {
+			changes.push('moved the universal spacing reset into @layer base');
+		}
 
 		return {
 			changes,
