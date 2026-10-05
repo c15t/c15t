@@ -38,6 +38,14 @@ describe('script snippets', () => {
 		);
 	});
 
+	it('includes the required Sentry SDK wiring steps', () => {
+		const config = generateScriptsConfig(['sentry']);
+		expect(config).toContain('Pass getClient and setUser from your Sentry SDK');
+		expect(config).toContain('Sentry.init without replayIntegration()');
+		expect(config).toContain('stable');
+		expect(config).toContain('replay: {');
+	});
+
 	it('generates matching imports and config calls', () => {
 		const selected = [
 			'microsoft-clarity',

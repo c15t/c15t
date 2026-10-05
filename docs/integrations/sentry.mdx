@@ -1,0 +1,116 @@
+---
+title: Sentry
+description: Gate Sentry Session Replay and user data on consent with the c15t sentry adapter, which drives the Sentry SDK your app already initializes, while error monitoring keeps running for every visitor.
+icon: sentry
+group: integrations
+---
+
+## Configure Sentry
+
+`sentry` drives the Sentry SDK your app already initializes, from
+`@sentry/browser` or a framework SDK such as `@sentry/nextjs`. Error monitoring
+runs for every visitor. Session Replay and user data on events wait for
+`measurement`. Replay records every visitor when `replaysOnErrorSampleRate` is
+above 0, so whether it needs consent is worth confirming with your advisers.
+Requires `@sentry/*` 10.67.0 or later.
+
+Call `Sentry.init` without `replayIntegration()`, and keep the sample rates
+there:
+
+```ts title="src/instrument.ts"
+import { init } from '@sentry/browser';
+
+init({
+	dsn: 'https://your-key@o0.ingest.sentry.io/0',
+	replaysSessionSampleRate: 0.1,
+	replaysOnErrorSampleRate: 1,
+	// Stops Sentry inferring visitor IP addresses, which c15t cannot gate.
+	dataCollection: { userInfo: false },
+});
+```
+
+Put Replay in a module of its own, so it loads only after consent:
+
+```ts title="src/sentry-replay.ts"
+import { replayIntegration } from '@sentry/browser';
+
+export const createReplay = () =>
+	replayIntegration({ maskAllText: true, blockAllMedia: true });
+```
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { sentry } from '@c15t/integrations/sentry';
+import { getClient, setUser } from '@sentry/browser';
+
+export const scripts = [
+	sentry({
+		getClient,
+		setUser,
+		replay: {
+			load: () => import('./sentry-replay').then((m) => m.createReplay()),
+		},
+	}),
+];
+```
+
+Import from the same Sentry package everywhere, such as `@sentry/nextjs` in a
+Next.js app, and use named imports. Next.js and Vite then move the recorder,
+about 39 KB gzipped, into its own chunk; esbuild and Bun keep it in the main
+bundle. A `Sentry.replayIntegration` reference through `import * as Sentry`
+anywhere in the main bundle also keeps it there.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `getClient` | Required | `getClient` from your Sentry SDK. Works when c15t starts before `Sentry.init`. |
+| `setUser` | None | `setUser` from your Sentry SDK. Called with `null` while user data is not allowed. Required with `pii.user`. |
+| `replay.load` | None | Returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
+| `replay.category` | `'measurement'` | Consent condition for Replay. |
+| `pii.category` | `'measurement'` | Consent condition for user data. `'necessary'` turns this gating off. |
+| `pii.user` | None | Returns the user to set when user data becomes allowed. |
+| `onError` | Report to Sentry | Receives Replay load, start and stop failures. |
+
+## Loading and revocation
+
+`sentry` returns a callback-only script with `alwaysLoad`, so it runs for every
+visitor and inserts no script element. It does nothing for Replay when Sentry
+has no DSN or `enabled: false`.
+
+Once `measurement` is allowed and the page has loaded, the adapter loads Replay
+and adds it to your client, which samples the session with your `Sentry.init`
+rates. On withdrawal it calls `replay.stop({ flush: false })` before c15t's
+reload, so the pending segment is never sent; segments already sent stay in
+Sentry. A later grant restores the original sampling decision rather than
+recording in full. If `Sentry.init` already includes Replay, the adapter warns
+in development and stops it while `measurement` is denied.
+
+While user data is not allowed, the adapter removes `user` from events and
+calls `setUser(null)`. Logs and metrics copy the user from the scope, so set it
+through `pii.user` or only while the permission is allowed. Tracing is not
+gated.
+
+The vendor slug is `sentry`; turning that vendor off denies Replay and user
+data. See
+[vendor consent for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
+Replay compresses in a `blob:` worker, so allow `worker-src blob:` or pass
+`workerUrl` to `replayIntegration()`.
+
+## Verify Sentry
+
+Test in a private window with an opt-in policy and
+`replaysSessionSampleRate: 1`. Filter DevTools Network by `ingest.sentry.io`.
+
+1. Load the page. Errors still reach Sentry, without `user`. No
+   `replay_recording` request is sent.
+2. Allow measurement. Without a reload, the Replay chunk loads and
+   `replay_recording` requests start.
+3. Turn measurement off and save. c15t reloads the page, and no replay request
+   follows.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation, expiry and hosting checks.

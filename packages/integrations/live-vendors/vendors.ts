@@ -976,6 +976,12 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		vendor: 'segment',
 	},
 	{
+		skipReason:
+			'Drives the Sentry SDK the app already initializes. This adapter does not fetch a public vendor loader.',
+		tier: 'skip',
+		vendor: 'sentry',
+	},
+	{
 		createScript: () =>
 			rybbitAnalytics({
 				siteId: 'c15t-live-probe',

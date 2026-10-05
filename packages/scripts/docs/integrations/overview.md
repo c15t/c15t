@@ -47,33 +47,34 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 
 ## Analytics
 
-| Integration                                               | Helper                   | Category                     | Loading behavior                                                             |
-| --------------------------------------------------------- | ------------------------ | ---------------------------- | ---------------------------------------------------------------------------- |
-| [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing` | Always loads; signals Google consent                                         |
-| [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                | Waits for effective permission                                               |
-| [Adobe Analytics](./adobe-analytics.md)                   | `adobeAnalytics`         | `measurement`                | Waits for effective permission                                               |
-| [Amplitude](./amplitude.md)                               | `amplitude`              | `measurement`                | Waits for effective permission; opts the SDK out on revocation               |
-| [Cloudflare Web Analytics](./cloudflare-web-analytics.md) | `cloudflareWebAnalytics` | `measurement`                | Waits for effective permission                                               |
-| [Clearbit](./clearbit.md)                                 | `clearbit`               | `marketing`                  | Waits for effective permission                                               |
-| [Microsoft Clarity](./microsoft-clarity.md)               | `clarity`                | `measurement`                | Gated initially; keeps the SDK and signals storage consent                   |
-| [Databuddy](./databuddy.md)                               | `databuddy`              | `measurement`                | Always loads; switches the SDK's disabled flag                               |
-| [Fathom Analytics](./fathom-analytics.md)                 | `fathomAnalytics`        | `measurement`                | Waits for effective permission                                               |
-| [Heap](./heap.md)                                         | `heap`                   | `measurement`                | Waits for effective permission                                               |
-| [Matomo Analytics](./matomo-analytics.md)                 | `matomoAnalytics`        | `measurement`                | Gated by default; optional consent mode                                      |
-| [Mixpanel](./mixpanel-analytics.md)                       | `mixpanelAnalytics`      | `measurement`                | Always loads; calls opt-in and opt-out APIs                                  |
-| [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`                | Waits for effective permission                                               |
-| [Hotjar](./hotjar.md)                                     | `hotjar`                 | `measurement`                | Waits for effective permission                                               |
-| [Hightouch](./hightouch.md)                               | `hightouch`              | `measurement`                | Waits for effective permission                                               |
-| [LogRocket](./logrocket.md)                               | `logRocket`              | `measurement`                | Waits for effective permission                                               |
-| [Plausible Analytics](./plausible-analytics.md)           | `plausibleAnalytics`     | `measurement`                | Waits for effective permission                                               |
-| [PostHog](./posthog.md)                                   | `posthog`                | `measurement`                | Configurable; defaults to always loading and calling opt-in and opt-out APIs |
-| [Promptwatch](./promptwatch.md)                           | `promptwatch`            | `measurement`                | Waits for effective permission                                               |
-| [Pirsch](./pirsch.md)                                     | `pirsch`                 | `measurement`                | Waits for effective permission                                               |
-| [RudderStack](./rudderstack.md)                           | `rudderstack`            | `measurement`                | Gated by default; optional destination consent mode                          |
-| [Segment](./segment.md)                                   | `segment`                | `measurement`                | Waits for effective permission                                               |
-| [Rybbit Analytics](./rybbit-analytics.md)                 | `rybbitAnalytics`        | `measurement`                | Waits for effective permission                                               |
-| [Umami Analytics](./umami-analytics.md)                   | `umamiAnalytics`         | `measurement`                | Waits for effective permission                                               |
-| [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                | Waits for effective permission                                               |
+| Integration                                               | Helper                   | Category                                        | Loading behavior                                                             |
+| --------------------------------------------------------- | ------------------------ | ----------------------------------------------- | ---------------------------------------------------------------------------- |
+| [Google Tag](./google-tag.md)                             | `gtag`                   | `measurement` or `marketing`                    | Always loads; signals Google consent                                         |
+| [Ahrefs Analytics](./ahrefs-analytics.md)                 | `ahrefsAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
+| [Adobe Analytics](./adobe-analytics.md)                   | `adobeAnalytics`         | `measurement`                                   | Waits for effective permission                                               |
+| [Amplitude](./amplitude.md)                               | `amplitude`              | `measurement`                                   | Waits for effective permission; opts the SDK out on revocation               |
+| [Cloudflare Web Analytics](./cloudflare-web-analytics.md) | `cloudflareWebAnalytics` | `measurement`                                   | Waits for effective permission                                               |
+| [Clearbit](./clearbit.md)                                 | `clearbit`               | `marketing`                                     | Waits for effective permission                                               |
+| [Microsoft Clarity](./microsoft-clarity.md)               | `clarity`                | `measurement`                                   | Gated initially; keeps the SDK and signals storage consent                   |
+| [Databuddy](./databuddy.md)                               | `databuddy`              | `measurement`                                   | Always loads; switches the SDK's disabled flag                               |
+| [Fathom Analytics](./fathom-analytics.md)                 | `fathomAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
+| [Heap](./heap.md)                                         | `heap`                   | `measurement`                                   | Waits for effective permission                                               |
+| [Matomo Analytics](./matomo-analytics.md)                 | `matomoAnalytics`        | `measurement`                                   | Gated by default; optional consent mode                                      |
+| [Mixpanel](./mixpanel-analytics.md)                       | `mixpanelAnalytics`      | `measurement`                                   | Always loads; calls opt-in and opt-out APIs                                  |
+| [OneDollarStats](./one-dollar-stats.md)                   | `oneDollarStats`         | `measurement`                                   | Waits for effective permission                                               |
+| [Hotjar](./hotjar.md)                                     | `hotjar`                 | `measurement`                                   | Waits for effective permission                                               |
+| [Hightouch](./hightouch.md)                               | `hightouch`              | `measurement`                                   | Waits for effective permission                                               |
+| [LogRocket](./logrocket.md)                               | `logRocket`              | `measurement`                                   | Waits for effective permission                                               |
+| [Plausible Analytics](./plausible-analytics.md)           | `plausibleAnalytics`     | `measurement`                                   | Waits for effective permission                                               |
+| [PostHog](./posthog.md)                                   | `posthog`                | `measurement`                                   | Configurable; defaults to always loading and calling opt-in and opt-out APIs |
+| [Promptwatch](./promptwatch.md)                           | `promptwatch`            | `measurement`                                   | Waits for effective permission                                               |
+| [Pirsch](./pirsch.md)                                     | `pirsch`                 | `measurement`                                   | Waits for effective permission                                               |
+| [RudderStack](./rudderstack.md)                           | `rudderstack`            | `measurement`                                   | Gated by default; optional destination consent mode                          |
+| [Segment](./segment.md)                                   | `segment`                | `measurement`                                   | Waits for effective permission                                               |
+| [Sentry](./sentry.md)                                     | `sentry`                 | `necessary`; Replay and user data `measurement` | Always runs; drives your Sentry SDK and loads Replay after permission        |
+| [Rybbit Analytics](./rybbit-analytics.md)                 | `rybbitAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
+| [Umami Analytics](./umami-analytics.md)                   | `umamiAnalytics`         | `measurement`                                   | Waits for effective permission                                               |
+| [Vercel Analytics](./vercel-analytics.md)                 | `vercelAnalytics`        | `measurement`                                   | Waits for effective permission                                               |
 
 ## Chat and support
 

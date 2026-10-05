@@ -33,6 +33,8 @@
 		"privacy",
 		"rudderstack",
 		"script-loader",
+		"sentry",
+		"session-replay",
 		"tiktok-pixel",
 		"x-pixel"
 	],
@@ -161,6 +163,11 @@
 			"types": "./dist-types/vendors/analytics/promptwatch.d.ts",
 			"import": "./dist/vendors/analytics/promptwatch.js",
 			"default": "./dist/vendors/analytics/promptwatch.js"
+		},
+		"./sentry": {
+			"types": "./dist-types/vendors/analytics/sentry.d.ts",
+			"import": "./dist/vendors/analytics/sentry.js",
+			"default": "./dist/vendors/analytics/sentry.js"
 		},
 		"./segment": {
 			"types": "./dist-types/vendors/analytics/segment.d.ts",

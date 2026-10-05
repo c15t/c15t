@@ -106,6 +106,7 @@ import {
 	rybbitAnalyticsManifest,
 } from './vendors/analytics/rybbit-analytics';
 import { segment, segmentManifest } from './vendors/analytics/segment';
+import { sentry } from './vendors/analytics/sentry';
 import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
@@ -432,6 +433,14 @@ const helperParityCases = {
 		},
 		script: segment({ writeKey: 'abc123xyz456' }),
 	},
+	sentry: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: undefined,
+		},
+		script: sentry({ getClient: () => undefined }),
+	},
 	snapchatPixel: {
 		expected: {
 			alwaysLoad: undefined,
@@ -607,10 +616,11 @@ describe('script integration registry', () => {
 	});
 
 	it('matches vendor manifest ids', () => {
-		// Zaraz uses imperative readiness listeners, not a vendor manifest.
+		// Zaraz and Sentry drive SDKs the page already runs, not a manifest.
 		const manifestVendors = [
 			...vendorManifests.map((manifest) => manifest.vendor),
 			'cloudflare-zaraz',
+			'sentry',
 		];
 		const registryVendors = builtInScriptIntegrations.map(
 			(integration) => integration.vendor
