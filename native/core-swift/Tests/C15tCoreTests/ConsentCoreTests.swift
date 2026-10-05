@@ -374,7 +374,7 @@ final class ConsentCoreTests: XCTestCase {
         XCTAssertEqual(body?["type"]?.stringValue, "cookie_banner")
         XCTAssertEqual(body?["preferences"]?["necessary"]?.boolValue, true)
         XCTAssertEqual(body?["preferences"]?["marketing"]?.boolValue, true)
-        XCTAssertEqual(body?["jurisdictionModel"]?.stringValue, "opt-out")
+        XCTAssertEqual(body?["model"]?.stringValue, "opt-out")
         XCTAssertNil(body?["tcString"], "no IAB module, so no TC string")
         let categories = try? XCTUnwrap(body?["choice"]?["categories"]?.objectValue)
         XCTAssertEqual(categories.map { Set($0.keys) }, ["marketing", "measurement"])
@@ -413,7 +413,7 @@ final class ConsentCoreTests: XCTestCase {
         XCTAssertNotNil(queuedBody)
         let queuedJSON = C15tJSON.parse(queuedBody ?? Data())
         let originalToken = queuedJSON?["policySnapshotToken"]?.stringValue
-        let originalModel = queuedJSON?["jurisdictionModel"]?.stringValue
+        let originalModel = queuedJSON?["model"]?.stringValue
         let originalGivenAt = queuedJSON?["givenAt"]?.intValue
         let originalBasis = queuedJSON?["choice"]?["categories"]?["marketing"]?["basis"]?["fingerprint"]?
             .stringValue
@@ -459,7 +459,7 @@ final class ConsentCoreTests: XCTestCase {
         XCTAssertEqual(http.lastSaveBody, queuedBody, "a queued payload is replayed verbatim")
         let replayedJSON = C15tJSON.parse(http.lastSaveBody ?? Data())
         XCTAssertEqual(replayedJSON?["policySnapshotToken"]?.stringValue, originalToken)
-        XCTAssertEqual(replayedJSON?["jurisdictionModel"]?.stringValue, originalModel)
+        XCTAssertEqual(replayedJSON?["model"]?.stringValue, originalModel)
         XCTAssertEqual(replayedJSON?["givenAt"]?.intValue, originalGivenAt)
         XCTAssertEqual(
             replayedJSON?["choice"]?["categories"]?["marketing"]?["basis"]?["fingerprint"]?
@@ -661,9 +661,9 @@ final class ConsentCoreTests: XCTestCase {
         XCTAssertEqual(core.decision(for: .marketing), .granted)
 
         // The write carries the reported model, not the rule's name, which is what the
-        // kernel puts in `jurisdictionModel` for the same situation.
+        // kernel puts in `model` for the same situation.
         let body = http.recordedSaveRequests.last?.body ?? Data()
-        XCTAssertEqual(C15tJSON.parse(body)?["jurisdictionModel"]?.stringValue, "opt-in")
+        XCTAssertEqual(C15tJSON.parse(body)?["model"]?.stringValue, "opt-in")
 
         // A relaunch reads the same rule out of the stored envelope and reaches the same
         // answer, so the projection is not a thing only a fresh init gets right. The

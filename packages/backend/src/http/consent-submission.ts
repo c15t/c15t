@@ -863,7 +863,10 @@ export const prepareSubmission = Effect.fn('submission.prepare')(
 			}
 		}
 
-		const model = effectiveModel(decision, input.jurisdictionModel);
+		const model = effectiveModel(
+			decision,
+			input.model ?? input.jurisdictionModel
+		);
 		const validityMs = choiceValidityMs(decision);
 		const proof = proofFields(decision, context, input.metadata);
 

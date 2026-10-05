@@ -209,14 +209,14 @@ class PendingQueueTest {
 		assertEquals("cookie_banner", body["type"]?.jsonPrimitive?.content)
 		assertEquals("test.c15t.app", body["domain"]?.jsonPrimitive?.content, "domain falls back to the host")
 		assertEquals("all", body["consentAction"]?.jsonPrimitive?.content)
-		assertEquals("opt-in", body["jurisdictionModel"]?.jsonPrimitive?.content)
+		assertEquals("opt-in", body["model"]?.jsonPrimitive?.content)
 		assertEquals("snap-1", body["policySnapshotToken"]?.jsonPrimitive?.content)
 		assertEquals(
 			listOf(
 				"consentAction",
 				"domain",
 				"givenAt",
-				"jurisdictionModel",
+				"model",
 				"policySnapshotToken",
 				"preferences",
 				"subjectId",

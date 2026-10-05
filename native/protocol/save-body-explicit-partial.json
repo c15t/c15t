@@ -6,7 +6,7 @@
 				"consentAction": "custom",
 				"domain": "app.example.com",
 				"givenAt": 1770000000000,
-				"jurisdictionModel": "opt-in",
+				"model": "opt-in",
 				"policySnapshotToken": "tok-europe-opt-in",
 				"preferences": {
 					"necessary": true,

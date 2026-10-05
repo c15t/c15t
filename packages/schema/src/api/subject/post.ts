@@ -92,13 +92,16 @@ const baseSubjectConsentSchema = v.object({
 			v.examples(['GDPR'])
 		)
 	),
-	/** Consent model used (e.g., 'opt-in', 'opt-out', 'iab') */
+	/**
+	 * `model` under its 2.x name. Accepted so 2.x clients keep validating;
+	 * `model` wins when both are sent.
+	 *
+	 * @deprecated Send `model`.
+	 */
 	jurisdictionModel: v.optional(
 		v.pipe(
 			v.string(),
-			v.description(
-				'Consent model the client applied. Used when no policy decision is available.'
-			),
+			v.description('Deprecated name for `model`. Sent by 2.x clients.'),
 			v.examples(['opt-in', 'opt-out', 'iab'])
 		)
 	),
@@ -107,6 +110,16 @@ const baseSubjectConsentSchema = v.object({
 		v.pipe(
 			v.record(v.string(), v.unknown()),
 			v.description('Additional audit metadata to store with the consent.')
+		)
+	),
+	/** Consent model the client applied (e.g., 'opt-in', 'opt-out', 'iab') */
+	model: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Consent model the client applied. Used when no policy decision is available.'
+			),
+			v.examples(['opt-in', 'opt-out', 'iab'])
 		)
 	),
 	/** Signed policy snapshot token from /init for consistency/auditability */

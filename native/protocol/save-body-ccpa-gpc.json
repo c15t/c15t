@@ -6,7 +6,7 @@
 				"consentAction": "all",
 				"domain": "app.example.com",
 				"givenAt": 1770000000000,
-				"jurisdictionModel": "opt-out",
+				"model": "opt-out",
 				"policySnapshotToken": "tok-california-opt-out",
 				"preferences": {
 					"necessary": true,

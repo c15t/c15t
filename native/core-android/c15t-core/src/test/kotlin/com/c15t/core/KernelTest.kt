@@ -320,7 +320,7 @@ class KernelTest {
 		assertEquals(ConsentModel.OPT_IN, kernel.snapshot().model)
 
 		// The write carries the reported model, not the rule's name, which is what the
-		// kernel puts in `jurisdictionModel` for the same situation.
+		// kernel puts in `model` for the same situation.
 		val payload = transport.saveRequests.last().payload
 		assertEquals(ConsentModel.OPT_IN, payload.model)
 	}

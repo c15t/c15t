@@ -44,7 +44,6 @@ object SaveBodyBuilder {
 		// the backend derives the same consent id.
 		put("givenAt", payload.givenAt)
 		payload.user?.identityProvider?.let { put("identityProvider", it) }
-		put("jurisdictionModel", payload.model.wireName)
 		payload.user?.properties?.takeIf { it.isNotEmpty() }?.let { props ->
 			putJsonObject("metadata") {
 				putJsonObject("userProperties") {
@@ -54,6 +53,7 @@ object SaveBodyBuilder {
 				}
 			}
 		}
+		put("model", payload.model.wireName)
 		payload.policySnapshotToken?.let { put("policySnapshotToken", it) }
 		putJsonObject("preferences") {
 			for ((category, value) in explicitPreferences(payload)) {

@@ -177,7 +177,7 @@ public enum ConsentModel: String, Sendable, Codable, CaseIterable {
     /// `IABTCF_*` bus to publish, so a snapshot reading `iab` would promise the vendor-side
     /// record this build cannot produce. The web's own answer for that situation is the
     /// honest one: the categories behave as `opt-in`, so the snapshot reports `opt-in` and
-    /// so does the `jurisdictionModel` of a save built from it. The resolution still names
+    /// so does the `model` of a save built from it. The resolution still names
     /// the matched IAB policy, so nothing about which rule matched is hidden.
     ///
     /// A report, not a permission. Every category decision still reads the real rule on

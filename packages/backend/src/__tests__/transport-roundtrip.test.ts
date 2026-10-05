@@ -194,6 +194,38 @@ describe.each(ENGINES)(
 			);
 		});
 
+		it('stores the model a save sends, under either name', async () => {
+			const save = (subjectId: string, names: Record<string, string>) =>
+				harness.json('POST', '/subjects', {
+					consentAction: 'all',
+					domain: 'example.com',
+					givenAt: T0,
+					preferences: { necessary: true },
+					subjectId,
+					type: 'cookie_banner',
+					...names,
+				});
+			const opted = { column: 'jurisdictionModel', value: 'opt-out' };
+
+			const current = await save('sub_roundtrip5', { model: 'opt-out' });
+			assert.strictEqual(current.status, 200, JSON.stringify(current.body));
+			assert.strictEqual(await harness.count('consent', opted), 1);
+
+			// A 2.x client sends the old name.
+			const legacy = await save('sub_roundtrip6', {
+				jurisdictionModel: 'opt-out',
+			});
+			assert.strictEqual(legacy.status, 200, JSON.stringify(legacy.body));
+			assert.strictEqual(await harness.count('consent', opted), 2);
+
+			const both = await save('sub_roundtrip7', {
+				jurisdictionModel: 'opt-in',
+				model: 'opt-out',
+			});
+			assert.strictEqual(both.status, 200, JSON.stringify(both.body));
+			assert.strictEqual(await harness.count('consent', opted), 3);
+		});
+
 		it('records the receipt of a banner that offered only strictly necessary', async () => {
 			const subjectId = 'sub_roundtrip4';
 			const saved = await transport.save({
