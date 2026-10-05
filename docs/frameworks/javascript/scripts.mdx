@@ -52,7 +52,10 @@ Your bundler names that chunk, so c15t cannot link it from your HTML. To
 start the download earlier, add a `<link rel="modulepreload">` for the chunk
 your build emits for `@c15t/core/dist/modules/script-loader/loader.js`. With
 Vite, `.vite/manifest.json` lists it under that path when `build.manifest` is
-on. The script-tag build, `c15t.js`, already contains the loader.
+on. Give the link `fetchpriority="low"`. c15t needs the chunk only when it
+starts, and at the default priority the preload can delay your app's own
+chunks over HTTP/1.1. The script-tag build, `c15t.js`, already contains the
+loader.
 
 ## Gate a snippet in your HTML
 

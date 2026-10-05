@@ -43,7 +43,9 @@ adapter copies the build. Then `c15tHandle` adds the link to every page whose
 provider has scripts, prerendered pages included, and to every page with
 [network blocker](./network-blocker) rules, whose chunk loads the same way.
 The link carries the provider's `nonce`, or else the nonce SvelteKit put on
-its own scripts. It does nothing in `vite dev`.
+its own scripts. It asks for low priority (`fetchpriority="low"`): the
+runtime needs the chunk only after hydration, so the browser fetches your
+app's own chunks first. It does nothing in `vite dev`.
 
 Without the plugin, or without `c15tHandle` in `hooks.server.ts`, scripts
 still load, one request later.
