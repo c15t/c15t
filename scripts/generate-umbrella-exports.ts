@@ -160,7 +160,14 @@ const TAILWIND3_PLUGIN = './postcss-tailwind3';
  * `next`, while the scoped package name stays `@c15t/nextjs`.
  */
 export const UMBRELLA_SOURCES: UmbrellaSource[] = [
-	{ directory: 'core', packageName: '@c15t/core', prefix: '' },
+	{
+		directory: 'core',
+		// The resolver the Next.js and TanStack Start roots import to apply
+		// a streamed state; apps never import it.
+		exclude: ['./runtime/streamed-init'],
+		packageName: '@c15t/core',
+		prefix: '',
+	},
 	{
 		directory: 'react',
 		exclude: [TAILWIND3_PLUGIN],

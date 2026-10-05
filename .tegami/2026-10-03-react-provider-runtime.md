@@ -36,6 +36,12 @@ Behaviour that changes:
   blocker options apply once a small chunk has loaded, the first time options
   change. `enabled` and `overrides` still apply at once.
 
+`ConsentProvider` loads the code that applies a `prefetch` promise only when it
+gets one, so an app that never streams consent state doesn't download it.
+`ConsentRoot` in `@c15t/nextjs` and `@c15t/tanstack-start`, whose `state` is
+usually streamed, ships that code in its first-load chunk, so a streamed state
+applies as soon as it arrives instead of after one more request.
+
 ### Provider runtime
 
 - `c15t/runtime/provider` (`@c15t/core/runtime/provider`) exports what a

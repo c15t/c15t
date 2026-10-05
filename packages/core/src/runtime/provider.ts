@@ -10,7 +10,8 @@
  * through `import()` into a chunk the entry loads. A provider that loads
  * those modules on demand imports from here instead. Its
  * `lazyStreamPrefetch` likewise loads the streamed-prefetch code only for a
- * runtime whose `prefetch` is a promise.
+ * runtime whose `prefetch` is a promise; `streamPrefetchWith` wraps a
+ * resolver the host imported itself.
  *
  * @example
  * ```ts
@@ -22,7 +23,8 @@
  */
 export { lazyRuntimeModule } from './lazy-module';
 export { createConsentProviderRuntime } from './provider-runtime';
-export { lazyStreamPrefetch } from './stream-mode';
+export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
+export type { ResolveStreamedInit } from './stream-mode';
 export type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,

@@ -2,6 +2,7 @@
 
 import type { KernelTransport, Vendor } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
+import { resolveStreamedInit } from '@c15t/core/runtime/streamed-init';
 /**
  * Client root for the Next.js adapter.
  *
@@ -107,6 +108,7 @@ export interface ConsentRootProps {
 		| 'scripts'
 		| 'vendors'
 		| '__debugPkg'
+		| '__resolveStreamedInit'
 	> & {
 		mode?: ProviderTransportFactory;
 	};
@@ -255,6 +257,10 @@ export const ConsentRoot = ({
 			options={{
 				...options,
 				__debugPkg: '@c15t/nextjs',
+				// `state` is often a promise the server streams in. Apply it
+				// with code from the first-load chunk: loading that code after
+				// hydration would hold the banner back by a round trip.
+				__resolveStreamedInit: resolveStreamedInit,
 				clearOnRevocation,
 				mode,
 				networkBlocker,

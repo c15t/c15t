@@ -4,7 +4,10 @@
  * A host that streams its prefetch passes `streamPrefetch` (this code
  * imported statically) or `lazyStreamPrefetch` (imported once a prefetch is
  * a promise) in the provider runtime's modules; one that never does ships
- * none of this.
+ * none of this. A provider shared by both kinds of host imports this module
+ * through `@c15t/core/runtime/streamed-init` and wraps it with
+ * `streamPrefetchWith` where it streams: the Next.js and TanStack Start
+ * roots do, through the React provider.
  *
  * - A config that resolves with a policy becomes the init response
  *   outright: no network request. The runtime's own `overrides` win over

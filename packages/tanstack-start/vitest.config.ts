@@ -58,6 +58,10 @@ const alias = {
 		__dirname,
 		'../core/src/runtime/provider.ts'
 	),
+	'@c15t/core/runtime/streamed-init': resolve(
+		__dirname,
+		'../core/src/runtime/streamed-init.ts'
+	),
 	'@c15t/core/runtime': resolve(__dirname, '../core/src/runtime/index.ts'),
 	'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 	'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),

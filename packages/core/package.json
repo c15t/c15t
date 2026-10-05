@@ -153,6 +153,11 @@
 			"types": "./dist-types/runtime/provider.d.ts",
 			"import": "./dist/runtime/provider.js",
 			"default": "./dist/runtime/provider.js"
+		},
+		"./runtime/streamed-init": {
+			"types": "./dist-types/runtime/streamed-init.d.ts",
+			"import": "./dist/runtime/streamed-init.js",
+			"default": "./dist/runtime/streamed-init.js"
 		}
 	},
 	"publishConfig": {

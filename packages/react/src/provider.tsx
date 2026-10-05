@@ -32,12 +32,14 @@ import {
 	createConsentProviderRuntime,
 	lazyRuntimeModule,
 	lazyStreamPrefetch,
+	streamPrefetchWith,
 } from '@c15t/core/runtime/provider';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
 	ConsentRuntime,
 	ConsentRuntimeModules,
+	ResolveStreamedInit,
 } from '@c15t/core/runtime/provider';
 import { applyThemeSlots } from '@c15t/ui/utils';
 import type { ReactNode } from 'react';
@@ -248,6 +250,16 @@ export interface ConsentProviderOptions
 	 * @internal
 	 */
 	__debugPkg?: string;
+	/**
+	 * The code that applies a `prefetch` promise, from
+	 * `@c15t/core/runtime/streamed-init`. Without it the provider loads that
+	 * code once `prefetch` is a promise, so an app that never streams one
+	 * doesn't download it. A framework root whose state is usually streamed
+	 * (`ConsentRoot`) passes it, so the state applies as soon as it arrives
+	 * instead of after one more request. Read once, at mount.
+	 * @internal
+	 */
+	__resolveStreamedInit?: ResolveStreamedInit;
 }
 
 /**
@@ -306,32 +318,36 @@ export type ConsentProviderProps =
  *   then a watcher pauses gated frames consent does not allow.
  *
  * `lazyStreamPrefetch` lets `prefetch` be a promise a server streams in,
- * and loads that code only when it is one.
+ * and loads that code only when it is one; a root that passes
+ * `__resolveStreamedInit` has it in its first-load chunk instead.
  */
-const reactRuntimeModules =
-	function reactRuntimeModules(): ConsentRuntimeModules {
-		return {
-			createClearOnRevocation: lazyRuntimeModule(
-				async () =>
-					(await import('@c15t/core/modules/clear-on-revocation'))
-						.createClearOnRevocation
-			),
-			createIframeBlocker: createIframeBlockerOnDemand,
-			createNetworkBlocker: lazyRuntimeModule(
-				async () =>
-					(await import('@c15t/core/modules/network-blocker'))
-						.createNetworkBlocker
-			),
-			createPersistence,
-			createScriptLoader: lazyRuntimeModule(
-				async () =>
-					(await import('@c15t/core/modules/script-loader')).createScriptLoader
-			),
-			createWindowDebug,
-			streamPrefetch: lazyStreamPrefetch,
-			watchRevocationReload,
-		};
+const reactRuntimeModules = function reactRuntimeModules(
+	resolveStreamedInit: ResolveStreamedInit | undefined
+): ConsentRuntimeModules {
+	return {
+		createClearOnRevocation: lazyRuntimeModule(
+			async () =>
+				(await import('@c15t/core/modules/clear-on-revocation'))
+					.createClearOnRevocation
+		),
+		createIframeBlocker: createIframeBlockerOnDemand,
+		createNetworkBlocker: lazyRuntimeModule(
+			async () =>
+				(await import('@c15t/core/modules/network-blocker'))
+					.createNetworkBlocker
+		),
+		createPersistence,
+		createScriptLoader: lazyRuntimeModule(
+			async () =>
+				(await import('@c15t/core/modules/script-loader')).createScriptLoader
+		),
+		createWindowDebug,
+		streamPrefetch: resolveStreamedInit
+			? streamPrefetchWith(resolveStreamedInit)
+			: lazyStreamPrefetch,
+		watchRevocationReload,
 	};
+};
 
 const toRuntimeOptions = function toRuntimeOptions(
 	options: ConsentProviderOptions
@@ -388,7 +404,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	const { networkBlocker } = initialOptions;
 	const runtime = createConsentProviderRuntime(
 		toRuntimeOptions(initialOptions),
-		reactRuntimeModules()
+		reactRuntimeModules(initialOptions.__resolveStreamedInit)
 	);
 	let options = initialOptions;
 	let expired = false;

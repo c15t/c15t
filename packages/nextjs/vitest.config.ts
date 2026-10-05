@@ -74,6 +74,10 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/runtime/provider.ts'
 				),
+				'@c15t/core/runtime/streamed-init': resolve(
+					__dirname,
+					'../core/src/runtime/streamed-init.ts'
+				),
 				'@c15t/core/runtime': resolve(
 					__dirname,
 					'../core/src/runtime/index.ts'
