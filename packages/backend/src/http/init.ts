@@ -199,6 +199,10 @@ export const buildInitResponse = async function buildInitResponse(
 			model: resolution.policy.model,
 			policyId: resolution.policyId,
 			region: signals.region,
+			// The language init served, which the client asserts: a token save
+			// and an asserted save of the same visit share a dedupe key even
+			// when q-values reorder the header.
+			servedLanguage: resolved.translations.language,
 			tenantId: tokenTenantId,
 		},
 		snapshot

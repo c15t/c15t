@@ -56,7 +56,13 @@ export interface PolicySnapshotClaims {
 	readonly jurisdiction: string;
 	readonly model: string;
 	readonly tenantId?: string;
+	/** The raw `Accept-Language` header the request carried. */
 	readonly language?: string;
+	/**
+	 * The language `/init` served. Absent from tokens minted by earlier
+	 * alphas, which carry only `language`.
+	 */
+	readonly servedLanguage?: string;
 }
 
 const resolveIssuer = function resolveIssuer(
@@ -118,6 +124,7 @@ export const createPolicySnapshotToken =
 			model: claims.model,
 			policyId: claims.policyId,
 			region: claims.region,
+			servedLanguage: claims.servedLanguage,
 			sub: claims.policyId,
 			tenantId: claims.tenantId,
 		};

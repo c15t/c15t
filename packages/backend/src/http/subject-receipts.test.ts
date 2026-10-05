@@ -17,6 +17,7 @@ import { afterEach, assert, beforeEach, describe, it } from 'vitest';
 import { ENGINES } from '../__tests__/engines';
 import { createHttpHarness } from '../__tests__/http-harness';
 import type { HttpHarness } from '../__tests__/http-harness';
+import { createPolicySnapshotToken } from './policy-snapshot';
 
 const SIGNING_KEY = 'test-signing-key-at-least-32-chars-long';
 
@@ -619,6 +620,188 @@ for (const engine of ENGINES) {
 				await harness.count('consent', {
 					column: 'runtimePolicySource',
 					value: 'snapshot_token',
+				}),
+				1
+			);
+		});
+
+		it('records one decision for a token save and an asserted save of the same visit', async () => {
+			// The client asserts the language init served, which q-values pick
+			// from the header; here that is not the header's first entry.
+			const init = await harness.json('GET', '/init', undefined, {
+				'accept-language': 'en;q=0.1,de;q=0.9',
+				'x-c15t-country': 'DE',
+			});
+			assert.strictEqual(
+				(init.body.translations as { language: string }).language,
+				'de'
+			);
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				fingerprints: { policy: string };
+			};
+
+			const withToken = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: init.body.policySnapshotToken,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(withToken.status, 200, JSON.stringify(withToken.body));
+
+			const asserted = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T1,
+				language: 'de',
+				policyId: decision.policyId,
+				preferences: { marketing: false, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+		});
+
+		it('keeps the signed served language rather than resolving the header again', async () => {
+			const init = await initFor('DE');
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				matchedBy: string;
+				fingerprints: { policy: string };
+				policy: { model: string };
+			};
+			// Resolving this header now would give English. The token proves the
+			// visitor was served German, so that is what the decision records.
+			const token = await createPolicySnapshotToken(
+				{
+					country: 'DE',
+					fingerprint: decision.fingerprints.policy,
+					jurisdiction: 'GDPR',
+					language: 'en',
+					matchedBy: decision.matchedBy,
+					model: decision.policy.model,
+					policyId: decision.policyId,
+					region: null,
+					servedLanguage: 'de',
+					tenantId: 'tenant_r',
+				},
+				{ signingKey: SIGNING_KEY }
+			);
+
+			const withToken = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: token?.token,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(withToken.status, 200, JSON.stringify(withToken.body));
+
+			const asserted = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T1,
+				language: 'de',
+				policyId: decision.policyId,
+				preferences: { marketing: false, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+		});
+
+		it('reads a raw Accept-Language claim from an earlier alpha as the served language', async () => {
+			const header = 'en;q=0.1,de;q=0.9';
+			const init = await harness.json('GET', '/init', undefined, {
+				'accept-language': header,
+				'x-c15t-country': 'DE',
+			});
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				matchedBy: string;
+				fingerprints: { policy: string };
+				policy: { model: string };
+			};
+			// Earlier alphas minted the raw header into the claim.
+			const legacy = await createPolicySnapshotToken(
+				{
+					country: 'DE',
+					fingerprint: decision.fingerprints.policy,
+					jurisdiction: 'GDPR',
+					language: header,
+					matchedBy: decision.matchedBy,
+					model: decision.policy.model,
+					policyId: decision.policyId,
+					region: null,
+					tenantId: 'tenant_r',
+				},
+				{ signingKey: SIGNING_KEY }
+			);
+
+			const withToken = await harness.json('POST', '/subjects', {
+				...base,
+				givenAt: T0,
+				policySnapshotToken: legacy?.token,
+				preferences: { marketing: true, necessary: true },
+			});
+			assert.strictEqual(withToken.status, 200, JSON.stringify(withToken.body));
+
+			const asserted = await harness.json('POST', '/subjects', {
+				...base,
+				country: 'DE',
+				fingerprint: decision.fingerprints.policy,
+				givenAt: T1,
+				language: 'de',
+				policyId: decision.policyId,
+				preferences: { marketing: false, necessary: true },
+				region: null,
+			});
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(await harness.count('runtimePolicyDecision'), 1);
+		});
+
+		it('records the asserted language after the served languages change', async () => {
+			const init = await harness.json('GET', '/init', undefined, {
+				'accept-language': 'de',
+				'x-c15t-country': 'DE',
+			});
+			const decision = init.body.policyResolution as {
+				policyId: string;
+				fingerprints: { policy: string };
+			};
+			// A deploy drops German without touching the policy. The visitor was
+			// still shown German, and the decision records that.
+			const englishOnly = harness.appWith({
+				manifest: {
+					appName: 'Receipts',
+					i18n: { messages: { default: { translations: { en: {} } } } },
+					policyRules: RULES,
+				},
+				policySnapshot: { signingKey: SIGNING_KEY },
+				tenantId: 'tenant_r',
+			});
+			const asserted = await harness.json(
+				'POST',
+				'/subjects',
+				{
+					...base,
+					country: 'DE',
+					fingerprint: decision.fingerprints.policy,
+					givenAt: T0,
+					language: 'de',
+					policyId: decision.policyId,
+					preferences: { marketing: false, necessary: true },
+					region: null,
+				},
+				{},
+				englishOnly
+			);
+			assert.strictEqual(asserted.status, 200, JSON.stringify(asserted.body));
+			assert.strictEqual(
+				await harness.count('runtimePolicyDecision', {
+					column: 'language',
+					value: 'de',
 				}),
 				1
 			);
