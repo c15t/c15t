@@ -3,9 +3,14 @@
  * them: the script loader, the network blocker, data clearing and a
  * `consentSource` connection.
  *
- * Each loads as one self-contained chunk. The module is written against its
- * tools interface (each module's `tools.ts`) and gets the first-load functions it
- * calls from its factory, so its chunk imports nothing the first-load graph has.
+ * Data clearing and the `consentSource` connection each load as one
+ * self-contained chunk. The script loader and the network blocker share
+ * one (`loaderAndBlockerOnDemand`), so a page with scripts and blocker rules
+ * fetches, or preloads, one file instead of two, and a returning visitor's
+ * held requests are decided when its scripts start rather than a round trip
+ * later. Each module is written against its tools interface (each
+ * module's `tools.ts`) and gets the first-load functions it calls from its
+ * factory, so its chunk imports nothing the first-load graph has.
  * Bundlers that split shared code (Rolldown in Vite, esbuild) would
  * otherwise move every module a lazy chunk shares with first load into a
  * chunk of its own, and first load would fetch those as extra files.
@@ -19,19 +24,22 @@
  *   script loader that loads on demand;
  * - `consentSource`: optional categories stay denied until it connects.
  *
- * A page that configures none of them never downloads them.
+ * A page that configures none of them never downloads them. A page that
+ * configures only scripts, or only blocker rules, downloads the other
+ * module too, in the same request.
  *
  * Each factory is also exported on its own (`scriptLoaderOnDemand`,
  * `networkBlockerOnDemand`, `clearOnRevocationOnDemand`,
- * `connectConsentSourceOnDemand`), each from its own file. A host that
- * imports some modules statically and others on demand takes only the
- * factories it loads on demand: an `import()` of a module the page also
- * imports statically keeps that module in a chunk of its own.
+ * `connectConsentSourceOnDemand`) from `@c15t/core/runtime/on-demand-factories`,
+ * each from its own file and, for the loader and the blocker, with a chunk
+ * of its own. A host that imports some modules statically and others on
+ * demand takes only the factories it loads on demand: an `import()` of a
+ * module the page also imports statically keeps that module in a chunk of
+ * its own.
  */
 import { clearOnRevocationOnDemand } from './on-demand-clear-on-revocation';
 import { connectConsentSourceOnDemand } from './on-demand-consent-source';
-import { networkBlockerOnDemand } from './on-demand-network-blocker';
-import { scriptLoaderOnDemand } from './on-demand-script-loader';
+import { loaderAndBlockerOnDemand } from './on-demand-loader-and-blocker';
 import type { ConsentRuntimeModules } from './types';
 
 /**
@@ -49,7 +57,9 @@ export type OnDemandRuntimeModules = Pick<
 >;
 
 /**
- * Runtime modules that load on demand, each as one chunk.
+ * Runtime modules that load on demand: the script loader and network
+ * blocker as one chunk, data clearing and a `consentSource` connection as
+ * one each.
  *
  * @example
  * ```ts
@@ -63,8 +73,7 @@ export type OnDemandRuntimeModules = Pick<
  * ```
  */
 export const onDemandRuntimeModules: OnDemandRuntimeModules = {
+	...loaderAndBlockerOnDemand,
 	connectConsentSource: connectConsentSourceOnDemand,
 	createClearOnRevocation: clearOnRevocationOnDemand,
-	createNetworkBlocker: networkBlockerOnDemand,
-	createScriptLoader: scriptLoaderOnDemand,
 };

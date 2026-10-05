@@ -39,8 +39,8 @@ import type {
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
+import { clearOnRevocationOnDemand } from '@c15t/core/runtime/on-demand-factories';
 import {
-	clearOnRevocationOnDemand,
 	createConsentRuntimeWith,
 	mountRuntimeIAB,
 } from '@c15t/core/runtime/provider';

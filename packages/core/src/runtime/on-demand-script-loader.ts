@@ -16,8 +16,10 @@ import { lazyRuntimeModule } from './lazy-module';
 /**
  * The `createScriptLoader` module, loaded on first use.
  *
- * Consented scripts mount once its chunk lands. One of
- * {@link onDemandRuntimeModules}.
+ * Consented scripts mount once its chunk lands. The chunk holds only the
+ * loader: for a host that imports the network blocker statically.
+ * {@link onDemandRuntimeModules} loads the loader and the blocker as one
+ * chunk instead. Exported from `@c15t/core/runtime/on-demand-factories`.
  *
  * @param options - The script loader options the runtime passes.
  * @returns A handle that queues calls until the module has loaded.

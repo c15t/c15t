@@ -3,10 +3,10 @@
  *
  * `onDemandRuntimeModules`: the script loader, network blocker, data
  * clearing and `consentSource` connection a provider loads only when the
- * page configures them, each as one chunk that imports nothing from the
- * first-load graph.
+ * page configures them, in chunks that import nothing from the first-load
+ * graph. The loader and the blocker share one chunk.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -158,17 +158,77 @@ describe('onDemandRuntimeModules', () => {
 	});
 });
 
-test('each on-demand factory is exported on its own', async () => {
+test('each on-demand factory is exported on its own, outside the provider entry', async () => {
+	const factories = await import('../on-demand-factories');
 	const provider = await import('../provider');
-	expect({
-		connectConsentSource: provider.connectConsentSourceOnDemand,
-		createClearOnRevocation: provider.clearOnRevocationOnDemand,
-		createNetworkBlocker: provider.networkBlockerOnDemand,
-		createScriptLoader: provider.scriptLoaderOnDemand,
-	}).toEqual(onDemandRuntimeModules);
+	expect(onDemandRuntimeModules.connectConsentSource).toBe(
+		factories.connectConsentSourceOnDemand
+	);
+	expect(onDemandRuntimeModules.createClearOnRevocation).toBe(
+		factories.clearOnRevocationOnDemand
+	);
+	expect(Object.keys(factories).sort()).toEqual([
+		'clearOnRevocationOnDemand',
+		'connectConsentSourceOnDemand',
+		'networkBlockerOnDemand',
+		'scriptLoaderOnDemand',
+	]);
+	expect(provider).not.toHaveProperty('scriptLoaderOnDemand');
+	expect(provider).not.toHaveProperty('networkBlockerOnDemand');
 });
 
 describe('createConsentRuntimeWith', () => {
+	test('the single-module loader and blocker factories mount their module', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const nativeFetch = window.fetch;
+		const original = vi.fn().mockResolvedValue(new Response('ok'));
+		window.fetch = original as unknown as typeof window.fetch;
+		try {
+			const onBeforeLoad = vi.fn();
+			const factories = await import('../on-demand-factories');
+			const runtime = createConsentRuntimeWith(
+				{
+					mode: custom({
+						init: vi.fn().mockResolvedValue({}),
+						save: vi.fn().mockResolvedValue({ ok: true }),
+					}),
+					networkBlocker: {
+						rules: [{ category: 'measurement', domain: 'tracker.example' }],
+					},
+					persistence: false,
+					prefetch: RESOLVED_PREFETCH,
+					scripts: [
+						{
+							callbackOnly: true,
+							category: 'measurement',
+							id: 'analytics',
+							onBeforeLoad,
+						},
+					],
+				},
+				{
+					...onDemandRuntimeModules,
+					createIframeBlocker,
+					createNetworkBlocker: factories.networkBlockerOnDemand,
+					createPersistence,
+					createScriptLoader: factories.scriptLoaderOnDemand,
+					createWindowDebug,
+					watchRevocationReload,
+				}
+			);
+			runtimes.push(runtime);
+			const early = window.fetch('https://tracker.example/collect');
+			runtime.start();
+			await vi.dynamicImportSettled();
+
+			expect((await early).status).toBe(451);
+			await runtime.kernel.commands.save('all');
+			expect(onBeforeLoad).toHaveBeenCalledOnce();
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('a configure-once runtime mounts the modules it is given', async () => {
 		const onBeforeLoad = vi.fn();
 		const runtime = createConsentRuntimeWith(
@@ -231,7 +291,12 @@ describe('on-demand chunks', () => {
 			seen.add(file);
 			for (const specifier of valueImports(file)) {
 				if (specifier.startsWith('.')) {
-					visit(`${join(dirname(file), specifier)}.ts`);
+					const target = join(dirname(file), specifier);
+					visit(
+						existsSync(`${target}.ts`)
+							? `${target}.ts`
+							: join(target, 'index.ts')
+					);
 				}
 			}
 		};
@@ -240,19 +305,30 @@ describe('on-demand chunks', () => {
 	};
 
 	test.each([
-		['modules/clear-on-revocation/clear.ts', 'modules/clear-on-revocation/'],
-		['modules/network-blocker/blocker.ts', 'modules/network-blocker/'],
-		['modules/persistence/writer/writer.ts', 'modules/persistence/writer/'],
-		['modules/script-loader/loader.ts', 'modules/script-loader/'],
-		['runtime/controls.ts', 'runtime/controls.ts'],
-		['runtime/provider-update.ts', 'runtime/provider-update.ts'],
-	])('%s imports values only from %s', (entry, allowed) => {
+		['modules/clear-on-revocation/clear.ts', ['modules/clear-on-revocation/']],
+		[
+			'modules/loader-and-blocker.ts',
+			[
+				'modules/loader-and-blocker.ts',
+				'modules/network-blocker/',
+				'modules/script-loader/',
+			],
+		],
+		['modules/network-blocker/blocker.ts', ['modules/network-blocker/']],
+		['modules/persistence/writer/writer.ts', ['modules/persistence/writer/']],
+		['modules/script-loader/loader.ts', ['modules/script-loader/']],
+		['runtime/controls.ts', ['runtime/controls.ts']],
+		['runtime/provider-update.ts', ['runtime/provider-update.ts']],
+	])('%s imports values only from %j', (entry, allowed) => {
 		const files = reach(join(source, entry)).map((file) =>
 			relative(source, file)
 		);
 		const outside = files.filter(
 			(file) =>
-				!file.startsWith(allowed) || file.slice(allowed.length).includes('/')
+				!allowed.some(
+					(prefix) =>
+						file.startsWith(prefix) && !file.slice(prefix.length).includes('/')
+				)
 		);
 		expect(outside).toEqual([]);
 		// The module's tools and its public entry import first-load code, and
@@ -261,6 +337,25 @@ describe('on-demand chunks', () => {
 		expect(
 			files.filter((file) => /\/(?:index|tools|hold)\.ts$/u.test(file))
 		).toEqual([]);
+	});
+
+	// esbuild emits a chunk for every `import()` in a file it reaches, used
+	// or not. A single-module chunk next to the shared one would split both
+	// modules out of it, and a page would fetch the shared chunk and then
+	// each module in a second round.
+	test('the provider entry imports the loader and the blocker only through their shared chunk', () => {
+		const dynamic = reach(join(source, 'runtime/provider.ts')).flatMap((file) =>
+			[
+				...readFileSync(file, 'utf8').matchAll(
+					/import\(\s*'(?<specifier>\.[^']*)'\s*\)/gu
+				),
+			].map((match) =>
+				relative(source, join(dirname(file), match.groups?.specifier ?? ''))
+			)
+		);
+		expect(dynamic).toContain('modules/loader-and-blocker');
+		expect(dynamic).not.toContain('modules/script-loader/loader');
+		expect(dynamic).not.toContain('modules/network-blocker/blocker');
 	});
 
 	// A host that imports one factory and the others' modules statically
@@ -273,6 +368,10 @@ describe('on-demand chunks', () => {
 			'../modules/clear-on-revocation/clear',
 		],
 		['runtime/on-demand-consent-source.ts', './controls'],
+		[
+			'runtime/on-demand-loader-and-blocker.ts',
+			'../modules/loader-and-blocker',
+		],
 		[
 			'runtime/on-demand-network-blocker.ts',
 			'../modules/network-blocker/blocker',

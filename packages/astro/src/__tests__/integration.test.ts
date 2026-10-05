@@ -530,7 +530,7 @@ describe('astro:config:setup', () => {
 		// Its blocker rules are not known at build time: on demand, imported
 		// on its own so the boot chunk names no other module's chunk.
 		expect(code).toContain(
-			`import { networkBlockerOnDemand as createNetworkBlocker } from ${specifier('@c15t/core/runtime/provider')};`
+			`import { networkBlockerOnDemand as createNetworkBlocker } from ${specifier('@c15t/core/runtime/on-demand-factories')};`
 		);
 		expect(code).not.toContain('@c15t/core/modules/network-blocker');
 	});

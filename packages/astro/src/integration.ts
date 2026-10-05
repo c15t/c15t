@@ -349,7 +349,7 @@ const pageRuntimeModules = function pageRuntimeModules(
 		modules.push({
 			exportName: 'networkBlockerOnDemand',
 			name: 'createNetworkBlocker',
-			specifier: '@c15t/core/runtime/provider',
+			specifier: '@c15t/core/runtime/on-demand-factories',
 		});
 	}
 	if (options.clientEntrypoint) {

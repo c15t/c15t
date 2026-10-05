@@ -9,16 +9,16 @@
  * one, puts a module that is both imported statically (even unused) and
  * through `import()` into a chunk the entry loads. A provider that loads
  * those modules on demand imports from here instead:
- * `onDemandRuntimeModules` loads the script loader, the network blocker,
- * data clearing and a `consentSource` connection each as one chunk, only
- * when the page configures them. `lazyStreamPrefetch` likewise loads the
+ * `onDemandRuntimeModules` loads the script loader and the network blocker
+ * as one chunk, and data clearing and a `consentSource` connection as one
+ * each, only when the page configures them. `lazyStreamPrefetch` likewise loads the
  * streamed-prefetch code only for a runtime whose `prefetch` is a promise;
  * `streamPrefetchWith` wraps a resolver the host imported itself.
  * A host that configures once (the script tag, an Astro page) builds the
- * same modules into a runtime with `createConsentRuntimeWith`, and can take
- * the on-demand factories one at a time (`scriptLoaderOnDemand`,
- * `networkBlockerOnDemand`, `clearOnRevocationOnDemand`,
- * `connectConsentSourceOnDemand`) when it imports the rest statically.
+ * same modules into a runtime with `createConsentRuntimeWith`. A host that
+ * imports some of them statically takes the others' factories one at a
+ * time from `@c15t/core/runtime/on-demand-factories`, which this entry
+ * does not re-export (see there for why).
  *
  * @example
  * ```ts
@@ -34,16 +34,6 @@ export { lazyRuntimeModule } from './lazy-module';
 // every chunk that imports this entry.
 // oxlint-disable-next-line oxc/no-barrel-file -- One module; the count is its tools' first-load imports, which the entry already has.
 export * from './on-demand';
-// Each on-demand factory on its own, from its own file, so a host that
-// imports one never names the others' chunks.
-// oxlint-disable-next-line oxc/no-barrel-file -- One module.
-export * from './on-demand-clear-on-revocation';
-// oxlint-disable-next-line oxc/no-barrel-file -- One module.
-export * from './on-demand-consent-source';
-// oxlint-disable-next-line oxc/no-barrel-file -- One module.
-export * from './on-demand-network-blocker';
-// oxlint-disable-next-line oxc/no-barrel-file -- One module.
-export * from './on-demand-script-loader';
 // Star exports for the same reason: configure-once hosts (the script tag,
 // Astro) read these, providers mostly do not.
 // oxlint-disable-next-line oxc/no-barrel-file -- One small module whose imports the entry already has.

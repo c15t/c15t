@@ -176,9 +176,10 @@ browser data is removed. IAB mounts through the `mountIAB` module
 ignored.
 
 `onDemandRuntimeModules` loads the script loader, the network blocker, data
-clearing and a `consentSource` connection on demand, each as one chunk that
-imports nothing your first chunk has. Spread it into `modules` next to the
-modules you import statically:
+clearing and a `consentSource` connection on demand, in chunks that import
+nothing your first chunk has. The script loader and the network blocker share
+one chunk, so a page with scripts and blocker rules downloads, or preloads, one
+file. Spread it into `modules` next to the modules you import statically:
 
 {/* example: fragment */}
 
@@ -201,15 +202,16 @@ const runtime = createConsentProviderRuntime(options, {
 });
 ```
 
-A page that configures none of those modules never downloads them. Consented
-scripts mount once the script loader has loaded, matching requests stay held
-until the network blocker has, and optional categories stay denied until a
-`consentSource` connects. A module whose chunk fails to load is tried again
-when the browser comes back online. Until then a failed network blocker blocks
-every request its rules match instead of holding it. A module you load yourself
-with `lazyRuntimeModule` works the same way, but if it imports code your first
-chunk also uses, bundlers that split shared code (Vite, esbuild) move that code
-into extra chunks the first load then fetches.
+A page that configures none of those modules never downloads them. A page
+with only scripts, or only blocker rules, downloads both. Consented scripts
+mount, and matching requests stay held, until the shared chunk has loaded.
+Optional categories stay denied until a `consentSource` connects. A module
+whose chunk fails to load is tried again when the browser comes back online.
+Until then a failed network blocker blocks every request its rules match
+instead of holding it. A module you load yourself with `lazyRuntimeModule`
+works the same way, but if it imports code your first chunk also uses,
+bundlers that split shared code (Vite, esbuild) move that code into extra
+chunks the first load then fetches.
 
 Import from `c15t/runtime/provider` when your provider loads modules on
 demand. It exports `createConsentProviderRuntime`, `onDemandRuntimeModules`,
@@ -223,12 +225,16 @@ and also through `import()`.
 modules you choose, for a page that configures once (a script tag, an Astro
 page) and loads some modules on demand. The same lifecycle and handle apply.
 
-Each on-demand factory is also exported on its own: `scriptLoaderOnDemand`,
-`networkBlockerOnDemand`, `clearOnRevocationOnDemand` and
-`connectConsentSourceOnDemand`. Use them when you import some of those modules
-statically and load the rest on demand. Spreading `onDemandRuntimeModules`
-instead puts an `import()` of every module in your chunk, and a bundler keeps a
-module you also import statically in a chunk of its own:
+`c15t/runtime/on-demand-factories` exports each on-demand factory on its own:
+`scriptLoaderOnDemand`, `networkBlockerOnDemand`, `clearOnRevocationOnDemand`
+and `connectConsentSourceOnDemand`. `scriptLoaderOnDemand` and
+`networkBlockerOnDemand` each load a chunk with only their module. Use them
+when you import some of those modules statically and load the rest on demand.
+Spreading `onDemandRuntimeModules` instead would load the module you import
+statically a second time, in the shared chunk, and a bundler then moves that
+module into a chunk of its own. The factories have their own entry because
+esbuild emits a chunk for every `import()` in the files it reaches, used or
+not, which would split the shared chunk apart:
 
 {/* example: fragment */}
 
@@ -241,9 +247,9 @@ import { createWindowDebug } from 'c15t/modules/window-debug';
 import {
 	clearOnRevocationOnDemand,
 	connectConsentSourceOnDemand,
-	createConsentRuntimeWith,
 	networkBlockerOnDemand,
-} from 'c15t/runtime/provider';
+} from 'c15t/runtime/on-demand-factories';
+import { createConsentRuntimeWith } from 'c15t/runtime/provider';
 
 const runtime = createConsentRuntimeWith(options, {
 	connectConsentSource: connectConsentSourceOnDemand,

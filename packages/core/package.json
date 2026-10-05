@@ -159,6 +159,11 @@
 			"import": "./dist/runtime/controls.js",
 			"default": "./dist/runtime/controls.js"
 		},
+		"./runtime/on-demand-factories": {
+			"types": "./dist-types/runtime/on-demand-factories.d.ts",
+			"import": "./dist/runtime/on-demand-factories.js",
+			"default": "./dist/runtime/on-demand-factories.js"
+		},
 		"./runtime/provider": {
 			"types": "./dist-types/runtime/provider.d.ts",
 			"import": "./dist/runtime/provider.js",

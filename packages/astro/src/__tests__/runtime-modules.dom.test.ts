@@ -5,7 +5,7 @@
  * Its own file, because the registration is page-wide.
  */
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
-import { scriptLoaderOnDemand } from '@c15t/core/runtime/provider';
+import { scriptLoaderOnDemand } from '@c15t/core/runtime/on-demand-factories';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { boot, registerRuntimeModules } from '../client';
