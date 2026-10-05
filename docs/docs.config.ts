@@ -770,7 +770,7 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'transports', 'content-security-policy'],
+							pages: ['iab', 'gpp', 'transports', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},

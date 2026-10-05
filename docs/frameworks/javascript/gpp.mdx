@@ -1,0 +1,100 @@
+---
+title: IAB GPP
+description: Expose the IAB Global Privacy Platform API (__gpp) from a JavaScript app with @c15t/iab/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What createGPP does
+
+`createGPP()` from `@c15t/iab/gpp` installs `window.__gpp`, the GPP 1.1 CMP
+API, and keeps its GPP string in step with the visitor's choices. Prebid.js,
+Google Ad Manager and other ad tech read US privacy signals from it.
+
+| Visitor | Section in the GPP string |
+| --- | --- |
+| Under an `iab` policy, after the TCF CMP confirms a TC String | `tcfeuv2` (ID 2), the TC String unchanged |
+| In a US state with a GPP section, default `usApproach: 'state'` | That state's section, such as `usca` (ID 8) |
+| In the US, `usApproach: 'national'` | `usnat` (ID 7), MSPA US National version 2 |
+| Anywhere else | None; `applicableSections` is `[-1]` |
+
+State sections exist for California, Colorado, Connecticut, Delaware, Florida,
+Iowa, Minnesota, Montana, Nebraska, New Hampshire, New Jersey, Oregon,
+Tennessee, Texas, Utah and Virginia. Indiana, Kentucky, Maryland and Rhode
+Island are not encoded yet: their published specifications and the IAB
+reference implementation disagree on the section layout. Visitors there get
+`[-1]` under the state approach and `usnat` under the national approach.
+
+The US sections report:
+
+- `SaleOptOut`, `SharingOptOut` and `TargetedAdvertisingOptOut`: `1` (opted
+  out) when the `marketing` category is not permitted, otherwise `2`. A
+  refusal, a GPC signal the policy honours, and an opt-in policy without a
+  grant all count.
+- The matching opt-out notices and the sharing or processing notice: `1`
+  (given). You remain responsible for showing those notices and a persistent
+  opt-out control.
+- `Gpc`: the browser's Global Privacy Control signal, in sections that have a
+  GPC subsection.
+- Sensitive data and known-child consents: `0` (not applicable). c15t has no
+  category for them.
+- `MspaCoveredTransaction`: `2` (not covered) unless you set `mspaMode`.
+
+## Add GPP to the @c15t/browser client
+
+Install `@c15t/iab` next to `@c15t/browser`:
+
+<CommandTabs command="@c15t/browser@alpha @c15t/iab@alpha" mode="install" />
+
+Pass the client's kernel to `createGPP()` right after `init()`:
+
+<include src="../../shared/examples/javascript/gpp.mdx" />
+
+Replace `https://your-project.inth.app` with your project's backend URL. The
+GPP string follows the location Inth resolves for the visitor, so a US
+visitor's state comes from the backend. With `offline()` mode, pass the state
+yourself, for example `overrides: { country: 'US', region: 'CA' }`.
+
+`createGPP()` also works with a runtime from `createConsentRuntime()` or with a
+kernel you own: pass `runtime.kernel` or the kernel. Call `dispose()` on the
+returned handle to remove `__gpp`.
+
+## Check the signal
+
+Open the browser console on a page where `createGPP()` ran and call:
+
+```js
+__gpp('ping', (data) => console.log(data));
+```
+
+For a California visitor who has not opted out, the result includes
+`applicableSections: [8]`, `signalStatus: 'ready'` and
+`parsedSections.usca[0].SaleOptOut === 2`. After the visitor refuses
+`marketing`, `SaleOptOut` is `1`. `__gpp('getField', cb, 'usca.SaleOptOut')`
+returns the same value. Scripts in iframes reach the API through the
+`__gppLocator` frame and `postMessage`.
+
+`signalStatus` stays `'not ready'` while the policy is pending, while the
+banner or dialog is open, and while a new TC String is decoded. Listeners
+added with `addEventListener` get `signalStatus: 'not ready'`, then
+`cmpDisplayStatus` and `sectionChange` events, then `signalStatus: 'ready'`.
+
+## Options
+
+| Option | Default | Effect |
+| --- | --- | --- |
+| `kernel` | required | The consent kernel to read choices from. |
+| `cmpId` | the kernel's IAB CMP ID, else `1` | CMP ID reported by `ping`. The GPP specification reserves `1` for string creators without a registered ID. Strings with a TCF EU section, or a `usnat` section under the MSPA, need a registered ID. |
+| `usApproach` | `'state'` | `'national'` reports `usnat` for every US visitor. The MSPA reserves it for signatories that chose the national approach. |
+| `mspaMode` | unset | `'opt-out-option'` or `'service-provider'`. Set it only if you signed the IAB Multi-State Privacy Agreement; the transaction is then reported as covered. In service provider mode the opt-outs are reported as not applicable. |
+| `optOutCategories` | `['marketing']` | Categories whose refusal reports an opt-out of sale, sharing and targeted advertising. |
+| `tcf` | `true` | Include the `tcfeuv2` section under an `iab` policy. It needs the TCF CMP from [IAB TCF](/docs/frameworks/javascript/iab). |
+
+## Install the stub before other scripts
+
+Vendor scripts can call `__gpp` before c15t loads. `createGPP()` takes over
+any calls and listeners queued by a stub that follows the GPP specification.
+To install one early, call `initializeGPPStub()` from `@c15t/iab/gpp` in your
+first script, or use the IAB's own stub snippet.
+
+GPP signals what the visitor chose; it does not block scripts. Gate vendor
+scripts with c15t [scripts](/docs/frameworks/javascript/scripts) as well.

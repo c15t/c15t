@@ -20,6 +20,7 @@ export default defineConfig({
 	},
 	source: {
 		entry: {
+			gpp: ['./src/gpp.ts'],
 			headless: ['./src/headless.ts'],
 			index: ['./src/index.ts'],
 		},
