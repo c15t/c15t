@@ -17,12 +17,24 @@ import type { USSectionDefinition } from './sections';
  * How US visitors are signalled.
  *
  * - `state`: the visitor's state section (`usca`, `usva`, …). When the
- *   region is unknown or has no section c15t encodes, the MSPA US National
- *   section (`usnat`) carries the same opt-outs instead.
- * - `national`: `usnat` for every US visitor. The MSPA reserves it for
- *   signatories that chose the national approach.
+ *   region is unknown or has no section c15t encodes, {@link GPPUSFallback}
+ *   decides.
+ * - `national`: the MSPA US National section (`usnat`) for every US
+ *   visitor. The MSPA reserves it for signatories that chose the national
+ *   approach.
  */
 export type GPPUSApproach = 'state' | 'national';
+
+/**
+ * Under the state approach, what a US visitor gets when their region is
+ * unknown or their state has no section c15t encodes.
+ *
+ * - `usnat`: the MSPA US National section carries the opt-outs, reported as
+ *   a transaction the MSPA does not cover unless `mspaMode` is set.
+ * - `none`: no section, for publishers that reserve `usnat` for the MSPA
+ *   national approach.
+ */
+export type GPPUSFallback = 'usnat' | 'none';
 
 /**
  * MSPA mode for covered transactions. Leave unset when the publisher has
@@ -93,39 +105,46 @@ export type USSectionSnapshot = Pick<
 >;
 
 /**
- * Whether the matched policy rule gives the visitor a way to opt out: the
- * `preferences` or `opt-out` right. Every `opt-in` and `opt-out` rule has
- * one; a `none` rule has one only when the host added it.
+ * Whether the matched policy rule calls for a US section: it gives the
+ * visitor a way to opt out (the `preferences` or `opt-out` right) and is not
+ * an `iab` rule, whose framework is TCF. Every `opt-in` and `opt-out` rule
+ * offers an opt-out; a `none` rule does only when the host added the right.
  */
-const offersOptOut = (rule: USSectionSnapshot['policyRule']): boolean =>
-	rule.rights.includes('preferences') || rule.rights.includes('opt-out');
+const callsForUSSection = (rule: USSectionSnapshot['policyRule']): boolean =>
+	rule.model !== 'iab' &&
+	(rule.rights.includes('preferences') || rule.rights.includes('opt-out'));
 
 /**
  * The US section for a snapshot, or `null` when none applies.
  *
- * The policy decides first: a rule that offers no opt-out (a `none` rule
- * without rights) gets no US section, wherever the visitor is. Then the
- * location picks the section. A US visitor whose region is unknown, or
- * whose state has no section c15t encodes, gets `usnat` under the state
- * approach.
+ * The policy decides first: an `iab` rule, or a rule that offers no
+ * opt-out (a `none` rule without rights), gets no US section, wherever the
+ * visitor is. Then the location picks the section. Under the state
+ * approach, a US visitor whose region is unknown, or whose state has no
+ * section c15t encodes, gets what `fallback` names.
  *
  * @param snapshot - Consent snapshot.
  * @param approach - State sections or the national section.
- * @returns The section definition, or `null` outside the US and under a
- * rule without an opt-out.
+ * @param fallback - Section for an unresolved state. Default: `'usnat'`.
+ * @returns The section definition, or `null` when none applies.
  */
 export const resolveUSSectionDefinition = function resolveUSSectionDefinition(
 	snapshot: Pick<USSectionSnapshot, 'location' | 'overrides' | 'policyRule'>,
-	approach: GPPUSApproach
+	approach: GPPUSApproach,
+	fallback: GPPUSFallback = 'usnat'
 ): USSectionDefinition | null {
 	const { country, region } = resolveUSState(snapshot);
-	if (country !== 'US' || !offersOptOut(snapshot.policyRule)) {
+	if (country !== 'US' || !callsForUSSection(snapshot.policyRule)) {
 		return null;
 	}
-	if (approach === 'national' || !region) {
+	if (approach === 'national') {
 		return US_NATIONAL_SECTION;
 	}
-	return US_STATE_SECTIONS[region] ?? US_NATIONAL_SECTION;
+	const state = region ? US_STATE_SECTIONS[region] : undefined;
+	if (state) {
+		return state;
+	}
+	return fallback === 'usnat' ? US_NATIONAL_SECTION : null;
 };
 
 /**

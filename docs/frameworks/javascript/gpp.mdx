@@ -18,10 +18,11 @@ applies. The visitor's location only picks which US section carries it.
 | Matched rule and visitor | Section in the GPP string |
 | --- | --- |
 | `iab` rule, with the TCF CMP mounted | `tcfeuv2` (ID 2): the TC String the CMP confirmed, unchanged |
-| A rule with the `preferences` or `opt-out` right, US visitor in a state with a section | That state's section, such as `usca` (ID 8) |
-| The same rule, US visitor whose region is unknown or whose state has no section | `usnat` (ID 7), MSPA US National version 2 |
+| `iab` rule, any visitor, with `tcf: false` | None; `applicableSections` is `[-1]` |
+| Any other rule with the `preferences` or `opt-out` right, US visitor in a state with a section | That state's section, such as `usca` (ID 8) |
+| The same rule, US visitor whose region is unknown or whose state has no section | `usnat` (ID 7), MSPA US National version 2; none with `usFallback: 'none'` |
 | The same rule, `usApproach: 'national'` | `usnat` for every US visitor |
-| A rule without those rights, such as `none` | None; `applicableSections` is `[-1]` |
+| A rule without those rights, such as `none` | None |
 | A visitor outside the US under any rule other than `iab` | None |
 
 Every `opt-in` and `opt-out` rule has the `preferences` right, and every
@@ -32,9 +33,17 @@ section, even when the visitor sends a GPC signal.
 State sections exist for California, Colorado, Connecticut, Delaware, Florida,
 Iowa, Minnesota, Montana, Nebraska, New Hampshire, New Jersey, Oregon,
 Tennessee, Texas, Utah and Virginia. Indiana, Kentucky, Maryland and Rhode
-Island are not encoded yet: their published specifications and the IAB
-reference implementation disagree on the section layout. Visitors there get
-`usnat`. So does a US visitor whose region the geo headers did not supply.
+Island are not encoded yet: their published specifications start the section
+with a header that the IAB reference implementation does not encode. Visitors
+there get the fallback, `usnat` by default. So does a US visitor whose region
+the geo headers did not supply.
+
+The MSPA US National specification describes `usnat` for MSPA signatories
+that chose the national approach. Without `mspaMode`, c15t reports the
+fallback as a transaction the MSPA does not cover (`MspaCoveredTransaction:
+2`), which still carries the opt-outs to vendors such as Prebid.js. If you
+reserve `usnat` for the national approach, set `usFallback: 'none'`; those
+visitors then get no section until their state resolves.
 
 The US sections report:
 
@@ -44,14 +53,20 @@ The US sections report:
   `privacySignals.gpc`, and an opt-in rule without a grant all count.
 - The opt-out notices: `1` (given), since the rule offers an opt-out.
 - The sharing or processing notice: `1` when the rule has the `disclosure`
-  right, otherwise `2`. You remain responsible for showing the notices the
-  rule promises.
+  right, otherwise `2`.
+
+The notice fields are your attestation, made through the rule's rights:
+c15t cannot see whether your privacy notice is on the page. Show the notices
+the rule promises, including a persistent opt-out control.
+
 - `Gpc`: the browser's Global Privacy Control signal, in sections that have a
   GPC subsection. It is reported even when the rule does not map GPC to a
   category, so give US rules a `privacySignals.gpc` mapping if the opt-outs
   should follow it too.
 - Sensitive data and known-child consents: `0` (not applicable). c15t has no
-  category for them.
+  category for them, so the string states that you do not process sensitive
+  data or knowingly process children's data. If you do, `createGPP()` does
+  not describe your processing; collect and signal that consent separately.
 - `MspaCoveredTransaction`: `2` (not covered) unless you set `mspaMode`.
 
 ## Add GPP to the @c15t/browser client
@@ -88,8 +103,15 @@ For a California visitor who has not opted out, the result includes
 returns the same value. Scripts in iframes reach the API through the
 `__gppLocator` frame and `postMessage`.
 
+Under an `iab` rule, `parsedSections.tcfeuv2` uses the field names of the
+IAB Europe TCF section, such as `PurposeConsent`, `VendorConsent` and
+`PubRestrictions`. `getSection` and `getField` answer `null` for `tcfeuv2`,
+as the IAB reference implementation does: TCF vendors read consent from
+events, not on demand.
+
 `signalStatus` stays `'not ready'` while the policy is pending, while the
-banner or dialog is open, and while a new TC String is decoded. Listeners
+banner or dialog is open, while an `iab` rule has no confirmed TC String,
+and while a new TC String is decoded. Listeners
 added with `addEventListener` get `signalStatus: 'not ready'`, then
 `cmpDisplayStatus` and `sectionChange` events, then `signalStatus: 'ready'`.
 
@@ -98,8 +120,9 @@ added with `addEventListener` get `signalStatus: 'not ready'`, then
 | Option | Default | Effect |
 | --- | --- | --- |
 | `kernel` | required | The consent kernel to read choices from. |
-| `cmpId` | the kernel's IAB CMP ID, else `1` | CMP ID reported by `ping`. The GPP specification reserves `1` for string creators without a registered ID. Strings with a TCF EU section, or a `usnat` section under the MSPA, need a registered ID. |
-| `usApproach` | `'state'` | `'state'` uses the visitor's state section and falls back to `usnat`. `'national'` reports `usnat` for every US visitor; the MSPA reserves it for signatories that chose the national approach. |
+| `cmpId` | the kernel's IAB CMP ID, else `1` | CMP ID reported by `ping`. The GPP specification has string creators without a registered ID, including MSPA US National creators, use `1`. A TCF EU section needs the registered ID its TC String names. |
+| `usApproach` | `'state'` | `'state'` uses the visitor's state section. `'national'` reports `usnat` for every US visitor; the MSPA reserves it for signatories that chose the national approach. |
+| `usFallback` | `'usnat'` | Under the state approach, the section for a US visitor whose state is unknown or has no section: `'usnat'` or `'none'`. |
 | `mspaMode` | unset | `'opt-out-option'` or `'service-provider'`. Set it only if you signed the IAB Multi-State Privacy Agreement; the transaction is then reported as covered. In service provider mode the opt-outs are reported as not applicable. |
 | `optOutCategories` | `['marketing']` | Categories whose refusal reports an opt-out of sale, sharing and targeted advertising. |
 | `tcf` | `true` | Include the `tcfeuv2` section under an `iab` policy. It needs the TCF CMP from [IAB TCF](/docs/frameworks/javascript/iab). |
@@ -107,9 +130,15 @@ added with `addEventListener` get `signalStatus: 'not ready'`, then
 ## Install the stub before other scripts
 
 Vendor scripts can call `__gpp` before c15t loads. `createGPP()` takes over
-any calls and listeners queued by a stub that follows the GPP specification.
-To install one early, call `initializeGPPStub()` from `@c15t/iab/gpp` in your
-first script, or use the IAB's own stub snippet.
+the calls and listeners a stub queued, whether the stub keeps listeners on
+`__gpp.events`, as the GPP specification's sample does, or returns them from
+`__gpp('events')`, as `@iabgpp/stub` does. To install one early, call
+`initializeGPPStub()` from `@c15t/iab/gpp` in your first script, or use the
+IAB's own stub snippet. When another stub already answers iframes, c15t
+leaves that to it, so each iframe call gets one reply.
+
+`createGPP()` throws when another CMP that has already loaded owns
+`__gpp`, rather than replacing it. Run one GPP CMP per page.
 
 GPP signals what the visitor chose; it does not block scripts. Gate vendor
 scripts with c15t [scripts](/docs/frameworks/javascript/scripts) as well.

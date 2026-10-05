@@ -48,6 +48,8 @@ export interface GPPCmpApi {
 	getPingData: () => GPPPingData;
 	/** Removes listeners, and `__gpp` while it is still this API. */
 	destroy: () => void;
+	/** Whether `window.__gpp` is this API. */
+	isInstalled: () => boolean;
 }
 
 /** Configuration for {@link createGPPCmpApi}. */
@@ -80,23 +82,84 @@ const changedPrefixes = function changedPrefixes(
 	});
 };
 
-/** Reads queued calls and listeners from a stub that follows the GPP contract. */
-const readStub = function readStub(stub: GPPApi | undefined): {
+/**
+ * Sections whose data is available only in event listeners. TCF 2.2 has
+ * vendors read consent from events, so, like the IAB reference
+ * implementation, `getSection` and `getField` answer `null` for it.
+ */
+const EVENT_ONLY_PREFIXES = new Set(['tcfeuv2']);
+
+/** Every `__gpp` this module installed, so a replacement can be recognised. */
+const ownApis = new WeakSet<GPPApi>();
+
+/** A stub with its queue and listeners on properties, as the spec's sample stores them. */
+type StubWithProperties = GPPApi & { queue?: unknown; events?: unknown };
+
+/** Commands a stub answers with its own state rather than queueing. */
+const STUB_COMMANDS = new Set([undefined, 'events', 'queue']);
+
+/**
+ * Reads queued calls and listeners from a stub. Two conventions exist: the
+ * GPP specification's sample stub keeps listeners on `__gpp.events`, and
+ * the IAB `@iabgpp/stub` package returns them from `__gpp('events')`. Both
+ * return the queue from `__gpp()`.
+ */
+const readStub = function readStub(stub: StubWithProperties | undefined): {
 	queue: unknown[][];
 	events: GPPQueuedListener[];
 } {
-	const read = (...args: [] | [string]): unknown[] => {
+	const call = (...args: [] | [string]): unknown => {
 		try {
-			const value = stub?.(...args);
-			return Array.isArray(value) ? value : [];
+			return stub?.(...args);
 		} catch {
-			return [];
+			return undefined;
 		}
 	};
+	let events: unknown = stub?.events;
+	if (!Array.isArray(events)) {
+		events = call('events');
+	}
+	let queue: unknown = call();
+	if (!Array.isArray(queue)) {
+		queue = stub?.queue;
+	}
 	return {
-		events: read('events') as GPPQueuedListener[],
-		queue: read() as unknown[][],
+		events: Array.isArray(events) ? (events as GPPQueuedListener[]) : [],
+		// A stub without an `events` command queued that call above.
+		queue: Array.isArray(queue)
+			? (queue as unknown[][]).filter(
+					(args) => Array.isArray(args) && !STUB_COMMANDS.has(args[0] as string)
+				)
+			: [],
 	};
+};
+
+/**
+ * Whether `existing` is a CMP that has loaded, rather than a stub or an
+ * API this module installed. A stub answers `ping` with `cmpStatus: 'stub'`
+ * or queues it. Older stubs, such as the specification's sample, return
+ * the ping data instead of calling back.
+ */
+const isLoadedForeignCmp = function isLoadedForeignCmp(
+	existing: GPPApi | undefined
+): boolean {
+	if (!existing || ownApis.has(existing)) {
+		return false;
+	}
+	const statusOf = (data: unknown): unknown =>
+		data && typeof data === 'object'
+			? (data as { cmpStatus?: unknown }).cmpStatus
+			: undefined;
+	let status: unknown;
+	try {
+		const returned = existing('ping', (data) => {
+			status = statusOf(data);
+		});
+		status ??= statusOf(returned);
+	} catch {
+		return false;
+	}
+	return status !== undefined && status !== 'stub';
 };
 
 /**
@@ -104,12 +167,18 @@ const readStub = function readStub(stub: GPPApi | undefined): {
  *
  * @param config - Supported sections and the initial state.
  * @returns Control interface over the API.
+ * @throws {Error} When another CMP that has already loaded owns `__gpp`.
  *
  * @internal
  */
 export const createGPPCmpApi = function createGPPCmpApi(
 	config: GPPCmpApiConfig
 ): GPPCmpApi {
+	if (typeof window !== 'undefined' && isLoadedForeignCmp(window.__gpp)) {
+		throw new Error(
+			'@c15t/iab/gpp: another CMP already provides window.__gpp. Remove it, or do not mount createGPP() on this page.'
+		);
+	}
 	let state = config.initial;
 	let gppString = encodeGPPString(state.sections);
 	const listeners = new Map<number, GPPCallback<GPPEventData>>();
@@ -147,6 +216,11 @@ export const createGPPCmpApi = function createGPPCmpApi(
 
 	const findSection = (prefix: unknown) =>
 		state.sections.find((section) => section.prefix === prefix);
+	/** A section's parsed data, unless it is readable only in events. */
+	const readableSection = (prefix: unknown) =>
+		EVENT_ONLY_PREFIXES.has(prefix as string)
+			? undefined
+			: findSection(prefix)?.parsed;
 
 	const getField = (parameter: unknown): unknown => {
 		if (typeof parameter !== 'string') {
@@ -156,11 +230,9 @@ export const createGPPCmpApi = function createGPPCmpApi(
 		if (separator <= 0) {
 			return null;
 		}
-		const section = findSection(parameter.slice(0, separator));
+		const parsed = readableSection(parameter.slice(0, separator));
 		const name = parameter.slice(separator + 1);
-		const subsection = section?.parsed?.find((entry) =>
-			Object.hasOwn(entry, name)
-		);
+		const subsection = parsed?.find((entry) => Object.hasOwn(entry, name));
 		return subsection ? structuredClone(subsection[name]) : null;
 	};
 
@@ -194,7 +266,7 @@ export const createGPPCmpApi = function createGPPCmpApi(
 				handler(Boolean(findSection(parameter)), true);
 				break;
 			case 'getSection': {
-				const parsed = findSection(parameter)?.parsed;
+				const parsed = readableSection(parameter);
 				handler(parsed ? structuredClone(parsed) : null, true);
 				break;
 			}
@@ -215,6 +287,7 @@ export const createGPPCmpApi = function createGPPCmpApi(
 				lastListenerId = Math.max(lastListenerId, event.id);
 			}
 		}
+		ownApis.add(api);
 		window.__gpp = api;
 		for (const args of queue) {
 			try {
@@ -228,6 +301,44 @@ export const createGPPCmpApi = function createGPPCmpApi(
 		}
 	}
 
+	let publishing = false;
+	let pending: GPPState | null = null;
+	const publishOnce = (next: GPPState): void => {
+		const sections = changedPrefixes(state.sections, next.sections);
+		const applicableChanged = !sameNumbers(
+			state.applicableSections,
+			next.applicableSections
+		);
+		const displayChanged = state.cmpDisplayStatus !== next.cmpDisplayStatus;
+		if (
+			sections.length === 0 &&
+			!applicableChanged &&
+			!displayChanged &&
+			state.cmpId === next.cmpId &&
+			state.signalStatus === next.signalStatus
+		) {
+			return;
+		}
+		if (state.signalStatus === 'ready') {
+			state = { ...state, signalStatus: 'not ready' };
+			fire('signalStatus', 'not ready');
+		}
+		if (displayChanged) {
+			state = { ...state, cmpDisplayStatus: next.cmpDisplayStatus };
+			fire('cmpDisplayStatus', next.cmpDisplayStatus);
+		}
+		state = { ...next, signalStatus: 'not ready' };
+		gppString = encodeGPPString(state.sections);
+		for (const prefix of sections) {
+			fire('sectionChange', prefix);
+		}
+		// Stay `not ready` when a listener published a newer state meanwhile.
+		if (next.signalStatus === 'ready' && !pending) {
+			state = { ...state, signalStatus: 'ready' };
+			fire('signalStatus', 'ready');
+		}
+	};
+
 	return {
 		destroy: () => {
 			listeners.clear();
@@ -236,38 +347,24 @@ export const createGPPCmpApi = function createGPPCmpApi(
 			}
 		},
 		getPingData,
+		isInstalled: () => typeof window !== 'undefined' && window.__gpp === api,
 		publish: (next) => {
-			const sections = changedPrefixes(state.sections, next.sections);
-			const applicableChanged = !sameNumbers(
-				state.applicableSections,
-				next.applicableSections
-			);
-			const displayChanged = state.cmpDisplayStatus !== next.cmpDisplayStatus;
-			if (
-				sections.length === 0 &&
-				!applicableChanged &&
-				!displayChanged &&
-				state.cmpId === next.cmpId &&
-				state.signalStatus === next.signalStatus
-			) {
+			// A listener can change consent while events fire, which publishes
+			// again. Finish the running publication first, then apply the
+			// latest state, so a newer state is never overwritten by an older one.
+			pending = next;
+			if (publishing) {
 				return;
 			}
-			if (state.signalStatus === 'ready') {
-				state = { ...state, signalStatus: 'not ready' };
-				fire('signalStatus', 'not ready');
-			}
-			if (displayChanged) {
-				state = { ...state, cmpDisplayStatus: next.cmpDisplayStatus };
-				fire('cmpDisplayStatus', next.cmpDisplayStatus);
-			}
-			state = { ...next, signalStatus: 'not ready' };
-			gppString = encodeGPPString(state.sections);
-			for (const prefix of sections) {
-				fire('sectionChange', prefix);
-			}
-			if (next.signalStatus === 'ready') {
-				state = { ...state, signalStatus: 'ready' };
-				fire('signalStatus', 'ready');
+			publishing = true;
+			try {
+				while (pending) {
+					const target = pending;
+					pending = null;
+					publishOnce(target);
+				}
+			} finally {
+				publishing = false;
 			}
 		},
 	};

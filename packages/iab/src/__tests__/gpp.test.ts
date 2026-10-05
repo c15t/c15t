@@ -113,7 +113,8 @@ describe('createGPP: US state sections', () => {
 			signalStatus: 'ready',
 		});
 		expect(data.supportedAPIs).toContain('8:usca');
-		expect(data.supportedAPIs).not.toContain('7:usnat');
+		// The default fallback can emit usnat, so the CMP lists it.
+		expect(data.supportedAPIs).toContain('7:usnat');
 
 		const decoded = new GppModel(data.gppString);
 		expect(decoded.getSection('usca')).toMatchObject({
@@ -311,6 +312,22 @@ describe('createGPP: options', () => {
 		});
 	});
 
+	test('usFallback none leaves an unresolved state without a section', () => {
+		const kernel = makeKernel(US_OPT_OUT, {
+			initialLocation: { countryCode: 'US', regionCode: null },
+		});
+		mount({ kernel, usFallback: 'none' });
+		expect(ping()).toMatchObject({
+			applicableSections: [-1],
+			gppString: '',
+			signalStatus: 'ready',
+		});
+		expect(ping().supportedAPIs).not.toContain('7:usnat');
+
+		kernel.set.overrides({ country: 'US', region: 'CA' });
+		expect(ping().applicableSections).toEqual([8]);
+	});
+
 	test('service provider mode reports the opt-outs as not applicable', () => {
 		const kernel = makeKernel(US_OPT_OUT, {
 			initialLocation: { countryCode: 'US', regionCode: 'CA' },
@@ -492,42 +509,93 @@ describe('createGPP: TCF EU section', () => {
 		await iab.whenReady();
 		kernel.set.activeUI('none');
 		mount({ kernel });
+		// The applicable section does not exist until a TC String does.
 		expect(ping()).toMatchObject({
 			applicableSections: [2],
 			cmpId: 28,
 			gppString: '',
-			signalStatus: 'ready',
+			signalStatus: 'not ready',
 		});
 		expect(ping().supportedAPIs).toContain('2:tcfeuv2');
 
 		const events = listen();
 		iab.acceptAll();
 		await iab.save();
-		await vi.waitFor(() => expect(ping().sectionList).toEqual([2]));
+		await vi.waitFor(() => expect(ping().signalStatus).toBe('ready'));
 
 		const tcString = kernel.getSnapshot().iab?.authority?.tcString;
 		expect(tcString).toBeTruthy();
 		const data = ping();
+		expect(data.sectionList).toEqual([2]);
 		expect(data.gppString.split('~')[1]).toBe(tcString);
-		const decoded = new GppModel(data.gppString);
-		expect(decoded.getFieldValue('tcfeuv2', 'CmpId')).toBe(28);
+		const reference = new GppModel(data.gppString);
+		const setIds = (bits: boolean[]) =>
+			bits.flatMap((set, index) => (set ? [index + 1] : []));
 		const [core] = data.parsedSections.tcfeuv2 ?? [];
 		expect(core).toMatchObject({
 			CmpId: 28,
-			PurposeConsents: decoded.getFieldValue('tcfeuv2', 'PurposeConsents'),
-			VendorConsents: decoded.getFieldValue('tcfeuv2', 'VendorConsents'),
+			PurposeConsent: setIds(
+				reference.getFieldValue('tcfeuv2', 'PurposeConsents')
+			),
+			TcfPolicyVersion: completeGVL.tcfPolicyVersion,
+			VendorConsent: reference.getFieldValue('tcfeuv2', 'VendorConsents'),
 			VendorListVersion: completeGVL.vendorListVersion,
 		});
-		expect(call('getField', 'tcfeuv2.CmpId').data).toBe(28);
+		expect(events.at(-1)?.pingData.parsedSections.tcfeuv2).toEqual(
+			data.parsedSections.tcfeuv2
+		);
 		expect(events.at(-1)).toMatchObject({
 			data: 'ready',
 			eventName: 'signalStatus',
 		});
 		expect(events.map(({ eventName }) => eventName)).toContain('sectionChange');
+
+		// TCF consent is read from events, never on demand.
+		expect(call('hasSection', 'tcfeuv2').data).toBe(true);
+		expect(call('getSection', 'tcfeuv2')).toEqual({
+			data: null,
+			success: true,
+		});
+		expect(call('getField', 'tcfeuv2.CmpId').data).toBeNull();
 	});
 
-	test('can leave TCF out', () => {
+	test('waits again once the TC String is withdrawn', async () => {
 		const kernel = makeIABKernel();
+		const iab = createIAB({
+			cmpId: 28,
+			gvl: completeGVL,
+			kernel,
+			persistence: false,
+		});
+		disposers.push(iab.dispose);
+		await iab.whenReady();
+		kernel.set.activeUI('none');
+		mount({ kernel });
+		iab.acceptAll();
+		await iab.save();
+		await vi.waitFor(() => expect(ping().signalStatus).toBe('ready'));
+
+		kernel.set.iab({ authority: null, tcString: null });
+		expect(ping()).toMatchObject({
+			applicableSections: [2],
+			gppString: '',
+			signalStatus: 'not ready',
+		});
+	});
+
+	test('without TCF, an iab rule gets no section, even for a US visitor', () => {
+		const kernel = makeKernel(
+			{
+				match: { isDefault: true },
+				model: 'iab',
+				prompt: 'choice',
+				validity: { choiceDays: 1 },
+			},
+			{
+				initialIab: { cmpId: 28, enabled: true, gvl: completeGVL },
+				initialLocation: { countryCode: 'US', regionCode: 'CA' },
+			}
+		);
 		kernel.set.activeUI('none');
 		mount({ kernel, tcf: false });
 		expect(ping()).toMatchObject({
@@ -535,5 +603,230 @@ describe('createGPP: TCF EU section', () => {
 			signalStatus: 'ready',
 		});
 		expect(ping().supportedAPIs).not.toContain('2:tcfeuv2');
+	});
+});
+
+/**
+ * The sample stub from the GPP CMP API specification, with its two typos
+ * fixed (`events.splice`, `__gpp_addFrame`). It returns values instead of
+ * calling back, keeps listeners on `__gpp.events` and has no `'events'`
+ * command.
+ */
+const installSpecSampleStub = function installSpecSampleStub(): () => void {
+	const pingData = {
+		applicableSections: [-1],
+		cmpDisplayStatus: 'hidden',
+		cmpId: 31,
+		cmpStatus: 'stub',
+		gppString: '',
+		gppVersion: '1.1',
+		sectionList: [],
+		supportedAPIs: [],
+	};
+	type SampleStub = ((...args: unknown[]) => unknown) & {
+		queue?: unknown[][];
+		events?: { id: number; callback: unknown; parameter: unknown }[];
+		lastId?: number;
+	};
+	const stub: SampleStub = (...args) => {
+		stub.queue ??= [];
+		if (args.length === 0) {
+			return stub.queue;
+		}
+		const [command, callback, parameter] = args;
+		if (command === 'ping') {
+			return pingData;
+		}
+		if (command === 'addEventListener') {
+			stub.events ??= [];
+			stub.lastId = (stub.lastId ?? 0) + 1;
+			stub.events.push({ callback, id: stub.lastId, parameter });
+			return {
+				data: true,
+				eventName: 'listenerRegistered',
+				listenerId: stub.lastId,
+				pingData,
+			};
+		}
+		if (command === 'removeEventListener') {
+			const index = (stub.events ?? []).findIndex(
+				// oxlint-disable-next-line eqeqeq -- The sample compares loosely.
+				(event) => event.id == parameter
+			);
+			if (index !== -1) {
+				stub.events?.splice(index, 1);
+			}
+			return { data: index !== -1, eventName: 'listenerRemoved' };
+		}
+		if (
+			command === 'hasSection' ||
+			command === 'getSection' ||
+			command === 'getField'
+		) {
+			return null;
+		}
+		stub.queue.push(args);
+		return undefined;
+	};
+	const handler = (event: MessageEvent) => {
+		const json =
+			typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+		if (json && typeof json === 'object' && '__gppCall' in json) {
+			const request = json.__gppCall;
+			window.__gpp?.(
+				request.command,
+				(returnValue, success) => {
+					(event.source as Window | null)?.postMessage(
+						{ __gppReturn: { callId: request.callId, returnValue, success } },
+						'*'
+					);
+				},
+				request.parameter,
+				request.version
+			);
+		}
+	};
+	window.__gpp = stub as never;
+	window.addEventListener('message', handler);
+	const frame = document.createElement('iframe');
+	frame.name = '__gppLocator';
+	document.body.appendChild(frame);
+	return () => {
+		window.removeEventListener('message', handler);
+		frame.remove();
+	};
+};
+
+/** Sends one `__gppCall` from a fake frame and returns every reply. */
+const callFromFrame = function callFromFrame(
+	command: string,
+	parameter?: unknown
+): unknown[] {
+	const replies: unknown[] = [];
+	const event = new MessageEvent('message', {
+		data: { __gppCall: { callId: 'c1', command, parameter, version: '1.1' } },
+	});
+	Object.defineProperty(event, 'source', {
+		value: { postMessage: (reply: unknown) => replies.push(reply) },
+	});
+	window.dispatchEvent(event);
+	return replies;
+};
+
+describe('createGPP: other stubs and CMPs', () => {
+	test('takes over the listeners and calls of the specification sample stub', () => {
+		disposers.push(installSpecSampleStub());
+		const events: GPPEventData[] = [];
+		window.__gpp?.('addEventListener', (event) => {
+			events.push(event as GPPEventData);
+		});
+		const queued = vi.fn();
+		window.__gpp?.('usca.customCommand', queued);
+
+		const kernel = makeKernel(US_OPT_OUT, {
+			initialLocation: { countryCode: 'US', regionCode: 'CA' },
+		});
+		mount({ kernel });
+
+		expect(queued).toHaveBeenCalledWith(null, false);
+		expect(events.map(({ eventName, data }) => [eventName, data])).toEqual([
+			['cmpStatus', 'loaded'],
+			['sectionChange', 'usca'],
+			['signalStatus', 'ready'],
+		]);
+		expect(events.every(({ listenerId }) => listenerId === 1)).toBe(true);
+	});
+
+	test('answers each frame call once when another stub owns the frame bridge', () => {
+		disposers.push(installSpecSampleStub());
+		const kernel = makeKernel(US_OPT_OUT, {
+			initialLocation: { countryCode: 'US', regionCode: 'CA' },
+		});
+		mount({ kernel });
+
+		expect(callFromFrame('getField', 'usca.SaleOptOut')).toEqual([
+			{ __gppReturn: { callId: 'c1', returnValue: 2, success: true } },
+		]);
+		expect(
+			document.querySelectorAll('iframe[name="__gppLocator"]')
+		).toHaveLength(1);
+	});
+
+	test('refuses to replace a CMP that has already loaded', () => {
+		const foreign = vi.fn((command: unknown, handler: unknown) => {
+			if (command === 'ping') {
+				(handler as (data: unknown, success: boolean) => void)(
+					{ cmpStatus: 'loaded' },
+					true
+				);
+			}
+		});
+		window.__gpp = foreign;
+		const kernel = makeKernel(US_OPT_OUT);
+		expect(() => createGPP({ kernel })).toThrow(/another CMP/u);
+		expect(window.__gpp).toBe(foreign);
+		delete window.__gpp;
+	});
+
+	test('a replaced instance leaves the live one working when disposed', () => {
+		const kernel = makeKernel(US_OPT_OUT, {
+			initialLocation: { countryCode: 'US', regionCode: 'CA' },
+		});
+		const first = createGPP({ kernel });
+		const second = mount({ kernel });
+
+		first.dispose();
+		expect(ping().applicableSections).toEqual([8]);
+		expect(callFromFrame('ping')).toHaveLength(1);
+		expect(
+			document.querySelector('iframe[name="__gppLocator"]')
+		).not.toBeNull();
+
+		second.dispose();
+		expect(window.__gpp).toBeUndefined();
+		expect(callFromFrame('ping')).toHaveLength(0);
+	});
+
+	test('a listener that opens the dialog mid-update leaves the signal not ready', async () => {
+		const kernel = makeKernel(US_OPT_OUT, {
+			initialLocation: { countryCode: 'US', regionCode: 'CA' },
+		});
+		mount({ kernel });
+		const events: string[] = [];
+		window.__gpp?.('addEventListener', (event) => {
+			const { eventName, data } = event as GPPEventData;
+			events.push(`${eventName}:${String(data)}`);
+			if (eventName === 'sectionChange') {
+				kernel.set.activeUI('dialog');
+			}
+		});
+
+		await kernel.commands.save({ marketing: false });
+
+		expect(ping()).toMatchObject({
+			cmpDisplayStatus: 'visible',
+			signalStatus: 'not ready',
+		});
+		expect(events.at(-1)).toBe('cmpDisplayStatus:visible');
+		expect(events).not.toContain('signalStatus:ready');
+	});
+
+	test('the c15t stub removes a listener by a numeric string ID', () => {
+		initializeGPPStub();
+		listen();
+		expect(call<boolean>('removeEventListener', '1').data).toBe(true);
+	});
+
+	test('the locator frame waits for <body>', () => {
+		const { body } = document;
+		body.remove();
+		initializeGPPStub();
+		expect(document.querySelector('iframe[name="__gppLocator"]')).toBeNull();
+
+		document.documentElement.appendChild(body);
+		document.dispatchEvent(new Event('DOMContentLoaded'));
+		expect(
+			document.body.querySelector('iframe[name="__gppLocator"]')
+		).not.toBeNull();
 	});
 });

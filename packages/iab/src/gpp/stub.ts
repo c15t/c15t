@@ -25,6 +25,10 @@ let stubInitialized = false;
 /** The stub this module installed, distinct from a CMP that replaced it. */
 let ownedStub: GPPApi | null = null;
 let locatorFrame: HTMLIFrameElement | null = null;
+/** Whether this module added the frame message handler. */
+let answeringFrames = false;
+/** Adds the locator once `<body>` exists. */
+let waitingForBody: (() => void) | null = null;
 
 const stubPingData = function stubPingData(): GPPPingData {
 	return {
@@ -92,7 +96,7 @@ export const createGPPStub = function createGPPStub(): GPPApi {
 			return undefined;
 		}
 		if (command === 'removeEventListener') {
-			const index = events.findIndex((event) => event.id === parameter);
+			const index = events.findIndex((event) => event.id === Number(parameter));
 			if (index !== -1) {
 				events.splice(index, 1);
 			}
@@ -172,28 +176,44 @@ const handlePostMessage = function handlePostMessage(
 	);
 };
 
-const createLocatorFrame =
-	function createLocatorFrame(): HTMLIFrameElement | null {
-		if (
-			typeof document === 'undefined' ||
-			document.querySelector(`iframe[name="${LOCATOR_NAME}"]`)
-		) {
-			return null;
-		}
-		const frame = document.createElement('iframe');
-		frame.name = LOCATOR_NAME;
-		frame.style.display = 'none';
-		frame.setAttribute('aria-hidden', 'true');
-		frame.tabIndex = -1;
-		(document.body ?? document.documentElement).appendChild(frame);
-		return frame;
-	};
+/** Whether a frame named `__gppLocator` already exists in this window. */
+const hasLocatorFrame = (): boolean =>
+	typeof document !== 'undefined' &&
+	document.querySelector(`iframe[name="${LOCATOR_NAME}"]`) !== null;
+
+/** Adds the locator frame, waiting for `<body>` when the stub runs in `<head>`. */
+const addLocatorFrame = function addLocatorFrame(): void {
+	if (typeof document === 'undefined' || hasLocatorFrame()) {
+		return;
+	}
+	if (!document.body) {
+		waitingForBody = () => {
+			waitingForBody = null;
+			addLocatorFrame();
+		};
+		document.addEventListener('DOMContentLoaded', waitingForBody, {
+			once: true,
+		});
+		return;
+	}
+	const frame = document.createElement('iframe');
+	frame.name = LOCATOR_NAME;
+	frame.style.display = 'none';
+	frame.setAttribute('aria-hidden', 'true');
+	frame.tabIndex = -1;
+	document.body.appendChild(frame);
+	locatorFrame = frame;
+};
 
 /**
  * Installs the GPP stub, the `__gppLocator` frame and the frame message
  * handler. Call it as early as possible so vendors that load before the
- * CMP can queue calls. Does nothing on the server, when it already ran, or
- * (for `__gpp` itself) when another CMP already installed one.
+ * CMP can queue calls. Does nothing on the server or when it already ran.
+ *
+ * When another script already installed `__gpp` or a `__gppLocator` frame,
+ * that script answers frames: a spec stub forwards their calls to whatever
+ * `__gpp` is current, so a second handler would answer each call twice.
+ * Only the missing `__gpp` is added then.
  *
  * @example
  * ```ts
@@ -206,13 +226,18 @@ export const initializeGPPStub = function initializeGPPStub(): void {
 	if (typeof window === 'undefined' || stubInitialized) {
 		return;
 	}
+	stubInitialized = true;
+	const framesAnswered = Boolean(window.__gpp) || hasLocatorFrame();
 	if (!window.__gpp) {
 		ownedStub = createGPPStub();
 		window.__gpp = ownedStub;
 	}
-	locatorFrame = createLocatorFrame();
+	if (framesAnswered) {
+		return;
+	}
+	addLocatorFrame();
 	window.addEventListener('message', handlePostMessage);
-	stubInitialized = true;
+	answeringFrames = true;
 };
 
 /**
@@ -223,7 +248,14 @@ export const destroyGPPStub = function destroyGPPStub(): void {
 	if (typeof window === 'undefined') {
 		return;
 	}
-	window.removeEventListener('message', handlePostMessage);
+	if (answeringFrames) {
+		window.removeEventListener('message', handlePostMessage);
+		answeringFrames = false;
+	}
+	if (waitingForBody) {
+		document.removeEventListener('DOMContentLoaded', waitingForBody);
+		waitingForBody = null;
+	}
 	locatorFrame?.remove();
 	locatorFrame = null;
 	if (ownedStub && window.__gpp === ownedStub) {

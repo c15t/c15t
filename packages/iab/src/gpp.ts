@@ -34,6 +34,7 @@ export {
 	resolveUSSectionValues,
 	type GPPMspaMode,
 	type GPPUSApproach,
+	type GPPUSFallback,
 } from './gpp/us-section';
 export type {
 	GPPApi,
