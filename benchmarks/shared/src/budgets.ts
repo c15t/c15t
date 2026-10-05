@@ -1118,6 +1118,7 @@ export const tanstackBrowserBudgetsForScenario =
 
 		if (
 			baseScenario === 'ssr' ||
+			baseScenario === 'ssr-stream' ||
 			baseScenario === 'manifest-ssr' ||
 			baseScenario === 'manifest-ssr-proxy' ||
 			baseScenario === 'manifest-ssr-root'

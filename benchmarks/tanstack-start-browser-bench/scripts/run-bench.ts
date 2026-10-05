@@ -134,6 +134,7 @@ const allScenarios = [
 	{ name: 'client', path: '/client' },
 	{ name: 'manifest-client', path: '/manifest-client' },
 	{ name: 'ssr', path: '/ssr' },
+	{ name: 'ssr-stream', path: '/ssr-stream' },
 	{ name: 'manifest-ssr', path: '/manifest-ssr' },
 	{ name: 'manifest-ssr-proxy', path: '/manifest-ssr-proxy' },
 ] as const;

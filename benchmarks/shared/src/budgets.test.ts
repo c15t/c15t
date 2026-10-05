@@ -24,7 +24,7 @@ it('requires zero init traffic on the consent-free TanStack baseline', () => {
 	});
 });
 
-it.each(['ssr', 'manifest-ssr', 'manifest-ssr-proxy'])(
+it.each(['ssr', 'ssr-stream', 'manifest-ssr', 'manifest-ssr-proxy'])(
 	'rejects redundant browser init after %s prefetch',
 	(scenario) => {
 		const budget = tanstackBrowserBudgetsForScenario(scenario).find(

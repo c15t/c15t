@@ -224,6 +224,7 @@ export const expectedBenchmarkResultsFor = function expectedBenchmarkResultsFor(
 			'client',
 			'manifest-client',
 			'ssr',
+			'ssr-stream',
 			'manifest-ssr',
 			'manifest-ssr-proxy',
 			'saved-consent-accept',
