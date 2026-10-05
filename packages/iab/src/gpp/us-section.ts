@@ -1,6 +1,9 @@
 /**
  * Maps a consent snapshot to the US section that applies to the visitor.
  *
+ * The matched policy rule decides whether a US section applies and which
+ * notices the string reports; the visitor's location only picks the section.
+ *
  * @packageDocumentation
  */
 
@@ -13,10 +16,11 @@ import type { USSectionDefinition } from './sections';
 /**
  * How US visitors are signalled.
  *
- * - `state`: the visitor's state section (`usca`, `usva`, …). Visitors in a
- *   state without a section get no US section.
- * - `national`: the MSPA US National section (`usnat`) for every US visitor.
- *   The MSPA reserves it for signatories that chose the national approach.
+ * - `state`: the visitor's state section (`usca`, `usva`, …). When the
+ *   region is unknown or has no section c15t encodes, the MSPA US National
+ *   section (`usnat`) carries the same opt-outs instead.
+ * - `national`: `usnat` for every US visitor. The MSPA reserves it for
+ *   signatories that chose the national approach.
  */
 export type GPPUSApproach = 'state' | 'national';
 
@@ -38,7 +42,7 @@ export interface USSectionOptions {
 	optOutCategories: readonly AllConsentNames[];
 }
 
-/** Opt-out notices c15t reports as given whenever a US section applies. */
+/** Opt-out notices, given whenever a US section applies. */
 const OPT_OUT_NOTICES = new Set([
 	'SaleOptOutNotice',
 	'SharingOptOutNotice',
@@ -78,26 +82,50 @@ export const resolveUSState = function resolveUSState(
 	return { country: upperCountry, region };
 };
 
+/** The parts of a snapshot a US section depends on. */
+export type USSectionSnapshot = Pick<
+	ConsentSnapshot,
+	| 'effectivePermissions'
+	| 'location'
+	| 'overrides'
+	| 'policyRule'
+	| 'privacySignals'
+>;
+
+/**
+ * Whether the matched policy rule gives the visitor a way to opt out: the
+ * `preferences` or `opt-out` right. Every `opt-in` and `opt-out` rule has
+ * one; a `none` rule has one only when the host added it.
+ */
+const offersOptOut = (rule: USSectionSnapshot['policyRule']): boolean =>
+	rule.rights.includes('preferences') || rule.rights.includes('opt-out');
+
 /**
  * The US section for a snapshot, or `null` when none applies.
  *
+ * The policy decides first: a rule that offers no opt-out (a `none` rule
+ * without rights) gets no US section, wherever the visitor is. Then the
+ * location picks the section. A US visitor whose region is unknown, or
+ * whose state has no section c15t encodes, gets `usnat` under the state
+ * approach.
+ *
  * @param snapshot - Consent snapshot.
  * @param approach - State sections or the national section.
- * @returns The section definition, or `null` outside the US and in states
- * without a section under the state approach.
+ * @returns The section definition, or `null` outside the US and under a
+ * rule without an opt-out.
  */
 export const resolveUSSectionDefinition = function resolveUSSectionDefinition(
-	snapshot: Pick<ConsentSnapshot, 'location' | 'overrides'>,
+	snapshot: Pick<USSectionSnapshot, 'location' | 'overrides' | 'policyRule'>,
 	approach: GPPUSApproach
 ): USSectionDefinition | null {
 	const { country, region } = resolveUSState(snapshot);
-	if (country !== 'US') {
+	if (country !== 'US' || !offersOptOut(snapshot.policyRule)) {
 		return null;
 	}
-	if (approach === 'national') {
+	if (approach === 'national' || !region) {
 		return US_NATIONAL_SECTION;
 	}
-	return (region && US_STATE_SECTIONS[region]) || null;
+	return US_STATE_SECTIONS[region] ?? US_NATIONAL_SECTION;
 };
 
 /**
@@ -106,8 +134,11 @@ export const resolveUSSectionDefinition = function resolveUSSectionDefinition(
  * A sale, sharing or targeted advertising opt-out is reported when any of
  * `optOutCategories` is not permitted, so the signal matches what c15t
  * gates on the page: a refused category, a GPC signal the policy honours,
- * or an opt-in policy without a grant. Sensitive data and known-child
- * consents are reported as not applicable: c15t has no category for them.
+ * or an opt-in policy without a grant. The opt-out notices are reported as
+ * given, since the section only applies under a rule that offers an
+ * opt-out; the sharing or processing notice is given when the rule has the
+ * `disclosure` right. Sensitive data and known-child consents are reported
+ * as not applicable: c15t has no category for them.
  *
  * @param definition - The section to fill.
  * @param snapshot - Consent snapshot.
@@ -116,9 +147,13 @@ export const resolveUSSectionDefinition = function resolveUSSectionDefinition(
  */
 export const resolveUSSectionValues = function resolveUSSectionValues(
 	definition: USSectionDefinition,
-	snapshot: Pick<ConsentSnapshot, 'effectivePermissions' | 'privacySignals'>,
+	snapshot: Pick<
+		USSectionSnapshot,
+		'effectivePermissions' | 'policyRule' | 'privacySignals'
+	>,
 	options: Pick<USSectionOptions, 'mspaMode' | 'optOutCategories'>
 ): USSectionValues {
+	const disclosed = snapshot.policyRule.rights.includes('disclosure');
 	const optedOut = options.optOutCategories.some(
 		(category) => snapshot.effectivePermissions[category] !== true
 	);
@@ -133,7 +168,7 @@ export const resolveUSSectionValues = function resolveUSSectionValues(
 		} else if (name === 'Version') {
 			core[name] = definition.version;
 		} else if (GENERAL_NOTICES.has(name)) {
-			core[name] = 1;
+			core[name] = yesNo(disclosed);
 		} else if (OPT_OUT_NOTICES.has(name)) {
 			core[name] = serviceProvider ? 0 : 1;
 		} else if (OPT_OUTS.has(name)) {

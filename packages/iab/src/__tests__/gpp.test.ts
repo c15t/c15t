@@ -195,9 +195,31 @@ describe('createGPP: US state sections', () => {
 		).toBe(2);
 	});
 
-	test('a state without a section and a visitor outside the US get none', () => {
+	test.each([
+		['an unknown region', null],
+		['a state without a section', 'NY'],
+		['a state c15t does not encode yet', 'MD'],
+	])('a US visitor in %s gets usnat', (_, regionCode) => {
 		const kernel = makeKernel(US_OPT_OUT, {
-			initialLocation: { countryCode: 'US', regionCode: 'NY' },
+			initialLocation: { countryCode: 'US', regionCode },
+		});
+		mount({ kernel });
+		expect(ping()).toMatchObject({
+			applicableSections: [7],
+			sectionList: [7],
+			signalStatus: 'ready',
+		});
+		expect(new GppModel(ping().gppString).getSection('usnat')).toMatchObject({
+			MspaCoveredTransaction: 2,
+			SaleOptOut: 2,
+			SaleOptOutNotice: 1,
+			SharingNotice: 1,
+		});
+	});
+
+	test('a visitor outside the US gets no section', () => {
+		const kernel = makeKernel(US_OPT_OUT, {
+			initialLocation: { countryCode: 'DE', regionCode: 'BE' },
 		});
 		const handle = mount({ kernel });
 		expect(ping()).toMatchObject({
@@ -207,9 +229,47 @@ describe('createGPP: US state sections', () => {
 			signalStatus: 'ready',
 		});
 		expect(handle.getGPPString()).toBe('');
+	});
 
-		kernel.set.overrides({ country: 'DE', region: 'BE' });
-		expect(ping().applicableSections).toEqual([-1]);
+	test('a rule that offers no opt-out gets no section, wherever the visitor is', () => {
+		const kernel = makeKernel(
+			{ match: { isDefault: true }, model: 'none', prompt: 'none' },
+			{
+				initialLocation: { countryCode: 'US', regionCode: 'CA' },
+				initialPrivacySignals: { gpc: true },
+			}
+		);
+		mount({ kernel });
+		expect(ping()).toMatchObject({
+			applicableSections: [-1],
+			gppString: '',
+			signalStatus: 'ready',
+		});
+	});
+
+	test.each([
+		[
+			'a none rule with only the preferences right',
+			{
+				match: { isDefault: true },
+				model: 'none',
+				prompt: 'none',
+				rights: ['preferences'],
+			} satisfies Omit<PolicyRule, 'id'>,
+			2,
+		],
+		['an opt-out rule, which has the disclosure right', US_OPT_OUT, 1],
+	])('the processing notice follows %s', (_, rule, notice) => {
+		const kernel = makeKernel(rule, {
+			initialLocation: { countryCode: 'US', regionCode: 'TX' },
+		});
+		mount({ kernel });
+		expect(ping().applicableSections).toEqual([16]);
+		expect(new GppModel(ping().gppString).getSection('ustx')).toMatchObject({
+			ProcessingNotice: notice,
+			SaleOptOut: 2,
+			SaleOptOutNotice: 1,
+		});
 	});
 
 	test('a developer override of the location wins', () => {
