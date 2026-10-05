@@ -38,10 +38,8 @@ import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import { createLazyIABFactory, mountRuntimeIAB } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
-import {
-	createConsentProviderRuntime,
-	onDemandRuntimeModules,
-} from '@c15t/core/runtime/provider';
+import { onDemandRuntimeModules } from '@c15t/core/runtime/on-demand';
+import { createConsentProviderRuntime } from '@c15t/core/runtime/provider';
 import type {
 	ConsentProviderRuntime,
 	ConsentRuntime,

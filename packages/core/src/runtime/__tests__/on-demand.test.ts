@@ -18,7 +18,7 @@ import { createPersistence } from '../../modules/persistence';
 import { watchRevocationReload } from '../../modules/revocation-reload';
 import { createWindowDebug } from '../../modules/window-debug';
 import { custom } from '../../transports/mode';
-import { onDemandRuntimeModules } from '../on-demand';
+import { onDemandRuntimeModules } from '../on-demand-modules';
 import { createConsentProviderRuntime } from '../provider-runtime';
 import { createConsentRuntimeWith } from '../runtime-with-modules';
 import type {
@@ -339,23 +339,48 @@ describe('on-demand chunks', () => {
 		).toEqual([]);
 	});
 
-	// esbuild emits a chunk for every `import()` in a file it reaches, used
-	// or not. A single-module chunk next to the shared one would split both
-	// modules out of it, and a page would fetch the shared chunk and then
-	// each module in a second round.
-	test('the provider entry imports the loader and the blocker only through their shared chunk', () => {
-		const dynamic = reach(join(source, 'runtime/provider.ts')).flatMap((file) =>
-			[
-				...readFileSync(file, 'utf8').matchAll(
-					/import\(\s*'(?<specifier>\.[^']*)'\s*\)/gu
-				),
-			].map((match) =>
-				relative(source, join(dirname(file), match.groups?.specifier ?? ''))
+	const allDynamicImports = (entry: string): Set<string> =>
+		new Set(
+			reach(join(source, entry)).flatMap((file) =>
+				[
+					...readFileSync(file, 'utf8').matchAll(
+						/import\(\s*'(?<specifier>\.[^']*)'\s*\)/gu
+					),
+				].map((match) =>
+					relative(source, join(dirname(file), match.groups?.specifier ?? ''))
+				)
 			)
 		);
-		expect(dynamic).toContain('modules/loader-and-blocker');
-		expect(dynamic).not.toContain('modules/script-loader/loader');
-		expect(dynamic).not.toContain('modules/network-blocker/blocker');
+	// Beyond what every runtime reaches (the save queue, experiment
+	// assignment).
+	const dynamicImports = (entry: string): string[] => {
+		const kernel = allDynamicImports('runtime/assemble.ts');
+		return [...allDynamicImports(entry)]
+			.filter((chunk) => !kernel.has(chunk))
+			.sort();
+	};
+
+	// esbuild emits a chunk for every `import()` in a file it reaches, used
+	// or not, and splits a module two such chunks share into a chunk of its
+	// own. A single-module chunk next to the shared one would split both
+	// modules out of it, and a page would fetch the shared chunk and then
+	// each module in a second round. A configure-once host never loads the
+	// provider runtime's update or streamed-prefetch code.
+	test('the on-demand entry reaches only the chunks its modules load', () => {
+		expect(dynamicImports('runtime/on-demand.ts')).toEqual([
+			'modules/clear-on-revocation/clear',
+			'modules/loader-and-blocker',
+			'runtime/controls',
+		]);
+	});
+
+	// A React provider loads its modules through its own `import()`s; this
+	// entry's unused chunks would split those modules into facade chunks.
+	test('the provider entry reaches only the provider runtime’s own chunks', () => {
+		expect(dynamicImports('runtime/provider.ts')).toEqual([
+			'runtime/provider-update',
+			'runtime/streamed-init',
+		]);
 	});
 
 	// A host that imports one factory and the others' modules statically

@@ -5,7 +5,8 @@ packages:
 
 ### Load runtime modules on demand as single chunks
 
-`onDemandRuntimeModules` from `c15t/runtime/provider` loads the script
+`onDemandRuntimeModules` from the new `c15t/runtime/on-demand` entry
+(`@c15t/core/runtime/on-demand`) loads the script
 loader, the network blocker, data clearing and a `consentSource` connection
 only when a page configures them. The script loader and the network blocker
 load as one chunk, and the others as one each. No chunk imports anything the

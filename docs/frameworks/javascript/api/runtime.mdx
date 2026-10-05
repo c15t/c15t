@@ -188,10 +188,8 @@ import { watchRevocationReload } from 'c15t';
 import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
 import { createPersistence } from 'c15t/modules/persistence';
 import { createWindowDebug } from 'c15t/modules/window-debug';
-import {
-	createConsentProviderRuntime,
-	onDemandRuntimeModules,
-} from 'c15t/runtime/provider';
+import { onDemandRuntimeModules } from 'c15t/runtime/on-demand';
+import { createConsentProviderRuntime } from 'c15t/runtime/provider';
 
 const runtime = createConsentProviderRuntime(options, {
 	...onDemandRuntimeModules,
@@ -214,16 +212,22 @@ bundlers that split shared code (Vite, esbuild) move that code into extra
 chunks the first load then fetches.
 
 Import from `c15t/runtime/provider` when your provider loads modules on
-demand. It exports `createConsentProviderRuntime`, `onDemandRuntimeModules`,
-`lazyRuntimeModule`, `lazyStreamPrefetch`, `mountRuntimeIAB` and
-`createConsentRuntimeWith`, and none of the modules `defaultRuntimeModules`
-imports statically. Some bundlers, esbuild among them, keep a module in the
-first chunk when it is imported statically anywhere in the graph, even unused,
-and also through `import()`.
+demand. It exports `createConsentProviderRuntime`, `lazyRuntimeModule` and
+`lazyStreamPrefetch`, and none of the modules `defaultRuntimeModules` imports
+statically. Some bundlers, esbuild among them, keep a module in the first chunk
+when it is imported statically anywhere in the graph, even unused, and also
+through `import()`.
 
+`c15t/runtime/on-demand` exports `onDemandRuntimeModules`,
+`createConsentRuntimeWith` and `mountRuntimeIAB`.
 `createConsentRuntimeWith(options, modules)` is `createConsentRuntime` with the
 modules you choose, for a page that configures once (a script tag, an Astro
 page) and loads some modules on demand. The same lifecycle and handle apply.
+The two entries are separate because esbuild emits a chunk for every
+`import()` in the files it reaches, used or not. A provider that loads modules
+through its own `import()` calls would get the on-demand chunks as well, plus
+an extra chunk for each module both load, and a page that configures once
+would get the provider runtime's update and streamed-prefetch chunks.
 
 `c15t/runtime/on-demand-factories` exports each on-demand factory on its own:
 `scriptLoaderOnDemand`, `networkBlockerOnDemand`, `clearOnRevocationOnDemand`
@@ -244,12 +248,12 @@ import { createIframeBlocker } from 'c15t/modules/iframe-blocker';
 import { createPersistence } from 'c15t/modules/persistence';
 import { createScriptLoader } from 'c15t/modules/script-loader';
 import { createWindowDebug } from 'c15t/modules/window-debug';
+import { createConsentRuntimeWith } from 'c15t/runtime/on-demand';
 import {
 	clearOnRevocationOnDemand,
 	connectConsentSourceOnDemand,
 	networkBlockerOnDemand,
 } from 'c15t/runtime/on-demand-factories';
-import { createConsentRuntimeWith } from 'c15t/runtime/provider';
 
 const runtime = createConsentRuntimeWith(options, {
 	connectConsentSource: connectConsentSourceOnDemand,

@@ -8,17 +8,16 @@
  * keeps them out of the first-load chunk: esbuild's code splitting, for
  * one, puts a module that is both imported statically (even unused) and
  * through `import()` into a chunk the entry loads. A provider that loads
- * those modules on demand imports from here instead:
- * `onDemandRuntimeModules` loads the script loader and the network blocker
- * as one chunk, and data clearing and a `consentSource` connection as one
- * each, only when the page configures them. `lazyStreamPrefetch` likewise loads the
+ * those modules on demand imports from here instead, and passes its own
+ * `lazyRuntimeModule` factories or `onDemandRuntimeModules` from
+ * `@c15t/core/runtime/on-demand`. `lazyStreamPrefetch` loads the
  * streamed-prefetch code only for a runtime whose `prefetch` is a promise;
  * `streamPrefetchWith` wraps a resolver the host imported itself.
- * A host that configures once (the script tag, an Astro page) builds the
- * same modules into a runtime with `createConsentRuntimeWith`. A host that
- * imports some of them statically takes the others' factories one at a
- * time from `@c15t/core/runtime/on-demand-factories`, which this entry
- * does not re-export (see there for why).
+ *
+ * This entry reaches no `import()` but the provider runtime's own (its
+ * update and streamed-prefetch code): esbuild emits a chunk for every
+ * `import()` in a file it reaches, used or not, so the on-demand modules
+ * and the configure-once runtime live in `@c15t/core/runtime/on-demand`.
  *
  * @example
  * ```ts
@@ -29,17 +28,6 @@
  * ```
  */
 export { lazyRuntimeModule } from './lazy-module';
-// A star export, so a bundle that never reads these leaves the module, and
-// the tools it imports, out: esbuild puts a named re-export's module in
-// every chunk that imports this entry.
-// oxlint-disable-next-line oxc/no-barrel-file -- One module; the count is its tools' first-load imports, which the entry already has.
-export * from './on-demand';
-// Star exports for the same reason: configure-once hosts (the script tag,
-// Astro) read these, providers mostly do not.
-// oxlint-disable-next-line oxc/no-barrel-file -- One small module whose imports the entry already has.
-export * from './runtime-with-modules';
-// oxlint-disable-next-line oxc/no-barrel-file -- One small module.
-export * from './iab-mount';
 export { createConsentProviderRuntime } from './provider-runtime';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
 export type { ResolveStreamedInit } from './stream-mode';

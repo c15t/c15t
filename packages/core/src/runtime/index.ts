@@ -113,7 +113,7 @@ const loadNetworkBlocker = function loadNetworkBlocker(
  * revocation reload are imported statically. The network blocker and data
  * clearing are opt-in, so they load on demand: a page that configures
  * neither never downloads them. (A provider that loads every module on
- * demand uses `onDemandRuntimeModules` from `@c15t/core/runtime/provider`,
+ * demand uses `onDemandRuntimeModules` from `@c15t/core/runtime/on-demand`,
  * whose chunks import nothing from the first load.) Matching
  * requests stay held from construction until the blocker has loaded and
  * decides them. Data clearing sweeps denied categories when it mounts, so a

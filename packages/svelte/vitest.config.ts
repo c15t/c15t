@@ -24,6 +24,10 @@ const workspaceAliases = [
 		replacement: resolve(__dirname, '../core/src/runtime/provider.ts'),
 	},
 	{
+		find: '@c15t/core/runtime/on-demand',
+		replacement: resolve(__dirname, '../core/src/runtime/on-demand.ts'),
+	},
+	{
 		find: '@c15t/core/runtime',
 		replacement: resolve(__dirname, '../core/src/runtime/index.ts'),
 	},

@@ -14,10 +14,10 @@
 		PreferenceDraftState,
 	} from '@c15t/core/preference-draft';
 	import {
-		createConsentProviderRuntime,
 		mountRuntimeIAB,
 		onDemandRuntimeModules,
-	} from '@c15t/core/runtime/provider';
+	} from '@c15t/core/runtime/on-demand';
+	import { createConsentProviderRuntime } from '@c15t/core/runtime/provider';
 	import type {
 		ConsentProviderRuntime,
 		ConsentRuntime,

@@ -20,7 +20,7 @@ import {
 	createConsentRuntimeWith,
 	mountRuntimeIAB,
 	onDemandRuntimeModules,
-} from '@c15t/core/runtime/provider';
+} from '@c15t/core/runtime/on-demand';
 
 /**
  * Creates the page's consent runtime.
