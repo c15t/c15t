@@ -563,6 +563,12 @@ describe('init route', () => {
 	});
 
 	test('falls back to a proxied GET /init through serverFetch', async () => {
+		const acmeVendor = {
+			category: 'marketing',
+			id: 'acme',
+			name: 'Acme',
+			privacyPolicyUrl: 'https://acme.example/privacy',
+		};
 		// RFC 0001 §3: an older backend with no /manifest must not break consent.
 		// The proxy has to go through serverFetch too, or a relative backendURL
 		// throws ERR_INVALID_URL in Node.
@@ -575,7 +581,10 @@ describe('init route', () => {
 				JSON.stringify({
 					jurisdiction: 'NONE',
 					location: { countryCode: null, regionCode: null },
+					resolvedPrivacySignals: { gpc: true },
 					translations: { language: 'en', translations: {} },
+					vendorListVersion: '2026-09',
+					vendors: [acmeVendor],
 				}),
 				{
 					headers: { 'content-type': 'application/json' },
@@ -586,7 +595,12 @@ describe('init route', () => {
 
 		const response = await callInitRoute({ 'x-c15t-country': 'DE' });
 
-		expect(await response.json()).toMatchObject({ jurisdiction: 'NONE' });
+		expect(await response.json()).toMatchObject({
+			jurisdiction: 'NONE',
+			resolvedPrivacySignals: { gpc: true },
+			vendorListVersion: '2026-09',
+			vendors: [acmeVendor],
+		});
 		expect(mocks.serverFetch).toHaveBeenLastCalledWith(
 			'/api/self-host/init',
 			expect.objectContaining({

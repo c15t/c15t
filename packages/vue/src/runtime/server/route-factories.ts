@@ -402,8 +402,11 @@ export const createInitRoute = function createInitRoute(
 					readPolicyResolutionWire(mapped.policyResolution)
 				),
 				policySnapshotToken: mapped.policySnapshotToken,
+				resolvedPrivacySignals: mapped.resolvedPrivacySignals,
 				subjectId: mapped.subjectId,
 				translations: payload.translations,
+				vendorListVersion: mapped.vendorListVersion,
+				vendors: mapped.vendors,
 			};
 			return negotiateInit(
 				output,
