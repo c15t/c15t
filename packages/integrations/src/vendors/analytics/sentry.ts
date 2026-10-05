@@ -462,6 +462,13 @@ export const sentry = (options: SentryOptions): Script => {
 		let replay: SentryReplay;
 		try {
 			replay = await state.loading;
+			// Sentry CDN bundles without Replay expose a placeholder
+			// replayIntegration(). Adding it would block the real one.
+			if (!isReplay(replay)) {
+				throw new Error(
+					'replay.load() did not return a Sentry Replay integration. Sentry CDN bundles without Replay return a placeholder; load replay.min.js first.'
+				);
+			}
 		} catch (error) {
 			// Let a later grant retry, for example after a failed chunk download.
 			state.loading = undefined;

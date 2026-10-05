@@ -61,6 +61,37 @@ about 39 KB gzipped, into its own chunk; esbuild and Bun keep it in the main
 bundle. A `Sentry.replayIntegration` reference through `import * as Sentry`
 anywhere in the main bundle also keeps it there.
 
+### Sentry from the CDN
+
+If you load a Sentry CDN bundle such as `bundle.tracing.min.js`, pass the
+`window.Sentry` functions and load `replay.min.js` for the same version after
+consent. Don't use `lazyLoadIntegration('replayIntegration')`: those bundles
+return a placeholder instead of loading Replay.
+
+{/* example: fragment */}
+
+```ts
+sentry({
+	getClient: () => window.Sentry?.getClient(),
+	setUser: (user) => window.Sentry?.setUser(user),
+	replay: {
+		load: () =>
+			new Promise((resolve, reject) => {
+				const script = document.createElement('script');
+				script.src = 'https://browser.sentry-cdn.com/11.4.0/replay.min.js';
+				script.crossOrigin = 'anonymous';
+				script.onload = () => resolve(window.Sentry.replayIntegration());
+				script.onerror = reject;
+				document.head.append(script);
+			}),
+	},
+});
+```
+
+Without a bundler, `@c15t/integrations` is not available. Mark the Sentry
+script tags `type="text/plain" data-c15t-category="measurement"` instead, so
+all of Sentry waits for consent.
+
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Options

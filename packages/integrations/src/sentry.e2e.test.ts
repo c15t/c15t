@@ -454,6 +454,33 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(client.addIntegration).toHaveBeenCalledWith(replay);
 	});
 
+	it('refuses a Replay placeholder from a Sentry CDN bundle without Replay', async () => {
+		const { client } = createClient();
+		const onError = vi.fn();
+		const noop = () => undefined;
+		const placeholder = {
+			flush: noop,
+			name: 'Replay',
+			start: noop,
+			stop: noop,
+		};
+		mount(
+			sentry({
+				getClient: () => client,
+				onError,
+				replay: { load: () => placeholder as unknown as SentryReplay },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(client.addIntegration).not.toHaveBeenCalled();
+		expect(onError).toHaveBeenCalledWith(
+			expect.objectContaining({
+				message: expect.stringContaining('load replay.min.js first'),
+			})
+		);
+	});
+
 	it('treats a visitor who turned the Sentry vendor off as denied', async () => {
 		const { replays, script } = setup();
 		mount(script, grantedMeasurementConsents);
