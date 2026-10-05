@@ -370,7 +370,9 @@ const resolveCssAlias = async (
 		if (
 			star < 0
 				? pattern !== specifier
-				: !specifier.startsWith(prefix) || !specifier.endsWith(suffix)
+				: specifier.length < prefix.length + suffix.length ||
+					!specifier.startsWith(prefix) ||
+					!specifier.endsWith(suffix)
 		) {
 			continue;
 		}

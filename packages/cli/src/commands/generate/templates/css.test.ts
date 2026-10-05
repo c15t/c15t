@@ -196,6 +196,41 @@ describe('updateAppStylesheetImports', () => {
 			'@import "c15t/next/styles.css";'
 		);
 	});
+	it.each([
+		{ importPath: '@/globals.css', target: 'styles/globals.css' },
+		{ importPath: '@/nested/globals.css', target: 'other/nested.css' },
+	])(
+		'requires a non-overlapping wildcard for $importPath',
+		async ({ importPath, target }) => {
+			const { root } = await createProject({
+				'app/layout.tsx': `import '${importPath}';`,
+				'other/.css': '/* untouched */',
+				'other/nested.css': '/* nested */',
+				'styles/globals.css': '/* globals */',
+				'tsconfig.json': JSON.stringify({
+					compilerOptions: {
+						// oxlint-disable-next-line sort-keys -- Equal-length prefixes use config order.
+						paths: {
+							'@/*/globals.css': ['./other/*.css'],
+							'@/*': ['./styles/*'],
+						},
+					},
+				}),
+			});
+			const result = await updateAppStylesheetImports({
+				entrypointPath: 'app/layout.tsx',
+				packageName: 'c15t/next',
+				projectRoot: root,
+			});
+			expect(result.filePath).toBe(join(root, target));
+			expect(await readFile(join(root, target), 'utf8')).toContain(
+				'@import "c15t/next/styles.css";'
+			);
+			expect(await readFile(join(root, 'other/.css'), 'utf8')).toBe(
+				'/* untouched */'
+			);
+		}
+	);
 	it('ignores CSS module imports and commented-out imports', async () => {
 		const { root } = await createProject({
 			'app/layout.tsx':
