@@ -51,13 +51,13 @@ const preloads = (head: string): string[] =>
 describe('module preloads for on-demand chunks', () => {
 	test('a page with scripts preloads the script loader', () => {
 		expect(preloads(renderPage({ scripts: [SCRIPT] }))).toEqual([
-			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js">',
+			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low">',
 		]);
 	});
 
 	test('a page with blocker rules preloads the network blocker', () => {
 		expect(preloads(renderPage({ networkBlocker: BLOCKER }))).toEqual([
-			'<link rel="modulepreload" href="/_app/immutable/chunks/blocker.js">',
+			'<link rel="modulepreload" href="/_app/immutable/chunks/blocker.js" fetchpriority="low">',
 		]);
 	});
 
@@ -79,7 +79,7 @@ describe('module preloads for on-demand chunks', () => {
 		expect(
 			preloads(renderPage({ nonce: 'r4nd0m', scripts: [SCRIPT] }))
 		).toEqual([
-			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" nonce="r4nd0m">',
+			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low" nonce="r4nd0m">',
 		]);
 	});
 });

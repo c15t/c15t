@@ -8,9 +8,9 @@ const HREFS = {
 };
 
 const LOADER_LINK =
-	'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js">';
+	'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low">';
 const BLOCKER_LINK =
-	'<link rel="modulepreload" href="/_app/immutable/chunks/blocker.js">';
+	'<link rel="modulepreload" href="/_app/immutable/chunks/blocker.js" fetchpriority="low">';
 
 const marker = (content: string): string =>
 	`<meta name="c15t-modulepreload" content="${content}">`;
@@ -21,6 +21,20 @@ describe('injectModulePreloads', () => {
 		expect(injectModulePreloads(`${head}</head><body></body>`, HREFS)).toBe(
 			`${head}${LOADER_LINK}${BLOCKER_LINK}</head><body></body>`
 		);
+	});
+
+	test('asks for every chunk at low priority', () => {
+		// At the default priority the links went ahead of app chunks the
+		// browser requests later and delayed hydration on HTTP/1.1.
+		const html = injectModulePreloads(
+			`<head>${marker('script-loader network-blocker')}</head>`,
+			HREFS
+		);
+		const links = html.match(/<link [^>]*>/gu) ?? [];
+		expect(links).toHaveLength(2);
+		for (const link of links) {
+			expect(link).toContain(' fetchpriority="low"');
+		}
 	});
 
 	test('leaves a page without the marker untouched', () => {
@@ -53,7 +67,7 @@ describe('injectModulePreloads', () => {
 				HREFS
 			)
 		).toContain(
-			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" nonce="kitN0nce">'
+			'<link rel="modulepreload" href="/_app/immutable/chunks/loader.js" fetchpriority="low" nonce="kitN0nce">'
 		);
 	});
 

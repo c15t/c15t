@@ -49,9 +49,19 @@ const isChunkURL = (href: string | undefined): href is string =>
  * of `<head>`.
  *
  * The end of `<head>`, because Svelte hydrates the head's markers and would
- * trip over elements it did not render. The links take the marker's nonce
- * (the provider's `nonce` option), else the nonce SvelteKit put on its own
- * scripts, so a nonce-based `script-src` admits them.
+ * trip over elements it did not render.
+ *
+ * `fetchpriority="low"`, because the runtime needs the chunks only once it
+ * starts, after hydration. The browser requests some of SvelteKit's own
+ * chunks only after earlier ones have loaded. Over HTTP/1.1 it hands out
+ * its six connections by priority, then in request order, so at the
+ * default (high) priority the c15t chunks, requested with the page, went
+ * ahead of those app chunks and delayed hydration by about one round trip
+ * on a slow network.
+ *
+ * The links take the marker's nonce (the provider's `nonce` option), else
+ * the nonce SvelteKit put on its own scripts, so a nonce-based
+ * `script-src` admits them.
  *
  * @param html - A chunk of the rendered page.
  * @param hrefs - Chunk URLs; the ones the plugin wrote by default.
@@ -82,7 +92,7 @@ export const injectModulePreloads = function injectModulePreloads(
 				continue;
 			}
 			seen.add(href);
-			links += `<link rel="modulepreload" href="${escapeAttribute(href)}"${nonceAttribute}>`;
+			links += `<link rel="modulepreload" href="${escapeAttribute(href)}" fetchpriority="low"${nonceAttribute}>`;
 		}
 	}
 	return links ? html.slice(0, headEnd) + links + html.slice(headEnd) : html;
