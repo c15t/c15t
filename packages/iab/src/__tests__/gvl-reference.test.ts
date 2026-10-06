@@ -406,9 +406,12 @@ test('a removed reference clears its previous failure', async () => {
 test('TCF listeners receive tcloaded only after the replacement list arrives', async () => {
 	const kernel = kernelWithReference();
 	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
-	const handle = createIAB({ cmpId: 28, kernel });
+	const handle = createIAB({ cmpId: 28, kernel, persistence: false });
 	disposers.push(handle.dispose);
 	await handle.whenReady();
+	// A saved TC string, which the replacement list keeps.
+	handle.acceptAll();
+	await handle.save();
 	const listener = vi.fn();
 	window.__tcfapi?.('addEventListener', 2, listener);
 	await vi.waitFor(() => expect(listener).toHaveBeenCalled());
@@ -523,7 +526,7 @@ test('inline list replacement preserves retained consent in the CMP API', async 
 	);
 });
 
-test('stub-queued listeners receive loaded data even when the UI stays hidden', async () => {
+test('stub-queued listeners receive loaded data, but no tcloaded without a TC string', async () => {
 	const kernel = kernelWithReference();
 	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
 	const handle = createIAB({ cmpId: 28, kernel, persistence: false });
@@ -536,11 +539,17 @@ test('stub-queued listeners receive loaded data even when the UI stays hidden', 
 		expect(listener).toHaveBeenCalledWith(
 			expect.objectContaining({
 				cmpStatus: 'loaded',
-				eventStatus: 'tcloaded',
+				eventStatus: undefined,
 				listenerId: expect.any(Number),
+				tcString: '',
 			}),
 			true
 		)
+	);
+	// TCF CMP API v2: tcloaded means a valid TC string is available.
+	expect(listener).not.toHaveBeenCalledWith(
+		expect.objectContaining({ eventStatus: 'tcloaded' }),
+		true
 	);
 });
 test('invalidates retained authority when a replacement changes TCF policy version', async () => {

@@ -780,6 +780,9 @@ export const createIAB = function createIAB(
 	// Set while a save of this kernel commits, which happens synchronously
 	// after `command:save:started`.
 	let ownSaveCommitting = false;
+	// The TC string this handle's save is committing. The save publishes it
+	// once the commit returns.
+	let committingTcString: string | null = null;
 	// A held authority not published because the choice changed after it
 	// was confirmed. The receipt reload decides whether it goes or stays.
 	let suppressedAuthority: KernelIABAuthority | null = null;
@@ -1467,8 +1470,32 @@ export const createIAB = function createIAB(
 			}
 		});
 	};
-	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousDisplay = cmpDisplayStatus(kernel.getSnapshot());
+	/** Publish the TC string and UI state of `snapshot` through `__tcfapi`. */
+	const publishToVendors = (snapshot: ConsentSnapshot): void => {
+		if (!cmpApi) {
+			return;
+		}
+		// Expiry can synchronously publish a newer snapshot while arming the
+		// timer. Never restore the expired receipt from this notification.
+		// This handle's save publishes its string right after the commit, as
+		// useractioncomplete. Publishing it here first would announce the
+		// visitor's action to vendors as `tcloaded`.
+		const published = publishedTcString();
+		if (published === '' || published !== committingTcString) {
+			cmpApi.updateConsent(
+				published,
+				undefined,
+				snapshot.policyRule.model === 'iab'
+			);
+		}
+		const nextDisplay = cmpDisplayStatus(snapshot);
+		if (nextDisplay !== previousDisplay) {
+			previousDisplay = nextDisplay;
+			cmpApi.setDisplayStatus(nextDisplay);
+		}
+	};
+	let previousAuthority = kernel.getSnapshot().iab?.authority;
 	let previousSnapshot = kernel.getSnapshot();
 	let previousRecordsGeneration = kernel.getRecordsGeneration();
 	const unsubscribe = kernel.subscribe((snapshot: ConsentSnapshot) => {
@@ -1525,21 +1552,7 @@ export const createIAB = function createIAB(
 			closeRestrictionPrompt();
 		}
 		armAuthorityTimer();
-		if (!cmpApi) {
-			return;
-		}
-		// Expiry can synchronously publish a newer snapshot while arming the
-		// timer. Never restore the expired receipt from this notification.
-		cmpApi.updateConsent(
-			publishedTcString(),
-			undefined,
-			snapshot.policyRule.model === 'iab'
-		);
-		const nextDisplay = cmpDisplayStatus(snapshot);
-		if (nextDisplay !== previousDisplay) {
-			previousDisplay = nextDisplay;
-			cmpApi.setDisplayStatus(nextDisplay);
-		}
+		publishToVendors(snapshot);
 	});
 
 	const buildTCFConsentData = function buildTCFConsentData() {
@@ -1756,10 +1769,16 @@ export const createIAB = function createIAB(
 					([category, granted]) => !granted || scope.has(category)
 				)
 			);
-			const pendingSave = kernel.commands.save(consentPatch, {
-				actionAt,
-				iabAuthority: authority,
-			});
+			committingTcString = tcString;
+			let pendingSave: ReturnType<typeof kernel.commands.save>;
+			try {
+				pendingSave = kernel.commands.save(consentPatch, {
+					actionAt,
+					iabAuthority: authority,
+				});
+			} finally {
+				committingTcString = null;
+			}
 			// Save commits locally before its first yield. Transport acknowledgement
 			// cannot revoke that action or assign authority to a later action.
 			if (
@@ -1776,6 +1795,14 @@ export const createIAB = function createIAB(
 				// The saved selections are the authority's; nothing is unsaved.
 				revisionAtAuthority = selectionRevision;
 				armAuthorityTimer();
+			} else if (cmpApi && !disposed) {
+				// The commit held this string back from vendors; publish what the
+				// kernel holds instead.
+				cmpApi.updateConsent(
+					publishedTcString(),
+					undefined,
+					kernel.getSnapshot().policyRule.model === 'iab'
+				);
 			}
 			const result = await pendingSave;
 			if (!result.ok) {
