@@ -66,6 +66,10 @@ const alias = {
 		__dirname,
 		'../core/src/runtime/provider.ts'
 	),
+	'@c15t/core/runtime/script-loader-preload': resolve(
+		__dirname,
+		'../core/src/runtime/script-loader-preload.ts'
+	),
 	'@c15t/core/runtime/streamed-init': resolve(
 		__dirname,
 		'../core/src/runtime/streamed-init.ts'
