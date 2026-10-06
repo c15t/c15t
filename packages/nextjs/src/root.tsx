@@ -19,7 +19,7 @@ import type {
 } from '@c15t/react/module-hooks';
 import { ConsentProvider } from '@c15t/react/provider';
 import type { ConsentProviderOptions } from '@c15t/react/provider';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ConsentConfig } from './config';
@@ -232,25 +232,26 @@ export const ConsentRoot = ({
 	options,
 	children,
 }: ConsentRootProps) => {
-	const resolvedBackendURL = backendURL ?? config?.backendURL;
-	const manifestURL =
-		config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;
-	const manifestTransport = useMemo(
-		() =>
-			resolvedBackendURL && manifestURL
-				? createLazyManifestTransport({
-						backendURL: resolvedBackendURL,
-						manifestURL,
-					})
-				: undefined,
-		[manifestURL, resolvedBackendURL]
-	);
-	const mode = resolveMode({
-		backendURL: resolvedBackendURL,
-		config,
-		manifestTransport,
-		mode: options?.mode,
+	// Initial-only, like the provider's own `mode`. A new one on every
+	// render would make each rerender load the runtime's update module.
+	const [mode, setMode] = useState(() => {
+		const resolvedBackendURL = backendURL ?? config?.backendURL;
+		const manifestURL =
+			config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;
+		return resolveMode({
+			backendURL: resolvedBackendURL,
+			config,
+			manifestTransport:
+				resolvedBackendURL && manifestURL
+					? createLazyManifestTransport({
+							backendURL: resolvedBackendURL,
+							manifestURL,
+						})
+					: undefined,
+			mode: options?.mode,
+		});
 	});
+	void setMode;
 
 	return (
 		<ConsentProvider

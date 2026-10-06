@@ -383,18 +383,31 @@ const reactRuntimeModules = function reactRuntimeModules(
  * with `false`, `offline()` rejects a policy pack that uses `model: 'iab'`
  * and no banner shows. The context keeps its other members, live getters
  * included, through its prototype.
+ *
+ * One wrapper per mode: `update()` loads its comparison when any option is
+ * a new value, so a fresh wrapper on every render would load it for every
+ * rerender that hands the provider a new options object.
  */
+const treeIABModes = new WeakMap<
+	ProviderTransportFactory,
+	ProviderTransportFactory
+>();
 const withTreeIAB = function withTreeIAB(
 	mode: ProviderTransportFactory
 ): ProviderTransportFactory {
 	if (typeof mode !== 'function') {
 		return mode;
 	}
-	return Object.assign(
-		(context: Parameters<ProviderTransportFactory>[0]) =>
-			mode(Object.create(context, { iabEnabled: { value: undefined } })),
-		{ kind: mode.kind }
-	);
+	let wrapped = treeIABModes.get(mode);
+	if (!wrapped) {
+		wrapped = Object.assign(
+			(context: Parameters<ProviderTransportFactory>[0]) =>
+				mode(Object.create(context, { iabEnabled: { value: undefined } })),
+			{ kind: mode.kind }
+		);
+		treeIABModes.set(mode, wrapped);
+	}
+	return wrapped;
 };
 
 const toRuntimeOptions = function toRuntimeOptions(
