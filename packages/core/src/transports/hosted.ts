@@ -235,21 +235,24 @@ export const createHostedTransport = function createHostedTransport(
 			overrides: ctx.overrides,
 		});
 		const { requestHeaders } = request;
-		const supplied = initialData;
+		const supplied =
+			initialData ??
+			(options.initURL
+				? undefined
+				: consumePrefetchedInitialData({
+						backendURL: base,
+						credentials,
+						overrides: {
+							...extractConsentRequestInputs(new Headers(requestHeaders)),
+							...ctx.overrides,
+						},
+					}));
 		initialData = undefined;
-		let prefetched: SSRInitialData | undefined;
-		if (supplied) {
-			prefetched = await supplied.catch(() => undefined);
-		} else if (!options.initURL) {
-			prefetched = await consumePrefetchedInitialData({
-				backendURL: base,
-				credentials,
-				overrides: {
-					...extractConsentRequestInputs(new Headers(requestHeaders)),
-					...ctx.overrides,
-				},
-			});
-		}
+		// Awaited only when there is one: with nothing prefetched, `fetch`
+		// starts within this call, so a caller that sends init early (a
+		// provider's first render) gets the request out at that moment.
+		const prefetched: SSRInitialData | undefined =
+			supplied && (await supplied.catch(() => undefined));
 		if (prefetched?.init) {
 			const headers = { ...requestHeaders };
 			const gpc = prefetched.metadata?.requestContext?.gpc;

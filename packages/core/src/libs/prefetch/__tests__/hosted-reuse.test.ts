@@ -133,6 +133,18 @@ describe('hosted browser prefetch consumption', () => {
 		expect(fetch).toHaveBeenCalledTimes(3);
 	});
 
+	it('sends the request within init() when nothing was prefetched', async () => {
+		const fetch = vi.fn().mockResolvedValue(response());
+		vi.stubGlobal('fetch', fetch);
+		const sent = createHostedTransport({ backendURL: '/api/c15t' }).init?.(
+			context
+		);
+		// A provider sends init from its first render; the request has to be
+		// out by the time the call returns, not a microtask later.
+		expect(fetch).toHaveBeenCalledTimes(1);
+		expect((await sent)?.policyResolution).toEqual(payload.policyResolution);
+	});
+
 	it('the inline script accepts exactly boolean true for GPC', async () => {
 		Object.defineProperty(navigator, 'globalPrivacyControl', {
 			configurable: true,
