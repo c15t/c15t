@@ -1,3 +1,218 @@
+## @c15t/browser@3.0.0-alpha.5 (alpha)
+
+### Runtime for framework providers
+
+`@c15t/core/runtime` adds `createConsentProviderRuntime(options, modules)`, the
+runtime a framework provider renders when its options follow its props. On top
+of everything `createConsentRuntime` does, it has:
+
+- `update(options)`, which compares a provider's new options with the previous
+  ones and applies only what changed: a new user is identified, new overrides
+  resolve the policy again, scripts, rules and vendors are declared again, and
+  the network and iframe blockers are added, updated or removed.
+- `setEnabled(enabled)`, `enabled` and `subscribe(listener)`. Turning
+  `enabled` off renders a separate permissive kernel and keeps the visitor's
+  records for when it is turned back on.
+- A `prefetch` that is still a promise, when `streamPrefetch` is in its
+  modules. The first `/init` waits for it and applies the result instead of
+  sending a request.
+- A choice of module loading: pass `defaultRuntimeModules`, or swap a factory
+  for `lazyRuntimeModule(() => import(...))`.
+
+Every runtime also gains `setLanguage(code)` and `experiment`, and
+`setConsentCategories(undefined)` drops the configured list.
+
+`createConsentRuntime` now loads the network blocker and data clearing as
+separate chunks, and only when they are configured. Matching requests stay
+held until the blocker has loaded.
+
+`@c15t/svelte`'s `ConsentManagerProvider` uses the provider runtime. `enabled`,
+`scripts`, `vendors`, `networkBlocker`, `iframeBlocker` and `callbacks` now
+update after mount. The `user` the provider mounts with is no longer
+identified again on mount; it is sent with `/init` and every save, and a later
+change is identified.
+
+**Breaking.** In `@c15t/svelte`, `enabled: false` grants every category, so
+every gated script loads, as in React. It used to only close the UI.
+Migration: set `enabled: false` only where every script may load, such as an
+internal preview build. To hide the UI and keep consent gating, leave
+`enabled` on and don't render the banner or dialog.
+
+`@c15t/browser`'s `setLanguage()` does nothing for the current language and no
+longer requests the policy while the client is disabled or uses
+`consentSource`. `presentation` and the UI theme follow an experiment the
+server resolved into `prefetch`.
+
+### Ship the script loader only to pages with scripts
+
+Svelte, SvelteKit, Astro and the `@c15t/browser` npm entries now load the script loader as a separate chunk, only when `scripts` is not empty. A page without scripts or network blocker rules ships about 4 KB of gzipped JavaScript less.
+
+Pages that do configure them still get the code without an extra request:
+
+The script loader and the network blocker share one chunk, so a page with scripts and blocker rules fetches one file, and a returning visitor's held requests are decided when their scripts start. A page with only one of them downloads both.
+
+- **SvelteKit:** add `c15tPreload()` from the new `@c15t/svelte/vite` entry to `vite.config.ts`. `c15tHandle` then adds one `<link rel="modulepreload" fetchpriority="low">` for that chunk to every page whose provider has scripts or blocker rules, prerendered pages included. Low priority lets the app's own chunks go first; the runtime needs the chunk only after hydration. The link carries the provider's `nonce`, else the nonce SvelteKit put on its own scripts. Without the plugin, scripts load one request after the app's JavaScript.
+- **Astro:** a site that configures `scripts` (or a `clientEntrypoint`, which may add some) keeps the script loader in its boot script; `networkBlocker` rules in the integration options do the same for the blocker. A site with neither never downloads them.
+- **`@c15t/browser`:** the script-tag builds (`c15t.js` and friends) are unchanged. With the npm package, the chunk loads when c15t starts; your bundler names it (it starts from `@c15t/core/dist/modules/loader-and-blocker.js`), so add your own `modulepreload` with `fetchpriority="low"` for it if returning visitors' scripts must start sooner.
+
+`@c15t/core/runtime/on-demand` exports `createConsentRuntimeWith(options, modules)`, a configure-once runtime that mounts the module factories you choose, and `mountRuntimeIAB`, next to `onDemandRuntimeModules`. It is separate from `@c15t/core/runtime/provider`, so a provider that loads modules through its own `import()` calls gets no unused chunks from it under esbuild, and a page that configures once gets none of the provider runtime's. The new `@c15t/core/runtime/on-demand-factories` entry (`c15t/runtime/on-demand-factories`) exports each on-demand factory on its own (`scriptLoaderOnDemand`, `networkBlockerOnDemand`, `clearOnRevocationOnDemand`, `connectConsentSourceOnDemand`), for a host that imports some modules statically and loads the rest on demand; the first two each load a chunk with only their module. Astro uses them, so a site with `scripts` keeps the script loader in its boot chunk instead of a chunk of its own.
+
+**Breaking.** `boot()` from `@c15t/astro/client`, called without the integration, no longer mounts a script loader, network blocker or `consentSource` connection itself; the integration's page script registers them. Called on its own with `scripts`, `networkBlocker` or `consentSource` in its options, it throws. Add the `c15t()` integration to `astro.config` for those pages, or leave those options out of a standalone `boot()`.
+
+### One preference draft for every framework
+
+React, Vue, Svelte and the `@c15t/browser` preference dialog now share one
+draft, `createPreferenceDraft` from `c15t/preference-draft`, so unsaved
+choices behave the same everywhere:
+
+- **Stale drafts.** A draft with an unsaved change goes stale when the
+  policy, the displayed categories or the vendor list changes. Saving it
+  records nothing until the visitor reviews it (`reset()`). A draft with no
+  unsaved change follows the policy and is never stale; Vue used to mark it
+  stale. The `@c15t/browser` dialog used to drop unsaved changes silently;
+  it now shows a review notice.
+- **Choices saved elsewhere.** When another surface or tab records a choice,
+  switches the visitor left alone take the new value and moved ones keep
+  theirs. React used to write the old values back on save.
+- **Category order.** Every preference form, and `runtime.consentCategories`,
+  lists categories in one fixed order: necessary, functionality,
+  measurement, experience, marketing. Vue and `@c15t/browser` used the
+  configured `consentCategories` order.
+- **Draft values.** `values` lists every category; ones the policy does not
+  offer read `false`. Vue and Svelte listed only the displayed ones.
+- **Late defaults.** Presentation defaults from an experiment arm assigned
+  after the dialog opened apply only while the visitor has changed nothing.
+- **IAB dialog in Vue.** Each switch writes the CMP selection at once, as in
+  React and Svelte. Closing the dialog keeps those changes, and saving can
+  no longer overwrite a newer receipt with an older copy.
+
+React's banner buttons no longer load the draft: it ships with the
+preference dialog, which takes about 1.4 KB gzip off the first load of a
+page that renders a banner. The `@c15t/browser` ES module build loads its
+preference dialog and the draft as a separate chunk, in idle time once the
+banner or trigger shows; the script-tag files stay one file each.
+
+In Svelte the draft now ships with `ConsentWidget` and `ConsentDialog`
+instead of `ConsentManagerProvider`. The state API keeps its synchronous
+shape. `setSelectedConsent()` calls made before the draft loads apply in order
+when it lands, and `saveConsents('custom')` waits for it.
+
+**Breaking:** in headless Svelte code that renders neither component,
+`selectedConsents` and `draft` read empty on first use, because the draft
+loads then, and fill in reactively once it lands. A one-off read outside a
+reactive context gets the empty values. Migration: read them in a reactive
+context (`$derived`, `$effect` or markup).
+
+**Breaking:** the runtime's `stageVendorConsent()` and `resetVendorDraft()`
+are removed. Pass vendors to the save
+(`kernel.commands.save({}, { vendors: { 'x-pixel': false } })`) or stage
+them on a preference draft. Vue's `useConsentDraft()` returns
+`displayedCategories` and `vendors` as computed refs, takes no argument, and
+no longer has `reseedOnNextRecord()`; call `reset()` after a bulk save
+instead.
+
+### Every adapter closes consent surfaces the same way
+
+Accept, reject and save now decide which surface shows next through one module in `@c15t/core`, so React, Vue, Nuxt, Svelte, Astro and `@c15t/browser` behave alike:
+
+- After a choice, the banner shows only while the policy still owes a choice or a notice. A choice saved while the policy is still loading, or after it failed to resolve, no longer brings the banner back in Vue, Nuxt and `@c15t/browser`.
+- A banner reopened for a visitor who already chose now closes once the new choice is recorded in React and Svelte, as it already did in `@c15t/browser`.
+- On Astro, `acceptAll()`, `rejectAll()` and the banner's Accept and Reject buttons go through the IAB CMP under an IAB policy, so the TC string records the choice. Before, they saved categories only. `acceptAll()`, `rejectAll()` and `save()` now also close an open banner or dialog once the choice is recorded.
+
+The rules are public at `c15t/surface-actions` (`@c15t/core/surface-actions`) for custom UI: `hasConsentUI()`, `hasConsentPreferences()`, `showConsentSurface()`, `saveConsentSurface()`, `saveIABConsentSurface()` and `saveConsentBlanket()`.
+
+### A smaller public interface for `@c15t/core`
+
+`@c15t/core` (and `c15t`) stops exporting kernel verbs only its own modules
+call, building blocks no adapter uses, and a second home for the manifest
+cache.
+
+**Kernel (`ConsentKernel`)**
+
+| Removed | Use instead |
+| --- | --- |
+| `kernel.hydrate(records)` | Pass `initialRecords` to `createConsentKernel()`, or mount `createPersistence()` from `c15t/modules/persistence`. |
+| `kernel.markLive()`, `kernel.holdSaves()`, `kernel.events.emit()` | Nothing; the runtime and persistence call them. |
+| `kernel.set.vendorDraft(values)` | `kernel.commands.save(input, { vendors })`, or a preference draft's `setVendor()`. |
+
+`kernel.getRecordsGeneration()` stays and is now documented.
+
+**Runtime**
+
+| Removed or renamed | Use instead |
+| --- | --- |
+| `runtime.onIABChange(listener)` | `runtime.subscribe(listener)`, and read `runtime.iab` inside the listener. |
+| `createRuntimeKernel`, `hasResolvedPrefetch`, `normalizeKernelUser`, `resolveRuntimeTranslations`, `stringifyRuntimeError`, `ALL_CONSENTS_GRANTED` from `c15t/runtime` | Nothing; `createConsentRuntime` and `createConsentProviderRuntime` cover them. |
+| `createPersistence(options, loader)`, `preloadPersistenceWriter()` | `createPersistence(options)`. |
+
+`runtime.setOverrides()` merges into the current overrides, as it always
+did; the docs used to say it replaces them.
+
+**Server**
+
+The manifest cache (`fetchCachedManifest`, `createManifestCache`,
+`clearManifestCache`, `ManifestUnavailableError` and the manifest header
+helpers) is exported from `@c15t/core/server` (`c15t/server`) only.
+`@c15t/core/transports/manifest-cache` keeps `resolveManifestInit`,
+`getResolverInputsFromHeaders`, `withResolutionBudget` and
+`DEFAULT_RESOLVE_TIMEOUT_MS`.
+
+These are no longer exported from `c15t/server`: the consent-proxy helpers
+(`forwardConsentRequest`, `buildConsentProxyRequestHeaders`,
+`buildConsentProxyResponseHeaders`, `filterCookieHeader`,
+`rewriteProxySetCookie`, `stripIdentityForCleartext`, `isCleartextRemoteURL`,
+`isConsentProxyPathAllowed`, `resolveConsentProxyOptions` and the
+`CONSENT_PROXY_*` constants), the session-report helpers
+(`reportConsentSession`, `buildConsentSessionReport`,
+`forwardSessionReportHeaders`, `isSpeculativeRequest`,
+`resolveSessionReportBackendURL`, `SESSION_REPORT_*`), `resolveConsentInit`,
+`GVL_FETCH_TIMEOUT_MS` and `getManifestAge`. Use
+`createConsentRouteHandler()`, which runs all of them.
+
+**Root index**
+
+No longer exported from `@c15t/core` / `c15t`: `setCookie`, `getCookie`,
+`deleteCookie`, `deleteConsentFromStorage`, `CONTROL_ARM`,
+`experimentArmRef`, `startExperiment`, `resolveExperimentPresentation`,
+`disabledPolicyResolution`, `extractConsentNamesFromCondition`,
+`hasRevokedPermission`, `initResponseToKernelConfig`,
+`kernelConfigToInitResponse`, `mergeInitResponseIntoKernelConfig`,
+`resolveVendors`, `vendorRenders`, `resolveWindowDebugMode`,
+`createGvlReferenceURL`, `deferInitGvlToRoute`, `serveGvlReference`,
+`validateExplicitChoice` and `validateNoticeDismissal`. Consent storage
+belongs to the persistence module; `getRootDomain` stays for
+`storageConfig`.
+
+**Smaller pages**
+
+The inline script that starts `/init` before the app loads (Nuxt `ssr: false`
+pages, Next.js, TanStack Start, Astro) is 712 B gzip instead of 1,054 B.
+
+**`@c15t/vue`**
+
+**Breaking.** `@c15t/vue/runtime/utils/save-iab-choice` and
+`c15t/vue/runtime/utils/save-iab-choice` are removed. Their
+`saveIABChoice(kernel, save)` only called `saveIABConsentSurface(kernel, save)`
+from `@c15t/core/surface-actions` (`c15t/surface-actions`); import that
+instead.
+
+**`@c15t/browser`**
+
+`client.consentCategories` lists the policy's categories in the dialog's
+fixed order: `necessary`, `functionality`, `measurement`, `experience`,
+`marketing`. It used to put the configured `consentCategories` order first.
+
+### Remove the v2 `jurisdiction` label and `disableGeoLocation`
+
+v3 decides consent from policy rules, so the regulation label v2 derived from a fixed country table (`GDPR`, `CCPA`, `NONE` and so on) is gone from the API.
+
+- `/init` responses and session reports no longer carry `jurisdiction`, so `sessions.onReport` no longer receives it. Read the matched policy from `policyResolution`, or the report's `policy`, `country` and `region`.
+- `@c15t/schema` removes `jurisdictionCodes`, `jurisdictionCodeSchema`, `JurisdictionCode` and `checkJurisdiction`. `@c15t/core` and `c15t` remove the unused `LocationInfo`, `ConsentBannerResponse` and `JurisdictionCode` types.
+- The `disableGeoLocation` manifest option is removed. To show every visitor the same banner, configure one policy rule with `match: { isDefault: true }`; the browser resolves it without a location. To test a region's rule, set the country in the client's `overrides`, for example `overrides: { country: 'US' }`.
+- The `/init` translations schema is now one shape with optional keys. `completeTranslationsSchema`, `partialTranslationsSchema` and the `partial*` section schemas are removed, along with the deprecated `frame` key, which the backend already folds into `consentGate`. `titleDescriptionSchema` now accepts a pair with `title` or `description` missing, so its inferred type has both fields optional.
+- The backend still accepts `jurisdiction` in a save request from a 2.x client and ignores it. Policy snapshot tokens no longer carry the claim, and tokens that still do are accepted.
+- Migration 7 makes `runtimePolicyDecision.jurisdiction` nullable; new decisions store `null` and 2.x rows keep their value. Apply it with `@c15t/cli self-host migrate --apply` before deploying this backend.
+
 ## @c15t/browser@3.0.0-alpha.4 (alpha)
 
 ### Update documentation links

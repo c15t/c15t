@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/core": minor
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Load runtime modules on demand as single chunks

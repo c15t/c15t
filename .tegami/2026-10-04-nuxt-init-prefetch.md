@@ -1,8 +1,14 @@
 ---
 packages:
-  "@c15t/vue": minor
-  "c15t": minor
-  "@c15t/core": patch
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Start `/init` from the HTML of Nuxt `ssr: false` pages

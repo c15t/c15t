@@ -1,11 +1,23 @@
 ---
 packages:
-  "@c15t/core": major
-  "@c15t/react": minor
-  "@c15t/vue": major
-  "@c15t/svelte": minor
-  "@c15t/browser": minor
-  c15t: major
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### One preference draft for every framework

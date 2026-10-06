@@ -1,7 +1,11 @@
 ---
 packages:
-  "@c15t/tanstack-start": patch
-  c15t: patch
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Route files that import `consentLoaderOptions` no longer pull consent code into other chunks

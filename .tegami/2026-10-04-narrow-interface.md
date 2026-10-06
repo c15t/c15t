@@ -1,9 +1,17 @@
 ---
 packages:
-  "@c15t/core": major
-  "@c15t/browser": minor
-  "@c15t/vue": major
-  c15t: major
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### A smaller public interface for `@c15t/core`

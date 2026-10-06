@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/core": minor
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Load persistence's write code on demand

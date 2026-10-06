@@ -1,8 +1,14 @@
 ---
 packages:
-  "@c15t/core": minor
-  "@c15t/svelte": minor
-  "@c15t/browser": patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Runtime for framework providers

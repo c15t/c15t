@@ -1,3 +1,302 @@
+## @c15t/vue@3.0.0-alpha.5 (alpha)
+
+### One preference draft for every framework
+
+React, Vue, Svelte and the `@c15t/browser` preference dialog now share one
+draft, `createPreferenceDraft` from `c15t/preference-draft`, so unsaved
+choices behave the same everywhere:
+
+- **Stale drafts.** A draft with an unsaved change goes stale when the
+  policy, the displayed categories or the vendor list changes. Saving it
+  records nothing until the visitor reviews it (`reset()`). A draft with no
+  unsaved change follows the policy and is never stale; Vue used to mark it
+  stale. The `@c15t/browser` dialog used to drop unsaved changes silently;
+  it now shows a review notice.
+- **Choices saved elsewhere.** When another surface or tab records a choice,
+  switches the visitor left alone take the new value and moved ones keep
+  theirs. React used to write the old values back on save.
+- **Category order.** Every preference form, and `runtime.consentCategories`,
+  lists categories in one fixed order: necessary, functionality,
+  measurement, experience, marketing. Vue and `@c15t/browser` used the
+  configured `consentCategories` order.
+- **Draft values.** `values` lists every category; ones the policy does not
+  offer read `false`. Vue and Svelte listed only the displayed ones.
+- **Late defaults.** Presentation defaults from an experiment arm assigned
+  after the dialog opened apply only while the visitor has changed nothing.
+- **IAB dialog in Vue.** Each switch writes the CMP selection at once, as in
+  React and Svelte. Closing the dialog keeps those changes, and saving can
+  no longer overwrite a newer receipt with an older copy.
+
+React's banner buttons no longer load the draft: it ships with the
+preference dialog, which takes about 1.4 KB gzip off the first load of a
+page that renders a banner. The `@c15t/browser` ES module build loads its
+preference dialog and the draft as a separate chunk, in idle time once the
+banner or trigger shows; the script-tag files stay one file each.
+
+In Svelte the draft now ships with `ConsentWidget` and `ConsentDialog`
+instead of `ConsentManagerProvider`. The state API keeps its synchronous
+shape. `setSelectedConsent()` calls made before the draft loads apply in order
+when it lands, and `saveConsents('custom')` waits for it.
+
+**Breaking:** in headless Svelte code that renders neither component,
+`selectedConsents` and `draft` read empty on first use, because the draft
+loads then, and fill in reactively once it lands. A one-off read outside a
+reactive context gets the empty values. Migration: read them in a reactive
+context (`$derived`, `$effect` or markup).
+
+**Breaking:** the runtime's `stageVendorConsent()` and `resetVendorDraft()`
+are removed. Pass vendors to the save
+(`kernel.commands.save({}, { vendors: { 'x-pixel': false } })`) or stage
+them on a preference draft. Vue's `useConsentDraft()` returns
+`displayedCategories` and `vendors` as computed refs, takes no argument, and
+no longer has `reseedOnNextRecord()`; call `reset()` after a bulk save
+instead.
+
+### Every adapter closes consent surfaces the same way
+
+Accept, reject and save now decide which surface shows next through one module in `@c15t/core`, so React, Vue, Nuxt, Svelte, Astro and `@c15t/browser` behave alike:
+
+- After a choice, the banner shows only while the policy still owes a choice or a notice. A choice saved while the policy is still loading, or after it failed to resolve, no longer brings the banner back in Vue, Nuxt and `@c15t/browser`.
+- A banner reopened for a visitor who already chose now closes once the new choice is recorded in React and Svelte, as it already did in `@c15t/browser`.
+- On Astro, `acceptAll()`, `rejectAll()` and the banner's Accept and Reject buttons go through the IAB CMP under an IAB policy, so the TC string records the choice. Before, they saved categories only. `acceptAll()`, `rejectAll()` and `save()` now also close an open banner or dialog once the choice is recorded.
+
+The rules are public at `c15t/surface-actions` (`@c15t/core/surface-actions`) for custom UI: `hasConsentUI()`, `hasConsentPreferences()`, `showConsentSurface()`, `saveConsentSurface()`, `saveIABConsentSurface()` and `saveConsentBlanket()`.
+
+### Forward vendors and privacy signals through the Nuxt `/init` proxy
+
+When a backend has no `/manifest`, the Nuxt `/init` route proxies `GET /init` and rebuilds the response. It dropped `vendors`, `vendorListVersion` and `resolvedPrivacySignals` on the way, so a client behind the proxy received no vendor list and none of the privacy signals the backend resolved. The route now forwards all three.
+
+### Vue IAB "Reject all" no longer consents to Purpose 1
+
+"Reject all" on the Vue and Nuxt IAB banner and dialog, and `useConsentIabSave()('none')`, recorded consent to Purpose 1 (store and access information on a device) and encoded it in the saved TC string. "Accept all" and "Reject all" now use the IAB CMP's own `acceptAll()` and `rejectAll()`, which React and Svelte already call. Reject all refuses every purpose, and both actions now record a choice for every vendor, including vendors and custom vendors that declare no consent or no legitimate-interest purposes, so the TC string discloses the same vendors as other frameworks. With no IAB CMP mounted (no valid `cmpId`, or `consentSource` is set), `'all'` and `'none'` now record nothing, as in React and Svelte, instead of saving without a TC string.
+
+**Breaking.** `buildAcceptAllIab()` and `buildRejectAllIab()` are no longer exported from `@c15t/vue/vue-plugin`, `#c15t/composables`, `@c15t/vue/composables/iabSelection`, or the matching `c15t/vue/vue-plugin` and `c15t/vue/composables/iabSelection` entries. Call `useConsentIabSave()` with `'all'` or `'none'` instead.
+
+### One manifest cache for every server adapter
+
+Next.js, Nuxt, SvelteKit, Astro and TanStack Start now read the backend manifest through one function, `fetchCachedManifest` from `@c15t/core/server`, and share one in-process cache of up to 128 entries. Before, SvelteKit and Astro kept a separate 64-entry cache and Next.js a third one, and each took different options.
+
+The cache key is now the same for every caller. Query parameters are sorted by name and the URL fragment is dropped, so `?b=2&a=1` and `?a=1&b=2` read one entry and reach the backend as one request. That request keeps the first caller's URL and query as written, so a signed `manifestURL` still verifies. Request headers that equal the ones the cache sends anyway (`accept: application/json` and the c15t protocol headers) no longer split the cache. The `init` option passes a framework fetch hint such as Next.js `{ next: { revalidate } }` and is not part of the key.
+
+**Breaking.**
+
+- `@c15t/core/libs/manifest-cache` and `c15t/libs/manifest-cache` are removed. Import `fetchCachedManifest` and `clearManifestCache` from `@c15t/core/server` (`c15t/server`) and pass `sourceURL` instead of `url`. The `CachedManifest` type is now `CachedManifestResponse`.
+- `fetchCachedManifest` from `@c15t/core/server` and `@c15t/astro/api` takes `sourceURL` instead of `config` (build it with `resolveManifestSourceURL({ backendURL, manifestURL })` from `@c15t/core/server`), and reads the shared cache. The `ManifestSourceConfig` type is removed; use `ManifestSourceOptions`.
+- `@c15t/vue/runtime/server/manifest-mode` and `c15t/vue/runtime/server/manifest-mode` are removed. Import the manifest cache and its helpers from `@c15t/core/server` instead, and `resolveManifestInit` and `getResolverInputsFromHeaders` from `@c15t/core/transports/manifest-cache`; `clearManifestRouteCache()` is `clearManifestCache()`.
+
+### A smaller public interface for `@c15t/core`
+
+`@c15t/core` (and `c15t`) stops exporting kernel verbs only its own modules
+call, building blocks no adapter uses, and a second home for the manifest
+cache.
+
+**Kernel (`ConsentKernel`)**
+
+| Removed | Use instead |
+| --- | --- |
+| `kernel.hydrate(records)` | Pass `initialRecords` to `createConsentKernel()`, or mount `createPersistence()` from `c15t/modules/persistence`. |
+| `kernel.markLive()`, `kernel.holdSaves()`, `kernel.events.emit()` | Nothing; the runtime and persistence call them. |
+| `kernel.set.vendorDraft(values)` | `kernel.commands.save(input, { vendors })`, or a preference draft's `setVendor()`. |
+
+`kernel.getRecordsGeneration()` stays and is now documented.
+
+**Runtime**
+
+| Removed or renamed | Use instead |
+| --- | --- |
+| `runtime.onIABChange(listener)` | `runtime.subscribe(listener)`, and read `runtime.iab` inside the listener. |
+| `createRuntimeKernel`, `hasResolvedPrefetch`, `normalizeKernelUser`, `resolveRuntimeTranslations`, `stringifyRuntimeError`, `ALL_CONSENTS_GRANTED` from `c15t/runtime` | Nothing; `createConsentRuntime` and `createConsentProviderRuntime` cover them. |
+| `createPersistence(options, loader)`, `preloadPersistenceWriter()` | `createPersistence(options)`. |
+
+`runtime.setOverrides()` merges into the current overrides, as it always
+did; the docs used to say it replaces them.
+
+**Server**
+
+The manifest cache (`fetchCachedManifest`, `createManifestCache`,
+`clearManifestCache`, `ManifestUnavailableError` and the manifest header
+helpers) is exported from `@c15t/core/server` (`c15t/server`) only.
+`@c15t/core/transports/manifest-cache` keeps `resolveManifestInit`,
+`getResolverInputsFromHeaders`, `withResolutionBudget` and
+`DEFAULT_RESOLVE_TIMEOUT_MS`.
+
+These are no longer exported from `c15t/server`: the consent-proxy helpers
+(`forwardConsentRequest`, `buildConsentProxyRequestHeaders`,
+`buildConsentProxyResponseHeaders`, `filterCookieHeader`,
+`rewriteProxySetCookie`, `stripIdentityForCleartext`, `isCleartextRemoteURL`,
+`isConsentProxyPathAllowed`, `resolveConsentProxyOptions` and the
+`CONSENT_PROXY_*` constants), the session-report helpers
+(`reportConsentSession`, `buildConsentSessionReport`,
+`forwardSessionReportHeaders`, `isSpeculativeRequest`,
+`resolveSessionReportBackendURL`, `SESSION_REPORT_*`), `resolveConsentInit`,
+`GVL_FETCH_TIMEOUT_MS` and `getManifestAge`. Use
+`createConsentRouteHandler()`, which runs all of them.
+
+**Root index**
+
+No longer exported from `@c15t/core` / `c15t`: `setCookie`, `getCookie`,
+`deleteCookie`, `deleteConsentFromStorage`, `CONTROL_ARM`,
+`experimentArmRef`, `startExperiment`, `resolveExperimentPresentation`,
+`disabledPolicyResolution`, `extractConsentNamesFromCondition`,
+`hasRevokedPermission`, `initResponseToKernelConfig`,
+`kernelConfigToInitResponse`, `mergeInitResponseIntoKernelConfig`,
+`resolveVendors`, `vendorRenders`, `resolveWindowDebugMode`,
+`createGvlReferenceURL`, `deferInitGvlToRoute`, `serveGvlReference`,
+`validateExplicitChoice` and `validateNoticeDismissal`. Consent storage
+belongs to the persistence module; `getRootDomain` stays for
+`storageConfig`.
+
+**Smaller pages**
+
+The inline script that starts `/init` before the app loads (Nuxt `ssr: false`
+pages, Next.js, TanStack Start, Astro) is 712 B gzip instead of 1,054 B.
+
+**`@c15t/vue`**
+
+**Breaking.** `@c15t/vue/runtime/utils/save-iab-choice` and
+`c15t/vue/runtime/utils/save-iab-choice` are removed. Their
+`saveIABChoice(kernel, save)` only called `saveIABConsentSurface(kernel, save)`
+from `@c15t/core/surface-actions` (`c15t/surface-actions`); import that
+instead.
+
+**`@c15t/browser`**
+
+`client.consentCategories` lists the policy's categories in the dialog's
+fixed order: `necessary`, `functionality`, `measurement`, `experience`,
+`marketing`. It used to put the configured `consentCategories` order first.
+
+### Vue and Nuxt on the shared runtime
+
+The `c15tVue` plugin and the Nuxt module now build their consent runtime with
+`createConsentProviderRuntime` from `@c15t/core`, the runtime React and Svelte
+use, instead of their own copy. Plugin options, module options, composables
+and components keep their names and shapes.
+
+New: the `iab` option sets IAB TCF publisher settings for the CMP Vue mounts
+under an `iab` policy, such as `publisherRestrictions` and
+`publisherCountryCode`. Vue apps had no way to set restrictions before, and
+mounting the CMP reset them to none. Fields left out still come from `/init`,
+and `iab: false` mounts no CMP.
+
+Behaviour that changes:
+
+- On a Nuxt page with `ssr: false`, the plugin starts the runtime before the
+  app mounts, so `/init` runs while the app mounts instead of after it.
+- Clearing records before the runtime starts, or without browser storage, now
+  also clears the vendor choice.
+- Experiment arms are checked against your `theme`, so an arm that is only
+  balanced together with your theme's `consentActions` is no longer rejected.
+- A `Sec-GPC` signal from the request stays active when the browser reports
+  `navigator.globalPrivacyControl === false`, as in every other adapter.
+  Vue used to switch it off.
+- The script loader, network blocker, data clearing and a `consentSource`
+  connection load as separate chunks, only for apps that configure them.
+  Consented scripts mount once the script loader has loaded, matching
+  requests stay held until the network blocker has, and optional categories
+  stay denied until a `consentSource` connects.
+- The Nuxt module stops Nuxt adding `rel="prefetch"` hints for c15t chunks
+  a page loads only when it configures them or after its first banner (the
+  modules above, live option updates, the save path and the preference
+  dialog, which c15t warms after the page's `load` event). The IAB banner,
+  the experiment controller and the client manifest resolver keep their
+  hints.
+- Changes to the Nuxt `c15t` app config while the page runs, such as
+  `updateAppConfig()`, now reach the runtime: scripts, network and iframe
+  blocking, vendors, categories, callbacks and `reloadOnConsentRevoked` follow
+  them.
+- A plain Vue `prefetch` without a resolved policy no longer skips `/init`.
+
+The object `useConsentKernelContext()` returns gains `runtime`, `start()`,
+`setOverrides()` and `update()`.
+
+**Breaking.** That object no longer has `initialRecords`
+(`useConsentKernelContext` from `@c15t/vue/composables/kernel` and
+`c15t/vue/composables/kernel`). Read the records from the snapshot instead:
+`useConsentSnapshot().value` has `explicitChoice`, `subject`,
+`noticeDismissal` and `vendorChoice` once storage or the prefetch has
+hydrated the kernel.
+
+`@c15t/core`: a runtime `prefetch` whose `initialRecords` names only a
+subject, as an `/init` answer's `subjectId` does, no longer counts as records
+the server read. Storage hydrates the kernel as it would without a prefetch,
+so a stored choice applies, and the named subject stays unless storage holds
+its own.
+
+### Remove the v2 `jurisdiction` label and `disableGeoLocation`
+
+v3 decides consent from policy rules, so the regulation label v2 derived from a fixed country table (`GDPR`, `CCPA`, `NONE` and so on) is gone from the API.
+
+- `/init` responses and session reports no longer carry `jurisdiction`, so `sessions.onReport` no longer receives it. Read the matched policy from `policyResolution`, or the report's `policy`, `country` and `region`.
+- `@c15t/schema` removes `jurisdictionCodes`, `jurisdictionCodeSchema`, `JurisdictionCode` and `checkJurisdiction`. `@c15t/core` and `c15t` remove the unused `LocationInfo`, `ConsentBannerResponse` and `JurisdictionCode` types.
+- The `disableGeoLocation` manifest option is removed. To show every visitor the same banner, configure one policy rule with `match: { isDefault: true }`; the browser resolves it without a location. To test a region's rule, set the country in the client's `overrides`, for example `overrides: { country: 'US' }`.
+- The `/init` translations schema is now one shape with optional keys. `completeTranslationsSchema`, `partialTranslationsSchema` and the `partial*` section schemas are removed, along with the deprecated `frame` key, which the backend already folds into `consentGate`. `titleDescriptionSchema` now accepts a pair with `title` or `description` missing, so its inferred type has both fields optional.
+- The backend still accepts `jurisdiction` in a save request from a 2.x client and ignores it. Policy snapshot tokens no longer carry the claim, and tokens that still do are accepted.
+- Migration 7 makes `runtimePolicyDecision.jurisdiction` nullable; new decisions store `null` and 2.x rows keep their value. Apply it with `@c15t/cli self-host migrate --apply` before deploying this backend.
+
+### One consent route handler for every server adapter
+
+The `/manifest` and `/init` routes of Next.js, TanStack Start, SvelteKit, Astro and Nuxt now run on one handler, `createConsentRouteHandler` from `@c15t/core/server`. Each adapter keeps its own entry point (route handlers, server routes, `RequestHandler`, `APIRoute`, h3 event handlers) and the same options. The copies had drifted; every adapter now follows these rules:
+
+- The manifest route passes only a `language` query parameter that looks like a language tag to the backend. Other parameters a visitor adds are dropped, so they no longer reach the backend or add manifest cache entries. SvelteKit, Astro and Nuxt used to forward the whole query string.
+- The manifest route passes `cache-control`, `etag`, `last-modified` and `content-language` through, sends an adjusted `age`, and answers a matching `If-None-Match` with `304`. It never adds a `cache-control` header the backend did not send.
+- The init route negotiates the policy contract in every adapter (before, only Next.js and Nuxt did), always answers with `x-c15t-policy-contract: 1`, and echoes `resolvedOverrides` and `resolvedPrivacySignals` (Next.js did not). A resolution that did not match carries no `policySnapshotToken`, `gvl`, `gvlReference`, `cmpId` or `customVendors`.
+- A vendor list that cannot be loaded fails the init request. Astro answered `gvl: null`, which the browser reads as "IAB is off". The default vendor-list fetch now goes through the shared server cache with a five-second deadline. SvelteKit and Astro used an uncached fetch, and SvelteKit's had no deadline.
+- When the manifest cannot be read and `backendURL` is set, the init route asks the backend's own `/init` and passes on its `vendors`, `vendorListVersion` and `resolvedPrivacySignals`. This covers backends without `/manifest`. It was Nuxt-only.
+- A session report is skipped when the request was aborted before the route answered, in every adapter. The rest of an aborted request goes to the platform's `waitUntil`.
+- `x-c15t-timeout-ms` on an init request bounds the manifest read, the vendor list and the `/init` fallback, in every adapter. Nuxt's server render already sent it.
+- With `proxy` on, the manifest request carries the cookies `cookieNames` names and the extra `forwardHeaders` in SvelteKit too, not only TanStack Start, and a manifest read with them is answered `private, no-store`.
+- On a catch-all route, `init` or the route root answers init, `manifest` answers the manifest, and any other path is proxied with `proxy` on or answers `404`. SvelteKit used to answer other paths with init. TanStack Start now answers the route root with init.
+
+`fetchCachedGvl` from `@c15t/core/server` now reads and fills the same process cache as the one from `@c15t/core`, instead of a separate one.
+
+**Breaking.**
+
+- `@c15t/nextjs/api` no longer exports `fetchCachedManifest`, `getSMaxAge` or `ManifestFetchResult`. Use `fetchCachedManifest` from `@c15t/core/server`. `manifestGET` no longer substitutes `public, s-maxage=300, stale-while-revalidate=86400` when the backend sends no `cache-control`, and no longer sends `x-c15t-next-revalidate`. Its configuration error now reads `@c15t/nextjs: pass backendURL or manifestURL.`
+- In `@c15t/astro/api`, `resolveManifestInit` rejects when an IAB policy's vendor list cannot be loaded instead of returning `gvl: null`, and the `FetchGvl` callback receives `fetch` typed as `typeof globalThis.fetch`. The server render then leaves the policy to the browser.
+- In `@c15t/svelte/kit`, a catch-all route answers `404` for any path other than `init`, `manifest` or the route root, unless `proxy` is on. It used to answer those paths with init. Migration: send init requests to `<route>/init` or the route root; c15t's own clients already do.
+
+### Start `/init` from the HTML of Nuxt `ssr: false` pages
+
+On a page Nuxt sends as a shell (`ssr: false` for the app or the route), the
+module now writes a small inline script into the page head that calls the
+backend's `/init` while the browser is still parsing the HTML. When the app's
+JavaScript has loaded, the consent runtime uses that response instead of
+sending its own request. Before, the request waited for the app's JavaScript
+to download and run.
+
+The script is added only when `manifest` is unset and no `consentSource`,
+`customFetch` or `experiment` is configured. It carries the backend URL and
+nothing from the request, so prerendered and cached shells can include it.
+Server-rendered pages are unchanged.
+
+The script takes `nuxt-security`'s per-request nonce, or the `nonce` option.
+Set the new module option `initPrefetch: false` to turn it off, for example
+when your Content Security Policy cannot allow it, or the route rule
+`c15t: { initPrefetch: false }` to turn it off for some routes.
+
+`buildPrefetchScript` from `@c15t/core` now works in server bundles built by
+Nitro. Nitro rewrote `typeof window` inside the script's text, so the script
+returned before it sent any request.
+
+### One server-side consent resolution for every adapter
+
+`resolveConsent` in Next.js, TanStack Start and SvelteKit, `loadConsent` and `c15tHandle` in SvelteKit, the Astro middleware and the Nuxt plugin now resolve a request's consent state through one function, `resolveRequestConsent` from `@c15t/core/server`. Each adapter keeps its own entry point and reads the request with its framework's API. The copies had drifted; every adapter now follows these rules:
+
+- **What the backend receives.** A hosted `/init` request carries the resolved country, region, language and GPC signal, the `user-agent`, and the experiment arm while the visitor has no stored choice. Over `https` or to a loopback host it also carries the consent cookie (`cookieName` or `storageConfig.storageKey`) and any `forwardHeaders`. It never carries the rest of the cookie jar: Next.js and SvelteKit used to send every cookie the site owns. The visitor IP travels as `x-forwarded-for` only with `trustForwardedHeaders`; Next.js and SvelteKit used to copy the client's `x-forwarded-for`. `forwardHeaders` cannot name `cookie` or a `forwarded`/`x-forwarded-*` header. A manifest request carries nothing about the visitor unless you name headers or cookies for it.
+- **Own routes.** A server render never fetches the app's own consent routes over the network: the routes an adapter mounts (TanStack Start `routePrefix`, `/api/c15t` by default; Astro's injected endpoints) or declares (Next.js `config.manifestURL` and `config.initURL`). It renders without a server decision and, in Next.js, says why in development. SvelteKit and Nuxt reach their own init route in-process through `event.fetch` and Nitro's local fetch, as before. Next.js mounts nothing under `/api/c15t`, so a `backendURL` of `/api/c15t` (a rewrite or a mounted backend) is still asked for `/init`. A hosted request to the app's own origin is marked; a render whose request carries the mark does not fetch its origin again, so a prefix that answers with a page cannot loop.
+- **Next.js manifest source.** With `config` and a same-origin `config.manifestURL`, `resolveConsent` reads `${config.backendURL}/manifest` through the same process cache entry the manifest route uses, instead of fetching that route. When `config.backendURL` is the `/api/c15t` rewrite prefix, pass the handlers' upstream URL as `resolveConsent`'s `backendURL` too.
+- **GPC.** Every adapter reads `x-c15t-gpc`, then `sec-gpc`, and leaves an absent signal `undefined`. SvelteKit read only `sec-gpc` and turned a missing header into `false`.
+- **Budget.** `timeoutMs` means the same everywhere: `false` or `Infinity` waits for the upstream, and a value that is not a finite, non-negative number uses the 500 ms default. Astro and Nuxt turned `NaN` into no budget. `@c15t/svelte/server`'s `resolveConsent` now has the same 500 ms default; it had none.
+- **Shared renders.** A prerendered or cached render reads no visitor facts, carries no stored records, clock, GPC signal or experiment arm, and makes no hosted or manifest request; offline mode still resolves. TanStack Start applies it while it prerenders and accepts `shared`. SvelteKit accepts `shared` on `c15tHandle` and `loadConsent`; pass SvelteKit's `building` flag. Astro (`isPrerendered`) and Nuxt (prerender and cache route rules) keep their rules.
+- **Vendor list.** The full Global Vendor List is replaced by a reference whenever the browser can fetch it the same way: no custom `fetch`, and no cookie or private header on the request. The app's own init route reads no cookie, so SvelteKit and Nuxt in-process renders send none and keep the reference.
+
+**Breaking.**
+
+- `@c15t/nextjs/server` no longer exports `DEFAULT_FORWARD_HEADERS` (`x-forwarded-for` and `user-agent`), and there is no default list to extend. `resolveConsent` always sends `user-agent`, sends the visitor IP as `x-forwarded-for` only with `trustForwardedHeaders: true`, and adds the request headers you name in its `forwardHeaders` option. `onError` receives an error that names the URL, with the original failure as `cause`.
+- `@c15t/astro/api` no longer exports `loadConsentManifest`, `resolveManifestInit`, `resolveSessionReportURL`, `ResolvedInitOutput` or `SessionReportTarget`; the server render uses `resolveRequestConsent`. The server render no longer sends the consent cookie over plain HTTP to a same-origin host that is not loopback.
+- `@c15t/vue/runtime/manifest` no longer exports `C15T_TIMEOUT_HEADER`, `DEFAULT_NUXT_RESOLVE_TIMEOUT_MS` or `resolveNuxtTimeoutMs`. Use `CONSENT_ROUTE_TIMEOUT_HEADER` from `@c15t/core/server`. The Nuxt plugin keeps the resolved state in `useState('c15t:consent')` instead of a `useFetch` result under `c15t:init`. On a route rendered only in the browser (`ssr: false`), the plugin no longer holds the app's mount until `/init` answers: the app paints first and the runtime starts init once it mounts. The Nuxt client bundle drops `useFetch` and the vendor-list deferral code from the plugin (about 4.6 KB gzip of initial JavaScript in the benchmark app).
+- In `@c15t/svelte/kit`, `C15tHandleOptions` is an interface with `shared`, and `loadConsent`'s `fetch` is used only for a backend on another origin; same-origin URLs always go through `event.fetch`.
+
 ## @c15t/vue@3.0.0-alpha.4 (alpha)
 
 ### Resolve Nuxt visitors in the browser on prerendered and cached routes

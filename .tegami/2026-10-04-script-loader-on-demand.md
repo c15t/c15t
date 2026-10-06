@@ -1,9 +1,17 @@
 ---
 packages:
-  "@c15t/svelte": minor
-  "@c15t/astro": minor
-  "@c15t/browser": minor
-  "@c15t/core": minor
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Ship the script loader only to pages with scripts

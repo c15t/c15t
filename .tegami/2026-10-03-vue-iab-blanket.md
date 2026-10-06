@@ -1,7 +1,11 @@
 ---
 packages:
-  "@c15t/vue": major
-  c15t: major
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Vue IAB "Reject all" no longer consents to Purpose 1
