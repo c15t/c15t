@@ -27,8 +27,10 @@ The [quickstart](/docs/frameworks/react/quickstart) setup runs entirely in the
 browser:
 
 1. The page loads with no consent state. Every optional category is denied.
-2. `ConsentProvider` requests `GET /init` from your backend URL. The backend
-   picks the visitor's policy from their location.
+2. `ConsentProvider` requests `GET /init` from your backend URL while it first
+   renders, before the page paints. The backend picks the visitor's policy
+   from their location. With an `experiment`, the request waits until the
+   provider mounts, because it carries the visitor's arm.
 3. The provider applies the policy and any stored choice. It shows the banner
    if the policy asks for one, and loads the scripts the visitor allowed.
 
@@ -45,8 +47,8 @@ around the outlet. In React Router framework mode that is `app/root.tsx`.
 browser takes over after hydration:
 
 - The server HTML contains your page but no banner and no consent state.
-- After hydration the browser requests `/init`, then shows the banner if the
-  policy asks for one.
+- The browser requests `/init` while it hydrates the provider, then shows the
+  banner if the policy asks for one.
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 
