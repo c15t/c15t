@@ -8,8 +8,9 @@
  * route's chunk only while its chunk graph has no static cycle, and its
  * cycle check counts every import record, used or not. One unused
  * re-export (`@c15t/ui/utils/dom` re-exporting `setupColorScheme`) was
- * enough to split every shared module into its own file: 15 first-load
- * files here instead of 10.
+ * enough to split every shared module into its own file: in this fixture
+ * the provider route loaded 15 files first instead of 10, and the root
+ * route 16 instead of 11.
  *
  * `ConsentRoot` brings the code that applies a streamed state with it, so
  * the banner doesn't wait for one more request after hydration. Here the
