@@ -39,28 +39,31 @@ one source:
 | --- | --- | --- | --- |
 | `backendURL` | `string` | none | The backend's base URL, absolute or `/`-relative. See the note on relative URLs below. |
 | `initRoute` | `string` | none | Your manifest route, such as `/api/c15t`. Wins over `backendURL`. |
-| `timeoutMs` | `number` or `false` | `500` | Longest wait for the backend or route, in milliseconds. `false` waits as long as it takes. |
+| `timeoutMs` | `number` or `false` | `500` | Longest wait for the backend or route, in milliseconds. `false` or `Infinity` waits as long as it takes; any other value that is not a finite, non-negative number uses the default. |
+| `shared` | `boolean` | the handle's `shared` | The page is served to every visitor, as a prerendered page is. Pass SvelteKit's `building` flag. See [prerendered pages](#prerendered-pages). |
 | `cookieName` | `string` | `c15t`, or the handle's | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `country`, `region`, `language` | `string` | from headers | Forces one input for this call. |
-| `forwardHeaders` | `string[]` | none | Extra request headers to send to the backend's `/init`. `forwarded`, `x-forwarded-host` and `x-forwarded-proto` are skipped unless `trustForwardedHeaders` is set. |
-| `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against the request's forwarding headers instead of `event.url`, and sends those headers to the backend. |
-| `fetch` | `typeof fetch` | `event.fetch` | The fetch used for the backend's `/init`. |
+| `forwardHeaders` | `string[]` | none | Extra request headers to send to the backend's `/init`, only over `https`, to a loopback host, or in-process. `cookie`, `forwarded` and `x-forwarded-*` cannot be named. |
+| `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against the request's forwarding headers instead of `event.url`, and sends the visitor IP to the backend as `x-forwarded-for`. |
+| `fetch` | `typeof fetch` | global `fetch` | The fetch for a backend on another origin. A URL on the request's own origin always goes through `event.fetch`. A custom fetch keeps the vendor list inline. |
 
-`loadConsent` resolves a relative `backendURL` against `event.url` and calls
-it with `event.fetch`. The resolved URL has the request's own origin, so
-SvelteKit answers it in-process and the request never leaves the server. A
-client's `x-forwarded-host` does not change it. Two options change that:
+`loadConsent` resolves a relative `backendURL` against `event.url`. Any URL
+on the request's own origin, relative or absolute, is called with
+`event.fetch`, so SvelteKit answers it in-process and the request never
+leaves the server. A client's `x-forwarded-host` does not change it.
+`adapter-node` builds that origin from `paths.origin` in SvelteKit 3 (the
+`ORIGIN` variable in SvelteKit 2), or from its `PROTOCOL_HEADER` and
+`HOST_HEADER` settings. SvelteKit 3's `adapter-node` ignores `ORIGIN` without
+a warning; move it to `paths.origin` when you upgrade.
+`trustForwardedHeaders: true` resolves against the forwarding headers
+instead. Set it only when your proxy overwrites those headers.
 
-- With your own `fetch`, the call goes over the network to the origin of
-  `event.url`. `adapter-node` builds that origin from `paths.origin` in
-  SvelteKit 3 (the `ORIGIN` variable in SvelteKit 2), or from its
-  `PROTOCOL_HEADER` and `HOST_HEADER` settings. With none of them, it takes
-  the host from the request's `Host` header, so set the origin or pass an
-  absolute `backendURL`. SvelteKit 3's `adapter-node` ignores `ORIGIN`
-  without a warning; move it to `paths.origin` when you upgrade.
-- `trustForwardedHeaders: true` resolves against the forwarding headers
-  instead. When they name another host, `event.fetch` sends the call there
-  over the network. Set it only when your proxy overwrites those headers.
+The backend's `/init` gets the resolved location, language and GPC, the
+`user-agent` and, while the visitor has no stored choice, the experiment arm.
+A backend on another origin, over `https` or a loopback host, also gets the
+consent cookie (`cookieName`, never the rest of the cookie jar) and any
+`forwardHeaders`. Nothing identifying crosses plain HTTP to a remote host.
+Your own init route reads no cookie, so none is sent to it.
 
 For the manifest route, use `initRoute` instead of `backendURL`.
 
@@ -71,9 +74,31 @@ denied, and the browser resolves the policy after hydration. A route request
 that runs out of time keeps running in the background and fills the manifest
 cache for the next request.
 
-When `c15tHandle` ran for the request, `loadConsent` reuses its result
-instead of reading the cookie and headers again. Passing `cookieName`,
-`country`, `region` or `language` makes it read them again for that call.
+When `c15tHandle` ran for the request, `loadConsent` reuses the inputs it
+normalized. Passing `country`, `region` or `language` makes it read the
+headers again for that call.
+
+### Prerendered pages
+
+A prerendered page is one HTML file for every visitor. Pass SvelteKit's
+`building` flag as `shared`, from `$app/environment` in SvelteKit 2 or
+`$app/env` in SvelteKit 3. The prerender then carries no stored consent,
+clock or GPC signal, and makes no backend request. Any stored records in the
+page would stop the browser reading the visitor's own cookie, and a
+build-time clock would age every record against it. The browser resolves the
+visitor after hydration.
+
+{/* example: fragment */}
+
+```ts title="src/hooks.server.ts"
+import { building } from '$app/environment';
+import { c15tHandle } from '@c15t/svelte/kit';
+
+export const handle = c15tHandle({ shared: building });
+```
+
+`loadConsent` reads the flag from the handle; pass `shared` to it directly
+when you do not install the handle.
 
 ## c15tHandle
 
@@ -89,6 +114,7 @@ instead of reading the cookie and headers again. Passing `cookieName`,
 | --- | --- | --- | --- |
 | `cookieName` | `string` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `country`, `region`, `language` | `string` | from headers | Forces the input for every request. |
+| `shared` | `boolean` | `false` | Every render is shared between visitors, as during a prerender. Pass `building`. The handle then reads no cookie or headers. |
 
 `event.locals.c15t` has this shape, exported as `C15tLocals`:
 
@@ -112,7 +138,7 @@ manifest mode. The options argument is required. Export them from a catch-all ro
 
 | Returned | Serves |
 | --- | --- |
-| `GET` | `/manifest` paths to `manifest`, every other path to `init`. |
+| `GET` | `manifest` below the rest parameter to `manifest`, `init` or the route root to `init`. Any other path is forwarded with `proxy` on and answers `404` without it. On a route without a rest parameter, a path ending in `/manifest` goes to `manifest` and anything else to `init`. |
 | `init` | The visitor's resolved policy, like the backend's `/init`, with `Cache-Control: private, no-store`. Under an IAB policy it also serves the Global Vendor List. |
 | `manifest` | The cached policy manifest, with the backend's `Cache-Control` and `ETag`. Answers `If-None-Match` with `304`. |
 
@@ -126,7 +152,7 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 | `proxy` | `true` or `{ paths?, cookieNames? }` | off | Forwards consent writes to `backendURL`. See [save consent through your own origin](./rendering#save-consent-through-your-own-origin). |
 | `reportSessions` | `boolean` | `true` | Reports each resolved visit to the backend's `/sessions`, so Inth counts visitors it never served `/init` to. |
 | `onBackgroundRevalidate` | `(promise, event) => void` | `event.platform.context.waitUntil`, when the adapter provides it | Keeps background manifest refreshes and session reports alive on runtimes that stop work after the response. SvelteKit 3's Cloudflare and Vercel adapters provide none; see [keep background work alive](./rendering#keep-background-work-alive-after-the-response). |
-| `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | a plain `GET` | Fetches the Global Vendor List under an IAB policy. |
+| `fetchGvl` | `({ reference, language, fetch }) => Promise<GlobalVendorList \| null>` | the shared server cache, with a five-second deadline | Fetches the Global Vendor List under an IAB policy. A rejection fails the init request instead of answering `gvl: null`. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch used for an absolute `backendURL` or `manifestURL`, and for the vendor list. |
 
 With an options object that sets neither `backendURL` nor `manifestURL`, each
@@ -145,6 +171,17 @@ serve, such as `/api/c15t`, or the route requests itself. A relative
 
 The manifest is cached in memory per server process for as long as its
 `s-maxage` allows, then served stale while it refreshes in the background.
+The `manifest` handler passes upstream only a `language` query parameter that
+looks like a language tag; the visitor's other parameters never reach the
+backend. When the manifest cannot be read and `backendURL` is set, `init` asks
+the backend's own `/init`, which covers backends without `/manifest`.
+
+These handlers are built on the consent route handler in `@c15t/core/server`,
+shared with the Next.js, TanStack Start, Astro and Nuxt adapters. `init`
+answers with `x-c15t-policy-contract: 1`. A browser that declares another
+policy contract gets a failed `unsupported-contract` resolution, and a
+resolution that did not match carries no snapshot token, vendor list, CMP ID
+or custom vendors.
 
 ## resolveConsent
 
@@ -156,16 +193,17 @@ does without a SvelteKit event.
 | `headers` | `Headers` | required | The incoming request's headers. |
 | `backendURL` | `string` | none | Calls `<backendURL>/init`. Without it, only the cookie and headers are read. A relative URL resolves against `requestURL`, or the `host` header when there is none. |
 | `requestURL` | `string` or `URL` | none | The URL the framework resolved the request under, such as SvelteKit's `event.url`. `loadConsent` passes it for you. |
-| `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against `forwarded`, `x-forwarded-host` and `x-forwarded-proto`, and sends those headers to the backend. |
+| `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against `forwarded`, `x-forwarded-host` and `x-forwarded-proto`, and sends the visitor IP to the backend as `x-forwarded-for`. |
 | `cookieName` | `string` | `c15t` | The consent cookie. |
 | `cookieHeader` | `string` or `null` | `headers.get('cookie')` | A cookie header to read instead. |
 | `country`, `region`, `language` | `string` | from headers | Forces one input. |
-| `forwardHeaders` | `string[]` | none | Extra headers to send to `/init`. Forwarding headers are skipped unless `trustForwardedHeaders` is set. |
+| `forwardHeaders` | `string[]` | none | Extra headers to send to `/init`, under the same rule as `loadConsent`. |
 | `fetch` | `typeof fetch` | global `fetch` | The fetch for `/init`. |
+| `timeoutMs` | `number` or `false` | `500` | Longest wait for `/init`, in milliseconds, with the same rule as `loadConsent`. |
 | `now` | `number` | the current time | The request time, shared with the browser. |
 
-It never throws; a failed call returns the stored choice without a policy. It
-has no time limit, so prefer `loadConsent` in a layout load.
+It never throws; a failed or slow call returns the stored choice without a
+policy.
 
 ## ConsentState
 

@@ -1,586 +1,137 @@
+/**
+ * Wiring of `@c15t/tanstack-start/api` onto the core consent route handler.
+ * The route behaviour itself is pinned once, in
+ * `packages/core/src/server/__tests__/consent-route.test.ts`.
+ */
 import { createManifestCache } from '@c15t/core/transports/manifest-cache';
-import { createConsentManifestPolicyPack } from '@c15t/schema/types';
-import { afterEach, describe, expect, test, vi } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentServerRoute } from '../api';
+import { rememberConsentInputs } from '../libs/request-inputs';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
-const createManifestFetch = function createManifestFetch(
-	headers: Record<string, string> = {
-		'cache-control': 'public, s-maxage=120, stale-while-revalidate=60',
-		'content-language': 'en',
-		etag: '"manifest-revision"',
-	}
-) {
-	return vi
-		.fn()
-		.mockImplementation(() =>
-			Promise.resolve(
-				new Response(JSON.stringify(MANIFEST_FIXTURE), { headers, status: 200 })
-			)
-		);
-};
+const BACKEND = 'https://consent.example.com';
 
-const createRoute = function createRoute(
-	options: Omit<Parameters<typeof createConsentServerRoute>[0], 'cache'> = {}
-) {
-	return createConsentServerRoute({ ...options, cache: createManifestCache() });
-};
-
-const request = function request(
-	path: string,
-	headers: Record<string, string> = {}
-) {
-	return new Request(`https://app.example.com${path}`, { headers });
-};
-
-afterEach(() => {
-	vi.unstubAllEnvs();
-});
-
-describe('createConsentServerRoute: splat dispatch', () => {
-	test.each([true, false])(
-		'rejects long unknown paths with router params %s',
-		async (withParams) => {
-			const path = `unknown/${'/'.repeat(100_000)}missing///`;
-			const { GET } = createRoute();
-			const context = {
-				params: withParams ? { _splat: `///${path}` } : undefined,
-				request: request(`/api/c15t/${path}`),
-			};
-			const start = performance.now();
-			const response = await GET(context);
-			expect(performance.now() - start).toBeLessThan(1_000);
-			expect(response.status).toBe(404);
-		}
+const upstream = () =>
+	vi.fn<typeof globalThis.fetch>().mockImplementation((input) =>
+		Promise.resolve(
+			String(input).endsWith('/manifest')
+				? Response.json(MANIFEST_FIXTURE, {
+						headers: { 'cache-control': 'public, s-maxage=120' },
+					})
+				: Response.json({ ok: true }, { status: 201 })
+		)
 	);
 
-	test('routes the init splat to the init handler', async () => {
-		const { GET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
-		});
+const request = (path: string, init?: RequestInit) =>
+	new Request(`https://app.example.com/api/c15t/${path}`, init);
 
-		const response = await GET({
-			params: { _splat: 'init' },
-			request: request('/api/c15t/init', {
-				'accept-language': 'de-DE,de;q=0.9',
-				'sec-gpc': '1',
-				'x-vercel-ip-country': 'DE',
-				'x-vercel-ip-country-region': 'BE',
+describe('createConsentServerRoute', () => {
+	test('returns the in-process handlers, and the proxy handlers with proxy on', () => {
+		const plain = createConsentServerRoute({ backendURL: BACKEND });
+		expect(Object.keys(plain).sort()).toEqual([
+			'GET',
+			'initGET',
+			'manifestGET',
+		]);
+		const proxied = createConsentServerRoute({
+			backendURL: BACKEND,
+			proxy: true,
+		});
+		expect(Object.keys(proxied).sort()).toEqual([
+			'DELETE',
+			'GET',
+			'OPTIONS',
+			'PATCH',
+			'POST',
+			'PUT',
+			'initGET',
+			'manifestGET',
+			'proxyHandler',
+		]);
+		expect(proxied.POST).toBe(proxied.proxyHandler);
+	});
+
+	test('GET dispatches on the router splat, or the path when there is none', async () => {
+		const fetch = upstream();
+		const { GET } = createConsentServerRoute({
+			backendURL: BACKEND,
+			cache: createManifestCache(),
+			fetch,
+			reportSessions: false,
+		});
+		const manifest = await GET({
+			params: { _splat: 'manifest' },
+			request: request('ignored'),
+		});
+		const init = await GET({ request: request('init') });
+		const unknown = await GET({
+			params: { _splat: 'subjects' },
+			request: request('subjects'),
+		});
+		expect(manifest.headers.get('cache-control')).toBe('public, s-maxage=120');
+		expect(init.headers.get('cache-control')).toBe('private, no-store');
+		expect(unknown.status).toBe(404);
+		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+
+	test('init resolves with the inputs the request middleware remembered', async () => {
+		const { initGET } = createConsentServerRoute({
+			backendURL: BACKEND,
+			cache: createManifestCache(),
+			fetch: upstream(),
+			reportSessions: false,
+		});
+		const incoming = request('init', { headers: { 'x-c15t-country': 'US' } });
+		rememberConsentInputs(incoming, { country: 'DE', language: 'de' });
+		const body = await (await initGET({ request: incoming })).json();
+		expect(body).toMatchObject({
+			location: { countryCode: 'DE' },
+			policyResolution: { policyId: 'eu-opt-in' },
+			translations: { language: 'de' },
+		});
+	});
+
+	test('the proxy names the adapter and trusts forwarding only when told to', async () => {
+		const fetch = upstream();
+		const { POST } = createConsentServerRoute({
+			backendURL: BACKEND,
+			fetch,
+			proxy: true,
+			trustForwardedHeaders: true,
+		});
+		const response = await POST({
+			params: { _splat: 'subjects' },
+			request: request('subjects', {
+				body: '{}',
+				headers: { 'x-forwarded-host': 'public.example' },
+				method: 'POST',
 			}),
 		});
-
-		expect(response.headers.get('cache-control')).toBe('private, no-store');
-		const body = await response.json();
-		expect(body.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
-		expect(body.translations.language).toBe('de');
-		expect(body.policyResolution).toMatchObject({
-			fingerprints: MANIFEST_FIXTURE.policyPacks[0]?.fingerprints,
-			policyId: 'eu-opt-in',
-			status: 'matched',
-		});
-		expect(body.resolvedOverrides).toMatchObject({ country: 'DE' });
-		expect(body.resolvedOverrides).not.toHaveProperty('gpc');
+		expect(response.status).toBe(201);
+		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+		expect(fetch.mock.calls[0]?.[0]).toBe(`${BACKEND}/subjects`);
+		expect(headers.get('x-c15t-proxy')).toBe('@c15t/tanstack-start');
+		expect(headers.get('x-forwarded-host')).toBe('public.example');
 	});
 
-	test('routes the manifest splat to the manifest handler', async () => {
-		const { GET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
-		});
-
-		const response = await GET({
-			params: { _splat: 'manifest' },
-			request: request('/api/c15t/manifest'),
-		});
-
-		expect(response.status).toBe(200);
-		expect(await response.json()).toEqual(MANIFEST_FIXTURE);
-	});
-
-	test('falls back to the request path when params are absent', async () => {
-		const { GET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
-		});
-
-		const response = await GET({ request: request('/api/c15t/manifest/') });
-		expect(response.status).toBe(200);
-	});
-
-	test('returns 404 for unknown splats', async () => {
-		const fetchSpy = createManifestFetch();
-		const { GET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-		});
-
-		const response = await GET({
-			params: { _splat: 'subjects' },
-			request: request('/api/c15t/subjects'),
-		});
-
-		expect(response.status).toBe(404);
-		expect(fetchSpy).not.toHaveBeenCalled();
-	});
-});
-
-describe('createConsentServerRoute: background revalidation', () => {
-	test("hands a stale read's refresh to onBackgroundRevalidate", async () => {
-		vi.useFakeTimers();
-		try {
-			const fetchSpy = createManifestFetch({
-				'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
-				etag: '"manifest-revision"',
-			});
-			const registered: Promise<void>[] = [];
-			const { manifestGET } = createRoute({
-				fetch: fetchSpy as unknown as typeof globalThis.fetch,
-				manifestURL: 'https://consent.example.com/manifest',
-				onBackgroundRevalidate: (refresh) => {
-					registered.push(refresh);
-				},
-			});
-
-			await manifestGET({ request: request('/api/c15t/manifest') });
-			expect(registered).toHaveLength(0);
-
-			vi.advanceTimersByTime(1500);
-			await manifestGET({ request: request('/api/c15t/manifest') });
-			expect(registered).toHaveLength(1);
-			await expect(registered[0]).resolves.toBeUndefined();
-			expect(fetchSpy).toHaveBeenCalledTimes(2);
-		} finally {
-			vi.useRealTimers();
-		}
-	});
-});
-
-describe('createConsentServerRoute: session reports', () => {
-	test('init reports the resolved session to the backend, detached', async () => {
-		const fetchImpl = createManifestFetch();
+	test('hands detached work to onBackgroundRevalidate', async () => {
 		const registered: Promise<void>[] = [];
-		const { initGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
+		const fetch = upstream();
+		const { initGET } = createConsentServerRoute({
+			backendURL: BACKEND,
+			cache: createManifestCache(),
+			fetch,
 			onBackgroundRevalidate: (task) => {
 				registered.push(task);
 			},
 		});
-
-		const response = await initGET({
-			request: request('/api/c15t/init', {
-				cookie: 'c15t=secret',
-				'user-agent': 'Mozilla/5.0',
-				'x-forwarded-for': '203.0.113.42',
-				'x-vercel-ip-country': 'DE',
-			}),
-		});
-		expect(response.status).toBe(200);
+		await initGET({ request: request('init') });
 		expect(registered).toHaveLength(1);
 		await registered[0];
-
-		const report = fetchImpl.mock.calls.find(
-			([url]: [string]) => url === 'https://consent.example.com/sessions'
+		expect(fetch).toHaveBeenLastCalledWith(
+			`${BACKEND}/sessions`,
+			expect.objectContaining({ method: 'POST' })
 		);
-		expect(report).toBeDefined();
-		const init = report?.[1] as RequestInit;
-		const headers = init.headers as Record<string, string>;
-		expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
-		expect(headers['user-agent']).toBe('Mozilla/5.0');
-		expect(headers).not.toHaveProperty('cookie');
-		expect(JSON.parse(init.body as string)).toMatchObject({
-			adapter: '@c15t/tanstack-start',
-			country: 'DE',
-			policy: { id: 'eu-opt-in' },
-			source: 'route',
-		});
-	});
-
-	test('a HEAD probe of init sends no report', async () => {
-		const fetchImpl = createManifestFetch();
-		const { initGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-		});
-		const response = await initGET({
-			request: new Request('https://app.example.com/api/c15t/init', {
-				method: 'HEAD',
-			}),
-		});
-		expect(response.status).toBe(200);
-		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 0);
-		});
-		expect(
-			fetchImpl.mock.calls.some(
-				([url]: [string]) => url === 'https://consent.example.com/sessions'
-			)
-		).toBe(false);
-	});
-
-	test('init sends no report when reportSessions is false', async () => {
-		const fetchImpl = createManifestFetch();
-		const { initGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetchImpl as unknown as typeof globalThis.fetch,
-			reportSessions: false,
-		});
-		await initGET({ request: request('/api/c15t/init') });
-		expect(fetchImpl).toHaveBeenCalledTimes(1);
-	});
-});
-
-describe('createConsentServerRoute: manifest passthrough', () => {
-	test('forwards backend cache headers and the language query', async () => {
-		const fetchSpy = createManifestFetch();
-		const { manifestGET } = createRoute({
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-			manifestURL: 'https://consent.example.com/manifest',
-		});
-
-		const response = await manifestGET({
-			request: request('/api/c15t/manifest?language=de'),
-		});
-
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
-			'https://consent.example.com/manifest?language=de'
-		);
-		expect(response.headers.get('content-type')).toBe('application/json');
-		expect(response.headers.get('cache-control')).toBe(
-			'public, s-maxage=120, stale-while-revalidate=60'
-		);
-		expect(response.headers.get('etag')).toBe('"manifest-revision"');
-		expect(response.headers.get('content-language')).toBe('en');
-	});
-
-	test('answers 304 to a matching if-none-match', async () => {
-		const { manifestGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
-		});
-
-		const response = await manifestGET({
-			request: request('/api/c15t/manifest', {
-				'if-none-match': '"manifest-revision"',
-			}),
-		});
-
-		expect(response.status).toBe(304);
-		expect(response.headers.get('etag')).toBe('"manifest-revision"');
-	});
-
-	test('serves repeat requests from the in-process cache', async () => {
-		const fetchSpy = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-		});
-
-		await manifestGET({ request: request('/api/c15t/manifest') });
-		await manifestGET({ request: request('/api/c15t/manifest') });
-
-		expect(fetchSpy).toHaveBeenCalledTimes(1);
-	});
-});
-
-describe('createConsentServerRoute: backend resolution', () => {
-	test('relative backendURL resolves from forwarded headers when trusted', async () => {
-		const fetchSpy = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: '/consent',
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-			trustForwardedHeaders: true,
-		});
-
-		await manifestGET({
-			request: request('/api/c15t/manifest', {
-				'x-forwarded-host': 'edge.example.com',
-				'x-forwarded-proto': 'https',
-			}),
-		});
-
-		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
-			'https://edge.example.com/consent/manifest'
-		);
-	});
-
-	test('ignores C15T_BACKEND_URL, VITE_C15T_BACKEND_URL, and C15T_MANIFEST_URL', async () => {
-		vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
-		vi.stubEnv('VITE_C15T_BACKEND_URL', 'https://vite.example.com');
-		vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
-		const fetchSpy = createManifestFetch();
-		const { initGET, manifestGET } = createRoute({
-			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-		});
-
-		await expect(
-			manifestGET({ request: request('/api/c15t/manifest') })
-		).rejects.toThrow(
-			'@c15t/tanstack-start/api: pass backendURL or manifestURL.'
-		);
-		await expect(
-			initGET({ request: request('/api/c15t/init') })
-		).rejects.toThrow(
-			'@c15t/tanstack-start/api: pass backendURL or manifestURL.'
-		);
-		expect(fetchSpy).not.toHaveBeenCalled();
-	});
-
-	test('rejects an invalid backendURL or manifestURL', async () => {
-		await expect(
-			createRoute({ backendURL: 'consent' }).manifestGET({
-				request: request('/api/c15t/manifest'),
-			})
-		).rejects.toThrow('@c15t/tanstack-start/api: invalid backendURL.');
-		await expect(
-			createRoute({ manifestURL: 'consent/manifest' }).manifestGET({
-				request: request('/api/c15t/manifest'),
-			})
-		).rejects.toThrow('@c15t/tanstack-start/api: invalid manifestURL.');
-	});
-
-	test('exports no handlers preconfigured from the environment', async () => {
-		const api = await import('../api');
-		expect(Object.keys(api)).not.toContain('GET');
-		expect(Object.keys(api)).not.toContain('manifestGET');
-		expect(Object.keys(api)).not.toContain('initGET');
-	});
-});
-
-describe('createConsentServerRoute: GVL', () => {
-	test('fetches the GVL only when the manifest enables IAB', async () => {
-		const fetchGvl = vi.fn().mockResolvedValue({ vendors: {} });
-		const { initGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: createManifestFetch() as unknown as typeof globalThis.fetch,
-			fetchGvl,
-		});
-
-		await initGET({
-			request: request('/api/c15t/init', { 'x-vercel-ip-country': 'DE' }),
-		});
-
-		expect(fetchGvl).not.toHaveBeenCalled();
-	});
-});
-
-describe('createConsentServerRoute: GVL and forwarded hosts', () => {
-	test('fetches the GVL for the resolved language when the manifest enables IAB', async () => {
-		const fetchGvl = vi.fn().mockResolvedValue({
-			purposes: {},
-			vendorListVersion: 42,
-			vendors: { '1': { name: 'Vendor' } },
-		});
-		const iabManifest = {
-			...MANIFEST_FIXTURE,
-			iab: {
-				enabled: true,
-				gvl: { url: 'https://gvl.example/vendor-list.json' },
-			},
-			policyPacks: [
-				createConsentManifestPolicyPack({
-					id: 'iab',
-					match: { fallback: true },
-					model: 'iab',
-					prompt: 'choice',
-				}),
-			],
-		};
-		const fetch = vi.fn().mockImplementation(() =>
-			Promise.resolve(
-				new Response(JSON.stringify(iabManifest), {
-					headers: { 'content-type': 'application/json' },
-					status: 200,
-				})
-			)
-		);
-		const { initGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-			fetchGvl,
-		});
-
-		const response = await initGET({
-			request: request('/api/c15t/init', {
-				'accept-language': 'de-DE,de;q=0.9',
-			}),
-		});
-		const payload = (await response.json()) as {
-			gvl?: unknown;
-			gvlReference: { url: string };
-		};
-
-		expect(fetchGvl).toHaveBeenCalledWith(
-			expect.objectContaining({
-				language: 'de',
-				reference: { url: 'https://gvl.example/vendor-list.json' },
-			})
-		);
-		expect(payload.gvl).toBeNull();
-		expect(payload.gvlReference).toMatchObject({
-			language: 'de',
-			summary: { vendorCount: 1 },
-			vendorListVersion: 42,
-		});
-		const list = await initGET({ request: request(payload.gvlReference.url) });
-		expect(await list.json()).toMatchObject({
-			vendors: { '1': { name: 'Vendor' } },
-		});
-		expect(list.headers.get('cache-control')).toContain('public');
-	});
-
-	test('resolves a relative backendURL against request.url, not a forged x-forwarded-host', async () => {
-		const fetch = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: '/consent-backend',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-		});
-		await manifestGET({
-			request: request('/api/c15t/manifest', {
-				'x-forwarded-host': 'evil.example',
-			}),
-		});
-		expect(fetch.mock.calls[0]?.[0]).toBe(
-			'https://app.example.com/consent-backend/manifest'
-		);
-	});
-});
-
-describe('createConsentServerRoute: proxy credentials on the manifest fetch', () => {
-	test('forwards named cookies and extra headers when the manifest is gated', async () => {
-		const fetch = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-			proxy: { cookieNames: ['c15t'], forwardHeaders: ['authorization'] },
-		});
-		await manifestGET({
-			request: request('/api/c15t/manifest', {
-				authorization: 'Bearer tenant',
-				cookie: 'session=secret; c15t=abc',
-			}),
-		});
-		const headers = new Headers(
-			(fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.headers
-		);
-		expect(headers.get('cookie')).toBe('c15t=abc');
-		expect(headers.get('authorization')).toBe('Bearer tenant');
-	});
-
-	test('sends no credentials without the proxy', async () => {
-		const fetch = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-		});
-		await manifestGET({
-			request: request('/api/c15t/manifest', { cookie: 'c15t=abc' }),
-		});
-		const headers = new Headers(
-			(fetch.mock.calls[0]?.[1] as RequestInit | undefined)?.headers
-		);
-		expect(headers.get('cookie')).toBeNull();
-	});
-});
-
-describe('createConsentServerRoute: manifest cache keys and credentialed responses', () => {
-	test('canonicalises the language query and drops implausible values', async () => {
-		for (const [raw, expected] of [
-			['DE-de', 'language=de-de'],
-			['fr', 'language=fr'],
-			['<script>', undefined],
-			['a'.repeat(40), undefined],
-		] as const) {
-			const fetch = createManifestFetch();
-			const { manifestGET } = createRoute({
-				backendURL: 'https://consent.example.com',
-				fetch: fetch as unknown as typeof globalThis.fetch,
-			});
-			// oxlint-disable-next-line no-await-in-loop -- sequential cases keep the failing value readable.
-			await manifestGET({
-				request: request(
-					`/api/c15t/manifest?language=${encodeURIComponent(raw)}`
-				),
-			});
-			const url = new URL(fetch.mock.calls[0]?.[0] as string);
-			expect(url.search ? url.search.slice(1) : undefined, raw).toBe(expected);
-		}
-	});
-
-	test('marks a credentialed manifest response private and strips validators', async () => {
-		const fetch = createManifestFetch({
-			'cache-control': 'public, s-maxage=120',
-			etag: '"rev"',
-		});
-		const { manifestGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-			proxy: { cookieNames: ['c15t'] },
-		});
-		const response = await manifestGET({
-			request: request('/api/c15t/manifest', { cookie: 'c15t=abc' }),
-		});
-		expect(response.headers.get('cache-control')).toBe('private, no-store');
-		expect(response.headers.get('etag')).toBeNull();
-
-		const anonymous = await manifestGET({
-			request: request('/api/c15t/manifest'),
-		});
-		expect(anonymous.headers.get('cache-control')).toBe('public, s-maxage=120');
-	});
-});
-
-describe('createConsentServerRoute: forwarding headers on the manifest fetch', () => {
-	test('never copies client x-forwarded-* onto the upstream manifest request', async () => {
-		const fetch = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: 'https://consent.example.com',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-			proxy: {
-				forwardHeaders: [
-					'x-forwarded-host',
-					'x-forwarded-for',
-					'x-forwarded-proto',
-				],
-			},
-		});
-		await manifestGET({
-			request: request('/api/c15t/manifest', {
-				'x-forwarded-for': '203.0.113.7',
-				'x-forwarded-host': 'evil.example',
-				'x-forwarded-proto': 'http',
-			}),
-		});
-		const headers = new Headers(
-			(fetch.mock.calls[0] as [string, RequestInit])[1].headers
-		);
-		expect(headers.get('x-forwarded-host')).toBeNull();
-		expect(headers.get('x-forwarded-for')).toBeNull();
-		expect(headers.get('x-forwarded-proto')).toBeNull();
-	});
-});
-
-describe('createConsentServerRoute: cleartext manifest source', () => {
-	test('drops caller-configured identity headers before the manifest fetch', async () => {
-		const fetch = createManifestFetch();
-		const { manifestGET } = createRoute({
-			backendURL: 'http://backend.example',
-			fetch: fetch as unknown as typeof globalThis.fetch,
-			proxy: { forwardHeaders: ['x-api-key', 'accept-language'] },
-		});
-		const response = await manifestGET({
-			request: request('/api/c15t/manifest', {
-				'accept-language': 'de',
-				'x-api-key': 'tenant-a',
-			}),
-		});
-		expect(response.status).toBe(200);
-		const headers = new Headers(
-			(fetch.mock.calls[0] as [string, RequestInit])[1].headers
-		);
-		expect(headers.get('x-api-key')).toBeNull();
-		expect(headers.get('accept-language')).toBe('de');
 	});
 });

@@ -1,28 +1,17 @@
-import {
-	deferInitGvl,
-	c15tProtocolHeaders,
-	mergeInitOutputIntoKernelConfig,
-} from '@c15t/core';
 /**
  * `loadConsent` — the `+layout.server.ts` half of the SvelteKit layer.
  *
  * Returns a plain, serializable `ConsentState` to hand the provider as
  * `prefetch`. With a prefetch in hand the kernel resolves the policy on the
  * server, so the banner is in the first HTML instead of appearing a frame
- * after hydration.
+ * after hydration. The resolution itself is `resolveRequestConsent` from
+ * `@c15t/core/server`; this module supplies what SvelteKit knows about the
+ * request: `event.request`, `event.url`, `event.fetch`, the platform's
+ * `waitUntil`, and the inputs `c15tHandle` normalized.
  */
-import { readProducerPolicyContract } from '@c15t/core/transports';
-import {
-	extractConsentRequestInputs,
-	headersToRecord,
-} from '@c15t/schema/types';
-import type {
-	ConsentRequestHeaderInputs,
-	InitOutput,
-} from '@c15t/schema/types';
+import { resolveRequestConsent } from '@c15t/core/server';
 import type { RequestEvent } from '@sveltejs/kit';
 
-import { resolveConsent } from '../server';
 import { waitUntilFromEvent } from './routes';
 import type { C15tLocals, ConsentRequestOptions, ConsentState } from './types';
 
@@ -46,9 +35,11 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	initRoute?: string;
 
 	/**
-	 * Extra request headers to forward upstream in hosted mode. `forwarded`,
-	 * `x-forwarded-host` and `x-forwarded-proto` are skipped unless
-	 * `trustForwardedHeaders` is set.
+	 * Extra request headers to forward upstream in hosted mode, such as a
+	 * token a private backend needs. Like the consent cookie (the only
+	 * cookie forwarded), they travel only over `https`, to a loopback host,
+	 * or in-process. `cookie` and `forwarded`/`x-forwarded-*` cannot be
+	 * named here.
 	 */
 	forwardHeaders?: string[];
 
@@ -56,20 +47,46 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 * Hosted mode: resolve a relative `backendURL` against the request's
 	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
 	 * of `event.url`. Any client can send those headers, and `loadConsent`
-	 * forwards the visitor's cookies to the resolved backend, so set this
+	 * forwards the consent cookie to the resolved backend, so set this
 	 * only behind a proxy that sets them and drops incoming ones. Prefer
 	 * setting the origin where SvelteKit builds `event.url`: `paths.origin`
 	 * in SvelteKit 3 (adapter-node's `ORIGIN` in SvelteKit 2, which
 	 * SvelteKit 3 ignores), or the adapter's `HOST_HEADER` and
-	 * `PROTOCOL_HEADER`. Also forwards those three headers to the backend,
-	 * which is skipped otherwise.
+	 * `PROTOCOL_HEADER`. Also forwards the visitor IP to the backend as
+	 * `x-forwarded-for`, which is skipped otherwise.
 	 *
 	 * @defaultValue false
 	 */
 	trustForwardedHeaders?: boolean;
 
-	/** Fetch implementation for hosted mode. Defaults to `event.fetch`. */
+	/**
+	 * Fetch for a hosted backend on another origin. Defaults to the global
+	 * `fetch`; a URL on this app's origin always goes through `event.fetch`,
+	 * in-process. A custom fetch keeps the vendor list inline, since the
+	 * browser cannot replay it.
+	 */
 	fetch?: typeof globalThis.fetch;
+
+	/**
+	 * The HTML this load feeds is served to every visitor, as a prerendered
+	 * page is. A shared render carries no stored consent, clock, privacy
+	 * signal or experiment (any of them would stop the browser reading the
+	 * visitor's own cookie) and makes no upstream call, so the browser
+	 * resolves the visitor itself. Pass SvelteKit's `building` flag, which
+	 * is `true` while it prerenders: from `$app/environment` in SvelteKit 2,
+	 * `$app/env` in SvelteKit 3. Defaults to the `shared` flag
+	 * {@link c15tHandle} was given.
+	 *
+	 * @example
+	 * ```ts
+	 * import { building } from '$app/environment';
+	 *
+	 * export const load = async (event) => ({
+	 *   prefetch: await loadConsent(event, { initRoute: '/api/c15t', shared: building }),
+	 * });
+	 * ```
+	 */
+	shared?: boolean;
 
 	/**
 	 * Longest `loadConsent` waits for the init route or the backend `/init`,
@@ -82,165 +99,19 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	 * fills the manifest cache for the next render; it sends no session
 	 * report, because the browser's own init reports the page view.
 	 *
-	 * `false` waits for the upstream, however long it takes. A value that is
-	 * not a finite, non-negative number uses the default.
+	 * `false` (or `Infinity`) waits for the upstream, however long it takes.
+	 * Any other value that is not a finite, non-negative number uses the
+	 * default.
 	 *
 	 * @default 500
 	 */
 	timeoutMs?: number | false;
 }
 
-/** Default {@link LoadConsentOptions.timeoutMs}, in milliseconds. */
-const DEFAULT_LOAD_CONSENT_TIMEOUT_MS = 500;
-
-const resolveTimeoutMs = function resolveTimeoutMs(
-	value: number | false | undefined
-): number | undefined {
-	if (value === false) {
-		return undefined;
-	}
-	const timeoutMs = value ?? DEFAULT_LOAD_CONSENT_TIMEOUT_MS;
-	// Only `false` turns the budget off; a bad number must not do it silently.
-	return Number.isFinite(timeoutMs) && timeoutMs >= 0
-		? timeoutMs
-		: DEFAULT_LOAD_CONSENT_TIMEOUT_MS;
-};
-
-/**
- * Settles with the task's result, or with `fallback` if the task fails or
- * `timeoutMs` passes first. The task is not cancelled here; `onTimeout` can
- * do that.
- */
-const withinBudget = async function withinBudget<Value>(
-	task: () => Promise<Value>,
-	timeoutMs: number | undefined,
-	fallback: Value,
-	onTimeout: () => void
-): Promise<Value> {
-	const settled = (async () => {
-		try {
-			return await task();
-		} catch {
-			return fallback;
-		}
-	})();
-	if (timeoutMs === undefined) {
-		return settled;
-	}
-	let timer: ReturnType<typeof setTimeout> | undefined;
-	const expired = new Promise<Value>((resolve) => {
-		timer = setTimeout(() => {
-			onTimeout();
-			resolve(fallback);
-		}, timeoutMs);
-	});
-	try {
-		return await Promise.race([settled, expired]);
-	} finally {
-		clearTimeout(timer);
-	}
-};
-
-/** Swallows a promise's outcome, for work handed to the platform. */
-const settle = async function settle(task: Promise<unknown>): Promise<void> {
-	try {
-		await task;
-	} catch {
-		// The render already fell back; nothing waits on this result.
-	}
-};
-
-/** Adds `signal` to every request `fetchImpl` sends without one. */
-const withSignal = function withSignal(
-	fetchImpl: typeof globalThis.fetch | undefined,
-	signal: AbortSignal
-): typeof globalThis.fetch | undefined {
-	if (!fetchImpl) {
-		return undefined;
-	}
-	return ((input, init) =>
-		fetchImpl(input, {
-			...init,
-			signal: init?.signal ?? signal,
-		})) as typeof globalThis.fetch;
-};
-
 const readLocals = function readLocals(
 	event: RequestEvent
 ): C15tLocals | undefined {
 	return (event.locals as { c15t?: C15tLocals }).c15t;
-};
-
-/**
- * Resolves the base config and request inputs: whatever {@link c15tHandle}
- * already computed for this request, or a fresh cookie + header read when the
- * handle is not installed.
- *
- * Per-call inputs beat the handle's. A route that passes `country` is naming
- * the country for that page, and silently keeping the handle's would render
- * one policy and forward another.
- */
-const resolveBase = async function resolveBase(
-	event: RequestEvent,
-	options: LoadConsentOptions
-): Promise<{
-	config: ConsentState;
-	inputs: ConsentRequestHeaderInputs;
-	cookieName: string | undefined;
-}> {
-	const overridesPerCall =
-		options.cookieName !== undefined ||
-		options.country !== undefined ||
-		options.language !== undefined ||
-		options.region !== undefined;
-	const locals = readLocals(event);
-	// The handle's cookie name is part of the request context, not an
-	// override: a per-call `country` must not silently move the read back
-	// to the default `c15t` key and lose the persisted consent.
-	const cookieName = options.cookieName ?? locals?.cookieName;
-	if (locals && !overridesPerCall) {
-		return { ...locals, cookieName };
-	}
-	const inputs = extractConsentRequestInputs(event.request.headers, {
-		country: options.country,
-		language: options.language,
-		region: options.region,
-	});
-	const config = await resolveConsent({
-		cookieName,
-		country: inputs.country,
-		headers: event.request.headers,
-		language: inputs.language,
-		region: inputs.region,
-	});
-	return { config, cookieName, inputs };
-};
-
-/**
- * Request headers for the same-origin init call.
- *
- * `event.fetch` only inherits `cookie` and `authorization`, so the geo,
- * language and GPC context has to be restated explicitly — otherwise the init
- * route resolves a different policy than the page did, and hydration corrects
- * a banner the server already painted.
- */
-const initRequestHeaders = function initRequestHeaders(
-	inputs: ConsentRequestHeaderInputs
-): Record<string, string> {
-	const headers: Record<string, string> = { ...c15tProtocolHeaders };
-	if (inputs.country) {
-		headers['x-c15t-country'] = inputs.country;
-	}
-	if (inputs.region) {
-		headers['x-c15t-region'] = inputs.region;
-	}
-	if (inputs.language) {
-		headers['accept-language'] = inputs.language;
-	}
-	if (inputs.gpc !== undefined) {
-		headers['sec-gpc'] = inputs.gpc ? '1' : '0';
-	}
-	return headers;
 };
 
 /**
@@ -270,82 +141,54 @@ const initRequestHeaders = function initRequestHeaders(
  *
  * Never throws: a failed upstream call degrades to the cookie-only config
  * rather than taking the page down with it. Neither does a slow one: after
- * `timeoutMs` (500 ms by default) the cookie-only config is returned.
+ * `timeoutMs` (500 ms by default) the cookie-only config is returned. A
+ * prerendered page carries no visitor's consent and makes no upstream call.
  *
  * @param event - The SvelteKit request event from `load`.
  * @param options - Mode selection, cookie name, geo/language overrides, and
  * the time budget.
  * @returns A serializable `ConsentState` for the provider's `prefetch` prop.
  */
-export const loadConsent = async function loadConsent(
+export const loadConsent = function loadConsent(
 	event: RequestEvent,
 	options: LoadConsentOptions = {}
 ): Promise<ConsentState> {
-	const { config, inputs, cookieName } = await resolveBase(event, options);
-	const timeoutMs = resolveTimeoutMs(options.timeoutMs);
-
-	if (options.initRoute) {
-		const { initRoute } = options;
-		const forwarded = initRequestHeaders(inputs);
-		const controller = new AbortController();
-		let routeRequest: Promise<Response> | undefined;
-		const resolveFromRoute = async (): Promise<ConsentState> => {
-			routeRequest = event.fetch(initRoute, {
-				headers: forwarded,
-				signal: controller.signal,
-			});
-			const response = await routeRequest;
-			if (!response.ok) {
-				return config;
-			}
-			const payload = (await response.json()) as InitOutput;
-			return mergeInitOutputIntoKernelConfig(
-				config,
-				deferInitGvl(payload, initRoute, 'init', forwarded),
-				{
-					...headersToRecord(event.request.headers),
-					...forwarded,
-				},
-				{ producerContract: readProducerPolicyContract(response.headers) }
-			);
-		};
-		// Fail soft: the client re-runs init on hydration. A route request
-		// that outlives the budget keeps running and fills the manifest cache.
-		return withinBudget(resolveFromRoute, timeoutMs, config, () => {
-			// The abort tells the route this render gave up, so it leaves the
-			// session report to the browser's init. The route itself hands its
-			// remaining work to the platform; SvelteKit versions whose internal
-			// fetch does not settle on abort are kept alive here as well.
-			controller.abort();
-			if (routeRequest) {
-				waitUntilFromEvent(settle(routeRequest), event);
-			}
-		});
-	}
-
-	if (options.backendURL) {
-		const { backendURL } = options;
-		const controller = new AbortController();
-		return withinBudget(
-			() =>
-				resolveConsent({
-					backendURL,
-					cookieName,
-					country: inputs.country,
-					fetch: withSignal(options.fetch, controller.signal),
-					forwardHeaders: options.forwardHeaders,
-					frameworkFetch: withSignal(event.fetch, controller.signal),
-					headers: event.request.headers,
-					language: inputs.language,
-					region: inputs.region,
-					requestURL: event.url,
-					trustForwardedHeaders: options.trustForwardedHeaders,
-				}),
-			timeoutMs,
-			config,
-			() => controller.abort()
-		);
-	}
-
-	return config;
+	const locals = readLocals(event);
+	// Per-call inputs beat the handle's: a route that passes `country` is
+	// naming the country for that page. The handle's cookie name is part of
+	// the request context, so a per-call `country` keeps it.
+	const overridesPerCall =
+		options.country !== undefined ||
+		options.language !== undefined ||
+		options.region !== undefined;
+	const cookieName = options.cookieName ?? locals?.cookieName;
+	const { initRoute } = options;
+	return resolveRequestConsent({
+		adapter: '@c15t/svelte',
+		backendURL: initRoute ? undefined : options.backendURL,
+		fetch: options.fetch,
+		forwardHeaders: options.forwardHeaders,
+		initURL: initRoute,
+		// SvelteKit answers this app's own routes in-process, so the init
+		// route never leaves the server and the request's host never picks
+		// where a relative backend goes.
+		localFetch: event.fetch,
+		mode: initRoute || options.backendURL ? 'hosted' : undefined,
+		overrides: {
+			country: options.country,
+			language: options.language,
+			region: options.region,
+		},
+		request: {
+			headers: event.request.headers,
+			inputs: locals && !overridesPerCall ? locals.inputs : undefined,
+			url: event.url,
+		},
+		// A prerendered page is one HTML file for every visitor.
+		shared: options.shared ?? locals?.shared === true,
+		storage: cookieName ? { storageKey: cookieName } : undefined,
+		timeoutMs: options.timeoutMs,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+		waitUntil: (task) => waitUntilFromEvent(task, event),
+	});
 };

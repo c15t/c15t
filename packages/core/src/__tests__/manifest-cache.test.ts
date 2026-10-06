@@ -1,14 +1,22 @@
 /**
- * In-process manifest cache shared by the framework server adapters.
+ * The manifest-cache module, tested at its interface
+ * (`@c15t/core/transports/manifest-cache`, re-exported by `@c15t/core/server`).
  *
- * Covers the caching contract adapters rely on: TTL from `s-maxage`, ETag
- * revalidation, `no-store` opt-out, the dedupe floor, and the shape of a
+ * Covers the caching contract every server adapter relies on: the cache key,
+ * the shared process cache, TTL from `s-maxage`, ETag revalidation,
+ * `no-store` opt-out, the dedupe floor, stale-while-revalidate, failure
+ * backoff, the per-framework fetch hint, the size bound, and the shape of a
  * locally resolved init.
  */
 import type { ConsentManifest } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import {
+	readFillFailures,
+	readRevalidationFloors,
+} from '../libs/manifest-cache-runtime';
+import * as server from '../server';
 import {
 	clearManifestCache,
 	createManifestCache,
@@ -19,9 +27,14 @@ import {
 	getManifestStaleWhileRevalidate,
 	getResolverInputsFromHeaders,
 	MANIFEST_DEDUPE_TTL_SECONDS,
+	MANIFEST_FAILURE_RETRY_MAX_MS,
+	MANIFEST_FAILURE_RETRY_MIN_MS,
+	MANIFEST_FETCH_TIMEOUT_MS,
 	MANIFEST_PASSTHROUGH_HEADERS,
+	ManifestUnavailableError,
 	resolveManifestInit,
 	resolveManifestSourceURL,
+	withResolutionBudget,
 } from '../transports/manifest-cache';
 import type {
 	CachedManifestResponse,
@@ -31,6 +44,24 @@ import type {
 import { C15T_VERSION_HEADER } from '../transports/version-header';
 
 const SOURCE_URL = 'https://backend.example/manifest';
+
+const minimalManifest = { revision: 'r1', schemaVersion: 1 };
+const URL_UNDER_TEST = 'https://consent.example.com/manifest';
+const PROTECTED_URL = 'https://api.test/manifest';
+
+const jsonResponse = function jsonResponse(
+	headers: Record<string, string>,
+	body: unknown = minimalManifest
+) {
+	return new Response(JSON.stringify(body), { headers, status: 200 });
+};
+
+const revisionResponse = function revisionResponse(
+	headers: Record<string, string>,
+	revision = 1
+) {
+	return Response.json({ revision }, { headers });
+};
 
 const createManifestFixture = function createManifestFixture(
 	revision = 'manifest-rev-1'
@@ -347,7 +378,7 @@ describe('manifest source URLs', () => {
 		);
 	});
 
-	test('appends a query with the right separator', () => {
+	test('appends a query and sorts every parameter by name', () => {
 		expect(createManifestRequestURL({ sourceURL: SOURCE_URL })).toBe(
 			SOURCE_URL
 		);
@@ -359,7 +390,65 @@ describe('manifest source URLs', () => {
 				query: 'a=1',
 				sourceURL: `${SOURCE_URL}?x=y`,
 			})
-		).toBe(`${SOURCE_URL}?x=y&a=1`);
+		).toBe(`${SOURCE_URL}?a=1&x=y`);
+	});
+
+	test('normalises the URL part of the cache key', () => {
+		const sorted = `${SOURCE_URL}?a=1&b=2`;
+		for (const query of ['b=2&a=1', 'a=1&b=2', '?b=2&a=1']) {
+			expect(createManifestRequestURL({ query, sourceURL: SOURCE_URL })).toBe(
+				sorted
+			);
+		}
+		expect(
+			createManifestRequestURL({
+				query: 'b=2',
+				sourceURL: `${SOURCE_URL}?a=1#x`,
+			})
+		).toBe(sorted);
+		expect(
+			createManifestRequestURL({ query: '', sourceURL: `${SOURCE_URL}?` })
+		).toBe(SOURCE_URL);
+		// Repeated names keep their order; encodings converge.
+		expect(
+			createManifestRequestURL({
+				query: 'v=2&lang=de%20x&v=1',
+				sourceURL: SOURCE_URL,
+			})
+		).toBe(`${SOURCE_URL}?lang=de+x&v=2&v=1`);
+		// A relative source follows the same rule.
+		expect(
+			createManifestRequestURL({ query: 'b=2&a=1', sourceURL: '/manifest' })
+		).toBe('/manifest?a=1&b=2');
+	});
+
+	test('requests the source URL and query as written, under the normalised key', async () => {
+		const cache = createManifestCache();
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 's-maxage=60' })
+		);
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 0,
+			query: 'language=de%20x',
+			sourceURL: `${SOURCE_URL}?v=2&sig=a%2Fb~c#fragment`,
+		});
+		// A URL signed over its exact query still verifies upstream.
+		expect(fetchMock.mock.calls[0]?.[0]).toBe(
+			`${SOURCE_URL}?v=2&sig=a%2Fb~c&language=de%20x`
+		);
+
+		// The same parameters in another order and encoding read that entry.
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1,
+			query: 'language=de+x',
+			sourceURL: `${SOURCE_URL}?sig=a%2Fb%7Ec&v=2`,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
 	});
 
 	test('lists the headers a proxying route forwards, without vary', () => {
@@ -1700,5 +1789,869 @@ describe('fetchCachedManifest: stale-while-revalidate', () => {
 			setTimeout(resolve, 5);
 		});
 		expect(cache.get(SOURCE_URL)).toBeUndefined();
+	});
+});
+
+describe('fetchCachedManifest: per-framework fetch hint', () => {
+	test('spreads init into the upstream fetch without changing the key', async () => {
+		const fetchSpy = vi
+			.fn<ManifestFetch>()
+			.mockImplementation(() =>
+				Promise.resolve(jsonResponse({ 'cache-control': 's-maxage=60' }))
+			);
+
+		await fetchCachedManifest({
+			fetch: fetchSpy,
+			init: { next: { revalidate: 1 } } as RequestInit,
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await fetchCachedManifest({
+			fetch: fetchSpy,
+			now: 1,
+			sourceURL: URL_UNDER_TEST,
+		});
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		expect(fetchSpy).toHaveBeenCalledWith(
+			URL_UNDER_TEST,
+			expect.objectContaining({ method: 'GET', next: { revalidate: 1 } })
+		);
+	});
+});
+
+describe('background revalidation lifetime', () => {
+	test('hands the background revalidation promise to onBackgroundRevalidate and it never rejects', async () => {
+		const cache = createManifestCache();
+		let requests = 0;
+		const fetchSpy = vi.fn(() => {
+			requests += 1;
+			if (requests === 1) {
+				return Promise.resolve(
+					jsonResponse({
+						'cache-control': 'public, s-maxage=60, stale-while-revalidate=600',
+						etag: '"r1"',
+					})
+				);
+			}
+			return Promise.reject(new Error('upstream down'));
+		});
+		const registered: Promise<void>[] = [];
+		const onBackgroundRevalidate = (promise: Promise<void>) => {
+			registered.push(promise);
+		};
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 0,
+			onBackgroundRevalidate,
+			sourceURL: URL_UNDER_TEST,
+		});
+		// Fresh read: nothing to keep alive.
+		expect(registered).toHaveLength(0);
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 61_000,
+			onBackgroundRevalidate,
+			sourceURL: URL_UNDER_TEST,
+		});
+		expect(registered).toHaveLength(1);
+		await expect(registered[0]).resolves.toBeUndefined();
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('background revalidation lifetime: registration failures', () => {
+	test('a throwing onBackgroundRevalidate does not reject the stale read', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(
+				jsonResponse({
+					'cache-control': 'public, s-maxage=60, stale-while-revalidate=600',
+					etag: '"r1"',
+				})
+			)
+		);
+		const first = await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		const served = await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 61_000,
+			onBackgroundRevalidate: () => {
+				throw new Error('after() called outside a request scope');
+			},
+			sourceURL: URL_UNDER_TEST,
+		});
+		expect(served).toBe(first);
+		// The refresh itself still ran.
+		await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(2));
+	});
+});
+
+describe('revalidation floor bookkeeping', () => {
+	const flush = () =>
+		new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+	const staleOnArrival = () =>
+		Promise.resolve(
+			jsonResponse({
+				'cache-control': 'public, s-maxage=0, stale-while-revalidate=600',
+				etag: '"r1"',
+			})
+		);
+
+	test('holds at most a fixed number of floors however many keys are minted', async () => {
+		const cache = createManifestCache({ maxEntries: 2 });
+		const fetchSpy = vi.fn(staleOnArrival);
+		const junk = (index: number) => `${URL_UNDER_TEST}?language=x${index}`;
+
+		// Each minted key: fill, then a stale read that starts a background
+		// fill whose stale-on-arrival answer leaves a floor record. The
+		// 2-entry cap evicts the key soon after, which the runtime cannot
+		// observe, so the floor map has to bound itself.
+		for (let index = 0; index < 400; index += 1) {
+			const now = 1000 + index;
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: junk(index),
+			});
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now: now + 1,
+				sourceURL: junk(index),
+			});
+		}
+		await flush();
+		const floors = readRevalidationFloors(cache);
+		expect(floors.size).toBeLessThanOrEqual(256);
+		// Oldest records went first; the most recent key is still tracked.
+		expect(floors.has(junk(399))).toBe(true);
+		expect(floors.has(junk(0))).toBe(false);
+	});
+
+	test('every live key in a default cache keeps its floor through an outage', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(staleOnArrival);
+		const key = (index: number) => `${URL_UNDER_TEST}?language=t${index}`;
+		// 128 tenants (the default cache cap), each stale-served once.
+		for (let index = 0; index < 128; index += 1) {
+			const now = 1000 + index;
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: key(index),
+			});
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now: now + 1,
+				sourceURL: key(index),
+			});
+		}
+		await flush();
+		const floors = readRevalidationFloors(cache);
+		for (let index = 0; index < 128; index += 1) {
+			expect(floors.has(key(index))).toBe(true);
+		}
+		// Round-robin stale reads inside the floor start no new fills.
+		const before = fetchSpy.mock.calls.length;
+		for (let index = 0; index < 128; index += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now: 2000 + index,
+				sourceURL: key(index),
+			});
+		}
+		expect(fetchSpy.mock.calls.length).toBe(before);
+	});
+
+	test('a blocking fill that lands fresh clears a floor left by a failed refresh', async () => {
+		// `s-maxage=1, stale-while-revalidate=1`: the stale window closes
+		// before the five-second floor does, so the next read blocks. Its
+		// fresh result must not inherit the old floor, or the refreshed
+		// entry would go stale again and be served without a refresh.
+		const cache = createManifestCache();
+		let requests = 0;
+		const fetchSpy = vi.fn(() => {
+			requests += 1;
+			if (requests === 2) {
+				return Promise.reject(new Error('upstream blip'));
+			}
+			return Promise.resolve(
+				jsonResponse({
+					'cache-control': 'public, s-maxage=1, stale-while-revalidate=1',
+					etag: '"r1"',
+				})
+			);
+		});
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		// Stale at 1.5 s: background refresh fails, floor set to about 6.5 s.
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 1500,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await flush();
+		expect(readRevalidationFloors(cache).has(URL_UNDER_TEST)).toBe(true);
+
+		// Past staleUntil (2 s): blocks, lands fresh (expires 4 s).
+		const fresh = await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 3000,
+			sourceURL: URL_UNDER_TEST,
+		});
+		expect(fresh.expiresAt).toBe(4000);
+		expect(readRevalidationFloors(cache).has(URL_UNDER_TEST)).toBe(false);
+
+		// Stale again at 4.5 s, still inside the old 6.5 s floor: a background
+		// refresh must start.
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 4500,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalledTimes(4));
+	});
+
+	test('a fresh replacement clears the floor; a stale one keeps it', async () => {
+		const cache = createManifestCache();
+		let requests = 0;
+		const fetchSpy = vi.fn(() => {
+			requests += 1;
+			return Promise.resolve(
+				jsonResponse({
+					// First fill and first refresh are fresh; the third answer is
+					// already stale (a CDN serving stale with a large Age).
+					age: requests === 3 ? '90' : '0',
+					'cache-control': 'public, s-maxage=60, stale-while-revalidate=600',
+					etag: '"r1"',
+				})
+			);
+		});
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 61_000,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await flush();
+		expect(readRevalidationFloors(cache).has(URL_UNDER_TEST)).toBe(false);
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 122_000,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await flush();
+		const floor = readRevalidationFloors(cache).get(URL_UNDER_TEST);
+		expect(floor).toBeGreaterThanOrEqual(
+			122_000 + MANIFEST_DEDUPE_TTL_SECONDS * 1000
+		);
+	});
+});
+
+describe('failures on a cold cache', () => {
+	const unavailable = () =>
+		Promise.resolve(new Response('down', { status: 503 }));
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	test('a failed fill is not retried until its floor passes, then backs off', async () => {
+		// A failure's floor counts from `now` plus the fill's real duration;
+		// a frozen clock keeps the exact floors below from drifting under load.
+		vi.useFakeTimers();
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(unavailable);
+		const read = (now: number) =>
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: URL_UNDER_TEST,
+			});
+
+		await expect(read(0)).rejects.toThrow('responded 503');
+		// Inside the floor every read answers from the failure record.
+		for (const now of [1, 500, MANIFEST_FAILURE_RETRY_MIN_MS - 1]) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await expect(read(now)).rejects.toMatchObject({
+				cause: expect.objectContaining({ status: 503 }),
+				name: 'ManifestUnavailableError',
+				reason: 'backoff',
+			});
+		}
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+
+		// Each consecutive failure doubles the floor, up to the maximum.
+		let now = MANIFEST_FAILURE_RETRY_MIN_MS;
+		const floors: number[] = [];
+		for (let attempt = 0; attempt < 5; attempt += 1) {
+			// oxlint-disable-next-line no-await-in-loop -- Sequential by design.
+			await expect(read(now)).rejects.toThrow('responded 503');
+			const retryAt = readFillFailures(cache).get(URL_UNDER_TEST)?.retryAt;
+			floors.push((retryAt ?? now) - now);
+			now = retryAt ?? now;
+		}
+		expect(floors).toEqual([
+			2000,
+			4000,
+			MANIFEST_FAILURE_RETRY_MAX_MS,
+			MANIFEST_FAILURE_RETRY_MAX_MS,
+			MANIFEST_FAILURE_RETRY_MAX_MS,
+		]);
+		expect(fetchSpy).toHaveBeenCalledTimes(6);
+	});
+
+	test('a success clears the failure record', async () => {
+		vi.useFakeTimers();
+		const cache = createManifestCache();
+		const fetchSpy = vi
+			.fn()
+			.mockImplementationOnce(unavailable)
+			.mockResolvedValue(jsonResponse({ 'cache-control': 's-maxage=60' }));
+		const read = (now: number) =>
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: URL_UNDER_TEST,
+			});
+
+		await expect(read(0)).rejects.toThrow('responded 503');
+		await expect(read(MANIFEST_FAILURE_RETRY_MIN_MS)).resolves.toMatchObject({
+			manifest: minimalManifest,
+		});
+		expect(readFillFailures(cache).size).toBe(0);
+	});
+
+	test('concurrent reads of a failing key still share one request', async () => {
+		const cache = createManifestCache();
+		const gate = Promise.withResolvers<undefined>();
+		const fetchSpy = vi.fn(async () => {
+			await gate.promise;
+			return new Response('down', { status: 503 });
+		});
+		const reads = Array.from({ length: 5 }, () =>
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now: 0,
+				sourceURL: URL_UNDER_TEST,
+			})
+		);
+		gate.resolve(undefined);
+
+		const settled = await Promise.allSettled(reads);
+		expect(settled.every((result) => result.status === 'rejected')).toBe(true);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a stale entry past its window is not served while the upstream fails', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValueOnce(
+				jsonResponse({
+					'cache-control': 's-maxage=10, stale-while-revalidate=20',
+				})
+			)
+			.mockImplementation(unavailable);
+		const read = (now: number) =>
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now,
+				sourceURL: URL_UNDER_TEST,
+			});
+
+		await read(0);
+		// Inside stale-while-revalidate the stale copy is served.
+		await expect(read(15_000)).resolves.toMatchObject({
+			manifest: minimalManifest,
+		});
+		// Past it, the read waits on the upstream and its failure surfaces,
+		// then the floor holds without serving the expired copy either.
+		await expect(read(31_000)).rejects.toThrow('responded 503');
+		await expect(read(31_500)).rejects.toMatchObject({ reason: 'backoff' });
+	});
+
+	test('a caller that cancels its own request does not start a floor', async () => {
+		const cache = createManifestCache();
+		const controller = new AbortController();
+		const fetchSpy = vi.fn(
+			(_url: string | URL | Request, init?: RequestInit) =>
+				new Promise<Response>((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () =>
+						reject(init.signal?.reason)
+					);
+				})
+		);
+		const pending = fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			init: { signal: controller.signal },
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await vi.waitFor(() => {
+			expect(fetchSpy).toHaveBeenCalledTimes(1);
+		});
+		controller.abort(new Error('navigation cancelled'));
+		await expect(pending).rejects.toThrow('navigation cancelled');
+		expect(readFillFailures(cache).size).toBe(0);
+	});
+});
+
+describe('timeoutMs', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	test('stops waiting at the budget and lets the request fill the cache', async () => {
+		vi.useFakeTimers();
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>((resolve) => {
+					setTimeout(() => {
+						resolve(jsonResponse({ 'cache-control': 's-maxage=60' }));
+					}, 800);
+				})
+		);
+		const background: Promise<void>[] = [];
+		const pending = fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			onBackgroundRevalidate: (task) => {
+				background.push(task);
+			},
+			sourceURL: URL_UNDER_TEST,
+			timeoutMs: 300,
+		});
+		const rejected = expect(pending).rejects.toMatchObject({
+			name: 'ManifestUnavailableError',
+			reason: 'timeout',
+		});
+		await vi.advanceTimersByTimeAsync(300);
+		await rejected;
+		expect(background).toHaveLength(1);
+
+		await vi.advanceTimersByTimeAsync(500);
+		await background[0];
+		await expect(
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: 0,
+			})
+		).resolves.toMatchObject({ manifest: minimalManifest });
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a call joining a request already past its budget gives up at once', async () => {
+		vi.useFakeTimers();
+		const cache = createManifestCache();
+		const fetchSpy = vi.fn(
+			() =>
+				new Promise<Response>(() => {
+					// Never answers.
+				})
+		);
+		const first = fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			sourceURL: URL_UNDER_TEST,
+			timeoutMs: 300,
+		});
+		const firstRejected = expect(first).rejects.toMatchObject({
+			reason: 'timeout',
+		});
+		await vi.advanceTimersByTimeAsync(400);
+		await firstRejected;
+
+		const startedAt = Date.now();
+		await expect(
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: 300,
+			})
+		).rejects.toMatchObject({ reason: 'timeout' });
+		expect(Date.now() - startedAt).toBe(0);
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+	});
+
+	test('a fill abandoned with no background hook still has its failure observed', async () => {
+		const unhandled = vi.fn();
+		process.on('unhandledRejection', unhandled);
+		try {
+			const gate = Promise.withResolvers<Response>();
+			await expect(
+				fetchCachedManifest({
+					cache: createManifestCache(),
+					fetch: () => gate.promise,
+					sourceURL: URL_UNDER_TEST,
+					timeoutMs: 0,
+				})
+			).rejects.toMatchObject({ reason: 'timeout' });
+			gate.resolve(new Response('down', { status: 503 }));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 20);
+			});
+			expect(unhandled).not.toHaveBeenCalled();
+		} finally {
+			process.off('unhandledRejection', unhandled);
+		}
+	});
+
+	test('fresh reads answer from memory whatever the budget', async () => {
+		const cache = createManifestCache();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(jsonResponse({ 'cache-control': 's-maxage=60' }));
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchSpy,
+			now: 0,
+			sourceURL: URL_UNDER_TEST,
+		});
+		await expect(
+			fetchCachedManifest({
+				cache,
+				fetch: fetchSpy,
+				now: 1000,
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: 0,
+			})
+		).resolves.toMatchObject({ manifest: minimalManifest });
+	});
+});
+
+describe('withResolutionBudget', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	test('rejects with a timeout once the budget runs out', async () => {
+		vi.useFakeTimers();
+		const never = new Promise<string>(() => {
+			// Never settles.
+		});
+		const bounded = withResolutionBudget(never, 250);
+		const rejected = expect(bounded).rejects.toBeInstanceOf(
+			ManifestUnavailableError
+		);
+		await vi.advanceTimersByTimeAsync(250);
+		await rejected;
+	});
+
+	test('passes a result through when there is no budget', async () => {
+		await expect(
+			withResolutionBudget(Promise.resolve('ok'), undefined)
+		).resolves.toBe('ok');
+	});
+});
+
+describe('manifest fetch protection', () => {
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	test.each(['authorization', 'x-api-key'])(
+		'rejects redirects when forwarding %s',
+		async (header) => {
+			const fetch = vi
+				.fn<typeof globalThis.fetch>()
+				.mockResolvedValue(revisionResponse({}));
+			await fetchCachedManifest({
+				fetch,
+				headers: { [header]: 'secret' },
+				init: { redirect: 'follow' },
+				sourceURL: PROTECTED_URL,
+			});
+			expect(fetch.mock.calls[0]?.[1]).toMatchObject({ redirect: 'error' });
+		}
+	);
+
+	test('preserves redirect handling for public requests', async () => {
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(revisionResponse({}));
+		await fetchCachedManifest({
+			fetch,
+			headers: { 'accept-language': 'en' },
+			init: { redirect: 'follow' },
+			sourceURL: PROTECTED_URL,
+		});
+		expect(fetch.mock.calls[0]?.[1]).toMatchObject({ redirect: 'follow' });
+	});
+
+	test('times out a stalled shared fetch and retries once the failure floor passes', async () => {
+		vi.useFakeTimers();
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementationOnce(
+				(_url, init) =>
+					new Promise((_resolve, reject) => {
+						init?.signal?.addEventListener(
+							'abort',
+							() => reject(init.signal?.reason),
+							{ once: true }
+						);
+					})
+			)
+			.mockResolvedValue(revisionResponse({}));
+		const first = fetchCachedManifest({ fetch, sourceURL: PROTECTED_URL });
+		const second = fetchCachedManifest({ fetch, sourceURL: PROTECTED_URL });
+		const rejected = Promise.all([
+			expect(first).rejects.toThrow('timed out after 5000 ms'),
+			expect(second).rejects.toThrow('timed out after 5000 ms'),
+		]);
+		await vi.advanceTimersByTimeAsync(MANIFEST_FETCH_TIMEOUT_MS);
+		await rejected;
+		expect(fetch).toHaveBeenCalledTimes(1);
+		await expect(
+			fetchCachedManifest({ fetch, sourceURL: PROTECTED_URL })
+		).rejects.toMatchObject({ reason: 'backoff' });
+		expect(fetch).toHaveBeenCalledTimes(1);
+		await vi.advanceTimersByTimeAsync(MANIFEST_FAILURE_RETRY_MIN_MS);
+		await expect(
+			fetchCachedManifest({ fetch, sourceURL: PROTECTED_URL })
+		).resolves.toMatchObject({ manifest: { revision: 1 } });
+		expect(fetch).toHaveBeenCalledTimes(2);
+	});
+
+	test('preserves caller cancellation and its deadline', async () => {
+		vi.useFakeTimers();
+		const controller = new AbortController();
+		const fetch = vi.fn<typeof globalThis.fetch>().mockImplementation(
+			(_url, init) =>
+				new Promise((_resolve, reject) => {
+					init?.signal?.addEventListener(
+						'abort',
+						() => reject(init.signal?.reason),
+						{ once: true }
+					);
+				})
+		);
+		const pending = fetchCachedManifest({
+			fetch,
+			init: { signal: controller.signal },
+			sourceURL: PROTECTED_URL,
+		});
+		await vi.advanceTimersByTimeAsync(10_001);
+		expect(fetch.mock.calls[0]?.[1]?.signal).toBe(controller.signal);
+		expect(controller.signal.aborted).toBe(false);
+		const rejected = expect(pending).rejects.toThrow('caller cancelled');
+		controller.abort(new Error('caller cancelled'));
+		await rejected;
+	});
+});
+
+const boundsEntry = function boundsEntry(
+	expiresAt: number,
+	staleUntil = expiresAt
+): CachedManifestResponse {
+	return {
+		expiresAt,
+		fetchedAt: 0,
+		headers: {},
+		manifest: {} as CachedManifestResponse['manifest'],
+		sMaxAge: 0,
+		staleUntil,
+		upstreamAge: 0,
+	};
+};
+
+const BOUNDS_FUTURE = Date.now() + 60_000;
+
+describe('createManifestCache bounds', () => {
+	test('evicts the least recently used entry once maxEntries is reached', () => {
+		const cache = createManifestCache({ maxEntries: 2 });
+		cache.set('a', boundsEntry(BOUNDS_FUTURE));
+		cache.set('b', boundsEntry(BOUNDS_FUTURE));
+		// Touch `a` so `b` becomes the oldest.
+		cache.get('a');
+		cache.set('c', boundsEntry(BOUNDS_FUTURE));
+
+		expect(cache.get('b')).toBeUndefined();
+		expect(cache.get('a')).toBeDefined();
+		expect(cache.get('c')).toBeDefined();
+	});
+
+	test('drops expired entries before live ones', () => {
+		const cache = createManifestCache({ maxEntries: 2 });
+		cache.set('live', boundsEntry(BOUNDS_FUTURE));
+		cache.set('stale', boundsEntry(Date.now() - 1));
+		cache.set('fresh', boundsEntry(BOUNDS_FUTURE));
+
+		expect(cache.get('stale')).toBeUndefined();
+		expect(cache.get('live')).toBeDefined();
+	});
+
+	test('keeps a stale entry that may still be served over a live one', () => {
+		const cache = createManifestCache({ maxEntries: 2 });
+		cache.set('oldest-live', boundsEntry(BOUNDS_FUTURE));
+		cache.set('stale-servable', boundsEntry(Date.now() - 1, BOUNDS_FUTURE));
+		cache.set('fresh', boundsEntry(BOUNDS_FUTURE));
+
+		// Nothing is past its stale window, so eviction falls back to LRU.
+		expect(cache.get('oldest-live')).toBeUndefined();
+		expect(cache.get('stale-servable')).toBeDefined();
+	});
+
+	test('overwriting a key never evicts another', () => {
+		const cache = createManifestCache({ maxEntries: 2 });
+		cache.set('a', boundsEntry(BOUNDS_FUTURE));
+		cache.set('b', boundsEntry(BOUNDS_FUTURE));
+		cache.set('a', boundsEntry(BOUNDS_FUTURE + 1));
+
+		expect(cache.get('b')).toBeDefined();
+	});
+
+	test('a flood of distinct keys stays within the cap', () => {
+		const cache = createManifestCache({ maxEntries: 8 });
+		for (let index = 0; index < 1000; index += 1) {
+			cache.set(
+				`https://c.example/manifest?language=aa-${index}`,
+				boundsEntry(BOUNDS_FUTURE)
+			);
+		}
+		let size = 0;
+		for (let index = 992; index < 1000; index += 1) {
+			if (cache.get(`https://c.example/manifest?language=aa-${index}`)) {
+				size += 1;
+			}
+		}
+		expect(size).toBe(8);
+		expect(
+			cache.get('https://c.example/manifest?language=aa-0')
+		).toBeUndefined();
+	});
+});
+
+describe('one cache key rule', () => {
+	test('reorders of the same query read one entry and one upstream request', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 0,
+			query: 'preview=1&language=de',
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1,
+			query: 'language=de&preview=1',
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 2,
+			sourceURL: `${SOURCE_URL}?language=de&preview=1#ignored`,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+		// The one request keeps the first caller's query as written.
+		expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
+			`${SOURCE_URL}?preview=1&language=de`
+		);
+	});
+
+	test('headers the cache already sends do not split the key', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			headers: { Accept: 'application/json' },
+			now: 0,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			headers: { accept: 'application/manifest+json' },
+			now: 2,
+			sourceURL: SOURCE_URL,
+		});
+
+		expect(fetchMock).toHaveBeenCalledTimes(2);
+	});
+});
+
+describe('one process cache', () => {
+	test('@c15t/core/server and @c15t/core/transports/manifest-cache read and clear the same cache', async () => {
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
+		);
+
+		await server.fetchCachedManifest({
+			fetch: fetchMock,
+			now: 0,
+			sourceURL: SOURCE_URL,
+		});
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 1,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+
+		server.clearManifestCache();
+		await fetchCachedManifest({
+			fetch: fetchMock,
+			now: 2,
+			sourceURL: SOURCE_URL,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(2);
 	});
 });

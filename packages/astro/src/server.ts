@@ -1,19 +1,12 @@
 import {
 	seedExperiment,
 	applyTranslationOverrides,
-	deferInitGvl,
-	deferInitGvlToRoute,
-	c15tProtocolHeaders,
 	createConsentKernel,
-	createOfflineTransport,
 	defaultTranslationConfig,
-	mergeInitOutputIntoKernelConfig,
-	mergeInitResponseIntoKernelConfig,
 } from '@c15t/core';
 import type {
 	ConsentSnapshot,
 	KernelConfig,
-	KernelOverrides,
 	KernelTranslations,
 	TranslationOverrides,
 	TranslationsResponse,
@@ -22,41 +15,36 @@ import type {
  * Server helpers for `@c15t/astro`.
  *
  * These run inside the Astro middleware and the injected API routes. They
- * read the incoming request, resolve the consent decision for it, and
- * produce the `KernelConfig` the page inlines so the browser boots without
- * an `/init` roundtrip.
+ * read the incoming request, resolve the consent decision for it through
+ * `resolveRequestConsent` from `@c15t/core/server` (shared with every other
+ * adapter), and produce the `KernelConfig` the page inlines so the browser
+ * boots without an `/init` roundtrip. Translations, the offline vendor
+ * list, the snapshot and the banner flags stay Astro's own.
  */
-import {
-	CONSENT_STORAGE_KEY,
-	readStoredRecordsFromCookieHeader,
-	resolveStorageKeys,
-} from '@c15t/core/modules/persistence';
+import { resolveStorageKeys } from '@c15t/core/modules/persistence';
 import { inferConsentCategories, isIABConfigured } from '@c15t/core/runtime';
-import { fetchCachedGvl, resolveRequestBackendURL } from '@c15t/core/server';
-import type { ManifestFetch } from '@c15t/core/server';
-import { readProducerPolicyContract } from '@c15t/core/transports';
 import {
-	consentInputsToOverrides,
-	CONSENT_EXPERIMENT_HEADER,
-	CONSENT_REQUEST_HEADER_NAMES,
-	extractConsentRequestInputs,
-	formatExperimentHeader,
-} from '@c15t/schema/types';
+	fetchCachedGvl,
+	readRequestConsent,
+	resolveRenderBudgetMs,
+	resolveRequestConsent,
+} from '@c15t/core/server';
+import type {
+	ManifestFetch,
+	ResolveRequestConsentOptions,
+} from '@c15t/core/server';
+import {
+	DEFAULT_RESOLVE_TIMEOUT_MS,
+	withResolutionBudget,
+} from '@c15t/core/transports/manifest-cache';
 import type {
 	ConsentRequestHeaderInputs,
 	GlobalVendorList,
-	InitOutput,
 } from '@c15t/schema/types';
 import { baseTranslations } from '@c15t/translations/all';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import type { Theme } from '@c15t/ui/theme';
 
-import {
-	loadConsentManifest,
-	resolveManifestInit,
-	resolveSessionReportURL,
-} from './api/manifest-init';
-import { filterCookieHeader } from './libs/cookies';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
@@ -103,8 +91,9 @@ export interface ResolveConsentContextOptions {
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 	/**
 	 * Longest to wait for the backend, in milliseconds. Overrides
-	 * `middleware.timeoutMs` from the integration options. `false` waits
-	 * however long the backend takes.
+	 * `middleware.timeoutMs` from the integration options. `false` (or
+	 * `Infinity`) waits however long the backend takes; any other value that
+	 * is not a finite, non-negative number uses the default.
 	 *
 	 * When it runs out, the result is what a failed request gives: no
 	 * server decision, `hasPolicy: false`, and the browser resolves the
@@ -117,57 +106,9 @@ export interface ResolveConsentContextOptions {
 
 /**
  * How long a server render waits for the visitor's policy unless
- * `middleware.timeoutMs` says otherwise.
+ * `middleware.timeoutMs` says otherwise: core's default.
  */
-export const DEFAULT_RESOLVE_TIMEOUT_MS = 500;
-
-const TIMED_OUT: unique symbol = Symbol('c15t.resolution-timeout');
-
-/**
- * The render budget in milliseconds, or `undefined` for none.
- *
- * @param input - The resolution input.
- * @returns A non-negative budget, or `undefined` when disabled.
- */
-const resolveBudgetMs = function resolveBudgetMs(
-	input: ResolveConsentContextOptions
-): number | undefined {
-	const configured =
-		input.timeoutMs ??
-		input.options.middleware?.timeoutMs ??
-		DEFAULT_RESOLVE_TIMEOUT_MS;
-	if (configured === false || !Number.isFinite(configured)) {
-		return undefined;
-	}
-	return Math.max(0, configured);
-};
-
-/**
- * Settle with the task, or with {@link TIMED_OUT} once `remainingMs` passes.
- * The task itself keeps running.
- *
- * @param task - Work that never rejects.
- * @param remainingMs - Time left, or `undefined` for no limit.
- * @returns The task's value, or `TIMED_OUT`.
- */
-const raceBudget = async function raceBudget<Value>(
-	task: Promise<Value>,
-	remainingMs: number | undefined
-): Promise<Value | typeof TIMED_OUT> {
-	if (remainingMs === undefined) {
-		return await task;
-	}
-	let timer: ReturnType<typeof setTimeout> | undefined;
-	// oxlint-disable-next-line promise/avoid-new -- Bridges a timer into the race.
-	const timeout = new Promise<typeof TIMED_OUT>((resolve) => {
-		timer = setTimeout(() => resolve(TIMED_OUT), remainingMs);
-	});
-	try {
-		return await Promise.race([task, timeout]);
-	} finally {
-		clearTimeout(timer);
-	}
-};
+export { DEFAULT_RESOLVE_TIMEOUT_MS };
 
 /**
  * The integration's `i18n.messages`, typed as overrides. The option is
@@ -218,372 +159,49 @@ export const resolveTranslations = function resolveTranslations(
 };
 
 /**
- * The request-only part of {@link resolveConsentContext}: cookies and geo
- * headers read into a baseline `KernelConfig`.
- *
- * Does no network work and sets no cookies, so it is safe on every runtime
- * including static prerenders.
- *
- * @param headers - The incoming request headers.
- * @param options - The integration options.
- * @returns A config seeded with stored consent and request overrides.
+ * How the configured mode resolves through `resolveRequestConsent`. A
+ * relative URL resolves against the request URL only, never a forwarded
+ * header: the adapter builds `Request.url` from the deployment's own proxy
+ * configuration.
  */
-const readConsentRequest = function readConsentRequest(
-	headers: Headers,
+const modeOptions = function modeOptions(
 	options: C15tResolvedOptions,
-	experimentArm?: string
-): { config: KernelConfig; inputs: ConsentRequestHeaderInputs } {
-	const now = Date.now();
-	const initialRecords = readStoredRecordsFromCookieHeader(
-		headers.get('cookie') ?? undefined,
-		options.storageConfig,
-		now
-	);
-	// An explicit `i18n.locale` outranks Accept-Language negotiation.
-	const inputs = extractConsentRequestInputs(headers, {
-		language: options.i18n?.locale,
-	});
-
-	const config: KernelConfig = {
-		initialPolicyPending: true,
-		initialPrivacySignals: { gpc: inputs.gpc },
-		initialRecords,
-		now,
-	};
-	// The arm is known on the server, so the inlined config and the first
-	// HTML already carry it. The banner is server-rendered, so without an
-	// arm for this request no experiment runs rather than holding the prompt.
-	const arm = experimentArm ?? options.experiment?.arm;
-	if (options.experiment && arm !== undefined) {
-		const { initialExperiment } = seedExperiment({
-			...options.experiment,
-			arm,
-		});
-		if (initialExperiment) {
-			config.initialExperiment = initialExperiment;
-		}
+	translations: KernelTranslations,
+	fetch: typeof globalThis.fetch | undefined
+): Partial<ResolveRequestConsentOptions> {
+	const { mode } = options;
+	switch (mode.type) {
+		case 'hosted':
+			return {
+				backendURL: mode.url,
+				// The browser's own `/init` carries these; so does the render's,
+				// or server and browser resolve different policies.
+				initHeaders: mode.headers,
+				mode: 'hosted',
+			};
+		case 'manifest':
+			return {
+				backendURL: mode.backendURL,
+				// The init route serves only lists from the shared cache; a
+				// caller's own fetch keeps its list inline.
+				gvlRoute: fetch ? undefined : options.endpoints.initPath,
+				manifest: mode.manifest,
+				manifestURL: mode.manifestURL,
+				mode: 'manifest',
+				reportSessions: mode.reportSessions,
+			};
+		default:
+			return {
+				mode: 'offline',
+				offline: {
+					// Same reason as the client factory in `mode.ts`: a pack whose
+					// model is `iab` needs a configured CMP to be eligible.
+					iabEnabled: isIABConfigured(options.iab),
+					policyRules: mode.policyRules,
+					translations,
+				},
+			};
 	}
-	const overrides = consentInputsToOverrides({
-		country: inputs.country,
-		language: inputs.language,
-		region: inputs.region,
-	}) as KernelOverrides;
-	if (Object.keys(overrides).length > 0) {
-		config.initialOverrides = overrides;
-	}
-	return { config, inputs };
-};
-
-const LOOPBACK_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-
-/** The cookie name the persistence module reads for this configuration. */
-const consentCookieName = function consentCookieName(
-	options: C15tResolvedOptions
-): string {
-	return options.storageConfig?.storageKey ?? CONSENT_STORAGE_KEY;
-};
-
-/**
- * Resolves a possibly-relative configured URL against this request.
- *
- * Only the request's own URL or `Host` decides the origin — never an
- * inbound `x-forwarded-host` / `x-forwarded-proto`. The adapter builds
- * `Request.url` from whatever proxy configuration the deployment declared,
- * so trusting a forwarded header on top of it would let a forged header
- * steer this server-side fetch, cookies and all, at a host of the caller's
- * choosing. The rule is shared with the other adapters through
- * `resolveRequestBackendURL` in `@c15t/core/server`.
- */
-const resolveAgainstRequest = function resolveAgainstRequest(
-	url: string,
-	headers: Headers,
-	requestURL?: string
-): string | null {
-	return resolveRequestBackendURL(url, { headers, requestURL });
-};
-
-/**
- * Whether the consent cookie may travel to this backend.
- *
- * HTTPS always may. Plain HTTP only where the request never really leaves
- * the machine — a loopback backend, or a dev server serving the page over
- * the same plain-HTTP origin — so a downgraded or cross-origin `http://`
- * backend never receives the visitor's cookies in the clear.
- */
-const mayForwardCookie = function mayForwardCookie(
-	absolute: string,
-	requestURL?: string
-): boolean {
-	let target: URL;
-	try {
-		target = new URL(absolute);
-	} catch {
-		return false;
-	}
-	if (target.protocol === 'https:') {
-		return true;
-	}
-	if (LOOPBACK_HOSTS.has(target.hostname)) {
-		return true;
-	}
-	if (!requestURL) {
-		return false;
-	}
-	try {
-		const from = new URL(requestURL);
-		return from.protocol === 'http:' && from.host === target.host;
-	} catch {
-		return false;
-	}
-};
-
-/**
- * Builds the headers the server-side `/init` call carries.
- *
- * Only the consent cookie is replayed, never the visitor's whole jar: the
- * backend needs the stored decision and nothing else, and a hosted backend
- * is a different origin the site's session cookies have no business
- * reaching. `allowCookie` drops even that one when the hop would be in the
- * clear.
- */
-const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
-
-/**
- * The descriptor's configured init headers, normalized and allowlisted.
- *
- * The core hosted transport applies these to the browser's own `/init`
- * call. The server prefetch has to apply the same ones, or a configured
- * `x-c15t-country` resolves one policy on the server and another in the
- * browser, and hydration corrects a banner the server already painted.
- */
-const configuredInitHeaders = function configuredInitHeaders(
-	headers: Record<string, string> | undefined
-): Record<string, string> {
-	const allowed: Record<string, string> = {};
-	for (const [name, value] of Object.entries(headers ?? {})) {
-		const normalized = name.toLowerCase();
-		if (INIT_HEADER_ALLOWLIST.has(normalized)) {
-			allowed[normalized] = value;
-		}
-	}
-	return allowed;
-};
-
-const forwardHeaders = function forwardHeaders(
-	headers: Headers,
-	overrides: KernelOverrides,
-	options: { cookieName: string; allowCookie?: boolean }
-): Record<string, string> {
-	const forward: Record<string, string> = {
-		...c15tProtocolHeaders,
-		accept: 'application/json',
-	};
-	const detectedGpc = headers.get('sec-gpc');
-	if (detectedGpc !== null) {
-		forward['sec-gpc'] = detectedGpc;
-	}
-	const cookie = headers.get('cookie');
-	const scoped =
-		cookie && options.allowCookie !== false
-			? filterCookieHeader(cookie, [options.cookieName])
-			: undefined;
-	if (scoped) {
-		forward.cookie = scoped;
-	}
-	if (overrides.country) {
-		forward['x-c15t-country'] = overrides.country;
-	}
-	if (overrides.region) {
-		forward['x-c15t-region'] = overrides.region;
-	}
-	if (overrides.language) {
-		forward['accept-language'] = overrides.language;
-	}
-	if (overrides.gpc !== undefined) {
-		forward['x-c15t-gpc'] = overrides.gpc ? '1' : '0';
-	}
-	return forward;
-};
-
-const prefetchHosted = async function prefetchHosted(input: {
-	base: KernelConfig;
-	backendURL: string;
-	headers: Headers;
-	configuredHeaders?: Record<string, string>;
-	options: C15tResolvedOptions;
-	url?: string;
-	fetch?: typeof globalThis.fetch;
-	timeoutMs?: number;
-}): Promise<KernelConfig> {
-	const absolute = resolveAgainstRequest(
-		input.backendURL,
-		input.headers,
-		input.url
-	);
-	const fetchImpl = input.fetch ?? globalThis.fetch?.bind(globalThis);
-	if (!absolute || !fetchImpl) {
-		return input.base;
-	}
-	const allowCookie = mayForwardCookie(absolute, input.url);
-	const forwarded = {
-		...forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-			allowCookie,
-			cookieName: consentCookieName(input.options),
-		}),
-		...configuredInitHeaders(input.configuredHeaders),
-	};
-	// The arm an undecided visitor runs, so the backend's own `/init` counts
-	// them toward it; a visitor who already chose is not shown the banner.
-	const experiment = input.base.initialExperiment;
-	if (experiment && !input.base.initialRecords?.choice) {
-		forwarded[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader(experiment);
-	}
-	try {
-		const response = await fetchImpl(`${absolute}/init`, {
-			cache: 'no-store',
-			credentials: allowCookie ? 'include' : 'omit',
-			headers: forwarded,
-			method: 'GET',
-			// `/init` answers one visitor and is never cached, so a request
-			// the render gave up on has nothing left to deliver.
-			signal:
-				input.timeoutMs === undefined
-					? undefined
-					: AbortSignal.timeout(input.timeoutMs),
-		});
-		if (!response.ok) {
-			return input.base;
-		}
-		const payload = (await response.json()) as InitOutput;
-		return mergeInitOutputIntoKernelConfig(
-			input.base,
-			input.fetch || forwarded.cookie
-				? payload
-				: deferInitGvl(payload, `${absolute}/init`, 'init', forwarded),
-			{},
-			{
-				producerContract: readProducerPolicyContract(response.headers),
-			}
-		);
-	} catch {
-		// Silent degradation: the browser retries on boot.
-		return input.base;
-	}
-};
-
-interface PrefetchLocalInput {
-	base: KernelConfig;
-	options: C15tResolvedOptions;
-	inputs: ConsentRequestHeaderInputs;
-	translations: KernelTranslations;
-	headers: Headers;
-	url?: string;
-	fetch?: typeof globalThis.fetch;
-	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
-	/** Whether the render stopped waiting for this prefetch. */
-	abandoned?: () => boolean;
-}
-
-const prefetchManifest = async function prefetchManifest(
-	input: PrefetchLocalInput,
-	mode: Extract<C15tResolvedOptions['mode'], { type: 'manifest' }>
-): Promise<KernelConfig> {
-	// Deliberately not `createManifestTransport`: its manifest memo lives
-	// on the transport instance, and a render builds a fresh one, so every
-	// page view paid a manifest fetch. The route handlers already go
-	// through the process-wide cache in `@c15t/core/server`; so does this,
-	// which is what makes the second render cost nothing.
-	const source = { headers: input.headers, url: input.url };
-	const target = mode.manifestURL ?? mode.backendURL;
-	const absoluteTarget = target
-		? resolveAgainstRequest(target, input.headers, input.url)
-		: null;
-	try {
-		const manifest = await loadConsentManifest({
-			fetch: input.fetch as ManifestFetch | undefined,
-			onBackgroundRevalidate: input.onBackgroundRevalidate,
-			options: input.options,
-			source,
-		});
-		const payload = await resolveManifestInit({
-			fetch: input.fetch as ManifestFetch | undefined,
-			fetchGvl: async ({ reference, language, fetch: fetchImpl }) =>
-				await fetchCachedGvl({
-					fetch: fetchImpl,
-					language,
-					url: reference.url,
-				}),
-			inputs: input.inputs,
-			manifest,
-			report: {
-				abandoned: input.abandoned,
-				backendURL: resolveSessionReportURL(input.options),
-				// A visitor who already chose is not shown the banner, so is not
-				// counted toward the arm.
-				experiment:
-					input.base.initialExperiment && !input.base.initialRecords?.choice
-						? {
-								arm: input.base.initialExperiment.arm,
-								id: input.base.initialExperiment.id,
-							}
-						: undefined,
-				headers: input.headers,
-				source: 'render',
-				waitUntil: input.onBackgroundRevalidate,
-			},
-		});
-		return mergeInitOutputIntoKernelConfig(
-			input.base,
-			// This loader only caches the public list; caller fetches stay inline.
-			!input.fetch && manifest.iab?.gvl
-				? deferInitGvlToRoute(payload, input.options.endpoints.initPath)
-				: payload,
-			forwardHeaders(input.headers, input.base.initialOverrides ?? {}, {
-				allowCookie: absoluteTarget
-					? mayForwardCookie(absoluteTarget, input.url)
-					: false,
-				cookieName: consentCookieName(input.options),
-			})
-		);
-	} catch {
-		return input.base;
-	}
-};
-
-const prefetchOffline = async function prefetchOffline(
-	input: PrefetchLocalInput
-): Promise<KernelConfig> {
-	const { options } = input;
-	const policyRules =
-		options.mode.type === 'offline' ? options.mode.policyRules : undefined;
-	const transport = createOfflineTransport({
-		// Same reason as the client factory in `mode.ts`: a pack whose model
-		// is `iab` needs a configured CMP to be eligible.
-		iabEnabled: isIABConfigured(options.iab),
-		policyRules,
-		translations: input.translations,
-	});
-	try {
-		const response = await transport.init?.({
-			overrides: input.base.initialOverrides ?? {},
-			user: input.base.initialUser ?? null,
-		});
-		if (!response) {
-			return input.base;
-		}
-		return mergeInitResponseIntoKernelConfig(input.base, response);
-	} catch {
-		return input.base;
-	}
-};
-
-const prefetchLocal = function prefetchLocal(
-	input: PrefetchLocalInput
-): Promise<KernelConfig> {
-	const { mode } = input.options;
-	return mode.type === 'manifest'
-		? prefetchManifest(input, mode)
-		: prefetchOffline(input);
 };
 
 /**
@@ -660,21 +278,36 @@ export const snapshotFromConfig = function snapshotFromConfig(
 };
 
 /**
- * Drop the parts of a config that describe one visitor.
- *
- * @param config - A config resolved without a visitor's request.
- * @returns The config minus stored records, clock and privacy signals.
+ * The experiment this request runs. The arm is known on the server, so the
+ * inlined config and the first HTML already carry it. The banner is
+ * server-rendered, so without an arm for this request no experiment runs
+ * rather than holding the prompt. A prerendered page runs none.
  */
-const withoutVisitorState = function withoutVisitorState(
-	config: KernelConfig
-): KernelConfig {
-	const {
-		initialPrivacySignals: _signals,
-		initialRecords: _records,
-		now: _now,
-		...shared
-	} = config;
-	return shared;
+const resolveExperiment = function resolveExperiment(
+	input: ResolveConsentContextOptions,
+	prerendered: boolean
+) {
+	const { experiment: configured } = input.options;
+	const arm = prerendered
+		? undefined
+		: (input.experimentArm ?? configured?.arm);
+	const experiment =
+		configured && arm !== undefined ? { ...configured, arm } : undefined;
+	return {
+		experiment,
+		seeded: experiment
+			? seedExperiment(experiment).initialExperiment
+			: undefined,
+	};
+};
+
+/** Waits for work the render stopped waiting for, swallowing its outcome. */
+const settle = async function settle(task: Promise<unknown>): Promise<void> {
+	try {
+		await task;
+	} catch {
+		// Nothing waits on this result.
+	}
 };
 
 /**
@@ -696,87 +329,60 @@ export const resolveConsentContext = async function resolveConsentContext(
 ): Promise<C15tLocals> {
 	const { options } = input;
 	const prerendered = input.prerendered === true;
-	const headers = prerendered ? new Headers() : input.headers;
-	const { config: base, inputs } = readConsentRequest(
-		headers,
-		options,
-		prerendered ? undefined : input.experimentArm
-	);
+	const startedAt = Date.now();
+	const timeoutMs =
+		input.timeoutMs ??
+		options.middleware?.timeoutMs ??
+		DEFAULT_RESOLVE_TIMEOUT_MS;
+	const facts = {
+		adapter: '@c15t/astro',
+		// An explicit `i18n.locale` outranks Accept-Language negotiation.
+		overrides: { language: options.i18n?.locale },
+		// The injected routes: a render never fetches them over the network.
+		ownRoutes: [options.endpoints.initPath, options.endpoints.manifestPath],
+		request: { headers: input.headers, url: input.url },
+		// A prerendered page is one HTML file for every visitor.
+		shared: prerendered,
+		storage: options.storageConfig,
+	} satisfies ResolveRequestConsentOptions;
+	const { inputs } = readRequestConsent(facts);
 	const translations = resolveTranslations(options, inputs);
-	// Hosted and manifest mode resolve against the visitor's geo, which a
-	// build has none of. Offline mode resolves without it in the browser as
-	// well, so the build reaches the answer every visitor would.
-	const skipPrefetch = prerendered && options.mode.type !== 'offline';
+	const { experiment, seeded } = resolveExperiment(input, prerendered);
+
+	const { experiment: _carried, ...resolved } = await resolveRequestConsent({
+		...facts,
+		...modeOptions(options, translations, input.fetch),
+		experiment: seeded ? experiment : undefined,
+		fetch: input.fetch,
+		request: { ...facts.request, inputs },
+		seed: {
+			initialPolicyPending: true,
+			initialTranslations: translations,
+			...(seeded && { initialExperiment: seeded }),
+		},
+		timeoutMs,
+		waitUntil: input.onBackgroundRevalidate,
+	});
+	let config: KernelConfig = resolved;
+
 	// One deadline for the whole resolution, so a slow policy request and a
 	// slow vendor list cannot each spend a full budget.
-	const budgetMs = resolveBudgetMs(input);
-	const startedAt = Date.now();
-	const remainingMs = (): number | undefined =>
-		budgetMs === undefined
+	const totalMs = resolveRenderBudgetMs(timeoutMs);
+	const budgetMs =
+		totalMs === undefined
 			? undefined
-			: Math.max(0, budgetMs - (Date.now() - startedAt));
-	const keepAlive = (task: Promise<unknown>): void => {
-		const settle = async (): Promise<void> => {
-			try {
-				await task;
-			} catch {
-				// The prefetch steps degrade on their own; nothing to report.
-			}
-		};
-		input.onBackgroundRevalidate?.(settle());
-	};
-
-	let config: KernelConfig = { ...base, initialTranslations: translations };
-	// Set once the render stops waiting for the prefetch. The browser then
-	// resolves the view through the init route, which reports the session,
-	// so the abandoned prefetch must not report it as well.
-	let prefetchAbandoned = false;
-	if (!skipPrefetch) {
-		const prefetch =
-			options.mode.type === 'hosted'
-				? prefetchHosted({
-						backendURL: options.mode.url,
-						base: config,
-						configuredHeaders: options.mode.headers,
-						fetch: input.fetch,
-						headers,
-						options,
-						timeoutMs: budgetMs,
-						url: input.url,
-					})
-				: prefetchLocal({
-						abandoned: () => prefetchAbandoned,
-						base: config,
-						fetch: input.fetch,
-						headers,
-						inputs,
-						onBackgroundRevalidate: input.onBackgroundRevalidate,
-						options,
-						translations,
-						url: input.url,
-					});
-		const settled = await raceBudget(prefetch, remainingMs());
-		if (settled === TIMED_OUT) {
-			// Render without the server decision, as a failed request does.
-			// A manifest fill keeps going and serves the next render.
-			prefetchAbandoned = true;
-			keepAlive(prefetch);
-		} else {
-			config = settled;
-		}
-	}
-
+			: Math.max(0, totalMs - (Date.now() - startedAt));
 	const withGvl = withResolvedGvl({
 		config,
 		fetch: input.fetch,
 		language: translations.language.split('-')[0] || 'en',
 		options,
 	});
-	const gvlSettled = await raceBudget(withGvl, remainingMs());
-	if (gvlSettled === TIMED_OUT) {
-		keepAlive(withGvl);
-	} else {
-		config = gvlSettled;
+	try {
+		config = await withResolutionBudget(withGvl, budgetMs);
+	} catch {
+		// The list keeps filling the cache for the next render.
+		input.onBackgroundRevalidate?.(settle(withGvl));
 	}
 
 	config.initialPolicyPending = config.initialPolicyResolution === undefined;
@@ -802,11 +408,11 @@ export const resolveConsentContext = async function resolveConsentContext(
 		]),
 	});
 	return {
-		// The snapshot above is the one a first-time visitor gets, which is
-		// what the build renders. The config the page inlines drops it: any
-		// `initialRecords` at all stop the browser reading the visitor's
-		// cookie, and a build-time `now` would age every record against it.
-		config: prerendered ? withoutVisitorState(config) : config,
+		// A prerendered config carries no stored records, clock or privacy
+		// signal: any `initialRecords` at all stop the browser reading the
+		// visitor's cookie, and a build-time `now` would age every record.
+		// The snapshot is the one a first-time visitor gets.
+		config,
 		decision: snapshot.resolution,
 		hasConsentUi:
 			snapshot.resolution.status === 'matched' &&

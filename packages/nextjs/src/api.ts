@@ -1,40 +1,11 @@
-import {
-	deferInitGvlToRoute,
-	serveGvlReference,
-	c15tProtocolHeaders,
-	fetchCachedGvl,
-} from '@c15t/core';
-import {
-	fetchCachedManifest as fetchManifestThroughCache,
-	getManifestAge,
-	parseCacheDirectiveSeconds,
-} from '@c15t/core/libs/manifest-cache';
-import {
-	reportConsentSession,
-	resolveRequestBackendURL,
-	resolveSessionReportBackendURL,
-} from '@c15t/core/server';
-import {
-	POLICY_CONTRACT_HEADER,
-	POLICY_CONTRACT_VERSION,
-	resolveInitFromManifest,
-} from '@c15t/schema/types';
-import type {
-	ConsentManifest,
-	ConsentManifestGVLReference,
-	GlobalVendorList,
-	InitOutput,
-} from '@c15t/schema/types';
-import { baseTranslations } from '@c15t/translations/all';
+import { c15tProtocolHeaders } from '@c15t/core';
+import { createConsentRouteHandler } from '@c15t/core/server';
+import type { ConsentRouteFetchGvl } from '@c15t/core/server';
 
 import type { ConsentConfig } from './config';
 import { isConsentConfig } from './config';
-import { extractConsentRequestInputs } from './headers';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;
-const DEFAULT_MANIFEST_CACHE_CONTROL =
-	'public, s-maxage=300, stale-while-revalidate=86400';
-const INIT_CACHE_CONTROL = 'private, no-store';
 
 type NextFetchInit = RequestInit & {
 	next?: {
@@ -77,13 +48,13 @@ export interface NextConsentManifestHandlersOptions {
 	fetch?: typeof globalThis.fetch;
 
 	/**
-	 * Receives the promise of a background manifest revalidation started by
-	 * a request, so the host can keep it alive past the response on runtimes
-	 * that stop detached work once a response is sent. Called inside the
-	 * handler, so `after` from `next/server` (Next 15.1 and later; 15.0
-	 * exposes it as `unstable_after`) can be used directly. The promise
-	 * never rejects. Not called when the manifest is fresh or the request
-	 * itself waits on the upstream.
+	 * Receives the promise of detached work a request started (a background
+	 * manifest revalidation, a session report, or the rest of a request
+	 * whose client went away), so the host can keep it alive past the
+	 * response on runtimes that stop detached work once a response is sent.
+	 * Called inside the handler, so `after` from `next/server` (Next 15.1
+	 * and later; 15.0 exposes it as `unstable_after`) can be used directly.
+	 * The promise never rejects.
 	 *
 	 * @example
 	 * ```ts
@@ -108,174 +79,32 @@ export interface NextConsentManifestHandlersOptions {
 	 */
 	reportSessions?: boolean;
 
-	fetchGvl?: (input: {
-		reference: ConsentManifestGVLReference;
-		language: string;
-		fetch: typeof globalThis.fetch;
-	}) => Promise<GlobalVendorList | null>;
-}
-
-export interface ManifestFetchResult {
-	manifest: ConsentManifest;
-	cacheControl: string;
-	etag?: string;
-	revalidate: number | false;
-	status: number;
+	/**
+	 * Loads the Global Vendor List for IAB policies. Defaults to the shared
+	 * server cache, with a deadline on the upstream request.
+	 */
+	fetchGvl?: ConsentRouteFetchGvl;
 }
 
 /**
- * Resolves a configured URL against the route request. A relative URL takes
- * the origin of `request.url`, which Next.js builds itself; `x-forwarded-*`
- * headers are read only when `trustForwardedHeaders` is set.
+ * The upstream manifest request as the App Router sees it: JSON with the
+ * c15t protocol headers, and a `next.revalidate` hint for the Data Cache.
+ *
+ * @param options - Handler options; reads `manifestRevalidateSeconds`.
+ * @returns The `fetch` init for the manifest request.
  */
-const resolveRequestURL = function resolveRequestURL(
-	backendURL: string,
-	request: Request,
-	options: NextConsentManifestHandlersOptions
-): string | null {
-	return resolveRequestBackendURL(backendURL, {
-		headers: request.headers,
-		requestURL: request.url,
-		trustForwardedHeaders: options.trustForwardedHeaders,
-	});
-};
-
-const resolveManifestURL = function resolveManifestURL(
-	request: Request,
-	options: NextConsentManifestHandlersOptions
-): string {
-	const { manifestURL } = options;
-	if (manifestURL) {
-		const resolved = resolveRequestURL(manifestURL, request, options);
-		if (!resolved) {
-			throw new Error('@c15t/nextjs/api: invalid manifestURL.');
-		}
-		return resolved;
-	}
-
-	const { backendURL } = options;
-	if (!backendURL) {
-		throw new Error('@c15t/nextjs/api: pass backendURL or manifestURL.');
-	}
-	const resolved = resolveRequestURL(backendURL, request, options);
-	if (!resolved) {
-		throw new Error('@c15t/nextjs/api: invalid backendURL.');
-	}
-	return `${resolved}/manifest`;
-};
-
-/**
- * Where the init route reports sessions, when it can: an absolute backend,
- * read as configured rather than resolved against the request. A relative
- * `/api/c15t` resolved to this app's origin is its own proxy route, not a
- * backend, and means no report; nothing is inferred from a manifest URL.
- */
-const resolveReportBackendURL = function resolveReportBackendURL(
-	options: NextConsentManifestHandlersOptions
-): string | undefined {
-	return resolveSessionReportBackendURL({ backendURL: options.backendURL });
-};
-
-const withLanguage = function withLanguage(
-	url: string,
-	language: string | null
-) {
-	if (!language) {
-		return url;
-	}
-	const next = new URL(url);
-	next.searchParams.set('language', language);
-	return next.toString();
-};
-
-export const getSMaxAge = function getSMaxAge(
-	cacheControl: string | null
-): number | undefined {
-	return parseCacheDirectiveSeconds(cacheControl, 's-maxage');
-};
-
-const getManifestRevalidate = function getManifestRevalidate(
-	options: NextConsentManifestHandlersOptions
-): number | false {
-	return (
-		options.manifestRevalidateSeconds ?? DEFAULT_MANIFEST_REVALIDATE_SECONDS
-	);
-};
-
 export const createManifestFetchInit = function createManifestFetchInit(
 	options: NextConsentManifestHandlersOptions = {}
 ): NextFetchInit {
-	const revalidate = getManifestRevalidate(options);
 	return {
 		headers: { accept: 'application/json', ...c15tProtocolHeaders },
 		method: 'GET',
-		next: { revalidate },
+		next: {
+			revalidate:
+				options.manifestRevalidateSeconds ??
+				DEFAULT_MANIFEST_REVALIDATE_SECONDS,
+		},
 	};
-};
-
-export const fetchCachedManifest = async function fetchCachedManifest(
-	request: Request,
-	options: NextConsentManifestHandlersOptions,
-	language?: string | null
-): Promise<ManifestFetchResult & { age: number }> {
-	const manifestURL = withLanguage(
-		resolveManifestURL(request, options),
-		language ?? null
-	);
-	// Two layers on purpose. `next.revalidate` reaches the App Router Data
-	// Cache; the in-process cache covers the Pages Router and any other
-	// runtime without one, and adds ETag revalidation on top.
-	const {
-		headers: nextHeaders,
-		method,
-		...init
-	} = createManifestFetchInit(options);
-	void method;
-	const cached = await fetchManifestThroughCache({
-		fetch: options.fetch,
-		headers: nextHeaders as Record<string, string>,
-		init,
-		onBackgroundRevalidate: options.onBackgroundRevalidate,
-		url: manifestURL,
-	});
-
-	const cacheControl =
-		cached.headers['cache-control'] ?? DEFAULT_MANIFEST_CACHE_CONTROL;
-	const revalidate = getSMaxAge(cacheControl) ?? getManifestRevalidate(options);
-	return {
-		age: getManifestAge(cached),
-		cacheControl,
-		etag: cached.headers.etag,
-		manifest: cached.manifest,
-		revalidate,
-		status: 200,
-	};
-};
-
-const shouldFetchGvl = function shouldFetchGvl(
-	manifest: ConsentManifest,
-	payload: InitOutput
-) {
-	return (
-		manifest.iab?.enabled === true &&
-		manifest.iab.gvl !== undefined &&
-		payload.policyResolution?.status === 'matched' &&
-		payload.policyResolution.policy.model === 'iab'
-	);
-};
-
-const defaultFetchGvl = function defaultFetchGvl(input: {
-	reference: ConsentManifestGVLReference;
-	language: string;
-	fetch: typeof globalThis.fetch;
-}): Promise<GlobalVendorList | null> {
-	return fetchCachedGvl({
-		fetch: input.fetch,
-		headers: c15tProtocolHeaders,
-		label: '@c15t/nextjs/api',
-		language: input.language,
-		url: input.reference.url,
-	});
 };
 
 /**
@@ -323,99 +152,28 @@ export const createNextConsentRouteHandlers =
 		optionsOrConfig: NextConsentManifestHandlersOptions | ConsentConfig
 	) {
 		const options = toHandlerOptions(optionsOrConfig);
+		// Two cache layers on purpose. `next.revalidate` reaches the App Router
+		// Data Cache; the shared in-process cache covers the Pages Router and
+		// any runtime without one, and adds ETag revalidation on top. The
+		// in-process cache sends the headers itself, so only the hint goes.
+		const { next } = createManifestFetchInit(options);
+		const handle = createConsentRouteHandler({
+			adapter: '@c15t/nextjs',
+			backendURL: options.backendURL,
+			fetch: options.fetch,
+			fetchGvl: options.fetchGvl,
+			manifestFetchInit: { next } as NextFetchInit,
+			manifestURL: options.manifestURL,
+			reportSessions: options.reportSessions,
+			trustForwardedHeaders: options.trustForwardedHeaders,
+		});
+		const waitUntil = options.onBackgroundRevalidate;
 		return {
-			async GET(request: Request): Promise<Response> {
-				const { manifest } = await fetchCachedManifest(request, options);
-				const listResponse = await serveGvlReference(request, (language) =>
-					manifest.iab?.gvl
-						? (options.fetchGvl ?? defaultFetchGvl)({
-								fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
-								language,
-								reference: manifest.iab.gvl,
-							})
-						: Promise.resolve(null)
-				);
-				if (listResponse) {
-					return listResponse;
-				}
-				const inputs = extractConsentRequestInputs(request.headers);
-				const payload = resolveInitFromManifest(manifest, inputs, {
-					baseTranslations,
-				});
-
-				const contract = request.headers.get(POLICY_CONTRACT_HEADER);
-				if (
-					contract !== null &&
-					contract.trim() !== String(POLICY_CONTRACT_VERSION)
-				) {
-					payload.policyResolution = {
-						policy: null,
-						reason: 'unsupported-contract',
-						status: 'failed',
-						version: POLICY_CONTRACT_VERSION,
-					};
-
-					delete payload.policySnapshotToken;
-					delete payload.gvl;
-				}
-
-				if (shouldFetchGvl(manifest, payload) && manifest.iab?.gvl) {
-					const language = payload.translations.language.split('-')[0] || 'en';
-					payload.gvl = await (options.fetchGvl ?? defaultFetchGvl)({
-						fetch: options.fetch ?? globalThis.fetch.bind(globalThis),
-						language,
-						reference: manifest.iab.gvl,
-					});
-				}
-
-				if (options.reportSessions !== false) {
-					reportConsentSession({
-						adapter: '@c15t/nextjs',
-						backendURL: resolveReportBackendURL(options),
-						fetch: options.fetch,
-						headers: request.headers,
-						init: payload,
-						inputs,
-						manifest,
-						method: request.method,
-						source: 'route',
-						waitUntil: options.onBackgroundRevalidate,
-					});
-				}
-
-				return Response.json(
-					deferInitGvlToRoute(payload, new URL(request.url).pathname),
-					{
-						headers: {
-							'cache-control': INIT_CACHE_CONTROL,
-							[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
-						},
-					}
-				);
+			GET(request: Request): Promise<Response> {
+				return handle(request, { route: 'init', waitUntil });
 			},
-
-			async manifestGET(request: Request): Promise<Response> {
-				const requestURL = new URL(request.url);
-				const result = await fetchCachedManifest(
-					request,
-					options,
-					requestURL.searchParams.get('language')
-				);
-				const headers = new Headers({
-					age: String(result.age),
-					'cache-control': result.cacheControl,
-					'content-type': 'application/json',
-					[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
-				});
-				if (result.etag) {
-					headers.set('etag', result.etag);
-				}
-				headers.set('x-c15t-next-revalidate', String(result.revalidate));
-
-				return new Response(JSON.stringify(result.manifest), {
-					headers,
-					status: 200,
-				});
+			manifestGET(request: Request): Promise<Response> {
+				return handle(request, { route: 'manifest', waitUntil });
 			},
 		};
 	};

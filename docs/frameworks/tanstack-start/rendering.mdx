@@ -72,7 +72,7 @@ What the route serves:
 
 | Request | Handled by |
 | --- | --- |
-| `GET /api/c15t/init` | The route, from the cached manifest, for this request's location, language and privacy signal |
+| `GET /api/c15t/init` or `GET /api/c15t` | The route, from the cached manifest, for this request's location, language and privacy signal |
 | `GET /api/c15t/manifest` | The route, passing the backend's cached manifest through |
 | `POST /api/c15t/subjects` and other consent paths | Forwarded to your backend because `proxy: true` |
 | Any other path | `404`, so the route is never an open proxy |
@@ -106,9 +106,13 @@ resolve consent from your backend URL:
   starts the `/init` request before the app's JavaScript loads, and
   `ConsentRoot` uses that response instead of sending its own.
 
-Do not keep the consent loader in a prerendered root. Prerendering runs it at
-build time and bakes one visitor's state into the HTML for everyone. The
-example prerenders every page with `tanstackStart({ prerender: { enabled: true } })`
+Drop the consent loader from a prerendered root. A loader that stays anyway
+is safe: while TanStack Start prerenders (`TSS_PRERENDERING`),
+`resolveConsent` treats the render as shared. It reads no cookie or location
+header, returns no stored consent, clock or GPC signal, and makes no manifest
+request, so no build-time state is baked into the HTML. Pass `shared: true`
+to force the same for other HTML you cache for every visitor. The example
+prerenders every page with `tanstackStart({ prerender: { enabled: true } })`
 and serves the output as static files. SPA mode renders the same root route
 into its shell.
 

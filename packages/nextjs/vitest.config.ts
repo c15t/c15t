@@ -52,9 +52,9 @@ export default mergeConfig(
 					__dirname,
 					'../core/src/modules/window-debug/index.ts'
 				),
-				'@c15t/core/libs/manifest-cache': resolve(
+				'@c15t/core/transports/manifest-cache': resolve(
 					__dirname,
-					'../core/src/libs/manifest-cache.ts'
+					'../core/src/transports/manifest-cache.ts'
 				),
 				'@c15t/core/transports/manifest': resolve(
 					__dirname,

@@ -36,8 +36,13 @@ the policy. When the backend is slower or down, the page renders without
 consent UI in the HTML, optional categories stay denied, gated scripts and
 iframes stay blocked, and the browser resolves the policy after hydration.
 
-With `manifest` unset, the server calls the backend's `/init` on every render
-instead of using a cached manifest. Prefer `manifest: 'server'`.
+With `manifest: 'server'`, the render resolves through the module's own
+`/api/c15t/init` route in-process, through Nitro's local fetch, so it never
+leaves the server. With `manifest` unset, the server calls the backend's
+`/init` on every render instead of using a cached manifest. That request
+carries the resolved location, language and GPC and the `user-agent`, and,
+over `https` or to a loopback host, the consent cookie alone, never the rest
+of the cookie jar. Prefer `manifest: 'server'`.
 
 ## Prerendered and cached routes
 

@@ -139,14 +139,14 @@ network request and returns cookie- and header-only state; see
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `backendURL` | `config.backendURL` | Backend base URL. An explicit value overrides `config.backendURL`. Without a manifest source, `resolveConsent` calls `${backendURL}/init`. Omit both `backendURL` and `config` for cookie-only state. |
-| `config` | none | A `defineConsentConfig` result supplying `backendURL` and `manifestURL`. Explicit options on this bag win over its fields. In manifest mode, `initURL` names the same-origin route the browser loads a deferred IAB Global Vendor List from; it does not change how the server resolves policy. |
-| `manifestURL` | `config.manifestURL` | Manifest route URL. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. The manifest is read through the in-process manifest cache, whether the URL is your manifest route or the backend's `/manifest`. |
+| `config` | none | A `defineConsentConfig` result supplying `backendURL` and the manifest source. Explicit options on this bag win over its fields. A same-origin `config.manifestURL` names your manifest route, so the render reads what that route reads, `${backendURL}/manifest`, through the same in-process cache entry instead of fetching its own route. In manifest mode, `initURL` names the same-origin route the browser loads a deferred IAB Global Vendor List from. |
+| `manifestURL` | none | Absolute `GET /manifest` URL, or a same-origin path outside your consent routes. When set, server prefetch resolves policy from the manifest and does not call backend `/init`. The manifest is read through the in-process manifest cache. |
 | `manifest` | none | Inline manifest object used instead of fetching `manifestURL`. Any `manifestURL` is still resolved first, so a relative one needs a request host. |
-| `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call carries visitor cookies and returns per-visitor state, so keep it uncached. |
-| `forwardHeaders` | `[]` | Request header names copied onto the outgoing call. Backend `/init` also forwards `x-forwarded-for` and `user-agent` automatically; manifest requests forward only this list. Headers absent from the request are skipped. |
-| `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `host`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |
+| `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Wrap it in Next.js fetch caching only in manifest mode; the `/init` call can carry the consent cookie and returns per-visitor state, so keep it uncached. A custom fetch keeps the IAB Global Vendor List inline, since the browser cannot replay it. |
+| `forwardHeaders` | `[]` | Extra request header names copied onto the outgoing call, such as a token a private backend needs. They travel only over `https` or to a loopback host. `cookie` and `forwarded`/`x-forwarded-*` cannot be named here. Headers absent from the request are skipped. |
+| `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `host`, and forward the visitor IP to backend `/init` as `x-forwarded-for`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |
 | `onError` | none | Receives the failure from the backend or manifest request, including a `ManifestUnavailableError` when `timeoutMs` runs out or the manifest is backing off after a failure. When omitted, failures are logged with `console.warn` only when `NODE_ENV` is not `production`. |
-| `timeoutMs` | `500` | Longest the render waits for policy, in milliseconds, counted from the manifest or backend `/init` request. When it runs out, the helper returns the baseline state described below. `false` waits for the manifest cache's 5 second request timeout, or for the `fetch` implementation on backend `/init`. |
+| `timeoutMs` | `500` | Longest the render waits for policy, in milliseconds, counted from the start of the resolution. When it runs out, the helper returns the baseline state described below. `false` or `Infinity` waits for the manifest cache's 5 second request timeout, or for the `fetch` implementation on backend `/init`. Any other value that is not a finite, non-negative number uses the default. |
 | `reportSessions` | `true` | In manifest mode, report the resolved init to the backend's `POST /sessions` after the render, server-to-server, so the backend still counts the visitor. Forwards the visitor's user agent and client IP on `x-c15t-client-ip`, never cookies. `false` sends none. |
 | `waitUntil` | none | Receives work that outlives the render so it survives the response: the session report, a manifest refresh, and a manifest request that `timeoutMs` stopped waiting for. In the App Router pass `(task) => after(() => task)` with `after` from `next/server`. The promise never rejects. |
 | `now` | `Date.now()` | Clock used to validate stored records and stamped into the result. |
@@ -209,26 +209,43 @@ header. A domain name resolves over `https`. `localhost`, an IP address or a
 single-label host such as `app:3000` resolves over `http`. The
 `x-forwarded-host`, `x-forwarded-proto`, `forwarded` and `referer` headers
 are ignored, because any client can send them and the `/init` call carries the
-visitor's cookies to the resolved host. When no `host` header is available,
-`resolveConsent` reports the error and returns the baseline state.
+visitor's consent cookie to the resolved host. When no `host` header is
+available, `resolveConsent` reports the error and returns the baseline state.
+
+A render never fetches your own handler routes: a URL on the request's origin
+under `config.manifestURL` or `config.initURL`. `resolveConsent` reports the URL
+and returns the baseline state instead. Give it the backend URL your handlers
+use, as [Optimization](/docs/frameworks/next/optimization#keep-route-handlers-pointed-upstream)
+shows for the `/api/c15t` prefix.
+
+Any other same-origin `backendURL` is a backend reached through your app, such
+as `/api/c15t` with a rewrite or a mounted `@c15t/backend`. `resolveConsent`
+calls its `/init` like any backend. That request goes back through your own
+server, which costs a second function invocation on serverless hosts and fails
+behind deployment protection; the render then returns the baseline state and
+the browser resolves the policy. Pass the backend's own URL to skip the hop.
+If the prefix reaches no backend and a page answers instead, that page's
+`resolveConsent` sees the request came from a render and does not fetch again.
 
 Behind a proxy that sets `x-forwarded-host` and `x-forwarded-proto` and drops
 the values a client sends, pass `trustForwardedHeaders: true` to resolve
-against them instead. Use `https` for any production `backendURL`: the `/init`
-call forwards the visitor's cookies, which plain HTTP exposes on the path;
-keep `http` for local development only.
+against them instead. Use `https` for any production `backendURL`. Over plain
+HTTP to anything but a loopback host, the `/init` call carries no cookie, no
+`forwardHeaders` and no client IP.
 
-Forwarded headers differ by path. The backend `/init` call carries the
-request cookies, `x-forwarded-for`, `user-agent`, any `forwardHeaders`, and
-derived `x-c15t-country`, `x-c15t-region`, `accept-language` and `sec-gpc`
-headers; it is sent with `cache: 'no-store'` and `credentials: 'include'`.
-The manifest request carries only the headers named in `forwardHeaders`.
-Cookies, the client IP and the user agent are not added automatically, because
-the manifest is public policy data, but an explicit entry is forwarded
-verbatim: a `forwardHeaders` list that names `cookie`, `x-forwarded-for` or
-`user-agent` sends them to the manifest host too, so do not reuse a list meant
-for the backend path. Cookies are still read locally on both paths to restore
-records.
+Forwarded headers differ by path, and only what the backend needs travels:
+
+- The backend `/init` call carries the resolved `x-c15t-country`,
+  `x-c15t-region`, `accept-language` and `sec-gpc`, the `user-agent`, and the
+  experiment arm while the visitor has no stored choice. Over `https` or to a
+  loopback host it also carries the consent cookie (`cookieName`, never the
+  rest of the cookie jar), any `forwardHeaders`, and with
+  `trustForwardedHeaders` the visitor IP as `x-forwarded-for`. It is sent with
+  `cache: 'no-store'`.
+- The manifest request carries only the headers named in `forwardHeaders`,
+  because the manifest is public policy data.
+
+Cookies are still read locally on both paths to restore records.
 
 An inline `manifest` is never refreshed. The manifest transport returns the
 object as given instead of fetching it, so the snapshot is the source of truth
@@ -338,7 +355,7 @@ read no environment variables.
 `manifestURL` wins over `backendURL`. URLs are resolved per request, so a
 missing or invalid value fails the request rather than the build: with neither
 `backendURL` nor `manifestURL` the handler throws
-`@c15t/nextjs/api: pass backendURL or manifestURL.`. A
+`@c15t/nextjs: pass backendURL or manifestURL.`. A
 `/`-relative value is resolved against the origin of `request.url`, which
 Next.js builds itself. Forwarding headers are read only with
 `trustForwardedHeaders: true`. A relative value still points the handler at
@@ -352,31 +369,47 @@ applies when the config's `backendURL` is a same-origin rewrite prefix: pass
 the absolute upstream URL instead, as described in
 [optimization](/docs/frameworks/next/optimization).
 
+The handlers are built on the consent route handler in `@c15t/core/server`,
+which the TanStack Start, SvelteKit, Astro and Nuxt adapters share, so the
+rules below are the same in every framework.
+
 `GET` resolves the cached manifest with the request's geography, language and
 GPC headers and responds with `cache-control: private, no-store` and
-`x-c15t-policy-contract: 1`. When the request carries an
+`x-c15t-policy-contract: 1`. The payload echoes the inputs it used as
+`resolvedOverrides` and `resolvedPrivacySignals`. When the request carries an
 `x-c15t-policy-contract` header with a different value, the response keeps the
 translations and UI data but sets `policyResolution` to `status: 'failed'`
-with `reason: 'unsupported-contract'` and removes `policySnapshotToken` and
-`gvl`. Requests without the header are treated as compatible.
+with `reason: 'unsupported-contract'`. Whenever the resolution is not
+`matched`, the payload carries no `policySnapshotToken`, `gvl`,
+`gvlReference`, `cmpId` or `customVendors`. Requests without the header are
+treated as compatible.
 
-`manifestGET` forwards the upstream `cache-control` header, or
-`public, s-maxage=300, stale-while-revalidate=86400` when the upstream omits
-it, plus `etag` when present and an `age` computed from the in-process cache.
-It adds `content-type: application/json`, `x-c15t-policy-contract: 1` and
-`x-c15t-next-revalidate`, whose value is the upstream `s-maxage` when present,
-`300` when the upstream sends no `cache-control` at all (the default header is
-substituted before `s-maxage` is read), and otherwise the configured
-revalidation interval. A `language` query
-parameter on the manifest route is passed to the upstream manifest request.
+`manifestGET` forwards the upstream `cache-control`, `etag`, `last-modified`
+and `content-language` headers, adds `content-type: application/json` and an
+`age` computed from the in-process cache, and answers a matching
+`If-None-Match` with `304`. It never invents a `cache-control` header the
+upstream did not send. The only query parameter passed upstream is a
+`language` that looks like a language tag, lower-cased; every other parameter
+is dropped, so a visitor's query string neither reaches the backend nor adds
+cache entries.
+
+When the manifest cannot be read and `backendURL` is set, `GET` asks the
+backend's own `GET /init` instead, forwarding only the geography, language and
+GPC headers. This covers backends without `/manifest`. It happens for a `404`
+and for the first failure of a failing backend, not for every request while
+the manifest cache backs off. Otherwise the handler rejects and Next.js
+answers `500`.
 
 `fetchGvl` runs inside `GET` only when the manifest has `iab.enabled: true`,
 the manifest includes an `iab.gvl` reference, and the resolved policy matched
 with `model: 'iab'`. It receives the reference, the `fetch` option, and the
 language taken from the first segment of the resolved translations language
-(`en` when empty). The default fetcher caches the vendor list in process.
-A fetched list becomes a `gvlReference` and a small banner summary in the
-serialized payload. A `null` result keeps IAB unavailable. With
+(`en` when empty). The default fetcher caches the vendor list in process and
+aborts the upstream request after five seconds. A fetched list becomes a
+`gvlReference` and a small banner summary in the serialized payload. A `null`
+result keeps IAB unavailable. A rejected or timed-out fetch fails the request
+rather than answering `gvl: null`, because the browser reads `null` as "IAB is
+off" and would show a policy that requires the TCF without it. With
 `config.initURL`, the browser reads the list from that same-origin handler;
 otherwise it uses the manifest's public list URL. The banner shows the same
 purpose names and vendor count on the server and during hydration. A
@@ -514,8 +547,9 @@ offline mode with no error. Not recommended for production environments.
 
 ### Authenticated hosted vendor lists
 
-When hosted `resolveConsent()` forwards cookies or additional request headers,
-or uses a custom `fetch`, it retains the fetched vendor list in server state.
+When hosted `resolveConsent()` forwards the consent cookie or additional
+request headers, or uses a custom `fetch`, it retains the fetched vendor list
+in server state.
 The browser cannot replay a private server fetch. This fallback preserves consent
 loading and vendor filtering without copying credentials into the page. Its
 payload size is unchanged from inline GVL loading. For compact pages with private

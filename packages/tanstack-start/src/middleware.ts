@@ -1,7 +1,7 @@
+import { extractConsentRequestInputs } from '@c15t/schema/types';
+import type { ConsentRequestHeaderInputs as ConsentRequestInputs } from '@c15t/schema/types';
 import { createMiddleware } from '@tanstack/react-start';
 
-import { extractConsentRequestInputs } from './headers';
-import type { ConsentRequestInputs } from './headers';
 import { rememberConsentInputs } from './libs/request-inputs';
 
 /** Options for {@link consentRequestMiddleware}. */

@@ -1,4 +1,4 @@
-import type { ManifestFetch, ManifestSourceConfig } from '@c15t/core/server';
+import type { ManifestFetch, ManifestSourceOptions } from '@c15t/core/server';
 import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
@@ -25,13 +25,19 @@ export interface C15tLocals {
 	 * silently re-read the default `c15t` key and lose persisted consent.
 	 */
 	cookieName?: string;
+	/**
+	 * Set when the handle was told every render is shared (a prerender).
+	 * `loadConsent` then makes no upstream call and carries no visitor
+	 * state.
+	 */
+	shared?: true;
 }
 
 /** Normalized consent request context. Re-exported for `App.Locals` users. */
 export type ConsentRequestInputs = ConsentRequestHeaderInputs;
 
 /** Manifest-mode wiring shared by the route handlers and `loadConsent`. */
-export interface ConsentManifestOptions extends ManifestSourceConfig {
+export interface ConsentManifestOptions extends ManifestSourceOptions {
 	/**
 	 * Fetch implementation for an absolute `backendURL` or `manifestURL`.
 	 * Defaults to the global `fetch`. The route handlers fetch a relative

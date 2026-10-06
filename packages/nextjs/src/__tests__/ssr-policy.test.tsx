@@ -157,7 +157,7 @@ describe('Next.js request policy and RSC hydration', () => {
 				)
 			);
 			const config = await resolveConsent({
-				backendURL: '/api/c15t',
+				backendURL: 'https://consent.example.com',
 				cookieName: storageKey,
 				fetch,
 				now,

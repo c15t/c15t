@@ -1,7 +1,6 @@
+import { extractConsentRequestInputs } from '@c15t/schema/types';
 import { NextResponse } from 'next/server.js';
 import type { NextRequest } from 'next/server.js';
-
-import { extractConsentRequestInputs } from './headers';
 
 export interface C15tProxyOptions {
 	/**

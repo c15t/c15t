@@ -1,18 +1,5 @@
-import {
-	deferInitGvl,
-	createHostedTransport,
-	experimentArmRef,
-	mergeInitResponseIntoKernelConfig,
-} from '@c15t/core';
-import type { InitContext } from '@c15t/core';
-import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
-import { resolveRequestBackendURL } from '@c15t/core/server';
-import {
-	consentInputsToOverrides,
-	extractConsentRequestInputs,
-} from '@c15t/schema/types';
+import { resolveRequestConsent } from '@c15t/core/server';
 
-import { CLIENT_FORWARDING_HEADERS, extractRelevantHeaders } from './headers';
 import type {
 	ConsentRequestOptions,
 	ConsentState,
@@ -20,189 +7,20 @@ import type {
 } from './types';
 
 /**
- * The request-only part of {@link resolveConsent}: the visitor's state from
- * the consent cookie and request headers, before any backend call.
- */
-const readConsentRequest = function readConsentRequest(
-	options: ResolveConsentOptions
-): ConsentState {
-	const now = options.now ?? Date.now();
-	const cookieHeader =
-		options.cookieHeader ?? options.headers.get('cookie') ?? undefined;
-	const initialRecords = readStoredRecordsFromCookieHeader(
-		cookieHeader,
-		options.cookieName ? { storageKey: options.cookieName } : undefined,
-		now
-	);
-	const inputs = extractConsentRequestInputs(options.headers, {
-		country: options.country,
-		language: options.language,
-		region: options.region,
-	});
-	const overrides = consentInputsToOverrides({
-		country: inputs.country,
-		language: inputs.language,
-		region: inputs.region,
-	});
-
-	const state: ConsentState = {
-		initialPrivacySignals: { gpc: options.headers.get('sec-gpc') === '1' },
-		initialRecords,
-		now,
-	};
-	if (Object.keys(overrides).length > 0) {
-		state.initialOverrides = overrides;
-	}
-	return state;
-};
-
-const createForwardHeaders = (
-	options: ResolveConsentOptions,
-	overrides: ConsentState['initialOverrides']
-): Record<string, string> => {
-	const trustForwarded = options.trustForwardedHeaders === true;
-	const forward: Record<string, string> = {
-		...extractRelevantHeaders(options.headers, {
-			trustForwardedHeaders: trustForwarded,
-		}),
-	};
-	const cookieHeader = options.cookieHeader ?? options.headers.get('cookie');
-	if (cookieHeader) {
-		forward.cookie = cookieHeader;
-	}
-	const clientForwarding = new Set<string>(CLIENT_FORWARDING_HEADERS);
-	for (const key of options.forwardHeaders ?? []) {
-		// Client-settable forwarding headers need the explicit opt-in, even
-		// when named here.
-		if (!trustForwarded && clientForwarding.has(key.toLowerCase())) {
-			continue;
-		}
-		const value = options.headers.get(key);
-		if (value) {
-			forward[key.toLowerCase()] = value;
-		}
-	}
-
-	if (overrides?.country) {
-		forward['x-c15t-country'] = overrides.country;
-	}
-	if (overrides?.region) {
-		forward['x-c15t-region'] = overrides.region;
-	}
-	if (options.language) {
-		forward['accept-language'] = options.language;
-	}
-
-	return forward;
-};
-
-/**
- * The init context for a server render. The experiment arm goes along only
- * while the visitor has no stored choice: a visitor who already chose is
- * not shown the banner, so is not counted toward the arm.
- */
-const initContext = function initContext(
-	base: ConsentState,
-	options: ResolveConsentOptions
-): InitContext {
-	const context: InitContext = {
-		overrides: base.initialOverrides ?? {},
-		user: base.initialUser ?? null,
-	};
-	if (options.experiment && !base.initialRecords?.choice) {
-		context.experiment = experimentArmRef(options.experiment);
-	}
-	return context;
-};
-
-/** {@link resolveConsent} without the experiment it carries back. */
-const resolveConsentState = async function resolveConsentState(
-	options: ResolveConsentOptions
-): Promise<ConsentState> {
-	const base = readConsentRequest(options);
-	if (!options.backendURL) {
-		return base;
-	}
-	// Never resolve against client-supplied forwarding headers by default:
-	// the call below carries the request's cookies to whatever host this is.
-	const absoluteBackend = resolveRequestBackendURL(options.backendURL, {
-		headers: options.headers,
-		requestURL: options.requestURL,
-		trustForwardedHeaders: options.trustForwardedHeaders,
-	});
-	if (!absoluteBackend) {
-		return base;
-	}
-
-	const forward = createForwardHeaders(options, base.initialOverrides);
-
-	try {
-		const fetchImpl =
-			options.fetch ??
-			options.frameworkFetch ??
-			globalThis.fetch?.bind(globalThis);
-		if (!fetchImpl) {
-			return base;
-		}
-		const transport = createHostedTransport({
-			backendURL: absoluteBackend,
-			// Server-request forwarding is broader than the hosted client's
-			// header allowlist. Keep the transport's protocol headers authoritative.
-			fetch: (input, init) => {
-				const headers = new Headers(forward);
-				new Headers(init?.headers).forEach((value, key) => {
-					headers.set(key, value);
-				});
-				// Keep the caller's full language preference list. The normalized
-				// kernel language is for policy resolution, not HTTP forwarding.
-				if (forward['accept-language']) {
-					headers.set('accept-language', forward['accept-language']);
-				}
-
-				return fetchImpl(input, { ...init, headers });
-			},
-		});
-		const response = await transport.init?.(initContext(base, options));
-		if (!response) {
-			return base;
-		}
-		const merged = mergeInitResponseIntoKernelConfig(
-			base,
-			options.fetch ||
-				forward.cookie ||
-				(options.frameworkFetch && options.headers.has('authorization')) ||
-				options.forwardHeaders?.some((name) => options.headers.has(name))
-				? response
-				: deferInitGvl(response, `${absoluteBackend}/init`, 'init', forward)
-		);
-		if (response.subjectId) {
-			merged.initialRecords = {
-				...merged.initialRecords,
-				subject: {
-					...merged.initialRecords?.subject,
-					subjectId: response.subjectId,
-				},
-			};
-		}
-		delete merged.initialDraft;
-		return merged;
-	} catch {
-		return base;
-	}
-};
-
-/**
  * Resolves the visitor's consent state from a SvelteKit request.
  *
  * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
- *    `sec-gpc`. Without a `backendURL` this is the whole result, and no
+ *    the GPC signal. Without a `backendURL` this is the whole result, and no
  *    network call is made.
  * 2. With a `backendURL`, calls `${backendURL}/init` with the request
  *    context and folds the response into the state, so first paint is
  *    correct without waiting for a client roundtrip.
  *
- * Never throws: if the backend URL cannot be resolved or the call fails,
- * the request-only state is returned and the client runs init on mount.
+ * The rules (what is forwarded, the self-route guard, how the response is
+ * merged) live in `resolveRequestConsent` from `@c15t/core/server`, shared
+ * with every other adapter. Never throws: if the backend URL cannot be
+ * resolved or the call fails, the request-only state is returned and the
+ * client runs init on mount.
  *
  * @param options - Request headers, cookie name, geo/language overrides,
  * and the backend location.
@@ -217,15 +35,34 @@ const resolveConsentState = async function resolveConsentState(
  * });
  * ```
  */
-export const resolveConsent = async function resolveConsent(
+export const resolveConsent = function resolveConsent(
 	options: ResolveConsentOptions
 ): Promise<ConsentState> {
-	const state = await resolveConsentState(options);
-	// Every path carries the experiment, so the client runs the arm this
-	// request counted even when the backend call failed.
-	return options.experiment
-		? { ...state, experiment: options.experiment }
-		: state;
+	return resolveRequestConsent({
+		adapter: '@c15t/svelte',
+		backendURL: options.backendURL,
+		experiment: options.experiment,
+		fetch: options.fetch,
+		forwardHeaders: options.forwardHeaders,
+		localFetch: options.frameworkFetch,
+		mode: options.backendURL ? 'hosted' : undefined,
+		now: options.now,
+		overrides: {
+			country: options.country,
+			language: options.language,
+			region: options.region,
+		},
+		request: {
+			cookie: options.cookieHeader,
+			headers: options.headers,
+			url: options.requestURL,
+		},
+		storage: options.cookieName
+			? { storageKey: options.cookieName }
+			: undefined,
+		timeoutMs: options.timeoutMs,
+		trustForwardedHeaders: options.trustForwardedHeaders,
+	});
 };
 
 export type { KernelConfig } from '@c15t/core';

@@ -1,9 +1,10 @@
 /**
  * `@c15t/astro/api` — route handlers for the injected consent endpoints.
  *
- * The manifest cache itself lives in `@c15t/core/server`, shared with the
- * Next.js, Nuxt and SvelteKit layers so no two hosts can disagree about
- * cache lifetimes or revalidation.
+ * The manifest cache itself lives in `@c15t/core` (re-exported here from
+ * `@c15t/core/server`): one entry point and one process cache shared with the
+ * Next.js, Nuxt, SvelteKit and TanStack Start layers, so no two hosts can
+ * disagree about cache lifetimes, revalidation or cache keys.
  */
 
 export {
@@ -12,18 +13,8 @@ export {
 	waitUntilFromLocals,
 } from './handlers';
 export type { ConsentRouteHandlerOptions, RequestLifetime } from './handlers';
-export {
-	loadConsentManifest,
-	resolveManifestInit,
-	resolveManifestSourceFrom,
-	resolveSessionReportURL,
-} from './manifest-init';
-export type {
-	FetchGvl,
-	RequestSource,
-	ResolvedInitOutput,
-	SessionReportTarget,
-} from './manifest-init';
+export { resolveManifestSourceFrom } from './manifest-init';
+export type { FetchGvl, RequestSource } from './manifest-init';
 export {
 	clearManifestCache,
 	createManifestRequestURL,
@@ -37,5 +28,4 @@ export type {
 	CachedManifestResponse,
 	FetchCachedManifestOptions,
 	ManifestFetch,
-	ManifestSourceConfig,
 } from '@c15t/core/server';

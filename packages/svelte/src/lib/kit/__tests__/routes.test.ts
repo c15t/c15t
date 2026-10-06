@@ -1,463 +1,152 @@
+/**
+ * Wiring of `@c15t/svelte/kit` onto the core consent route handler. The
+ * route behaviour itself is pinned once, in
+ * `packages/core/src/server/__tests__/consent-route.test.ts`.
+ */
 import { clearManifestCache } from '@c15t/core/server';
-import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
+import type { RequestEvent } from '@sveltejs/kit';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createSvelteKitConsentRouteHandlers } from '../routes';
 import { createEvent } from './event';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
-const manifestResponse = function manifestResponse(
-	headers: Record<string, string> = {}
-): Response {
-	return new Response(JSON.stringify(MANIFEST_FIXTURE), {
-		headers: { 'content-type': 'application/json', ...headers },
-		status: 200,
-	});
-};
+const BACKEND = 'https://consent.example.com';
+const ROUTE_ID = '/api/c15t/[...path]';
 
-describe('createSvelteKitConsentRouteHandlers', () => {
-	beforeEach(() => {
-		clearManifestCache();
-	});
-
-	describe('background revalidation', () => {
-		test("hands a stale read's refresh to onBackgroundRevalidate", async () => {
-			vi.useFakeTimers();
-			try {
-				const fetchImpl = vi.fn(() =>
-					Promise.resolve(
-						manifestResponse({
+const upstream = () =>
+	vi.fn<typeof globalThis.fetch>().mockImplementation((input) =>
+		Promise.resolve(
+			String(input).endsWith('/manifest')
+				? Response.json(MANIFEST_FIXTURE, {
+						headers: {
 							'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
-							etag: '"rev-1"',
-						})
-					)
-				);
-				const registered: { refresh: Promise<void>; url: string }[] = [];
-				const { manifest } = createSvelteKitConsentRouteHandlers({
-					backendURL: 'https://api.example.com',
-					fetch: fetchImpl,
-					onBackgroundRevalidate: (refresh, event) => {
-						// The event is passed so a module-scope factory can still
-						// reach a per-request platform handle.
-						registered.push({ refresh, url: event.url.pathname });
-					},
-				});
-
-				await manifest(
-					createEvent({ url: 'http://localhost/api/c15t/manifest' })
-				);
-				expect(registered).toHaveLength(0);
-
-				vi.advanceTimersByTime(1500);
-				await manifest(
-					createEvent({ url: 'http://localhost/api/c15t/manifest' })
-				);
-				expect(registered).toHaveLength(1);
-				expect(registered[0]?.url).toBe('/api/c15t/manifest');
-				await expect(registered[0]?.refresh).resolves.toBeUndefined();
-				expect(fetchImpl).toHaveBeenCalledTimes(2);
-			} finally {
-				vi.useRealTimers();
-			}
-		});
-
-		test('defaults to event.platform.context.waitUntil when the adapter provides one', async () => {
-			vi.useFakeTimers();
-			try {
-				const fetchImpl = vi.fn(() =>
-					Promise.resolve(
-						manifestResponse({
-							'cache-control': 'public, s-maxage=1, stale-while-revalidate=600',
-							etag: '"rev-1"',
-						})
-					)
-				);
-				const registered: Promise<unknown>[] = [];
-				const { manifest } = createSvelteKitConsentRouteHandlers({
-					backendURL: 'https://api.example.com',
-					fetch: fetchImpl,
-				});
-				const platformEvent = () => {
-					const event = createEvent();
-					(event as { platform?: unknown }).platform = {
-						context: {
-							waitUntil: (promise: Promise<unknown>) => {
-								registered.push(promise);
-							},
 						},
-					};
-					return event;
-				};
+					})
+				: Response.json({ ok: true }, { status: 201 })
+		)
+	);
 
-				await manifest(platformEvent());
-				expect(registered).toHaveLength(0);
-
-				vi.advanceTimersByTime(1500);
-				await manifest(platformEvent());
-				expect(registered).toHaveLength(1);
-				await expect(registered[0]).resolves.toBeUndefined();
-				expect(fetchImpl).toHaveBeenCalledTimes(2);
-			} finally {
-				vi.useRealTimers();
-			}
-		});
+const restEvent = (
+	path: string,
+	init: Parameters<typeof createEvent>[0] = {}
+): RequestEvent =>
+	createEvent({
+		...init,
+		route: { id: ROUTE_ID, params: { path } },
+		url: `https://shop.example/api/c15t/${path}`,
 	});
 
-	describe('init route', () => {
-		test('resolves the policy locally from the manifest', async () => {
-			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: fetchImpl,
-			});
-
-			const response = await init(
-				createEvent({ headers: { 'x-c15t-country': 'DE' } })
-			);
-			const payload = await response.json();
-
-			expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-				'https://api.example.com/manifest'
-			);
-			expect(payload.policyResolution.policy.id).toBe('eu-opt-in');
-			expect(payload.location).toEqual({ countryCode: 'DE', regionCode: null });
-		});
-
-		test('reports the resolved session to the backend, detached', async () => {
-			const fetchImpl = vi.fn(() =>
-				Promise.resolve(manifestResponse())
-			) as unknown as typeof globalThis.fetch & ReturnType<typeof vi.fn>;
-			const registered: Promise<void>[] = [];
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: fetchImpl,
-				onBackgroundRevalidate: (task) => {
-					registered.push(task);
-				},
-			});
-
-			await init(
-				createEvent({
-					headers: {
-						cookie: 'c15t=secret',
-						'user-agent': 'Mozilla/5.0',
-						'x-c15t-country': 'DE',
-						'x-forwarded-for': '203.0.113.42',
-					},
-				})
-			);
-			expect(registered).toHaveLength(1);
-			await registered[0];
-
-			const report = fetchImpl.mock.calls.find(
-				([url]: [string]) => url === 'https://api.example.com/sessions'
-			);
-			expect(report).toBeDefined();
-			const requestInit = report?.[1] as RequestInit;
-			const headers = requestInit.headers as Record<string, string>;
-			expect(headers['x-c15t-client-ip']).toBe('203.0.113.42');
-			expect(headers).not.toHaveProperty('cookie');
-			expect(JSON.parse(requestInit.body as string)).toMatchObject({
-				adapter: '@c15t/svelte',
-				country: 'DE',
-				policy: { id: 'eu-opt-in' },
-				source: 'route',
-			});
-		});
-
-		test('a HEAD probe sends no report', async () => {
-			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: fetchImpl as unknown as typeof globalThis.fetch,
-			});
-			const event = createEvent({ url: 'http://localhost/api/c15t/init' });
-			(event as { request: Request }).request = new Request(event.url, {
-				method: 'HEAD',
-			});
-			await init(event);
-			await new Promise<void>((resolve) => {
-				setTimeout(resolve, 0);
-			});
-			expect(
-				fetchImpl.mock.calls.some(
-					([url]: [string]) => url === 'https://api.example.com/sessions'
-				)
-			).toBe(false);
-		});
-
-		test('sends no report when reportSessions is false', async () => {
-			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: fetchImpl,
-				reportSessions: false,
-			});
-			await init(createEvent({ headers: { 'x-c15t-country': 'DE' } }));
-			expect(fetchImpl).toHaveBeenCalledTimes(1);
-		});
-
-		test('is never shared-cached — it varies per request', async () => {
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: () => Promise.resolve(manifestResponse()),
-			});
-
-			const response = await init(createEvent());
-
-			expect(response.headers.get('cache-control')).toBe('private, no-store');
-		});
-
-		test('echoes the resolved inputs so SSR does not drop GPC', async () => {
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: () => Promise.resolve(manifestResponse()),
-			});
-
-			const response = await init(
-				createEvent({
-					headers: {
-						'accept-language': 'de-DE,de;q=0.9',
-						'sec-gpc': '1',
-						'x-c15t-country': 'DE',
-					},
-				})
-			);
-			const payload = await response.json();
-
-			expect(payload.resolvedPrivacySignals).toEqual({ gpc: true });
-			expect(payload.resolvedOverrides).toEqual({
-				country: 'DE',
-				language: 'de',
-			});
-		});
-
-		test('falls back to the default pack for an unmatched country', async () => {
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: 'https://api.example.com',
-				fetch: () => Promise.resolve(manifestResponse()),
-			});
-
-			const response = await init(
-				createEvent({ headers: { 'x-c15t-country': 'JP' } })
-			);
-			const payload = await response.json();
-
-			expect(payload.policyResolution.policy.id).toBe('notice-default');
-		});
-
-		test('fetches a relative backendURL in-process through event.fetch', async () => {
-			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-			const eventFetch = vi.fn(() => Promise.resolve(manifestResponse()));
-			const { init } = createSvelteKitConsentRouteHandlers({
-				backendURL: '/api/self-host',
-				fetch: fetchImpl,
-			});
-
-			await init(
-				createEvent({
-					fetch: eventFetch as unknown as typeof globalThis.fetch,
-					headers: { host: 'attacker.example' },
-					url: 'http://attacker.example/api/c15t',
-				})
-			);
-
-			expect(fetchImpl).not.toHaveBeenCalled();
-			expect(eventFetch.mock.calls[0]?.[0]).toBe('/api/self-host/manifest');
-		});
-
-		describe('explicit configuration', () => {
-			afterEach(() => {
-				vi.unstubAllEnvs();
-			});
-
-			test('throws without backendURL or manifestURL, even when the old environment variables are set', async () => {
-				vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
-				vi.stubEnv('C15T_MANIFEST_URL', 'https://env.example.com/manifest');
-				const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-				const { init, manifest } = createSvelteKitConsentRouteHandlers({
-					fetch: fetchImpl,
-				});
-
-				await expect(init(createEvent())).rejects.toThrow(
-					'@c15t/svelte/kit: pass backendURL or manifestURL.'
-				);
-				await expect(
-					manifest(
-						createEvent({ url: 'https://app.example.com/api/c15t/manifest' })
-					)
-				).rejects.toThrow('@c15t/svelte/kit: pass backendURL or manifestURL.');
-				expect(fetchImpl).not.toHaveBeenCalled();
-			});
-
-			test('the proxy ignores C15T_BACKEND_URL', async () => {
-				vi.stubEnv('C15T_BACKEND_URL', 'https://env.example.com');
-				const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-				const { POST } = createSvelteKitConsentRouteHandlers({
-					fetch: fetchImpl,
-					manifestURL: 'https://api.example.com/manifest',
-					proxy: true,
-				});
-
-				await expect(
-					POST(
-						createEvent({
-							method: 'POST',
-							url: 'https://app.example.com/api/c15t/subjects',
-						})
-					)
-				).rejects.toThrow('@c15t/svelte/kit: pass backendURL to use proxy.');
-				expect(fetchImpl).not.toHaveBeenCalled();
-			});
-		});
-	});
-
-	describe('manifest route', () => {
-		test('forwards the backend cache headers verbatim', async () => {
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				fetch: () =>
-					Promise.resolve(
-						manifestResponse({
-							'cache-control':
-								'public, s-maxage=300, stale-while-revalidate=86400',
-							etag: '"rev-1"',
-						})
-					),
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			const response = await manifest(createEvent());
-
-			expect(response.headers.get('cache-control')).toBe(
-				'public, s-maxage=300, stale-while-revalidate=86400'
-			);
-			expect(response.headers.get('etag')).toBe('"rev-1"');
-			expect(await response.json()).toEqual(MANIFEST_FIXTURE);
-		});
-
-		test('answers a matching If-None-Match with 304 and no body', async () => {
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				fetch: () =>
-					Promise.resolve(
-						manifestResponse({
-							'cache-control': 'public, s-maxage=300',
-							etag: '"rev-1"',
-						})
-					),
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			const response = await manifest(
-				createEvent({ headers: { 'if-none-match': '"rev-1"' } })
-			);
-
-			expect(response.status).toBe(304);
-			expect(response.headers.get('etag')).toBe('"rev-1"');
-			expect(await response.text()).toBe('');
-		});
-
-		test('forwards the language query to the backend', async () => {
-			const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				fetch: fetchImpl,
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			await manifest(
-				createEvent({
-					url: 'http://localhost:5173/api/c15t/manifest?language=de',
-				})
-			);
-
-			expect(fetchImpl.mock.calls[0]?.[0]).toBe(
-				'https://api.example.com/manifest?language=de'
-			);
-		});
-
-		test('serves a second request from the in-process cache', async () => {
-			const fetchImpl = vi.fn(() =>
-				Promise.resolve(
-					manifestResponse({ 'cache-control': 'public, s-maxage=300' })
-				)
-			);
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				fetch: fetchImpl,
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			await manifest(createEvent());
-			await manifest(createEvent());
-
-			expect(fetchImpl).toHaveBeenCalledOnce();
-		});
-
-		test('surfaces a backend failure', async () => {
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				fetch: () => Promise.resolve(new Response('nope', { status: 503 })),
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			await expect(manifest(createEvent())).rejects.toThrow(/503/u);
-		});
-	});
-
-	describe('GET dispatcher', () => {
-		test('routes /manifest to the manifest handler', async () => {
-			const { GET } = createSvelteKitConsentRouteHandlers({
-				fetch: () => Promise.resolve(manifestResponse({ etag: '"rev-1"' })),
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			const response = await GET(
-				createEvent({ url: 'http://localhost:5173/api/c15t/manifest' })
-			);
-
-			expect(response.headers.get('etag')).toBe('"rev-1"');
-		});
-
-		test('routes everything else to the init handler', async () => {
-			const { GET } = createSvelteKitConsentRouteHandlers({
-				fetch: () => Promise.resolve(manifestResponse()),
-				manifestURL: 'https://api.example.com/manifest',
-			});
-
-			const response = await GET(
-				createEvent({ url: 'http://localhost:5173/api/c15t' })
-			);
-
-			expect(response.headers.get('cache-control')).toBe('private, no-store');
-		});
-	});
+beforeEach(() => {
+	clearManifestCache();
 });
 
-afterEach(() => vi.restoreAllMocks());
-
-test.each([false, true])(
-	'forwards adjusted Age on manifest responses, conditional=%s',
-	async (conditional) => {
-		clearManifestCache();
-		const clock = vi.spyOn(Date, 'now').mockReturnValue(0);
-		const fetch = vi.fn(() =>
-			Promise.resolve(
-				manifestResponse({
-					age: '55',
-					'cache-control': 's-maxage=60',
-					etag: '"v1"',
+describe('createSvelteKitConsentRouteHandlers', () => {
+	test('returns GET, init and manifest, and the write methods with proxy on', () => {
+		expect(
+			Object.keys(
+				createSvelteKitConsentRouteHandlers({ backendURL: BACKEND })
+			).sort()
+		).toEqual(['GET', 'init', 'manifest']);
+		expect(
+			Object.keys(
+				createSvelteKitConsentRouteHandlers({
+					backendURL: BACKEND,
+					proxy: true,
 				})
-			)
-		);
-		const { manifest } = createSvelteKitConsentRouteHandlers({
+			).sort()
+		).toEqual([
+			'DELETE',
+			'GET',
+			'OPTIONS',
+			'PATCH',
+			'POST',
+			'PUT',
+			'init',
+			'manifest',
+			'proxy',
+		]);
+	});
+
+	test('GET dispatches on the rest parameter, or the path of a fixed route', async () => {
+		const fetch = upstream();
+		const { GET } = createSvelteKitConsentRouteHandlers({
+			backendURL: BACKEND,
 			fetch,
-			manifestURL: 'https://age.example/manifest',
+			reportSessions: false,
 		});
-		const first = await manifest(createEvent());
-		expect(first.headers.get('age')).toBe('55');
-		clock.mockReturnValue(2000);
-		const second = await manifest(
-			createEvent({ headers: conditional ? { 'if-none-match': '"v1"' } : {} })
+		const manifest = await GET(restEvent('manifest'));
+		const root = await GET(restEvent(''));
+		const fixed = await GET(
+			createEvent({ url: 'https://shop.example/api/c15t/manifest' })
 		);
-		expect(second.status).toBe(conditional ? 304 : 200);
-		expect(second.headers.get('age')).toBe('57');
-		expect(second.headers.get('cache-control')).toBe('s-maxage=60');
-		expect(fetch).toHaveBeenCalledTimes(1);
-	}
-);
+		expect(manifest.headers.get('cache-control')).toContain('s-maxage=1');
+		expect(root.headers.get('cache-control')).toBe('private, no-store');
+		expect(fixed.headers.get('cache-control')).toContain('s-maxage=1');
+	});
+
+	test('fetches a relative backend in-process through event.fetch', async () => {
+		const eventFetch = upstream();
+		const { init } = createSvelteKitConsentRouteHandlers({
+			backendURL: '/api/self-host',
+			reportSessions: false,
+		});
+		await init(
+			createEvent({
+				fetch: eventFetch,
+				headers: { host: 'evil.example' },
+				url: 'https://shop.example/api/c15t/init',
+			})
+		);
+		expect(eventFetch).toHaveBeenCalledWith(
+			'/api/self-host/manifest',
+			expect.anything()
+		);
+	});
+
+	test('hands detached work to platform.context.waitUntil by default', async () => {
+		vi.useFakeTimers();
+		try {
+			const fetch = upstream();
+			const waitUntil = vi.fn();
+			const { manifest } = createSvelteKitConsentRouteHandlers({
+				backendURL: BACKEND,
+				fetch,
+			});
+			const event = () =>
+				Object.assign(restEvent('manifest'), {
+					platform: { context: { waitUntil } },
+				});
+			await manifest(event());
+			vi.advanceTimersByTime(1500);
+			await manifest(event());
+			expect(waitUntil).toHaveBeenCalledTimes(1);
+			expect(waitUntil.mock.contexts[0]).toEqual({ waitUntil });
+		} finally {
+			vi.useRealTimers();
+		}
+	});
+
+	test('the proxy vouches for the hop chain with event.getClientAddress()', async () => {
+		const fetch = upstream();
+		const { POST } = createSvelteKitConsentRouteHandlers({
+			backendURL: BACKEND,
+			fetch,
+			proxy: true,
+		});
+		const response = await POST(
+			restEvent('subjects', {
+				body: '{}',
+				clientAddress: '203.0.113.7',
+				headers: { 'x-forwarded-for': '198.51.100.1' },
+				method: 'POST',
+			})
+		);
+		expect(response.status).toBe(201);
+		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
+		expect(fetch.mock.calls[0]?.[0]).toBe(`${BACKEND}/subjects`);
+		expect(headers.get('x-forwarded-for')).toBe('203.0.113.7');
+		expect(headers.get('x-forwarded-host')).toBe('shop.example');
+		expect(headers.get('x-c15t-proxy')).toBe('@c15t/svelte');
+	});
+});

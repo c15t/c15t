@@ -57,7 +57,7 @@ keeps functions.
 | `geoURL` | Unset | Client mode only. An endpoint that returns `{ country, region }` for the visitor. |
 | `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
 | `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
-| `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` waits as long as the backend takes. |
+| `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` or `Infinity` waits as long as the backend takes; any other value that is not a finite, non-negative number uses the default. |
 | `reportSessions` | `true` | Server mode only. The init route reports each visitor it resolves to the backend, so Inth counts visitors it never served `/init` to. Needs an absolute `backendURL`. |
 
 [Rendering and deployment](/docs/frameworks/nuxt/rendering) explains which

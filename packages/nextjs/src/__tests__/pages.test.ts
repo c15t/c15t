@@ -3,7 +3,7 @@
  * `getServerSideProps` and `pages/api` routes use the server helpers and
  * route handlers built for the App Router.
  */
-import { clearManifestCache } from '@c15t/core/libs/manifest-cache';
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -165,11 +165,11 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 		);
 
 		const config = await resolveConsent({
-			backendURL: '/api/c15t',
+			backendURL: '/api/self-host',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			req: {
 				headers: {
-					cookie: 'sess=abc',
+					cookie: 'sess=abc; c15t=stored',
 					host: 'app.example.com',
 					'x-forwarded-proto': 'https',
 					'x-vercel-ip-country': 'DE',
@@ -179,9 +179,10 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
-		expect(url).toBe('https://app.example.com/api/c15t/init');
+		expect(url).toBe('https://app.example.com/api/self-host/init');
 		const headers = (init as RequestInit).headers as Record<string, string>;
-		expect(headers.cookie).toBe('sess=abc');
+		// The consent cookie alone, never the site's session cookies.
+		expect(headers.cookie).toBe('c15t=stored');
 		expect(headers['x-c15t-country']).toBe('DE');
 		expect(config.initialPolicyResolution?.policy?.id).toBe('gdpr');
 		expect(config.initialLocation).toEqual({
@@ -215,6 +216,39 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 		const [url] = fetchSpy.mock.calls[0] ?? [];
 		expect(url).toBe('https://app.example.com/api/consent/manifest');
 		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+	});
+
+	test('a /api/c15t backend prefix is asked for /init from getServerSideProps', async () => {
+		const fetchSpy = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
+			new Response(
+				JSON.stringify(
+					createInitOutput({
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						),
+					})
+				),
+				{ headers: { 'content-type': 'application/json' }, status: 200 }
+			)
+		);
+
+		const config = await resolveConsent({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy,
+			req: {
+				headers: {
+					host: 'app.example.com',
+					'x-forwarded-proto': 'https',
+					'x-vercel-ip-country': 'DE',
+				},
+			},
+		});
+
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			'https://app.example.com/api/c15t/init'
+		);
+		expect(config.initialPolicyResolution?.status).toBe('matched');
 	});
 });
 
@@ -393,15 +427,14 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			},
 		});
 
-		// The init route also reports its session to the backend, detached.
+		// The render reads what the manifest route reads, through the same
+		// process cache entry, instead of fetching its own route. Session
+		// reports go to the backend, detached.
 		expect(
 			fetchSpy.mock.calls
 				.map(([url]) => url)
 				.filter((url) => !String(url).endsWith('/sessions'))
-		).toEqual([
-			'https://consent.example.com/api/c15t/manifest',
-			'https://app.example.com/api/consent/manifest',
-		]);
+		).toEqual(['https://consent.example.com/api/c15t/manifest']);
 		expect(sink.res.statusCode).toBe(200);
 		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
 	});

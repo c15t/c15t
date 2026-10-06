@@ -1,27 +1,16 @@
 /**
- * Coverage for the Nitro server routes the module injects in manifest mode.
- *
- * These are the pieces that decide whether the manifest is edge-cacheable and
- * whether a relative `backendURL` resolves at all — both silent failures if
- * they regress, since the app still renders either way.
+ * Wiring of the Nitro server routes onto the core consent route handler:
+ * h3 to Web `Request` and back, runtime config, Nitro's in-process fetch,
+ * and the preset's `waitUntil`. The route behaviour itself is pinned once,
+ * in `packages/core/src/server/__tests__/consent-route.test.ts`.
  */
+import { CONSENT_ROUTE_TIMEOUT_HEADER } from '@c15t/core/server';
+import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
 import type { ConsentManifest } from '@c15t/schema/types';
-import {
-	buildConsentManifestFromConfig,
-	createConsentManifestPolicyPack,
-	policyRulePresets,
-	resolvePolicyRules,
-	writePolicyResolutionWire,
-} from '@c15t/schema/types';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { createApp, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { resolveNuxtTimeoutMs } from '../runtime/manifest';
-import {
-	clearManifestRouteCache,
-	fetchCachedManifest,
-	MANIFEST_DEDUPE_TTL_SECONDS,
-} from '../runtime/server/manifest-mode';
 import {
 	createInitRoute,
 	createManifestRoute,
@@ -106,14 +95,14 @@ const callInitRoute = callRoute(
 );
 
 beforeEach(() => {
-	clearManifestRouteCache();
+	clearManifestCache();
 	mocks.useRuntimeConfig.mockReturnValue({
 		public: { c15t: { backendURL: '/api/self-host' } },
 	});
 });
 
 afterEach(() => {
-	clearManifestRouteCache();
+	clearManifestCache();
 	vi.clearAllMocks();
 });
 
@@ -222,32 +211,6 @@ describe('manifest route caching headers', () => {
 		expect(await response.json()).toMatchObject({ revision: 'rev-1' });
 	});
 
-	test('does not forward Vary — the body depends only on the URL', async () => {
-		// The backend pairs `Vary: Origin` with an `Access-Control-Allow-Origin`
-		// this route never passes through, so forwarding it would fragment the
-		// edge cache for nothing.
-		mocks.serverFetch.mockResolvedValue(
-			manifestResponse({
-				'cache-control': 'public, s-maxage=120',
-				etag: '"rev-1"',
-				vary: 'Origin',
-			})
-		);
-
-		const response = await callManifestRoute();
-
-		expect(response.headers.get('vary')).toBeNull();
-	});
-
-	test('invents no Cache-Control when the backend sends none', async () => {
-		mocks.serverFetch.mockResolvedValue(manifestResponse({ etag: '"rev-1"' }));
-
-		const response = await callManifestRoute();
-
-		expect(response.status).toBe(200);
-		expect(response.headers.get('cache-control')).toBeNull();
-	});
-
 	test('answers a matching If-None-Match with 304 and no body', async () => {
 		mocks.serverFetch.mockResolvedValue(
 			manifestResponse({
@@ -263,206 +226,8 @@ describe('manifest route caching headers', () => {
 	});
 });
 
-describe('fetchCachedManifest upstream dedupe', () => {
-	const config = { manifestURL: 'https://backend.example/manifest' };
-
-	test('dedupes for a short floor when the backend sends no Cache-Control', async () => {
-		// Regression: the route no longer uses `defineCachedEventHandler` (it
-		// stamped its own headers over the backend's), so the in-process cache
-		// is the only thing standing between an older backend and one upstream
-		// fetch per request.
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchMock = vi.fn(async () => manifestResponse({}));
-
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 2000 });
-
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-
-		await fetchCachedManifest({
-			config,
-			fetch: fetchMock,
-			now: 1000 + MANIFEST_DEDUPE_TTL_SECONDS * 1000 + 1,
-		});
-
-		expect(fetchMock).toHaveBeenCalledTimes(2);
-	});
-
-	test('honours an explicit no-store by never reusing the response', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchMock = vi.fn(async () =>
-			manifestResponse({ 'cache-control': 'no-store' })
-		);
-
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1001 });
-
-		expect(fetchMock).toHaveBeenCalledTimes(2);
-	});
-
-	test('prefers the backend s-maxage over the dedupe floor', async () => {
-		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.
-		const fetchMock = vi.fn(async () =>
-			manifestResponse({ 'cache-control': 'public, s-maxage=60' })
-		);
-
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 1000 });
-		// Well past the dedupe floor, well inside s-maxage.
-		await fetchCachedManifest({ config, fetch: fetchMock, now: 30_000 });
-
-		expect(fetchMock).toHaveBeenCalledTimes(1);
-	});
-});
-
 describe('init route', () => {
-	test('preserves a deferred list when falling back to upstream init', async () => {
-		const gvlReference = {
-			language: 'en',
-			summary: { items: ['Storage'], vendorCount: 2 },
-			url: '/vendor-list',
-			vendorListVersion: 42,
-		};
-		mocks.serverFetch
-			.mockResolvedValueOnce(new Response(null, { status: 404 }))
-			.mockResolvedValueOnce(
-				Response.json(
-					{
-						cmpId: 28,
-						gvlReference,
-						location: { countryCode: 'DE', regionCode: null },
-						policyResolution: writePolicyResolutionWire(
-							resolvePolicyRules({
-								countryCode: 'DE',
-								regionCode: null,
-								rules: [
-									{
-										id: 'iab',
-										match: { isDefault: true },
-										model: 'iab',
-										prompt: 'choice',
-									},
-								],
-							})
-						),
-						translations: { language: 'en', translations: {} },
-					},
-					{ headers: { 'x-c15t-policy-contract': '1' } }
-				)
-			);
-		const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
-		expect(await response.json()).toMatchObject({ gvlReference });
-	});
-
-	test.each([
-		{ reason: 'transport', status: 'failed' },
-		{ status: 'no-match' },
-		{ status: 'unconfigured' },
-	])(
-		'clears stale proof after $status fallback resolution',
-		async (resolution) => {
-			mocks.serverFetch
-				.mockResolvedValueOnce(new Response('missing', { status: 404 }))
-				.mockResolvedValueOnce(
-					new Response(
-						JSON.stringify({
-							branding: 'c15t',
-							cmpId: 7,
-							customVendors: [{ id: 'stale' }],
-							gvl: { vendorListVersion: 1 },
-							location: { countryCode: 'DE', regionCode: null },
-							policy: { id: 'stale', model: 'iab' },
-							policyDecision: { policyId: 'stale' },
-							policyResolution: {
-								policy: null,
-								version: 1,
-								...resolution,
-							},
-							policySnapshotToken: 'stale-token',
-							subjectId: 'backend+literal',
-							translations: { language: 'en', translations: {} },
-						}),
-						{ headers: { 'x-c15t-policy-contract': '1' } }
-					)
-				);
-			const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
-			const body = await response.json();
-			expect(body.policyResolution.status).toBe(resolution.status);
-			for (const key of [
-				'policy',
-				'policyDecision',
-				'policySnapshotToken',
-				'gvl',
-				'cmpId',
-				'customVendors',
-			]) {
-				expect(body).not.toHaveProperty(key);
-			}
-			expect(body.branding).toBe('c15t');
-			expect(body.subjectId).toBe('backend+literal');
-			expect(body.translations.language).toBe('en');
-		}
-	);
-
-	test.each(['99', 'invalid', ''])(
-		'rejects unsupported client declaration %s',
-		async (contract) => {
-			mocks.serverFetch.mockResolvedValue(manifestResponse({}));
-			const response = await callInitRoute({
-				'x-c15t-policy-contract': contract,
-			});
-			expect(await response.json()).toMatchObject({
-				policyResolution: { reason: 'unsupported-contract', status: 'failed' },
-			});
-		}
-	);
-
-	test.each([
-		{
-			declaration: undefined,
-			reason: 'unsupported-contract',
-			status: 'failed',
-		},
-		{ declaration: '1', reason: 'invalid-payload', status: 'failed' },
-		{ declaration: '99', reason: 'unsupported-contract', status: 'failed' },
-		{
-			declaration: 'invalid',
-			reason: 'unsupported-contract',
-			status: 'failed',
-		},
-	])(
-		'negotiates fallback producer $declaration',
-		async ({ declaration, status, reason }) => {
-			const headers = new Headers();
-			if (declaration !== undefined) {
-				headers.set('x-c15t-policy-contract', declaration);
-			}
-			mocks.serverFetch
-				.mockResolvedValueOnce(new Response('missing', { status: 404 }))
-				.mockResolvedValueOnce(
-					new Response(
-						JSON.stringify({
-							location: { countryCode: 'DE', regionCode: null },
-							policy: { id: 'legacy', model: 'opt-in', ui: { mode: 'banner' } },
-							translations: { language: 'en', translations: {} },
-						}),
-						{ headers }
-					)
-				);
-			const response = await callInitRoute({ 'x-c15t-policy-contract': '1' });
-			expect(response.headers.get('x-c15t-policy-contract')).toBe('1');
-			const body = await response.json();
-			expect(body.policyResolution.status).toBe(status);
-			expect(body.policyResolution.reason).toBe(reason);
-			expect(mocks.serverFetch).toHaveBeenLastCalledWith(
-				'/api/self-host/init',
-				expect.objectContaining({
-					headers: expect.objectContaining({ 'x-c15t-policy-contract': '1' }),
-				})
-			);
-		}
-	);
-
-	test('resolves geo locally from the manifest and never caches the answer', async () => {
+	test('resolves from the manifest read through serverFetch for a relative backendURL', async () => {
 		mocks.serverFetch.mockResolvedValue(
 			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
 		);
@@ -470,94 +235,16 @@ describe('init route', () => {
 		const response = await callInitRoute({ 'x-c15t-country': 'DE' });
 
 		expect(response.headers.get('cache-control')).toBe('private, no-store');
+		expect(response.headers.get('x-c15t-policy-contract')).toBe('1');
 		expect(await response.json()).toMatchObject({
 			location: { countryCode: 'DE' },
-			policyResolution: { policy: { id: 'eu-opt-in' }, status: 'matched' },
+			policyResolution: { policyId: 'eu-opt-in' },
 		});
-		// Resolved from the manifest — no `/init` round trip to the backend.
-		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
-		expect(mocks.serverFetch.mock.calls[0]?.[0]).toContain('/manifest');
-	});
-
-	test('reports the resolved session to an absolute backend, detached', async () => {
-		mocks.useRuntimeConfig.mockReturnValue({
-			public: { c15t: { backendURL: 'https://consent.example.com' } },
-		});
-		mocks.serverFetch.mockImplementation((input: string) =>
-			Promise.resolve(
-				input.endsWith('/sessions')
-					? new Response(null, { status: 204 })
-					: manifestResponse({ 'cache-control': 'public, s-maxage=120' })
-			)
+		expect(mocks.serverFetch).toHaveBeenCalledWith(
+			'/api/self-host/manifest',
+			expect.anything()
 		);
-		const registered: Promise<void>[] = [];
-		const call = callRoute(
-			'/api/c15t/init',
-			createInitRoute({
-				...routeDependencies,
-				onBackgroundRevalidate: (task) => {
-					registered.push(task);
-				},
-			})
-		);
-
-		const response = await call({
-			'user-agent': 'Mozilla/5.0',
-			'x-c15t-country': 'DE',
-			'x-forwarded-for': '203.0.113.42',
-		});
-		expect(response.status).toBe(200);
-		expect(registered).toHaveLength(1);
-		await registered[0];
-
-		const report = mocks.serverFetch.mock.calls.find(
-			([url]) => url === 'https://consent.example.com/sessions'
-		);
-		expect(report).toBeDefined();
-		const init = report?.[1] as RequestInit;
-		expect((init.headers as Record<string, string>)['x-c15t-client-ip']).toBe(
-			'203.0.113.42'
-		);
-		expect(JSON.parse(init.body as string)).toMatchObject({
-			adapter: '@c15t/vue',
-			country: 'DE',
-			source: 'route',
-		});
-	});
-
-	test('a HEAD probe sends no report', async () => {
-		mocks.useRuntimeConfig.mockReturnValue({
-			public: { c15t: { backendURL: 'https://consent.example.com' } },
-		});
-		mocks.serverFetch.mockResolvedValue(
-			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
-		);
-		const app = createApp();
-		(app.use as unknown as MountRoute)(
-			'/api/c15t/init',
-			createInitRoute(routeDependencies)
-		);
-		const response = await toWebHandler(app)(
-			new Request('http://localhost/api/c15t/init', { method: 'HEAD' })
-		);
-		expect(response.status).toBe(200);
-		await new Promise<void>((resolve) => {
-			setTimeout(resolve, 0);
-		});
-		expect(
-			mocks.serverFetch.mock.calls.some(
-				([url]) => url === 'https://consent.example.com/sessions'
-			)
-		).toBe(false);
-	});
-
-	test('sends no report for a relative backendURL', async () => {
-		// The default config points at the app's own proxy; a report through
-		// it would count the visitor twice and cannot be fetched server-side.
-		mocks.serverFetch.mockResolvedValue(
-			manifestResponse({ 'cache-control': 'public, s-maxage=120' })
-		);
-		await callInitRoute({ 'x-c15t-country': 'DE' });
+		// A relative backend is this app's own proxy: no session report.
 		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
 	});
 
@@ -607,6 +294,37 @@ describe('init route', () => {
 			})
 		);
 	});
+
+	test('private runtime config wins over the public one', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			c15t: { backendURL: 'https://private.example' },
+			public: { c15t: { backendURL: '/api/self-host' } },
+		});
+		mocks.serverFetch.mockResolvedValue(manifestResponse({}));
+
+		await callInitRoute();
+
+		expect(mocks.serverFetch.mock.calls[0]?.[0]).toBe(
+			'https://private.example/manifest'
+		);
+	});
+
+	test('honours the render budget the SSR plugin sends', async () => {
+		mocks.serverFetch.mockImplementation(
+			(_url: string, init?: RequestInit) =>
+				new Promise((_resolve, reject) => {
+					init?.signal?.addEventListener('abort', () =>
+						reject(init.signal?.reason)
+					);
+				})
+		);
+		const startedAt = Date.now();
+		const response = await callInitRoute({
+			[CONSENT_ROUTE_TIMEOUT_HEADER]: '20',
+		});
+		expect(response.ok).toBe(false);
+		expect(Date.now() - startedAt).toBeLessThan(2000);
+	});
 });
 
 describe('serverFetch', () => {
@@ -626,153 +344,5 @@ describe('serverFetch', () => {
 		expect(mocks.localFetch).toHaveBeenCalledWith('/api/self-host/manifest', {
 			method: 'GET',
 		});
-	});
-});
-
-describe('init route with a slow or failing backend', () => {
-	const initOutput = () =>
-		Response.json(
-			{
-				branding: 'c15t',
-				location: { countryCode: 'DE', regionCode: null },
-				policyResolution: writePolicyResolutionWire(
-					resolvePolicyRules({
-						countryCode: 'DE',
-						regionCode: null,
-						rules: [
-							{
-								id: 'eu',
-								match: { isDefault: true },
-								model: 'opt-in',
-								prompt: 'choice',
-							},
-						],
-					})
-				),
-				translations: { language: 'en', translations: {} },
-			},
-			{ headers: { 'x-c15t-policy-contract': '1' } }
-		);
-
-	test('answers within the render budget header without falling back to /init', async () => {
-		mocks.serverFetch.mockImplementation(
-			(_url: string, init?: RequestInit) =>
-				new Promise((_resolve, reject) => {
-					init?.signal?.addEventListener('abort', () =>
-						reject(init.signal?.reason)
-					);
-				})
-		);
-		const startedAt = Date.now();
-		const response = await callInitRoute({ 'x-c15t-timeout-ms': '20' });
-		expect(response.ok).toBe(false);
-		expect(Date.now() - startedAt).toBeLessThan(2000);
-		expect(mocks.serverFetch).toHaveBeenCalledTimes(1);
-	});
-
-	test('sends a fractional timeoutMs as a budget header the route accepts', () => {
-		expect(String(resolveNuxtTimeoutMs({ timeoutMs: 500.5 }))).toBe('500');
-	});
-
-	test('bounds the /init fallback by the render budget', async () => {
-		// Nitro's in-process fetch drops the abort signal, so a hanging /init
-		// must be bounded by the route itself.
-		mocks.serverFetch.mockImplementation((url: string) =>
-			url.endsWith('/manifest')
-				? Promise.resolve(new Response('missing', { status: 404 }))
-				: new Promise(() => {
-						// Never answers.
-					})
-		);
-		const startedAt = Date.now();
-		const response = await callInitRoute({
-			'x-c15t-policy-contract': '1',
-			'x-c15t-timeout-ms': '50',
-		});
-		expect(response.ok).toBe(false);
-		expect(Date.now() - startedAt).toBeLessThan(2000);
-		expect(mocks.serverFetch).toHaveBeenLastCalledWith(
-			'/api/self-host/init',
-			expect.objectContaining({ signal: expect.any(AbortSignal) })
-		);
-	});
-
-	test('bounds the vendor list by the render budget and keeps it filling', async () => {
-		const gvlURL = 'https://vendors.example/budget-list.json';
-		const manifest = await buildConsentManifestFromConfig({
-			branding: 'c15t',
-			iab: { cmpId: 28, enabled: true },
-			policyRules: [policyRulePresets.europeIab()],
-		});
-		if (!manifest.iab) {
-			throw new Error('Expected an IAB manifest');
-		}
-		manifest.iab.gvl = { url: gvlURL };
-		let finishList: (response: Response) => void = () => undefined;
-		mocks.serverFetch.mockImplementation((url: string) =>
-			url === gvlURL
-				? new Promise<Response>((resolve) => {
-						finishList = resolve;
-					})
-				: Promise.resolve(Response.json(manifest))
-		);
-		const registered: Promise<void>[] = [];
-		const call = callRoute(
-			'/api/c15t/init',
-			createInitRoute({
-				...routeDependencies,
-				onBackgroundRevalidate: (task) => {
-					registered.push(task);
-				},
-			})
-		);
-		const startedAt = Date.now();
-		const response = await call({
-			'x-c15t-country': 'DE',
-			'x-c15t-policy-contract': '1',
-			'x-c15t-timeout-ms': '50',
-		});
-		expect(response.ok).toBe(false);
-		expect(Date.now() - startedAt).toBeLessThan(2000);
-		expect(mocks.serverFetch).toHaveBeenCalledWith(gvlURL, expect.anything());
-		// No /init fallback once the budget is gone.
-		expect(
-			mocks.serverFetch.mock.calls.some(([url]) =>
-				String(url).endsWith('/init')
-			)
-		).toBe(false);
-		expect(registered).toHaveLength(1);
-		finishList(Response.json({ vendorListVersion: 1 }));
-		await expect(registered[0]).resolves.toBeUndefined();
-	});
-
-	test('does not send every request to /init while the manifest backs off', async () => {
-		mocks.serverFetch.mockResolvedValue(
-			new Response('unavailable', { status: 503 })
-		);
-		const first = await callInitRoute();
-		const second = await callInitRoute();
-		expect(first.ok).toBe(false);
-		expect(second.ok).toBe(false);
-		// The first request tried the manifest and fell back to /init once.
-		expect(mocks.serverFetch).toHaveBeenCalledTimes(2);
-	});
-
-	test('keeps falling back to /init for a backend without /manifest', async () => {
-		mocks.serverFetch.mockImplementation((url: string) =>
-			Promise.resolve(
-				url.endsWith('/manifest')
-					? new Response('missing', { status: 404 })
-					: initOutput()
-			)
-		);
-		const first = await callInitRoute({ 'x-c15t-policy-contract': '1' });
-		const second = await callInitRoute({ 'x-c15t-policy-contract': '1' });
-		expect(first.ok).toBe(true);
-		expect(second.ok).toBe(true);
-		const initCalls = mocks.serverFetch.mock.calls.filter(([url]) =>
-			String(url).endsWith('/init')
-		);
-		expect(initCalls).toHaveLength(2);
 	});
 });

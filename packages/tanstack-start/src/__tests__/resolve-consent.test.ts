@@ -1,0 +1,152 @@
+/**
+ * Wiring tests for `resolveConsent` on top of `resolveRequestConsent` from
+ * `@c15t/core/server`. The resolution rules (forwarding, budget, self-route
+ * guard, deferral, shared renders) are pinned once in the core suite; these
+ * check what the TanStack Start adapter supplies: the request, the
+ * middleware's remembered inputs, the route prefix and the prerender flag.
+ */
+import { createManifestCache } from '@c15t/core/transports/manifest-cache';
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
+import { afterEach, describe, expect, test, vi } from 'vitest';
+
+import { rememberConsentInputs } from '../libs/request-inputs';
+import { createConsentStateHandler, resolveConsent } from '../server';
+import { MANIFEST_FIXTURE } from './manifest-fixture';
+
+const manifestFetch = () =>
+	vi.fn<typeof globalThis.fetch>(() =>
+		Promise.resolve(
+			new Response(JSON.stringify(MANIFEST_FIXTURE), {
+				headers: {
+					'cache-control': 'public, s-maxage=60',
+					'content-type': 'application/json',
+				},
+			})
+		)
+	);
+
+const requestOf = (headers: Record<string, string> = {}) =>
+	new Request('https://app.example.com/', { headers });
+
+afterEach(() => {
+	vi.unstubAllEnvs();
+});
+
+describe('resolveConsent wiring', () => {
+	test('resolves the backend manifest for the request', async () => {
+		const fetch = manifestFetch();
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			cache: createManifestCache(),
+			fetch,
+			reportSessions: false,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+		});
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://consent.example.com/manifest'
+		);
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+		expect(state).not.toHaveProperty('transport');
+	});
+
+	test('uses what consentRequestMiddleware remembered for the request', async () => {
+		const request = requestOf({ 'x-vercel-ip-country': 'US' });
+		rememberConsentInputs(request, { country: 'DE' });
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+			request,
+		});
+		expect(state.initialOverrides?.country).toBe('DE');
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+		});
+	});
+
+	test('never fetches its own route prefix and stays silent', async () => {
+		const fetch = manifestFetch();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const handler = createConsentStateHandler({
+			backendURL: '/consent',
+			cache: createManifestCache(),
+			fetch,
+			request: requestOf({ cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1' }),
+			routePrefix: '/consent',
+		});
+		const state = await handler();
+		expect(fetch).not.toHaveBeenCalled();
+		expect(state.initialRecords?.choice).toBeTruthy();
+		expect(state.initialPolicyResolution).toBeUndefined();
+		expect(warn).not.toHaveBeenCalled();
+		warn.mockRestore();
+	});
+
+	test('a prerender is a shared render: no visitor state, no prefetch', async () => {
+		vi.stubEnv('TSS_PRERENDERING', 'true');
+		const fetch = manifestFetch();
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			cache: createManifestCache(),
+			fetch,
+			request: requestOf({
+				cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
+				'x-vercel-ip-country': 'DE',
+			}),
+		});
+		expect(fetch).not.toHaveBeenCalled();
+		expect(state).toEqual({});
+	});
+
+	test('a deferred vendor list points at the route prefix when one is set', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<typeof globalThis.fetch>((input) =>
+				Promise.resolve(
+					new Response(
+						JSON.stringify(
+							String(input).includes('vendor-list')
+								? {
+										purposes: { '1': { id: 1, name: 'Store' } },
+										vendorListVersion: 7,
+										vendors: { '1': { id: 1, name: 'V', purposes: [1] } },
+									}
+								: {}
+						)
+					)
+				)
+			)
+		);
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			manifest: {
+				...MANIFEST_FIXTURE,
+				cmpId: 28,
+				iab: {
+					enabled: true,
+					gvl: { url: 'https://gvl.example/vendor-list.json' },
+				},
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						id: 'iab',
+						match: { fallback: true },
+						model: 'iab',
+						prompt: 'choice',
+					}),
+				],
+			} as unknown as typeof MANIFEST_FIXTURE,
+			reportSessions: false,
+			request: requestOf(),
+			routePrefix: '/api/consent',
+		});
+		vi.unstubAllGlobals();
+		expect(fetch).not.toHaveBeenCalled();
+		expect(state.initialIab?.gvlReference?.url).toMatch(
+			/^\/api\/consent\/init\?c15t-gvl=7/u
+		);
+	});
+});

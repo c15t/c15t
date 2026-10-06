@@ -31,6 +31,15 @@ because the build has no visitor. `hosted()` and `manifest()` leave the
 policy for the browser. `offline()` resolves it at build time, because it
 needs no request.
 
+In `hosted()` mode the render's `/init` request carries the resolved
+location, language and GPC, the `user-agent`, the mode's configured consent
+headers and, while the visitor has no stored choice, the experiment arm. Over
+`https` or to a loopback host it also carries the consent cookie, never the
+rest of the cookie jar; over plain HTTP to any other host it carries no
+cookie. The render never requests the integration's own init and manifest
+routes: a `hosted({ url })` or `manifest({ backendURL })` that resolves to
+them on the request's origin renders without a server decision.
+
 ## Type `Astro.locals.c15t`
 
 Add the middleware types to `src/env.d.ts`:
@@ -109,6 +118,12 @@ In `manifest()` mode the integration adds two on-demand routes:
 | --- | --- |
 | `GET /api/c15t/init` | The policy for this request, resolved from the cached manifest. The browser calls it on prerendered pages and after a failed server resolution |
 | `GET /api/c15t/manifest` | Your project's public policy file, proxied from the backend with its cache headers |
+
+The routes are the consent route handler from `@c15t/core/server`, shared
+with the Next.js, TanStack Start, SvelteKit and Nuxt adapters. A vendor list that cannot be loaded
+fails the init request rather than answering `gvl: null`, which the browser
+would read as "IAB is off". The manifest route passes upstream only a
+`language` query parameter that looks like a language tag.
 
 The server keeps the manifest in memory and refreshes it in the background.
 On Cloudflare, c15t hands that refresh to the adapter's `waitUntil`, so the

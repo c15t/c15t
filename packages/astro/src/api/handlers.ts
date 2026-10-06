@@ -1,41 +1,21 @@
 /**
  * Route handlers for `/api/c15t/init` and `/api/c15t/manifest`.
  *
- * Manifest mode moves policy resolution off the browser's critical path:
- * the host fetches one geo-independent, CDN-cacheable manifest and resolves
- * `/init` locally per request. These are the Astro handlers for that — the
- * same contract `createSvelteKitConsentRouteHandlers` and
- * `createNextConsentRouteHandlers` implement.
- *
- * Cache discipline:
- * - The manifest route forwards the backend's `Cache-Control`/`ETag`
- *   verbatim and answers `If-None-Match` with `304`. The edge caches it;
- *   this process only dedupes bursts (see `@c15t/core/server`).
- * - The init route is per-request (geo, language, GPC) and therefore
- *   `private, no-store`.
+ * The routes themselves live in `@c15t/core/server`
+ * (`createConsentRouteHandler`), shared with the Next.js, Nuxt, SvelteKit
+ * and TanStack Start adapters. This module mounts them for Astro: it maps
+ * the integration's resolved options onto the handler, applies the
+ * configured locale, and registers detached work with the adapter's
+ * `waitUntil` from `locals`.
  */
 
-import { serveGvlReference } from '@c15t/core';
-import {
-	fetchCachedGvl,
-	fetchCachedManifest,
-	getManifestAge,
-	MANIFEST_PASSTHROUGH_HEADERS,
-} from '@c15t/core/server';
+import { createConsentRouteHandler, readWaitUntil } from '@c15t/core/server';
 import type { ManifestFetch } from '@c15t/core/server';
 import { extractConsentRequestInputs } from '@c15t/schema/types';
 
 import type { C15tResolvedOptions } from '../types';
-import {
-	loadConsentManifest,
-	resolveManifestInit,
-	resolveManifestSourceFrom,
-	resolveSessionReportURL,
-} from './manifest-init';
+import { resolveManifestSourceFrom } from './manifest-init';
 import type { FetchGvl } from './manifest-init';
-
-const INIT_CACHE_CONTROL = 'private, no-store';
-const MANIFEST_ROUTE_SUFFIX = '/manifest';
 
 /**
  * The per-request context a route or the middleware can pass so a
@@ -47,8 +27,9 @@ export interface RequestLifetime {
 	locals?: unknown;
 }
 
-interface WaitUntilContext {
-	waitUntil?: unknown;
+interface AdapterLocals {
+	cfContext?: unknown;
+	runtime?: { ctx?: unknown };
 }
 
 /**
@@ -62,35 +43,13 @@ export const waitUntilFromLocals = function waitUntilFromLocals(
 	revalidation: Promise<void>,
 	locals: unknown
 ): void {
-	const adapterLocals = locals as
-		| { cfContext?: WaitUntilContext; runtime?: { ctx?: WaitUntilContext } }
-		| undefined;
+	const adapterLocals = locals as AdapterLocals | undefined;
 	// `cfContext` first: the Astro 6 adapter keeps a `runtime.ctx` getter that
 	// throws, so it is only read when there is no `cfContext`.
-	const cfContext = adapterLocals?.cfContext;
-	const ctx =
-		typeof cfContext?.waitUntil === 'function'
-			? cfContext
-			: adapterLocals?.runtime?.ctx;
-	if (typeof ctx?.waitUntil === 'function') {
-		(ctx.waitUntil as (promise: Promise<unknown>) => void).call(
-			ctx,
-			revalidation
-		);
-	}
-};
-
-const bindBackgroundRevalidate = function bindBackgroundRevalidate(
-	handlerOptions: ConsentRouteHandlerOptions,
-	lifetime: RequestLifetime | undefined
-): ((revalidation: Promise<void>) => void) | undefined {
-	if (handlerOptions.onBackgroundRevalidate) {
-		return handlerOptions.onBackgroundRevalidate;
-	}
-	if (!lifetime) {
-		return undefined;
-	}
-	return (revalidation) => waitUntilFromLocals(revalidation, lifetime.locals);
+	const waitUntil =
+		readWaitUntil(adapterLocals?.cfContext) ??
+		readWaitUntil(adapterLocals?.runtime?.ctx);
+	waitUntil?.(revalidation);
 };
 
 /** Options accepted by the route handler factory. */
@@ -101,15 +60,17 @@ export interface ConsentRouteHandlerOptions {
 	fetch?: ManifestFetch;
 	/**
 	 * Fetches the Global Vendor List when the resolved policy is IAB.
-	 * Defaults to a plain `GET` of the manifest's GVL reference.
+	 * Defaults to the shared server cache, with a deadline on the upstream
+	 * request.
 	 */
 	fetchGvl?: FetchGvl;
 	/**
-	 * Receives the promise of a background manifest revalidation started by
-	 * this request, so the host can keep it alive past the response on
-	 * runtimes that stop detached work once a response is sent (a platform
-	 * `waitUntil`, for example). The promise never rejects. Not called when
-	 * the manifest is fresh or the request itself waits on the upstream.
+	 * Receives the promise of detached work started by this request (a
+	 * background manifest revalidation, a session report), so the host can
+	 * keep it alive past the response on runtimes that stop detached work
+	 * once a response is sent (a platform `waitUntil`, for example). The
+	 * promise never rejects. Defaults to the adapter's `waitUntil` on
+	 * `locals` when the route passes them.
 	 */
 	onBackgroundRevalidate?: (revalidation: Promise<void>) => void;
 }
@@ -138,7 +99,8 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
  * Build the `init` and `manifest` route handlers.
  *
  * @param handlerOptions - Integration options plus test seams.
- * @returns `init`, `manifest`, and a `GET` that dispatches between them.
+ * @returns `init`, `manifest`, and a `GET` that dispatches between them by
+ * the last path segment.
  * @example
  * ```ts
  * // src/pages/api/c15t/init.ts
@@ -146,61 +108,57 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
  * import { createConsentRouteHandlers } from '@c15t/astro/api';
  *
  * const handlers = createConsentRouteHandlers({ options });
- * export const GET = ({ request }) => handlers.init(request);
+ * export const GET = ({ locals, request }) => handlers.init(request, { locals });
  * ```
  */
 export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	handlerOptions: ConsentRouteHandlerOptions
 ) {
+	const { mode, i18n } = handlerOptions.options;
+	const handle = createConsentRouteHandler({
+		adapter: '@c15t/astro',
+		backendURL:
+			(mode.type === 'manifest' ? mode.backendURL : undefined) ??
+			(mode.type === 'hosted' ? mode.url : undefined),
+		fetch: handlerOptions.fetch,
+		fetchGvl: handlerOptions.fetchGvl,
+		manifest: mode.type === 'manifest' ? mode.manifest : undefined,
+		manifestURL: mode.type === 'manifest' ? mode.manifestURL : undefined,
+		// Hosted mode counts its visitors through the backend's own `/init`.
+		reportSessions: mode.type === 'manifest' && mode.reportSessions !== false,
+	});
+	const locale = i18n?.locale;
+
+	const waitUntilFor = function waitUntilFor(
+		lifetime: RequestLifetime | undefined
+	): ((task: Promise<void>) => void) | undefined {
+		if (handlerOptions.onBackgroundRevalidate) {
+			return handlerOptions.onBackgroundRevalidate;
+		}
+		return lifetime
+			? (task) => waitUntilFromLocals(task, lifetime.locals)
+			: undefined;
+	};
+
 	/**
 	 * `GET /api/c15t/init` — a resolved `InitOutput`, never cached.
 	 *
 	 * @param request - The incoming request.
-	 * @param lifetime - The route's `{ locals }`, so a background manifest
-	 * refresh can be registered with the adapter's `waitUntil`.
+	 * @param lifetime - The route's `{ locals }`, so detached work can be
+	 * registered with the adapter's `waitUntil`.
 	 */
-	const init = async function init(
+	const init = function init(
 		request: Request,
 		lifetime?: RequestLifetime
 	): Promise<Response> {
-		const manifest = await loadConsentManifest({
-			fetch: handlerOptions.fetch,
-			onBackgroundRevalidate: bindBackgroundRevalidate(
-				handlerOptions,
-				lifetime
-			),
-			options: handlerOptions.options,
-			source: { headers: request.headers, url: request.url },
-		});
-		const listResponse = await serveGvlReference(request, (language) =>
-			manifest.iab?.gvl && !handlerOptions.fetch && !handlerOptions.fetchGvl
-				? fetchCachedGvl({ language, url: manifest.iab.gvl.url })
-				: Promise.resolve(null)
-		);
-		if (listResponse) {
-			return listResponse;
-		}
-		const payload = await resolveManifestInit({
-			fetch: handlerOptions.fetch,
-			fetchGvl: handlerOptions.fetchGvl,
-			gvlRoute: new URL(request.url).pathname,
+		return handle(request, {
 			// The same override the SSR path applies, so both resolve one
-			// language — and one set of GVL translations.
-			inputs: extractConsentRequestInputs(request.headers, {
-				language: handlerOptions.options.i18n?.locale,
-			}),
-			manifest,
-			report: {
-				backendURL: resolveSessionReportURL(handlerOptions.options),
-				headers: request.headers,
-				method: request.method,
-				source: 'route',
-				waitUntil: bindBackgroundRevalidate(handlerOptions, lifetime),
-			},
-		});
-
-		return Response.json(payload, {
-			headers: { 'cache-control': INIT_CACHE_CONTROL },
+			// language, and one set of vendor-list translations.
+			inputs: locale
+				? extractConsentRequestInputs(request.headers, { language: locale })
+				: undefined,
+			route: 'init',
+			waitUntil: waitUntilFor(lifetime),
 		});
 	};
 
@@ -211,49 +169,24 @@ export const createConsentRouteHandlers = function createConsentRouteHandlers(
 	 * @param lifetime - The route's `{ locals }`, so a background manifest
 	 * refresh can be registered with the adapter's `waitUntil`.
 	 */
-	const manifest = async function manifest(
+	const manifest = function manifest(
 		request: Request,
 		lifetime?: RequestLifetime
 	): Promise<Response> {
-		const manifestURL = resolveManifestSourceURL(
-			request,
-			handlerOptions.options
-		);
-		const query = new URL(request.url).searchParams.toString();
-		const result = await fetchCachedManifest({
-			config: { manifestURL },
-			fetch: handlerOptions.fetch,
-			onBackgroundRevalidate: bindBackgroundRevalidate(
-				handlerOptions,
-				lifetime
-			),
-			query,
-		});
-
-		const headers = new Headers({ 'content-type': 'application/json' });
-		for (const name of MANIFEST_PASSTHROUGH_HEADERS) {
-			const value = result.headers[name];
-			if (value) {
-				headers.set(name, value);
-			}
-		}
-
-		headers.set('age', String(getManifestAge(result)));
-		const { etag } = result.headers;
-		if (etag && request.headers.get('if-none-match') === etag) {
-			return new Response(null, { headers, status: 304 });
-		}
-
-		return new Response(JSON.stringify(result.manifest), {
-			headers,
-			status: 200,
+		return handle(request, {
+			route: 'manifest',
+			waitUntil: waitUntilFor(lifetime),
 		});
 	};
 
-	const GET = function GET(request: Request): Promise<Response> {
-		return new URL(request.url).pathname.endsWith(MANIFEST_ROUTE_SUFFIX)
-			? manifest(request)
-			: init(request);
+	const GET = function GET(
+		request: Request,
+		lifetime?: RequestLifetime
+	): Promise<Response> {
+		const { pathname } = new URL(request.url);
+		return /\/manifest\/?$/u.test(pathname)
+			? manifest(request, lifetime)
+			: init(request, lifetime);
 	};
 
 	return { GET, init, manifest };

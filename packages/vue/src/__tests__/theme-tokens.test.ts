@@ -18,12 +18,12 @@ vi.mock('#imports', async () => {
 		useAppConfig: () => ({
 			c15t: { nonce: 'style-nonce', tokens: { 'c15t-primary': '#2f6f4e' } },
 		}),
-		useFetch: () => Promise.resolve({ data: makeRef(undefined) }),
 		useHead: (input: unknown) => {
 			nuxt.head.push(input);
 		},
 		useRequestEvent: () => undefined,
 		useRequestHeaders: () => ({}),
+		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({
 			public: { c15t: { backendURL: 'https://consent.example.test' } },
 		}),

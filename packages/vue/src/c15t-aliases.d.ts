@@ -6,8 +6,6 @@ declare module '#c15t/composables' {
 	export { useConsentActiveUI } from './runtime/composables/activeUI';
 	export { useConsentComponent } from './runtime/composables/component';
 	export {
-		buildAcceptAllIab,
-		buildRejectAllIab,
 		createDefaultIabSelection,
 		useConsentIabSave,
 		useConsentIabSelection,

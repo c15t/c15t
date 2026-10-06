@@ -19,12 +19,12 @@ vi.mock('#imports', async () => {
 	return {
 		defineNuxtPlugin: (plugin: unknown) => plugin,
 		useAppConfig: () => ({ c15t: nuxt.appConfig }),
-		useFetch: () => Promise.resolve({ data: makeRef(undefined) }),
 		useHead: (input: unknown) => {
 			nuxt.head.push(input);
 		},
 		useRequestEvent: () => undefined,
 		useRequestHeaders: () => ({}),
+		useRequestURL: () => new URL('https://app.example/'),
 		useRuntimeConfig: () => ({
 			public: {
 				c15t: {

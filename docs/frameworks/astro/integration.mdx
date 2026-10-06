@@ -135,7 +135,7 @@ field.
 | --- | --- | --- | --- |
 | `enabled` | `boolean` | `true` | Registers the middleware that sets `Astro.locals.c15t` |
 | `skip` | `string[]` | `[]` | Path prefixes the middleware leaves alone. `'/api'` covers `/api/health` but not `/apidocs` |
-| `timeoutMs` | `number \| false` | `500` | Longest a server render waits for the policy. `false` waits however long the backend takes |
+| `timeoutMs` | `number \| false` | `500` | Longest a server render waits for the policy. `false` or `Infinity` waits however long the backend takes; any other value that is not a finite, non-negative number uses the default |
 
 The integration's own init and manifest routes are always skipped. On a
 skipped route, `Astro.locals.c15t` is unset and `ConsentBanner` throws, so
