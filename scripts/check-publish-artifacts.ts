@@ -737,7 +737,7 @@ export const scanUiComponentStyleArtifacts =
 				const content = existsSync(filePath)
 					? readFileSync(filePath, 'utf8')
 					: '';
-				// styles.css and styles/dialog.css already carry every component
+				// styles.css and the IAB sheet already carry every component
 				// rule. A CSS import here makes bundlers emit the rules twice.
 				if (/import\s*["'][^"']+\.css["']/u.test(content)) {
 					issues.push({

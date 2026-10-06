@@ -9,11 +9,11 @@ Real Next.js apps that build and smoke-test `@c15t/nextjs` in every combination 
 | `next-15-app` | 15 | App | webpack | client, ssr, ssr-stream, isr, manifest, manifest-geo, manifest-ssr |
 | `next-16-app` | 16 | App | Turbopack | client, ssr, ssr-stream, isr, manifest, manifest-geo, manifest-ssr |
 | `next-16-cache-components` | 16 | App, `cacheComponents: true`, `partialPrefetching: true` | Turbopack | client, ssr, ssr-stream, cached, manifest, manifest-geo, manifest-ssr; dev prerender regression |
-| `next-15-pages` | 15 | Pages | webpack | client, ssr, manifest, manifest-geo, manifest-ssr |
-| `next-16-pages` | 16 | Pages | Turbopack | client, ssr, manifest, manifest-geo, manifest-ssr |
+| `next-15-pages` | 15 | Pages | webpack (also builds with Turbopack) | client, ssr, manifest, manifest-geo, manifest-ssr |
+| `next-16-pages` | 16 | Pages | Turbopack (also builds with webpack) | client, ssr, manifest, manifest-geo, manifest-ssr |
 | `next-16-static-export` | 16 | App, `output: 'export'` | Turbopack | client, static-manifest |
 
-Every cell pins an exact `next` version in its `package.json` and builds with that version's default bundler. Bump the pins when a new minor ships. Next 13 and 14 are out of the support range for 3.x and have no cell on purpose.
+Every cell pins an exact `next` version in its `package.json` and builds with that version's default bundler. The Pages cells first build with the other bundler too, because the Pages Router is where the two disagree about CSS imported from packages; the suite then runs against the default build. Bump the pins when a new minor ships. Next 13 and 14 are out of the support range for 3.x and have no cell on purpose.
 
 ## What a scenario asserts
 
@@ -35,6 +35,8 @@ For every scenario the suite (`shared/src/suite/index.ts`) checks:
 4. The first HTML contains the banner only for the server-resolved scenarios.
 5. Accepting consent persists across a reload.
 6. No console errors or warnings and no page errors.
+
+Once per cell, the suite also opens the dialog and checks that it is styled while the page has loaded only the stylesheets in its first HTML, the app's import of `@c15t/nextjs/styles.css`.
 
 The backend stub lives in `shared/src/fixture` and is mounted at `/api/c15t` in each app. `GET /api/c15t/__compat/requests` lists what `/init` received; the suite clears it before each test. The static export cell has no app server to mount it in, so its global setup runs the same handlers as a standalone Node server (`shared/src/fixture/standalone.ts`) and provides its origin as `compatBackendURL`; the suite reads the diagnostics from there when that value is present.
 
@@ -75,7 +77,8 @@ These are the patterns that have to hold for users, so the fixtures use them ver
 - Under `cacheComponents: true`, awaiting `resolveConsent` directly in a layout is a build error (`blocking-prerender-dynamic`). Either pass the promise to the root without awaiting (the `ssr-stream` scenario) or move the await into an async child behind `<Suspense>` (the `ssr` scenario); both make the route partial, only the awaited form has the banner in the first HTML. `export const revalidate` is rejected there too, so the cached scenario uses `'use cache'` with `cacheLife('minutes')`.
 - The manifest route handlers are App Router route handlers (Web `Request` in, `Response` out). The Pages cells serve them through `createPagesApiHandlers` from `@c15t/nextjs/pages`, which does the Node `req`/`res` bridging. Only the backend stub's catch-all route (`pages/api/c15t/[[...path]].ts`) uses the fixture's own adapter (`shared/src/fixture/node-adapter.ts`), because the stub is test code, not a package route.
 - In the browser, manifest mode has no geo input, so the store reports no country; the `manifest` scenario expects `null`. Server-side manifest resolution reads the forwarded headers and does report it.
-- The Pages Router loads installed packages with Node at runtime. Bare `next/*` specifiers do not resolve there (Next ships no `exports` map), so the package imports `next/script.js` and friends. The `@c15t/ui` component class maps import their CSS by design, which Node cannot load, so `@c15t/ui` serves a CSS-free copy through a `node` export condition; the Pages cells run with no `transpilePackages` beyond the shared fixture package to keep that true.
+- The Pages Router loads installed packages with Node at runtime. Bare `next/*` specifiers do not resolve there (Next ships no `exports` map), so the package imports `next/script.js` and friends.
+- The Pages Router refuses global CSS imported from a dependency's JavaScript: webpack for any installed package, Turbopack for a package linked from outside `node_modules`. No c15t module imports CSS, and the app imports `@c15t/nextjs/styles.css`. Any `transpilePackages` entry, even an unrelated one, makes webpack accept such imports, so no cell sets it.
 - Pages Router SSR and API routes go through `@c15t/nextjs/pages`: `resolveConsent({ req, ... })` inside `getServerSideProps`, and `createPagesApiHandlers(config)` for the manifest and init routes.
 - `next start` adds `x-forwarded-proto` on both Next 15 and 16, so a relative backend URL resolves in the server helpers.
 - `output: 'export'` needs three things the server cells get for free. The backend URL must be absolute (there is no server to proxy `/api/c15t`), so the cell reads it from `NEXT_PUBLIC_COMPAT_BACKEND_URL` at build time in `lib/backend-url.ts`. The browser then calls the backend cross-origin, so the backend has to answer `OPTIONS` preflights and send `access-control-allow-origin` echoing the page origin plus `access-control-allow-credentials: true`, because the transports fetch with `credentials: 'include'` and custom headers; the standalone stub does exactly that. And the manifest path has no route handler to fetch `/manifest` through, so the cell's build runs `scripts/generate-manifest.ts`, which writes `createStaticManifestModule` output to `lib/consent-manifest.generated.ts` (gitignored) for the route to import.
@@ -83,9 +86,9 @@ These are the patterns that have to hold for users, so the fixtures use them ver
 
 ## How the cells install the packages
 
-Cells depend on `@c15t/nextjs` through the workspace so Turbo orders the package builds first, but they do not consume the workspace links. Each cell's `build` script first runs `shared/scripts/pack.ts`, which runs `bun pm pack` on the whole `@c15t/nextjs` dependency closure, extracts the tarballs as real directories under the cell's own `node_modules/@c15t/*`, links the packages' third-party dependencies beside them, and copies the shared fixture package in as well so its imports resolve from the same tree. Then `next build` runs.
+Cells depend on `@c15t/nextjs` through the workspace so Turbo orders the package builds first, but they do not consume the workspace links. Each cell's `build` script first runs `shared/scripts/pack.ts`, which runs `bun pm pack` on the whole `@c15t/nextjs` dependency closure, extracts the tarballs as real directories under the cell's own `node_modules/@c15t/*` and links the packages' third-party dependencies beside them. It also copies `shared/src` into the cell as `.compat-shared/src`, which the cell's tsconfig `paths` map `@c15t/next-compat-shared/*` to. Next compiles that copy as the cell's own code, so no cell needs `transpilePackages`, and its imports resolve from the same tree as the app's. Then `next build` runs.
 
-That is the shape an npm install has, and it matters three times over: both bundlers decide "installed dependency or first-party code" by the real path (first-party code gets React Server Components checks in webpack and a global-CSS ban in the Pages Router under Turbopack), the Pages Router `require`s installed packages at runtime so their `next` peer must resolve to the cell's own copy, and the cells end up consuming exactly what `files` and `exports` publish.
+That is the shape an npm install has, and it matters three times over: both bundlers decide "installed dependency or first-party code" by the real path (first-party code gets React Server Components checks in webpack, and the Pages Router treats CSS differently in each case), the Pages Router `require`s installed packages at runtime so their `next` peer must resolve to the cell's own copy, and the cells end up consuming exactly what `files` and `exports` publish.
 
 `bun install` restores the workspace links; the next cell build replaces them again. The pack step also drops the cell's `.next/cache`: webpack's persistent cache treats `node_modules` as immutable unless a package version changes, so a re-packed package would otherwise be served stale. The suite's global setup runs the cell's `build` script when `.next/BUILD_ID` is missing, so a plain `vitest run` in a cell does the same.
 

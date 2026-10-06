@@ -143,11 +143,11 @@ never retries a tag it marked `untrusted`. See
 
 ## The preference dialog opens without styles
 
-**Check.** Look for `styles: false` in your c15t setup. With it, c15t does not
-link the dialog's stylesheet.
+**Check.** Look for `styles: false` in your c15t setup. With it, c15t adds no
+stylesheet to the page and links none when the dialog opens.
 
-**Fix.** Import `c15t/astro/dialog.css`, and `c15t/astro/primitives.css` for the
-Svelte dialog, from your global stylesheet. See
+**Fix.** Import `c15t/astro/styles.css`, and `c15t/astro/primitives.css` for
+the Svelte dialog, from your global stylesheet. See
 [load the stylesheet yourself](/docs/frameworks/astro/customize#load-the-stylesheet-yourself).
 
 ## The banner loses its padding with Tailwind CSS

@@ -479,10 +479,9 @@ describe('astro:config:setup', () => {
 	});
 
 	it.each(['react', 'svelte', 'vue'] as const)(
-		'keeps the dialog stylesheet off every %s page',
+		'injects no separate dialog stylesheet on %s pages',
 		async (ui) => {
-			// Render-blocking CSS for a surface most visitors never open. The
-			// client links it on the first open instead.
+			// `styles.css` already holds the dialog's rules.
 			const { calls } = await runSetup({ mode: offlineMode(), ui });
 			const found = calls.injectScript.mock.calls.find(
 				([stage]) => stage === 'page-ssr'
@@ -491,14 +490,16 @@ describe('astro:config:setup', () => {
 		}
 	);
 
-	it.each([
-		[
-			'svelte',
-			['@c15t/ui/styles/dialog.css', '@c15t/ui/styles/primitives.css'],
-		],
-		['react', ['@c15t/ui/styles/dialog.css']],
-		['vue', ['@c15t/ui/styles/dialog.css']],
-	] as const)(
+	it.each(['react', 'vue'] as const)(
+		'leaves the %s dialog nothing to link beyond styles.css',
+		async (ui) => {
+			const { calls } = await runSetup({ mode: offlineMode(), ui });
+			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+			expect(code).not.toContain('registerDialogStyles(');
+		}
+	);
+
+	it.each([['svelte', ['@c15t/ui/styles/primitives.css']]] as const)(
 		'registers the %s dialog stylesheets for the client to link',
 		async (ui, stylesheets) => {
 			const { calls } = await runSetup({ mode: offlineMode(), ui });

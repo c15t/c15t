@@ -32,7 +32,6 @@ const TAILWIND_4_LAYER_ORDER = [
 
 const LAYERED_ENTRYPOINTS = [
 	'styles.css',
-	join('styles', 'dialog.css'),
 	join('styles', 'primitives.css'),
 	join('iab', 'styles.css'),
 ];

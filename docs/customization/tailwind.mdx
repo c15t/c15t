@@ -166,8 +166,8 @@ Make three changes:
 3. Set `darkMode: 'class'` so Tailwind's `dark:` variant follows the same
    `dark` class c15t reads.
 
-The plugin also processes the stylesheets c15t loads for you, such as the
-dialog's lazy stylesheet and Astro's injected one. Without it, Tailwind 3 stops
+The plugin also processes the stylesheets c15t loads for you, such as Astro's
+injected one. Without it, Tailwind 3 stops
 the build with "`@layer components` is used but no matching
 `@tailwind components` directive is present", or purges c15t's rules, because
 c15t's class names never appear in your source.
@@ -184,7 +184,7 @@ cannot edit your PostCSS config, it prints the step to do by hand. See
 [setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
 
 Create React App ignores PostCSS config files, so Tailwind 3 cannot run the
-plugin and the build fails on c15t's dialog stylesheet. `c15t setup` warns
+plugin and the build fails on c15t's stylesheet. `c15t setup` warns
 about this. Add the plugin before `tailwindcss` through CRACO, eject, or move
 the app to Vite.
 

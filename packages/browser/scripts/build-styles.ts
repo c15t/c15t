@@ -89,14 +89,10 @@ const main = async function main(): Promise<void> {
 	// match stays in both sheets.
 	const rendered = collectClassNames([classes, iabClasses]);
 	// The sheet already pairs every `:root` with `:host`, so it applies
-	// inside the shadow root as published. This package renders the dialog
-	// eagerly, so it carries the dialog rules too.
+	// inside the shadow root as published. It holds the dialog rules too.
 	const stylesheet = withoutTailwind3Hints(
 		pruneStylesheet(
-			[
-				await readFile(join(uiDist, 'styles.css'), 'utf8'),
-				await readFile(join(uiDist, 'styles/dialog.css'), 'utf8'),
-			].join('\n'),
+			await readFile(join(uiDist, 'styles.css'), 'utf8'),
 			rendered
 		)
 	);

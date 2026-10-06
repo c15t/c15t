@@ -1,16 +1,16 @@
 /**
  * Installs the `@c15t/nextjs` dependency closure into one cell's
  * `node_modules` the way npm would: packed tarballs extracted as real
- * directories, third-party dependencies linked beside them, and a copy of the
- * shared fixture package so its imports resolve from the same tree.
+ * directories, third-party dependencies linked beside them. The shared
+ * fixture source is copied into the cell as first-party code, so its imports
+ * resolve from the same tree.
  *
  * Why: both bundlers decide "installed dependency or first-party code" by the
  * real path, and the Pages Router `require`s installed packages at runtime,
  * so peers such as `next` must resolve upward from the package to the cell's
  * own copy. A workspace symlink into `packages/react/dist` fails both tests:
- * webpack runs its React Server Components checks on it, Turbopack refuses
- * the global CSS imports in `@c15t/ui`, and `next` resolves to whatever the
- * monorepo hoisted. Extracting under `<cell>/node_modules` gives the packages
+ * webpack runs its React Server Components checks on it, and `next` resolves
+ * to whatever the monorepo hoisted. Extracting under `<cell>/node_modules` gives the packages
  * a real install path, and proves `files` and `exports` publish what the
  * cells consume.
  *
@@ -194,22 +194,36 @@ const linkThirdPartyDependencies = function linkThirdPartyDependencies(
 };
 
 /**
- * The shared fixture package is consumed as TypeScript source through
- * `transpilePackages`; a copy inside the cell makes its own `@c15t/*`
- * imports resolve to the extracted packages instead of the workspace links.
+ * Where a cell's tsconfig `paths` point `@c15t/next-compat-shared/*`,
+ * relative to the cell.
  */
-const copyShared = function copyShared(cellModules: string) {
-	const target = join(cellModules, SHARED_PACKAGE);
+const SHARED_COPY_DIR = '.compat-shared';
+
+/**
+ * Copies the shared fixture source into the cell as first-party code.
+ *
+ * Each cell maps `@c15t/next-compat-shared/*` to this copy through its
+ * tsconfig `paths`, so Next compiles it like the app's own files and the
+ * cell needs no `transpilePackages`. That matters: any `transpilePackages`
+ * entry makes webpack accept global CSS imported from `node_modules` in the
+ * Pages Router, which would hide the build error a user without it gets.
+ * The copy sits inside the cell, so its `@c15t/*` imports resolve to the
+ * extracted packages instead of the workspace links. The workspace link
+ * under `node_modules` goes, so nothing can reach the source through it.
+ */
+const copyShared = function copyShared(cellDir: string) {
+	rmSync(join(cellDir, 'node_modules', SHARED_PACKAGE), {
+		force: true,
+		recursive: true,
+	});
+	const target = join(cellDir, SHARED_COPY_DIR);
 	replaceWithDirectory(target);
-	for (const entry of ['package.json', 'tsconfig.json', 'src']) {
-		cpSync(join(sharedDir, entry), join(target, entry), {
-			// The Vitest side (config, global setup, suite) loads from the
-			// workspace source; Node refuses to strip TypeScript under
-			// node_modules, so keep it out of the copy.
-			filter: (source) => !source.includes(`${sep}suite`),
-			recursive: true,
-		});
-	}
+	cpSync(join(sharedDir, 'src'), join(target, 'src'), {
+		// The Vitest side (config, global setup, suite) loads from the
+		// workspace source and is no part of the app.
+		filter: (source) => !source.includes(`${sep}suite`),
+		recursive: true,
+	});
 };
 
 /** Options for {@link installPackedPackages}. */
@@ -259,7 +273,7 @@ const main = function main() {
 		roots: [ROOT_PACKAGE],
 		targetDir: cellDir,
 	});
-	copyShared(cellModules);
+	copyShared(cellDir);
 	// webpack's persistent cache treats node_modules as immutable unless the
 	// package version changes, so a re-packed package with the same version
 	// would be served stale from `.next/cache`. Turbopack keeps its own cache
@@ -267,8 +281,9 @@ const main = function main() {
 	rmSync(join(cellDir, '.next', 'cache'), { force: true, recursive: true });
 
 	console.log(
-		`[next-compat] installed ${closure.length} packed packages and ` +
-			`${SHARED_PACKAGE} into ${relative(repoRoot, cellModules)}`
+		`[next-compat] installed ${closure.length} packed packages into ` +
+			`${relative(repoRoot, cellModules)} and ${SHARED_PACKAGE} into ` +
+			`${relative(repoRoot, join(cellDir, SHARED_COPY_DIR))}`
 	);
 };
 

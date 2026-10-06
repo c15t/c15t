@@ -19,15 +19,16 @@
  *      entrypoints and stay for apps that already import them; new Tailwind 3
  *      setups import `styles.css` and run the plugin
  *
- * The stylesheets are split by when a page needs them:
- *
  * | File | Holds | Loaded by |
  * | --- | --- | --- |
- * | `styles.css`, `styles.tw3.css` | default tokens, every `:root` variable and `@keyframes`, rules for the banner, dialog trigger and ConsentGate | the app, once, render-blocking |
- * | `styles/dialog.css` | rules for the dialog and preference widget | the dialog's module (lazy in React) |
- * | `styles/dialog.js` (`@c15t/ui/styles/dialog`) | an import of `styles/dialog.css`; nothing under the `node` condition | React's dialog, widget and primitive modules |
+ * | `styles.css`, `styles.tw3.css` | default tokens, every `:root` variable and `@keyframes`, rules for the banner, dialog trigger, ConsentGate, dialog and preference widget | the app, once |
  * | `styles/primitives.css` | rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css` and hosts that render those class maps |
  * | `iab/styles.css`, `iab/styles.tw3.css` | IAB variables and rules only | the app, next to `styles.css` |
+ * | `styles/dialog.css`, `styles/dialog.js` | nothing; kept so existing imports resolve | — |
+ *
+ * No JavaScript in the package imports a stylesheet. The Next.js Pages
+ * Router refuses to build an app whose dependencies import global CSS, so
+ * every rule reaches the page through a stylesheet the app imports itself.
  *
  * Every variable stays in `styles.css`, so later sheets only add rules and
  * never re-declare a variable a host has overridden.
@@ -370,8 +371,7 @@ const TAILWIND3_HINT =
  * Wrap component rules in `@layer components`. Tailwind 4 declares that layer
  * before its utilities, so bare utilities override c15t without
  * `!important`. Tailwind 3 hosts run `@c15t/ui/postcss-tailwind3`, which
- * unwraps the layer in every built stylesheet, including `styles.css` and
- * `styles/dialog.css`.
+ * unwraps the layer in every built stylesheet.
  */
 const layered = function layered(ruleParts: string[]): string {
 	return `${TAILWIND3_HINT}\n@layer components {\n${ruleParts.map((r) => `  ${r}`).join('\n\n')}\n}`;
@@ -419,44 +419,37 @@ const nonIab = collectCssParts(
 	seenUnlayered
 );
 const rootCss = nonIab.rootParts.join('\n\n');
-const firstPaintRules = rulesFor(nonIab.ruleParts, 'first-paint', 'styles.css');
+// The dialog's rules follow the first-paint rules, the order the cascade had
+// while they shipped in a stylesheet of their own that loaded later.
+const componentRules = [
+	...rulesFor(nonIab.ruleParts, 'first-paint', 'styles.css'),
+	...rulesFor(nonIab.ruleParts, 'dialog', 'styles.css'),
+];
 
-// dist/styles.css — layer order, tokens, every variable, first-paint rules
-// in @layer components (Tailwind 4 and native CSS layers). Render-blocking.
+// dist/styles.css — layer order, tokens, every variable, every non-IAB
+// component rule in @layer components (Tailwind 4 and native CSS layers).
 writeDist(
 	'styles.css',
-	joinParts([LAYER_ORDER, DEFAULT_THEME_CSS, rootCss, layered(firstPaintRules)])
+	joinParts([LAYER_ORDER, DEFAULT_THEME_CSS, rootCss, layered(componentRules)])
 );
 
 // dist/styles.tw3.css — the same, flat (kept for existing Tailwind 3 imports)
 writeDist(
 	'styles.tw3.css',
-	joinParts([DEFAULT_THEME_CSS, rootCss, firstPaintRules.join('\n\n')])
+	joinParts([DEFAULT_THEME_CSS, rootCss, componentRules.join('\n\n')])
 );
 
-// dist/styles/dialog.css — dialog and widget rules only. The dialog's module
-// imports it, so bundlers deliver it with the dialog chunk and load it
-// before that module runs. Variables stay in styles.css.
+// dist/styles/dialog.css and dist/styles/dialog.js (`@c15t/ui/styles/dialog`)
+// once carried the dialog's rules separately, and React's dialog modules
+// imported them. styles.css holds those rules now. Both files stay empty so
+// existing imports keep resolving without loading a rule twice.
 writeDist(
 	'styles/dialog.css',
-	joinParts([
-		LAYER_ORDER,
-		'/* @c15t/ui dialog styles. Needs @c15t/ui/styles.css for tokens and variables. */',
-		layered(rulesFor(nonIab.ruleParts, 'dialog', 'styles/dialog.css')),
-	])
+	'/* Deprecated and empty: @c15t/ui/styles.css includes the dialog rules. */\n'
 );
-
-// dist/styles/dialog.js — the side-effect module JavaScript imports to load
-// dialog.css (`@c15t/ui/styles/dialog`). Bundlers follow its CSS import. The
-// `node` export condition serves dialog.node.js instead, which imports
-// nothing: a runtime that loads the package with plain Node (externalised
-// SSR, for example) cannot load a `.css` file. Keep `./styles/dialog.css`
-// itself unconditional: Astro imports it from `page-ssr`, where its SSR
-// build collects the page's CSS.
-writeDist('styles/dialog.js', "import './dialog.css';\n");
 writeDist(
-	'styles/dialog.node.js',
-	'// Plain Node cannot load CSS. Bundlers resolve dialog.js instead.\nexport {};\n'
+	'styles/dialog.js',
+	'// Deprecated and empty: @c15t/ui/styles.css includes the dialog rules.\nexport {};\n'
 );
 writeDist('styles/dialog.d.ts', 'export {};\n');
 
