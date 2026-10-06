@@ -17,6 +17,7 @@ import { useHeadlessIABConsentUI } from '../component-hooks/use-headless-iab-con
 import { IABConsentDialog } from '../components/iab-panel';
 import { IABConsentBanner } from '../components/iab-prompt';
 import { KernelContext } from '../context';
+import { useHeadlessIABConsentUI as usePublicHeadlessIABConsentUI } from '../hooks/use-headless-iab-consent-ui';
 import { IABProvider, useIAB } from '../iab-context';
 import { ComponentFixtureProvider } from './component-fixture-provider';
 import type { ComponentFixtureOptions } from './component-fixture-provider';
@@ -396,5 +397,53 @@ it.each(
 		});
 		expect(snapshot()?.activeUI).toBe('none');
 		expect(card(surface)).toBeNull();
+	}
+);
+
+it.each(['acceptAll', 'rejectAll', 'savePreferences'] as const)(
+	'the public headless IAB %s closes the dialog without showing the banner',
+	async (method) => {
+		const save = vi.fn(() => Promise.resolve({ ok: true }));
+		let controls!: ReturnType<typeof usePublicHeadlessIABConsentUI>;
+		let kernel: ConsentKernel | null = null;
+		const Probe = () => {
+			const current = usePublicHeadlessIABConsentUI();
+			const currentKernel = useContext(KernelContext);
+			useEffect(() => {
+				controls = current;
+				kernel = currentKernel;
+			}, [current, currentKernel]);
+			return null;
+		};
+		const mounted: { screen?: Awaited<ReturnType<typeof render>> } = {};
+		onTestFinished(async () => {
+			await mounted.screen?.unmount();
+		});
+		mounted.screen = await render(
+			<ComponentFixtureProvider
+				options={{
+					...options(false),
+					initialUI: 'dialog',
+					mode: custom({ save }),
+				}}
+			>
+				<Probe />
+			</ComponentFixtureProvider>
+		);
+		await vi.waitFor(() => expect(controls.iab?.gvl).toBeTruthy());
+		const surfaces: unknown[] = [];
+		const unsubscribe = (kernel as ConsentKernel | null)?.subscribe(
+			(snapshot) => {
+				surfaces.push(snapshot.activeUI);
+			}
+		);
+		onTestFinished(() => unsubscribe?.());
+
+		await controls[method]();
+
+		expect((kernel as ConsentKernel | null)?.getSnapshot().activeUI).toBe(
+			'none'
+		);
+		expect(surfaces).not.toContain('banner');
 	}
 );

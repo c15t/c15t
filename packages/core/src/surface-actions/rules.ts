@@ -5,6 +5,7 @@
  * them with the lazily loaded dialog that calls them.
  */
 
+import { deriveActiveUI } from '../derive-surface';
 import type { ConsentKernel, ConsentSnapshot, KernelActiveUI } from '../types';
 
 /**
@@ -62,6 +63,12 @@ export const hasConsentPreferences = (snapshot: ConsentSnapshot): boolean =>
  * Supersedes any pending save on this kernel, so its completion neither
  * closes the surface the visitor just opened nor restores one they closed.
  *
+ * Closing the dialog (`'none'` while it is open) leaves the surface the
+ * kernel derives, as a save does: the banner while the policy still owes a
+ * choice or a notice, otherwise nothing. A visitor who opens preferences
+ * from the banner and backs out without saving gets the banner back.
+ * `'none'` with the banner open hides it.
+ *
  * @param kernel - The kernel the surface belongs to.
  * @param surface - `'banner'`, `'dialog'` or `'none'`.
  */
@@ -70,5 +77,10 @@ export const showConsentSurface = (
 	surface: KernelActiveUI
 ): void => {
 	beginAction(kernel);
-	kernel.set.activeUI(surface);
+	const snapshot = kernel.getSnapshot();
+	kernel.set.activeUI(
+		isOpen(surface) || snapshot.activeUI !== 'dialog'
+			? surface
+			: deriveActiveUI(snapshot)
+	);
 };

@@ -111,6 +111,11 @@ unchanged selection, closes the surface when it resolves successfully. Opening
 or closing a surface, or starting another save, before then leaves the surface
 as the visitor set it.
 
+Closing the dialog without saving, with Escape or the adapter's close call,
+leaves the same surface a save would. A visitor who opens preferences from the
+banner and backs out still owes a choice, so the banner comes back. Once a
+choice is recorded, closing the dialog leaves nothing open.
+
 ## Preserve records during hydration
 
 Server helpers return records with policy information and evaluation time.

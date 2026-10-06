@@ -567,7 +567,7 @@ describe('mountConsentUI', () => {
 		expect(content.hasAttribute('inert')).toBe(false);
 	});
 
-	it('closes the preference centre on Escape', async () => {
+	it('closes the preference centre on Escape, back to the owed banner', async () => {
 		const { root, client } = await mount();
 		client.openDialog();
 
@@ -575,7 +575,8 @@ describe('mountConsentUI', () => {
 			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
 		);
 
-		expect(client.getSnapshot().activeUI).toBe('none');
+		expect(client.getSnapshot().activeUI).toBe('banner');
+		expect(query(root, 'consent-banner-root')).toBeTruthy();
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
 		).toBeNull();
@@ -594,7 +595,7 @@ describe('mountConsentUI', () => {
 			new KeyboardEvent('keydown', { bubbles: true, key: 'Escape' })
 		);
 
-		expect(client.getSnapshot().activeUI).toBe('none');
+		expect(client.getSnapshot().activeUI).toBe('banner');
 		expect(
 			root.querySelector('[data-testid="consent-dialog-root"]')
 		).toBeNull();

@@ -82,7 +82,7 @@ other categories as they were. **Privacy settings** opens the dialog.
 
 | Method | Effect |
 | --- | --- |
-| `setActiveUI(surface)` | `'dialog'` opens preferences, `'banner'` shows the banner, `'none'` closes both. Records nothing. |
+| `setActiveUI(surface)` | `'dialog'` opens preferences, `'banner'` shows the banner, `'none'` closes the open surface. Closing preferences brings the banner back while the policy still owes a choice. Records nothing. |
 | `setConsent(category, value)` | Changes one category in the unsaved draft. `setSelectedConsent` is the same method. |
 | `setSelectedVendor(vendorId, granted)` | Changes one vendor in the draft. Ignored for undeclared or disabled vendors. |
 | `saveConsents('custom')` | Records the draft. Throws when the policy changed since the draft started; see [the draft](#work-with-the-draft). |

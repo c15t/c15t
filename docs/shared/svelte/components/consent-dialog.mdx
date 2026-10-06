@@ -59,11 +59,13 @@ Customize button, `ConsentDialogLink`, `ConsentDialogTrigger`,
 `getHeadlessConsent().openDialog()`.
 
 Escape closes the dialog. Clicks outside it do not, so a visitor cannot lose
-unsaved switches by accident. Closing without saving records nothing.
+unsaved switches by accident. Closing without saving records nothing. If the
+policy still owes a choice, the banner comes back.
 
-With the `open` prop set, your component owns visibility. Escape then sets
-the active surface to `'none'`, and the dialog stays mounted until you set
-`open` to `false`. Watch `getConsentManager().activeUI` to close it.
+With the `open` prop set, your component owns visibility. Escape then moves
+the active surface off `'dialog'`, to `'banner'` while a choice is still owed
+or `'none'` otherwise, and the dialog stays mounted until you set `open` to
+`false`. Watch `getConsentManager().activeUI` to close it.
 
 ## Accessibility
 
