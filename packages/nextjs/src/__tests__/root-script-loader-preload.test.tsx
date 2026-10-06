@@ -13,6 +13,7 @@ import { createRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
+import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
 import { ConsentRoot } from '../root';
 import type { ConsentRootProps } from '../root';
 import type { ConsentState } from '../types';
@@ -62,12 +63,13 @@ afterEach(() => {
 	root?.unmount();
 	root = undefined;
 	held = false;
+	localStorage.clear();
 });
 
 /** Render the root with a child that holds the commit back for good. */
 const renderUncommitted = (
 	state: ConsentState | Promise<ConsentState>,
-	props: Pick<ConsentRootProps, 'scripts' | 'vendors'> = {}
+	props: Pick<ConsentRootProps, 'persistence' | 'scripts' | 'vendors'> = {}
 ): void => {
 	const container = document.createElement('div');
 	document.body.append(container);
@@ -162,6 +164,50 @@ describe('ConsentRoot: script loader before hydration', () => {
 					...props,
 				}
 			);
+			await settle();
+			expect(loads.evaluated).toBe(0);
+		}
+	);
+
+	// The cookie the server read holds a grant, but a later denial reached
+	// only localStorage: the browser dropped that cookie write. The provider
+	// applies the newer denial before it mounts the loader.
+	test.each([
+		['resolved', (state: ConsentState) => state],
+		['streamed', (state: ConsentState) => Promise.resolve(state)],
+	] as const)(
+		'a newer denial in localStorage over a %s grant does not load it',
+		async (_, deliver) => {
+			const fixture = policyFixture({ marketing: true });
+			const grant = fixture.initialRecords?.choice?.categories.marketing;
+			if (!grant) {
+				throw new Error('The fixture records a marketing decision.');
+			}
+			const granted: ConsentState = {
+				...fixture,
+				initialRecords: {
+					choice: {
+						categories: {
+							marketing: { ...grant, confirmedAt: fixture.now - 60_000 },
+						},
+						version: 3,
+					},
+				},
+			};
+			localStorage.setItem(
+				'c15t',
+				encodeStoredConsentEnvelopeJson({
+					categories: {
+						marketing: {
+							...grant,
+							confirmedAt: fixture.now - 1000,
+							value: false,
+						},
+					},
+					version: 3,
+				})
+			);
+			renderUncommitted(deliver(granted), { persistence: true });
 			await settle();
 			expect(loads.evaluated).toBe(0);
 		}

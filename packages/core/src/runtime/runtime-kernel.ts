@@ -172,62 +172,6 @@ export const inferConsentCategories = function inferConsentCategories(
 };
 
 /**
- * The consent scope and vendor declarations a runtime's kernel starts with:
- * the page's own categories, the ones its scripts, network rules and
- * vendors name, and the vendors themselves, merged with a prefetch's.
- *
- * `createRuntimeKernel()` builds its kernel with these. Code that judges a
- * stored choice before the runtime exists, such as a framework root
- * deciding what to load during its first render, passes the same result to
- * its own kernel so it reads the choice and the vendor switches the same
- * way.
- *
- * @param options - The categories, scripts, network blocker and vendors
- * the page declares.
- * @param prefetch - The server's prefetch, for the vendors it declares.
- * @param onWarn - Called for a vendor that is dropped or has no
- * presentable declaration.
- * @returns The kernel's `consentCategories`, `inferredConsentCategories`
- * and `initialVendors`.
- * @internal
- */
-export const runtimeConsentScope = function runtimeConsentScope(
-	options: Pick<
-		ConsentRuntimeOptions,
-		'consentCategories' | 'networkBlocker' | 'scripts' | 'vendors'
-	>,
-	prefetch?: Pick<KernelConfig, 'initialVendors'>,
-	onWarn?: (message: string) => void
-): Pick<
-	KernelConfig,
-	'consentCategories' | 'inferredConsentCategories' | 'initialVendors'
-> {
-	// Backend vendors a server prefetch already resolved are kept: a resolved
-	// prefetch skips the initial `init()`, so nothing would merge them later.
-	const declaredVendors = resolveVendors({
-		config: options.vendors,
-		existing: prefetch?.initialVendors?.declared,
-		onWarn,
-		owners: [
-			...(options.scripts ?? []),
-			...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
-		],
-	});
-	const vendorListVersion = prefetch?.initialVendors?.listVersion ?? null;
-	return {
-		consentCategories: options.consentCategories,
-		// Every declared vendor, from code or a resolved prefetch, makes its
-		// category selectable at construction, so the server snapshot and the
-		// hydrated one evaluate the same scope.
-		inferredConsentCategories: inferConsentCategories(options, declaredVendors),
-		initialVendors:
-			declaredVendors.length > 0 || vendorListVersion !== null
-				? { declared: declaredVendors, listVersion: vendorListVersion }
-				: undefined,
-	};
-};
-
-/**
  * Builds the runtime's kernel without touching the DOM.
  *
  * Exported so servers can construct the same kernel a browser runtime
@@ -258,6 +202,19 @@ export const createRuntimeKernel = function createRuntimeKernel(
 	};
 	const transport = requireTransportFactory(options)(transportContext);
 
+	const integrations = [
+		...(options.scripts ?? []),
+		...(options.networkBlocker ? (options.networkBlocker.rules ?? []) : []),
+	];
+	// Backend vendors a server prefetch already resolved are kept: a resolved
+	// prefetch skips the initial `init()`, so nothing would merge them later.
+	const declaredVendors = resolveVendors({
+		config: options.vendors,
+		existing: prefetch.initialVendors?.declared,
+		onWarn: warnInDevelopment,
+		owners: integrations,
+	});
+	const vendorListVersion = prefetch.initialVendors?.listVersion ?? null;
 	// A prefetched or host-resolved arm is known before any render, so the
 	// server snapshot and the first paint already use it. Built-in
 	// assignment holds the prompt until the browser has picked the arm.
@@ -271,7 +228,11 @@ export const createRuntimeKernel = function createRuntimeKernel(
 
 	return createKernel({
 		...prefetch,
-		...runtimeConsentScope(options, prefetch, warnInDevelopment),
+		consentCategories: options.consentCategories,
+		// Every declared vendor, from code or a resolved prefetch, makes its
+		// category selectable at construction, so the server snapshot and the
+		// hydrated one evaluate the same scope.
+		inferredConsentCategories: inferConsentCategories(options, declaredVendors),
 		initialExperiment: experimentSeed.initialExperiment,
 		initialExperimentPending: experimentSeed.initialExperimentPending,
 		initialExternalPermissions:
@@ -305,6 +266,10 @@ export const createRuntimeKernel = function createRuntimeKernel(
 			enabled && !options.consentSource ? prefetch.initialRecords : undefined,
 		initialTranslations: prefetch.initialTranslations ?? i18nTranslations,
 		initialUser: normalizeKernelUser(options.user) ?? prefetch.initialUser,
+		initialVendors:
+			declaredVendors.length > 0 || vendorListVersion !== null
+				? { declared: declaredVendors, listVersion: vendorListVersion }
+				: undefined,
 		// An empty shell has no expiring records to evaluate. A stable seed
 		// avoids reading the clock during a static prerender; init takes the
 		// real clock after mount. Prepared records retain their clock.

@@ -58,7 +58,7 @@ export { createConsentProviderRuntime } from './provider-runtime';
 export { streamPrefetch } from './streamed-prefetch';
 export { connectConsentSource } from './controls';
 export type { ConsentControlOptions } from './controls';
-export { inferConsentCategories, runtimeConsentScope } from './runtime-kernel';
+export { inferConsentCategories } from './runtime-kernel';
 
 export type {
 	ExternalConsentSource,
