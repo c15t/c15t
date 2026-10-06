@@ -49,16 +49,31 @@ const WARMUP = benchmarkCount(
 );
 const outputDir = process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/core-v3-runtime';
 
+const fixtures = Object.values(coreFixtures);
+
+// Every fixture runs the same empty-kernel operations, so one loop per
+// operation measures all of them and deals its samples out in turn. A burst of
+// host contention then lands in every fixture alike, instead of in whichever
+// fixture happened to be running, where it alone could fail a budget.
+const SAMPLES = ITERATIONS * fixtures.length;
+
 const measureSync = function measureSync(fn: () => ConsentKernel): number[] {
 	measureLoop(WARMUP, fn, (kernel) => kernel.dispose());
-	return measureLoop(ITERATIONS, fn, (kernel) => kernel.dispose());
+	return measureLoop(SAMPLES, fn, (kernel) => kernel.dispose());
 };
 
 const measureAsync = async function measureAsync(
 	fn: () => Promise<ConsentKernel>
 ): Promise<number[]> {
 	await measureAsyncLoop(WARMUP, fn, (kernel) => kernel.dispose());
-	return await measureAsyncLoop(ITERATIONS, fn, (kernel) => kernel.dispose());
+	return await measureAsyncLoop(SAMPLES, fn, (kernel) => kernel.dispose());
+};
+
+/** The samples the interleaved loop dealt to one fixture. */
+const dealt = function dealt(samples: number[], fixtureIndex: number) {
+	return samples.filter(
+		(_sample, index) => index % fixtures.length === fixtureIndex
+	);
 };
 
 /** Measure every operation once, in the order the results report them. */
@@ -144,68 +159,66 @@ const measureOperations = async function measureOperations() {
 };
 
 // One discarded pass over every operation. The per-operation warmup is too
-// short for a cold process: the first fixture's samples keep falling through
-// its whole measured loop, so where its median lands varies from run to run
-// and base and head disagree by more than a budget. Later fixtures start warm.
+// short for a cold process: samples keep falling through the whole measured
+// loop, so where a median lands varies from run to run.
 await measureOperations();
+const measured = await measureOperations();
 
-await Array.from(Object.values(coreFixtures)).reduce(
-	async (previousIteration, fixture) => {
-		await previousIteration;
-		const {
-			createKernelSamples,
-			getSnapshotSamples,
-			identifySamples,
-			initSamples,
-			repeatVisitorSamples,
-			saveAllSamples,
-			setConsentSamples,
-			subscribeSamples,
-		} = await measureOperations();
+await fixtures.reduce(async (previousIteration, fixture, fixtureIndex) => {
+	await previousIteration;
+	const createKernelSamples = dealt(measured.createKernelSamples, fixtureIndex);
+	const getSnapshotSamples = dealt(measured.getSnapshotSamples, fixtureIndex);
+	const subscribeSamples = dealt(measured.subscribeSamples, fixtureIndex);
+	const setConsentSamples = dealt(measured.setConsentSamples, fixtureIndex);
+	const saveAllSamples = dealt(measured.saveAllSamples, fixtureIndex);
+	const repeatVisitorSamples = dealt(
+		measured.repeatVisitorSamples,
+		fixtureIndex
+	);
+	const initSamples = dealt(measured.initSamples, fixtureIndex);
+	const identifySamples = dealt(measured.identifySamples, fixtureIndex);
 
-		const result: BenchmarkResult = {
-			baseSha: safeBaseSha(),
-			budgetDefinitions: [
-				...coreRuntimeBudgets,
-				...coreRuntimeCoverageBudgets,
-				...coreRuntimeV3Budgets,
-			],
-			budgets: [],
-			commitSha: safeCommitSha(),
-			environment: getEnvironment(),
-			fixture,
-			framework: 'core',
-			metadata: {
-				fixtureSizesApplied: false,
-				gitDirty: safeGitDirty(),
-				iterations: ITERATIONS,
-				warmupIterations: WARMUP,
-				workload: 'historical-empty-kernel',
-			},
-			metrics: [
-				summarizeMetric('createConsentKernel', 'us', createKernelSamples),
-				summarizeMetric('getSnapshot', 'us', getSnapshotSamples),
-				summarizeMetric('subscribe', 'us', subscribeSamples),
-				summarizeMetric('setConsent', 'us', setConsentSamples),
-				summarizeMetric('saveAll', 'us', saveAllSamples),
-				summarizeMetric('repeatVisitorInit', 'us', repeatVisitorSamples),
-				summarizeMetric('initConsentManager', 'us', initSamples),
-				summarizeMetric('identify', 'us', identifySamples),
-			],
-			notes: [
-				'Kernel construction is pure and has no side effects.',
-				'Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.',
-				'v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts.',
-			],
-			package: '@c15t/core-benchmarks',
-			runtime: process.versions.bun ? 'bun' : 'node',
-			scenario: fixture.name,
-			schemaVersion: BENCHMARK_SCHEMA_VERSION,
-			suite: 'core-runtime',
-			timestamp: new Date().toISOString(),
-		};
+	const result: BenchmarkResult = {
+		baseSha: safeBaseSha(),
+		budgetDefinitions: [
+			...coreRuntimeBudgets,
+			...coreRuntimeCoverageBudgets,
+			...coreRuntimeV3Budgets,
+		],
+		budgets: [],
+		commitSha: safeCommitSha(),
+		environment: getEnvironment(),
+		fixture,
+		framework: 'core',
+		metadata: {
+			fixtureSizesApplied: false,
+			gitDirty: safeGitDirty(),
+			iterations: ITERATIONS,
+			warmupIterations: WARMUP,
+			workload: 'historical-empty-kernel',
+		},
+		metrics: [
+			summarizeMetric('createConsentKernel', 'us', createKernelSamples),
+			summarizeMetric('getSnapshot', 'us', getSnapshotSamples),
+			summarizeMetric('subscribe', 'us', subscribeSamples),
+			summarizeMetric('setConsent', 'us', setConsentSamples),
+			summarizeMetric('saveAll', 'us', saveAllSamples),
+			summarizeMetric('repeatVisitorInit', 'us', repeatVisitorSamples),
+			summarizeMetric('initConsentManager', 'us', initSamples),
+			summarizeMetric('identify', 'us', identifySamples),
+		],
+		notes: [
+			'Kernel construction is pure and has no side effects.',
+			'Historical comparators only: fixture labels do not change these empty-kernel operations. Real policy and receipt operations are in policy-runtime.',
+			'v3-over-v2 improvement budgets target the v2 base arm and stay unevaluated without v2 artifacts.',
+		],
+		package: '@c15t/core-benchmarks',
+		runtime: process.versions.bun ? 'bun' : 'node',
+		scenario: fixture.name,
+		schemaVersion: BENCHMARK_SCHEMA_VERSION,
+		suite: 'core-runtime',
+		timestamp: new Date().toISOString(),
+	};
 
-		writeJson(join(outputDir, `${fixture.name}.json`), result);
-	},
-	Promise.resolve()
-);
+	writeJson(join(outputDir, `${fixture.name}.json`), result);
+}, Promise.resolve());
