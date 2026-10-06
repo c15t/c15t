@@ -422,6 +422,35 @@ describe('manifest source URLs', () => {
 		).toBe('/manifest?a=1&b=2');
 	});
 
+	test('requests the source URL and query as written, under the normalised key', async () => {
+		const cache = createManifestCache();
+		const fetchMock = createFetchMock(() =>
+			manifestResponse({ 'cache-control': 's-maxage=60' })
+		);
+
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 0,
+			query: 'language=de%20x',
+			sourceURL: `${SOURCE_URL}?v=2&sig=a%2Fb~c#fragment`,
+		});
+		// A URL signed over its exact query still verifies upstream.
+		expect(fetchMock.mock.calls[0]?.[0]).toBe(
+			`${SOURCE_URL}?v=2&sig=a%2Fb~c&language=de%20x`
+		);
+
+		// The same parameters in another order and encoding read that entry.
+		await fetchCachedManifest({
+			cache,
+			fetch: fetchMock,
+			now: 1,
+			query: 'language=de+x',
+			sourceURL: `${SOURCE_URL}?sig=a%2Fb%7Ec&v=2`,
+		});
+		expect(fetchMock).toHaveBeenCalledTimes(1);
+	});
+
 	test('lists the headers a proxying route forwards, without vary', () => {
 		expect(MANIFEST_PASSTHROUGH_HEADERS).toEqual([
 			'cache-control',
@@ -2566,8 +2595,9 @@ describe('one cache key rule', () => {
 		});
 
 		expect(fetchMock).toHaveBeenCalledTimes(1);
+		// The one request keeps the first caller's query as written.
 		expect(String(fetchMock.mock.calls[0]?.[0])).toBe(
-			`${SOURCE_URL}?language=de&preview=1`
+			`${SOURCE_URL}?preview=1&language=de`
 		);
 	});
 

@@ -605,8 +605,8 @@ export const resolveManifestSourceURL = function resolveManifestSourceURL(
 };
 
 /**
- * Builds the upstream manifest request URL, which is also the URL part of
- * the cache key: the source URL with `query` appended, parameters sorted by
+ * Builds the URL part of the cache key: the source URL with `query`
+ * appended, parameters sorted by
  * name (repeated names keep their relative order), re-encoded the way
  * `URLSearchParams` serialises them, and any empty `?` or `#fragment`
  * dropped. `?b=2&a=1`, `?a=1&b=2` and `?a=1&b=2#x` therefore read and fill
@@ -650,6 +650,27 @@ export const createManifestRequestURL =
 		return search ? `${base}?${search}` : base;
 	};
 
+/**
+ * The URL the upstream request goes to: the source URL as configured, with
+ * `query` appended unchanged and any `#fragment` dropped. Only the cache key
+ * is normalised, so a URL signed over its exact query still verifies.
+ */
+const createManifestFetchURL = function createManifestFetchURL(input: {
+	sourceURL: string;
+	query?: string;
+}): string {
+	const { sourceURL } = input;
+	const hashIndex = sourceURL.indexOf('#');
+	const base = hashIndex === -1 ? sourceURL : sourceURL.slice(0, hashIndex);
+	const query = input.query?.startsWith('?')
+		? input.query.slice(1)
+		: input.query;
+	if (!query) {
+		return base;
+	}
+	return `${base}${base.includes('?') ? '&' : '?'}${query}`;
+};
+
 /** Options for {@link fetchCachedManifest}. */
 export interface FetchCachedManifestOptions {
 	/** Resolved upstream manifest URL (see {@link resolveManifestSourceURL}). */
@@ -658,8 +679,8 @@ export interface FetchCachedManifestOptions {
 	fetch?: ManifestFetch;
 	/**
 	 * Already-encoded query string appended to `sourceURL`, such as
-	 * `language=de`. Normalised with {@link createManifestRequestURL}, so it
-	 * is part of the cache key in sorted form.
+	 * `language=de`. Sent upstream as written; the cache key holds it in the
+	 * sorted form {@link createManifestRequestURL} builds.
 	 */
 	query?: string;
 	/** Current time in epoch milliseconds. Defaults to `Date.now()`. */
@@ -1094,11 +1115,11 @@ export const withResolutionBudget = function withResolutionBudget<Value>(
  * manifest-cache entry point; every server adapter calls it, and without a
  * `cache` option they all share one process cache.
  *
- * Cache key: the request URL from {@link createManifestRequestURL} (source
- * URL plus `query`, parameters sorted, fragment dropped), followed by
- * `#<sha-256>` of the caller's `headers` when any differ from the defaults
- * the cache sends. `fetch`, `init`, `timeoutMs` and `onBackgroundRevalidate`
- * never change the key.
+ * Cache key: the URL from {@link createManifestRequestURL} (source URL plus
+ * `query`, parameters sorted, fragment dropped), followed by `#<sha-256>` of
+ * the caller's `headers` when any differ from the defaults the cache sends.
+ * `fetch`, `init`, `timeoutMs` and `onBackgroundRevalidate` never change the
+ * key. The upstream request goes to the source URL and `query` as written.
  *
  * Serves a fresh entry without a network round-trip. Once `s-maxage` has
  * passed, a stale entry inside the backend's `stale-while-revalidate`
@@ -1108,8 +1129,9 @@ export const withResolutionBudget = function withResolutionBudget<Value>(
  * {@link MANIFEST_DEDUPE_TTL_SECONDS} later. Past that window, or with no
  * such directive, the caller waits on the upstream as for a miss; a stale
  * entry is never served past its window.
- * Concurrent misses for the same URL share one upstream request, so a cold
- * start or an expiry under load reaches the backend once.
+ * Concurrent misses for the same key share one upstream request, sent to
+ * the first caller's URL, so a cold start or an expiry under load reaches
+ * the backend once.
  *
  * When that upstream request fails with nothing servable cached, the key is
  * not asked again for {@link MANIFEST_FAILURE_RETRY_MIN_MS}, doubling with
@@ -1134,15 +1156,15 @@ export const fetchCachedManifest = async function fetchCachedManifest(
 	}
 
 	const cache = options.cache ?? defaultManifestCache;
-	const requestURL = createManifestRequestURL({
-		query: options.query,
-		sourceURL: options.sourceURL,
-	});
+	const requestURL = createManifestFetchURL(options);
 	assertCredentialTransport(requestURL, options.headers);
 	// Read before the first await so a clear that lands while the key is
 	// being digested still invalidates this fill.
 	const generation = getGeneration(cache);
-	const cacheKey = await buildCacheKey(requestURL, options.headers);
+	const cacheKey = await buildCacheKey(
+		createManifestRequestURL(options),
+		options.headers
+	);
 	if (getGeneration(cache) !== generation) {
 		// A clear landed while the key was being digested: start over so this
 		// fill can neither reuse nor register anything from before the clear.
