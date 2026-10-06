@@ -243,6 +243,51 @@ describe('IAB Storage E2E Tests', () => {
 		});
 	});
 
+	describe('Returning visitor', () => {
+		const switchStates = () =>
+			Array.from(
+				document.querySelectorAll(
+					'[data-testid="iab-consent-dialog-card"] [role="switch"]'
+				)
+			).map((element) => element.getAttribute('aria-checked'));
+
+		test('the preference dialog shows the choices saved before a reload', async () => {
+			const firstVisit = await render(
+				<ConsentProvider options={defaultProviderIABOptions}>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</ConsentProvider>
+			);
+			const acceptButton = await waitForElement(
+				'[data-testid="iab-consent-banner-accept-button"]'
+			);
+			await waitForCMP();
+			await userEvent.click(acceptButton);
+			await waitForElementRemoved('[data-testid="iab-consent-banner-card"]');
+			await vi.waitFor(() => expect(getStoredTCString()).not.toBeNull());
+			await firstVisit.unmount();
+			// A reload starts without the previous page's CMP.
+			delete (window as { __tcfapi?: unknown }).__tcfapi;
+
+			render(
+				<ConsentProvider
+					options={{ ...defaultProviderIABOptions, initialUI: 'dialog' }}
+				>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</ConsentProvider>
+			);
+			await waitForCMP();
+			await waitForElement('[data-testid="iab-consent-dialog-card"]');
+
+			await vi.waitFor(() => {
+				const states = switchStates();
+				expect(states.length).toBeGreaterThan(0);
+				expect(states).toEqual(states.map(() => 'true'));
+			});
+		});
+	});
+
 	describe('c15t Storage Key', () => {
 		test('should use "c15t" key in localStorage', async () => {
 			render(

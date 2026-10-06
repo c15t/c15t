@@ -119,6 +119,41 @@ test.each(['acceptAll', 'rejectAll'] as const)(
 	}
 );
 
+test('a Reject All queued behind the list load outlasts the restored choice', async () => {
+	localStorage.clear();
+	const first = kernelWithReference();
+	vi.stubGlobal('fetch', () => Promise.resolve(Response.json(completeGVL)));
+	const saved = createIAB({ cmpId: 28, kernel: first });
+	saved.acceptAll();
+	await saved.save();
+	saved.dispose();
+
+	const kernel = kernelWithReference();
+	let complete!: (response: Response) => void;
+	vi.stubGlobal(
+		'fetch',
+		() =>
+			new Promise<Response>((resolve) => {
+				complete = resolve;
+			})
+	);
+	const handle = createIAB({ cmpId: 28, kernel });
+	disposers.push(handle.dispose);
+	handle.rejectAll();
+	const save = handle.save();
+	complete(Response.json(completeGVL));
+	await save;
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().iab?.authority).toBeTruthy()
+	);
+	expect(kernel.getSnapshot().iab?.purposeConsents[1]).toBe(false);
+	const decoded = await decodeTCString(
+		kernel.getSnapshot().iab?.authority?.tcString ?? ''
+	);
+	expect(decoded.purposeConsents[1]).not.toBe(true);
+	localStorage.clear();
+});
+
 test('rejects a changed vendor list and keeps the banner available', async () => {
 	const kernel = kernelWithReference();
 	vi.stubGlobal('fetch', () =>

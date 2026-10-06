@@ -765,7 +765,7 @@ test('reconciling keeps selections this runtime changed but did not save', async
 	const firstStorage = createPersistence({ kernel: first, sync: false });
 	disposers.push(firstStorage.dispose);
 	const firstAddon = createAddon(first);
-	firstAddon.acceptAll();
+	firstAddon.rejectAll();
 	await firstAddon.save();
 	firstStorage.reconcile();
 
@@ -780,7 +780,8 @@ test('reconciling keeps selections this runtime changed but did not save', async
 	secondAddon.setPurposeConsent(10, true);
 
 	vi.setSystemTime(NOW + 1000);
-	firstAddon.rejectAll();
+	// A different string, so the reload below has something to install.
+	firstAddon.setPurposeConsent(1, true);
 	await firstAddon.save();
 	firstStorage.reconcile();
 	const rejected = first.getSnapshot().iab?.authority?.tcString;
@@ -854,10 +855,21 @@ test('a partial purpose selection saved through IAB is restored on the next load
 	const fresh = makeKernel();
 	const freshStorage = createPersistence({ kernel: fresh, sync: false });
 	disposers.push(freshStorage.dispose);
-	createAddon(fresh);
+	const freshAddon = createAddon(fresh);
 	await vi.waitFor(() =>
 		expect(fresh.getSnapshot().iab?.authority?.tcString).toBe(tcString)
 	);
+	// The preference UI shows the restored selections, and saving them
+	// unchanged writes the same choice again.
+	const restored = fresh.getSnapshot().iab?.purposeConsents ?? {};
+	expect(restored[2]).toBe(true);
+	expect(restored[1]).not.toBe(true);
+	await freshAddon.save();
+	const resaved = await decodeTCString(
+		fresh.getSnapshot().iab?.authority?.tcString ?? ''
+	);
+	expect(resaved.purposeConsents[2]).toBe(true);
+	expect(resaved.purposeConsents[1]).not.toBe(true);
 });
 
 test('a later category denial withdraws a TC string granting any of its purposes', async () => {

@@ -933,8 +933,20 @@ export const createIAB = function createIAB(
 			// it, is not restored.
 			fitsChoice(authority, hydrationSnapshot.explicitChoice)
 		) {
-			kernel.set.iab({ authority, tcString: authority.tcString });
-			revisionAtAuthority = selectionRevision;
+			// The preference UI edits these selections and Save encodes them,
+			// so they start from the stored choice. Left empty, every switch
+			// reads off and an untouched Save revokes everything. An Accept or
+			// Reject All queued behind the list load is the visitor's newer
+			// action and keeps its selections.
+			const keepSelections = selectionRevision !== revisionAtAuthority;
+			kernel.set.iab({
+				...(!keepSelections && selectionsOf(authority)),
+				authority,
+				tcString: authority.tcString,
+			});
+			if (!keepSelections) {
+				revisionAtAuthority = selectionRevision;
+			}
 			armAuthorityTimer();
 		}
 	};
