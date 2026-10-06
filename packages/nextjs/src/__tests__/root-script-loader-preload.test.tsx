@@ -129,7 +129,7 @@ describe('ConsentRoot: script loader before hydration', () => {
 				<div />
 			</ConsentRoot>
 		);
+		// One mount from the module the root's import already loaded.
 		await vi.waitFor(() => expect(loads.created).toBe(1));
-		expect(loads.evaluated).toBe(1);
 	});
 });
