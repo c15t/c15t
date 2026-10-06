@@ -126,13 +126,13 @@ and renders every page in the browser, so crawlers that do not run JavaScript
 see no content. That is the tradeoff. Prerendering works without it, so use
 `ssr: false` only when you want a single-page app for other reasons.
 
-<include src="../../shared/examples/nuxt/static-config.mdx" />
+<include src="../../shared/examples/nuxt-static/static-config.mdx" />
 
 Run `nuxt generate` and deploy `.output/public`. The module reads the
 visitor's stored choice from their own cookie, and `manifest: 'client'` fetches
 the manifest from `manifestURL` and resolves the policy in the browser. The
-banner appears after the manifest loads. `examples/nuxt` builds this setup
-when `C15T_NUXT_OUTPUT=static` is set.
+banner appears after the manifest loads. `examples/nuxt-static` in the c15t
+repository builds this setup.
 
 With `manifest` unset, the browser calls your backend's `/init` instead of
 downloading the manifest. The module then adds a small inline script to the

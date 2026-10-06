@@ -6,10 +6,7 @@
 		"moduleResolution": "Bundler",
 		"strict": true,
 		"noEmit": true,
-		"skipLibCheck": true,
-		"jsx": "react-jsx",
-		"types": ["vite/client"],
-		"allowJs": false
+		"skipLibCheck": true
 	},
 	"include": ["src/**/*", "vite.config.ts"]
 }

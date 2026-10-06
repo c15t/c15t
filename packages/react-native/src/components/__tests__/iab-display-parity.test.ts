@@ -34,7 +34,7 @@ import {
 } from '@c15t/iab/headless';
 import { describe, expect, test } from 'vitest';
 
-import { IAB_DEMO_DISPLAY_MODEL } from '../../../../../examples/react-native-bare/src/fixtures/iab-display-model';
+import { IAB_DEMO_DISPLAY_MODEL } from '../../../../../internals/fixtures/react-native-bare/src/fixtures/iab-display-model';
 import { completeGVL } from '../../../../iab/src/__tests__/fixtures/gvl-sample';
 
 /** The disclosure the web builds from the same GVL the fixture was written from. */

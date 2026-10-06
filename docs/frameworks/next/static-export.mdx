@@ -30,13 +30,7 @@ Create `c15t.config.ts` at the project root, or in `src/`, with only
 `backendURL`. Without a
 server there is no manifest route, so the browser calls `${backendURL}/init`.
 
-```ts title="c15t.config.ts"
-import { defineConsentConfig } from 'c15t/next';
-
-export const consentConfig = defineConsentConfig({
-	backendURL: 'https://your-project.inth.app',
-});
-```
+<include src="../../shared/examples/nextjs/client-side-config.mdx" />
 
 Replace `https://your-project.inth.app` with your project's backend URL,
 including any path prefix. Keep it absolute. A path such as `/api/c15t` would
@@ -68,7 +62,7 @@ In the App Router, mount the wrapper with an empty state in the root layout:
 In the Pages Router, use the same `_app.tsx` as a server app. Exported pages
 have no `getServerSideProps`, so every page passes `{}`:
 
-<include src="../../shared/examples/nextjs/pages-app.mdx" />
+<include src="../../shared/examples/nextjs-pages-router/pages-app.mdx" />
 
 `state={{}}` supplies no server state, so `ConsentRoot` initializes in the
 browser. Backend `/init` reads the visitor's location from its own request,
@@ -91,11 +85,11 @@ not have. Then open the site in a fresh browser session with DevTools open.
 
 1. The Network panel shows `/init` and `/subjects` requests to your backend's
    origin, and no failed same-origin `/api/c15t` request.
-2. Under an opt-in policy, the banner appears and no PostHog or X Pixel request
-   runs. Click **Reject All** and reload. The banner stays closed and neither
-   vendor loads.
-3. Open **Privacy settings** and turn on **Analytics** (the `measurement` category) only. PostHog loads and
-   X Pixel stays blocked.
+2. Under an opt-in policy, the banner appears and no PostHog request runs.
+   Click **Reject All** and reload. The banner stays closed and PostHog does
+   not load.
+3. Open **Privacy settings** and turn on **Analytics** (the `measurement`
+   category). PostHog loads.
 4. Block the backend's domain in DevTools and reload in a fresh session. No
    banner appears and no vendor loads.
 

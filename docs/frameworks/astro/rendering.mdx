@@ -26,7 +26,7 @@ across frameworks.
 
 ## Static output with `hosted()`
 
-<include src="../../shared/examples/astro-demo/static-config.mdx" />
+<include src="../../shared/examples/astro-static/static-config.mdx" />
 
 Astro builds every page once. At build time there is no visitor, so
 `ConsentBanner` renders an empty, hidden placeholder. In the browser, c15t
@@ -43,7 +43,7 @@ purely static host.
 
 ## Server output with `manifest()`
 
-<include src="../../shared/examples/astro-demo/server-config.mdx" />
+<include src="../../shared/examples/astro/server-config.mdx" />
 
 The integration registers a middleware that runs before every page. It reads
 the visitor's consent cookie, location headers and Global Privacy Control
@@ -131,7 +131,7 @@ A page served from a CDN cache or prerendered once can still show the right
 banner to each visitor. Replace `ConsentBanner` with `ConsentBannerDeferred`,
 which renders the banner in an Astro server island:
 
-<include src="../../shared/examples/astro-demo/cached-layout.mdx" />
+<include src="../../shared/examples/astro/cached-layout.mdx" />
 
 The page HTML stays the same for everyone. The island's request carries the
 visitor's cookie and location, so the middleware resolves consent for it and

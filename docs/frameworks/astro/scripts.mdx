@@ -13,11 +13,11 @@ snippet so it loads once.
 Vendor helpers from `@c15t/integrations` contain callbacks, and the integration
 options in `astro.config.mjs` must survive JSON serialization. So register
 helpers in the module that the integration's `clientEntrypoint` option names.
-This list loads PostHog on measurement and X Pixel on marketing:
+This list loads PostHog on measurement:
 
-<include src="../../shared/examples/astro-demo/scripts.mdx" />
+<include src="../../shared/examples/astro/scripts.mdx" />
 
-<include src="../../shared/examples/astro-demo/client-entrypoint.mdx" />
+<include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
 The integration imports that module into the page's boot script, so every page
 shares one script loader. Each helper's guide under
@@ -58,7 +58,7 @@ rules, and loads as its own chunk when only the client entrypoint sets them.
 For a script that has to stay in the page's markup, make it inert and label it
 with a category. c15t runs it once the category is allowed:
 
-<include src="../../shared/examples/astro-demo/gated-inline-script.mdx" />
+<include src="../../shared/examples/astro/gated-inline-script.mdx" />
 
 Three attributes matter:
 
@@ -120,7 +120,7 @@ Build the site and open it in a private window with DevTools Network open:
 
 1. Before you choose, filter for each vendor's domain. There are no requests,
    and a gated inline script has not run.
-2. Allow one category from **Cookie preferences**. Only that category's vendors
+2. Allow one category from **Privacy settings**. Only that category's vendors
    load, and inline scripts gated on it run.
 3. Reload. The allowed vendors load again, and the others stay absent.
 4. Withdraw the category and save. The page reloads and the vendor does not

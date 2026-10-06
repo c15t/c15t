@@ -1,0 +1,20 @@
+{/* Generated from internals/doc-snippets/html/gated-scripts.html (docs:gated-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```html title="index.html"
+<!-- PostHog's snippet, saved as a file on your site -->
+<script
+	type="text/plain"
+	data-c15t-category="measurement"
+	src="/posthog.js"
+></script>
+<!-- X Pixel's base code, pasted inline -->
+<script
+	type="text/plain"
+	data-c15t-category="marketing"
+>
+	!function(e,t,n,s,u,a){e.twq||(s=e.twq=function(){s.exe?s.exe.apply(s,arguments):s.queue.push(arguments);
+	},s.version='1.1',s.queue=[],u=t.createElement(n),u.async=!0,u.src='https://static.ads-twitter.com/uwt.js',
+	a=t.getElementsByTagName(n)[0],a.parentNode.insertBefore(u,a))}(window,document,'script');
+	twq('config','YOUR_X_PIXEL_ID');
+</script>
+```

@@ -25,23 +25,25 @@ deploying, and rebuild after changing policies, translations or vendors.
 <CommandTabs command="@c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
 
 `@c15t/browser` is not part of the `c15t` package. `@c15t/integrations` supplies
-the PostHog and X Pixel helpers used below.
+the PostHog helper used below.
 
 ## Register consent-gated scripts
 
 Create `src/scripts.ts`. PostHog waits for measurement permission with
 `loadMode: 'after-consent'`, and `cookieless_mode: 'never'` turns off its
-cookieless capture. X Pixel waits for marketing permission.
+cookieless capture.
 
 <include src="../../shared/examples/javascript/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. The PostHog helper sends events to
-PostHog's EU cloud; for a US project, add `region: 'us'`.
+Replace `phc_your_project_key` with your PostHog project key. The PostHog
+helper sends events to PostHog's EU cloud; for a US project, add
+`region: 'us'`.
 
-Include the measurement and marketing categories in your Inth policy. Remove
-any other loader for these vendors, such as a snippet in `index.html`, so each
-one loads once and only through c15t.
+Include the measurement category in your Inth policy. Remove any other loader
+for PostHog, such as a snippet in `index.html`, so it loads once and only
+through c15t. Add other vendors to the same list, each with the category it
+needs; the [integration guides](/docs/integrations/overview) give the helper
+for each one.
 
 ## Start c15t
 
@@ -104,12 +106,12 @@ covers each option.
 Run the app, open it in a private window, and open the browser's developer
 tools on the Network tab.
 
-1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
-   requests, and the YouTube iframe has no `src`.
-2. Click **Reject All** and reload. The banner stays closed and the vendor
+1. Before you choose, filter for `posthog`. There are no requests, and the
+   YouTube iframe has no `src`.
+2. Click **Reject All** and reload. The banner stays closed and the PostHog
    requests stay absent.
-3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) only and save. PostHog and
-   the YouTube player load. X Pixel does not.
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog and
+   the YouTube player load.
 4. Open **Privacy settings** again and turn **Analytics** off. The page reloads,
    and PostHog and YouTube do not load again.
 

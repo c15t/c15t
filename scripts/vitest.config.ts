@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 
 const demoScriptPath = fileURLToPath(
 	new URL(
-		'../examples/sveltekit-demo/src/lib/consent-manager/demo-scripts.ts',
+		'../internals/fixtures/sveltekit-demo/src/lib/consent-manager/demo-scripts.ts',
 		import.meta.url
 	)
 );

@@ -1,0 +1,31 @@
+{/* Generated from examples/sveltekit/src/routes/+layout.svelte (docs:layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```svelte title="src/routes/+layout.svelte"
+<script lang="ts">
+	import { PUBLIC_C15T_BACKEND_URL } from '$app/env/public';
+	import {
+		ConsentBanner,
+		ConsentDialog,
+		ConsentDialogLink,
+		ConsentManagerProvider,
+		hosted,
+	} from '@c15t/svelte';
+
+	import { scripts } from '#lib/scripts.js';
+
+	import '@c15t/svelte/styles.css';
+
+	let { children, data } = $props();
+
+	const mode = hosted({ url: PUBLIC_C15T_BACKEND_URL });
+</script>
+
+<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts}>
+	{@render children()}
+	<footer>
+		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+	</footer>
+	<ConsentBanner />
+	<ConsentDialog />
+</ConsentManagerProvider>
+```

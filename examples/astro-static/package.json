@@ -1,0 +1,22 @@
+{
+	"name": "@c15t/example-astro-static",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"build": "astro build",
+		"check-types": "astro check",
+		"dev": "astro dev",
+		"start": "astro preview"
+	},
+	"dependencies": {
+		"@astrojs/svelte": "^7.2.0",
+		"@c15t/integrations": "workspace:*",
+		"astro": "^5.16.0",
+		"c15t": "workspace:*",
+		"svelte": "^5.0.0"
+	},
+	"devDependencies": {
+		"@astrojs/check": "^0.9.4",
+		"typescript": "6.0.3"
+	}
+}

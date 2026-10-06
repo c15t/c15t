@@ -37,7 +37,7 @@
 		"compat:styles:matrix": "tsx scripts/verify-tailwind-matrix.ts",
 		"compat:styles:review": "node scripts/css-layer-review.mjs",
 		"compat:styles:verify": "node scripts/verify-css-layer.mjs",
-		"dev": "turbo run dev --filter=@c15t/example-demo",
+		"dev": "turbo run dev --filter=@c15t/playground",
 		"dev:bench:nextjs": "turbo run dev --filter=@c15t/nextjs-browser-bench",
 		"e2e:consent": "node scripts/verify-consent-e2e.mjs",
 		"fmt": "oxfmt .",

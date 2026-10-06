@@ -1,0 +1,14 @@
+{/* Generated from examples/sveltekit/src/lib/scripts.ts (docs:scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/lib/scripts.ts"
+import { posthog } from '@c15t/integrations/posthog';
+
+export const scripts = [
+	// Loads PostHog only after the visitor allows measurement.
+	posthog({
+		id: 'phc_your_project_key',
+		initOptions: { cookieless_mode: 'never' },
+		loadMode: 'after-consent',
+	}),
+];
+```

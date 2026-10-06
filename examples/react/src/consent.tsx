@@ -9,18 +9,10 @@ import {
 import type { ReactNode } from 'react';
 
 import { scripts } from './scripts';
-// #hide docs
-import { testBackend } from './test-backend';
-// #endhide docs
 
 import 'c15t/react/styles.css';
 
-const mode = hosted({
-	url: 'https://your-project.inth.app',
-	// #hide docs
-	...testBackend('url'),
-	// #endhide docs
-});
+const mode = hosted({ url: 'https://your-project.inth.app' });
 
 export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentProvider options={{ mode, scripts }}>

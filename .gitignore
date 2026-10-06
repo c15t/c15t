@@ -42,7 +42,7 @@ packages/browser/docs
 dist-types
 apps/bundle-bench-react/.bundle-bench-dist/
 .svelte-kit/
-examples/astro-demo/.astro/
+internals/fixtures/astro-demo/.astro/
 packages/astro/test/fixtures/**/.astro/
 
 

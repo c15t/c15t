@@ -50,7 +50,7 @@ to every page once `iab` is set.
 Replace the standard banner and dialog with the IAB pair. The footer trigger
 opens the IAB preference center:
 
-<include src="../../shared/examples/astro-demo/iab-layout.mdx" />
+<include src="../../shared/examples/astro/iab-layout.mdx" />
 
 `IABConsentBanner` lists the purposes and the number of partners from the
 vendor list, and renders nothing until a vendor list is available. Its
@@ -96,7 +96,7 @@ Open the site in a private window from a region your IAB policy covers:
 3. Save a choice. In the console, `__tcfapi('getTCData', 2, console.log)`
    reports a TC String, and an `euconsent-v2` cookie exists.
 4. Reload. The banner stays closed and the TC String is the same.
-5. Open **Cookie preferences** from the footer. The IAB preference center
+5. Open **Privacy settings** from the footer. The IAB preference center
    opens with your saved choices.
 
 Test the vendors' own requests as well. A category-only test does not show

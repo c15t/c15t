@@ -2,13 +2,14 @@
 <script setup lang="ts">
 import ConsentRoot from 'c15t/vue/consent-root';
 import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferences-link.vue';
-
-import HomePage from './HomePage.vue';
 </script>
 
 <template>
 	<ConsentRoot />
-	<HomePage />
+	<main>
+		<h1>c15t with Vue</h1>
+		<p>PostHog loads after you allow measurement.</p>
+	</main>
 	<footer>
 		<ConsentPreferencesLink>Privacy settings</ConsentPreferencesLink>
 	</footer>

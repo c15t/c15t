@@ -35,7 +35,7 @@ Copy the shape of an existing package rather than inventing one. `packages/logge
 
 5. **vitest.config.ts**: extend `@c15t/vitest-config` base config; add the package to root `vitest.workspace.ts` if it should run in the workspace suite. Browser tests follow `packages/react/vitest.config.ts` (`@vitest/browser-playwright`, Chromium).
 
-6. **turbo.json**: the generic `build`/`test`/`lint` tasks cover most packages. Add a package-specific entry only if outputs differ (e.g. bundled docs add `AGENTS.md` + `docs/**` to build outputs) or the demo should watch it (`@c15t/example-demo#dev.with`).
+6. **turbo.json**: the generic `build`/`test`/`lint` tasks cover most packages. Add a package-specific entry only if outputs differ (e.g. bundled docs add `AGENTS.md` + `docs/**` to build outputs) or the demo should watch it (`@c15t/playground#dev.with`).
 
 7. **Tegami**: decide whether it joins `linkedPackages` in `scripts/tegami.ts` (core SDK packages that must version together) or versions independently (utilities like logger/schema/ui).
 

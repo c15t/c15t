@@ -9,8 +9,8 @@ group: frameworks
 [Create an Inth project](https://inth.com) and set it up before you touch the
 code:
 
-1. Add policy rules that cover the `measurement` and `marketing` categories.
-   This guide loads PostHog on measurement and X Pixel on marketing.
+1. Add policy rules that cover the `measurement` category. This guide loads
+   PostHog on measurement.
 2. Add your site's origin to the project's trusted origins.
 3. Copy the project's backend URL.
 
@@ -26,6 +26,10 @@ cached setups.
 For server output, use the build-time manifest setup below as the production
 default. Rebuild after changing policies, translations or vendors. Static
 output keeps browser initialization through Inth.
+
+[`examples/astro-static`](https://github.com/c15t/c15t/tree/v3/examples/astro-static)
+and [`examples/astro`](https://github.com/c15t/c15t/tree/v3/examples/astro)
+hold the finished code for each.
 
 ## Install the packages
 
@@ -50,7 +54,7 @@ backend URL, including any path prefix.
 
 ### Static output
 
-<include src="../../shared/examples/astro-demo/static-config.mdx" />
+<include src="../../shared/examples/astro-static/static-config.mdx" />
 
 `hosted()` sends the browser straight to your Inth backend, so no server is
 needed. A static page is the same for every visitor, which means the banner
@@ -58,7 +62,12 @@ appears once the browser's `/init` request returns, not in the first HTML.
 
 ### Server output
 
-<include src="../../shared/examples/astro-demo/server-config.mdx" />
+<include src="../../shared/examples/astro/server-config.mdx" />
+
+The config reads the backend URL from `PUBLIC_C15T_BACKEND_URL` when it is
+set. Astro loads the config before it reads `.env` files, so set the variable
+in the environment that runs `astro dev` and `astro build`, or replace the
+fallback with your URL.
 
 `manifest()` caches your project's public policy file on the server and
 resolves each request from it. The first HTML already contains the banner, or
@@ -76,20 +85,19 @@ that `clientEntrypoint` names.
 
 ## Register vendor scripts
 
-Remove any existing PostHog or X Pixel snippet first, so each vendor loads once.
-Then create the script list. It selects PostHog's EU region. Change `region` to
-`'us'` for a US project.
+Remove any existing PostHog snippet first, so PostHog loads once. Then create
+the script list. It selects PostHog's EU region. Change `region` to `'us'` for
+a US project.
 
-<include src="../../shared/examples/astro-demo/scripts.mdx" />
+<include src="../../shared/examples/astro/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. PostHog waits for measurement permission and does not fall back to cookieless
-capture. X Pixel waits for marketing permission.
+Replace `phc_your_project_key` with your PostHog project key. PostHog waits
+for measurement permission and does not fall back to cookieless capture.
 
 Then export the scripts from the client entrypoint that `astro.config.mjs`
 points at:
 
-<include src="../../shared/examples/astro-demo/client-entrypoint.mdx" />
+<include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
 Other vendors work the same way. See
 [integrations](/docs/integrations/overview) for the list, and
@@ -100,7 +108,7 @@ iframes and tracking requests.
 
 ## Add the consent components to your layout
 
-<include src="../../shared/examples/astro-demo/layout.mdx" />
+<include src="../../shared/examples/astro/layout.mdx" />
 
 Wrap every page in this layout. `ConsentScript` goes in `<head>`, where it
 hands the browser the server's decision and sets the color scheme before first
@@ -118,7 +126,7 @@ choice.
 Add the middleware types so TypeScript knows about the consent context the
 integration puts on every request:
 
-<include src="../../shared/examples/astro-demo/env-types.mdx" />
+<include src="../../shared/examples/astro/env-types.mdx" />
 
 ## Check that it works
 
@@ -126,13 +134,13 @@ Build and preview the site, then open it in a private window with DevTools open
 on the Network tab:
 
 1. Before you choose, the banner shows and there are no requests to
-   `posthog.com` or `static.ads-twitter.com`.
-2. Select **Reject All** and reload. The banner stays closed and neither vendor
-   loads.
-3. Open **Cookie preferences**, turn on **Analytics** (the `measurement` category) and select **Save Settings**. PostHog loads;
-   X Pixel does not.
-4. Turn on **Marketing** and save. X Pixel loads.
-5. Turn both off and save. The page reloads, and neither vendor loads again.
+   `posthog.com`.
+2. Select **Reject All** and reload. The banner stays closed and PostHog does
+   not load.
+3. Open **Privacy settings**, turn on **Analytics** (the `measurement`
+   category) and select **Save Settings**. PostHog loads.
+4. Turn **Analytics** off and save. The page reloads, and PostHog does not load
+   again.
 
 On server output, the page source of a first visit contains the banner markup.
 On static output it does not, and the banner appears after the `/init`

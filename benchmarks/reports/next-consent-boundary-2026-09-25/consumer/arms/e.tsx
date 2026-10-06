@@ -1,4 +1,4 @@
-// Arm e: the CLI template and examples/nextjs form. The layout awaits
+// Arm e: the CLI template and internals/fixtures/nextjs form. The layout awaits
 // resolveConsent with no Suspense boundary, so the whole response waits.
 // Only builds without cacheComponents (Next rejects it otherwise).
 import type { ReactNode } from 'react';

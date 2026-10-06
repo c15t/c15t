@@ -73,17 +73,15 @@ their own styles.
 
 ## Register consent-gated scripts
 
-Remove any existing PostHog or X Pixel snippet so each script loads once, and
-add measurement and marketing to your Inth policy.
+Remove any existing PostHog snippet so the script loads once, and add
+measurement to your Inth policy.
 
 Create `app/consent-scripts.ts`. PostHog waits for measurement permission and
-uses its EU region; change `region` to `'us'` for a US project. X Pixel waits
-for marketing permission.
+uses its EU region; change `region` to `'us'` for a US project.
 
 <include src="../../shared/examples/nuxt/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID.
+Replace `phc_your_project_key` with your PostHog project key.
 
 Register the scripts in `app/app.config.ts`:
 
@@ -103,6 +101,9 @@ withdraws permission.
 
 <include src="../../shared/examples/nuxt/embed.mdx" />
 
+Nuxt registers components in `app/components` for you. Render
+`<VideoEmbed />` in a page where the video belongs.
+
 ## Verify the setup
 
 Build and start the production server with `nuxt build` and
@@ -111,13 +112,11 @@ browser's DevTools on the Network tab, under a policy that asks for consent.
 
 1. Load a page and view its source. The banner markup,
    `data-testid="consent-banner-root"`, is in the HTML. The Network tab shows
-   no requests to `posthog.com`, `static.ads-twitter.com` or
-   `youtube-nocookie.com`.
+   no requests to `posthog.com` or `youtube-nocookie.com`.
 2. Click **Reject All**, then reload. The banner stays closed and the vendor
    requests stay absent.
-3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog's `array.js`
-   loads and the video appears. X Pixel stays blocked until you allow
-   Marketing.
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement`
+   category) and save. PostHog's `array.js` loads and the video appears.
 4. Turn **Analytics** off and save. The page reloads, the video is gone and
    PostHog does not load again.
 

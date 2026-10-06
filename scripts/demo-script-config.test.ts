@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createDemoScripts } from '../examples/sveltekit-demo/src/lib/consent-manager/demo-scripts';
+import { createDemoScripts } from '../internals/fixtures/sveltekit-demo/src/lib/consent-manager/demo-scripts';
 
 describe('Svelte demo script configuration', () => {
 	it('never points default vendor configurations at real accounts', () => {
