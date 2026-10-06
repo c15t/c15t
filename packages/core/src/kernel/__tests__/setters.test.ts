@@ -9,36 +9,48 @@ import {
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { createConsentKernel } from '../index';
-import { mergeDraft, mergeIab } from '../setters';
 
-describe('mergeDraft', () => {
-	test('merges optional booleans and ignores the rest', () => {
-		const first = mergeDraft(null, { marketing: true, necessary: true });
-		expect(first).toEqual({ marketing: true });
-		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
-		const second = mergeDraft(first, { measurement: 'yes' as any });
-		expect(second).toBe(first);
-		expect(mergeDraft(first, { marketing: false })).toEqual({
-			marketing: false,
+describe('set.draft', () => {
+	test('stages optional booleans a no-input save confirms and ignores the rest', async () => {
+		vi.spyOn(Date, 'now').mockReturnValue(NOW);
+		const categories = ['functionality', 'marketing', 'measurement'] as const;
+		const kernel = createConsentKernel({
+			consentCategories: categories,
+			initialPolicyResolution: matchedResolution(
+				optInRule({ categories: [...categories] })
+			),
+			now: NOW,
 		});
+		kernel.set.draft({ marketing: true, necessary: true });
+		// oxlint-disable-next-line typescript/no-explicit-any -- deliberately invalid input
+		kernel.set.draft({ measurement: 'yes' as any });
+		kernel.set.draft({ functionality: true });
+		kernel.set.draft({ functionality: false });
+		await kernel.commands.save();
+		const recorded = kernel.getSnapshot().explicitChoice?.categories;
+		expect(recorded?.marketing?.value).toBe(true);
+		expect(recorded?.functionality?.value).toBe(false);
+		expect(recorded?.measurement?.value).toBe(false);
+		kernel.dispose();
 	});
 });
 
-describe('mergeIab', () => {
-	test('previously-null slice + any patch is a change', () => {
-		const result = mergeIab(null, { enabled: true });
-		expect(result.changed).toBe(true);
-		expect(result.next.enabled).toBe(true);
-	});
-
-	test('no-change when scalar fields match the baseline', () => {
-		const baseline = mergeIab(null, { enabled: true }).next;
-		expect(mergeIab(baseline, { enabled: true }).changed).toBe(false);
-	});
-
-	test('detects scalar field flip', () => {
-		const baseline = mergeIab(null, { enabled: true }).next;
-		expect(mergeIab(baseline, { enabled: false }).changed).toBe(true);
+describe('set.iab', () => {
+	test('creates the slice, then announces only real changes', () => {
+		const kernel = createConsentKernel({ now: NOW });
+		const events = vi.fn();
+		kernel.events.on('iab:set', events);
+		expect(kernel.getSnapshot().iab).toBeNull();
+		kernel.set.iab({ enabled: true });
+		expect(kernel.getSnapshot().iab?.enabled).toBe(true);
+		expect(events).toHaveBeenCalledTimes(1);
+		const before = kernel.getSnapshot();
+		kernel.set.iab({ enabled: true });
+		expect(kernel.getSnapshot()).toBe(before);
+		expect(events).toHaveBeenCalledTimes(1);
+		kernel.set.iab({ enabled: false });
+		expect(kernel.getSnapshot().iab?.enabled).toBe(false);
+		expect(events).toHaveBeenCalledTimes(2);
 	});
 });
 

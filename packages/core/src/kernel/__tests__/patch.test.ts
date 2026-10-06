@@ -7,16 +7,17 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
-import { applyPatch, buildNextSnapshot, snapshotChanged } from '../patch';
+import { buildNextSnapshot, snapshotChanged } from '../patch';
 import { buildInitialSnapshot } from '../snapshot';
 
-describe('applyPatch', () => {
-	test('increments revision by exactly 1 and returns a frozen snapshot', () => {
+describe('buildNextSnapshot', () => {
+	test('increments revision by exactly 1', () => {
 		const initial = buildInitialSnapshot({ now: NOW });
-		const next = applyPatch(initial, { subject: { subjectId: 'sub_1' } });
+		const next = buildNextSnapshot(initial, {
+			subject: { subjectId: 'sub_1' },
+		});
 		expect(next.revision).toBe(1);
-		expect(Object.isFrozen(next)).toBe(true);
-		const after = applyPatch(next, { subject: null });
+		const after = buildNextSnapshot(next, { subject: null });
 		expect(after.revision).toBe(2);
 		expect(initial.revision).toBe(0);
 	});
@@ -27,10 +28,10 @@ describe('applyPatch', () => {
 			initialUser: { externalId: 'u1' },
 			now: NOW,
 		});
-		const kept = applyPatch(initial, { branding: 'consent' });
+		const kept = buildNextSnapshot(initial, { branding: 'consent' });
 		expect(kept.user).toBe(initial.user);
 		expect(kept.subject).toBe(initial.subject);
-		const cleared = applyPatch(initial, { subject: null, user: null });
+		const cleared = buildNextSnapshot(initial, { subject: null, user: null });
 		expect(cleared.user).toBeNull();
 		expect(cleared.subject).toBeNull();
 		expect(cleared.subject?.subjectId ?? null).toBeNull();
@@ -56,7 +57,7 @@ describe('applyPatch', () => {
 			marketing: true,
 			measurement: false,
 		});
-		const next = applyPatch(initial, { explicitChoice: records.choice });
+		const next = buildNextSnapshot(initial, { explicitChoice: records.choice });
 		expect(next.effectivePermissions.marketing).toBe(true);
 		expect(next.effectivePermissions).toBe(next.effectivePermissions);
 		expect(Object.keys(next.explicitChoice?.categories ?? {})).not.toHaveLength(
@@ -70,7 +71,7 @@ describe('applyPatch', () => {
 	test('a resolution patch replaces the rule and the model', () => {
 		const initial = buildInitialSnapshot({ now: NOW });
 		expect(initial.model).toBe('opt-in');
-		const next = applyPatch(initial, {
+		const next = buildNextSnapshot(initial, {
 			resolution: matchedResolution(optOutRule({ prompt: 'none' })),
 		});
 		expect(next.model).toBe('opt-out');
@@ -87,8 +88,8 @@ describe('applyPatch', () => {
 			initialPolicyResolution: matchedResolution(optInRule()),
 			now: NOW,
 		});
-		const opened = applyPatch(initial, { activeUI: 'dialog' });
-		const later = applyPatch(opened, { now: NOW + 1000 });
+		const opened = buildNextSnapshot(initial, { activeUI: 'dialog' });
+		const later = buildNextSnapshot(opened, { now: NOW + 1000 });
 		expect(later.activeUI).toBe('dialog');
 	});
 });
@@ -108,19 +109,19 @@ test('metadata patches preserve expiry boundaries and re-evaluate a backwards cl
 	if (deadline === null) {
 		throw new Error('Expected grant expiry');
 	}
-	const before = applyPatch(initial, {
+	const before = buildNextSnapshot(initial, {
 		branding: 'consent',
 		now: deadline - 1,
 	});
 	expect(before.effectivePermissions.marketing).toBe(true);
 	expect(before.promptRequirement.kind).toBe('none');
-	const expired = applyPatch(before, { branding: null, now: deadline });
+	const expired = buildNextSnapshot(before, { branding: null, now: deadline });
 	expect(expired.effectivePermissions.marketing).toBe(false);
 	expect(expired.promptRequirement).toEqual({
 		kind: 'choice',
 		reason: 'expired',
 	});
-	const rewound = applyPatch(expired, { now: deadline - 1 });
+	const rewound = buildNextSnapshot(expired, { now: deadline - 1 });
 	expect(rewound.effectivePermissions.marketing).toBe(true);
 	expect(rewound.promptRequirement.kind).toBe('none');
 	expect(rewound.nextDeadline).toBe(deadline);

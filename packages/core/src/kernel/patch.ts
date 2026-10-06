@@ -43,7 +43,6 @@ import type {
 	VendorChoice,
 } from '../types';
 import { evaluateExternalPermissions } from './external-permissions';
-import { freezeSnapshot } from './snapshot';
 
 /**
  * Partial update applied to a snapshot. Only input fields are patchable;
@@ -436,15 +435,4 @@ export const snapshotChanged = function snapshotChanged(
 		}
 	}
 	return false;
-};
-
-/**
- * Produce the next frozen snapshot by applying a patch. Always bumps the
- * revision; use {@link snapshotChanged} first to skip no-op patches.
- */
-export const applyPatch = function applyPatch(
-	current: ConsentSnapshot,
-	patch: SnapshotPatch
-): ConsentSnapshot {
-	return freezeSnapshot(buildNextSnapshot(current, patch));
 };

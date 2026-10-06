@@ -144,6 +144,25 @@ describe('persistence: write path', () => {
 		expect(read.getSnapshot().effectivePermissions.measurement).toBe(true);
 	});
 
+	test('stores the recorded choice before its save request leaves', async () => {
+		// The save outbox sends no earlier than the macrotask after the
+		// commit; the write scheduled from the commit runs first.
+		let storedAtSend: string | null = null;
+		const save = vi.fn(() => {
+			storedAtSend = localStorage.getItem(STORAGE_KEY_V2);
+			return Promise.resolve({ ok: true });
+		});
+		const kernel = createConsentKernel({ now: NOW, transport: { save } });
+		createPersistence({ kernel });
+
+		const pending = kernel.commands.save({ marketing: true });
+		await vi.advanceTimersByTimeAsync(0);
+		await pending;
+
+		expect(save).toHaveBeenCalledTimes(1);
+		expect(storedAtSend).toContain('"version":3');
+	});
+
 	test('an unchanged repeat save still refreshes the confirmed receipts', async () => {
 		const kernel = createConsentKernel({ now: NOW });
 		createPersistence({ kernel });

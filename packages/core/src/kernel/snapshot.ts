@@ -40,7 +40,7 @@ import {
 	evaluateExternalPermissions,
 	normalizeExternalPermissions,
 } from './external-permissions';
-import { validateHydrationRecords } from './records';
+import { validateHydrationRecords } from './record-validation';
 
 /**
  * Default effective permissions before any evaluation. `necessary` is

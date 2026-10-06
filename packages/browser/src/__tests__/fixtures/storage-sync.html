@@ -1,6 +1,14 @@
 <!doctype html>
 <html>
 	<head>
+		<!-- Vitest rewrites dynamic import() in served modules to go through
+		its runner, which only exists in the test frame. This page runs on
+		its own, so give it the same pass-through vitest uses elsewhere. -->
+		<script>
+			globalThis.__vitest_browser_runner__ ??= {
+				wrapDynamicImport: (load) => load(),
+			};
+		</script>
 		<script
 			type="module"
 			src="/src/__tests__/fixtures/storage-sync-page.ts"

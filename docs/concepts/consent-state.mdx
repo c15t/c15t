@@ -51,9 +51,10 @@ and `save()`, close without waiting for the backend. In order:
 
 A failed request does not reopen the surface or roll the choice back. The
 kernel emits `command:error`, which reaches the `onError` callback in adapters
-that accept one, and queues the payload in localStorage. The queue is replayed
-after the next successful initialization and when the browser comes back
-online, up to 10 attempts over 7 days. A replay carries the original action
+that accept one, and queues the payload in localStorage. Where localStorage is
+unavailable, the queue lives in memory until the page unloads. The queue is
+replayed after the next successful initialization and when the browser comes
+back online, up to 10 attempts over 7 days. A replay carries the original action
 time and policy snapshot token, so the backend records when the visitor
 decided, and a duplicate submission resolves to the same consent record. A
 backend that signs policy snapshot tokens rejects a replay made after the
@@ -192,6 +193,10 @@ receive a stale TC string: c15t withdraws it, or holds it back, before
    until the next save, so the race only ever withholds consent.
 
 ### Clearing records across tabs
+
+`clearRecords()` also drops every save queued for replay, with or without
+browser persistence, so nothing the visitor decided before the clear reaches
+the backend afterwards.
 
 `clearRecords()` removes every record and then stores the time of the clear,
 the clear epoch, under its own key: `c15t-epoch` in localStorage and a cookie

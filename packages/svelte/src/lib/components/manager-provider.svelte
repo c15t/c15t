@@ -1,23 +1,24 @@
 <script lang="ts">
 	import type {
+		ConsentKernel,
 		ConsentSnapshot,
 		ConsentState,
-		KernelOverrides,
-		KernelUser,
 		OptionalConsentCategory,
 	} from '@c15t/core';
 	import {
 		applyExperimentAssignment,
 		applyExperimentTheme,
 		deniedVendorIds,
-		hostExperiment,
 		vendorRenders,
 	} from '@c15t/core';
 	import {
-		createConsentRuntime,
-		normalizeKernelUser,
+		createConsentProviderRuntime,
+		defaultRuntimeModules,
 	} from '@c15t/core/runtime';
-	import type { ConsentRuntime } from '@c15t/core/runtime';
+	import type {
+		ConsentProviderRuntime,
+		ConsentRuntime,
+	} from '@c15t/core/runtime';
 	import type { IABHandle } from '@c15t/iab';
 	import { setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
@@ -91,28 +92,31 @@
 	// is handed in, its owner is also responsible for `start()`/`dispose()`.
 	const externalRuntime = untrack(() => props.runtime);
 	const ownsRuntime = externalRuntime === undefined;
+	const runtimeOptions = () => ({
+		...options,
+		// Only an app that configured IAB reaches for `@c15t/iab`, and even
+		// then the module arrives through a dynamic import.
+		createIAB: isIABConfigured(options.iab) ? lazyCreateIAB : undefined,
+		mode: options.mode as ConsentManagerOptions['mode'],
+		pkg: '@c15t/svelte',
+	});
+	const ownedRuntime: ConsentProviderRuntime | undefined = ownsRuntime
+		? untrack(() =>
+				createConsentProviderRuntime(runtimeOptions(), defaultRuntimeModules)
+			)
+		: undefined;
 	const runtime: ConsentRuntime =
-		externalRuntime ??
-		untrack(() =>
-			createConsentRuntime({
-				...options,
-				// Only an app that configured IAB reaches for `@c15t/iab`, and
-				// even then the module arrives through a dynamic import.
-				createIAB: isIABConfigured(options.iab) ? lazyCreateIAB : undefined,
-				mode: options.mode as ConsentManagerOptions['mode'],
-				pkg: '@c15t/svelte',
-			})
-		);
-	const { kernel } = runtime;
+		externalRuntime ?? (ownedRuntime as ConsentRuntime);
 	// The runtime validated and assigned from the experiment it was created
 	// with (the server's, else `options.experiment`), so presentation, theme
 	// and draft defaults resolve against that same definition; a later
 	// `options.experiment` is ignored.
-	const experiment = untrack(() =>
-		hostExperiment(options.experiment, options.prefetch)
-	);
+	const { experiment } = runtime;
 
-	let snapshot = $state<ConsentSnapshot>(kernel.getSnapshot());
+	// The rendered kernel. An owned runtime swaps it when `enabled` toggles.
+	const initialKernel = runtime.kernel;
+	let kernel = $state.raw<ConsentKernel>(initialKernel);
+	let snapshot = $state<ConsentSnapshot>(initialKernel.getSnapshot());
 	let draftScope = $state<string | null>(null);
 	let draftFingerprint = $state<string | null>(null);
 	let draftRevision = 0;
@@ -417,7 +421,7 @@
 		};
 	};
 
-	setConsentContext(kernel, {
+	setConsentContext(() => kernel, {
 		clearRecords: () => runtime.clearRecords(),
 		getConsentCategories: () => [
 			'necessary',
@@ -430,9 +434,10 @@
 		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
 		getTheme: () => options.theme,
+		setLanguage: (code) => runtime.setLanguage(code),
 	});
 
-	const unsubscribe = kernel.subscribe((next) => {
+	let unsubscribe = initialKernel.subscribe((next) => {
 		snapshot = next;
 	});
 
@@ -440,6 +445,18 @@
 	// so the surfaces render against it as soon as it exists.
 	const unsubscribeIAB = runtime.onIABChange((next) => {
 		iabHandle = next as IABHandle | null;
+	});
+	// Turning `enabled` off renders a permissive kernel; follow it.
+	const unsubscribeRuntime = ownedRuntime?.subscribe(() => {
+		if (ownedRuntime.kernel === kernel) {
+			return;
+		}
+		unsubscribe();
+		({ kernel } = ownedRuntime);
+		snapshot = kernel.getSnapshot();
+		unsubscribe = kernel.subscribe((next) => {
+			snapshot = next;
+		});
 	});
 
 	onMount(() => {
@@ -456,99 +473,20 @@
 		};
 	});
 
-	// Each of the effects below reads one narrow value rather than the whole
-	// derived `options` object. Reading `options` would tie them to every
-	// prop — a new inline `options={{ theme }}` would re-run `identify()`
-	// and fire a second `init()` on a theme change.
-	const userOption = $derived(options.user);
-	const overridesOption = $derived(options.overrides);
+	// The runtime compares the new options with the last ones and applies
+	// only what changed, so a theme-only change identifies nobody and asks
+	// the backend nothing.
+	$effect(() => {
+		ownedRuntime?.update(runtimeOptions());
+	});
+
+	// A borrowed runtime belongs to its owner, who configures it; categories
+	// the provider names are still offered.
 	const consentCategoriesOption = $derived(options.consentCategories);
-	const enabledOption = $derived(options.enabled ?? true);
-
-	// Every field `identify()` sends, in a fixed order. Keying on a subset
-	// would swallow an update: same `externalId`, new `properties`, no call.
-	const userKey = function userKey(
-		user: KernelUser | undefined
-	): string | null {
-		if (!user) {
-			return null;
-		}
-		return JSON.stringify([
-			user.externalId,
-			user.externalIdType,
-			user.identityProvider,
-			user.properties,
-		]);
-	};
-
-	// What the runtime carried before this provider pushed anything, so
-	// removing the prop restores that rather than leaving the last pushed
-	// list in place. Only restored if this provider did the pushing: a
-	// borrowed runtime's categories belong to whoever owns it.
-	const initialCategories = untrack(() => [
-		...(kernel.getSnapshot().consentCategories ?? []),
-	]);
-	let pushedCategories = false;
-
 	$effect(() => {
-		if (consentCategoriesOption) {
+		if (!ownsRuntime && consentCategoriesOption) {
 			runtime.setConsentCategories(consentCategoriesOption);
-			pushedCategories = true;
-			return;
 		}
-		if (pushedCategories) {
-			runtime.setConsentCategories(initialCategories);
-			pushedCategories = false;
-		}
-	});
-
-	let lastIdentifiedKey: string | null = null;
-
-	$effect(() => {
-		if (!ownsRuntime) {
-			return;
-		}
-		const nextUser = normalizeKernelUser(userOption);
-		const key = userKey(nextUser);
-		if (key === null || key === lastIdentifiedKey) {
-			return;
-		}
-		lastIdentifiedKey = key;
-		void runtime.identify(nextUser);
-	});
-
-	let lastOverridesKey: string | null = null;
-	let hasSkippedInitialOverridesInit = false;
-
-	$effect(() => {
-		if (!ownsRuntime) {
-			return;
-		}
-		const overrides: KernelOverrides = overridesOption ?? {};
-		const key = JSON.stringify(
-			Object.entries(overrides).sort(([left], [right]) =>
-				left.localeCompare(right)
-			)
-		);
-		if (key === lastOverridesKey) {
-			return;
-		}
-		lastOverridesKey = key;
-		if (!hasSkippedInitialOverridesInit) {
-			hasSkippedInitialOverridesInit = true;
-			return;
-		}
-		runtime.setOverrides(overrides);
-		if (enabledOption) {
-			void runtime.reinit();
-		}
-	});
-
-	$effect(() => {
-		if (!ownsRuntime || enabledOption) {
-			return;
-		}
-		kernel.set.activeUI('none');
 	});
 
 	let prefersReducedMotion = $state(false);
@@ -618,6 +556,7 @@
 	onDestroy(() => {
 		unsubscribe();
 		unsubscribeIAB();
+		unsubscribeRuntime?.();
 	});
 </script>
 

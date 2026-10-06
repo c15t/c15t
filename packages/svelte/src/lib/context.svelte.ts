@@ -209,7 +209,10 @@ export interface ThemeContextValue {
 }
 
 export interface ConsentControllerOptions {
-	clearRecords?: () => void;
+	/** The runtime's one clear sequence. */
+	clearRecords: () => void;
+	/** The runtime's language switch. */
+	setLanguage: (code: string) => void;
 	getSnapshot: () => ConsentSnapshot;
 	getDraft: () => ConsentDraftState;
 	getIAB: () => SvelteIABState | null;
@@ -255,7 +258,7 @@ const displayedConsentTypes = function displayedConsentTypes(
 };
 
 const createConsentState = function createConsentState(
-	kernel: ConsentKernel,
+	getKernel: () => ConsentKernel,
 	options: ConsentControllerOptions
 ): ConsentManagerState {
 	const getSnapshotLocal = options.getSnapshot;
@@ -331,7 +334,7 @@ const createConsentState = function createConsentState(
 			return isVendorAllowed(snapshot, vendorId, snapshot.evaluatedAt);
 		},
 		dismissNotice() {
-			return kernel.commands.dismissNotice();
+			return getKernel().commands.dismissNotice();
 		},
 		get iab() {
 			return options.getIAB();
@@ -418,6 +421,8 @@ const createConsentState = function createConsentState(
 			return getSnapshotLocal().revision;
 		},
 		async saveConsents(type: SaveType) {
+			// The kernel this action started on, even if `enabled` swaps it.
+			const kernel = getKernel();
 			actionSequence += 1;
 			const sequence = actionSequence;
 			const before = kernel.getSnapshot();
@@ -496,6 +501,7 @@ const createConsentState = function createConsentState(
 			return options.getDraft().vendors;
 		},
 		setActiveUI(ui: ActiveUI) {
+			const kernel = getKernel();
 			actionSequence += 1;
 			iabActions.set(kernel, {});
 			(
@@ -508,8 +514,7 @@ const createConsentState = function createConsentState(
 			options.getDraft().set(name, value);
 		},
 		setLanguage(code: string) {
-			kernel.set.language(code);
-			void kernel.commands.init();
+			options.setLanguage(code);
 		},
 		setSelectedConsent(name: AllConsentNames, value: boolean) {
 			options.getDraft().set(name, value);
@@ -519,7 +524,7 @@ const createConsentState = function createConsentState(
 		},
 
 		subscribeToConsentChanges(listener: (state: ConsentState) => void) {
-			return kernel.subscribe((snapshot: ConsentSnapshot) =>
+			return getKernel().subscribe((snapshot: ConsentSnapshot) =>
 				listener(snapshot.effectivePermissions as ConsentState)
 			);
 		},
@@ -544,27 +549,25 @@ const createConsentState = function createConsentState(
 	return controller;
 };
 
+/**
+ * Provide the consent context.
+ *
+ * @param getKernel - The kernel the provider renders now. It changes when
+ * the runtime's `enabled` toggles.
+ * @param options - The provider's state and runtime verbs.
+ */
 export const setConsentContext = function setConsentContext(
-	kernel: ConsentKernel,
+	getKernel: () => ConsentKernel,
 	options: ConsentControllerOptions
 ): void {
-	const consentState = createConsentState(kernel, options);
+	const consentState = createConsentState(getKernel, options);
 	setContext(CONSENT_CONTEXT_KEY, {
-		clearRecords: () => {
-			if (options.clearRecords) {
-				options.clearRecords();
-			} else {
-				kernel.hydrate({
-					choice: null,
-					noticeDismissal: null,
-					subject: null,
-				});
-				kernel.events.emit({ type: 'records:cleared' });
-			}
+		clearRecords: options.clearRecords,
+		get kernel() {
+			return getKernel();
 		},
-		kernel,
 		get manager() {
-			return kernel;
+			return getKernel();
 		},
 		get snapshot() {
 			return options.getSnapshot();

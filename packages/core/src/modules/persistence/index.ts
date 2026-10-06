@@ -35,8 +35,12 @@ import type {
  *   `vendors:recorded` (the vendor denial list and its cookie projection).
  *   Permission changes, policy changes, elapsed time and the live GPC
  *   signal never write.
+ * - A recorded choice is stored before its save request leaves: writes
+ *   are scheduled from the commit's listeners and run in the next macrotask,
+ *   which the save outbox waits out before it sends (see `schedule.ts`).
  * - `clear()` cancels queued writes before it removes storage, so a
- *   pending flush cannot recreate what was just cleared.
+ *   pending flush cannot recreate what was just cleared. Its
+ *   `records:cleared` event makes the kernel drop its queued saves.
  * - Writes and `reconcile()` follow the ordering rules in `reconcile.ts`:
  *   choices merge per category, a notice or vendor write never replaces a newer stored record, a subject-only
  *   rewrite never recreates a cleared one, and reconciliation lands queued
@@ -642,6 +646,9 @@ export const createPersistence = function createPersistence(
 				writeStoredClearEpoch(epoch, storageConfig);
 			}
 			observe();
+			// The kernel's clear sequence (`kernel/clear-records.ts`), inlined:
+			// React does not use the runtime yet, and a shared helper costs it
+			// bytes until it does.
 			kernel.hydrate({
 				choice: null,
 				noticeDismissal: null,

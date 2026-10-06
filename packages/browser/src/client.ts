@@ -651,7 +651,7 @@ export const createConsentClient = function createConsentClient(
 		get presentation(): ConsentPresentation | undefined {
 			return applyExperimentAssignment(
 				options.presentation,
-				options.experiment,
+				runtime.experiment,
 				kernel.getSnapshot().experiment
 			);
 		},
@@ -680,8 +680,7 @@ export const createConsentClient = function createConsentClient(
 		},
 		saveIAB: () => saveIAB(),
 		setLanguage(code: string) {
-			kernel.set.language(code);
-			void kernel.commands.init();
+			runtime.setLanguage(code);
 		},
 		setOverrides(overrides: KernelOverrides) {
 			runtime.setOverrides(overrides);
@@ -774,7 +773,7 @@ export const createConsentClient = function createConsentClient(
 			}
 			return applyExperimentTheme(
 				options.ui?.theme,
-				options.experiment,
+				runtime.experiment,
 				kernel.getSnapshot().experiment
 			);
 		},

@@ -424,8 +424,8 @@ describe('explicit saves', () => {
 
 		vi.setSystemTime(POLICY_NOW + 5000);
 		await kernel.commands.init();
-		await vi.advanceTimersByTimeAsync(1);
-		expect(save).toHaveBeenCalledTimes(2);
+		// The replay loads the queue module first.
+		await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
 		expect(save.mock.calls[1]?.[0]).toEqual(first);
 		expect(save.mock.calls[1]?.[0].givenAt).toBe(POLICY_NOW);
 	});

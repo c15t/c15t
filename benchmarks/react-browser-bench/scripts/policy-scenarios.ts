@@ -376,42 +376,36 @@ const takeAction = async function takeAction(
 		}
 		throw new Error('Notice fixture did not render its required prompt');
 	}
-	// Save a partial choice while notice remains due, alongside detected GPC.
-	await page.click('#policy-save-partial');
-	await page.waitForFunction(
-		() => window.__c15tPolicyBench?.hasStoredChoice === true
-	);
-	const afterSave = await page.evaluate(
-		() => window.__c15tPolicyBench?.promptKind
-	);
-	if (afterSave !== 'notice') {
-		throw new Error('Preference save dismissed the notice');
-	}
+	let hasDismissControl = false;
 	for (const selector of DISMISS_SELECTORS) {
 		// oxlint-disable-next-line no-await-in-loop -- ordered probe
-		const count = await page.locator(selector).count();
-		if (count > 0) {
-			const startedAt = performance.now();
-			// oxlint-disable-next-line no-await-in-loop -- ordered probe
-			await page.click(selector);
-			// oxlint-disable-next-line no-await-in-loop -- ordered probe
-			await page.waitForFunction(
-				() => window.__c15tPolicyBench?.activeUI === 'none',
-				undefined,
-				{ timeout: 30_000 }
-			);
-			// Wait for all projections before counting the request cookie header.
-			// oxlint-disable-next-line no-await-in-loop -- ordered probe
-			await page.waitForFunction(() =>
-				document.cookie.includes('c15t-notice=')
-			);
-			return {
-				actionTaken: 'dismiss',
-				interactionLatencyMs: performance.now() - startedAt,
-			};
+		if ((await page.locator(selector).count()) > 0) {
+			hasDismissControl = true;
+			break;
 		}
 	}
-	throw new Error('Notice fixture did not render a dismissal control');
+	if (!hasDismissControl) {
+		throw new Error('Notice fixture did not render a dismissal control');
+	}
+	// A choice saved while the notice is owed acknowledges it (#1146), so
+	// one partial save, alongside detected GPC, writes the choice, notice
+	// and privacy projections together.
+	const startedAt = performance.now();
+	await page.click('#policy-save-partial');
+	await page.waitForFunction(
+		() => {
+			const current = window.__c15tPolicyBench;
+			return current?.hasStoredChoice === true && current.promptKind === 'none';
+		},
+		undefined,
+		{ timeout: 30_000 }
+	);
+	// Wait for all projections before counting the request cookie header.
+	await page.waitForFunction(() => document.cookie.includes('c15t-notice='));
+	return {
+		actionTaken: 'dismiss',
+		interactionLatencyMs: performance.now() - startedAt,
+	};
 };
 
 const collectPolicySample = async function collectPolicySample(
