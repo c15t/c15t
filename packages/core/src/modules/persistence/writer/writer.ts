@@ -1,8 +1,8 @@
 /**
- * Persistence's write half: storing records after kernel events,
- * reconciling with other runtimes, and clearing storage. Loaded on demand
- * by `../index.ts`, which keeps hydration (the read the first banner needs)
- * and the event listeners in the first load.
+ * Persistence's write half: storing records after kernel events and
+ * reconciling with other runtimes. Loaded on demand by `../index.ts`, which
+ * keeps hydration (the read the first banner needs), the event listeners
+ * and clearing storage in the first load.
  *
  * Everything here imports only from this directory. First-load functions
  * arrive as {@link PersistenceTools}, so bundlers load this as one chunk
@@ -415,29 +415,7 @@ export const createPersistenceWriter = function createPersistenceWriter(
 			unadopted.clear();
 			ownDecisions.clear();
 			storedIab = null;
-			if (typeof document !== 'undefined') {
-				store.clearStoredConsentRecords(undefined, storageConfig);
-				// The epoch outlives the clear it records: decisions confirmed
-				// before it stay void wherever another runtime writes them back.
-				// Always past the previous epoch, even when the clock went back:
-				// a lower epoch would let decisions between the two back in.
-				const previous = Math.max(
-					memoryEpoch,
-					tools.readEpoch(storageConfig, at)
-				);
-				// Never further ahead of the clock than readers accept, or
-				// every runtime whose clock is behind would read the epoch as
-				// corrupt (0) and void nothing. Known limit: after the clock went
-				// back more than the tolerance, the capped epoch is below times
-				// cleared records carried, so a decision with such a time that a
-				// runtime which missed the clear writes back counts again once
-				// clocks recover. Times alone cannot order that case.
-				const epoch = Math.max(
-					at,
-					Math.min(previous + 1, at + tools.tolerance)
-				);
-				store.writeStoredClearEpoch(epoch, storageConfig);
-			}
+			tools.clear(storageConfig, at, memoryEpoch);
 			observe();
 		},
 		dispose() {

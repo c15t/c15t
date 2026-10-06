@@ -197,7 +197,7 @@ describe('before the write code lands', () => {
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(false);
 	});
 
-	test('a clear empties memory and the save outbox at once, and storage when it lands', async () => {
+	test('a clear empties memory, storage and the save outbox at once', async () => {
 		// A failed save is queued in the outbox.
 		const { kernel } = kernelWithTransport(() =>
 			Promise.reject(new Error('offline'))
@@ -219,18 +219,60 @@ describe('before the write code lands', () => {
 
 		expect(kernel.getSnapshot().explicitChoice).toBeNull();
 		expect(cleared).toHaveBeenCalledOnce();
+		expect(storedChoice()).toBeNull();
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-epoch`)).toBe(
+			String(clearedAt)
+		);
 		await vi.advanceTimersByTimeAsync(0);
 		expect(localStorage.getItem(PENDING_SAVES_STORAGE_KEY) ?? '').not.toContain(
 			'marketing'
 		);
-		// Storage waits for the write code.
-		expect(storedChoice()).not.toBeNull();
 
 		await land();
 		expect(storedChoice()).toBeNull();
 		expect(localStorage.getItem(`${STORAGE_KEY_V2}-epoch`)).toBe(
 			String(clearedAt)
 		);
+	});
+
+	test('a clear removes the stored grant before it returns, so a reload cannot restore it', async () => {
+		await seedChoice({ marketing: true });
+		// The write code never lands on this page.
+		const { loader, loads } = heldBackLoader();
+		const kernel = createConsentKernel({ now: Date.now() });
+		const handle = createPersistence({ kernel }, loader);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+
+		handle.clear();
+
+		expect(storedChoice()).toBeNull();
+		expect(document.cookie).not.toMatch(
+			new RegExp(`(^|; )${STORAGE_KEY_V2}=`, 'u')
+		);
+		expect(localStorage.getItem(`${STORAGE_KEY_V2}-epoch`)).toBe(
+			String(Date.now())
+		);
+		expect(loads()).toBe(0);
+
+		// The next page reads no grant.
+		const next = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel: next }, heldBackLoader().loader);
+		expect(next.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(next.getSnapshot().explicitChoice).toBeNull();
+	});
+
+	test('the write code landing after a clear keeps what another tab stored since', async () => {
+		await seedChoice({ marketing: true });
+		const { land, loader } = heldBackLoader();
+		const kernel = createConsentKernel({ now: Date.now() });
+		const handle = createPersistence({ kernel }, loader);
+		handle.clear();
+
+		vi.setSystemTime(NOW + 1000);
+		await seedChoice({ measurement: true });
+		await land();
+
+		expect(storedChoice()?.choice.categories.measurement?.value).toBe(true);
 	});
 
 	test('a choice made after a clear is stored after the clear when both land', async () => {

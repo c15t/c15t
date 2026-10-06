@@ -22,9 +22,9 @@ import {
 	shortenFlatKeys,
 } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
+import { encodeClearEpoch } from '../clear';
 import type { StoredConsentEnvelope } from '../record-codec';
 import {
-	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
 	encodeStoredConsentEnvelopeCompact,
@@ -283,8 +283,7 @@ describe('auxiliary cookie projection bytes (baseline evidence, not a budget)', 
 	});
 
 	it('measures the clear epoch record actually stored', () => {
-		const written = writeStoredClearEpoch(TIME, undefined);
-		expect(written.cookie).toBe(true);
+		writeStoredClearEpoch(TIME, undefined);
 		const stored = getRawCookieValue(`${STORAGE_KEY_V2}-epoch`);
 		expect(stored).toBe(encodeClearEpoch(TIME));
 		expect(bytes(stored ?? '')).toBe(13);

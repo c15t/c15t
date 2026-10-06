@@ -9,11 +9,12 @@
  * - `record-codec.ts`   — versioned decoders for every stored record.
  * - `record-storage.ts` — raw candidate reads and selection.
  * - `hydrate.ts`        — read path and the SSR seed reader.
+ * - `clear.ts`          — removing every record and storing the clear epoch.
  * - `index.ts`          — this file: hydration, event wiring, lifecycle.
- * - `writer/`           — everything that runs after a choice or a later
- *                         event: encoders, storage writes, the write
- *                         scheduler, reconciliation and clearing. Loaded on
- *                         demand; `tools.ts` passes it what it calls here.
+ * - `writer/`           — everything else that runs after a choice or a
+ *                         later event: encoders, storage writes, the write
+ *                         scheduler and reconciliation. Loaded on demand;
+ *                         `tools.ts` passes it what it calls here.
  *
  * Invariants:
  * - Hydration runs synchronously inside `createPersistence` so the
@@ -38,16 +39,17 @@
  *   `writer/schedule.ts`). Until the write code has loaded, the listener
  *   holds the request with `kernel.holdSaves()` instead, and the write runs
  *   as soon as the code lands, before the hold is released.
- * - Nothing is lost while the write code loads. Writes, a `clear()`, a
- *   `reconcile()` and the sync listeners' reconciliations requested before
- *   it lands run when it lands, in that order. So do writes requested
- *   before `dispose()`. The kernel's records are cleared at once.
- * - The write code starts loading on the first write, clear or
- *   reconciliation, or, once a banner or dialog has been shown, in idle
- *   time after the page's load event, whichever comes first. Once loaded it
- *   serves every later handle synchronously.
- * - `clear()` cancels queued writes before it removes storage, so a
- *   pending flush cannot recreate what was just cleared. Its
+ * - Nothing is lost while the write code loads. Writes, a `reconcile()` and
+ *   the sync listeners' reconciliations requested before it lands run when
+ *   it lands, in that order. So do writes requested before `dispose()`.
+ * - The write code starts loading on the first write or reconciliation, or,
+ *   once a banner or dialog has been shown, in idle time after the page's
+ *   load event, whichever comes first. Once loaded it serves every later
+ *   handle synchronously.
+ * - `clear()` needs no write code: it clears the kernel's records and
+ *   storage, and stores the clear epoch, before it returns, so a reload
+ *   right after it cannot restore a cleared grant. It cancels queued writes
+ *   first, so a pending flush cannot recreate what was just cleared. Its
  *   `records:cleared` event makes the kernel drop its queued saves.
  * - Writes and `reconcile()` follow the ordering rules in
  *   `writer/reconcile.ts`: choices merge per category, a notice or vendor
@@ -63,6 +65,7 @@
 import { clearKernelRecords } from '../../kernel/clear-records';
 import { STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import type { ConsentSnapshot, HydrationRecords } from '../../types';
+import { clearStoredRecords } from './clear';
 import { hydrateFromStorage, readStoredRecordsForReconcile } from './hydrate';
 import type { StoredRecords } from './hydrate';
 import { resolveStorageKeys } from './record-storage';
@@ -150,7 +153,6 @@ export const createPersistence = function createPersistence(
 	// whether its IAB metadata is the next choice write's.
 	let baseline: [StoredRecords, boolean] | undefined;
 	// Requested before the writer landed, applied in this order when it does.
-	let clearedAt: number | undefined;
 	const requested = new Set<WriteKind>();
 	let reconcileRequested = false;
 	let hydrateRequested = false;
@@ -166,10 +168,6 @@ export const createPersistence = function createPersistence(
 		if (baseline) {
 			writer.adopt(...baseline);
 			baseline = undefined;
-		}
-		if (clearedAt !== undefined) {
-			writer.clearStorage(clearedAt);
-			clearedAt = undefined;
 		}
 		// At once, not in a later macrotask: a save request held for these
 		// writes is released as soon as this returns.
@@ -336,7 +334,7 @@ export const createPersistence = function createPersistence(
 		const landed = landedWriter();
 		if (landed) {
 			landed.flush();
-		} else if (requested.size > 0 || clearedAt !== undefined) {
+		} else if (requested.size > 0) {
 			// Its write code has not landed yet: hydrate once it has.
 			hydrateRequested = true;
 			void withWriter();
@@ -438,11 +436,13 @@ export const createPersistence = function createPersistence(
 			if (landed) {
 				landed.clearStorage(at);
 			} else if (browser) {
-				// Queued writes belong to the cleared records.
+				// Queued writes belong to the cleared records. Storage is
+				// cleared now, without the write code, so a reload or a write
+				// code that never loads cannot bring a cleared record back.
 				requested.clear();
 				hydrateRequested = false;
-				clearedAt = at;
-				void withWriter();
+				clearStoredRecords(storageConfig, at, baseline?.[0].epoch ?? 0);
+				baseline = [readStoredRecordsForReconcile(storageConfig, at), false];
 			}
 			clearKernelRecords(kernel, at);
 		},

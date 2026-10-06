@@ -284,18 +284,3 @@ export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
 	fields.push(...subjectFields(record.subject));
 	return fields.join(FIELD_SEPARATOR);
 };
-
-// ---------------------------------------------------------------------------
-// Clear epoch
-// ---------------------------------------------------------------------------
-
-/**
- * Serializes the clear epoch record: the time of the last `clear()` in
- * epoch milliseconds, as plain decimal digits. The same text is stored in
- * the `<key>-epoch` cookie and localStorage entry.
- */
-export const encodeClearEpoch = function encodeClearEpoch(
-	epoch: number
-): string {
-	return String(epoch);
-};

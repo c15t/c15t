@@ -1,7 +1,8 @@
 /**
  * Storage writes for every c15t record: the v3 envelope, the notice
- * dismissal, the vendor denials, the clear epoch, and clearing them all.
- * The reads that pair with them are in `../record-storage.ts`.
+ * dismissal and the vendor denials. The reads that pair with them are in
+ * `../record-storage.ts`; clearing them all is first-load code, in
+ * `../clear.ts`.
  *
  * Each record is validated with the reader's own validator before it is
  * written, so nothing is stored that the next read would reject. Writes
@@ -19,7 +20,6 @@ import type {
 } from '../record-codec';
 import type { StorageConfig } from '../types';
 import {
-	encodeClearEpoch,
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
 	encodeStoredConsentEnvelopeCompact,
@@ -91,10 +91,6 @@ export interface RecordStore {
 	) => DecodeResult<StoredNoticeDismissal> & {
 		written?: AuxiliaryWriteReport;
 	};
-	clearStoredNoticeDismissal: (
-		config?: StorageConfig,
-		cookie?: CookieOptions
-	) => void;
 	/**
 	 * Writes the vendor denial list to localStorage and its compact cookie
 	 * projection. The consent record and its cookie are never touched.
@@ -108,32 +104,6 @@ export interface RecordStore {
 	clearStoredVendorChoice: (
 		config?: StorageConfig,
 		cookie?: CookieOptions
-	) => void;
-	/**
-	 * Writes the clear epoch to localStorage and its cookie. Written by
-	 * `clear()` after it removes the records, and never removed by it, so
-	 * every runtime can tell decisions made before the clear from later
-	 * ones.
-	 */
-	writeStoredClearEpoch: (
-		epoch: number,
-		config: StorageConfig | undefined,
-		cookie?: CookieOptions
-	) => AuxiliaryWriteReport;
-	/**
-	 * Removes explicit choices (configured and legacy keys, cookie and
-	 * localStorage), the notice dismissal and the vendor denials with their
-	 * cookie projections, and the legacy `<key>-privacy` record an alpha may
-	 * have left. Cookie deletion uses the same domain handling as writes so
-	 * a cross-subdomain cookie is actually removed.
-	 *
-	 * Queued backend replays and subject reassignments are the kernel's
-	 * save outbox: the kernel drops them under the outbox lock on the
-	 * `records:cleared` event that follows a clear.
-	 */
-	clearStoredConsentRecords: (
-		cookie?: CookieOptions,
-		config?: StorageConfig
 	) => void;
 }
 
@@ -203,11 +173,6 @@ export const createRecordStore = function createRecordStore(
 		tools.deleteCookie(key, cookie, config);
 	};
 
-	const clearStoredNoticeDismissal: RecordStore['clearStoredNoticeDismissal'] =
-		(config, cookie) => {
-			removeBoth(tools.keys(config).notice, config, cookie);
-		};
-
 	const clearStoredVendorChoice: RecordStore['clearStoredVendorChoice'] = (
 		config,
 		cookie
@@ -216,38 +181,7 @@ export const createRecordStore = function createRecordStore(
 	};
 
 	return {
-		clearStoredConsentRecords(cookie, config) {
-			const keys = tools.keys(config);
-			// The configured consent key and the legacy one, localStorage first.
-			const consentKeys = [keys.consent, keys.legacyConsent].filter(
-				(key): key is string => key !== null
-			);
-			for (const key of consentKeys) {
-				removeLocalStorageKey(key);
-			}
-			for (const key of consentKeys) {
-				tools.deleteCookie(key, cookie, config);
-			}
-			removeLocalStorageKey(keys.cookieMiss);
-			clearStoredNoticeDismissal(config, cookie);
-			// v3 alphas stored standing GPC directives under `<key>-privacy`.
-			// GPC is now a live signal that is never persisted, so the key is
-			// only removed, so clearing c15t data still deletes what an alpha
-			// left behind.
-			removeBoth(`${keys.consent}-privacy`, config, cookie);
-			clearStoredVendorChoice(config, cookie);
-			// Addon bytes must be removed even when the addon is not mounted.
-			removeLocalStorageKey('c15t-iab-authority-v1');
-			removeLocalStorageKey('euconsent-v2');
-			tools.deleteCookie('euconsent-v2', cookie, config);
-			tools.deleteCookie('euconsent-v2');
-		},
-		clearStoredNoticeDismissal,
 		clearStoredVendorChoice,
-		writeStoredClearEpoch(epoch, config, cookie) {
-			const text = encodeClearEpoch(epoch);
-			return writeBoth(tools.keys(config).epoch, text, text, config, cookie);
-		},
 		writeStoredConsentEnvelope(envelope, options) {
 			const validated = tools.validateEnvelope(envelope, options.now);
 			if (validated.ok === false) {

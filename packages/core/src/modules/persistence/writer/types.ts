@@ -8,6 +8,7 @@
 import type { mergeNewestChoice } from '../../../kernel/record-validation';
 import type { deleteCookie, writeCookie } from '../../../libs/cookie';
 import type { ConsentKernel } from '../../../types';
+import type { clearStoredRecords } from '../clear';
 import type {
 	choiceSinceEpoch,
 	noticeSinceEpoch,
@@ -25,7 +26,7 @@ import type { StorageConfig } from '../types';
 /**
  * First-load functions the write code calls: the storage reads and record
  * validators the read path already has, the clear-epoch rules, the
- * per-category merge and cookie writes. Passed in, never imported, so the
+ * per-category merge, cookie writes and the storage clear. Passed in, never imported, so the
  * write code loads as one chunk without splitting shared modules out of
  * the first load.
  *
@@ -34,8 +35,6 @@ import type { StorageConfig } from '../types';
 export interface PersistenceTools {
 	/** `readStoredRecordsForReconcile`. */
 	read: (config: StorageConfig | undefined, now: number) => StoredRecords;
-	/** `readStoredClearEpoch`. */
-	readEpoch: (config: StorageConfig | undefined, now: number) => number;
 	/** `resolveStorageKeys`. */
 	keys: (config?: StorageConfig) => ResolvedStorageKeys;
 	/** `getRawCookieValue`. */
@@ -49,8 +48,8 @@ export interface PersistenceTools {
 	noticeSince: typeof noticeSinceEpoch;
 	vendorsSince: typeof vendorChoiceSinceEpoch;
 	merge: typeof mergeNewestChoice;
-	/** `EPOCH_CLOCK_TOLERANCE_MS`: how far ahead of the clock readers accept an epoch. */
-	tolerance: number;
+	/** `clearStoredRecords`: first-load code, since `clear()` runs it at once. */
+	clear: typeof clearStoredRecords;
 }
 
 /** A record the writer stores on its own schedule. */

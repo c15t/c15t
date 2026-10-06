@@ -12,6 +12,7 @@ import {
 	getRawCookieValue,
 	writeCookie,
 } from '../../libs/cookie';
+import { clearStoredRecords } from './clear';
 import {
 	choiceSinceEpoch,
 	noticeSinceEpoch,
@@ -21,15 +22,15 @@ import { readStoredRecordsForReconcile } from './hydrate';
 import {
 	decodeNoticeDismissal,
 	decodeVendorChoice,
-	EPOCH_CLOCK_TOLERANCE_MS,
 	validateStoredConsentEnvelope,
 } from './record-codec';
-import { readStoredClearEpoch, resolveStorageKeys } from './record-storage';
+import { resolveStorageKeys } from './record-storage';
 import type { PersistenceTools } from './writer/types';
 
 /** @internal */
 export const persistenceTools: PersistenceTools = {
 	choiceSince: choiceSinceEpoch,
+	clear: clearStoredRecords,
 	decodeNotice: decodeNoticeDismissal,
 	decodeVendors: decodeVendorChoice,
 	deleteCookie,
@@ -38,8 +39,6 @@ export const persistenceTools: PersistenceTools = {
 	noticeSince: noticeSinceEpoch,
 	rawCookie: getRawCookieValue,
 	read: readStoredRecordsForReconcile,
-	readEpoch: readStoredClearEpoch,
-	tolerance: EPOCH_CLOCK_TOLERANCE_MS,
 	validateEnvelope: validateStoredConsentEnvelope,
 	vendorsSince: vendorChoiceSinceEpoch,
 	writeCookie,
