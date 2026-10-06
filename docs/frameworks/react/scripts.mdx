@@ -39,12 +39,10 @@ covers a vendor without one.
 ## When the script loader downloads
 
 The script loader is a separate chunk, downloaded only when `scripts` is not
-empty. It loads when the provider mounts, unless the provider already knows at
-its first render that a script will run: a script with `alwaysLoad`, or a
-`prefetch` whose policy and stored choice allow one. Then the download starts
-during that render, while React renders the rest of the page. A Vite app
-without a `prefetch` learns its policy from `/init` after mounting, so it loads
-the chunk at mount.
+empty. `ConsentProvider` loads it when it mounts. The Next.js and TanStack
+Start `ConsentRoot` start the download earlier, during their first render,
+when the visitor's consent already lets a script run. See
+[Next.js optimization](/docs/frameworks/next/optimization).
 
 ## Embeds and other requests
 

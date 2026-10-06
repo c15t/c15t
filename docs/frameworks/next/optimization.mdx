@@ -235,7 +235,7 @@ use your origin.
 whose `scripts` array is not empty. Pages without scripts never download it.
 By default the chunk loads once the page has hydrated.
 
-When the visitor's consent already lets one of those scripts run, the provider
+When the visitor's consent already lets one of those scripts run, `ConsentRoot`
 starts the download during its first render in the browser instead, so the
 chunk loads while React hydrates the rest of the page. It decides as the
 provider would once mounted: with the state from `resolveConsent()`, once a
@@ -256,7 +256,9 @@ source decides consent after the page mounts, so only `alwaysLoad` scripts
 start the download early.
 
 The larger the tree inside `ConsentRoot`, the more of that request hydration
-covers. There is nothing to configure.
+covers. There is nothing to configure. The code that decides ships with
+`ConsentRoot` only: a `ConsentProvider` from `@c15t/react` rendered without
+`ConsentRoot` loads the chunk when it mounts.
 
 c15t does not add a `<link rel="modulepreload">` for the chunk, as it does in
 SvelteKit. Next.js assigns the chunk's file name in the browser build, and the
