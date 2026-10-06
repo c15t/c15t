@@ -22,6 +22,7 @@ import type { Script } from '../../libs/script-loader/types';
 import { encodeStoredConsentEnvelopeJson } from '../../modules/persistence/writer/encode';
 import type { ScriptLoaderHandle } from '../../modules/script-loader/types';
 import { custom } from '../../transports/mode';
+import type { ConsentKernel } from '../../types';
 import {
 	createConsentProviderRuntime,
 	defaultRuntimeModules,
@@ -401,5 +402,94 @@ describe('a provider runtime leaves its script loader to start()', () => {
 		} finally {
 			vi.unstubAllGlobals();
 		}
+	});
+});
+
+/** A GPC getter that throws, as some privacy extensions install. */
+const throwingGpc = function throwingGpc(): void {
+	Object.defineProperty(navigator, 'globalPrivacyControl', {
+		configurable: true,
+		get() {
+			throw new Error('blocked');
+		},
+	});
+};
+
+describe('a throwing GPC getter', () => {
+	test('reads as no signal, so a returning visitor still preloads', () => {
+		throwingGpc();
+		const { load } = create({ prefetch: prefetchFor({ marketing: true }) });
+		expect(load).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('the kernel the decision builds', () => {
+	/**
+	 * A provider runtime whose decision builds its kernels through a spy,
+	 * so the test sees each one and whether it was disposed.
+	 */
+	const createWatched = function createWatched(
+		options: Partial<ConsentProviderRuntimeOptions>,
+		failPersistence = false
+	) {
+		const built: ConsentKernel[] = [];
+		const disposals: ConsentKernel[] = [];
+		const load = vi.fn(() => Promise.resolve(() => undefined));
+		const preload = preloadScriptLoaderWith(load);
+		runtimes.push(
+			createConsentProviderRuntime(
+				{
+					iframeBlocker: false,
+					mode: custom({
+						init: vi.fn().mockResolvedValue({}),
+						save: vi.fn().mockResolvedValue({ ok: true }),
+					}),
+					persistence: false,
+					scripts: [pixel],
+					windowDebug: false,
+					...options,
+				},
+				{
+					...defaultRuntimeModules,
+					createScriptLoader: lazyRuntimeModule(load),
+					preloadScriptLoader: (read, prefetch, createKernel, persistence) =>
+						preload(
+							read,
+							prefetch,
+							(kernelOptions) => {
+								const kernel = createKernel(kernelOptions);
+								const dispose = kernel.dispose.bind(kernel);
+								kernel.dispose = () => {
+									disposals.push(kernel);
+									dispose();
+								};
+								built.push(kernel);
+								return kernel;
+							},
+							failPersistence
+								? () => {
+										throw new Error('persistence failed');
+									}
+								: persistence
+						),
+					streamPrefetch,
+				}
+			)
+		);
+		return { built, disposals, load };
+	};
+
+	test.each([
+		['when the decision completes', () => undefined, false, false],
+		['when the GPC getter throws', throwingGpc, false, false],
+		['when persistence throws', () => undefined, true, true],
+	] as const)('is disposed %s', (_, arrange, failPersistence, persistence) => {
+		arrange();
+		const { built, disposals } = createWatched(
+			{ persistence, prefetch: prefetchFor({ marketing: true }) },
+			failPersistence
+		);
+		expect(built).toHaveLength(1);
+		expect(disposals).toEqual(built);
 	});
 });

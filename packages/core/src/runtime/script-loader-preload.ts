@@ -65,9 +65,9 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 	createPersistence: Parameters<PreloadScriptLoader>[3],
 	streamed?: RuntimePrefetch
 ): boolean {
+	let judged = kernel;
 	try {
 		const prefetch = streamed ?? options.prefetch;
-		let judged = kernel;
 		if (
 			(options.enabled ?? true) &&
 			!options.consentSource &&
@@ -95,18 +95,20 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 					sync: false,
 				}).dispose();
 			}
-			if (
-				(globalThis.navigator as { globalPrivacyControl?: unknown } | undefined)
-					?.globalPrivacyControl === true
-			) {
+			let gpc: unknown;
+			try {
+				gpc = (navigator as { globalPrivacyControl?: unknown })
+					.globalPrivacyControl;
+			} catch {
+				// A getter that throws reads as no signal, as the kernel's own
+				// read does.
+			}
+			if (gpc === true) {
 				judged.set.privacySignals({ gpc: true });
 			}
 		}
 		const snapshot = judged.getSnapshot();
 		const now = Date.now();
-		if (judged !== kernel) {
-			judged.dispose();
-		}
 		// The loader's own test: `alwaysLoad`, or consent for the script's
 		// category and vendor.
 		return (options.scripts ?? []).some(
@@ -115,6 +117,11 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 		);
 	} catch {
 		return false;
+	} finally {
+		// Whatever happened, the kernel built here is only ever read.
+		if (judged !== kernel) {
+			judged.dispose();
+		}
 	}
 };
 
