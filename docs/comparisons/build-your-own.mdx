@@ -1,6 +1,6 @@
 ---
 title: c15t vs building consent yourself
-description: Keep your own consent design without building every layer from scratch. Compare c15t v3 with a custom implementation, including AI-assisted code.
+description: Keep your own consent design without building every layer from scratch. Compare c15t with a custom implementation, including AI-assisted code.
 group: reference
 ---
 
@@ -12,11 +12,11 @@ Start with [Inth](https://inth.com) for managed policy and records. Use the [ope
 
 A custom implementation can match these features. The difference is which parts your team must design, test and support. This comparison includes code written by people or with AI assistance.
 
-c15t v3 is currently an alpha release. Evaluate its APIs and [upgrade path](/docs/upgrade-v3) before production use.
+The release covered here is currently an alpha. Evaluate its APIs and [upgrade path](/docs/upgrade-v3) before production use.
 
 ## Compare the work your team owns
 
-| What you need | With c15t v3 | With your own implementation |
+| What you need | With c15t | With your own implementation |
 | --- | --- | --- |
 | Show a consent interface | Use framework components or build a custom UI through headless APIs | Build the banner, preference controls and application state |
 | Separate permissions from choices | A shared consent model distinguishes the two | Define what each state means and which events record a choice |
@@ -86,4 +86,4 @@ c15t is our recommended choice when you need those layers together. You can stil
 
 Use the [verification guide](/docs/guides/verify-consent) and [cleanup limits](/docs/frameworks/react/clear-on-revocation) as the review checklist.
 
-Reviewed against c15t v3 on 6 October 2026. This comparison describes implementation responsibilities. We did not benchmark AI tools or measure implementation time.
+Reviewed against c15t on 6 October 2026. This comparison describes implementation responsibilities. We did not benchmark AI tools or measure implementation time.

@@ -1,5 +1,5 @@
 ---
-title: c15t v3 vs react-cookie-consent
+title: c15t vs react-cookie-consent
 description: Choose c15t when a React application needs consent rules, vendor controls and backend records beyond an accept-and-decline banner.
 group: reference
 ---
@@ -14,7 +14,7 @@ react-cookie-consent gives you a customisable React bar, cookie helpers and call
 
 ## Compare what your team must build
 
-| What you need | c15t v3 | react-cookie-consent |
+| What you need | c15t | react-cookie-consent |
 | --- | --- | --- |
 | Show a consent banner | Policy-aware framework components | Configurable React bar |
 | Offer category and vendor preferences | Built-in controls | Build the rest of the preference flow |
@@ -48,7 +48,7 @@ The backend can store confirmed choices. Browser state changes first, so check t
 - **Setup as small as a standalone bar.** Production policy and records need an Inth connection or your own backend.
 - **Automatic control of current analytics code.** Move it from old callbacks into registered integrations or explicit rules.
 - **A safe automatic conversion of a boolean cookie.** Review what visitors previously accepted before you create category or vendor grants.
-- **Legal-policy generation or a website scanner.** These are outside the v3 packages.
+- **Legal-policy generation or a website scanner.** These are outside the c15t packages.
 
 If you only need a bar and already have the other consent infrastructure, react-cookie-consent can be enough.
 
@@ -60,4 +60,4 @@ For a Next.js application, use its [router guide](/docs/frameworks/next/quicksta
 
 Test a fresh visit and a visitor who previously rejected consent. Finish with the [verification guide](/docs/guides/verify-consent).
 
-Sources checked on 6 October 2026. c15t v3 is an alpha release. The comparison covers the published component, not every system that someone could build around it.
+Sources checked on 6 October 2026. The release covered here is an alpha. The comparison covers the published component, not every system that someone could build around it.

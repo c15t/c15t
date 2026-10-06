@@ -1,5 +1,5 @@
 ---
-title: c15t v3 vs CookieConsent v3
+title: c15t vs CookieConsent v3
 description: Choose c15t when your application needs native consent state and a record backend. Compare CookieConsent's browser controls and the extra setup each approach needs.
 group: reference
 ---
@@ -14,7 +14,7 @@ CookieConsent is a capable browser library with granular controls and custom sty
 
 ## Compare what you need to assemble
 
-| What you need | c15t v3 | CookieConsent v3 |
+| What you need | c15t | CookieConsent v3 |
 | --- | --- | --- |
 | Use consent in framework components | Native adapters and reactive state | Browser library with framework setup recipes |
 | Show preferences | Category and vendor controls | Category controls and individual service switches |
@@ -51,7 +51,7 @@ CookieConsent supports service switches, cookie cleanup and framework integratio
 - **A production record service with no setup or cost.** Configure Inth or deploy a backend.
 - **Automatic vendor discovery.** Your team still needs to register the site's scripts and embeds.
 - **Service-cookie cleanup for every vendor refusal.** The built-in cleanup follows categories. A vendor-only denial needs explicit cleanup.
-- **A stable v3 release yet.** The version covered here is alpha.
+- **Stable status for this release.** The version covered here is alpha.
 
 Browser-only c15t mode keeps choices locally and has no backend records. Use it for development and tests. Not recommended for production environments.
 
@@ -65,4 +65,4 @@ Accept one category and reject another. Reload, reopen preferences and withdraw 
 
 Check both vendor requests and backend records with the [verification guide](/docs/guides/verify-consent). Do not treat a visible banner as proof that the integration works.
 
-Sources checked on 6 October 2026. c15t v3 is an alpha release. We did not compare measured bundle size or speed.
+Sources checked on 6 October 2026. The release covered here is an alpha. We did not compare measured bundle size or speed.
