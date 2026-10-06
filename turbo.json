@@ -159,6 +159,25 @@
 			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
 			"env": ["VERCEL", "NITRO_PRESET", "NUXT_PUBLIC_C15T_BACKEND_URL"]
 		},
+		"@c15t/example-nuxt-vapor#build": {
+			"dependsOn": ["^build"],
+			"inputs": [
+				"$TURBO_DEFAULT$",
+				".env*",
+				"!docs/**",
+				"!AGENTS.md",
+				"!SKILL.md",
+				"!README.md",
+				"!readme.json"
+			],
+			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
+			"env": [
+				"VERCEL",
+				"NITRO_PRESET",
+				"NUXT_PUBLIC_C15T_BACKEND_URL",
+				"C15T_NUXT_FUTURE"
+			]
+		},
 		"@c15t/example-tanstack-start#build": {
 			"dependsOn": ["^build"],
 			"inputs": [

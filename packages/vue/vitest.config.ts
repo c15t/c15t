@@ -22,6 +22,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'#c15t/server-app-config': resolve(
+						__dirname,
+						'./src/__tests__/server-app-config.ts'
+					),
+				},
+				{
 					'@c15t/core/modules/clear-on-revocation': resolve(
 						__dirname,
 						'../core/src/modules/clear-on-revocation/index.ts'

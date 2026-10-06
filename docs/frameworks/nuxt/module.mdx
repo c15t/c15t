@@ -72,7 +72,7 @@ read once when the page loads.
 | `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
 | `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
 | `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` or `Infinity` waits as long as the backend takes; any other value that is not a finite, non-negative number uses the default. |
-| `initPrefetch` | `true` | Pages with `ssr: false` and `manifest` unset start `/init` from an inline script in the page head, before the app's JavaScript loads. Skipped when `consentSource`, `customFetch` or `experiment` is set. `false` turns it off. To turn it off for some routes, set the route rule `c15t: { initPrefetch: false }`. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy#allow-the-early-init-script). |
+| `initPrefetch` | `true` | Pages with `ssr: false` and `manifest` unset start `/init` from an inline script in the page head, before the app's JavaScript loads. Skipped when `consentSource`, `customFetch` or `experiment` is set, and when Nitro auto-imports are off, as under `future.compatibilityVersion: 5`, because the server cannot then read `app.config.ts`. `false` turns it off. To turn it off for some routes, set the route rule `c15t: { initPrefetch: false }`. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy#allow-the-early-init-script). |
 | `reportSessions` | `true` | Server mode only. The init route reports each visitor it resolves to the backend, so Inth counts visitors it never served `/init` to. Needs an absolute `backendURL`. |
 
 [Rendering and deployment](/docs/frameworks/nuxt/rendering) explains which

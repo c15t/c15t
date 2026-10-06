@@ -194,6 +194,9 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		// app's types whichever package registered the module, including the
 		// `c15t` umbrella. It imports the option types from the declarations
 		// next to this file: the source in this repo, `module.d.mts` once built.
+		// `CustomAppConfig` types `useAppConfig()`. `AppConfigInput` types
+		// `defineAppConfig()`: it extended `CustomAppConfig` until Nuxt 4.6,
+		// which made them separate, so augment both.
 		const optionTypes = ['nuxt-options.ts', 'module.d.mts']
 			.map((file) => resolver.resolve(`./${file}`))
 			.find((path) => existsSync(path));
@@ -210,6 +213,10 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 							'',
 							"declare module '@nuxt/schema' {",
 							'\tinterface CustomAppConfig {',
+							'\t\t/** c15t options, merged over the `c15t` module options. */',
+							'\t\tc15t?: Partial<C15tNuxtAppConfig>;',
+							'\t}',
+							'\tinterface AppConfigInput {',
 							'\t\t/** c15t options, merged over the `c15t` module options. */',
 							'\t\tc15t?: Partial<C15tNuxtAppConfig>;',
 							'\t}',
@@ -255,6 +262,27 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			// Starts `/init` from the HTML of `ssr: false` pages, before the
 			// app's JavaScript loads.
 			addServerPlugin(resolver.resolve('./runtime/server/init-prefetch.nuxt'));
+			// The plugin reads `app.config.ts` through this virtual, not
+			// `#imports`, which Nuxt 5 stops providing to server code. Nuxt 4
+			// builds the merged config as `#internal/nuxt/app-config`; Nuxt 3
+			// passes the files to Nitro, whose own `useAppConfig` reads them.
+			// Without Nitro auto-imports, `app.config.ts` cannot load on the
+			// server (its `defineAppConfig` is an auto-import), so the plugin
+			// gets no config and leaves `/init` to the browser.
+			nuxt.hook('nitro:config', (nitroConfig) => {
+				let source =
+					"export { useAppConfig as useServerAppConfig } from 'nitropack/runtime';";
+				if (nitroConfig.imports === false) {
+					source = 'export const useServerAppConfig = () => undefined;';
+				} else if (nitroConfig.virtual?.['#internal/nuxt/app-config']) {
+					source = [
+						"import appConfig from '#internal/nuxt/app-config';",
+						'export const useServerAppConfig = () => appConfig;',
+					].join('\n');
+				}
+				nitroConfig.virtual ||= {};
+				nitroConfig.virtual['#c15t/server-app-config'] = source;
+			});
 		}
 		if (manifestMode === 'client') {
 			// Resolves the manifest in the browser at startup: bundle the

@@ -120,6 +120,51 @@ describe('the early /init script for ssr: false pages', () => {
 		const config = await publicConfig({ initPrefetch: false });
 		expect(config).not.toHaveProperty('initPrefetch');
 	});
+
+	describe('the app config the server plugin reads', () => {
+		/** The `#c15t/server-app-config` source for a Nitro config. */
+		const serverAppConfig = async function serverAppConfig(
+			virtual: Record<string, unknown>,
+			imports: false | Record<string, unknown> = {}
+		) {
+			const nuxt = createNuxt({ backendURL: '/api/c15t' });
+			const nitroConfigHooks: ((config: unknown) => void)[] = [];
+			Object.assign(nuxt, {
+				hook: (name: string, extendConfig: (config: unknown) => void) => {
+					if (name === 'nitro:config') {
+						nitroConfigHooks.push(extendConfig);
+					}
+					return () => undefined;
+				},
+			});
+			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			const nitroConfig = { imports, virtual };
+			for (const extendConfig of nitroConfigHooks) {
+				extendConfig(nitroConfig);
+			}
+			return nitroConfig.virtual['#c15t/server-app-config'];
+		};
+
+		// Nuxt 5 turns off Nitro auto-imports, so the plugin cannot use
+		// `#imports`.
+		test("reads Nuxt 4's merged app config", async () => {
+			expect(
+				await serverAppConfig({ '#internal/nuxt/app-config': () => '' })
+			).toContain("from '#internal/nuxt/app-config'");
+		});
+
+		test('has no config when Nitro auto-imports are off', async () => {
+			expect(
+				await serverAppConfig({ '#internal/nuxt/app-config': () => '' }, false)
+			).toBe('export const useServerAppConfig = () => undefined;');
+		});
+
+		test("falls back to Nitro's useAppConfig on Nuxt 3", async () => {
+			expect(await serverAppConfig({})).toContain(
+				"export { useAppConfig as useServerAppConfig } from 'nitropack/runtime'"
+			);
+		});
+	});
 });
 
 describe('gpp from the c15t config key', () => {

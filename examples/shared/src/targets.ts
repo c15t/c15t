@@ -100,6 +100,27 @@ export const targets: ExampleTarget[] = [
 		start: (port) => ['run', 'preview:static', '--port', String(port)],
 	},
 	{
+		// Nuxt 4.6 with Vue Vapor: every app page and component is a Vapor
+		// component that renders c15t's virtual DOM components through
+		// Nuxt's interop. `/headless` swaps ConsentRoot for a Vapor
+		// ConsentPrompt built on the composables.
+		directory: 'nuxt-vapor',
+		failureRoute: '/consent-example',
+		id: 'nuxt-vapor',
+		routes: ['/consent-example', '/headless'],
+		start: () => ['run', 'start'],
+	},
+	{
+		// The same app under the Nuxt 5 preview with `early404` and
+		// prerendered error pages.
+		directory: 'nuxt-vapor',
+		env: { C15T_NUXT_FUTURE: '1' },
+		failureRoute: '/consent-example',
+		id: 'nuxt-vapor-future',
+		routes: ['/consent-example', '/headless'],
+		start: () => ['run', 'start'],
+	},
+	{
 		directory: 'tanstack-start',
 		failureRoute: '/consent-example',
 		id: 'tanstack-start',

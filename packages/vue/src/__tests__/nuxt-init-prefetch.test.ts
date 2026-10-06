@@ -20,23 +20,36 @@ import { buildInitPrefetchTag } from '../runtime/server/init-prefetch';
 
 const nuxt = vi.hoisted(() => ({
 	appConfig: {} as Record<string, unknown>,
+	/** Whether Nitro can load `app.config.ts`; it cannot without auto-imports. */
+	serverAppConfig: true,
 	ssr: true,
 	state: new Map<string, Ref<unknown>>(),
 }));
-// oxlint-disable-next-line anti-slop/no-module-mocking -- Nuxt and Nitro supply this virtual module; the test provides the config both sides read.
-vi.mock('#imports', () => ({
+// Hoisted with the mocks below, which both read it.
+const useRuntimeConfig = vi.hoisted(() => () => ({
+	c15t: { ssr: nuxt.ssr },
+	public: { c15t: { backendURL: '/api/c15t', manifest: false } },
+}));
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Nitro supplies this runtime; the test provides the config the server plugin reads.
+vi.mock('nitropack/runtime', () => ({
 	defineNitroPlugin: (plugin: unknown) => plugin,
-	defineNuxtPlugin: (plugin: unknown) => plugin,
 	getRouteRules: (event: TestEvent) => event.rules,
+	useRuntimeConfig,
+}));
+// oxlint-disable-next-line anti-slop/no-module-mocking -- The module registers this Nitro virtual; the test provides the app config it returns.
+vi.mock('#c15t/server-app-config', () => ({
+	useServerAppConfig: () =>
+		nuxt.serverAppConfig ? { c15t: nuxt.appConfig } : undefined,
+}));
+// oxlint-disable-next-line anti-slop/no-module-mocking -- Nuxt supplies this virtual module; the test provides the config the Nuxt plugin reads.
+vi.mock('#imports', () => ({
+	defineNuxtPlugin: (plugin: unknown) => plugin,
 	useAppConfig: () => ({ c15t: nuxt.appConfig }),
 	useHead: () => undefined,
 	useRequestEvent: () => undefined,
 	useRequestHeaders: () => ({}),
 	useRequestURL: () => new URL('http://localhost/'),
-	useRuntimeConfig: () => ({
-		c15t: { ssr: nuxt.ssr },
-		public: { c15t: { backendURL: '/api/c15t', manifest: false } },
-	}),
+	useRuntimeConfig,
 	useState: (key: string, init: () => unknown) => {
 		if (!nuxt.state.has(key)) {
 			nuxt.state.set(key, ref(init()));
@@ -152,6 +165,7 @@ const initRequests = (fetch: ReturnType<typeof vi.fn>) =>
 
 beforeEach(() => {
 	nuxt.appConfig = { disableAnimation: true, iframeBlocker: false };
+	nuxt.serverAppConfig = true;
 	nuxt.ssr = true;
 });
 
@@ -265,6 +279,13 @@ describe('which pages get the script', () => {
 
 	test('no app whose app config picks client manifest mode', async () => {
 		nuxt.appConfig = { manifest: 'client' };
+		expect(await renderHead()).toBe(SHELL_HEAD);
+	});
+
+	// Under Nuxt 5 Nitro has no auto-imports, so `app.config.ts`, which may
+	// hold a `customFetch` that rules the script out, cannot load.
+	test('no page when the server cannot read the app config', async () => {
+		nuxt.serverAppConfig = false;
 		expect(await renderHead()).toBe(SHELL_HEAD);
 	});
 

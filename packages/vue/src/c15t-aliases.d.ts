@@ -24,3 +24,14 @@ declare module '#c15t/composables' {
 	export { useConsentLanguage } from './runtime/composables/language';
 	export { useRequestRegion } from './runtime/composables/region';
 }
+
+/** A Nitro virtual the module registers for its server plugin. */
+declare module '#c15t/server-app-config' {
+	/**
+	 * The app's merged `app.config.ts`, or `undefined` when Nitro cannot load
+	 * it because server auto-imports are off.
+	 */
+	export const useServerAppConfig: (
+		event?: unknown
+	) => Record<string, unknown> | undefined;
+}

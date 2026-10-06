@@ -28,6 +28,7 @@ const nonReactFrameworkFiles = [
 	'apps/storybook-vue/**/*.{js,jsx,ts,tsx}',
 	'benchmarks/nuxt-browser-bench/**/*.{js,jsx,ts,tsx}',
 	'examples/nuxt/**/*.{js,jsx,ts,tsx}',
+	'examples/nuxt-vapor/**/*.{js,jsx,ts,tsx}',
 	'packages/solid/**/*.{js,jsx,ts,tsx}',
 	'packages/svelte/**/*.{js,jsx,ts,tsx}',
 	'packages/vue/**/*.{js,jsx,ts,tsx}',
