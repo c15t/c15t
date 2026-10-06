@@ -562,6 +562,45 @@ describe('the enabled toggle', () => {
 		runtime.setEnabled(true);
 		expect(runtime.kernel.getSnapshot().overrides.language).toBe('de');
 	});
+
+	test('a provider created off sends what its network rules match, and holds it again once on until the blocker lands', async () => {
+		const { network, restore } = stubNetwork();
+		const blockerChunk = Promise.withResolvers<typeof createNetworkBlocker>();
+		const runtime = create(
+			{
+				enabled: false,
+				mode: custom(createTransport()),
+				networkBlocker: {
+					rules: [{ category: 'marketing', domain: 'ads.example' }],
+				},
+				prefetch: RESOLVED_PREFETCH,
+			},
+			{
+				...defaultRuntimeModules,
+				createNetworkBlocker: lazyRuntimeModule(() => blockerChunk.promise),
+			}
+		);
+		try {
+			runtime.start();
+
+			// Off grants every category: nothing waits for a blocker.
+			const sent = window.fetch('https://ads.example/pixel');
+			await vi.waitFor(() => expect(network).toHaveBeenCalledOnce());
+			await sent;
+
+			runtime.setEnabled(true);
+			const held = window.fetch('https://ads.example/pixel');
+			await Promise.resolve();
+			expect(network).toHaveBeenCalledOnce();
+
+			blockerChunk.resolve(createNetworkBlocker);
+			expect((await held).status).toBe(451);
+			expect(network).toHaveBeenCalledOnce();
+		} finally {
+			runtime.dispose();
+			restore();
+		}
+	});
 });
 
 describe('a streamed prefetch', () => {

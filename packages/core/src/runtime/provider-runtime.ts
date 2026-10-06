@@ -346,8 +346,10 @@ export const createConsentProviderRuntime =
 		main.runtime.onIABChange(notify);
 		let permissive: Built | null = null;
 		if (!enabled) {
-			// The main runtime stays detached until it runs.
+			// The main runtime stays detached until it runs, and holds nothing
+			// meanwhile: a disabled provider grants every category.
 			main.stop();
+			main.releaseHold();
 			permissive = build(false);
 		}
 		const active = (): Built => permissive ?? main;
@@ -368,6 +370,7 @@ export const createConsentProviderRuntime =
 				// Coming back, the visitor finds the prompt closed.
 				main.runtime.kernel.set.activeUI('none');
 				main.stop();
+				main.releaseHold();
 				permissive = build(false);
 				if (started) {
 					permissive.runtime.start();

@@ -41,6 +41,12 @@ import type {
 
 /** What the provider runtime needs beyond the public interface. @internal */
 export interface AssembledRuntime {
+	/**
+	 * Send the requests held for a runtime parked before it ran: a disabled
+	 * provider grants every category, so nothing waits for its blocker.
+	 * `start()` holds again until its blocker takes over.
+	 */
+	releaseHold: () => void;
 	runtime: ConsentRuntime;
 	/**
 	 * Unmount every module and `window.c15t` and detach callbacks, keeping
@@ -115,12 +121,13 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 	// runtime's hold and replays them. A runtime disposed before it started
 	// ends its hold itself, failing what it held closed. Either way, other
 	// callers' holds stay in place.
-	let hold: NetworkHold | null =
+	const holdRequests = (): NetworkHold | null =>
 		enabled &&
 		options.networkBlocker &&
 		options.networkBlocker.enabled !== false
 			? holdNetworkRequests(options.networkBlocker.rules)
 			: null;
+	let hold = holdRequests();
 
 	let iabHandle: ConsentRuntimeIABHandle | null = null;
 	let iframeBlocker: IframeBlockerHandle | null = null;
@@ -386,8 +393,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 
 			if (enabled && options.networkBlocker) {
 				// Never omitted: without a hold, the blocker ends every caller's
-				// hold, including ones a disabled blocker must not.
-				const claimed = hold ?? NOT_HELD;
+				// hold, including ones a disabled blocker must not. A restart,
+				// or a start after `releaseHold()`, holds again: a blocker that
+				// loads on demand would otherwise let requests through until
+				// its chunk lands.
+				const claimed = hold ?? holdRequests() ?? NOT_HELD;
 				hold = null;
 				const blocker = modules.createNetworkBlocker({
 					enabled: options.networkBlocker.enabled,
@@ -432,5 +442,10 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			return started;
 		},
 	};
-	return { runtime, stop };
+	const releaseHold = function releaseHold(): void {
+		const held = hold;
+		hold = null;
+		held?.release()();
+	};
+	return { releaseHold, runtime, stop };
 };
