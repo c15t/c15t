@@ -472,12 +472,17 @@ describe('runtime options', () => {
 		});
 		await client.ready();
 
-		await vi.waitFor(() => {
-			const loaded = Array.from(document.scripts).find((script) =>
-				script.textContent?.includes('__nonceProbe')
-			);
-			expect(loaded?.nonce).toBe('page-nonce');
-		});
+		// The first test in this file to import the on-demand script loader,
+		// so a busy runner can take over a second to load it.
+		await vi.waitFor(
+			() => {
+				const loaded = Array.from(document.scripts).find((script) =>
+					script.textContent?.includes('__nonceProbe')
+				);
+				expect(loaded?.nonce).toBe('page-nonce');
+			},
+			{ timeout: 5000 }
+		);
 		expect(onDebug).toHaveBeenCalled();
 	});
 
