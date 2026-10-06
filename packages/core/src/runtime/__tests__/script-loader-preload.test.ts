@@ -405,6 +405,60 @@ describe('a provider runtime leaves its script loader to start()', () => {
 	});
 });
 
+// The vendor list is live: `update()` hands it to the kernel `start()`
+// mounts the loader with. A stored denial counts only against a vendor
+// the visitor can turn off.
+describe('a streamed prefetch that arrives after update()', () => {
+	const vendor = function vendor(
+		disabled: boolean
+	): ConsentProviderRuntimeOptions['vendors'] {
+		return [
+			{
+				category: 'marketing',
+				disabled,
+				id: 'pixel-co',
+				name: 'Pixel Co',
+				privacyPolicyUrl: 'https://example.com/privacy',
+			},
+		];
+	};
+
+	test.each([
+		['made the vendor one the visitor cannot turn off', true, 1],
+		['made the vendor one the visitor can turn off', false, 0],
+	] as const)(
+		'is judged with the updated vendors when the update %s',
+		async (_, disabled, loads) => {
+			const prefetch = prefetchFor({ marketing: true });
+			let resolveStream: (value: RuntimePrefetch) => void = () => undefined;
+			const options = {
+				prefetch: new Promise<RuntimePrefetch>((resolve) => {
+					resolveStream = resolve;
+				}),
+				scripts: [{ ...pixel, vendor: 'pixel-co' }],
+			};
+			const { load, runtime } = create({
+				...options,
+				vendors: vendor(!disabled),
+			});
+			await runtime.update({ ...options, vendors: vendor(disabled) });
+			resolveStream({
+				...prefetch,
+				initialRecords: {
+					...prefetch.initialRecords,
+					vendorChoice: {
+						confirmedAt: NOW - 1000,
+						denied: ['pixel-co'],
+						version: 1,
+					},
+				},
+			});
+			await settle();
+			expect(load).toHaveBeenCalledTimes(loads);
+		}
+	);
+});
+
 /** A GPC getter that throws, as some privacy extensions install. */
 const throwingGpc = function throwingGpc(): void {
 	Object.defineProperty(navigator, 'globalPrivacyControl', {

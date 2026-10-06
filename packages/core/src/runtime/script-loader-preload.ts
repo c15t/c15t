@@ -73,12 +73,15 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 			!options.consentSource &&
 			prefetch?.initialPolicyResolution
 		) {
-			judged = createKernel({
-				...options,
-				// Never asked for anything: the kernel is only read.
-				mode: (() => ({})) as unknown as ConsentRuntimeOptions['mode'],
-				prefetch,
-			});
+			// The options may be the runtime's live view, which does not
+			// spread: inherit from them instead.
+			judged = createKernel(
+				Object.assign(Object.create(options) as ConsentRuntimeOptions, {
+					// Never asked for anything: the kernel is only read.
+					mode: (() => ({})) as unknown as ConsentRuntimeOptions['mode'],
+					prefetch,
+				})
+			);
 			const { persistence } = options;
 			if (persistence !== false) {
 				const settings = typeof persistence === 'object' ? persistence : {};
