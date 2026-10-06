@@ -569,6 +569,7 @@ describe('astro:config:setup', () => {
 	it('serves the serialized options from the virtual module', async () => {
 		const { calls } = await runSetup({
 			consentCategories: ['necessary', 'measurement'],
+			gpp: { usApproach: 'national', usFallback: 'none' },
 			mode: hostedMode({ url: 'https://consent.example.com' }),
 		});
 		const [config] = calls.updateConfig.mock.calls[0] as [
@@ -594,6 +595,7 @@ describe('astro:config:setup', () => {
 			url: 'https://consent.example.com',
 		});
 		expect(parsed.consentCategories).toEqual(['necessary', 'measurement']);
+		expect(parsed.gpp).toEqual({ usApproach: 'national', usFallback: 'none' });
 	});
 
 	it("shims Nuxt's #imports for the vue adapter only", async () => {

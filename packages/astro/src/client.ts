@@ -737,6 +737,7 @@ const createClient = function createClient(
 			// one, no experiment runs: browser assignment would hold a banner
 			// the server already rendered.
 			experiment: config.initialExperiment ? options.experiment : undefined,
+			gpp: options.gpp,
 			i18n: options.i18n as ConsentRuntimeOptions['i18n'],
 			// `RuntimeIABOptions` is the runtime's open-ended shape; the
 			// integration option is the closed, documented subset of it.
@@ -744,6 +745,8 @@ const createClient = function createClient(
 				options.iab === false
 					? false
 					: (options.iab as RuntimeIABOptions | undefined),
+			// Called only when `gpp` is set, so other sites never fetch the chunk.
+			loadGPP: () => import('@c15t/iab/gpp'),
 			mode: resolveTransportFactory(options.mode, {
 				backendURL:
 					options.mode.type === 'manifest'
