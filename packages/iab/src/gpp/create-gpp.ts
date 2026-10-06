@@ -9,6 +9,7 @@ import type {
 	ConsentKernel,
 	ConsentSnapshot,
 } from '@c15t/core';
+import type { ConsentRuntimeGPPFactoryOptions } from '@c15t/core/runtime';
 
 import { isValidCmpId, MAX_CMP_ID } from '../tcf/cmp-id';
 import { createGPPCmpApi } from './cmp-api';
@@ -33,8 +34,11 @@ import type { GPPMspaMode, GPPUSApproach, GPPUSFallback } from './us-section';
 /** CMP ID the GPP specification reserves for unregistered string creators. */
 const UNREGISTERED_CMP_ID = 1;
 
-/** Options for {@link createGPP}. */
-export interface CreateGPPOptions {
+/**
+ * Options for {@link createGPP}. The same options the runtime's `gpp`
+ * option takes, plus the kernel.
+ */
+export interface CreateGPPOptions extends ConsentRuntimeGPPFactoryOptions {
 	/** The consent kernel to read choices from. */
 	kernel: ConsentKernel;
 	/**

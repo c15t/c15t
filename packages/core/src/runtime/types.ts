@@ -188,6 +188,76 @@ export type ConsentRuntimeIABFactory = (
 	options: ConsentRuntimeIABFactoryOptions
 ) => ConsentRuntimeIABHandle;
 
+/**
+ * IAB Global Privacy Platform (GPP) options accepted by
+ * {@link ConsentRuntimeOptions}. Every field is optional; `true` or `{}`
+ * mounts `__gpp` with the defaults, and `false` turns it off.
+ *
+ * Structurally identical to `CreateGPPOptions` in `@c15t/iab/gpp` without
+ * `kernel`, which `@c15t/core` cannot import.
+ */
+export interface RuntimeGPPOptions {
+	/**
+	 * CMP ID reported by `ping`. Defaults to the kernel's IAB CMP ID, else
+	 * `1`, which the GPP specification reserves for string creators without
+	 * a registered ID.
+	 */
+	cmpId?: number;
+	/**
+	 * `'state'` reports a US visitor's state section; `'national'` reports
+	 * the MSPA US National section (`usnat`) for every US visitor. Default:
+	 * `'state'`.
+	 */
+	usApproach?: 'state' | 'national';
+	/**
+	 * Under the state approach, the section for a US visitor whose state is
+	 * unknown or has no section: `'usnat'` or `'none'`. Default: `'usnat'`.
+	 */
+	usFallback?: 'usnat' | 'none';
+	/**
+	 * MSPA mode for covered transactions. Omit unless the publisher signed
+	 * the IAB Multi-State Privacy Agreement.
+	 */
+	mspaMode?: 'opt-out-option' | 'service-provider';
+	/**
+	 * Categories whose refusal opts the visitor out of sale, sharing and
+	 * targeted advertising. Default: `['marketing']`.
+	 */
+	optOutCategories?: readonly AllConsentNames[];
+	/** Add the TCF EU section under an `iab` policy. Default: `true`. */
+	tcf?: boolean;
+}
+
+/** GPP options the runtime hands to {@link ConsentRuntimeGPPFactory}. */
+export interface ConsentRuntimeGPPFactoryOptions extends RuntimeGPPOptions {
+	/** The kernel the GPP CMP API reads choices from. */
+	kernel: ConsentKernel;
+}
+
+/** The handle a {@link ConsentRuntimeGPPFactory} returns. */
+export interface ConsentRuntimeGPPHandle {
+	/** Remove `__gpp` and stop following the kernel. */
+	dispose: () => void;
+}
+
+/**
+ * Mounts the GPP CMP API. `createGPP` from `@c15t/iab/gpp` satisfies this
+ * signature.
+ */
+export type ConsentRuntimeGPPFactory = (
+	options: ConsentRuntimeGPPFactoryOptions
+) => ConsentRuntimeGPPHandle;
+
+/**
+ * Resolves the module exporting `createGPP`, normally
+ * `() => import('@c15t/iab/gpp')`. A loader rather than the factory, so the
+ * GPP code only downloads for sites that turn GPP on, and because
+ * `@c15t/iab` depends on `@c15t/core`.
+ */
+export type GPPModuleLoader = () => Promise<{
+	createGPP: ConsentRuntimeGPPFactory;
+}>;
+
 /** External CMP decision source. The provider owns UI, persistence, expiry and GPC. */
 export interface ExternalConsentSource {
 	/** Read the current decision. Null means not ready, so optional categories are denied. */
@@ -384,6 +454,16 @@ export interface ConsentRuntimeOptions {
 	 */
 	createIAB?: ConsentRuntimeIABFactory;
 	/**
+	 * IAB GPP: install `window.__gpp` on `start()` and keep its GPP string
+	 * in step with the visitor's choices. Requires
+	 * {@link ConsentRuntimeOptions.loadGPP}. Omitted or `false` leaves GPP
+	 * off. A load failure, or another CMP that already owns `__gpp`, is
+	 * reported to `callbacks.onError`.
+	 */
+	gpp?: RuntimeGPPOptions | boolean;
+	/** Loads `@c15t/iab/gpp`. Without it `gpp` is ignored. */
+	loadGPP?: GPPModuleLoader;
+	/**
 	 * Storage persistence. `true`/omitted hydrates from cookie +
 	 * localStorage on start and reconciles with other tabs; `false` disables
 	 * storage entirely. Pass `{ sync: false }` to keep storage but reconcile
@@ -496,7 +576,7 @@ export interface ConsentRuntime {
 	readonly started: boolean;
 	/**
 	 * Mount every browser side effect: persistence, script loader, network
-	 * and iframe blockers, IAB, `window.c15t`, and the initial
+	 * and iframe blockers, IAB, GPP, `window.c15t`, and the initial
 	 * `kernel.commands.init()`, or the adoption of a resolved prefetch
 	 * (evaluated at the server's clock, marked live, GPC honoured,
 	 * `init:applied` replayed) in its place.

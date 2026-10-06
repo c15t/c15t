@@ -25,7 +25,8 @@ import type { PersistenceHandle } from '../modules/persistence/types';
 import type { ScriptLoaderHandle } from '../modules/script-loader/types';
 import { resolveWindowDebugMode } from '../modules/window-debug';
 import type { HydrationRecords } from '../types';
-import { wireRuntimeCallbacks } from './callbacks';
+import { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
+import { mountRuntimeGPP } from './gpp-mount';
 import { afterModuleLoaded } from './lazy-module';
 import {
 	createRuntimeKernel,
@@ -389,6 +390,20 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			if (enabled && createIAB && iab && !consentSource && modules.mountIAB) {
 				disposers.push(
 					modules.mountIAB({ createIAB, iab, kernel, onHandle: emitIAB })
+				);
+			}
+			const { gpp, loadGPP } = options;
+			if (enabled && gpp && loadGPP && !consentSource) {
+				disposers.push(
+					mountRuntimeGPP({
+						gpp,
+						kernel,
+						loadGPP,
+						onError: (error) =>
+							options.callbacks?.onError?.({
+								error: stringifyRuntimeError(error),
+							}),
+					})
 				);
 			}
 			const { clearOnRevocation } = options;
