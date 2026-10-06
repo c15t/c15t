@@ -44,6 +44,7 @@
 		"./dist/c15t.iab.js",
 		"./dist/c15t.headless.js",
 		"./dist/c15t.devtools.js",
+		"./dist/c15t.gpp.js",
 		"**/*.css"
 	],
 	"main": "./dist/index.js",
@@ -66,10 +67,16 @@
 			"import": "./dist/devtools.js",
 			"default": "./dist/devtools.js"
 		},
+		"./gpp": {
+			"types": "./dist-types/gpp.d.ts",
+			"import": "./dist/gpp.js",
+			"default": "./dist/gpp.js"
+		},
 		"./styles.css": "./dist/c15t.css",
 		"./c15t.js": "./dist/c15t.js",
 		"./c15t.headless.js": "./dist/c15t.headless.js",
 		"./c15t.devtools.js": "./dist/c15t.devtools.js",
+		"./c15t.gpp.js": "./dist/c15t.gpp.js",
 		"./iab": {
 			"types": "./dist-types/iab.d.ts",
 			"import": "./dist/iab.js",

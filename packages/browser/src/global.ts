@@ -6,6 +6,7 @@ import type {
 	KernelUser,
 	Unsubscribe,
 } from '@c15t/core';
+import type { ConsentRuntimeGPPFactory } from '@c15t/core/runtime';
 import type { DevToolsInstance } from '@c15t/dev-tools';
 
 import {
@@ -88,6 +89,15 @@ export interface C15tGlobal {
 	 */
 	onInit: (listener: (client: ConsentClient) => void) => Unsubscribe;
 	/**
+	 * Supply the GPP implementation. `c15t.gpp.js` calls this, before or
+	 * after `init()`; the client mounts `__gpp` once it arrives unless the
+	 * page set `gpp: false`.
+	 *
+	 * @param module - The `createGPP` export of `@c15t/iab/gpp`.
+	 * @internal
+	 */
+	provideGPP: (module: { createGPP: ConsentRuntimeGPPFactory }) => void;
+	/**
 	 * Run `[method, ...args]` calls the same way as calls queued before the
 	 * tag loaded, so `window.c15t = window.c15t || []; c15t.push([...])`
 	 * works whether the snippet runs before or after the tag. Unsupported
@@ -147,6 +157,7 @@ const QUEUE_SETUP_METHODS: ReadonlySet<string> = new Set([
 	'init',
 	'on',
 	'onInit',
+	'provideGPP',
 ]);
 
 /** Queued methods that need a client; attached as soon as it exists. */
@@ -378,6 +389,14 @@ export const createGlobal = function createGlobal(
 		typeof document === 'undefined' ? null : document.currentScript
 	);
 	let client: ConsentClient | null = null;
+	// Resolved by `c15t.gpp.js`. Until then a client's GPP waits; pages
+	// without the add-on never load it.
+	const gppModule = createDeferred<{ createGPP: ConsentRuntimeGPPFactory }>();
+	const clientContext: CreateConsentClientContext = {
+		...context,
+		defaultGPP: true,
+		loadGPP: () => gppModule.promise,
+	};
 	// Replaced on dispose, so `ready()` and `on()` after a re-init wait for
 	// the new client instead of answering from the disposed one.
 	let clientReady = createDeferred<ConsentClient>();
@@ -438,7 +457,7 @@ export const createGlobal = function createGlobal(
 			}
 			const configs = options ? [...queuedConfig, options] : queuedConfig;
 			const resolved = configs.reduce(mergeClientOptions, scriptOptions);
-			const created = createConsentClient(resolved, context);
+			const created = createConsentClient(resolved, clientContext);
 			// A synchronous ready listener can dispose and replace the deferred.
 			const initializingClientReady = clientReady;
 			client = created;
@@ -490,6 +509,9 @@ export const createGlobal = function createGlobal(
 		pkg: context.pkg ?? '@c15t/browser',
 		processIframes: () => {
 			require().processIframes();
+		},
+		provideGPP(module) {
+			gppModule.resolve(module);
 		},
 		push(...calls) {
 			replayQueue(api, calls);

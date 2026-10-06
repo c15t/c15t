@@ -20,7 +20,11 @@ import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
  *   that render their own banner against `window.c15t`.
  * - `dist/c15t.iab.js` — an optional replacement with the CMP and IAB UI.
  * - `dist/c15t.devtools.js` — the DevTools panel as a second tag.
+ * - `dist/c15t.gpp.js` — IAB GPP as a second tag.
  */
+/** Script builds allowed to contain `@c15t/iab` code. */
+const IAB_BUNDLES = new Set(['c15t.iab', 'c15t.gpp']);
+
 /**
  * The ESM build loads the preference centre on demand
  * (`ui/dialog-surface.ts`). A script tag has nowhere to load a chunk from,
@@ -56,7 +60,7 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 						'./create-runtime-static'
 					),
 					inlineDialog(),
-					...(name === 'c15t.iab' ? [] : [iabBundleBoundary()]),
+					...(IAB_BUNDLES.has(name) ? [] : [iabBundleBoundary()]),
 				],
 			},
 		},
@@ -74,6 +78,7 @@ export default defineConfig({
 			source: {
 				entry: {
 					devtools: './src/devtools.ts',
+					gpp: './src/gpp.ts',
 					headless: './src/headless.ts',
 					iab: './src/iab.ts',
 					index: './src/index.ts',
@@ -85,6 +90,7 @@ export default defineConfig({
 		scriptTagLib('c15t.headless', './src/entries/cdn-headless.ts'),
 		scriptTagLib('c15t.iab', './src/entries/cdn-iab.ts'),
 		scriptTagLib('c15t.devtools', './src/entries/cdn-devtools.ts'),
+		scriptTagLib('c15t.gpp', './src/entries/cdn-gpp.ts'),
 	],
 	output: {
 		cleanDistPath: true,
