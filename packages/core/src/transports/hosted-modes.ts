@@ -6,7 +6,8 @@
 import type { HostedModeOptions, ProviderTransportFactory } from './mode';
 
 /**
- * The options each factory `hosted()` returned was called with. Kept here
+ * The options each factory `hosted()` returned was called with, copied at
+ * that call: the same copy builds the factory's transports. Kept here
  * rather than on the factory, so a wrapper that copies the factory's
  * properties is not mistaken for it: `get()` gives `undefined` for any
  * factory but one `hosted()` returned. A provider compares the options to

@@ -125,9 +125,45 @@ describe('hosted()', () => {
 			mode
 		);
 
-		expect(hostedModes.get(mode)).toBe(options);
+		expect(hostedModes.get(mode)).toEqual(options);
 		expect(wrapper.kind).toBe('hosted');
 		expect(hostedModes.get(wrapper)).toBeUndefined();
+	});
+
+	test('keeps the options it was called with when the object changes', async () => {
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(new Response('{}', { status: 500 }))
+		);
+		const initialData = Promise.resolve(undefined);
+		const options = {
+			fetch: fetchSpy as typeof globalThis.fetch,
+			headers: { 'accept-language': 'de' },
+			initialData,
+			url: 'https://old.example',
+		};
+		const mode = hosted(options);
+		options.url = 'https://new.example';
+		options.headers['accept-language'] = 'fr';
+
+		expect(hostedModes.get(mode)).toEqual({
+			fetch: fetchSpy,
+			headers: { 'accept-language': 'de' },
+			initialData,
+			url: 'https://old.example',
+		});
+		expect(hostedModes.get(mode)?.fetch).toBe(fetchSpy);
+		expect(hostedModes.get(mode)?.initialData).toBe(initialData);
+
+		// `initialData` answers the first init; the second goes to the backend.
+		const transport = mode(context);
+		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
+		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
+		const [url, init] = fetchSpy.mock.calls[0] as unknown as [
+			string,
+			RequestInit & { headers: Record<string, string> },
+		];
+		expect(url).toBe('https://old.example/init');
+		expect(init.headers['accept-language']).toBe('de');
 	});
 });
 

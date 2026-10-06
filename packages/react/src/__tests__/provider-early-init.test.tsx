@@ -196,6 +196,56 @@ test('a hosted() mode created inline shares one request across StrictMode and a 
 	await view.unmount();
 });
 
+test('a retry after the shared hosted() options changed sends its own request', async () => {
+	let resume: () => void = () => undefined;
+	let suspended: Promise<void> | null = new Promise<void>((resolve) => {
+		resume = () => {
+			suspended = null;
+			resolve();
+		};
+	});
+	const SuspendsOnce = () => {
+		if (suspended) {
+			throw suspended;
+		}
+		return null;
+	};
+	const shared = {
+		fetch: backendFetch,
+		headers: { 'accept-language': 'de' },
+		url: BACKEND,
+	};
+	const App = () => (
+		<ConsentProvider options={{ mode: hosted(shared), persistence: false }}>
+			<SuspendsOnce />
+			<PolicyProbe />
+		</ConsentProvider>
+	);
+
+	const view = await render(
+		<Suspense fallback={null}>
+			<App />
+		</Suspense>
+	);
+	expect(initCalls()).toHaveLength(1);
+
+	// The same object, edited before React retries.
+	shared.url = 'https://other.example/api/c15t';
+	shared.headers['accept-language'] = 'fr';
+	resume();
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('pending');
+	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
+	expect(String(initCalls()[0]?.[0])).toContain('consent.example');
+	expect(requests[0]?.headers['accept-language']).toBe('de');
+	expect(String(initCalls()[1]?.[0])).toContain('other.example');
+	expect(requests[1]?.headers['accept-language']).toBe('fr');
+
+	requests[0]?.respond('stale');
+	requests[1]?.respond('fresh');
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('fresh');
+	await view.unmount();
+});
+
 test('sibling providers given one mode object each get a transport and an /init', async () => {
 	const kernels = new Map<string, ConsentKernel>();
 	const Capture = ({ name }: { name: string }) => {
@@ -282,7 +332,8 @@ test('sibling providers given one hosted() mode each get their own /init', async
 		</StrictMode>
 	);
 
-	// The first sends during its render; the second asks at mount.
+	// The first was out before its children rendered. The second asks for
+	// another country, so it sends its own rather than taking the first's.
 	expect(seen[0]).toBe(1);
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
 	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
