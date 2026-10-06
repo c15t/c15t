@@ -14,6 +14,7 @@ import type { Root } from 'react-dom/client';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ConsentRoot } from '../root';
+import type { ConsentRootProps } from '../root';
 import type { ConsentState } from '../types';
 import { policyFixture } from './policy-fixture';
 
@@ -34,13 +35,13 @@ vi.mock('@c15t/core/modules/script-loader', async (importOriginal) => {
 	};
 });
 
-const scripts: Script[] = [
-	{
-		category: 'marketing',
-		id: 'pixel',
-		src: 'https://example.com/pixel.js',
-	},
-];
+const pixel: Script = {
+	category: 'marketing',
+	id: 'pixel',
+	src: 'https://example.com/pixel.js',
+};
+
+const scripts: Script[] = [pixel];
 
 const never = new Promise<never>(() => {
 	// Never settles.
@@ -65,7 +66,8 @@ afterEach(() => {
 
 /** Render the root with a child that holds the commit back for good. */
 const renderUncommitted = (
-	state: ConsentState | Promise<ConsentState>
+	state: ConsentState | Promise<ConsentState>,
+	props: Pick<ConsentRootProps, 'scripts' | 'vendors'> = {}
 ): void => {
 	const container = document.createElement('div');
 	document.body.append(container);
@@ -75,6 +77,7 @@ const renderUncommitted = (
 			persistence={false}
 			scripts={scripts}
 			state={state}
+			{...props}
 		>
 			<Hold />
 		</ConsentRoot>
@@ -111,6 +114,58 @@ describe('ConsentRoot: script loader before hydration', () => {
 		await settle();
 		expect(loads.evaluated).toBe(0);
 	});
+
+	// A permissive policy allows a category nothing on the page asks about.
+	// The scripts ask about marketing, so the stored denial decides.
+	test('a permissive policy keeps a stored denial for a script category', async () => {
+		renderUncommitted(
+			policyFixture({ marketing: false }, { scopeMode: 'permissive' })
+		);
+		await settle();
+		expect(loads.evaluated).toBe(0);
+	});
+
+	// The state declares no vendors. The page does, in code or on the script.
+	test.each([
+		[
+			'declared in code',
+			{
+				vendors: [
+					{
+						category: 'marketing',
+						id: 'pixel-co',
+						name: 'Pixel Co',
+						privacyPolicyUrl: 'https://example.com/privacy',
+					},
+				],
+			},
+		],
+		['named only by the script', {}],
+	] as const)(
+		'a vendor turned off and %s does not load it',
+		async (_, props) => {
+			const state = policyFixture({ marketing: true });
+			renderUncommitted(
+				{
+					...state,
+					initialRecords: {
+						...state.initialRecords,
+						vendorChoice: {
+							confirmedAt: state.now,
+							denied: ['pixel-co'],
+							version: 1,
+						},
+					},
+				},
+				{
+					scripts: [{ ...pixel, vendor: 'pixel-co' }],
+					...props,
+				}
+			);
+			await settle();
+			expect(loads.evaluated).toBe(0);
+		}
+	);
 
 	test('a stored grant that GPC denies does not load it', async () => {
 		renderUncommitted({

@@ -29,6 +29,7 @@
  */
 export { lazyRuntimeModule } from './lazy-module';
 export { createConsentProviderRuntime } from './provider-runtime';
+export { runtimeConsentScope } from './runtime-kernel';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
 export type { ResolveStreamedInit } from './stream-mode';
 export type {

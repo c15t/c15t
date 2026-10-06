@@ -12,7 +12,11 @@
 import { createConsentKernel, evaluateConsent } from '@c15t/core';
 import type { KernelOverrides } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
-import type { ConsentControlOptions } from '@c15t/core/runtime';
+import type {
+	ConsentControlOptions,
+	ConsentRuntimeOptions,
+} from '@c15t/core/runtime';
+import { runtimeConsentScope } from '@c15t/core/runtime/provider';
 
 import type { ConsentState } from './types';
 
@@ -27,30 +31,35 @@ import type { ConsentState } from './types';
  * hydration, behind the banner and the page's own code.
  *
  * Each script goes through the script loader's own consent check, against
- * the snapshot a kernel built from `state` starts with. A grant the policy
- * restricts, such as one active GPC denies, counts as denied. So does GPC
- * the browser reports, which the provider's kernel applies when it starts.
- * Vendor switches count only for vendors `state` declares: a visitor who
- * turned off the only granted script's vendor in code may load the loader
- * early for nothing, which it loads after hydration anyway.
+ * the snapshot a kernel built from `state` starts with. That kernel takes
+ * the consent scope and vendors the provider's kernel takes, so it asks
+ * about the same categories and honors the same vendor switches. A grant
+ * the policy restricts, such as one active GPC denies, counts as denied.
+ * So does GPC the browser reports, which the provider's kernel applies
+ * when it starts.
  *
  * Imports the specifier the React provider imports, so the bundler gives
- * both one chunk. The kernel and `evaluateConsent` are in the provider's
- * first-load code already.
+ * both one chunk. The kernel, its scope and `evaluateConsent` are in the
+ * provider's first-load code already.
  *
  * @param state - The root's `state`, resolved or streaming.
  * @param scripts - The root's `scripts`.
- * @param options - The root's `options`, for the overrides and external
- * consent source the provider builds its kernel with.
+ * @param options - The root's `options`, with its `networkBlocker` and
+ * `vendors`: what the provider builds its kernel's scope, overrides and
+ * external consent source from.
  * @internal
  */
 export const preloadScriptLoader = function preloadScriptLoader(
 	state: ConsentState | PromiseLike<ConsentState>,
-	scripts: readonly Script[] | undefined,
-	options?: ConsentControlOptions & {
-		enabled?: boolean;
-		overrides?: KernelOverrides;
-	}
+	scripts: Script[] | undefined,
+	options?: ConsentControlOptions &
+		Pick<
+			ConsentRuntimeOptions,
+			'consentCategories' | 'networkBlocker' | 'vendors'
+		> & {
+			enabled?: boolean;
+			overrides?: KernelOverrides;
+		}
 ): void {
 	// An external source decides consent, not the stored choice.
 	if (
@@ -73,6 +82,7 @@ export const preloadScriptLoader = function preloadScriptLoader(
 			}
 			const snapshot = createConsentKernel({
 				...resolved,
+				...runtimeConsentScope({ ...options, scripts }, resolved),
 				initialOverrides: {
 					...resolved.initialOverrides,
 					...options?.overrides,

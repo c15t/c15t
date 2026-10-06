@@ -1,5 +1,6 @@
 ---
 packages:
+  "@c15t/core": patch
   "@c15t/nextjs": patch
 ---
 
@@ -7,9 +8,9 @@ packages:
 
 `ConsentRoot` loads the script loader during its first render in the browser
 when the state from `resolveConsent()` carries a stored choice that allows one
-of its `scripts` under the current policy, Global Privacy Control included,
-or when one of them has `alwaysLoad`. With `enabled: false`, which grants
-every category, it always loads early. It
+of its `scripts` under the current policy, Global Privacy Control and the
+visitor's vendor switches included, or when one of them has `alwaysLoad`.
+With `enabled: false`, which grants every category, it always loads early. It
 used to wait until the page had hydrated, so a returning visitor's consented
 scripts waited for one more request after hydration. The chunk now loads while
 React hydrates the page.

@@ -236,7 +236,8 @@ whose `scripts` array is not empty. Pages without scripts never download it.
 Every visitor to a page with scripts downloads it once the page has hydrated,
 except a returning visitor whose stored choice, as `resolveConsent()` read it,
 already allows one of those scripts under the current policy. A grant the
-policy restricts, such as one Global Privacy Control denies, does not count.
+policy restricts, such as one Global Privacy Control denies, does not count,
+and neither does a script whose vendor the visitor turned off.
 A script with `alwaysLoad` counts for any returning visitor, since it runs
 whatever they chose, and with `options.enabled` set to `false` every visitor
 counts, since a disabled provider grants every category. For that visitor, `ConsentRoot` starts the download during its first render
