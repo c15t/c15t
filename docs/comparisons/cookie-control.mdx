@@ -1,0 +1,72 @@
+---
+title: c15t v3 vs Cookie Control
+description: Choose c15t for native web components, individual vendor choices and backend ownership. Compare CIVIC's Cookie Control Premium and v9 accurately.
+group: reference
+---
+
+## Choose c15t for consent your application team can shape
+
+c15t is the stronger fit when consent must share your product's components, state and release process. Your team can design the interface, review vendor rules and choose the backend.
+
+Start with [Inth](https://inth.com) for managed policy and records. The [c15t backend](/docs/self-host/overview) is also available for your own deployment.
+
+Cookie Control is CIVIC's consent product. Premium offers scan-based setup and a hosted configuration wizard. Its v9 edition uses a JavaScript configuration that developers manage.
+
+## Compare what you get
+
+| What you need | c15t v3 | Cookie Control |
+| --- | --- | --- |
+| Integrate with application code | Native framework components and reactive state | JavaScript module and APIs. Premium also supplies CMS plugins |
+| Build your own interface | Themes, component parts and headless APIs | Banner appearance, text and category customisation |
+| Review configuration in code | Consent components and integration rules in your application | v9 supports code configuration. Premium publishes configuration from an account |
+| Control vendor activity | Category and individual vendor rules for registered targets | Category controls. Premium adds automatic script and iframe controls |
+| Keep consent records | Inth or a backend you operate | Hosted consent log dashboard and downloads |
+| Find cookies automatically | **Not included in the c15t packages** | Premium scans. v9 scan scope depends on licence and add-ons |
+| Generate privacy policies | **Not included** | Listed in Premium plans |
+| Budget for traffic | No software licence fee. Backend costs remain | Unlimited pageviews on Premium. Scan limits vary by tier |
+
+Sources: [Premium overview](https://cookiecontrol.com/docs/premium), [Premium API](https://cookiecontrol.com/docs/premium/api-reference), [v9 setup](https://cookiecontrol.com/docs/v9/getting-started) and [edition and plan comparison](https://cookiecontrol.com/pricing).
+
+## Use the same components and state as your product
+
+With c15t, the banner, account settings and embedded content can share one consent state. Your team can test these interactions with the rest of the application.
+
+The [framework guides](/docs/frameworks) cover React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro, TanStack Start and plain websites.
+
+Use the supplied UI or build it with [headless APIs](/docs/frameworks/react/headless). A product-specific interface does not need to depend on a hosted banner editor.
+
+Cookie Control also exposes code interfaces. Premium's API includes callbacks for acceptance and withdrawal. The distinction is c15t's native component model and editable engine.
+
+## Give visitors control of individual vendors
+
+A c15t visitor can accept a category and refuse one named vendor within it. The [vendor controls](/docs/frameworks/react/vendor-consent) connect that choice to registered scripts, requests and embeds.
+
+Cookie Control's reviewed Premium API uses category callbacks. Its scan and script tools help teams manage those categories with less manual setup.
+
+For Next.js applications, c15t also offers explicit [server and browser response paths](/docs/frameworks/next/rendering). The default streamed path does not include the banner in initial HTML.
+
+Your team can pin the c15t packages and review releases. Cookie Control v9 also documents versioned scripts and code configuration, so that control is not unique to c15t.
+
+## What c15t does not include
+
+c15t does not supply Premium's website scanner, configuration wizard or privacy policy generator. Your team must supply discovery and legal documents separately.
+
+c15t does not automatically find and stop every tracker already on the site. Register the scripts, requests and embeds that need controls.
+
+Withdrawal normally reloads the page. Optional cookie cleanup cannot delete every vendor cookie or remove data that a vendor already received.
+
+Remote records need Inth or your own backend. Browser-only mode has no backend records. Not recommended for production environments.
+
+The software has no licence fee. Backend operations and implementation still cost money. c15t v3 is currently an alpha release.
+
+## Try the difference in your application
+
+1. Start with [Inth and your framework guide](/docs/frameworks).
+2. Register two vendors in one category.
+3. Accept the category and refuse one vendor.
+4. Check the interface, actual requests and backend record.
+5. Compare the work with the Cookie Control edition that your team would use.
+
+Use the [verification guide](/docs/guides/verify-consent) to check acceptance, refusal and withdrawal. Choose c15t when native product integration and backend control matter most.
+
+Sources checked on 6 October 2026. Premium and v9 differ in setup and scan features. The cited [v9 documentation](https://cookiecontrol.com/docs/v9) describes its versioned script options.
