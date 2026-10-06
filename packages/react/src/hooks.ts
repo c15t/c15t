@@ -193,9 +193,16 @@ export const useIABEnabled = function useIABEnabled(): boolean {
 	return useKernelSelector((snap) => snap.iab?.enabled ?? false);
 };
 
-/** Consent for a specific IAB vendor. Accepts numeric or string IDs; IAB
- * vendors are numeric but the kernel stores them as strings for
- * uniformity with custom vendors. */
+/**
+ * The preference centre's consent selection for one IAB vendor, including
+ * changes the visitor has not saved yet. Use it to render a control, not to
+ * gate a vendor: the saved choice is the TC string that `__tcfapi` serves,
+ * and `useIABSnapshot()?.authority` holds its decoded signals.
+ *
+ * @param vendorId - Numeric or string ID. IAB vendors are numeric; the
+ * kernel stores IDs as strings so custom vendors fit the same map.
+ * @returns Whether the vendor is selected.
+ */
 export const useVendorConsent = function useVendorConsent(
 	vendorId: string | number
 ): boolean {
@@ -203,7 +210,14 @@ export const useVendorConsent = function useVendorConsent(
 	return useKernelSelector((snap) => snap.iab?.vendorConsents[key] ?? false);
 };
 
-/** Consent for a specific IAB purpose (1–11). */
+/**
+ * The preference centre's consent selection for one IAB purpose (1-11),
+ * including changes the visitor has not saved yet. Use it to render a
+ * control, not to gate a vendor: see {@link useVendorConsent}.
+ *
+ * @param purposeId - IAB purpose ID.
+ * @returns Whether the purpose is selected.
+ */
 export const usePurposeConsent = function usePurposeConsent(
 	purposeId: number
 ): boolean {
@@ -212,7 +226,15 @@ export const usePurposeConsent = function usePurposeConsent(
 	);
 };
 
-/** Opt-in for a special feature (1 = geolocation, 2 = device ID). */
+/**
+ * The preference centre's opt-in selection for one special feature
+ * (1 = geolocation, 2 = device ID), including changes the visitor has not
+ * saved yet. Use it to render a control, not to gate a vendor: see
+ * {@link useVendorConsent}.
+ *
+ * @param featureId - IAB special feature ID.
+ * @returns Whether the special feature is selected.
+ */
 export const useSpecialFeatureOptIn = function useSpecialFeatureOptIn(
 	featureId: number
 ): boolean {
