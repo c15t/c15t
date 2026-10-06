@@ -69,6 +69,14 @@ no effect; remount the provider (a `key` in React) to switch experiments.
 Assignment and arm validation load as a separate chunk, only on pages that
 set `experiment`. A site without an experiment does not download them.
 
+An experiment compares choices, so the banner has to ask about at least one
+category. Under a rule with `scopeMode: 'permissive'`, the banner asks only
+about the categories your site declares through `consentCategories`,
+`scripts` or `vendors`. With none declared, it asks about none: accepting or rejecting records a notice
+acknowledgement instead of a choice, `onChoiceRecorded` never fires, and the
+experiment counts impressions without choices. Outside production, c15t logs
+a warning the first time the banner shows an arm in that state.
+
 ### Astro
 
 The Astro banner is server-rendered HTML that the browser only shows or

@@ -52,6 +52,58 @@ const policyKey = function policyKey(snapshot: ConsentSnapshot): string {
 	return `${snapshot.policyRule.id}\n${snapshot.evaluationPolicy.choice.fingerprint}`;
 };
 
+// This chunk loads on demand and imports nothing the first load has, so it
+// repeats the production check from `is-production.ts` instead of importing
+// it. Bundlers replace the literal `process.env.NODE_ENV` at build time.
+declare const process: { env: { NODE_ENV?: string } };
+
+const isProduction = function isProduction(): boolean {
+	try {
+		return process.env.NODE_ENV === 'production';
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * Whether the visitor has no optional category to decide under this policy.
+ * Then every banner action records a notice acknowledgement and no choice.
+ */
+const asksAboutNoCategory = function asksAboutNoCategory(
+	snapshot: ConsentSnapshot
+): boolean {
+	const policy = snapshot.evaluationPolicy;
+	return (policy.choiceScope ?? policy.scope).length === 0;
+};
+
+/**
+ * In development, warn once when the banner shows an arm but asks about no
+ * category. The experiment then counts impressions and never a choice, and
+ * nothing else says so.
+ */
+const warnWhenNothingToChoose = function warnWhenNothingToChoose(
+	options: ExperimentControllerOptions
+): () => void {
+	if (isProduction()) {
+		return () => undefined;
+	}
+	const { experiment, kernel } = options;
+	const unsubscribe = kernel.events.on('surface:shown', (event) => {
+		if (
+			event.surface !== 'banner' ||
+			!event.experiment ||
+			!asksAboutNoCategory(event.snapshot)
+		) {
+			return;
+		}
+		unsubscribe();
+		console.warn(
+			`c15t experiment "${experiment.id}": the banner showed arm "${event.experiment.arm}" under policy "${event.snapshot.policyRule.id}", which asks about no optional category. Accepting or rejecting there records a notice acknowledgement, not a choice, so onChoiceRecorded never fires and the experiment counts impressions only. List the categories your site uses in consentCategories, or pass the scripts that need them as scripts.`
+		);
+	});
+	return unsubscribe;
+};
+
 /**
  * Check the kernel's arm against each policy and remember a c15t-picked arm.
  *
@@ -143,9 +195,17 @@ export const createExperimentControllerWith =
 					})
 				: () => undefined;
 
-		// After the listener: releasing a held prompt shows the banner in this
+		const stopWarning = warnWhenNothingToChoose(options);
+
+		// After the listeners: releasing a held prompt shows the banner in this
 		// very commit, and that impression is the one to remember.
 		kernel.set.experiment(assignment, gate);
 
-		return { assignment, dispose: unsubscribe };
+		return {
+			assignment,
+			dispose: () => {
+				unsubscribe();
+				stopWarning();
+			},
+		};
 	};
