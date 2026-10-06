@@ -176,18 +176,8 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		importName: 'segment',
 	},
 	sentry: {
-		example: `sentry({
-  // TODO(required): Pass getClient and setUser from your Sentry SDK, and call
-  // Sentry.init without replayIntegration(). Keep this configuration stable
-  // outside render functions.
-  // Follow https://c15t.com/docs/integrations/sentry
-  getClient,
-  setUser,
-  replay: {
-    // TODO(required): Export replayIntegration() from a module of its own.
-    load: () => import('./sentry-replay').then((m) => m.createReplay()),
-  },
-})`,
+		example:
+			"sentry({ dsn: 'https://YOUR_KEY@oXXXXXX.ingest.sentry.io/XXXXXX' })",
 		importName: 'sentry',
 	},
 	'snapchat-pixel': {

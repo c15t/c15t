@@ -1,21 +1,54 @@
 ---
 title: Sentry
-description: Gate Sentry Session Replay and user data on consent with the c15t sentry adapter, which drives the Sentry SDK your app already initializes, while error monitoring keeps running for every visitor.
+description: Run Sentry with c15t consent. Load the Sentry SDK from Sentry's CDN or keep your own, gate error monitoring if you need to, and load Session Replay and send user data only after measurement is allowed.
 icon: sentry
 group: integrations
 ---
 
 ## Configure Sentry
 
-`sentry` drives the Sentry SDK your app already initializes, from
-`@sentry/browser` or a framework SDK such as `@sentry/nextjs`. Error monitoring
-runs for every visitor. Session Replay and user data on events wait for
-`measurement`. Replay records every visitor when `replaysOnErrorSampleRate` is
-above 0, so whether it needs consent is worth confirming with your advisers.
-Requires `@sentry/*` 10.67.0 or later.
+`sentry` loads the Sentry browser SDK from Sentry's CDN, calls `Sentry.init`
+and applies consent:
 
-Call `Sentry.init` without `replayIntegration()`, and keep the sample rates
-there:
+- Error monitoring runs for every visitor. Set `loadMode: 'after-consent'` to
+  wait for `measurement`.
+- Session Replay loads and records only once `measurement` is allowed.
+- While `measurement` is denied, events and sessions carry no user, and Sentry
+  infers no IP address.
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { sentry } from '@c15t/integrations/sentry';
+
+export const scripts = [
+	sentry({
+		dsn: 'https://your-key@o0.ingest.sentry.io/0',
+		initOptions: {
+			release: 'my-app@1.0.0',
+			tracesSampleRate: 0.1,
+			replaysSessionSampleRate: 0.1,
+			replaysOnErrorSampleRate: 1,
+		},
+	}),
+];
+```
+
+The helper loads SDK 11.4.0 with subresource integrity: `bundle.min.js`, or
+`bundle.tracing.min.js` when you sample traces. It loads `replay.min.js` only
+once Replay is allowed and a Replay sample rate is above 0. Remove Sentry's
+Loader Script or CDN tags from the page, or Sentry can start twice.
+
+Replay records every visitor when `replaysOnErrorSampleRate` is above 0, so
+whether it needs consent is worth confirming with your advisers.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Use your own Sentry SDK
+
+If your app installs Sentry from npm, such as `@sentry/nextjs`, pass its
+functions instead of a DSN. Move `Sentry.init` into a module of its own, without
+`replayIntegration()`, and let c15t call it through `init`:
 
 ```ts title="src/instrument.ts"
 import { init } from '@sentry/browser';
@@ -24,12 +57,8 @@ init({
 	dsn: 'https://your-key@o0.ingest.sentry.io/0',
 	replaysSessionSampleRate: 0.1,
 	replaysOnErrorSampleRate: 1,
-	// Stops Sentry inferring visitor IP addresses, which c15t cannot gate.
-	dataCollection: { userInfo: false },
 });
 ```
-
-Put Replay in a module of its own, so it loads only after consent:
 
 ```ts title="src/sentry-replay.ts"
 import { replayIntegration } from '@sentry/browser';
@@ -38,108 +67,87 @@ export const createReplay = () =>
 	replayIntegration({ maskAllText: true, blockAllMedia: true });
 ```
 
-<CommandTabs command="@c15t/integrations@alpha" mode="install" />
-
-```ts title="src/consent-scripts.ts"
-import { sentry } from '@c15t/integrations/sentry';
-import { getClient, setUser } from '@sentry/browser';
-
-export const scripts = [
-	sentry({
-		getClient,
-		setUser,
-		replay: {
-			load: () => import('./sentry-replay').then((m) => m.createReplay()),
-		},
-	}),
-];
-```
-
-Import from the same Sentry package everywhere, such as `@sentry/nextjs` in a
-Next.js app, and use named imports. Next.js and Vite then move the recorder,
-about 39 KB gzipped, into its own chunk; esbuild and Bun keep it in the main
-bundle. A `Sentry.replayIntegration` reference through `import * as Sentry`
-anywhere in the main bundle also keeps it there.
-
-### Sentry from the CDN
-
-If you load a Sentry CDN bundle such as `bundle.tracing.min.js`, pass the
-`window.Sentry` functions and load `replay.min.js` for the same version after
-consent. Don't use `lazyLoadIntegration('replayIntegration')`: those bundles
-return a placeholder instead of loading Replay.
+Then pass your SDK's functions to `sentry` in `src/consent-scripts.ts`, in
+place of `dsn`:
 
 {/* example: fragment */}
 
 ```ts
+import { getClient, setUser } from '@sentry/browser';
+
 sentry({
-	getClient: () => window.Sentry?.getClient(),
-	setUser: (user) => window.Sentry?.setUser(user),
+	getClient,
+	setUser,
+	init: () => import('./instrument'),
 	replay: {
-		load: () =>
-			new Promise((resolve, reject) => {
-				const script = document.createElement('script');
-				script.src = 'https://browser.sentry-cdn.com/11.4.0/replay.min.js';
-				script.crossOrigin = 'anonymous';
-				script.onload = () => resolve(window.Sentry.replayIntegration());
-				script.onerror = reject;
-				document.head.append(script);
-			}),
+		load: () => import('./sentry-replay').then((m) => m.createReplay()),
 	},
 });
 ```
 
-Without a bundler, `@c15t/integrations` is not available. Mark the Sentry
-script tags `type="text/plain" data-c15t-category="measurement"` instead, so
-all of Sentry waits for consent.
+Without `init`, Sentry starts before c15t and can send its first session with
+the visitor's IP address before consent. In that case, set
+`dataCollection: { userInfo: false }` in `Sentry.init`. Requires `@sentry/*`
+10.67.0 or later.
 
-<include src="../shared/integrations/register-scripts.mdx" />
+Import from the same Sentry package everywhere and use named imports. Next.js
+and Vite then move Replay, about 39 KB gzipped, into its own chunk; esbuild and
+Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
+`import * as Sentry` anywhere in the main bundle also keeps it there.
 
 ## Options
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `getClient` | Required | `getClient` from your Sentry SDK. Works when c15t starts before `Sentry.init`. |
+| `dsn` | Required to load Sentry | Your project's DSN. c15t loads the SDK and calls `Sentry.init`. |
+| `initOptions` | `{}` | Passed to `Sentry.init`. `integrations` runs after Sentry loads, so it can read `window.Sentry`. |
+| `version` | `'11.4.0'` | SDK version to load. Another version loads without subresource integrity. |
+| `tracing` | `true` when traces are sampled | Loads the tracing bundle and adds `browserTracingIntegration()`. |
+| `replay` | Loads Replay when sampled | `{ category, options }`, where `options` go to `replayIntegration()`. `false` never loads Replay. |
+| `getClient` | Required for your own SDK | `getClient` from your Sentry SDK. Works when c15t starts before `Sentry.init`. |
 | `setUser` | None | `setUser` from your Sentry SDK. Called with `null` while user data is not allowed. Required with `pii.user`. |
-| `replay.load` | None | Returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
+| `init` | None | Starts your Sentry SDK. Called once, when `loadMode` allows. Required with `loadMode: 'after-consent'` and your own SDK. |
+| `replay.load` | None | With your own SDK, returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
+| `loadMode` | `'always'` | `'after-consent'` starts Sentry only once `measurement` is allowed. |
 | `replay.category` | `'measurement'` | Consent condition for Replay. |
 | `pii.category` | `'measurement'` | Consent condition for user data. `'necessary'` turns this gating off. |
 | `pii.user` | None | Returns the user to set when user data becomes allowed. |
-| `onError` | Report to Sentry | Receives Replay load, start and stop failures. |
+| `onError` | Report to Sentry | Receives Sentry start and Replay load, start and stop failures. |
 
 ## Loading and revocation
 
-`sentry` returns a callback-only script with `alwaysLoad`, so it runs for every
-visitor and inserts no script element. It does nothing for Replay when Sentry
-has no DSN or `enabled: false`.
+| `loadMode` | When Sentry runs | On withdrawal without a reload |
+| --- | --- | --- |
+| `'always'` | On every page, before consent | Replay stops; errors keep reaching Sentry without user data |
+| `'after-consent'` | Only while `measurement` is allowed | Sentry stops sending anything |
 
-Once `measurement` is allowed and the page has loaded, the adapter loads Replay
-and adds it to your client, which samples the session with your `Sentry.init`
-rates. On withdrawal it calls `replay.stop({ flush: false })` before c15t's
+On withdrawal the adapter calls `replay.stop({ flush: false })` before c15t's
 reload, so the pending segment is never sent; segments already sent stay in
 Sentry. A later grant restores the original sampling decision rather than
 recording in full. If `Sentry.init` already includes Replay, the adapter warns
 in development and stops it while `measurement` is denied.
 
-While user data is not allowed, the adapter removes `user` from events and
-calls `setUser(null)`. Logs and metrics copy the user from the scope, so set it
-through `pii.user` or only while the permission is allowed. Tracing is not
-gated.
+While user data is not allowed, the adapter removes `user` from events, the user
+and IP address from sessions, and switches Sentry's IP inference off for events,
+spans, logs and metrics. When the permission is allowed, your own
+`dataCollection` setting applies again. Tracing itself is not gated.
 
 The vendor slug is `sentry`; turning that vendor off denies Replay and user
-data. See
+data, and error monitoring with `loadMode: 'after-consent'`. See
 [vendor consent for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
-Replay compresses in a `blob:` worker, so allow `worker-src blob:` or pass
-`workerUrl` to `replayIntegration()`.
+Replay compresses in a `blob:` worker, so allow `worker-src blob:`. With `dsn`,
+allow `https://browser.sentry-cdn.com` in `script-src`.
 
 ## Verify Sentry
 
 Test in a private window with an opt-in policy and
-`replaysSessionSampleRate: 1`. Filter DevTools Network by `ingest.sentry.io`.
+`replaysSessionSampleRate: 1`. Filter DevTools Network by `sentry`.
 
-1. Load the page. Errors still reach Sentry, without `user`. No
-   `replay_recording` request is sent.
-2. Allow measurement. Without a reload, the Replay chunk loads and
-   `replay_recording` requests start.
+1. Load the page. `bundle.min.js` loads and errors reach Sentry, without `user`.
+   No `replay.min.js` or `replay_recording` request is sent. With
+   `loadMode: 'after-consent'`, nothing loads.
+2. Allow measurement. Without a reload, Replay loads and `replay_recording`
+   requests start.
 3. Turn measurement off and save. c15t reloads the page, and no replay request
    follows.
 

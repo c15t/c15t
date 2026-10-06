@@ -337,7 +337,7 @@ export const builtInScriptIntegrations = [
 	{
 		consentCategory: { or: ['necessary', 'measurement'] },
 		docsSlug: 'sentry',
-		hint: 'Consent for Session Replay and user data in your Sentry SDK',
+		hint: 'Error monitoring, with Session Replay and user data after consent',
 		integrationCategory: 'analytics',
 		key: 'sentry',
 		label: 'Sentry',

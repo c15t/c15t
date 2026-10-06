@@ -106,7 +106,7 @@ import {
 	rybbitAnalyticsManifest,
 } from './vendors/analytics/rybbit-analytics';
 import { segment, segmentManifest } from './vendors/analytics/segment';
-import { sentry } from './vendors/analytics/sentry';
+import { sentry, sentryManifest } from './vendors/analytics/sentry';
 import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
@@ -437,9 +437,9 @@ const helperParityCases = {
 		expected: {
 			alwaysLoad: true,
 			persistAfterConsentRevoked: undefined,
-			src: undefined,
+			src: 'https://browser.sentry-cdn.com/11.4.0/bundle.min.js',
 		},
-		script: sentry({ getClient: () => undefined }),
+		script: sentry({ dsn: 'https://key@o0.ingest.sentry.io/0' }),
 	},
 	snapchatPixel: {
 		expected: {
@@ -514,6 +514,7 @@ const vendorManifests = [
 	pirschManifest,
 	rudderstackManifest,
 	segmentManifest,
+	sentryManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,
@@ -616,11 +617,10 @@ describe('script integration registry', () => {
 	});
 
 	it('matches vendor manifest ids', () => {
-		// Zaraz and Sentry drive SDKs the page already runs, not a manifest.
+		// Zaraz uses imperative readiness listeners, not a vendor manifest.
 		const manifestVendors = [
 			...vendorManifests.map((manifest) => manifest.vendor),
 			'cloudflare-zaraz',
-			'sentry',
 		];
 		const registryVendors = builtInScriptIntegrations.map(
 			(integration) => integration.vendor

@@ -9,9 +9,10 @@ import { sentry } from './vendors/analytics/sentry';
 import type {
 	SentryClient,
 	SentryEvent,
-	SentryOptions,
 	SentryReplay,
 	SentryReplayRecordingMode,
+	SentrySdkOptions,
+	SentrySession,
 } from './vendors/analytics/sentry';
 
 const sessionKey = 'sentryReplaySession';
@@ -77,6 +78,11 @@ class FakeReplay implements SentryReplay {
 		this.enabled ? this.mode : undefined;
 }
 
+/**
+ * Follows the Sentry browser client: options, data collection and SDK
+ * settings are live objects read when an envelope is sent, and
+ * `beforeSendSession` hooks run in registration order.
+ */
 const createClient = ({
 	dsn = 'https://key@example.ingest.sentry.io/1',
 	enabled,
@@ -86,6 +92,18 @@ const createClient = ({
 	const processors: (<EventType extends SentryEvent>(
 		event: EventType
 	) => EventType)[] = [];
+	const sessionHooks: ((session: SentrySession) => void)[] = [
+		(session) => {
+			if (userInfo) {
+				session.ipAddress ??= '{{auto}}';
+			}
+		},
+	];
+	const options = { enabled };
+	const dataCollection = { userInfo };
+	const metadata = {
+		sdk: { settings: { infer_ip: userInfo ? 'auto' : 'never' } },
+	};
 	const client = {
 		addEventProcessor: vi.fn((processor) => {
 			processors.push(processor);
@@ -97,14 +115,34 @@ const createClient = ({
 			}
 		}),
 		captureException: vi.fn(),
-		getDataCollectionOptions: () => ({ userInfo }),
+		getDataCollectionOptions: () => dataCollection,
 		getDsn: () => (dsn ? { host: 'example.ingest.sentry.io' } : undefined),
 		getIntegrationByName: (name: string) => integrations.get(name),
-		getOptions: () => ({ enabled }),
+		getOptions: () => options,
+		getSdkMetadata: () => metadata,
+		on: (
+			_hook: 'beforeSendSession',
+			hook: (session: SentrySession) => void
+		) => {
+			sessionHooks.push(hook);
+		},
 	} satisfies SentryClient;
 	const processEvent = (event: SentryEvent): SentryEvent =>
 		processors.reduce((current, processor) => processor(current), event);
-	return { client, processEvent };
+	/** The session as Sentry would send it. */
+	const sendSession = (session: SentrySession): SentrySession => {
+		for (const hook of sessionHooks) {
+			hook(session);
+		}
+		return session;
+	};
+	/** What the client would send next: whether it sends and its IP setting. */
+	const sending = () => ({
+		enabled: options.enabled !== false,
+		inferIp: metadata.sdk.settings.infer_ip,
+		userInfo: dataCollection.userInfo,
+	});
+	return { client, processEvent, sendSession, sending };
 };
 
 const deferred = <ValueType>() => {
@@ -146,7 +184,7 @@ const setup = ({
 	sampling = 'session',
 	client: clientOptions,
 	...options
-}: Partial<SentryOptions> & {
+}: Partial<SentrySdkOptions> & {
 	sampling?: Sampling;
 	client?: Parameters<typeof createClient>[0];
 } = {}) => {
@@ -495,7 +533,35 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(replays[0]?.stop).toHaveBeenCalledWith({ flush: false });
 	});
 
-	it('warns when Sentry infers IP addresses before consent', () => {
+	it('turns IP inference off and strips sessions until user data is allowed', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const { script, sendSession, sending } = setup({
+			client: { userInfo: true },
+		});
+		const { kernel } = mount(script);
+		expect(sending()).toMatchObject({ inferIp: 'never', userInfo: false });
+		expect(sendSession({ did: 'u1' })).toEqual({
+			did: undefined,
+			ipAddress: undefined,
+		});
+
+		await kernel.commands.save(grantedMeasurementConsents);
+		expect(sending()).toMatchObject({ inferIp: 'auto', userInfo: true });
+		expect(sendSession({ did: 'u1' })).toEqual({
+			did: 'u1',
+			ipAddress: '{{auto}}',
+		});
+	});
+
+	it('keeps IP inference off when the app turned it off', async () => {
+		const { script, sending } = setup();
+		const { kernel } = mount(script, grantedMeasurementConsents);
+		await kernel.commands.save(deniedConsents);
+		await kernel.commands.save(grantedMeasurementConsents);
+		expect(sending()).toMatchObject({ inferIp: 'never', userInfo: false });
+	});
+
+	it('warns when Sentry.init ran before c15t and infers IP addresses', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const { script } = setup({ client: { userInfo: true } });
 		mount(script);
@@ -504,9 +570,304 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		);
 	});
 
+	it('does not warn about IP addresses when c15t starts Sentry', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const { client } = createClient({ userInfo: true });
+		const current: { client?: SentryClient } = {};
+		mount(
+			sentry({
+				getClient: () => current.client,
+				init: () => {
+					current.client = client;
+				},
+			})
+		);
+		await settle();
+		expect(current.client).toBe(client);
+		expect(warn).not.toHaveBeenCalled();
+	});
+
+	it('starts Sentry only after measurement with loadMode after-consent', async () => {
+		const sentryClient = createClient();
+		const current: { client?: SentryClient } = {};
+		const replay = new FakeReplay('session');
+		const init = vi.fn(async () => {
+			await Promise.resolve();
+			current.client = sentryClient.client;
+		});
+		const script = sentry({
+			getClient: () => current.client,
+			init,
+			loadMode: 'after-consent',
+			replay: { load: () => replay },
+		});
+		const { kernel } = mount(script);
+		await settle();
+		expect(init).not.toHaveBeenCalled();
+		expect(kernel.getSnapshot().consentCategories).toContain('measurement');
+
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(init).toHaveBeenCalledOnce();
+		expect(sentryClient.sending().enabled).toBe(true);
+		expect(replay.getRecordingMode()).toBe('session');
+
+		await kernel.commands.save(deniedConsents);
+		expect(sentryClient.sending().enabled).toBe(false);
+		expect(replay.getRecordingMode()).toBeUndefined();
+
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(init).toHaveBeenCalledOnce();
+		expect(sentryClient.sending().enabled).toBe(true);
+	});
+
+	it('keeps Replay off while Sentry waits for measurement', async () => {
+		const { client } = createClient();
+		const load = vi.fn(() => new FakeReplay('session'));
+		mount(
+			sentry({
+				getClient: () => client,
+				init: () => undefined,
+				loadMode: 'after-consent',
+				replay: { category: 'experience', load },
+			}),
+			{ ...deniedConsents, experience: true }
+		);
+		await settle();
+		expect(load).not.toHaveBeenCalled();
+	});
+
+	it('keeps a client the app disabled switched off', async () => {
+		const { client, sending } = createClient({ enabled: false });
+		const { kernel } = mount(
+			sentry({
+				getClient: () => client,
+				init: () => undefined,
+				loadMode: 'after-consent',
+			})
+		);
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(sending().enabled).toBe(false);
+	});
+
+	it('reports a failed init and tries again on the next grant', async () => {
+		const sentryClient = createClient();
+		const current: { client?: SentryClient } = {};
+		const onError = vi.fn();
+		const error = new Error('chunk failed');
+		const init = vi
+			.fn<() => Promise<void>>()
+			.mockRejectedValueOnce(error)
+			.mockImplementationOnce(() => {
+				current.client = sentryClient.client;
+				return Promise.resolve();
+			});
+		const { kernel } = mount(
+			sentry({
+				getClient: () => current.client,
+				init,
+				loadMode: 'after-consent',
+				onError,
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(onError).toHaveBeenCalledWith(error);
+
+		await kernel.commands.save(deniedConsents);
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(current.client).toBe(sentryClient.client);
+	});
+
+	it('requires init with loadMode after-consent and your own SDK', () => {
+		expect(() =>
+			sentry({ getClient: () => undefined, loadMode: 'after-consent' })
+		).toThrow('init');
+	});
+
 	it('requires setUser when pii.user is set', () => {
 		expect(() =>
 			sentry({ getClient: () => undefined, pii: { user: () => null } })
 		).toThrow('setUser');
+	});
+});
+
+const cdn = 'https://browser.sentry-cdn.com';
+const dsn = 'https://key@o0.ingest.sentry.io/0';
+
+/**
+ * Stands in for Sentry's CDN files: the bundle defines `window.Sentry`, and
+ * `replay.min.js` adds the real `replayIntegration` to it.
+ */
+const installSentryCdn = (sampling: Sampling = 'session') => {
+	const sentryClient = createClient();
+	const loaded: HTMLScriptElement[] = [];
+	const current: { client?: SentryClient } = {};
+	const replays: FakeReplay[] = [];
+	const sentryGlobal = {
+		browserTracingIntegration: vi.fn(() => ({ name: 'BrowserTracing' })),
+		getClient: () => current.client,
+		init: vi.fn((_options: Record<string, unknown>) => {
+			current.client = sentryClient.client;
+		}),
+		replayIntegration: undefined as
+			| ((options?: Record<string, unknown>) => FakeReplay)
+			| undefined,
+		setUser: vi.fn(),
+	};
+	const observer = new MutationObserver((records) => {
+		for (const node of records.flatMap((record) => [...record.addedNodes])) {
+			if (!(node instanceof HTMLScriptElement) || !node.src.startsWith(cdn)) {
+				continue;
+			}
+			loaded.push(node);
+			if (node.src.endsWith('/replay.min.js')) {
+				sentryGlobal.replayIntegration = () => {
+					const replay = new FakeReplay(sampling);
+					replays.push(replay);
+					return replay;
+				};
+			} else {
+				Object.assign(window, { Sentry: sentryGlobal });
+			}
+			node.dispatchEvent(new Event('load'));
+		}
+	});
+	observer.observe(document, { childList: true, subtree: true });
+	disposers.push(() => {
+		observer.disconnect();
+		Reflect.deleteProperty(window, 'Sentry');
+		document.head.innerHTML = '';
+		document.body.innerHTML = '';
+	});
+	return { ...sentryClient, loaded, replays, sentryGlobal };
+};
+
+describe('Sentry loaded from the CDN', () => {
+	it('loads the pinned bundle with integrity and initializes Sentry once', async () => {
+		const { loaded, sentryGlobal } = installSentryCdn();
+		const script = sentry({
+			dsn,
+			initOptions: { environment: 'production', release: 'app@1.0.0' },
+		});
+		const { kernel } = mount(script);
+		await settle();
+
+		expect(script).toMatchObject({ alwaysLoad: true, vendor: 'sentry' });
+		expect(loaded.map((element) => element.src)).toEqual([
+			`${cdn}/11.4.0/bundle.min.js`,
+		]);
+		expect(loaded[0]?.getAttribute('crossorigin')).toBe('anonymous');
+		expect(loaded[0]?.getAttribute('integrity')).toMatch(/^sha384-/u);
+		expect(sentryGlobal.init).toHaveBeenCalledOnce();
+		expect(sentryGlobal.init.mock.calls[0]?.[0]).toMatchObject({
+			dsn,
+			environment: 'production',
+			release: 'app@1.0.0',
+		});
+		expect(sentryGlobal.setUser).toHaveBeenCalledWith(null);
+
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		// Without Replay sample rates there is nothing to record.
+		expect(loaded).toHaveLength(1);
+	});
+
+	it('loads the tracing bundle and adds browser tracing when traces are sampled', async () => {
+		const { loaded, sentryGlobal } = installSentryCdn();
+		const custom = { name: 'Custom' };
+		mount(
+			sentry({
+				dsn,
+				initOptions: { integrations: [custom], tracesSampleRate: 0.2 },
+			})
+		);
+		await settle();
+		expect(loaded[0]?.src).toBe(`${cdn}/11.4.0/bundle.tracing.min.js`);
+		const initOptions = sentryGlobal.init.mock.calls[0]?.[0] as {
+			integrations: (defaults: unknown[]) => unknown[];
+		};
+		expect(initOptions.integrations([{ name: 'Default' }])).toEqual([
+			{ name: 'Default' },
+			custom,
+			{ name: 'BrowserTracing' },
+		]);
+	});
+
+	it('loads another version without integrity', async () => {
+		const { loaded } = installSentryCdn();
+		mount(sentry({ dsn, version: '10.76.1' }));
+		await settle();
+		expect(loaded[0]?.src).toBe(`${cdn}/10.76.1/bundle.min.js`);
+		expect(loaded[0]?.hasAttribute('integrity')).toBe(false);
+	});
+
+	it('loads replay.min.js only once measurement is allowed', async () => {
+		const { client, loaded, replays, sendSession } = installSentryCdn();
+		const { kernel } = mount(
+			sentry({
+				dsn,
+				initOptions: { replaysOnErrorSampleRate: 1 },
+				replay: { options: { maskAllText: true } },
+			})
+		);
+		await settle();
+		expect(loaded).toHaveLength(1);
+		expect(sendSession({ did: 'u1' }).did).toBeUndefined();
+
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(loaded[1]?.src).toBe(`${cdn}/11.4.0/replay.min.js`);
+		expect(loaded[1]?.getAttribute('integrity')).toMatch(/^sha384-/u);
+		expect(client.addIntegration).toHaveBeenCalledWith(replays[0]);
+
+		await kernel.commands.save(deniedConsents);
+		expect(replays[0]?.stop).toHaveBeenCalledWith({ flush: false });
+	});
+
+	it('never loads Replay with replay: false', async () => {
+		const { loaded } = installSentryCdn();
+		mount(
+			sentry({
+				dsn,
+				initOptions: { replaysSessionSampleRate: 1 },
+				replay: false,
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(loaded).toHaveLength(1);
+	});
+
+	it('loads Sentry only after measurement with loadMode after-consent', async () => {
+		const { loaded, sending, sentryGlobal } = installSentryCdn();
+		const script = sentry({ dsn, loadMode: 'after-consent' });
+		const { kernel } = mount(script);
+		await settle();
+		expect(script.alwaysLoad).toBeUndefined();
+		expect(loaded).toHaveLength(0);
+
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(loaded).toHaveLength(1);
+		expect(sending().enabled).toBe(true);
+
+		await kernel.commands.save(deniedConsents);
+		expect(sending().enabled).toBe(false);
+
+		// Without a reload the bundle loads again; the running client stays.
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledOnce();
+		expect(sending().enabled).toBe(true);
+	});
+
+	it('requires a DSN', () => {
+		expect(() => sentry({ dsn: ' ' })).toThrow(
+			'sentry: missing or invalid dsn'
+		);
 	});
 });
