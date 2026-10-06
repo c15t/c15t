@@ -2535,3 +2535,64 @@ test('an objection overrides the legitimate interest a restriction introduces', 
 		)
 	).toBe(false);
 });
+
+describe('Accept All covers what the visitor was shown', () => {
+	// Vendor 1 declares purposes 1-4, 7, 9 and 10 on consent, no legitimate
+	// interest, and special feature 1.
+	const oneVendor = { ...completeGVL, vendors: { 1: completeGVL.vendors[1] } };
+
+	test('purposes and special features no vendor declares stay unset', async () => {
+		const kernel = makeKernel();
+		const addon = createIAB({ cmpId: 28, gvl: oneVendor, kernel });
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		await addon.save();
+		const decoded = await decodeTCString(
+			kernel.getSnapshot().iab?.authority?.tcString ?? ''
+		);
+		const granted = (map: Record<number, boolean>) =>
+			Object.keys(map)
+				.filter((id) => map[Number(id)])
+				.map(Number)
+				.sort((left, right) => left - right);
+		// TCF Policies 5(3) and 5(8): no consent for what the CMP did not
+		// disclose, and the preference centre lists only declared purposes.
+		expect(granted(decoded.purposeConsents)).toEqual([1, 2, 3, 4, 7, 9, 10]);
+		expect(granted(decoded.purposeLegitimateInterests)).toEqual([]);
+		expect(granted(decoded.specialFeatureOptIns)).toEqual([1]);
+		expect(decoded.vendorConsents[1]).toBe(true);
+		// No listed vendor declares purpose 5 or 6, so `experience` stays
+		// denied after Accept All.
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.experience?.value
+		).toBe(false);
+	});
+
+	test('a custom vendor declaring a purpose lets Accept All grant its category', async () => {
+		const kernel = makeKernel();
+		const addon = createIAB({
+			cmpId: 28,
+			customVendors: [
+				{
+					id: 'own-recommendations',
+					name: 'Our recommendations',
+					privacyPolicyUrl: 'https://example.com/privacy',
+					purposes: [5, 6],
+				},
+			],
+			gvl: oneVendor,
+			kernel,
+		});
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		await addon.save();
+		expect(kernel.getSnapshot().iab?.purposeConsents).toMatchObject({
+			5: true,
+			6: true,
+			8: false,
+		});
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.experience?.value
+		).toBe(true);
+	});
+});

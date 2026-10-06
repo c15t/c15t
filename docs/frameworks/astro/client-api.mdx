@@ -108,7 +108,7 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 
 | Member | Does |
 | --- | --- |
-| `client.acceptAll()` | Saves a grant for every category the policy covers. Under an IAB policy it accepts every purpose and vendor through the CMP, so the TC string records it |
+| `client.acceptAll()` | Saves a grant for every category the policy covers. Under an IAB policy it accepts every vendor and the purposes they declare through the CMP, so the TC string records it. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy) |
 | `client.rejectAll()` | Saves a rejection of everything except `necessary`, through the CMP under an IAB policy |
 | `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }`. A `vendors` map, such as `{ vendors: { posthog: false } }`, saves vendor switches too |
 | `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |

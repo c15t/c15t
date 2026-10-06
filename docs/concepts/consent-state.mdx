@@ -26,6 +26,42 @@ itself stays refused: its `effectivePermissions` entry is `false`, and targets
 that name only the category, or that also declare a consent purpose or special
 feature, stay blocked.
 
+## Categories under an IAB policy
+
+Under an IAB policy the visitor chooses TCF purposes, and c15t derives each
+category from them when the choice is saved. A category is granted when the
+visitor consented to every purpose in it that a listed vendor processes on
+consent:
+
+| Category | TCF purposes |
+| --- | --- |
+| `marketing` | 2, 3, 4 |
+| `measurement` | 7, 8, 9 |
+| `experience` | 5, 6 |
+| `functionality` | 10, 11 |
+
+`necessary` is always granted. Purpose 1, device storage, decides no category.
+
+Accept All consents only to the purposes and special features that the vendors
+in your list declare, because the TCF Policies allow no consent signal for a
+purpose the visitor was not shown. A category whose purposes no listed vendor
+processes on consent therefore stays denied after Accept All, and so does every
+script, iframe or network rule gated on it. With a vendor list whose vendors
+declare only purposes 1 to 4 and 7, for example, `experience` and
+`functionality` stay denied.
+
+If your own scripts depend on such a category, do one of these:
+
+- Declare the processing. Add a custom vendor for it, with the purposes it
+  uses, through the `customVendors` option of your IAB setup. The preference
+  centre then lists those purposes, and Accept All and the purpose switches
+  can grant the category.
+- Gate the script on a category that your listed vendors' purposes cover, or on
+  `necessary` if it needs no consent.
+
+Check `effectivePermissions` after Accept All on a fresh visit to see which
+categories your vendor list leaves denied.
+
 ## When a choice is saved
 
 A save records the choice in the browser first and sends it to the backend
