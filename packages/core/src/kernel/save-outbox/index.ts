@@ -31,7 +31,11 @@
  *   store cannot be undone by it.
  * - `clear()` empties the queue and the reassignment records. The kernel
  *   calls it on `records:cleared`, so every way of clearing the visitor's
- *   records drops the saves of the subject they reset away from.
+ *   records drops the saves of the subject they reset away from. Storage is
+ *   emptied before the event returns, without waiting for another tab's
+ *   lock, so a page that closes right after a clear leaves nothing for the
+ *   next page to replay; a transaction under the lock then empties it
+ *   again.
  * - Whenever a send or replay leaves something queued, the outbox calls
  *   `retryWhenOnline`. The kernel's one connectivity listener then calls
  *   `replay()` on `online`, next to its init retry, and only while the
@@ -88,7 +92,10 @@ export interface SaveOutbox {
 	 * anything is left.
 	 */
 	replay: () => Promise<void>;
-	/** Drop every queued save and subject reassignment. */
+	/**
+	 * Drop every queued save and subject reassignment: from storage before
+	 * it returns, and again under the store's lock once that is granted.
+	 */
 	clear: () => Promise<void>;
 }
 
@@ -174,6 +181,10 @@ export const createSaveOutbox = function createSaveOutbox({
 	};
 
 	const clear = function clear(): Promise<void> {
+		// At once, so the page can close before the lock is granted: a later
+		// page must not replay the cleared subject's saves. Then again under
+		// the lock, after any transaction that read the lists before this.
+		store.clear();
 		return store.transact((tx) => {
 			tx.write('saves', []);
 			tx.write('reassignments', []);

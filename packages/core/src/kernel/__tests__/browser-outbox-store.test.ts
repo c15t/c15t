@@ -8,6 +8,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { ConsentSaveRejectedError, createConsentKernel } from '../../index';
 import type { KernelConfig } from '../../types';
+import { clearKernelRecords } from '../clear-records';
 import { createKernel } from '../index';
 import { createBrowserOutboxStore } from '../save-outbox';
 import type { BrowserOutboxEnvironment } from '../save-outbox/store';
@@ -226,6 +227,81 @@ describe('browser outbox store', () => {
 		await expect(pending).resolves.toMatchObject({ ok: false });
 		expect(completed).toEqual([false]);
 		expect(JSON.parse(storage.getItem(SAVES_KEY) ?? '[]')).toHaveLength(1);
+		kernel.dispose();
+	});
+
+	test('a clear empties the queue before it returns, even while another tab holds the lock', async () => {
+		// The page clearing the records can close before the lock is granted.
+		// Its queued saves must not replay for the cleared subject on the
+		// next page.
+		const storage = memoryStorage();
+		storage.setItem(SAVES_KEY, JSON.stringify([legacyEntry]));
+		storage.setItem(
+			REASSIGNMENTS_KEY,
+			JSON.stringify([{ at: Date.now(), from: 'sub_old', to: 'sub_legacy' }])
+		);
+		const { locks } = serialLocks();
+		void locks.request(
+			SAVES_KEY,
+			() =>
+				new Promise<void>(() => {
+					// Never released.
+				})
+		);
+		const kernel = kernelOn(
+			{ initialRecords: { subject: { subjectId: 'sub_legacy' } } },
+			{ localStorage: () => storage, locks: () => locks }
+		);
+
+		clearKernelRecords(kernel);
+
+		expect(storage.getItem(SAVES_KEY)).toBeNull();
+		expect(storage.getItem(REASSIGNMENTS_KEY)).toBeNull();
+		kernel.dispose();
+
+		// The next page: the lock is free again, and nothing is left to replay.
+		const save = vi.fn().mockResolvedValue({ ok: true });
+		const next = kernelOn(
+			{ transport: { init: vi.fn().mockResolvedValue({}), save } },
+			{ localStorage: () => storage, locks: () => serialLocks().locks }
+		);
+		await next.commands.init();
+		await vi.waitFor(() => {
+			expect(storage.getItem(SAVES_KEY)).toBeNull();
+		});
+		expect(save).not.toHaveBeenCalled();
+		next.dispose();
+	});
+
+	test('a clear runs again under the lock, after a transaction that read the queue before it', async () => {
+		// Another tab's transaction can read the queue before the clear and
+		// write it back after. The clear waits for the lock and empties it
+		// again.
+		const storage = memoryStorage();
+		const { locks } = serialLocks();
+		let releaseLock: () => void = () => {};
+		void locks.request(
+			SAVES_KEY,
+			() =>
+				new Promise<void>((resolve) => {
+					releaseLock = resolve;
+				})
+		);
+		const kernel = kernelOn(
+			{ initialRecords: { subject: { subjectId: 'sub_legacy' } } },
+			{ localStorage: () => storage, locks: () => locks }
+		);
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		clearKernelRecords(kernel);
+		storage.setItem(SAVES_KEY, JSON.stringify([legacyEntry]));
+		releaseLock();
+
+		await vi.waitFor(() => {
+			expect(storage.getItem(SAVES_KEY)).toBeNull();
+		});
 		kernel.dispose();
 	});
 

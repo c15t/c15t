@@ -51,6 +51,14 @@ export interface OutboxTransaction {
  */
 export interface SaveOutboxStore {
 	transact: <Result>(run: (tx: OutboxTransaction) => Result) => Promise<Result>;
+	/**
+	 * Remove both lists now, without waiting for exclusive access, so a clear
+	 * holds even when the page closes before a transaction could run. A
+	 * transaction already running elsewhere can still write back what it
+	 * read; the outbox follows this with a transaction that empties the
+	 * lists again.
+	 */
+	clear: () => void;
 }
 
 /** The part of `Storage` a store uses. */
@@ -117,6 +125,16 @@ export const createBrowserOutboxStore = function createBrowserOutboxStore(
 		},
 	};
 	return {
+		clear() {
+			const storage = environment.localStorage() ?? memory;
+			for (const key of Object.values(SLOT_KEYS)) {
+				try {
+					storage.removeItem(key);
+				} catch {
+					// Blocked storage: nothing was queued there either.
+				}
+			}
+		},
 		async transact(run) {
 			const storage = environment.localStorage() ?? memory;
 			const tx: OutboxTransaction = {

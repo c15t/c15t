@@ -309,6 +309,7 @@ describe('save outbox: queue and replay', () => {
 		// queue right before the per-entry check.
 		let transactions = 0;
 		const racing: SaveOutboxStore = {
+			clear: store.clear,
 			transact: (run) =>
 				store.transact((tx) => {
 					transactions += 1;
@@ -1097,6 +1098,7 @@ describe('save outbox: subject reassignment', () => {
 		let openGate: () => void = () => {};
 		let gate: Promise<void> = Promise.resolve();
 		const gated: SaveOutboxStore = {
+			clear: store.clear,
 			async transact(run) {
 				await gate;
 				return store.transact(run);
@@ -1199,6 +1201,7 @@ describe('save outbox: subject reassignment', () => {
 		let claimWaiting = false;
 		// Holds the first transaction after the refusal: the claim.
 		const gated: SaveOutboxStore = {
+			clear: store.clear,
 			async transact(run) {
 				if (conflictSeen && !claimWaiting) {
 					claimWaiting = true;
@@ -1370,6 +1373,7 @@ describe('save outbox: clearing records', () => {
 		// Holds the first transaction, the failed save's enqueue; later ones
 		// (the clear) go straight through.
 		const gated: SaveOutboxStore = {
+			clear: store.clear,
 			async transact(run) {
 				if (!waiting) {
 					waiting = true;
