@@ -311,9 +311,7 @@ export type ConsentProviderProps =
  * downloads them:
  *
  * - the script loader and data clearing, when `scripts` or
- *   `clearOnRevocation` is set. The runtime starts the script loader's
- *   download during the first render when consent already lets a script
- *   run;
+ *   `clearOnRevocation` is set;
  * - the network blocker, when `networkBlocker` is set; the runtime holds
  *   matching requests from construction until it lands;
  * - the iframe blocker, when the first gated iframe is on the page; until

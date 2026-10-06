@@ -73,29 +73,6 @@ const isRecordSeed = function isRecordSeed(
 	);
 };
 
-/**
- * Whether `start()` gives the kernel the visitor's records: the prefetch's
- * or `/init`'s, and the stored ones. A disabled runtime grants every
- * category and a `consentSource` decides in their place, so neither reads
- * any.
- * @internal
- */
-export const readsRecords = function readsRecords(
-	options: Pick<ConsentRuntimeOptions, 'consentSource' | 'enabled'>
-): boolean {
-	return (options.enabled ?? true) && !options.consentSource;
-};
-
-/** Whether `start()` mounts persistence, which reads stored records. @internal */
-export const readsStoredRecords = function readsStoredRecords(
-	options: Pick<
-		ConsentRuntimeOptions,
-		'consentSource' | 'enabled' | 'persistence'
-	>
-): boolean {
-	return readsRecords(options) && options.persistence !== false;
-};
-
 /** The storage `persistence` resolves to, from one option set. @internal */
 export const storageFor = function storageFor(
 	options: Pick<
@@ -126,7 +103,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 ): AssembledRuntime {
 	const { consentSource } = options;
 	const enabled = options.enabled ?? true;
-	const reads = readsRecords(options);
 	const experiment = hostExperiment(options.experiment, options.prefetch);
 	const kernel = createRuntimeKernel(options);
 	// `start()` installs the blocker, often after the host rendered its
@@ -188,7 +164,7 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 	let disposers: (() => void)[] = wire();
 
 	const runInit = async function runInit(): Promise<void> {
-		if (disposed || !reads) {
+		if (disposed || consentSource || !enabled) {
 			return;
 		}
 		await kernel.commands.init();
@@ -280,8 +256,8 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				disposers.push(() => windowDebug.dispose());
 			}
 
-			if (readsStoredRecords(options)) {
-				const { persistence: persistenceOption } = options;
+			const { persistence: persistenceOption } = options;
+			if (enabled && !consentSource && persistenceOption !== false) {
 				const { now, skipHydration, sync } =
 					typeof persistenceOption === 'object' ? persistenceOption : {};
 				const seed = options.prefetch?.initialRecords;
@@ -327,7 +303,7 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 
 			// A server-resolved prefetch already holds the init answer; asking
 			// for it again is one request per page load on every SSR route.
-			if (reads) {
+			if (enabled && !consentSource) {
 				if (hasResolvedPrefetch(options.prefetch)) {
 					// What the server rendered is the visitor's first impression,
 					// so evaluate at its clock; a restart evaluates now.

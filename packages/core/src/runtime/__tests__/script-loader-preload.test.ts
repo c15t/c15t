@@ -2,10 +2,11 @@ import type { PolicyRule } from '@c15t/schema/types';
 /**
  * @vitest-environment jsdom
  *
- * A provider runtime starts loading a lazy script loader before `start()`
- * when the visitor's consent already lets a script run, judged on its own
- * kernel with what `start()` would add: a streamed prefetch, stored
- * denials and the browser's Global Privacy Control signal.
+ * A provider runtime given `preloadScriptLoader` starts loading a lazy
+ * script loader before `start()` when the visitor's consent already lets a
+ * script run, judged on its own kernel with what `start()` would add: a
+ * streamed prefetch, stored denials and the browser's Global Privacy
+ * Control signal. Without that module it leaves the load to `start()`.
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
@@ -27,6 +28,7 @@ import {
 	lazyRuntimeModule,
 	streamPrefetch,
 } from '../index';
+import { preloadScriptLoaderWith } from '../script-loader-preload';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -66,10 +68,12 @@ const runtimes: ConsentProviderRuntime[] = [];
 
 /**
  * A provider runtime whose script loader loads on demand. `load` counts
- * the requests for its module.
+ * the requests for its module. `preload: false` leaves out the module that
+ * loads it early.
  */
 const create = function create(
-	options: Partial<ConsentProviderRuntimeOptions> = {}
+	options: Partial<ConsentProviderRuntimeOptions> = {},
+	{ preload = true }: { preload?: boolean } = {}
 ) {
 	const handle = { dispose: vi.fn() } as unknown as ScriptLoaderHandle;
 	const load = vi.fn(() => Promise.resolve(() => handle));
@@ -88,6 +92,7 @@ const create = function create(
 		{
 			...defaultRuntimeModules,
 			createScriptLoader: lazyRuntimeModule(load),
+			preloadScriptLoader: preload ? preloadScriptLoaderWith(load) : undefined,
 			streamPrefetch,
 		}
 	);
@@ -204,6 +209,21 @@ describe('a provider runtime loads its script loader before start()', () => {
 });
 
 describe('a provider runtime leaves its script loader to start()', () => {
+	test.each([
+		['resolved', (prefetch: RuntimePrefetch) => prefetch],
+		['streamed', (prefetch: RuntimePrefetch) => Promise.resolve(prefetch)],
+	] as const)(
+		'without preloadScriptLoader, even when a %s prefetch grants a script',
+		async (_, deliver) => {
+			const { load } = create(
+				{ prefetch: deliver(prefetchFor({ marketing: true })) },
+				{ preload: false }
+			);
+			await settle();
+			expect(load).not.toHaveBeenCalled();
+		}
+	);
+
 	test('on a first visit', () => {
 		const { load } = create({ prefetch: prefetchFor() });
 		expect(load).not.toHaveBeenCalled();

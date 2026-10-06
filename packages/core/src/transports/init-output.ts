@@ -339,8 +339,6 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
  *
  * @param config - Kernel config, typically produced by a server helper such
  * as `resolveConsent()`.
- * @param overrides - The runtime's own overrides. They win over the
- * config's, as they do over a prefetch the runtime is built from.
  * @returns The equivalent init response, or `undefined` when the config
  * carries no resolved policy. A policy-less config (persisted consents,
  * geo, language) is a baseline rather than an init result, so callers
@@ -354,8 +352,7 @@ export const initResponseToKernelConfig = function initResponseToKernelConfig(
  * ```
  */
 export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
-	config: KernelConfig,
-	overrides?: KernelOverrides
+	config: KernelConfig
 ): TransportInitResponse | undefined {
 	if (config.initialPolicyResolution === undefined) {
 		return undefined;
@@ -377,9 +374,11 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 	if (config.initialBranding !== undefined) {
 		response.branding = config.initialBranding;
 	}
-	const resolvedOverrides = { ...config.initialOverrides, ...overrides };
-	if (Object.keys(resolvedOverrides).length > 0) {
-		response.resolvedOverrides = resolvedOverrides;
+	if (
+		config.initialOverrides !== undefined &&
+		Object.keys(config.initialOverrides).length > 0
+	) {
+		response.resolvedOverrides = { ...config.initialOverrides };
 	}
 	if (config.initialRecords !== undefined) {
 		response.records = { ...config.initialRecords };

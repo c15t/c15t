@@ -97,8 +97,15 @@ export const resolveStreamedInit = async function resolveStreamedInit(
 	}
 	options.onResolved(config);
 
-	const response = options.toInitResponse(config, overrides);
+	const response = options.toInitResponse(config);
 	if (response) {
+		const resolvedOverrides = {
+			...(response.resolvedOverrides ?? {}),
+			...(overrides ?? {}),
+		};
+		if (hasKeys(resolvedOverrides)) {
+			response.resolvedOverrides = resolvedOverrides;
+		}
 		return response;
 	}
 

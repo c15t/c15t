@@ -11,7 +11,6 @@
  */
 import { networkBlockerTools } from '../modules/network-blocker/tools';
 import { scriptLoaderTools } from '../modules/script-loader/tools';
-import type { ScriptLoaderOptions } from '../modules/script-loader/types';
 import { lazyRuntimeModule } from './lazy-module';
 import type { ConsentRuntimeModules } from './types';
 
@@ -43,11 +42,10 @@ export const loaderAndBlockerOnDemand: Pick<
 			return (loaded: typeof options) =>
 				chunk.createNetworkBlockerWith(loaded, networkBlockerTools);
 		})(options),
-	// One factory, so a provider runtime can start the load before it
-	// mounts the loader.
-	createScriptLoader: lazyRuntimeModule(async () => {
-		const chunk = await loadChunk();
-		return (loaded: ScriptLoaderOptions) =>
-			chunk.createScriptLoaderWith(loaded, scriptLoaderTools);
-	}),
+	createScriptLoader: (options) =>
+		lazyRuntimeModule(async () => {
+			const chunk = await loadChunk();
+			return (loaded: typeof options) =>
+				chunk.createScriptLoaderWith(loaded, scriptLoaderTools);
+		})(options),
 };

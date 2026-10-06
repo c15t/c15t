@@ -21,13 +21,15 @@ import { lazyRuntimeModule } from './lazy-module';
  * {@link onDemandRuntimeModules} loads the loader and the blocker as one
  * chunk instead. Exported from `@c15t/core/runtime/on-demand-factories`.
  *
- * A provider runtime starts the load before it mounts the loader when
- * consent already lets a script run.
+ * @param options - The script loader options the runtime passes.
+ * @returns A handle that queues calls until the module has loaded.
  */
-export const scriptLoaderOnDemand: (
+export const scriptLoaderOnDemand = function scriptLoaderOnDemand(
 	options: ScriptLoaderOptions
-) => ScriptLoaderHandle = lazyRuntimeModule(async () => {
-	const module = await import('../modules/script-loader/loader');
-	return (loaded: ScriptLoaderOptions) =>
-		module.createScriptLoaderWith(loaded, scriptLoaderTools);
-});
+): ScriptLoaderHandle {
+	return lazyRuntimeModule(async () => {
+		const module = await import('../modules/script-loader/loader');
+		return (loaded: ScriptLoaderOptions) =>
+			module.createScriptLoaderWith(loaded, scriptLoaderTools);
+	})(options);
+};

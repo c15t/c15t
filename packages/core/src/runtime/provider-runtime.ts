@@ -25,11 +25,10 @@ import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
 import { assembleConsentRuntime } from './assemble';
-import { afterModuleLoaded, lazyModulePreload } from './lazy-module';
+import { afterModuleLoaded } from './lazy-module';
 import type * as ProviderUpdateModule from './provider-update';
 import type { ProviderUpdateHost } from './provider-update';
 import { normalizeKernelUser } from './runtime-kernel';
-import { scriptLoaderRunsAtStart } from './script-loader-preload';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -389,47 +388,22 @@ export const createConsentProviderRuntime =
 			hold?.release()();
 		};
 
-		// A host starts the runtime from a mount effect, after its whole
-		// tree has rendered. A script loader that loads on demand would
-		// request its chunk only then. When consent already lets a script
-		// run, request it now, in the browser, so it loads while the rest of
-		// the page renders; `start()` then finds it loaded or on its way. A
-		// streamed prefetch decides once it arrives.
-		const preloadScriptLoader = lazyModulePreload(modules.createScriptLoader);
-		if (
-			preloadScriptLoader &&
-			typeof document !== 'undefined' &&
-			initial.scripts?.length
-		) {
-			const runs = (streamed?: RuntimePrefetch): boolean =>
-				!started &&
-				!disposed &&
-				scriptLoaderRunsAtStart(
-					active().runtime.kernel,
-					{
-						...initial,
-						enabled,
-						scripts: current.scripts,
-					} as ConsentRuntimeOptions,
-					enabled ? streamed : undefined
-				);
-			// Synchronous up to the first `await`: a known prefetch decides,
-			// and the import starts, during construction.
-			void (async () => {
-				try {
-					if (
-						runs() ||
-						(initial.prefetch !== knownPrefetch &&
-							runs(await (initial.prefetch as PromiseLike<RuntimePrefetch>)))
-					) {
-						await preloadScriptLoader();
-					}
-				} catch {
-					// A failed stream is the first `init()`'s to report, a failed
-					// load the loader's own.
-				}
-			})();
-		}
+		// A host that passes `preloadScriptLoader` lets the runtime start
+		// the script loader's download now, before `start()` mounts it.
+		modules.preloadScriptLoader?.(
+			() =>
+				started || disposed
+					? undefined
+					: [
+							active().runtime.kernel,
+							{
+								...initial,
+								enabled,
+								scripts: current.scripts,
+							} as ConsentRuntimeOptions,
+						],
+			initial.prefetch
+		);
 
 		const runtime: ConsentRuntime = main.runtime;
 		// Records, identity, IAB, iframes and storage belong to the main
