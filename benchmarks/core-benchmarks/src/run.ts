@@ -61,76 +61,107 @@ const measureAsync = async function measureAsync(
 	return await measureAsyncLoop(ITERATIONS, fn, (kernel) => kernel.dispose());
 };
 
+/** Measure every operation once, in the order the results report them. */
+const measureOperations = async function measureOperations() {
+	// Kernel construction — must be pure, allocation only.
+	const createKernelSamples = measureSync(() =>
+		createConsentKernel({
+			initialOverrides: { country: 'US', language: 'en' },
+		})
+	);
+
+	// Snapshot read — reference return, cheap.
+	const getSnapshotSamples = measureSync(() => {
+		const kernel = createConsentKernel();
+		kernel.getSnapshot();
+		return kernel;
+	});
+
+	// Subscribe + unsubscribe — listener bookkeeping cost.
+	const subscribeSamples = measureSync(() => {
+		const kernel = createConsentKernel();
+		const unsubscribe = kernel.subscribe(() => {
+			/* empty */
+		});
+		unsubscribe();
+		return kernel;
+	});
+
+	// Stage a developer draft. This never grants permissions.
+	const setConsentSamples = measureSync(() => {
+		const kernel = createConsentKernel();
+		// The legacy metric name is retained for its historical budget.
+		const setter = kernel.set as typeof kernel.set & {
+			consent?: typeof kernel.set.draft;
+		};
+		const stage = setter.draft ?? setter.consent;
+		if (!stage) {
+			throw new Error('Missing draft setter for measured kernel');
+		}
+		stage({ marketing: true });
+		return kernel;
+	});
+
+	// Save all — full commit + listener notify + event emit.
+	const saveAllSamples = await measureAsync(async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.save('all');
+		return kernel;
+	});
+
+	// Historical save-then-init operation; actual repeated storage hydration is measured separately.
+	const repeatVisitorSamples = await measureAsync(async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.save('all');
+		await kernel.commands.init();
+		return kernel;
+	});
+
+	// Init without transport or persistence, retained solely for historical comparison.
+	const initSamples = await measureAsync(async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.init();
+		return kernel;
+	});
+
+	// Identify — user mutation path.
+	const identifySamples = await measureAsync(async () => {
+		const kernel = createConsentKernel();
+		await kernel.commands.identify({ externalId: 'bench-user' });
+		return kernel;
+	});
+
+	return {
+		createKernelSamples,
+		getSnapshotSamples,
+		identifySamples,
+		initSamples,
+		repeatVisitorSamples,
+		saveAllSamples,
+		setConsentSamples,
+		subscribeSamples,
+	};
+};
+
+// One discarded pass over every operation. The per-operation warmup is too
+// short for a cold process: the first fixture's samples keep falling through
+// its whole measured loop, so where its median lands varies from run to run
+// and base and head disagree by more than a budget. Later fixtures start warm.
+await measureOperations();
+
 await Array.from(Object.values(coreFixtures)).reduce(
 	async (previousIteration, fixture) => {
 		await previousIteration;
-		// Kernel construction — must be pure, allocation only.
-		const createKernelSamples = measureSync(() =>
-			createConsentKernel({
-				initialOverrides: { country: 'US', language: 'en' },
-			})
-		);
-
-		// Snapshot read — reference return, cheap.
-		const getSnapshotSamples = measureSync(() => {
-			const kernel = createConsentKernel();
-			kernel.getSnapshot();
-			return kernel;
-		});
-
-		// Subscribe + unsubscribe — listener bookkeeping cost.
-		const subscribeSamples = measureSync(() => {
-			const kernel = createConsentKernel();
-			const unsubscribe = kernel.subscribe(() => {
-				/* empty */
-			});
-			unsubscribe();
-			return kernel;
-		});
-
-		// Stage a developer draft. This never grants permissions.
-		const setConsentSamples = measureSync(() => {
-			const kernel = createConsentKernel();
-			// The legacy metric name is retained for its historical budget.
-			const setter = kernel.set as typeof kernel.set & {
-				consent?: typeof kernel.set.draft;
-			};
-			const stage = setter.draft ?? setter.consent;
-			if (!stage) {
-				throw new Error('Missing draft setter for measured kernel');
-			}
-			stage({ marketing: true });
-			return kernel;
-		});
-
-		// Save all — full commit + listener notify + event emit.
-		const saveAllSamples = await measureAsync(async () => {
-			const kernel = createConsentKernel();
-			await kernel.commands.save('all');
-			return kernel;
-		});
-
-		// Historical save-then-init operation; actual repeated storage hydration is measured separately.
-		const repeatVisitorSamples = await measureAsync(async () => {
-			const kernel = createConsentKernel();
-			await kernel.commands.save('all');
-			await kernel.commands.init();
-			return kernel;
-		});
-
-		// Init without transport or persistence, retained solely for historical comparison.
-		const initSamples = await measureAsync(async () => {
-			const kernel = createConsentKernel();
-			await kernel.commands.init();
-			return kernel;
-		});
-
-		// Identify — user mutation path.
-		const identifySamples = await measureAsync(async () => {
-			const kernel = createConsentKernel();
-			await kernel.commands.identify({ externalId: 'bench-user' });
-			return kernel;
-		});
+		const {
+			createKernelSamples,
+			getSnapshotSamples,
+			identifySamples,
+			initSamples,
+			repeatVisitorSamples,
+			saveAllSamples,
+			setConsentSamples,
+			subscribeSamples,
+		} = await measureOperations();
 
 		const result: BenchmarkResult = {
 			baseSha: safeBaseSha(),
