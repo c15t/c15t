@@ -36,6 +36,16 @@ covers a vendor without one.
   load before consent and pass the visitor's choice to the vendor. Read the
   vendor's guide; a category on a script does not always mean zero requests.
 
+## When the script loader downloads
+
+The script loader is a separate chunk, downloaded only when `scripts` is not
+empty. It loads when the provider mounts, unless the provider already knows at
+its first render that a script will run: a script with `alwaysLoad`, or a
+`prefetch` whose policy and stored choice allow one. Then the download starts
+during that render, while React renders the rest of the page. A Vite app
+without a `prefetch` learns its policy from `/init` after mounting, so it loads
+the chunk at mount.
+
 ## Embeds and other requests
 
 Scripts cover vendor code c15t loads for you. For the rest:
