@@ -73,6 +73,11 @@ and `XMLHttpRequest`. Dispose blockers in the reverse order you created them.
   is blocked. If the policy fails to load, it is blocked.
 - A synchronous XHR cannot wait. While matching requests are held, a
   matching synchronous XHR throws a `NetworkError`.
+- When the blocker loads on demand and its chunk fails to load, requests its
+  rules match are blocked, including ones already waiting for it, even for
+  granted categories. Nothing can check consent for them. The chunk is tried
+  again when the browser comes back online, and the blocker then decides
+  requests as usual.
 - Requests that match no rule go out at once.
 
 ## What it cannot block
