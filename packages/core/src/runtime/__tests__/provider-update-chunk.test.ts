@@ -52,10 +52,16 @@ beforeEach(() => {
 	});
 });
 
-afterEach(() => {
+afterEach(async () => {
 	for (const runtime of runtimes.splice(0)) {
 		runtime.dispose();
 	}
+	// A started runtime is still importing its network blocker chunk. Vitest
+	// applies queued `doMock`/`doUnmock` calls from inside the next import,
+	// and an import that started applying the queue before the next test's
+	// `doMock` drops that mock when it finishes: the next test would load
+	// the real update module. Let those imports land before queueing more.
+	await vi.dynamicImportSettled();
 	vi.doUnmock('../provider-update');
 	delete (window as { c15t?: unknown }).c15t;
 });
