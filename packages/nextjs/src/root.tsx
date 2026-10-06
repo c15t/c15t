@@ -238,7 +238,7 @@ export const ConsentRoot = ({
 	const [mode, setMode] = useState(() => {
 		// Before hydration finishes: the provider would load it from its
 		// mount effect, a round trip later.
-		preloadScriptLoader(state, scripts);
+		preloadScriptLoader(state, scripts, options);
 		const resolvedBackendURL = backendURL ?? config?.backendURL;
 		const manifestURL =
 			config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;

@@ -112,6 +112,37 @@ describe('ConsentRoot: script loader before hydration', () => {
 		expect(loads.evaluated).toBe(0);
 	});
 
+	test('a stored grant that GPC denies does not load it', async () => {
+		renderUncommitted({
+			...policyFixture(
+				{ marketing: true },
+				{ privacySignals: { gpc: { denyCategories: ['marketing'] } } }
+			),
+			initialPrivacySignals: { gpc: true },
+		});
+		await settle();
+		expect(loads.evaluated).toBe(0);
+	});
+
+	test("a stored grant that the browser's GPC denies does not load it", async () => {
+		Object.defineProperty(navigator, 'globalPrivacyControl', {
+			configurable: true,
+			value: true,
+		});
+		try {
+			renderUncommitted(
+				policyFixture(
+					{ marketing: true },
+					{ privacySignals: { gpc: { denyCategories: ['marketing'] } } }
+				)
+			);
+			await settle();
+			expect(loads.evaluated).toBe(0);
+		} finally {
+			Reflect.deleteProperty(navigator, 'globalPrivacyControl');
+		}
+	});
+
 	test('a stored choice that grants a script loads it during render', async () => {
 		let resolveState: (state: ConsentState) => void = () => undefined;
 		renderUncommitted(
