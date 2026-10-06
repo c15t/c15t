@@ -36,6 +36,10 @@ export {
 	type ProcessedVendor,
 	processGVLForDialog,
 } from './headless/dialog-data';
+export {
+	type IABVendorUrls,
+	resolveIABVendorUrls,
+} from './headless/vendor-urls';
 export type {
 	HeadlessIABBannerAction,
 	HeadlessIABBannerState,

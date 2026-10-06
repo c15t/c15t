@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { GlobalVendorList } from '@c15t/core';
+	import { resolveIABVendorUrls } from '@c15t/iab/headless';
 	import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 	import switchStyles from '@c15t/ui/styles/components/switch';
 	import { switchVariants } from '@c15t/ui/styles/primitives';
@@ -37,6 +38,7 @@
 		onVendorLegitimateInterestToggle,
 		noStyle = false,
 		iabT,
+		language,
 	}: {
 		vendorData: GlobalVendorList | null;
 		purposes: ProcessedPurpose[];
@@ -52,6 +54,8 @@
 		) => void;
 		noStyle?: boolean;
 		iabT: IABTranslations;
+		/** The UI language, which picks each vendor's privacy links. */
+		language?: string;
 	} = $props();
 
 	let searchTerm = $state('');
@@ -74,10 +78,8 @@
 			id: Number(id),
 			isCustom: false,
 			legIntPurposes: vendor.legIntPurposes || [],
-			legitimateInterestUrl:
-				vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+			...resolveIABVendorUrls(vendor, language),
 			name: vendor.name,
-			policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 			purposes: vendor.purposes || [],
 			specialFeatures: vendor.specialFeatures || [],
 			specialPurposes: vendor.specialPurposes || [],

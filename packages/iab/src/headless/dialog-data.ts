@@ -21,6 +21,7 @@ import type {
 	HeadlessIABProcessedVendor,
 	HeadlessIABStateInput,
 } from './types';
+import { resolveIABVendorUrls } from './vendor-urls';
 
 const STANDALONE_PURPOSE_ID = 1;
 
@@ -47,8 +48,13 @@ const getCustomVendors = function getCustomVendors(
 const mapGvlVendor = function mapGvlVendor(
 	vendorId: string,
 	vendor: GvlVendor,
+	language: string | undefined,
 	purposeId?: number
 ): HeadlessIABProcessedVendor {
+	const { legitimateInterestUrl, policyUrl } = resolveIABVendorUrls(
+		vendor,
+		language
+	);
 	return {
 		cookieMaxAgeSeconds: vendor.cookieMaxAgeSeconds,
 		cookieRefresh: vendor.cookieRefresh,
@@ -58,10 +64,9 @@ const mapGvlVendor = function mapGvlVendor(
 		id: Number(vendorId),
 		isCustom: false,
 		legIntPurposes: vendor.legIntPurposes || [],
-		legitimateInterestUrl:
-			vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+		legitimateInterestUrl,
 		name: vendor.name,
-		policyUrl: (vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
+		policyUrl,
 		purposes: vendor.purposes || [],
 		specialFeatures: vendor.specialFeatures || [],
 		specialPurposes: vendor.specialPurposes || [],
@@ -102,7 +107,8 @@ const mapCustomVendor = function mapCustomVendor(
 
 const processPurposes = function processPurposes(
 	gvl: GlobalVendorList,
-	customVendors: NonIABVendor[]
+	customVendors: NonIABVendor[],
+	language: string | undefined
 ): HeadlessIABProcessedPurpose[] {
 	return Object.entries(gvl.purposes)
 		.map(([id, purpose]) => {
@@ -113,7 +119,9 @@ const processPurposes = function processPurposes(
 						vendor.purposes?.includes(purposeId) ||
 						vendor.legIntPurposes?.includes(purposeId)
 				)
-				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor, purposeId));
+				.map(([vendorId, vendor]) =>
+					mapGvlVendor(vendorId, vendor, language, purposeId)
+				);
 
 			const customVendorsForPurpose = customVendors
 				.filter(
@@ -136,14 +144,15 @@ const processPurposes = function processPurposes(
 };
 
 const processSpecialPurposes = function processSpecialPurposes(
-	gvl: GlobalVendorList
+	gvl: GlobalVendorList,
+	language: string | undefined
 ): HeadlessIABProcessedPurpose[] {
 	return Object.entries(gvl.specialPurposes || {})
 		.map(([id, purpose]) => {
 			const purposeId = Number(id);
 			const vendorsForPurpose = Object.entries(gvl.vendors)
 				.filter(([, vendor]) => vendor.specialPurposes?.includes(purposeId))
-				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor));
+				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor, language));
 
 			return {
 				description: purpose.description,
@@ -159,14 +168,15 @@ const processSpecialPurposes = function processSpecialPurposes(
 };
 
 const processSpecialFeatures = function processSpecialFeatures(
-	gvl: GlobalVendorList
+	gvl: GlobalVendorList,
+	language: string | undefined
 ): HeadlessIABProcessedSpecialFeature[] {
 	return Object.entries(gvl.specialFeatures || {})
 		.map(([id, feature]) => {
 			const featureId = Number(id);
 			const vendorsForFeature = Object.entries(gvl.vendors)
 				.filter(([, vendor]) => vendor.specialFeatures?.includes(featureId))
-				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor));
+				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor, language));
 
 			return {
 				description: feature.description,
@@ -181,14 +191,15 @@ const processSpecialFeatures = function processSpecialFeatures(
 };
 
 const processFeatures = function processFeatures(
-	gvl: GlobalVendorList
+	gvl: GlobalVendorList,
+	language: string | undefined
 ): HeadlessIABProcessedFeature[] {
 	return Object.entries(gvl.features || {})
 		.map(([id, feature]) => {
 			const featureId = Number(id);
 			const vendorsForFeature = Object.entries(gvl.vendors)
 				.filter(([, vendor]) => vendor.features?.includes(featureId))
-				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor));
+				.map(([vendorId, vendor]) => mapGvlVendor(vendorId, vendor, language));
 
 			return {
 				description: feature.description,
@@ -273,7 +284,8 @@ const groupPurposesIntoStacks = function groupPurposesIntoStacks(
 /**
  * Processes GVL data into a format suitable for the consent dialog UI.
  *
- * @param iab - IAB state with GVL and optional custom vendors
+ * @param iab - IAB state with GVL, optional custom vendors, and the UI
+ * language that picks each vendor's privacy links
  * @returns Processed GVL data for rendering
  */
 export const processGVLForDialog = function processGVLForDialog(
@@ -291,10 +303,11 @@ export const processGVLForDialog = function processGVLForDialog(
 		iab.publisherRestrictions
 	);
 	const customVendors = getCustomVendors(iab);
-	const purposes = processPurposes(gvl, customVendors);
-	const specialPurposes = processSpecialPurposes(gvl);
-	const specialFeatures = processSpecialFeatures(gvl);
-	const features = processFeatures(gvl);
+	const { language } = iab;
+	const purposes = processPurposes(gvl, customVendors, language);
+	const specialPurposes = processSpecialPurposes(gvl, language);
+	const specialFeatures = processSpecialFeatures(gvl, language);
+	const features = processFeatures(gvl, language);
 	const { stacks, standalonePurposes } = groupPurposesIntoStacks(gvl, purposes);
 
 	return {
