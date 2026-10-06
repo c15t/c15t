@@ -11,7 +11,10 @@ import type {
 	ConsentKernel,
 	ConsentSnapshot,
 } from '@c15t/core';
-import type { IframeBlockerHandle } from '@c15t/core/modules/iframe-blocker';
+import type {
+	IframeBlockerHandle,
+	IframeBlockerOptions,
+} from '@c15t/core/modules/iframe-blocker';
 import { useEffect, useRef, useState } from 'react';
 
 import { useRequiredKernel } from './shared';
@@ -250,21 +253,24 @@ export const watchGatedIframes = function watchGatedIframes(
 };
 
 /**
- * The provider's default iframe blocker. Loads the blocker module when the
- * first gated iframe (`data-category` or `data-vendor`) is on the page
- * instead of on every mount, so pages without one never download it.
+ * The provider's iframe blocker. Loads the blocker module when the first
+ * gated iframe (`data-category` or `data-vendor`) is on the page instead of
+ * on every mount, so pages without one never download it. Until then it
+ * pauses gated frames that arrive with a `src` consent does not allow.
  *
- * @param options - Blocker options. With `disableAutomaticBlocking` the
- * module loads at once, as it did before.
+ * Passed to the provider runtime as its `createIframeBlocker` module.
+ *
+ * @param options - The kernel and blocker options. With
+ * `disableAutomaticBlocking` the module loads at once.
+ * @returns A handle; `processAllIframes()` reaches the blocker once it has
+ * loaded.
  * @internal
  */
-export const useIframeBlockerOnDemand = function useIframeBlockerOnDemand(
-	options: UseIframeBlockerOptions = {}
-): void {
-	const kernel = useRequiredKernel();
-	const { disableAutomaticBlocking } = options;
-
-	useEffect(() => {
+export const createIframeBlockerOnDemand =
+	function createIframeBlockerOnDemand({
+		disableAutomaticBlocking,
+		kernel,
+	}: IframeBlockerOptions): IframeBlockerHandle {
 		let disposed = false;
 		let blocker: IframeBlockerHandle | null = null;
 		let loading = false;
@@ -305,13 +311,17 @@ export const useIframeBlockerOnDemand = function useIframeBlockerOnDemand(
 		} else {
 			stopWatching = watchGatedIframes(kernel, load);
 		}
-		return () => {
-			disposed = true;
-			stopWatching();
-			blocker?.dispose();
-			blocker = null;
+		return {
+			dispose() {
+				disposed = true;
+				stopWatching();
+				blocker?.dispose();
+				blocker = null;
+			},
+			processAllIframes() {
+				blocker?.processAllIframes();
+			},
 		};
-	}, [kernel, disableAutomaticBlocking]);
-};
+	};
 
 export type { IframeBlockerHandle };

@@ -2,15 +2,12 @@
  * `prefetch` as a pending `Promise<KernelConfig>`: the provider mounts with
  * a provisional policy, children render immediately, and the first init is
  * answered from the resolved config instead of the network.
+ *
+ * How the resolved config is applied (a baseline without a policy, a
+ * rejected promise, provider overrides, records cleared while it streams)
+ * is the runtime's `streamPrefetch` module, tested in core.
  */
-import type {
-	ConsentKernel,
-	InitContext,
-	InitOutput,
-	KernelConfig,
-} from '@c15t/core';
-import { mapInitOutputToInitResponse } from '@c15t/core';
-import { writePolicyResolutionWire } from '@c15t/schema/types';
+import type { ConsentKernel, KernelConfig } from '@c15t/core';
 import { useContext, useEffect } from 'react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
@@ -18,19 +15,6 @@ import { render } from 'vitest-browser-react';
 import { KernelContext } from '../context';
 import { ConsentProvider, custom, hosted, useSnapshot } from '../index';
 import { policyFixture } from './policy-fixture';
-
-const hostedInitOutput = function hostedInitOutput(): InitOutput {
-	return {
-		branding: 'c15t',
-		gvl: null,
-		location: { countryCode: 'DE', regionCode: null },
-		policyResolution: writePolicyResolutionWire(
-			policyFixture({}, { categories: ['marketing'], id: 'gdpr' })
-				.initialPolicyResolution
-		),
-		translations: { language: 'en', translations: {} },
-	} as InitOutput;
-};
 
 const policyConfig = function policyConfig(): KernelConfig {
 	return {
@@ -132,141 +116,6 @@ describe('ConsentProvider prefetch promise', () => {
 		expect(counts.completed).toBe(1);
 	});
 
-	test('honours persisted consent from a resolved policy config', async () => {
-		const init = vi.fn();
-		const prefetch = deferred<KernelConfig>();
-
-		const { getByTestId } = await render(
-			<ConsentProvider
-				options={{
-					mode: custom({ init, save: vi.fn() }),
-					persistence: false,
-					prefetch: prefetch.promise,
-				}}
-			>
-				<Probe />
-			</ConsentProvider>
-		);
-
-		prefetch.resolve({
-			...policyConfig(),
-			initialRecords: {
-				...policyFixture(
-					{ marketing: true },
-					{ categories: ['marketing'], id: 'gdpr' }
-				).initialRecords,
-				subject: { subjectId: 'sub_server' },
-			},
-		});
-
-		await expect
-			.element(getByTestId('state'))
-			.toHaveTextContent('none|false|gdpr|true|sub_server|DE|true');
-		expect(init).not.toHaveBeenCalled();
-	});
-
-	test('cookies-only config applies consents and still runs the transport init', async () => {
-		const init = vi.fn((_ctx: InitContext) =>
-			Promise.resolve(mapInitOutputToInitResponse(hostedInitOutput(), {}))
-		);
-		const prefetch = deferred<KernelConfig>();
-		const counts: InitCounts = { completed: 0 };
-
-		const { getByTestId } = await render(
-			<ConsentProvider
-				options={{
-					mode: custom({ init, save: vi.fn() }),
-					persistence: false,
-					prefetch: prefetch.promise,
-				}}
-			>
-				<InitCounter counts={counts} />
-				<Probe />
-			</ConsentProvider>
-		);
-
-		await expect
-			.element(getByTestId('state'))
-			.toHaveTextContent('none|true|none|false|none|none|false');
-		expect(init).not.toHaveBeenCalled();
-
-		prefetch.resolve({
-			initialOverrides: { country: 'FR' },
-			initialRecords: {
-				...policyFixture(
-					{ marketing: true },
-					{ categories: ['marketing'], id: 'gdpr' }
-				).initialRecords,
-				subject: { subjectId: 'sub_cookie' },
-			},
-		});
-
-		// Policy comes from the transport; consent state from the cookie
-		// config, so a returning visitor sees no banner.
-		await expect
-			.element(getByTestId('state'))
-			.toHaveTextContent('none|false|gdpr|true|sub_cookie|DE|true');
-		await vi.waitFor(() => expect(counts.completed).toBe(1));
-		expect(init).toHaveBeenCalledTimes(1);
-		expect(init.mock.calls[0]?.[0].overrides).toMatchObject({
-			country: 'FR',
-		});
-	});
-
-	test('rejected promise falls through to the transport init', async () => {
-		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
-		const init = vi.fn(() =>
-			Promise.resolve(mapInitOutputToInitResponse(hostedInitOutput(), {}))
-		);
-		const prefetch = deferred<KernelConfig>();
-
-		const { getByTestId } = await render(
-			<ConsentProvider
-				options={{
-					mode: custom({ init, save: vi.fn() }),
-					persistence: false,
-					prefetch: prefetch.promise,
-				}}
-			>
-				<Probe />
-			</ConsentProvider>
-		);
-
-		prefetch.reject(new Error('stream failed'));
-
-		await expect
-			.element(getByTestId('state'))
-			.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
-		expect(init).toHaveBeenCalledTimes(1);
-		expect(warn).toHaveBeenCalledWith(
-			expect.stringContaining('prefetch rejected'),
-			expect.any(Error)
-		);
-	});
-
-	test('provider overrides win over the resolved config', async () => {
-		const prefetch = deferred<KernelConfig>();
-
-		const { getByTestId } = await render(
-			<ConsentProvider
-				options={{
-					mode: custom({ init: vi.fn(), save: vi.fn() }),
-					overrides: { country: 'US' },
-					persistence: false,
-					prefetch: prefetch.promise,
-				}}
-			>
-				<Probe />
-			</ConsentProvider>
-		);
-
-		prefetch.resolve(policyConfig());
-
-		await expect
-			.element(getByTestId('state'))
-			.toHaveTextContent('banner|false|gdpr|false|none|US|false');
-	});
-
 	test('synchronous prefetch still renders the banner at once', async () => {
 		const { getByTestId } = await render(
 			<ConsentProvider
@@ -289,58 +138,7 @@ describe('ConsentProvider prefetch promise', () => {
 	});
 });
 
-describe('prefetch record ownership', () => {
-	test.each([false, true])(
-		'does not restore cleared records when prefetch has policy: %s',
-		async (withPolicy) => {
-			const prefetch = deferred<KernelConfig>();
-			let kernel: ConsentKernel | null = null;
-			const Capture = () => {
-				const current = useContext(KernelContext);
-				useEffect(() => {
-					kernel = current;
-				}, [current]);
-				return <Probe />;
-			};
-			const counts = { completed: 0 };
-			const { getByTestId } = await render(
-				<ConsentProvider
-					options={{
-						mode: custom({
-							init: () =>
-								Promise.resolve(
-									mapInitOutputToInitResponse(hostedInitOutput(), {})
-								),
-						}),
-						persistence: false,
-						prefetch: prefetch.promise,
-					}}
-				>
-					<Capture />
-					<InitCounter counts={counts} />
-				</ConsentProvider>
-			);
-			if (!kernel) {
-				throw new Error('Expected mounted kernel');
-			}
-			(kernel as ConsentKernel).hydrate({ choice: null, subject: null });
-			const stored = policyFixture(
-				{ marketing: true },
-				{ categories: ['marketing'], id: 'gdpr' }
-			);
-			const config = withPolicy ? policyConfig() : {};
-			config.initialRecords = {
-				...stored.initialRecords,
-				subject: { subjectId: 'old-subject' },
-			};
-			prefetch.resolve(config);
-			await vi.waitFor(() => expect(counts.completed).toBe(1));
-			await expect
-				.element(getByTestId('state'))
-				.toHaveTextContent('banner|false|gdpr|false|none|DE|false');
-		}
-	);
-
+describe('a streamed policy', () => {
 	test('saves a streamed policy through an assertion transport without another init', async () => {
 		const prefetch = deferred<KernelConfig>();
 		const fetch = vi

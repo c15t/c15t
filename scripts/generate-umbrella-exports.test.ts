@@ -352,6 +352,39 @@ describe('deriveUmbrellaArtifacts', () => {
 		);
 	});
 
+	it('mirrors a browser condition through the shared ESM shim', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: {
+					directory: 'tanstack-start',
+					packageName: '@c15t/tanstack-start',
+					prefix: 'tanstack-start',
+				},
+				exports: {
+					// oxlint-disable-next-line sort-keys -- condition order is significant.
+					'./server': {
+						types: './dist-types/server.d.ts',
+						browser: './dist/server-browser.js',
+						import: './dist/server.js',
+						default: './dist/server.js',
+					},
+				},
+			}),
+		]);
+
+		// The shim re-exports the scoped subpath, which a browser build
+		// resolves through the scoped package's own condition.
+		expect(artifacts.exports['./tanstack-start/server']).toEqual({
+			browser: './shims/tanstack-start/server.js',
+			default: './shims/tanstack-start/server.js',
+			import: './shims/tanstack-start/server.js',
+			types: './shims/tanstack-start/server.d.ts',
+		});
+		expect(artifacts.shimFiles['shims/tanstack-start/server.js']).toContain(
+			"export * from '@c15t/tanstack-start/server';"
+		);
+	});
+
 	it('mirrors raw string wildcards with extension-carrying shims', () => {
 		const artifacts = deriveUmbrellaArtifacts([
 			fixtureSource({
@@ -464,10 +497,10 @@ describe('deriveUmbrellaArtifacts', () => {
 		expect(() =>
 			deriveUmbrellaArtifacts([
 				fixtureSource({
-					exports: { '.': { browser: './dist/browser.js' } },
+					exports: { '.': { worker: './dist/worker.js' } },
 				}),
 			])
-		).toThrow(/Unsupported export condition "browser"/u);
+		).toThrow(/Unsupported export condition "worker"/u);
 	});
 
 	it('keeps a CSS-only sideEffects claim for CSS-only and effect-free sources', () => {

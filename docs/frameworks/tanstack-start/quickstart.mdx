@@ -71,7 +71,9 @@ What each part does:
   manifest from your backend, caches it in memory, and resolves this visitor's
   policy. Declare the `createServerFn()` call in your own module, as shown.
   Start's compiler finds server code by that call site, so a server function
-  built inside a package does not work.
+  built inside a package does not work. In the browser build,
+  `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
+  helpers throw if browser code calls them.
 - **The loader** awaits the result. `consentLoaderOptions` stops the loader
   from running again on client-side navigation, since the visitor's consent
   state does not change between routes.

@@ -160,7 +160,14 @@ const TAILWIND3_PLUGIN = './postcss-tailwind3';
  * `next`, while the scoped package name stays `@c15t/nextjs`.
  */
 export const UMBRELLA_SOURCES: UmbrellaSource[] = [
-	{ directory: 'core', packageName: '@c15t/core', prefix: '' },
+	{
+		directory: 'core',
+		// The resolver the Next.js and TanStack Start roots import to apply
+		// a streamed state; apps never import it.
+		exclude: ['./runtime/streamed-init'],
+		packageName: '@c15t/core',
+		prefix: '',
+	},
 	{
 		directory: 'react',
 		exclude: [TAILWIND3_PLUGIN],
@@ -283,9 +290,12 @@ const GENERATED_BANNER =
  * Shim file extension per supported export condition. Every package is
  * ESM-only, so the `svelte` and `default` conditions target the same ESM
  * files as `import` in the mirrored packages and all three share the `.js`
- * shim.
+ * shim. `browser` shares it too: the shim re-exports the scoped subpath,
+ * and a browser build resolves that import through the scoped package's
+ * own `browser` condition.
  */
 const SHIM_EXTENSIONS: Record<string, string> = {
+	browser: '.js',
 	default: '.js',
 	import: '.js',
 	svelte: '.js',

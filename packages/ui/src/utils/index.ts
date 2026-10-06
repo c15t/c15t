@@ -1,4 +1,5 @@
 export * from './cn';
+export * from './color-scheme';
 export * from './deep-merge';
 export * from './dom';
 export * from './merge-styles';

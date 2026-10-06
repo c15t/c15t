@@ -37,11 +37,8 @@ import type {
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
-import {
-	setupColorScheme,
-	setupFocusTrap,
-	setupScrollLock,
-} from '@c15t/ui/utils/dom';
+import { setupColorScheme } from '@c15t/ui/utils/color-scheme';
+import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils/dom';
 
 import {
 	IAB_PROMPT_SLOT_ATTRIBUTE,

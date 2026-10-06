@@ -2,6 +2,7 @@
 
 import type { KernelTransport, Vendor } from '@c15t/core';
 import type { Script } from '@c15t/core/modules/script-loader';
+import { resolveStreamedInit } from '@c15t/core/runtime/streamed-init';
 /**
  * Client root for the Next.js adapter.
  *
@@ -18,7 +19,7 @@ import type {
 } from '@c15t/react/module-hooks';
 import { ConsentProvider } from '@c15t/react/provider';
 import type { ConsentProviderOptions } from '@c15t/react/provider';
-import { useMemo } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
 
 import type { ConsentConfig } from './config';
@@ -107,6 +108,7 @@ export interface ConsentRootProps {
 		| 'scripts'
 		| 'vendors'
 		| '__debugPkg'
+		| '__resolveStreamedInit'
 	> & {
 		mode?: ProviderTransportFactory;
 	};
@@ -230,31 +232,36 @@ export const ConsentRoot = ({
 	options,
 	children,
 }: ConsentRootProps) => {
-	const resolvedBackendURL = backendURL ?? config?.backendURL;
-	const manifestURL =
-		config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;
-	const manifestTransport = useMemo(
-		() =>
-			resolvedBackendURL && manifestURL
-				? createLazyManifestTransport({
-						backendURL: resolvedBackendURL,
-						manifestURL,
-					})
-				: undefined,
-		[manifestURL, resolvedBackendURL]
-	);
-	const mode = resolveMode({
-		backendURL: resolvedBackendURL,
-		config,
-		manifestTransport,
-		mode: options?.mode,
+	// Initial-only, like the provider's own `mode`. A new one on every
+	// render would make each rerender load the runtime's update module.
+	const [mode, setMode] = useState(() => {
+		const resolvedBackendURL = backendURL ?? config?.backendURL;
+		const manifestURL =
+			config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;
+		return resolveMode({
+			backendURL: resolvedBackendURL,
+			config,
+			manifestTransport:
+				resolvedBackendURL && manifestURL
+					? createLazyManifestTransport({
+							backendURL: resolvedBackendURL,
+							manifestURL,
+						})
+					: undefined,
+			mode: options?.mode,
+		});
 	});
+	void setMode;
 
 	return (
 		<ConsentProvider
 			options={{
 				...options,
 				__debugPkg: '@c15t/nextjs',
+				// `state` is often a promise the server streams in. Apply it
+				// with code from the first-load chunk: loading that code after
+				// hydration would hold the banner back by a round trip.
+				__resolveStreamedInit: resolveStreamedInit,
 				clearOnRevocation,
 				mode,
 				networkBlocker,

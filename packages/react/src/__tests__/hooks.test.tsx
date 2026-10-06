@@ -464,11 +464,12 @@ describe('v3 react: network blocker lifecycle', () => {
 				</ConsentProvider>
 			);
 
+			// Sent right after the commit, before the runtime's update module
+			// has loaded: the new rule still holds it until the blocker decides.
+			const late = window.fetch('https://second.example.com/x');
+			expect((await late).status).toBe(451);
 			expect((await window.fetch('https://first.example.com/x')).status).toBe(
 				200
-			);
-			expect((await window.fetch('https://second.example.com/x')).status).toBe(
-				451
 			);
 		} finally {
 			fetch.restore();

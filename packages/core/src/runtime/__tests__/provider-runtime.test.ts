@@ -157,6 +157,71 @@ afterEach(() => {
 });
 
 describe('update()', () => {
+	test('requests new network rules match are held until the update has applied them', async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn(() => Promise.resolve(new Response('ok')));
+		window.fetch = network as unknown as typeof window.fetch;
+		try {
+			const fakes = createFakeModules();
+			const first = [{ category: 'marketing', domain: 'first.example' }];
+			const next = [{ category: 'marketing', domain: 'next.example' }];
+			const options: ConsentProviderRuntimeOptions = {
+				mode: custom(createTransport()),
+				networkBlocker: { rules: first as never },
+			};
+			const runtime = create(options, fakes.modules);
+			runtime.start();
+
+			const applied = runtime.update({
+				...options,
+				networkBlocker: { rules: next as never },
+			});
+			const request = window.fetch('https://next.example/pixel');
+			await Promise.resolve();
+			// Sent before the blocker had the rule, it would have gone out.
+			expect(network).not.toHaveBeenCalled();
+
+			await applied;
+			expect(fakes.blockers[0]?.rules).toEqual([first, next]);
+			// Released through the updated blocker (a fake that sends it).
+			await request;
+			expect(network).toHaveBeenCalledWith(
+				'https://next.example/pixel',
+				undefined
+			);
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
+	test('`enabled` and overrides apply at once; the rest once the returned promise settles', async () => {
+		const options: ConsentProviderRuntimeOptions = {
+			consentCategories: ['marketing'],
+			mode: custom(createTransport()),
+		};
+		const runtime = create(options);
+
+		const applied = runtime.update({
+			...options,
+			consentCategories: ['measurement'],
+			enabled: false,
+			overrides: { country: 'FR' },
+		});
+		expect(runtime.enabled).toBe(false);
+		// Configured categories decide what is granted: they apply now.
+		expect(runtime.kernel.getSnapshot().consentCategories).toEqual([
+			'measurement',
+		]);
+		await applied;
+		await runtime.update({ ...options, overrides: { country: 'FR' } });
+
+		expect(runtime.enabled).toBe(true);
+		expect(runtime.kernel.getSnapshot().overrides.country).toBe('FR');
+		expect(runtime.kernel.getSnapshot().consentCategories).toEqual([
+			'marketing',
+		]);
+	});
+
 	test('the options it was created with change nothing', async () => {
 		const transport = createTransport();
 		const options: ConsentProviderRuntimeOptions = {
@@ -169,7 +234,7 @@ describe('update()', () => {
 		runtime.start();
 
 		// A component re-renders with new objects holding the same values.
-		runtime.update({
+		await runtime.update({
 			...options,
 			overrides: { country: 'DE' },
 			user: { externalId: 'user_1' },
@@ -191,8 +256,8 @@ describe('update()', () => {
 		const runtime = create(options);
 		runtime.start();
 
-		runtime.update({ ...options, user: { id: 'user_2' } });
-		runtime.update({ ...options, user: { id: 'user_2' } });
+		await runtime.update({ ...options, user: { id: 'user_2' } });
+		await runtime.update({ ...options, user: { id: 'user_2' } });
 
 		await vi.waitFor(() => expect(identify).toHaveBeenCalledOnce());
 		expect(identify.mock.calls[0]?.[0]).toMatchObject({ externalId: 'user_2' });
@@ -209,11 +274,12 @@ describe('update()', () => {
 		runtime.start();
 
 		// oxlint-disable-next-line sort-keys -- The order is what this checks.
-		runtime.update({ ...options, overrides: { region: 'BY', country: 'DE' } });
+		const reordered = { region: 'BY', country: 'DE' };
+		await runtime.update({ ...options, overrides: reordered });
 		await Promise.resolve();
 		expect(transport.init).not.toHaveBeenCalled();
 
-		runtime.update({ ...options, overrides: { country: 'FR' } });
+		await runtime.update({ ...options, overrides: { country: 'FR' } });
 		expect(runtime.kernel.getSnapshot().overrides.country).toBe('FR');
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
 	});
@@ -227,7 +293,7 @@ describe('update()', () => {
 		};
 		const runtime = create(options);
 
-		runtime.update({ ...options, overrides: { language: 'fr' } });
+		await runtime.update({ ...options, overrides: { language: 'fr' } });
 		expect(transport.init).not.toHaveBeenCalled();
 		runtime.start();
 
@@ -237,7 +303,7 @@ describe('update()', () => {
 		});
 	});
 
-	test('removing `consentCategories` drops the configured list', () => {
+	test('removing `consentCategories` drops the configured list', async () => {
 		const options: ConsentProviderRuntimeOptions = {
 			consentCategories: ['necessary', 'marketing'],
 			mode: custom(createTransport()),
@@ -245,7 +311,7 @@ describe('update()', () => {
 		const runtime = create(options);
 		expect(runtime.consentCategories).toEqual(['necessary', 'marketing']);
 
-		runtime.update({ ...options, consentCategories: undefined });
+		await runtime.update({ ...options, consentCategories: undefined });
 
 		// Svelte restored the snapshot's list from mount instead, which kept
 		// the removed configuration.
@@ -254,7 +320,7 @@ describe('update()', () => {
 		);
 	});
 
-	test('a vendor list replaced after mount replaces the declared vendors', () => {
+	test('a vendor list replaced after mount replaces the declared vendors', async () => {
 		const options: ConsentProviderRuntimeOptions = {
 			mode: custom(createTransport()),
 			vendors: [{ category: 'marketing', id: 'ads', name: 'Ads' }] as never,
@@ -267,7 +333,7 @@ describe('update()', () => {
 			);
 		expect(ids()).toEqual(['ads']);
 
-		runtime.update({
+		await runtime.update({
 			...options,
 			vendors: [
 				{ category: 'measurement', id: 'stats', name: 'Stats' },
@@ -280,7 +346,7 @@ describe('update()', () => {
 		);
 	});
 
-	test('new scripts go to the mounted loader; scripts that appear after start mount one', () => {
+	test('new scripts go to the mounted loader; scripts that appear after start mount one', async () => {
 		const fakes = createFakeModules();
 		const first = [{ callbackOnly: true, category: 'measurement', id: 'a' }];
 		const options: ConsentProviderRuntimeOptions = {
@@ -291,19 +357,22 @@ describe('update()', () => {
 		runtime.start();
 		const next = [{ callbackOnly: true, category: 'marketing', id: 'b' }];
 
-		runtime.update({ ...options, scripts: next as never });
+		await runtime.update({ ...options, scripts: next as never });
 		expect(fakes.loaders).toHaveLength(1);
 		expect(fakes.loaders[0]?.updates).toEqual([next]);
 
 		const late = create({ mode: custom(createTransport()) }, fakes.modules);
 		late.start();
 		expect(fakes.loaders).toHaveLength(1);
-		late.update({ mode: custom(createTransport()), scripts: next as never });
+		await late.update({
+			mode: custom(createTransport()),
+			scripts: next as never,
+		});
 		expect(fakes.loaders).toHaveLength(2);
 		expect(fakes.loaders[1]?.scripts).toEqual(next);
 	});
 
-	test('network blocker rules and `enabled` follow the options; removing it unmounts it, adding it mounts one', () => {
+	test('network blocker rules and `enabled` follow the options; removing it unmounts it, adding it mounts one', async () => {
 		const fakes = createFakeModules();
 		const rules = [{ category: 'marketing', domain: 'ads.example' }];
 		const options: ConsentProviderRuntimeOptions = {
@@ -314,21 +383,21 @@ describe('update()', () => {
 		runtime.start();
 		const nextRules = [{ category: 'measurement', domain: 'stats.example' }];
 
-		runtime.update({
+		await runtime.update({
 			...options,
 			networkBlocker: { rules: nextRules } as never,
 		});
-		runtime.update({
+		await runtime.update({
 			...options,
 			networkBlocker: { enabled: false, rules: nextRules } as never,
 		});
 		expect(fakes.blockers[0]?.rules).toEqual([rules, nextRules]);
 		expect(fakes.blockers[0]?.enabled).toEqual([false]);
 
-		runtime.update({ ...options, networkBlocker: false });
+		await runtime.update({ ...options, networkBlocker: false });
 		expect(fakes.blockers[0]?.disposed).toBe(true);
 
-		runtime.update({ ...options, networkBlocker: { rules } as never });
+		await runtime.update({ ...options, networkBlocker: { rules } as never });
 		expect(fakes.blockers).toHaveLength(2);
 		runtime.dispose();
 		expect(fakes.blockers[1]?.disposed).toBe(true);
@@ -350,7 +419,7 @@ describe('update()', () => {
 			runtime.start();
 
 			// `{ rules }` alone means on: `enabled` defaults to true.
-			runtime.update({ ...options, networkBlocker: { rules } as never });
+			await runtime.update({ ...options, networkBlocker: { rules } as never });
 
 			const response = await window.fetch('https://ads.example/pixel');
 			expect(response.status).toBe(451);
@@ -378,7 +447,7 @@ describe('update()', () => {
 		try {
 			runtime.start();
 
-			runtime.update({
+			await runtime.update({
 				...options,
 				networkBlocker: {
 					rules: [{ category: 'marketing', domain: 'next.example' }],
@@ -401,7 +470,7 @@ describe('update()', () => {
 		}
 	});
 
-	test('the iframe blocker is rebuilt when `disableAutomaticBlocking` changes and removed by `false`', () => {
+	test('the iframe blocker is rebuilt when `disableAutomaticBlocking` changes and removed by `false`', async () => {
 		const fakes = createFakeModules();
 		const options: ConsentProviderRuntimeOptions = {
 			mode: custom(createTransport()),
@@ -409,14 +478,14 @@ describe('update()', () => {
 		const runtime = create(options, fakes.modules);
 		runtime.start();
 
-		runtime.update({
+		await runtime.update({
 			...options,
 			iframeBlocker: { disableAutomaticBlocking: true },
 		});
 		expect(fakes.iframes.map((entry) => entry.disposed)).toEqual([true, false]);
 		expect(fakes.iframes[1]?.disableAutomaticBlocking).toBe(true);
 
-		runtime.update({ ...options, iframeBlocker: false });
+		await runtime.update({ ...options, iframeBlocker: false });
 		expect(fakes.iframes[1]?.disposed).toBe(true);
 	});
 
@@ -432,14 +501,17 @@ describe('update()', () => {
 		const runtime = create(options);
 		runtime.start();
 
-		runtime.update({ ...options, callbacks: { onChoiceRecorded: second } });
+		await runtime.update({
+			...options,
+			callbacks: { onChoiceRecorded: second },
+		});
 		await runtime.kernel.commands.save('all');
 
 		expect(first).not.toHaveBeenCalled();
 		expect(second).toHaveBeenCalledOnce();
 	});
 
-	test('a changed `mode`, `i18n` or `experiment` warns outside production', () => {
+	test('a changed `mode`, `i18n` or `experiment` warns outside production', async () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
 			// Asserted below.
 		});
@@ -448,9 +520,42 @@ describe('update()', () => {
 		};
 		const runtime = create(options);
 
-		runtime.update({ ...options, i18n: { locale: 'de' } });
+		await runtime.update({ ...options, i18n: { locale: 'de' } });
 
 		expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
+	});
+
+	test('storage is read once: a new storage key warns and records stay under the first', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {
+			// Asserted below.
+		});
+		const transport = createTransport();
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+			storageConfig: { storageKey: 'first-key' },
+		};
+		const runtime = create(options);
+		runtime.start();
+
+		// An equal storage config in a new object is not a change.
+		await runtime.update({
+			...options,
+			storageConfig: { storageKey: 'first-key' },
+		});
+		expect(warn).not.toHaveBeenCalled();
+
+		await runtime.update({
+			...options,
+			storageConfig: { storageKey: 'next-key' },
+		});
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
+
+		await runtime.kernel.commands.save('all');
+		await vi.waitFor(() =>
+			expect(localStorage.getItem('first-key')).not.toBeNull()
+		);
+		expect(localStorage.getItem('next-key')).toBeNull();
 	});
 });
 
@@ -468,7 +573,7 @@ describe('the enabled toggle', () => {
 		const changed = vi.fn();
 		runtime.subscribe(changed);
 
-		runtime.update({ ...options, enabled: false });
+		await runtime.update({ ...options, enabled: false });
 
 		expect(runtime.enabled).toBe(false);
 		expect(runtime.kernel).not.toBe(enabledKernel);
@@ -664,6 +769,31 @@ describe('a streamed prefetch', () => {
 		expect(transport.init).not.toHaveBeenCalled();
 	});
 
+	test('a config with a policy keeps its records, and runtime overrides win over its overrides', async () => {
+		const transport = createTransport();
+		const runtime = create(
+			{
+				mode: custom(transport),
+				overrides: { country: 'US' },
+				persistence: false,
+				prefetch: Promise.resolve({
+					...RESOLVED_PREFETCH,
+					initialOverrides: { country: 'DE' },
+					initialRecords: { subject: { subjectId: 'sub_server' } },
+				}),
+			},
+			streaming
+		);
+		runtime.start();
+
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().policyPending).toBe(false)
+		);
+		expect(runtime.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+		expect(runtime.kernel.getSnapshot().overrides.country).toBe('US');
+		expect(transport.init).not.toHaveBeenCalled();
+	});
+
 	test('a config without a policy is a baseline: its records apply and the transport init runs with its overrides', async () => {
 		const transport = createTransport();
 		const runtime = create(
@@ -742,6 +872,54 @@ describe('a streamed prefetch', () => {
 });
 
 describe('lazyRuntimeModule', () => {
+	test('data clearing waits for a lazy script loader, so revocation callbacks run before data is removed', async () => {
+		const loaderGate = Promise.withResolvers<undefined>();
+		const runtime = create(
+			{
+				clearOnRevocation: { measurement: { localStorage: ['visitor'] } },
+				persistence: false,
+				prefetch: RESOLVED_PREFETCH,
+				scripts: [
+					{
+						callbackOnly: true,
+						category: 'measurement',
+						id: 'analytics',
+						onConsentChange: ({ hasConsent }) => {
+							if (!hasConsent) {
+								localStorage.setItem('visitor', 'written during shutdown');
+							}
+						},
+					},
+				],
+			},
+			{
+				...defaultRuntimeModules,
+				createClearOnRevocation: lazyRuntimeModule(async () => {
+					const module = await import('../../modules/clear-on-revocation');
+					return module.createClearOnRevocation;
+				}),
+				// The loader's chunk lands after data clearing's.
+				createScriptLoader: lazyRuntimeModule(async () => {
+					await loaderGate.promise;
+					const module = await import('../../modules/script-loader');
+					return module.createScriptLoader;
+				}),
+			}
+		);
+		runtime.start();
+		await vi.dynamicImportSettled();
+		loaderGate.resolve(undefined);
+		await loaderGate.promise;
+		// The loader's chunk, then data clearing's, which waits for it.
+		await vi.dynamicImportSettled();
+		await vi.dynamicImportSettled();
+
+		await runtime.kernel.commands.save('all');
+		await runtime.kernel.commands.save('none');
+
+		expect(localStorage.getItem('visitor')).toBeNull();
+	});
+
 	test('queues calls until the module lands, then replays them in order', async () => {
 		const calls: string[] = [];
 		const loaded = Promise.withResolvers<

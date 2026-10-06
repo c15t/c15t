@@ -21,10 +21,10 @@ import type { IframeBlockerHandle } from '../modules/iframe-blocker/types';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
 import type { PersistenceHandle } from '../modules/persistence/types';
+import type { ScriptLoaderHandle } from '../modules/script-loader/types';
 import { resolveWindowDebugMode } from '../modules/window-debug';
-import type { ConsentKernel } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
-import { connectConsentSource } from './controls';
+import { afterModuleLoaded } from './lazy-module';
 import {
 	createRuntimeKernel,
 	hasResolvedPrefetch,
@@ -32,11 +32,9 @@ import {
 } from './runtime-kernel';
 import type {
 	ConsentRuntime,
-	ConsentRuntimeIABFactoryOptions,
 	ConsentRuntimeIABHandle,
 	ConsentRuntimeModules,
 	ConsentRuntimeOptions,
-	RuntimeIABOptions,
 } from './types';
 
 /** What the provider runtime needs beyond the public interface. @internal */
@@ -68,34 +66,6 @@ export const storageFor = function storageFor(
 			? options.persistence.storageConfig
 			: undefined) ?? options.storageConfig
 	);
-};
-
-const normalizeIABOptions = function normalizeIABOptions(
-	kernel: ConsentKernel,
-	iab: RuntimeIABOptions | undefined
-): Omit<ConsentRuntimeIABFactoryOptions, 'kernel'> | null {
-	if (iab === false || !iab || iab.enabled === false) {
-		return null;
-	}
-	const currentIab = kernel.getSnapshot().iab;
-	const cmpId = iab.cmpId ?? currentIab?.cmpId;
-	if (typeof cmpId !== 'number') {
-		return null;
-	}
-	return {
-		cmpId,
-		cmpVersion:
-			typeof iab.cmpVersion === 'string'
-				? Number(iab.cmpVersion)
-				: iab.cmpVersion,
-		customVendors: iab.customVendors ?? currentIab?.customVendors,
-		gvl: iab.gvl ?? currentIab?.gvl ?? undefined,
-		gvlURL: iab.gvlURL,
-		isServiceSpecific: iab.isServiceSpecific,
-		publisherCountryCode: iab.publisherCountryCode,
-		publisherRestrictions: iab.publisherRestrictions,
-		vendors: iab.vendors,
-	};
 };
 
 /**
@@ -181,36 +151,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			return;
 		}
 		await kernel.commands.init();
-	};
-
-	const startIAB = function startIAB() {
-		const { createIAB } = options;
-		if (!(enabled && createIAB && options.iab) || consentSource) {
-			return;
-		}
-		let mounted = false;
-		const mountWhenReady = function mountWhenReady() {
-			if (mounted) {
-				return;
-			}
-			const iabOptions = normalizeIABOptions(kernel, options.iab);
-			if (!iabOptions) {
-				return;
-			}
-			mounted = true;
-			const handle = createIAB({ ...iabOptions, kernel });
-			emitIAB(handle);
-			disposers.push(() => {
-				handle.dispose();
-				mounted = false;
-				emitIAB(null);
-			});
-		};
-
-		mountWhenReady();
-		// A hosted backend can return `cmpId` and the GVL from `/init`, so
-		// keep watching until the snapshot carries enough to mount.
-		disposers.push(kernel.subscribe(mountWhenReady));
 	};
 
 	const stop = function stop(): void {
@@ -314,10 +254,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 
 			const { persistence: persistenceOption } = options;
 			if (enabled && !consentSource && persistenceOption !== false) {
-				const { skipHydration, sync } =
+				const { now, skipHydration, sync } =
 					typeof persistenceOption === 'object' ? persistenceOption : {};
 				const persistence = modules.createPersistence({
 					kernel,
+					now,
 					skipHydration:
 						skipHydration ?? Boolean(options.prefetch?.initialRecords),
 					storageConfig: storageFor(options),
@@ -330,7 +271,7 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				});
 			}
 			if (enabled && consentSource) {
-				disposers.push(connectConsentSource(kernel, consentSource));
+				disposers.push(modules.connectConsentSource(kernel, consentSource));
 				kernel.events.emit({
 					snapshot: kernel.getSnapshot(),
 					type: 'init:applied',
@@ -381,14 +322,16 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			// the loader mounts the configured scripts straight away. Skipping it
 			// would silently drop every consent-gated integration on a site that
 			// turned consent management off.
+			let loader: ScriptLoaderHandle | undefined;
 			if (options.scripts && options.scripts.length > 0) {
-				const loader = modules.createScriptLoader({
+				loader = modules.createScriptLoader({
 					kernel,
 					nonce: options.nonce,
 					onDebug: options.scriptLoader?.onDebug,
 					scripts: options.scripts,
 				});
-				disposers.push(() => loader.dispose());
+				const mounted = loader;
+				disposers.push(() => mounted.dispose());
 			}
 
 			if (enabled && options.networkBlocker) {
@@ -428,14 +371,33 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				});
 			}
 
-			startIAB();
-			if (enabled && options.clearOnRevocation) {
-				const cleanup = modules.createClearOnRevocation({
-					config: options.clearOnRevocation,
-					kernel,
-					storageConfig: storageFor(options),
+			const { createIAB, iab } = options;
+			if (enabled && createIAB && iab && !consentSource && modules.mountIAB) {
+				disposers.push(
+					modules.mountIAB({ createIAB, iab, kernel, onHandle: emitIAB })
+				);
+			}
+			const { clearOnRevocation } = options;
+			if (enabled && clearOnRevocation) {
+				// Data clearing subscribes after the script loader, so revocation
+				// callbacks finish before browser data is removed. A loader that
+				// loads on demand subscribes when its chunk lands.
+				let cleanup: { dispose: () => void } | null = null;
+				let cancelled = false;
+				const mountCleanup = () => {
+					if (!cancelled) {
+						cleanup = modules.createClearOnRevocation({
+							config: clearOnRevocation,
+							kernel,
+							storageConfig: storageFor(options),
+						});
+					}
+				};
+				disposers.push(() => {
+					cancelled = true;
+					cleanup?.dispose();
 				});
-				disposers.push(() => cleanup.dispose());
+				afterModuleLoaded(loader, mountCleanup);
 			}
 		},
 		get started() {

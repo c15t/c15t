@@ -145,9 +145,62 @@ test('keeps the kernel across rerenders and synchronizes identity and geographic
 		</ConsentProvider>
 	);
 	expect(kernel).toBe(first);
-	expect(kernel.getSnapshot().user?.externalId).toBe('second');
 	expect(kernel.getSnapshot().overrides.country).toBe('FR');
+	// Identity follows once the runtime's update module has loaded.
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().user?.externalId).toBe('second')
+	);
 	await vi.waitFor(() => expect(init).toHaveBeenCalledTimes(1));
+});
+
+test('a prefetch still marked pending is not adopted: the provider asks /init', async () => {
+	const init = vi.fn(() =>
+		Promise.resolve({
+			policyResolution: writePolicyResolutionWire(
+				policyFixture().initialPolicyResolution
+			),
+		})
+	);
+	await render(
+		<ConsentProvider
+			options={{
+				mode: custom({ init }),
+				persistence: false,
+				prefetch: { ...policyFixture(), initialPolicyPending: true },
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() => expect(init).toHaveBeenCalledTimes(1));
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().policyPending).toBe(false)
+	);
+});
+
+test('an offline IAB policy resolves: IAB renders in the tree, so the transport does not reject it', async () => {
+	const iabPolicy = {
+		categories: ['measurement' as const, 'marketing' as const],
+		id: 'iab',
+		match: { fallback: true },
+		model: 'iab' as const,
+		prompt: 'choice' as const,
+		scopeMode: 'permissive' as const,
+	};
+	await render(
+		<ConsentProvider
+			options={{
+				mode: offline({ policyRules: [iabPolicy] }),
+				persistence: false,
+			}}
+		>
+			<Capture />
+		</ConsentProvider>
+	);
+	await vi.waitFor(() =>
+		expect(kernel.getSnapshot().policyPending).toBe(false)
+	);
+	expect(kernel.getSnapshot().resolution.status).toBe('matched');
 });
 
 test('disposes the kernel on unmount', async () => {
@@ -718,85 +771,52 @@ test('disabled providers leave configured browser data alone', async () => {
 	localStorage.removeItem('analytics:visitor');
 });
 
-test('protects consent records after the persistence storage key changes', async () => {
+test('storage is read once: a new storage key warns and records stay where they were', async () => {
 	const firstKey = 'cleanup-first';
 	const nextKey = 'cleanup-next';
 	const prefetch = policyFixture({ measurement: true });
 	const mode = offline();
 	const clearOnRevocation = {
-		marketing: { localStorage: ['cleanup:ready'] },
 		measurement: { localStorage: ['cleanup-*'] },
 	};
-	localStorage.setItem('cleanup:ready', 'pending');
-	const screen = await render(
+	const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+	const provider = (storageKey: string) => (
 		<ConsentProvider
 			options={{
 				clearOnRevocation,
-				consentCategories: ['marketing', 'measurement'],
+				consentCategories: ['measurement'],
 				mode,
-				persistence: {
-					skipHydration: true,
-					storageConfig: { storageKey: firstKey },
-				},
+				persistence: { skipHydration: true, storageConfig: { storageKey } },
 				prefetch,
 			}}
 		>
 			<Capture />
 		</ConsentProvider>
 	);
-	await vi.waitFor(() =>
-		expect(localStorage.getItem('cleanup:ready')).toBeNull()
-	);
-	localStorage.setItem('cleanup:ready', 'repopulated');
-	await screen.rerender(
-		<ConsentProvider
-			options={{
-				clearOnRevocation,
-				consentCategories: ['marketing', 'measurement'],
-				mode,
-				persistence: {
-					skipHydration: true,
-					storageConfig: { storageKey: firstKey },
-				},
-				prefetch,
-			}}
-		>
-			<Capture />
-		</ConsentProvider>
-	);
-	expect(localStorage.getItem('cleanup:ready')).toBe('repopulated');
+	const screen = await render(provider(firstKey));
+	// A new options object with the same storage is not a change.
+	await screen.rerender(provider(firstKey));
+	expect(warn).not.toHaveBeenCalledWith(expect.stringContaining('read once'));
 
-	await screen.rerender(
-		<ConsentProvider
-			options={{
-				clearOnRevocation,
-				consentCategories: ['marketing', 'measurement'],
-				mode,
-				persistence: {
-					skipHydration: true,
-					storageConfig: { storageKey: nextKey },
-				},
-				prefetch,
-			}}
-		>
-			<Capture />
-		</ConsentProvider>
-	);
+	await screen.rerender(provider(nextKey));
+	expect(warn).toHaveBeenCalledWith(expect.stringContaining('read once'));
+
 	await kernel.commands.save('all');
 	// Persistence batches writes in a macrotask; save resolves before storage.
-	await vi.waitFor(() => expect(localStorage.getItem(nextKey)).not.toBeNull());
-	const acceptedRecord = localStorage.getItem(nextKey);
+	await vi.waitFor(() => expect(localStorage.getItem(firstKey)).not.toBeNull());
+	expect(localStorage.getItem(nextKey)).toBeNull();
+
+	// Data clearing protects the key persistence writes, not the new one.
+	const acceptedRecord = localStorage.getItem(firstKey);
 	localStorage.setItem('cleanup-visitor', 'visitor');
 	const removeItem = vi.spyOn(Storage.prototype, 'removeItem');
 	await kernel.commands.save('none');
 	await vi.waitFor(() => {
-		expect(localStorage.getItem(nextKey)).not.toBeNull();
-		expect(localStorage.getItem(nextKey)).not.toBe(acceptedRecord);
+		expect(localStorage.getItem(firstKey)).not.toBe(acceptedRecord);
+		expect(localStorage.getItem('cleanup-visitor')).toBeNull();
 	});
-	// Deleting then rewriting the record would still notify other tabs.
-	expect(removeItem).not.toHaveBeenCalledWith(nextKey);
-	expect(localStorage.getItem('cleanup-visitor')).toBeNull();
-	expect(localStorage.getItem(nextKey)).not.toBeNull();
+	expect(removeItem).not.toHaveBeenCalledWith(firstKey);
+	expect(localStorage.getItem(firstKey)).not.toBeNull();
 	await screen.unmount();
 	for (const key of [firstKey, nextKey]) {
 		localStorage.removeItem(key);

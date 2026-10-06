@@ -160,6 +160,11 @@
 			"import": "./shims/runtime/controls.js",
 			"default": "./shims/runtime/controls.js"
 		},
+		"./runtime/provider": {
+			"types": "./shims/runtime/provider.d.ts",
+			"import": "./shims/runtime/provider.js",
+			"default": "./shims/runtime/provider.js"
+		},
 		"./react": {
 			"types": "./shims/react.d.ts",
 			"import": "./shims/react.js",
@@ -399,6 +404,7 @@
 		},
 		"./tanstack-start/server": {
 			"types": "./shims/tanstack-start/server.d.ts",
+			"browser": "./shims/tanstack-start/server.js",
 			"import": "./shims/tanstack-start/server.js",
 			"default": "./shims/tanstack-start/server.js"
 		},

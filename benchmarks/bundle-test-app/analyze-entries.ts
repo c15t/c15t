@@ -23,6 +23,9 @@ interface EntryMeasurement {
 	initialBrotli: number;
 	lazyGzip: number;
 	lazyBrotli: number;
+	/** Deferred chunks the entry can load through `import()`; see `classifyEntryChunks`. */
+	reachableLazyGzip: number;
+	reachableLazyBrotli: number;
 	name: string;
 	rawBytes: number;
 	gzipBytes: number;
@@ -165,7 +168,14 @@ const toBenchmarkResult = function toBenchmarkResult(
 		},
 		metrics: [
 			...(
-				['initialGzip', 'initialBrotli', 'lazyGzip', 'lazyBrotli'] as const
+				[
+					'initialGzip',
+					'initialBrotli',
+					'lazyGzip',
+					'lazyBrotli',
+					'reachableLazyGzip',
+					'reachableLazyBrotli',
+				] as const
 			).map((name) => summarizeMetric(name, 'bytes', [measurement[name]])),
 			...Object.entries(measurement.boundaries).map(([family, boundary]) =>
 				summarizeMetric(`${family}InputModuleCount`, 'count', [
@@ -186,6 +196,7 @@ const toBenchmarkResult = function toBenchmarkResult(
 		],
 		notes: [
 			'Synthetic esbuild entry with React externals and empty CSS loaders.',
+			'lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().',
 		],
 		package: '@c15t/next-bundle-bench',
 		runtime: 'esbuild',
@@ -202,13 +213,13 @@ const toMarkdown = function toMarkdown(
 	const lines = [
 		'# Bundle entry benchmarks',
 		'',
-		'| Entry | Initial gzip | Initial Brotli | Deferred gzip | Deferred Brotli |',
-		'| --- | ---: | ---: | ---: | ---: |',
+		'| Entry | Initial gzip | Initial Brotli | Deferred gzip | Deferred Brotli | Reachable deferred gzip | Reachable deferred Brotli |',
+		'| --- | ---: | ---: | ---: | ---: | ---: | ---: |',
 	];
 
 	for (const measurement of measurements) {
 		lines.push(
-			`| ${measurement.name} | ${measurement.initialGzip} | ${measurement.initialBrotli} | ${measurement.lazyGzip} | ${measurement.lazyBrotli} |`
+			`| ${measurement.name} | ${measurement.initialGzip} | ${measurement.initialBrotli} | ${measurement.lazyGzip} | ${measurement.lazyBrotli} | ${measurement.reachableLazyGzip} | ${measurement.reachableLazyBrotli} |`
 		);
 	}
 

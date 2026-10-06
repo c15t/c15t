@@ -61,6 +61,7 @@ import type {
 	KernelUser,
 	Unsubscribe,
 } from '../types';
+import type { RuntimeIABMountOptions } from './iab-mount';
 
 /** Script-loader tuning accepted by {@link ConsentRuntimeOptions}. */
 export interface RuntimeScriptLoaderOptions {
@@ -238,6 +239,23 @@ export interface ConsentRuntimeModules {
 	/** Mounted on `start()` unless `windowDebug: false`. */
 	createWindowDebug: (options: WindowDebugOptions) => WindowDebugHandle;
 	/**
+	 * Connects a `consentSource` on `start()` while enabled. Pass
+	 * `connectConsentSource` from `@c15t/core/runtime/controls`, or a
+	 * wrapper that imports it on demand: until it connects, the kernel
+	 * grants no optional category.
+	 */
+	connectConsentSource: (
+		kernel: ConsentKernel,
+		source: ExternalConsentSource
+	) => Unsubscribe;
+	/**
+	 * Mounts the IAB CMP on `start()` while enabled, when the options set
+	 * `iab` and `createIAB`. Pass `mountRuntimeIAB` from `@c15t/core/runtime`
+	 * (`defaultRuntimeModules` does). Without it `iab` is ignored, so a host
+	 * that renders IAB another way ships none of the mounting code.
+	 */
+	mountIAB?: (options: RuntimeIABMountOptions) => () => void;
+	/**
 	 * Lets the provider runtime accept a `prefetch` that is still a promise.
 	 * Pass `streamPrefetch` from `@c15t/core/runtime`. Without it a pending
 	 * prefetch is ignored (with a warning outside production) and the runtime
@@ -398,12 +416,12 @@ export interface ConsentRuntimeOptions {
  *
  * Options {@link ConsentProviderRuntime.update} applies to a running
  * runtime: `enabled`, `user`, `overrides`, `consentCategories`, `scripts`,
- * `vendors`, `networkBlocker`, `iframeBlocker`, `callbacks`,
- * `reloadOnConsentRevoked`, and the `storageConfig.storageKey` that
- * `clearOnRevocation` protects. `nonce`, `scriptLoader.onDebug` and the
+ * `vendors`, `networkBlocker`, `iframeBlocker`, `callbacks` and
+ * `reloadOnConsentRevoked`. `nonce`, `scriptLoader.onDebug` and the
  * network blocker's `logBlockedRequests` and `onRequestBlocked` are read
- * when their module mounts. Every other option is read once: create a new
- * runtime to change it.
+ * when their module mounts. Every other option is read once, storage
+ * included (`persistence`, `storageConfig`): create a new runtime to
+ * change it.
  */
 export interface ConsentProviderRuntimeOptions extends Omit<
 	ConsentRuntimeOptions,
@@ -621,10 +639,19 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * user is identified, new overrides are set and `init()` runs again,
 	 * vendors are re-declared, scripts and rules go to their modules, a
 	 * module turned on or off is mounted or unmounted. Callbacks are always
-	 * read from the latest set. A change to `mode`, `i18n` or `experiment`
-	 * logs a warning outside production.
+	 * read from the latest set. A change to `mode`, `i18n`, `experiment`,
+	 * `persistence` or `storageConfig` logs a warning outside production.
+	 *
+	 * New overrides, `enabled` and `consentCategories` apply at once, and
+	 * requests that new network blocker rules match are held until the
+	 * blocker has those rules. The rest of the comparison loads on demand,
+	 * with the first `update()` in which some option is a new value, so
+	 * options handed back unchanged load nothing. The returned promise
+	 * resolves once every change has applied. It rejects when that module
+	 * fails to load: requests held for new rules then fail as blocked, and
+	 * the next `update()` loads it again.
 	 */
-	update: (options: ConsentRuntimeUpdate) => void;
+	update: (options: ConsentRuntimeUpdate) => Promise<void>;
 	/**
 	 * Subscribe to {@link ConsentProviderRuntime.kernel},
 	 * {@link ConsentRuntime.iab} or {@link ConsentProviderRuntime.enabled}

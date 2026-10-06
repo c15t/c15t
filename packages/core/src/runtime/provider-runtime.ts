@@ -24,10 +24,11 @@ import { hostExperiment } from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
-import type { NetworkBlockerHandle } from '../modules/network-blocker/types';
-import type { ScriptLoaderHandle } from '../modules/script-loader/types';
-import type { KernelUser } from '../types';
+import type { NetworkHold } from '../modules/network-blocker/hold';
 import { assembleConsentRuntime, storageFor } from './assemble';
+import { afterModuleLoaded } from './lazy-module';
+import type * as ProviderUpdateModule from './provider-update';
+import type { ProviderUpdateHost } from './provider-update';
 import { normalizeKernelUser } from './runtime-kernel';
 import type {
 	ConsentProviderRuntime,
@@ -51,54 +52,34 @@ const LIVE_OPTIONS = new Set<PropertyKey>([
 	'reloadOnConsentRevoked',
 	'scriptLoader',
 	'scripts',
-	'storageConfig',
 	'user',
 	'vendors',
 ]);
-
-const isPromiseLike = function isPromiseLike<Value>(
-	value: Value | PromiseLike<Value> | undefined
-): value is PromiseLike<Value> {
-	return typeof (value as PromiseLike<Value> | undefined)?.then === 'function';
-};
-
-/** The prefetch known now: none while a promise is still pending. */
-const syncPrefetch = function syncPrefetch(
-	prefetch: ConsentProviderRuntimeOptions['prefetch']
-): RuntimePrefetch | undefined {
-	return isPromiseLike(prefetch) ? undefined : prefetch;
-};
-
-const isProduction = function isProduction(): boolean {
-	return (
-		(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
-			?.NODE_ENV === 'production'
-	);
-};
-
-const warnInDevelopment = function warnInDevelopment(message: string): void {
-	if (!isProduction()) {
-		console.warn(message);
-	}
-};
-
-/** Every field `identify()` sends, in a fixed order. */
-const userKey = function userKey(user: KernelUser | undefined): string {
-	return JSON.stringify(
-		user && [
-			user.externalId,
-			user.externalIdType,
-			user.identityProvider,
-			user.properties,
-		]
-	);
-};
 
 /** Overrides compared without regard to key order. */
 const overridesKey = function overridesKey(
 	overrides: ConsentRuntimeUpdate['overrides']
 ): string {
 	return JSON.stringify(Object.entries(overrides ?? {}).sort());
+};
+
+/**
+ * Whether any option is a new value. `update()` loads the update module
+ * only then: a provider that hands back the options it already gave (Svelte's
+ * update effect also runs on mount) downloads nothing. The module compares
+ * values itself, so a new object holding the same values loads it and
+ * changes nothing.
+ */
+const changed = function changed(
+	applied: ConsentRuntimeUpdate,
+	next: ConsentRuntimeUpdate
+): boolean {
+	for (const key in { ...applied, ...next }) {
+		if (applied[key as 'user'] !== next[key as 'user']) {
+			return true;
+		}
+	}
+	return false;
 };
 
 /** The scripts and rules whose slugs declare vendors. */
@@ -109,24 +90,8 @@ const ownersOf = function ownersOf(options: ConsentRuntimeUpdate) {
 	];
 };
 
-const vendorsKey = function vendorsKey(options: ConsentRuntimeUpdate): string {
-	return JSON.stringify([
-		options.vendors ?? [],
-		ownersOf(options).map((owner) => [owner.vendor ?? null, owner.category]),
-	]);
-};
-
-const initialOnlyKey = function initialOnlyKey(
-	options: ConsentRuntimeUpdate
-): string {
-	return JSON.stringify([
-		options.mode?.kind,
-		options.i18n,
-		hostExperiment(options.experiment, syncPrefetch(options.prefetch)),
-	]);
-};
-
-interface Replaceable<Options, Handle extends { dispose: () => void }> {
+/** A module factory whose mounted module the provider can rebuild. @internal */
+export interface Replaceable<Options, Handle extends { dispose: () => void }> {
 	/** The factory a runtime mounts through. */
 	create: (options: Options) => Handle;
 	/** The module now mounted, if any. */
@@ -156,17 +121,24 @@ const replaceable = function replaceable<
 	let inner: Handle | null = null;
 	let last: Options | null = null;
 	const standIn = new Proxy({} as Handle, {
-		get: (_target, method) =>
-			method === 'dispose'
-				? () => {
-						inner?.dispose();
-						inner = null;
-					}
-				: (...args: unknown[]) =>
-						(
-							inner as Record<PropertyKey, (...a: unknown[]) => unknown> | null
-						)?.[method]?.(...args),
+		get: (_target, method) => {
+			// Symbols are not methods: a lazy module's load signal, for one.
+			if (typeof method === 'symbol') {
+				return (inner as Record<PropertyKey, unknown> | null)?.[method];
+			}
+			if (method === 'dispose') {
+				return () => {
+					inner?.dispose();
+					inner = null;
+				};
+			}
+			return (...args: unknown[]) =>
+				(inner as Record<PropertyKey, (...a: unknown[]) => unknown> | null)?.[
+					method
+				]?.(...args);
+		},
 	});
+
 	return {
 		create(options) {
 			last = options;
@@ -227,6 +199,12 @@ export const createConsentProviderRuntime =
 		modules: ConsentRuntimeModules
 	): ConsentProviderRuntime {
 		const initial = options;
+		// The prefetch known now: none while a promise is still pending.
+		const knownPrefetch =
+			typeof (initial.prefetch as PromiseLike<unknown> | undefined)?.then ===
+			'function'
+				? undefined
+				: (initial.prefetch as RuntimePrefetch | undefined);
 		let current: ConsentRuntimeUpdate = options;
 		let enabled = options.enabled ?? true;
 		let started = false;
@@ -254,9 +232,15 @@ export const createConsentProviderRuntime =
 			// it only after construction.
 			const built: { runtime?: ConsentRuntime } = {};
 			const { streamPrefetch } = modules;
-			const pending = on && isPromiseLike(initial.prefetch);
-			if (pending && !streamPrefetch) {
-				warnInDevelopment(
+			// A promise: the only prefetch not known now.
+			const pending = on && initial.prefetch !== knownPrefetch;
+			if (
+				pending &&
+				!streamPrefetch &&
+				(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
+					?.env?.NODE_ENV !== 'production'
+			) {
+				console.warn(
 					'c15t: `prefetch` is a promise, but the runtime was created without `streamPrefetch` in its modules. It is ignored and the runtime requests the policy itself.'
 				);
 			}
@@ -285,10 +269,9 @@ export const createConsentProviderRuntime =
 						// overrides or the language changed before start or while
 						// disabled, the prefetch answers for other inputs: start
 						// asks the backend instead.
-						const prefetch = syncPrefetch(initial.prefetch);
-						return prefetch && overridesChanged
-							? { ...prefetch, initialPolicyPending: true }
-							: prefetch;
+						return knownPrefetch && overridesChanged
+							? { ...knownPrefetch, initialPolicyPending: true }
+							: knownPrefetch;
 					}
 					const source = LIVE_OPTIONS.has(key) ? current : initial;
 					return source[key as keyof ConsentRuntimeUpdate];
@@ -380,118 +363,6 @@ export const createConsentProviderRuntime =
 			notify();
 		};
 
-		/** Re-declare vendors after the vendors, scripts or rules changed. */
-		const redeclareVendors = function redeclareVendors(): void {
-			const { kernel } = main.runtime;
-			const owners = ownersOf(current);
-			// Resolved against the backend entries the kernel already holds, so
-			// a script that starts naming a backend vendor's slug attaches to
-			// that entry as an owner and survives the backend dropping it.
-			const declared = resolveVendors({
-				config: current.vendors,
-				existing: (kernel.getSnapshot().vendors?.declared ?? []).flatMap(
-					(vendor) => {
-						// A backend copy a config entry shadows counts too:
-						// replacing the config source restores it.
-						const manifest =
-							vendor.source === 'manifest' ? vendor : vendor.shadowed;
-						if (manifest?.source !== 'manifest') {
-							return [];
-						}
-						const { ownerCategory: _stale, ...rest } = manifest;
-						return [rest];
-					}
-				),
-				onWarn: warnInDevelopment,
-			});
-			// The provider owns the config source outright: a vendor the host
-			// removed disappears, and a backend entry a config copy shadowed
-			// comes back. Its owners are then declared under its own token.
-			kernel.set.vendors({ declared }, { replaceSource: 'config' });
-			declareOwnedVendors(kernel, owners, ownerSource);
-			kernel.set.registerConsentCategories(
-				[...declared, ...owners].flatMap((declaration) =>
-					extractConsentNamesFromCondition(declaration.category)
-				)
-			);
-		};
-
-		/** Bring a started runtime's modules up to the new options. */
-		// oxlint-disable-next-line complexity -- One comparison per live module option.
-		const syncModules = function syncModules(
-			target: Built,
-			previous: ConsentRuntimeUpdate
-		): void {
-			if (current.scripts !== previous.scripts) {
-				const loader: ScriptLoaderHandle | null = target.scripts.current();
-				if (loader) {
-					loader.updateScripts(current.scripts ?? []);
-				} else if (current.scripts?.length) {
-					target.scripts.replace({ scripts: current.scripts });
-					// Data clearing subscribes after the loader, so revocation
-					// callbacks finish before browser data is removed.
-					if (target.cleanup.current()) {
-						target.cleanup.replace({});
-					}
-				}
-			}
-			if (!enabled) {
-				// Only the script loader runs while disabled.
-				return;
-			}
-			const before = previous.networkBlocker || undefined;
-			const after = current.networkBlocker || undefined;
-			const blocker: NetworkBlockerHandle | null = target.network.current();
-			if (after && blocker) {
-				// Compared resolved: `{ rules }` alone means on.
-				const on = after.enabled !== false;
-				const wasOn = before?.enabled !== false;
-				if (on !== wasOn) {
-					blocker.setEnabled(on);
-				}
-				if (after.rules !== before?.rules || (on && !wasOn)) {
-					// A blocker that loads on demand applies the rules once its
-					// chunk lands: hold what they match until then. One that
-					// has loaded takes the hold over at once.
-					const hold = on ? holdNetworkRequests(after.rules) : NOT_HELD;
-					blocker.updateRules(after.rules, hold);
-					// Never taken over: fail what it held closed.
-					target.track(() => hold.block());
-				}
-			} else if (after) {
-				// Hold matching requests until the blocker, possibly lazy, lands.
-				const hold =
-					after.enabled === false ? NOT_HELD : holdNetworkRequests(after.rules);
-				target.network.replace({ ...after, hold });
-				// A blocker that never loaded never took the hold over: fail
-				// what it held closed. A no-op once it did.
-				target.track(() => hold.block());
-			} else if (blocker) {
-				target.network.replace(null);
-			}
-			const iframeOn = current.iframeBlocker !== false;
-			if (
-				iframeOn !== Boolean(target.iframes.current()) ||
-				(current.iframeBlocker || undefined)?.disableAutomaticBlocking !==
-					(previous.iframeBlocker || undefined)?.disableAutomaticBlocking
-			) {
-				target.iframes.replace(
-					iframeOn
-						? {
-								disableAutomaticBlocking: (current.iframeBlocker || undefined)
-									?.disableAutomaticBlocking,
-							}
-						: null
-				);
-			}
-			if (
-				target.cleanup.current() &&
-				storageFor(current)?.storageKey !== storageFor(previous)?.storageKey
-			) {
-				target.cleanup.replace({ storageConfig: storageFor(current) });
-			}
-		};
-
 		const setConsentCategories = function setConsentCategories(
 			categories: AllConsentNames[] | undefined
 		): void {
@@ -499,6 +370,69 @@ export const createConsentProviderRuntime =
 			// provider is enabled again.
 			main.runtime.setConsentCategories(categories);
 			permissive?.runtime.setConsentCategories(categories);
+		};
+
+		// The rest of `update()` (identity, categories, vendors, modules)
+		// loads with the first update, so a provider whose options never
+		// change after mount ships none of it in its first-load chunk. Its
+		// module imports nothing the first-load chunk has: it gets those
+		// through the host, so a bundler does not split them out.
+		let applied: ConsentRuntimeUpdate = options;
+		let updater: Promise<typeof ProviderUpdateModule> | undefined;
+		const host: ProviderUpdateHost = {
+			active: () => active(),
+			get enabled() {
+				return enabled;
+			},
+			main,
+			ownerSource,
+			tools: {
+				afterModuleLoaded,
+				declareOwnedVendors,
+				extractConsentNamesFromCondition,
+				holdNetworkRequests,
+				hostExperiment,
+				normalizeKernelUser,
+				notHeld: NOT_HELD,
+				resolveVendors,
+				storageFor,
+			},
+		};
+		/**
+		 * Load the update module and apply what changed. `hold` holds the
+		 * requests new network rules match until the blocker has them; it is
+		 * released through the updated blocker, or fails closed when the
+		 * update never applies.
+		 */
+		const applyUpdate = async function applyUpdate(
+			hold: NetworkHold | undefined
+		): Promise<void> {
+			// With nothing new, a hold here is for rules an earlier update set
+			// and this one put back before it applied; the blocker still has
+			// these.
+			if (changed(applied, current)) {
+				let apply: typeof ProviderUpdateModule.applyProviderUpdate;
+				try {
+					updater ??= import('./provider-update');
+					apply = (await updater).applyProviderUpdate;
+				} catch (error) {
+					// The next update imports again: one failed chunk request
+					// does not fail every later one.
+					updater = undefined;
+					hold?.block();
+					throw error;
+				}
+				if (disposed) {
+					hold?.block();
+					return;
+				}
+				if (applied !== current) {
+					const previous = applied;
+					applied = current;
+					apply(host, previous, current, started);
+				}
+			}
+			hold?.release()();
 		};
 
 		const runtime: ConsentRuntime = main.runtime;
@@ -577,50 +511,49 @@ export const createConsentProviderRuntime =
 					listeners.delete(listener);
 				};
 			},
-			// oxlint-disable-next-line complexity -- One comparison per live option.
 			update(next) {
 				if (disposed) {
-					return;
+					return Promise.resolve();
 				}
 				const previous = current;
 				current = { ...next, mode: next.mode ?? initial.mode };
-				if (
-					!isProduction() &&
-					initialOnlyKey(current) !== initialOnlyKey(previous)
-				) {
-					console.warn(
-						'c15t: `mode`, `i18n` and `experiment` are read once. Create a new runtime (remount the provider) to change them.'
-					);
-				}
-				const user = normalizeKernelUser(current.user);
-				if (userKey(user) !== userKey(normalizeKernelUser(previous.user))) {
-					void runtime.identify(user);
-				}
+				// Overrides decide what `start()` does with the prefetch, and the
+				// toggle swaps the kernel the host renders, so both apply now.
 				if (
 					overridesKey(current.overrides) !== overridesKey(previous.overrides)
 				) {
 					runtime.setOverrides(current.overrides ?? {});
-					overridesChanged ||= !started || !enabled;
 					if (started && enabled) {
 						void runtime.reinit();
+					} else {
+						// The next `start()` asks the backend instead of adopting
+						// the prefetch.
+						overridesChanged = true;
 					}
 				}
+				// Mounts every module again from the new options.
+				setEnabled(current.enabled ?? true);
+				// Categories decide what is granted, so they apply now too.
 				if (
 					JSON.stringify(current.consentCategories) !==
 					JSON.stringify(previous.consentCategories)
 				) {
 					setConsentCategories(current.consentCategories);
 				}
-				if (vendorsKey(current) !== vendorsKey(previous)) {
-					redeclareVendors();
-				}
-				const nextEnabled = current.enabled ?? true;
-				if (nextEnabled !== enabled) {
-					// Mounts every module again from the new options.
-					setEnabled(nextEnabled);
-				} else if (started) {
-					syncModules(active(), previous);
-				}
+				// New or wider network rules reach the blocker with the update
+				// module. Until then, hold what they match, as the runtime holds
+				// requests from construction until the blocker loads.
+				const before = previous.networkBlocker || undefined;
+				const after = current.networkBlocker || undefined;
+				const hold =
+					started &&
+					enabled &&
+					after &&
+					after.enabled !== false &&
+					(after.rules !== before?.rules || before?.enabled === false)
+						? holdNetworkRequests(after.rules)
+						: undefined;
+				return applyUpdate(hold);
 			},
 		};
 		return Object.setPrototypeOf(provider, runtime) as ConsentProviderRuntime;

@@ -55,10 +55,7 @@ export type {
 	SaveResult,
 	Unsubscribe,
 } from '@c15t/core';
-export { createConsentKernel, custom, hosted } from '@c15t/core';
 export type { OfflineModeOptions } from './transports/offline';
-export { offline } from './transports/offline';
-export { ConsentDialog, ConsentWidget } from './aggregate-components';
 export type {
 	ConsentBannerButton,
 	ConsentBannerLayout,
@@ -69,17 +66,11 @@ export type {
 	ConsentBannerSurface,
 } from './components/prompt';
 // -- UI components ----------------------------------------------------------
-export {
-	ConsentBanner,
-	type ConsentBannerCompoundComponent,
-	useConsentBannerSurface,
-} from './components/prompt';
 export type {
 	ConsentDialogCompoundComponent,
 	ConsentDialogProps,
 } from './components/panel';
 export type { ConsentDialogLinkProps } from './components/panel-link';
-export { ConsentDialogLink } from './components/panel-link';
 export type {
 	ConsentDialogTriggerProps,
 	ConsentDialogTriggerToolbarAction,
@@ -87,72 +78,21 @@ export type {
 	ConsentDialogTriggerToolbarProps,
 	TriggerOrientation,
 } from './components/panel-trigger';
-export {
-	ConsentDialogTrigger,
-	ConsentDialogTriggerToolbar,
-} from './components/panel-trigger';
 export type {
 	ConsentWidgetCompoundComponent,
 	ConsentWidgetProps,
 } from './components/preferences';
 export type { ConsentGateProps, FrameProps } from './components/consent-gate';
-export { ConsentGate, Frame } from './components/consent-gate';
 export type {
 	ConsentDraftHandle,
 	ConsentDraftProviderProps,
 	VendorDraftHandle,
 } from './draft';
-export { ConsentDraftProvider, useConsentDraft, useVendorDraft } from './draft';
-export { useTranslations } from './component-hooks/use-translations';
-export {
-	useActiveUI,
-	useBranding,
-	useConsent,
-	useConsents,
-	useExperiment,
-	useHasConsentPolicy,
-	useHasConsentPreferences,
-	useHasConsentUI,
-	useIABEnabled,
-	useIABSnapshot,
-	useIdentify,
-	useInit,
-	useLocation,
-	useModel,
-	useOverrides,
-	usePromptPresentation,
-	usePolicyCategories,
-	usePreferencesPresentation,
-	useResolvedPresentation,
-	useResolvedTheme,
-	usePolicyScopeMode,
-	usePurposeConsent,
-	useRegisterConsentCategories,
-	useSaveConsents,
-	useSetActiveUI,
-	useSetLanguage,
-	useSetOverrides,
-	useSnapshot,
-	useSpecialFeatureOptIn,
-	useSubscribeToConsentChanges,
-	useTCString,
-	useUser,
-	useDeclaredVendors,
-	useVendorAllowed,
-	useVendorChoice,
-	useVendorConsent,
-} from './hooks';
 export type {
 	UseIframeBlockerOptions,
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
 	UseScriptLoaderOptions,
-} from './module-hooks';
-export {
-	useIframeBlocker,
-	useNetworkBlocker,
-	usePersistence,
-	useScriptLoader,
 } from './module-hooks';
 export type {
 	ConsentProviderOptions,
@@ -163,23 +103,11 @@ export type {
 	ExternalRuntimeProviderProps,
 	OwnedRuntimeProviderProps,
 } from './provider';
-export { ConsentProvider } from './provider';
-export { ConsentTheme } from './consent-theme';
 export type { ConsentThemeProps } from './consent-theme';
+export type { Theme } from './types/theme';
+export type { ConsentBannerCompoundComponent } from './components/prompt';
 export type { ReactUIOptions } from './types/manager';
-export { defineTheme, type Theme } from './types/theme';
 
-export {
-	useExplicitChoice,
-	useEffectivePermissions,
-	usePromptRequirement,
-	useNoticeDismissal,
-	usePrivacySignals,
-	usePolicyResolution,
-	usePolicyRule,
-	useRestrictions,
-	useDismissNotice,
-} from './hooks';
 export type {
 	ConsentPresentation,
 	PromptPresentation,
@@ -189,3 +117,18 @@ export type {
 	PromptVariant,
 	ResolvedConsentPresentation,
 } from '@c15t/core';
+
+// Values, one group per file; see `index-parts/core.ts` for why.
+// oxlint-disable oxc/no-barrel-file -- The package entry; star exports keep unused groups out of esbuild's first chunk.
+export * from './index-parts/core';
+export * from './index-parts/consent-dialog';
+export * from './index-parts/consent-banner';
+export * from './index-parts/consent-dialog-link';
+export * from './index-parts/consent-dialog-trigger';
+export * from './index-parts/consent-gate';
+export * from './index-parts/draft';
+export * from './index-parts/translations';
+export * from './index-parts/module-hooks';
+export * from './index-parts/provider';
+export * from './index-parts/theme';
+export * from './index-parts/hooks';
