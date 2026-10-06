@@ -1,0 +1,20 @@
+## Move IAB setup to `IABProvider`
+
+React, Next.js and TanStack Start no longer take an `iab` provider option.
+Render `IABProvider` from `c15t/react/iab` inside `ConsentProvider` or
+`ConsentRoot`, around the IAB components. Its props are the options you passed
+to `iab()`, such as `cmpId`, `vendors`, `customVendors` and the new
+`publisherRestrictions`.
+
+A `cmpId` that isn't an integer from 2 to 4095 now throws. Without a `cmpId`,
+the CMP doesn't mount, so there is no `__tcfapi` and no TC string.
+
+`@c15t/iab` no longer exports `createIABManager`, `decodeTCString`,
+`generateTCString` or `c15tToIabPurposes`. Use `createIAB({ kernel, cmpId })`,
+which returns a handle with `generateTCString()`, `acceptAll()`, `rejectAll()`
+and `save()`.
+
+Server integrations now send a reference to the Global Vendor List instead of
+the list, and the browser fetches it when the IAB module mounts. If you set a
+Content Security Policy, allow the list's origin in `connect-src`, or `'self'`
+for same-origin routes.

@@ -1,0 +1,36 @@
+## Replace callbacks
+
+Callbacks stay under `callbacks` in your options, with new names:
+
+| v2 callback | v3 callback |
+| --- | --- |
+| `onConsentSet` | `onPermissionsChanged` to react to what may run now. `onChoiceRecorded` to react to the visitor's accept, reject or save. |
+| `onConsentChanged` | `onChoiceRecorded`. See the note below the table. |
+| `onBannerFetched` | No callback. In React and Next.js, read `usePolicyResolution()` to know when the policy has resolved. In JavaScript, read `resolution` from the kernel snapshot. |
+| `onError`, `onBeforeConsentRevocationReload` | Unchanged |
+
+v2's `onConsentChanged` fired only when a save changed at least one category's
+value, and passed `preferences` and `previousPreferences`. v3's
+`onChoiceRecorded` fires for every accept, reject or save that confirms a
+category, including one that saves the same values again, because each save
+renews the choice's confirmation time. Its payload carries `snapshot`,
+`confirmed` and `actionAt`. To act only on a real change, keep the last
+`snapshot.explicitChoice` you saw and compare it.
+
+v2's `onConsentSet` also fired on initialization and hydration. In v3,
+`onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`
+runs when effective permissions change for any reason, including expiry, a
+policy update or a privacy signal.
+
+{/* example: fragment */}
+
+```ts title="After (v3): callbacks in your options"
+callbacks: {
+  onChoiceRecorded(event) {
+    console.log('Visitor recorded a choice', event);
+  },
+  onPermissionsChanged(event) {
+    console.log('Effective permissions changed', event);
+  },
+},
+```

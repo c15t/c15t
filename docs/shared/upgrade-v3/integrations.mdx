@@ -1,0 +1,52 @@
+## Rename the integrations dependency
+
+v3 renames `@c15t/scripts` to `@c15t/integrations`. Remove `@c15t/scripts`
+from your dependencies and install `@c15t/integrations` from the `alpha`
+dist-tag:
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+Replace the package name in each import. Vendor subpaths and helper names stay
+the same.
+
+Before, in v2:
+
+{/* example: fragment */}
+
+```ts
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+import { posthog } from '@c15t/scripts/posthog';
+```
+
+After:
+
+{/* example: fragment */}
+
+```ts
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+import { posthog } from '@c15t/integrations/posthog';
+```
+
+The `scripts` configuration option and the `Script` type keep their names.
+
+Two helper behaviors change. A helper that needs an ID, such as `metaPixel`,
+`googleTagManager` or `posthog`, now throws when the ID is empty or only
+whitespace, where v2 loaded a broken script. And if your code reads
+`@c15t/integrations/registry`, an entry's `consentCategory` can now be a
+compound condition such as `{ and: ['marketing', 'measurement'] }`, not only a
+category name.
+`@c15t/scripts` stays available as a deprecated compatibility package for all
+of v3. It re-exports the implementation and types of `@c15t/integrations`, so
+you can migrate imports separately from the rest of the upgrade. Compatibility
+ends in v4; versions already published stay on npm.
+
+To preview the import changes in JavaScript and TypeScript files:
+
+```bash
+npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
+```
+
+Review the output, then run it again without `--dry-run`. The codemod runs
+only when you name it. It does not change `package.json`, lockfiles, or
+imports inside `.vue`, `.svelte` or `.astro` files; update those by hand, then
+reinstall dependencies and build the app.

@@ -1,0 +1,34 @@
+## Move policy packs to policy rules
+
+v2 policy packs become policy rules, and `policyPackPresets` becomes
+`policyRulePresets`, exported from `c15t`. Where the rules live depends on your
+backend:
+
+- **Inth**: set the rules in your Inth project. Rules in client code do not
+  change a hosted policy.
+- **Self-hosted**: move the backend's `policyPacks` to `manifest.policyRules`.
+  See [policy configuration](/docs/self-host/guides/policy-packs).
+- **Offline**: move `offlinePolicy.policyPacks` to `offline({ policyRules })`.
+
+{/* example: fragment */}
+
+```tsx title="After (v3): offline policy rules"
+import { offline, policyRulePresets } from 'c15t';
+
+const mode = offline({
+	policyRules: [policyRulePresets.europeOptIn(), policyRulePresets.worldNone()],
+});
+```
+
+| v2 preset | v3 preset |
+| --- | --- |
+| `europeOptIn()`, `europeIab()` | Same names |
+| `californiaOptIn()`, `californiaOptOut()` | Same names |
+| `quebecOptIn()` | Same name |
+| `worldNoBanner()` | `worldNone()` |
+
+v3 adds presets for more regions. `offline()` without `policyRules` uses
+`recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
+change a rule's model or prompt, and
+[how consent works](/docs/concepts/how-consent-works) for the difference
+between a permission and a recorded choice.

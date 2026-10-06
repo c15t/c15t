@@ -1,0 +1,44 @@
+## Update styles and themes
+
+### Render theme CSS
+
+In v2 the provider built CSS from `options.theme` in the browser. In v3 it
+doesn't. Without a change, custom colors, fonts and radii fall back to the
+defaults, and you only see a development warning.
+
+Render `ConsentTheme` with the same theme object, or put the output of
+`generateThemeCSS(theme)` in your own stylesheet. Keep `options.theme` for
+`consentActions` and `slots`. See
+[customization](/docs/customization/overview) and
+[tokens](/docs/customization/tokens).
+
+A generated theme uses `:root:root`, so your own `--c15t-*` values on plain
+`:root` lose to it. Put them in the theme instead, or raise your selector.
+
+### Stylesheets
+
+- Dialog and preference styles moved from `styles.css` to
+  `@c15t/ui/styles/dialog.css`. The React, Next.js and TanStack Start dialogs
+  import it themselves. Import it yourself only if you render `@c15t/ui`
+  class maps for those parts.
+- `iab/styles.css` no longer repeats the default tokens. Import it after
+  `styles.css`.
+- Tailwind CSS 3 builds now fail without a PostCSS plugin, even with
+  `styles.tw3.css`, because the dialog stylesheet is imported from JavaScript.
+  Add `'c15t/postcss-tailwind3': {}` before `tailwindcss` in
+  `postcss.config`. See [Tailwind CSS 3](/docs/customization/tailwind#set-up-tailwind-css-3).
+  Create React App can't run the plugin.
+
+### CSS variables and slots
+
+| v2 | v3 |
+| --- | --- |
+| `--consent-widget-*` | `--consent-manager-*`, used by `ConsentDialog` and `ConsentWidget` |
+| `--consent-widget-accordion-*` | Removed. Set `--accordion-*` instead. |
+| `--frame-*` | `--consent-gate-*` |
+| `--consent-banner-entry-animation`, `--consent-banner-exit-animation` | Removed |
+| `theme.slots.frame` | `consentGate`, `consentGateTitle` and `consentGateButton` |
+| `theme.slots.consentDialogFooter` | `consentWidgetFooter` |
+
+`theme.slots` now applies in React. v2 accepted it in types and ignored it, so
+check slots you set before the upgrade.
