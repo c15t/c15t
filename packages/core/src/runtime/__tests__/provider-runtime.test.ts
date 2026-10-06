@@ -546,7 +546,7 @@ describe('the enabled toggle', () => {
 		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
 	});
 
-	test('`setLanguage()` while off sets the language without asking the backend', async () => {
+	test('`setLanguage()` while off asks the backend for that language once it is on', async () => {
 		const transport = createTransport();
 		const runtime = create({
 			mode: custom(transport),
@@ -561,6 +561,37 @@ describe('the enabled toggle', () => {
 		expect(transport.init).not.toHaveBeenCalled();
 		runtime.setEnabled(true);
 		expect(runtime.kernel.getSnapshot().overrides.language).toBe('de');
+		// The prefetch holds copy for the old language.
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
+		expect(vi.mocked(transport.init).mock.calls[0]?.[0]).toMatchObject({
+			overrides: { language: 'de' },
+		});
+	});
+
+	test('overrides changed while off are asked for once it is on', async () => {
+		const transport = createTransport();
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(transport),
+			prefetch: RESOLVED_PREFETCH,
+		};
+		const runtime = create(options);
+		runtime.start();
+		runtime.setEnabled(false);
+
+		runtime.update({
+			...options,
+			enabled: false,
+			overrides: { country: 'FR' },
+		});
+		await Promise.resolve();
+		expect(transport.init).not.toHaveBeenCalled();
+
+		runtime.setEnabled(true);
+		// The prefetch answered for the old country.
+		await vi.waitFor(() => expect(transport.init).toHaveBeenCalledOnce());
+		expect(vi.mocked(transport.init).mock.calls[0]?.[0]).toMatchObject({
+			overrides: { country: 'FR' },
+		});
 	});
 
 	test('a provider created off sends what its network rules match, and holds it again once on until the blocker lands', async () => {

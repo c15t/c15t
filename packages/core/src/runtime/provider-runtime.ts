@@ -282,8 +282,9 @@ export const createConsentProviderRuntime =
 					}
 					if (key === 'prefetch') {
 						// A pending prefetch is streamed into the first init. Once
-						// overrides changed before start, the prefetch answers for
-						// other inputs: start asks the backend instead.
+						// overrides or the language changed before start or while
+						// disabled, the prefetch answers for other inputs: start
+						// asks the backend instead.
 						const prefetch = syncPrefetch(initial.prefetch);
 						return prefetch && overridesChanged
 							? { ...prefetch, initialPolicyPending: true }
@@ -549,10 +550,11 @@ export const createConsentProviderRuntime =
 				// it runs again.
 				runtime.kernel.set.language(language);
 				active().runtime.kernel.set.language(language);
+				overridesChanged = true;
 			},
 			setOverrides(overrides) {
 				runtime.setOverrides(overrides);
-				overridesChanged ||= !started;
+				overridesChanged ||= !started || !enabled;
 			},
 			stageVendorConsent: (vendorId, granted) =>
 				active().runtime.stageVendorConsent(vendorId, granted),
@@ -598,7 +600,7 @@ export const createConsentProviderRuntime =
 					overridesKey(current.overrides) !== overridesKey(previous.overrides)
 				) {
 					runtime.setOverrides(current.overrides ?? {});
-					overridesChanged ||= !started;
+					overridesChanged ||= !started || !enabled;
 					if (started && enabled) {
 						void runtime.reinit();
 					}
