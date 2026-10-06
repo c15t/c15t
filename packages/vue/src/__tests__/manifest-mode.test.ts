@@ -1,5 +1,5 @@
+import { clearManifestCache } from '@c15t/core/server';
 import {
-	clearManifestCache,
 	getResolverInputsFromHeaders,
 	resolveManifestInit,
 } from '@c15t/core/transports/manifest-cache';

@@ -160,6 +160,8 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 				document.querySelector('[data-testid="consent-dialog-root"]');
 			try {
 				await flushPromises();
+				// The script loader loads on demand; let it land before the click.
+				await vi.dynamicImportSettled();
 				expect(dialog()).not.toBeNull();
 				const { kernel } = context;
 				document

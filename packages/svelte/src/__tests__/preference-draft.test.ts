@@ -7,17 +7,19 @@ import { custom } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import { render } from '@testing-library/svelte';
 import { tick } from 'svelte';
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 import type { ConsentManagerState } from '../lib/context.svelte';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 import { policyFixture } from './policy-fixture';
 
-const mountProvider = function mountProvider() {
+const mountProvider = function mountProvider(
+	component: 'consent-banner' | 'consent-widget' = 'consent-banner'
+) {
 	const captured: { kernel?: ConsentKernel; manager?: ConsentManagerState } =
 		{};
 	const result = render(ConformanceFixture, {
-		component: 'consent-banner',
+		component,
 		onKernel: (kernel) => {
 			captured.kernel = kernel;
 		},
@@ -42,9 +44,13 @@ const mountProvider = function mountProvider() {
 test('the state API stages into the provider draft and follows a newer record', async () => {
 	const { kernel, manager, unmount } = mountProvider();
 	try {
+		// No preference surface is rendered, so the draft is not loaded: the
+		// write waits for it, and the read fills in once it lands.
 		manager.setSelectedConsent('marketing', true);
-		await tick();
-		expect(manager.selectedConsents.marketing).toBe(true);
+		expect(manager.selectedConsents.marketing).toBeUndefined();
+		await vi.waitFor(() => {
+			expect(manager.selectedConsents.marketing).toBe(true);
+		});
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
 		// Another surface records measurement: the untouched switch follows it.
 		await kernel.commands.save({ measurement: true });
@@ -73,6 +79,34 @@ test('a custom save records the draft and leaves it clean', async () => {
 		).toBe(true);
 		expect(manager.draft.isStale).toBe(false);
 		expect(manager.selectedConsents.marketing).toBe(true);
+	} finally {
+		unmount();
+	}
+});
+
+test('a rendered ConsentWidget seeds the draft in the same render', () => {
+	const { manager, unmount } = mountProvider('consent-widget');
+	try {
+		expect(manager.selectedConsents).toMatchObject({
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		});
+		manager.setSelectedConsent('marketing', true);
+		expect(manager.selectedConsents.marketing).toBe(true);
+	} finally {
+		unmount();
+	}
+});
+
+test('reset drops writes still waiting for the draft', async () => {
+	const { manager, unmount } = mountProvider();
+	try {
+		manager.setSelectedConsent('marketing', true);
+		manager.draft.reset();
+		await vi.waitFor(() => {
+			expect(manager.selectedConsents.marketing).toBe(false);
+		});
 	} finally {
 		unmount();
 	}

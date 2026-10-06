@@ -157,7 +157,12 @@ test('clearing records cancels an action queued behind the list fetch', async ()
 	disposers.push(handle.dispose);
 	handle.acceptAll();
 	const save = handle.save();
-	kernel.events.emit({ type: 'records:cleared' });
+	// What clearing records announces; only core's modules emit kernel events.
+	(
+		kernel.events as typeof kernel.events & {
+			emit: (event: { type: 'records:cleared' }) => void;
+		}
+	).emit({ type: 'records:cleared' });
 	complete(Response.json(completeGVL));
 	await expect(save).rejects.toThrow('cancelled');
 	expect(kernel.getSnapshot().iab?.authority).toBeNull();

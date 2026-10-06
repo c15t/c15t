@@ -17,4 +17,37 @@ configurations hold functions, which a server load cannot send to the
 browser. Scripts load only in the browser, after hydration, so they never
 appear in server HTML.
 
+## Preload the script loader
+
+The provider loads the script loader only on pages whose `scripts` array is
+not empty or that have [network blocker](./network-blocker) rules. The loader
+and the blocker share one separate chunk. Pages with neither never download
+it. On a page with either, the browser would otherwise request the chunk after
+the app's JavaScript has run, and a returning visitor's consented scripts and
+held requests would wait for that extra request.
+
+Add the `c15tPreload()` Vite plugin so `c15tHandle` can link the chunk from
+the page's `<head>` with `<link rel="modulepreload">`:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts (partial)"
+import { c15tPreload } from '@c15t/svelte/vite';
+
+export default defineConfig({ plugins: [sveltekit(), c15tPreload()] });
+```
+
+SvelteKit builds the server before the client, so the server cannot know the
+chunk's file name. After the client build, the plugin writes the chunk URL
+into the server output, before SvelteKit prerenders pages and before the
+adapter copies the build. Then `c15tHandle` adds one link to every page whose
+provider has scripts or blocker rules, prerendered pages included. The link
+carries the provider's `nonce`, or else the nonce SvelteKit put on its own
+scripts. It asks for low priority (`fetchpriority="low"`): the
+runtime needs the chunk only after hydration, so the browser fetches your
+app's own chunks first. It does nothing in `vite dev`.
+
+Without the plugin, or without `c15tHandle` in `hooks.server.ts`, scripts
+still load, one request later.
+
 <include src="../../shared/svelte/scripts.mdx" />

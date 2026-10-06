@@ -6,6 +6,7 @@ import { tick } from 'svelte';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentManagerState } from '../lib/context.svelte';
+import { draftReady } from './draft-ready';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 import { policyFixture } from './policy-fixture';
 
@@ -115,6 +116,7 @@ describe('displayed consent actions', () => {
 				const kernel = required(captured.kernel);
 				const manager = required(captured.manager);
 				manager.setActiveUI('dialog');
+				await draftReady(manager);
 				manager.setSelectedConsent('marketing', true);
 				const pending = manager.saveConsents(action);
 				const rejected = expect(pending).rejects.toThrow(
@@ -175,6 +177,7 @@ describe('displayed consent actions', () => {
 				const kernel = required(captured.kernel);
 				const manager = required(captured.manager);
 				manager.setActiveUI('dialog');
+				await draftReady(manager);
 				manager.setSelectedConsent('marketing', true);
 				const first = manager.saveConsents(action);
 				expect(kernel.getSnapshot().activeUI).toBe('none');
@@ -347,6 +350,7 @@ describe('displayed consent actions', () => {
 				);
 				const hiddenReceipt =
 					kernel.getSnapshot().explicitChoice?.categories.measurement;
+				await draftReady(manager);
 				manager.setSelectedConsent('measurement', !hiddenChoice);
 				manager.setSelectedConsent('marketing', true);
 				prefetch = policyFixture({}, { categories: ['marketing'] });

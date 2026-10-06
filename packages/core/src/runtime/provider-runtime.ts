@@ -281,7 +281,7 @@ export const createConsentProviderRuntime =
 		type Built = ReturnType<typeof build>;
 
 		const main = build(true);
-		main.runtime.onIABChange(notify);
+		main.runtime.subscribe(notify);
 		let permissive: Built | null = null;
 		if (!enabled) {
 			// The main runtime stays detached until it runs, and holds nothing
@@ -397,7 +397,6 @@ export const createConsentProviderRuntime =
 			| 'experiment'
 			| 'iab'
 			| 'identify'
-			| 'onIABChange'
 			| 'processIframes'
 			| 'reconcileStorage'
 		> = {

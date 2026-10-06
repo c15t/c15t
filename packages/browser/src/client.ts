@@ -24,7 +24,6 @@ import type {
 	ResolvedVendor,
 	Unsubscribe,
 } from '@c15t/core';
-import { createConsentRuntime } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
 import {
 	saveConsentSurface,
@@ -33,6 +32,7 @@ import {
 } from '@c15t/core/surface-actions';
 import type { Theme } from '@c15t/ui/theme';
 
+import { createBrowserRuntime } from './create-runtime';
 import { createDeferred } from './deferred';
 import { createGatedScriptActivator } from './gated-scripts';
 import { hasDecided } from './has-decided';
@@ -167,26 +167,6 @@ const resolveMode = function resolveMode(
 	};
 };
 
-/**
- * Categories the UI should offer: configured and discovered categories within
- * the policy scope, preserving configured order and including `necessary`.
- */
-const resolveConsentCategories = function resolveConsentCategories(
-	snapshot: ConsentSnapshot,
-	configured: readonly AllConsentNames[]
-): AllConsentNames[] {
-	const scope =
-		snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope;
-	const available = new Set<AllConsentNames>(['necessary', ...scope]);
-	return [
-		...new Set<AllConsentNames>([
-			'necessary',
-			...configured.filter((category) => available.has(category)),
-			...scope,
-		]),
-	];
-};
-
 const dispatchDocumentEvent = function dispatchDocumentEvent(
 	name: keyof ConsentClientEventMap,
 	detail: unknown
@@ -255,7 +235,7 @@ export const createConsentClient = function createConsentClient(
 		throw new Error('@c15t/browser: IAB requires the @c15t/browser/iab entry.');
 	}
 	const mode = resolveMode(options);
-	const runtime = createConsentRuntime({
+	const runtime = createBrowserRuntime({
 		callbacks: options.callbacks,
 		clearOnRevocation: options.clearOnRevocation,
 		consentCategories: options.consentCategories,
@@ -401,12 +381,10 @@ export const createConsentClient = function createConsentClient(
 		}),
 	];
 
-	const categories = function categories(): AllConsentNames[] {
-		return resolveConsentCategories(
-			kernel.getSnapshot(),
-			options.consentCategories ?? []
-		);
-	};
+	// The categories the dialog offers: `necessary` plus the choice scope,
+	// in core's fixed display order, as in the preference draft and every
+	// framework.
+	const categories = (): AllConsentNames[] => runtime.consentCategories;
 
 	// Surfaces close and follow through core's surface actions: a save
 	// closes on the local record, explicit navigation supersedes it.

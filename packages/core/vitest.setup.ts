@@ -7,7 +7,7 @@
 import { vi } from 'vitest';
 import 'vitest-localstorage-mock';
 
-import { preloadPersistenceWriter } from './src/modules/persistence';
+import { preloadPersistenceWriter } from './src/modules/persistence/mount';
 
 // Create simple storage implementation
 const mockStorage = {

@@ -9,21 +9,21 @@ import {
 	matchedResolution,
 	optOutRule,
 } from '../../../__tests__/fixtures/kernel-fixtures';
-import { createConsentKernel } from '../../../kernel';
+import { createKernel as createConsentKernel } from '../../../kernel';
+import type { InternalKernel } from '../../../kernel/internals';
 import {
 	PENDING_SAVES_STORAGE_KEY,
 	STORAGE_KEY,
 	STORAGE_KEY_V2,
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../../libs/storage-keys';
-import type { ConsentKernel } from '../../../types';
 import { createClearOnRevocation } from '../index';
 import type { ClearOnRevocationConfig } from '../types';
 
 const disposals: (() => void)[] = [];
 const attach = (
 	config: ClearOnRevocationConfig,
-	kernel: ConsentKernel = createConsentKernel(),
+	kernel: InternalKernel = createConsentKernel(),
 	storageKey?: string
 ) => {
 	const cleanup = createClearOnRevocation({

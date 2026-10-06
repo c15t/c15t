@@ -1,3 +1,4 @@
+import { c15tPreload } from '@c15t/svelte/vite';
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
@@ -11,6 +12,8 @@ export default defineConfig({
 			adapter: adapter(),
 			preprocess: vitePreprocess(),
 		}),
+		// Lets c15tHandle preload the script loader on pages with scripts.
+		c15tPreload(),
 	],
 	server: {
 		watch: {

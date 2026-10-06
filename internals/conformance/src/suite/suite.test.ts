@@ -1,7 +1,12 @@
 import { describe, expect, setSystemTime, test } from 'bun:test';
 
 import { createConsentKernel, safeFallbackPolicyRule } from '@c15t/core';
-import type { ConsentKernel, PolicyResolution } from '@c15t/core';
+import type {
+	ConsentKernel,
+	HydrationRecords,
+	HydrationResult,
+	PolicyResolution,
+} from '@c15t/core';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 /** These meta-tests corrupt actual kernel observations, not a policy evaluator. */
 import { GVL, TCModel, TCString } from '@iabtechlabtcf/core';
@@ -25,6 +30,20 @@ import { conformanceTest } from './helpers';
 import type { SuiteApi } from './helpers';
 import { runConformanceSuite } from './index';
 import { executePolicyScenario, policySessionSetup } from './policy-scenarios';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 const api: SuiteApi = { describe, expect, test };
 const emptyLogs = (): PolicyLogs => ({
@@ -175,7 +194,8 @@ const withKernel = async function withKernel(
 
 const hydrateGrant = function hydrateGrant(kernel: ConsentKernel): void {
 	const { raw } = POLICY_RECORDS['legacy-no-hash'];
-	kernel.hydrate(
+	hydrateRecords(
+		kernel,
 		readStoredRecordsFromCookieHeader(
 			`c15t=${encodeURIComponent(raw)}`,
 			undefined,
@@ -616,7 +636,8 @@ test('broad GPC keeps unmapped grants and original receipts, and ends with the s
 		events.push({ name: event.type, payload: event })
 	);
 	try {
-		kernel.hydrate(
+		hydrateRecords(
+			kernel,
 			readStoredRecordsFromCookieHeader(
 				`c15t=${encodeURIComponent(record.raw)}`,
 				undefined,

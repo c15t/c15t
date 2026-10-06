@@ -3,7 +3,7 @@
  * The route behaviour itself is pinned once, in
  * `packages/core/src/server/__tests__/consent-route.test.ts`.
  */
-import { createManifestCache } from '@c15t/core/transports/manifest-cache';
+import { createManifestCache } from '@c15t/core/server';
 import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentServerRoute } from '../api';

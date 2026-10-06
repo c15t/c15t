@@ -268,93 +268,14 @@ export const buildPrefetchScript = function buildPrefetchScript(
 
 	const json = JSON.stringify(payload).replace(/</gu, '\\u003c');
 
+	// Hand-minified: this text ships in the HTML of every page that starts
+	// `/init` early. It builds the same cache key and request context as
+	// `primePrefetchedInitialData`; the prefetch tests run it.
+	//
 	// Server bundlers rewrite `typeof window` as text, inside strings too
 	// (Nitro's replace plugin turns it into `"undefined"`), which would make
-	// this script return at once. Read it off `globalThis` instead.
-	return `(() => {
-  const mapKey = '${WINDOW_PROMISES_KEY}';
-  if (typeof globalThis.window === 'undefined') {
-    return;
-  }
-  const payload = ${json};
-  const trimTrailingSlash = (value) => {
-    if (value === '/') {
-      return value;
-    }
-    return value.endsWith('/') ? value.slice(0, -1) : value;
-  };
-  const canonicalizeBackendURL = (backendURL) => {
-    try {
-      const normalizedBackendURL = trimTrailingSlash(backendURL);
-      if (/^https?:\\/\\//.test(normalizedBackendURL)) {
-        return trimTrailingSlash(new URL(normalizedBackendURL).toString());
-      }
-      if (!normalizedBackendURL.startsWith('/')) {
-        return undefined;
-      }
-      return trimTrailingSlash(
-        new URL(normalizedBackendURL, window.location.origin).toString()
-      );
-    } catch {
-      return undefined;
-    }
-  };
-  const buildCacheKey = (url, credentials, headers, gpc) => {
-    const sortedHeaders = Object.entries(headers)
-      .sort(([leftKey], [rightKey]) => (leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0))
-      .map(([key, value]) => key + ':' + value)
-      .join('|');
-    return url + '|' + credentials + '|gpc:' + String(gpc) + '|' + sortedHeaders;
-  };
-  const detectGpc = () => {
-    try {
-      const value = window.navigator.globalPrivacyControl;
-      return value === true;
-    } catch {
-      return false;
-    }
-  };
-  const backendURL = canonicalizeBackendURL(payload.backendURL);
-  if (!backendURL) {
-    return;
-  }
-  const gpc = payload.gpc === null ? detectGpc() : payload.gpc;
-  payload.headers['sec-gpc'] = gpc ? '1' : '0';
-  const requestContext = {
-    backendURL,
-    country: payload.requestContext.country,
-    region: payload.requestContext.region,
-    language: payload.requestContext.language,
-    gpc,
-    credentials: payload.credentials
-  };
-  const url = backendURL + '/init';
-  const cacheKey = buildCacheKey(url, payload.credentials, payload.headers, gpc);
-  const promises = (window[mapKey] = window[mapKey] || {});
-  if (promises[cacheKey]) {
-    return;
-  }
-  const promise = fetch(url, {
-    method: 'GET',
-    credentials: payload.credentials,
-    headers: payload.headers
-  })
-    .then(async (response) => {
-      if (!response.ok) return undefined;
-      const init = await response.json();
-      return init ? {
-        init,
-        gvl: init.gvl,
-        producerPolicyContract: response.headers.get('x-c15t-policy-contract'),
-        metadata: { requestContext }
-      } : undefined;
-    })
-    .catch(() => undefined);
-  promises[cacheKey] = {
-    promise,
-    requestContext
-  };
-})();`;
+	// this script return at once. It reads `globalThis.window` instead.
+	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext;h["sec-gpc"]=g?"1":"0";var x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init",k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;m[k]={promise:fetch(u,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x}}:void 0}).catch(()=>{}),requestContext:x}})();`;
 };
 
 export const primePrefetchedInitialData = function primePrefetchedInitialData(

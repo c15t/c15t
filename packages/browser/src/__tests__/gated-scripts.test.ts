@@ -324,8 +324,8 @@ it('discovers inert script categories and adds newly inserted categories', async
 	await client.ready();
 	expect(client.consentCategories).toEqual([
 		'necessary',
-		'marketing',
 		'measurement',
+		'marketing',
 	]);
 	await client.acceptAll();
 	expect(client.getSnapshot().promptRequirement.kind).toBe('none');

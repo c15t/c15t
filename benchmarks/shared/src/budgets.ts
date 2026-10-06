@@ -100,8 +100,8 @@ export const artifactV3Budgets: MetricBudget[] = [
 	{
 		comparator: 'percent-lte',
 		description:
-			'v3 c15t package tarball must be at least 30% smaller than v2.',
-		metric: 'c15t',
+			'v3 @c15t/core tarball must be at least 30% smaller than the v2 core package (published as c15t).',
+		metric: '@c15t/core',
 		threshold: -30,
 	},
 	{
@@ -215,8 +215,8 @@ export const artifactBudgets: MetricBudget[] = [
 	{
 		comparator: 'absolute-and-percent-lte',
 		description:
-			'Core package tarball growth, excluding bundled docs, must stay below 15kB and 10%, plus the vendor consent allowance.',
-		metric: 'c15t',
+			'@c15t/core tarball growth, excluding bundled docs, must stay below 15kB and 10%, plus the vendor consent allowance.',
+		metric: '@c15t/core',
 		secondaryThreshold: 10,
 		threshold: 15360 + VENDOR_CONSENT_TARBALL_BYTES,
 	},

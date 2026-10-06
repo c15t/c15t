@@ -37,11 +37,25 @@ choices behave the same everywhere:
 
 React's banner buttons no longer load the draft: it ships with the
 preference dialog, which takes about 1.4 KB gzip off the first load of a
-page that renders a banner.
+page that renders a banner. The `@c15t/browser` ES module build loads its
+preference dialog and the draft as a separate chunk, in idle time once the
+banner or trigger shows; the script-tag files stay one file each.
+
+In Svelte the draft now ships with `ConsentWidget` and `ConsentDialog`
+instead of `ConsentManagerProvider`. The state API keeps its synchronous
+shape. `setSelectedConsent()` calls made before the draft loads apply in order
+when it lands, and `saveConsents('custom')` waits for it.
+
+**Breaking:** in headless Svelte code that renders neither component,
+`selectedConsents` and `draft` read empty on first use, because the draft
+loads then, and fill in reactively once it lands. A one-off read outside a
+reactive context gets the empty values. Migration: read them in a reactive
+context (`$derived`, `$effect` or markup).
 
 **Breaking:** the runtime's `stageVendorConsent()` and `resetVendorDraft()`
 are removed. Pass vendors to the save
 (`kernel.commands.save({}, { vendors: { 'x-pixel': false } })`) or stage
 them on a preference draft. Vue's `useConsentDraft()` returns
-`displayedCategories` and `vendors` as computed refs and ignores its
-argument.
+`displayedCategories` and `vendors` as computed refs, takes no argument, and
+no longer has `reseedOnNextRecord()`; call `reset()` after a bulk save
+instead.

@@ -18,6 +18,7 @@ the browser bundle.
 | `c15tHandle(options)` | `@c15t/svelte/kit` | `hooks.server.ts` | [Rendering](./rendering#resolve-request-context-once-with-c15thandle) |
 | `createSvelteKitConsentRouteHandlers(options)` | `@c15t/svelte/kit` | `+server.ts` | [Rendering](./rendering#serve-the-manifest-route) |
 | `resolveConsent(options)` | `@c15t/svelte/server` | Any server code | [Rendering](./rendering#resolve-consent-in-other-server-code) |
+| `c15tPreload()` | `@c15t/svelte/vite` | `vite.config.ts` | [Scripts](./scripts#preload-the-script-loader) |
 
 Both entry points also re-export `hosted`, `offline` and `custom`, and the
 `ConsentState` type.
@@ -107,8 +108,12 @@ when you do not install the handle.
 1. reads the location, language and GPC inputs from the headers,
 2. writes them back as `x-c15t-country`, `x-c15t-region`, `accept-language`
    and `sec-gpc`, so later code sees one normalized form,
-3. reads the consent cookie, and
-4. stores the result on `event.locals.c15t`.
+3. reads the consent cookie,
+4. stores the result on `event.locals.c15t`, and
+5. on pages whose provider has `scripts` or network blocker rules, links
+   the chunk that holds both with `<link rel="modulepreload">` once the
+   [`c15tPreload()` Vite plugin](./scripts#preload-the-script-loader) has
+   written its URL into the build.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |

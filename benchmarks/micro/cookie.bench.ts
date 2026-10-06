@@ -4,8 +4,7 @@ import {
 	getCookie,
 	getRootDomain,
 	setCookie,
-} from '@c15t/core';
-
+} from '../../packages/core/src/libs/cookie';
 import type { StoredConsentEnvelope } from '../../packages/core/src/modules/persistence/record-codec';
 import {
 	readStoredConsentRecord,

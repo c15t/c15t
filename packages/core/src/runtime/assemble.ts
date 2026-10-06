@@ -124,13 +124,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 	let disposed = false;
 	let adopted = false;
 
-	const iabListeners = new Set<
-		(handle: ConsentRuntimeIABHandle | null) => void
-	>();
+	const iabListeners = new Set<() => void>();
 	const emitIAB = function emitIAB(handle: ConsentRuntimeIABHandle | null) {
 		iabHandle = handle;
 		for (const listener of iabListeners) {
-			listener(handle);
+			listener();
 		}
 	};
 
@@ -220,12 +218,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			}
 		},
 		kernel,
-		onIABChange(listener) {
-			iabListeners.add(listener);
-			return function unsubscribeIAB() {
-				iabListeners.delete(listener);
-			};
-		},
 		processIframes() {
 			iframeBlocker?.processAllIframes();
 		},
@@ -424,6 +416,12 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		},
 		get started() {
 			return started;
+		},
+		subscribe(listener) {
+			iabListeners.add(listener);
+			return function unsubscribeIAB() {
+				iabListeners.delete(listener);
+			};
 		},
 	};
 	const releaseHold = function releaseHold(): void {

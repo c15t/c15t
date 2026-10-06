@@ -38,10 +38,8 @@ import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import { createLazyIABFactory, mountRuntimeIAB } from '@c15t/core/runtime';
 import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
-import {
-	createConsentProviderRuntime,
-	onDemandRuntimeModules,
-} from '@c15t/core/runtime/provider';
+import { onDemandRuntimeModules } from '@c15t/core/runtime/on-demand';
+import { createConsentProviderRuntime } from '@c15t/core/runtime/provider';
 import type {
 	ConsentProviderRuntime,
 	ConsentRuntime,
@@ -837,13 +835,9 @@ export const createVueConsentKernelContext =
 			snapshot.value = next;
 		});
 		const iab = shallowRef(runtime.iab ?? undefined);
-		const unsubscribeIab = owned
-			? owned.subscribe(() => {
-					iab.value = owned?.iab ?? undefined;
-				})
-			: runtime.onIABChange((handle) => {
-					iab.value = handle ?? undefined;
-				});
+		const unsubscribeIab = runtime.subscribe(() => {
+			iab.value = runtime.iab ?? undefined;
+		});
 
 		const init = computed<VueConsentDisplayData | undefined>((previous) =>
 			reuseDisplayData(snapshotToDisplayData(snapshot.value), previous)

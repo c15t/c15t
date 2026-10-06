@@ -1,7 +1,22 @@
+import type { HydrationRecords, HydrationResult } from '@c15t/core';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
 
 import ConsentGate from '../../../packages/vue/src/runtime/components/consent-gate.vue';
 import { useStorybookConsent as setupStorybookConsent } from './storybook-consent-fixtures';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 const meta = {
 	component: ConsentGate,
@@ -20,7 +35,7 @@ const renderConsentGate = (granted: boolean) => ({
 	setup() {
 		const { kernel } = setupStorybookConsent(null);
 		const snapshot = kernel.getSnapshot();
-		kernel.hydrate({
+		hydrateRecords(kernel, {
 			choice: {
 				categories: {
 					marketing: {

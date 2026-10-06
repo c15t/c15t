@@ -32,11 +32,9 @@ export {
 	createEvaluationPolicy,
 	evaluateConsentRecord,
 	OPTIONAL_CONSENT_CATEGORIES,
-	validateExplicitChoice,
-	validateNoticeDismissal,
 } from './consent-record';
 export { createConsentKernel } from './kernel';
-export { disabledPolicyResolution } from './policy';
+
 export {
 	resolveIABBannerSummary,
 	IAB_BANNER_MAX_DISPLAY_ITEMS,
@@ -64,10 +62,7 @@ export type {
 	WindowDebugModeInput,
 	WindowDebugOptions,
 } from './modules/window-debug';
-export {
-	createWindowDebug,
-	resolveWindowDebugMode,
-} from './modules/window-debug';
+export { createWindowDebug } from './modules/window-debug';
 export type { RememberedDecisionInputs } from './transports/decision-inputs';
 export { decisionInputsMatchOverrides } from './transports/decision-inputs';
 export type {
@@ -92,11 +87,8 @@ export {
 } from './transports/save-rejection';
 export {
 	initOutputToKernelConfig,
-	initResponseToKernelConfig,
-	kernelConfigToInitResponse,
 	mapInitOutputToInitResponse,
 	mergeInitOutputIntoKernelConfig,
-	mergeInitResponseIntoKernelConfig,
 } from './transports/init-output';
 export type {
 	HostedModeOptions,
@@ -174,17 +166,11 @@ export type { NamespaceProps } from './consent/compliance';
 
 // -- Consent conditions --------------------------------------------------------
 export type { HasCondition } from './libs/has';
-export { extractConsentNamesFromCondition, has } from './libs/has';
+export { has } from './libs/has';
 
 // -- Storage -------------------------------------------------------------------
 export type { CookieOptions, StorageConfig } from './libs/cookie';
-export {
-	deleteConsentFromStorage,
-	deleteCookie,
-	getCookie,
-	getRootDomain,
-	setCookie,
-} from './libs/cookie';
+export { getRootDomain } from './libs/cookie';
 
 // -- Blockers ------------------------------------------------------------------
 export type {
@@ -303,14 +289,10 @@ export {
 	actionAppearanceFromTheme,
 	applyExperimentAssignment,
 	applyExperimentTheme,
-	CONTROL_ARM,
 	defineExperiment,
-	experimentArmRef,
 	hostExperiment,
-	resolveExperimentPresentation,
 	resolveExperimentTheme,
 	seedExperiment,
-	startExperiment,
 } from './libs/experiment';
 export type {
 	ActionAppearance,
@@ -349,21 +331,11 @@ export {
 	isVendorDenied,
 } from './modules/has';
 export type { RevocationReloadOptions } from './modules/revocation-reload';
-export {
-	hasRevokedPermission,
-	watchRevocationReload,
-} from './modules/revocation-reload';
+export { watchRevocationReload } from './modules/revocation-reload';
 export type { ResolveVendorsInput, VendorOwner } from './libs/vendors';
 export {
 	declareOwnedVendors,
 	forgetOwnedVendors,
-	resolveVendors,
-	vendorRenders,
 	vendorsListedUnder,
 } from './libs/vendors';
-export {
-	deferInitGvl,
-	deferInitGvlToRoute,
-	createGvlReferenceURL,
-	serveGvlReference,
-} from './transports/gvl-reference';
+export { deferInitGvl } from './transports/gvl-reference';

@@ -44,7 +44,6 @@ import { createPersistence } from '../modules/persistence';
 import { watchRevocationReload } from '../modules/revocation-reload';
 import { createScriptLoader } from '../modules/script-loader';
 import { createWindowDebug } from '../modules/window-debug';
-import type { ConsentState } from '../types';
 import { assembleConsentRuntime } from './assemble';
 import { connectConsentSource } from './controls';
 import { mountRuntimeIAB } from './iab-mount';
@@ -59,13 +58,7 @@ export { createConsentProviderRuntime } from './provider-runtime';
 export { streamPrefetch } from './streamed-prefetch';
 export { connectConsentSource } from './controls';
 export type { ConsentControlOptions } from './controls';
-export {
-	createRuntimeKernel,
-	hasResolvedPrefetch,
-	inferConsentCategories,
-	normalizeKernelUser,
-	resolveRuntimeTranslations,
-} from './runtime-kernel';
+export { inferConsentCategories } from './runtime-kernel';
 
 export type {
 	ExternalConsentSource,
@@ -85,31 +78,13 @@ export type {
 	RuntimeScriptLoaderOptions,
 } from './types';
 export type { WireRuntimeCallbacksOptions } from './callbacks';
-export { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
+export { wireRuntimeCallbacks } from './callbacks';
 export type { IABModuleLoader, LazyIABFactory } from './lazy-iab';
 export { isIABConfigured } from './iab-options';
 export { createLazyIABFactory } from './lazy-iab';
 export { lazyRuntimeModule } from './lazy-module';
 export { mountRuntimeIAB } from './iab-mount';
 export type { RuntimeIABMountOptions } from './iab-mount';
-
-/**
- * Every consent category granted.
- *
- * The snapshot a disabled runtime (`enabled: false`) reports, so anything
- * reading consent sees an unrestricted visitor. Consent-gated scripts in
- * `options.scripts` therefore load immediately, exactly as they would for a
- * visitor who accepted everything. The blockers stay unmounted: with every
- * category granted they would block nothing, so mounting them would only
- * patch `fetch` and observe the DOM for no effect.
- */
-export const ALL_CONSENTS_GRANTED: ConsentState = {
-	experience: true,
-	functionality: true,
-	marketing: true,
-	measurement: true,
-	necessary: true,
-};
 
 const loadClearOnRevocation = function loadClearOnRevocation(
 	options: ClearOnRevocationOptions
@@ -138,7 +113,7 @@ const loadNetworkBlocker = function loadNetworkBlocker(
  * revocation reload are imported statically. The network blocker and data
  * clearing are opt-in, so they load on demand: a page that configures
  * neither never downloads them. (A provider that loads every module on
- * demand uses `onDemandRuntimeModules` from `@c15t/core/runtime/provider`,
+ * demand uses `onDemandRuntimeModules` from `@c15t/core/runtime/on-demand`,
  * whose chunks import nothing from the first load.) Matching
  * requests stay held from construction until the blocker has loaded and
  * decides them. Data clearing sweeps denied categories when it mounts, so a

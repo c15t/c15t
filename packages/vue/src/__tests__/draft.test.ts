@@ -1,8 +1,7 @@
 /**
  * Vue's wrapper around `@c15t/core/preference-draft`. The draft rules are
  * pinned by the core suite; these tests cover what Vue adds: `values` as a
- * ref a `v-model` writes into, refs that follow the kernel, and
- * `reseedOnNextRecord` for the manager's bulk actions.
+ * ref a `v-model` writes into and refs that follow the kernel.
  *
  * @vitest-environment jsdom
  */
@@ -100,12 +99,16 @@ test('the refs follow a record another surface saved', async () => {
 	});
 });
 
-test('reseedOnNextRecord drops staged edits when the bulk action records', async () => {
+test('displayedCategories lists the scope in the display order, not the policy order', () => {
+	// The policy scope sorts alphabetically (marketing, measurement); the
+	// surfaces list categories in the one display order every adapter uses.
 	const { context, draft } = mountDraft();
-	draft.setVendor('missing', false);
-	draft.values.value.marketing = true;
-	draft.reseedOnNextRecord();
-	await context.kernel.commands.save('none');
-	expect(draft.isDirty.value).toBe(false);
-	expect(draft.values.value.marketing).toBe(false);
+	expect(draft.displayedCategories.value).toEqual([
+		'necessary',
+		'measurement',
+		'marketing',
+	]);
+	expect(draft.displayedCategories.value).toEqual(
+		context.runtime.consentCategories
+	);
 });

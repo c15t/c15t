@@ -20,11 +20,10 @@ import type { KernelTransport } from '../../types';
 import {
 	createConsentProviderRuntime,
 	createConsentRuntime,
-	createRuntimeKernel,
 	defaultRuntimeModules,
-	hasResolvedPrefetch,
 	lazyRuntimeModule,
 } from '../index';
+import { createRuntimeKernel, hasResolvedPrefetch } from '../runtime-kernel';
 import type { ConsentRuntimeIABHandle } from '../types';
 
 const createTransport = function createTransport(
@@ -655,7 +654,7 @@ describe('createConsentRuntime', () => {
 			mode: custom(createTransport()),
 		});
 		const seen: (ConsentRuntimeIABHandle | null)[] = [];
-		runtime.onIABChange((next) => seen.push(next));
+		runtime.subscribe(() => seen.push(runtime.iab));
 
 		runtime.start();
 		expect(createIAB).not.toHaveBeenCalled();
@@ -709,6 +708,15 @@ describe('createConsentRuntime', () => {
 
 		runtime.setOverrides({ country: 'FR' });
 		expect(runtime.kernel.getSnapshot().overrides.country).toBe('FR');
+		// Merged, not replaced: a key left out keeps its value.
+		runtime.setOverrides({ language: 'de' });
+		expect(runtime.kernel.getSnapshot().overrides).toMatchObject({
+			country: 'FR',
+			language: 'de',
+		});
+		runtime.setOverrides({ country: undefined });
+		expect(runtime.kernel.getSnapshot().overrides.country).toBeUndefined();
+		expect(runtime.kernel.getSnapshot().overrides.language).toBe('de');
 		runtime.dispose();
 	});
 

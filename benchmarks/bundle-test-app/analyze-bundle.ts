@@ -352,7 +352,8 @@ const main = async function main() {
 			framework: 'core',
 			metadata: { gitDirty: safeGitDirty() },
 			metrics: [
-				summarizeMetric('c15t', 'bytes', [coreTarball.size]),
+				// packages/core is @c15t/core; the c15t umbrella is a separate package.
+				summarizeMetric('@c15t/core', 'bytes', [coreTarball.size]),
 				summarizeMetric('@c15t/react', 'bytes', [reactTarball.size]),
 				summarizeMetric('@c15t/nextjs', 'bytes', [nextjsTarball.size]),
 			],

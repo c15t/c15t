@@ -1,4 +1,5 @@
 /** Shared controls for adapters that own their kernel lifecycle. */
+import type { InternalKernel } from '../kernel/internals';
 import type { ConsentKernel, ConsentState, Unsubscribe } from '../types';
 import type { ConsentRuntimeOptions, ExternalConsentSource } from './types';
 
@@ -21,7 +22,7 @@ export const connectConsentSource = (
 	let disposed = false;
 	const report = (error: unknown) => {
 		if (!disposed) {
-			kernel.events.emit({
+			(kernel as InternalKernel).events.emit({
 				command: 'preferences',
 				error,
 				type: 'command:error',

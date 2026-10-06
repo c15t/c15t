@@ -6,7 +6,7 @@
  * request adapter's headers and cookies, the `config` routes, and the
  * development warning.
  */
-import { clearManifestCache } from '@c15t/core/transports/manifest-cache';
+import { clearManifestCache } from '@c15t/core/server';
 import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,

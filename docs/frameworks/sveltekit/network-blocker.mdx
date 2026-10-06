@@ -6,6 +6,16 @@ group: frameworks
 
 <include src="../../shared/svelte/network-blocker.mdx" />
 
+## Preload the blocker
+
+The blocker shares a separate chunk with the script loader. The chunk loads
+only on pages with `networkBlocker` rules or `scripts`, and matching requests
+wait until it has loaded. Add the `c15tPreload()` Vite plugin so `c15tHandle`
+links the chunk from the page's `<head>` and the browser fetches it with the
+app's own code.
+[Preload the script loader](./scripts#preload-the-script-loader) shows the
+setup.
+
 ## Server requests are not blocked
 
 The network blocker runs in the browser. A `fetch` in a SvelteKit `load`,

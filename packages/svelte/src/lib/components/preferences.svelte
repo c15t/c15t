@@ -4,6 +4,7 @@
 		defaultTranslationConfig,
 		resolveConsentPresentation,
 	} from '@c15t/core';
+	import { createPreferenceDraft } from '@c15t/core/preference-draft';
 	import accordionStyles from '@c15t/ui/styles/components/accordion';
 	import managerStyles from '@c15t/ui/styles/components/consent-manager';
 	import switchStyles from '@c15t/ui/styles/components/switch';
@@ -32,6 +33,10 @@
 	} = $props();
 
 	const consent = getConsentContext();
+	// The draft ships with this widget, not with the provider; see
+	// `ConsentManagerProvider`. Handing it over here seeds the switches in
+	// this render, server-side too.
+	consent.provideDraft(createPreferenceDraft);
 	const widgetId = $props.id();
 	const theme = getThemeContext();
 

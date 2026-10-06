@@ -1,16 +1,27 @@
 <script lang="ts">
 	import type { ConsentKernel, ConsentSnapshot } from '@c15t/core';
-	import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
-	import { createPreferenceDraft } from '@c15t/core/preference-draft';
-	import type { PreferenceDraft } from '@c15t/core/preference-draft';
 	import {
-		createConsentProviderRuntime,
-		defaultRuntimeModules,
-	} from '@c15t/core/runtime';
+		applyExperimentAssignment,
+		applyExperimentTheme,
+		watchRevocationReload,
+	} from '@c15t/core';
+	import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
+	import { createPersistence } from '@c15t/core/modules/persistence';
+	import { createWindowDebug } from '@c15t/core/modules/window-debug';
+	import type {
+		createPreferenceDraft,
+		PreferenceDraft,
+		PreferenceDraftState,
+	} from '@c15t/core/preference-draft';
+	import {
+		mountRuntimeIAB,
+		onDemandRuntimeModules,
+	} from '@c15t/core/runtime/on-demand';
+	import { createConsentProviderRuntime } from '@c15t/core/runtime/provider';
 	import type {
 		ConsentProviderRuntime,
 		ConsentRuntime,
-	} from '@c15t/core/runtime';
+	} from '@c15t/core/runtime/provider';
 	import type { IABHandle } from '@c15t/iab';
 	import { setupColorScheme } from '@c15t/ui/utils';
 	import type { Snippet } from 'svelte';
@@ -19,6 +30,7 @@
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
 	import { isIABConfigured, lazyCreateIAB } from '../iab-loader';
+	import { modulePreloadMarker } from '../module-preload';
 	import { warnOnUnappliedThemeTokens } from '../theme-warning';
 	import type { ConsentManagerOptions } from '../types';
 
@@ -94,9 +106,25 @@
 	});
 	const ownedRuntime: ConsentProviderRuntime | undefined = ownsRuntime
 		? untrack(() =>
-				createConsentProviderRuntime(runtimeOptions(), defaultRuntimeModules)
+				createConsentProviderRuntime(runtimeOptions(), {
+					// The script loader, network blocker, data clearing and a
+					// `consentSource` connection load on demand, each only when
+					// configured.
+					...onDemandRuntimeModules,
+					createIframeBlocker,
+					createPersistence,
+					createWindowDebug,
+					mountIAB: mountRuntimeIAB,
+					watchRevocationReload,
+				})
 			)
 		: undefined;
+	// Names the on-demand chunks this page starts with, so `c15tHandle` can
+	// preload them from the server-rendered head. The same on the server and
+	// in the browser, so hydration keeps it.
+	const preloadMarker = ownsRuntime
+		? untrack(() => modulePreloadMarker(options))
+		: '';
 	const runtime: ConsentRuntime =
 		externalRuntime ?? (ownedRuntime as ConsentRuntime);
 	// The runtime validated and assigned from the experiment it was created
@@ -119,25 +147,94 @@
 		)?.preferences?.defaults;
 	// One draft per provider, so the headless state API and the dialog stage
 	// into the same one. It follows the rendered kernel.
-	let preferenceDraft: PreferenceDraft = createPreferenceDraft(initialKernel, {
-		defaults: untrack(draftDefaults),
-	});
-	let draftState = $state.raw(preferenceDraft.getState());
-	let stopDraft = preferenceDraft.subscribe(() => {
-		draftState = preferenceDraft.getState();
-	});
-	const followDraft = (next: ConsentKernel) => {
+	//
+	// `@c15t/core/preference-draft` is not on first load. `ConsentWidget`
+	// (and so the dialog chunk) imports it and hands it over while it
+	// renders, on the server too. Without one, the first read or write of
+	// the draft loads it; until it lands, `values` and `vendors` are empty,
+	// `isStale` is `false`, and writes wait in order for it.
+	type CreatePreferenceDraft = typeof createPreferenceDraft;
+	const EMPTY: Readonly<Record<string, boolean>> = Object.freeze({});
+	let createDraft: CreatePreferenceDraft | null = null;
+	let preferenceDraft: PreferenceDraft | null = null;
+	let draftState = $state.raw<PreferenceDraftState | null>(null);
+	let stopDraft = () => {
+		/* no draft yet */
+	};
+	let waiting: ((draft: PreferenceDraft) => void)[] = [];
+	let draftLoad: Promise<PreferenceDraft> | undefined;
+
+	const startDraft = function startDraft(next: ConsentKernel): PreferenceDraft {
 		stopDraft();
-		preferenceDraft = createPreferenceDraft(next, {
+		const started = (createDraft as CreatePreferenceDraft)(next, {
 			defaults: untrack(draftDefaults),
 		});
-		draftState = preferenceDraft.getState();
-		stopDraft = preferenceDraft.subscribe(() => {
-			draftState = preferenceDraft.getState();
+		preferenceDraft = started;
+		draftState = started.getState();
+		stopDraft = started.subscribe(() => {
+			draftState = started.getState();
 		});
+		return started;
+	};
+	const provideDraft = function provideDraft(
+		create: CreatePreferenceDraft
+	): PreferenceDraft {
+		if (preferenceDraft) {
+			return preferenceDraft;
+		}
+		createDraft = create;
+		const started = startDraft(kernel);
+		for (const apply of waiting.splice(0)) {
+			apply(started);
+		}
+		return started;
+	};
+	const importDraft = async function importDraft(): Promise<PreferenceDraft> {
+		try {
+			const module = await import('@c15t/core/preference-draft');
+			return provideDraft(module.createPreferenceDraft);
+		} catch (error) {
+			// The next read or write retries.
+			draftLoad = undefined;
+			throw error;
+		}
+	};
+	const loadDraft = function loadDraft(): Promise<PreferenceDraft> {
+		if (preferenceDraft) {
+			return Promise.resolve(preferenceDraft);
+		}
+		draftLoad ??= importDraft();
+		return draftLoad;
+	};
+	/** Load the draft for a read; the read is reactive and fills in. */
+	const requestDraft = async function requestDraft(): Promise<void> {
+		if (preferenceDraft || typeof window === 'undefined') {
+			return;
+		}
+		try {
+			await loadDraft();
+		} catch {
+			/* retried on the next read or write */
+		}
+	};
+	const withDraft = function withDraft(
+		apply: (draft: PreferenceDraft) => void
+	): void {
+		if (preferenceDraft) {
+			apply(preferenceDraft);
+			return;
+		}
+		waiting.push(apply);
+		void requestDraft();
+	};
+	const followDraft = (next: ConsentKernel) => {
+		if (createDraft) {
+			startDraft(next);
+		}
 	};
 	$effect(() => {
-		preferenceDraft.setDefaults(draftDefaults());
+		const defaults = draftDefaults();
+		preferenceDraft?.setDefaults(defaults);
 	});
 	let iabHandle = $state<IABHandle | null>(
 		untrack(() => runtime.iab as IABHandle | null)
@@ -146,33 +243,41 @@
 
 	const draft: ConsentDraftState = {
 		get isStale() {
-			return draftState.isStale;
+			void requestDraft();
+			return draftState?.isStale ?? false;
 		},
 		reset() {
-			preferenceDraft.reset();
+			// Nothing is staged before the draft exists but the waiting writes.
+			waiting = [];
+			preferenceDraft?.reset();
 		},
 		async save(categories) {
-			if (preferenceDraft.getState().isStale) {
+			// A loaded draft records in this task, so the surface closes in the
+			// click task.
+			const current = preferenceDraft ?? (await loadDraft());
+			if (current.getState().isStale) {
 				throw new Error(
 					'The policy changed. Review your preferences before saving.'
 				);
 			}
-			const result = await preferenceDraft.save({ categories });
+			const result = await current.save({ categories });
 			if (!result.ok) {
 				throw new Error('Unable to save preferences.');
 			}
 		},
 		set(name, value) {
-			preferenceDraft.set(name, value);
+			withDraft((current) => current.set(name, value));
 		},
 		setVendor(vendorId, granted) {
-			preferenceDraft.setVendor(vendorId, granted);
+			withDraft((current) => current.setVendor(vendorId, granted));
 		},
 		get values() {
-			return draftState.values;
+			void requestDraft();
+			return draftState?.values ?? EMPTY;
 		},
 		get vendors() {
-			return draftState.vendors;
+			void requestDraft();
+			return draftState?.vendors ?? EMPTY;
 		},
 	};
 
@@ -219,7 +324,13 @@
 
 	setConsentContext(() => kernel, {
 		clearRecords: () => runtime.clearRecords(),
-		getConsentCategories: () => [...draftState.displayedCategories],
+		// The draft's displayed categories, without loading the draft: the
+		// runtime applies the same display-order rule. Reading `snapshot`
+		// re-runs a reactive reader when the policy changes.
+		getConsentCategories: () => {
+			void snapshot;
+			return runtime.consentCategories;
+		},
 		getDraft: () => draft,
 		getExperiment: () => experiment,
 		getIAB: getIABState,
@@ -227,6 +338,7 @@
 		getPresentation: () => options.presentation,
 		getSnapshot: () => snapshot,
 		getTheme: () => options.theme,
+		provideDraft,
 		setLanguage: (code) => runtime.setLanguage(code),
 	});
 
@@ -236,8 +348,8 @@
 
 	// The lazy handle queues calls until `@c15t/iab` lands and replays them,
 	// so the surfaces render against it as soon as it exists.
-	const unsubscribeIAB = runtime.onIABChange((next) => {
-		iabHandle = next as IABHandle | null;
+	const unsubscribeIAB = runtime.subscribe(() => {
+		iabHandle = runtime.iab as IABHandle | null;
 	});
 	// Turning `enabled` off renders a permissive kernel; follow it.
 	const unsubscribeRuntime = ownedRuntime?.subscribe(() => {
@@ -357,6 +469,15 @@
 		stopDraft();
 	});
 </script>
+
+<svelte:head>
+	{#if preloadMarker}
+		<meta
+			name="c15t-modulepreload"
+			content={preloadMarker}
+		/>
+	{/if}
+</svelte:head>
 
 {#if children}
 	{@render children()}

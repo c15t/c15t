@@ -44,6 +44,15 @@ c15t({
 
 Scripts from `astro.config.mjs` and from the client entrypoint both load.
 
+## What a site without scripts skips
+
+The script loader is part of the page's boot script only when the site
+configures `scripts` in `astro.config.mjs` or sets a `clientEntrypoint`, which
+may add some. A site with neither never downloads it, about 4 KB gzip less on
+every page. The [network blocker](./network-blocker) works the same way: it
+ships in the boot script when the integration options have `networkBlocker`
+rules, and loads as its own chunk when only the client entrypoint sets them.
+
 ## Gate an inline script
 
 For a script that has to stay in the page's markup, make it inert and label it

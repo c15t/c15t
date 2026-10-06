@@ -283,22 +283,6 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
-	test('the staged vendor draft is confirmed by a no-input save and then cleared', async () => {
-		const kernel = createKernel({
-			initialRecords: choiceRecords({ marketing: true, measurement: true }),
-		});
-		kernel.set.vendorDraft({ 'google-analytics': false });
-		await kernel.commands.save();
-		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([
-			'google-analytics',
-		]);
-		// A second no-input save finds no draft and changes nothing.
-		const settled = kernel.getSnapshot();
-		await kernel.commands.save();
-		expect(kernel.getSnapshot().vendorChoice).toBe(settled.vendorChoice);
-		kernel.dispose();
-	});
-
 	test('an explicit reconfirmation of the same denials renews the confirmation time', async () => {
 		const kernel = createKernel({
 			initialRecords: {
@@ -330,26 +314,6 @@ describe('save with vendors', () => {
 		kernel.dispose();
 	});
 
-	test('an unchanged staged draft does not renew the confirmation time', async () => {
-		const kernel = createKernel({
-			initialRecords: {
-				...choiceRecords({ marketing: true, measurement: true }),
-				vendorChoice: {
-					confirmedAt: NOW - 500,
-					denied: ['meta-pixel'],
-					version: 1,
-				},
-			},
-		});
-		const recorded = vi.fn();
-		kernel.events.on('vendors:recorded', recorded);
-		kernel.set.vendorDraft({ 'meta-pixel': false });
-		await kernel.commands.save();
-		expect(kernel.getSnapshot().vendorChoice?.confirmedAt).toBe(NOW - 500);
-		expect(recorded).not.toHaveBeenCalled();
-		kernel.dispose();
-	});
-
 	test('undeclared and disabled vendor ids are ignored', async () => {
 		const kernel = createKernel({
 			initialRecords: choiceRecords({ marketing: true, measurement: true }),
@@ -360,31 +324,6 @@ describe('save with vendors', () => {
 				vendors: { cdn: false, unknown: false },
 			}
 		);
-		expect(kernel.getSnapshot().vendorChoice).toBeNull();
-		kernel.dispose();
-	});
-
-	test('a staged value for an undeclared vendor is dropped by a no-op save', async () => {
-		const kernel = createKernel({
-			initialRecords: choiceRecords({ marketing: true, measurement: true }),
-		});
-		kernel.set.vendorDraft({ 'tiktok-pixel': false });
-		await kernel.commands.save();
-		expect(kernel.getSnapshot().vendorChoice).toBeNull();
-		// The vendor is declared later. The stale staged denial must not be
-		// applied by the next unrelated save.
-		kernel.set.vendors({
-			declared: [
-				...vendors.declared,
-				{
-					category: 'marketing',
-					id: 'tiktok-pixel',
-					presentable: false,
-					source: 'config',
-				},
-			],
-		});
-		await kernel.commands.save();
 		expect(kernel.getSnapshot().vendorChoice).toBeNull();
 		kernel.dispose();
 	});
@@ -836,8 +775,7 @@ describe('save with vendors', () => {
 			denied: [],
 			version: 1,
 		});
-		kernel.set.vendorDraft({ 'meta-pixel': false });
-		await kernel.commands.save('all');
+		await kernel.commands.save('all', { vendors: { 'meta-pixel': false } });
 		expect(kernel.getSnapshot().vendorChoice?.denied).toEqual([]);
 		kernel.dispose();
 	});

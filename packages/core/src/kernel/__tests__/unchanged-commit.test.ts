@@ -7,7 +7,7 @@
 import { enTranslations } from '@c15t/translations';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 
-import { createConsentKernel } from '..';
+import { createKernel as createConsentKernel } from '..';
 import {
 	choiceRecords,
 	explicitChoice,
@@ -18,12 +18,8 @@ import {
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { evaluateConsentRecord } from '../../consent-record/evaluate';
-import type {
-	ConsentKernel,
-	ConsentSnapshot,
-	InitResponse,
-	KernelConfig,
-} from '../../types';
+import type { ConsentSnapshot, InitResponse, KernelConfig } from '../../types';
+import type { InternalKernel } from '../internals';
 import type { SnapshotPatch } from '../patch';
 
 beforeEach(() => {
@@ -60,8 +56,8 @@ const expectFullDerivation = function expectFullDerivation(
  * snapshot kept its reference, the resulting snapshot last otherwise.
  */
 const observe = async function observe(
-	kernel: ConsentKernel,
-	operation: (kernel: ConsentKernel) => unknown
+	kernel: InternalKernel,
+	operation: (kernel: InternalKernel) => unknown
 ): Promise<{ before: ConsentSnapshot; after: ConsentSnapshot }> {
 	const before = kernel.getSnapshot();
 	const listener = vi.fn();
@@ -83,7 +79,7 @@ interface Operation {
 	config?: KernelConfig;
 	/** What the transport answers `init()` with. */
 	response?: InitResponse;
-	run: (kernel: ConsentKernel) => unknown;
+	run: (kernel: InternalKernel) => unknown;
 	/** Whether running it twice must leave the second run a no-op. */
 	idempotent: boolean;
 	/** The input leaves every derived field as it was. */

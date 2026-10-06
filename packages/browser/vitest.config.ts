@@ -130,7 +130,16 @@ export default mergeConfig(
 			},
 		],
 		resolve: {
-			alias: [{ find: '~', replacement: resolve(__dirname, './src') }],
+			alias: [
+				{ find: '~', replacement: resolve(__dirname, './src') },
+				// As in the script-tag builds: the suites drive the dialog
+				// synchronously. `dialog-surface.test.ts` covers the on-demand
+				// surface the ESM build ships, imported by another specifier.
+				{
+					find: /^\.\/dialog-surface$/u,
+					replacement: resolve(__dirname, './src/ui/dialog.ts'),
+				},
+			],
 		},
 		test: {
 			coverage: {
@@ -157,6 +166,20 @@ export default mergeConfig(
 					extends: true,
 					resolve: {
 						alias: [
+							{
+								find: '@c15t/core/runtime/provider',
+								replacement: resolve(
+									__dirname,
+									'../core/src/runtime/provider.ts'
+								),
+							},
+							{
+								find: '@c15t/core/runtime/on-demand',
+								replacement: resolve(
+									__dirname,
+									'../core/src/runtime/on-demand.ts'
+								),
+							},
 							{
 								find: '@c15t/core/runtime',
 								replacement: resolve(__dirname, '../core/src/runtime/index.ts'),

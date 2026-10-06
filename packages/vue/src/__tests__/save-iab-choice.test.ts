@@ -1,7 +1,7 @@
+import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import { expect, onTestFinished, test } from 'vitest';
 
 import { createVueConsentKernelContext } from '../runtime/kernel';
-import { saveIABChoice } from '../runtime/utils/save-iab-choice';
 
 const createContext = () => {
 	const context = createVueConsentKernelContext({ config: {} });
@@ -13,7 +13,7 @@ test('the Vue activeUI setter is explicit navigation: it supersedes a pending IA
 	const { activeUI, kernel } = createContext();
 	kernel.set.activeUI('dialog');
 	const pending = Promise.withResolvers<undefined>();
-	const save = saveIABChoice(kernel, () => pending.promise);
+	const save = saveIABConsentSurface(kernel, () => pending.promise);
 
 	activeUI.value = 'manager';
 	activeUI.value = null;

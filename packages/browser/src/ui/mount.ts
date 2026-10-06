@@ -9,7 +9,7 @@ import type {
 	ConsentUIOptions,
 } from '../types';
 import { createBanner } from './banner';
-import { createDialog } from './dialog';
+import { createDialog } from './dialog-surface';
 import { h, prefersReducedMotion } from './dom';
 import { createSlotApplier } from './slots';
 import type { Surface, SurfaceContext } from './surface';
@@ -238,7 +238,11 @@ export const mountConsentUI = function mountConsentUI(
 	}
 	if (options.dialog !== false) {
 		surfaces.push(
-			createDialog(ctx, options.dialog === true ? {} : (options.dialog ?? {}))
+			createDialog(
+				ctx,
+				options.dialog === true ? {} : (options.dialog ?? {}),
+				options.trigger
+			)
 		);
 	}
 	if (options.trigger) {

@@ -1,14 +1,11 @@
 /**
- * In-process consent-manifest cache for server adapters.
+ * Resolve `/init` locally from the backend's consent manifest, for server
+ * adapters that render from a cached manifest (Nuxt, TanStack Start).
  *
- * Every framework server layer (Next.js, Nuxt, SvelteKit, Astro, TanStack
- * Start) that proxies the backend's `GET /manifest` or resolves `GET /init`
- * locally reads the manifest through {@link fetchCachedManifest} here, so the
- * caching rules and the process cache live in one place: honour the
- * backend's `s-maxage`, revalidate with `ETag`, respect `no-store`, and
- * collapse bursts for backends that send no shared-cache TTL at all.
- * `@c15t/core/server` re-exports the same function and cache without the
- * init resolver.
+ * The manifest itself is read through the one process cache,
+ * `fetchCachedManifest` from `@c15t/core/server`, which honours the
+ * backend's `s-maxage`, revalidates with `ETag`, respects `no-store`, and
+ * collapses bursts for backends that send no shared-cache TTL at all.
  *
  * Like `@c15t/core/transports/manifest`, this module resolves init with
  * `@c15t/schema` and imports every translation language. Import it from
@@ -28,50 +25,9 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 
 export {
-	clearManifestCache,
-	createManifestCache,
-	createManifestRequestURL,
 	DEFAULT_RESOLVE_TIMEOUT_MS,
-	fetchCachedManifest,
-	getManifestAge,
-	getManifestSMaxAge,
-	getManifestStaleWhileRevalidate,
-	MANIFEST_DEDUPE_TTL_SECONDS,
-	MANIFEST_FAILURE_RETRY_MAX_MS,
-	MANIFEST_FAILURE_RETRY_MIN_MS,
-	MANIFEST_FETCH_TIMEOUT_MS,
-	MANIFEST_PASSTHROUGH_HEADERS,
-	ManifestUnavailableError,
-	parseCacheDirectiveSeconds,
-	resolveManifestCacheTtlSeconds,
-	resolveManifestSourceURL,
 	withResolutionBudget,
 } from '../libs/manifest-cache-runtime';
-export type {
-	ManifestUnavailableReason,
-	CachedManifestResponse,
-	FetchCachedManifestOptions,
-	ManifestCache,
-	ManifestCacheOptions,
-	ManifestFetch,
-	ManifestSourceOptions,
-} from '../libs/manifest-cache-runtime';
-export type {
-	BuildConsentSessionReportOptions,
-	ReportConsentSessionOptions,
-	SessionReportHeaders,
-	SessionReportInputs,
-} from '../libs/session-report';
-export {
-	buildConsentSessionReport,
-	forwardSessionReportHeaders,
-	isSpeculativeRequest,
-	reportConsentSession,
-	resolveSessionReportBackendURL,
-	SESSION_REPORT_CLIENT_IP_HEADER,
-	SESSION_REPORT_FORWARD_HEADERS,
-} from '../libs/session-report';
-
 /** Request headers accepted by {@link resolveManifestInit}. */
 export type ManifestRequestHeaders =
 	| Headers
@@ -160,4 +116,3 @@ export const resolveManifestInit = function resolveManifestInit(
 		resolvedPrivacySignals: { gpc: inputs.gpc },
 	} as InitOutput;
 };
-export { fetchCachedGvl } from './gvl-cache';

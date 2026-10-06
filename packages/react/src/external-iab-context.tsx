@@ -85,7 +85,7 @@ export const ExternalIABProvider = ({
 }: ExternalIABProviderProps) => {
 	const [tab, setTab] = useState<'purposes' | 'vendors'>('purposes');
 	const handle = useSyncExternalStore(
-		(listener) => runtime.onIABChange(listener),
+		(listener) => runtime.subscribe(listener),
 		() => runtime.iab as IABHandle | null,
 		getServerHandle
 	);
@@ -107,7 +107,7 @@ export const ExternalIABProvider = ({
 				}
 			}
 		};
-		const unsubscribe = queue.runtime.onIABChange(flush);
+		const unsubscribe = queue.runtime.subscribe(flush);
 		flush();
 		return () => {
 			unsubscribe();

@@ -18,6 +18,12 @@ Install it with:
 
 <CommandTabs command="@c15t/browser@alpha" mode="install" />
 
+In the ES module build the preference dialog is a separate chunk. It starts
+loading in idle time once the banner or the trigger is on screen, and at the
+latest when the dialog opens, so a page that only shows the banner never
+downloads it. The script-tag files (`c15t.js`, `c15t.iab.js`) stay one file
+each.
+
 `@c15t/browser` is not part of the `c15t` package. Use one entry per page.
 Each creates its own client, and two clients on one page would each run the
 script loader and blockers.
@@ -59,7 +65,7 @@ lists everything `init` and `createConsentClient` accept.
 | `getSnapshot()` | `ConsentSnapshot` | The full state. See the [snapshot reference](/docs/frameworks/javascript/api/snapshot). |
 | `subscribe(listener)` | `() => void` | Call `listener` with each new snapshot. Returns an unsubscribe function. |
 | `on(event, listener)` | `() => void` | Listen for `ready`, `consent`, `ui` or `error`. |
-| `consentCategories` | `AllConsentNames[]` | The categories the dialog offers, `necessary` first. |
+| `consentCategories` | `AllConsentNames[]` | The categories the dialog offers, in a fixed order: `necessary`, `functionality`, `measurement`, `experience`, `marketing`, limited to the policy's categories. The order of the `consentCategories` option doesn't change it. |
 
 `has()` reads a permission, which says whether code may run now. Under an opt-out policy
 it is `true` before the visitor does anything. `hasConsented()` and
@@ -91,7 +97,7 @@ the choice stays in effect and c15t retries the request later.
 | --- | --- |
 | `showBanner()`, `openDialog()`, `closeDialog()` | Change the surface c15t wants shown. Records nothing. |
 | `setLanguage(code)` | Sets the language and resolves the policy again, which fetches that language's copy from the backend. In offline mode the copy comes from the bundled translations and `i18n.messages`. See [translations](/docs/frameworks/javascript/translations). |
-| `setOverrides(overrides)` | Replaces the country, region, language and GPC inputs to policy matching. |
+| `setOverrides(overrides)` | Merges into the country, region, language and GPC inputs to policy matching. A key you pass replaces its value, `undefined` clears it, and a key you leave out stays. |
 | `mountUI(options?)` | Removes the stock UI and mounts it again with new UI options. Throws in the headless entry. |
 | `processIframes()` | Pauses gated iframes that consent does not allow and restores the ones it allows. Needed only with `iframeBlocker: { disableAutomaticBlocking: true }`. See [iframe blocker](/docs/frameworks/javascript/modules/iframe-blocker#check-iframes-on-demand). |
 | `ui` | The mounted UI handle, with `host`, `root`, `update()` and `destroy()`, or `null`. |

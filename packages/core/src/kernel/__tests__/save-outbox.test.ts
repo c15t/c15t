@@ -20,13 +20,13 @@ import { ConsentSaveRejectedError, isConsentSaveRejection } from '../../index';
 import { buildDecisionAssertion } from '../../transports/decision-inputs';
 import { createHostedTransport } from '../../transports/hosted';
 import type {
-	ConsentKernel,
 	KernelConfig,
 	KernelTransport,
 	SavePayload,
 	SaveResult,
 } from '../../types';
 import { createKernel } from '../index';
+import type { InternalKernel } from '../internals';
 import { createMemoryOutboxStore } from '../save-outbox';
 import type { SaveOutboxStore } from '../save-outbox';
 
@@ -51,7 +51,7 @@ afterEach(() => {
 const kernelOn = function kernelOn(
 	config: KernelConfig,
 	outboxStore: SaveOutboxStore = store
-): ConsentKernel {
+): InternalKernel {
 	return createKernel(config, { outboxStore });
 };
 
@@ -68,7 +68,7 @@ const editQueue = function editQueue(
 };
 
 /** The clear every adapter runs: records nulled, then announced. */
-const clearRecords = function clearRecords(kernel: ConsentKernel): void {
+const clearRecords = function clearRecords(kernel: InternalKernel): void {
 	kernel.hydrate({
 		choice: null,
 		noticeDismissal: null,

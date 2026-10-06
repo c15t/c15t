@@ -19,7 +19,7 @@
  * ```
  */
 
-import { isVendorAllowed } from '@c15t/core';
+import { isVendorAllowed, watchRevocationReload } from '@c15t/core';
 import type {
 	ConsentKernel,
 	ConsentSnapshot,
@@ -31,12 +31,20 @@ import type {
 	Unsubscribe,
 	VendorChoice,
 } from '@c15t/core';
-import { createConsentRuntime } from '@c15t/core/runtime';
+import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import type {
 	ConsentRuntime,
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
+import {
+	createConsentRuntimeWith,
+	mountRuntimeIAB,
+} from '@c15t/core/runtime/on-demand';
+import { clearOnRevocationOnDemand } from '@c15t/core/runtime/on-demand-factories';
+import type { ConsentRuntimeModules } from '@c15t/core/runtime/provider';
 import {
 	hasConsentPreferences,
 	hasConsentUI,
@@ -637,6 +645,66 @@ const resolveAction = function resolveAction(
 
 const NO_VENDORS: readonly ResolvedVendor[] = [];
 
+/**
+ * Stands in for a module the page script did not register.
+ *
+ * The integration's page script registers the script loader, the network
+ * blocker and the `consentSource` connection whenever the site can
+ * configure them, so this only runs under `boot()` without the
+ * integration, which then fails loudly instead of dropping the option. A
+ * fallback `import()` of these modules here would keep a site's
+ * statically imported script loader in a chunk of its own.
+ *
+ * @param option - The option that needs the module.
+ * @throws {Error} Always.
+ */
+const notRegistered = function notRegistered(option: string): never {
+	throw new Error(
+		`@c15t/astro: \`${option}\` needs the module the integration's page script registers.`
+	);
+};
+
+/**
+ * The runtime modules the page mounts. Data clearing loads on demand;
+ * persistence, the iframe blocker and the IAB mount load with the page.
+ * The boot script registers the script loader, the network blocker and a
+ * `consentSource` connection for a site that can configure them.
+ */
+let pageRuntimeModules: ConsentRuntimeModules = {
+	connectConsentSource: () => notRegistered('consentSource'),
+	createClearOnRevocation: clearOnRevocationOnDemand,
+	createIframeBlocker,
+	createNetworkBlocker: ({ hold }) => {
+		// Nothing will decide the held requests: fail them closed.
+		hold?.block();
+		return notRegistered('networkBlocker');
+	},
+	createPersistence,
+	createScriptLoader: () => notRegistered('scripts'),
+	createWindowDebug,
+	mountIAB: mountRuntimeIAB,
+	watchRevocationReload,
+};
+
+/**
+ * Mount these module factories.
+ *
+ * The integration's boot script imports the script loader statically when
+ * the site configures `scripts` (or a `clientEntrypoint` that may add
+ * some), and the network blocker when it configures rules, so those ship
+ * with the page instead of one round trip after it. A `clientEntrypoint`
+ * that may add blocker rules gets the on-demand blocker. Call before
+ * {@link boot}.
+ *
+ * @param modules - The module factories to mount.
+ * @internal
+ */
+export const registerRuntimeModules = function registerRuntimeModules(
+	modules: Partial<ConsentRuntimeModules>
+): void {
+	pageRuntimeModules = { ...pageRuntimeModules, ...modules };
+};
+
 const createClient = function createClient(
 	options: C15tResolvedOptions,
 	extension: C15tClientOptionsExtension = {}
@@ -657,41 +725,47 @@ const createClient = function createClient(
 
 	// The server already resolved translations into `prefetch`, which the
 	// runtime prefers over anything it would derive from `i18n`.
-	const runtime = createConsentRuntime({
-		callbacks: extension.callbacks,
-		clearOnRevocation: extension.clearOnRevocation ?? options.clearOnRevocation,
-		consentCategories: options.consentCategories,
-		consentSource: extension.consentSource,
-		createIAB: lazyCreateIAB,
-		// The server resolved this request's arm into the prefetch. Without
-		// one, no experiment runs: browser assignment would hold a banner
-		// the server already rendered.
-		experiment: config.initialExperiment ? options.experiment : undefined,
-		i18n: options.i18n as ConsentRuntimeOptions['i18n'],
-		// `RuntimeIABOptions` is the runtime's open-ended shape; the
-		// integration option is the closed, documented subset of it.
-		iab:
-			options.iab === false
-				? false
-				: (options.iab as RuntimeIABOptions | undefined),
-		mode: resolveTransportFactory(options.mode, {
-			backendURL:
-				options.mode.type === 'manifest' ? options.mode.backendURL : undefined,
-			initPath: options.endpoints.initPath,
-		}),
-		networkBlocker: extension.networkBlocker ?? options.networkBlocker,
-		nonce: pageNonce,
-		pkg: '@c15t/astro',
-		policyRules:
-			options.mode.type === 'offline' ? options.mode.policyRules : undefined,
-		prefetch: config,
-		presentation: options.presentation,
-		reloadOnConsentRevoked: options.reloadOnConsentRevoked,
-		scripts,
-		storageConfig: options.storageConfig,
-		theme: options.theme,
-		vendors: options.vendors,
-	});
+	const runtime = createConsentRuntimeWith(
+		{
+			callbacks: extension.callbacks,
+			clearOnRevocation:
+				extension.clearOnRevocation ?? options.clearOnRevocation,
+			consentCategories: options.consentCategories,
+			consentSource: extension.consentSource,
+			createIAB: lazyCreateIAB,
+			// The server resolved this request's arm into the prefetch. Without
+			// one, no experiment runs: browser assignment would hold a banner
+			// the server already rendered.
+			experiment: config.initialExperiment ? options.experiment : undefined,
+			i18n: options.i18n as ConsentRuntimeOptions['i18n'],
+			// `RuntimeIABOptions` is the runtime's open-ended shape; the
+			// integration option is the closed, documented subset of it.
+			iab:
+				options.iab === false
+					? false
+					: (options.iab as RuntimeIABOptions | undefined),
+			mode: resolveTransportFactory(options.mode, {
+				backendURL:
+					options.mode.type === 'manifest'
+						? options.mode.backendURL
+						: undefined,
+				initPath: options.endpoints.initPath,
+			}),
+			networkBlocker: extension.networkBlocker ?? options.networkBlocker,
+			nonce: pageNonce,
+			pkg: '@c15t/astro',
+			policyRules:
+				options.mode.type === 'offline' ? options.mode.policyRules : undefined,
+			prefetch: config,
+			presentation: options.presentation,
+			reloadOnConsentRevoked: options.reloadOnConsentRevoked,
+			scripts,
+			storageConfig: options.storageConfig,
+			theme: options.theme,
+			vendors: options.vendors,
+		},
+		pageRuntimeModules
+	);
 
 	let dialog: ConsentDialogHandle | null = null;
 	let dialogKind: ConsentDialogKind | null = null;

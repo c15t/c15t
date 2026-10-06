@@ -5,6 +5,7 @@
 		resolveIABBannerSummary,
 	} from '@c15t/core';
 	import type { Model } from '@c15t/core';
+	import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 	import { applyPublisherRestrictionsToGVL } from '@c15t/iab/headless';
 	import { isDialogDismissKey } from '@c15t/ui/primitives/dialog';
 	import actionStyles from '@c15t/ui/styles/components/consent-actions';
@@ -15,11 +16,7 @@
 	import { focusTrap } from '../actions/focus-trap';
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
-	import {
-		getConsentContext,
-		getThemeContext,
-		saveIABChoice,
-	} from '../context.svelte';
+	import { getConsentContext, getThemeContext } from '../context.svelte';
 	import { getIABTranslations } from '../iab-translations';
 	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
@@ -253,7 +250,7 @@
 		}
 		const state = iabState;
 		try {
-			await saveIABChoice(consent.kernel, () => state.save());
+			await saveIABConsentSurface(consent.kernel, () => state.save());
 		} catch {
 			// Keep the prompt available so a later action can retry the failed load/save.
 		}

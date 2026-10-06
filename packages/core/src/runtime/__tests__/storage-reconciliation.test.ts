@@ -15,6 +15,7 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
+import type { InternalKernel } from '../../kernel/internals';
 import {
 	clearStoredConsentRecords,
 	writeStoredClearEpoch,
@@ -213,7 +214,7 @@ test('keeps a record held only in memory while storage is unchanged', () => {
 	const active = start();
 	// A receipt merged from the server lives in memory; storage never had it.
 	const now = Date.now();
-	active.kernel.hydrate({
+	(active.kernel as InternalKernel).hydrate({
 		choice: explicitChoice(
 			{ measurement: true },
 			{
@@ -625,7 +626,7 @@ test('a seeded choice survives storage becoming readable and empty', () => {
 test('a subject stored with a vendor record does not clear a choice held in memory', () => {
 	const active = start();
 	const now = Date.now();
-	active.kernel.hydrate({
+	(active.kernel as InternalKernel).hydrate({
 		choice: explicitChoice(
 			{ measurement: true },
 			{

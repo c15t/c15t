@@ -5,7 +5,7 @@
  *
  * Each setter computes a `SnapshotPatch` and hands it to the runtime,
  * which re-derives dependent fields, skips no-ops and keeps the deadline
- * timer current. `set.draft` and `set.vendorDraft` belong to choice
+ * timer current. `set.draft` belongs to choice
  * recording (`choice.ts`); `set.subjectId` to the records boundary
  * (`records.ts`).
  */

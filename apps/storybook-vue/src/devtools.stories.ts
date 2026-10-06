@@ -5,6 +5,7 @@ import {
 	getDevToolsCategories,
 } from '@c15t/conformance/fixtures/devtools';
 import { devToolsFlow, devToolsReady } from '@c15t/conformance/play/devtools';
+import type { HydrationRecords, HydrationResult } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
 import type { Meta, StoryObj } from '@storybook/vue3-vite';
@@ -17,6 +18,20 @@ import {
 	storybookConsentConfig,
 	storybookInit,
 } from './storybook-consent-fixtures';
+
+/**
+ * `hydrate` applies stored records the way persistence does. It is a verb
+ * only core's own modules call, so it is not on `ConsentKernel`.
+ */
+const hydrateRecords = <KernelType extends object>(
+	kernel: KernelType,
+	records: HydrationRecords
+): HydrationResult =>
+	(
+		kernel as KernelType & {
+			hydrate: (input: HydrationRecords) => HydrationResult;
+		}
+	).hydrate(records);
 
 const meta = {
 	component: DevTools,
@@ -66,7 +81,7 @@ export const Default: Story = {
 				prefetch: init,
 				producerContract: 1,
 			});
-			context.kernel.hydrate({ now: devToolsPrefetch.now });
+			hydrateRecords(context.kernel, { now: devToolsPrefetch.now });
 			provideStorybookConsentContext(null, context, config);
 			const loader = createScriptLoader({
 				kernel: context.kernel,

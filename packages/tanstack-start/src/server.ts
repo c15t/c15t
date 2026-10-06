@@ -63,7 +63,7 @@ import {
 	DEFAULT_CONSENT_ROUTE_PREFIX,
 	resolveRequestConsent,
 } from '@c15t/core/server';
-import type { ManifestCache } from '@c15t/core/transports/manifest-cache';
+import type { ManifestCache } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
 import { trimTrailingSlashes } from './libs/path';
@@ -71,7 +71,7 @@ import { readConsentInputs } from './libs/request-inputs';
 
 type Awaitable<Value> = Promise<Value> | Value;
 
-export type { ManifestCache } from '@c15t/core/transports/manifest-cache';
+export type { ManifestCache } from '@c15t/core/server';
 
 /**
  * Where the helpers read the current request from. Defaults to

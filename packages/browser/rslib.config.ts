@@ -1,4 +1,4 @@
-import { defineConfig } from '@rslib/core';
+import { defineConfig, rspack } from '@rslib/core';
 
 import {
 	getRsdoctorPlugins,
@@ -21,6 +21,14 @@ import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
  * - `dist/c15t.iab.js` — an optional replacement with the CMP and IAB UI.
  * - `dist/c15t.devtools.js` — the DevTools panel as a second tag.
  */
+/**
+ * The ESM build loads the preference centre on demand
+ * (`ui/dialog-surface.ts`). A script tag has nowhere to load a chunk from,
+ * so the script-tag builds use the dialog module directly.
+ */
+const inlineDialog = () =>
+	new rspack.NormalModuleReplacementPlugin(/^\.\/dialog-surface$/u, './dialog');
+
 const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 	return {
 		autoExternal: false,
@@ -39,7 +47,18 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 		// browserslist.
 		syntax: 'es2020' as const,
 		tools: {
-			rspack: { plugins: name === 'c15t.iab' ? [] : [iabBundleBoundary()] },
+			rspack: {
+				plugins: [
+					// One file has no chunk to load on demand, and an inlined
+					// `import()` only adds bytes: mount every module statically.
+					new rspack.NormalModuleReplacementPlugin(
+						/^\.\/create-runtime$/u,
+						'./create-runtime-static'
+					),
+					inlineDialog(),
+					...(name === 'c15t.iab' ? [] : [iabBundleBoundary()]),
+				],
+			},
 		},
 	};
 };

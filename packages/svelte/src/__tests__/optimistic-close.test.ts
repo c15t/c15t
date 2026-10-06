@@ -83,6 +83,8 @@ test.each(
 		const dialog = () =>
 			document.querySelector('[data-testid="consent-dialog-root"]');
 		await vi.waitFor(() => expect(dialog()).not.toBeNull());
+		// The script loader loads on demand; let it land before the click.
+		await vi.dynamicImportSettled();
 		document
 			.querySelector<HTMLButtonElement>(`[data-testid="${buttons[action]}"]`)
 			?.click();

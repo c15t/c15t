@@ -21,6 +21,40 @@ describe('prefetch utilities', () => {
 		vi.restoreAllMocks();
 	});
 
+	it.each([
+		{ backendURL: '/api/c15t/' },
+		{ backendURL: 'https://consent.example.com', credentials: 'omit' as const },
+		{
+			backendURL: '/api/c15t',
+			overrides: { country: 'DE', gpc: true, language: 'de', region: 'BE' },
+		},
+	])(
+		'the inline script and primePrefetchedInitialData share one cache entry for %j',
+		(options) => {
+			const fetchSpy = vi
+				.fn()
+				.mockImplementation(() =>
+					Promise.resolve(new Response('{}', { status: 200 }))
+				);
+			vi.stubGlobal('fetch', fetchSpy);
+			window.eval(buildPrefetchScript(options));
+			const entries = (
+				window as Window & {
+					__c15tInitialDataPromises?: Record<
+						string,
+						{ promise: Promise<unknown> }
+					>;
+				}
+			).__c15tInitialDataPromises;
+			const scripted = Object.values(entries ?? {})[0]?.promise;
+			expect(scripted).toBeDefined();
+			// The same key: priming finds the script's entry and fetches nothing.
+			expect(primePrefetchedInitialData(options)).toBe(scripted);
+			expect(fetchSpy).toHaveBeenCalledOnce();
+			expect(Object.keys(entries ?? {})).toHaveLength(1);
+		}
+	);
+
 	it('stores request-context metadata with canonical backend URL, credentials, and ambient GPC', async () => {
 		Object.defineProperty(window.navigator, 'globalPrivacyControl', {
 			configurable: true,
