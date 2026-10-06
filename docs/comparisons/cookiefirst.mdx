@@ -1,0 +1,65 @@
+---
+title: c15t v3 vs CookieFirst
+description: Choose c15t for native web framework coverage and a backend you can run. Compare CookieFirst's React support, service choices, scans and cookie-policy tools.
+group: reference
+---
+
+## Own consent across your web application
+
+c15t is the stronger fit when your team wants native consent components across web frameworks and control of the backend. You can change the interface and engine with the product that uses them.
+
+Start with [Inth](https://inth.com) for managed policy and records. Choose the [open-source backend](/docs/self-host/overview) when you need to operate the service yourself.
+
+CookieFirst combines hosted consent, scans and cookie-policy tools. Its React package and public API also support custom application flows.
+
+## Compare what you get
+
+| What you need | c15t v3 | CookieFirst |
+| --- | --- | --- |
+| Use native web integration | React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro and TanStack Start | Official React component, browser script and platform integrations |
+| Build a custom interface | Themes, component parts and headless APIs | Public consent API and a stealth mode without the supplied banner |
+| Let visitors choose services | Category and individual vendor state | Category or service consent, under the configured policy |
+| Control vendor code | Declared rules for scripts, requests and embeds | Third-party script settings and Autoblock |
+| Choose the record service | Inth or your own c15t backend | Hosted consent logs and plan-dependent audit trails |
+| Discover cookies | **No automatic scanner in the packages** | Cookie scans |
+| Generate a cookie policy | **Not included** | Cookie-policy generator |
+| Handle withdrawal | Page reload by default, with optional cleanup | API clears consent, records the change and reloads the page |
+
+Sources: [CookieFirst platform](https://cookiefirst.com/consent-management-platform/), [React setup](https://support.cookiefirst.com/hc/en-us/articles/13992449777437-How-to-add-CookieFirst-to-a-React-site) and [public API](https://support.cookiefirst.com/hc/en-us/articles/360011568738-Cookie-Banner-Public-API-documentation).
+
+## Compare the full developer workflow
+
+CookieFirst supports more than a standard banner. Its API exposes accepted categories and services. Stealth mode removes its consent interface so your code can supply the controls.
+
+Its service methods follow the selected policy. Under a category policy, a service action applies to the relevant category. Check that setting before you compare individual choices.
+
+c15t combines [native framework components](/docs/frameworks), [vendor state](/docs/frameworks/react/vendor-consent) and a backend you can deploy. Your team can change the system from the interface through to record storage.
+
+That combination is the reason to choose c15t when consent is part of the product's code and release process.
+
+## Choose how much work stays with your team
+
+CookieFirst can fit when scans, cookie-policy updates and managed banner settings are the main needs. Its developer tools can extend that setup.
+
+Choose c15t when you need broader native web coverage and backend ownership. Use [headless APIs](/docs/frameworks/react/headless) for product-specific markup and Inth when you want managed backend operation.
+
+Both products need checks for consent changes and vendor behaviour. A reload can stop active code. It cannot remove every trace of data already sent or stored.
+
+## What c15t does not include
+
+- The packages do not scan the site or generate cookie and privacy policies.
+- They do not supply a visual website administration console.
+- Script and vendor controls need configuration. They do not discover tags already on the site automatically.
+- A local choice does not prove that a backend saved the record. Remote records need a service that can receive them.
+
+Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+c15t v3 is an alpha release. Include setup, backend costs and any separate scan or legal services in your comparison.
+
+## Test a service choice through to its record
+
+Start with the [framework guide](/docs/frameworks). Register two vendors in one category and check individual choices under the selected policy.
+
+Test refusal, acceptance, reload and withdrawal. Use the [verification guide](/docs/guides/verify-consent) to check requests and saved records.
+
+Sources checked on 6 October 2026. This comparison credits the React support, custom interfaces and service choices in both products.

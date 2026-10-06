@@ -1,0 +1,65 @@
+---
+title: c15t v3 vs Sourcepoint
+description: Choose c15t for consent inside a web product that your team owns. Compare Sourcepoint by Didomi's publisher campaigns, vendor controls, records and TV support.
+group: reference
+---
+
+## Keep web consent in your product workflow
+
+c15t is the stronger fit when your developers need native web components and control of the consent backend. You can build privacy choices into the product and review their behaviour in code.
+
+Start with [Inth](https://inth.com) for managed policy and records. The [open-source backend](/docs/self-host/overview) lets your team run the service when it needs that control.
+
+Sourcepoint suits publishers and teams with consent campaigns across websites, apps and connected TVs. It has developer APIs as well as managed operations.
+
+Sourcepoint is part of Didomi after the [announced acquisition](https://www.didomi.io/blog/didomi-sourcepoint). This guide covers Sourcepoint's product and docs. See the separate [Didomi comparison](/docs/comparisons/didomi) for that product.
+
+## Compare what you get
+
+| What you need | c15t v3 | Sourcepoint |
+| --- | --- | --- |
+| Connect consent to a web product | Native framework components and reactive state | Web integration, SDKs and consent callbacks |
+| Build the interface | Themes, component parts and headless APIs | Message builder, custom CSS and campaign flows |
+| Control vendors | Declared category and vendor rules | Vendor lists, consent actions and third-party tag controls |
+| Store consent history | Inth or your own c15t backend | Managed history by vendor and legal basis |
+| Discover vendor activity | **No automatic scanner in the packages** | Scans and separate compliance monitoring tools |
+| Test consent designs | Presentation and theme experiments with fixed policy and policy text | Campaign reports and A/B tests |
+| Cover connected TVs | **No bundled connected-TV SDK** | OTT and CTV support |
+| Manage publisher campaigns | Build product flows in application code | Property groups and reusable campaign scenarios |
+
+Sources: [Sourcepoint CMP](https://sourcepoint.com/cmp-2/), [third-party tag controls](https://docs.sourcepoint.com/hc/en-us/articles/42043114660755-Overview-Manage-3rd-party-tags-web) and [consent callbacks](https://docs.sourcepoint.com/hc/en-us/articles/4405397484307-Event-callbacks-CMP).
+
+## Build the flow your application needs
+
+c15t's [framework adapters](/docs/frameworks) let your team connect product screens to shared consent state. Use [headless APIs](/docs/frameworks/react/headless) for your own markup and [vendor controls](/docs/frameworks/react/vendor-consent) for individual services.
+
+Sourcepoint also supports custom code and callbacks when consent becomes available or a visitor takes an action. Its developer tools deserve credit in the comparison.
+
+c15t's advantage is the combination of native web components and source code for both the engine and backend. Your team can change and deploy those parts together.
+
+## Match the choice to your publisher needs
+
+Choose c15t when application control is the main requirement and your team owns the consent workflow. Its backend option keeps record storage under your control.
+
+Sourcepoint can be the better fit when campaign operations, connected-TV support and vendor assessment are central requirements. Those needs go beyond an application consent engine.
+
+For either product, check the actual vendor list, policy and deployment. Support for a consent framework does not prove that the site's configuration is correct.
+
+## What c15t does not include
+
+- The packages do not include automated vendor discovery or a publisher campaign console.
+- They do not include a connected-TV SDK or a full privacy operations suite.
+- Vendor rules cover configured targets. A visible banner does not stop every tag already on the site.
+- Remote records need Inth or your own backend that can receive records. Local state alone does not prove a successful write.
+
+Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+c15t v3 is an alpha release. Budget for setup, backend operation and any separate publisher services.
+
+## Test one web flow before a wider migration
+
+Start with the [framework guide](/docs/frameworks). Register one vendor and one embed under the intended policy.
+
+Test refusal, acceptance, reload and withdrawal with the [verification guide](/docs/guides/verify-consent). Check requests and saved records, then assess campaign and connected-TV requirements separately.
+
+Sources checked on 6 October 2026. This comparison does not claim measured performance gains or publisher feature parity.

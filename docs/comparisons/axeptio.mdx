@@ -1,0 +1,64 @@
+---
+title: c15t v3 vs Axeptio
+description: Choose c15t to own your consent interface, application behaviour and backend. Compare Axeptio's visual editor, vendor APIs, scans and banner experiments.
+group: reference
+---
+
+## Keep control of the experience and the code
+
+c15t is the stronger fit when your product team wants to own the consent interface and the code behind it. Use your framework's components, connect consent to product features, and choose where records live.
+
+Start with [Inth](https://inth.com) for the managed backend. The [open-source backend](/docs/self-host/overview) gives you the option to run the service yourself.
+
+Axeptio suits teams that want a visual editor for branded consent experiences. It also has developer APIs, service choices and banner experiments.
+
+## Compare what you get
+
+| What you need | c15t v3 | Axeptio |
+| --- | --- | --- |
+| Design the interface | Themes, component parts and headless APIs in your application | Visual banner editor with custom text, design and interactions |
+| Connect consent to features | Native framework state and declared integrations | JavaScript SDK, callbacks and service consent methods |
+| Check a named service | Category and vendor state | SDK methods to check or ask for consent to a service |
+| Choose the record service | Inth or your own c15t backend | Managed consent collection |
+| Find trackers | **No automatic scanner in the packages** | Cookie and tracker scanner |
+| Test banner designs | Presentation and theme experiments with fixed policy and policy text | Built-in analytics and A/B tests |
+| Manage legal acceptance | Backend version and snapshot helpers. Build the acceptance flow | Separate terms product with document publication and a consent registry |
+
+Sources: [Axeptio products](https://www.axept.io/) and [JavaScript SDK](https://support.axeptio.eu/en/articles/274036-about-axeptio-s-javascript-sdk).
+
+## Put privacy controls inside your product
+
+With c15t, an account screen, video placeholder and consent dialog can use the same consent state. Your team owns their markup and behaviour.
+
+Use the [framework components](/docs/frameworks) or [headless APIs](/docs/frameworks/react/headless). Keep consent changes in the same review process as the product features that depend on them.
+
+Axeptio also supports contextual consent through its SDK. Its service methods let developers check a choice or open a consent flow. c15t's advantage is the combination of native web components, an editable engine and a deployable backend.
+
+## Choose who controls changes
+
+Choose c15t when your developers need to review package upgrades, change the engine or operate the record service. Your team takes responsibility for those changes.
+
+Choose Axeptio when a business team needs to change the consent experience through a visual editor. Its hosted tools can reduce the custom work for scans and consent design.
+
+Both products support experiments. With c15t, [banner experiments](/docs/guides/banner-experiments) keep policy and policy text fixed while presentation changes.
+
+## What c15t does not include
+
+- The packages do not include automatic site scans or a visual campaign console.
+- Legal-document helpers do not write legal text or build the full acceptance flow.
+- Vendor controls need configuration. A banner does not stop every script already on the site.
+- Remote records need a backend that can receive them. A browser choice does not prove that the backend saved it.
+
+Some integrations load with denied consent signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+c15t v3 is an alpha release. Budget for setup, Inth or your own servers, and continued checks after product changes.
+
+## Try the product flow you need
+
+Start with the [framework guide](/docs/frameworks). Add a consent control to one product feature and register its vendor.
+
+Test refusal, acceptance, reload and withdrawal. Check the actual requests and saved record with the [verification guide](/docs/guides/verify-consent).
+
+Compare the work needed to change that flow in code with the work needed in Axeptio's editor and SDK.
+
+Sources checked on 6 October 2026. This comparison assesses documented workflows, not measured speed or legal compliance.
