@@ -10,6 +10,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
 import { createNetworkBlocker } from '../../modules/network-blocker';
+import type { NetworkHold } from '../../modules/network-blocker/hold';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
@@ -88,8 +89,10 @@ const createFakeModules = function createFakeModules() {
 				setEnabled: (value: boolean) => {
 					(entry.enabled as unknown[]).push(value);
 				},
-				updateRules: (rules: unknown) => {
+				updateRules: (rules: unknown, hold?: NetworkHold) => {
 					(entry.rules as unknown[]).push(rules);
+					// As the real blocker does once it has the rules.
+					hold?.release()();
 				},
 			};
 		},
