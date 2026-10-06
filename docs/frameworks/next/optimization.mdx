@@ -238,7 +238,8 @@ except a returning visitor whose stored choice, as `resolveConsent()` read it,
 already allows one of those scripts under the current policy. A grant the
 policy restricts, such as one Global Privacy Control denies, does not count.
 A script with `alwaysLoad` counts for any returning visitor, since it runs
-whatever they chose. For that visitor, `ConsentRoot` starts the download during its first render
+whatever they chose, and with `options.enabled` set to `false` every visitor
+counts, since a disabled provider grants every category. For that visitor, `ConsentRoot` starts the download during its first render
 in the browser, so the chunk loads while React hydrates the rest of the page
 and the consented scripts start sooner.
 The larger the tree inside `ConsentRoot`, the more of that request hydration

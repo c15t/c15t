@@ -47,7 +47,10 @@ import type { ConsentState } from './types';
 export const preloadScriptLoader = function preloadScriptLoader(
 	state: ConsentState | PromiseLike<ConsentState>,
 	scripts: readonly Script[] | undefined,
-	options?: ConsentControlOptions & { overrides?: KernelOverrides }
+	options?: ConsentControlOptions & {
+		enabled?: boolean;
+		overrides?: KernelOverrides;
+	}
 ): void {
 	// An external source decides consent, not the stored choice.
 	if (
@@ -59,6 +62,11 @@ export const preloadScriptLoader = function preloadScriptLoader(
 	}
 	void (async () => {
 		try {
+			// A disabled provider grants every category, so its scripts run.
+			if (options?.enabled === false) {
+				await import('@c15t/core/modules/script-loader');
+				return;
+			}
 			const resolved = await state;
 			if (!resolved.initialRecords?.choice) {
 				return;
