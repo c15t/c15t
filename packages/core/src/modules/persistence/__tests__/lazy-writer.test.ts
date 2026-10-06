@@ -180,21 +180,56 @@ describe('before the write code lands', () => {
 		expect(storedAtReload).toEqual([false]);
 	});
 
-	test('a save whose write code cannot load is still sent, and the next one retries', async () => {
+	test('a revocation whose write code fails to load does not reload while storage holds the grant', async () => {
+		await seedChoice({ marketing: true });
+		const { fail, land, loader, loads } = heldBackLoader();
+		fail();
+		const kernel = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel }, loader);
+		const storedAtReload: (boolean | undefined)[] = [];
+		watchRevocationReload({
+			kernel,
+			reload: () => {
+				storedAtReload.push(storedChoice()?.choice.categories.marketing?.value);
+			},
+		});
+
+		const revoking = kernel.commands.save({ marketing: false });
+		await vi.advanceTimersByTimeAsync(0);
+		expect(loads()).toBe(1);
+		// The load failed: nothing reloads, and the save stays open.
+		await vi.advanceTimersByTimeAsync(500);
+		expect(storedAtReload).toEqual([]);
+		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
+
+		// The retry lands the write; only then does the save settle and reload.
+		await vi.advanceTimersByTimeAsync(500);
+		expect(loads()).toBe(2);
+		await land();
+		await settle(revoking);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(storedAtReload).toEqual([false]);
+	});
+
+	test('a save whose write code fails to load is sent only once a retry stored it', async () => {
 		const { fail, land, loader, loads } = heldBackLoader();
 		fail();
 		const { kernel, storedAtSend } = kernelWithTransport();
 		createPersistence({ kernel }, loader);
 
-		await settle(kernel.commands.save({ marketing: true }));
-		expect(storedAtSend).toEqual([null]);
+		const saving = kernel.commands.save({ marketing: true });
+		await vi.advanceTimersByTimeAsync(500);
+		expect(loads()).toBe(1);
+		expect(storedAtSend).toEqual([]);
 
-		const saving = kernel.commands.save({ marketing: false });
+		await vi.advanceTimersByTimeAsync(500);
+		expect(loads()).toBe(2);
 		await land();
 		await settle(saving);
 
-		expect(loads()).toBe(2);
-		expect(storedChoice()?.choice.categories.marketing?.value).toBe(false);
+		expect(storedAtSend).toHaveLength(1);
+		expect(storedAtSend[0]).toContain('"version":3');
+		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 	});
 
 	test('a clear empties memory, storage and the save outbox at once', async () => {

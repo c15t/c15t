@@ -39,6 +39,11 @@
  *   `writer/schedule.ts`). Until the write code has loaded, the listener
  *   holds the request with `kernel.holdSaves()` instead, and the write runs
  *   as soon as the code lands, before the hold is released.
+ * - A write is never taken as stored before it is. When the write code
+ *   fails to load, the save stays held: its request does not leave, and
+ *   nothing waiting for its completion (a revocation reload) runs while
+ *   storage still holds the record it replaces. The load is retried after
+ *   1, 4 and 16 seconds and on every later event that needs it.
  * - Nothing is lost while the write code loads. Writes, a `reconcile()` and
  *   the sync listeners' reconciliations requested before it lands run when
  *   it lands, in that order. So do writes requested before `dispose()`.
@@ -100,6 +105,10 @@ export const CONSENT_STORAGE_KEY = STORAGE_KEY_V2;
 
 // Safari has no requestIdleCallback; a short delay after load stands in.
 const IDLE_FALLBACK_DELAY_MS = 200;
+// A write waits for the write code: after a failed load, try again after
+// 1, 4 and 16 seconds. Later events, focus and visibility changes try too.
+const RETRY_BASE_MS = 1000;
+const RETRIES = 3;
 
 /** Run `task` in idle time after the page's load event. */
 const afterLoadWhenIdle = function afterLoadWhenIdle(task: () => void): void {
@@ -156,11 +165,19 @@ export const createPersistence = function createPersistence(
 	const requested = new Set<WriteKind>();
 	let reconcileRequested = false;
 	let hydrateRequested = false;
+	// Settles once the writer has landed: what a held save waits for.
+	let markLanded: () => void = () => undefined;
+	const landing = new Promise<void>((resolve) => {
+		markLanded = resolve;
+	});
+	let retries = 0;
+	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 
 	const land = function land(module: WriterModule): void {
 		if (writer) {
 			return;
 		}
+		clearTimeout(retryTimer);
 		writer = module.createPersistenceWriter(
 			{ kernel, now, state, storageConfig },
 			persistenceTools
@@ -170,12 +187,13 @@ export const createPersistence = function createPersistence(
 			baseline = undefined;
 		}
 		// At once, not in a later macrotask: a save request held for these
-		// writes is released as soon as this returns.
+		// writes is released as soon as they are stored.
 		for (const kind of requested) {
 			writer.schedule(kind);
 		}
 		requested.clear();
 		writer.flush();
+		markLanded();
 		if (hydrateRequested && !disposed) {
 			hydrateRequested = false;
 			// oxlint-disable-next-line no-use-before-define -- Runs only after assembly.
@@ -201,8 +219,21 @@ export const createPersistence = function createPersistence(
 		try {
 			module = await loader.load();
 		} catch {
-			// Not loaded: what was requested stays requested, and the next
-			// request tries again.
+			// Not loaded: what was requested stays requested, and a save held
+			// for it stays held, so nothing that waits for the save (its
+			// request, a revocation reload) runs while storage holds the old
+			// record. The next request tries again, and so does a timer while
+			// a write waits.
+			if (requested.size > 0 && retries < RETRIES && !retryTimer) {
+				retryTimer = setTimeout(
+					() => {
+						retryTimer = undefined;
+						void withWriter();
+					},
+					RETRY_BASE_MS * 4 ** retries
+				);
+				retries += 1;
+			}
 			return;
 		}
 		land(module);
@@ -221,8 +252,9 @@ export const createPersistence = function createPersistence(
 			requested.add(kind);
 		}
 		// The write must land before the save request this event belongs to
-		// leaves.
-		kernel.holdSaves(withWriter());
+		// leaves, and before the save completes.
+		kernel.holdSaves(landing);
+		void withWriter();
 	};
 
 	const scheduleReconcile = function scheduleReconcile(): void {
