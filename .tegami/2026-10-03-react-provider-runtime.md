@@ -1,13 +1,29 @@
 ---
 packages:
-  "@c15t/react": minor
-  "@c15t/core": minor
-  "c15t": minor
-  "@c15t/nextjs": patch
-  "@c15t/tanstack-start": patch
-  "@c15t/svelte": patch
-  "@c15t/ui": major
-  "@c15t/astro": patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### React provider on the shared runtime

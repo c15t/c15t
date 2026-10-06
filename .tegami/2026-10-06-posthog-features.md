@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/integrations': minor
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
 ---
 
 ### Turn off PostHog modules you do not use

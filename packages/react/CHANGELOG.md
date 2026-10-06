@@ -1,3 +1,142 @@
+## @c15t/react@3.0.0-alpha.5 (alpha)
+
+### One preference draft for every framework
+
+React, Vue, Svelte and the `@c15t/browser` preference dialog now share one
+draft, `createPreferenceDraft` from `c15t/preference-draft`, so unsaved
+choices behave the same everywhere:
+
+- **Stale drafts.** A draft with an unsaved change goes stale when the
+  policy, the displayed categories or the vendor list changes. Saving it
+  records nothing until the visitor reviews it (`reset()`). A draft with no
+  unsaved change follows the policy and is never stale; Vue used to mark it
+  stale. The `@c15t/browser` dialog used to drop unsaved changes silently;
+  it now shows a review notice.
+- **Choices saved elsewhere.** When another surface or tab records a choice,
+  switches the visitor left alone take the new value and moved ones keep
+  theirs. React used to write the old values back on save.
+- **Category order.** Every preference form, and `runtime.consentCategories`,
+  lists categories in one fixed order: necessary, functionality,
+  measurement, experience, marketing. Vue and `@c15t/browser` used the
+  configured `consentCategories` order.
+- **Draft values.** `values` lists every category; ones the policy does not
+  offer read `false`. Vue and Svelte listed only the displayed ones.
+- **Late defaults.** Presentation defaults from an experiment arm assigned
+  after the dialog opened apply only while the visitor has changed nothing.
+- **IAB dialog in Vue.** Each switch writes the CMP selection at once, as in
+  React and Svelte. Closing the dialog keeps those changes, and saving can
+  no longer overwrite a newer receipt with an older copy.
+
+React's banner buttons no longer load the draft: it ships with the
+preference dialog, which takes about 1.4 KB gzip off the first load of a
+page that renders a banner. The `@c15t/browser` ES module build loads its
+preference dialog and the draft as a separate chunk, in idle time once the
+banner or trigger shows; the script-tag files stay one file each.
+
+In Svelte the draft now ships with `ConsentWidget` and `ConsentDialog`
+instead of `ConsentManagerProvider`. The state API keeps its synchronous
+shape. `setSelectedConsent()` calls made before the draft loads apply in order
+when it lands, and `saveConsents('custom')` waits for it.
+
+**Breaking:** in headless Svelte code that renders neither component,
+`selectedConsents` and `draft` read empty on first use, because the draft
+loads then, and fill in reactively once it lands. A one-off read outside a
+reactive context gets the empty values. Migration: read them in a reactive
+context (`$derived`, `$effect` or markup).
+
+**Breaking:** the runtime's `stageVendorConsent()` and `resetVendorDraft()`
+are removed. Pass vendors to the save
+(`kernel.commands.save({}, { vendors: { 'x-pixel': false } })`) or stage
+them on a preference draft. Vue's `useConsentDraft()` returns
+`displayedCategories` and `vendors` as computed refs, takes no argument, and
+no longer has `reseedOnNextRecord()`; call `reset()` after a bulk save
+instead.
+
+### Every adapter closes consent surfaces the same way
+
+Accept, reject and save now decide which surface shows next through one module in `@c15t/core`, so React, Vue, Nuxt, Svelte, Astro and `@c15t/browser` behave alike:
+
+- After a choice, the banner shows only while the policy still owes a choice or a notice. A choice saved while the policy is still loading, or after it failed to resolve, no longer brings the banner back in Vue, Nuxt and `@c15t/browser`.
+- A banner reopened for a visitor who already chose now closes once the new choice is recorded in React and Svelte, as it already did in `@c15t/browser`.
+- On Astro, `acceptAll()`, `rejectAll()` and the banner's Accept and Reject buttons go through the IAB CMP under an IAB policy, so the TC string records the choice. Before, they saved categories only. `acceptAll()`, `rejectAll()` and `save()` now also close an open banner or dialog once the choice is recorded.
+
+The rules are public at `c15t/surface-actions` (`@c15t/core/surface-actions`) for custom UI: `hasConsentUI()`, `hasConsentPreferences()`, `showConsentSurface()`, `saveConsentSurface()`, `saveIABConsentSurface()` and `saveConsentBlanket()`.
+
+### React provider on the shared runtime
+
+`@c15t/react`'s `ConsentProvider` now renders the runtime from
+`createConsentProviderRuntime`, the same one the Svelte provider uses, instead
+of its own copy. Its props, hooks and the `runtime` prop are unchanged.
+`ConsentRoot` in `@c15t/nextjs` and `@c15t/tanstack-start` picks this up.
+
+**Breaking.** `persistence` and `storageConfig` are read once, when the
+provider mounts. A new storage key used to move the stored choice to the new
+key; now the choice stays where it was, data clearing keeps protecting that
+key, and a warning is logged outside production. The same applies to every
+provider runtime, including Svelte's. Migration: remount the provider to move
+storage.
+
+Behaviour that changes:
+
+- A `prefetch` that is still marked `initialPolicyPending` is no longer
+  adopted as the answer: the provider sends `/init`.
+- Adopting a server-resolved `prefetch` raises `init:applied`, as an `/init`
+  response does.
+- A streamed `prefetch` that carries an experiment but arrives after mount
+  keeps `experiment` in the `/init` request the provider falls back to.
+- A provider rendered under a `consentSource` raises `init:applied` once the
+  source is connected.
+- After mount, a new `user`, `vendors`, `scripts` or blocker options apply
+  once a small chunk has loaded, the first time options change. `enabled`,
+  `overrides` and `consentCategories` still apply at once, and requests that
+  new network rules match are held until the blocker has them.
+
+`ConsentProvider` loads the code that applies a `prefetch` promise only when it
+gets one, so an app that never streams consent state doesn't download it.
+`ConsentRoot` in `@c15t/nextjs` and `@c15t/tanstack-start`, whose `state` is
+usually streamed, ships that code in its first-load chunk, so a streamed state
+applies as soon as it arrives instead of after one more request.
+
+`@c15t/react`'s index now re-exports its values in groups with `export *`.
+The names are the same. Under esbuild's code splitting, an app that imports
+only `ConsentProvider` or a hook no longer loads the dialog trigger, branding
+and draft modules on first load, because the deferred dialog no longer pulls
+every module the index names into the first chunk.
+
+`@c15t/ui`'s `setupColorScheme` moves to its own module,
+`@c15t/ui/utils/color-scheme`. A provider that sets the color scheme no longer
+shares a chunk with the dialog's focus-trap and scroll-lock helpers.
+`@c15t/astro` imports it from the new path.
+
+**Breaking.** `@c15t/ui/utils/dom` no longer exports `setupColorScheme`.
+Migration: import it from `@c15t/ui/utils/color-scheme` or `@c15t/ui/utils`.
+The old path is not kept as a re-export: Vite 8 (Rolldown) counts unused
+imports when it checks a build's chunks for cycles, and in TanStack Start that
+re-export closed one, so each module a lazy chunk shared with the route became
+its own first-load file.
+
+### Provider runtime
+
+- `c15t/runtime/provider` (`@c15t/core/runtime/provider`) exports what a
+  provider that loads modules on demand needs: `createConsentProviderRuntime`,
+  `lazyRuntimeModule` and `lazyStreamPrefetch`, which loads the
+  streamed-prefetch code only for a runtime whose `prefetch` is a promise.
+  Importing `c15t/runtime` instead can keep the statically imported default
+  modules in the first chunk under esbuild.
+- `update()` returns a promise that settles once every change has applied.
+  The comparison behind it loads with the first `update()`.
+- A `consentSource` connects through a new `connectConsentSource` module
+  (part of `defaultRuntimeModules`). The React provider imports it on demand;
+  until it connects, no optional category is granted.
+- IAB mounts through a new `mountIAB` module (`mountRuntimeIAB`, part of
+  `defaultRuntimeModules`). A provider that passes its own modules without it
+  ignores `iab`.
+- With a script loader that loads on demand, data clearing now subscribes after
+  the loader has loaded, so revocation callbacks run before browser data is
+  removed.
+- `persistence.now` is passed through to persistence; the runtime used to drop
+  it.
+
 ## @c15t/react@3.0.0-alpha.4 (alpha)
 
 ### Resolve a relative backendURL against the request, not forwarding headers

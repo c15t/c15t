@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/schema': minor
-  '@c15t/core': minor
-  '@c15t/backend': minor
-  c15t: minor
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Send the consent model as `model` on save

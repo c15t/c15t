@@ -1,12 +1,26 @@
 ---
 packages:
-  "@c15t/core": minor
-  "@c15t/astro": minor
-  "@c15t/browser": patch
-  "@c15t/react": patch
-  "@c15t/svelte": patch
-  "@c15t/vue": patch
-  c15t: minor
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Every adapter closes consent surfaces the same way

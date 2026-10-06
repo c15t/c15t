@@ -1,12 +1,26 @@
 ---
 packages:
-  '@c15t/schema': major
-  '@c15t/backend': major
-  '@c15t/core': major
-  c15t: major
-  '@c15t/node-sdk': major
-  '@c15t/browser': patch
-  '@c15t/vue': patch
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
+  "@c15t/node-sdk":
+    replay:
+      - exit-prerelease(npm:@c15t/node-sdk)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Remove the v2 `jurisdiction` label and `disableGeoLocation`

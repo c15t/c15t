@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/backend': patch
-  '@c15t/cli': patch
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Save consent when the decision table's unique index differs

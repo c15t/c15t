@@ -1,3 +1,25 @@
+## @c15t/cli@3.0.0-alpha.5 (alpha)
+
+### Save consent when the decision table's unique index differs
+
+On Postgres and SQLite, runtime policy decisions were inserted with `on conflict ("dedupeKey")`. A database whose `runtimePolicyDecision` table had no unique index on `dedupeKey` alone, such as one indexed on `(tenantId, dedupeKey)`, rejected that statement, so every consent save that recorded a decision failed with a 500. When the database has no index for that conflict target, decision inserts now retry with a conflict on any unique index treated as the duplicate. Databases with the expected index keep the targeted statement.
+
+`createMigrator().plan()` and `apply()` report schema problems they do not repair in a new `drift` field, and `c15t self-host migrate --plan` prints them as warnings. The first check flags a decision table without a unique index on `dedupeKey` alone and gives the `create unique index` statement to add it. A composite index on `(tenantId, dedupeKey)` does not deduplicate single-tenant rows, because `tenantId` is null there.
+
+### Fix generated React and Next.js styles
+
+Render theme preset tokens with ConsentTheme and use important utility modifiers
+for the Tailwind CSS 3 preset. Choosing None keeps the default c15t theme, including
+with compound components. Find global stylesheets through semicolon-free imports
+and tsconfig or jsconfig aliases, and show a setup warning when the stylesheet
+cannot be found.
+
+Move the starter universal margin and padding reset into the base layer for
+Tailwind CSS 4 and plain CSS apps, so it no longer collapses the banner and dialog.
+
+Recognize Tailwind 3 comparator ranges, skip stylesheet aliases outside the app,
+and report only the stylesheet edits setup actually makes.
+
 ## @c15t/cli@3.0.0-alpha.4 (alpha)
 
 ### Update documentation links

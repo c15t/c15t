@@ -1,6 +1,8 @@
 ---
 packages:
-  "@c15t/core": patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Clearing records drops queued saves

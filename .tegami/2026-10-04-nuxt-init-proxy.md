@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/vue': patch
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Forward vendors and privacy signals through the Nuxt `/init` proxy
