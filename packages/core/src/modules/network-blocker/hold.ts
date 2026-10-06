@@ -23,6 +23,11 @@
  * matching one throws a `NetworkError`, as a failed synchronous request
  * does.
  *
+ * A caller whose blocker failed to load calls {@link NetworkHold.fail}. Its
+ * rules then fail closed without hanging: what they held, and every later
+ * request they match, is answered at once the way the blocker answers a
+ * blocked request, until a blocker that does load takes the hold over.
+ *
  * Ships in first-load JavaScript, so it imports nothing at runtime and
  * matches rules with a compact copy of the logic in `url.ts`.
  */
@@ -107,6 +112,15 @@ export interface NetworkHold {
 	 * no-op once released or blocked.
 	 */
 	block: () => void;
+	/**
+	 * The blocker that was to take over failed to load. Answer every request
+	 * this caller holds, and every later one its rules match, as blocked (a
+	 * 451 `Response`, or a failed XHR) instead of holding it, so nothing
+	 * waits for a blocker that may never come. The hold stays in place, so a
+	 * blocker that loads later can still take it over. A no-op once
+	 * released or blocked.
+	 */
+	fail: () => void;
 	/** Whether this caller's rules still hold requests. */
 	readonly held: boolean;
 	/**
@@ -121,6 +135,8 @@ export interface NetworkHold {
 
 interface Owner {
 	rules: readonly NetworkBlockerRule[];
+	/** Its blocker failed to load: what its rules match is blocked at once. */
+	failed?: boolean;
 }
 
 /** A held request: sent again through the page, or answered as blocked. */
@@ -149,7 +165,8 @@ const sendNothing = (): void => undefined;
  * @internal
  */
 export const NOT_HELD: NetworkHold = {
-	block: () => undefined,
+	block: sendNothing,
+	fail: sendNothing,
 	held: false,
 	release: () => sendNothing,
 };
@@ -179,11 +196,20 @@ export const releaseNetworkRequests =
 		return replayAll(hold?.queue.splice(0) ?? []);
 	};
 
+/** What a request gets: sent, held, or blocked at once. */
+const SEND = 0;
+const HOLD = 1;
+const BLOCK = 2;
+
+/**
+ * {@link BLOCK} when a failed caller's rule matches the request, else
+ * {@link HOLD} when any caller's rule does, else {@link SEND}.
+ */
 const matches = function matches(
 	hold: Hold,
 	input: RequestInfo | URL,
 	method = 'GET'
-): boolean {
+): number {
 	let url: URL;
 	try {
 		url = new URL(
@@ -191,10 +217,11 @@ const matches = function matches(
 			window.location.href
 		);
 	} catch {
-		return false;
+		return SEND;
 	}
 	const host = url.hostname.toLowerCase();
 	const verb = method.toUpperCase();
+	let found = SEND;
 	for (const owner of hold.owners) {
 		for (const rule of owner.rules) {
 			const domain = rule.domain.trim().toLowerCase();
@@ -206,17 +233,20 @@ const matches = function matches(
 				(!rule.methods?.length ||
 					rule.methods.some((allowed) => allowed.toUpperCase() === verb))
 			) {
-				return true;
+				if (owner.failed) {
+					return BLOCK;
+				}
+				found = HOLD;
 			}
 		}
 	}
-	return false;
+	return found;
 };
 
 /**
- * After owners left without a blocker to take over: end the hold if none
- * remain, and answer as blocked every held request no remaining owner's
- * rules match.
+ * After owners left or failed without a blocker to take over: end the hold
+ * if none remain, and answer as blocked every held request no remaining
+ * owner still holds.
  */
 const blockUnmatched = function blockUnmatched(hold: Hold): void {
 	if (hold.owners.size === 0 && active === hold) {
@@ -224,7 +254,7 @@ const blockUnmatched = function blockUnmatched(hold: Hold): void {
 		hold.restore();
 	}
 	for (const held of hold.queue.splice(0)) {
-		if (active === hold && matches(hold, held.input, held.method)) {
+		if (active === hold && matches(hold, held.input, held.method) === HOLD) {
 			hold.queue.push(held);
 		} else {
 			held.block();
@@ -241,6 +271,12 @@ const joinHold = function joinHold(
 	return {
 		block() {
 			if (active === hold && hold.owners.delete(owner)) {
+				blockUnmatched(hold);
+			}
+		},
+		fail() {
+			if (active === hold && hold.owners.has(owner)) {
+				owner.failed = true;
 				blockUnmatched(hold);
 			}
 		},
@@ -298,7 +334,11 @@ export const holdNetworkRequests = function holdNetworkRequests(
 		const hold = active;
 		const method =
 			init?.method ?? (input instanceof Request ? input.method : undefined);
-		if (hold && matches(hold, input, method)) {
+		const match = hold ? matches(hold, input, method) : SEND;
+		if (match === BLOCK) {
+			return Promise.resolve(blockedResponse());
+		}
+		if (hold && match) {
 			return new Promise((resolve) => {
 				hold.queue.push({
 					block: () => resolve(blockedResponse()),
@@ -328,9 +368,15 @@ export const holdNetworkRequests = function holdNetworkRequests(
 	) {
 		const hold = active;
 		const request = this[XHR_REQUEST];
-		if (hold && request && matches(hold, request.url, request.method)) {
+		const match =
+			hold && request ? matches(hold, request.url, request.method) : SEND;
+		if (hold && request && match) {
 			if (request.sync) {
 				throw new DOMException('Request blocked by consent', 'NetworkError');
+			}
+			if (match === BLOCK) {
+				failBlockedXhr(this);
+				return;
 			}
 			hold.queue.push({
 				block: () => failBlockedXhr(this),

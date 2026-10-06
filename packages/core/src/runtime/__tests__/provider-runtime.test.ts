@@ -194,6 +194,46 @@ describe('update()', () => {
 		}
 	});
 
+	test('a blocker an update adds, whose chunk fails to load, answers matching requests as blocked', async () => {
+		const nativeFetch = window.fetch;
+		const network = vi.fn(() => Promise.resolve(new Response('ok')));
+		window.fetch = network as unknown as typeof window.fetch;
+		try {
+			const options: ConsentProviderRuntimeOptions = {
+				mode: custom(createTransport()),
+				persistence: false,
+				prefetch: RESOLVED_PREFETCH,
+			};
+			const runtime = create(options, {
+				...defaultRuntimeModules,
+				createNetworkBlocker: lazyRuntimeModule(() =>
+					Promise.reject(new Error('chunk failed to load'))
+				),
+			});
+			runtime.start();
+
+			await runtime.update({
+				...options,
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'tracker.example' }],
+				},
+			});
+			const request = window.fetch('https://tracker.example/collect');
+			let settled = false;
+			void request.finally(() => {
+				settled = true;
+			});
+			await vi.waitFor(() => {
+				expect(settled).toBe(true);
+			});
+
+			expect((await request).status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
+		} finally {
+			window.fetch = nativeFetch;
+		}
+	});
+
 	test('`enabled` and overrides apply at once; the rest once the returned promise settles', async () => {
 		const options: ConsentProviderRuntimeOptions = {
 			consentCategories: ['marketing'],

@@ -68,9 +68,10 @@ const LOADED = Symbol('c15t-lazy-module-loaded');
 
 /**
  * Run `next` once a module handle from {@link lazyRuntimeModule} has loaded
- * (or failed to), the point from which it is subscribed to the kernel; at
- * once for a handle that was real from the start. Lets a module that must
- * subscribe after another wait for it.
+ * (or its first load failed), the point from which it is subscribed to the
+ * kernel; at once for a handle that was real from the start. Lets a module
+ * that must subscribe after another wait for it, and a caller find out that
+ * a module it waits for did not load.
  *
  * @param handle - A module handle, lazy or not.
  * @param next - What to run after it.
@@ -101,8 +102,9 @@ export const afterModuleLoaded = function afterModuleLoaded(
  * the stand-in is queued and returns `undefined` (so `hydrate()` and
  * `reconcile()` read as "nothing changed"); after that, calls go straight
  * to the real handle. `dispose()` before the module lands cancels it. A
- * module that fails to load leaves the stand-in inert and, outside
- * production, warns with the error.
+ * module that fails to load leaves the stand-in inert, warns with the error
+ * outside production, and loads again the next time the browser comes back
+ * online.
  *
  * @param load - Resolves the module's factory, usually through `import()`.
  * @returns A factory with the same signature.
@@ -117,7 +119,7 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 		let inner: Handle | null = null;
 		let disposed = false;
 		const queued: [PropertyKey, unknown[]][] = [];
-		const loaded = (async () => {
+		const attempt = async (): Promise<void> => {
 			try {
 				const create = await load();
 				if (disposed) {
@@ -134,7 +136,9 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 				}
 			} catch (error) {
 				// Inert: the page works without the module. Say why, since a
-				// failed chunk or a factory that throws is otherwise silent.
+				// failed chunk or a factory that throws is otherwise silent. A
+				// chunk that failed for lack of a network loads once there is
+				// one again.
 				if (
 					(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
 						?.env?.NODE_ENV !== 'production'
@@ -144,8 +148,12 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 						error
 					);
 				}
+				if (!disposed && typeof window !== 'undefined') {
+					window.addEventListener('online', attempt, { once: true });
+				}
 			}
-		})();
+		};
+		const loaded = attempt();
 		return new Proxy({} as Handle, {
 			get(_target, method) {
 				if (method === LOADED) {
@@ -155,6 +163,9 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 					return () => {
 						disposed = true;
 						queued.length = 0;
+						if (typeof window !== 'undefined') {
+							window.removeEventListener('online', attempt);
+						}
 						inner?.dispose();
 						inner = null;
 					};
