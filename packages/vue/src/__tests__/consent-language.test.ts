@@ -11,10 +11,7 @@ import NuxtConsentRoot from '../runtime/components/nuxt-root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentLanguage } from '../runtime/composables/language';
 import type { ConsentConfig } from '../runtime/config';
-import {
-	createVueConsentKernelContext,
-	startVueConsentRuntime,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
@@ -97,11 +94,9 @@ const renderWith = async function renderWith(
 };
 
 /** Start the browser runtime, as the plugin does once the app mounts. */
-const start = function start(
-	context: VueConsentKernelContext,
-	options?: { runInit?: boolean }
-) {
-	const stop = startVueConsentRuntime(context, config, options);
+const start = function start(context: VueConsentKernelContext) {
+	context.start();
+	const { dispose: stop } = context;
 	if (mounted) {
 		mounted.stop = stop;
 	}
@@ -189,7 +184,7 @@ describe('changing the consent language', () => {
 			}),
 			{ country: 'DE', language: 'en' }
 		);
-		start(context, { runInit: false });
+		start(context);
 		await flushPromises();
 
 		expect(transport.init).not.toHaveBeenCalled();
@@ -208,7 +203,7 @@ describe('changing the consent language', () => {
 		);
 		expect(transport.init).not.toHaveBeenCalled();
 
-		start(context, { runInit: false });
+		start(context);
 		await flushPromises();
 
 		expect(transport.init).toHaveBeenCalledTimes(1);

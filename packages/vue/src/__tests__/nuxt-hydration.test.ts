@@ -32,7 +32,7 @@ const nuxt = vi.hoisted(() => ({
 		| undefined,
 	fetchHeaders: [] as Record<string, string>[],
 	headers: {} as Record<string, string | undefined>,
-	manifest: false,
+	manifest: false as boolean | 'client',
 	requests: 0,
 	response: undefined as InitOutput | undefined,
 	state: new Map<string, ShallowRef<unknown>>(),
@@ -155,7 +155,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
-			payload: { prerenderedAt?: number };
+			payload: { prerenderedAt?: number; serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	let context!: VueConsentKernelContext;
@@ -218,7 +218,7 @@ test.each([false, true])('Nuxt hydrates GPC: manifest=%s', async (manifest) => {
 		hook: (_name, lifecycle) => {
 			mounted = lifecycle;
 		},
-		payload: {},
+		payload: { serverRendered: true },
 		vueApp: clientApp,
 	});
 	const container = document.createElement('div');
@@ -286,7 +286,7 @@ test('Nuxt external authority skips server fetch and records, then connects only
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
-			payload: { prerenderedAt?: number };
+			payload: { prerenderedAt?: number; serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	let context!: VueConsentKernelContext;
@@ -305,7 +305,7 @@ test('Nuxt external authority skips server fetch and records, then connects only
 				mounted = handler;
 			}
 		},
-		payload: {},
+		payload: { serverRendered: true },
 		vueApp: app,
 	});
 	expect(nuxt.requests).toBe(0);
@@ -319,8 +319,11 @@ test('Nuxt external authority skips server fetch and records, then connects only
 			false
 		);
 		mounted?.();
-		expect(context.kernel.getSnapshot().effectivePermissions.measurement).toBe(
-			true
+		// The source connects once its module has loaded.
+		await vi.waitFor(() =>
+			expect(
+				context.kernel.getSnapshot().effectivePermissions.measurement
+			).toBe(true)
 		);
 		context.activeUI.value = 'manager';
 		expect(openPreferences).toHaveBeenCalledTimes(1);
@@ -336,7 +339,7 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 		default: (app: {
 			vueApp: App;
 			hook: (name: string, callback: () => void) => void;
-			payload: { prerenderedAt?: number };
+			payload: { prerenderedAt?: number; serverRendered?: boolean };
 		}) => Promise<void>;
 	}>('../runtime/plugin.nuxt');
 	const policy = normalizePolicyRule({
@@ -374,4 +377,107 @@ test('the server init fetch carries a fixed experiment arm until the visitor cho
 		vueApp: createSSRApp(defineComponent({ render: () => null })),
 	});
 	expect(nuxt.fetchHeaders[0]?.['x-c15t-experiment']).toBe('banner-shape=wall');
+});
+
+test('an `ssr: false` route asks for the policy before the app mounts', async () => {
+	nuxt.manifest = false;
+	nuxt.headers = {};
+	const policy = normalizePolicyRule({
+		categories: ['marketing'],
+		id: 'nuxt-client',
+		match: { fallback: true },
+		model: 'opt-in',
+		prompt: 'choice',
+		scopeMode: 'permissive',
+	});
+	const response: InitOutput = {
+		branding: 'none',
+		location: { countryCode: 'DE', regionCode: null },
+		policyResolution: writePolicyResolutionWire({
+			fingerprints: createPolicyRuleFingerprints(policy),
+			matchedBy: 'fallback',
+			policy,
+			policyId: policy.id,
+			status: 'matched',
+		}),
+		translations: { language: 'en', translations },
+	};
+	const requests: string[] = [];
+	vi.stubGlobal(
+		'fetch',
+		vi.fn((input: RequestInfo | URL) => {
+			requests.push(String(input));
+			return Promise.resolve(
+				new Response(JSON.stringify(response), {
+					headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
+				})
+			);
+		})
+	);
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+			payload: { serverRendered?: boolean };
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	const app = createApp(defineComponent({ render: () => h(ConsentBanner) }));
+	const hooks: string[] = [];
+	// No server markup: the payload says the page was not server-rendered.
+	await plugin({
+		hook: (name) => hooks.push(name),
+		payload: {},
+		vueApp: app,
+	});
+	// `/init` is on its way before the app mounts, and nothing waits for mount.
+	await vi.waitFor(() =>
+		expect(requests.some((url) => url.endsWith('/init'))).toBe(true)
+	);
+	expect(hooks).not.toContain('app:mounted');
+	const container = document.createElement('div');
+	document.body.append(container);
+	app.mount(container);
+	try {
+		await vi.waitFor(() =>
+			expect(
+				document.querySelector('[data-testid="consent-banner-root"]')
+			).not.toBeNull()
+		);
+		expect(requests.filter((url) => url.endsWith('/init'))).toHaveLength(1);
+	} finally {
+		app.unmount();
+	}
+});
+
+test('an `ssr: false` route in client manifest mode starts once the app mounts', async () => {
+	nuxt.manifest = 'client';
+	nuxt.headers = {};
+	const requests: string[] = [];
+	vi.stubGlobal(
+		'fetch',
+		vi.fn((input: RequestInfo | URL) => {
+			requests.push(String(input));
+			return Promise.resolve(new Response('{}', { status: 503 }));
+		})
+	);
+	const { default: plugin } = await vi.importActual<{
+		default: (app: {
+			vueApp: App;
+			hook: (name: string, callback: () => void) => void;
+			payload: { serverRendered?: boolean };
+		}) => Promise<void>;
+	}>('../runtime/plugin.nuxt');
+	const app = createApp(defineComponent({ render: () => null }));
+	const hooks: string[] = [];
+	await plugin({
+		hook: (name) => hooks.push(name),
+		payload: {},
+		vueApp: app,
+	});
+	// The manifest request left when the runtime was built; starting before
+	// the mount would only put work in front of it.
+	await vi.waitFor(() =>
+		expect(requests.some((url) => url.includes('/manifest'))).toBe(true)
+	);
+	expect(hooks).toContain('app:mounted');
 });

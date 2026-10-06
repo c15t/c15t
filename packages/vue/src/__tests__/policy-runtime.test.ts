@@ -12,10 +12,7 @@ import { createApp, defineComponent, h, nextTick } from 'vue';
 
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentDraft } from '../runtime/composables/draft';
-import {
-	createVueConsentKernelContext,
-	startVueConsentRuntime,
-} from '../runtime/kernel';
+import { createVueConsentKernelContext } from '../runtime/kernel';
 import { symbolKernelContext } from '../runtime/utils/symbols';
 
 const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
@@ -78,7 +75,8 @@ test('subject-only prefetch preserves browser receipts without a prepared record
 		prefetch,
 		producerContract: 1,
 	});
-	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	context.start();
+	const { dispose } = context;
 	try {
 		await Promise.resolve();
 		expect(context.snapshot.value.explicitChoice?.categories.marketing).toEqual(
@@ -273,7 +271,8 @@ test('onSurfaceShown fires for the server-rendered banner and an opened dialog',
 	});
 	expect(surfaceShown).not.toHaveBeenCalled();
 	// No init on the prefetch path: the runtime marks the kernel live itself.
-	const dispose = startVueConsentRuntime(context, config, { runInit: false });
+	context.start();
+	const { dispose } = context;
 	try {
 		expect(surfaceShown).toHaveBeenCalledOnce();
 		expect(surfaceShown.mock.calls[0]?.[0]).toMatchObject({
@@ -316,7 +315,8 @@ test.each([true, false, 'true', 1, undefined])(
 				}),
 			},
 		});
-		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		context.start();
+		const { dispose } = context;
 		try {
 			expect(context.snapshot.value.privacySignals.gpc.detected).toBe(
 				signal === true
@@ -376,17 +376,15 @@ test.each(['header', 'browser', 'header-with-browser-false'] as const)(
 				transport: { save: consentSave },
 			},
 		});
-		// A browser that reports `false` on mount ends the header's signal, and
-		// nothing stored keeps its restriction alive.
-		const active = source !== 'header-with-browser-false';
-		const dispose = startVueConsentRuntime(context, config, { runInit: false });
+		context.start();
+		const { dispose } = context;
 		try {
+			// A browser reporting `false` does not withdraw the signal the
+			// request carried: any source asserting GPC keeps it active.
 			await vi.waitFor(() =>
-				expect(context.snapshot.value.privacySignals.gpc.active).toBe(active)
+				expect(context.snapshot.value.privacySignals.gpc.active).toBe(true)
 			);
-			expect(context.snapshot.value.effectivePermissions.marketing).toBe(
-				!active
-			);
+			expect(context.snapshot.value.effectivePermissions.marketing).toBe(false);
 			expect(context.snapshot.value.explicitChoice).toBeNull();
 			expect(choice).not.toHaveBeenCalled();
 			expect(consentSave).not.toHaveBeenCalled();

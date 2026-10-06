@@ -2,15 +2,6 @@ import type { KernelOverrides } from '@c15t/core';
 
 import type { VueConsentKernelContext } from './kernel';
 
-/** Contexts whose browser runtime `startVueConsentRuntime` started. */
-const startedRuntimes = new WeakSet<VueConsentKernelContext>();
-
-/**
- * Contexts whose overrides changed before their runtime started. The
- * runtime's first init loads them; a prefetched start runs one for them.
- */
-const deferredInits = new WeakSet<VueConsentKernelContext>();
-
 /** The `ConsentRoot` props that map onto kernel overrides. */
 export type RootOverrideProps = Pick<
 	KernelOverrides,
@@ -21,16 +12,16 @@ const ROOT_OVERRIDE_KEYS = ['country', 'language', 'region'] as const;
 
 /**
  * Apply `ConsentRoot`'s `country`, `language` and `region` props to the
- * kernel, and run `init` only when that changes what the kernel would ask
- * for.
+ * runtime's overrides, and ask for the policy again only when that changes
+ * what the kernel would ask for.
  *
  * A prop equal to the current override, such as a language the server
  * prefetched, changes nothing. A changed prop is stored straight away; the
- * init for it runs in the browser only, and waits for the runtime's startup
- * init when that has not run yet. A prop removed since the last call clears
- * its override.
+ * browser asks for it once the runtime runs, and a runtime that has not
+ * started yet asks in its first init instead of adopting a prefetch made
+ * for other inputs. A prop removed since the last call clears its override.
  *
- * @param context - The context from `createVueConsentKernelContext`.
+ * @param context - The app's consent context.
  * @param next - The current prop values.
  * @param previous - The prop values of the previous call, if any.
  * @internal
@@ -53,31 +44,7 @@ export const applyRootOverrides = function applyRootOverrides(
 			changed = true;
 		}
 	}
-	if (!changed) {
-		return;
+	if (changed) {
+		context.setOverrides(changes);
 	}
-	context.kernel.set.overrides(changes);
-	if (typeof window === 'undefined') {
-		return;
-	}
-	if (!startedRuntimes.has(context)) {
-		deferredInits.add(context);
-		return;
-	}
-	void context.kernel.commands.init();
-};
-
-/**
- * Record that a context's browser runtime has started.
- *
- * @param context - The context being started.
- * @returns `true` when a `ConsentRoot` prop changed the overrides before
- * this, so the runtime must load them even when it skips its startup init.
- * @internal
- */
-export const markRuntimeStarted = function markRuntimeStarted(
-	context: VueConsentKernelContext
-): boolean {
-	startedRuntimes.add(context);
-	return deferredInits.delete(context);
 };

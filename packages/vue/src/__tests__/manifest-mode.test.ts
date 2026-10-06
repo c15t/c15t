@@ -12,7 +12,6 @@ import type { ConsentConfig } from '../runtime/config';
 import {
 	createVueConsentKernelContext,
 	getNuxtInitFetchTarget,
-	startVueConsentRuntime,
 } from '../runtime/kernel';
 
 type WindowWithC15t = Window & {
@@ -286,7 +285,8 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 		const context = createVueConsentKernelContext({ config });
 		const initSpy = vi.spyOn(context.kernel.commands, 'init');
 
-		const dispose = startVueConsentRuntime(context, config);
+		context.start();
+		const { dispose } = context;
 		await vi.waitFor(() => {
 			expect(fetchMock).toHaveBeenCalledWith('/api/geo', expect.anything());
 		});
@@ -342,7 +342,8 @@ describe('@c15t/vue Nuxt manifest mode', () => {
 			}
 		});
 
-		const dispose = startVueConsentRuntime(context, config);
+		context.start();
+		const { dispose } = context;
 		await vi.waitFor(() => {
 			expect(context.snapshot.value.resolution.policy?.id).toBe('ca-opt-out');
 		});

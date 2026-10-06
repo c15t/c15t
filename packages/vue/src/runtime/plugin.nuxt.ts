@@ -1,7 +1,7 @@
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import type { RequestConsentState } from '@c15t/core/server';
 import { defu } from 'defu';
-import { computed, markRaw, toRaw } from 'vue';
+import { computed, markRaw, toRaw, watch } from 'vue';
 
 import {
 	defineNuxtPlugin,
@@ -26,19 +26,11 @@ import {
 	getNuxtInitFetchTarget,
 	INIT_HEADER_NAMES,
 	pickAllowedInitHeaders,
-	startVueConsentRuntime,
+	provideVueConsentContext,
 } from './kernel';
 import type { RuntimeConsentConfig } from './kernel';
 import { isSharedNuxtRender } from './shared-render';
 import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
-import {
-	symbolActiveUI,
-	symbolConsent,
-	symbolInit,
-	symbolKernel,
-	symbolKernelContext,
-	symbolSnapshot,
-} from './utils/symbols';
 
 export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
@@ -168,31 +160,36 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 
 	nuxtApp.vueApp.provide(consentConfigKey, config);
 
+	// One runtime per app. Payload state is deep-reactive; the kernel gets
+	// the plain objects.
 	const context = createVueConsentKernelContext({
 		config: config.value as ConsentConfig,
 		headers,
-		initialRecords: initialRecords.value,
+		initialRecords: initialRecords.value
+			? toRaw(initialRecords.value)
+			: undefined,
 		prefetchState: hasPrefetch ? prefetch : undefined,
 	});
+	provideVueConsentContext(nuxtApp.vueApp, context);
 
-	nuxtApp.vueApp.provide(symbolKernelContext, context);
-	nuxtApp.vueApp.provide(symbolKernel, context.kernel);
-	nuxtApp.vueApp.provide(symbolSnapshot, context.snapshot);
-	nuxtApp.vueApp.provide(symbolInit, context.init);
-	nuxtApp.vueApp.provide(symbolActiveUI, context.activeUI);
-	nuxtApp.vueApp.provide(symbolConsent, context.storedConsent);
-	let disposeRuntime = () => context.dispose();
 	if (typeof window !== 'undefined') {
-		nuxtApp.hook('app:mounted', () => {
-			disposeRuntime = startVueConsentRuntime(
-				context,
-				config.value as ConsentConfig,
-				{ runInit: !hasPrefetch }
-			);
-		});
+		if (nuxtApp.payload.serverRendered || !initFetchTarget) {
+			// Start after hydration, so the first client render matches the
+			// server's HTML. Client manifest mode also starts here: its
+			// manifest and resolver requests left when the runtime was built,
+			// so starting earlier would only put work in front of the mount.
+			nuxtApp.hook('app:mounted', () => context.start());
+		} else {
+			// No server markup to match (`ssr: false`): start now, so `/init`
+			// overlaps the mount instead of waiting for it.
+			context.start();
+		}
+		// App config can change at runtime (`updateAppConfig`, HMR). The
+		// runtime applies what changed.
+		watch(config, (next) => context.update(next as RuntimeConsentConfig));
 	}
 	nuxtApp.vueApp.onUnmount(() => {
-		disposeRuntime();
+		context.dispose();
 		releaseColorScheme();
 	});
 });

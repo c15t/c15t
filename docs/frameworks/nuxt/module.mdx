@@ -26,8 +26,11 @@ the whole setup.
 | The `#c15t/composables` alias | Points at the module's composables, for the few that are not auto-imported. |
 
 In the browser, the plugin starts the consent modules once the app has
-mounted: it reads the stored choice, applies Global Privacy Control, and
-starts the script loader, clear-on-revocation, the network blocker, the
+mounted. A page with `ssr: false` has no server HTML to hydrate, so there the
+plugin starts them before the mount, and the policy request runs while the
+app mounts. With `manifest: 'client'` the manifest request starts as soon as
+the plugin runs, and the modules still start after the mount. Starting reads the stored choice, applies Global Privacy Control,
+and starts the script loader, clear-on-revocation, the network blocker, the
 iframe blocker and, under an IAB policy, the IAB module.
 
 ## nuxt.config.ts or app.config.ts
@@ -44,6 +47,12 @@ keys, including when you register it as `c15t/vue`.
 Module options reach the browser as JSON through `runtimeConfig.public`,
 which drops functions. `app.config.ts` is part of the browser bundle, so it
 keeps functions.
+
+App config can change while the page runs, through `updateAppConfig()` or hot
+reload. The browser applies a change to `scripts`, `networkBlocker`,
+`iframeBlocker`, `vendors`, `consentCategories`, `callbacks` and
+`reloadOnConsentRevoked`. Storage, backend, manifest and experiment options are
+read once when the page loads.
 
 ## Options
 
@@ -73,6 +82,7 @@ mode fits which deployment.
 | `domain` | The browser's hostname | The domain the browser sends with each consent save to the backend's `/subjects`. |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. See [clear on revocation](/docs/frameworks/nuxt/clear-on-revocation). |
+| `iab` | Settings from `/init` | IAB TCF publisher settings, such as `publisherRestrictions`. `false` mounts no CMP. See [IAB TCF](/docs/frameworks/nuxt/iab#restrict-how-vendors-use-a-purpose). |
 
 ### Scripts, blocking and events
 

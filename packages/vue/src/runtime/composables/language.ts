@@ -25,11 +25,9 @@ export const useConsentLanguage = function useConsentLanguage(): Ref<
 	return computed({
 		get: () => context.snapshot.value.overrides.language ?? null,
 		set: (value) => {
-			if (!value || value === context.kernel.getSnapshot().overrides.language) {
-				return;
+			if (value) {
+				context.runtime.setLanguage(value);
 			}
-			context.kernel.set.language(value);
-			void context.kernel.commands.init();
 		},
 	});
 };

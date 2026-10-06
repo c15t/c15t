@@ -23,6 +23,7 @@ import type { NetworkHold } from '../modules/network-blocker/hold';
 import type { PersistenceHandle } from '../modules/persistence/types';
 import type { ScriptLoaderHandle } from '../modules/script-loader/types';
 import { resolveWindowDebugMode } from '../modules/window-debug';
+import type { HydrationRecords } from '../types';
 import { wireRuntimeCallbacks } from './callbacks';
 import { afterModuleLoaded } from './lazy-module';
 import {
@@ -53,6 +54,22 @@ export interface AssembledRuntime {
 	 */
 	stop: () => void;
 }
+
+/**
+ * Whether a prefetch's records seed the kernel in place of storage.
+ *
+ * Records a server read from the request cookie are the seed: persistence
+ * then applies only newer stored denials over them. A prefetch that names
+ * nothing but a subject (an `/init` answer's `subjectId`) read no records,
+ * so storage hydrates the kernel as it would without a prefetch.
+ */
+const isRecordSeed = function isRecordSeed(
+	records: HydrationRecords | undefined
+): boolean {
+	return Boolean(
+		records && Object.keys(records).some((key) => key !== 'subject')
+	);
+};
 
 /** The storage `persistence` resolves to, from one option set. @internal */
 export const storageFor = function storageFor(
@@ -256,14 +273,20 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			if (enabled && !consentSource && persistenceOption !== false) {
 				const { now, skipHydration, sync } =
 					typeof persistenceOption === 'object' ? persistenceOption : {};
+				const seed = options.prefetch?.initialRecords;
+				const seeded = skipHydration ?? isRecordSeed(seed);
 				const persistence = modules.createPersistence({
 					kernel,
 					now,
-					skipHydration:
-						skipHydration ?? Boolean(options.prefetch?.initialRecords),
+					skipHydration: seeded,
 					storageConfig: storageFor(options),
 					sync,
 				});
+				// Storage replaced the subject a backend named; keep the named
+				// one when storage held none of its own.
+				if (!seeded && seed?.subject && !kernel.getSnapshot().subject) {
+					kernel.hydrate({ subject: seed.subject });
+				}
 				persistenceHandle = persistence;
 				disposers.push(() => {
 					persistence.dispose();

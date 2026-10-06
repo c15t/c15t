@@ -115,8 +115,11 @@ test('the persistent Vue trigger opens external preferences through the manager 
 			'[data-c15t-trigger]'
 		);
 		expect(trigger).not.toBeNull();
-		trigger?.click();
-		expect(openPreferences).toHaveBeenCalledOnce();
+		// The source connects once its module has loaded.
+		await vi.waitFor(() => {
+			trigger?.click();
+			expect(openPreferences).toHaveBeenCalledOnce();
+		});
 	} finally {
 		view.unmount();
 	}
