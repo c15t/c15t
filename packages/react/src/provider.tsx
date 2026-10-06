@@ -61,6 +61,7 @@ import { KernelContext, ProviderServicesContext } from './context';
 import type { ProviderServices } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
+import { useIsHydrated } from './hooks/use-is-hydrated';
 import type {
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
@@ -688,8 +689,6 @@ const createRuntimeHolder = function createRuntimeHolder() {
 
 const increment = (count: number): number => count + 1;
 const subscribeNothing = (): (() => void) => () => undefined;
-const isClient = (): boolean => true;
-const isServer = (): boolean => false;
 
 /**
  * The provider-built runtime: one per provider instance. `undefined` when
@@ -703,11 +702,7 @@ const useOwnedRuntime = function useOwnedRuntime(
 	const [, rerender] = useReducer(increment, 0);
 	// React's server snapshot on the server and while hydrating: only a
 	// client render sends `/init` early.
-	const clientRender = useSyncExternalStore(
-		subscribeNothing,
-		isClient,
-		isServer
-	);
+	const clientRender = useIsHydrated();
 	const rebuild = useCallback(() => {
 		holder.reset();
 		rerender();
