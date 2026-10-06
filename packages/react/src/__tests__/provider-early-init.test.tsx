@@ -7,11 +7,17 @@
  * repeated and discarded renders share one request, and that nothing
  * reads it for a runtime that never runs.
  */
+import type {
+	ConsentKernel,
+	KernelTransport,
+	ProviderTransportContext,
+} from '@c15t/core';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
-import { StrictMode, Suspense } from 'react';
+import { StrictMode, Suspense, useContext, useEffect } from 'react';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
+import { KernelContext } from '../context';
 import { hosted, useSnapshot } from '../index';
 import { UNCOMMITTED_HOLD_MS } from '../module-hooks/network-hold';
 import { ConsentProvider } from '../provider';
@@ -142,6 +148,158 @@ test('a render that suspends before its first commit and its retry share one req
 	requests[0]?.respond('shared');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('shared');
 	expect(initCalls()).toHaveLength(1);
+});
+
+test('a hosted() mode created inline shares one request across StrictMode and a suspended render', async () => {
+	let resume: () => void = () => undefined;
+	let suspended: Promise<void> | null = new Promise<void>((resolve) => {
+		resume = () => {
+			suspended = null;
+			resolve();
+		};
+	});
+	const SuspendsOnce = () => {
+		if (suspended) {
+			throw suspended;
+		}
+		return null;
+	};
+	// Every render of the app builds a new `hosted()` factory, as in the
+	// provider's documented example.
+	const App = () => (
+		<ConsentProvider
+			options={{
+				mode: hosted({ fetch: backendFetch, url: BACKEND }),
+				persistence: false,
+			}}
+		>
+			<SuspendsOnce />
+			<PolicyProbe />
+		</ConsentProvider>
+	);
+
+	const view = await render(
+		<StrictMode>
+			<Suspense fallback={null}>
+				<App />
+			</Suspense>
+		</StrictMode>
+	);
+	expect(initCalls()).toHaveLength(1);
+
+	resume();
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('pending');
+	expect(initCalls()).toHaveLength(1);
+	requests[0]?.respond('shared');
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('shared');
+	expect(initCalls()).toHaveLength(1);
+	await view.unmount();
+});
+
+test('sibling providers given one mode object each get a transport and an /init', async () => {
+	const kernels = new Map<string, ConsentKernel>();
+	const Capture = ({ name }: { name: string }) => {
+		const kernel = useContext(KernelContext);
+		useEffect(() => {
+			if (kernel) {
+				kernels.set(name, kernel);
+			}
+		}, [kernel, name]);
+		return null;
+	};
+	// Tags each save with the transport that sends it.
+	const savedBy: KernelTransport[] = [];
+	const base = hosted({ fetch: backendFetch, url: BACKEND });
+	const shared = Object.assign(
+		(context: ProviderTransportContext) => {
+			const transport = base(context);
+			const save = transport.save as NonNullable<KernelTransport['save']>;
+			transport.save = (payload) => {
+				savedBy.push(transport);
+				return save(payload);
+			};
+			return transport;
+		},
+		{ kind: base.kind, options: base.options }
+	);
+	const view = await render(
+		<StrictMode>
+			{['DE', 'FR'].map((country) => (
+				<ConsentProvider
+					key={country}
+					options={{ mode: shared, overrides: { country }, persistence: false }}
+				>
+					<Capture name={country} />
+				</ConsentProvider>
+			))}
+		</StrictMode>
+	);
+
+	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
+	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
+		'DE',
+		'FR',
+	]);
+	requests[0]?.respond('for-de');
+	requests[1]?.respond('for-fr');
+	await vi.waitFor(() => {
+		expect(kernels.get('DE')?.getSnapshot().policyRule.id).toBe('for-de');
+		expect(kernels.get('FR')?.getSnapshot().policyRule.id).toBe('for-fr');
+	});
+
+	kernels.get('DE')?.commands.save('none');
+	kernels.get('FR')?.commands.save('none');
+	await vi.waitFor(() => expect(savedBy).toHaveLength(2));
+	expect(savedBy[0]).not.toBe(savedBy[1]);
+	expect(initCalls()).toHaveLength(2);
+	await view.unmount();
+});
+
+test('providers whose hosted() modes differ never share a request', async () => {
+	const otherFetch = vi.fn(() =>
+		Promise.resolve(new Response(initBody('other')))
+	);
+	const view = await render(
+		<>
+			<ConsentProvider
+				options={{
+					mode: hosted({ fetch: backendFetch, url: BACKEND }),
+					persistence: false,
+				}}
+			/>
+			<ConsentProvider
+				options={{
+					mode: hosted({ fetch: backendFetch, url: `${BACKEND}/other` }),
+					persistence: false,
+				}}
+			/>
+			<ConsentProvider
+				options={{
+					mode: hosted({
+						fetch: backendFetch,
+						headers: { 'accept-language': 'fr' },
+						url: BACKEND,
+					}),
+					persistence: false,
+				}}
+			/>
+			<ConsentProvider
+				options={{
+					mode: hosted({ fetch: otherFetch, url: BACKEND }),
+					persistence: false,
+				}}
+			/>
+		</>
+	);
+
+	expect(initCalls().map(([url]) => String(url))).toEqual([
+		`${BACKEND}/init`,
+		`${BACKEND}/other/init`,
+		`${BACKEND}/init`,
+	]);
+	expect(requests[2]?.headers['accept-language']).toBe('fr');
+	expect(otherFetch).toHaveBeenCalledTimes(1);
+	await view.unmount();
 });
 
 test('a retry with other overrides asks again rather than use the first answer', async () => {

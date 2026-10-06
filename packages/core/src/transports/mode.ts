@@ -48,6 +48,15 @@ export type ProviderTransportKind = 'hosted' | 'offline' | 'custom';
 export interface ProviderTransportFactory {
 	(context: ProviderTransportContext): KernelTransport;
 	readonly kind: ProviderTransportKind;
+	/**
+	 * The options `hosted()` was called with. A provider compares them to
+	 * recognize the same backend in a factory a later render rebuilt:
+	 * `fetch` and `initialData` by identity, the rest as JSON. A new option
+	 * that is not plain data needs the same identity check there.
+	 *
+	 * @internal
+	 */
+	readonly options?: HostedModeOptions;
 }
 
 /** Options for {@link hosted}. */
@@ -128,7 +137,7 @@ export const hosted = function hosted(
 				initURL: options.initURL,
 				initialData: options.initialData,
 			}),
-		{ kind: 'hosted' as const }
+		{ kind: 'hosted' as const, options }
 	);
 };
 
