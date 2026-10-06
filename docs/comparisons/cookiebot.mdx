@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when consent must work inside your product's code, design system and release process. Your team can build the interface, review vendor rules and choose where consent records stay.
 
-Start with [Inth](https://inth.com) for the managed backend. You can also run the [c15t backend](/docs/self-host/overview) yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Cookiebot is a strong option for teams that want a hosted banner with automatic website scans. c15t gives application teams direct control over the implementation.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -21,7 +23,7 @@ Cookiebot is a strong option for teams that want a hosted banner with automatic 
 | Choose the Next.js response | Stream consent, await it on the server, or resolve it in the browser | Client-side banner SDK. Server-side cookie use also documented |
 | Control vendor code | Declare categories and vendors on scripts, requests and embeds | Scan-based automatic blocking or manual script tags |
 | Choose the runtime version | Version the open-source packages with your application | Cookiebot's CMP script must load from its service |
-| Keep consent records | Inth or your own backend | Managed consent log and data export |
+| Keep consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent log and data export |
 | Discover cookies automatically | **Not included in the c15t packages** | Website scans and scan reports |
 | Budget for the service | No software licence fee. Backend costs remain | Domain and subpage tiers. No pageview charge |
 

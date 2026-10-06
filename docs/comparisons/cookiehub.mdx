@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when you want native consent components across web frameworks and control of the backend. Your team can review and change the engine with the application.
 
-Start with [Inth](https://inth.com) for managed policy and records. Choose the [open-source backend](/docs/self-host/overview) when you need to operate the service yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 CookieHub combines managed banners, scans and consent logs. It also has React components and developer APIs, so framework integration is an overlap.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -19,7 +21,7 @@ CookieHub combines managed banners, scans and consent logs. It also has React co
 | Use native web components | React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro and TanStack Start | React package plus browser and CMS integrations |
 | Connect application features | Reactive state, vendor choices and headless APIs | JavaScript methods, events and category controls |
 | Control scripts and embeds | Declared categories and vendors for scripts, requests and embeds | Automatic controls plus React script, analytics and video components |
-| Choose the record backend | Inth or your own c15t deployment | Managed consent log, enabled per domain |
+| Choose the record backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent log, enabled per domain |
 | Find cookies | **No automatic scanner in the packages** | Website scanner |
 | Handle regional rules | Backend policy and framework configuration | Managed region settings |
 | Build a custom interface | Themes, component parts or your own markup | Banner settings and JavaScript controls |
@@ -40,7 +42,7 @@ For Next.js, c15t also documents [server, streamed and browser paths](/docs/fram
 
 CookieHub's log can contain consent actions and session entries. A session entry does not carry a consent status. Turn on its log before you start collection, as its docs explain.
 
-With c15t, backend records need Inth or your own service. Check successful writes separately from the choice shown in the browser.
+With c15t, connect to Inth to store consent records in its database. Check successful writes separately from the choice shown in the browser.
 
 Choose CookieHub when the managed scanner and dashboard fit your workflow. Choose c15t when your developers need broader native integration and control of the record backend.
 

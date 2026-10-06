@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when you want control of the consent engine and record service as well as the banner. Its native components and headless APIs connect consent to your application.
 
-Start with [Inth](https://inth.com) for managed policy and records. Use the [open-source backend](/docs/self-host/overview) when you need to run the service yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 CookieScript combines banner settings, site scans and hosted consent records. Paid plans also let you download and host the banner's JavaScript file.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -19,7 +21,7 @@ CookieScript combines banner settings, site scans and hosted consent records. Pa
 | Integrate with your application | Native framework components and state | Browser script with custom functions and events |
 | Create a custom interface | Themes, component parts and headless APIs | Banner design settings and programmatic controls |
 | Host frontend code yourself | Packages in your application | Downloadable banner JavaScript on paid plans |
-| Run the record backend | Supplied open-source backend, or Inth | Hosted consent records. Banner download does not establish a deployable record backend |
+| Run the record backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Hosted consent records. Banner download does not establish a deployable record backend |
 | Control scripts | Declared category and vendor rules | Automatic script controls and manual setup |
 | Discover cookies | **No automatic scanner in the packages** | Website scans and cookie declarations |
 | Update a local installation | Review and deploy package upgrades | Download the banner file again after account changes |
@@ -49,7 +51,7 @@ Choose CookieScript when site scans and banner administration are the main tasks
 - The packages do not scan the site or generate cookie declarations automatically.
 - They do not generate privacy policies or replace a legal review.
 - Vendor controls cover the targets you configure. Tags already on the site need separate checks.
-- Remote records need a backend that can receive them. A local choice does not prove a successful remote save.
+- Connect to Inth to store consent records in its database. A local choice does not prove a successful remote save.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

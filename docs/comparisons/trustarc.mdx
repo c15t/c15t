@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your developers need to own the consent interface, engine and backend. You can connect choices to product features and review changes with application code.
 
-Start with [Inth](https://inth.com) for managed policy and records. Choose the [open-source backend](/docs/self-host/overview) when your team needs to run the service itself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 TrustArc suits organisations that need managed cookie operations within a broader privacy programme. It also supplies developer APIs and a React integration.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -18,7 +20,7 @@ TrustArc suits organisations that need managed cookie operations within a broade
 | --- | --- | --- |
 | Connect a web application | Native framework components and reactive state | React components, hosted scripts and CMS integrations |
 | Own interface markup | Themes, component parts and headless APIs | Custom banner settings and supplied integration components |
-| Choose the backend | Inth or your own c15t deployment | Managed consent records and reports |
+| Choose the backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent records and reports |
 | Control vendor code | Declared rules for scripts, requests and embeds | Tracker controls, tag-manager integrations and automatic controls |
 | Find trackers | **No automatic scanner in the packages** | Cookie and tracker discovery, also on protected pages |
 | Manage privacy operations | **No bundled enterprise privacy suite** | Wider products for data mapping, assessments and individual rights |
@@ -49,7 +51,7 @@ Compare the actual services and support in each proposal. Open-source software r
 - The packages do not include automated tracker discovery or enterprise data mapping.
 - They do not replace privacy assessments, legal-document services or individual-rights case management.
 - Vendor controls need configuration. They do not automatically cover all tags already on the site.
-- Remote records need a backend that can receive them. A choice in the browser is not proof of a successful remote save.
+- Connect to Inth to store consent records in its database. A choice in the browser is not proof of a successful remote save.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

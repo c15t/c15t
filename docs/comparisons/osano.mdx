@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your product team needs to understand and change how consent affects the application. Its components, vendor rules and backend are open source.
 
-Use [Inth](https://inth.com) for managed policy and records. Choose your own [backend deployment](/docs/self-host/overview) when you need control of the database and service.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 This page compares Osano's commercial consent platform. Its separate open-source Cookie Consent project has a [different licence scope](https://www.osano.com/cookieconsent/documentation/license/).
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare the implementation and the service
 
@@ -20,7 +22,7 @@ This page compares Osano's commercial consent platform. Its separate open-source
 | Match your interface | Themes, component parts or headless UI | Banner editor and custom CSS |
 | Control vendor execution | Registered integrations and explicit consent rules | Cookie classification and configured tag blocking |
 | Choose the Next.js response | Server, streamed or browser consent resolution | Hosted script integration |
-| Keep consent records | Inth or your own backend | Managed records with consent search |
+| Keep consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed records with consent search |
 | Change and run the engine | Apache-2.0 source and a deployable backend | Commercial platform |
 | Classify site cookies automatically | **Not included in the c15t packages** | AI-assisted cookie classification |
 | Get a contractual fines guarantee | **Not included with the open-source software** | Advertised guarantee with conditions |

@@ -8,11 +8,13 @@ group: reference
 
 c15t is the stronger fit when your product team wants to own the consent interface, vendor rules and record backend. Your developers can change its open-source code. They can build consent into the application they already build.
 
-Use [Inth](https://inth.com) to run the c15t backend, the server that handles consent rules and records. You can also run that backend on your own servers.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Choose iubenda if you want consent tools, website scans, and legal documents in one managed package. Its [plans](https://www.iubenda.com/en/pricing/) combine these products with different features and usage limits.
 
 This page covers the current alpha release. Check the [upgrade guide](/docs/upgrade-v3) before you change a current installation.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Choose the control your team needs
 
@@ -26,7 +28,7 @@ IAB TCF means the IAB Transparency and Consent Framework. It defines rules for c
 | Match your product design | Themes, components, or your own interface | Custom styles and banner content |
 | Set when vendors run | Category and vendor rules for scripts and embeds | Automatic blocking, manual tags, and tag-manager integrations |
 | Give visitors vendor choices | Vendor switches outside IAB TCF, plus IAB controls | Purpose categories and IAB vendor controls |
-| Choose where records stay | Inth or your own backend | A managed consent service |
+| Choose where records stay | Inth hosts the backend and stores records in its database. Self-hosting is optional | A managed consent service |
 | Keep evidence of consent | Records in the selected backend | Consent logs in all current plans |
 | Manage legal documents | Your documents, with helpers for versions and signed snapshots | Generated policies and other legal tools |
 | Discover cookies automatically | **Not included in the c15t packages** | Website scans |

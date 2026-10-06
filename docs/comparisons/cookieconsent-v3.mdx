@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your application needs more than browser preferences. It connects framework components, consent rules, vendor integrations and a backend for records.
 
-Start with [Inth](https://inth.com) for the managed backend. You can also [run that backend yourself](/docs/self-host/overview).
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 CookieConsent is a capable browser library with granular controls and custom styles. It installs as `vanilla-cookieconsent`. It is a separate project from c15t.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you need to assemble
 
@@ -19,7 +21,7 @@ CookieConsent is a capable browser library with granular controls and custom sty
 | Use consent in framework components | Native adapters and reactive state | Browser library with framework setup recipes |
 | Show preferences | Category and vendor controls | Category controls and individual service switches |
 | Resolve consent in Next.js | Server, streamed and browser paths | Browser setup. Its React example starts in an effect |
-| Keep remote consent records | Inth or the c15t backend | Send records to your own backend through callbacks |
+| Keep remote consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Send records to your own backend through callbacks |
 | Change the interface | Themes, component parts and headless APIs | Modal options, CSS and custom content |
 | Control scripts | Registered integrations, request rules and embeds | Script attributes and service callbacks |
 | Clear cookies after withdrawal | Optional category rules. Vendor-only refusal needs separate cleanup | Category and service cookie cleanup |

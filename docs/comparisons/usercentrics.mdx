@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your team wants native components, consent state in application code and an open-source backend. You can change the interface and the engine that drives it.
 
-Use [Inth](https://inth.com) for managed policy and records. Keep the option to [run the backend yourself](/docs/self-host/overview).
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 This page compares Usercentrics Web CMP. Its App CMP, CTV CMP and other services have separate scope. [Cookiebot has its own comparison](/docs/comparisons/cookiebot).
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare control and service scope
 
@@ -20,7 +22,7 @@ This page compares Usercentrics Web CMP. Its App CMP, CTV CMP and other services
 | Create a custom interface | Themes, component parts and headless APIs | Banner customisation. Headless Browser SDK documented for an earlier version |
 | Choose the Next.js response | Server resolution, streamed state or browser resolution | Web script integration. Confirm the required SDK version |
 | Own the consent engine | Apache-2.0 source and a deployable backend | Commercial managed service |
-| Keep remote records | Inth or your own backend | Central consent log |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Central consent log |
 | Compare banner variants | Presentation experiments with your flags or built-in assignment | A/B tests, subject to plan or add-on |
 | Discover site technologies | **No scanner in the c15t packages** | Automated website scans |
 | Budget for use | No software licence fee. Backend costs remain | Session and domain allowances, with plan-dependent features |

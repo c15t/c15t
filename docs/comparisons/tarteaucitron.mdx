@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when consent must drive your application's components, vendor behaviour and records. Your team can own the interface and the backend implementation.
 
-Use [Inth](https://inth.com) for managed policy and records. Keep the option to [run the c15t backend](/docs/self-host/overview) yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 tarteaucitron.js is an open-source manager with individual service controls and integration definitions. Its separate Pro service adds automatic detection, an online dashboard and consent statistics.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare the application workflow
 
@@ -21,7 +23,7 @@ tarteaucitron.js is an open-source manager with individual service controls and 
 | Control configured vendors | Integration helpers, request rules and embeds | Service definitions and content placeholders |
 | Change the interface | Themes, component parts and headless APIs | Configurable banner, service panel and open source |
 | Choose the Next.js response | Server, streamed or browser resolution | Browser integration in the reviewed guide |
-| Keep remote records | Inth or a deployable c15t backend | No equivalent record backend established for the open-source library |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | No equivalent record backend established for the open-source library |
 | Use Google Consent Mode | Documented Google tag and GTM integrations | Documented Consent Mode integrations |
 | Discover services automatically | **Not included in the c15t packages** | Separate Pro service |
 | Pay for software | No licence fee. Backend costs remain | Free library. Pro has a separate fee |

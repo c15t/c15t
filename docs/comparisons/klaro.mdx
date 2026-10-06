@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your product needs native components and an integrated path from consent state to backend records. Your developers can own both the interface and the engine.
 
-Use [Inth](https://inth.com) for the managed backend, or [deploy the c15t backend](/docs/self-host/overview) yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Klaro also has an open-source client and a hosted service. Its hosted plans include records and scans, so neither open source nor managed consent is exclusive to c15t.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare the integration model
 
@@ -20,7 +22,7 @@ Klaro also has an open-source client and a hosted service. Its hosted plans incl
 | Control individual services | Category and vendor rules for declared targets | Service configuration and annotated resources |
 | Change the interface | Themes, component parts and headless APIs | Open-source client and configurable styles |
 | Choose the Next.js response | Server resolution, streamed state or browser resolution | Browser integration in the reviewed setup guide |
-| Keep remote records | Inth or your own c15t backend | Hosted plans include managed records |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Hosted plans include managed records |
 | Run the frontend yourself | Apache-2.0 packages | Open-source client that you can host |
 | Run the record backend yourself | Deployable open-source backend | Reviewed commercial pages describe a hosted record service |
 | Discover site services | **No scanner in the c15t packages** | Hosted plans include URL scans |

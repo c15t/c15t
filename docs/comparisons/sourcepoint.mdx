@@ -8,11 +8,13 @@ group: reference
 
 c15t is the stronger fit when your developers need native web components and control of the consent backend. You can build privacy choices into the product and review their behaviour in code.
 
-Start with [Inth](https://inth.com) for managed policy and records. The [open-source backend](/docs/self-host/overview) lets your team run the service when it needs that control.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Sourcepoint suits publishers and teams with consent campaigns across websites, apps and connected TVs. It has developer APIs as well as managed operations.
 
 Sourcepoint is part of Didomi after the [announced acquisition](https://www.didomi.io/blog/didomi-sourcepoint). This guide covers Sourcepoint's product and docs. See the separate [Didomi comparison](/docs/comparisons/didomi) for that product.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -21,7 +23,7 @@ Sourcepoint is part of Didomi after the [announced acquisition](https://www.dido
 | Connect consent to a web product | Native framework components and reactive state | Web integration, SDKs and consent callbacks |
 | Build the interface | Themes, component parts and headless APIs | Message builder, custom CSS and campaign flows |
 | Control vendors | Declared category and vendor rules | Vendor lists, consent actions and third-party tag controls |
-| Store consent history | Inth or your own c15t backend | Managed history by vendor and legal basis |
+| Store consent history | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed history by vendor and legal basis |
 | Discover vendor activity | **No automatic scanner in the packages** | Scans and separate compliance monitoring tools |
 | Test consent designs | Presentation and theme experiments with fixed policy and policy text | Campaign reports and A/B tests |
 | Cover connected TVs | **No bundled connected-TV SDK** | OTT and CTV support |
@@ -50,7 +52,7 @@ For either product, check the actual vendor list, policy and deployment. Support
 - The packages do not include automated vendor discovery or a publisher campaign console.
 - They do not include a connected-TV SDK or a full privacy operations suite.
 - Vendor rules cover configured targets. A visible banner does not stop every tag already on the site.
-- Remote records need Inth or your own backend that can receive records. Local state alone does not prove a successful write.
+- Connect to Inth to store consent records in its database. Local state alone does not prove a successful write.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

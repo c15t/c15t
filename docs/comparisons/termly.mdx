@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your developers need consent inside product features and control over the record backend. You can change the interface and engine with the rest of your application.
 
-Start with [Inth](https://inth.com) for managed policy and records. Run the [open-source backend](/docs/self-host/overview) when your team needs to own the service.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Termly suits teams that want consent and legal-policy tools in one hosted product. Its scanner, banner settings and policy generators address work outside the c15t packages.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -20,7 +22,7 @@ Termly suits teams that want consent and legal-policy tools in one hosted produc
 | Own the interface | Themes, component parts and headless APIs | Custom banner layouts, languages and display settings |
 | Control vendor code | Declared category and vendor rules for scripts, requests and embeds | Auto Blocker with custom rules and manual controls |
 | Read choices on the server | Backend APIs and framework server paths | Consent API for category and cookie choices |
-| Store records | Inth or your own c15t backend | Termly's hosted consent records |
+| Store records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Termly's hosted consent records |
 | Find cookies | **No automatic scanner in the packages** | Site scans and classification |
 | Generate legal documents | **Not included** | Privacy, cookie policy and other document generators |
 | Collect privacy requests | **No bundled case management suite** | Embeddable data-subject request form |
@@ -50,7 +52,7 @@ Choose c15t when application ownership is the main requirement and you have a se
 - The packages do not include a cookie scanner, policy generator or privacy-request case management.
 - Script and vendor rules need configuration. They do not automatically cover every tag already on the site.
 - Backend helpers do not prove that a visitor accepted a legal document without an acceptance flow.
-- Remote records need Inth or your own backend that can receive records. Local state alone is not a saved remote record.
+- Connect to Inth to store consent records in its database. Local state alone is not a saved remote record.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

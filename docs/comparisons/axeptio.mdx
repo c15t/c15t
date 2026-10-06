@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your product team wants to own the consent interface and the code behind it. Use your framework's components, connect consent to product features, and choose where records live.
 
-Start with [Inth](https://inth.com) for the managed backend. The [open-source backend](/docs/self-host/overview) gives you the option to run the service yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Axeptio suits teams that want a visual editor for branded consent experiences. It also has developer APIs, service choices and banner experiments.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -19,7 +21,7 @@ Axeptio suits teams that want a visual editor for branded consent experiences. I
 | Design the interface | Themes, component parts and headless APIs in your application | Visual banner editor with custom text, design and interactions |
 | Connect consent to features | Native framework state and declared integrations | JavaScript SDK, callbacks and service consent methods |
 | Check a named service | Category and vendor state | SDK methods to check or ask for consent to a service |
-| Choose the record service | Inth or your own c15t backend | Managed consent collection |
+| Choose the record service | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent collection |
 | Find trackers | **No automatic scanner in the packages** | Cookie and tracker scanner |
 | Test banner designs | Presentation and theme experiments with fixed policy and policy text | Built-in analytics and A/B tests |
 | Manage legal acceptance | Backend version and snapshot helpers. Build the acceptance flow | Separate terms product with document publication and a consent registry |
@@ -47,7 +49,7 @@ Both products support experiments. With c15t, [banner experiments](/docs/guides/
 - The packages do not include automatic site scans or a visual campaign console.
 - Legal-document helpers do not write legal text or build the full acceptance flow.
 - Vendor controls need configuration. A banner does not stop every script already on the site.
-- Remote records need a backend that can receive them. A browser choice does not prove that the backend saved it.
+- Connect to Inth to store consent records in its database. A browser choice does not prove that the backend saved it.
 
 Some integrations load with denied consent signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

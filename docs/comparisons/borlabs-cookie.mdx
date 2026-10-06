@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your team needs consent in a custom web application. Its framework components and backend let you own the consent system independently of WordPress.
 
-Start with [Inth](https://inth.com) for managed policy and records. Choose the [open-source backend](/docs/self-host/overview) when your team needs to run the service itself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Borlabs Cookie is a WordPress product with local visitor data, individual service controls and developer tools. Self-hosting alone does not distinguish c15t from Borlabs.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -21,7 +23,7 @@ Borlabs Cookie is a WordPress product with local visitor data, individual servic
 | Let visitors choose services | Category and individual vendor state | Service groups with individual service choices |
 | Control scripts and embeds | Declared rules for scripts, requests and embeds | Script, style and content controls |
 | Keep records on your servers | Deploy the supplied c15t backend | Consent logs within the WordPress setup. Visitor data stays on your server |
-| Use a managed backend | Inth is the recommended path | Consent runs within your WordPress installation |
+| Use a managed backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Consent runs within your WordPress installation |
 | Discover services | **No automatic scanner in the packages** | Scanner with suggested service packages |
 | Operate within WordPress | Developer setup. No bundled WordPress wizard | Setup assistant, package library, WP CLI and Composer support |
 
@@ -50,7 +52,7 @@ With either product, your team must check new integrations and consent changes. 
 - The packages do not include a WordPress administration screen, setup assistant or automatic service scanner.
 - They do not generate privacy policies or manage wider legal-document work.
 - Vendor rules cover configured targets. They do not discover every tag or CMS plugin automatically.
-- Remote records need Inth or your own backend that can receive records. A browser choice does not prove that the backend saved the record.
+- Connect to Inth to store consent records in its database. A browser choice does not prove that the backend saved the record.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

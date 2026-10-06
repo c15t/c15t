@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when consent determines which vendors and features can run. It combines the banner, preferences, policy state and vendor integrations with a record backend.
 
-Use [Inth](https://inth.com) to manage that backend. Your team can also [run it yourself](/docs/self-host/overview).
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 react-cookie-consent gives you a customisable React bar, cookie helpers and callbacks. It is a useful small component when your application already owns the rest of the consent system.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what your team must build
 
@@ -20,7 +22,7 @@ react-cookie-consent gives you a customisable React bar, cookie helpers and call
 | Offer category and vendor preferences | Built-in controls | Build the rest of the preference flow |
 | Decide whether a feature can run | Effective permissions and vendor state | Connect callbacks and the cookie value to your own rules |
 | Control vendor scripts | Registered integrations and consent rules | Build the loader behaviour around callbacks |
-| Keep remote records | Inth or a self-hosted c15t backend | Build a backend integration |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Build a backend integration |
 | Handle policy changes | Policy resolution and recorded choices | Supply your own policy logic |
 | Reopen preferences | Preference dialog and persistent access | Visibility and cookie-reset helpers |
 | Customise presentation | Themes, component parts or headless UI | Styles, classes, content and button props |

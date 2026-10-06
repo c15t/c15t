@@ -8,9 +8,11 @@ group: reference
 
 c15t is our recommended choice for product teams that need native framework integration, control of the consent interface and ownership of the backend. You can review consent behaviour with the application that depends on it.
 
-Start with [Inth](https://inth.com) for managed policy and records. The [open-source backend](/docs/self-host/overview) gives you the option to run the service yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 The strongest reason to choose c15t is this combination of control and integration. Other tools also have APIs, custom styles, service controls or consent records.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## See what c15t includes
 
@@ -21,7 +23,7 @@ The strongest reason to choose c15t is this combination of control and integrati
 | Consent-aware application features | **Included** | Read policy permissions, explicit choices and vendor state |
 | Category and vendor controls | **Included with configuration** | Apply rules to registered scripts, requests and embeds |
 | Server-resolved consent | **Supported by framework** | Next.js offers streamed, awaited and browser paths |
-| Remote consent records | **Backend required** | Use Inth or a c15t backend that you operate |
+| Remote consent records | **Hosted by Inth** | The official c15t hosting platform runs the backend and stores consent records in a database. Self-hosting is optional |
 | Google Consent Mode | **Integration available** | Follow the Google tag or GTM guide. Inspect actual requests |
 | IAB Transparency and Consent Framework | **Add-on available** | TCF 2.4 through `@c15t/iab`. Configure the relevant policy |
 | Banner experiments | **Included with configuration** | Compare presentation and theme while policy and policy text stay fixed |
@@ -99,7 +101,7 @@ c15t controls the integrations and targets that you configure. A visible banner 
 
 Some integrations load before consent and receive denied signals. Withdrawal normally reloads the page. Optional cleanup cannot remove all vendor data.
 
-Remote records need a backend that can receive them. A local choice is not proof of a successful save, and browser-only mode has no backend records.
+Connect to Inth to store consent records in its database. A local choice is not proof of a successful save, and browser-only mode has no backend records.
 
 Use browser-only mode for development and tests. Not recommended for production environments.
 

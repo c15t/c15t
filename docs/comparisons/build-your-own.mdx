@@ -8,11 +8,13 @@ group: reference
 
 Choose c15t when your team wants a custom consent experience with a supplied engine, framework components and backend. Your developers can focus on how consent fits the product.
 
-Start with [Inth](https://inth.com) for managed policy and records. Use the [open-source backend](/docs/self-host/overview) if your team needs to operate the service itself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 A custom implementation can match these features. The difference is which parts your team must design, test and support. This comparison includes code written by people or with AI assistance.
 
 The release covered here is currently an alpha. Evaluate its APIs and [upgrade path](/docs/upgrade-v3) before production use.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare the work your team owns
 
@@ -23,7 +25,7 @@ The release covered here is currently an alpha. Evaluate its APIs and [upgrade p
 | Offer category and vendor choices | Configure the supplied preference controls and vendor rules | Design the choice model and connect it to each vendor |
 | Control scripts, requests and embeds | Register supported integrations and explicit rules | Build or adopt controls for each way that a vendor can run |
 | Resolve policy for a visitor | Configure policy rules and the fallback for unknown locations | Build policy selection, fallback behaviour and policy updates |
-| Store remote records | Connect Inth or deploy the supplied backend | Build or adopt record storage, delivery and recovery from failures |
+| Store remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Build or adopt record storage, delivery and recovery from failures |
 | Support server output | Follow the selected framework's server or browser path | Handle initial state, hydration and saved choices in each framework |
 | Handle withdrawal | Use the runtime's withdrawal flow and configured cleanup | Define how each vendor stops and which data your code can remove |
 | Support future changes | Review c15t updates and test your integrations | Own updates across the implementation and its dependencies |

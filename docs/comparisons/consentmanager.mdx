@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your developers need native web components and control of the consent engine and backend. You can review consent behaviour with the application features that depend on it.
 
-Start with [Inth](https://inth.com) for managed policy and records. Use the [open-source backend](/docs/self-host/overview) when your team needs to run the service.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 consentmanager suits teams that need central operations across websites, apps and connected TVs. Its product also includes scans, experiments and customisation options.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -18,7 +20,7 @@ consentmanager suits teams that need central operations across websites, apps an
 | --- | --- | --- |
 | Integrate with a web application | Native framework components and reactive state | Website code, CMS plugins and developer APIs |
 | Build a custom interface | Themes, component parts and headless APIs | Custom HTML and CSS on listed plans. CTV API supports custom interfaces |
-| Choose the backend | Inth or your own c15t service | Managed platform with plan-dependent own-domain delivery |
+| Choose the backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed platform with plan-dependent own-domain delivery |
 | Control vendors | Declared category and vendor rules | Vendor and purpose settings, plus automatic script controls |
 | Discover cookies | **No automatic scanner in the packages** | Cookie crawler and classification |
 | Test banner designs | Presentation and theme experiments with fixed policy and policy text | Plan-dependent A/B tests and automatic design selection |
@@ -50,7 +52,7 @@ These workflows carry different responsibilities. With c15t, your team supplies 
 - The packages do not include a website crawler or a central campaign operations console.
 - They do not include a connected-TV SDK or generated legal policies.
 - Vendor controls cover configured targets. A visible banner does not stop every tag already on the site.
-- Remote records need a backend that can receive them. Local consent state does not prove a successful write.
+- Connect to Inth to store consent records in its database. Local consent state does not prove a successful write.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

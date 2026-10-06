@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your team wants native consent components across web frameworks and control of the backend. You can change the interface and engine with the product that uses them.
 
-Start with [Inth](https://inth.com) for managed policy and records. Choose the [open-source backend](/docs/self-host/overview) when you need to operate the service yourself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 CookieFirst combines hosted consent, scans and cookie-policy tools. Its React package and public API also support custom application flows.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -20,7 +22,7 @@ CookieFirst combines hosted consent, scans and cookie-policy tools. Its React pa
 | Build a custom interface | Themes, component parts and headless APIs | Public consent API and a stealth mode without the supplied banner |
 | Let visitors choose services | Category and individual vendor state | Category or service consent, under the configured policy |
 | Control vendor code | Declared rules for scripts, requests and embeds | Third-party script settings and Autoblock |
-| Choose the record service | Inth or your own c15t backend | Hosted consent logs and plan-dependent audit trails |
+| Choose the record service | Inth hosts the backend and stores records in its database. Self-hosting is optional | Hosted consent logs and plan-dependent audit trails |
 | Discover cookies | **No automatic scanner in the packages** | Cookie scans |
 | Generate a cookie policy | **Not included** | Cookie-policy generator |
 | Handle withdrawal | Page reload by default, with optional cleanup | API clears consent, records the change and reloads the page |
@@ -50,7 +52,7 @@ Both products need checks for consent changes and vendor behaviour. A reload can
 - The packages do not scan the site or generate cookie and privacy policies.
 - They do not supply a visual website administration console.
 - Script and vendor controls need configuration. They do not discover tags already on the site automatically.
-- A local choice does not prove that a backend saved the record. Remote records need a service that can receive them.
+- A local choice does not prove that a backend saved the record. Connect to Inth to store consent records in its database.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

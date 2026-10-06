@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your developers want to own the consent interface, vendor rules and backend implementation. Changes can follow the same code review and release process as the application.
 
-Start with [Inth](https://inth.com) for managed policy and records. Keep the option to [run the backend yourself](/docs/self-host/overview).
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Didomi combines a shared notice console with SDKs, APIs and consent analytics. It also supports React and custom interfaces, so developer access is common to both products.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare the work your team controls
 
@@ -21,7 +23,7 @@ Didomi combines a shared notice console with SDKs, APIs and consent analytics. I
 | Read vendor and purpose choices | Framework state and vendor controls | Web SDK methods and events |
 | Choose the Next.js response | Streamed, awaited or browser paths | Hosted SDK integration. Test the required server flow separately |
 | Run the backend yourself | Open-source backend with your own database | Didomi platform and consent APIs |
-| Keep consent evidence | Inth or your own backend | Consent events and history |
+| Keep consent evidence | Inth hosts the backend and stores records in its database. Self-hosting is optional | Consent events and history |
 | Compare banner variants | Presentation experiments with your flags or built-in assignment | A/B tests and consent analytics |
 | Publish notices from a shared console | Inth service workflow. No equivalent business console bundled in the packages | Console for marketing, legal and engineering teams |
 

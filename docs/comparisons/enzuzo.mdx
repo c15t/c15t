@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your developers need direct control of consent behaviour, interface and records. You can review consent changes beside the application features that use them.
 
-Start with [Inth](https://inth.com) for the managed backend. Choose the [open-source backend](/docs/self-host/overview) when your team needs to run the service itself.
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Enzuzo is a strong option for teams that want banners, scans, legal policy tools and data-request operations in one hosted service. It also offers APIs and custom script controls.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare what you get
 
@@ -18,7 +20,7 @@ Enzuzo is a strong option for teams that want banners, scans, legal policy tools
 | --- | --- | --- |
 | Integrate with application code | Native framework components and reactive state | Hosted script, platform integrations and API access |
 | Build your own interface | Themes, component parts and headless APIs | Banner editor and plan-dependent custom CSS. Enterprise lists a headless mode |
-| Choose the record backend | Inth or your own c15t deployment | Managed consent logs. Reviewed sources do not establish a deployable equivalent backend |
+| Choose the record backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent logs. Reviewed sources do not establish a deployable equivalent backend |
 | Control vendor code | Declared category and vendor rules for scripts, requests and embeds | Automatic script controls and attributes for custom scripts |
 | Find cookies automatically | **Not included in the c15t packages** | Website scans and cookie classification |
 | Generate legal policies | **Not included** | Policy and terms generators |
@@ -55,7 +57,7 @@ c15t does not automatically inventory trackers already on the site. Your team mu
 
 Some integrations load before consent and receive denied signals. Check their actual behaviour under your selected policy. Withdrawal normally reloads the page.
 
-Remote records need a backend that receives them. A browser choice is not proof of a completed save.
+Connect to Inth to store consent records in its database. A browser choice is not proof of a completed save.
 
 Browser-only mode has no backend records. Not recommended for production environments.
 

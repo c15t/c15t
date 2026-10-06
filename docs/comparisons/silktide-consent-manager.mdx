@@ -8,9 +8,11 @@ group: reference
 
 c15t is the stronger fit when your product needs consent state across components, vendor rules and backend records. It gives your team a common model for the interface and the code behind it.
 
-Start with [Inth](https://inth.com) for managed policy and records. You can also [deploy the backend yourself](/docs/self-host/overview).
+[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
 
 Silktide Consent Manager is a free, open-source browser manager. It supports preference controls, consent-based script injection and Google Consent Mode. It is more than a decorative banner.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
 ## Compare the scope beyond the banner
 
@@ -22,7 +24,7 @@ Silktide Consent Manager is a free, open-source browser manager. It supports pre
 | Control vendor scripts | Integration helpers, request rules and embeds | Script injection per consent type and callbacks |
 | Use Google Consent Mode | Google tag and GTM integrations | Consent Mode updates and GTM events |
 | Handle withdrawal | Reload by default. Optional declared data cleanup | Reload after the visitor revokes consent for injected scripts |
-| Keep remote records | Inth or your own backend | No managed record service documented with the browser library |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | No managed record service documented with the browser library |
 | Customise the interface | Themes, component parts and headless APIs | Configurable text, appearance and source code |
 | Budget for use | No licence fee. Production backend costs remain | Free browser tool without traffic or domain limits |
 
