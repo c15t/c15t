@@ -228,3 +228,19 @@ Check server requests as well as the browser Network panel. Confirm that
 consent saves reach the backend and policy updates appear after the configured
 refresh window. If you add a rewrite, also confirm browser consent requests
 use your origin.
+
+## Start returning visitors' scripts sooner
+
+`ConsentRoot` loads the script loader as a separate chunk, and only on pages
+whose `scripts` array is not empty. Pages without scripts never download it.
+Every visitor to a page with scripts downloads it once the page has hydrated,
+except a returning visitor whose stored choice, as `resolveConsent()` read it,
+already allows one of those scripts. For that visitor, `ConsentRoot` starts the
+download during its first render in the browser, so the chunk loads while
+React hydrates the rest of the page and the consented scripts start sooner.
+The larger the tree inside `ConsentRoot`, the more of that request hydration
+covers. There is nothing to configure.
+
+c15t does not add a `<link rel="modulepreload">` for the chunk, as it does in
+SvelteKit. Next.js assigns the chunk's file name in the browser build, and the
+server rendering `ConsentRoot` cannot read it.
