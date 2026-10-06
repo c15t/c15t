@@ -154,16 +154,19 @@ describe('hosted()', () => {
 		expect(hostedModes.get(mode)?.fetch).toBe(fetchSpy);
 		expect(hostedModes.get(mode)?.initialData).toBe(initialData);
 
-		// `initialData` answers the first init; the second goes to the backend.
+		// `initialData` resolves to nothing, so both inits reach the backend,
+		// each with the options as passed.
 		const transport = mode(context);
 		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
 		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
-		const [url, init] = fetchSpy.mock.calls[0] as unknown as [
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+		for (const [url, init] of fetchSpy.mock.calls as unknown as [
 			string,
 			RequestInit & { headers: Record<string, string> },
-		];
-		expect(url).toBe('https://old.example/init');
-		expect(init.headers['accept-language']).toBe('de');
+		][]) {
+			expect(url).toBe('https://old.example/init');
+			expect(init.headers['accept-language']).toBe('de');
+		}
 	});
 });
 
