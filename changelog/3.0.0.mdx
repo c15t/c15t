@@ -1,0 +1,659 @@
+---
+title: "v3.0.0 - The Open Standard for Cookie Banners"
+version: "3.0.0"
+date: 2026-10-08
+description: "Major release notes for c15t 3.0. One consent engine for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit and plain HTML, banners in the server HTML, the consent manifest, policy rules, GPP, publisher restrictions, new integrations and a rewritten self-hosted backend."
+group: changelog
+tags:
+  - release
+  - react
+  - nextjs
+  - tanstack-start
+  - vue
+  - svelte
+  - astro
+  - backend
+  - iab
+  - integrations
+  - performance
+type: release
+breaking: true
+draft: true
+authors: [KayleeWilliams]
+---
+
+c15t 3 is a rebuild. v2 was a React library with a Next.js adapter. v3 is one
+consent engine with adapters for Next.js, TanStack Start, React, Nuxt, Vue,
+Astro, Svelte and SvelteKit, plus a script tag for sites with no build step.
+Every adapter runs the same engine and passes the same conformance suite, so a
+policy behaves the same in Nuxt as it does in Next.js.
+
+The other big change is where consent gets decided. Server-rendered apps can
+resolve consent on the server and send the banner in the first HTML. The new
+consent manifest lets them do it without a round trip to the consent backend
+on every page.
+
+Your visitors shouldn't notice the upgrade. v3 reads the consent that v2
+stored, so nobody is asked again just because you upgraded. Your code will
+notice. Every package has breaking changes, and clients and backend have to
+move together. [Upgrading](#upgrading) covers what to know first, and the
+[migration guide](/docs/upgrade-v3) walks through each change.
+
+## Highlights
+
+- **Eight frameworks and a script tag.** TanStack Start, Nuxt, Vue, Astro,
+  Svelte and SvelteKit join Next.js and React. `@c15t/browser` covers plain
+  HTML, WordPress, Shopify and other CMS sites.
+- **One package.** `npm install c15t`, then import from `c15t/next`,
+  `c15t/react`, `c15t/vue`, `c15t/tanstack-start` or `c15t/astro`.
+- **Banner in the first HTML.** Next.js (App and Pages Router), TanStack
+  Start, Nuxt, SvelteKit and Astro can render the banner on the server. v2
+  always mounted it after hydration.
+- **Consent manifest.** Your server caches one manifest per site and decides
+  each visitor's policy itself. With 150 ms of backend latency, time to first
+  byte in our Next.js benchmark fell from 157.6 ms to 7.4 ms.
+- **Less work in the browser.** Smaller render-blocking CSS, themes built on
+  the server, the dialog and optional modules loaded on demand, and React
+  components that re-render only when the value they read changes.
+- **Policy rules.** A simpler policy format, 34 presets instead of 6,
+  notice-only prompts, and Global Privacy Control applied live instead of
+  stored as a refusal.
+- **Per-vendor consent.** Visitors can switch off one vendor inside a category
+  they allowed, without IAB.
+- **GPP and publisher restrictions.** GPP 1.1 with 16 US state sections and a
+  US National fallback. IAB publisher restrictions now reach the TC string.
+- **New integrations.** Cloudflare Zaraz, Klaviyo and the OpenAI pixel for
+  ChatGPT Ads. `@c15t/scripts` is now `@c15t/integrations`.
+- **Rewritten self-hosted backend.** Built on Effect SQL with PostgreSQL,
+  MySQL and SQLite, and a migrator that adopts your v2 database.
+
+## One engine, more frameworks
+
+v2 kept consent in a Zustand store that set up blockers and wrote to `window`
+as soon as you created it. v3 replaces it with a consent kernel that does
+nothing until you call a command. It doesn't touch `window`, the DOM,
+storage, timers or the network on creation, so it is safe to import on the
+server. Every adapter reads the same `getSnapshot()` and `subscribe()` pair.
+That is what lets one conformance suite test React, Vue and Svelte against
+the same policy, storage, event and accessibility checks, including records
+written by v2.
+
+### Install one package
+
+In v2, the `c15t` package was the headless engine. In v3 it installs the
+engine and the adapters, and re-exports each under a subpath. The root `c15t`
+import is still the headless engine.
+
+```bash
+npm install c15t
+```
+
+| Framework | Import from |
+| --- | --- |
+| Next.js | `c15t/next` |
+| TanStack Start | `c15t/tanstack-start` |
+| React | `c15t/react` |
+| Nuxt | `c15t/vue`, which is the Nuxt module |
+| Vue | `c15t/vue/vue-plugin` |
+| Astro | `c15t/astro` |
+| JavaScript | `c15t` and `c15t/runtime` |
+
+The scoped packages, such as `@c15t/nextjs`, are still published and match
+the subpaths one to one. Framework peer dependencies are optional, so a plain
+JavaScript project doesn't pull in React, Vue or Astro.
+
+Svelte, the script tag and the vendor helpers are separate installs:
+`@c15t/svelte`, `@c15t/browser` and `@c15t/integrations`.
+
+### Next.js
+
+Both routers can now resolve consent on the server.
+
+- **App Router.** Call `resolveConsent()` from `c15t/next/server` in the root
+  layout and render `ConsentRoot`. Pass the pending result to stream it, which
+  is the default, or await it to put the banner in the first HTML.
+  `c15t/next/api` has the route handlers for `/api/c15t/init` and
+  `/api/c15t/manifest`.
+- **Pages Router.** New in v3. `c15t/next/pages` has `resolveConsent()` for
+  `getServerSideProps` and `createPagesApiHandlers()` for `pages/api`.
+- **Static and cached pages.** `output: 'export'`, ISR, `'use cache'` and
+  Cache Components each have a documented setup. `c15t/next/static` builds a
+  manifest module at build time.
+- **Location headers.** `c15tProxy` from `c15t/next/proxy`, or
+  `c15tMiddleware` from `c15t/next/middleware`, passes them through.
+
+Requires Next.js 15 or 16. Run c15t layouts and routes on the Node.js runtime.
+
+### TanStack Start
+
+New adapter at `c15t/tanstack-start`.
+
+- `consentRequestMiddleware` reads location, language and GPC headers on each
+  request.
+- `createConsentStateHandler()` and `consentLoaderOptions()` resolve consent in
+  the root route loader, so the banner is in the first HTML.
+- `createConsentServerRoute()` serves the consent routes from your own origin.
+- `ConsentRoot` hydrates from the server state. The React components and hooks
+  are re-exported.
+
+SPA mode, prerendering and streaming are documented. Requires
+`@tanstack/react-start` 1.168.60 or later and React 18 or 19.
+
+### React
+
+`c15t/react` is for client-rendered apps such as Vite. It also runs in React
+Router framework mode and Remix, where the banner mounts after hydration.
+`fetchSSRData()` from `c15t/react/server` can save the browser its first
+`/init` request. Requires React 18 or 19.
+
+### Nuxt
+
+New module. Add `c15t/vue` to `modules` in `nuxt.config.ts`. It registers
+`ConsentRoot`, `ConsentWidget`, `ConsentPreferencesLink`,
+`ConsentDialogTrigger` and `ConsentGate`, auto-imports the composables, and
+resolves consent during server rendering so the banner is in the first HTML.
+With `manifest: 'server'` it also adds `GET /api/c15t/init` and
+`GET /api/c15t/manifest`. In development, c15t gets its own Nuxt DevTools tab.
+Requires Nuxt 3 or 4 and Vue 3.5.
+
+### Vue
+
+New plugin for Vue 3 apps without Nuxt. Install `c15tVue` from
+`c15t/vue/vue-plugin` with `app.use()` and add the Vite plugin from
+`c15t/vue/vite`. You get the banner, dialog, widget, consent gate, IAB
+components, dev tools and composables, and each component loads its own
+styles. Consent resolves in the browser. Use the Nuxt module if you need it
+on the server.
+
+### Astro
+
+New integration. Add `c15t()` from `c15t/astro` to `astro.config.mjs`.
+
+- Middleware puts each visitor's consent on `Astro.locals.c15t`.
+- The banners and dialog trigger are plain `.astro` markup and ship no
+  framework JavaScript.
+- The preference dialog is an island that loads on first use. Set `ui` to
+  `'svelte'`, `'react'` or `'vue'` to match the framework your site already
+  ships. Svelte is the default.
+- With `output: 'server'`, the banner is in the first HTML and the
+  integration adds `/api/c15t/init` and `/api/c15t/manifest`. Static sites
+  work without an adapter, and the banner appears once `/init` returns.
+- `c15t/astro/client` shares one runtime per page with your own scripts and
+  islands, and keeps it across `ClientRouter` navigation.
+
+Requires Astro 5, 6 or 7.
+
+### Svelte and SvelteKit
+
+New package.
+
+```bash
+npm install @c15t/svelte
+```
+
+It has components for the banner, dialog, widget, dialog link and trigger,
+consent gate and IAB, plus unstyled building blocks. Components read state
+through context getters such as `getConsentManager()` and
+`getHeadlessConsent()`. For SvelteKit, `@c15t/svelte/kit` has `loadConsent()`
+for the root layout's server `load`, which puts the banner in the first HTML,
+along with `c15tHandle` and `createSvelteKitConsentRouteHandlers()`. Requires
+Svelte 5, and SvelteKit 2 or 3.
+
+### Plain HTML and CMS sites
+
+New package. `@c15t/browser` is one script tag with no build step. Your Inth
+project serves it with your backend URL and policy already inside:
+
+```html
+<script src="https://your-project.inth.app/c15t.js" defer></script>
+```
+
+Replace the URL with the one from your Inth project. A self-hosted v3 backend
+serves the same file at its own `/c15t.js`. Without a backend, load it from
+jsDelivr at `https://cdn.jsdelivr.net/npm/@c15t/browser/dist/c15t.js`.
+
+The tag adds the banner, the preference dialog, stored choices and a
+`window.c15t` API. A script with `type="text/plain"` and
+`data-c15t-category` runs once its category is allowed, and an iframe loads
+its `data-src` the same way. `c15t.headless.js` has no UI and `c15t.iab.js`
+adds IAB TCF. Load `c15t.gpp.js` or `c15t.devtools.js` from jsDelivr as a
+second tag to add GPP or dev tools. The docs have setup steps for WordPress,
+Webflow, Shopify, Squarespace, Wix, Framer, Ghost, Hugo, Eleventy and Jekyll.
+Bundled apps can `import { init } from '@c15t/browser'` instead.
+
+## Faster pages
+
+Most of the speed in v3 comes from two changes. Consent gets decided earlier,
+on the server where possible. And CSS and optional code stay off the critical
+path until a visitor needs them.
+
+### The banner in the first HTML
+
+| Setup | Banner in the server HTML |
+| --- | --- |
+| Next.js App Router, awaited layout | Yes |
+| Next.js App Router, streamed layout, the default | No, it mounts after hydration |
+| Next.js Pages Router with `getServerSideProps` | Yes |
+| TanStack Start, root loader awaits consent | Yes |
+| Nuxt with `manifest: 'server'` | Yes |
+| Astro with `output: 'server'` | Yes |
+| SvelteKit with `loadConsent()` | Yes |
+
+A returning visitor's choice arrives with the page too, so gated scripts can
+start at hydration without another request. Server resolution gets 500 ms by
+default, set with `timeoutMs`. If the backend is slower than that, the page
+renders without a server decision and the browser finishes the job.
+
+The App Router streams by default so a slow backend never holds up the page.
+Awaiting consent puts the banner in the first HTML, but React can then hold
+back the page's reveal by about 300 ms. Measure your page before you switch.
+
+### Consent manifest
+
+The consent backend has a new `GET /manifest` endpoint. It returns one public
+document per project with everything `/init` needs, including policy rules,
+translations, branding, IAB settings and declared vendors. It holds no
+visitor data, so a CDN can cache it.
+
+Your server caches the manifest and resolves each visitor from the request's
+country, region, language and GPC headers, with the same resolver the backend
+uses. The result has the same shape as an `/init` response. Page renders stop
+waiting on the consent backend, and only cache misses and refreshes reach it.
+Saves still go to the backend.
+
+| Framework | Turn it on |
+| --- | --- |
+| Next.js | Set `manifestURL` in `defineConsentConfig()` and export `manifestGET` from `createNextConsentRouteHandlers()` |
+| TanStack Start | On by default in `createConsentStateHandler({ backendURL })` |
+| Nuxt | `c15t: { backendURL, manifest: 'server' }` |
+| Astro | `c15t({ mode: manifest({ backendURL }) })` with `output: 'server'` |
+| SvelteKit | `createSvelteKitConsentRouteHandlers()` and `loadConsent(event, { initRoute })` |
+| HTML and JavaScript | `manifest({ manifestURL })` from `@c15t/browser` |
+
+Direct `/init` still works everywhere.
+
+**Measured.** Next.js 16 production build, awaited server rendering, new
+visitors, and a local backend that adds 150 ms to `/init` and to uncached
+`/manifest`. Medians of 10 runs.
+
+| Server render | Time to first byte | Banner painted |
+| --- | ---: | ---: |
+| Backend `/init` on every request | 157.6 ms | 180 ms |
+| Manifest, warm cache | 7.4 ms | 28 ms |
+
+Both rows are v3. v2 never put the banner in the server HTML, so it never paid
+for that round trip. The manifest is what lets v3 render the banner on the
+server without adding the round trip to every page.
+
+**When the backend is slow or down.** Concurrent requests share one manifest
+fetch. A stale manifest keeps serving inside the backend's
+`stale-while-revalidate` window while one background request refreshes it.
+After a failure with nothing cached, the server backs off for 1 to 5 seconds
+instead of retrying on every request. If the manifest can't be read at all,
+the `/init` route falls back to the backend's own `/init`.
+
+**Vendor list on demand.** The manifest points to the IAB Global Vendor List
+instead of carrying it. Your server fetches the list only when a visitor's
+rule uses the `iab` model, so sites without IAB rules never fetch it.
+
+**Stale saves.** A save from a manifest-resolved page carries the inputs
+behind its decision. If the policy changed after the visitor saw it, the
+backend answers `422 STALE_POLICY` and doesn't record the choice against the
+new policy.
+
+**Visitor counts.** Manifest mode skips the backend's `/init`, so the server
+adapters report each resolution to the new `POST /sessions` endpoint, server
+to server. No cookies are forwarded. Set `reportSessions: false` to turn it
+off.
+
+### Less work in the browser
+
+v2 shipped one stylesheet with every surface in it. v3's main stylesheet holds
+only what a first paint can show: tokens, the banner, the dialog trigger and
+the consent gate placeholder. Dialog styles load with the dialog. In a
+Next.js 16 production build, render-blocking CSS from c15t fell from 10.3 KB
+to 8.8 KB gzip, and 5.4 KB of dialog CSS moved off the critical path.
+
+Custom themes now render on the server, through `<ConsentTheme>` or
+`generateThemeCSS()`. v2 generated theme CSS in the browser and sent every
+visitor about 1.9 KB gzip of generator code to do it.
+
+React components re-render only when the value they read changes. v2's
+`useConsentManager()` returned the whole store, so every consumer re-rendered
+on every change. With 10 components reading 5 categories, changing one
+category caused 20 renders in v2 and 2 in v3, under React StrictMode.
+
+Optional code loads when a page needs it:
+
+| Code | When it loads |
+| --- | --- |
+| Script loader | When `scripts` is configured |
+| Network blocker | When rules are configured. Matching requests wait from the first render until it loads. |
+| Iframe blocker | When the page has an iframe with `data-category` or `data-vendor` |
+| Persistence writer | In idle time after the banner shows, or at the first save. Stored consent is read at startup. |
+| Preference dialog and widget | On hover or focus of a button that opens them, or in idle time while the banner shows |
+| IAB TCF and GPP | When enabled |
+
+### Smaller IAB pages
+
+v2's init response carried the whole Global Vendor List. v3's server
+integrations send a reference and a short banner summary, and the browser
+fetches the list when the IAB module mounts. With vendor list 176, which has
+1,211 vendors, the init JSON drops from 860 KB to 6.6 KB.
+
+## Policies
+
+### Policy packs are now policy rules
+
+A policy rule describes behavior and nothing else. Layout and button order
+move to the client, in the `presentation` option and component props.
+
+| v2 policy pack | v3 policy rule |
+| --- | --- |
+| `consent.model` | `model`: `'opt-in'`, `'opt-out'`, `'iab'` or `'none'` |
+| `ui.mode` | `prompt`: `'choice'`, `'notice'` or `'none'` |
+| `ui.banner`, `ui.dialog` | `actions`, which lists `accept`, `reject` and optionally `customize`. Layout moves to `presentation`. |
+| `consent.expiryDays` | `validity.choiceDays` and `validity.noticeDays`, both 365 by default |
+| `consent.gpc: true` | `privacySignals.gpc.denyCategories` |
+| `match` | Same, plus `regionFallbacks` |
+| none | `rights`, `copyRevision`, `review` |
+
+Rules with unknown keys, a model and prompt that don't fit together, or
+unknown categories now fail validation. `inspectPolicyRules()` replaces
+`validatePolicies()` and `inspectPolicies()`.
+
+### More presets
+
+`policyPackPresets` is now `policyRulePresets`, and `worldNoBanner()` is now
+`worldNone()`. The other five v2 presets keep their names. 28 are new:
+
+- Opt-in and opt-out: US privacy states, Canada, Australia, Japan.
+- Opt-in: Switzerland, Singapore, Malaysia, Thailand, Indonesia, the
+  Philippines, Vietnam, Brunei, Laos, China, South Korea, India, Brazil,
+  Turkey, the UAE and Saudi Arabia.
+- Statistics: the UK and Malaysia.
+- Opt-out with no prompt: Switzerland and the rest of the world.
+
+Each preset lists its sources and assumptions in `review`. Read them before
+you ship one. A preset is a starting point, not legal advice.
+
+`recommendedPolicyRules({ iab })` gives you Europe opt-in or IAB, Québec
+opt-in, US privacy states opt-out, and no banner anywhere else.
+
+### Notice prompts and rights
+
+A rule can ask for a notice instead of a choice with `prompt: 'notice'`.
+Dismissing a notice records an acknowledgement, not consent, and leaves
+earlier refusals in place. `rights` lists the controls that must stay
+reachable without a banner, such as a preferences link under an opt-out rule.
+
+### No more jurisdiction label
+
+v2 picked a regulation label such as `GDPR`, `CCPA` or `NONE` from a fixed
+country table. v3 decides from your policy rules alone. `/init` no longer
+returns `jurisdiction`, so read the matched rule from `policyResolution`. The
+backend's `disableGeoLocation` option is gone too. To show everyone the same
+banner, add a rule with `match: { isDefault: true }`.
+
+### Consent records
+
+A stored record now holds only what the visitor did. That means one choice per
+category, when they made it, and the rule it was made under. c15t works out
+permissions each time it reads the record, against the visitor's current rule.
+The same record can allow different things under an opt-in rule, where no
+choice means denied, and an opt-out rule, where no choice means allowed.
+
+Hydration, rendering and reading a cookie never write a choice. Saves send one
+receipt per category, so a partial save doesn't renew categories it didn't
+mention.
+
+### When visitors are asked again
+
+c15t asks again when a choice expires after `validity.choiceDays`, or when the
+rule it was made under changes in a way that affects it. Choices and notice
+dismissals have separate fingerprints, so changing one doesn't reset the
+other. Bump `copyRevision` after a material wording change to ask everyone
+again.
+
+### Global Privacy Control
+
+c15t reads GPC live every time it evaluates consent and denies the categories
+in the matched rule's `privacySignals.gpc.denyCategories`. It never stores the
+signal as a refusal, so when the browser stops sending it, the restriction
+ends. The California and US state presets apply it to `marketing` and
+`measurement`.
+
+## Consent controls
+
+- **Per-vendor consent outside IAB.** Declare vendors in the `vendors` option,
+  or in `manifest.vendors` on a self-hosted backend. The preference center
+  lists each category's vendors with a switch, and saves include the
+  visitor's per-vendor choices. Read them with `useVendorAllowed()`,
+  `useVendorDraft()` and `useDeclaredVendors()`.
+- **`ConsentGate`.** Replaces `Frame` in every framework and holds back any
+  embed until its category or vendor is allowed. Iframes also accept
+  `data-vendor`.
+- **Banner presentation.** `presentation` picks the banner variant
+  (`floating`, `bar`, `widget` or `wall`), its position and its action rules.
+- **Experiments.** `experiment` runs A/B tests on presentation and theme. Use
+  `defineExperiment()` and `useExperiment()` on the client and
+  `GET /experiments/:id/summary` on the backend.
+- **Clear on revocation.** `clearOnRevocation` deletes declared cookies and
+  storage keys when a visitor revokes a category.
+- **Follow another CMP.** `consentSource` mirrors an existing CMP's decisions.
+- **Shared drafts.** `ConsentDraftProvider` and `useConsentDraft()` give a
+  custom UI one set of unsaved choices across components.
+
+## IAB TCF and GPP
+
+### Global Privacy Platform
+
+c15t can install the GPP 1.1 CMP API at `__gpp` and keep the GPP string in
+step with each visitor's choices. GPP code loads only on pages that turn it
+on.
+
+- Next.js, TanStack Start and React: render `<ConsentGPP>` from
+  `c15t/react/gpp`.
+- Nuxt, Vue, Astro, Svelte and SvelteKit: set `gpp: true`, or pass options.
+- Script tag: load `c15t.gpp.js` next to `c15t.js`.
+
+The matched policy rule decides which section c15t writes. An IAB rule adds
+the TC string as `tcfeuv2`. A US rule with opt-out or preference rights adds
+the visitor's state section, for one of 16 states: California, Colorado,
+Connecticut, Delaware, Florida, Iowa, Minnesota, Montana, Nebraska, New
+Hampshire, New Jersey, Oregon, Tennessee, Texas, Utah and Virginia. Other US
+visitors get the US National section, `usnat`. Sections with a GPC field
+report the signal.
+
+### Publisher restrictions
+
+v2 had a `PublisherRestriction` type but never encoded one. v3 writes
+`publisherRestrictions` into the TC string and reports them through
+`__tcfapi('getTCData')`. It applies them to consent-gated scripts with a
+`vendorId`, and the preference center lists each vendor under the legal basis
+the restrictions leave. An invalid restriction throws
+`PublisherRestrictionError` instead of being dropped. If a stored TC string
+has different restrictions, c15t discards it and asks the visitor again.
+
+### IAB in every framework
+
+v2 had IAB banners and preference centers for React and Next.js only. v3 adds
+them for Nuxt, Vue, Astro, Svelte, SvelteKit and the script tag
+(`c15t.iab.js`).
+
+TCF 2.4 support arrived in v2.3.0 and carries over. Vendor list schemas now
+keep unknown fields, so `standardTexts` survives a self-hosted backend's
+cache.
+
+## Integrations
+
+### `@c15t/scripts` is now `@c15t/integrations`
+
+Subpaths and helper names stay the same. Only the package name changes.
+
+```ts
+// v2
+import { googleTagManager } from '@c15t/scripts/google-tag-manager';
+// v3
+import { googleTagManager } from '@c15t/integrations/google-tag-manager';
+```
+
+`npx @c15t/cli codemods scripts-to-integrations` rewrites the imports. All 38
+v2 helpers carry over. `@c15t/scripts` stays published through v3 as a
+deprecated re-export, and goes away in v4.
+
+### New integrations
+
+| Integration | Import | What it does |
+| --- | --- | --- |
+| Cloudflare Zaraz | `cloudflareZaraz` | Maps c15t categories to Zaraz purposes. Zaraz still runs the tools. |
+| Klaviyo | `klaviyo` | Signup forms and onsite tracking. `mode: 'forms-only'` loads with `marketing` alone and keeps web tracking off. |
+| OpenAI pixel for ChatGPT Ads | `openaiPixel`, `openaiPixelEvent` | Loads the measurement pixel after `marketing` consent and sends typed conversion events |
+
+### New options
+
+- `createEventDispatcher()` from `@c15t/integrations/events` sends one event
+  to every allowed integration that has an event API. It can also send SPA
+  pageviews to PostHog, Segment and Hightouch.
+- `posthog({ features })` turns surveys, heatmaps, dead clicks, web vitals and
+  feature flags on or off. `surveys: false` stops `surveys.js` from
+  downloading.
+- `googleTagManager({ dataLayer })` takes a custom data layer name, and
+  Consent Mode updates follow it.
+- `gtag({ config })` and `segment({ loadOptions })`.
+
+### Fixes to existing helpers
+
+- A helper's consent steps run only when its own vendor's consent changes.
+  Unrelated changes no longer re-run them, which stops Matomo from queueing
+  extra page views.
+- Amplitude clears an opt-out left in its cookie by an earlier revocation once
+  `measurement` is granted again.
+- Heap keeps a running SDK's methods when consent comes back without a reload.
+- Umami sends `domains` as the comma-separated list Umami expects.
+- Meta and X event helpers do nothing before the pixel loads, instead of
+  throwing.
+- TikTok grants consent once instead of twice. Crisp keeps a `$crisp` queue
+  the page filled before the helper ran.
+
+The Google Consent Mode v2 mapping hasn't changed.
+
+## Self-hosted backend
+
+`@c15t/backend` is rewritten on Effect 4 and Effect SQL. Hono still serves
+HTTP, and `c15tInstance(options).handler(request)` works as before. Queries
+use joins and new indexes. In our backend benchmark, with PGlite and 1,000
+subjects among 20,000 other rows, the subject read path went from 11.9 ms to
+3.3 ms median.
+
+- **Databases.** PostgreSQL, MySQL and SQLite, through the `database` option.
+  The Drizzle, Prisma, TypeORM, Kysely and MongoDB adapters are gone. MongoDB
+  has no migration path.
+- **Migrations.** Run `npx @c15t/cli self-host migrate --plan`, review it,
+  then run it with `--apply`. The migrator recognizes v2 schemas and adopts
+  them without dropping tables or columns. When it finds schema drift it
+  won't fix, it prints the SQL that would.
+- **Manifest endpoint.** `GET /manifest` sends
+  `Cache-Control: public, s-maxage=300, stale-while-revalidate=86400` by
+  default, which you can change with `manifestCache`, and answers
+  `If-None-Match` with `304`.
+- **Other new routes.** `POST /sessions`, `GET /experiments/:id/summary`, and
+  the `/c15t.js` script-tag bundles.
+- **Observability.** `observability`, built on evlog, replaces `logger` and
+  `telemetry`.
+- **Late saves.** A save retried after a failure up to 7 days later is
+  accepted if its policy token was valid when the visitor clicked and the
+  policy hasn't changed since. Change the window with `replayWindowSeconds`.
+- **Tenants.** `requireTenantId: true` refuses to start without a tenant ID.
+- **Rollouts.** A v3 backend can share a database with a v2 backend while you
+  roll out. Run the v2 process with `TZ=UTC`.
+
+## Node SDK
+
+`@c15t/node-sdk` has a new client, `createC15tClient({ baseUrl, apiKey })`.
+Methods return `{ ok: true, data }` or `{ ok: false, error }` and never
+reject. Call `unwrap()` if you'd rather throw. The client validates input
+before sending, returns dates as `Date` objects, and retries transient
+failures while honoring `Retry-After`. `manifest()`,
+`legalDocuments.publish()` and `experiments.summary()` are new. Test helpers
+live in `@c15t/node-sdk/testing`.
+
+## CLI and dev tools
+
+- `c15t setup` now scaffolds TanStack Start, Nuxt, Vue, Astro, Svelte,
+  SvelteKit and plain JavaScript, alongside Next.js and React. `--plan`
+  previews the changes, `--apply` writes them and `--json` prints a
+  machine-readable report.
+- `c15t codemods` has two v2 to v3 codemods, `use-consent-manager-to-hooks`
+  and `scripts-to-integrations`.
+- `c15t self-host migrate` upgrades a self-hosted database.
+- Dev tools no longer depend on React. `createDevTools({ kernel })` works in
+  any framework, and there is a TanStack Devtools panel and a Nuxt DevTools
+  tab.
+
+## Upgrading
+
+There is a step-by-step guide for each v2 package: [Next.js](/docs/frameworks/next/upgrade-v3), [React](/docs/frameworks/react/upgrade-v3) and
+[JavaScript](/docs/frameworks/javascript/upgrade-v3).
+Each one starts with a prompt you can paste into a coding agent. The
+[migration overview](/docs/upgrade-v3) covers the self-hosted backend and the
+Node.js SDK. Three things to know before you start.
+
+**Visitors keep their choices.** v3 reads the `c15t` cookie and storage key
+that v2 wrote and doesn't rewrite them on page load. A v2 denial keeps
+blocking its category. A v2 grant keeps applying until it expires. For rules
+built from the presets, v3 also checks whether the policy changed since the
+grant and asks again if it did. The visitor's next accept, reject or save
+writes a v3 record.
+
+**Upgrade clients and backend together.** A v3 client can't read a v2
+backend's `/init`. It shows no banner and keeps optional categories denied.
+A v2 client shouldn't talk to a v3 backend either, because `/init` no longer
+sends `jurisdiction` or `policy`. Inth-hosted URLs work with v3 clients.
+
+**Start with the codemods.** They rewrite `useConsentManager()` calls and
+`@c15t/scripts` imports.
+
+```bash
+npx @c15t/cli codemods use-consent-manager-to-hooks
+npx @c15t/cli codemods scripts-to-integrations
+```
+
+## Breaking changes
+
+These are the changes most apps hit. The [Next.js](/docs/frameworks/next/upgrade-v3), [React](/docs/frameworks/react/upgrade-v3) and
+[JavaScript](/docs/frameworks/javascript/upgrade-v3) upgrade guides
+have the full list with before and after code.
+
+- **Every package.** ESM only. React 18 or later, Next.js 15 or later. `c15t`
+  is now the umbrella package, and `@c15t/scripts` is now
+  `@c15t/integrations`.
+- **Provider.** `ConsentManagerProvider` is now `ConsentProvider`, and
+  `mode` plus `backendURL` become one transport, such as `hosted({ url })`.
+  Next.js server rendering moves from `fetchInitialData()` to
+  `resolveConsent()` and `ConsentRoot`.
+- **Hooks.** `useConsentManager()` is gone, replaced by one hook per field.
+  See [Replace `useConsentManager()`](/docs/upgrade-v3#replace-useconsentmanager).
+- **Callbacks.** `onConsentSet` and `onConsentChanged` become
+  `onPermissionsChanged` and `onChoiceRecorded`, with new payloads.
+- **Policies.** Policy packs become policy rules, `worldNoBanner()` becomes
+  `worldNone()`, and the `jurisdiction` label is gone.
+- **Themes and styles.** `theme` tokens no longer produce CSS on their own,
+  so render `ConsentTheme`. Tailwind CSS 3 needs the `c15t/postcss-tailwind3`
+  plugin, and several CSS variables are renamed.
+- **IAB.** The `iab` provider option becomes `IABProvider`, and
+  `@c15t/iab` drops `createIABManager`.
+- **Components.** `Frame` is now `ConsentGate`. `YouTubeEmbed`, `GoogleMap`,
+  `useConsentScript()` and `ConsentButton` are gone.
+- **JavaScript.** The v2 store and `getOrCreateConsentRuntime()` are gone. Use
+  `@c15t/browser`, `createConsentRuntime()` or `createConsentKernel()`.
+- **Self-hosted backend.** `adapter` becomes `database`, `policyPacks` moves
+  to `manifest.policyRules`, and the schema needs a migration. See
+  [Upgrade a self-hosted backend](/docs/upgrade-v3#upgrade-a-self-hosted-backend).
+- **Node SDK.** `c15tClient()` becomes `createC15tClient()`, and methods
+  return results instead of throwing. See
+  [Update the Node.js SDK](/docs/upgrade-v3#update-the-nodejs-sdk).
+- **CLI and dev tools.** Run `c15t login` again. Dev tools move to
+  `c15t/react/devtools` and `c15t/next/devtools`.
+
+<ContributorBlock usernames={["KayleeWilliams", "BurnedChris", "dan-hale", "bennajah", "prashantbhudwal"]} title="Thank you to our contributors" />
