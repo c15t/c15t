@@ -149,6 +149,7 @@ export default mergeConfig(
 					resolve(__dirname, '../iab/node_modules/@iabtechlabtcf/core'),
 				],
 				['@c15t/iab/headless', resolve(__dirname, '../iab/src/headless.ts')],
+				['@c15t/iab/gpp', resolve(__dirname, '../iab/src/gpp.ts')],
 				['@c15t/iab', resolve(__dirname, '../iab/src/index.ts')],
 				['react', resolve(__dirname, './node_modules/react')],
 				['react-dom', resolve(__dirname, './node_modules/react-dom')],

@@ -31,7 +31,7 @@ export {
 /**
  * Options accepted by the {@link c15tVue} plugin: the consent config plus
  * the browser modules the plugin starts on mount (`scripts`,
- * `networkBlocker`, `iframeBlocker`, `storageConfig`, `nonce`).
+ * `networkBlocker`, `iframeBlocker`, `gpp`, `storageConfig`, `nonce`).
  */
 export type C15tVuePluginOptions = Partial<RuntimeConsentConfig> & {
 	/**

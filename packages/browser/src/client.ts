@@ -24,7 +24,11 @@ import type {
 	ResolvedVendor,
 	Unsubscribe,
 } from '@c15t/core';
-import type { ConsentRuntimeIABFactory } from '@c15t/core/runtime';
+import type {
+	ConsentRuntimeIABFactory,
+	GPPModuleLoader,
+	RuntimeGPPOptions,
+} from '@c15t/core/runtime';
 import {
 	saveConsentSurface,
 	saveIABConsentSurface,
@@ -81,6 +85,10 @@ export interface CreateConsentClientContext {
 	onStart?: (options: ConsentClientOptions) => () => void;
 	/** Optional CMP factory supplied exclusively by the IAB entry. */
 	createIAB?: ConsentRuntimeIABFactory;
+	/** Loads `@c15t/iab/gpp`. Only the script-tag global supplies it. */
+	loadGPP?: GPPModuleLoader;
+	/** The `gpp` option when the page sets none. Off unless an entry sets it. */
+	defaultGPP?: RuntimeGPPOptions | boolean;
 	/** Mounts the prebuilt UI. Absent in the headless build. */
 	mountUI?: ConsentUIMounter;
 	/** Package name reported on `window.c15t`. */
@@ -243,9 +251,11 @@ export const createConsentClient = function createConsentClient(
 		createIAB: context.createIAB,
 		enabled: options.enabled,
 		experiment: options.experiment,
+		gpp: options.gpp ?? context.defaultGPP,
 		i18n: options.i18n,
 		iab: context.createIAB ? (options.iab ?? { enabled: true }) : undefined,
 		iframeBlocker: options.iframeBlocker,
+		loadGPP: context.loadGPP,
 		mode: mode.factory,
 		networkBlocker: options.networkBlocker,
 		nonce: options.nonce,

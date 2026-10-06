@@ -1,0 +1,49 @@
+---
+title: IAB GPP
+description: Add the IAB Global Privacy Platform API (__gpp) to a Next.js app with ConsentGPP from c15t/react/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+`ConsentGPP` from `c15t/react/gpp` installs `window.__gpp`, the GPP 1.1 CMP
+API, and keeps its GPP string in step with the visitor's choices. Prebid.js,
+Google Ad Manager and other ad tech read US privacy signals from it.
+
+## Turn on GPP
+
+Render `ConsentGPP` inside `ConsentRoot`, in the `components/consent.tsx`
+wrapper from the [App Router](/docs/frameworks/next/app-router) guide. The
+[Pages Router](/docs/frameworks/next/pages-router) setup renders the same
+wrapper, so one change covers both routers.
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx"
+import { ConsentGPP } from 'c15t/react/gpp';
+
+<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
+	<ConsentGPP />
+	{children}
+	<ConsentBanner />
+	<ConsentDialog />
+</ConsentRoot>;
+```
+
+`ConsentGPP` renders nothing. `__gpp` exists only in the browser: the
+component installs it after it mounts and removes it when it unmounts. Its
+props are plain data, so a Server Component can render it too. Apps that do
+not import `c15t/react/gpp` bundle none of the GPP code.
+
+The props are the GPP options listed below, for example
+`<ConsentGPP usFallback="none" />`.
+
+The GPP string follows the policy and location `resolveConsent()` resolves
+for the visitor. A US visitor's state comes from the geo headers your host
+sends; see [geography headers](/docs/frameworks/next/geography-headers) if
+it is missing.
+
+To add the TCF EU section for visitors under an `iab` policy, set up
+[IAB TCF](/docs/frameworks/next/iab) as well.
+
+<include src="../../shared/iab-gpp.mdx" />

@@ -37,7 +37,11 @@ import type { StorageConfig } from '@c15t/core/modules/persistence';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import { createLazyIABFactory, mountRuntimeIAB } from '@c15t/core/runtime';
-import type { ConsentRuntimeIABHandle } from '@c15t/core/runtime';
+import type {
+	ConsentRuntimeIABHandle,
+	GPPModuleLoader,
+	RuntimeGPPOptions,
+} from '@c15t/core/runtime';
 import { onDemandRuntimeModules } from '@c15t/core/runtime/on-demand';
 import { createConsentProviderRuntime } from '@c15t/core/runtime/provider';
 import type {
@@ -175,6 +179,21 @@ export type RuntimeConsentConfig = ConsentConfig & {
 	 * tune automatic blocking.
 	 */
 	iframeBlocker?: Omit<IframeBlockerOptions, 'kernel'> | false;
+	/**
+	 * IAB Global Privacy Platform: install `window.__gpp` once the app
+	 * mounts and keep its GPP string in step with the visitor's choices.
+	 * `true` or `{}` uses the defaults; omitted or `false` leaves GPP off.
+	 * The GPP code loads as its own chunk, only when this is set. A load
+	 * failure, or another CMP that already owns `__gpp`, is reported to
+	 * `callbacks.onError`. Ignored with `consentSource`, and when the plugin
+	 * renders a `runtime` it did not create: set `gpp` on that runtime.
+	 *
+	 * @example
+	 * ```ts
+	 * gpp: { usApproach: 'national' }
+	 * ```
+	 */
+	gpp?: RuntimeGPPOptions | boolean;
 };
 
 export const pickAllowedInitHeaders = function pickAllowedInitHeaders(
@@ -643,6 +662,12 @@ const createVueRuntimeModules = function createVueRuntimeModules(
  * `prefetch` and the IAB factory comes from the config, so a new config
  * can go through `update()` unchanged.
  */
+/**
+ * Loads `@c15t/iab/gpp`, only when `gpp` is set. One function for every
+ * call, so passing it to the runtime's `update()` never reads as a change.
+ */
+const loadGPP: GPPModuleLoader = () => import('@c15t/iab/gpp');
+
 const toRuntimeOptions = function toRuntimeOptions(
 	config: RuntimeConsentConfig
 ): Omit<ConsentRuntimeUpdate, 'createIAB' | 'mode' | 'prefetch'> {
@@ -652,9 +677,11 @@ const toRuntimeOptions = function toRuntimeOptions(
 		consentCategories: config.consentCategories,
 		consentSource: config.consentSource,
 		experiment: config.experiment,
+		gpp: config.gpp,
 		// An unset `iab` mounts the CMP from what `/init` returns.
 		iab: config.iab ?? {},
 		iframeBlocker: config.iframeBlocker,
+		loadGPP,
 		networkBlocker: config.networkBlocker,
 		nonce: config.nonce,
 		pkg: '@c15t/vue',

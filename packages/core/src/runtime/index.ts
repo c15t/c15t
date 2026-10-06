@@ -65,12 +65,17 @@ export type {
 	ConsentRuntime,
 	ConsentRuntimeIABFactory,
 	ConsentRuntimeIABFactoryOptions,
+	ConsentRuntimeGPPFactory,
+	ConsentRuntimeGPPFactoryOptions,
+	ConsentRuntimeGPPHandle,
 	ConsentRuntimeIABHandle,
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
 	ConsentRuntimeModules,
 	ConsentRuntimeOptions,
 	ConsentRuntimeUpdate,
+	GPPModuleLoader,
+	RuntimeGPPOptions,
 	RuntimeIABOptions,
 	RuntimeNetworkBlockerOptions,
 	RuntimePersistenceOptions,
@@ -85,6 +90,8 @@ export { createLazyIABFactory } from './lazy-iab';
 export { lazyRuntimeModule } from './lazy-module';
 export { mountRuntimeIAB } from './iab-mount';
 export type { RuntimeIABMountOptions } from './iab-mount';
+export { mountRuntimeGPP } from './gpp-mount';
+export type { RuntimeGPPMountOptions } from './gpp-mount';
 
 const loadClearOnRevocation = function loadClearOnRevocation(
 	options: ClearOnRevocationOptions

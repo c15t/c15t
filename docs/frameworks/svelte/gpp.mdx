@@ -1,0 +1,44 @@
+---
+title: IAB GPP
+description: Expose the IAB Global Privacy Platform API (__gpp) from a Svelte app with the provider's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+The provider's `gpp` option installs `window.__gpp`, the GPP 1.1 CMP API, and
+keeps its GPP string in step with the visitor's choices. Prebid.js, Google Ad
+Manager and other ad tech read US privacy signals from it.
+
+## Turn on GPP
+
+Add `gpp` to the provider in `src/App.svelte`, keeping your existing `mode`,
+`scripts` and other props:
+
+{/* example: fragment */}
+
+```svelte title="src/App.svelte"
+<ConsentManagerProvider {mode} {scripts} gpp>
+```
+
+`gpp` on its own uses the defaults. Pass an object to change them, such as
+`gpp={{ usFallback: 'none' }}`; the options are listed below. Omit `gpp`, or
+pass `gpp={false}`, to leave it off.
+
+`@c15t/svelte` loads the GPP code from `@c15t/iab/gpp`, which it installs as a
+dependency. It is a separate chunk that apps without `gpp` never download.
+The provider installs `__gpp` once that chunk arrives and removes it when the
+provider unmounts.
+
+The US section follows the policy and location your Inth project resolves for
+the visitor. With `offline()` mode, pass the location yourself, for example
+`overrides={{ country: 'US', region: 'CA' }}`.
+
+The TCF EU section needs IAB TCF as well. Set it up with
+[IAB TCF](/docs/frameworks/svelte/iab).
+
+If you pass your own `runtime` to the provider, the provider does not add GPP.
+Set `gpp` and `loadGPP: () => import('@c15t/iab/gpp')` in that runtime's
+`createConsentRuntime()` call instead.
+
+<include src="../../shared/iab-gpp.mdx" />

@@ -270,6 +270,11 @@
 			"import": "./shims/react/iab.js",
 			"default": "./shims/react/iab.js"
 		},
+		"./react/gpp": {
+			"types": "./shims/react/gpp.d.ts",
+			"import": "./shims/react/gpp.js",
+			"default": "./shims/react/gpp.js"
+		},
 		"./react/styles.css": "./dist/react/styles.css",
 		"./react/styles.tw3.css": "./dist/react/styles.tw3.css",
 		"./react/iab/styles.css": "./dist/react/iab/styles.css",

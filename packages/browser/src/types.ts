@@ -235,6 +235,13 @@ export interface ConsentClientOptions extends Pick<
 	/** IAB configuration. Requires the `@c15t/browser/iab` entry. */
 	iab?: ConsentRuntimeOptions['iab'];
 	/**
+	 * IAB GPP options for `c15t.gpp.js` on a script-tag page: an object sets
+	 * `usApproach`, `usFallback`, `mspaMode`, `optOutCategories`, `cmpId`
+	 * or `tcf`, and `false` keeps GPP off although the script loaded. In a
+	 * bundled app, call `mountGPP()` from `@c15t/browser/gpp` instead.
+	 */
+	gpp?: ConsentRuntimeOptions['gpp'];
+	/**
 	 * Transport. A name picks one of the built-in modes; a factory from
 	 * `hosted()`, `offline()`, `manifest()` or `custom()` is used as is.
 	 * Defaults to `manifest` when a manifest is given, `hosted` when a

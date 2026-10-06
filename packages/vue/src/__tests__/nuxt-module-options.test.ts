@@ -121,3 +121,17 @@ describe('the early /init script for ssr: false pages', () => {
 		expect(config).not.toHaveProperty('initPrefetch');
 	});
 });
+
+describe('gpp from the c15t config key', () => {
+	test('reaches the client as JSON', async () => {
+		const gpp = { optOutCategories: ['marketing'], usApproach: 'national' };
+		const config = await publicConfig({ backendURL: '/api/c15t', gpp });
+		expect(config.gpp).toEqual(gpp);
+		expect(JSON.parse(JSON.stringify(config)).gpp).toEqual(gpp);
+	});
+
+	test('passes true through', async () => {
+		const config = await publicConfig({ backendURL: '/api/c15t', gpp: true });
+		expect(config).toHaveProperty('gpp', true);
+	});
+});

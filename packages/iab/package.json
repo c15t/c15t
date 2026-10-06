@@ -1,12 +1,14 @@
 {
 	"name": "@c15t/iab",
 	"version": "3.0.0-alpha.5",
-	"description": "IAB TCF 2.4 addon for c15t with TC String generation, GVL support, and programmatic advertising consent.",
+	"description": "IAB TCF 2.4 and Global Privacy Platform (GPP) addon for c15t with TC String and GPP string generation, GVL support, and programmatic advertising consent.",
 	"keywords": [
 		"cmp",
 		"consent",
 		"gdpr",
+		"global-privacy-platform",
 		"global-vendor-list",
+		"gpp",
 		"iab",
 		"iab-tcf-2.4",
 		"privacy",
@@ -42,6 +44,11 @@
 			"types": "./dist-types/headless.d.ts",
 			"import": "./dist/headless.js",
 			"default": "./dist/headless.js"
+		},
+		"./gpp": {
+			"types": "./dist-types/gpp.d.ts",
+			"import": "./dist/gpp.js",
+			"default": "./dist/gpp.js"
 		}
 	},
 	"publishConfig": {
@@ -66,6 +73,7 @@
 		"@c15t/conformance": "workspace:*",
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
+		"@iabgpp/cmpapi": "3.2.0",
 		"genversion": "3.2.0",
 		"typescript": "7.0.2"
 	}

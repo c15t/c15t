@@ -7,7 +7,7 @@
   </a>
 </p>
 
-# @c15t/iab: IAB TCF 2.4 Addon
+# @c15t/iab: IAB TCF 2.4 and GPP Addon
 
 <p>
 <a href="https://www.npmjs.com/package/@c15t/iab"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/npm/%40c15t%2Fiab.svg?variant=outline&mode=dark"><img src="https://shieldcn.dev/npm/%40c15t%2Fiab.svg?variant=outline&mode=light" alt="Latest NPM Version"></picture></a>
@@ -18,12 +18,13 @@
 <a href="https://inth.com?utm_source=npm&utm_medium=readme&utm_campaign=oss_readme&utm_content=%40c15t%2Fiab"><picture><source media="(prefers-color-scheme: dark)" srcset="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=dark"><img src="https://shieldcn.dev/badge/Made%20By-Inth-ffc803.svg?color=ffc803&labelTextColor=000000&logo=data%3Aimage%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGZpbGw9Im5vbmUiIHZpZXdCb3g9IjAgMCAzOTMgNDAwIj48cGF0aCBmaWxsPSIjMDAwIiBkPSJNMTgyLjY2MiAwdjM2Ljg5NWgtNTkuMDMxdjgyLjczM2g1OS4wMzF2MzYuODkzSDI3LjQ4MnYtMzYuODkzaDU5LjAzVjM2Ljg5NWgtNTkuMDNWMHpNMzIxLjk0MSA4OS44NVYwaDM1LjM1NXYxNTYuNTIxaC0yNS43MTNsLTg2LjEzNy05MC4zNjR2OTAuMzY0aC0zNS4zNTVWMGgyNi4zNTV6Ii8%2BPHBhdGggZmlsbD0iIzAwMCIgZmlsbC1ydWxlPSJldmVub2RkIiBkPSJNMzE4LjU3MSAxODUuNzE0aDc0LjI4NlY0MDBIMFYxODUuNzE0aDI3Mi44NTd2LTQ3LjE0M3ptLTI5MS4wOSAyOC45Njl2MzcuMTE4aDU4LjEzN3YxMTkuNjI4aDM2Ljg5NVYyNTEuODAxaDU4LjU4NHYtMzcuMTE4em0xODIuNjEuMjI0djE1Ni41MjJoMzYuODk0VjMxMy41OWg3My4zNDF2NTcuODM5aDM3LjExOFYyMTQuOTA3aC0zNy4xMTh2NjEuNzg4aC03My4zNDF2LTYxLjc4OHoiIGNsaXAtcnVsZT0iZXZlbm9kZCIvPjwvc3ZnPg%3D%3D&valueColor=000000&mode=light" alt="Made by Inth"></picture></a>
 </p>
 
-IAB TCF 2.4 addon for c15t with TC String generation, GVL support, TCF APIs, and programmatic advertising consent workflows.
+IAB TCF 2.4 and Global Privacy Platform (GPP) addon for c15t with TC String and GPP string generation, GVL support, TCF and GPP APIs, and programmatic advertising consent workflows.
 
 ## Key Features
 
 - IAB TCF 2.4 support for programmatic advertising consent
 - TC String generation and storage
+- IAB GPP 1.1 API (`__gpp`) with US state, MSPA US National and TCF EU sections through `@c15t/iab/gpp`
 - Global Vendor List (GVL) support
 - Purpose, special purpose, feature, special feature, and vendor controls
 - Headless APIs for custom IAB consent experiences
@@ -56,7 +57,8 @@ import { IABConsentBanner, IABConsentDialog } from '@c15t/react/iab'
 1. Configure c15t with the IAB consent model for jurisdictions that require TCF workflows
 2. Use the React IAB components for a prebuilt TCF banner and preference center
 3. Use headless APIs when you need a custom IAB consent experience
-4. For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab)
+4. Use `createGPP` from `@c15t/iab/gpp` to signal US state opt-outs and GPC to ad tech; see the [IAB GPP docs](https://c15t.com/docs/frameworks/javascript/gpp)
+5. For full implementation details, see the [IAB TCF 2.4 docs](https://c15t.com/docs/frameworks/react/iab)
 
 ## Documentation
 

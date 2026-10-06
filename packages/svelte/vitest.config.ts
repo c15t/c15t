@@ -97,6 +97,10 @@ const workspaceAliases = [
 		replacement: resolve(__dirname, '../iab/src/headless.ts'),
 	},
 	{
+		find: '@c15t/iab/gpp',
+		replacement: resolve(__dirname, '../iab/src/gpp.ts'),
+	},
+	{
 		find: '@c15t/iab',
 		replacement: resolve(__dirname, '../iab/src/index.ts'),
 	},

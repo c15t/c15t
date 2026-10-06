@@ -15,6 +15,7 @@
  */
 
 import { createLazyIABFactory } from '@c15t/core/runtime';
+import type { GPPModuleLoader } from '@c15t/core/runtime';
 
 import type { ProviderIABOptions } from './types';
 
@@ -25,6 +26,12 @@ export const lazyCreateIAB = factory.create;
 
 /** Resolves once every pending `@c15t/iab` load has settled. */
 export const whenIABReady = factory.whenReady;
+
+/**
+ * Loads `@c15t/iab/gpp`. One function for every render, so passing it to
+ * the runtime's `update()` never reads as a changed option.
+ */
+export const loadGPP: GPPModuleLoader = () => import('@c15t/iab/gpp');
 
 /**
  * Whether IAB is configured for this provider.

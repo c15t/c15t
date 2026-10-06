@@ -29,6 +29,7 @@ Cookie banner, preference centre, and consent-gated script loading for sites wit
 - Vendor scripts held as `<script type="text/plain" data-c15t-category>` until consent, and iframes gated with `data-src` and `data-category`
 - Hosted, self-hosted, offline, and manifest modes; an inlined manifest renders a location-independent policy with no request at all
 - DevTools panel as a second tag (c15t.devtools.js) with a Location tab for trying geo-keyed policies
+- IAB GPP (`__gpp`) as a second tag (c15t.gpp.js) or with `mountGPP` from `@c15t/browser/gpp`, signalling US state opt-outs and the TCF EU string
 - ES module entry points for bundled apps, which can use the @c15t/integrations vendor helpers
 
 ## Prerequisites

@@ -5,6 +5,7 @@ import type {
 } from '@c15t/core';
 import type {
 	ConsentRuntimeOptions,
+	RuntimeGPPOptions,
 	RuntimeNetworkBlockerOptions,
 	RuntimePersistenceOptions,
 	RuntimeScriptLoaderOptions,
@@ -52,8 +53,9 @@ export type UsePersistenceOptions = RuntimePersistenceOptions;
  *
  * Everything except the fields below is the framework-agnostic
  * {@link ConsentRuntimeOptions} contract, forwarded untouched to
- * `createConsentRuntime()` from `@c15t/core/runtime`. `createIAB` is
- * supplied by this package, and `pkg` is fixed to `'@c15t/svelte'`.
+ * `createConsentRuntime()` from `@c15t/core/runtime`. `createIAB` and
+ * `loadGPP` are supplied by this package, and `pkg` is fixed to
+ * `'@c15t/svelte'`.
  * Policy rules are not a provider option: pass them to the transport as
  * `offline({ policyRules })`.
  */
@@ -61,7 +63,7 @@ export interface ConsentManagerOptions
 	extends
 		Omit<
 			ConsentRuntimeOptions,
-			'createIAB' | 'iab' | 'mode' | 'pkg' | 'policyRules'
+			'createIAB' | 'gpp' | 'iab' | 'loadGPP' | 'mode' | 'pkg' | 'policyRules'
 		>,
 		Pick<
 			UIOptions,
@@ -95,6 +97,31 @@ export interface ConsentManagerOptions
 	mode: ProviderTransportFactory;
 	/** IAB TCF configuration. Pass `false` to disable the TCF addon. */
 	iab?: ProviderIABOptions;
+	/**
+	 * IAB Global Privacy Platform (GPP 1.1). Installs `window.__gpp` when
+	 * the provider mounts and keeps the GPP string in step with the
+	 * visitor's choices. `true` or `{}` uses the defaults; omitted or
+	 * `false` leaves GPP off. The GPP code loads through a dynamic import
+	 * of `@c15t/iab/gpp`, so apps that leave it off never download it.
+	 *
+	 * Ignored when you pass your own `runtime`: set `gpp` and `loadGPP` on
+	 * that runtime instead. A load failure, or another CMP that already
+	 * owns `__gpp`, is reported to `callbacks.onError`.
+	 *
+	 * @default undefined
+	 * @see {@link https://c15t.com/docs/frameworks/svelte/gpp}
+	 *
+	 * @example
+	 * ```svelte
+	 * <ConsentManagerProvider
+	 *   mode={hosted({ url: '/api/c15t' })}
+	 *   gpp={{ usApproach: 'national' }}
+	 * >
+	 *   {@render children()}
+	 * </ConsentManagerProvider>
+	 * ```
+	 */
+	gpp?: RuntimeGPPOptions | boolean;
 	/** Links rendered in the banner and preference-center footers. */
 	legalLinks?: LegalLinks;
 	/**
