@@ -160,6 +160,8 @@ export const createCiPlan = function createCiPlan(
 		['nuxt', 'nuxt'],
 		['nuxt-prerender', 'nuxt'],
 		['nuxt-static', 'nuxt'],
+		['nuxt-vapor', 'nuxt-vapor'],
+		['nuxt-vapor-future', 'nuxt-vapor'],
 		['tanstack-start', 'tanstack-start'],
 		['tanstack-start-streamed', 'tanstack-start'],
 		['tanstack-start-same-origin', 'tanstack-start'],
@@ -187,6 +189,8 @@ export const createCiPlan = function createCiPlan(
 			'nuxt',
 			'nuxt-prerender',
 			'nuxt-static',
+			'nuxt-vapor',
+			'nuxt-vapor-future',
 			'tanstack-start',
 			'tanstack-start-streamed',
 			'tanstack-start-same-origin',
@@ -258,7 +262,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', html: 'script-tag', 'nuxt-prerender': 'nuxt', 'nuxt-static': 'nuxt', sveltekit: 'sveltekit-demo', 'tanstack-start-same-origin': 'tanstack-start', 'tanstack-start-static': 'tanstack-start', 'tanstack-start-streamed': 'tanstack-start' } as Record<string, string>)[target] ?? target}`
+					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', html: 'script-tag', 'nuxt-prerender': 'nuxt', 'nuxt-static': 'nuxt', 'nuxt-vapor-future': 'nuxt-vapor', sveltekit: 'sveltekit-demo', 'tanstack-start-same-origin': 'tanstack-start', 'tanstack-start-static': 'tanstack-start', 'tanstack-start-streamed': 'tanstack-start' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);

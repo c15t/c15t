@@ -463,6 +463,16 @@ examples/nuxt/**/node_modules/**
 examples/nuxt/**/.pgdata
 examples/nuxt/**/.pgdata/**
 
+# Additional exclusions from examples/nuxt-vapor/.gitignore
+examples/nuxt-vapor/**/.output
+examples/nuxt-vapor/**/.output/**
+examples/nuxt-vapor/**/.nuxt
+examples/nuxt-vapor/**/.nuxt/**
+examples/nuxt-vapor/**/node_modules
+examples/nuxt-vapor/**/node_modules/**
+examples/nuxt-vapor/**/.pgdata
+examples/nuxt-vapor/**/.pgdata/**
+
 # Additional exclusions from examples/shared/.gitignore
 examples/shared/**/artifacts/**
 

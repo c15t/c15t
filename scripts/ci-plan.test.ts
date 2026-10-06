@@ -135,7 +135,7 @@ describe('CI selection', () => {
 		const result = plan([file]);
 		expect(result.full).toBe(true);
 		expect(result.backend).toBe(true);
-		expect(result.examples).toHaveLength(16);
+		expect(result.examples).toHaveLength(18);
 	});
 	it('runs benchmark helper tests when benchmark infrastructure changes', () => {
 		expect(plan(['benchmarks/shared/src/budgets.ts']).tests).toContain(
@@ -154,6 +154,10 @@ describe('CI selection', () => {
 			'nuxt',
 			'nuxt-prerender',
 			'nuxt-static',
+		]);
+		expect(plan(['examples/nuxt-vapor/app/app.vue']).examples).toEqual([
+			'nuxt-vapor',
+			'nuxt-vapor-future',
 		]);
 	});
 	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {

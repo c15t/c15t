@@ -788,6 +788,7 @@ for (const target of selectedTargets()) {
 				// prefetch from an in-process manifest cache.
 				if (
 					['nuxt', 'astro'].includes(target.id) ||
+					target.id.startsWith('nuxt-vapor') ||
 					target.id.startsWith('tanstack-start')
 				) {
 					await server.restart();
