@@ -501,10 +501,12 @@ let entrySequence = 0;
  * {@link UNCOMMITTED_HOLD_MS} disposes itself, failing what it held as
  * blocked. On the server nothing is held and nothing is tracked.
  *
- * In the browser, a `hosted()` runtime that will ask the backend for its
- * policy sends that `/init` request here, during the render, instead of
- * from the mount effect: on a client-rendered page that is before the
- * first paint rather than after it. The answer still applies at mount: the
+ * In a client render, a `hosted()` runtime that will ask the backend for
+ * its policy sends that `/init` request here, during the render, instead
+ * of from the mount effect: before the first paint rather than after it.
+ * `clientRender` comes from React, not from `window`: a server render
+ * never mounts, even with a DOM shim, and hydration asks at mount as
+ * before. The answer still applies at mount: the
  * kernel's first `init()` takes this request when its context (overrides,
  * language, user) is unchanged, and sends its own otherwise. The request
  * goes out on a transport of its own, held in {@link sentEarly}. A runtime
@@ -522,7 +524,8 @@ let entrySequence = 0;
  * mounted page, and a wrapper's transport may not be swapped for another.
  */
 const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
-	initialOptions: ConsentProviderOptions
+	initialOptions: ConsentProviderOptions,
+	clientRender: boolean
 ): OwnedRuntimeEntry {
 	const { mode, networkBlocker } = initialOptions;
 	const runtime = createConsentProviderRuntime(
@@ -566,6 +569,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		const snapshot = runtime.kernel.getSnapshot();
 		const hostedOptions = hostedModes.get(mode);
 		if (
+			clientRender &&
 			hostedOptions &&
 			snapshot.policyPending &&
 			!(initialOptions.prefetch || initialOptions.experiment)
@@ -669,8 +673,11 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 const createRuntimeHolder = function createRuntimeHolder() {
 	let entry: OwnedRuntimeEntry | null = null;
 	return {
-		get(options: ConsentProviderOptions): OwnedRuntimeEntry {
-			entry ??= createOwnedRuntimeEntry(options);
+		get(
+			options: ConsentProviderOptions,
+			clientRender: boolean
+		): OwnedRuntimeEntry {
+			entry ??= createOwnedRuntimeEntry(options, clientRender);
 			return entry;
 		},
 		reset() {
@@ -680,6 +687,9 @@ const createRuntimeHolder = function createRuntimeHolder() {
 };
 
 const increment = (count: number): number => count + 1;
+const subscribeNothing = (): (() => void) => () => undefined;
+const isClient = (): boolean => true;
+const isServer = (): boolean => false;
 
 /**
  * The provider-built runtime: one per provider instance. `undefined` when
@@ -691,11 +701,20 @@ const useOwnedRuntime = function useOwnedRuntime(
 	// oxlint-disable-next-line react/hook-use-state -- Created once, during the first render.
 	const [holder] = useState(createRuntimeHolder);
 	const [, rerender] = useReducer(increment, 0);
+	// React's server snapshot on the server and while hydrating: only a
+	// client render sends `/init` early.
+	const clientRender = useSyncExternalStore(
+		subscribeNothing,
+		isClient,
+		isServer
+	);
 	const rebuild = useCallback(() => {
 		holder.reset();
 		rerender();
 	}, [holder]);
-	return options ? { entry: holder.get(options), rebuild } : undefined;
+	return options
+		? { entry: holder.get(options, clientRender), rebuild }
+		: undefined;
 };
 
 /** A layout effect in the browser; nothing to run on the server. */
@@ -732,8 +751,6 @@ const OwnedRuntimeLifecycle = ({
 
 	return null;
 };
-
-const subscribeNothing = (): (() => void) => () => undefined;
 
 const isPromiseLike = function isPromiseLike(
 	value: unknown

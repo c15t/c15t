@@ -47,8 +47,8 @@ around the outlet. In React Router framework mode that is `app/root.tsx`.
 browser takes over after hydration:
 
 - The server HTML contains your page but no banner and no consent state.
-- The browser requests `/init` while it hydrates the provider, then shows the
-  banner if the policy asks for one.
+- After hydration the browser requests `/init`, then shows the banner if the
+  policy asks for one.
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 

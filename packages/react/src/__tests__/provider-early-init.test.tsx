@@ -1,9 +1,10 @@
 /**
  * A provider with a hosted transport and nothing prefetched sends its
- * `/init` request from the render that builds its runtime, not from the
- * mount effect, so on a client-rendered page the request leaves before
- * the first paint. The response still applies at mount, through the
- * kernel's own init. These tests pin when it is sent, that React's
+ * `/init` request from the client render that builds its runtime, not
+ * from the mount effect, so the request leaves before the first paint.
+ * Server renders and hydration send nothing. The response still applies
+ * at mount, through the kernel's own init. These tests pin when it is
+ * sent, that React's
  * repeated and discarded renders share one request, and that nothing
  * reads it for a runtime that never runs.
  */
@@ -13,7 +14,9 @@ import type {
 	ProviderTransportContext,
 } from '@c15t/core';
 import { writePolicyResolutionWire } from '@c15t/schema/types';
-import { StrictMode, Suspense, useContext, useEffect } from 'react';
+import { StrictMode, Suspense, act, useContext, useEffect } from 'react';
+import { hydrateRoot } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { afterEach, beforeEach, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -112,6 +115,48 @@ test('sends /init once, before its children render, under StrictMode', async () 
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
 	expect(initCalls()).toHaveLength(1);
 	await view.unmount();
+});
+
+test('a server render sends nothing, even where window exists', () => {
+	const html = renderToString(
+		<ConsentProvider options={{ mode: mode(), persistence: false }}>
+			<PolicyProbe />
+		</ConsentProvider>
+	);
+
+	expect(html).toContain('pending');
+	expect(initCalls()).toHaveLength(0);
+});
+
+test('hydration sends nothing during render and asks at mount', async () => {
+	const seen: number[] = [];
+	const app = (
+		<ConsentProvider options={{ mode: mode(), persistence: false }}>
+			<SeenAtRender seen={seen} />
+			<PolicyProbe />
+		</ConsentProvider>
+	);
+	const host = document.createElement('div');
+	host.innerHTML = renderToString(app);
+	document.body.append(host);
+	seen.length = 0;
+	const onRecoverableError = vi.fn();
+	let root: ReturnType<typeof hydrateRoot> | undefined;
+	try {
+		await act(() => {
+			root = hydrateRoot(host, app, { onRecoverableError });
+		});
+
+		expect(seen[0]).toBe(0);
+		expect(onRecoverableError).not.toHaveBeenCalled();
+		expect(initCalls()).toHaveLength(1);
+		await act(() => requests[0]?.respond('at-mount'));
+		await vi.waitFor(() => expect(host.textContent).toBe('at-mount'));
+		expect(initCalls()).toHaveLength(1);
+	} finally {
+		await act(() => root?.unmount());
+		host.remove();
+	}
 });
 
 test('a render that suspends before its first commit and its retry share one request', async () => {
