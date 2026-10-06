@@ -1,44 +1,64 @@
 ---
-title: c15t vs Osano
-description: Compare Osano commercial consent management with c15t v3 for usage budgeting, vendor blocking and framework integration.
+title: c15t v3 vs Osano
+description: Choose c15t for native consent components and control of vendor code and records. Compare Osano's classification, managed operations and service guarantees.
 group: reference
 ---
 
-## Compare the commercial CMP you intend to use
+## Choose c15t for control your developers can inspect
 
-Evaluate Osano when you want its commercial consent-management workflow,
-including cookie classification and tag blocking. Evaluate c15t when consent
-state and presentation need to be integrated into framework code, with Inth
-running the policy and record backend.
+c15t is the stronger fit when your product team needs to understand and change how consent affects the application. Its components, vendor rules and backend are open source.
 
-Osano lists classification, blocking, customizable banners and reporting for
-its CMP. Its open-source Cookie Consent license explicitly does not apply to
-the commercial platform. Keep those products distinct when comparing cost or
-hosting. [Osano CMP](https://www.osano.com/solutions/consent-management-platform),
-[Osano open-source license scope](https://www.osano.com/cookieconsent/documentation/license/)
+Use [Inth](https://inth.com) for managed policy and records. Choose your own [backend deployment](/docs/self-host/overview) when you need control of the database and service.
 
-## Compare deployment and usage
+This page compares Osano's commercial consent platform. Its separate open-source Cookie Consent project has a [different licence scope](https://www.osano.com/cookieconsent/documentation/license/).
 
-| Decision | c15t v3 | Osano commercial CMP |
+## Compare the implementation and the service
+
+| What you need | c15t v3 | Osano commercial CMP |
 | --- | --- | --- |
-| Application integration | Framework adapters and a shared consent runtime | Evaluate the selected web integration and APIs |
-| Vendor control | Register consent-aware loaders and remove duplicates | Test configured blocking against the site's tags |
-| Backend | Inth or a self-hosted c15t backend | Confirm hosted service scope in the selected agreement |
-| Budget estimate | Request Inth terms or estimate backend operations | Supply usage figures matching Osano's pricing definition |
+| Integrate with application code | Native framework components and hooks | Hosted CMP with JavaScript functions and events |
+| Match your interface | Themes, component parts or headless UI | Banner editor and custom CSS |
+| Control vendor execution | Registered integrations and explicit consent rules | Cookie classification and configured tag blocking |
+| Choose the Next.js response | Server, streamed or browser consent resolution | Hosted script integration |
+| Keep consent records | Inth or your own backend | Managed records with consent search |
+| Change and run the engine | Apache-2.0 source and a deployable backend | Commercial platform |
+| Classify site cookies automatically | **Not included in the c15t packages** | AI-assisted cookie classification |
+| Get a contractual fines guarantee | **Not included with the open-source software** | Advertised guarantee with conditions |
+| Budget for the service | No software licence fee. Backend costs remain | Contracted traffic based on delivery of Osano.js |
 
-Osano's pricing documentation says consent management is priced by how often
-`Osano.js` is served to a device, using average daily active users as an estimate
-because of browser caching. Do not substitute raw pageviews without checking
-the proposal. [Osano pricing method](https://docs.osano.com/en-US/osano/article/7Xe6qqNl-how-does-osano-price-for-consent-management)
+Sources: [Osano CMP](https://www.osano.com/solutions/consent-management-platform), [JavaScript API](https://docs.osano.com/en-US/osano/article/4iKPKFqX-developer-documentation-consent-javascript-api), [consent search](https://docs.osano.com/en-US/osano/article/rtirm0V6-cookie-consent-consent-search) and [traffic definition](https://docs.osano.com/en-US/osano/article/7Xe6qqNl-how-does-osano-price-for-consent-management).
 
-## Verify the tags you already run
+## Review consent with the feature that needs it
 
-Test a vendor installed directly and another installed through a tag manager.
-Reject optional processing and inspect both request paths. When evaluating a
-switch to c15t, retire the previous blocking and loading configuration in a
-staging deployment before judging results. Two consent systems controlling the
-same tag can conceal duplicate loads or conflicting signals.
+With c15t, your team declares a vendor beside the application feature that introduces it. The [integration](/docs/integrations/overview) connects that vendor to consent state.
 
-Start c15t with [Inth](https://inth.com) and the [framework setup](/docs/frameworks), then run the [consent verification checks](/docs/guides/verify-consent) against both tag-loading paths.
+The same state can drive a privacy settings screen or a blocked video placeholder. Use [headless APIs](/docs/frameworks/react/headless) when your design needs different markup.
 
-Sources reviewed on 10 September 2026.
+Osano also has a JavaScript API. c15t gives you native framework state and the implementation behind that state, so your team can trace behaviour through its own code.
+
+## Keep the backend choice open
+
+With Inth, you do not need to run a database. If your requirements change, the c15t backend is available for your team to deploy and change.
+
+That choice is useful when your organisation needs its own infrastructure or record access. It also makes your team responsible for availability, migrations and backups.
+
+Osano has consent records and a search workflow. c15t's distinction is control of the record system, not the existence of consent evidence.
+
+## What c15t does not include
+
+- **Automatic cookie discovery or AI classification.** Keep the vendor inventory and configure the relevant integrations.
+- **Osano's wider privacy operations.** Subject-rights case management and enterprise data discovery are outside the c15t packages.
+- **A promise to pay regulatory fines.** The open-source licence does not include that commercial guarantee.
+- **Automatic control of every current tag.** A banner alone cannot stop code loaded elsewhere.
+
+Some c15t integrations use denied consent signals while the vendor code still loads. Check the integration's behaviour before you expect zero requests.
+
+## Prove control on the tags you run
+
+Choose c15t when application control and backend ownership are the priorities. Osano can fit better when you need managed privacy operations and contractual services.
+
+Start with [Inth and your framework guide](/docs/frameworks). Test a direct vendor and a vendor inside your tag manager.
+
+Remove duplicate loaders, then check rejection, acceptance, reload, withdrawal and the saved record. Follow the [verification guide](/docs/guides/verify-consent).
+
+Sources checked on 6 October 2026. c15t v3 is an alpha release. Compare service quotes based on each provider's traffic definition.

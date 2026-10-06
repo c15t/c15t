@@ -1,42 +1,66 @@
 ---
-title: c15t vs OneTrust
-description: Compare OneTrust cookie scanning and consent operations with c15t v3 framework integration and managed or self-hosted records.
+title: c15t v3 vs OneTrust
+description: Choose c15t to own the consent engine, framework components and backend. Compare OneTrust's headless API, cookie scans and broader privacy operations.
 group: reference
 ---
 
-## Separate cookie operations from application integration
+## Choose c15t to own the engine as well as the interface
 
-Evaluate OneTrust when the team needs its cookie inventory, scanning and consent
-administration workflow. Evaluate c15t when engineering needs to integrate
-policy decisions, UI and vendor loading into the application, using Inth for
-managed policy and records.
+c15t is the stronger fit when your product team wants consent in its codebase and control over the backend. Its open-source engine, native components and vendor integrations work together.
 
-OneTrust's Cookie Consent product describes scheduled scanning, cookie
-inventories and a consent transaction database. It also describes scanning
-behind logins and triggering hidden pages. Include those operations in your evaluation if your team depends on them.
-[OneTrust Cookie Consent](https://www.onetrust.com/products/cookie-consent/)
+Use [Inth](https://inth.com) for managed policy and records. Run the [same backend protocol yourself](/docs/self-host/overview) when your team needs to own the service.
 
-## Compare the actual project scope
+OneTrust offers extensive consent operations and a server-side API for custom interfaces. The reason to choose c15t is control of the implementation, not exclusive access to headless consent.
 
-| Requirement | c15t v3 evaluation | OneTrust evaluation |
+## Compare the features that matter
+
+| What you need | c15t v3 | OneTrust |
 | --- | --- | --- |
-| Consent-aware application behavior | Connect framework state to components and registered scripts | Verify the integration API and tag controls for the application |
-| Cookie discovery | Maintain an inventory and test the deployed vendor requests | Exercise scans against authenticated and dynamic routes |
-| Consent records | Test Inth submissions and retrieval requirements | Confirm transaction database access and retention requirements |
-| Operating model | Inth hosting or a database and backend you operate | Confirm the required product scope and support contract |
+| Build application consent UI | Native components, themes and headless APIs | Web CMP UI and a headless Server-Side CMP API |
+| Resolve consent on the server | Framework helpers and cached public policy | Server-Side CMP API |
+| Read or change consent in code | Reactive framework state and actions | JavaScript methods and consent-change callbacks |
+| Control vendor execution | Declared integrations, request rules and embeds | Automatic blocking, tag-manager integrations and script controls |
+| Own the backend implementation | Apache-2.0 backend that you can deploy | OneTrust platform and APIs |
+| Store consent records | Inth or your own database | Consent transaction database |
+| Scan authenticated or hidden pages | **Not included in the c15t packages** | Documented website scans |
+| Compare banner layouts | Presentation experiments with your feature flags | A/B tests and template targeting |
+| Run a wider privacy programme | **No complete privacy operations suite in c15t** | Separate OneTrust products extend the consent scope |
 
-The product page does not establish a like-for-like price. Compare a current
-quote against the Inth service and engineering work you actually need. Do not
-compare an entire privacy program purchase with the cost of a frontend package.
+Sources: [Cookie Consent](https://www.onetrust.com/products/cookie-consent/), [JavaScript methods](https://developer.onetrust.com/onetrust/docs/javascript-api) and [Server-Side CMP API](https://developer.onetrust.com/onetrust/docs/server-side-cmp-api-introduction).
 
-## Test a route the scanner cannot discover by a simple crawl
+## Keep the implementation under your team's control
 
-Use a signed-in page that loads an optional vendor after an interaction. Record
-whether your chosen inventory process discovers it, then test consent gating
-separately. Discovery and enforcement are different tasks. With c15t, ensure
-that this loader is registered or explicitly gated even if a scan has already
-identified it.
+Your developers can read, change and version c15t's [Apache-2.0 source](https://github.com/c15t/c15t/blob/v3/LICENSE.md). The consent interface can use the same components and release process as the product.
 
-Build the c15t test with [Inth](https://inth.com) and the [framework setup](/docs/frameworks). Include the inventory and operational services your team would still need alongside it.
+A privacy settings screen can read the same state that controls a video embed or analytics integration. Use [headless APIs](/docs/frameworks/react/headless) when the stock interface does not fit.
 
-Sources reviewed on 10 September 2026.
+OneTrust's headless API also lets teams build their own UI. c15t adds an engine and backend implementation that your team can run and change.
+
+## Choose how consent affects the page
+
+With c15t, a server can cache a public consent manifest, the document that contains the policy rules. A warm cache lets it resolve visitor inputs without a separate policy lookup for each page request.
+
+Backend refreshes and consent saves still need a connection. See [data fetching](/docs/concepts/data-fetching).
+
+In Next.js, the default streamed path lets the page appear first. Await consent when the banner must arrive in server HTML. That choice adds a wait.
+
+These [rendering options](/docs/frameworks/next/rendering) let your team choose the tradeoff. Neither an API nor server rendering proves a speed advantage without a comparable test.
+
+## What c15t does not include
+
+- **OneTrust's website inventory service.** c15t does not crawl authenticated routes or automatically discover every tracker.
+- **A full privacy operations platform.** Data-subject request case management, data discovery and organisation-wide assessments are outside the v3 packages.
+- **A replacement for every current consent workflow.** Check identity, record retention, administrative access and migration needs separately.
+- **Backend operations at no cost.** Inth has service terms. Your own deployment needs a database, backups and maintenance.
+
+c15t's [document snapshot helpers](/docs/self-host/guides/legal-document-snapshot-integration) let your server check a legal-document version. They do not generate legal text or prove acceptance without an implemented acceptance flow.
+
+## Start with the part of consent your product owns
+
+Choose c15t when the project needs application control and backend ownership. OneTrust can be the better overall fit when a wider privacy programme is the main requirement.
+
+Build a trial with [Inth and the framework guide](/docs/frameworks). Use a signed-in route that adds a vendor after a user action.
+
+Register that vendor, then check rejection, acceptance, withdrawal and the saved record. Use the [verification guide](/docs/guides/verify-consent), and cost any separate inventory service that you still need.
+
+Sources checked on 6 October 2026. c15t v3 is an alpha release. This page makes no claim of certification parity or a lower total price.

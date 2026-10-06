@@ -1,43 +1,63 @@
 ---
-title: c15t vs react-cookie-consent
-description: Compare the react-cookie-consent banner component with c15t v3 policy state, preferences, consent records and script gating.
+title: c15t v3 vs react-cookie-consent
+description: Choose c15t when a React application needs consent rules, vendor controls and backend records beyond an accept-and-decline banner.
 group: reference
 ---
 
-## Choose a banner component or an integrated consent runtime
+## Choose c15t when consent controls product behaviour
 
-Evaluate react-cookie-consent when you want a React consent bar and intend to
-own the surrounding behavior. Evaluate c15t when the application needs policy
-resolution, category permissions, a preference interface and consent-aware
-vendor loading, with Inth handling the managed backend.
+c15t is the stronger fit when consent determines which vendors and features can run. It combines the banner, preferences, policy state and vendor integrations with a record backend.
 
-The react-cookie-consent README documents a customizable bar, an acceptance
-callback, an optional decline button and helpers for reading or resetting its
-cookie. Those primitives can be integrated into a larger system; a callback
-alone does not establish how that system blocks vendors or stores remote
-records. [react-cookie-consent README](https://github.com/Mastermindzh/react-cookie-consent)
+Use [Inth](https://inth.com) to manage that backend. Your team can also [run it yourself](/docs/self-host/overview).
 
-## Compare what your code must own
+react-cookie-consent gives you a customisable React bar, cookie helpers and callbacks. It is a useful small component when your application already owns the rest of the consent system.
 
-| Task | c15t v3 | react-cookie-consent |
+## Compare what your team must build
+
+| What you need | c15t v3 | react-cookie-consent |
 | --- | --- | --- |
-| Render a banner | Policy-aware adapter components | Configurable React bar |
-| Store a managed consent record | Configure Inth transport and policy | Design the surrounding backend integration |
-| Decide whether a feature may run | Read effective permissions and use registered loaders | Connect the component's callbacks and cookie state to application behavior |
-| Reopen settings | Mount persistent preferences access | Use its visibility and reset controls as part of your own flow |
+| Show a consent banner | Policy-aware framework components | Configurable React bar |
+| Offer category and vendor preferences | Built-in controls | Build the rest of the preference flow |
+| Decide whether a feature can run | Effective permissions and vendor state | Connect callbacks and the cookie value to your own rules |
+| Control vendor scripts | Registered integrations and consent rules | Build the loader behaviour around callbacks |
+| Keep remote records | Inth or a self-hosted c15t backend | Build a backend integration |
+| Handle policy changes | Policy resolution and recorded choices | Supply your own policy logic |
+| Reopen preferences | Preference dialog and persistent access | Visibility and cookie-reset helpers |
+| Customise presentation | Themes, component parts or headless UI | Styles, classes, content and button props |
 
-## Audit existing onAccept code before migrating
+The component's documented scope comes from its [README](https://github.com/Mastermindzh/react-cookie-consent). Custom application code can extend it. Those extensions are work that the component itself does not supply.
 
-Find code that starts analytics from `onAccept`. Determine whether rejection,
-reload and later withdrawal have matching behavior. Move the loader to the
-appropriate c15t integration and remove the original callback-based startup.
+## Connect the choice to the vendor
 
-Do not translate a single boolean cookie into grants for every c15t category
-without reviewing what the visitor actually chose. c15t distinguishes effective
-permissions from explicit recorded choices. Use the
-[consent model](/docs/concepts/how-consent-works#a-permission-is-not-a-recorded-choice) to design that mapping, then
-verify a returning visitor with a previous rejection as well as a fresh visitor.
+With c15t, your team can read whether a feature can run from the same state that drives the consent interface. Register analytics or embeds through [c15t integrations](/docs/integrations/overview).
 
-Install `c15t` and follow the [React quickstart](/docs/frameworks/react/quickstart) with [Inth](https://inth.com). For a Next.js app, use its [router guide](/docs/frameworks/next/quickstart) instead.
+This gives the application a shared model for first visits, saved choices and later withdrawal. You still need to remove unconditional loaders.
 
-Sources reviewed on 10 September 2026.
+A callback that starts analytics after acceptance also needs to handle rejection, reload and withdrawal. c15t supplies those integration points as part of its consent runtime.
+
+## Keep permission separate from a recorded choice
+
+c15t distinguishes the permissions allowed by a policy from what the visitor explicitly chose. Your application can read both without a false record of consent.
+
+That distinction matters for regional policies, stored choices and privacy signals. See the [consent model](/docs/concepts/how-consent-works).
+
+The backend can store confirmed choices. Browser state changes first, so check the actual record after a save. A failed request is not a completed record.
+
+## What c15t does not include
+
+- **Setup as small as a standalone bar.** Production policy and records need an Inth connection or your own backend.
+- **Automatic control of current analytics code.** Move it from old callbacks into registered integrations or explicit rules.
+- **A safe automatic conversion of a boolean cookie.** Review what visitors previously accepted before you create category or vendor grants.
+- **Legal-policy generation or a website scanner.** These are outside the v3 packages.
+
+If you only need a bar and already have the other consent infrastructure, react-cookie-consent can be enough.
+
+## Replace one acceptance callback first
+
+Choose c15t when you want the consent infrastructure as well as the React interface. Follow the [React quickstart](/docs/frameworks/react/quickstart) with [Inth](https://inth.com).
+
+For a Next.js application, use its [router guide](/docs/frameworks/next/quickstart). Find the old `onAccept` loader, register its c15t replacement and remove the duplicate.
+
+Test a fresh visit and a visitor who previously rejected consent. Finish with the [verification guide](/docs/guides/verify-consent).
+
+Sources checked on 6 October 2026. c15t v3 is an alpha release. The comparison covers the published component, not every system that someone could build around it.
