@@ -165,6 +165,7 @@ export default defineDocsConfig({
 						{
 							pages: [
 								'iab',
+								'gpp',
 								'geography-headers',
 								'content-security-policy',
 								'optimization',
@@ -241,7 +242,12 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'geography-headers', 'content-security-policy'],
+							pages: [
+								'iab',
+								'gpp',
+								'geography-headers',
+								'content-security-policy',
+							],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -307,7 +313,7 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'content-security-policy'],
+							pages: ['iab', 'gpp', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -374,7 +380,12 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'geography-headers', 'content-security-policy'],
+							pages: [
+								'iab',
+								'gpp',
+								'geography-headers',
+								'content-security-policy',
+							],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -441,7 +452,7 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'content-security-policy'],
+							pages: ['iab', 'gpp', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -507,6 +518,7 @@ export default defineDocsConfig({
 						{
 							pages: [
 								'iab',
+								'gpp',
 								'geography-headers',
 								'content-security-policy',
 								'islands',
@@ -580,7 +592,7 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'content-security-policy'],
+							pages: ['iab', 'gpp', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -651,6 +663,7 @@ export default defineDocsConfig({
 						{
 							pages: [
 								'iab',
+								'gpp',
 								'geography-headers',
 								'content-security-policy',
 								'server-api',
@@ -718,7 +731,7 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'content-security-policy'],
+							pages: ['iab', 'gpp', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},
@@ -770,7 +783,7 @@ export default defineDocsConfig({
 							title: 'Consent API',
 						},
 						{
-							pages: ['iab', 'transports', 'content-security-policy'],
+							pages: ['iab', 'gpp', 'transports', 'content-security-policy'],
 							slug: 'advanced',
 							title: 'Advanced',
 						},

@@ -1,0 +1,59 @@
+---
+title: IAB GPP
+description: Add the IAB Global Privacy Platform API (__gpp) to a plain HTML page with the c15t.gpp.js script tag, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+`c15t.gpp.js` installs `window.__gpp`, the GPP 1.1 CMP API, and keeps its GPP
+string in step with the visitor's choices. Prebid.js, Google Ad Manager and
+other ad tech read US privacy signals from it.
+
+## Load the GPP script
+
+Add `c15t.gpp.js` next to the c15t script. It works with `c15t.js`,
+`c15t.headless.js` and `c15t.iab.js`:
+
+{/* example: fragment */}
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.gpp.js"></script>
+<script
+  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
+  data-backend-url="https://your-project.inth.app"
+  defer
+></script>
+```
+
+Loading the script turns GPP on with the defaults. It installs a `__gpp`
+stub as soon as it runs, so ad tags that call `__gpp` before c15t starts
+are queued rather than lost. Load it without `defer`, before your ad tags,
+to get that. The order relative to `c15t.js` does not matter.
+
+Use the same version for both files. Pages that do not load `c15t.gpp.js`
+download none of the GPP code. It also carries the TCF decoder that fills in
+`parsedSections.tcfeuv2`, which makes it about 15 kB gzipped.
+
+## Change the GPP options
+
+Queue a `gpp` object with the rest of your configuration:
+
+{/* example: fragment */}
+
+```html
+<script>
+  window.c15t = window.c15t || [];
+  c15t.push(['config', {
+    gpp: { usFallback: 'none' },
+  }]);
+</script>
+```
+
+`gpp: false` keeps GPP off on a page that loads the script, and removes its
+stub. `c15t.dispose()` removes `__gpp`.
+
+To add the TCF EU section for visitors under an `iab` policy, load
+`c15t.iab.js` instead of `c15t.js`; see [IAB TCF](/docs/frameworks/html/iab).
+
+<include src="../../shared/iab-gpp.mdx" />

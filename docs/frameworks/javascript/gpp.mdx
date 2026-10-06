@@ -1,0 +1,57 @@
+---
+title: IAB GPP
+description: Add the IAB Global Privacy Platform API (__gpp) to a JavaScript app with mountGPP from @c15t/browser/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+`mountGPP()` from `@c15t/browser/gpp` installs `window.__gpp`, the GPP 1.1
+CMP API, and keeps its GPP string in step with the visitor's choices.
+Prebid.js, Google Ad Manager and other ad tech read US privacy signals from
+it.
+
+## Turn on GPP
+
+Pass the client from `init()` to `mountGPP()`:
+
+<include src="../../shared/examples/javascript/gpp.mdx" />
+
+`mountGPP()` lives in its own entry, so apps that do not import
+`@c15t/browser/gpp` bundle none of the GPP code. `@c15t/browser` already
+depends on `@c15t/iab`; nothing else to install. The second argument takes
+the GPP options listed below, for example `mountGPP(consent, { usFallback:
+'none' })`. Call `gpp.dispose()` to remove `__gpp`, before
+`consent.dispose()` if you dispose the client.
+
+Replace `https://your-project.inth.app` with your project's backend URL. The
+GPP string follows the policy and location Inth resolves for the visitor, so
+a US visitor's state comes from the backend. With `offline()` mode, pass the
+state yourself, for example `overrides: { country: 'US', region: 'CA' }`.
+
+To add the TCF EU section for visitors under an `iab` policy, set up
+[IAB TCF](/docs/frameworks/javascript/iab) as well.
+
+## Use GPP with your own runtime
+
+`createConsentRuntime()` takes a `gpp` option and the loader for it:
+
+{/* example: fragment */}
+
+```ts title="src/consent-runtime.ts"
+import { hosted } from '@c15t/core';
+import { createConsentRuntime } from '@c15t/core/runtime';
+
+const runtime = createConsentRuntime({
+	gpp: true,
+	loadGPP: () => import('@c15t/iab/gpp'),
+	mode: hosted({ url: 'https://your-project.inth.app' }),
+});
+runtime.start();
+```
+
+With any other consent kernel, call `createGPP({ kernel })` from
+`@c15t/iab/gpp`. It takes the options below and returns the same handle as
+`mountGPP()`. Both throw when a CMP that has already loaded owns `__gpp`.
+
+<include src="../../shared/iab-gpp.mdx" />

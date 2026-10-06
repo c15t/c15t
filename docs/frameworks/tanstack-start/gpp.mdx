@@ -1,0 +1,48 @@
+---
+title: IAB GPP
+description: Add the IAB Global Privacy Platform API (__gpp) to a TanStack Start app with ConsentGPP from c15t/react/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+`ConsentGPP` from `c15t/react/gpp` installs `window.__gpp`, the GPP 1.1 CMP
+API, and keeps its GPP string in step with the visitor's choices. Prebid.js,
+Google Ad Manager and other ad tech read US privacy signals from it.
+
+## Turn on GPP
+
+Render `ConsentGPP` inside `ConsentRoot` in `src/routes/__root.tsx`:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import { ConsentGPP } from 'c15t/react/gpp';
+
+<ConsentRoot
+	state={consent}
+	backendURL={backendURL}
+	initRoute={false}
+	scripts={scripts}
+>
+	<ConsentGPP />
+	<Outlet />
+</ConsentRoot>;
+```
+
+`ConsentGPP` renders nothing. `__gpp` exists only in the browser: the
+component installs it after it mounts and removes it when it unmounts. Apps
+that do not import `c15t/react/gpp` bundle none of the GPP code.
+
+The props are the GPP options listed below, for example
+`<ConsentGPP usFallback="none" />`.
+
+The GPP string follows the policy and location the root loader resolves for
+the visitor. A US visitor's state comes from the geo headers your host sends;
+see [geography headers](/docs/frameworks/tanstack-start/geography-headers) if
+it is missing.
+
+To add the TCF EU section for visitors under an `iab` policy, set up
+[IAB TCF](/docs/frameworks/tanstack-start/iab) as well.
+
+<include src="../../shared/iab-gpp.mdx" />

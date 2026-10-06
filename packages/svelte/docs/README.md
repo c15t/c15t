@@ -45,6 +45,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize](./frameworks/svelte/customize.md): Change c15t's colors, shape, button styles and copy in a Svelte app with a token stylesheet, theme slots, presentation props and translations.
 - [Embeds](./frameworks/svelte/embeds.md): Keep YouTube videos, maps and other iframes out of a Svelte page until their consent category is allowed, with ConsentGate or the iframe blocker.
 - [Context getters](./frameworks/svelte/getters.md): Reference for every @c15t/svelte context getter in a Svelte app, from reading permissions and recorded choices to saving, the draft, IAB state and kernel events.
+- [IAB GPP](./frameworks/svelte/gpp.md): Expose the IAB Global Privacy Platform API (__gpp) from a Svelte app with the provider's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./frameworks/svelte/headless.md): Replace the c15t banner or preference dialog with your own Svelte markup while the provider keeps policy, storage and script loading.
 - [IAB TCF](./frameworks/svelte/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a Svelte app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./frameworks/svelte/network-blocker.md): Hold fetch and XMLHttpRequest calls to tracking domains in a Svelte app until their consent category is allowed, with the provider's networkBlocker option.
@@ -76,6 +77,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Embeds](./frameworks/sveltekit/embeds.md): Keep YouTube videos, maps and other iframes out of SvelteKit server HTML and the browser until their consent category is allowed.
 - [Geography headers](./frameworks/sveltekit/geography-headers.md): Which request headers SvelteKit's c15t helpers read for country, region, language and Global Privacy Control, how to trust them, and how to test another location.
 - [Context getters](./frameworks/sveltekit/getters.md): Reference for every @c15t/svelte context getter in SvelteKit components, from reading permissions and recorded choices to saving, the draft, IAB state and events.
+- [IAB GPP](./frameworks/sveltekit/gpp.md): Expose the IAB Global Privacy Platform API (__gpp) from a SvelteKit app with the provider's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./frameworks/sveltekit/headless.md): Replace the c15t banner or preference dialog with your own markup in a SvelteKit app while the provider keeps policy, storage and script loading.
 - [IAB TCF](./frameworks/sveltekit/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a SvelteKit app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./frameworks/sveltekit/network-blocker.md): Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.

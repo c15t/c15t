@@ -29,7 +29,7 @@
 
 	import { setConsentContext, setThemeContext } from '../context.svelte';
 	import type { ConsentDraftState, SvelteIABState } from '../context.svelte';
-	import { isIABConfigured, lazyCreateIAB } from '../iab-loader';
+	import { isIABConfigured, lazyCreateIAB, loadGPP } from '../iab-loader';
 	import { modulePreloadMarker } from '../module-preload';
 	import { warnOnUnappliedThemeTokens } from '../theme-warning';
 	import type { ConsentManagerOptions } from '../types';
@@ -101,6 +101,8 @@
 		// Only an app that configured IAB reaches for `@c15t/iab`, and even
 		// then the module arrives through a dynamic import.
 		createIAB: isIABConfigured(options.iab) ? lazyCreateIAB : undefined,
+		// Called only when `gpp` is set, so other apps never fetch the chunk.
+		loadGPP,
 		mode: options.mode as ConsentManagerOptions['mode'],
 		pkg: '@c15t/svelte',
 	});

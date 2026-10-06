@@ -92,6 +92,7 @@ export default mergeConfig(
 				),
 				'@c15t/core': resolve(__dirname, '../core/src/index.ts'),
 				'@c15t/react/context': resolve(__dirname, '../react/dist/context.js'),
+				'@c15t/react/gpp': resolve(__dirname, '../react/dist/gpp.js'),
 				'@c15t/react/iab': resolve(__dirname, '../react/dist/iab.js'),
 				'@c15t/react/provider': resolve(__dirname, '../react/dist/provider.js'),
 				'@c15t/react/hooks': resolve(__dirname, '../react/dist/hooks.js'),

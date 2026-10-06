@@ -10,7 +10,7 @@ export interface C15tNuxtConfig
 		ConsentConfig,
 		Pick<
 			RuntimeConsentConfig,
-			'domain' | 'iframeBlocker' | 'nonce' | 'storageConfig'
+			'domain' | 'gpp' | 'iframeBlocker' | 'nonce' | 'storageConfig'
 		> {
 	/**
 	 * Block `fetch` and XHR requests that match these rules until the

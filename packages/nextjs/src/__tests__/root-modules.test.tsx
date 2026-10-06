@@ -5,6 +5,7 @@
  * modules to mount and react to kernel state.
  */
 import { useDeclaredVendors, useVendorAllowed } from '@c15t/react';
+import { ConsentGPP } from '@c15t/react/gpp';
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
@@ -104,4 +105,32 @@ test('forwards vendors so the preference center lists them and gates their scrip
 	await expect
 		.element(getByTestId('probe'))
 		.toHaveTextContent('{"allowed":true,"ids":["meta-pixel"]}');
+});
+
+test('ConsentGPP mounts __gpp inside ConsentRoot, and unmount removes it', async () => {
+	type GPPPing = (
+		command: 'ping',
+		callback: (data: { cmpStatus: string }) => void
+	) => void;
+	const cmpStatus = () => {
+		let status: string | undefined;
+		(window as { __gpp?: GPPPing }).__gpp?.('ping', (data) => {
+			status = data.cmpStatus;
+		});
+		return status;
+	};
+	const screen = await render(
+		<ConsentRoot
+			state={policyFixture()}
+			persistence={false}
+		>
+			<ConsentGPP />
+			<div>gpp configured</div>
+		</ConsentRoot>
+	);
+	await vi.waitFor(() => expect(cmpStatus()).toBe('loaded'), {
+		timeout: 5000,
+	});
+	await screen.unmount();
+	expect((window as { __gpp?: GPPPing }).__gpp).toBeUndefined();
 });

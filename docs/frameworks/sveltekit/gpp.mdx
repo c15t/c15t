@@ -1,0 +1,46 @@
+---
+title: IAB GPP
+description: Expose the IAB Global Privacy Platform API (__gpp) from a SvelteKit app with the provider's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+The provider's `gpp` option installs `window.__gpp`, the GPP 1.1 CMP API, and
+keeps its GPP string in step with the visitor's choices. Prebid.js, Google Ad
+Manager and other ad tech read US privacy signals from it.
+
+## Turn on GPP
+
+Add `gpp` to the provider in your root layout, keeping your existing `mode`,
+`prefetch` and other props:
+
+{/* example: fragment */}
+
+```svelte title="src/routes/+layout.svelte"
+<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts} gpp>
+```
+
+`gpp` on its own uses the defaults. Pass an object to change them, such as
+`gpp={{ usFallback: 'none' }}`; the options are listed below. Omit `gpp`, or
+pass `gpp={false}`, to leave it off.
+
+`@c15t/svelte` loads the GPP code from `@c15t/iab/gpp`, which it installs as a
+dependency. It is a separate chunk that apps without `gpp` never download.
+`__gpp` exists only in the browser: the server render does not install it.
+The provider installs it once the chunk arrives and removes it when the
+provider unmounts.
+
+The US section follows the policy the server resolved for the visitor, so the
+visitor's state comes from the request headers `loadConsent` reads. See
+[Geography headers](/docs/frameworks/sveltekit/geography-headers) for which
+headers carry the region and how to test another location.
+
+The TCF EU section needs IAB TCF as well. Set it up with
+[IAB TCF](/docs/frameworks/sveltekit/iab).
+
+If the root layout passes its own `runtime` to the provider, the provider does
+not add GPP. Set `gpp` and `loadGPP: () => import('@c15t/iab/gpp')` in that
+runtime's `createConsentRuntime()` call instead.
+
+<include src="../../shared/iab-gpp.mdx" />

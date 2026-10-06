@@ -23,6 +23,7 @@ import type {
 } from '@c15t/core';
 import type {
 	ConsentRuntimeOptions,
+	RuntimeGPPOptions,
 	RuntimeNetworkBlockerOptions,
 } from '@c15t/core/runtime';
 import type {
@@ -244,6 +245,27 @@ export interface C15tAstroOptions {
 	 * belongs in {@link C15tAstroOptions.clientEntrypoint}.
 	 */
 	iab?: C15tIABOptions | false;
+
+	/**
+	 * IAB Global Privacy Platform (GPP). `true` or an options object installs
+	 * `window.__gpp`, the GPP 1.1 CMP API, when the page boots, and keeps its
+	 * GPP string in step with the visitor's choices. Omitted or `false`
+	 * leaves it off.
+	 *
+	 * The GPP code loads with a dynamic `import()` only when this is set, so
+	 * pages without it download none of it. The TCF EU section also needs
+	 * {@link C15tAstroOptions.iab}. GPP stays off when a `consentSource` in
+	 * {@link C15tAstroOptions.clientEntrypoint} owns consent.
+	 *
+	 * @example
+	 * ```js
+	 * c15t({
+	 *   mode: hosted({ url: backendURL }),
+	 *   gpp: { usFallback: 'none' },
+	 * });
+	 * ```
+	 */
+	gpp?: RuntimeGPPOptions | boolean;
 
 	/** Cookie/localStorage configuration for persisted consent. */
 	storageConfig?: StorageConfig;

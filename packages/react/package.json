@@ -147,6 +147,11 @@
 			"import": "./dist/iab.js",
 			"default": "./dist/iab.js"
 		},
+		"./gpp": {
+			"types": "./dist-types/gpp.d.ts",
+			"import": "./dist/gpp.js",
+			"default": "./dist/gpp.js"
+		},
 		"./styles.css": "./dist/styles.css",
 		"./styles.tw3.css": "./dist/styles.tw3.css",
 		"./iab/styles.css": "./dist/iab/styles.css",

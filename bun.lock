@@ -1335,6 +1335,7 @@
         "@c15t/conformance": "workspace:*",
         "@c15t/typescript-config": "workspace:*",
         "@c15t/vitest-config": "workspace:*",
+        "@iabgpp/cmpapi": "3.2.0",
         "genversion": "3.2.0",
         "typescript": "7.0.2",
       },
@@ -2435,6 +2436,8 @@
     "@hono/node-server": ["@hono/node-server@1.19.17", "", { "peerDependencies": { "hono": "^4" } }, "sha512-dSneS5qhiauZWGDCeK4o695Xd9nUNjviSZCMQrj10eetr8Uln1ucn6bbphOM6UynAMMtNIzZNSpL9vnASJwrPQ=="],
 
     "@hono/standard-validator": ["@hono/standard-validator@0.2.3", "", { "peerDependencies": { "@standard-schema/spec": "^1.0.0", "hono": ">=3.9.0" } }, "sha512-bp9vHu6Va6SfMHC3D4ZLBbT/woi+AZ9CRdTXQu3kLJuLh2W/Gb9UO4hijS+BQAGFXi4EGpXdetxpzwTAawSVeg=="],
+
+    "@iabgpp/cmpapi": ["@iabgpp/cmpapi@3.2.0", "", {}, "sha512-p7qO2vhSZ/dzfRrWUbDWSXIl3rkvdAA+dQdoScDdbyf+HJBNqBuCuM4MsddTwT2QIQYsjb0F9ES6+Cx/KncxrQ=="],
 
     "@iabtechlabtcf/core": ["@iabtechlabtcf/core@1.5.22", "", {}, "sha512-Iaz42mXXflxLL19nU7S7RBV1hjELln32mettVVTxdzFFqxVPze6dOzgaNMHP/L9a2Anr017D7yFAcPzMgnfchw=="],
 
