@@ -34,6 +34,8 @@
 
 // Re-export kernel types so consumers need only one import.
 export type {
+	AllConsentNames,
+	ClearOnRevocationConfig,
 	ConsentKernel,
 	ConsentSnapshot,
 	ConsentState,
@@ -48,6 +50,7 @@ export type {
 	KernelUser,
 	Listener,
 	HostedModeOptions,
+	PolicyRule,
 	ProviderTransportContext,
 	ProviderTransportFactory,
 	ProviderTransportKind,

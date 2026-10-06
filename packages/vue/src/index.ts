@@ -12,6 +12,7 @@ import {
 import type { RuntimeConsentConfig } from './runtime/kernel';
 import { mountTokensStyle } from './runtime/theme-tokens';
 
+export type { AllConsentNames, ClearOnRevocationConfig } from '@c15t/core';
 export type * from '@c15t/schema/config';
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 export * from './runtime/composables';

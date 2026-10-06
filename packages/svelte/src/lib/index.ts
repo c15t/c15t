@@ -4,10 +4,12 @@ export {
 	detectBrowserLanguage,
 	hosted,
 	mergeTranslationConfigs,
+	policyRulePresets,
 	prepareTranslationConfig,
 } from '@c15t/core';
 export type {
 	AllConsentNames,
+	ClearOnRevocationConfig,
 	ConsentType,
 	I18nConfig,
 	LegalLinks,
@@ -29,6 +31,7 @@ export type {
 	KernelUser,
 	LocationResponse,
 	NonIABVendor,
+	PolicyRule,
 	PolicyScopeMode,
 	HostedModeOptions,
 	ProviderTransportContext,

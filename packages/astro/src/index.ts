@@ -60,6 +60,7 @@ export type { ConsentRuntime, ConsentRuntimeOptions } from '@c15t/core/runtime';
 // Re-exported so an app can stay inside `@c15t/astro` for the common types.
 export type {
 	AllConsentNames,
+	ClearOnRevocationConfig,
 	ConsentSnapshot,
 	ConsentState,
 	KernelConfig,
