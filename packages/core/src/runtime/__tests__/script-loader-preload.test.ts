@@ -409,7 +409,7 @@ describe('a provider runtime leaves its script loader to start()', () => {
 const throwingGpc = function throwingGpc(): void {
 	Object.defineProperty(navigator, 'globalPrivacyControl', {
 		configurable: true,
-		get() {
+		get(): never {
 			throw new Error('blocked');
 		},
 	});
@@ -434,7 +434,8 @@ describe('the kernel the decision builds', () => {
 	) {
 		const built: ConsentKernel[] = [];
 		const disposals: ConsentKernel[] = [];
-		const load = vi.fn(() => Promise.resolve(() => undefined));
+		const handle = { dispose: vi.fn() } as unknown as ScriptLoaderHandle;
+		const load = vi.fn(() => Promise.resolve(() => handle));
 		const preload = preloadScriptLoaderWith(load);
 		runtimes.push(
 			createConsentProviderRuntime(
@@ -479,17 +480,21 @@ describe('the kernel the decision builds', () => {
 		return { built, disposals, load };
 	};
 
-	test.each([
+	const cases: [string, () => void, boolean, boolean][] = [
 		['when the decision completes', () => undefined, false, false],
 		['when the GPC getter throws', throwingGpc, false, false],
 		['when persistence throws', () => undefined, true, true],
-	] as const)('is disposed %s', (_, arrange, failPersistence, persistence) => {
-		arrange();
-		const { built, disposals } = createWatched(
-			{ persistence, prefetch: prefetchFor({ marketing: true }) },
-			failPersistence
-		);
-		expect(built).toHaveLength(1);
-		expect(disposals).toEqual(built);
-	});
+	];
+	test.each(cases)(
+		'is disposed %s',
+		(_, arrange, failPersistence, persistence) => {
+			arrange();
+			const { built, disposals } = createWatched(
+				{ persistence, prefetch: prefetchFor({ marketing: true }) },
+				failPersistence
+			);
+			expect(built).toHaveLength(1);
+			expect(disposals).toEqual(built);
+		}
+	);
 });
