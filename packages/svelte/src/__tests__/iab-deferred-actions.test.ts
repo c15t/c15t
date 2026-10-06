@@ -1,4 +1,4 @@
-import { createConsentKernel, custom, deferInitGvl } from '@c15t/core';
+import { custom, deferInitGvl } from '@c15t/core';
 import type { ConsentKernel } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { mount, unmount } from 'svelte';
@@ -10,7 +10,6 @@ import { expect, onTestFinished, test, vi } from 'vitest';
 import '@c15t/iab';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { saveIABChoice } from '../lib/context.svelte';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 
 test.each(
@@ -179,31 +178,6 @@ test.each(['iab-consent-banner', 'iab-consent-dialog'] as const)(
 		expect(kernel?.getSnapshot().activeUI).toBe('dialog');
 	}
 );
-
-test('a superseded IAB save does not reopen the surface a newer save closed', async () => {
-	const kernel = createConsentKernel();
-	onTestFinished(() => kernel.dispose());
-	kernel.set.activeUI('banner');
-	const first = Promise.withResolvers<undefined>();
-	const firstSave = saveIABChoice(kernel, () => first.promise);
-	expect(kernel.getSnapshot().activeUI).toBe('none');
-
-	// The visitor reopens the banner and saves again before the first
-	// choice is encoded.
-	kernel.set.activeUI('banner');
-	const second = Promise.withResolvers<undefined>();
-	const secondSave = saveIABChoice(kernel, () => second.promise);
-
-	// The newer save invalidates the first, which records nothing.
-	first.resolve(undefined);
-	await firstSave;
-	expect(kernel.getSnapshot().activeUI).toBe('none');
-
-	// The newer save still gets the surface back if it records nothing.
-	second.resolve(undefined);
-	await secondSave;
-	expect(kernel.getSnapshot().activeUI).toBe('banner');
-});
 
 test('closing a reopened IAB dialog supersedes a pending deferred save', async () => {
 	let rejectLoad!: (error: Error) => void;

@@ -52,7 +52,9 @@ await runtime.kernel.commands.save({
 });
 ```
 
-`runtime.resetVendorDraft()` drops staged vendor switches without saving.
+To stage vendor switches next to category switches and save them together,
+use a [preference draft](/docs/frameworks/javascript/headless#build-a-preference-form-with-a-draft):
+`draft.setVendor(id, granted)` stages one, and `draft.reset()` drops them.
 `runtime.kernel.getSnapshot().vendors?.declared` lists the declared vendors,
 and `vendorChoice` holds the recorded decision.
 

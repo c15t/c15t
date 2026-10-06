@@ -1,20 +1,13 @@
 /**
- * Tests for useConsentDraft + ConsentDraftProvider.
- *
- * Verifies:
- * - draft values start identical to kernel.effectivePermissions
- * - set() mutates draft only, kernel untouched
- * - isDirty flips correctly
- * - save() commits through kernel.commands.save and reseeds
- * - reset() discards changes
- * - acceptAll / rejectAll
- * - ConsentDraftProvider shares draft across siblings
- * - kernel state changes reseed draft when draft is clean
+ * React's wrapper around `@c15t/core/preference-draft`. The draft rules
+ * (seeding, staging, stale, baseline merge, displayed categories) are pinned
+ * by the core suite; these tests cover what React adds: subscription through
+ * `useSyncExternalStore`, the shared `ConsentDraftProvider`, and the save
+ * action the banner uses without loading the draft.
  */
-import type { AllConsentNames } from '@c15t/core';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { describe, expect, test } from 'vitest';
+import { expect, test } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import {
@@ -22,451 +15,111 @@ import {
 	useConsentDraft,
 	useVendorDraft,
 } from '../draft';
-import {
-	useConsent,
-	useSaveConsents,
-	useSnapshot,
-	useVendorChoice,
-} from '../hooks';
+import { useConsentSaveAction } from '../draft-context';
+import { useConsent, useSnapshot } from '../hooks';
 import { ConsentProvider } from '../provider';
 import { offline } from '../transports/offline';
 import { policyFixture } from './policy-fixture';
 
-const wrap = function wrap(options = {}) {
-	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider
-			options={{
-				// A permissive policy offers only what the site declares.
-				consentCategories: [
-					'functionality',
-					'experience',
-					'measurement',
-					'marketing',
-				],
-				mode: offline(),
-				persistence: false,
-				prefetch: policyFixture(),
-				...options,
-			}}
-		>
-			{children}
-		</ConsentProvider>
-	);
-	return { Wrapper };
-};
+const Provider = ({
+	children,
+	options,
+}: {
+	children: ReactNode;
+	options?: Record<string, unknown>;
+}) => (
+	<ConsentProvider
+		options={{
+			// A permissive policy offers only what the site declares.
+			consentCategories: ['measurement', 'marketing'],
+			mode: offline(),
+			persistence: false,
+			prefetch: policyFixture(),
+			...options,
+		}}
+	>
+		{children}
+	</ConsentProvider>
+);
 
-const wrapWithProvider = function wrapWithProvider(options = {}) {
-	const Wrapper = ({ children }: { children: ReactNode }) => (
-		<ConsentProvider
-			options={{
-				// A permissive policy offers only what the site declares.
-				consentCategories: [
-					'functionality',
-					'experience',
-					'measurement',
-					'marketing',
-				],
-				mode: offline(),
-				persistence: false,
-				prefetch: policyFixture(),
-				...options,
-			}}
-		>
-			<ConsentDraftProvider>{children}</ConsentDraftProvider>
-		</ConsentProvider>
-	);
-	return { Wrapper };
-};
-
-describe('useConsentDraft — basic staging', () => {
-	test('initial values match kernel.effectivePermissions', async () => {
-		const { Wrapper } = wrap({
-			prefetch: policyFixture({ marketing: true }),
-		});
-
-		const Probe = () => {
-			const draft = useConsentDraft();
-			return (
-				<div data-testid="vals">
-					{JSON.stringify(draft.values)}|{String(draft.isDirty)}
-				</div>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Probe />
-			</Wrapper>
-		);
-		await expect
-			.element(getByTestId('vals'))
-			.toHaveTextContent('"marketing":true');
-		await expect.element(getByTestId('vals')).toHaveTextContent('|false');
-	});
-
-	test('set() mutates draft without touching kernel', async () => {
-		const { Wrapper } = wrap();
-
-		const Probe = () => {
-			const draft = useConsentDraft();
-			const kernelMarketing = useConsent('marketing');
-			return (
-				<div>
-					<button
-						type="button"
-						data-testid="toggle"
-						onClick={() => draft.set('marketing', true)}
-					>
-						toggle
-					</button>
-					<span data-testid="draft">
-						{String(draft.values.marketing)}|{String(draft.isDirty)}
-					</span>
-					<span data-testid="kernel">{String(kernelMarketing)}</span>
-				</div>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Probe />
-			</Wrapper>
-		);
-		await getByTestId('toggle').click();
-		await expect.element(getByTestId('draft')).toHaveTextContent('true|true');
-		// Kernel is untouched.
-		await expect.element(getByTestId('kernel')).toHaveTextContent('false');
-	});
-
-	test('save() commits draft to kernel + clears dirty', async () => {
-		const { Wrapper } = wrap();
-
-		const Probe = () => {
-			const draft = useConsentDraft();
-			const kernelMarketing = useConsent('marketing');
-			const hasConsented = useConsent('necessary');
-			return (
-				<div>
-					<button
-						type="button"
-						data-testid="setm"
-						onClick={() => draft.set('marketing', true)}
-					>
-						setm
-					</button>
-					<button
-						type="button"
-						data-testid="save"
-						onClick={async () => {
-							await draft.save();
-						}}
-					>
-						save
-					</button>
-					<span data-testid="dirty">{String(draft.isDirty)}</span>
-					<span data-testid="kernel">{String(kernelMarketing)}</span>
-					<span data-testid="necessary">{String(hasConsented)}</span>
-				</div>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Probe />
-			</Wrapper>
-		);
-		await getByTestId('setm').click();
-		await expect.element(getByTestId('dirty')).toHaveTextContent('true');
-		await getByTestId('save').click();
-		await expect.element(getByTestId('dirty')).toHaveTextContent('false');
-		await expect.element(getByTestId('kernel')).toHaveTextContent('true');
-	});
-
-	test('reset() discards draft changes', async () => {
-		const { Wrapper } = wrap({
-			prefetch: { initialDraft: { marketing: false } },
-		});
-
-		const Probe = () => {
-			const draft = useConsentDraft();
-			return (
-				<div>
-					<button
-						type="button"
-						data-testid="setm"
-						onClick={() => draft.set('marketing', true)}
-					>
-						setm
-					</button>
-					<button
-						type="button"
-						data-testid="reset"
-						onClick={() => draft.reset()}
-					>
-						reset
-					</button>
-					<span data-testid="m">{String(draft.values.marketing)}</span>
-					<span data-testid="d">{String(draft.isDirty)}</span>
-				</div>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Probe />
-			</Wrapper>
-		);
-		await getByTestId('setm').click();
-		await expect.element(getByTestId('m')).toHaveTextContent('true');
-		await getByTestId('reset').click();
-		await expect.element(getByTestId('m')).toHaveTextContent('false');
-		await expect.element(getByTestId('d')).toHaveTextContent('false');
-	});
-
-	test('acceptAll / rejectAll', async () => {
-		const { Wrapper } = wrap();
-
-		const Probe = () => {
-			const draft = useConsentDraft();
-			return (
-				<div>
-					<button
-						type="button"
-						data-testid="accept"
-						onClick={() => draft.acceptAll()}
-					>
-						accept
-					</button>
-					<button
-						type="button"
-						data-testid="reject"
-						onClick={() => draft.rejectAll()}
-					>
-						reject
-					</button>
-					<span data-testid="m">{String(draft.values.marketing)}</span>
-					<span data-testid="n">{String(draft.values.necessary)}</span>
-				</div>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Probe />
-			</Wrapper>
-		);
-
-		await getByTestId('accept').click();
-		await expect.element(getByTestId('m')).toHaveTextContent('true');
-
-		await getByTestId('reject').click();
-		await expect.element(getByTestId('m')).toHaveTextContent('false');
-		// necessary always stays true after rejectAll
-		await expect.element(getByTestId('n')).toHaveTextContent('true');
-	});
-});
-
-describe('ConsentDraftProvider — shared draft across siblings', () => {
-	test('two components see the same draft state', async () => {
-		const { Wrapper } = wrapWithProvider();
-
-		const Banner = () => {
-			const draft = useConsentDraft();
-			return (
-				<button
-					type="button"
-					data-testid="banner-set"
-					onClick={() => draft.set('marketing', true)}
-				>
-					set from banner
-				</button>
-			);
-		};
-
-		const Dialog = () => {
-			const draft = useConsentDraft();
-			return (
-				<span data-testid="dialog-val">{String(draft.values.marketing)}</span>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Banner />
-				<Dialog />
-			</Wrapper>
-		);
-
-		await expect.element(getByTestId('dialog-val')).toHaveTextContent('false');
-		await getByTestId('banner-set').click();
-		await expect.element(getByTestId('dialog-val')).toHaveTextContent('true');
-	});
-});
-
-describe('useConsentDraft — reseeds on external kernel change when clean', () => {
-	test('external kernel mutation reseeds draft when draft is clean', async () => {
-		const { Wrapper } = wrapWithProvider();
-
-		const Probe = () => {
-			const draft = useConsentDraft();
-			const setConsent = useSaveConsents();
-			return (
-				<>
-					<button
-						type="button"
-						data-testid="external"
-						onClick={() => setConsent({ marketing: true })}
-					>
-						external
-					</button>
-					<span data-testid="m">{String(draft.values.marketing)}</span>
-				</>
-			);
-		};
-
-		const { getByTestId } = await render(
-			<Wrapper>
-				<Probe />
-			</Wrapper>
-		);
-		await expect.element(getByTestId('m')).toHaveTextContent('false');
-
-		// External change — simulates another tab saving consent.
-		await getByTestId('external').click();
-		await expect.element(getByTestId('m')).toHaveTextContent('true');
-	});
-});
-
-test('the vendor draft ignores a stale denial for a vendor declared disabled', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'disabled-vendor-draft' }
-	);
+test('a draft stages without touching the record, re-renders on edits and saves', async () => {
 	const Probe = () => {
 		const draft = useConsentDraft();
-		return <output>{JSON.stringify(draft.vendors)}</output>;
-	};
-	const screen = await render(
-		<ConsentProvider
-			options={{
-				consentCategories: ['necessary', 'marketing'],
-				mode: offline(),
-				persistence: false,
-				prefetch: {
-					...fixture,
-					initialRecords: {
-						...fixture.initialRecords,
-						vendorChoice: {
-							confirmedAt: (fixture.now ?? 1) - 1,
-							denied: ['meta-pixel'],
-							version: 1,
-						},
-					},
-				},
-				vendors: [
-					{
-						category: 'marketing',
-						disabled: true,
-						id: 'meta-pixel',
-						name: 'Meta Pixel',
-						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-					},
-				],
-			}}
-		>
-			<Probe />
-		</ConsentProvider>
-	);
-	// Every gate allows the vendor, so the draft must not report it as off.
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('{"meta-pixel":true}');
-});
-
-test('useVendorDraft stages a vendor on the shared draft and saves it', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'vendor-draft-hook' }
-	);
-	const Probe = () => {
-		const { isDirty, save, setVendor, vendors } = useVendorDraft();
-		// Under one `ConsentDraftProvider` the category draft sees the same
-		// staging, so one save confirms both.
-		const draft = useConsentDraft();
-		const denied = useVendorChoice()?.denied ?? [];
+		const recorded = useConsent('marketing');
 		return (
 			<>
-				<output>
-					{JSON.stringify({
-						denied,
-						dirty: isDirty,
-						sharedDirty: draft.isDirty,
-						vendors,
-					})}
-				</output>
 				<button
-					onClick={() => setVendor('meta-pixel', false)}
+					onClick={() => draft.set('marketing', true)}
 					type="button"
 				>
-					Deny
+					Stage
 				</button>
 				<button
-					onClick={() => {
-						save();
-					}}
+					onClick={() => draft.save()}
 					type="button"
 				>
 					Save
 				</button>
+				<output>
+					{JSON.stringify({
+						categories: draft.displayedCategories,
+						dirty: draft.isDirty,
+						draft: draft.values.marketing,
+						recorded,
+					})}
+				</output>
 			</>
 		);
 	};
 	const screen = await render(
-		<ConsentProvider
-			options={{
-				consentCategories: ['necessary', 'marketing'],
-				mode: offline(),
-				persistence: false,
-				prefetch: fixture,
-				vendors: [
-					{
-						category: 'marketing',
-						id: 'meta-pixel',
-						name: 'Meta Pixel',
-						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-					},
-				],
-			}}
-		>
-			<ConsentDraftProvider>
-				<Probe />
-			</ConsentDraftProvider>
-		</ConsentProvider>
+		<Provider>
+			<Probe />
+		</Provider>
 	);
 	await expect
 		.element(screen.getByRole('status'))
 		.toHaveTextContent(
-			'{"denied":[],"dirty":false,"sharedDirty":false,"vendors":{"meta-pixel":true}}'
+			'{"categories":["necessary","measurement","marketing"],"dirty":false,"draft":false,"recorded":false}'
 		);
-	await screen.getByRole('button', { name: 'Deny' }).click();
+	await screen.getByRole('button', { name: 'Stage' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent(
-			'{"denied":[],"dirty":true,"sharedDirty":true,"vendors":{"meta-pixel":false}}'
-		);
+		.toHaveTextContent('"dirty":true,"draft":true,"recorded":false');
 	await screen.getByRole('button', { name: 'Save' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent(
-			'{"denied":["meta-pixel"],"dirty":false,"sharedDirty":false,"vendors":{"meta-pixel":false}}'
+		.toHaveTextContent('"dirty":false,"draft":true,"recorded":true');
+});
+
+test('ConsentDraftProvider shares one draft between siblings', async () => {
+	const Stager = () => {
+		const draft = useConsentDraft();
+		return (
+			<button
+				onClick={() => draft.set('marketing', true)}
+				type="button"
+			>
+				Stage
+			</button>
 		);
+	};
+	const Reader = () => (
+		<output>{String(useConsentDraft().values.marketing)}</output>
+	);
+	const screen = await render(
+		<Provider>
+			<ConsentDraftProvider>
+				<Stager />
+				<Reader />
+			</ConsentDraftProvider>
+		</Provider>
+	);
+	await expect.element(screen.getByRole('status')).toHaveTextContent('false');
+	await screen.getByRole('button', { name: 'Stage' }).click();
+	await expect.element(screen.getByRole('status')).toHaveTextContent('true');
 });
 
 test('useVendorDraft reports a stale draft and resets it', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'vendor-draft-stale' }
-	);
 	const vendor = {
 		category: 'marketing' as const,
 		id: 'meta-pixel',
@@ -504,19 +157,15 @@ test('useVendorDraft reports a stale draft and resets it', async () => {
 	const App = () => {
 		const [extra, setExtra] = useState(false);
 		return (
-			<ConsentProvider
+			<Provider
 				options={{
-					consentCategories: ['necessary', 'marketing'],
-					mode: offline(),
-					persistence: false,
-					prefetch: fixture,
 					vendors: extra
 						? [vendor, { ...vendor, id: 'x-pixel', name: 'X Pixel' }]
 						: [vendor],
 				}}
 			>
 				<Probe declare={() => setExtra(true)} />
-			</ConsentProvider>
+			</Provider>
 		);
 	};
 	const screen = await render(<App />);
@@ -526,16 +175,12 @@ test('useVendorDraft reports a stale draft and resets it', async () => {
 		.toHaveTextContent(
 			'{"dirty":true,"stale":false,"vendors":{"meta-pixel":false}}'
 		);
-	// A vendor declared under the staged denial changes the set of switches.
-	// The draft keeps the staged map, and the hook alone must show that it
-	// needs review and offer the way back, without the consumer mounting
-	// `useConsentDraft()`.
+	// A vendor declared under the staged denial changes the set of switches:
+	// the hook alone shows that the draft needs review.
 	await screen.getByRole('button', { name: 'Declare vendor' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent(
-			'{"dirty":true,"stale":true,"vendors":{"meta-pixel":false}}'
-		);
+		.toHaveTextContent('"dirty":true,"stale":true');
 	await screen.getByRole('button', { name: 'Reset' }).click();
 	await expect
 		.element(screen.getByRole('status'))
@@ -544,368 +189,96 @@ test('useVendorDraft reports a stale draft and resets it', async () => {
 		);
 });
 
-test('setVendor ignores a vendor declared disabled', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'disabled-vendor-set' }
-	);
+test('the save action outside a draft provider saves what a fresh draft shows', async () => {
+	// The banner's buttons use this path. It must not need a mounted draft:
+	// a custom save loads the draft module on demand and confirms the
+	// presentation defaults, a bulk save goes straight to the kernel.
 	const Probe = () => {
-		const draft = useConsentDraft();
+		const save = useConsentSaveAction();
+		const snapshot = useSnapshot();
+		// Sorted: the record keeps the key order of the first save.
+		const recorded = Object.fromEntries(
+			Object.entries(snapshot.explicitChoice?.categories ?? {})
+				.toSorted(([left], [right]) => left.localeCompare(right))
+				.map(([category, decision]) => [category, decision?.value])
+		);
 		return (
 			<>
-				<output>
-					{JSON.stringify({ dirty: draft.isDirty, vendors: draft.vendors })}
-				</output>
 				<button
-					onClick={() => draft.setVendor('meta-pixel', false)}
+					onClick={() => save()}
 					type="button"
 				>
-					Deny
+					Save
 				</button>
+				<button
+					onClick={() => save('all')}
+					type="button"
+				>
+					Accept all
+				</button>
+				<output>{JSON.stringify(recorded)}</output>
 			</>
 		);
 	};
 	const screen = await render(
-		<ConsentProvider
+		<Provider
 			options={{
-				consentCategories: ['necessary', 'marketing'],
-				mode: offline(),
-				persistence: false,
-				prefetch: fixture,
-				vendors: [
-					{
-						category: 'marketing',
-						disabled: true,
-						id: 'meta-pixel',
-						name: 'Meta Pixel',
-						privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-					},
-				],
+				presentation: { preferences: { defaults: { measurement: true } } },
 			}}
 		>
 			<Probe />
-		</ConsentProvider>
+		</Provider>
 	);
+	await screen.getByRole('button', { name: 'Save' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
-	await screen.getByRole('button', { name: 'Deny' }).click();
-	// The kernel would drop the grant on save, so nothing is staged.
+		.toHaveTextContent('{"marketing":false,"measurement":true}');
+	await screen.getByRole('button', { name: 'Accept all' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent('{"dirty":false,"vendors":{"meta-pixel":true}}');
+		.toHaveTextContent('{"marketing":true,"measurement":true}');
 });
 
-test('a vendor turning toggleable while the draft is dirty marks it stale', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'toggleable-flip' }
-	);
-	const vendor = {
-		category: 'marketing' as const,
-		id: 'meta-pixel',
-		name: 'Meta Pixel',
-		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-	};
-	const Probe = ({ enable }: { enable: () => void }) => {
+test('a bulk save through the shared draft discards its staged edits', async () => {
+	const Probe = () => {
+		const save = useConsentSaveAction();
 		const draft = useConsentDraft();
 		return (
 			<>
-				<output>
-					{JSON.stringify({ dirty: draft.isDirty, stale: draft.isStale })}
-				</output>
 				<button
-					onClick={() => draft.set('marketing', false)}
+					onClick={() => draft.set('marketing', true)}
 					type="button"
 				>
-					Edit
+					Stage
 				</button>
 				<button
-					onClick={enable}
+					onClick={() => save('none')}
 					type="button"
 				>
-					Enable vendor
+					Reject all
 				</button>
-			</>
-		);
-	};
-	const App = () => {
-		const [disabled, setDisabled] = useState(true);
-		return (
-			<ConsentProvider
-				options={{
-					consentCategories: ['necessary', 'marketing'],
-					mode: offline(),
-					persistence: false,
-					prefetch: fixture,
-					vendors: [{ ...vendor, disabled }],
-				}}
-			>
-				<Probe enable={() => setDisabled(false)} />
-			</ConsentProvider>
-		);
-	};
-	const screen = await render(<App />);
-	await screen.getByRole('button', { name: 'Edit' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('{"dirty":true,"stale":false}');
-	// The same id becomes toggleable: the set of switches the draft may stage
-	// changed under an unsaved edit, so review is required.
-	await screen.getByRole('button', { name: 'Enable vendor' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"stale":true');
-});
-
-test('a vendor losing its row while a script keeps its slug marks a dirty draft stale', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'row-disappears' }
-	);
-	const vendor = {
-		category: 'marketing' as const,
-		id: 'meta-pixel',
-		name: 'Meta Pixel',
-		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-	};
-	const Probe = ({ hide }: { hide: () => void }) => {
-		const draft = useConsentDraft();
-		return (
-			<>
 				<output>
 					{JSON.stringify({
 						dirty: draft.isDirty,
-						stale: draft.isStale,
-						vendors: draft.vendors,
-					})}
-				</output>
-				<button
-					onClick={() => draft.setVendor('meta-pixel', false)}
-					type="button"
-				>
-					Deny vendor
-				</button>
-				<button
-					onClick={hide}
-					type="button"
-				>
-					Hide vendor
-				</button>
-			</>
-		);
-	};
-	const App = () => {
-		const [declared, setDeclared] = useState(true);
-		return (
-			<ConsentProvider
-				options={{
-					consentCategories: ['necessary', 'marketing'],
-					mode: offline(),
-					persistence: false,
-					prefetch: fixture,
-					// The script keeps the slug declared as a hidden fallback once
-					// the presentable declaration goes, so the id set is unchanged.
-					scripts: [
-						{
-							callbackOnly: true,
-							category: 'marketing',
-							id: 'meta-script',
-							vendor: 'meta-pixel',
-						},
-					],
-					vendors: declared ? [vendor] : [],
-				}}
-			>
-				<Probe hide={() => setDeclared(false)} />
-			</ConsentProvider>
-		);
-	};
-	const screen = await render(<App />);
-	await screen.getByRole('button', { name: 'Deny vendor' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"dirty":true,"stale":false');
-	// The row the edit was staged against is gone: review is required rather
-	// than saving a denial for a vendor the visitor can no longer see.
-	await screen.getByRole('button', { name: 'Hide vendor' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"stale":true');
-});
-
-test('drafts use configured categories and require review when the displayed scope changes', async () => {
-	const Probe = ({ expand }: { expand: () => void }) => {
-		const draft = useConsentDraft();
-		const snapshot = useSnapshot();
-		return (
-			<>
-				<button
-					type="button"
-					onClick={() => draft.acceptAll()}
-				>
-					Accept draft
-				</button>
-				<button
-					type="button"
-					onClick={() => draft.save()}
-				>
-					Save draft
-				</button>
-				<button
-					type="button"
-					onClick={() => draft.rejectAll()}
-				>
-					Reject draft
-				</button>
-				<button
-					type="button"
-					onClick={expand}
-				>
-					Add marketing
-				</button>
-				<button
-					type="button"
-					onClick={() => draft.reset()}
-				>
-					Reset draft
-				</button>
-				<output>
-					{JSON.stringify({
-						categories: draft.displayedCategories,
-						choice: snapshot.explicitChoice,
-						stale: draft.isStale,
+						draft: draft.values.marketing,
 					})}
 				</output>
 			</>
 		);
 	};
-	const App = () => {
-		const [categories, setCategories] = useState<AllConsentNames[]>([
-			'necessary',
-			'measurement',
-		]);
-		return (
-			<ConsentProvider
-				options={{
-					consentCategories: categories,
-					mode: offline(),
-					persistence: false,
-					prefetch: policyFixture(),
-				}}
-			>
-				<Probe
-					expand={() =>
-						setCategories(['necessary', 'measurement', 'marketing'])
-					}
-				/>
-			</ConsentProvider>
-		);
-	};
-	const screen = await render(<App />);
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"categories":["necessary","measurement"]');
-	await screen.getByRole('button', { name: 'Accept draft' }).click();
-	await screen.getByRole('button', { name: 'Save draft' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"measurement":{"basis"');
-	await expect
-		.element(screen.getByRole('status'))
-		.not.toHaveTextContent('"marketing"');
-	// Stage an unsaved change before expanding the configured list.
-	await screen.getByRole('button', { name: 'Reject draft' }).click();
-	await screen.getByRole('button', { name: 'Add marketing' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"stale":true');
-	await screen.getByRole('button', { name: 'Reset draft' }).click();
-	await expect
-		.element(screen.getByRole('status'))
-		.toHaveTextContent('"categories":["necessary","marketing","measurement"]');
-});
-
-test('a script registering only its slug does not stale a dirty draft', async () => {
-	const fixture = policyFixture(
-		{ marketing: true },
-		{ categories: ['marketing'], id: 'slug-only-later' }
+	const screen = await render(
+		<Provider>
+			<ConsentDraftProvider>
+				<Probe />
+			</ConsentDraftProvider>
+		</Provider>
 	);
-	const vendor = {
-		category: 'marketing' as const,
-		id: 'meta-pixel',
-		name: 'Meta Pixel',
-		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
-	};
-	const Probe = ({ register }: { register: () => void }) => {
-		const draft = useConsentDraft();
-		return (
-			<>
-				<output>
-					{JSON.stringify({ dirty: draft.isDirty, stale: draft.isStale })}
-				</output>
-				<button
-					onClick={() => draft.setVendor('meta-pixel', false)}
-					type="button"
-				>
-					Deny vendor
-				</button>
-				<button
-					onClick={register}
-					type="button"
-				>
-					Register script
-				</button>
-			</>
-		);
-	};
-	const App = () => {
-		const [registered, setRegistered] = useState(false);
-		return (
-			<ConsentProvider
-				options={{
-					consentCategories: ['necessary', 'marketing'],
-					mode: offline(),
-					persistence: false,
-					prefetch: fixture,
-					// A late script names a vendor nobody declared, which adds a
-					// hidden declaration no row is built from; so does a vendor
-					// under a negated condition.
-					scripts: registered
-						? [
-								{
-									callbackOnly: true,
-									category: 'marketing',
-									id: 'ads-script',
-									vendor: 'ad-network',
-								},
-							]
-						: [],
-					vendors: registered
-						? [
-								vendor,
-								{
-									category: { not: 'marketing' },
-									id: 'negated',
-									name: 'Negated',
-									privacyPolicyUrl: 'https://example.com/privacy',
-								},
-							]
-						: [vendor],
-				}}
-			>
-				<Probe register={() => setRegistered(true)} />
-			</ConsentProvider>
-		);
-	};
-	const screen = await render(<App />);
-	await screen.getByRole('button', { name: 'Deny vendor' }).click();
+	await screen.getByRole('button', { name: 'Stage' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent('"dirty":true,"stale":false');
-	await screen.getByRole('button', { name: 'Register script' }).click();
-	// The preference surface did not change, so the edit is still saveable.
+		.toHaveTextContent('{"dirty":true,"draft":true}');
+	await screen.getByRole('button', { name: 'Reject all' }).click();
 	await expect
 		.element(screen.getByRole('status'))
-		.toHaveTextContent('"dirty":true,"stale":false');
+		.toHaveTextContent('{"dirty":false,"draft":false}');
 });

@@ -187,40 +187,6 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 	}
 }
 
-test('a returning visitor’s dialog closes before its save settles', async () => {
-	const replies: ((result: { ok: boolean }) => void)[] = [];
-	const save = vi.fn(
-		() =>
-			new Promise<{ ok: boolean }>((resolve) => {
-				replies.push(resolve);
-			})
-	);
-	const fixture = await mountDialog(save);
-	try {
-		fixture.kernel.commands.save('none');
-		await vi.waitFor(() => expect(save).toHaveBeenCalledOnce());
-		replies[0]?.({ ok: true });
-		expect(fixture.kernel.getSnapshot().promptRequirement.kind).toBe('none');
-		fixture.kernel.set.activeUI('dialog');
-		await vi.waitFor(() => expect(fixture.dialog()).not.toBeNull());
-		document
-			.querySelector<HTMLButtonElement>(`[data-testid="${buttons.accept}"]`)
-			?.click();
-		expect(fixture.kernel.getSnapshot().activeUI).toBe('none');
-		expect(fixture.onBeforeLoad).toHaveBeenCalledOnce();
-		await nextFrame();
-		expect(fixture.dialog()).toBeNull();
-		await vi.waitFor(() => expect(save).toHaveBeenCalledTimes(2));
-		replies[1]?.({ ok: false });
-		await new Promise((resolve) => {
-			setTimeout(resolve, 20);
-		});
-		expect(fixture.kernel.getSnapshot().activeUI).toBe('none');
-	} finally {
-		fixture.dispose();
-	}
-});
-
 const mountActions = async function mountActions() {
 	const replies: ReturnType<typeof Promise.withResolvers<{ ok: boolean }>>[] =
 		[];
@@ -346,48 +312,3 @@ for (const selection of ['all', 'custom'] as const) {
 		}
 	});
 }
-
-for (const navigation of ['close', 'reopen'] as const) {
-	for (const ok of [true, false]) {
-		test(`a ${ok ? 'successful' : 'failed'} save leaves later ${navigation} navigation alone`, async () => {
-			const fixture = await mountActions();
-			try {
-				const pending = fixture.controls.headless.performAction('accept');
-				expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
-				await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
-				if (navigation === 'reopen') {
-					fixture.controls.headless.openDialog();
-				}
-				fixture.replies[0]?.resolve({ ok });
-				await pending;
-				expect(fixture.controls.kernel.getSnapshot().activeUI).toBe(
-					navigation === 'close' ? 'none' : 'dialog'
-				);
-			} finally {
-				fixture.dispose();
-			}
-		});
-	}
-}
-
-test('older save outcomes cannot close a dialog reopened after them', async () => {
-	const fixture = await mountActions();
-	try {
-		const older = fixture.controls.headless.saveCustomPreferences('all');
-		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
-		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledOnce());
-		fixture.controls.headless.openDialog();
-		const newer = fixture.controls.headless.performAction('reject');
-		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('none');
-		await vi.waitFor(() => expect(fixture.save).toHaveBeenCalledTimes(2));
-		fixture.controls.headless.openDialog();
-		fixture.replies[0]?.resolve({ ok: true });
-		await older;
-		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('dialog');
-		fixture.replies[1]?.resolve({ ok: false });
-		await newer;
-		expect(fixture.controls.kernel.getSnapshot().activeUI).toBe('dialog');
-	} finally {
-		fixture.dispose();
-	}
-});

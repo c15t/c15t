@@ -38,6 +38,7 @@ export default defineConfig({
 			'network-blocker.js': './modules/network-blocker/index.js',
 			'network-hold.js': './modules/network-blocker/hold.js',
 			'persistence.js': './modules/persistence/index.js',
+			'preference-draft.js': './preference-draft/index.js',
 			'runtime.js': './runtime/index.js',
 			'script-loader.js': './modules/script-loader/index.js',
 			'server.js': './server/index.js',

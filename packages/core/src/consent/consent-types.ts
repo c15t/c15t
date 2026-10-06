@@ -243,6 +243,24 @@ export const allConsentNames = consentTypes.map(
 ) as AllConsentNames[];
 
 /**
+ * The categories a preference surface lists: `necessary` plus the scope, in
+ * the order of {@link consentTypes}. A policy's scope carries no order of its
+ * own: resolving a rule sorts its categories so that two orderings
+ * fingerprint the same.
+ *
+ * @param scope - The choice scope, or the policy scope when none applies.
+ * @returns A new list in display order.
+ * @internal
+ */
+export const displayedCategories = function displayedCategories(
+	scope: readonly AllConsentNames[]
+): AllConsentNames[] {
+	return allConsentNames.filter(
+		(category) => category === 'necessary' || scope.includes(category)
+	);
+};
+
+/**
  * Information about the consent granted
  */
 export interface ConsentInfo {

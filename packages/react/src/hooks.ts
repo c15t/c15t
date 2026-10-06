@@ -44,6 +44,11 @@ import {
 	applyExperimentTheme,
 	isVendorAllowed,
 } from '@c15t/core';
+import {
+	hasConsentPreferences,
+	hasConsentUI,
+	showConsentSurface,
+} from '@c15t/core/surface-actions';
 import { useCallback, useContext, useMemo, useSyncExternalStore } from 'react';
 
 import { ProviderServicesContext } from './context';
@@ -54,7 +59,6 @@ import {
 } from './kernel-selector';
 import type { Theme } from './types/theme';
 import { useUIConfig } from './ui-config-context';
-import { invalidateConsentUIAction } from './ui-save';
 
 /**
  * Full snapshot accessor. Escape hatch for consumers that genuinely need
@@ -141,24 +145,13 @@ export const useHasConsentPolicy = function useHasConsentPolicy(): boolean {
  * {@link useHasConsentPolicy}.
  */
 export const useHasConsentUI = function useHasConsentUI(): boolean {
-	return useKernelSelector(
-		(snap) =>
-			!snap.externalPermissions &&
-			snap.resolution.status === 'matched' &&
-			(snap.policyRule.prompt !== 'none' || snap.policyRule.rights.length > 0)
-	);
+	return useKernelSelector(hasConsentUI);
 };
 
 /** Whether c15t or an external CMP offers a preferences control. */
 export const useHasConsentPreferences =
 	function useHasConsentPreferences(): boolean {
-		return useKernelSelector(
-			(snap) =>
-				Boolean(snap.externalPermissions) ||
-				(snap.resolution.status === 'matched' &&
-					(snap.policyRule.prompt !== 'none' ||
-						snap.policyRule.rights.length > 0))
-		);
+		return useKernelSelector(hasConsentPreferences);
 	};
 
 /**
@@ -332,16 +325,16 @@ export const useSetLanguage = function useSetLanguage(): (
 
 /**
  * Sync mutation: set the active UI surface (banner/dialog/none).
+ *
+ * Explicit navigation: a pending save on this kernel can no longer close or
+ * restore a surface once the visitor navigated.
  */
 export const useSetActiveUI = function useSetActiveUI(): (
 	ui: KernelActiveUI
 ) => void {
 	const kernel = useKernel();
 	return useCallback(
-		(ui: KernelActiveUI) => {
-			invalidateConsentUIAction(kernel);
-			kernel.set.activeUI(ui);
-		},
+		(ui: KernelActiveUI) => showConsentSurface(kernel, ui),
 		[kernel]
 	);
 };

@@ -73,6 +73,63 @@ surfaces without recording anything. `kernel.commands.save()` records a choice:
 `{ measurement: true }` saves those categories. `dismissNotice()` records that
 the visitor saw a notice, not that they consented.
 
+## Build a preference form with a draft
+
+A preference form shows switches the visitor can move and keep moving before
+anything is recorded. `createPreferenceDraft(kernel)` from
+`c15t/preference-draft` holds those unsaved choices. It is the same draft the
+React, Vue, Svelte and `@c15t/browser` preference dialogs use:
+
+<include src="../../shared/examples/javascript/preference-draft.mdx" />
+
+`draft.getState()` returns what the form renders:
+
+| Field | What it holds |
+| --- | --- |
+| `displayedCategories` | `necessary` plus the categories the policy lets the visitor decide, always in the order necessary, functionality, measurement, experience, marketing. |
+| `values` | Each category's value: a staged edit, else the recorded choice, else the policy default. Categories outside `displayedCategories` read `false`. |
+| `vendors` | Each declared vendor's switch. Empty under an IAB policy. |
+| `isDirty` | Whether any staged value differs from the record. |
+| `isStale` | Whether the policy, the displayed categories or the vendor list changed under a staged edit. |
+
+`set(category, value)` and `setVendor(id, granted)` stage a switch;
+`draft.save()` records the displayed categories and only the vendors the
+visitor moved. While subscribed, the draft follows the record: when another
+surface or tab saves, switches the visitor left alone take the new value, and
+staged ones keep theirs. A stale draft records nothing and `save()` resolves
+`{ ok: false }` until `reset()`. `draft.save({ input: 'all' })` and
+`{ input: 'none' }` record a bulk choice under the current policy and drop
+every staged switch.
+
+Load the draft only where a preference form renders. Pages that show only a
+banner do not need it.
+
+## Close surfaces the way the stock UI does
+
+`kernel.commands.save()` records a choice. The kernel hides the banner once no
+prompt is owed, but a dialog the visitor opened stays open. To close surfaces
+the way every c15t adapter does, wrap your clicks in the functions from
+`c15t/surface-actions`:
+
+| Function | What it does |
+| --- | --- |
+| `saveConsentSurface(kernel, () => kernel.commands.save(input))` | Runs the save and closes the open banner or dialog once the choice is recorded, before the backend answers. A save that records nothing new closes when it resolves successfully. The banner stays only while the policy still owes a choice or a notice. |
+| `saveConsentBlanket(kernel, 'all' \| 'none', runtime.iab)` | Accept all or reject all. Under an IAB policy it goes through the CMP so the TC string records it. |
+| `saveIABConsentSurface(kernel, () => runtime.iab.save())` | Closes an IAB surface in the click task and brings it back if the CMP recorded nothing, for example when the vendor list failed to load. |
+| `showConsentSurface(kernel, 'banner' \| 'dialog' \| 'none')` | Opens or closes a surface. A pending save started before it can no longer close or reopen anything. |
+| `hasConsentUI(snapshot)` | Whether the policy owes any c15t banner or dialog. `false` until a rule resolves, for a `none` rule without rights, and while an external CMP owns the decision. |
+| `hasConsentPreferences(snapshot)` | Whether a privacy settings control has somewhere to go: `hasConsentUI`, or an external CMP. |
+
+A draft's save records in the same call, so it closes the dialog the same way:
+`saveConsentSurface(kernel, () => draft.save(), () => !draft.getState().isDirty)`.
+A stale draft resolves `{ ok: false }`, so its dialog stays open. The last
+argument stops a save that recorded nothing new from closing the dialog over
+switches the visitor moved while it ran. The stock React and Vue dialogs do the
+same.
+
+[When a choice is saved](/docs/concepts/consent-state#when-a-choice-is-saved)
+explains the order of the local record, storage and the backend request.
+
 ## Start and stop the runtime
 
 Subscribe before you start, so the UI renders the resolved policy the moment

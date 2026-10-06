@@ -99,12 +99,13 @@ test('a strict policy with nothing declared keeps its whole scope', async () => 
 	expect(runtime.kernel.getSnapshot().evaluationPolicy.choiceScope).toBe(
 		undefined
 	);
+	// In consentTypes order: the resolved scope is sorted, not ordered.
 	expect(runtime.consentCategories).toEqual([
 		'necessary',
-		'experience',
 		'functionality',
-		'marketing',
 		'measurement',
+		'experience',
+		'marketing',
 	]);
 	expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
 });
@@ -151,12 +152,13 @@ test('an IAB policy with nothing declared keeps its whole scope', async () => {
 	const snapshot = runtime.kernel.getSnapshot();
 	expect(snapshot.policyRule.scopeMode).toBe('permissive');
 	expect(snapshot.evaluationPolicy.choiceScope).toBe(undefined);
+	// In consentTypes order: the resolved scope is sorted, not ordered.
 	expect(runtime.consentCategories).toEqual([
 		'necessary',
-		'experience',
 		'functionality',
-		'marketing',
 		'measurement',
+		'experience',
+		'marketing',
 	]);
 });
 

@@ -174,38 +174,40 @@ describe('boot', () => {
 	});
 });
 
+/** A one-vendor list, enough for the CMP to encode a TC string. */
+const GVL = {
+	features: {},
+	purposes: { 2: { description: '', id: 2, illustrations: [], name: '' } },
+	specialFeatures: {},
+	specialPurposes: {},
+	stacks: {},
+	tcfPolicyVersion: 5,
+	vendorListVersion: 1,
+	vendors: {
+		755: {
+			features: [],
+			flexiblePurposes: [],
+			id: 755,
+			legIntPurposes: [],
+			name: 'Vendor',
+			purposes: [2],
+			specialFeatures: [],
+			specialPurposes: [],
+			urls: [],
+			usesCookies: false,
+			usesNonCookieAccess: false,
+		},
+	},
+} as unknown as NonNullable<C15tIABOptions['gvl']>;
+
 describe('IAB options', () => {
 	it('forwards publisher restrictions to the CMP', async () => {
 		const publisherRestrictions = [
 			{ purposeId: 2, restrictionType: 0 as const, vendorIds: [755] },
 		];
-		const gvl = {
-			features: {},
-			purposes: { 2: { description: '', id: 2, illustrations: [], name: '' } },
-			specialFeatures: {},
-			specialPurposes: {},
-			stacks: {},
-			tcfPolicyVersion: 5,
-			vendorListVersion: 1,
-			vendors: {
-				755: {
-					features: [],
-					flexiblePurposes: [],
-					id: 755,
-					legIntPurposes: [],
-					name: 'Vendor',
-					purposes: [2],
-					specialFeatures: [],
-					specialPurposes: [],
-					urls: [],
-					usesCookies: false,
-					usesNonCookieAccess: false,
-				},
-			},
-		} as unknown as NonNullable<C15tIABOptions['gvl']>;
 		const booted = start({
 			...OPTIONS,
-			iab: { cmpId: 28, gvl, publisherRestrictions },
+			iab: { cmpId: 28, gvl: GVL, publisherRestrictions },
 		});
 		await whenIABReady();
 		expect(booted.getConsent().iab?.publisherRestrictions).toEqual(
@@ -236,6 +238,42 @@ describe('banner actions', () => {
 			expect(booted.getConsent().effectivePermissions.marketing).toBe(false);
 			expect(booted.getConsent().effectivePermissions.necessary).toBe(true);
 		});
+	});
+
+	it.each(['accept', 'reject'] as const)(
+		'%ss through the CMP under an IAB policy, so the TC string records it',
+		async (action) => {
+			renderBanner();
+			const booted = start(
+				{ ...OPTIONS, iab: { cmpId: 28, gvl: GVL } },
+				{
+					...INLINE_CONFIG,
+					initialPolicyResolution: testResolution({ model: 'iab' }),
+				}
+			);
+			await whenIABReady();
+			document
+				.querySelector<HTMLButtonElement>(`[data-c15t-action="${action}"]`)
+				?.click();
+			await vi.waitFor(() => {
+				expect(booted.getConsent().iab?.authority?.tcString).toBeTruthy();
+			});
+			expect(
+				booted.getConsent().iab?.authority?.vendorConsents['755'] ?? false
+			).toBe(action === 'accept');
+			expect(booted.getConsent().activeUI).toBe('none');
+		}
+	);
+
+	it('closes an open dialog once the choice is recorded', async () => {
+		renderBanner();
+		const booted = start();
+		await booted.acceptAll();
+		booted.runtime.kernel.set.activeUI('dialog');
+		const saved = booted.rejectAll();
+		expect(booted.getConsent().activeUI).toBe('none');
+		await saved;
+		expect(booted.getConsent().effectivePermissions.marketing).toBe(false);
 	});
 
 	it('installs exactly one delegated listener', () => {

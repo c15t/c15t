@@ -176,8 +176,8 @@ describe('policy presentation reference behavior', () => {
 		await screen.getByRole('button', { name: 'Save draft' }).click();
 		expect(choice).toHaveBeenCalledTimes(1);
 		expect(choice.mock.calls[0]?.[0].confirmed).toEqual([
-			'marketing',
 			'measurement',
+			'marketing',
 		]);
 		expect(
 			kernel.getSnapshot().explicitChoice?.categories.marketing?.value

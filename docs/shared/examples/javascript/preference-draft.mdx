@@ -1,0 +1,53 @@
+{/* Generated from examples/javascript/src/ref-preference-draft.ts (docs:preference-draft) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/preference-form.ts"
+import type { AllConsentNames } from 'c15t';
+import { createPreferenceDraft } from 'c15t/preference-draft';
+import type { ConsentRuntime } from 'c15t/runtime';
+
+// Render a form of category switches that records nothing until Save.
+export const mountPreferenceForm = function mountPreferenceForm(
+	runtime: ConsentRuntime,
+	form: HTMLFormElement
+): () => void {
+	const draft = createPreferenceDraft(runtime.kernel);
+
+	const render = () => {
+		const { displayedCategories, isStale, values } = draft.getState();
+		form.replaceChildren(
+			...displayedCategories.map((category: AllConsentNames) => {
+				const label = document.createElement('label');
+				const input = document.createElement('input');
+				input.type = 'checkbox';
+				input.checked = values[category];
+				input.disabled = category === 'necessary';
+				input.addEventListener('change', () => {
+					draft.set(category, input.checked);
+				});
+				label.append(input, ` ${category}`);
+				return label;
+			})
+		);
+		if (isStale) {
+			// The policy changed under an unsaved edit: Save records nothing
+			// until the visitor reviews the current choices.
+			const review = document.createElement('button');
+			review.type = 'button';
+			review.textContent = 'Review choices';
+			review.addEventListener('click', draft.reset);
+			form.append(review);
+		}
+		const save = document.createElement('button');
+		save.textContent = 'Save';
+		form.append(save);
+	};
+
+	form.addEventListener('submit', (event) => {
+		event.preventDefault();
+		void draft.save();
+	});
+	render();
+	// The draft follows the record and the policy while subscribed.
+	return draft.subscribe(render);
+};
+```

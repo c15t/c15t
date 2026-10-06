@@ -22,10 +22,10 @@ import type {
 	RestrictionReason,
 } from '../consent-record/types';
 import type { AllConsentNames } from '../consent/consent-types';
+import { deriveActiveUI } from '../derive-surface';
 import type { ExperimentAssignment } from '../libs/experiment';
 import {
 	buildEvaluationPolicy,
-	deriveActiveUI,
 	deriveModel,
 	resolveEffectivePolicy,
 } from '../policy';

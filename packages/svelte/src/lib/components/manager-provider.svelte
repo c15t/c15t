@@ -1,16 +1,8 @@
 <script lang="ts">
-	import type {
-		ConsentKernel,
-		ConsentSnapshot,
-		ConsentState,
-		OptionalConsentCategory,
-	} from '@c15t/core';
-	import {
-		applyExperimentAssignment,
-		applyExperimentTheme,
-		deniedVendorIds,
-		vendorRenders,
-	} from '@c15t/core';
+	import type { ConsentKernel, ConsentSnapshot } from '@c15t/core';
+	import { applyExperimentAssignment, applyExperimentTheme } from '@c15t/core';
+	import { createPreferenceDraft } from '@c15t/core/preference-draft';
+	import type { PreferenceDraft } from '@c15t/core/preference-draft';
 	import {
 		createConsentProviderRuntime,
 		defaultRuntimeModules,
@@ -117,97 +109,36 @@
 	const initialKernel = runtime.kernel;
 	let kernel = $state.raw<ConsentKernel>(initialKernel);
 	let snapshot = $state<ConsentSnapshot>(initialKernel.getSnapshot());
-	let draftScope = $state<string | null>(null);
-	let draftFingerprint = $state<string | null>(null);
-	let draftRevision = 0;
-	let draftSaveSequence = 0;
-	let draftValues = $state<Partial<ConsentState>>({});
-	/** Vendor grants the visitor moved, over the seeded map. */
-	let draftVendors = $state<Record<string, boolean>>({});
-	/** The vendor list as it was when the first vendor moved. */
-	let draftVendorSurface = $state<string | null>(null);
 
-	/** Set an own property without going through the prototype for `__proto__`. */
-	const setOwn = (
-		target: Record<string, boolean>,
-		key: string,
-		value: boolean
-	) => {
-		Object.defineProperty(target, key, {
-			configurable: true,
-			enumerable: true,
-			value,
-			writable: true,
-		});
-	};
-	/**
-	 * Granted flag per declared vendor from the record: the denials the gate
-	 * honors, so a stale denial for a vendor now `disabled` does not count.
-	 */
-	const seedVendors = (current: ConsentSnapshot): Record<string, boolean> => {
-		const grants: Record<string, boolean> = {};
-		if (current.model === 'iab') {
-			return grants;
-		}
-		const denied = deniedVendorIds(current) ?? new Set<string>();
-		for (const vendor of current.vendors?.declared ?? []) {
-			setOwn(grants, vendor.id, !denied.has(vendor.id));
-		}
-		return grants;
-	};
-	const toggleableVendor = (current: ConsentSnapshot, vendorId: string) =>
-		current.model !== 'iab' &&
-		(current.vendors?.declared ?? []).some(
-			(vendor) => vendor.id === vendorId && vendor.disabled !== true
-		);
-	/**
-	 * What the vendor rows are built from; a dirty draft goes stale when it
-	 * changes. A declaration that cannot produce a row, such as a script
-	 * registering only its slug, is not part of the surface.
-	 */
-	const vendorSurface = (current: ConsentSnapshot) =>
-		current.model === 'iab'
-			? ''
-			: JSON.stringify(
-					(current.vendors?.declared ?? [])
-						.filter(vendorRenders)
-						.map((vendor) => [
-							vendor.id,
-							vendor.disabled === true,
-							vendor.category,
-						])
-				);
-	/** The value a category shows before the visitor moves it. */
-	const baselineValue = (
-		current: ConsentSnapshot,
-		name: OptionalConsentCategory
-	) =>
-		current.explicitChoice?.categories[name]?.value ??
+	/** Presentation defaults of the arm this visitor runs. */
+	const draftDefaults = () =>
 		applyExperimentAssignment(
 			options.presentation,
 			experiment,
-			current.experiment
-		)?.preferences?.defaults?.[name] ??
-		(current.policyRule.model === 'opt-out' ||
-			current.policyRule.preselectedCategories.includes(name));
-	/**
-	 * Forget the policy and vendor surface once nothing is staged. Both maps
-	 * hold only moved values, so a visitor who moves a switch and moves it
-	 * back leaves nothing to review: a later declaration must not make the
-	 * draft stale, and a later policy must not find a value staged under
-	 * the old one and save it. A save that fails never settles, so its draft
-	 * stays for the retry.
-	 */
-	const settleDraft = () => {
-		if (
-			Object.keys(draftValues).length === 0 &&
-			Object.keys(draftVendors).length === 0
-		) {
-			draftFingerprint = null;
-			draftScope = null;
-			draftVendorSurface = null;
-		}
+			snapshot.experiment
+		)?.preferences?.defaults;
+	// One draft per provider, so the headless state API and the dialog stage
+	// into the same one. It follows the rendered kernel.
+	let preferenceDraft: PreferenceDraft = createPreferenceDraft(initialKernel, {
+		defaults: untrack(draftDefaults),
+	});
+	let draftState = $state.raw(preferenceDraft.getState());
+	let stopDraft = preferenceDraft.subscribe(() => {
+		draftState = preferenceDraft.getState();
+	});
+	const followDraft = (next: ConsentKernel) => {
+		stopDraft();
+		preferenceDraft = createPreferenceDraft(next, {
+			defaults: untrack(draftDefaults),
+		});
+		draftState = preferenceDraft.getState();
+		stopDraft = preferenceDraft.subscribe(() => {
+			draftState = preferenceDraft.getState();
+		});
 	};
+	$effect(() => {
+		preferenceDraft.setDefaults(draftDefaults());
+	});
 	let iabHandle = $state<IABHandle | null>(
 		untrack(() => runtime.iab as IABHandle | null)
 	);
@@ -215,168 +146,33 @@
 
 	const draft: ConsentDraftState = {
 		get isStale() {
-			return (
-				(draftFingerprint !== null &&
-					(draftFingerprint !== snapshot.evaluationPolicy.choice.fingerprint ||
-						draftScope !==
-							(
-								snapshot.evaluationPolicy.choiceScope ??
-								snapshot.policyRule.scope
-							).join(','))) ||
-				(draftVendorSurface !== null &&
-					draftVendorSurface !== vendorSurface(snapshot))
-			);
+			return draftState.isStale;
 		},
 		reset() {
-			draftRevision += 1;
-			draftValues = {};
-			draftVendors = {};
-			draftFingerprint = null;
-			draftScope = null;
-			draftVendorSurface = null;
+			preferenceDraft.reset();
 		},
 		async save(categories) {
-			const revision = draftRevision;
-			draftSaveSequence += 1;
-			const sequence = draftSaveSequence;
-			const current = kernel.getSnapshot();
-			if (
-				(draftFingerprint !== null &&
-					(draftFingerprint !== current.evaluationPolicy.choice.fingerprint ||
-						draftScope !==
-							(
-								current.evaluationPolicy.choiceScope ?? current.policyRule.scope
-							).join(','))) ||
-				(draftVendorSurface !== null &&
-					draftVendorSurface !== vendorSurface(current))
-			) {
+			if (preferenceDraft.getState().isStale) {
 				throw new Error(
 					'The policy changed. Review your preferences before saving.'
 				);
 			}
-			const { values } = draft;
-			// Only the vendors the draft moved travel with the save, so an
-			// untouched vendor never renews its recorded confirmation time.
-			const seeded = seedVendors(current);
-			const moved: Record<string, boolean> = {};
-			for (const [id, granted] of Object.entries(draft.vendors)) {
-				if (seeded[id] !== granted) {
-					setOwn(moved, id, granted);
-				}
-			}
-			const result = await kernel.commands.save({
-				...Object.fromEntries(
-					(current.evaluationPolicy.choiceScope ?? current.policyRule.scope)
-						.filter(
-							(name) => categories === undefined || categories.includes(name)
-						)
-						.map((name) => [name, values[name]])
-				),
-				...(Object.keys(moved).length > 0 && { vendors: moved }),
-			});
+			const result = await preferenceDraft.save({ categories });
 			if (!result.ok) {
 				throw new Error('Unable to save preferences.');
 			}
-			if (sequence !== draftSaveSequence) {
-				return;
-			}
-			if (revision === draftRevision) {
-				draft.reset();
-				return;
-			}
-			// The visitor edited while the save was in flight. What was sent
-			// is the baseline now, so a submitted entry the visitor did not
-			// move again leaves the draft, or it would override a record
-			// another surface writes later; edits made after the submit stay.
-			const nextValues: Partial<ConsentState> = {};
-			for (const [name, staged] of Object.entries(draftValues)) {
-				if (values[name as OptionalConsentCategory] !== staged) {
-					nextValues[name as OptionalConsentCategory] = staged;
-				}
-			}
-			draftValues = nextValues;
-			const nextVendors: Record<string, boolean> = {};
-			for (const [id, staged] of Object.entries(draftVendors)) {
-				if (moved[id] !== staged) {
-					setOwn(nextVendors, id, staged);
-				}
-			}
-			draftVendors = nextVendors;
-			settleDraft();
 		},
 		set(name, value) {
-			if (name === 'necessary') {
-				return;
-			}
-			const current = kernel.getSnapshot();
-			draftRevision += 1;
-			draftFingerprint ??= current.evaluationPolicy.choice.fingerprint;
-			draftScope ??= (
-				current.evaluationPolicy.choiceScope ?? current.policyRule.scope
-			).join(',');
-			// A category edit reviews the vendor rows too: a vendor declared
-			// under it later was not what the visitor saw.
-			draftVendorSurface ??= vendorSurface(current);
-			// Only moved categories are staged, like the vendor map.
-			const next: Partial<ConsentState> = {};
-			for (const [key, staged] of Object.entries(draftValues)) {
-				if (key !== name) {
-					next[key as OptionalConsentCategory] = staged;
-				}
-			}
-			if (value !== baselineValue(current, name)) {
-				next[name] = value;
-			}
-			draftValues = next;
-			settleDraft();
+			preferenceDraft.set(name, value);
 		},
 		setVendor(vendorId, granted) {
-			const current = kernel.getSnapshot();
-			if (!toggleableVendor(current, vendorId)) {
-				return;
-			}
-			draftRevision += 1;
-			draftFingerprint ??= current.evaluationPolicy.choice.fingerprint;
-			draftScope ??= (
-				current.evaluationPolicy.choiceScope ?? current.policyRule.scope
-			).join(',');
-			draftVendorSurface ??= vendorSurface(current);
-			// Only moved vendors are staged. A vendor put back to its seeded
-			// value leaves the map, or the entry would outlive the seed and
-			// override a record another island writes later.
-			const next: Record<string, boolean> = {};
-			for (const [id, value] of Object.entries(draftVendors)) {
-				if (id !== vendorId) {
-					setOwn(next, id, value);
-				}
-			}
-			if (granted !== seedVendors(current)[vendorId]) {
-				setOwn(next, vendorId, granted);
-			}
-			draftVendors = next;
-			settleDraft();
+			preferenceDraft.setVendor(vendorId, granted);
 		},
 		get values() {
-			return {
-				necessary: true,
-				...Object.fromEntries(
-					(
-						snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope
-					).map((name) => [
-						name,
-						draftValues[name] ?? baselineValue(snapshot, name),
-					])
-				),
-			};
+			return draftState.values;
 		},
 		get vendors() {
-			const seeded = seedVendors(snapshot);
-			for (const [id, granted] of Object.entries(draftVendors)) {
-				if (toggleableVendor(snapshot, id)) {
-					setOwn(seeded, id, granted);
-				}
-			}
-			return seeded;
+			return draftState.vendors;
 		},
 	};
 
@@ -423,10 +219,7 @@
 
 	setConsentContext(() => kernel, {
 		clearRecords: () => runtime.clearRecords(),
-		getConsentCategories: () => [
-			'necessary',
-			...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
-		],
+		getConsentCategories: () => [...draftState.displayedCategories],
 		getDraft: () => draft,
 		getExperiment: () => experiment,
 		getIAB: getIABState,
@@ -454,6 +247,7 @@
 		unsubscribe();
 		({ kernel } = ownedRuntime);
 		snapshot = kernel.getSnapshot();
+		followDraft(kernel);
 		unsubscribe = kernel.subscribe((next) => {
 			snapshot = next;
 		});
@@ -560,6 +354,7 @@
 		unsubscribe();
 		unsubscribeIAB();
 		unsubscribeRuntime?.();
+		stopDraft();
 	});
 </script>
 

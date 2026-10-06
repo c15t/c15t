@@ -354,9 +354,13 @@ describe('displayed consent actions', () => {
 				await tick();
 				expect(manager.consentCategories).toEqual(['necessary', 'marketing']);
 				expect(manager.draft.isStale).toBe(true);
+				manager.setActiveUI('dialog');
 				await expect(manager.saveConsents('custom')).rejects.toThrow(
 					'policy changed'
 				);
+				// A refused save leaves the dialog open for review, as in React and
+				// Vue, where it resolves `{ ok: false }` instead of rejecting.
+				expect(kernel.getSnapshot().activeUI).toBe('dialog');
 				expect(
 					kernel.getSnapshot().explicitChoice?.categories.measurement
 				).toEqual(hiddenReceipt);
@@ -370,8 +374,12 @@ describe('displayed consent actions', () => {
 					kernel.getSnapshot().explicitChoice?.categories.measurement
 				).toEqual(hiddenReceipt);
 				expect(manager.draft.isStale).toBe(false);
+				// Every category is listed; one outside the displayed scope is off.
 				expect(manager.selectedConsents).toEqual({
+					experience: false,
+					functionality: false,
 					marketing: true,
+					measurement: false,
 					necessary: true,
 				});
 			} finally {
@@ -441,7 +449,7 @@ describe('displayed consent actions', () => {
 				await tick();
 				manager.draft.reset();
 				const displayed =
-					scope === 'regional' ? ['marketing'] : ['marketing', 'measurement'];
+					scope === 'regional' ? ['marketing'] : ['measurement', 'marketing'];
 				expect(manager.consentCategories).toEqual(['necessary', ...displayed]);
 				kernel.set.activeUI('dialog');
 				await tick();
@@ -509,8 +517,8 @@ test('scripts infer the displayed categories without a configured list', async (
 		const kernel = required(captured.kernel);
 		expect(manager.consentCategories).toEqual([
 			'necessary',
-			'marketing',
 			'measurement',
+			'marketing',
 		]);
 		kernel.set.activeUI('dialog');
 		await tick();
@@ -526,6 +534,53 @@ test('scripts infer the displayed categories without a configured list', async (
 		result.unmount();
 	}
 });
+
+test.each(['all', 'necessary'] as const)(
+	'%s covers a category a script adds to the configured list',
+	async (action) => {
+		const captured: { kernel?: ConsentKernel; manager?: ConsentManagerState } =
+			{};
+		const result = render(ConformanceFixture, {
+			component: 'consent-dialog',
+			onKernel: (kernel) => {
+				captured.kernel = kernel;
+			},
+			onManager: (manager) => {
+				captured.manager = manager;
+			},
+			options: {
+				consentCategories: ['necessary', 'marketing'],
+				mode: custom({ save: () => Promise.resolve({ ok: true }) }),
+				persistence: false,
+				prefetch: policyFixture(
+					{},
+					{ categories: ['marketing', 'measurement'] }
+				),
+				scripts: [
+					{ callbackOnly: true, category: 'measurement', id: 'analytics' },
+				],
+			},
+		});
+		try {
+			const manager = required(captured.manager);
+			const kernel = required(captured.kernel);
+			// The draft's displayed categories, in the fixed display order, which
+			// the bulk choice covers.
+			expect(manager.consentCategories).toEqual([
+				'necessary',
+				'measurement',
+				'marketing',
+			]);
+			await manager.saveConsents(action);
+			const { categories } = required(kernel.getSnapshot().explicitChoice);
+			expect(categories.marketing?.value).toBe(action === 'all');
+			expect(categories.measurement?.value).toBe(action === 'all');
+			expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+		} finally {
+			result.unmount();
+		}
+	}
+);
 
 test.each(['all', 'necessary', 'custom'] as const)(
 	'with nothing declared, %s from the necessary-only dialog closes it before the save settles',

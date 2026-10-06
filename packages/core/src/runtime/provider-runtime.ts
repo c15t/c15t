@@ -425,7 +425,6 @@ export const createConsentProviderRuntime =
 					await runtime.reinit();
 				}
 			},
-			resetVendorDraft: () => active().runtime.resetVendorDraft(),
 			setConsentCategories,
 			setEnabled,
 			setLanguage(language) {
@@ -443,8 +442,6 @@ export const createConsentProviderRuntime =
 				runtime.setOverrides(overrides);
 				overridesChanged ||= !started || !enabled;
 			},
-			stageVendorConsent: (vendorId, granted) =>
-				active().runtime.stageVendorConsent(vendorId, granted),
 			start() {
 				if (started || disposed || typeof document === 'undefined') {
 					return;

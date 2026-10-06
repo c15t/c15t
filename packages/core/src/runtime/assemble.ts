@@ -13,6 +13,7 @@
  * props and stop and start the runtime around the same kernel. A host that
  * configures once never loads that code.
  */
+import { displayedCategories } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { clearKernelRecords } from '../kernel/clear-records';
 import { hostExperiment, startExperiment } from '../libs/experiment';
@@ -188,10 +189,9 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		},
 		get consentCategories(): AllConsentNames[] {
 			const snapshot = kernel.getSnapshot();
-			return [
-				'necessary',
-				...(snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope),
-			];
+			return displayedCategories(
+				snapshot.evaluationPolicy.choiceScope ?? snapshot.policyRule.scope
+			);
 		},
 		dispose() {
 			disposed = true;
@@ -233,9 +233,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 			return persistenceHandle?.reconcile() ?? false;
 		},
 		reinit: runInit,
-		resetVendorDraft() {
-			kernel.set.vendorDraft(null);
-		},
 		setConsentCategories(categories) {
 			kernel.set.consentCategories(categories);
 		},
@@ -247,9 +244,6 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		},
 		setOverrides(overrides) {
 			kernel.set.overrides(overrides);
-		},
-		stageVendorConsent(vendorId, granted) {
-			kernel.set.vendorDraft({ [vendorId]: granted });
 		},
 		// oxlint-disable-next-line complexity -- Starts the runtime modules in dependency order.
 		start() {

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { PresentationAction } from '@c15t/core';
+import { saveConsentSurface } from '@c15t/core/surface-actions';
 import dialogStyles from '@c15t/ui/styles/components/consent-dialog';
 
 import '@c15t/ui/styles/components/consent-dialog.css';
@@ -51,16 +52,9 @@ const kernel = useConsentKernel();
 const hasConsentUi = useHasConsentUi();
 
 const { presentation: surface } = useConsentPolicyActions('preferences');
-let pendingActions = 0;
 let actionSequence = 0;
-let applyingSave = false;
-const draftState = useConsentDraft(() => pendingActions === 0);
-const {
-	isStale,
-	reseedOnNextRecord,
-	reset: resetDraft,
-	save: saveDraft,
-} = draftState;
+const draftState = useConsentDraft();
+const { isDirty, isStale, reset: resetDraft, save: saveDraft } = draftState;
 
 const disableAnimation = computed(() =>
 	Boolean(props.disableAnimation ?? config.value.disableAnimation)
@@ -115,11 +109,12 @@ watch(
 	{ immediate: true }
 );
 
-// Explicit close/reopen and newer actions invalidate an older completion.
+// Leaving the manager, unmounting it or a newer action vetoes an older
+// save's deferred close; core's per-kernel token covers navigation.
 watch(
 	activeUI,
 	(ui) => {
-		if (!applyingSave && ui !== 'manager') {
+		if (ui !== 'manager') {
 			actionSequence += 1;
 		}
 	},
@@ -129,72 +124,32 @@ onUnmounted(() => {
 	actionSequence += 1;
 });
 
-/** Leave the manager for the banner only when a choice is still owed. */
-const closeManager = function closeManager() {
-	activeUI.value =
-		kernel.getSnapshot().promptRequirement.kind === 'none' ? null : 'banner';
-};
-
 const onAction = async function onAction(action: PresentationAction) {
 	actionSequence += 1;
-	const sequence = actionSequence;
-	const fromManager = activeUI.value === 'manager';
-	const before = kernel.getSnapshot();
-	pendingActions += 1;
-	try {
-		applyingSave = true;
-		let pending;
-		try {
-			if (action === 'save') {
-				pending = saveDraft();
-			} else if (action === 'accept') {
-				reseedOnNextRecord();
-				pending = save('all');
-			} else if (action === 'reject') {
-				reseedOnNextRecord();
-				pending = save('none');
-			}
-			// The kernel records the choice and updates permissions before
-			// the transport runs (storage follows one task later, still ahead
-			// of the request). Close in this task and
-			// leave the backend request to finish in the background: its
-			// outcome never reopens the manager, and reopening reseeds the
-			// draft from the record.
-			const after = kernel.getSnapshot();
-			if (
-				fromManager &&
-				sequence === actionSequence &&
-				// A choice prompt with nothing to decide records an
-				// acknowledgement instead of a choice.
-				(after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice ||
-					after.noticeDismissal !== before.noticeDismissal)
-			) {
-				closeManager();
-				actionSequence += 1;
-			}
-		} finally {
-			applyingSave = false;
-		}
-		const result = await pending;
-		// The draft does not sync while an action is pending, so it follows
-		// the record once this action, and no newer one, has succeeded; a
-		// failed action keeps the visible draft for the visitor to retry.
-		if (result?.ok && sequence === actionSequence) {
-			resetDraft();
-		}
-		// A save that recorded nothing new closes once it resolves.
-		if (
-			result?.ok &&
-			fromManager &&
-			sequence === actionSequence &&
-			activeUI.value === 'manager'
-		) {
-			closeManager();
-		}
-	} finally {
-		pendingActions -= 1;
+	if (action !== 'save' && action !== 'accept' && action !== 'reject') {
+		return;
 	}
+	const sequence = actionSequence;
+	// The manager closes in this task once the kernel has recorded the
+	// choice, and the backend request finishes in the background; see
+	// `saveConsentSurface`. The draft follows the record on its own, and
+	// reopening the manager reseeds it.
+	await saveConsentSurface(
+		kernel,
+		() => {
+			if (action === 'save') {
+				return saveDraft();
+			}
+			const bulk = save(action === 'accept' ? 'all' : 'none');
+			// Accept all and Reject all supersede every staged edit, even
+			// when they record nothing new.
+			resetDraft();
+			return bulk;
+		},
+		// A draft save that left edits staged (made while it ran, or a
+		// stale draft it refused) keeps the manager open.
+		() => sequence === actionSequence && !isDirty.value
+	);
 };
 provide(consentWidgetManagerKey, { draft: draftState, onAction });
 </script>

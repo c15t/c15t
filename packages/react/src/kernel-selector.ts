@@ -14,7 +14,7 @@ import type {
 	ConsentSnapshot,
 } from '@c15t/core';
 import { evaluateConsent } from '@c15t/core';
-import { useContext, useMemo, useSyncExternalStore } from 'react';
+import { useContext, useSyncExternalStore } from 'react';
 
 import { KernelContext } from './context';
 import { defaultTranslationConfig } from './utils/default-translation-config';
@@ -116,19 +116,4 @@ export const useTranslationLanguage =
 			(snap) =>
 				snap.translations?.language ?? defaultTranslationConfig.defaultLanguage
 		);
-	};
-
-/**
- * Categories the preference surface lists: `necessary` plus the recorded
- * choice scope, or the policy scope when no choice scope applies.
- *
- * @returns A list whose identity changes only when the scope does.
- * @internal
- */
-export const useDisplayedCategories =
-	function useDisplayedCategories(): readonly AllConsentNames[] {
-		const scope = useKernelSelector(
-			(snap) => snap.evaluationPolicy.choiceScope ?? snap.policyRule.scope
-		);
-		return useMemo(() => ['necessary', ...scope], [scope]);
 	};

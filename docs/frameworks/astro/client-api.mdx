@@ -108,14 +108,16 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 
 | Member | Does |
 | --- | --- |
-| `client.acceptAll()` | Saves a grant for every category the policy covers |
-| `client.rejectAll()` | Saves a rejection of everything except `necessary` |
+| `client.acceptAll()` | Saves a grant for every category the policy covers. Under an IAB policy it accepts every purpose and vendor through the CMP, so the TC string records it |
+| `client.rejectAll()` | Saves a rejection of everything except `necessary`, through the CMP under an IAB policy |
 | `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }`. A `vendors` map, such as `{ vendors: { posthog: false } }`, saves vendor switches too |
 | `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |
 
-Each applies the choice in the browser at once and returns a promise that
-settles when the backend has answered. A failed request keeps the choice in
-the browser and retries later.
+Each applies the choice in the browser at once, closes the open banner or
+dialog, and returns a promise that settles when the backend has answered. A
+failed request keeps the choice in the browser and retries later. See
+[when a choice is saved](/docs/concepts/consent-state#when-a-choice-is-saved)
+for which surface shows next.
 
 Save only from a visitor's action, such as a button click. Calling
 `acceptAll()` or `save()` when a page loads records a choice the visitor never

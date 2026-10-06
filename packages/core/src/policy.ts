@@ -18,11 +18,10 @@ import type {
 	EvaluationPolicy,
 	ExplicitChoice,
 	OptionalConsentCategory,
-	PromptRequirement,
 } from './consent-record/types';
 import type { AllConsentNames } from './consent/consent-types';
 import { deepFreeze } from './libs/freeze-data';
-import type { KernelActiveUI, KernelModel } from './types';
+import type { KernelModel } from './types';
 
 /** Rule plus fingerprints the evaluator runs on. */
 export interface EffectivePolicy {
@@ -178,35 +177,6 @@ export const deriveModel = function deriveModel(
 		return iabEnabled ? 'iab' : 'opt-in';
 	}
 	return rule.model;
-};
-
-/**
- * Which surface the first layer should use for the remaining prompt.
- * Visibility follows the prompt requirement, never `hasConsented`. A
- * pending policy and a failed resolution keep the first layer hidden.
- * Adapters resolve the host presentation for a required prompt.
- */
-export const deriveActiveUI = function deriveActiveUI(input: {
-	promptRequirement: PromptRequirement;
-	policyPending: boolean;
-	resolution: PolicyResolution;
-	/** A banner experiment is still assigning this visitor's arm. */
-	experimentPending?: boolean;
-}): KernelActiveUI {
-	if (
-		input.policyPending ||
-		input.experimentPending ||
-		input.resolution.status === 'failed'
-	) {
-		return 'none';
-	}
-	if (input.promptRequirement.kind === 'none') {
-		return 'none';
-	}
-	if (input.promptRequirement.kind === 'notice') {
-		return 'banner';
-	}
-	return 'banner';
 };
 
 /** Values a form would present before any restriction is applied. */

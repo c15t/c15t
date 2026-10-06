@@ -18,7 +18,6 @@ import * as RadixSwitch from '~/components/shared/ui/switch';
 import { useConsentDraftSlice, useConsentDraftStore } from '~/draft';
 import { useExplicitChoice, useRestrictions } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
-import { useDisplayedCategories } from '~/kernel-selector';
 
 import { ConsentWidgetVendorList } from './vendor-list';
 
@@ -311,7 +310,12 @@ const ConsentWidgetAccordionRow = ({
 };
 
 const ConsentWidgetAccordionItems = () => {
-	const displayedCategories = useDisplayedCategories();
+	// The draft's list, in its order, so every framework lists the same rows
+	// in the same order.
+	const displayedCategories = useConsentDraftSlice(
+		useConsentDraftStore(),
+		(state) => state.displayedCategories
+	);
 	const explicitChoice = useExplicitChoice();
 	const restrictions = useRestrictions();
 	// Only a saved grant that the current policy or a privacy signal
@@ -326,10 +330,13 @@ const ConsentWidgetAccordionItems = () => {
 	const { noStyle, onToggleItem, openValues } =
 		useConsentWidgetAccordionContext();
 	const { consentTypes } = useTranslations();
-	const consents = useMemo(() => {
-		const allowed = new Set(displayedCategories);
-		return DEFAULT_CONSENT_TYPES.filter((type) => allowed.has(type.name));
-	}, [displayedCategories]);
+	const consents = useMemo(
+		() =>
+			displayedCategories.flatMap((name) =>
+				DEFAULT_CONSENT_TYPES.filter((type) => type.name === name)
+			),
+		[displayedCategories]
+	);
 
 	return consents.map((consent) => (
 		<ConsentWidgetAccordionRow

@@ -27,6 +27,13 @@ import type {
 	ResolvedVendor,
 	TranslationConfig,
 } from '@c15t/core';
+import {
+	hasConsentPreferences,
+	hasConsentUI,
+	saveConsentSurface,
+	saveIABConsentSurface,
+	showConsentSurface,
+} from '@c15t/core/surface-actions';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import { getContext, setContext } from 'svelte';
 
@@ -35,12 +42,6 @@ import type { ConsentManagerOptions } from './types';
 
 const CONSENT_CONTEXT_KEY = Symbol('c15t-v3-consent');
 const THEME_CONTEXT_KEY = Symbol('c15t-v3-theme');
-
-/**
- * The latest IAB save per kernel. A newer save or explicit navigation
- * replaces it, so an older save's completion never restores a surface.
- */
-const iabActions = new WeakMap<ConsentKernel, object>();
 
 export type SaveType = 'all' | 'custom' | 'necessary';
 
@@ -245,16 +246,19 @@ const toActiveUI = function toActiveUI(ui: KernelActiveUI): ActiveUI {
 	return (ui ?? 'none') as ActiveUI;
 };
 
+/** Metadata for the displayed categories, in the draft's order. */
 const displayedConsentTypes = function displayedConsentTypes(
 	categories: readonly AllConsentNames[]
 ) {
-	const allowed =
+	const names =
 		categories.length > 0
-			? new Set(categories)
-			: new Set(allConsentNames as readonly AllConsentNames[]);
-	return defaultConsentTypes
-		.filter((type) => allowed.has(type.name))
-		.map((type) => ({ ...type, display: true }));
+			? categories
+			: (allConsentNames as readonly AllConsentNames[]);
+	return names.flatMap((name) =>
+		defaultConsentTypes
+			.filter((type) => type.name === name)
+			.map((type) => ({ ...type, display: true }))
+	);
 };
 
 const createConsentState = function createConsentState(
@@ -262,7 +266,6 @@ const createConsentState = function createConsentState(
 	options: ConsentControllerOptions
 ): ConsentManagerState {
 	const getSnapshotLocal = options.getSnapshot;
-	let actionSequence = 0;
 
 	// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
 	const controller: ConsentManagerState = {
@@ -272,19 +275,9 @@ const createConsentState = function createConsentState(
 		get branding() {
 			return getSnapshotLocal().branding ?? 'c15t';
 		},
+		// The draft's displayed categories: `necessary` plus the choice scope.
 		get consentCategories(): AllConsentNames[] {
-			const configured = options.getConsentCategories();
-			const { scope } = getSnapshotLocal().policyRule;
-			return [
-				...new Set<AllConsentNames>([
-					'necessary',
-					...(configured.length === 0
-						? scope
-						: configured.filter((name) =>
-								scope.some((category) => category === name)
-							)),
-				]),
-			];
+			return options.getConsentCategories();
 		},
 		get draft() {
 			return options.getDraft();
@@ -357,19 +350,10 @@ const createConsentState = function createConsentState(
 			return getSnapshotLocal().resolution.status === 'matched';
 		},
 		get hasConsentPreferences() {
-			return (
-				Boolean(getSnapshotLocal().externalPermissions) ||
-				controller.hasConsentUi
-			);
+			return hasConsentPreferences(getSnapshotLocal());
 		},
 		get hasConsentUi() {
-			const snapshot = getSnapshotLocal();
-			return (
-				!snapshot.externalPermissions &&
-				snapshot.resolution.status === 'matched' &&
-				(snapshot.policyRule.prompt !== 'none' ||
-					snapshot.policyRule.rights.length > 0)
-			);
+			return hasConsentUI(getSnapshotLocal());
 		},
 
 		// -- Snapshot passthrough (was previously served by a Proxy) -------------
@@ -423,72 +407,26 @@ const createConsentState = function createConsentState(
 		async saveConsents(type: SaveType) {
 			// The kernel this action started on, even if `enabled` swaps it.
 			const kernel = getKernel();
-			actionSequence += 1;
-			const sequence = actionSequence;
-			const before = kernel.getSnapshot();
-			const fromDialog = before.activeUI === 'dialog';
-			const recorded = () => {
-				const after = kernel.getSnapshot();
-				// A choice prompt with nothing to decide records an
-				// acknowledgement instead of a choice.
-				return (
-					after.explicitChoice !== before.explicitChoice ||
-					after.vendorChoice !== before.vendorChoice ||
-					after.noticeDismissal !== before.noticeDismissal
-				);
-			};
-			const closeDialog = () => {
-				const current = kernel.getSnapshot();
-				kernel.set.activeUI(
-					current.policyPending ||
-						current.resolution.status === 'failed' ||
-						current.promptRequirement.kind === 'none'
-						? 'none'
-						: 'banner'
-				);
-			};
-			const save = async () => {
+			const draft = options.getDraft();
+			// The surface closes in this task once the kernel has recorded the
+			// choice; see `saveConsentSurface`. The draft follows the record,
+			// so edits staged while the request runs stay staged. A stale
+			// draft rejects before recording and leaves the surface open.
+			const result = await saveConsentSurface(kernel, async () => {
 				if (type === 'custom') {
-					await options.getDraft().save(controller.consentCategories);
-					return;
+					await draft.save(controller.consentCategories);
+					return { ok: true };
 				}
-				const pendingSave = kernel.commands.save(
-					type === 'all' ? 'all' : 'none',
-					{
-						categories: controller.consentCategories,
-					}
-				);
-				// The record already holds the choice; the draft follows it now.
-				if (recorded()) {
-					options.getDraft().reset();
-				}
-				const result = await pendingSave;
-				if (!result.ok) {
-					throw new Error('Unable to save preferences.');
-				}
-				if (sequence === actionSequence) {
-					options.getDraft().reset();
-				}
-			};
-			// The kernel records the choice and updates permissions before the
-			// transport runs (storage follows one task later, still ahead of
-			// the request). Close in this task and let
-			// the backend request finish in the background: its outcome never
-			// reopens the dialog, and a failed request stays queued for replay.
-			const pending = save();
-			const closed = fromDialog && recorded();
-			if (closed && sequence === actionSequence) {
-				closeDialog();
-			}
-			await pending;
-			// A save that recorded nothing new closes once it resolves.
-			if (
-				fromDialog &&
-				!closed &&
-				sequence === actionSequence &&
-				kernel.getSnapshot().activeUI === 'dialog'
-			) {
-				closeDialog();
+				// No category list: the kernel narrows a bulk choice to its own
+				// choice scope, the categories the draft displays.
+				const pending = kernel.commands.save(type === 'all' ? 'all' : 'none');
+				// A bulk choice supersedes every staged edit, even one that
+				// records nothing new.
+				draft.reset();
+				return pending;
+			});
+			if (!result.ok) {
+				throw new Error('Unable to save preferences.');
 			}
 		},
 		get selectedConsents() {
@@ -501,14 +439,7 @@ const createConsentState = function createConsentState(
 			return options.getDraft().vendors;
 		},
 		setActiveUI(ui: ActiveUI) {
-			const kernel = getKernel();
-			actionSequence += 1;
-			iabActions.set(kernel, {});
-			(
-				kernel.set as typeof kernel.set & {
-					activeUI: (ui: KernelActiveUI) => void;
-				}
-			).activeUI(ui as KernelActiveUI);
+			showConsentSurface(getKernel(), ui as KernelActiveUI);
 		},
 		setConsent(name: AllConsentNames, value: boolean) {
 			options.getDraft().set(name, value);
@@ -681,40 +612,15 @@ export const getHeadlessConsent = function getHeadlessConsent() {
 /**
  * Close an IAB surface in the task that handled the click, then save.
  *
- * An IAB choice commits once its TC string is encoded, which can wait on the
- * TCF library chunk but never on the backend. The surface comes back only
- * when that local step recorded nothing (the vendor list failed to load, or
- * the policy changed underneath) and no newer save or explicit navigation
- * came first, so the visitor can try again. A failed backend request never
- * reopens it.
+ * The surface comes back only when nothing was recorded and no newer save
+ * or explicit navigation came first; see `saveIABConsentSurface`.
  *
  * @internal
  */
-export const saveIABChoice = async function saveIABChoice(
+export const saveIABChoice: (
 	kernel: ConsentKernel,
 	save: () => Promise<void>
-): Promise<void> {
-	const action = {};
-	iabActions.set(kernel, action);
-	const before = kernel.getSnapshot();
-	const surface = before.activeUI;
-	if (surface !== 'none') {
-		kernel.set.activeUI('none');
-	}
-	try {
-		await save();
-	} finally {
-		const after = kernel.getSnapshot();
-		if (
-			surface !== 'none' &&
-			iabActions.get(kernel) === action &&
-			after.iab?.authority === before.iab?.authority &&
-			after.activeUI === 'none'
-		) {
-			kernel.set.activeUI(surface);
-		}
-	}
-};
+) => Promise<unknown> = saveIABConsentSurface;
 
 export const getIAB = function getIAB(): SvelteIABState | null {
 	return getConsentContext().state.iab;

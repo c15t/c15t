@@ -69,6 +69,11 @@
 			"import": "./dist/experiment.js",
 			"default": "./dist/experiment.js"
 		},
+		"./surface-actions": {
+			"types": "./dist-types/surface-actions/index.d.ts",
+			"import": "./dist/surface-actions/index.js",
+			"default": "./dist/surface-actions/index.js"
+		},
 		"./consent-categories": {
 			"types": "./dist-types/consent-record/types.d.ts",
 			"import": "./dist/consent-categories.js",
@@ -123,6 +128,11 @@
 			"types": "./dist-types/modules/persistence/index.d.ts",
 			"import": "./dist/persistence.js",
 			"default": "./dist/persistence.js"
+		},
+		"./preference-draft": {
+			"types": "./dist-types/preference-draft/index.d.ts",
+			"import": "./dist/preference-draft.js",
+			"default": "./dist/preference-draft.js"
 		},
 		"./server": {
 			"types": "./dist-types/server/index.d.ts",

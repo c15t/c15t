@@ -7,7 +7,7 @@ import {
 	toSaveUISource,
 	useConsentTracking,
 } from '~/context/consent-tracking-context';
-import { useConsentSaveAction } from '~/draft';
+import { useConsentSaveAction } from '~/draft-context';
 import { useSetActiveUI, useDismissNotice } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { CSSPropertiesWithVars, CSSVariables } from '~/types/theme';

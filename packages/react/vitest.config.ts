@@ -80,6 +80,10 @@ export default mergeConfig(
 					resolve(__dirname, '../core/src/runtime/controls.ts'),
 				],
 				[
+					'@c15t/core/preference-draft',
+					resolve(__dirname, '../core/src/preference-draft/index.ts'),
+				],
+				[
 					'@c15t/core/runtime/provider',
 					resolve(__dirname, '../core/src/runtime/provider.ts'),
 				],
@@ -90,6 +94,10 @@ export default mergeConfig(
 				[
 					'@c15t/core/server',
 					resolve(__dirname, '../core/src/server/index.ts'),
+				],
+				[
+					'@c15t/core/surface-actions',
+					resolve(__dirname, '../core/src/surface-actions/index.ts'),
 				],
 				['@c15t/core', resolve(__dirname, '../core/src/index.ts')],
 				['@c15t/schema/types', resolve(__dirname, '../schema/src/types.ts')],
