@@ -33,8 +33,13 @@ export interface NetworkBlockerOptions extends Omit<
 
 export interface NetworkBlockerHandle {
 	dispose: () => void;
-	/** Replace the rules list. Takes effect on the next intercepted request. */
-	updateRules: (next: NetworkBlockerRule[]) => void;
+	/**
+	 * Replace the rules list. Takes effect on the next intercepted request.
+	 * `hold`, from `holdNetworkRequests(next)`, is taken over once the rules
+	 * apply: the requests it held replay through the blocker. A blocker that
+	 * loads on demand applies both when its chunk lands.
+	 */
+	updateRules: (next: NetworkBlockerRule[], hold?: NetworkHold) => void;
 	/** Toggle enable/disable without tearing down the patches. */
 	setEnabled: (enabled: boolean) => void;
 }

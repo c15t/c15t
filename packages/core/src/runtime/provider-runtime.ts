@@ -439,13 +439,20 @@ export const createConsentProviderRuntime =
 			const after = current.networkBlocker || undefined;
 			const blocker: NetworkBlockerHandle | null = target.network.current();
 			if (after && blocker) {
-				if (after.rules !== before?.rules) {
-					blocker.updateRules(after.rules);
-				}
 				// Compared resolved: `{ rules }` alone means on.
 				const on = after.enabled !== false;
-				if (on !== (before?.enabled !== false)) {
+				const wasOn = before?.enabled !== false;
+				if (on !== wasOn) {
 					blocker.setEnabled(on);
+				}
+				if (after.rules !== before?.rules || (on && !wasOn)) {
+					// A blocker that loads on demand applies the rules once its
+					// chunk lands: hold what they match until then. One that
+					// has loaded takes the hold over at once.
+					const hold = on ? holdNetworkRequests(after.rules) : NOT_HELD;
+					blocker.updateRules(after.rules, hold);
+					// Never taken over: fail what it held closed.
+					target.track(() => hold.block());
 				}
 			} else if (after) {
 				// Hold matching requests until the blocker, possibly lazy, lands.

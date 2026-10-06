@@ -358,6 +358,46 @@ describe('update()', () => {
 		}
 	});
 
+	test('requests new rules match wait for a lazy blocker that has not landed', async () => {
+		const { network, restore } = stubNetwork();
+		const blockerChunk = Promise.withResolvers<typeof createNetworkBlocker>();
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(createTransport()),
+			networkBlocker: {
+				rules: [{ category: 'marketing', domain: 'first.example' }],
+			},
+			prefetch: RESOLVED_PREFETCH,
+		};
+		const runtime = create(options, {
+			...defaultRuntimeModules,
+			createNetworkBlocker: lazyRuntimeModule(() => blockerChunk.promise),
+		});
+		try {
+			runtime.start();
+
+			runtime.update({
+				...options,
+				networkBlocker: {
+					rules: [{ category: 'marketing', domain: 'next.example' }],
+				},
+			});
+			const request = window.fetch('https://next.example/pixel');
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			// The blocker gets the rule when its chunk lands; until then the
+			// request waits rather than leave unchecked.
+			expect(network).not.toHaveBeenCalled();
+
+			blockerChunk.resolve(createNetworkBlocker);
+			expect((await request).status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
+		} finally {
+			runtime.dispose();
+			restore();
+		}
+	});
+
 	test('the iframe blocker is rebuilt when `disableAutomaticBlocking` changes and removed by `false`', () => {
 		const fakes = createFakeModules();
 		const options: ConsentProviderRuntimeOptions = {

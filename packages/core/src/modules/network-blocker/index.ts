@@ -195,9 +195,10 @@ export const createNetworkBlocker = function createNetworkBlocker(
 			enabled = v;
 			releaseWaiting();
 		},
-		updateRules(next) {
+		updateRules(next, hold) {
 			rules = [...next];
 			registerCategories();
+			hold?.release()();
 		},
 	};
 };
