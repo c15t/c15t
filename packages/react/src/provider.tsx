@@ -32,6 +32,7 @@ import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
 	createConsentProviderRuntime,
+	hostedModes,
 	lazyRuntimeModule,
 	lazyStreamPrefetch,
 	streamPrefetchWith,
@@ -513,8 +514,9 @@ let entrySequence = 0;
  * provider with the same mode, keeps its own transport and asks at mount.
  * Not sent with a `prefetch` (the server answered, or is answering), a
  * `consentSource` or `enabled: false` (no init), an `experiment` (its arm,
- * picked after mount, travels with the request), or any mode but
- * `hosted()`: a custom transport's `init()` may expect a mounted page.
+ * picked after mount, travels with the request), or any mode `hosted()`
+ * did not return itself: a custom transport's `init()` may expect a
+ * mounted page, and a wrapper's transport may not be swapped for another.
  */
 const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	initialOptions: ConsentProviderOptions
@@ -559,7 +561,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
 		// `policyPending`: enabled, no `consentSource`, no policy yet.
 		const snapshot = runtime.kernel.getSnapshot();
-		const hostedOptions = mode.options;
+		const hostedOptions = hostedModes.get(mode);
 		if (
 			hostedOptions &&
 			snapshot.policyPending &&

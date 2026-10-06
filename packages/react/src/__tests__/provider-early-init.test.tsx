@@ -220,7 +220,7 @@ test('sibling providers given one mode object each get a transport and an /init'
 			};
 			return transport;
 		},
-		{ kind: base.kind, options: base.options }
+		{ kind: base.kind }
 	);
 	const view = await render(
 		<StrictMode>
@@ -252,6 +252,121 @@ test('sibling providers given one mode object each get a transport and an /init'
 	await vi.waitFor(() => expect(savedBy).toHaveLength(2));
 	expect(savedBy[0]).not.toBe(savedBy[1]);
 	expect(initCalls()).toHaveLength(2);
+	await view.unmount();
+});
+
+test('sibling providers given one hosted() mode each get their own /init', async () => {
+	const seen: number[] = [];
+	const kernels = new Map<string, ConsentKernel>();
+	const Capture = ({ name }: { name: string }) => {
+		const kernel = useContext(KernelContext);
+		useEffect(() => {
+			if (kernel) {
+				kernels.set(name, kernel);
+			}
+		}, [kernel, name]);
+		return null;
+	};
+	const shared = mode();
+	const view = await render(
+		<StrictMode>
+			{['DE', 'FR'].map((country) => (
+				<ConsentProvider
+					key={country}
+					options={{ mode: shared, overrides: { country }, persistence: false }}
+				>
+					<SeenAtRender seen={seen} />
+					<Capture name={country} />
+				</ConsentProvider>
+			))}
+		</StrictMode>
+	);
+
+	// The first sends during its render; the second asks at mount.
+	expect(seen[0]).toBe(1);
+	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
+	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
+		'DE',
+		'FR',
+	]);
+	requests[0]?.respond('for-de');
+	requests[1]?.respond('for-fr');
+	await vi.waitFor(() => {
+		expect(kernels.get('DE')?.getSnapshot().policyRule.id).toBe('for-de');
+		expect(kernels.get('FR')?.getSnapshot().policyRule.id).toBe('for-fr');
+	});
+	await view.unmount();
+});
+
+test('a wrapper around hosted() keeps its own transport when another wrapper with equal options sent early', async () => {
+	let resume: () => void = () => undefined;
+	let suspended: Promise<void> | null = new Promise<void>((resolve) => {
+		resume = () => {
+			suspended = null;
+			resolve();
+		};
+	});
+	const SuspendsOnce = () => {
+		if (suspended) {
+			throw suspended;
+		}
+		return null;
+	};
+	const kernels = new Map<string, ConsentKernel>();
+	const Capture = ({ name }: { name: string }) => {
+		const kernel = useContext(KernelContext);
+		useEffect(() => {
+			if (kernel) {
+				kernels.set(name, kernel);
+			}
+		}, [kernel, name]);
+		return null;
+	};
+	// Two wrappers, each around its own hosted() with the same options, that
+	// copy the factory's properties as a wrapper would. Each tags the saves
+	// its transport sends.
+	const savedBy: string[] = [];
+	const wrap = (tag: string) => {
+		const base = mode();
+		return Object.assign((context: ProviderTransportContext) => {
+			const transport = base(context);
+			const save = transport.save as NonNullable<KernelTransport['save']>;
+			transport.save = (payload) => {
+				savedBy.push(tag);
+				return save(payload);
+			};
+			return transport;
+		}, base);
+	};
+	const view = await render(
+		<>
+			<Suspense fallback={null}>
+				<ConsentProvider options={{ mode: wrap('A'), persistence: false }}>
+					<SuspendsOnce />
+					<Capture name="A" />
+				</ConsentProvider>
+			</Suspense>
+			<ConsentProvider options={{ mode: wrap('B'), persistence: false }}>
+				<Capture name="B" />
+			</ConsentProvider>
+		</>
+	);
+
+	// A's render suspended; B committed first.
+	await vi.waitFor(() => expect(kernels.get('B')).toBeDefined());
+	await vi.waitFor(() => expect(requests.length).toBeGreaterThan(0));
+	for (const request of requests) {
+		request.respond('policy');
+	}
+	await vi.waitFor(() =>
+		expect(kernels.get('B')?.getSnapshot().policyPending).toBe(false)
+	);
+	kernels.get('B')?.commands.save('none');
+	await vi.waitFor(() => expect(savedBy).toHaveLength(1));
+	expect(savedBy).toEqual(['B']);
+
+	resume();
+	await vi.waitFor(() => expect(kernels.get('A')).toBeDefined());
 	await view.unmount();
 });
 

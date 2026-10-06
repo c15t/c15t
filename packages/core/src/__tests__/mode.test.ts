@@ -7,6 +7,7 @@ import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { KernelTransport, SavePayload } from '../index';
+import { hostedModes } from '../transports/hosted-modes';
 import { custom, hosted } from '../transports/mode';
 import type { ProviderTransportContext } from '../transports/mode';
 import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
@@ -114,6 +115,19 @@ describe('hosted()', () => {
 			policyId: 'eu-opt-in',
 			region: 'BE',
 		});
+	});
+
+	test('recognizes its own factories, not wrappers that copy them', () => {
+		const options = { url: '/api/c15t' };
+		const mode = hosted(options);
+		const wrapper = Object.assign(
+			(providerContext: ProviderTransportContext) => mode(providerContext),
+			mode
+		);
+
+		expect(hostedModes.get(mode)).toBe(options);
+		expect(wrapper.kind).toBe('hosted');
+		expect(hostedModes.get(wrapper)).toBeUndefined();
 	});
 });
 

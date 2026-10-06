@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { createHostedTransport } from './hosted';
+import { hostedModes } from './hosted-modes';
 
 /** Runtime values supplied by a provider to a transport factory. */
 export interface ProviderTransportContext {
@@ -48,15 +49,6 @@ export type ProviderTransportKind = 'hosted' | 'offline' | 'custom';
 export interface ProviderTransportFactory {
 	(context: ProviderTransportContext): KernelTransport;
 	readonly kind: ProviderTransportKind;
-	/**
-	 * The options `hosted()` was called with. A provider compares them to
-	 * recognize the same backend in a factory a later render rebuilt:
-	 * `fetch` and `initialData` by identity, the rest as JSON. A new option
-	 * that is not plain data needs the same identity check there.
-	 *
-	 * @internal
-	 */
-	readonly options?: HostedModeOptions;
 }
 
 /** Options for {@link hosted}. */
@@ -125,7 +117,7 @@ export interface HostedModeOptions {
 export const hosted = function hosted(
 	options: HostedModeOptions
 ): ProviderTransportFactory {
-	return Object.assign(
+	const mode = Object.assign(
 		() =>
 			createHostedTransport({
 				assertDecisionInputs: options.assertDecisionInputs,
@@ -137,8 +129,10 @@ export const hosted = function hosted(
 				initURL: options.initURL,
 				initialData: options.initialData,
 			}),
-		{ kind: 'hosted' as const, options }
+		{ kind: 'hosted' as const }
 	);
+	hostedModes.set(mode, options);
+	return mode;
 };
 
 export { custom } from './custom';
