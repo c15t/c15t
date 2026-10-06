@@ -14,12 +14,14 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
-const loads = vi.hoisted(() => ({ evaluated: 0 }));
+const loads = vi.hoisted(() => ({ evaluated: 0, loaded: 0 }));
 
 // oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is when this module loads; counting its evaluation is the only view of that from a test.
 vi.mock('@c15t/core/modules/script-loader', async (importOriginal) => {
 	loads.evaluated += 1;
-	return await importOriginal<typeof ScriptLoaderModule>();
+	const module = await importOriginal<typeof ScriptLoaderModule>();
+	loads.loaded += 1;
+	return module;
 });
 
 const scripts: Script[] = [
@@ -60,5 +62,7 @@ test('a stored choice that denies an alwaysLoad script still loads it during ren
 			<Hold />
 		</ConsentRoot>
 	);
-	await vi.waitFor(() => expect(loads.evaluated).toBe(1));
+	// Wait for the whole load, so it does not outlive the test.
+	await vi.waitFor(() => expect(loads.loaded).toBe(1));
+	expect(loads.evaluated).toBe(1);
 });
