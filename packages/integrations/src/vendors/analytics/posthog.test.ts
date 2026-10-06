@@ -260,4 +260,108 @@ describe('posthog', () => {
 			],
 		]);
 	});
+
+	describe('features', () => {
+		const queuedInitOptions = function queuedInitOptions(
+			script: ReturnType<typeof posthog>
+		): Record<string, unknown> {
+			const queued = bootstrapPosthog(script)._i?.[0]?.[1];
+			return queued as Record<string, unknown>;
+		};
+
+		it.each([
+			['surveys', { disable_surveys: true }, { disable_surveys: false }],
+			['heatmaps', { capture_heatmaps: false }, { capture_heatmaps: true }],
+			[
+				'deadClicks',
+				{ capture_dead_clicks: false },
+				{ capture_dead_clicks: true },
+			],
+			[
+				'webVitals',
+				{ capture_performance: { web_vitals: false } },
+				{ capture_performance: { web_vitals: true } },
+			],
+			[
+				'featureFlags',
+				{ advanced_disable_feature_flags: true },
+				{ advanced_disable_feature_flags: false },
+			],
+		] as const)('maps %s to its init option', (feature, whenOff, whenOn) => {
+			const base = {
+				api_host: 'https://eu.i.posthog.com',
+				cookieless_mode: 'on_reject',
+				defaults: '2026-01-30',
+				ui_host: 'https://eu.posthog.com',
+			};
+
+			expect(
+				queuedInitOptions(
+					posthog({ features: { [feature]: false }, id: 'phc_off' })
+				)
+			).toEqual({ ...base, ...whenOff });
+			expect(
+				queuedInitOptions(
+					posthog({ features: { [feature]: true }, id: 'phc_on' })
+				)
+			).toEqual({ ...base, ...whenOn });
+		});
+
+		it('leaves the init options unchanged when no switch is set', () => {
+			expect(
+				queuedInitOptions(posthog({ features: {}, id: 'phc_unset' }))
+			).toEqual(queuedInitOptions(posthog({ id: 'phc_unset' })));
+		});
+
+		it('turns everything off without skipping the remote config', () => {
+			const options = queuedInitOptions(
+				posthog({
+					features: {
+						deadClicks: false,
+						featureFlags: false,
+						heatmaps: false,
+						surveys: false,
+						webVitals: false,
+					},
+					id: 'phc_all_off',
+				})
+			);
+
+			expect(options).not.toHaveProperty('advanced_disable_flags');
+			expect(options.capture_performance).toEqual({ web_vitals: false });
+			expect(options.capture_performance).not.toHaveProperty('network_timing');
+		});
+
+		it('lets init options win over a switch for the same key', () => {
+			expect(
+				queuedInitOptions(
+					posthog({
+						features: { surveys: false, webVitals: false },
+						id: 'phc_precedence',
+						initOptions: {
+							capture_performance: { network_timing: true, web_vitals: true },
+							disable_surveys: false,
+						},
+					})
+				)
+			).toMatchObject({
+				capture_performance: { network_timing: true, web_vitals: true },
+				disable_surveys: false,
+			});
+		});
+
+		it('ignores switches when PostHog is disabled', () => {
+			expect(
+				posthog({
+					features: { surveys: false },
+					id: 'phc_disabled_features',
+					loadMode: 'disabled',
+				})
+			).toEqual({
+				callbackOnly: true,
+				category: 'measurement',
+				id: 'posthog',
+			});
+		});
+	});
 });

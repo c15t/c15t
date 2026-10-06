@@ -79,6 +79,53 @@ describe('posthog contract', () => {
 		expect(consentCalls).toEqual(['opt_out']);
 	});
 
+	it('queues feature switches into the init tuple the loader reads', () => {
+		let queuedInit: unknown;
+
+		installHeadProbe((node, win) => {
+			if (!node.src.includes('posthog.com/static/array.js')) {
+				return;
+			}
+
+			queuedInit = win.posthog._i;
+		});
+
+		loadScripts(
+			[
+				posthog({
+					features: {
+						deadClicks: false,
+						featureFlags: false,
+						heatmaps: false,
+						surveys: false,
+						webVitals: false,
+					},
+					id: 'phc_features',
+					loadMode: 'after-consent',
+				}),
+			],
+			grantedMeasurementConsents
+		);
+
+		expect(queuedInit).toEqual([
+			[
+				'phc_features',
+				{
+					advanced_disable_feature_flags: true,
+					api_host: 'https://eu.i.posthog.com',
+					capture_dead_clicks: false,
+					capture_heatmaps: false,
+					capture_performance: { web_vitals: false },
+					cookieless_mode: 'on_reject',
+					defaults: '2026-01-30',
+					disable_surveys: true,
+					ui_host: 'https://eu.posthog.com',
+				},
+				'posthog',
+			],
+		]);
+	});
+
 	it('queues capture calls until the loader installs', () => {
 		loadScripts([posthog({ id: 'phc_queue' })], grantedMeasurementConsents);
 
