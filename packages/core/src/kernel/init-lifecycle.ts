@@ -126,7 +126,8 @@ const warnInitFailure = function warnInitFailure(
 	);
 };
 
-const detectBrowserGpc = function detectBrowserGpc(): boolean {
+/** Whether the browser sends Global Privacy Control. @internal */
+export const detectBrowserGpc = function detectBrowserGpc(): boolean {
 	if (typeof navigator === 'undefined') {
 		return false;
 	}
@@ -219,9 +220,11 @@ const readInitResolution = function readInitResolution(
  * `translationOverrides` are the app's code-level messages. They apply on
  * top of the response's copy for its language, so a backend supplies the
  * base and the app's keys still win.
+ *
+ * @internal
  */
 // oxlint-disable-next-line complexity -- One pass over every response field keeps the fold order visible.
-const foldInitResponse = function foldInitResponse(
+export const foldInitResponse = function foldInitResponse(
 	current: ConsentSnapshot,
 	response: InitResponse,
 	now: number,

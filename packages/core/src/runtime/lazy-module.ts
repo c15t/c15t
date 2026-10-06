@@ -11,6 +11,10 @@
  * loader is injected: core holds no `import()` of its own modules, so a
  * bundler never splits them for a host that loads them statically.
  *
+ * A provider runtime can start the load ahead of the factory's first call
+ * (see {@link lazyModulePreload}): it does for the script loader when
+ * consent already lets a script run.
+ *
  * Only a configured module loads: a page without `networkBlocker` never
  * fetches the blocker. What a lazy module changes is when it starts:
  *
@@ -65,6 +69,27 @@
  * ```
  */
 const LOADED = Symbol('c15t-lazy-module-loaded');
+const PRELOAD = Symbol('c15t-lazy-module-preload');
+
+/**
+ * Start loading the module behind a factory from {@link lazyRuntimeModule}
+ * before the factory's first call, for a host that knows the module will
+ * be needed before it mounts it. The first call then finds the module
+ * loaded or on its way: `import()` of one specifier is one request.
+ *
+ * @param factory - A module factory, lazy or not.
+ * @returns The factory's load, or `undefined` when `factory` is not lazy.
+ * It rejects when the module fails to load; the factory's own call loads it
+ * again and reports the failure.
+ * @internal
+ */
+export const lazyModulePreload = function lazyModulePreload(
+	factory: unknown
+): (() => Promise<unknown>) | undefined {
+	return (factory as { [PRELOAD]?: () => Promise<unknown> } | undefined)?.[
+		PRELOAD
+	];
+};
 
 /**
  * Run `next` once a module handle from {@link lazyRuntimeModule} has loaded
@@ -115,7 +140,7 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 >(
 	load: () => Promise<(options: Options) => Handle>
 ): (options: Options) => Handle {
-	return (options) => {
+	const factory = (options: Options): Handle => {
 		let inner: Handle | null = null;
 		let disposed = false;
 		const queued: [PropertyKey, unknown[]][] = [];
@@ -187,4 +212,5 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 			},
 		});
 	};
+	return Object.assign(factory, { [PRELOAD]: load });
 };
