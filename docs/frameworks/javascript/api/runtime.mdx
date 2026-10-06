@@ -115,7 +115,7 @@ above, plus:
 | Member | What it does |
 | --- | --- |
 | `update(options)` | Apply the provider's new options. Pass the whole option set each time; the runtime compares it with the previous one and applies only what changed. |
-| `setEnabled(enabled)` | Turn consent management off or on. Off renders a separate permissive kernel that grants every category and shows no UI; only the script loader runs. On renders the visitor's kernel again, with their records, and runs `/init` or adopts the prefetch again. |
+| `setEnabled(enabled)` | Turn consent management off or on. Off renders a separate permissive kernel that grants every category and shows no UI; only the script loader runs, and no request waits for the network blocker. On renders the visitor's kernel again, with their records, and adopts the prefetch again. It runs `/init` instead when there is no prefetch, or when overrides or the language changed while it was off. |
 | `enabled` | Whether consent management is on. |
 | `kernel` | The kernel to render. It changes when `enabled` changes. |
 | `subscribe(listener)` | Called when `kernel`, `iab` or `enabled` changes. Read them again in the listener. Returns an unsubscribe function. |
@@ -126,10 +126,10 @@ above, plus:
 | --- | --- |
 | `enabled` | Same as `setEnabled()`. |
 | `user` | The new user is identified. The user the runtime was created with is sent with `/init` and every save, and is not identified separately. |
-| `overrides` | The overrides are set and `/init` runs again. Key order does not count as a change. Before `start()`, `start()` then sends `/init` instead of adopting the prefetch. |
+| `overrides` | The overrides are set and `/init` runs again. Key order does not count as a change. Before `start()` or while disabled, the next start sends `/init` instead of adopting the prefetch. |
 | `consentCategories` | The configured categories are replaced. |
 | `vendors`, `scripts`, network blocker `rules` | Vendors are declared again. Scripts go to the script loader, rules to the network blocker. A loader starts when scripts first appear. |
-| `networkBlocker` | New `rules` and `enabled` apply. `false` removes the blocker; options where there were none add one. |
+| `networkBlocker` | New `rules` and `enabled` apply; leaving `enabled` out turns the blocker on. Requests new rules match wait until the blocker has them, including while an on-demand blocker loads. `false` removes the blocker; options where there were none add one. |
 | `iframeBlocker` | `false` removes the blocker. A new `disableAutomaticBlocking` rebuilds it. |
 | `storageConfig.storageKey` | Data clearing restarts so it keeps protecting the new key. |
 | `callbacks`, `reloadOnConsentRevoked` | Read when an event fires, so the latest values apply. |
@@ -154,7 +154,8 @@ cleared. An experiment in a streamed result arrives too late to run.
 `modules` decides how each module loads. Pass `defaultRuntimeModules` to load
 them the way `createConsentRuntime` does. To keep a module out of the first
 chunk, replace its factory with `lazyRuntimeModule(() => import(...))`: calls
-made before the module has loaded are queued and replayed. Keep
+made before the module has loaded are queued and replayed. A module that
+fails to load stays inactive and, outside production, logs a warning. Keep
 `watchRevocationReload` static, because it has to see the first save, and
 prefer a static `createPersistence`, because a lazy one shows a returning
 visitor the banner until it has loaded.
