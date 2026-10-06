@@ -330,6 +330,21 @@ describe('init route', () => {
 		);
 	});
 
+	test('an empty private URL leaves the public one', async () => {
+		// What Nitro hands over when only NUXT_PUBLIC_C15T_BACKEND_URL is set.
+		mocks.useRuntimeConfig.mockReturnValue({
+			c15t: { backendURL: '', manifestURL: '', ssr: true },
+			public: { c15t: { backendURL: 'https://public.example' } },
+		});
+		mocks.serverFetch.mockResolvedValue(manifestResponse({}));
+
+		await callInitRoute();
+
+		expect(mocks.serverFetch.mock.calls[0]?.[0]).toBe(
+			'https://public.example/manifest'
+		);
+	});
+
 	test('honours the render budget the SSR plugin sends', async () => {
 		mocks.serverFetch.mockImplementation(
 			(_url: string, init?: RequestInit) =>

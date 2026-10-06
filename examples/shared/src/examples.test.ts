@@ -1,6 +1,9 @@
 // oxlint-disable vitest/no-conditional-expect -- Only adapters that await consent on the server promise cookie-backed server HTML; the selected routes of those targets run these assertions.
 // oxlint-disable no-loop-func -- Each sequential suite owns its browser context and mutable request counters.
+import { once } from 'node:events';
 import { mkdir } from 'node:fs/promises';
+import { createServer as createHttpServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { join } from 'node:path';
 
 import { chromium } from 'playwright';
@@ -634,6 +637,49 @@ for (const target of selectedTargets()) {
 		}
 
 		if (target.id === 'nuxt') {
+			test('NUXT_PUBLIC_C15T_BACKEND_URL set at start moves the init route to that backend', async () => {
+				// A second backend address: it records each request and forwards
+				// it to the fixture. The build carries the fixture's own URL.
+				const received: string[] = [];
+				const relay = createHttpServer(async (request, response) => {
+					received.push(`${request.method} ${request.url}`);
+					const chunks: Buffer[] = [];
+					for await (const chunk of request) {
+						chunks.push(chunk as Buffer);
+					}
+					const upstream = await fetch(`${server.backendURL}${request.url}`, {
+						body: chunks.length > 0 ? Buffer.concat(chunks) : undefined,
+						headers: request.headers['content-type']
+							? { 'content-type': request.headers['content-type'] }
+							: {},
+						method: request.method,
+					});
+					response.statusCode = upstream.status;
+					response.setHeader(
+						'content-type',
+						upstream.headers.get('content-type') ?? 'text/plain'
+					);
+					response.end(Buffer.from(await upstream.arrayBuffer()));
+				});
+				relay.listen(0, '127.0.0.1');
+				await once(relay, 'listening');
+				const address = relay.address() as AddressInfo;
+				try {
+					await server.restart({
+						NUXT_PUBLIC_C15T_BACKEND_URL: `http://127.0.0.1:${address.port}`,
+					});
+					const response = await fetch(`${server.baseURL}/api/c15t/init`, {
+						headers: { 'x-vercel-ip-country': 'DE' },
+					});
+					expect(response.status).toBe(200);
+					expect(received).toContain('GET /manifest');
+				} finally {
+					relay.closeAllConnections();
+					relay.close();
+					await server.restart();
+				}
+			});
+
 			test('a system-dark visitor gets the dark tokens from the server HTML', async () => {
 				const response = await fetch(`${server.baseURL}/consent-example`, {
 					headers: { 'x-vercel-ip-country': 'DE' },

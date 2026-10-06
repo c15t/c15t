@@ -64,6 +64,12 @@ export const waitUntilFromEvent = function waitUntilFromEvent(
 	readWaitUntil(event)?.(revalidation);
 };
 
+/**
+ * The public `c15t` config with the private one over it. A private value
+ * that is empty or unset leaves the public one: the module writes empty
+ * private URLs, so `NUXT_PUBLIC_C15T_BACKEND_URL` alone moves these routes,
+ * and `NUXT_C15T_BACKEND_URL` gives them a server-only address.
+ */
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
 ): ConsentConfig & { manifestSnapshot?: ConsentManifest } {
@@ -71,9 +77,14 @@ const readConsentConfig = function readConsentConfig(
 		typeof runtimeConfig === 'object' && runtimeConfig !== null
 			? (runtimeConfig as C15TNitroRuntimeConfig)
 			: {};
+	const serverOnly = Object.fromEntries(
+		Object.entries(config.c15t ?? {}).filter(
+			([, value]) => value !== '' && value !== undefined && value !== null
+		)
+	);
 	return {
 		...(config.public?.c15t ?? {}),
-		...(config.c15t ?? {}),
+		...serverOnly,
 	} as ConsentConfig & { manifestSnapshot?: ConsentManifest };
 };
 

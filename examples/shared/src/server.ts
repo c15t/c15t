@@ -68,9 +68,13 @@ export const startExample = async function startExample(target: ExampleTarget) {
 				await fixture.close();
 			},
 			logs: () => server.logs(),
-			async restart() {
+			/**
+			 * Starts the same build again. `overrides` are added to the start
+			 * environment only, as a deployment sets runtime variables.
+			 */
+			async restart(overrides: NodeJS.ProcessEnv = {}) {
 				await stop(server.child);
-				server = launch(target.start(port), cwd, env);
+				server = launch(target.start(port), cwd, { ...env, ...overrides });
 				running = server;
 				await waitUntilReady(server, baseURL, target);
 			},
