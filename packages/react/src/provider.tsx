@@ -422,7 +422,9 @@ let buildTransport: () => KernelTransport;
 /**
  * Whether two `hosted()` calls reach the same backend the same way, as when
  * a render calls `hosted()` inline. `fetch` and `initialData` must be the
- * same value; the other options are data and compare by content.
+ * same value; the other options are data and compare by content. `fetch` is
+ * the one a transport built now would use: an omitted one resolves to the
+ * global `fetch`, which can change between a render and its retry.
  */
 const sameHosted = (a: HostedModeOptions, b: HostedModeOptions): boolean =>
 	a.fetch === b.fetch &&
@@ -568,7 +570,11 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
 		// `policyPending`: enabled, no `consentSource`, no policy yet.
 		const snapshot = runtime.kernel.getSnapshot();
-		const hostedOptions = hostedModes.get(mode);
+		const hostedMode = hostedModes.get(mode);
+		const hostedOptions = hostedMode && {
+			...hostedMode,
+			fetch: hostedMode.fetch ?? globalThis.fetch,
+		};
 		if (
 			clientRender &&
 			hostedOptions &&

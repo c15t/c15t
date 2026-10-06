@@ -70,6 +70,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 const initCalls = () =>
@@ -288,6 +289,72 @@ test('a retry after the shared hosted() options changed sends its own request', 
 	requests[0]?.respond('stale');
 	requests[1]?.respond('fresh');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('fresh');
+	await view.unmount();
+});
+
+test('a retry after the global fetch changed sends its own request through the new one', async () => {
+	let resume: () => void = () => undefined;
+	let suspended: Promise<void> | null = new Promise<void>((resolve) => {
+		resume = () => {
+			suspended = null;
+			resolve();
+		};
+	});
+	const SuspendsOnce = () => {
+		if (suspended) {
+			throw suspended;
+		}
+		return null;
+	};
+	let kernel: ConsentKernel | null = null;
+	const Capture = () => {
+		const current = useContext(KernelContext);
+		useEffect(() => {
+			kernel = current;
+		}, [current]);
+		return null;
+	};
+	// Each request, tagged with the global fetch that sent it.
+	const calls: string[] = [];
+	const globalFetch = (tag: string) =>
+		((url: string, init: RequestInit) => {
+			calls.push(`${tag} ${String(url).slice(BACKEND.length)}`);
+			return backendFetch(url, init);
+		}) as typeof fetch;
+	vi.stubGlobal('fetch', globalFetch('old'));
+	// No `fetch`: the transport takes the global one when it is built.
+	const App = () => (
+		<ConsentProvider
+			options={{ mode: hosted({ url: BACKEND }), persistence: false }}
+		>
+			<SuspendsOnce />
+			<Capture />
+		</ConsentProvider>
+	);
+
+	const view = await render(
+		<Suspense fallback={null}>
+			<App />
+		</Suspense>
+	);
+	expect(calls).toEqual(['old /init']);
+
+	// An instrumentation wrapper installed before React retries.
+	vi.stubGlobal('fetch', globalFetch('new'));
+	resume();
+	await vi.waitFor(() => expect(kernel).not.toBeNull());
+	for (const request of requests) {
+		request.respond('policy');
+	}
+	await vi.waitFor(() =>
+		expect(kernel?.getSnapshot().policyPending).toBe(false)
+	);
+	kernel?.commands.save('none');
+	// Every request after the thrown-away render's goes through the new one.
+	await vi.waitFor(() =>
+		expect(calls.filter((call) => !call.endsWith('/init'))).not.toEqual([])
+	);
+	expect(calls.slice(1).filter((call) => !call.startsWith('new '))).toEqual([]);
 	await view.unmount();
 });
 
