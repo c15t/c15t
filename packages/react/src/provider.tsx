@@ -17,6 +17,7 @@ import type {
 	I18nConfig,
 	KernelConfig,
 	KernelOverrides,
+	KernelTransport,
 	KernelUser,
 	LegalLinks,
 	ProviderTransportFactory,
@@ -392,6 +393,19 @@ const treeIABModes = new WeakMap<
 	ProviderTransportFactory,
 	ProviderTransportFactory
 >();
+/**
+ * Transports that sent `/init` from a render that has not committed yet,
+ * by mode. A runtime built for the same mode meanwhile (StrictMode's
+ * second render, the retry of a render that suspended) takes the transport
+ * and its request instead of building another; see
+ * {@link createOwnedRuntimeEntry}.
+ */
+const sentEarly = new WeakMap<ProviderTransportFactory, KernelTransport>();
+/**
+ * The transport the latest runtime construction built. Construction is
+ * synchronous, so the provider reads it right after.
+ */
+let builtTransport: KernelTransport | undefined;
 const withTreeIAB = function withTreeIAB(
 	mode: ProviderTransportFactory
 ): ProviderTransportFactory {
@@ -402,7 +416,9 @@ const withTreeIAB = function withTreeIAB(
 	if (!wrapped) {
 		wrapped = Object.assign(
 			(context: Parameters<ProviderTransportFactory>[0]) =>
-				mode(Object.create(context, { iabEnabled: { value: undefined } })),
+				(builtTransport =
+					sentEarly.get(mode) ??
+					mode(Object.create(context, { iabEnabled: { value: undefined } }))),
 			{ kind: mode.kind }
 		);
 		treeIABModes.set(mode, wrapped);
@@ -462,11 +478,25 @@ let entrySequence = 0;
  * requests, and any runtime still uncommitted after
  * {@link UNCOMMITTED_HOLD_MS} disposes itself, failing what it held as
  * blocked. On the server nothing is held and nothing is tracked.
+ *
+ * In the browser, a hosted runtime that will ask the backend for its policy
+ * sends that `/init` request here, during the render, instead of from the
+ * mount effect: on a client-rendered page that is before the first paint
+ * rather than after it. The answer still applies at mount: the kernel's
+ * first `init()` takes this request when its context (overrides, language,
+ * user) is unchanged, and sends its own otherwise. Only a committed
+ * runtime's kernel reads it, and a runtime built for the same mode before
+ * any commit reuses it (see {@link sentEarly}), so a render React repeats
+ * or throws away costs no second request. Not sent with a `prefetch` (the
+ * server answered, or is answering), a `consentSource` or `enabled: false`
+ * (no init), an `experiment` (its arm, picked after mount, travels with
+ * the request), or a custom transport, whose `init()` may expect a mounted
+ * page.
  */
 const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	initialOptions: ConsentProviderOptions
 ): OwnedRuntimeEntry {
-	const { networkBlocker } = initialOptions;
+	const { mode, networkBlocker } = initialOptions;
 	const runtime = createConsentProviderRuntime(
 		toRuntimeOptions(initialOptions),
 		reactRuntimeModules(initialOptions.__resolveStreamedInit)
@@ -480,6 +510,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	entrySequence += 1;
 	const pending: PendingEntry = {
 		expire() {
+			sentEarly.delete(mode);
 			uncommitted.delete(pending);
 			clearTimeout(timer);
 			expired = true;
@@ -498,6 +529,31 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	} else {
 		uncommitted.add(pending);
 		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
+		// `policyPending`: enabled, no `consentSource`, no policy yet.
+		const snapshot = runtime.kernel.getSnapshot();
+		const transport = builtTransport as KernelTransport;
+		if (
+			mode.kind === 'hosted' &&
+			snapshot.policyPending &&
+			!(
+				initialOptions.prefetch ||
+				initialOptions.experiment ||
+				sentEarly.has(mode)
+			)
+		) {
+			const init = transport.init as NonNullable<KernelTransport['init']>;
+			const context = { overrides: snapshot.overrides, user: snapshot.user };
+			const key = JSON.stringify(context);
+			const sent = init(context);
+			// Nobody reads it when the render that sent it never commits.
+			// oxlint-disable-next-line promise/prefer-await-to-then -- Only marks the rejection handled.
+			sent.catch(() => undefined);
+			transport.init = (next) => {
+				transport.init = init;
+				return JSON.stringify(next) === key ? sent : init(next);
+			};
+			sentEarly.set(mode, transport);
+		}
 	}
 
 	const commit = function commit(): boolean {
@@ -508,6 +564,8 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 			return true;
 		}
 		committed = true;
+		// Renders after this one build a transport of their own.
+		sentEarly.delete(mode);
 		uncommitted.delete(pending);
 		clearTimeout(timer);
 		if (pending.holdKey !== null) {
