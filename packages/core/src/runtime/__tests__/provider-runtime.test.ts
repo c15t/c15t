@@ -9,6 +9,7 @@ import { policyRulePresets, resolvePolicyRules } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { choiceRecords, NOW } from '../../__tests__/fixtures/kernel-fixtures';
+import { createNetworkBlocker } from '../../modules/network-blocker';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import {
@@ -119,6 +120,19 @@ const create = function create(
 	);
 	runtimes.push(runtime);
 	return runtime;
+};
+
+/** A spy in place of the network, under whatever the runtime patches. */
+const stubNetwork = function stubNetwork() {
+	const nativeFetch = window.fetch;
+	const network = vi.fn(() => Promise.resolve(new Response('ok')));
+	window.fetch = network as unknown as typeof window.fetch;
+	return {
+		network,
+		restore: () => {
+			window.fetch = nativeFetch;
+		},
+	};
 };
 
 beforeEach(() => {
@@ -315,6 +329,33 @@ describe('update()', () => {
 		expect(fakes.blockers).toHaveLength(2);
 		runtime.dispose();
 		expect(fakes.blockers[1]?.disposed).toBe(true);
+	});
+
+	test('a network blocker whose `enabled: false` is dropped turns on', async () => {
+		const { network, restore } = stubNetwork();
+		const rules = [{ category: 'marketing', domain: 'ads.example' }];
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(createTransport()),
+			networkBlocker: { enabled: false, rules } as never,
+			prefetch: RESOLVED_PREFETCH,
+		};
+		const runtime = create(options, {
+			...defaultRuntimeModules,
+			createNetworkBlocker,
+		});
+		try {
+			runtime.start();
+
+			// `{ rules }` alone means on: `enabled` defaults to true.
+			runtime.update({ ...options, networkBlocker: { rules } as never });
+
+			const response = await window.fetch('https://ads.example/pixel');
+			expect(response.status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
+		} finally {
+			runtime.dispose();
+			restore();
+		}
 	});
 
 	test('the iframe blocker is rebuilt when `disableAutomaticBlocking` changes and removed by `false`', () => {

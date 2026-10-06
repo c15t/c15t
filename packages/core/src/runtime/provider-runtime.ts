@@ -442,8 +442,10 @@ export const createConsentProviderRuntime =
 				if (after.rules !== before?.rules) {
 					blocker.updateRules(after.rules);
 				}
-				if (after.enabled !== undefined && after.enabled !== before?.enabled) {
-					blocker.setEnabled(after.enabled);
+				// Compared resolved: `{ rules }` alone means on.
+				const on = after.enabled !== false;
+				if (on !== (before?.enabled !== false)) {
+					blocker.setEnabled(on);
 				}
 			} else if (after) {
 				// Hold matching requests until the blocker, possibly lazy, lands.
