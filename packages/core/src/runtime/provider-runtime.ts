@@ -21,6 +21,7 @@
  */
 import type { AllConsentNames } from '../consent/consent-types';
 import { extractConsentNamesFromCondition } from '../libs/has';
+import { isProductionBuild } from '../libs/is-production';
 import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
@@ -213,12 +214,7 @@ export const createConsentProviderRuntime =
 			const { streamPrefetch } = modules;
 			// A promise: the only prefetch not known now.
 			const pending = on && initial.prefetch !== knownPrefetch;
-			if (
-				pending &&
-				!streamPrefetch &&
-				(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
-					?.env?.NODE_ENV !== 'production'
-			) {
+			if (pending && !streamPrefetch && !isProductionBuild()) {
 				console.warn(
 					'c15t: `prefetch` is a promise, but the runtime was created without `streamPrefetch` in its modules. It is ignored and the runtime requests the policy itself.'
 				);

@@ -39,6 +39,12 @@ group: reference
   is `gtag` and `cloudflareZaraz()` is `cloudflare-zaraz`. Each
   [vendor guide](/docs/integrations/overview) names its slug.
 
+  Declaring a helper's vendor is optional. Without a declaration the script
+  still loads with its category, but the dialog has no switch for it. In
+  development, c15t logs a console warning that names the slug, so you can
+  declare it if visitors should be able to turn it off. Production builds
+  skip the warning.
+
   A self-hosted backend can declare vendors too. `/init` returns them and c15t
   merges them with the vendors in code. When both declare the same `id`, the
   code declaration wins.

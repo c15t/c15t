@@ -28,6 +28,7 @@ import type { Translations } from '@c15t/translations';
 import { deepMergeTranslations } from '@c15t/translations';
 
 import type { RecordIssue } from '../consent-record/validation';
+import { isProductionBuild } from '../libs/is-production';
 import { resolveVendors, withoutManifestVendors } from '../libs/vendors';
 import { applyTranslationOverrides } from '../translations';
 import type { TranslationOverrides } from '../translations';
@@ -104,16 +105,10 @@ const getRetryDelay = function getRetryDelay(
 	return Math.floor(cappedDelay * jitterMultiplier);
 };
 
-const isProduction = function isProduction(): boolean {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	return nodeEnv === 'production';
-};
-
 const warnInitFailure = function warnInitFailure(
 	nextRetryMs: number | null
 ): void {
-	if (isProduction()) {
+	if (isProductionBuild()) {
 		return;
 	}
 
@@ -575,7 +570,7 @@ export const createInitLifecycle = function createInitLifecycle({
 				runtime.now(),
 				translationOverrides
 			);
-			if (folded.recordIssues && !isProduction()) {
+			if (folded.recordIssues && !isProductionBuild()) {
 				console.warn(
 					'[c15t] Ignored invalid server records on init.',
 					folded.recordIssues
