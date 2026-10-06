@@ -800,6 +800,21 @@ describe('lazyRuntimeModule', () => {
 		}).not.toThrow();
 	});
 
+	test('a module that fails to load says why outside production', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const error = new Error('chunk failed');
+		lazyRuntimeModule<object, { dispose: () => void }>(() =>
+			Promise.reject(error)
+		)({});
+
+		await vi.waitFor(() =>
+			expect(warn).toHaveBeenCalledWith(
+				'c15t: a runtime module failed to load and stays inactive.',
+				error
+			)
+		);
+	});
+
 	test('a provider runtime can load its modules on demand', async () => {
 		const loader = vi.fn(defaultRuntimeModules.createScriptLoader);
 		const runtime = create(

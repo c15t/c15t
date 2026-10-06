@@ -72,7 +72,8 @@
  * the stand-in is queued and returns `undefined` (so `hydrate()` and
  * `reconcile()` read as "nothing changed"); after that, calls go straight
  * to the real handle. `dispose()` before the module lands cancels it. A
- * module that fails to load leaves the stand-in inert.
+ * module that fails to load leaves the stand-in inert and, outside
+ * production, warns with the error.
  *
  * @param load - Resolves the module's factory, usually through `import()`.
  * @returns A factory with the same signature.
@@ -102,8 +103,18 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 						>
 					)[method]?.(...args);
 				}
-			} catch {
-				// Inert: the page works without the module.
+			} catch (error) {
+				// Inert: the page works without the module. Say why, since a
+				// failed chunk or a factory that throws is otherwise silent.
+				if (
+					(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
+						?.env?.NODE_ENV !== 'production'
+				) {
+					console.warn(
+						'c15t: a runtime module failed to load and stays inactive.',
+						error
+					);
+				}
 			}
 		})();
 		return new Proxy({} as Handle, {
