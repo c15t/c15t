@@ -46,8 +46,12 @@ const never = new Promise<never>(() => {
 	// Never settles.
 });
 
+/** Set once the root has rendered down to its children. */
+let held = false;
+
 /** Suspends forever, so the tree around it never commits. */
 const Hold = (): null => {
+	held = true;
 	throw never;
 };
 
@@ -56,6 +60,7 @@ let root: Root | undefined;
 afterEach(() => {
 	root?.unmount();
 	root = undefined;
+	held = false;
 });
 
 /** Render the root with a child that holds the commit back for good. */
@@ -76,8 +81,12 @@ const renderUncommitted = (
 	);
 };
 
-/** Give a load the root might have started time to evaluate. */
+/**
+ * Wait until the root has rendered, then give a load it might have started
+ * time to evaluate.
+ */
 const settle = async (): Promise<void> => {
+	await vi.waitFor(() => expect(held).toBe(true));
 	for (let turn = 0; turn < 10; turn += 1) {
 		// oxlint-disable-next-line no-await-in-loop -- Sequential turns are the point.
 		await new Promise((resolve) => {
