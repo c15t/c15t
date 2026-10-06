@@ -234,6 +234,49 @@ describe('update()', () => {
 		}
 	});
 
+	test('new rules for a blocker whose chunk failed to load answer matching requests as blocked', async () => {
+		const { network, restore } = stubNetwork();
+		const options: ConsentProviderRuntimeOptions = {
+			mode: custom(createTransport()),
+			networkBlocker: {
+				rules: [{ category: 'measurement', domain: 'first.example' }],
+			},
+			persistence: false,
+			prefetch: RESOLVED_PREFETCH,
+		};
+		const runtime = create(options, {
+			...defaultRuntimeModules,
+			createNetworkBlocker: lazyRuntimeModule(() =>
+				Promise.reject(new Error('chunk failed to load'))
+			),
+		});
+		try {
+			runtime.start();
+
+			await runtime.update({
+				...options,
+				networkBlocker: {
+					rules: [{ category: 'measurement', domain: 'next.example' }],
+				},
+			});
+			const request = window.fetch('https://next.example/collect');
+			let settled = false;
+			void request.finally(() => {
+				settled = true;
+			});
+			// Nothing will take the hold over: it must not wait for one.
+			await vi.waitFor(() => {
+				expect(settled).toBe(true);
+			});
+
+			expect((await request).status).toBe(451);
+			expect(network).not.toHaveBeenCalled();
+		} finally {
+			runtime.dispose();
+			restore();
+		}
+	});
+
 	test('`enabled` and overrides apply at once; the rest once the returned promise settles', async () => {
 		const options: ConsentProviderRuntimeOptions = {
 			consentCategories: ['marketing'],

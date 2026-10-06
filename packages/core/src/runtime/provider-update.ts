@@ -277,6 +277,10 @@ const syncModules = function syncModules(
 			// takes the hold over at once.
 			const hold = on ? holdNetworkRequests(after.rules) : notHeld;
 			blocker.updateRules(after.rules, hold);
+			// A blocker whose chunk failed to load does not take it over until
+			// a later load does: fail it closed without leaving requests
+			// pending. A no-op once it took over.
+			afterModuleLoaded(blocker, hold.fail);
 			// Never taken over: fail what it held closed.
 			target.track(() => hold.block());
 		}
