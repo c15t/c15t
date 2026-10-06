@@ -61,12 +61,12 @@ export const preloadScriptLoader = function preloadScriptLoader(
 			overrides?: KernelOverrides;
 		}
 ): void {
-	// An external source decides consent, not the stored choice.
-	if (
-		typeof window === 'undefined' ||
-		!scripts?.length ||
-		options?.consentSource
-	) {
+	if (typeof window === 'undefined' || !scripts?.length) {
+		return;
+	}
+	// An external source decides consent, not the stored choice, unless the
+	// provider is disabled: then it is ignored and every category is granted.
+	if (options?.consentSource && options.enabled !== false) {
 		return;
 	}
 	void (async () => {

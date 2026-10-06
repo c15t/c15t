@@ -1,6 +1,7 @@
 /**
  * A provider with `enabled: false` grants every category and ignores the
- * stored choice, so a returning visitor who refused still needs the loader.
+ * stored choice and any external consent source, so a returning visitor who
+ * refused still needs the loader.
  *
  * Kept apart from `root-script-loader-preload.test.tsx`: the mocked module
  * evaluates once per file, so each file can show one load.
@@ -48,13 +49,20 @@ afterEach(() => {
 	root = undefined;
 });
 
-test('a disabled root loads it during render despite a stored refusal', async () => {
+test('a disabled root loads it during render despite a stored refusal and a consent source', async () => {
 	const container = document.createElement('div');
 	document.body.append(container);
 	root = createRoot(container);
 	root.render(
 		<ConsentRoot
-			options={{ enabled: false }}
+			options={{
+				consentSource: {
+					getPermissions: () => null,
+					openPreferences: () => undefined,
+					subscribe: () => () => undefined,
+				},
+				enabled: false,
+			}}
 			persistence={false}
 			scripts={scripts}
 			state={Promise.resolve(policyFixture({ marketing: false }))}
