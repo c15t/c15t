@@ -19,7 +19,9 @@
 		| 'ssr-manifest'
 		| 'client'
 		| 'client-manifest'
-		| 'repeat-visitor';
+		| 'repeat-visitor'
+		| 'scripts'
+		| 'repeat-visitor-scripts';
 
 	/** The shape the runner reads out of the page. */
 	export interface SvelteBenchState {
@@ -158,7 +160,10 @@
 		state: SvelteBenchState,
 		snapshot: ConsentSnapshot
 	): void {
-		if (scenario !== 'repeat-visitor') {
+		if (
+			scenario !== 'repeat-visitor' &&
+			scenario !== 'repeat-visitor-scripts'
+		) {
 			return;
 		}
 		if (

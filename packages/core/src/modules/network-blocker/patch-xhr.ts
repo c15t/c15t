@@ -11,9 +11,12 @@
  */
 import type { ConsentSnapshot } from '../../types';
 import { evaluateBlock } from './decide';
-import { failBlockedXhr, stashXhr, XHR_REQUEST } from './hold';
-import type { XhrStash } from './hold';
-import type { BlockedRequestInfo, NetworkBlockerRule } from './types';
+import type { XHR_REQUEST, XhrStash } from './hold';
+import type {
+	BlockedRequestInfo,
+	NetworkBlockerRule,
+	NetworkBlockerTools,
+} from './types';
 import { parseUrl } from './url';
 
 export interface XhrPatchDeps {
@@ -21,6 +24,10 @@ export interface XhrPatchDeps {
 	getSnapshot: () => ConsentSnapshot;
 	isEnabled: () => boolean;
 	notifyBlocked: (info: BlockedRequestInfo) => void;
+	tools: Pick<
+		NetworkBlockerTools,
+		'evaluate' | 'failBlockedXhr' | 'stashXhr' | 'xhrRequest'
+	>;
 	/**
 	 * Promise that settles once consent is known, or `null` when it already
 	 * is. An async XHR that would be blocked waits for it and is evaluated
@@ -37,6 +44,7 @@ export interface XhrPatchDeps {
 export const installXhrPatch = function installXhrPatch(
 	deps: XhrPatchDeps
 ): () => void {
+	const { evaluate, failBlockedXhr, stashXhr, xhrRequest } = deps.tools;
 	const originalOpen = XMLHttpRequest.prototype.open;
 	const originalSend = XMLHttpRequest.prototype.send;
 
@@ -58,7 +66,7 @@ export const installXhrPatch = function installXhrPatch(
 		if (!deps.isEnabled()) {
 			return originalSend.call(this, body as never);
 		}
-		const request = this[XHR_REQUEST];
+		const request = this[xhrRequest as typeof XHR_REQUEST];
 		const method = request?.method ?? 'GET';
 		const url = parseUrl(request?.url ?? '');
 		if (!url) {
@@ -69,7 +77,8 @@ export const installXhrPatch = function installXhrPatch(
 			url,
 			method,
 			deps.getRules(),
-			deps.getSnapshot()
+			deps.getSnapshot(),
+			evaluate
 		);
 		if (!decision.shouldBlock) {
 			return originalSend.call(this, body as never);

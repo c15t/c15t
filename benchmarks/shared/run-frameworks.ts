@@ -294,8 +294,9 @@ const describeArm = function describeArm(
 	arm: FrameworkScenarioSummary
 ): string {
 	const profile = arm.metadata.profile ?? 'none';
-	const latency = arm.metadata.initLatencyMs ?? 0;
-	return `${arm.framework} (\`${arm.package}\`, profile ${profile}, init latency ${latency} ms)`;
+	const latency =
+		arm.metadata.backendLatencyMs ?? arm.metadata.initLatencyMs ?? 0;
+	return `${arm.framework} (\`${arm.package}\`, profile ${profile}, backend latency ${latency} ms)`;
 };
 
 const renderSharedTable = function renderSharedTable(

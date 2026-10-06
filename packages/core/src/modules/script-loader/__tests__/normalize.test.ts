@@ -5,6 +5,7 @@ import {
 	generateRandomId,
 	normalizeScripts,
 } from '../normalize';
+import { scriptLoaderTools } from '../tools';
 import type { Script } from '../types';
 
 const baseScript: Script = {
@@ -21,45 +22,61 @@ describe('generateRandomId', () => {
 
 describe('normalizeScripts', () => {
 	test('flags hasIabMeta when vendorId is present', () => {
-		const [out] = normalizeScripts([{ ...baseScript, vendorId: 'v1' }]);
+		const [out] = normalizeScripts(
+			[{ ...baseScript, vendorId: 'v1' }],
+			scriptLoaderTools.isVendorId
+		);
 		expect(out?.hasIabMeta).toBe(true);
 	});
 
 	test('flags hasIabMeta when iabPurposes is non-empty', () => {
-		const [out] = normalizeScripts([{ ...baseScript, iabPurposes: [1, 2] }]);
+		const [out] = normalizeScripts(
+			[{ ...baseScript, iabPurposes: [1, 2] }],
+			scriptLoaderTools.isVendorId
+		);
 		expect(out?.hasIabMeta).toBe(true);
 	});
 
 	test('flags hasIabMeta when iabLegIntPurposes is non-empty', () => {
-		const [out] = normalizeScripts([{ ...baseScript, iabLegIntPurposes: [3] }]);
+		const [out] = normalizeScripts(
+			[{ ...baseScript, iabLegIntPurposes: [3] }],
+			scriptLoaderTools.isVendorId
+		);
 		expect(out?.hasIabMeta).toBe(true);
 	});
 
 	test('flags hasIabMeta when iabSpecialFeatures is non-empty', () => {
-		const [out] = normalizeScripts([
-			{ ...baseScript, iabSpecialFeatures: [1] },
-		]);
+		const [out] = normalizeScripts(
+			[{ ...baseScript, iabSpecialFeatures: [1] }],
+			scriptLoaderTools.isVendorId
+		);
 		expect(out?.hasIabMeta).toBe(true);
 	});
 
 	test('hasIabMeta is false when no IAB metadata is present', () => {
-		const [out] = normalizeScripts([baseScript]);
+		const [out] = normalizeScripts([baseScript], scriptLoaderTools.isVendorId);
 		expect(out?.hasIabMeta).toBe(false);
 	});
 
 	test('simpleCategory captures string categories', () => {
-		const [out] = normalizeScripts([{ ...baseScript, category: 'marketing' }]);
+		const [out] = normalizeScripts(
+			[{ ...baseScript, category: 'marketing' }],
+			scriptLoaderTools.isVendorId
+		);
 		expect(out?.simpleCategory).toBe('marketing');
 	});
 
 	test('simpleCategory is null for non-string categories', () => {
-		const [out] = normalizeScripts([
-			{
-				...baseScript,
-				// oxlint-disable-next-line typescript/no-explicit-any -- HasCondition shape varies
-				category: { conditions: [], type: 'AND' } as any,
-			},
-		]);
+		const [out] = normalizeScripts(
+			[
+				{
+					...baseScript,
+					// oxlint-disable-next-line typescript/no-explicit-any -- HasCondition shape varies
+					category: { conditions: [], type: 'AND' } as any,
+				},
+			],
+			scriptLoaderTools.isVendorId
+		);
 		expect(out?.simpleCategory).toBeNull();
 	});
 });

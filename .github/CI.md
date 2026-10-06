@@ -200,7 +200,8 @@ The base must belong to the selected head's commit history.
 Runtime comparisons use one runner per package: two jobs for quick runs and
 eight for full runs. Both revisions resolve once before the matrix starts.
 Each job measures base then head on the same runner and enforces that package's
-complete expected results and budgets. Jobs upload separate reports and keep
+complete expected results and budgets. Browser benches answer every consent-backend
+request after 200 ms on both revisions. Jobs upload separate reports and keep
 running if another package fails. Failures fail the benchmark workflow and
 preserve its summaries and artifacts without blocking publishing. GitHub activates schedules only once the workflow is on
 the default branch; push runs work as soon as this change lands on `v3`.

@@ -25,6 +25,13 @@ import type {
 	BenchmarkResult,
 	MetricSampleSet,
 } from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -178,6 +185,9 @@ interface PolicyPageSample {
 	onChoiceRecordedCount: number;
 	onErrorCount: number;
 	lastAppScriptEndMs: number;
+	idlePreloadCount: number;
+	idlePreloadBytes: number;
+	idlePreloadEndMs: number | null;
 	longTaskTotalMs: number;
 	ttfbMs: number | null;
 	domContentLoadedMs: number | null;
@@ -192,7 +202,7 @@ interface PolicyRunOptions {
 	iterations: number;
 	warmupIterations: number;
 	throttleProfile: BenchThrottleProfileName;
-	initLatencyMs: number;
+	backendLatencyMs: number;
 	outputDir: string;
 	resultScenarioName: (scenario: string) => string;
 	resultFileName: (scenario: string) => string;
@@ -302,19 +312,16 @@ const readPageTiming = async function readPageTiming(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scripts = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-initiator'
+	);
+	const scriptEntry = {
+		idlePreloadBytes: scripts?.idlePreloadBytes ?? 0,
+		idlePreloadCount: scripts?.idlePreloadCount ?? 0,
+		idlePreloadEndMs: scripts?.idlePreloadEndMs ?? null,
+		lastAppScriptEndMs: scripts?.lastAppScriptEndMs ?? 0,
+	};
 	const longTasks = await page.evaluate(() => {
 		const metrics = (
 			window as typeof window & {
@@ -472,6 +479,9 @@ const collectPolicySample = async function collectPolicySample(
 		hasStoredChoice,
 		hydration,
 		hydrationWarningCount: observation.hydrationWarningCount,
+		idlePreloadBytes: timing.idlePreloadBytes,
+		idlePreloadCount: timing.idlePreloadCount,
+		idlePreloadEndMs: timing.idlePreloadEndMs,
 		initRequestsAfterLoad: observation.initRequests,
 		interactionLatencyMs,
 		lastAppScriptEndMs: timing.lastAppScriptEndMs,
@@ -584,6 +594,7 @@ const buildMetrics = function buildMetrics(
 			'ms',
 			samples.map((sample) => sample.lastAppScriptEndMs)
 		),
+		...summarizeIdlePreloadMetrics(samples),
 		summarizeMetric(
 			'longTaskTotalMs',
 			'ms',
@@ -707,6 +718,7 @@ const writePolicyResult = function writePolicyResult(
 					usesManifestCache: false,
 				})
 			),
+			backendLatencyMs: options.backendLatencyMs,
 			consoleErrors: samples.flatMap((sample) => sample.consoleErrors),
 			cookieNames: mostCommon(
 				samples.map((sample) => sample.storage?.cookieNames.join(',') ?? null)
@@ -719,7 +731,6 @@ const writePolicyResult = function writePolicyResult(
 			hydrationPromptKind: mostCommon(
 				hydrationSamples.map((hydration) => hydration.promptKind)
 			),
-			initLatencyMs: options.initLatencyMs,
 			localStorageKeys: mostCommon(
 				samples.map(
 					(sample) => sample.storage?.localStorageKeys.join(',') ?? null
@@ -737,6 +748,8 @@ const writePolicyResult = function writePolicyResult(
 			'renderCount counts probe commits up to prompt readiness.',
 			'Storage bytes are the UTF-8 lengths of the values the browser holds after the action.',
 			'hydrateUs is the mean per-call cost of synchronous persistence hydrate() into fresh kernels carrying the fixture policy, against the real stored record; each sample is one timed batch because Chromium clamps performance.now() to 100µs.',
+
+			...scriptTimingGlossary,
 		],
 		package: '@c15t/react-browser-bench',
 		runtime: 'playwright',

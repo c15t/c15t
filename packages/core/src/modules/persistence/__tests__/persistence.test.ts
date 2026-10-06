@@ -25,7 +25,7 @@ import {
 	SUBJECT_REASSIGNMENTS_STORAGE_KEY,
 } from '../../../libs/storage-keys';
 import { createPersistence } from '../index';
-import { clearStoredConsentRecords } from '../record-storage';
+import { clearStoredConsentRecords } from './record-writes';
 
 /**
  * Run the macrotask write scheduler without firing the kernel's expiry

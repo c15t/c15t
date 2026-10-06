@@ -174,7 +174,10 @@ const { scenario } = Astro.props;
 	 * Recorded as `0` for the same reason the Nuxt probe does.
 	 */
 	const markRepeatVisitorReady = (state: AstroBenchState) => {
-		if (state.scenario !== 'repeat-visitor') {
+		if (
+			state.scenario !== 'repeat-visitor' &&
+			state.scenario !== 'repeat-visitor-scripts'
+		) {
 			return;
 		}
 		if (state.hasConsented && state.activeUI === 'none') {

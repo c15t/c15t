@@ -23,6 +23,7 @@ import {
 	createRuntimeKernel,
 	defaultRuntimeModules,
 	hasResolvedPrefetch,
+	lazyRuntimeModule,
 } from '../index';
 import type { ConsentRuntimeIABHandle } from '../types';
 
@@ -1017,6 +1018,117 @@ describe('the runtime network hold', () => {
 			other.release()();
 			window.fetch = nativeFetch;
 		}
+	});
+
+	describe('a blocker whose chunk fails to load', () => {
+		const RULES = [{ category: 'measurement', domain: 'tracker.example' }];
+		/** A lazy blocker whose chunk fails until `recover()` is called. */
+		const failingBlocker = function failingBlocker() {
+			let recovered = false;
+			const loads = { count: 0 };
+			const lazyBlocker = lazyRuntimeModule(() => {
+				loads.count += 1;
+				return recovered
+					? Promise.resolve(createNetworkBlocker)
+					: Promise.reject<typeof createNetworkBlocker>(
+							new Error('chunk failed to load')
+						);
+			});
+			return {
+				createNetworkBlocker: lazyBlocker,
+				loads,
+				recover: () => {
+					recovered = true;
+				},
+			};
+		};
+		const startWith = function startWith(
+			createBlocker: ReturnType<typeof failingBlocker>['createNetworkBlocker']
+		) {
+			return createConsentProviderRuntime(
+				{
+					mode: custom(createTransport()),
+					networkBlocker: { rules: RULES as never },
+					persistence: false,
+					prefetch: RESOLVED_PREFETCH,
+				},
+				{ ...defaultRuntimeModules, createNetworkBlocker: createBlocker }
+			);
+		};
+
+		test('answers held and later matching requests as blocked, without sending them', async () => {
+			const nativeFetch = window.fetch;
+			const network = vi.fn(() => Promise.resolve(new Response('ok')));
+			window.fetch = network as unknown as typeof window.fetch;
+			try {
+				const blocker = failingBlocker();
+				const runtime = startWith(blocker.createNetworkBlocker);
+				const held = window.fetch('https://tracker.example/collect');
+				const early = settles(held);
+				runtime.start();
+				await vi.waitFor(() => {
+					expect(blocker.loads.count).toBe(1);
+				});
+				await tick();
+
+				// Settled the way the blocker answers a blocked request, not
+				// left pending for the life of the page.
+				expect(early.settled).toBe(true);
+				expect((await held).status).toBe(451);
+				const later = window.fetch('https://tracker.example/collect');
+				const late = settles(later);
+				await tick();
+				expect(late.settled).toBe(true);
+				expect((await later).status).toBe(451);
+				expect(network).not.toHaveBeenCalled();
+
+				// Requests no rule matches go out as usual.
+				await window.fetch('https://cdn.example/app.js');
+				expect(network).toHaveBeenCalledOnce();
+				runtime.dispose();
+				// Disposing ends the hold.
+				expect(window.fetch).toBe(network);
+			} finally {
+				window.fetch = nativeFetch;
+			}
+		});
+
+		test('takes over once a later load lands, when the browser is back online', async () => {
+			const nativeFetch = window.fetch;
+			const network = vi.fn(() => Promise.resolve(new Response('ok')));
+			window.fetch = network as unknown as typeof window.fetch;
+			try {
+				const blocker = failingBlocker();
+				const runtime = startWith(blocker.createNetworkBlocker);
+				runtime.start();
+				await vi.waitFor(() => {
+					expect(blocker.loads.count).toBe(1);
+				});
+				await tick();
+				await runtime.kernel.commands.save({ measurement: true });
+				// Granted, but nothing can check it: still blocked.
+				expect(
+					(await window.fetch('https://tracker.example/collect')).status
+				).toBe(451);
+
+				blocker.recover();
+				window.dispatchEvent(new Event('online'));
+				await vi.waitFor(() => {
+					expect(blocker.loads.count).toBe(2);
+				});
+				await tick();
+
+				// The blocker decides now: measurement is granted.
+				await window.fetch('https://tracker.example/collect');
+				expect(network).toHaveBeenCalledWith(
+					'https://tracker.example/collect',
+					undefined
+				);
+				runtime.dispose();
+			} finally {
+				window.fetch = nativeFetch;
+			}
+		});
 	});
 });
 

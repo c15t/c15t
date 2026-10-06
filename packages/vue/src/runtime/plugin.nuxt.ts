@@ -28,9 +28,32 @@ import {
 	pickAllowedInitHeaders,
 	provideVueConsentContext,
 } from './kernel';
-import type { RuntimeConsentConfig } from './kernel';
+import type { RuntimeConsentConfig, VueConsentKernelContext } from './kernel';
 import { isSharedNuxtRender } from './shared-render';
 import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
+
+/**
+ * Development only: after the first init, warn when the `/init` request the
+ * page's HTML started (see `server/init-prefetch.ts`) is still unused. The
+ * app asked with other inputs than the server expected, so the page sent
+ * two requests.
+ */
+const warnUnusedInitPrefetch = function warnUnusedInitPrefetch(
+	context: Pick<VueConsentKernelContext, 'kernel'>
+): void {
+	const stop = context.kernel.events.on('command:init:completed', () => {
+		stop();
+		// The key core's prefetch script stores its requests under.
+		const pending = (window as { __c15tInitialDataPromises?: object })
+			.__c15tInitialDataPromises;
+		if (pending && Object.keys(pending).length > 0) {
+			// oxlint-disable-next-line no-console -- Development-only diagnostic.
+			console.warn(
+				"[c15t] This page's HTML started an /init request that the app did not use, so it sent its own. A client plugin probably changed c15t's config for this route: set `routeRules: { '<route>': { c15t: { initPrefetch: false } } }`."
+			);
+		}
+	});
+};
 
 export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
@@ -183,6 +206,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			// No server markup to match (`ssr: false`): start now, so `/init`
 			// overlaps the mount instead of waiting for it.
 			context.start();
+		}
+		if ((import.meta as ImportMeta & { dev?: boolean }).dev) {
+			warnUnusedInitPrefetch(context);
 		}
 		// App config can change at runtime (`updateAppConfig`, HMR). The
 		// runtime applies what changed.

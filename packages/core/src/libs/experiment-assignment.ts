@@ -2,7 +2,8 @@
  * Validation and storage for one experiment in one browser.
  *
  * Loaded on demand by {@link startExperiment}, so a site without an
- * experiment never ships it. The controller hands the kernel a gate that
+ * experiment never ships it. Storing the arm is passed in rather than
+ * imported, so this chunk imports nothing the first load has. The controller hands the kernel a gate that
  * checks the arm against each policy, which releases the held prompt, and
  * remembers a c15t-picked arm under {@link EXPERIMENT_STORAGE_KEY} once the
  * banner has shown it. Nothing is written for a visitor who is never
@@ -20,7 +21,7 @@ import {
 	describeRejectedArms,
 } from './experiment-engine';
 import type { ExperimentDiagnostics } from './experiment-engine';
-import { writeStoredExperimentArm } from './experiment-storage';
+import type { writeStoredExperimentArm } from './experiment-storage';
 
 /** Options of {@link createExperimentController}. */
 export interface ExperimentControllerOptions extends StartExperimentOptions {
@@ -61,86 +62,90 @@ const policyKey = function policyKey(snapshot: ConsentSnapshot): string {
  * banner shows it, and only when c15t picked it.
  *
  * @param options - Experiment, kernel, host presentation and reporting.
+ * @param rememberArm - Stores the arm: `writeStoredExperimentArm`.
  * @returns The controller.
+ * @internal
  */
-export const createExperimentController = function createExperimentController(
-	options: ExperimentControllerOptions
-): ExperimentController {
-	const { experiment, kernel } = options;
-	const warn =
-		options.report?.warn ??
-		((message: string, diagnostics: ExperimentDiagnostics) => {
-			console.warn(message, diagnostics);
-		});
-	const error =
-		options.report?.error ??
-		((failure: Error) => {
-			console.error(failure);
-		});
+export const createExperimentControllerWith =
+	function createExperimentControllerWith(
+		options: ExperimentControllerOptions,
+		rememberArm: typeof writeStoredExperimentArm
+	): ExperimentController {
+		const { experiment, kernel } = options;
+		const warn =
+			options.report?.warn ??
+			((message: string, diagnostics: ExperimentDiagnostics) => {
+				console.warn(message, diagnostics);
+			});
+		const error =
+			options.report?.error ??
+			((failure: Error) => {
+				console.error(failure);
+			});
 
-	/** Whether each policy seen so far accepts the experiment. */
-	const acceptedByPolicy = new Map<string, boolean>();
-	const gate: ExperimentGate = (snapshot) => {
-		const key = policyKey(snapshot);
-		const known = acceptedByPolicy.get(key);
-		if (known !== undefined) {
-			return known;
-		}
-		const { policyRule } = snapshot;
-		const diagnostics = collectExperimentDiagnostics(
-			experiment,
-			policyRule,
-			options
-		);
-		let accepted = true;
-		if (Object.keys(diagnostics).length > 0) {
-			if (experiment.acknowledgeDiagnostics === true) {
-				warn(
-					`c15t experiment "${experiment.id}": running with acknowledged presentation diagnostics under policy "${policyRule.id}".`,
-					diagnostics
-				);
-			} else {
-				accepted = false;
-				error(
-					new Error(
-						`${describeRejectedArms(experiment, policyRule, diagnostics)}\nVisitors under this policy see the base presentation and are not counted.`
-					)
-				);
+		/** Whether each policy seen so far accepts the experiment. */
+		const acceptedByPolicy = new Map<string, boolean>();
+		const gate: ExperimentGate = (snapshot) => {
+			const key = policyKey(snapshot);
+			const known = acceptedByPolicy.get(key);
+			if (known !== undefined) {
+				return known;
 			}
-		}
-		acceptedByPolicy.set(key, accepted);
-		return accepted;
-	};
-
-	// The arm is already on the kernel: seeded from the host or a prefetch,
-	// or picked by `startExperiment` before `/init`.
-	const assignment: ExperimentAssignment | null =
-		kernel.getSnapshot().experiment;
-	if (!assignment) {
-		kernel.set.experiment(null);
-		return { assignment: null, dispose: () => undefined };
-	}
-
-	// Remember the arm once the banner has rendered it, so the visitor keeps
-	// seeing the banner they saw. A host arm is the host's to repeat.
-	let stored = false;
-	const unsubscribe =
-		assignment.assignedBy === 'c15t'
-			? kernel.events.on('surface:shown', (event) => {
-					if (stored || event.surface !== 'banner' || !event.experiment) {
-						return;
-					}
-					stored = true;
-					writeStoredExperimentArm(
-						{ arm: event.experiment.arm, id: event.experiment.id },
-						options.storageConfig
+			const { policyRule } = snapshot;
+			const diagnostics = collectExperimentDiagnostics(
+				experiment,
+				policyRule,
+				options
+			);
+			let accepted = true;
+			if (Object.keys(diagnostics).length > 0) {
+				if (experiment.acknowledgeDiagnostics === true) {
+					warn(
+						`c15t experiment "${experiment.id}": running with acknowledged presentation diagnostics under policy "${policyRule.id}".`,
+						diagnostics
 					);
-				})
-			: () => undefined;
+				} else {
+					accepted = false;
+					error(
+						new Error(
+							`${describeRejectedArms(experiment, policyRule, diagnostics)}\nVisitors under this policy see the base presentation and are not counted.`
+						)
+					);
+				}
+			}
+			acceptedByPolicy.set(key, accepted);
+			return accepted;
+		};
 
-	// After the listener: releasing a held prompt shows the banner in this
-	// very commit, and that impression is the one to remember.
-	kernel.set.experiment(assignment, gate);
+		// The arm is already on the kernel: seeded from the host or a prefetch,
+		// or picked by `startExperiment` before `/init`.
+		const assignment: ExperimentAssignment | null =
+			kernel.getSnapshot().experiment;
+		if (!assignment) {
+			kernel.set.experiment(null);
+			return { assignment: null, dispose: () => undefined };
+		}
 
-	return { assignment, dispose: unsubscribe };
-};
+		// Remember the arm once the banner has rendered it, so the visitor keeps
+		// seeing the banner they saw. A host arm is the host's to repeat.
+		let stored = false;
+		const unsubscribe =
+			assignment.assignedBy === 'c15t'
+				? kernel.events.on('surface:shown', (event) => {
+						if (stored || event.surface !== 'banner' || !event.experiment) {
+							return;
+						}
+						stored = true;
+						rememberArm(
+							{ arm: event.experiment.arm, id: event.experiment.id },
+							options.storageConfig
+						);
+					})
+				: () => undefined;
+
+		// After the listener: releasing a held prompt shows the banner in this
+		// very commit, and that impression is the one to remember.
+		kernel.set.experiment(assignment, gate);
+
+		return { assignment, dispose: unsubscribe };
+	};

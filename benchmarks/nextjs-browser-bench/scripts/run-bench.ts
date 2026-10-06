@@ -8,16 +8,16 @@ import { fileURLToPath } from 'node:url';
 
 import type {
 	BenchPerfMetrics,
-	BenchScriptResourceMetrics,
 	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
-	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { nextjsBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
@@ -29,7 +29,17 @@ import {
 } from '@c15t/benchmarking/html-stream';
 import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
-import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type {
+	BenchmarkResult,
+	MetricSampleSet,
+} from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -102,11 +112,7 @@ const warmupIterations = Number(
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ??
-		readCliFlag('--init-latency') ??
-		process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 const coldManifestMode =
@@ -135,21 +141,35 @@ const savedConsentScenario = {
 	path: '/manifest-ssr',
 } as const satisfies FreshScenario;
 
+/**
+ * The quickstart install with three consent-gated vendors through
+ * `@c15t/integrations`. One selection runs its first visit plus the two
+ * returning visits that follow it.
+ */
+const typicalInstallScenario = {
+	name: 'typical-install',
+	path: '/typical-install',
+} as const;
+
 const scenarios = scenarioFilter
 	? allScenarios.filter((scenario) => scenario.name === scenarioFilter)
 	: allScenarios;
 const selectedSavedVisits = scenarioFilter
 	? savedConsentVisits.filter((visit) => visit.name === scenarioFilter)
 	: savedConsentVisits;
+const runTypicalInstall =
+	!scenarioFilter || scenarioFilter === typicalInstallScenario.name;
 
 if (
 	scenarioFilter &&
 	scenarios.length === 0 &&
-	selectedSavedVisits.length === 0
+	selectedSavedVisits.length === 0 &&
+	!runTypicalInstall
 ) {
 	throw new Error(
 		`Unsupported scenario "${scenarioFilter}". Expected ${[
 			...allScenarios.map((scenario) => scenario.name),
+			typicalInstallScenario.name,
 			...savedConsentVisits.map((visit) => visit.name),
 		].join(', ')}.`
 	);
@@ -157,7 +177,11 @@ if (
 
 const measureInteractionLatency = async function measureInteractionLatency(
 	page: PlaywrightTypes.Page,
-	scenario: FreshScenario['name'] | 'saved-consent' | 'ssr-repeat'
+	scenario:
+		| FreshScenario['name']
+		| typeof typicalInstallScenario.name
+		| 'saved-consent'
+		| 'ssr-repeat'
 ) {
 	if (scenario === 'baseline') {
 		const startedAt = performance.now();
@@ -286,11 +310,10 @@ const applyPageProfile = async function applyPageProfile(
 const resultScenarioName = function resultScenarioName(
 	scenario: string
 ): string {
-	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return scenario;
-	}
-
-	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return benchScenarioKey(scenario, {
+		backendLatencyMs,
+		profile: throttleProfile,
+	});
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -426,9 +449,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = (await page.evaluate(
-		benchScriptResourceExpression
-	)) as BenchScriptResourceMetrics | null;
+	const scriptEntry = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-or-module-url'
+	);
 	const performanceObserverInfo = (await page.evaluate(
 		benchPerfMetricsExpression
 	)) as BenchPerfMetrics;
@@ -471,6 +495,8 @@ type NextjsBrowserSample = Omit<
 > & {
 	scenario?: string;
 	interactionLatencyMs?: number;
+	/** Vendor script and JS-weight metrics of the typical-install visits. */
+	typicalInstall?: Record<string, number | null>;
 };
 
 interface BenchConsentFixtureCounts {
@@ -540,6 +566,220 @@ const freshColdState = function freshColdState(
 	});
 };
 
+/** The stand-in vendor scripts the typical-install arm registers. */
+const typicalVendors = [
+	{ key: 'gtag', metric: 'gtag', path: '/bench-vendor/gtag.js' },
+	{ key: 'meta-pixel', metric: 'metaPixel', path: '/bench-vendor/fbevents.js' },
+	{
+		key: 'tiktok-pixel',
+		metric: 'tiktokPixel',
+		path: '/bench-vendor/tiktok-events.js',
+	},
+] as const;
+
+/** Vendors that wait for marketing consent; gtag loads on every visit. */
+const consentGatedVendors = typicalVendors.filter(
+	(vendor) => vendor.key !== 'gtag'
+);
+
+const typicalInstallGlossary = [
+	'typical-install: the Next.js quickstart (ConsentRoot with config, streamed resolveConsent over the cached manifest, stock banner and dialog) plus gtag, Meta Pixel and TikTok Pixel from @c15t/integrations, each pointed at a local stand-in script.',
+	'<vendor>StartMs / <vendor>ExecutedMs: navigation start to the stand-in request starting (resource timing) and to it running. consentTo<Vendor>StartMs / ExecutedMs: from the accept click instead.',
+	'scriptsStartedMs / scriptsExecutedMs: the last vendor to start or run (consentToScripts* on the first visit covers the two marketing vendors). firstPartyJs*ByIdle: scripts other than the stand-ins once no script request started for 1 s after load (idle preloads included); firstPartyJs*AtLoad: those that started before the load event.',
+	'typical-install-repeat reloads in the context that accepted (warm HTTP cache); typical-install-returning opens a new context with its cookies and localStorage (cold HTTP cache).',
+] as const;
+
+const typicalInstallMetricNames = function typicalInstallMetricNames(
+	samples: readonly NextjsBrowserSample[]
+): string[] {
+	return [
+		...new Set(
+			samples.flatMap((sample) => Object.keys(sample.typicalInstall ?? {}))
+		),
+	].sort();
+};
+
+const typicalInstallMetricUnit = function typicalInstallMetricUnit(
+	name: string
+): MetricSampleSet['unit'] {
+	if (name.endsWith('Bytes')) {
+		return 'bytes';
+	}
+	return name.endsWith('Files') ? 'count' : 'ms';
+};
+
+interface TypicalVendorRead {
+	acceptClickMs: number | null;
+	loadEventStartMs: number | null;
+	vendors: Record<
+		string,
+		{ startMs: number | null; executedMs: number | null }
+	>;
+	firstParty: { startMs: number; bytes: number }[];
+}
+
+/**
+ * Page-context read of the stand-in vendors and first-party scripts. A
+ * string, like `benchScriptTimingExpression`, so the transpiler cannot wrap
+ * it.
+ */
+const typicalVendorReadExpression = `(() => {
+	const vendorPaths = ${JSON.stringify(Object.fromEntries(typicalVendors.map((vendor) => [vendor.key, vendor.path])))};
+	const pathOf = (name) => { try { return new URL(name).pathname; } catch { return ''; } };
+	const entries = performance.getEntriesByType('resource');
+	const ran = window.__c15tBenchVendors || {};
+	const vendors = {};
+	for (const [key, path] of Object.entries(vendorPaths)) {
+		const entry = entries.find((candidate) => pathOf(candidate.name) === path);
+		vendors[key] = {
+			startMs: entry ? entry.startTime : null,
+			executedMs: typeof ran[key] === 'number' ? ran[key] : null,
+		};
+	}
+	const firstParty = entries
+		.filter((entry) => entry.initiatorType === 'script' || /\\.m?js$/u.test(pathOf(entry.name)))
+		.filter((entry) => !pathOf(entry.name).startsWith('/bench-vendor/'))
+		.map((entry) => ({ startMs: entry.startTime, bytes: entry.transferSize || entry.encodedBodySize }));
+	const nav = performance.getEntriesByType('navigation')[0];
+	return {
+		acceptClickMs: typeof window.__c15tBenchAcceptClickMs === 'number' ? window.__c15tBenchAcceptClickMs : null,
+		loadEventStartMs: nav && nav.loadEventStart > 0 ? nav.loadEventStart : null,
+		vendors,
+		firstParty,
+	};
+})()`;
+
+/** Records when the accept button was pressed, before any handler runs. */
+const acceptClickRecorderScript = `document.addEventListener('click', (event) => {
+	if (event.target instanceof Element && event.target.closest('[data-testid="consent-banner-accept-button"]')) {
+		window.__c15tBenchAcceptClickMs ??= performance.now();
+	}
+}, true);`;
+
+/** Resolves once no script request started for `quietMs`, up to 10 s. */
+const scriptQuietExpression = (quietMs: number) => `new Promise((resolve) => {
+	const count = () => performance.getEntriesByType('resource').length;
+	let last = count();
+	let quietSince = performance.now();
+	const startedAt = performance.now();
+	const tick = () => {
+		const now = performance.now();
+		const current = count();
+		if (current !== last) { last = current; quietSince = now; }
+		if (now - quietSince >= ${quietMs} || now - startedAt >= 10000) { resolve(true); return; }
+		requestIdleCallback(() => setTimeout(tick, 50), { timeout: 250 });
+	};
+	tick();
+})`;
+
+const readTypicalVendors = async function readTypicalVendors(
+	page: PlaywrightTypes.Page
+): Promise<TypicalVendorRead> {
+	return (await page.evaluate(
+		typicalVendorReadExpression
+	)) as TypicalVendorRead;
+};
+
+const waitForVendors = async function waitForVendors(
+	page: PlaywrightTypes.Page,
+	keys: readonly string[]
+) {
+	await page.waitForFunction(
+		(names) =>
+			names.every(
+				(name) =>
+					typeof (
+						window as unknown as {
+							__c15tBenchVendors?: Record<string, number>;
+						}
+					).__c15tBenchVendors?.[name] === 'number'
+			),
+		keys,
+		{ timeout: 30_000 }
+	);
+};
+
+const maxOf = function maxOf(values: (number | null)[]): number | null {
+	return values.some((value) => value === null)
+		? null
+		: Math.max(...(values as number[]));
+};
+
+/** Returning visit: every vendor timed from navigation start. */
+const returningVendorMetrics = function returningVendorMetrics(
+	read: TypicalVendorRead
+): Record<string, number | null> {
+	const metrics: Record<string, number | null> = {};
+	for (const vendor of typicalVendors) {
+		const timing = read.vendors[vendor.key];
+		metrics[`${vendor.metric}StartMs`] = timing?.startMs ?? null;
+		metrics[`${vendor.metric}ExecutedMs`] = timing?.executedMs ?? null;
+	}
+	metrics.scriptsStartedMs = maxOf(
+		typicalVendors.map((vendor) => read.vendors[vendor.key]?.startMs ?? null)
+	);
+	metrics.scriptsExecutedMs = maxOf(
+		typicalVendors.map((vendor) => read.vendors[vendor.key]?.executedMs ?? null)
+	);
+	return metrics;
+};
+
+const capitalize = (value: string) =>
+	`${value.charAt(0).toUpperCase()}${value.slice(1)}`;
+
+/**
+ * First visit: gtag from navigation start, the marketing vendors from the
+ * accept click, and the first-party JS the page downloaded by idle.
+ */
+const firstVisitVendorMetrics = function firstVisitVendorMetrics(
+	beforeAccept: TypicalVendorRead,
+	afterAccept: TypicalVendorRead
+): Record<string, number | null> {
+	const click = afterAccept.acceptClickMs;
+	const sinceClick = (value: number | null | undefined) =>
+		value === null || value === undefined || click === null
+			? null
+			: value - click;
+	const metrics: Record<string, number | null> = {
+		gtagExecutedMs: afterAccept.vendors.gtag?.executedMs ?? null,
+		gtagStartMs: afterAccept.vendors.gtag?.startMs ?? null,
+	};
+	for (const vendor of consentGatedVendors) {
+		const timing = afterAccept.vendors[vendor.key];
+		metrics[`consentTo${capitalize(vendor.metric)}StartMs`] = sinceClick(
+			timing?.startMs
+		);
+		metrics[`consentTo${capitalize(vendor.metric)}ExecutedMs`] = sinceClick(
+			timing?.executedMs
+		);
+	}
+	metrics.consentToScriptsStartedMs = maxOf(
+		consentGatedVendors.map((vendor) =>
+			sinceClick(afterAccept.vendors[vendor.key]?.startMs)
+		)
+	);
+	metrics.consentToScriptsExecutedMs = maxOf(
+		consentGatedVendors.map((vendor) =>
+			sinceClick(afterAccept.vendors[vendor.key]?.executedMs)
+		)
+	);
+	const loadAt = beforeAccept.loadEventStartMs;
+	const atLoad = beforeAccept.firstParty.filter(
+		(entry) => loadAt !== null && entry.startMs <= loadAt
+	);
+	metrics.firstPartyJsFilesAtLoad = atLoad.length;
+	metrics.firstPartyJsBytesAtLoad = atLoad.reduce(
+		(sum, entry) => sum + entry.bytes,
+		0
+	);
+	metrics.firstPartyJsFilesByIdle = beforeAccept.firstParty.length;
+	metrics.firstPartyJsBytesByIdle = beforeAccept.firstParty.reduce(
+		(sum, entry) => sum + entry.bytes,
+		0
+	);
+	return metrics;
+};
+
 interface ScenarioResultInput {
 	scenario: string;
 	visit: BenchVisitKind;
@@ -572,6 +812,7 @@ const writeScenarioResult = function writeScenarioResult(
 		metadata: {
 			...serverHtmlMetadata(serverHtml),
 			...coldStateMetadata(input.coldState),
+			backendLatencyMs,
 			bannerPaintMs: nullableMedian(
 				groupedSamples.map((sample) => sample.bannerPaintMs)
 			),
@@ -586,7 +827,6 @@ const writeScenarioResult = function writeScenarioResult(
 			fixtureManifestExecutions: fixtureCounts.manifest,
 			fixtureSubjectExecutions: fixtureCounts.subjects,
 			gitDirty: safeGitDirty(),
-			initLatencyMs,
 			profile: throttleProfile,
 			visit: input.visit,
 		},
@@ -628,6 +868,7 @@ const writeScenarioResult = function writeScenarioResult(
 				'count',
 				groupedSamples.map((sample) => sample.appScriptCount ?? 0)
 			),
+			...summarizeIdlePreloadMetrics(groupedSamples),
 			summarizeMetric(
 				'jsBytes',
 				'bytes',
@@ -728,12 +969,23 @@ const writeScenarioResult = function writeScenarioResult(
 				'ms',
 				groupedSamples.map((sample) => sample.promptSettledMs ?? null)
 			),
+			...typicalInstallMetricNames(groupedSamples).map((name) =>
+				summarizeNullableMetric(
+					name,
+					typicalInstallMetricUnit(name),
+					groupedSamples.map((sample) => sample.typicalInstall?.[name] ?? null)
+				)
+			),
 		],
 		notes: [
-			'Next.js browser bench covers client, manifest, SSR, persisted ssr-repeat, and saved-consent (accept and reject) paths.',
+			'Next.js browser bench covers client, manifest, SSR, persisted ssr-repeat, saved-consent (accept and reject) and typical-install paths.',
+			...(input.scenario.startsWith(typicalInstallScenario.name)
+				? typicalInstallGlossary
+				: []),
 			'consoleErrorCount counts console errors and page errors captured until the prompt settled; consoleWarningCount counts warnings; hydrationWarningCount is the subset of either matching React hydration messages.',
 			`Visit: ${input.visit}. Cold state: ${input.coldState.setup}.`,
 			...visitMetricGlossary,
+			...scriptTimingGlossary,
 		],
 		package: '@c15t/nextjs-browser-bench',
 		runtime: 'playwright',
@@ -981,12 +1233,164 @@ const runSavedConsentVisit = async function runSavedConsentVisit(
 	});
 };
 
+/**
+ * Typical install. Each iteration is a first visit (banner, gtag, idle JS
+ * weight, then accept-all and the two marketing vendors), a reload in the
+ * same context (warm cache) and a new context with the stored choice
+ * (cold cache). The returning visits wait for all three vendors to run.
+ */
+const runTypicalInstallScenario = async function runTypicalInstallScenario(
+	browser: PlaywrightTypes.Browser
+) {
+	const { name, path } = typicalInstallScenario;
+	const fresh: NextjsBrowserSample[] = [];
+	const repeat: NextjsBrowserSample[] = [];
+	const returning: NextjsBrowserSample[] = [];
+	let lastCookie: string | undefined;
+	const allVendorKeys = typicalVendors.map((vendor) => vendor.key);
+	await resetFixtureCounts();
+	for (let index = 0; index < warmupIterations + iterations; index += 1) {
+		const measured = index >= warmupIterations;
+		// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+		const context = await browser.newContext({ baseURL: BASE_URL });
+		let storageState: Awaited<ReturnType<typeof context.storageState>>;
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const page = await context.newPage();
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await applyPageProfile(context, page);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await page.addInitScript(acceptClickRecorderScript);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const metrics = await collectScenarioMetrics(page, name, path);
+			assertSampleBannerState(metrics, name, 'fresh');
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await waitForVendors(page, ['gtag']);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await page.evaluate(scriptQuietExpression(1000));
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const beforeAccept = await readTypicalVendors(page);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const interactionLatencyMs = await measureInteractionLatency(page, name);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await waitForVendors(page, allVendorKeys);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const afterAccept = await readTypicalVendors(page);
+			if (measured) {
+				fresh.push({
+					...metrics,
+					interactionLatencyMs,
+					scenario: name,
+					typicalInstall: firstVisitVendorMetrics(beforeAccept, afterAccept),
+				});
+			}
+
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await waitForConsentCookie(page);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			storageState = await context.storageState();
+			lastCookie = toCookieHeader(storageState.cookies);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const repeatMetrics = await collectScenarioMetrics(
+				page,
+				name,
+				path,
+				'settled'
+			);
+			assertSampleBannerState(repeatMetrics, `${name}-repeat`, 'saved-accept');
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await waitForVendors(page, allVendorKeys);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const repeatRead = await readTypicalVendors(page);
+			if (measured) {
+				repeat.push({
+					...repeatMetrics,
+					scenario: `${name}-repeat`,
+					typicalInstall: returningVendorMetrics(repeatRead),
+				});
+			}
+		} finally {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await context.close();
+		}
+
+		// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+		const returningContext = await browser.newContext({
+			baseURL: BASE_URL,
+			storageState,
+		});
+		try {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const page = await returningContext.newPage();
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await applyPageProfile(returningContext, page);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const metrics = await collectScenarioMetrics(page, name, path, 'settled');
+			assertSampleBannerState(metrics, `${name}-returning`, 'saved-accept');
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await waitForVendors(page, allVendorKeys);
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			const read = await readTypicalVendors(page);
+			if (measured) {
+				returning.push({
+					...metrics,
+					scenario: `${name}-returning`,
+					typicalInstall: returningVendorMetrics(read),
+				});
+			}
+		} finally {
+			// oxlint-disable-next-line no-await-in-loop -- Samples run sequentially.
+			await returningContext.close();
+		}
+	}
+	const fixtureCounts = await readFixtureCounts();
+	writeScenarioResult({
+		browserVersion: browser.version(),
+		coldState: describeColdState({
+			freshBrowserContext: true,
+			usesManifestCache: true,
+		}),
+		fixtureCounts,
+		samples: fresh,
+		scenario: name,
+		serverHtml: await readServerHtml(path, undefined),
+		visit: 'fresh',
+	});
+	const returningServerHtml = await readServerHtml(path, lastCookie);
+	writeScenarioResult({
+		browserVersion: browser.version(),
+		coldState: describeColdState({
+			freshBrowserContext: false,
+			note: 'reload in the context that accepted, so the stored choice and the HTTP cache both carry over',
+			usesManifestCache: true,
+		}),
+		fixtureCounts,
+		samples: repeat,
+		scenario: `${name}-repeat`,
+		serverHtml: returningServerHtml,
+		visit: 'saved-accept',
+	});
+	writeScenarioResult({
+		browserVersion: browser.version(),
+		coldState: describeColdState({
+			freshBrowserContext: true,
+			note: 'cookies and localStorage carried over from the accepting visit; cold HTTP cache',
+			usesManifestCache: true,
+		}),
+		fixtureCounts,
+		samples: returning,
+		scenario: `${name}-returning`,
+		serverHtml: returningServerHtml,
+		visit: 'saved-accept',
+	});
+};
+
 const run = async function run() {
 	await ensureBuild();
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
-		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+		[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 	};
 	if (coldManifestMode) {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());
@@ -1018,6 +1422,9 @@ const run = async function run() {
 		for (const scenario of scenarios) {
 			// oxlint-disable-next-line no-await-in-loop -- Scenarios run sequentially.
 			await runFreshScenario(browser, scenario);
+		}
+		if (runTypicalInstall) {
+			await runTypicalInstallScenario(browser);
 		}
 		for (const visit of selectedSavedVisits) {
 			// oxlint-disable-next-line no-await-in-loop -- Scenarios run sequentially.

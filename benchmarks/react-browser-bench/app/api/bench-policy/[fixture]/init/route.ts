@@ -1,7 +1,6 @@
-import { setTimeout as sleep } from 'node:timers/promises';
-
 import { NextResponse } from 'next/server';
 
+import { applyBenchBackendLatency } from '../../../bench-latency';
 import {
 	isPolicyBenchFixtureName,
 	resolvePolicyBenchInit,
@@ -24,10 +23,7 @@ export const GET = async function GET(
 			{ status: 404 }
 		);
 	}
-	const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
-	if (Number.isFinite(latencyMs) && latencyMs > 0) {
-		await sleep(latencyMs);
-	}
+	await applyBenchBackendLatency();
 	const init = await resolvePolicyBenchInit(fixture);
 	return NextResponse.json(init, {
 		headers: {

@@ -863,6 +863,21 @@ export interface ConsentKernel {
 	markLive: (at?: number) => void;
 
 	/**
+	 * Keep save requests from leaving until `until` settles, whether it
+	 * resolves or rejects. A request that already left is not held.
+	 *
+	 * A recorded choice is stored before its save request leaves: a writer
+	 * that stores it from a `choice:recorded` listener in the next macrotask
+	 * needs nothing, since the request waits that long anyway. Persistence
+	 * calls this from the listener while its write code is still loading,
+	 * with the promise of the write, so the first save after page load is
+	 * stored before it is sent too.
+	 *
+	 * @internal
+	 */
+	holdSaves: (until: Promise<unknown>) => void;
+
+	/**
 	 * Re-evaluate at `now` (default `Date.now()`). Gates call this before a
 	 * time-sensitive decision so an elapsed expiry cannot hide behind a
 	 * delayed timer. Advances the snapshot only when something changed.

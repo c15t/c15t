@@ -6,6 +6,7 @@ import {
 	addImports,
 	addPlugin,
 	addServerHandler,
+	addServerPlugin,
 	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
@@ -15,6 +16,7 @@ import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
 import type { C15tNuxtConfig, ModuleOptions } from './nuxt-options';
+import { stopPrefetchingConsentChunks } from './prefetch';
 import {
 	DEVTOOLS_ICON_ROUTE,
 	DEVTOOLS_PAGE_ROUTE,
@@ -92,6 +94,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 	defaults: () => ({
 		...defaultConsentConfig,
 		devtools: true,
+		initPrefetch: true,
 		initRoute: resolveNuxtInitRoute({}),
 		manifest: false,
 		manifestRoute: resolveNuxtManifestRoute({}),
@@ -100,7 +103,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		configKey: 'c15t',
 		name: '@c15t/vue',
 	},
-	setup({ devtools, ...options }, nuxt) {
+	setup({ devtools, initPrefetch, ...options }, nuxt) {
 		// Nuxt merges module options with `defu`, which skips `null`, so a
 		// `colorScheme: null` under the `c15t` key would arrive unset and
 		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to
@@ -128,6 +131,9 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				initRoute,
 				manifestRoute,
 				manifestURL: options.manifestURL,
+				// The `/init` script reads it: with `ssr: false` for the whole
+				// app, every page is a shell.
+				ssr: nuxt.options.ssr !== false,
 			}
 		);
 
@@ -217,7 +223,39 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			);
 		}
 
+		// Type the `c15t` key of a route rule, in `nuxt.config.ts` (node), in
+		// pages (`defineRouteRules`) and in Nitro.
+		addTypeTemplate(
+			{
+				filename: 'types/c15t-route-rules.d.ts',
+				getContents: () =>
+					[
+						"declare module 'nitropack/types' {",
+						'\tinterface NitroRouteConfig {',
+						'\t\t/** c15t options for the routes this rule matches. */',
+						'\t\tc15t?: {',
+						'\t\t\t/**',
+						'\t\t\t * `false` writes no early `/init` script into the HTML of an',
+						'\t\t\t * `ssr: false` route.',
+						'\t\t\t */',
+						'\t\t\tinitPrefetch?: boolean;',
+						'\t\t};',
+						'\t}',
+						'}',
+						'',
+						'export {};',
+						'',
+					].join('\n'),
+			},
+			{ nitro: true, node: true, nuxt: true }
+		);
+
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		if (initPrefetch !== false) {
+			// Starts `/init` from the HTML of `ssr: false` pages, before the
+			// app's JavaScript loads.
+			addServerPlugin(resolver.resolve('./runtime/server/init-prefetch.nuxt'));
+		}
 		if (manifestMode === 'client') {
 			// Resolves the manifest in the browser at startup: bundle the
 			// resolver with the entry so it preloads with the page.
@@ -226,6 +264,13 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				src: resolver.resolve('./runtime/plugin-client-manifest.nuxt'),
 			});
 		}
+
+		// c15t loads what a page needs when it needs it; Nuxt would prefetch
+		// every lazy c15t chunk on every page, and each finished download
+		// queues main-thread work in front of the banner.
+		nuxt.hook('build:manifest', (manifest) => {
+			stopPrefetchingConsentChunks(manifest, nuxt.options.srcDir);
+		});
 
 		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {
 			addDevToolsTab(nuxt, (path) => resolver.resolve(path));

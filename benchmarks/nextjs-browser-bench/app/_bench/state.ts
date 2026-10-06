@@ -7,7 +7,8 @@ export type NextjsBenchScenario =
 	| 'client'
 	| 'manifest-client'
 	| 'manifest-ssr'
-	| 'ssr';
+	| 'ssr'
+	| 'typical-install';
 
 export interface NextjsBenchState {
 	scenario: NextjsBenchScenario;

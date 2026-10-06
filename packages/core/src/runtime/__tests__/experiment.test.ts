@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import type { ConsentExperiment } from '../../libs/experiment';
 import { EXPERIMENT_STORAGE_KEY } from '../../libs/storage-keys';
-import { clearStoredConsentRecords } from '../../modules/persistence/record-storage';
+import { clearStoredConsentRecords } from '../../modules/persistence/__tests__/record-writes';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport, SavePayload } from '../../types';

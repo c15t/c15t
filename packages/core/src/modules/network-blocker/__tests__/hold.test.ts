@@ -286,6 +286,64 @@ describe('several callers holding at once', () => {
 		expect(XMLHttpRequest.prototype.send).toBe(originalSend);
 	});
 
+	test('a failed caller answers what its rules match as blocked, held or new, and nothing else', async () => {
+		const first = holdNetworkRequests(rules);
+		const second = holdNetworkRequests(otherRules);
+		const tracker = window.fetch('https://tracker.example/collect');
+		let adsSettled = false;
+		const ads = window.fetch('https://ads.example/pixel').finally(() => {
+			adsSettled = true;
+		});
+
+		// The first caller's blocker could not load.
+		first.fail();
+
+		const response = await tracker;
+		expect(response.status).toBe(451);
+		expect(response.statusText).toBe('Request blocked by consent');
+		// Later requests are answered at once, not held.
+		expect((await window.fetch('https://tracker.example/later')).status).toBe(
+			451
+		);
+		const xhr = new XMLHttpRequest();
+		const onError = vi.fn();
+		xhr.addEventListener('error', onError);
+		xhr.open('POST', 'https://tracker.example/collect');
+		xhr.send();
+		expect(onError).toHaveBeenCalledOnce();
+		const sync = new XMLHttpRequest();
+		sync.open('GET', 'https://tracker.example/collect', false);
+		expect(() => sync.send()).toThrow('Request blocked by consent');
+		// The other caller still holds; unmatched requests still go out.
+		await flush();
+		expect(adsSettled).toBe(false);
+		expect(first.held).toBe(true);
+		await window.fetch('https://cdn.example/app.js');
+		expect(original).toHaveBeenCalledOnce();
+		expect(originalSend).not.toHaveBeenCalled();
+
+		second.release()();
+		expect((await ads).status).toBe(200);
+	});
+
+	test('a blocker that loads after its caller failed takes the hold over', async () => {
+		const hold = holdNetworkRequests(rules);
+		hold.fail();
+		expect((await window.fetch('https://tracker.example/collect')).status).toBe(
+			451
+		);
+
+		const kernel = createConsentKernel();
+		await kernel.commands.save({ measurement: true });
+		blocker = createNetworkBlocker({ hold, kernel, rules });
+
+		expect(hold.held).toBe(false);
+		expect((await window.fetch('https://tracker.example/collect')).status).toBe(
+			200
+		);
+		expect(original).toHaveBeenCalledOnce();
+	});
+
 	test('releasing after the blocker took over does nothing', async () => {
 		const hold = holdNetworkRequests(rules);
 		blocker = createNetworkBlocker({

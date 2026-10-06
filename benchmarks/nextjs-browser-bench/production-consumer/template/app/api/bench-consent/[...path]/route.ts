@@ -5,7 +5,8 @@ import manifest from '../../../../fixture/manifest.json';
 
 /**
  * Deterministic consent backend for the production consumer. The harness
- * writes the fixture JSON before building. `GET stats` reads how often the
+ * writes the fixture JSON before building. Every endpoint except `stats` answers
+ * after `C15T_BENCH_BACKEND_LATENCY_MS`. `GET stats` reads how often the
  * SDK reached this origin; `POST stats` resets the counts.
  */
 interface FixtureCounts {
@@ -30,7 +31,7 @@ const counts = (): FixtureCounts => {
 };
 
 const applyLatency = async () => {
-	const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
+	const latencyMs = Number(process.env.C15T_BENCH_BACKEND_LATENCY_MS ?? '0');
 	if (Number.isFinite(latencyMs) && latencyMs > 0) {
 		await sleep(latencyMs);
 	}
@@ -71,6 +72,7 @@ export const POST = async (request: Request, context: RouteContext) => {
 	const endpoint = (await context.params).path.join('/');
 	if (endpoint === 'subjects') {
 		counts().subjects += 1;
+		await applyLatency();
 		const body = (await request.json().catch(() => ({}))) as {
 			subjectId?: string;
 		};
@@ -81,6 +83,7 @@ export const POST = async (request: Request, context: RouteContext) => {
 	}
 	if (endpoint === 'sessions') {
 		counts().sessions += 1;
+		await applyLatency();
 		return new Response(null, { status: 204 });
 	}
 	if (endpoint === 'stats') {

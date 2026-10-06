@@ -50,10 +50,8 @@ import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { vi } from 'vitest';
 
-import {
-	encodeStoredConsentEnvelopeJson,
-	validateStoredConsentEnvelope,
-} from '../../../core/src/modules/persistence/record-codec';
+import { validateStoredConsentEnvelope } from '../../../core/src/modules/persistence/record-codec';
+import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';

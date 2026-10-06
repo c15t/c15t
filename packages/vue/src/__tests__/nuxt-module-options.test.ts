@@ -21,7 +21,10 @@ beforeAll(async () => {
 }, 30_000);
 
 /** The parts of a Nuxt instance the module's setup touches. */
-const createNuxt = function createNuxt(c15t: Record<string, unknown>): Nuxt {
+const createNuxt = function createNuxt(
+	c15t: Record<string, unknown>,
+	ssr = true
+): Nuxt {
 	return {
 		hook: () => () => undefined,
 		hooks: { addHooks: () => undefined, hook: () => () => undefined },
@@ -33,11 +36,13 @@ const createNuxt = function createNuxt(c15t: Record<string, unknown>): Nuxt {
 			c15t,
 			experimental: {},
 			imports: {},
+			nitro: {},
 			plugins: [],
 			rootDir: '/virtual',
 			runtimeConfig: { public: {} },
 			serverHandlers: [],
 			srcDir: '/virtual',
+			ssr,
 			vite: {},
 		},
 	} as unknown as Nuxt;
@@ -71,5 +76,48 @@ describe('colorScheme from the c15t config key', () => {
 	test('leaves it unset when the config does not set it', async () => {
 		const config = await publicConfig({ backendURL: '/api/c15t' });
 		expect(config.colorScheme).toBeUndefined();
+	});
+});
+
+describe('the early /init script for ssr: false pages', () => {
+	const setUp = async function setUp(
+		c15t: Record<string, unknown>,
+		ssr?: boolean
+	) {
+		const nuxt = createNuxt(c15t, ssr);
+		await runWithNuxtContext(nuxt, () => module({}, nuxt));
+		const { nitro, runtimeConfig } = nuxt.options as unknown as {
+			nitro: { plugins?: string[] };
+			runtimeConfig: { c15t: { ssr: boolean } };
+		};
+		return {
+			plugins: nitro.plugins ?? [],
+			ssr: runtimeConfig.c15t.ssr,
+		};
+	};
+
+	test('is on by default', async () => {
+		const { plugins } = await setUp({ backendURL: '/api/c15t' });
+		expect(plugins.some((path) => path.includes('init-prefetch.nuxt'))).toBe(
+			true
+		);
+	});
+
+	test('initPrefetch: false registers nothing on the server', async () => {
+		const { plugins } = await setUp({
+			backendURL: '/api/c15t',
+			initPrefetch: false,
+		});
+		expect(plugins.some((path) => path.includes('init-prefetch'))).toBe(false);
+	});
+
+	test("tells the server plugin about the app's ssr option", async () => {
+		expect((await setUp({}, false)).ssr).toBe(false);
+		expect((await setUp({})).ssr).toBe(true);
+	});
+
+	test('stays out of the runtime config the browser receives', async () => {
+		const config = await publicConfig({ initPrefetch: false });
+		expect(config).not.toHaveProperty('initPrefetch');
 	});
 });

@@ -20,17 +20,18 @@ import {
 import {
 	decodeVendorChoice,
 	decodeVendorChoiceCompact,
-	encodeVendorChoice,
-	encodeVendorChoiceCompact,
-	encodeStoredConsentEnvelopeCompact,
 	validateStoredConsentEnvelope,
 } from '../record-codec';
+import { readStoredVendorChoice, resolveStorageKeys } from '../record-storage';
+import {
+	encodeStoredConsentEnvelopeCompact,
+	encodeVendorChoice,
+	encodeVendorChoiceCompact,
+} from '../writer/encode';
 import {
 	clearStoredConsentRecords,
-	readStoredVendorChoice,
-	resolveStorageKeys,
 	writeStoredVendorChoice,
-} from '../record-storage';
+} from './record-writes';
 
 const clearAll = () => {
 	window.localStorage.clear();

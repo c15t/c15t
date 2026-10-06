@@ -28,7 +28,10 @@ const config = {
 	routeRules: {
 		'/baseline-client': { ssr: false },
 		'/client': { ssr: false },
-		'/client-manifest': { ssr: false },
+		// The route plugin switches this page to client manifest mode in the
+		// browser, which the server cannot see, so its HTML must not start
+		// the hosted `/init` request.
+		'/client-manifest': { c15t: { initPrefetch: false }, ssr: false },
 	},
 	runtimeConfig: {
 		public: {

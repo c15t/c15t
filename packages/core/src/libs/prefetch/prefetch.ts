@@ -268,9 +268,12 @@ export const buildPrefetchScript = function buildPrefetchScript(
 
 	const json = JSON.stringify(payload).replace(/</gu, '\\u003c');
 
+	// Server bundlers rewrite `typeof window` as text, inside strings too
+	// (Nitro's replace plugin turns it into `"undefined"`), which would make
+	// this script return at once. Read it off `globalThis` instead.
 	return `(() => {
   const mapKey = '${WINDOW_PROMISES_KEY}';
-  if (typeof window === 'undefined') {
+  if (typeof globalThis.window === 'undefined') {
     return;
   }
   const payload = ${json};

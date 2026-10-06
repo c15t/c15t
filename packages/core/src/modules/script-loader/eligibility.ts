@@ -9,13 +9,11 @@
  */
 
 import type { ConsentSnapshot } from '../../types';
-import {
-	deniedVendorIds,
-	evaluateConsent,
-	getEffectiveGateState,
-	has,
-} from '../has';
-import type { NormalizedScript, ReconcilePass } from './types';
+import type {
+	NormalizedScript,
+	ReconcilePass,
+	ScriptLoaderTools,
+} from './types';
 
 /**
  * Build the per-pass eligibility context from a snapshot. The kernel snapshot
@@ -23,14 +21,16 @@ import type { NormalizedScript, ReconcilePass } from './types';
  * policy scope here.
  */
 export const buildReconcilePass = function buildReconcilePass(
-	snapshot: ConsentSnapshot
+	snapshot: ConsentSnapshot,
+	tools: ScriptLoaderTools
 ): ReconcilePass {
 	return {
-		consents: getEffectiveGateState(snapshot).effectivePermissions,
+		consents: tools.gateState(snapshot).effectivePermissions,
 		iab: snapshot.iab,
 		isIabMode: snapshot.model === 'iab',
 		snapshot,
-		vendorDenied: deniedVendorIds(snapshot),
+		tools,
+		vendorDenied: tools.deniedVendors(snapshot),
 	};
 };
 
@@ -59,7 +59,7 @@ export const hasScriptConsent = function hasScriptConsent(
 	const { script } = entry;
 
 	if (entry.hasIabMeta) {
-		return evaluateConsent(script, pass.snapshot);
+		return pass.tools.evaluate(script, pass.snapshot);
 	}
 
 	if (entry.simpleCategory) {
@@ -74,7 +74,9 @@ export const hasScriptConsent = function hasScriptConsent(
 		);
 	}
 
-	return has(script.category, pass.consents) && vendorAllowed(entry, pass);
+	return (
+		pass.tools.has(script.category, pass.consents) && vendorAllowed(entry, pass)
+	);
 };
 
 /**

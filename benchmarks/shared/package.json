@@ -18,6 +18,7 @@
 		"./nuxt-repeat-visitor": "./src/nuxt-repeat-visitor.ts",
 		"./html-stream": "./src/html-stream.ts",
 		"./production-consumer": "./src/production-consumer.ts",
+		"./script-timing": "./src/script-timing.ts",
 		"./stylesheet-overlap": "./src/stylesheet-overlap.ts",
 		"./visit-definitions": "./src/visit-definitions.ts",
 		"./visit-metrics": "./src/visit-metrics.ts"

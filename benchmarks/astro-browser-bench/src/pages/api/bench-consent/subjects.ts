@@ -1,11 +1,15 @@
 import type { APIRoute } from 'astro';
 
-import { recordBenchConsentFixtureExecution } from '../../../lib/fixture';
+import {
+	applyBenchConsentLatency,
+	recordBenchConsentFixtureExecution,
+} from '../../../lib/fixture';
 
 export const prerender = false;
 
 export const POST: APIRoute = async ({ request }) => {
 	recordBenchConsentFixtureExecution('subjects');
+	await applyBenchConsentLatency();
 	const body = (await request.json().catch(() => ({}))) as {
 		subjectId?: string;
 	};

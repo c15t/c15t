@@ -7,13 +7,26 @@
  * mirror the v2 surface so adapters can import either way.
  */
 
+import type { extractConsentNamesFromCondition } from '../../libs/has';
 import type {
 	BlockedRequestInfo,
 	NetworkBlockerConfig,
 	NetworkBlockerRule,
 } from '../../libs/network-blocker/types';
+import type {
+	declareOwnedVendors,
+	forgetOwnedVendors,
+} from '../../libs/vendors';
 import type { ConsentKernel } from '../../types';
-import type { NetworkHold } from './hold';
+import type { evaluateConsent } from '../has';
+import type {
+	blockedResponse,
+	failBlockedXhr,
+	NetworkHold,
+	releaseNetworkRequests,
+	stashXhr,
+	XHR_REQUEST,
+} from './hold';
 
 export type { BlockedRequestInfo, NetworkBlockerConfig, NetworkBlockerRule };
 
@@ -51,4 +64,29 @@ export interface NetworkBlockerHandle {
 export interface BlockDecision {
 	shouldBlock: boolean;
 	rule?: NetworkBlockerRule;
+}
+
+/**
+ * What the blocker calls but does not import, so it can load on demand as
+ * one self-contained chunk. The hold functions keep page-wide state, so
+ * these are always the shared implementations; the public entry passes
+ * them.
+ * @internal
+ */
+export interface NetworkBlockerTools {
+	blockedResponse: typeof blockedResponse;
+	/** `extractConsentNamesFromCondition`. */
+	categoriesOf: typeof extractConsentNamesFromCondition;
+	/** `declareOwnedVendors`. */
+	declareOwners: typeof declareOwnedVendors;
+	/** `evaluateConsent`. */
+	evaluate: typeof evaluateConsent;
+	failBlockedXhr: typeof failBlockedXhr;
+	/** `forgetOwnedVendors`. */
+	forgetOwners: typeof forgetOwnedVendors;
+	/** `releaseNetworkRequests`. */
+	releaseHolds: typeof releaseNetworkRequests;
+	stashXhr: typeof stashXhr;
+	/** The key the hold's XHR patch stores a request under. */
+	xhrRequest: typeof XHR_REQUEST;
 }

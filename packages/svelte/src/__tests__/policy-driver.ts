@@ -45,10 +45,8 @@ import {
 } from 'svelte';
 import { vi } from 'vitest';
 
-import {
-	encodeStoredConsentEnvelopeJson,
-	validateStoredConsentEnvelope,
-} from '../../../core/src/modules/persistence/record-codec';
+import { validateStoredConsentEnvelope } from '../../../core/src/modules/persistence/record-codec';
+import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import type { ConsentProviderCallbacks } from '../lib/types';

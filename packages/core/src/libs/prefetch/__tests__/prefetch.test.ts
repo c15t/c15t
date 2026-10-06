@@ -81,6 +81,23 @@ describe('prefetch utilities', () => {
 		expect(script).toContain('"x-c15t-version"');
 	});
 
+	it('still starts the request after a server bundle rewrites `typeof window`', () => {
+		const fetch = vi.fn(() => Promise.resolve(new Response('{}')));
+		vi.stubGlobal('fetch', fetch);
+		try {
+			// Nitro's rollup replace: `typeof window` becomes `"undefined"` as
+			// text, in string literals too, wherever c15t is bundled.
+			const bundled = buildPrefetchScript({ backendURL: '/api/c15t' }).replace(
+				/\btypeof window\b(?![.$])/gu,
+				'"undefined"'
+			);
+			window.eval(bundled);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it('finds only exact runtime-context matches', async () => {
 		Object.defineProperty(window.navigator, 'globalPrivacyControl', {
 			configurable: true,

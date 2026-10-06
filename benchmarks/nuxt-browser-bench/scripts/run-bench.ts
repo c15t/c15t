@@ -14,7 +14,9 @@ import {
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { nuxtBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
@@ -34,6 +36,13 @@ import {
 } from '@c15t/benchmarking/nuxt-repeat-visitor';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -140,11 +149,7 @@ const warmupIterations = Number(
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ??
-		readCliFlag('--init-latency') ??
-		process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 const coldManifestMode =
@@ -313,11 +318,10 @@ const seedRepeatVisitorCookie = async function seedRepeatVisitorCookie(
 const resultScenarioName = function resultScenarioName(
 	scenario: string
 ): string {
-	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return scenario;
-	}
-
-	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return benchScenarioKey(scenario, {
+		backendLatencyMs,
+		profile: throttleProfile,
+	});
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -400,24 +404,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = await page.evaluate(() => {
-		const entries = performance
-			.getEntriesByType('resource')
-			.filter(
-				(entry): entry is PerformanceResourceTiming =>
-					entry instanceof PerformanceResourceTiming &&
-					entry.initiatorType === 'script'
-			);
-		if (entries.length === 0) {
-			return null;
-		}
-		const ordered = [...entries].sort((a, b) => a.startTime - b.startTime);
-		return {
-			appScriptCount: ordered.length,
-			firstAppScriptStartMs: ordered[0]?.startTime ?? 0,
-			lastAppScriptEndMs: ordered[ordered.length - 1]?.responseEnd ?? 0,
-		};
-	});
+	const scriptEntry = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-initiator'
+	);
 	const performanceObserverInfo = (await page.evaluate(
 		benchPerfMetricsExpression
 	)) as BenchPerfMetrics;
@@ -556,7 +546,7 @@ const run = async function run(baseline: boolean) {
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
-		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+		[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 		HOST,
 		NITRO_HOST: HOST,
 		NITRO_PORT: `${PORT}`,
@@ -704,6 +694,7 @@ const run = async function run(baseline: boolean) {
 						metadata: {
 							...serverHtmlMetadata(groupServerHtml),
 							...coldStateMetadata(coldState),
+							backendLatencyMs,
 							bannerPaintMs: nullableMedian(
 								groupedSamples.map((sample) => sample.bannerPaintMs)
 							),
@@ -717,7 +708,6 @@ const run = async function run(baseline: boolean) {
 							fixtureManifestExecutions: fixtureCounts.manifest,
 							fixtureSubjectExecutions: fixtureCounts.subjects,
 							gitDirty: safeGitDirty(),
-							initLatencyMs,
 							profile: throttleProfile,
 							visit,
 						},
@@ -771,6 +761,7 @@ const run = async function run(baseline: boolean) {
 								'count',
 								groupedSamples.map((sample) => sample.appScriptCount ?? 0)
 							),
+							...summarizeIdlePreloadMetrics(groupedSamples),
 							summarizeMetric(
 								'ttfbMs',
 								'ms',
@@ -847,6 +838,7 @@ const run = async function run(baseline: boolean) {
 							'Nuxt browser bench covers SSR, client SPA, and pre-seeded repeat-visitor paths with local deterministic Nitro endpoints.',
 							`Visit: ${visit}. Cold state: ${coldState.setup}.`,
 							...visitMetricGlossary,
+							...scriptTimingGlossary,
 						],
 						package: '@c15t/vue',
 						runtime: 'playwright',

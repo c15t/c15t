@@ -8,16 +8,16 @@ import { fileURLToPath } from 'node:url';
 
 import type {
 	BenchPerfMetrics,
-	BenchScriptResourceMetrics,
 	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
 import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
-	benchScriptResourceExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import { tanstackBrowserBudgetsForScenario } from '@c15t/benchmarking/budgets';
@@ -30,6 +30,13 @@ import {
 import type { ServerHtmlStreamAnalysis } from '@c15t/benchmarking/html-stream';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
 import type { BenchmarkResult } from '@c15t/benchmarking/schema';
+import type { BenchScriptTiming } from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	scriptTimingGlossary,
+	summarizeBenchScripts,
+	summarizeIdlePreloadMetrics,
+} from '@c15t/benchmarking/script-timing';
 import {
 	getEnvironment,
 	median,
@@ -101,11 +108,7 @@ const warmupIterations = Number(
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ??
-		readCliFlag('--init-latency') ??
-		process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const scenarioFilter =
 	readCliFlag('--scenario') ?? process.env.C15T_BENCH_SCENARIO;
 const coldManifestMode =
@@ -131,6 +134,7 @@ const allScenarios = [
 	{ name: 'client', path: '/client' },
 	{ name: 'manifest-client', path: '/manifest-client' },
 	{ name: 'ssr', path: '/ssr' },
+	{ name: 'ssr-stream', path: '/ssr-stream' },
 	{ name: 'manifest-ssr', path: '/manifest-ssr' },
 	{ name: 'manifest-ssr-proxy', path: '/manifest-ssr-proxy' },
 ] as const;
@@ -311,11 +315,10 @@ const applyPageProfile = async function applyPageProfile(
 const resultScenarioName = function resultScenarioName(
 	scenario: string
 ): string {
-	if (throttleProfile === 'none' && initLatencyMs === 0) {
-		return scenario;
-	}
-
-	return `${scenario}:profile-${throttleProfile}:latency-${initLatencyMs}ms`;
+	return benchScenarioKey(scenario, {
+		backendLatencyMs,
+		profile: throttleProfile,
+	});
 };
 
 const resultFileName = function resultFileName(scenario: string): string {
@@ -401,9 +404,10 @@ const collectScenarioMetrics = async function collectScenarioMetrics(
 	const navEntry = (await page.evaluate(
 		benchNavigationTimingExpression
 	)) as Awaited<ReturnType<typeof readBenchNavigationTiming>>;
-	const scriptEntry = (await page.evaluate(
-		benchScriptResourceExpression
-	)) as BenchScriptResourceMetrics | null;
+	const scriptEntry = summarizeBenchScripts(
+		(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+		'script-or-module-url'
+	);
 	const performanceObserverInfo = (await page.evaluate(
 		benchPerfMetricsExpression
 	)) as BenchPerfMetrics;
@@ -538,6 +542,7 @@ const writeScenarioResult = function writeScenarioResult(
 		metadata: {
 			...serverHtmlMetadata(serverHtml),
 			...coldStateMetadata(input.coldState),
+			backendLatencyMs,
 			bannerPaintMs: nullableMedian(
 				groupedSamples.map((sample) => sample.bannerPaintMs)
 			),
@@ -549,7 +554,6 @@ const writeScenarioResult = function writeScenarioResult(
 			fixtureManifestExecutions: fixtureCounts.manifest,
 			fixtureSubjectExecutions: fixtureCounts.subjects,
 			gitDirty: safeGitDirty(),
-			initLatencyMs,
 			profile: throttleProfile,
 			visit: input.visit,
 		},
@@ -591,6 +595,7 @@ const writeScenarioResult = function writeScenarioResult(
 				'count',
 				groupedSamples.map((sample) => sample.appScriptCount ?? 0)
 			),
+			...summarizeIdlePreloadMetrics(groupedSamples),
 			summarizeMetric(
 				'jsBytes',
 				'bytes',
@@ -681,6 +686,7 @@ const writeScenarioResult = function writeScenarioResult(
 				: []),
 			`Visit: ${input.visit}. Cold state: ${input.coldState.setup}.`,
 			...visitMetricGlossary,
+			...scriptTimingGlossary,
 		],
 		package: '@c15t/tanstack-start-browser-bench',
 		runtime: 'playwright',
@@ -893,7 +899,7 @@ const run = async function run() {
 
 	const env: NodeJS.ProcessEnv = {
 		...process.env,
-		C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+		[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 	};
 	if (coldManifestMode) {
 		env.C15T_BENCH_COLD_MANIFEST_TOKEN = String(Date.now());

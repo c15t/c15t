@@ -8,19 +8,14 @@
  * into a receipt. GPC is a live signal and is never written.
  */
 
-import type { ConsentSnapshot } from '../../types';
+import type { ConsentSnapshot } from '../../../types';
 import type {
 	StoredConsentEnvelope,
 	StoredIabMetadata,
 	StoredVendorChoice,
-} from './record-codec';
-import {
-	clearStoredVendorChoice,
-	writeStoredConsentEnvelope,
-	writeStoredNoticeDismissal,
-	writeStoredVendorChoice,
-} from './record-storage';
-import type { StorageConfig } from './types';
+} from '../record-codec';
+import type { StorageConfig } from '../types';
+import type { RecordStore } from './store';
 
 /** Envelope a snapshot's explicit choice serializes to, or `null`. */
 export const buildStoredEnvelope = function buildStoredEnvelope(
@@ -52,6 +47,7 @@ export const buildStoredEnvelope = function buildStoredEnvelope(
  * no choice exists.
  */
 export const writeChoiceToStorage = function writeChoiceToStorage(
+	store: RecordStore,
 	snapshot: ConsentSnapshot,
 	iab: StoredIabMetadata | null,
 	storageConfig: StorageConfig | undefined,
@@ -65,7 +61,7 @@ export const writeChoiceToStorage = function writeChoiceToStorage(
 	if (!envelope) {
 		return;
 	}
-	const result = writeStoredConsentEnvelope(envelope, {
+	const result = store.writeStoredConsentEnvelope(envelope, {
 		config: storageConfig,
 		now,
 	});
@@ -76,6 +72,7 @@ export const writeChoiceToStorage = function writeChoiceToStorage(
 
 /** Write the notice dismissal. No-op outside the browser or when absent. */
 export const writeNoticeToStorage = function writeNoticeToStorage(
+	store: RecordStore,
 	snapshot: ConsentSnapshot,
 	storageConfig: StorageConfig | undefined,
 	now: number
@@ -83,7 +80,11 @@ export const writeNoticeToStorage = function writeNoticeToStorage(
 	if (typeof document === 'undefined' || !snapshot.noticeDismissal) {
 		return;
 	}
-	writeStoredNoticeDismissal(snapshot.noticeDismissal, storageConfig, now);
+	store.writeStoredNoticeDismissal(
+		snapshot.noticeDismissal,
+		storageConfig,
+		now
+	);
 };
 
 /**
@@ -92,6 +93,7 @@ export const writeNoticeToStorage = function writeNoticeToStorage(
  * server denial. No-op outside the browser.
  */
 export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
+	store: RecordStore,
 	snapshot: ConsentSnapshot,
 	storageConfig: StorageConfig | undefined,
 	now: number
@@ -100,7 +102,7 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 		return;
 	}
 	if (!snapshot.vendorChoice) {
-		clearStoredVendorChoice(storageConfig);
+		store.clearStoredVendorChoice(storageConfig);
 		return;
 	}
 	// The subject rides along so a visitor whose only act so far decided
@@ -110,7 +112,7 @@ export const writeVendorChoiceToStorage = function writeVendorChoiceToStorage(
 	if (snapshot.subject && Object.keys(snapshot.subject).length > 0) {
 		record.subject = { ...snapshot.subject };
 	}
-	const result = writeStoredVendorChoice(record, storageConfig, now);
+	const result = store.writeStoredVendorChoice(record, storageConfig, now);
 	if (result.ok === false) {
 		console.warn('[c15t] Vendor choice was not written.', result.issues);
 		return;

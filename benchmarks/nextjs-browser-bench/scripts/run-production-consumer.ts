@@ -14,7 +14,10 @@
  * Usage (from benchmarks/nextjs-browser-bench):
  *   bunx tsx scripts/run-production-consumer.ts \
  *     --arm base=root:/path/to/c15t-base --arm head=workspace \
- *     --iterations 7 --warmup 1 --profile mobile --init-latency-ms 200
+ *     --iterations 7 --warmup 1 --profile mobile --backend-latency-ms 200
+ *
+ * The consent backend answers after `--backend-latency-ms` (default 200; 0
+ * turns it off).
  */
 import { spawn, spawnSync } from 'node:child_process';
 import type { ChildProcess } from 'node:child_process';
@@ -36,7 +39,6 @@ import { fileURLToPath } from 'node:url';
 
 import type {
 	BenchPerfMetrics,
-	BenchScriptResourceMetrics,
 	BenchStylesheetResource,
 	readBenchNavigationTiming,
 } from '@c15t/benchmarking/browser';
@@ -44,10 +46,11 @@ import {
 	applyBenchThrottleProfile,
 	benchNavigationTimingExpression,
 	benchPerfMetricsExpression,
-	benchScriptResourceExpression,
 	benchStylesheetResourcesExpression,
 	installBenchPerformanceObservers,
-	parseBenchInitLatencyMs,
+	BENCH_BACKEND_LATENCY_ENV,
+	benchScenarioKey,
+	resolveBenchBackendLatencyMs,
 	parseBenchThrottleProfile,
 } from '@c15t/benchmarking/browser';
 import {
@@ -79,6 +82,14 @@ import type {
 	BenchmarkResult,
 	MetricSampleSet,
 } from '@c15t/benchmarking/schema';
+import type {
+	BenchScriptResourceMetrics,
+	BenchScriptTiming,
+} from '@c15t/benchmarking/script-timing';
+import {
+	benchScriptTimingExpression,
+	summarizeBenchScripts,
+} from '@c15t/benchmarking/script-timing';
 import { findStylesheetOverlap } from '@c15t/benchmarking/stylesheet-overlap';
 import type { StylesheetOverlap } from '@c15t/benchmarking/stylesheet-overlap';
 import {
@@ -144,9 +155,7 @@ const warmupIterations = Number(readCliFlag('--warmup') ?? '1');
 const throttleProfile = parseBenchThrottleProfile(
 	readCliFlag('--profile') ?? process.env.C15T_BENCH_PROFILE
 );
-const initLatencyMs = parseBenchInitLatencyMs(
-	readCliFlag('--init-latency-ms') ?? process.env.C15T_BENCH_INIT_LATENCY_MS
-);
+const backendLatencyMs = resolveBenchBackendLatencyMs(readCliFlag, process.env);
 const portBase = Number(readCliFlag('--port-base') ?? '4620');
 const routes = (readCliFlag('--routes') ?? '/,/docs')
 	.split(',')
@@ -449,7 +458,7 @@ const startServer = async function startServer(
 			cwd: dir,
 			env: {
 				...process.env,
-				C15T_BENCH_INIT_LATENCY_MS: `${initLatencyMs}`,
+				[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
 				NEXT_TELEMETRY_DISABLED: '1',
 			},
 			stdio: ['ignore', 'pipe', 'pipe'],
@@ -674,9 +683,10 @@ const measureVisit = async function measureVisit(
 		>,
 		perf: (await page.evaluate(benchPerfMetricsExpression)) as BenchPerfMetrics,
 		promptSettledMs: state.promptSettledMs ?? null,
-		scripts: (await page.evaluate(
-			benchScriptResourceExpression
-		)) as BenchScriptResourceMetrics | null,
+		scripts: summarizeBenchScripts(
+			(await page.evaluate(benchScriptTimingExpression)) as BenchScriptTiming,
+			'script-or-module-url'
+		),
 		serverInitCalls: after.init - before.init,
 		serverManifestFetches: after.manifest - before.manifest,
 		stylesheets: (await page.evaluate(
@@ -1070,7 +1080,10 @@ const buildResult = function buildResult(input: {
 	browserVersion: string;
 }): BenchmarkResult {
 	const last = input.samples.at(-1);
-	const scenarioName = `production-consumer:${routeSlug(input.route)}:${input.scenario.name}`;
+	const scenarioName = benchScenarioKey(
+		`production-consumer:${routeSlug(input.route)}:${input.scenario.name}`,
+		{ backendLatencyMs, profile: throttleProfile }
+	);
 	return {
 		budgetDefinitions: [],
 		budgets: [],
@@ -1089,13 +1102,13 @@ const buildResult = function buildResult(input: {
 			...serverHtmlMetadata(input.serverHtml),
 			arm: input.provenance.label,
 			armSource: input.provenance.source,
+			backendLatencyMs,
 			consoleErrors: input.samples.flatMap((sample) => sample.consoleErrors),
 			cssSharedClassCount: input.overlap?.sharedClassCount ?? null,
 			cssSharedClassCountAfterDialog:
 				input.overlapAfterDialog?.sharedClassCount ?? null,
 			cssSharedClassSample: input.overlap?.sharedClassSample ?? [],
 			gitDirty: safeGitDirty(),
-			initLatencyMs,
 			installedC15tVersion: input.provenance.installedC15tVersion,
 			nextVersion: input.provenance.nextVersion,
 			profile: throttleProfile,
@@ -1166,7 +1179,7 @@ const toMarkdown = function toMarkdown(
 	const lines = [
 		'# Production consumer bench',
 		'',
-		`Profile ${throttleProfile}, injected consent-origin latency ${initLatencyMs} ms, ${iterations} measured samples plus ${warmupIterations} warm-up per arm, arms interleaved. Medians with (min–max).`,
+		`Profile ${throttleProfile}, injected consent-origin latency ${backendLatencyMs} ms, ${iterations} measured samples plus ${warmupIterations} warm-up per arm, arms interleaved. Medians with (min–max).`,
 		'',
 		'| Arm | Source | c15t | Next |',
 		'| --- | --- | --- | --- |',

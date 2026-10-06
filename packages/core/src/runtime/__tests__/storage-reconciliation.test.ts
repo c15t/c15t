@@ -15,19 +15,21 @@ import {
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
-import { readStoredRecordsFromCookieHeader } from '../../modules/persistence/hydrate';
-import { encodeStoredConsentEnvelopeCompact } from '../../modules/persistence/record-codec';
 import {
 	clearStoredConsentRecords,
-	readStoredConsentRecord,
-	readStoredNoticeDismissal,
-	readStoredClearEpoch,
-	readStoredVendorChoice,
 	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
 	writeStoredNoticeDismissal,
 	writeStoredVendorChoice,
+} from '../../modules/persistence/__tests__/record-writes';
+import { readStoredRecordsFromCookieHeader } from '../../modules/persistence/hydrate';
+import {
+	readStoredConsentRecord,
+	readStoredNoticeDismissal,
+	readStoredClearEpoch,
+	readStoredVendorChoice,
 } from '../../modules/persistence/record-storage';
+import { encodeStoredConsentEnvelopeCompact } from '../../modules/persistence/writer/encode';
 import { custom } from '../../transports/mode';
 import type { KernelTransport } from '../../types';
 import { createConsentRuntime } from '../index';

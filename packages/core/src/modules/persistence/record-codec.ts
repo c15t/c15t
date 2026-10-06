@@ -13,13 +13,16 @@
  *   as strings. Omitted categories stay absent; explicit denials encode
  *   as `0`.
  *
+ * This file holds the decoders and validators, which reading stored
+ * records needs in the first load. The encoders are in `writer/encode.ts`
+ * and load with the first write.
+ *
  * Nothing here touches storage, the clock or callbacks. Callers supply
  * `now` so future timestamps are rejected deterministically.
  *
  * @internal
  */
 
-import { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
 import type {
 	CategoryDecision,
 	ChoiceBasis,
@@ -105,7 +108,8 @@ const KEY_VALUE_SEPARATOR = '=';
 const LIST_SEPARATOR = '|';
 const TUPLE_SEPARATOR = '.';
 
-const CATEGORY_CODES = {
+/** Compact category codes. The encoder repeats them (`writer/encode.ts`). @internal */
+export const CATEGORY_CODES = {
 	experience: 'ex',
 	functionality: 'fn',
 	marketing: 'mk',
@@ -119,7 +123,8 @@ const CODE_TO_CATEGORY: ReadonlyMap<string, OptionalConsentCategory> = new Map(
 	])
 );
 
-const SUBJECT_CODES = {
+/** Compact subject codes. The encoder repeats them. @internal */
+export const SUBJECT_CODES = {
 	externalId: 'eid',
 	identityProvider: 'idp',
 	subjectId: 'sid',
@@ -132,7 +137,8 @@ const CODE_TO_SUBJECT_KEY: ReadonlyMap<string, keyof ConsentSubject> = new Map(
 	])
 );
 
-const IAB_CODES = {
+/** Compact IAB metadata codes. The encoder repeats them. @internal */
+export const IAB_CODES = {
 	customVendorConsents: 'icv',
 	customVendorLegitimateInterests: 'icvli',
 } as const satisfies Record<keyof StoredIabMetadata, string>;
@@ -373,164 +379,6 @@ export const validateStoredConsentEnvelope =
 		return { ok: true, record: envelope };
 	};
 
-// ---------------------------------------------------------------------------
-// JSON encoding (localStorage)
-// ---------------------------------------------------------------------------
-
-const orderedBasis = function orderedBasis(basis: ChoiceBasis): ChoiceBasis {
-	if (basis.kind === 'choice-v1') {
-		return { fingerprint: basis.fingerprint, kind: 'choice-v1' };
-	}
-	if (basis.materialFingerprint === undefined) {
-		return { kind: 'legacy-v2' };
-	}
-	return { kind: 'legacy-v2', materialFingerprint: basis.materialFingerprint };
-};
-
-const orderedDecision = function orderedDecision(
-	decision: CategoryDecision
-): CategoryDecision {
-	return {
-		basis: orderedBasis(decision.basis),
-		confirmedAt: decision.confirmedAt,
-		value: decision.value,
-	};
-};
-
-/**
- * Serializes an envelope to JSON with a stable field order. Categories are
- * written in the canonical optional-category order; absent categories are
- * not written, explicit `false` is.
- */
-export const encodeStoredConsentEnvelopeJson =
-	function encodeStoredConsentEnvelopeJson(
-		envelope: StoredConsentEnvelope
-	): string {
-		const categories: ExplicitChoice['categories'] = {};
-		for (const category of OPTIONAL_CONSENT_CATEGORIES) {
-			const decision = envelope.categories[category];
-			if (decision) {
-				categories[category] = orderedDecision(decision);
-			}
-		}
-		const ordered: Record<string, unknown> = { version: 3 };
-		if (envelope.subject && Object.keys(envelope.subject).length > 0) {
-			ordered.subject = envelope.subject;
-		}
-		if (envelope.epoch) {
-			ordered.epoch = envelope.epoch;
-		}
-		ordered.categories = categories;
-		if (envelope.iab) {
-			ordered.iab = envelope.iab;
-		}
-		return JSON.stringify(ordered);
-	};
-
-// ---------------------------------------------------------------------------
-// Compact encoding (cookie)
-// ---------------------------------------------------------------------------
-
-const basisKey = function basisKey(basis: ChoiceBasis): string {
-	if (basis.kind === 'choice-v1') {
-		return `c${encodeURIComponent(basis.fingerprint)}`;
-	}
-	return basis.materialFingerprint === undefined
-		? 'l'
-		: `l${encodeURIComponent(basis.materialFingerprint)}`;
-};
-
-const encodeBooleanMap = function encodeBooleanMap(
-	map: Readonly<Record<string, boolean>>
-): string {
-	return Object.keys(map)
-		.sort()
-		.map(
-			(id) =>
-				`${map[id] ? '1' : '0'}${TUPLE_SEPARATOR}${encodeURIComponent(id)}`
-		)
-		.join(LIST_SEPARATOR);
-};
-
-/**
- * Serializes an envelope to the compact cookie form.
- *
- * Layout, fields joined by `&`:
- *
- * ```text
- * v=3
- * sid=<uri-encoded subjectId>          (optional)
- * eid=<uri-encoded externalId>         (optional)
- * idp=<uri-encoded identityProvider>   (optional)
- * e=<clear epoch>                      (optional, only after a clear)
- * b=<basis>|<basis>                    (when any category is present)
- * fn=<0|1>.<confirmedAt>.<basisIndex>  (per present category: fn ex me mk)
- * icv=<0|1>.<uri-encoded vendorId>|... (optional)
- * icvli=<0|1>.<uri-encoded vendorId>|... (optional)
- * ```
- *
- * A basis is `c<fingerprint>` for `choice-v1`, `l<materialFingerprint>`
- * or bare `l` for `legacy-v2`. Each distinct basis is written once and
- * referenced by index so a full-scope save does not repeat one hash four
- * times. Every free-text component is URI-encoded, so the delimiters
- * `& = | .` never appear inside a value and no `:` or `,` is emitted.
- * The v2 parser therefore leaves this value alone as a plain string.
- */
-export const encodeStoredConsentEnvelopeCompact =
-	function encodeStoredConsentEnvelopeCompact(
-		envelope: StoredConsentEnvelope
-	): string {
-		const fields: string[] = [`${VERSION_FIELD}${KEY_VALUE_SEPARATOR}3`];
-		for (const key of SUBJECT_KEYS) {
-			const value = envelope.subject?.[key];
-			if (isNonEmptyString(value)) {
-				fields.push(
-					`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
-				);
-			}
-		}
-		if (envelope.epoch) {
-			fields.push(`${EPOCH_FIELD}${KEY_VALUE_SEPARATOR}${envelope.epoch}`);
-		}
-
-		const bases: string[] = [];
-		const basisIndex = new Map<string, number>();
-		const categoryFields: string[] = [];
-		for (const category of OPTIONAL_CONSENT_CATEGORIES) {
-			const decision = envelope.categories[category];
-			if (!decision) {
-				continue;
-			}
-			const key = basisKey(decision.basis);
-			let index = basisIndex.get(key);
-			if (index === undefined) {
-				index = bases.length;
-				bases.push(key);
-				basisIndex.set(key, index);
-			}
-			categoryFields.push(
-				`${CATEGORY_CODES[category]}${KEY_VALUE_SEPARATOR}${decision.value ? '1' : '0'}${TUPLE_SEPARATOR}${decision.confirmedAt}${TUPLE_SEPARATOR}${index}`
-			);
-		}
-		if (bases.length > 0) {
-			fields.push(
-				`${BASIS_FIELD}${KEY_VALUE_SEPARATOR}${bases.join(LIST_SEPARATOR)}`
-			);
-		}
-		fields.push(...categoryFields);
-
-		for (const key of IAB_KEYS) {
-			const map = envelope.iab?.[key];
-			if (map && Object.keys(map).length > 0) {
-				fields.push(
-					`${IAB_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeBooleanMap(map)}`
-				);
-			}
-		}
-
-		return fields.join(FIELD_SEPARATOR);
-	};
-
 /** Whether a raw cookie value is a compact v3 envelope. */
 export const isCompactStoredConsentEnvelope =
 	function isCompactStoredConsentEnvelope(rawValue: string): boolean {
@@ -769,17 +617,6 @@ export const decodeStoredConsentEnvelopeCompact =
 // Notice dismissal (local-only, JSON)
 // ---------------------------------------------------------------------------
 
-/** Serializes a notice dismissal for localStorage. */
-export const encodeNoticeDismissal = function encodeNoticeDismissal(
-	record: StoredNoticeDismissal
-): string {
-	return JSON.stringify({
-		dismissedAt: record.dismissedAt,
-		fingerprint: record.fingerprint,
-		version: 1,
-	});
-};
-
 /** Validates a parsed notice dismissal. */
 export const decodeNoticeDismissal = function decodeNoticeDismissal(
 	input: unknown,
@@ -834,19 +671,6 @@ const parseCompactInteger = function parseCompactInteger(
 	}
 	return Number(value);
 };
-
-/**
- * Compact notice dismissal for the `<key>-notice` cookie:
- * `v=1&t=<dismissedAt>&f=<uri-encoded fingerprint>`.
- */
-export const encodeNoticeDismissalCompact =
-	function encodeNoticeDismissalCompact(record: StoredNoticeDismissal): string {
-		return [
-			COMPACT_NOTICE_PREFIX,
-			`t${KEY_VALUE_SEPARATOR}${record.dismissedAt}`,
-			`f${KEY_VALUE_SEPARATOR}${encodeURIComponent(record.fingerprint)}`,
-		].join(FIELD_SEPARATOR);
-	};
 
 /** Decodes a compact notice dismissal through the shared validator. */
 export const decodeNoticeDismissalCompact =
@@ -960,53 +784,6 @@ export const decodeVendorChoice = function decodeVendorChoice(
 	return { ok: true, record };
 };
 
-/** Serializes the vendor denial list for localStorage. */
-export const encodeVendorChoice = function encodeVendorChoice(
-	record: StoredVendorChoice
-): string {
-	const encoded: StoredVendorChoice = {
-		confirmedAt: record.confirmedAt,
-		denied: [...record.denied].sort(),
-		version: 1,
-	};
-	if (record.subject && Object.keys(record.subject).length > 0) {
-		encoded.subject = { ...record.subject };
-	}
-	return JSON.stringify(encoded);
-};
-
-/**
- * Compact vendor denials for the `<key>-vendors` cookie:
- * `v=1&t=<confirmedAt>&d=<uri-encoded id>|<uri-encoded id>`, followed by the
- * subject fields the consent envelope also uses (`sid`, `eid`, `idp`).
- * The `d` field is omitted when nothing is denied.
- */
-export const encodeVendorChoiceCompact = function encodeVendorChoiceCompact(
-	record: StoredVendorChoice
-): string {
-	const parts = [
-		COMPACT_VENDORS_PREFIX,
-		`t${KEY_VALUE_SEPARATOR}${record.confirmedAt}`,
-	];
-	if (record.denied.length > 0) {
-		parts.push(
-			`d${KEY_VALUE_SEPARATOR}${[...record.denied]
-				.sort()
-				.map((id) => encodeURIComponent(id))
-				.join(LIST_SEPARATOR)}`
-		);
-	}
-	for (const key of SUBJECT_KEYS) {
-		const value = record.subject?.[key];
-		if (value) {
-			parts.push(
-				`${SUBJECT_CODES[key]}${KEY_VALUE_SEPARATOR}${encodeURIComponent(value)}`
-			);
-		}
-	}
-	return parts.join(FIELD_SEPARATOR);
-};
-
 /** Decodes compact vendor denials through the shared validator. */
 export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 	rawValue: string,
@@ -1064,17 +841,6 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 // ---------------------------------------------------------------------------
 // Clear epoch (cookie and localStorage)
 // ---------------------------------------------------------------------------
-
-/**
- * Serializes the clear epoch record: the time of the last `clear()` in
- * epoch milliseconds, as plain decimal digits. The same text is stored in
- * the `<key>-epoch` cookie and localStorage entry.
- */
-export const encodeClearEpoch = function encodeClearEpoch(
-	epoch: number
-): string {
-	return String(epoch);
-};
 
 /**
  * Parses a clear epoch record. Anything but a whole time at most

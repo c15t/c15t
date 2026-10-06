@@ -373,6 +373,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					onRequestBlocked: options.networkBlocker.onRequestBlocked,
 					rules: options.networkBlocker.rules,
 				});
+				// A lazy blocker whose chunk failed to load never takes the hold
+				// over: fail what it holds closed now rather than leave it
+				// pending, and keep blocking until a later load takes over. A
+				// no-op once a blocker took over.
+				afterModuleLoaded(blocker, claimed.fail);
 				disposers.push(() => {
 					blocker.dispose();
 					// A lazy blocker disposed before it loaded never took the hold

@@ -16,10 +16,8 @@ import {
 import { createConsentKernel } from '../../../index';
 import type { KernelVendorsState } from '../../../types';
 import { createPersistence } from '../index';
-import {
-	readStoredVendorChoice,
-	writeStoredVendorChoice,
-} from '../record-storage';
+import { readStoredVendorChoice } from '../record-storage';
+import { writeStoredVendorChoice } from './record-writes';
 
 const vendors: KernelVendorsState = {
 	declared: [

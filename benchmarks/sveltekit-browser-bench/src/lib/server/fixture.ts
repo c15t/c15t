@@ -78,13 +78,15 @@ export const resetBenchConsentFixtureCounts =
 	};
 
 /**
- * Sleep for `C15T_BENCH_INIT_LATENCY_MS`, modelling backend round-trip time.
- *
- * The runner sets it per condition; `0` (the default) is a no-op.
+ * Sleep for `C15T_BENCH_BACKEND_LATENCY_MS`, modelling the consent backend's
+ * round trip. Every fixture endpoint (init, manifest, subjects) calls it, so
+ * server-side fetches pay it as well as browser ones. The runner always sets
+ * the variable (200 ms by default); when it is unset the app runs outside a
+ * bench, for example in the SSR journey tests, and answers at once.
  */
 export const applyBenchConsentLatency =
 	async function applyBenchConsentLatency(): Promise<void> {
-		const latencyMs = Number(process.env.C15T_BENCH_INIT_LATENCY_MS ?? '0');
+		const latencyMs = Number(process.env.C15T_BENCH_BACKEND_LATENCY_MS ?? '0');
 		if (Number.isFinite(latencyMs) && latencyMs > 0) {
 			await sleep(latencyMs);
 		}

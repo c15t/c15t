@@ -24,7 +24,7 @@ it('requires zero init traffic on the consent-free TanStack baseline', () => {
 	});
 });
 
-it.each(['ssr', 'manifest-ssr', 'manifest-ssr-proxy'])(
+it.each(['ssr', 'ssr-stream', 'manifest-ssr', 'manifest-ssr-proxy'])(
 	'rejects redundant browser init after %s prefetch',
 	(scenario) => {
 		const budget = tanstackBrowserBudgetsForScenario(scenario).find(
@@ -47,6 +47,10 @@ it.each([
 	['react', reactBrowserBudgetsForScenario('saved-consent-accept')],
 	['nextjs', nextjsBrowserBudgetsForScenario('saved-consent-reject')],
 	['nextjs SSR repeat', nextjsBrowserBudgetsForScenario('ssr-repeat')],
+	[
+		'nextjs typical-install returning',
+		nextjsBrowserBudgetsForScenario('typical-install-returning'),
+	],
 	['tanstack', tanstackBrowserBudgetsForScenario('saved-consent-accept')],
 ])(
 	'gates %s saved-consent visits on a hidden banner and a restored choice',
@@ -66,6 +70,20 @@ it.each([
 		).toBe(false);
 	}
 );
+
+it.each([
+	'typical-install',
+	'typical-install-repeat',
+	'typical-install-returning',
+])('rejects browser init on the Next.js %s visit', (scenario) => {
+	const budget = nextjsBrowserBudgetsForScenario(scenario).find(
+		(entry) => entry.metric === 'initRequestsAfterLoad'
+	);
+	expect.assert(budget);
+	expect(
+		evaluateBudget(budget, summarizeMetric(budget.metric, 'count', [1])).pass
+	).toBe(false);
+});
 
 it('requires server HTML without a banner for SSR saved-consent visits', () => {
 	expect(

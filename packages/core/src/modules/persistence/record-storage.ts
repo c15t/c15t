@@ -1,10 +1,11 @@
 /**
  * Storage boundary for consent records.
  *
- * Reads raw stored candidates with their provenance, decodes them into
- * the reviewed per-category receipt model, and writes the v3 envelope
- * only when explicitly asked. This file is the kernel owner's entry
- * point; nothing here is wired into the live persistence module yet.
+ * Reads raw stored candidates with their provenance and decodes them into
+ * the reviewed per-category receipt model. Reading is what the first
+ * banner needs, so this file is in the first load. The writes, which run
+ * only when the kernel explicitly asks, are in `writer/store.ts` and load
+ * on demand.
  *
  * Read guarantees:
  *
@@ -37,19 +38,12 @@ import type {
 } from '../../consent-record/types';
 import { isPlainRecord, ownValue } from '../../consent-record/validation';
 import {
-	deleteConsentFromStorage,
-	deleteCookie,
 	expandFlatKeys,
 	getRawCookieValue,
 	readCookieValueFromHeader,
 	stringToFlat,
-	writeCookie,
 } from '../../libs/cookie';
-import type {
-	CookieOptions,
-	CookieWriteReport,
-	StorageConfig,
-} from '../../libs/cookie';
+import type { StorageConfig } from '../../libs/cookie';
 import { STORAGE_KEY, STORAGE_KEY_V2 } from '../../libs/storage-keys';
 import { choiceSinceEpoch } from './epoch';
 import {
@@ -59,13 +53,6 @@ import {
 	decodeStoredConsentEnvelopeCompact,
 	decodeVendorChoice,
 	decodeVendorChoiceCompact,
-	encodeClearEpoch,
-	encodeNoticeDismissal,
-	encodeNoticeDismissalCompact,
-	encodeStoredConsentEnvelopeCompact,
-	encodeStoredConsentEnvelopeJson,
-	encodeVendorChoice,
-	encodeVendorChoiceCompact,
 	validateIabMetadata,
 	validateStoredConsentEnvelope,
 } from './record-codec';
@@ -751,127 +738,6 @@ export const readStoredConsentRecordFromCookieHeader =
 	};
 
 // ---------------------------------------------------------------------------
-// Writes: only when the kernel explicitly asks
-// ---------------------------------------------------------------------------
-
-export interface WriteStoredConsentOptions {
-	/** Current time. Rejects envelopes carrying future timestamps. */
-	now: number;
-	/** Cookie attributes; defaults derive from `config`. */
-	cookie?: CookieOptions;
-	config?: StorageConfig;
-}
-
-export interface WriteReport {
-	/** localStorage accepted the JSON envelope. */
-	localStorage: boolean;
-	/**
-	 * The cookie assignment ran and the value read back matches. `false`
-	 * covers both a thrown assignment and a silent browser drop; see
-	 * `cookieDetail` to tell them apart.
-	 */
-	cookie: boolean;
-	cookieDetail: CookieWriteReport;
-}
-
-export type WriteStoredConsentResult =
-	| { ok: true; written: WriteReport; envelope: StoredConsentEnvelope }
-	| { ok: false; issues: StorageIssue[] };
-
-const hasLocalStorage = function hasLocalStorage(): boolean {
-	return typeof window !== 'undefined' && Boolean(window.localStorage);
-};
-
-const writeLocalStorageText = function writeLocalStorageText(
-	key: string,
-	text: string
-): boolean {
-	try {
-		if (hasLocalStorage()) {
-			window.localStorage.setItem(key, text);
-			return true;
-		}
-	} catch (error) {
-		console.warn('Failed to save consent to localStorage:', error);
-	}
-	return false;
-};
-
-const removeLocalStorageKey = function removeLocalStorageKey(
-	key: string
-): void {
-	try {
-		if (hasLocalStorage()) {
-			window.localStorage.removeItem(key);
-		}
-	} catch (error) {
-		console.warn('Failed to remove consent from localStorage:', error);
-	}
-};
-
-/**
- * Writes one v3 envelope to localStorage (JSON) and the cookie (compact)
- * under the configured key. The envelope is validated first and nothing
- * is written when it is malformed. Category times are written exactly as
- * given; this function never stamps the clock. The legacy localStorage
- * key is left untouched. When localStorage rejects the write but the cookie
- * takes it, the older localStorage copy is removed. When only localStorage
- * takes it, the cookie as it stands is stored under `<key>-cookie-miss`,
- * so a read can tell that the local copy is newer until the cookie changes;
- * a write that reaches the cookie removes that marker. `written.cookie` is
- * true only when the cookie assignment ran and the value read back equals
- * what was written; `written.cookieDetail` separates a thrown assignment
- * (`attempted: false`, with the error) from a silent browser drop
- * (`attempted: true, verified: false`).
- */
-export const writeStoredConsentEnvelope = function writeStoredConsentEnvelope(
-	envelope: StoredConsentEnvelope,
-	options: WriteStoredConsentOptions
-): WriteStoredConsentResult {
-	const validated = validateStoredConsentEnvelope(envelope, options.now);
-	if (validated.ok === false) {
-		return validated;
-	}
-	const keys = resolveStorageKeys(options.config);
-	const localStorageWritten = writeLocalStorageText(
-		keys.consent,
-		encodeStoredConsentEnvelopeJson(validated.record)
-	);
-	const cookieDetail = writeCookie(
-		keys.consent,
-		encodeStoredConsentEnvelopeCompact(validated.record),
-		options.cookie,
-		options.config
-	);
-	if (!cookieDetail.attempted && cookieDetail.error !== undefined) {
-		console.warn('Failed to save consent to cookie:', cookieDetail.error);
-	}
-	const cookieWritten = cookieDetail.attempted && cookieDetail.verified;
-	if (cookieWritten) {
-		removeLocalStorageKey(keys.cookieMiss);
-		// The local copy is now older than the cookie.
-		if (!localStorageWritten) {
-			removeLocalStorageKey(keys.consent);
-		}
-	} else if (localStorageWritten) {
-		writeLocalStorageText(
-			keys.cookieMiss,
-			getRawCookieValue(keys.consent) ?? ''
-		);
-	}
-
-	return {
-		envelope: validated.record,
-		ok: true,
-		written: {
-			cookie: cookieWritten,
-			cookieDetail,
-			localStorage: localStorageWritten,
-		},
-	};
-};
-
-// ---------------------------------------------------------------------------
 // Auxiliary records: notice dismissal
 //
 // Each lives under its own localStorage key and has a compact cookie
@@ -922,13 +788,6 @@ const readCompactCookie = function readCompactCookie<RecordType>(
 	return { issues: [{ code: 'malformed-encoding', path: '' }], ok: false };
 };
 
-/** Report of one auxiliary write. */
-export interface AuxiliaryWriteReport {
-	localStorage: boolean;
-	cookie: boolean;
-	cookieDetail: CookieWriteReport;
-}
-
 /**
  * Reads the local notice dismissal from its cookie projection and its
  * localStorage copy. When both are valid the newer dismissal wins, the
@@ -978,66 +837,6 @@ export const readStoredNoticeDismissalFromCookieHeader =
 			(text) => decodeNoticeDismissalCompact(text, now)
 		);
 	};
-
-/**
- * Writes the local notice dismissal to localStorage and its compact cookie
- * projection. The consent record and its cookie are never touched.
- */
-export const writeStoredNoticeDismissal = function writeStoredNoticeDismissal(
-	record: StoredNoticeDismissal,
-	config: StorageConfig | undefined,
-	now: number,
-	cookie?: CookieOptions
-): DecodeResult<StoredNoticeDismissal> & { written?: AuxiliaryWriteReport } {
-	const validated = decodeNoticeDismissal(record, now);
-	if (validated.ok === false) {
-		return validated;
-	}
-	const keys = resolveStorageKeys(config);
-	const localStorageWritten = writeLocalStorageText(
-		keys.notice,
-		encodeNoticeDismissal(validated.record)
-	);
-	const cookieDetail = writeCookie(
-		keys.notice,
-		encodeNoticeDismissalCompact(validated.record),
-		cookie,
-		config
-	);
-	return {
-		ok: true,
-		record: validated.record,
-		written: {
-			cookie: cookieDetail.attempted && cookieDetail.verified,
-			cookieDetail,
-			localStorage: localStorageWritten,
-		},
-	};
-};
-
-export const clearStoredNoticeDismissal = function clearStoredNoticeDismissal(
-	config?: StorageConfig,
-	cookie?: CookieOptions
-): void {
-	const keys = resolveStorageKeys(config);
-	removeLocalStorageKey(keys.notice);
-	deleteCookie(keys.notice, cookie, config);
-};
-
-/**
- * Removes the `<key>-privacy` cookie and localStorage entry. v3 alphas
- * stored standing GPC directives there; GPC is now a live signal that is
- * never persisted, so the key is no longer read or written. It is kept only
- * so clearing c15t data still deletes values an alpha left behind.
- */
-const clearLegacyPrivacyRecord = function clearLegacyPrivacyRecord(
-	config?: StorageConfig,
-	cookie?: CookieOptions
-): void {
-	const key = `${resolveStorageKeys(config).consent}-privacy`;
-	removeLocalStorageKey(key);
-	deleteCookie(key, cookie, config);
-};
 
 // ---------------------------------------------------------------------------
 // Clear epoch: the time of the last clear, kept by the clear itself
@@ -1162,100 +961,3 @@ export const readStoredVendorChoiceFromCookieHeader =
 			(text) => decodeVendorChoiceCompact(text, now)
 		);
 	};
-
-/**
- * Writes the vendor denial list to localStorage and its compact cookie
- * projection. The consent record and its cookie are never touched.
- */
-export const writeStoredVendorChoice = function writeStoredVendorChoice(
-	record: StoredVendorChoice,
-	config: StorageConfig | undefined,
-	now: number,
-	cookie?: CookieOptions
-): DecodeResult<StoredVendorChoice> & { written?: AuxiliaryWriteReport } {
-	const validated = decodeVendorChoice(record, now);
-	if (validated.ok === false) {
-		return validated;
-	}
-	const keys = resolveStorageKeys(config);
-	const localStorageWritten = writeLocalStorageText(
-		keys.vendors,
-		encodeVendorChoice(validated.record)
-	);
-	const cookieDetail = writeCookie(
-		keys.vendors,
-		encodeVendorChoiceCompact(validated.record),
-		cookie,
-		config
-	);
-	return {
-		ok: true,
-		record: validated.record,
-		written: {
-			cookie: cookieDetail.attempted && cookieDetail.verified,
-			cookieDetail,
-			localStorage: localStorageWritten,
-		},
-	};
-};
-
-export const clearStoredVendorChoice = function clearStoredVendorChoice(
-	config?: StorageConfig,
-	cookie?: CookieOptions
-): void {
-	const keys = resolveStorageKeys(config);
-	removeLocalStorageKey(keys.vendors);
-	deleteCookie(keys.vendors, cookie, config);
-};
-
-/**
- * Writes the clear epoch to localStorage and its cookie. Written by
- * `clear()` after it removes the records, and never removed by it, so
- * every runtime can tell decisions made before the clear from later ones.
- */
-export const writeStoredClearEpoch = function writeStoredClearEpoch(
-	epoch: number,
-	config: StorageConfig | undefined,
-	cookie?: CookieOptions
-): AuxiliaryWriteReport {
-	const keys = resolveStorageKeys(config);
-	const text = encodeClearEpoch(epoch);
-	const localStorageWritten = writeLocalStorageText(keys.epoch, text);
-	const cookieDetail = writeCookie(keys.epoch, text, cookie, config);
-	return {
-		cookie: cookieDetail.attempted && cookieDetail.verified,
-		cookieDetail,
-		localStorage: localStorageWritten,
-	};
-};
-
-// ---------------------------------------------------------------------------
-// Clear everything
-// ---------------------------------------------------------------------------
-
-/**
- * Removes explicit choices (configured and legacy keys, cookie and
- * localStorage), the notice dismissal and the vendor denials with their
- * cookie projections, and the legacy `<key>-privacy` record an alpha may
- * have left. Cookie deletion uses the same domain handling as writes so a
- * cross-subdomain cookie is actually removed.
- *
- * Queued backend replays and subject reassignments are the kernel's save
- * outbox: the kernel drops them under the outbox lock on the
- * `records:cleared` event that follows a clear.
- */
-export const clearStoredConsentRecords = function clearStoredConsentRecords(
-	cookie?: CookieOptions,
-	config?: StorageConfig
-): void {
-	deleteConsentFromStorage(cookie, config);
-	removeLocalStorageKey(resolveStorageKeys(config).cookieMiss);
-	clearStoredNoticeDismissal(config, cookie);
-	clearLegacyPrivacyRecord(config, cookie);
-	clearStoredVendorChoice(config, cookie);
-	// Addon bytes must be removed even when the addon is not mounted.
-	removeLocalStorageKey('c15t-iab-authority-v1');
-	removeLocalStorageKey('euconsent-v2');
-	deleteCookie('euconsent-v2', cookie, config);
-	deleteCookie('euconsent-v2');
-};

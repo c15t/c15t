@@ -2,8 +2,10 @@
 
 Playwright benchmark app for `@c15t/tanstack-start`, built to run head to head
 against `benchmarks/nextjs-browser-bench`: same fixture data, same scenario
-names, same DOM hooks, same metric list, same Chromium build. The only extra
-arm is `manifest-ssr-proxy`, which prices the opt-in same-origin proxy, plus
+names, same DOM hooks, same metric list, same Chromium build. The extra
+arms are `manifest-ssr-proxy`, which prices the opt-in same-origin proxy, and
+`ssr-stream`, the streamed loader state (the Next arm streams in its
+`typical-install` scenario), plus
 the `manifest-ssr-root` build variant described under "Root-mounted
 provider" below.
 
@@ -15,6 +17,7 @@ provider" below.
 | `client` | `/client` | `ConsentProvider` with `hosted({ url: '/api/bench-consent' })`, `ssr: false`, so the provider mounts and runs init in the browser. |
 | `manifest-client` | `/manifest-client` | `custom(createManifestTransport(...))` reading the same-origin `/api/c15t/manifest` route, `ssr: false`. |
 | `ssr` | `/ssr` | Loader fetches `/api/bench-consent/init` server-side on every request and folds it in with `mergeInitIntoConsentState`; `ConsentRoot` with `initRoute={false}`. Direct-init semantics, matching the Next `ssr` arm. |
+| `ssr-stream` | `/ssr-stream` | The streamed setup `ConsentRoot` documents: the same direct-init loader, returned unawaited (`loader: () => ({ consent: getDirectInitConsentState() })`), so the router streams the state in after the shell. The server HTML has no banner; it shows once the state reaches the hydrated root. Start only. |
 | `manifest-ssr` | `/manifest-ssr` | Loader runs `createConsentStateHandler({ backendURL, manifestURL })` through the in-process manifest cache; `ConsentRoot` with the default same-origin init route. Saves post to the fixture directly. |
 | `manifest-ssr-proxy` | `/manifest-ssr-proxy` | Same prefetch, but `ConsentRoot backendURL="/api/c15t-proxy"`, a second `createConsentServerRoute({ proxy: true })` mount, so the accept click's `POST /subjects` takes one hop through the Start server. Start only. |
 | `repeat-visitor` | derived | After each measured `client` iteration a second browser context loads `/client` and the runner measures the Open Preferences click, exactly as the Next runner does. Note that neither runner preseeds the consent cookie for this arm. |
@@ -26,13 +29,14 @@ file that list it are historical.
 Fixture routes live under `src/routes/api/bench-consent/` and are a copy of
 the Next arm's `fixture.ts` (policy id, fingerprint, revision, and
 translations are byte-identical, so both arms resolve the same policy). They
-honour `C15T_BENCH_INIT_LATENCY_MS` and the `?cold=` token the same way.
+honour `C15T_BENCH_BACKEND_LATENCY_MS` (200 ms by default) and the `?cold=`
+token the same way.
 
 ## Running
 
 ```bash
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --iterations 15 --warmup 2
-bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --profile mobile --init-latency-ms 200
+bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --profile mobile --backend-latency-ms 200
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --scenario manifest-ssr-proxy
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --cold-manifest true
 bun run --cwd benchmarks/tanstack-start-browser-bench bench -- --root-provider

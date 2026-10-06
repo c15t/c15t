@@ -5,13 +5,13 @@ import { policyRulePresets } from '@c15t/schema/types';
 import type { PolicyRule } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { createExperimentController } from '../../experiment';
 import { createConsentKernel } from '../../kernel';
 import { createConsentRuntime } from '../../runtime';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport } from '../../types';
 import type { ConsentExperiment, ExperimentAssignment } from '../experiment';
-import { createExperimentController } from '../experiment-assignment';
 import {
 	readStoredExperimentArm,
 	writeStoredExperimentArm,

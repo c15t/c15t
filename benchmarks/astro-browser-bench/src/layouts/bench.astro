@@ -14,15 +14,18 @@ import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.
 import ConsentScript from '@c15t/astro/components/consent-script.astro';
 
 import BenchmarkProbe from '../components/benchmark-probe.astro';
+import ScriptProbe from '../components/script-probe.astro';
 
 import '@c15t/astro/styles.css';
 
 interface Props {
 	scenario: string;
 	deferred?: boolean;
+	/** Add the script-loading probe (the `scripts` arms). */
+	scripts?: 'first-visit' | 'returning';
 }
 
-const { scenario, deferred = false } = Astro.props;
+const { scenario, deferred = false, scripts } = Astro.props;
 ---
 
 <html lang="en">
@@ -44,6 +47,7 @@ const { scenario, deferred = false } = Astro.props;
 		</main>
 
 		<BenchmarkProbe scenario={scenario} />
+		{scripts && <ScriptProbe returning={scripts === 'returning'} />}
 		{deferred ? <ConsentBannerDeferred /> : <ConsentBanner />}
 		<ConsentDialog />
 	</body>

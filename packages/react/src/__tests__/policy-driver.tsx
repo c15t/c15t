@@ -44,10 +44,8 @@ import { renderToString } from 'react-dom/server';
 import { vi } from 'vitest';
 import { userEvent } from 'vitest/browser';
 
-import {
-	encodeStoredConsentEnvelopeJson,
-	validateStoredConsentEnvelope,
-} from '../../../core/src/modules/persistence/record-codec';
+import { validateStoredConsentEnvelope } from '../../../core/src/modules/persistence/record-codec';
+import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
 import { ConsentGate } from '../components/consent-gate';

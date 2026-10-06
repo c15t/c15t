@@ -31,25 +31,28 @@
  *   cleared for being absent.
  *
  * Pure. Nothing here reads storage or evaluates expiry; the consent
- * evaluator judges the applied records at the reconciliation time.
+ * evaluator judges the applied records at the reconciliation time. The
+ * per-category merge and the clear-epoch rules come in as tools: they are
+ * the kernel's and the read path's own, and this file loads on demand.
  */
 import type {
 	ConsentSubject,
 	ExplicitChoice,
 	NoticeDismissal,
-} from '../../consent-record/types';
-import { mergeNewestChoice } from '../../kernel/record-validation';
+} from '../../../consent-record/types';
 import type {
 	ConsentSnapshot,
 	HydrationRecords,
 	VendorChoice,
-} from '../../types';
-import {
-	choiceSinceEpoch,
-	noticeSinceEpoch,
-	vendorChoiceSinceEpoch,
-} from './epoch';
-import type { StoredRecords } from './hydrate';
+} from '../../../types';
+import type { StoredRecords } from '../hydrate';
+import type { PersistenceTools } from './types';
+
+/** The first-load rules reconciliation applies. */
+type Rules = Pick<
+	PersistenceTools,
+	'choiceSince' | 'merge' | 'noticeSince' | 'vendorsSince'
+>;
 
 /** The parts of a storage read that reconciliation consults. */
 export type StoredRead = Pick<
@@ -165,13 +168,15 @@ export const subjectToWrite = function subjectToWrite(
  * @param subjectOnly - Whether no choice was recorded since the last write.
  * @param storedWinsTies - Whether storage changed since this runtime last
  * read or wrote it.
+ * @param merge - The kernel's per-category merge.
  * @returns The choice to write, or `null` when nothing should be written.
  */
 export const choiceToWrite = function choiceToWrite(
 	ours: ExplicitChoice | null,
 	stored: ExplicitChoice | null,
 	subjectOnly: boolean,
-	storedWinsTies: boolean
+	storedWinsTies: boolean,
+	merge: Rules['merge']
 ): ExplicitChoice | null {
 	if (!ours) {
 		return null;
@@ -186,9 +191,7 @@ export const choiceToWrite = function choiceToWrite(
 	if (!stored) {
 		return ours;
 	}
-	return storedWinsTies
-		? mergeNewestChoice(stored, ours)
-		: mergeNewestChoice(ours, stored);
+	return storedWinsTies ? merge(stored, ours) : merge(ours, stored);
 };
 
 /** Whether `ours`, stamped at `oursAt`, may replace a record from `storedAt`. */
@@ -445,7 +448,8 @@ const reconcileChoice = function reconcileChoice(
 	snapshot: ConsentSnapshot,
 	stored: HydrationRecords,
 	movement: Movement,
-	subjectYields: boolean
+	subjectYields: boolean,
+	merge: Rules['merge']
 ): HydrationRecords {
 	const records: HydrationRecords = {};
 	const { explicitChoice } = snapshot;
@@ -457,8 +461,8 @@ const reconcileChoice = function reconcileChoice(
 		// On equal times a decision another runtime stored since this one
 		// last looked wins; otherwise the stored record is this runtime's own.
 		const merged = movement.changed('choice')
-			? mergeNewestChoice(stored.choice, explicitChoice)
-			: mergeNewestChoice(explicitChoice, stored.choice);
+			? merge(stored.choice, explicitChoice)
+			: merge(explicitChoice, stored.choice);
 		if (!sameRecord(merged, explicitChoice)) {
 			records.choice = merged;
 		}
@@ -495,18 +499,19 @@ const sinceEpoch = function sinceEpoch(
 	snapshot: ConsentSnapshot,
 	epoch: number,
 	clearMissed: boolean,
-	subjectSurvives: boolean
+	subjectSurvives: boolean,
+	rules: Rules
 ): ConsentSnapshot {
 	return {
 		...snapshot,
-		explicitChoice: choiceSinceEpoch(
+		explicitChoice: rules.choiceSince(
 			snapshot.explicitChoice,
 			epoch,
 			!clearMissed
 		),
-		noticeDismissal: noticeSinceEpoch(snapshot.noticeDismissal, epoch),
+		noticeDismissal: rules.noticeSince(snapshot.noticeDismissal, epoch),
 		subject: clearMissed && !subjectSurvives ? null : snapshot.subject,
-		vendorChoice: vendorChoiceSinceEpoch(snapshot.vendorChoice, epoch),
+		vendorChoice: rules.vendorsSince(snapshot.vendorChoice, epoch),
 	};
 };
 
@@ -553,6 +558,7 @@ const applyVoided = function applyVoided(
  * @param subjectBornAfterEpoch - Whether a save made after the stored epoch
  * generated the in-memory subject, so it survives a clear this runtime
  * missed.
+ * @param rules - The per-category merge and the clear-epoch rules.
  * @returns The records to hydrate and the fingerprints to keep.
  */
 export const selectReconciledRecords = function selectReconciledRecords(
@@ -563,7 +569,8 @@ export const selectReconciledRecords = function selectReconciledRecords(
 	subjectYields: boolean,
 	unadopted: ReadonlySet<StoredRecordKind>,
 	memoryEpoch: number,
-	subjectBornAfterEpoch = false
+	subjectBornAfterEpoch: boolean,
+	rules: Rules
 ): ReconciledRecords {
 	const { records: stored } = read;
 	const clearMissed = read.epoch > memoryEpoch;
@@ -573,7 +580,8 @@ export const selectReconciledRecords = function selectReconciledRecords(
 		snapshot,
 		read.epoch,
 		clearMissed,
-		subjectBornAfterEpoch
+		subjectBornAfterEpoch,
+		rules
 	);
 	const current = fingerprintStoredRecords(read);
 	const movement: Movement = {
@@ -589,7 +597,8 @@ export const selectReconciledRecords = function selectReconciledRecords(
 		view,
 		stored,
 		movement,
-		subjectYields || clearMissed
+		subjectYields || clearMissed,
+		rules.merge
 	);
 
 	if (

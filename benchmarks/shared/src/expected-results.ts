@@ -1,3 +1,5 @@
+import { DEFAULT_BENCH_BACKEND_LATENCY_MS, benchScenarioKey } from './browser';
+import type { BenchCondition } from './browser';
 /**
  * Registry of the benchmark results the comparison gate expects.
  *
@@ -30,7 +32,10 @@ import { policyBenchFixtures } from './policy-fixtures';
 import type { BenchmarkSuite, MetricBudget } from './schema';
 
 export interface ExpectedBenchmarkResult {
-	/** `${package}:${scenario}:${suite}` */
+	/**
+	 * `${package}:${scenario}:${suite}`. Browser-runtime scenarios carry the
+	 * condition, for example `ssr:profile-none:latency-200ms`.
+	 */
 	key: string;
 	suite: BenchmarkSuite;
 	/** Canonical budget definitions the head artifact must carry. */
@@ -105,6 +110,9 @@ export const nextjsBrowserScenarios = [
 	'saved-consent-accept',
 	'saved-consent-reject',
 	'ssr-repeat',
+	'typical-install',
+	'typical-install-repeat',
+	'typical-install-returning',
 ] as const;
 
 export const nuxtBrowserScenarios = [
@@ -160,111 +168,142 @@ const bundleRouteBudget = function bundleRouteBudget(
 	return bundleBudgets.filter((budget) => budget.metric === scenario);
 };
 
-export const expectedBenchmarkResults: ExpectedBenchmarkResult[] = [
-	...['baseline', 'ssr', 'ssr-manifest', 'ssr-deferred', 'repeat-visitor'].map(
-		(scenario) =>
+/** The condition `scripts/benchmark-run.ts` measures by default. */
+export const defaultBenchCondition: BenchCondition = {
+	backendLatencyMs: DEFAULT_BENCH_BACKEND_LATENCY_MS,
+	profile: 'none',
+};
+
+/**
+ * Every result the gate expects when the browser benches ran under
+ * `condition`. Only browser-runtime keys depend on it.
+ *
+ * @param condition - Throttle profile and backend latency of the run.
+ */
+export const expectedBenchmarkResultsFor = function expectedBenchmarkResultsFor(
+	condition: BenchCondition
+): ExpectedBenchmarkResult[] {
+	const browser = (scenario: string) => benchScenarioKey(scenario, condition);
+	return [
+		...[
+			'baseline',
+			'ssr',
+			'ssr-manifest',
+			'ssr-deferred',
+			'repeat-visitor',
+			'scripts',
+			'repeat-visitor-scripts',
+		].map((scenario) =>
 			expect(
 				'@c15t/astro-browser-bench',
-				scenario,
+				browser(scenario),
 				'browser-runtime',
 				astroBrowserBudgetsForScenario(scenario)
 			)
-	),
-	...[
-		'baseline',
-		'baseline-client',
-		'ssr',
-		'ssr-manifest',
-		'client',
-		'client-manifest',
-		'repeat-visitor',
-	].map((scenario) =>
-		expect(
-			'@c15t/sveltekit-browser-bench',
-			scenario,
-			'browser-runtime',
-			sveltekitBrowserBudgetsForScenario(scenario)
-		)
-	),
-	...[
-		'baseline',
-		'client',
-		'manifest-client',
-		'ssr',
-		'manifest-ssr',
-		'manifest-ssr-proxy',
-		'saved-consent-accept',
-		'saved-consent-reject',
-	].map((scenario) =>
-		expect(
-			'@c15t/tanstack-start-browser-bench',
-			scenario,
-			'browser-runtime',
-			tanstackBrowserBudgetsForScenario(scenario)
-		)
-	),
-	...Object.keys(coreFixtures).map((fixture) =>
-		expect('@c15t/core-benchmarks', fixture, 'core-runtime', [
-			...coreRuntimeBudgets,
-			...coreRuntimeCoverageBudgets,
-			...coreRuntimeV3Budgets,
-		])
-	),
-	...Object.values(policyBenchFixtures).map((fixture) =>
-		expect(
-			'@c15t/core-benchmarks',
-			fixture.name,
-			'policy-runtime',
-			policyRuntimeBudgetsForFixture(fixture)
-		)
-	),
-	...reactBrowserScenarios.map((scenario) =>
-		expect(
-			'@c15t/react-browser-bench',
-			scenario,
-			'browser-runtime',
-			reactBrowserBudgetsForScenario(scenario)
-		)
-	),
-	...nextjsBrowserScenarios.map((scenario) =>
-		expect(
-			'@c15t/nextjs-browser-bench',
-			scenario,
-			'browser-runtime',
-			nextjsBrowserBudgetsForScenario(scenario)
-		)
-	),
-	...nuxtBrowserScenarios.map((scenario) =>
-		expect(
-			'@c15t/vue',
-			scenario,
-			'browser-runtime',
-			nuxtBrowserBudgetsForScenario(scenario)
-		)
-	),
-	...scriptLifecycleScenarios.map(([scenario, metric]) =>
-		expect(
-			'@c15t/script-lifecycle-bench',
-			scenario,
-			'script-lifecycle',
-			scriptLifecycleBudgetsForMetric(metric)
-		)
-	),
-	...bundleRouteScenarios.map((scenario) =>
-		expect(
-			'@c15t/next-bundle-bench',
-			scenario,
-			'bundle',
-			bundleRouteBudget(scenario)
-		)
-	),
-	expect('@c15t/next-bundle-bench', 'tarballs', 'artifact', artifactBudgets),
-	...bundleEntryScenarios.map((scenario) =>
-		expect(
-			'@c15t/next-bundle-bench',
-			scenario,
-			'bundle',
-			bundleEntryBudgets(scenario)
-		)
-	),
-];
+		),
+		...[
+			'baseline',
+			'baseline-client',
+			'ssr',
+			'ssr-manifest',
+			'client',
+			'client-manifest',
+			'repeat-visitor',
+			'scripts',
+			'repeat-visitor-scripts',
+		].map((scenario) =>
+			expect(
+				'@c15t/sveltekit-browser-bench',
+				browser(scenario),
+				'browser-runtime',
+				sveltekitBrowserBudgetsForScenario(scenario)
+			)
+		),
+		...[
+			'baseline',
+			'client',
+			'manifest-client',
+			'ssr',
+			'ssr-stream',
+			'manifest-ssr',
+			'manifest-ssr-proxy',
+			'saved-consent-accept',
+			'saved-consent-reject',
+		].map((scenario) =>
+			expect(
+				'@c15t/tanstack-start-browser-bench',
+				browser(scenario),
+				'browser-runtime',
+				tanstackBrowserBudgetsForScenario(scenario)
+			)
+		),
+		...Object.keys(coreFixtures).map((fixture) =>
+			expect('@c15t/core-benchmarks', fixture, 'core-runtime', [
+				...coreRuntimeBudgets,
+				...coreRuntimeCoverageBudgets,
+				...coreRuntimeV3Budgets,
+			])
+		),
+		...Object.values(policyBenchFixtures).map((fixture) =>
+			expect(
+				'@c15t/core-benchmarks',
+				fixture.name,
+				'policy-runtime',
+				policyRuntimeBudgetsForFixture(fixture)
+			)
+		),
+		...reactBrowserScenarios.map((scenario) =>
+			expect(
+				'@c15t/react-browser-bench',
+				browser(scenario),
+				'browser-runtime',
+				reactBrowserBudgetsForScenario(scenario)
+			)
+		),
+		...nextjsBrowserScenarios.map((scenario) =>
+			expect(
+				'@c15t/nextjs-browser-bench',
+				browser(scenario),
+				'browser-runtime',
+				nextjsBrowserBudgetsForScenario(scenario)
+			)
+		),
+		...nuxtBrowserScenarios.map((scenario) =>
+			expect(
+				'@c15t/vue',
+				browser(scenario),
+				'browser-runtime',
+				nuxtBrowserBudgetsForScenario(scenario)
+			)
+		),
+		...scriptLifecycleScenarios.map(([scenario, metric]) =>
+			expect(
+				'@c15t/script-lifecycle-bench',
+				scenario,
+				'script-lifecycle',
+				scriptLifecycleBudgetsForMetric(metric)
+			)
+		),
+		...bundleRouteScenarios.map((scenario) =>
+			expect(
+				'@c15t/next-bundle-bench',
+				scenario,
+				'bundle',
+				bundleRouteBudget(scenario)
+			)
+		),
+		expect('@c15t/next-bundle-bench', 'tarballs', 'artifact', artifactBudgets),
+		...bundleEntryScenarios.map((scenario) =>
+			expect(
+				'@c15t/next-bundle-bench',
+				scenario,
+				'bundle',
+				bundleEntryBudgets(scenario)
+			)
+		),
+	];
+};
+
+/** {@link expectedBenchmarkResultsFor} at {@link defaultBenchCondition}. */
+export const expectedBenchmarkResults: ExpectedBenchmarkResult[] =
+	expectedBenchmarkResultsFor(defaultBenchCondition);

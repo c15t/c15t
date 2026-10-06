@@ -1,12 +1,16 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { recordBenchConsentFixtureExecution } from '../../../bench/fixture';
+import {
+	applyBenchConsentLatency,
+	recordBenchConsentFixtureExecution,
+} from '../../../bench/fixture';
 
 export const Route = createFileRoute('/api/bench-consent/subjects')({
 	server: {
 		handlers: {
 			POST: async ({ request }) => {
 				recordBenchConsentFixtureExecution('subjects');
+				await applyBenchConsentLatency();
 				const parsed: unknown = await request.json().catch(() => undefined);
 				const subjectId =
 					parsed !== null &&

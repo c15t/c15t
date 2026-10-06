@@ -5,6 +5,7 @@ import { describe, expect, test, vi } from 'vitest';
 
 import { createConsentKernel } from '../../../kernel';
 import { installFetchPatch } from '../patch-fetch';
+import { networkBlockerTools } from '../tools';
 import type { NetworkBlockerRule } from '../types';
 
 const rule: NetworkBlockerRule = {
@@ -25,6 +26,7 @@ describe('installFetchPatch', () => {
 			getSnapshot: () => kernel.getSnapshot(),
 			isEnabled: () => true,
 			notifyBlocked,
+			tools: networkBlockerTools,
 		});
 
 		const response = await window.fetch('https://tracker.example/');
@@ -45,6 +47,7 @@ describe('installFetchPatch', () => {
 			getSnapshot: () => kernel.getSnapshot(),
 			isEnabled: () => false,
 			notifyBlocked: () => {},
+			tools: networkBlockerTools,
 		});
 
 		await window.fetch('https://tracker.example/');
@@ -63,6 +66,7 @@ describe('installFetchPatch', () => {
 			getSnapshot: () => kernel.getSnapshot(),
 			isEnabled: () => true,
 			notifyBlocked: () => {},
+			tools: networkBlockerTools,
 		});
 
 		await window.fetch('https://allowed.example/');
@@ -81,6 +85,7 @@ describe('installFetchPatch', () => {
 			getSnapshot: () => kernel.getSnapshot(),
 			isEnabled: () => true,
 			notifyBlocked: () => {},
+			tools: networkBlockerTools,
 		});
 		uninstall();
 

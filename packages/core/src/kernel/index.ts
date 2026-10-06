@@ -144,6 +144,7 @@ export const createKernel = function createKernel(
 		getRecordsGeneration: runtime.getGeneration,
 		getServerSnapshot: () => serverSnapshot,
 		getSnapshot: runtime.getSnapshot,
+		holdSaves: outbox.hold,
 		hydrate: records.hydrate,
 		markLive: runtime.markLive,
 		refresh: lifecycle.refresh,

@@ -5,7 +5,8 @@ export type TanstackBenchScenario =
 	| 'manifest-ssr'
 	| 'manifest-ssr-proxy'
 	| 'manifest-ssr-root'
-	| 'ssr';
+	| 'ssr'
+	| 'ssr-stream';
 
 /**
  * Same fields as the Next arm's `__c15tNextBench` so the runners and the

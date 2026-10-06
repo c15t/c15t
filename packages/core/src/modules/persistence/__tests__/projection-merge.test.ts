@@ -11,6 +11,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ChoiceBasis } from '../../../consent-record/types';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
 import { readStoredRecords } from '../hydrate';
+import type { StoredConsentEnvelope } from '../record-codec';
+import {
+	readStoredNoticeDismissal,
+	readStoredVendorChoice,
+} from '../record-storage';
 import {
 	encodeNoticeDismissal,
 	encodeNoticeDismissalCompact,
@@ -18,14 +23,11 @@ import {
 	encodeStoredConsentEnvelopeJson,
 	encodeVendorChoice,
 	encodeVendorChoiceCompact,
-} from '../record-codec';
-import type { StoredConsentEnvelope } from '../record-codec';
+} from '../writer/encode';
 import {
-	readStoredNoticeDismissal,
-	readStoredVendorChoice,
 	writeStoredClearEpoch,
 	writeStoredConsentEnvelope,
-} from '../record-storage';
+} from './record-writes';
 
 const T = 1_800_000_000_000;
 const basis: ChoiceBasis = { fingerprint: 'choice-fp', kind: 'choice-v1' };

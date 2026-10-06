@@ -13,7 +13,7 @@ type InitPayload = Parameters<typeof mergeInitIntoConsentState>[1];
 /**
  * Direct-init prefetch for the `ssr` arm. The package's
  * `createConsentStateHandler({ backendURL })` always resolves init from
- * the in-process manifest cache, which would pay `C15T_BENCH_INIT_LATENCY_MS`
+ * the in-process manifest cache, which would pay `C15T_BENCH_BACKEND_LATENCY_MS`
  * once per cache fill instead of once per request. The Next arm's `ssr`
  * route calls `${backendURL}/init` server-side on every render, so this
  * loader does the same with the public helpers: read cookies and headers,

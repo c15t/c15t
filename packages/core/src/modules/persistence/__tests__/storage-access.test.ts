@@ -10,11 +10,11 @@ import {
 import { createConsentKernel } from '../../../kernel';
 import { readStoredRecords } from '../hydrate';
 import { createPersistence } from '../index';
+import { readStoredConsentRecord } from '../record-storage';
 import {
 	clearStoredConsentRecords,
-	readStoredConsentRecord,
 	writeStoredConsentEnvelope,
-} from '../record-storage';
+} from './record-writes';
 
 const disposers: (() => void)[] = [];
 const resolution = matchedResolution(

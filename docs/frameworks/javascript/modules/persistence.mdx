@@ -21,6 +21,37 @@ choice survives reloads and later visits without a backend request.
 The cookie is readable by your server, so a server-rendered page can see the
 visitor's choice before any script runs.
 
+## When records are read and written
+
+Stored records are read synchronously when the module starts, so a
+returning visitor's choice applies before the first banner renders.
+
+The code that writes and reconciles records is a separate chunk. Once a
+banner or dialog has been shown, it starts loading in browser idle time after
+the page's `load` event. It also starts at the first write or reconciliation
+if one comes sooner. A returning visitor who sees no prompt downloads it only
+when something needs it. Until it has loaded:
+
+- A save waits for its record to be stored before its backend request
+  leaves, and before the save resolves. On the first save of a page load,
+  this can add the time it takes to fetch the chunk.
+- If the chunk fails to load, the save keeps waiting rather than count as
+  stored. Its request does not leave, and a revocation reload does not run
+  while storage still holds the old choice. c15t tries the chunk again after
+  1, 4 and 16 seconds, and at every later save, focus or tab change.
+- `reconcile()` returns `false` and runs when the chunk lands.
+
+`clear()` needs no chunk. It removes every record from the cookie and
+localStorage, stores the clear epoch and resets the kernel's records before
+it returns, so reloading right after a clear cannot restore a cleared choice.
+
+- `pagehide` cannot store anything. A page restored from the back/forward
+  cache stores its pending records when the chunk lands. A page that unloads
+  first loses them, along with the save request still waiting for them.
+
+After the chunk has loaded, each write runs in the macrotask after the
+visitor acts, and `pagehide` runs any write still waiting.
+
 ## Name, domain and lifetime
 
 `storageConfig` sets where and how long records live:

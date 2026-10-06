@@ -16,6 +16,9 @@ import { defineConfig } from 'astro/config';
  * - `hosted` — `/ssr`, the direct-init arm that pays the backend RTT
  * - `baseline` — `/baseline`, built with no c15t integration at all, which
  *   is the zero-consent floor `consentTax = bannerVisible − floor` subtracts
+ * - `scripts` — `/scripts`, `/repeat-visitor-scripts`: manifest mode plus
+ *   one measurement-gated script and a network-blocker rule, so the runner
+ *   can time when a consented script loads
  *
  * Absolute fixture URLs on purpose: the shared resolver assumes `https` for
  * a relative URL with no `x-forwarded-proto`, which a plain HTTP bench
@@ -41,20 +44,37 @@ const consentCategories = [
 
 const integrations = [svelte()];
 
-if (benchMode === 'manifest') {
-	integrations.push(
-		c15t({
-			consentCategories,
-			// The fixture backend lives under `/api/bench-consent`, which the
-			// integration does not know about; the manifest route it does
-			// know about is skipped for it.
-			middleware: { skip: ['/api/bench-consent'] },
-			mode: manifest({
-				backendURL,
-				manifestURL: `${backendURL}/manifest`,
-			}),
-		})
-	);
+if (benchMode === 'manifest' || benchMode === 'scripts') {
+	const options = {
+		consentCategories,
+		// The fixture backend lives under `/api/bench-consent`, which the
+		// integration does not know about; the manifest route it does
+		// know about is skipped for it.
+		middleware: { skip: ['/api/bench-consent'] },
+		mode: manifest({
+			backendURL,
+			manifestURL: `${backendURL}/manifest`,
+		}),
+	};
+	if (benchMode === 'scripts') {
+		options.networkBlocker = {
+			rules: [
+				{
+					category: 'measurement',
+					domain: '127.0.0.1',
+					pathIncludes: '/bench-beacon.txt',
+				},
+			],
+		};
+		options.scripts = [
+			{
+				category: 'measurement',
+				id: 'bench-third-party',
+				src: '/bench-third-party.js',
+			},
+		];
+	}
+	integrations.push(c15t(options));
 } else if (benchMode === 'hosted') {
 	integrations.push(
 		c15t({

@@ -136,8 +136,10 @@ const loadNetworkBlocker = function loadNetworkBlocker(
  *
  * Persistence, the script loader, the iframe blocker, window debug and the
  * revocation reload are imported statically. The network blocker and data
- * clearing are opt-in, so they load on demand, the way the React provider
- * loads them: a page that configures neither never downloads them. Matching
+ * clearing are opt-in, so they load on demand: a page that configures
+ * neither never downloads them. (A provider that loads every module on
+ * demand uses `onDemandRuntimeModules` from `@c15t/core/runtime/provider`,
+ * whose chunks import nothing from the first load.) Matching
  * requests stay held from construction until the blocker has loaded and
  * decides them. Data clearing sweeps denied categories when it mounts, so a
  * revocation before it loaded is still cleared, a moment later.

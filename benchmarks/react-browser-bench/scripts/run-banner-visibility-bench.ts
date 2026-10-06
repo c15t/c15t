@@ -5,6 +5,10 @@ import { dirname, join, resolve } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
 import { fileURLToPath } from 'node:url';
 
+import {
+	BENCH_BACKEND_LATENCY_ENV,
+	resolveBenchBackendLatencyMs,
+} from '@c15t/benchmarking/browser';
 import { chromium } from 'playwright';
 import type { Page } from 'playwright';
 
@@ -16,6 +20,10 @@ const outputDir =
 	process.env.BENCH_OUTPUT_DIR ?? '.benchmarks/banner-visibility';
 const iterations = Number(process.env.BENCH_ITERATIONS ?? '15');
 const warmupIterations = Number(process.env.BENCH_WARMUP_ITERATIONS ?? '2');
+const backendLatencyMs = resolveBenchBackendLatencyMs(
+	() => undefined,
+	process.env
+);
 
 interface BenchState {
 	activeUI: string;
@@ -125,6 +133,10 @@ const run = async function run() {
 		['run', 'start', '--', '-H', HOST, '-p', `${PORT}`],
 		{
 			cwd: appDir,
+			env: {
+				...process.env,
+				[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
+			},
 			stdio: ['ignore', 'pipe', 'pipe'],
 		}
 	);
@@ -179,6 +191,7 @@ const run = async function run() {
 			join(outputDir, 'react-banner-visibility.json'),
 			`${JSON.stringify(
 				{
+					backendLatencyMs,
 					generatedAt: new Date().toISOString(),
 					iterations,
 					result,
@@ -191,7 +204,9 @@ const run = async function run() {
 		);
 
 		console.log('# React banner visibility benchmark\n');
-		console.log(`Iterations per metric: ${iterations}\n`);
+		console.log(
+			`Iterations per metric: ${iterations}, backend latency ${backendLatencyMs} ms\n`
+		);
 		console.log('| Metric | Median | p95 |');
 		console.log('|---|---:|---:|');
 		for (const metric of [
