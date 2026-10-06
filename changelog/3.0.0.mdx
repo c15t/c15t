@@ -154,7 +154,9 @@ New module. Add `c15t/vue` to `modules` in `nuxt.config.ts`. It registers
 resolves consent during server rendering so the banner is in the first HTML.
 With `manifest: 'server'` it also adds `GET /api/c15t/init` and
 `GET /api/c15t/manifest`. In development, c15t gets its own Nuxt DevTools tab.
-Requires Nuxt 3 or 4 and Vue 3.5.
+Requires Nuxt 3 or 4 and Vue 3.5. Nuxt 4.6 apps with Vue Vapor
+enabled can render c15t's components and call its composables from Vapor
+pages.
 
 ### Vue
 
