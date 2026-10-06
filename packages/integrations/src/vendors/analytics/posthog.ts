@@ -322,9 +322,116 @@ export interface PosthogConsentOptions {
 	 */
 	loadMode?: PosthogLoadMode;
 
-	/** PostHog init options passed to `posthog.init(...)`. */
+	/**
+	 * Turns PostHog features on or off at init, so PostHog does not download
+	 * modules or send requests for features the site does not use.
+	 *
+	 * Each switch maps to a `posthog.init` option. An unset switch leaves that
+	 * option out. `initOptions` wins over a switch that sets the same key.
+	 *
+	 * @default {}
+	 */
+	features?: PosthogFeatures;
+
+	/**
+	 * PostHog init options passed to `posthog.init(...)`, merged over the
+	 * helper defaults and `features`.
+	 */
 	initOptions?: Record<string, unknown>;
 }
+
+/**
+ * PostHog features that load extra modules or requests in the browser.
+ *
+ * `false` turns the feature off at init. `true` turns it on, overriding the
+ * project's setting where PostHog allows that. Unset keeps PostHog's own
+ * behavior.
+ */
+export interface PosthogFeatures {
+	/**
+	 * Surveys. `false` sets `disable_surveys: true` and skips `surveys.js`.
+	 *
+	 * PostHog downloads `surveys.js` whenever the project's remote config has a
+	 * `surveys` value, even `false`, so this is the only way to skip it.
+	 *
+	 * @default undefined
+	 */
+	surveys?: boolean;
+
+	/**
+	 * Heatmaps. Maps to `capture_heatmaps`. Unset follows the project setting.
+	 *
+	 * While heatmaps are on, PostHog also loads `dead-clicks-autocapture.js`,
+	 * whatever `deadClicks` says.
+	 *
+	 * @default undefined
+	 */
+	heatmaps?: boolean;
+
+	/**
+	 * Dead click autocapture. Maps to `capture_dead_clicks`. Unset follows the
+	 * project setting. `dead-clicks-autocapture.js` is skipped only when
+	 * heatmaps are off too.
+	 *
+	 * @default undefined
+	 */
+	deadClicks?: boolean;
+
+	/**
+	 * Web vitals. Maps to `capture_performance: { web_vitals }` and skips
+	 * `web-vitals-with-attribution.js` when `false`. Session replay network
+	 * timing keeps following the project setting.
+	 *
+	 * @default undefined
+	 */
+	webVitals?: boolean;
+
+	/**
+	 * Feature flag requests. `false` sets `advanced_disable_feature_flags: true`,
+	 * which stops `/flags` requests and still loads the remote config. Surveys
+	 * that target a feature flag then never show.
+	 *
+	 * @default undefined
+	 */
+	featureFlags?: boolean;
+}
+
+/**
+ * Maps `features` switches to `posthog.init` options. Unset switches add no
+ * key, so the result is empty when no switch is set.
+ *
+ * Never sets `advanced_disable_flags`: that also skips the remote config, and
+ * session replay and other project settings stop applying.
+ */
+const resolveFeatureInitOptions = function resolveFeatureInitOptions(
+	features: PosthogFeatures = {}
+): Record<string, unknown> {
+	const initOptions: Record<string, unknown> = {};
+
+	if (features.surveys !== undefined) {
+		initOptions.disable_surveys = !features.surveys;
+	}
+
+	if (features.heatmaps !== undefined) {
+		initOptions.capture_heatmaps = features.heatmaps;
+	}
+
+	if (features.deadClicks !== undefined) {
+		initOptions.capture_dead_clicks = features.deadClicks;
+	}
+
+	if (features.webVitals !== undefined) {
+		// An object, not a boolean: `capture_performance: false` would also turn
+		// off session replay network timing.
+		initOptions.capture_performance = { web_vitals: features.webVitals };
+	}
+
+	if (features.featureFlags !== undefined) {
+		initOptions.advanced_disable_feature_flags = !features.featureFlags;
+	}
+
+	return initOptions;
+};
 
 /**
  * Creates a c15t PostHog script helper.
@@ -369,6 +476,7 @@ export const posthog = function posthog(
 		initOptions: {
 			cookieless_mode: 'on_reject',
 			defaults: DEFAULTS_DATE,
+			...resolveFeatureInitOptions(options.features),
 			...options.initOptions,
 			api_host: apiHost,
 			ui_host: uiHost,
