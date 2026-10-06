@@ -76,7 +76,13 @@ export const preloadScriptLoader = function preloadScriptLoader(
 							.globalPrivacyControl === true,
 				},
 			}).getSnapshot();
-			if (scripts.some((script) => evaluateConsent(script, snapshot))) {
+			// The loader mounts an `alwaysLoad` script whatever the choice.
+			if (
+				scripts.some(
+					(script) =>
+						script.alwaysLoad === true || evaluateConsent(script, snapshot)
+				)
+			) {
 				await import('@c15t/core/modules/script-loader');
 			}
 		} catch {

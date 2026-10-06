@@ -7,7 +7,8 @@ packages:
 
 `ConsentRoot` loads the script loader during its first render in the browser
 when the state from `resolveConsent()` carries a stored choice that allows one
-of its `scripts` under the current policy, Global Privacy Control included. It
+of its `scripts` under the current policy, Global Privacy Control included,
+or when one of them has `alwaysLoad`. It
 used to wait until the page had hydrated, so a returning visitor's consented
 scripts waited for one more request after hydration. The chunk now loads while
 React hydrates the page.
