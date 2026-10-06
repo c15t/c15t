@@ -938,6 +938,7 @@ export default defineDocsConfig({
 			base: 'comparisons',
 			pages: [
 				'index',
+				'build-your-own',
 				'cookie-control',
 				'cookiebot',
 				'cookieconsent-v3',
