@@ -14,101 +14,98 @@
  * do, since their state usually holds a returning visitor's choice. A
  * runtime without it ships none of this module.
  *
- * The judgement reads the runtime's own kernel, so its categories, vendors,
- * overrides, disabled policy and external consent source are the ones
- * `start()` uses. What `start()` adds to that kernel is applied here with
- * the kernel's own code, on a copy of its snapshot:
- *
- * - a streamed prefetch, through the fold `init()` applies it with;
- * - the stored records, through the read persistence reconciles with. A
- *   stored denial counts whatever its age, and a stored grant never does,
- *   so the copy is never more permissive than the kernel after `start()`;
- * - the browser's Global Privacy Control signal, which only restricts.
+ * The judgement reads the runtime's own kernel when `start()` reads no
+ * records: a disabled runtime grants every category, a `consentSource`
+ * decides in their place, and a prefetch without a policy grants nothing
+ * until `init()` asks the backend for one. Otherwise it judges the kernel
+ * `start()` would leave the loader with: built by the runtime's own kernel
+ * factory from the runtime's options and the prefetch, streamed or not,
+ * then hydrated by the runtime's own persistence module and given the
+ * browser's Global Privacy Control signal. So its categories, vendors,
+ * overrides, stored records, including a newer denial a dropped cookie
+ * write left only in localStorage, and GPC are the ones `start()` applies.
  *
  * Each script then goes through the loader's own test: `alwaysLoad`, or
  * consent for its category and vendor.
+ *
+ * The runtime hands in its kernel factory and persistence module, rather
+ * than this module importing them or the kernel's internals. A bundler
+ * that merges a module group into one scope (Turbopack does) splits that
+ * group apart once another module imports one of its members, and every
+ * page that uses the group pays for it.
  */
-import { detectBrowserGpc, foldInitResponse } from '../kernel/init-lifecycle';
-import { buildNextSnapshot } from '../kernel/patch';
 import { evaluateConsent } from '../modules/has';
-import { readStoredRecordsForReconcile } from '../modules/persistence/hydrate';
-import { kernelConfigToInitResponse } from '../transports/init-output';
 import type { ConsentKernel } from '../types';
-import { storageFor } from './assemble';
 import type {
 	ConsentRuntimeModules,
 	ConsentRuntimeOptions,
 	RuntimePrefetch,
 } from './types';
 
+type PreloadScriptLoader = NonNullable<
+	ConsentRuntimeModules['preloadScriptLoader']
+>;
+
 /**
  * Whether the script loader, mounted by `start()` now, would run one of
- * `options.scripts` straight away.
- *
- * Errs towards `false`: a stored denial counts even when a newer grant
- * overrides it, a prefetch without a policy grants nothing, and anything
- * that throws reads as no.
+ * `options.scripts` straight away. Anything that throws reads as no.
  *
  * @param kernel - The runtime's kernel, before `start()`.
  * @param options - The runtime's options.
+ * @param createKernel - The runtime's kernel factory.
+ * @param createPersistence - The runtime's persistence module.
  * @param streamed - What a streamed prefetch resolved to, once it has.
  * @returns `true` when a script would mount once the loader loads.
  * @internal
  */
-// oxlint-disable-next-line complexity -- One pass in the order start() applies them keeps the inputs visible.
 export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 	kernel: ConsentKernel,
 	options: ConsentRuntimeOptions,
+	createKernel: Parameters<PreloadScriptLoader>[2],
+	createPersistence: Parameters<PreloadScriptLoader>[3],
 	streamed?: RuntimePrefetch
 ): boolean {
 	try {
-		const now = Date.now();
-		let snapshot = kernel.getSnapshot();
-		// A disabled runtime grants every category and a `consentSource`
-		// decides in place of the records, so `start()` reads none.
-		if ((options.enabled ?? true) && !options.consentSource) {
-			const response = streamed && kernelConfigToInitResponse(streamed);
-			// Without a policy, `init()` asks the backend for one: nothing is
-			// granted until then.
-			if (response) {
-				// The runtime's own overrides win, as `init()` applies them.
-				response.resolvedOverrides = {
-					...response.resolvedOverrides,
-					...options.overrides,
-				};
-				snapshot = buildNextSnapshot(
-					snapshot,
-					foldInitResponse(snapshot, response, now).patch
-				);
-			}
-			const { choice, vendorChoice } =
-				options.persistence === false
-					? {}
-					: readStoredRecordsForReconcile(storageFor(options), now).records;
-			const categories = { ...snapshot.explicitChoice?.categories };
-			for (const [category, decision] of Object.entries(
-				choice?.categories ?? {}
-			)) {
-				if (decision?.value === false) {
-					categories[category as keyof typeof categories] = decision;
-				}
-			}
-			const denied = [
-				...(snapshot.vendorChoice?.denied ?? []),
-				...(vendorChoice?.denied ?? []),
-			];
-			snapshot = buildNextSnapshot(snapshot, {
-				explicitChoice:
-					choice || snapshot.explicitChoice
-						? { categories, version: 3 }
-						: undefined,
-				now,
-				privacyDetected:
-					snapshot.privacySignals.gpc.detected || detectBrowserGpc(),
-				vendorChoice: denied.length
-					? { confirmedAt: now, denied, version: 1 }
-					: undefined,
+		const prefetch = streamed ?? options.prefetch;
+		let judged = kernel;
+		if (
+			(options.enabled ?? true) &&
+			!options.consentSource &&
+			prefetch?.initialPolicyResolution
+		) {
+			judged = createKernel({
+				...options,
+				// Never asked for anything: the kernel is only read.
+				mode: (() => ({})) as unknown as ConsentRuntimeOptions['mode'],
+				prefetch,
 			});
+			const { persistence } = options;
+			if (persistence !== false) {
+				const settings = typeof persistence === 'object' ? persistence : {};
+				const seed = prefetch.initialRecords;
+				// As `start()` mounts it: records a server read from the cookie
+				// stay, and only newer stored denials apply over them.
+				createPersistence({
+					kernel: judged,
+					now: settings.now,
+					skipHydration:
+						settings.skipHydration ??
+						Object.keys(seed ?? {}).some((key) => key !== 'subject'),
+					storageConfig: settings.storageConfig ?? options.storageConfig,
+					sync: false,
+				}).dispose();
+			}
+			if (
+				(globalThis.navigator as { globalPrivacyControl?: unknown } | undefined)
+					?.globalPrivacyControl === true
+			) {
+				judged.set.privacySignals({ gpc: true });
+			}
+		}
+		const snapshot = judged.getSnapshot();
+		const now = Date.now();
+		if (judged !== kernel) {
+			judged.dispose();
 		}
 		// The loader's own test: `alwaysLoad`, or consent for the script's
 		// category and vendor.
@@ -145,15 +142,22 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
  */
 export const preloadScriptLoaderWith = function preloadScriptLoaderWith(
 	load: () => Promise<unknown>
-): NonNullable<ConsentRuntimeModules['preloadScriptLoader']> {
-	return (read, prefetch) => {
+): PreloadScriptLoader {
+	return (read, prefetch, createKernel, createPersistence) => {
 		if (typeof document === 'undefined' || !read()?.[1].scripts?.length) {
 			return;
 		}
 		const runs = (streamed?: RuntimePrefetch): boolean => {
 			const state = read();
 			return Boolean(
-				state && scriptLoaderRunsAtStart(state[0], state[1], streamed)
+				state &&
+				scriptLoaderRunsAtStart(
+					state[0],
+					state[1],
+					createKernel,
+					createPersistence,
+					streamed
+				)
 			);
 		};
 		// Synchronous up to the first `await`: a known prefetch decides, and

@@ -348,12 +348,16 @@ export interface ConsentRuntimeModules {
 	 * Called once, during construction. `read` returns the kernel and the
 	 * options `start()` would use now, or `undefined` once the runtime has
 	 * started or been disposed. `prefetch` is the runtime's prefetch, which
-	 * may still be a promise.
+	 * may still be a promise. `createKernel` and `createPersistence` are the
+	 * runtime's kernel factory and persistence module, so the decision can
+	 * build the kernel `start()` would leave the loader with.
 	 * @internal
 	 */
 	preloadScriptLoader?: (
 		read: () => readonly [ConsentKernel, ConsentRuntimeOptions] | undefined,
-		prefetch: ConsentProviderRuntimeOptions['prefetch']
+		prefetch: ConsentProviderRuntimeOptions['prefetch'],
+		createKernel: (options: ConsentRuntimeOptions) => ConsentKernel,
+		createPersistence: ConsentRuntimeModules['createPersistence']
 	) => void;
 }
 

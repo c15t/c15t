@@ -28,7 +28,7 @@ import { assembleConsentRuntime } from './assemble';
 import { afterModuleLoaded } from './lazy-module';
 import type * as ProviderUpdateModule from './provider-update';
 import type { ProviderUpdateHost } from './provider-update';
-import { normalizeKernelUser } from './runtime-kernel';
+import { createRuntimeKernel, normalizeKernelUser } from './runtime-kernel';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -402,7 +402,9 @@ export const createConsentProviderRuntime =
 								scripts: current.scripts,
 							} as ConsentRuntimeOptions,
 						],
-			initial.prefetch
+			initial.prefetch,
+			createRuntimeKernel,
+			modules.createPersistence
 		);
 
 		const runtime: ConsentRuntime = main.runtime;

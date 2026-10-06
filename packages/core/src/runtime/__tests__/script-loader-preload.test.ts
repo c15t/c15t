@@ -110,19 +110,27 @@ const settle = async (): Promise<void> => {
 	}
 };
 
-/** A denial stored in localStorage only, as a dropped cookie write leaves. */
-const storeDenial = function storeDenial(confirmedAt: number): void {
+/** A marketing choice stored in localStorage only. */
+const storeChoice = function storeChoice(
+	marketing: boolean,
+	confirmedAt: number
+): void {
 	const resolution = matchedResolution(optInRule());
 	localStorage.setItem(
 		'c15t',
 		encodeStoredConsentEnvelopeJson({
 			categories: explicitChoice(
-				{ marketing: false },
+				{ marketing },
 				{ confirmedAt, fingerprint: resolution.fingerprints.choice }
 			).categories,
 			version: 3,
 		})
 	);
+};
+
+/** A denial stored in localStorage only, as a dropped cookie write leaves. */
+const storeDenial = function storeDenial(confirmedAt: number): void {
+	storeChoice(false, confirmedAt);
 };
 
 beforeEach(() => {
@@ -194,6 +202,14 @@ describe('a provider runtime loads its script loader before start()', () => {
 		const { load } = create({
 			prefetch: { initialPolicyResolution: resolution, now: NOW },
 		});
+		expect(load).toHaveBeenCalledTimes(1);
+	});
+
+	// No cookie reached the server, so the prefetch holds no records and
+	// persistence hydrates the stored grant in `start()`.
+	test('when localStorage holds a grant the prefetch did not read', () => {
+		storeChoice(true, NOW - 1000);
+		const { load } = create({ persistence: true, prefetch: prefetchFor() });
 		expect(load).toHaveBeenCalledTimes(1);
 	});
 
