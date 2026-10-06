@@ -11,7 +11,6 @@
 	"dependencies": {
 		"@c15t/browser": "workspace:*",
 		"@c15t/dev-tools": "workspace:*",
-		"@c15t/iab": "workspace:*",
 		"@c15t/integrations": "workspace:*",
 		"c15t": "workspace:*"
 	},

@@ -1,0 +1,50 @@
+---
+title: IAB GPP
+description: Expose the IAB Global Privacy Platform API (__gpp) on an Astro site with the c15t integration's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+With `gpp` set, the c15t integration installs `window.__gpp`, the GPP 1.1
+CMP API, when the page boots. It keeps the GPP string in step with the
+visitor's choices. Prebid.js, Google Ad Manager and other ad tech read US
+privacy signals from it.
+
+## Turn on GPP
+
+Add `gpp` to the integration options, next to the `mode` from the
+[quickstart](/docs/frameworks/astro/quickstart):
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs (partial)"
+c15t({
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	gpp: true,
+	ui: 'svelte',
+});
+```
+
+Replace `https://your-project.inth.app` with your project's backend URL.
+`gpp: true` uses the defaults. Pass an object to change them, such as
+`gpp: { usFallback: 'none' }`. The [GPP options](#gpp-options) table lists
+each field. All of them are plain data, so they go in `c15t({ ... })`, not in
+the `clientEntrypoint` module.
+
+The `c15t` package includes the GPP code. The browser loads it only when
+`gpp` is set, so a site without GPP downloads none of it.
+
+The GPP string follows the policy and location c15t resolves for the visitor.
+With `manifest()`, the server reads a US visitor's state from the request's
+geography headers; see [Geography headers](/docs/frameworks/astro/geography-headers)
+to check that your host sends them. With `hosted()`, the backend's `/init`
+resolves it.
+
+The `tcfeuv2` section also needs IAB TCF. Set `iab` as described in
+[IAB TCF](/docs/frameworks/astro/iab).
+
+GPP stays off when a `consentSource` from the `clientEntrypoint` module owns
+consent decisions.
+
+<include src="../../shared/iab-gpp.mdx" />

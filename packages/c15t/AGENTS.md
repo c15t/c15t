@@ -46,6 +46,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Data fetching reference](./docs/frameworks/next/data-fetching-reference.md): Reference for Next.js consent URLs, manifest resolution, request geography and offline configuration.
 - [Embeds](./docs/frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
 - [Geography headers](./docs/frameworks/next/geography-headers.md): Use c15tProxy in Next.js proxy.ts or middleware.ts so Server Components and Route Handlers receive the visitor's country and region.
+- [IAB GPP](./docs/frameworks/next/gpp.md): Add the IAB Global Privacy Platform API (__gpp) to a Next.js app with ConsentGPP from c15t/react/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/next/headless.md): Build a custom consent banner in Next.js with the c15t/next/headless hooks inside your existing ConsentRoot.
 - [Hooks](./docs/frameworks/next/hooks.md): Gate features and save consent choices in Next.js Client Components with the focused hooks exported from c15t/next.
 - [IAB TCF](./docs/frameworks/next/iab.md): Mount the IAB TCF banner and dialog inside a Next.js ConsentRoot and configure the CMP ID, policy and vendor data.
@@ -77,6 +78,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize](./docs/frameworks/tanstack-start/customize.md): Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with the stylesheet, theme tokens, ConsentRoot options and component parts.
 - [Embeds](./docs/frameworks/tanstack-start/embeds.md): Keep YouTube videos, maps and other iframes out of a TanStack Start page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
 - [Geography headers](./docs/frameworks/tanstack-start/geography-headers.md): Which request headers c15t reads for country, region, language and Global Privacy Control in TanStack Start, where the server functions and consent route send them, and how to test another location.
+- [IAB GPP](./docs/frameworks/tanstack-start/gpp.md): Add the IAB Global Privacy Platform API (__gpp) to a TanStack Start app with ConsentGPP from c15t/react/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/tanstack-start/headless.md): Build your own consent banner markup in a TanStack Start app with the c15t/tanstack-start/headless hooks inside ConsentRoot.
 - [Hooks](./docs/frameworks/tanstack-start/hooks.md): Read consent permissions, open the preference dialog and save choices in TanStack Start components with the hooks exported from c15t/tanstack-start.
 - [IAB TCF](./docs/frameworks/tanstack-start/iab.md): Show the IAB TCF banner and dialog in a TanStack Start app for visitors whose policy uses the IAB model, with c15t/react/iab inside ConsentRoot.
@@ -105,6 +107,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Content Security Policy](./docs/frameworks/react/content-security-policy.md): Run c15t in a React app under a Content Security Policy, allow the consent backend and vendor hosts, and pass a nonce to ConsentProvider and ConsentTheme.
 - [Customize](./docs/frameworks/react/customize.md): Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a React app with the stylesheet, theme tokens, provider options and slots.
 - [Embeds](./docs/frameworks/react/embeds.md): Keep YouTube videos, maps and other iframes out of a React page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentProvider.
+- [IAB GPP](./docs/frameworks/react/gpp.md): Add the IAB Global Privacy Platform API (__gpp) to a React app with ConsentGPP from @c15t/react/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/react/headless.md): Build a custom consent banner in React with the c15t/react/headless hooks inside your ConsentProvider.
 - [Hooks](./docs/frameworks/react/hooks.md): Gate features and save consent choices in React components with the focused hooks exported from c15t/react.
 - [IAB TCF](./docs/frameworks/react/iab.md): Mount the IAB TCF banner and dialog inside a React ConsentProvider and configure the CMP ID, policy and vendor data.
@@ -136,6 +139,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize](./docs/frameworks/nuxt/customize.md): Change the c15t banner and dialog in Nuxt with theme tokens, layout presentation, component slots and copy.
 - [Embeds](./docs/frameworks/nuxt/embeds.md): Keep YouTube videos, maps and other iframes out of a Nuxt page until their consent category is allowed, with ConsentGate or the iframe blocker.
 - [Geography headers](./docs/frameworks/nuxt/geography-headers.md): Which request headers the c15t Nuxt module reads for the visitor's country, region, language and Global Privacy Control, and how to trust and test them.
+- [IAB GPP](./docs/frameworks/nuxt/gpp.md): Turn on the IAB Global Privacy Platform API (__gpp) in Nuxt with the c15t Nuxt module's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/nuxt/headless.md): Build your own consent banner and preference form in Nuxt with the auto-imported c15t composables instead of ConsentRoot.
 - [IAB TCF](./docs/frameworks/nuxt/iab.md): Show the IAB TCF banner and preference centre in Nuxt with the c15t Nuxt module when your Inth policy uses the IAB model.
 - [Nuxt module](./docs/frameworks/nuxt/module.md): What the c15t Nuxt module registers, where each option goes between nuxt.config.ts and app.config.ts, and every module option.
@@ -166,6 +170,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Content Security Policy](./docs/frameworks/vue/content-security-policy.md): Allow c15t in a Vue app under a Content Security Policy, with a script nonce, the backend in connect-src, and the styles the components inject.
 - [Customize](./docs/frameworks/vue/customize.md): Change the c15t banner and dialog in a Vue app with theme tokens, layout presentation, component slots and copy.
 - [Embeds](./docs/frameworks/vue/embeds.md): Keep YouTube videos, maps and other iframes out of a Vue page until their consent category is allowed, with ConsentGate or the iframe blocker.
+- [IAB GPP](./docs/frameworks/vue/gpp.md): Turn on the IAB Global Privacy Platform API (__gpp) in a Vue app with the c15t Vue plugin's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/vue/headless.md): Build your own consent banner and preference form in a Vue app with the c15t composables instead of ConsentRoot.
 - [IAB TCF](./docs/frameworks/vue/iab.md): Show the IAB TCF banner and preference centre in a Vue app with the c15t Vue plugin when your Inth policy uses the IAB model.
 - [Network blocker](./docs/frameworks/vue/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Vue app until their consent category is allowed, with rules passed to the c15t Vue plugin.
@@ -194,6 +199,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize](./docs/frameworks/astro/customize.md): Change the c15t banner and preference dialog on an Astro site with theme tokens, button styles, copy, dark mode, legal links and your own stylesheet order, all from the integration options.
 - [Embeds](./docs/frameworks/astro/embeds.md): Gate YouTube videos, maps, social posts and other iframes on an Astro site so they load only after the visitor allows their consent category, with a custom element or the c15t iframe blocker.
 - [Geography headers](./docs/frameworks/astro/geography-headers.md): Which request headers the c15t Astro middleware reads for the visitor's country, region, language and Global Privacy Control, how to check your host sends them, and how to test a region locally.
+- [IAB GPP](./docs/frameworks/astro/gpp.md): Expose the IAB Global Privacy Platform API (__gpp) on an Astro site with the c15t integration's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [IAB TCF](./docs/frameworks/astro/iab.md): Render the IAB TCF 2.4 banner and preference center on an Astro site with the c15t integration, and configure the CMP ID, vendor list source and publisher restrictions.
 - [Integration options](./docs/frameworks/astro/integration.md): Reference for every option of the c15t() Astro integration, the Astro equivalent of a consent provider, from mode and scripts to ui, theme, i18n, middleware, endpoints and the client entrypoint.
 - [Islands](./docs/frameworks/astro/islands.md): Choose whether React, Vue or Svelte renders the c15t preference dialog on an Astro site, and read consent from your own framework islands through the page's shared consent runtime.
@@ -227,6 +233,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize](./docs/frameworks/svelte/customize.md): Change c15t's colors, shape, button styles and copy in a Svelte app with a token stylesheet, theme slots, presentation props and translations.
 - [Embeds](./docs/frameworks/svelte/embeds.md): Keep YouTube videos, maps and other iframes out of a Svelte page until their consent category is allowed, with ConsentGate or the iframe blocker.
 - [Context getters](./docs/frameworks/svelte/getters.md): Reference for every @c15t/svelte context getter in a Svelte app, from reading permissions and recorded choices to saving, the draft, IAB state and kernel events.
+- [IAB GPP](./docs/frameworks/svelte/gpp.md): Expose the IAB Global Privacy Platform API (__gpp) from a Svelte app with the provider's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/svelte/headless.md): Replace the c15t banner or preference dialog with your own Svelte markup while the provider keeps policy, storage and script loading.
 - [IAB TCF](./docs/frameworks/svelte/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a Svelte app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./docs/frameworks/svelte/network-blocker.md): Hold fetch and XMLHttpRequest calls to tracking domains in a Svelte app until their consent category is allowed, with the provider's networkBlocker option.
@@ -258,6 +265,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Embeds](./docs/frameworks/sveltekit/embeds.md): Keep YouTube videos, maps and other iframes out of SvelteKit server HTML and the browser until their consent category is allowed.
 - [Geography headers](./docs/frameworks/sveltekit/geography-headers.md): Which request headers SvelteKit's c15t helpers read for country, region, language and Global Privacy Control, how to trust them, and how to test another location.
 - [Context getters](./docs/frameworks/sveltekit/getters.md): Reference for every @c15t/svelte context getter in SvelteKit components, from reading permissions and recorded choices to saving, the draft, IAB state and events.
+- [IAB GPP](./docs/frameworks/sveltekit/gpp.md): Expose the IAB Global Privacy Platform API (__gpp) from a SvelteKit app with the provider's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/sveltekit/headless.md): Replace the c15t banner or preference dialog with your own markup in a SvelteKit app while the provider keeps policy, storage and script loading.
 - [IAB TCF](./docs/frameworks/sveltekit/iab.md): Turn on the IAB TCF 2.4 banner and preference center in a SvelteKit app with IABConsentBanner, IABConsentDialog and the provider's iab option.
 - [Network blocker](./docs/frameworks/sveltekit/network-blocker.md): Hold browser fetch and XMLHttpRequest calls to tracking domains in a SvelteKit app until their consent category is allowed, with the networkBlocker option.
@@ -287,6 +295,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize](./docs/frameworks/html/customize.md): Change the c15t script tag banner on a plain HTML site with theme tokens, extra CSS, layout, copy and legal links, or replace it with your own HTML.
 - [DevTools](./docs/frameworks/html/dev-tools.md): Add the c15t DevTools panel to a plain HTML page with a second script tag to inspect consent, gated scripts, the resolved policy and events, and to test other countries.
 - [Embeds](./docs/frameworks/html/embeds.md): Hold YouTube videos, maps and other iframes on a plain HTML page until their consent category is allowed with data-src and data-category, show a placeholder, and configure the c15t iframe blocker.
+- [IAB GPP](./docs/frameworks/html/gpp.md): Add the IAB Global Privacy Platform API (__gpp) to a plain HTML page with the c15t.gpp.js script tag, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/html/headless.md): Render your own consent banner and preferences in plain HTML with c15t.headless.js, the ui event and data-c15t-action buttons, while c15t keeps resolving the policy, storing choices and gating scripts.
 - [IAB TCF](./docs/frameworks/html/iab.md): Load the c15t IAB TCF build on a plain HTML page with one script tag, configure the CMP ID and vendors, and confirm TC strings from your own code.
 - [Network blocker](./docs/frameworks/html/network-blocker.md): Hold fetch and XMLHttpRequest calls from a plain HTML page until their consent category is allowed, with network blocker rules queued on the c15t script tag.
@@ -309,7 +318,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Content Security Policy](./docs/frameworks/javascript/content-security-policy.md): Allow c15t in a JavaScript app under a Content Security Policy, covering backend requests, the stock UI's styles, nonces for vendor scripts and gated snippets, and embeds.
 - [Customize](./docs/frameworks/javascript/customize.md): Change the stock @c15t/browser banner, preference dialog and floating trigger in a bundled JavaScript app with theme tokens, CSS, layout, copy, legal links and UI options.
 - [DevTools](./docs/frameworks/javascript/dev-tools.md): Mount the c15t DevTools panel in a JavaScript app to inspect consent, scripts, policy and events for @c15t/browser, a consent runtime or a kernel.
-- [IAB GPP](./docs/frameworks/javascript/gpp.md): Expose the IAB Global Privacy Platform API (__gpp) from a JavaScript app with @c15t/iab/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
+- [IAB GPP](./docs/frameworks/javascript/gpp.md): Add the IAB Global Privacy Platform API (__gpp) to a JavaScript app with mountGPP from @c15t/browser/gpp, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/javascript/headless.md): Render your own consent banner and preferences in JavaScript, or connect a framework without a c15t adapter such as Solid, with createConsentRuntime from c15t/runtime.
 - [IAB TCF](./docs/frameworks/javascript/iab.md): Add IAB TCF to a JavaScript app with the @c15t/browser IAB build, or attach the IAB module to a consent runtime or kernel you own.
 - [Iframe blocker](./docs/frameworks/javascript/modules/iframe-blocker.md): Hold YouTube videos, maps and other embeds in a JavaScript app until their consent category is allowed, with data-src iframes and the c15t iframe blocker in @c15t/browser, createConsentRuntime or your own kernel.

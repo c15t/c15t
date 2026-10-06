@@ -2,13 +2,12 @@
 // `bun run check-types` compiles it with the rest of the app.
 // #region docs:gpp title="src/main.ts"
 import { init } from '@c15t/browser';
-import { createGPP } from '@c15t/iab/gpp';
+import { mountGPP } from '@c15t/browser/gpp';
 
 const consent = init({ backendURL: 'https://your-project.inth.app' });
 
-// Installs `__gpp` at once. Vendors that call it before the policy resolves
-// queue or read `signalStatus: 'not ready'`.
-const gpp = createGPP({ kernel: consent.runtime.kernel });
+// Installs `window.__gpp` and keeps it in step with the visitor's choices.
+const gpp = mountGPP(consent);
 
 window.__gpp?.('addEventListener', (event) => {
 	const { eventName, data } = event as { eventName: string; data: unknown };

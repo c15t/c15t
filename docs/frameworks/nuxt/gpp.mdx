@@ -1,0 +1,43 @@
+---
+title: IAB GPP
+description: Turn on the IAB Global Privacy Platform API (__gpp) in Nuxt with the c15t Nuxt module's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
+group: frameworks
+---
+
+## What GPP does
+
+The `gpp` option installs `window.__gpp`, the GPP 1.1 CMP API, and keeps its
+GPP string in step with the visitor's choices. Prebid.js, Google Ad Manager
+and other ad tech read US privacy signals from it.
+
+## Turn on GPP
+
+Set `gpp` under the `c15t` key in `nuxt.config.ts`:
+
+```ts title="nuxt.config.ts"
+export default defineNuxtConfig({
+	c15t: {
+		backendURL: 'https://your-project.inth.app',
+		// Loads @c15t/iab/gpp and installs `__gpp` once the app mounts.
+		gpp: true,
+		manifest: 'server',
+	},
+	modules: ['c15t/vue'],
+});
+```
+
+The module installs `__gpp` in the browser after the app mounts. The server
+HTML does not include it. The browser loads `@c15t/iab/gpp` as its own chunk,
+and only when `gpp` is set. The Vue integration already depends on
+`@c15t/iab`; nothing else to install. Every GPP option is plain data, so `gpp` also works under
+`c15t` in `app.config.ts`.
+
+Replace `https://your-project.inth.app` with your project's backend URL. The
+GPP string follows the policy and location the module resolves for the
+visitor, so a US visitor's state comes from the location headers your host
+or CDN adds. See [Geography headers](/docs/frameworks/nuxt/geography-headers).
+
+To add the TCF EU section for visitors under an `iab` policy, set up
+[IAB TCF](/docs/frameworks/nuxt/iab) as well.
+
+<include src="../../shared/iab-gpp.mdx" />
