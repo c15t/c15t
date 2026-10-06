@@ -239,10 +239,14 @@ already allows one of those scripts under the current policy. A grant the
 policy restricts, such as one Global Privacy Control denies, does not count,
 and neither does a script whose vendor the visitor turned off.
 A script with `alwaysLoad` counts for any returning visitor, since it runs
-whatever they chose, and with `options.enabled` set to `false` every visitor
-counts, since a disabled provider grants every category. For that visitor, `ConsentRoot` starts the download during its first render
-in the browser, so the chunk loads while React hydrates the rest of the page
-and the consented scripts start sooner.
+whatever they chose. With `options.enabled` set to `false`, every visitor
+counts, since a disabled provider grants every category. With
+`options.consentSource` set, and the provider not disabled, no visitor counts:
+the external source decides consent after the page mounts.
+
+For a visitor who counts, `ConsentRoot` starts the download during its first
+render in the browser, so the chunk loads while React hydrates the rest of the
+page and the consented scripts start sooner.
 The larger the tree inside `ConsentRoot`, the more of that request hydration
 covers. There is nothing to configure.
 

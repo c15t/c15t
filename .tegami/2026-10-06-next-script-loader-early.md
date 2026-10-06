@@ -10,7 +10,9 @@ packages:
 when the state from `resolveConsent()` carries a stored choice that allows one
 of its `scripts` under the current policy, Global Privacy Control and the
 visitor's vendor switches included, or when one of them has `alwaysLoad`.
-With `enabled: false`, which grants every category, it always loads early. It
+With `enabled: false`, which grants every category, it always loads early.
+With a `consentSource`, the external source decides after mount, so the chunk
+loads after hydration as before. It
 used to wait until the page had hydrated, so a returning visitor's consented
 scripts waited for one more request after hydration. The chunk now loads while
 React hydrates the page.
