@@ -86,7 +86,7 @@ export interface ColorTokens {
 	overlay?: string;
 	/** Toggle track color (off state). */
 	switchTrack?: string;
-	/** Toggle track color (on state). */
+	/** Toggle track color (on state). Follows `primary` when omitted. */
 	switchTrackActive?: string;
 	/** Toggle thumb color. */
 	switchThumb?: string;
@@ -253,7 +253,7 @@ export interface ThemeCSSVariables {
 	'--c15t-overlay'?: string;
 	/** `colors.switchTrack` (default: `hsl(0, 0%, 85%)`) */
 	'--c15t-switch-track'?: string;
-	/** `colors.switchTrackActive` (default: `hsl(228, 100%, 60%)`) */
+	/** `colors.switchTrackActive` (default: `colors.primary`) */
 	'--c15t-switch-track-active'?: string;
 	/** `colors.switchThumb` (default: `hsl(0, 0%, 100%)`) */
 	'--c15t-switch-thumb'?: string;

@@ -394,7 +394,8 @@ const themeCSSVariableResolvers: Record<
 	'surface-hover': (_theme, colors) => colors?.surfaceHover,
 	'switch-thumb': (_theme, colors) => colors?.switchThumb,
 	'switch-track': (_theme, colors) => colors?.switchTrack,
-	'switch-track-active': (_theme, colors) => colors?.switchTrackActive,
+	'switch-track-active': (_theme, colors) =>
+		colors?.switchTrackActive ?? colors?.primary,
 	text: (_theme, colors) => colors?.text,
 	'text-muted': (_theme, colors) => colors?.textMuted,
 	'text-on-primary': (_theme, colors) =>
@@ -507,6 +508,18 @@ export const generateThemeCSS = function generateThemeCSS(
 };
 
 /**
+ * Points the active switch track at `--c15t-primary`. The default track
+ * color equals the default primary, so nothing changes until a stylesheet
+ * sets `--c15t-primary` without `--c15t-switch-track-active`; the switches
+ * then follow the new primary color.
+ */
+const followPrimary = function followPrimary(
+	colors: ColorTokens | undefined
+): ColorTokens | undefined {
+	return colors && { ...colors, switchTrackActive: 'var(--c15t-primary)' };
+};
+
+/**
  * Generates the package's default token block: the same declarations as
  * {@link generateThemeCSS}, on the base `:root` selectors that the theme's
  * selectors outrank. The build writes `defaultTheme` through it into
@@ -519,5 +532,13 @@ export const generateThemeCSS = function generateThemeCSS(
 export const generateDefaultThemeCSS = function generateDefaultThemeCSS(
 	theme: Theme
 ): string {
-	return buildThemeCSS(theme, undefined, DEFAULT_THEME_SELECTORS);
+	return buildThemeCSS(
+		{
+			...theme,
+			colors: followPrimary(theme.colors),
+			dark: followPrimary(theme.dark),
+		},
+		undefined,
+		DEFAULT_THEME_SELECTORS
+	);
 };
