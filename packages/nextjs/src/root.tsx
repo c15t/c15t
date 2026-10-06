@@ -27,6 +27,7 @@ import {
 	createLazyManifestTransport,
 	lazyHosted,
 } from './lazy-manifest-transport';
+import { preloadScriptLoader } from './script-loader-preload';
 import type { ConsentState } from './types';
 
 export interface ConsentRootProps {
@@ -235,6 +236,9 @@ export const ConsentRoot = ({
 	// Initial-only, like the provider's own `mode`. A new one on every
 	// render would make each rerender load the runtime's update module.
 	const [mode, setMode] = useState(() => {
+		// Before hydration finishes: the provider would load it from its
+		// mount effect, a round trip later.
+		preloadScriptLoader(state, scripts);
 		const resolvedBackendURL = backendURL ?? config?.backendURL;
 		const manifestURL =
 			config?.initURL || !resolvedBackendURL ? undefined : config?.manifestURL;
