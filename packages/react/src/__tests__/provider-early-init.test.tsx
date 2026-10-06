@@ -370,6 +370,76 @@ test('a wrapper around hosted() keeps its own transport when another wrapper wit
 	await view.unmount();
 });
 
+test('a provider asking for another context leaves an early request to the provider that sent it', async () => {
+	let resume: () => void = () => undefined;
+	let suspended: Promise<void> | null = new Promise<void>((resolve) => {
+		resume = () => {
+			suspended = null;
+			resolve();
+		};
+	});
+	const SuspendsOnce = () => {
+		if (suspended) {
+			throw suspended;
+		}
+		return null;
+	};
+	const kernels = new Map<string, ConsentKernel>();
+	const Capture = ({ name }: { name: string }) => {
+		const kernel = useContext(KernelContext);
+		useEffect(() => {
+			if (kernel) {
+				kernels.set(name, kernel);
+			}
+		}, [kernel, name]);
+		return null;
+	};
+	const view = await render(
+		<>
+			<Suspense fallback={null}>
+				<ConsentProvider
+					options={{
+						mode: mode(),
+						overrides: { country: 'DE' },
+						persistence: false,
+					}}
+				>
+					<SuspendsOnce />
+					<Capture name="DE" />
+				</ConsentProvider>
+			</Suspense>
+			<ConsentProvider
+				options={{
+					mode: mode(),
+					overrides: { country: 'FR' },
+					persistence: false,
+				}}
+			>
+				<Capture name="FR" />
+			</ConsentProvider>
+		</>
+	);
+
+	// DE's render sent its request and suspended; FR committed first.
+	await vi.waitFor(() => expect(kernels.get('FR')).toBeDefined());
+	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
+	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
+		'DE',
+		'FR',
+	]);
+
+	resume();
+	await vi.waitFor(() => expect(kernels.get('DE')).toBeDefined());
+	requests[0]?.respond('for-de');
+	requests[1]?.respond('for-fr');
+	await vi.waitFor(() => {
+		expect(kernels.get('DE')?.getSnapshot().policyRule.id).toBe('for-de');
+		expect(kernels.get('FR')?.getSnapshot().policyRule.id).toBe('for-fr');
+	});
+	expect(initCalls()).toHaveLength(2);
+	await view.unmount();
+});
+
 test('providers whose hosted() modes differ never share a request', async () => {
 	const otherFetch = vi.fn(() =>
 		Promise.resolve(new Response(initBody('other')))

@@ -396,17 +396,18 @@ const treeIABModes = new WeakMap<
 	ProviderTransportFactory
 >();
 /**
- * An `/init` request a render sent, the `hosted()` options it was sent
- * for, and the transport that sent it.
+ * An `/init` request a render sent, the `hosted()` options and the
+ * serialized init context it was sent for, and the transport that sent it.
  */
 interface EarlyInit {
 	readonly options: HostedModeOptions;
+	readonly key: string;
 	readonly transport: KernelTransport;
 }
 /**
  * Early requests no runtime has committed to yet. The first runtime built
- * for equivalent `hosted()` options to commit takes one; see
- * {@link createOwnedRuntimeEntry}.
+ * for equivalent `hosted()` options and the same init context to commit
+ * takes one; see {@link createOwnedRuntimeEntry}.
  */
 const sentEarly = new Set<EarlyInit>();
 /**
@@ -507,9 +508,11 @@ let entrySequence = 0;
  * kernel's first `init()` takes this request when its context (overrides,
  * language, user) is unchanged, and sends its own otherwise. The request
  * goes out on a transport of its own, held in {@link sentEarly}. A runtime
- * built for equivalent `hosted()` options before any commit sends nothing,
- * so a render React repeats or throws away costs no second request, even
- * when it called `hosted()` again. The first of these runtimes to commit
+ * built for equivalent `hosted()` options and the same init context before
+ * any commit sends nothing, so a render React repeats or throws away costs
+ * no second request, even when it called `hosted()` again. A runtime asking
+ * for another context sends its own and leaves this one to the runtime it
+ * was sent for. The first of these runtimes to commit
  * takes the transport and its request; any other, such as a sibling
  * provider with the same mode, keeps its own transport and asks at mount.
  * Not sent with a `prefetch` (the server answered, or is answering), a
@@ -567,8 +570,10 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 			snapshot.policyPending &&
 			!(initialOptions.prefetch || initialOptions.experiment)
 		) {
+			const context = { overrides: snapshot.overrides, user: snapshot.user };
+			const key = JSON.stringify(context);
 			for (const other of sentEarly) {
-				if (sameHosted(other.options, hostedOptions)) {
+				if (other.key === key && sameHosted(other.options, hostedOptions)) {
 					early = other;
 				}
 			}
@@ -577,8 +582,6 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 				// takes it.
 				const carrier = buildTransport();
 				const init = carrier.init as NonNullable<KernelTransport['init']>;
-				const context = { overrides: snapshot.overrides, user: snapshot.user };
-				const key = JSON.stringify(context);
 				const request = init(context);
 				// Nobody reads it when the render that sent it never commits.
 				// oxlint-disable-next-line promise/prefer-await-to-then -- Only marks the rejection handled.
@@ -589,7 +592,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 					used = true;
 					return reuse ? request : init(next);
 				};
-				sent = { options: hostedOptions, transport: carrier };
+				sent = { key, options: hostedOptions, transport: carrier };
 				early = sent;
 				sentEarly.add(sent);
 			}
