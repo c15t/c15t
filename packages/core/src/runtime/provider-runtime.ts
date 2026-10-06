@@ -416,6 +416,9 @@ export const createConsentProviderRuntime =
 					updater ??= import('./provider-update');
 					apply = (await updater).applyProviderUpdate;
 				} catch (error) {
+					// The next update imports again: one failed chunk request
+					// does not fail every later one.
+					updater = undefined;
 					hold?.block();
 					throw error;
 				}

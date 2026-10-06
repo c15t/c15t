@@ -514,7 +514,11 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		apply(next) {
 			if (next !== options) {
 				options = next;
-				void runtime.update(toRuntimeOptions(next));
+				// It rejects when its chunk fails to load. Requests held for
+				// new rules have failed closed by then, and the next update
+				// loads it again, so there is nothing left to handle.
+				// oxlint-disable-next-line promise/prefer-await-to-then -- Fire and forget from an effect: only the rejection needs a handler.
+				runtime.update(toRuntimeOptions(next)).catch(() => undefined);
 			}
 		},
 		mount() {

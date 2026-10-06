@@ -647,7 +647,9 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * blocker has those rules. The rest of the comparison loads on demand,
 	 * with the first `update()` in which some option is a new value, so
 	 * options handed back unchanged load nothing. The returned promise
-	 * resolves once every change has applied.
+	 * resolves once every change has applied. It rejects when that module
+	 * fails to load: requests held for new rules then fail as blocked, and
+	 * the next `update()` loads it again.
 	 */
 	update: (options: ConsentRuntimeUpdate) => Promise<void>;
 	/**

@@ -477,7 +477,10 @@
 	// only what changed, so a theme-only change identifies nobody and asks
 	// the backend nothing.
 	$effect(() => {
-		ownedRuntime?.update(runtimeOptions());
+		// It rejects when its chunk fails to load. Requests held for new rules
+		// have failed closed by then, and the next update loads it again.
+		// oxlint-disable-next-line promise/prefer-await-to-then -- An effect cannot await, and it must read the options synchronously to track them.
+		ownedRuntime?.update(runtimeOptions()).catch(() => undefined);
 	});
 
 	// A borrowed runtime belongs to its owner, who configures it; categories

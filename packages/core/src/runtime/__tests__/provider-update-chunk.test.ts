@@ -14,7 +14,7 @@ import type {
 	ConsentProviderRuntimeOptions,
 } from '../types';
 
-const loads = { count: 0 };
+const loads = { count: 0, failures: 0 };
 
 const runtimes: ConsentProviderRuntime[] = [];
 
@@ -40,9 +40,14 @@ beforeEach(() => {
 	// Each test imports the runtime afresh and counts its own loads.
 	vi.resetModules();
 	loads.count = 0;
-	// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is whether `update()` loads this module at all. The factory only counts loads and returns the real module.
+	loads.failures = 0;
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is whether `update()` loads this module at all. The factory only counts loads, fails the ones a test asks it to, and returns the real module.
 	vi.doMock('../provider-update', async (importOriginal) => {
 		loads.count += 1;
+		if (loads.failures > 0) {
+			loads.failures -= 1;
+			throw new Error('chunk failed');
+		}
 		return await importOriginal();
 	});
 });
@@ -84,5 +89,19 @@ describe('update() and the update module', () => {
 		await runtime.update({ ...options, user: { externalId: 'user_3' } });
 
 		expect(loads.count).toBe(1);
+	});
+
+	test('a load that failed is tried again by the next update', async () => {
+		const options = { mode: transport() };
+		const runtime = await startProvider(options);
+		loads.failures = 1;
+
+		await expect(
+			runtime.update({ ...options, user: { externalId: 'user_2' } })
+		).rejects.toThrow();
+		// One failed chunk request does not fail every later update.
+		await runtime.update({ ...options, user: { externalId: 'user_3' } });
+
+		expect(loads.count).toBe(2);
 	});
 });
