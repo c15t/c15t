@@ -176,7 +176,6 @@ const handlePostMessage = function handlePostMessage(
 	);
 };
 
-/** Whether a frame named `__gppLocator` already exists in this window. */
 const hasLocatorFrame = (): boolean =>
 	typeof document !== 'undefined' &&
 	document.querySelector(`iframe[name="${LOCATOR_NAME}"]`) !== null;

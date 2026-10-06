@@ -15,9 +15,8 @@ import type { GPPParsedSubsection } from './types';
 const BASE64_URL =
 	'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
 
-/** Segment type of the disclosed vendors segment. */
+/** Segment types after the core segment. */
 const DISCLOSED_VENDORS = 1;
-/** Segment type of the publisher purposes segment. */
 const PUBLISHER_PURPOSES = 3;
 
 interface IdVector {

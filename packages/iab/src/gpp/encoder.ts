@@ -133,7 +133,6 @@ const encodeSubsection = function encodeSubsection(
 
 /** One US section's field values, as `getSection` reports them. */
 export interface USSectionValues {
-	/** Core subsection values. */
 	core: GPPFieldValues;
 	/** GPC flag; encoded only when the section defines a GPC subsection. */
 	gpc: boolean;

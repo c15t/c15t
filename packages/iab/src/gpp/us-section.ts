@@ -47,28 +47,24 @@ export type GPPUSFallback = 'usnat' | 'none';
  */
 export type GPPMspaMode = 'opt-out-option' | 'service-provider';
 
-/** Options that shape the US section. */
+/** Options that shape the US section values. */
 export interface USSectionOptions {
-	approach: GPPUSApproach;
 	mspaMode?: GPPMspaMode;
 	optOutCategories: readonly AllConsentNames[];
 }
 
-/** Opt-out notices, given whenever a US section applies. */
 const OPT_OUT_NOTICES = new Set([
 	'SaleOptOutNotice',
 	'SharingOptOutNotice',
 	'TargetedAdvertisingOptOutNotice',
 ]);
 
-/** Opt-outs that follow the visitor's choice. */
 const OPT_OUTS = new Set([
 	'SaleOptOut',
 	'SharingOptOut',
 	'TargetedAdvertisingOptOut',
 ]);
 
-/** General notices about processing and sharing. */
 const GENERAL_NOTICES = new Set(['SharingNotice', 'ProcessingNotice']);
 
 /** `1` (yes) or `2` (no), the GPP encoding of a boolean that applies. */
@@ -170,7 +166,7 @@ export const resolveUSSectionValues = function resolveUSSectionValues(
 		USSectionSnapshot,
 		'effectivePermissions' | 'policyRule' | 'privacySignals'
 	>,
-	options: Pick<USSectionOptions, 'mspaMode' | 'optOutCategories'>
+	options: USSectionOptions
 ): USSectionValues {
 	const disclosed = snapshot.policyRule.rights.includes('disclosure');
 	const optedOut = options.optOutCategories.some(

@@ -137,8 +137,8 @@ const processingNoticeLayout = (
 	...MSPA,
 ];
 
-/** MSPA US National section, version 2. */
-const USNAT: USSectionDefinition = {
+/** The MSPA US National section, version 2. */
+export const US_NATIONAL_SECTION: USSectionDefinition = {
 	core: [
 		VERSION,
 		int('SharingNotice'),
@@ -234,11 +234,8 @@ export const US_STATE_SECTIONS: Readonly<Record<string, USSectionDefinition>> =
 		VA: state(9, 'usva', sharingNoticeLayout(8, 1), false),
 	};
 
-/** The MSPA US National section. */
-export const US_NATIONAL_SECTION = USNAT;
-
 /** Every US section c15t can encode, ordered by section ID. */
 export const US_SECTIONS: readonly USSectionDefinition[] = [
-	USNAT,
+	US_NATIONAL_SECTION,
 	...Object.values(US_STATE_SECTIONS),
 ].sort((left, right) => left.id - right.id);
