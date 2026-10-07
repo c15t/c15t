@@ -78,8 +78,10 @@ deployment. Turn them off when you do not use the script tag:
 const backend = c15tInstance({ ...config, script: { enabled: false } });
 ```
 
-The routes expose the public manifest and browser configuration. Keep secrets
-out of `script.config`.
+The `/c15t.js` route serves the hosted bundle with its backend URL already
+configured. It resolves each visitor's policy through `/init`. The headless
+and IAB routes inline the public manifest and resolve it in the browser.
+Keep secrets out of `script.config`.
 
 `@c15t/backend` installs `@c15t/browser` as a runtime dependency, including its
 core, UI, IAB, and DevTools dependencies. Disabling the routes removes the HTTP

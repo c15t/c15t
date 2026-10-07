@@ -106,11 +106,19 @@ by address and user agent within a time window; the count is approximate.
 
 ## Serve the script tag
 
-`GET /c15t.js` serves the [script-tag build](/docs/frameworks/html/quickstart) of the consent banner, configured for this backend. The response is the `@c15t/browser` bundle behind a queued `config` call that carries the instance's manifest, the backend origin, and the defaults set in the `script` option. `GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves the optional IAB CMP and preference UI. Use `script.iabPath` to change its path and `script.config.iab` to set CMP options.
+`GET /c15t.js` serves the hosted [script-tag build](/docs/frameworks/html/quickstart)
+of the consent banner. A queued `config` call sets the backend URL, hosted
+mode and the defaults from `script.config`. The client resolves the
+visitor's policy through `/init`; this route does not inline a manifest.
+
+`GET /c15t.headless.js` serves the build with no UI. `GET /c15t.iab.js` serves
+the optional IAB CMP and preference UI. Both routes keep their queued
+manifest configuration. Use `script.iabPath` to change the IAB route's path
+and `script.config.iab` to set CMP options.
 
 | Query | What it does |
 | --- | --- |
-| `language` | Slice the inlined manifest's translations to one language. |
+| `language` | Override the language used by the hosted `/c15t.js` client. On headless and IAB routes, slice the inlined manifest's translations to one language. |
 
 Cached like `/manifest`: `Cache-Control: public, s-maxage=…` and an `ETag` that answers `If-None-Match` with `304`. `@c15t/backend` installs `@c15t/browser`, which provides the bundles; `script.bundles` overrides their file paths. Set `script.enabled: false` to remove all three routes.
 

@@ -5,6 +5,7 @@ import {
 	standardExcludePatterns,
 } from '../shared/rslib-utils';
 import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
+import { modeBundleBoundary } from './scripts/mode-bundle-boundary';
 
 /**
  * ESM entries and standalone script builds from one source tree:
@@ -13,9 +14,10 @@ import { iabBundleBoundary } from './scripts/iab-bundle-boundary';
  *   workspace packages left external so they dedupe against `@c15t/core`.
  * - `dist/postcss-tailwind3.js` — a re-export of `@c15t/ui/postcss-tailwind3`
  *   for Tailwind 3 PostCSS configs.
- * - `dist/c15t.js` — a self-contained script-tag build: runtime, the
+ * - `dist/c15t.js` — a self-contained hosted script-tag build: runtime, the
  *   vanilla banner and preference centre, the stylesheet, and auto-init
  *   from the `<script>` tag's `data-*` attributes.
+ * - `dist/c15t.offline.js` — the stock UI with local policy resolution.
  * - `dist/c15t.headless.js` — the same without any UI or CSS, for sites
  *   that render their own banner against `window.c15t`.
  * - `dist/c15t.iab.js` — an optional replacement with the CMP and IAB UI.
@@ -61,6 +63,8 @@ const scriptTagLib = function scriptTagLib(name: string, entry: string) {
 					),
 					inlineDialog(),
 					...(IAB_BUNDLES.has(name) ? [] : [iabBundleBoundary()]),
+					...(name === 'c15t' ? [modeBundleBoundary('hosted')] : []),
+					...(name === 'c15t.offline' ? [modeBundleBoundary('offline')] : []),
 				],
 			},
 		},
@@ -80,13 +84,16 @@ export default defineConfig({
 					devtools: './src/devtools.ts',
 					gpp: './src/gpp.ts',
 					headless: './src/headless.ts',
+					hosted: './src/hosted.ts',
 					iab: './src/iab.ts',
 					index: './src/index.ts',
+					offline: './src/offline.ts',
 					'postcss-tailwind3': './src/postcss-tailwind3.ts',
 				},
 			},
 		},
 		scriptTagLib('c15t', './src/entries/cdn.ts'),
+		scriptTagLib('c15t.offline', './src/entries/cdn-offline.ts'),
 		scriptTagLib('c15t.headless', './src/entries/cdn-headless.ts'),
 		scriptTagLib('c15t.iab', './src/entries/cdn-iab.ts'),
 		scriptTagLib('c15t.devtools', './src/entries/cdn-devtools.ts'),

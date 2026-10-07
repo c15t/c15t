@@ -1,5 +1,5 @@
 // #region docs:init
-import { init } from '@c15t/browser';
+import { init } from '@c15t/browser/hosted';
 
 import { scripts } from './scripts';
 // #hide docs

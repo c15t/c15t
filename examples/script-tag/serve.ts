@@ -1,7 +1,7 @@
 /**
  * Serves the script-tag example on http://localhost:4173.
  *
- * `/c15t.js`, `/c15t.headless.js` and `/c15t.devtools.js` come straight
+ * The hosted, offline, headless and DevTools bundles come straight
  * from the built `@c15t/browser` package, the way a CDN would serve them.
  * The rest stands in for the third parties a real page loads: two vendor
  * scripts, two embeds and a tracking endpoint, all local so the example
@@ -49,6 +49,9 @@ const bundles: Record<string, string> = {
 		import.meta.resolve('@c15t/browser/c15t.iab.js')
 	),
 	'/c15t.js': fileURLToPath(import.meta.resolve('@c15t/browser/c15t.js')),
+	'/c15t.offline.js': fileURLToPath(
+		import.meta.resolve('@c15t/browser/c15t.offline.js')
+	),
 };
 
 if (process.argv.includes('--check')) {

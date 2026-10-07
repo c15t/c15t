@@ -42,7 +42,7 @@ export const register = function register({
 	];
 	for (const [path, variant, summary] of routes) {
 		app.get(path, describeRoute({ summary, tags: ['Script'] }), async (c) => {
-			// Only a missing bundle gets the install hint; a bad manifest config
+			// Only a missing bundle gets the install hint; invalid configuration
 			// is the operator's error and surfaces as one.
 			let bundle: string;
 			try {
@@ -71,8 +71,8 @@ export const register = function register({
 				options: script,
 				variant,
 			});
-			// Same policy as /manifest: geo-independent, shared-cacheable, and
-			// the revision doubles as the validator.
+			// Same cache policy as /manifest: these scripts contain no visitor
+			// data. The response hash validates the config and bundle bytes.
 			c.header('Cache-Control', result.cacheControl);
 			c.header('CDN-Cache-Control', result.cacheControl);
 			c.header('ETag', result.etag);
