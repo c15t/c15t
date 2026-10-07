@@ -1,0 +1,27 @@
+@import 'c15t/next/styles.css';
+
+:root {
+	--nw-green: #2f6f4e;
+	--nw-green-hover: #24563c;
+	--nw-cream: #fbf8f3;
+	--nw-cream-deep: #f4eee4;
+	--nw-border: #e4dccf;
+	--nw-ink: #1f2328;
+	--nw-muted: #5b6168;
+	--nw-font-serif: Georgia, 'Times New Roman', serif;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+body {
+	margin: 0;
+	background: var(--nw-cream);
+	color: var(--nw-ink);
+	font-family: system-ui, sans-serif;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+}

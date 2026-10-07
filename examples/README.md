@@ -2,8 +2,15 @@
 
 Apps you can read, run and copy from. Each one shows one thing.
 
-Each **starter** (`examples/<framework>`) is the smallest correct c15t setup
-for one framework and one rendering mode. The framework quickstarts quote them.
+There are two kinds:
+
+- **Starters** (`examples/<framework>`) are the smallest correct c15t setup
+  for one framework and one rendering mode. The framework quickstarts quote
+  them.
+- **Showcases** (`examples/showcase-*`) are small apps for Northwind Coffee, a
+  made-up coffee shop. Each one shows off one thing c15t can do, such as a
+  banner built from headless hooks or a preference center inside account
+  settings.
 
 Test apps live in `internals/fixtures`, and type-checked docs snippets live in
 `internals/doc-snippets`. Nothing in `examples/` exists only for a test.

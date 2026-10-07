@@ -1,0 +1,56 @@
+:root {
+	--nw-green: #2f6f4e;
+	--nw-green-hover: #24563c;
+	--nw-cream: #fbf8f3;
+	--nw-paper: #ffffff;
+	--nw-border: #e4dccf;
+	--nw-ink: #1f2328;
+	--nw-muted: #5b6168;
+	--nw-on-primary: #ffffff;
+	--nw-brown: #7a5232;
+	--nw-font-serif: Georgia, 'Times New Roman', serif;
+	--nw-font-sans: system-ui, sans-serif;
+	--nw-radius: 6px;
+	--nw-radius-sm: 4px;
+	--nw-ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+	--nw-ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+	color-scheme: light;
+}
+
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+}
+
+html {
+	background: var(--nw-cream);
+	-webkit-text-size-adjust: 100%;
+}
+
+body {
+	margin: 0;
+	background: var(--nw-cream);
+	color: var(--nw-ink);
+	font-family: var(--nw-font-sans);
+	font-size: 1rem;
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+h1,
+h2,
+h3 {
+	font-family: var(--nw-font-serif);
+	font-weight: 400;
+	text-wrap: balance;
+}
+
+a {
+	color: inherit;
+}
+
+::selection {
+	background: rgb(47 111 78 / 0.18);
+}
