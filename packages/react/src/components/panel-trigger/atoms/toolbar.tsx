@@ -8,12 +8,12 @@
 
 import type { PolicyRight } from '@c15t/schema/types';
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
+import { followDevToolsDock } from '@c15t/ui/utils/devtools-launcher';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
 import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
 import { useDevToolsLauncher } from '~/devtools-launcher';
-import type { DevToolsDock } from '~/devtools-launcher';
 import { usePolicyRule } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { ClassNameStyle } from '~/types/theme';
@@ -97,38 +97,12 @@ type ToolbarItem =
 	| ToolbarCustomItem
 	| ToolbarDevToolsItem;
 
-/** Space between the toolbar and a docked DevTools panel, in CSS pixels. */
-const DEVTOOLS_DOCK_GAP = 8;
-
 const DEVTOOLS_ITEM: ToolbarDevToolsItem = {
 	focusId: 'devtools',
 	icon: <DevToolsIcon />,
 	id: 'devtools',
 	kind: 'devtools',
 	label: 'c15t DevTools',
-};
-
-/**
- * Where a DevTools panel docked to this toolbar sits: the toolbar's corner,
- * flush with its outer edge and just past it. Layout offsets ignore the
- * snap transform, so a mid-animation read still lands on the final spot.
- */
-const measureDevToolsDock = function measureDevToolsDock(
-	element: HTMLElement,
-	corner: CornerPosition
-): DevToolsDock {
-	const { clientWidth, clientHeight } = element.ownerDocument.documentElement;
-	const left = element.offsetLeft;
-	const top = element.offsetTop;
-	const right = clientWidth - left - element.offsetWidth;
-	const bottom = clientHeight - top;
-	return {
-		block: corner.startsWith('top')
-			? top + element.offsetHeight + DEVTOOLS_DOCK_GAP
-			: bottom + DEVTOOLS_DOCK_GAP,
-		inline: corner.endsWith('left') ? left : right,
-		position: corner,
-	};
 };
 
 /**
@@ -323,17 +297,7 @@ export const TriggerToolbar = ({
 		if (!dockDevTools || !element || isDragging) {
 			return;
 		}
-		const place = () => dockDevTools(measureDevToolsDock(element, corner));
-		place();
-		const view = element.ownerDocument.defaultView;
-		const observer =
-			typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
-		observer?.observe(element);
-		view?.addEventListener('resize', place);
-		return () => {
-			observer?.disconnect();
-			view?.removeEventListener('resize', place);
-		};
+		return followDevToolsDock(element, corner, dockDevTools);
 	}, [corner, dockDevTools, isDragging]);
 	const firstEnabledId = orderedItems.find((item) => !item.disabled)?.focusId;
 	const [activeItemId, setActiveItemId] = useState(firstEnabledId);

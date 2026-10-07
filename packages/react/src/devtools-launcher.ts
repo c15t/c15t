@@ -1,18 +1,24 @@
 'use client';
 
 /**
- * Lets a mounted `<ConsentDevTools>` hand its launcher to the consent
- * trigger, so the page shows one floating control instead of two stacked in
- * the same corner.
- *
- * The slot is keyed by kernel and holds only the instance handle, so the
- * trigger never imports the DevTools engine.
+ * React bindings for the DevTools launcher slot in `@c15t/ui`, which lets a
+ * mounted `<ConsentDevTools>` hand its launcher to the consent trigger.
  *
  * @internal
  * @packageDocumentation
  */
 
 import type { ConsentKernel } from '@c15t/core';
+import {
+	claimDevToolsLauncher,
+	EMPTY_DEVTOOLS_LAUNCHER_SNAPSHOT,
+	getDevToolsLauncherSnapshot,
+	subscribeDevToolsLauncher,
+} from '@c15t/ui/utils/devtools-launcher';
+import type {
+	DevToolsDock,
+	DevToolsLauncherSnapshot,
+} from '@c15t/ui/utils/devtools-launcher';
 import {
 	useCallback,
 	useContext,
@@ -24,115 +30,8 @@ import {
 
 import { KernelContext } from './context';
 
-/**
- * Placement handed to DevTools; mirrors `DevToolsDock` from
- * `@c15t/dev-tools`, restated so the trigger bundle never reaches into the
- * DevTools package.
- */
-export interface DevToolsDock {
-	readonly position: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
-	readonly inline: number;
-	readonly block: number;
-}
-
-/** The part of a `DevToolsInstance` the launcher slot drives. */
-export interface DevToolsLauncherTarget {
-	getState: () => { readonly isOpen: boolean };
-	subscribe: (
-		listener: (
-			state: { readonly isOpen: boolean },
-			previous: { readonly isOpen: boolean }
-		) => void
-	) => () => void;
-	toggle: () => void;
-	dock: (dock: DevToolsDock | null) => void;
-}
-
-interface LauncherSnapshot {
-	/** Mounted DevTools instance for this kernel. */
-	readonly instance: DevToolsLauncherTarget | null;
-	/** Whether its panel is open. */
-	readonly isOpen: boolean;
-	/** Claim that renders the launcher; the first mounted trigger wins. */
-	readonly owner: string | null;
-}
-
-interface LauncherSlot {
-	instance: DevToolsLauncherTarget | null;
-	claims: string[];
-	snapshot: LauncherSnapshot;
-	listeners: Set<() => void>;
-}
-
-const EMPTY_SNAPSHOT: LauncherSnapshot = {
-	instance: null,
-	isOpen: false,
-	owner: null,
-};
-
-const slots = new WeakMap<ConsentKernel, LauncherSlot>();
-
-const getSlot = (kernel: ConsentKernel): LauncherSlot => {
-	let slot = slots.get(kernel);
-	if (!slot) {
-		slot = {
-			claims: [],
-			instance: null,
-			listeners: new Set(),
-			snapshot: EMPTY_SNAPSHOT,
-		};
-		slots.set(kernel, slot);
-	}
-	return slot;
-};
-
-const refresh = (slot: LauncherSlot): void => {
-	const next: LauncherSnapshot = {
-		instance: slot.instance,
-		isOpen: slot.instance?.getState().isOpen ?? false,
-		owner: slot.claims[0] ?? null,
-	};
-	const current = slot.snapshot;
-	if (
-		current.instance === next.instance &&
-		current.isOpen === next.isOpen &&
-		current.owner === next.owner
-	) {
-		return;
-	}
-	slot.snapshot = next;
-	for (const listener of slot.listeners) {
-		listener();
-	}
-};
-
-/**
- * Offer a DevTools instance's launcher to the kernel's consent trigger.
- * @param kernel - Kernel the instance inspects.
- * @param instance - Floating (not embedded) DevTools instance.
- * @returns Withdraws the offer and restores the floating launcher.
- * @internal
- */
-export const publishDevToolsLauncher = (
-	kernel: ConsentKernel,
-	instance: DevToolsLauncherTarget
-): (() => void) => {
-	const slot = getSlot(kernel);
-	slot.instance = instance;
-	const unsubscribe = instance.subscribe((state, previous) => {
-		if (state.isOpen !== previous.isOpen) {
-			refresh(slot);
-		}
-	});
-	refresh(slot);
-	return () => {
-		unsubscribe();
-		if (slot.instance === instance) {
-			slot.instance = null;
-			refresh(slot);
-		}
-	};
-};
+export { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
+export type { DevToolsDock } from '@c15t/ui/utils/devtools-launcher';
 
 /** Controls for the DevTools button a consent trigger renders. */
 export interface DevToolsLauncherControls {
@@ -145,26 +44,21 @@ export interface DevToolsLauncherControls {
 }
 
 const subscribeNoop = () => () => undefined;
-const getEmptySnapshot = () => EMPTY_SNAPSHOT;
+const getEmptySnapshot = () => EMPTY_DEVTOOLS_LAUNCHER_SNAPSHOT;
 
 const useLauncherSnapshot = (
 	kernel: ConsentKernel | null
-): LauncherSnapshot => {
+): DevToolsLauncherSnapshot => {
 	const subscribe = useCallback(
-		(listener: () => void) => {
-			if (!kernel) {
-				return subscribeNoop();
-			}
-			const { listeners } = getSlot(kernel);
-			listeners.add(listener);
-			return () => {
-				listeners.delete(listener);
-			};
-		},
+		(listener: () => void) =>
+			kernel ? subscribeDevToolsLauncher(kernel, listener) : subscribeNoop(),
 		[kernel]
 	);
 	const getSnapshot = useCallback(
-		() => (kernel ? getSlot(kernel).snapshot : EMPTY_SNAPSHOT),
+		() =>
+			kernel
+				? getDevToolsLauncherSnapshot(kernel)
+				: EMPTY_DEVTOOLS_LAUNCHER_SNAPSHOT,
 		[kernel]
 	);
 	return useSyncExternalStore(subscribe, getSnapshot, getEmptySnapshot);
@@ -199,16 +93,7 @@ export const useDevToolsLauncher = (): DevToolsLauncherControls | null => {
 		if (!kernel) {
 			return;
 		}
-		const slot = getSlot(kernel);
-		slot.claims.push(claim);
-		refresh(slot);
-		return () => {
-			slot.claims = slot.claims.filter((entry) => entry !== claim);
-			if (slot.claims.length === 0) {
-				slot.instance?.dock(null);
-			}
-			refresh(slot);
-		};
+		return claimDevToolsLauncher(kernel, claim);
 	}, [kernel, claim]);
 
 	const instance = snapshot.owner === claim ? snapshot.instance : null;
