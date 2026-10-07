@@ -196,6 +196,8 @@ the last loader removes it. Replay and user data require consent from every
 configured loader, including a CDN loader waiting for consent. Each loader
 evaluates compound feature conditions independently; every loader must allow
 the feature. A denial in one loader applies to the shared SDK.
+If the SDK bundle is still downloading when its original loader is removed,
+the remaining loader keeps the download and initializes Sentry when it completes.
 
 The vendor slug is `sentry`; turning that vendor off denies Replay and user
 data, and error monitoring with `loadMode: 'after-consent'`. See

@@ -9,7 +9,12 @@ import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
 import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
 import { buildReconcilePass, hasScriptConsent } from './eligibility';
-import { flushPendingMounts, mountScript, unmountScript } from './mount';
+import {
+	flushPendingMounts,
+	mountScript,
+	releaseScriptElement,
+	unmountScript,
+} from './mount';
 import type { MountDeps } from './mount';
 import {
 	createElementIdResolver,
@@ -330,8 +335,8 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			...retainedElements,
 			...loadedElements,
 		])) {
-			if (ownedScriptIds.has(scriptId) && element?.parentNode) {
-				element.parentNode.removeChild(element);
+			if (element) {
+				releaseScriptElement(mountDeps, scriptId, element);
 			}
 		}
 		loadedElements.clear();

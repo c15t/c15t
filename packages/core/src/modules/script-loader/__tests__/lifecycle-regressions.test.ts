@@ -27,6 +27,83 @@ const mount = (scripts: Script[]) => {
 	return { kernel, loader };
 };
 
+test.each(['dispose', 'remove', 'revoke'] as const)(
+	'preserves a shared external download when its creator must %s',
+	async (action) => {
+		const firstLoad = vi.fn();
+		const lastLoad = vi.fn();
+		const script: Script = {
+			category: 'measurement',
+			id: 'shared-download',
+			src: 'https://example.com/vendor.js',
+		};
+		const first = mount([{ ...script, onLoad: firstLoad }]);
+		const last = mount([{ ...script, onLoad: lastLoad }]);
+		const element = document.head.querySelector('script');
+		if (action === 'dispose') {
+			first.loader.dispose();
+		} else if (action === 'remove') {
+			first.loader.updateScripts([]);
+		} else {
+			await first.kernel.commands.save({ measurement: false });
+		}
+		expect(element?.isConnected).toBe(true);
+		element?.dispatchEvent(new Event('load'));
+		expect(firstLoad).not.toHaveBeenCalled();
+		expect(lastLoad).toHaveBeenCalledOnce();
+		last.loader.dispose();
+		expect(element?.isConnected).toBe(false);
+	}
+);
+
+test('delivers a shared download error after ownership passes through two loaders', () => {
+	const error = vi.fn();
+	const config: Script = {
+		category: 'measurement',
+		id: 'shared-error',
+		onError: error,
+		src: 'https://example.com/vendor.js',
+	};
+	const first = mount([config]);
+	const second = mount([config]);
+	const last = mount([config]);
+	const element = document.head.querySelector('script');
+	first.loader.dispose();
+	second.loader.dispose();
+	element?.dispatchEvent(new Event('error'));
+	expect(error).toHaveBeenCalledOnce();
+	expect(error).toHaveBeenCalledWith(
+		expect.objectContaining({ error: expect.any(Error), hasConsent: true })
+	);
+	last.loader.dispose();
+	element?.dispatchEvent(new Event('error'));
+	expect(error).toHaveBeenCalledOnce();
+	expect(element?.isConnected).toBe(false);
+});
+
+test('observes a retained shared download once after repeated consent changes', async () => {
+	const load = vi.fn();
+	const config: Script = {
+		category: 'measurement',
+		id: 'shared-retained',
+		onLoad: load,
+		persistAfterConsentRevoked: true,
+		src: 'https://example.com/vendor.js',
+	};
+	const first = mount([config]);
+	const last = mount([config]);
+	const element = document.head.querySelector('script');
+	await last.kernel.commands.save({ measurement: false });
+	await last.kernel.commands.save({ measurement: true });
+	await last.kernel.commands.save({ measurement: false });
+	await last.kernel.commands.save({ measurement: true });
+	first.loader.dispose();
+	element?.dispatchEvent(new Event('load'));
+	expect(load).toHaveBeenCalledOnce();
+	last.loader.dispose();
+	expect(element?.isConnected).toBe(false);
+});
+
 test('keeps a same-ID vendor mounted when a rerender recreates its callbacks', () => {
 	const initialize = vi.fn();
 	const consent = vi.fn();

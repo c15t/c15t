@@ -55,6 +55,10 @@ Withdrawal alone does not call `onDispose`. With the default reload, the page
 reloads after withdrawal anyway; with `reloadOnConsentRevoked: false`, use
 `onConsentChange` to stop the vendor.
 
+When loaders share an external element, each receives its `onLoad` or `onError`
+event. Removing the original loader transfers ownership to a remaining loader.
+c15t removes an element it created when the last loader releases it.
+
 ## Update the list
 
 `loader.updateScripts(next)` replaces the configuration and reconciles at
@@ -66,7 +70,8 @@ once:
 - A script that adds `onDispose` is tracked by object. Replacing the object
   disposes it and starts again, even with the same `id`. Keep such objects
   stable.
-- A removed script has its element removed, unless it is retained.
+- A removed script releases its element. Shared external elements stay while
+  another loader still uses them.
 
 Updates requested from inside a callback run after the current pass; the
 latest wins. A chain of callbacks that keeps changing consent or the list is

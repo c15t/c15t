@@ -1408,7 +1408,8 @@ const dsn = 'https://key@o0.ingest.sentry.io/0';
  */
 const installSentryCdn = (
 	sampling: Sampling = 'session',
-	clientOptions?: Parameters<typeof createClient>[0]
+	clientOptions?: Parameters<typeof createClient>[0],
+	deferBundle = false
 ) => {
 	const sentryClient = createClient(clientOptions);
 	const loaded: HTMLScriptElement[] = [];
@@ -1445,6 +1446,9 @@ const installSentryCdn = (
 				};
 			} else {
 				Object.assign(window, { Sentry: sentryGlobal });
+				if (deferBundle) {
+					continue;
+				}
 			}
 			node.dispatchEvent(new Event('load'));
 		}
@@ -1573,6 +1577,41 @@ describe('Sentry loaded from the CDN', () => {
 		second.loader.dispose();
 		expect(replays[0]?.getRecordingMode()).toBeUndefined();
 	});
+
+	it.each(['creator', 'borrower'] as const)(
+		'finishes a shared CDN download after its %s loader is disposed',
+		async (removed) => {
+			const { loaded, replays, sentryGlobal } = installSentryCdn(
+				'session',
+				undefined,
+				true
+			);
+			const config = () =>
+				sentry({
+					dsn,
+					initOptions: { replaysSessionSampleRate: 1 },
+					loadMode: 'after-consent',
+				});
+			const creator = mount(config(), grantedMeasurementConsents);
+			const borrower = mount(config(), grantedMeasurementConsents);
+			await vi.advanceTimersByTimeAsync(0);
+			const [bundle] = loaded;
+			expect(bundle).toBeDefined();
+			expect(sentryGlobal.init).not.toHaveBeenCalled();
+			const disposed = removed === 'creator' ? creator : borrower;
+			const survivor = removed === 'creator' ? borrower : creator;
+			disposed.loader.dispose();
+			expect(bundle?.isConnected).toBe(true);
+			bundle?.dispatchEvent(new Event('load'));
+			await settle();
+			expect(sentryGlobal.init).toHaveBeenCalledOnce();
+			expect(replays[0]?.getRecordingMode()).toBe('session');
+			await survivor.kernel.commands.save(deniedConsents);
+			expect(replays[0]?.getRecordingMode()).toBeUndefined();
+			survivor.loader.dispose();
+			expect(bundle?.isConnected).toBe(false);
+		}
+	);
 
 	it.each(['before the SDK loads', 'after the SDK loads'])(
 		'registers an initially denied after-consent CDN loader %s',
