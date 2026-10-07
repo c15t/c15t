@@ -25,9 +25,8 @@ Test apps live in `internals/fixtures`, and type-checked docs snippets live in
    variants. A reader can paste a file into their own app.
 6. **Short README.** What it shows, the two or three files that matter, how to
    run it, and a link to the docs page that explains it.
-7. **Smoke-tested.** CI builds every example, checks that the banner renders
-   and that Accept persists across a reload. The full consent journeys run
-   against `internals/fixtures`.
+7. **Smoke-tested.** CI smoke-tests selected starters. The full consent
+   journeys run against `internals/fixtures`.
 
 Docs regions (`#region docs:<name>`) in starters feed the framework
 quickstarts. See `scripts/example-doc-sources.ts` for the marker syntax.
