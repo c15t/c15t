@@ -27,6 +27,7 @@ import type {
 } from 'react';
 
 import { KernelContext, ProviderServicesContext } from './context';
+import { publishDevToolsLauncher } from './devtools-launcher';
 import { useIsHydrated } from './hooks/use-is-hydrated';
 
 /** Props for the kernel-bound React DevTools adapter. */
@@ -144,7 +145,12 @@ export const ConsentDevTools = ({
 			position,
 			shadow,
 		});
-		return () => devTools.destroy();
+		// A mounted consent trigger can render the launcher instead.
+		const withdrawLauncher = publishDevToolsLauncher(kernel, devTools);
+		return () => {
+			withdrawLauncher();
+			devTools.destroy();
+		};
 	}, [
 		defaultOpen,
 		defaultTab,

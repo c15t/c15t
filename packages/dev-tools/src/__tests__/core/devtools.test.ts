@@ -411,3 +411,26 @@ describe('embedded panel', () => {
 		);
 	});
 });
+
+describe('docking', () => {
+	it('moves to the host corner and restores its own placement when undocked', () => {
+		const tools = createInstance();
+		const root = tools.element;
+		tools.dock({ block: 72, inline: 20, position: 'top-left' });
+		expect(root?.classList).toContain('c15t-dev-tools--docked');
+		expect(root?.classList).toContain('c15t-dev-tools--top-left');
+		expect(root?.classList).not.toContain('c15t-dev-tools--bottom-right');
+		expect(root?.style.getPropertyValue('--c15t-dev-tools-dock-block')).toBe(
+			'72px'
+		);
+
+		tools.open();
+		tools.dock(null);
+		expect(root?.classList).not.toContain('c15t-dev-tools--docked');
+		expect(root?.classList).toContain('c15t-dev-tools--bottom-right');
+		expect(root?.style.getPropertyValue('--c15t-dev-tools-dock-block')).toBe(
+			''
+		);
+		expect(tools.getState().isOpen).toBe(true);
+	});
+});
