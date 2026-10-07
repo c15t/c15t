@@ -309,6 +309,30 @@ const deniedCollection = {
 };
 
 describe('Sentry adapter through the kernel and script loader', () => {
+	it('omits unused Replay consent when the SDK has no Replay loader', () => {
+		const { client } = createClient();
+		const { kernel } = mount(
+			sentry({ getClient: () => client, pii: { category: 'necessary' } })
+		);
+		expect(kernel.getSnapshot().consentCategories).toEqual(['necessary']);
+	});
+
+	it('keeps error consent when the SDK has no Replay loader', () => {
+		const { client } = createClient();
+		const { kernel } = mount(
+			sentry({
+				getClient: () => client,
+				init: () => {},
+				loadMode: 'after-consent',
+				pii: { category: 'necessary' },
+			})
+		);
+		expect(kernel.getSnapshot().consentCategories).toEqual([
+			'measurement',
+			'necessary',
+		]);
+	});
+
 	it('registers the gated categories while running for every visitor', () => {
 		const { client } = createClient();
 		const script = sentry({
@@ -1705,6 +1729,39 @@ const installSentryCdn = (
 };
 
 describe('Sentry loaded from the CDN', () => {
+	it.each([
+		{ initOptions: {}, replay: undefined },
+		{ initOptions: { replaysSessionSampleRate: 1 }, replay: false as const },
+		{
+			initOptions: { replaysOnErrorSampleRate: 0, replaysSessionSampleRate: 0 },
+			replay: { category: 'experience' as const },
+		},
+	])('omits unused CDN Replay consent with %j', async (options) => {
+		const { loaded } = installSentryCdn();
+		const { kernel } = mount(
+			sentry({ ...options, dsn, pii: { category: 'necessary' } })
+		);
+		await settle();
+		expect(kernel.getSnapshot().consentCategories).toEqual(['necessary']);
+		expect(loaded).toHaveLength(1);
+	});
+
+	it('registers the CDN Replay category when sampling is enabled', () => {
+		installSentryCdn();
+		const { kernel } = mount(
+			sentry({
+				dsn,
+				initOptions: { replaysOnErrorSampleRate: 1 },
+				pii: { category: 'necessary' },
+				replay: { category: 'experience' },
+			})
+		);
+		expect(kernel.getSnapshot().consentCategories).toEqual([
+			'experience',
+			'necessary',
+		]);
+	});
+
 	it('applies collection denial before CDN initialization integrations capture data', async () => {
 		const { client } = installSentryCdn('session', {
 			collection: structuredClone(configuredCollection),

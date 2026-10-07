@@ -24,7 +24,7 @@ one.
 | `id` | `string` | required | A unique, stable name. The loader tracks the script by it. |
 | `category` | category or condition | required | What must be allowed, such as `'measurement'` or `{ and: ['measurement', 'marketing'] }`. |
 | `src` | `string` | none | The URL to load. |
-| `resourceKey` | `string` | `id` | The DOM resource identity. Use matching keys to share a bundle across loaders, or different keys for different resources under the same script ID. |
+| `resourceKey` | `string` | `id` | The DOM resource identity. Matching keys share one element within and across loaders, while each logical script keeps its callbacks and consent state. Use different keys for different resources under the same script ID. |
 | `textContent` | `string` | none | Inline code to run instead of `src`. |
 | `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |

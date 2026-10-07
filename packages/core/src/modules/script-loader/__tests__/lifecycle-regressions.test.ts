@@ -28,6 +28,180 @@ const mount = (scripts: Script[]) => {
 };
 
 test.each([true, false])(
+	'coalesces resource keys within one loader with anonymizeId=%s',
+	(anonymizeId) => {
+		const firstLoad = vi.fn();
+		const secondLoad = vi.fn();
+		const config: Script = {
+			anonymizeId,
+			category: 'measurement',
+			id: 'first-resource',
+			resourceKey: 'shared-batch',
+			src: 'https://example.com/shared.js',
+		};
+		const second = { ...config, id: 'second-resource', onLoad: secondLoad };
+		const { loader } = mount([{ ...config, onLoad: firstLoad }, second]);
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		expect(loader.getLoadedScriptIds()).toEqual([
+			'first-resource',
+			'second-resource',
+		]);
+		const element = document.head.querySelector('script');
+		element?.dispatchEvent(new Event('load'));
+		expect(firstLoad).toHaveBeenCalledOnce();
+		expect(secondLoad).toHaveBeenCalledOnce();
+		expect(firstLoad.mock.calls[0]?.[0].element).toBe(element);
+		expect(secondLoad.mock.calls[0]?.[0].element).toBe(element);
+		loader.updateScripts([second]);
+		expect(element?.isConnected).toBe(true);
+		loader.dispose();
+		expect(element?.isConnected).toBe(false);
+	}
+);
+
+test.each(['first', 'second'] as const)(
+	'keeps each pending shared registration when removing %s',
+	(removed) => {
+		const firstError = vi.fn();
+		const secondError = vi.fn();
+		const first: Script = {
+			category: 'measurement',
+			id: 'first',
+			onError: firstError,
+			resourceKey: 'shared-pending-error',
+			src: 'https://example.com/shared.js',
+		};
+		const second = { ...first, id: 'second', onError: secondError };
+		const { loader } = mount([first, second]);
+		const element = document.head.querySelector('script');
+		loader.updateScripts([removed === 'first' ? second : first]);
+		expect(element?.isConnected).toBe(true);
+		element?.dispatchEvent(new Event('error'));
+		expect(firstError).toHaveBeenCalledTimes(removed === 'first' ? 0 : 1);
+		expect(secondError).toHaveBeenCalledTimes(removed === 'second' ? 0 : 1);
+		loader.dispose();
+		expect(element?.isConnected).toBe(false);
+		element?.dispatchEvent(new Event('error'));
+		expect(firstError).toHaveBeenCalledTimes(removed === 'first' ? 0 : 1);
+		expect(secondError).toHaveBeenCalledTimes(removed === 'second' ? 0 : 1);
+	}
+);
+
+test('shares an inline resource while retaining each logical lifecycle', async () => {
+	const firstLoad = vi.fn();
+	const secondLoad = vi.fn();
+	const first: Script = {
+		category: 'necessary',
+		id: 'first-inline',
+		onLoad: firstLoad,
+		resourceKey: 'shared-inline',
+		textContent: `document.body.dataset.runs = String(Number(document.body.dataset.runs ?? 0) + 1);`,
+	};
+	const second = { ...first, id: 'second-inline', onLoad: secondLoad };
+	const { loader } = mount([first, second]);
+	expect(document.body.dataset.runs).toBe('1');
+	await new Promise((resolve) => {
+		setTimeout(resolve, 0);
+	});
+	expect(firstLoad).toHaveBeenCalledOnce();
+	expect(secondLoad).toHaveBeenCalledOnce();
+	const element = document.head.querySelector('script');
+	loader.updateScripts([second]);
+	expect(element?.isConnected).toBe(true);
+	loader.dispose();
+	expect(element?.isConnected).toBe(false);
+});
+
+test('retains shared registrations added after a resource is mounted', () => {
+	const firstLoad = vi.fn();
+	const secondLoad = vi.fn();
+	const first: Script = {
+		category: 'measurement',
+		id: 'first-existing',
+		onLoad: firstLoad,
+		resourceKey: 'shared-existing',
+		src: 'https://example.com/shared.js',
+	};
+	const second = { ...first, id: 'second-existing', onLoad: secondLoad };
+	const { loader } = mount([first]);
+	const element = document.head.querySelector('script');
+	loader.updateScripts([first, second]);
+	element?.dispatchEvent(new Event('load'));
+	expect(firstLoad).toHaveBeenCalledOnce();
+	expect(secondLoad).toHaveBeenCalledOnce();
+	loader.updateScripts([second]);
+	expect(element?.isConnected).toBe(true);
+	loader.dispose();
+	expect(element?.isConnected).toBe(false);
+});
+
+test.each([true, false])(
+	'keeps independent consent for shared registrations with persistence=%s',
+	async (persistAfterConsentRevoked) => {
+		const firstLoad = vi.fn();
+		const secondLoad = vi.fn();
+		const first: Script = {
+			category: 'measurement',
+			id: 'consent-first',
+			onLoad: firstLoad,
+			persistAfterConsentRevoked,
+			resourceKey: 'shared-consent',
+			src: 'https://example.com/shared.js',
+		};
+		const second = {
+			...first,
+			category: 'necessary' as const,
+			id: 'consent-second',
+			onLoad: secondLoad,
+		};
+		const { kernel, loader } = mount([first, second]);
+		const element = document.head.querySelector('script');
+		await kernel.commands.save({ measurement: false });
+		expect(element?.isConnected).toBe(true);
+		expect(loader.getLoadedScriptIds()).toEqual(['consent-second']);
+		element?.dispatchEvent(new Event('load'));
+		expect(firstLoad).toHaveBeenCalledTimes(persistAfterConsentRevoked ? 1 : 0);
+		expect(firstLoad.mock.calls.map(([info]) => info.hasConsent)).toEqual(
+			persistAfterConsentRevoked ? [false] : []
+		);
+		expect(secondLoad).toHaveBeenCalledWith(
+			expect.objectContaining({ hasConsent: true })
+		);
+		await kernel.commands.save({ measurement: true });
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		loader.updateScripts([first]);
+		expect(element?.isConnected).toBe(true);
+		loader.dispose();
+		expect(element?.isConnected).toBe(false);
+	}
+);
+
+test('transfers a shared resource across loaders with several logical registrations', () => {
+	const config: Script = {
+		category: 'measurement',
+		id: 'transfer-first',
+		resourceKey: 'shared-multi-transfer',
+		src: 'https://example.com/shared.js',
+	};
+	const first = mount([config, { ...config, id: 'transfer-second' }]);
+	const load = vi.fn();
+	const lastScript = { ...config, id: 'transfer-last', onLoad: load };
+	const last = mount([
+		{ ...config, id: 'transfer-third', onLoad: load },
+		lastScript,
+	]);
+	const element = document.head.querySelector('script');
+	expect(document.head.querySelectorAll('script')).toHaveLength(1);
+	first.loader.dispose();
+	expect(element?.isConnected).toBe(true);
+	last.loader.updateScripts([lastScript]);
+	element?.dispatchEvent(new Event('load'));
+	expect(load).toHaveBeenCalledOnce();
+	last.loader.dispose();
+	expect(element?.isConnected).toBe(false);
+});
+
+test.each([true, false])(
 	'shares matching resource keys and separates different ones with anonymizeId=%s',
 	(anonymizeId) => {
 		const firstLoad = vi.fn();

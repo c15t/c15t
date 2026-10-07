@@ -148,6 +148,10 @@ Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
 | `pii.user` | None | Returns the user to set when user data becomes allowed. |
 | `onError` | Report to Sentry | Receives Sentry start and Replay load, start and stop failures. |
 
+The adapter registers Replay's category only when `replay.load` is supplied
+for an app-managed SDK, or when CDN Replay is enabled with a positive sample
+rate. Error monitoring and SDK data collection register their own categories.
+
 ## Loading and revocation
 
 | `loadMode` | When Sentry runs | On withdrawal without a reload |

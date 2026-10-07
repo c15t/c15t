@@ -100,7 +100,13 @@ interface ElementObserver {
 // Each loader observes a shared download and can take over DOM ownership.
 const elementObservers = new WeakMap<
 	HTMLScriptElement,
-	Map<MountDeps, ElementObserver>
+	Map<MountDeps, Map<string, ElementObserver>>
+>();
+
+// A batched resource is not in the DOM yet, but later registrations reuse it.
+const pendingResources = new WeakMap<
+	PendingMount[],
+	Map<string, PendingMount>
 >();
 
 const observeElement = (
@@ -110,15 +116,17 @@ const observeElement = (
 	elementId: string,
 	element: HTMLScriptElement
 ): void => {
-	if (!script.src) {
-		return;
-	}
 	let observers = elementObservers.get(element);
 	if (!observers) {
 		observers = new Map();
 		elementObservers.set(element, observers);
 	}
-	if (observers.has(deps)) {
+	let registrations = observers.get(deps);
+	if (!registrations) {
+		registrations = new Map();
+		observers.set(deps, registrations);
+	}
+	if (registrations.has(script.id)) {
 		return;
 	}
 	const isRegisteredElement = () =>
@@ -187,9 +195,11 @@ const observeElement = (
 			timestamp: Date.now(),
 		});
 	};
-	element.addEventListener('load', onLoad);
-	element.addEventListener('error', onError);
-	observers.set(deps, {
+	if (script.src) {
+		element.addEventListener('load', onLoad);
+		element.addEventListener('error', onError);
+	}
+	registrations.set(script.id, {
 		scriptId: script.id,
 		stop: () => {
 			element.removeEventListener('load', onLoad);
@@ -205,14 +215,21 @@ export const releaseScriptElement = (
 	element: HTMLScriptElement
 ): void => {
 	const observers = elementObservers.get(element);
-	const observer = observers?.get(deps);
-	observers?.delete(deps);
+	const registrations = observers?.get(deps);
+	const observer = registrations?.get(scriptId);
+	registrations?.delete(scriptId);
 	observer?.stop();
+	if (registrations?.size === 0) {
+		observers?.delete(deps);
+	}
 	const survivor = observers?.entries().next().value;
 	if (deps.ownedScriptIds.has(scriptId)) {
 		if (survivor) {
-			const [nextDeps, nextObserver] = survivor;
-			nextDeps.ownedScriptIds.add(nextObserver.scriptId);
+			const [nextDeps, nextRegistrations] = survivor;
+			const nextObserver = nextRegistrations.values().next().value;
+			if (nextObserver) {
+				nextDeps.ownedScriptIds.add(nextObserver.scriptId);
+			}
 		} else if (element.parentNode) {
 			element.parentNode.removeChild(element);
 		}
@@ -394,34 +411,39 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	const element = document.createElement('script');
-	element.id = elementId;
-	if (script.src) {
-		element.src = script.src;
-	}
-	if (script.textContent) {
-		element.textContent = script.textContent;
-	}
-	if (script.async !== undefined) {
-		element.async = script.async;
-	}
-	if (script.defer !== undefined) {
-		element.defer = script.defer;
-	}
-	const nonce = script.nonce ?? deps.nonce;
-	if (nonce) {
-		element.nonce = nonce;
-	}
-	if (script.fetchPriority) {
-		// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
-		(element as any).fetchPriority = script.fetchPriority;
-	}
-	if (script.attributes) {
-		for (const [key, value] of Object.entries(script.attributes)) {
-			element.setAttribute(
-				key,
-				typeof value === 'string' ? value : String(value)
-			);
+	const pendingResource = batch
+		? pendingResources.get(batch)?.get(elementId)
+		: undefined;
+	const element = pendingResource?.element ?? document.createElement('script');
+	if (!pendingResource) {
+		element.id = elementId;
+		if (script.src) {
+			element.src = script.src;
+		}
+		if (script.textContent) {
+			element.textContent = script.textContent;
+		}
+		if (script.async !== undefined) {
+			element.async = script.async;
+		}
+		if (script.defer !== undefined) {
+			element.defer = script.defer;
+		}
+		const nonce = script.nonce ?? deps.nonce;
+		if (nonce) {
+			element.nonce = nonce;
+		}
+		if (script.fetchPriority) {
+			// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
+			(element as any).fetchPriority = script.fetchPriority;
+		}
+		if (script.attributes) {
+			for (const [key, value] of Object.entries(script.attributes)) {
+				element.setAttribute(
+					key,
+					typeof value === 'string' ? value : String(value)
+				);
+			}
 		}
 	}
 
@@ -448,10 +470,12 @@ export const mountScript = function mountScript(
 
 	observeElement(deps, script, hasConsent, elementId, element);
 
-	const target = script.target === 'body' ? document.body : document.head;
+	const target =
+		pendingResource?.target ??
+		(script.target === 'body' ? document.body : document.head);
 
 	if (batch) {
-		batch.push({
+		const pending: PendingMount = {
 			appended: false,
 			element,
 			elementId,
@@ -459,7 +483,14 @@ export const mountScript = function mountScript(
 			info,
 			script,
 			target,
-		});
+		};
+		batch.push(pending);
+		let resources = pendingResources.get(batch);
+		if (!resources) {
+			resources = new Map();
+			pendingResources.set(batch, resources);
+		}
+		resources.set(elementId, pending);
 		return;
 	}
 
@@ -600,14 +631,19 @@ export const flushPendingMounts = function flushPendingMounts(
 	batch: PendingMount[],
 	isCurrentPass: () => boolean = () => true
 ): void {
+	pendingResources.delete(batch);
 	if (batch.length === 0 || !isCurrentPass()) {
 		return;
 	}
 	// Register before insertion: inline execution and DOM adapters can dispatch
 	// load events synchronously while the element is being appended.
+	const resources = new Set<HTMLScriptElement>();
 	for (const pending of batch) {
 		deps.loadedElements.set(pending.script.id, pending.element);
-		deps.ownedScriptIds.add(pending.script.id);
+		if (!resources.has(pending.element)) {
+			deps.ownedScriptIds.add(pending.script.id);
+			resources.add(pending.element);
+		}
 	}
 
 	if (batch.length === 1) {
@@ -634,15 +670,19 @@ export const flushPendingMounts = function flushPendingMounts(
 			}
 			// A previous target can execute inline code that revokes consent or
 			// replaces this loader's scripts. Never insert invalidated entries.
-			const elements = entries
-				.filter(
-					({ script, element }) =>
-						deps.loadedElements.get(script.id) === element
-				)
-				.map((pending) => {
-					pending.appended = true;
-					return pending.element;
-				});
+			const elements = [
+				...new Set(
+					entries
+						.filter(
+							({ script, element }) =>
+								deps.loadedElements.get(script.id) === element
+						)
+						.map((pending) => {
+							pending.appended = true;
+							return pending.element;
+						})
+				),
+			];
 			if (elements.length === 0) {
 				continue;
 			}

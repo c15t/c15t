@@ -1146,6 +1146,17 @@ export const sentryManifest = {
 const hasPositiveRate = (value: unknown): boolean =>
 	typeof value === 'number' && value > 0;
 
+const hasReplayLoader = (options: SentryOptions): boolean => {
+	if (options.dsn === undefined) {
+		return options.replay !== undefined;
+	}
+	return (
+		options.replay !== false &&
+		(hasPositiveRate(options.initOptions?.replaysSessionSampleRate) ||
+			hasPositiveRate(options.initOptions?.replaysOnErrorSampleRate))
+	);
+};
+
 type IntegrationsOption =
 	| unknown[]
 	| ((defaults: unknown[]) => unknown[])
@@ -1192,7 +1203,7 @@ const createInitOptions = (
 
 const getCategory = (
 	options: SentryOptions,
-	replayCategory: HasCondition<AllConsentNames>,
+	replayCategory: HasCondition<AllConsentNames> | undefined,
 	piiCategory: HasCondition<AllConsentNames>
 ): HasCondition<AllConsentNames> => {
 	const afterConsent = options.loadMode === 'after-consent';
@@ -1203,7 +1214,7 @@ const getCategory = (
 			...new Set<HasCondition<AllConsentNames>>([
 				'necessary',
 				...(afterConsent ? [errorsCategory] : []),
-				replayCategory,
+				...(replayCategory ? [replayCategory] : []),
 				piiCategory,
 			]),
 		],
@@ -1233,10 +1244,7 @@ const createCdnScript = (
 	const bundle = tracing ? tracingBundle : errorsBundle;
 	const integrityFor = (file: string): string | undefined =>
 		version === defaultVersion ? defaultIntegrity[file] : undefined;
-	const replayAllowed =
-		options.replay !== false &&
-		(hasPositiveRate(initOptions.replaysSessionSampleRate) ||
-			hasPositiveRate(initOptions.replaysOnErrorSampleRate));
+	const replayAllowed = hasReplayLoader(options);
 	const replayOptions =
 		options.replay === false ? undefined : options.replay?.options;
 
@@ -1330,7 +1338,11 @@ const createSentryScript = (options: SentryOptions): Script => {
 	const replayCategory =
 		(options.replay ? options.replay.category : undefined) ?? defaultCategory;
 	const piiCategory = options.pii?.category ?? defaultCategory;
-	const category = getCategory(options, replayCategory, piiCategory);
+	const category = getCategory(
+		options,
+		hasReplayLoader(options) ? replayCategory : undefined,
+		piiCategory
+	);
 	const errorsGated = options.loadMode === 'after-consent';
 	const gateOptions = {
 		errorsGated,
