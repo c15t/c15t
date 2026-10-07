@@ -41,18 +41,8 @@ Confirm your categories with your advisers.
 ## Use your own Sentry SDK
 
 If your app installs Sentry from npm, such as `@sentry/nextjs`, pass its
-functions instead of a DSN. Move `Sentry.init` into a module of its own, without
-`replayIntegration()`, and let c15t call it through `init`:
-
-```ts title="src/instrument.ts"
-import { init } from '@sentry/browser';
-
-init({
-	dsn: 'https://your-key@o0.ingest.sentry.io/0',
-	replaysSessionSampleRate: 0.1,
-	replaysOnErrorSampleRate: 1,
-});
-```
+functions instead of a DSN. Pass the SDK's `init` and put its configuration in
+`initOptions`. Keep `replayIntegration()` in a separate module:
 
 ```ts title="src/sentry-replay.ts"
 import { replayIntegration } from '@sentry/browser';
@@ -67,12 +57,17 @@ place of `dsn`:
 {/* example: fragment */}
 
 ```ts
-import { getClient, setUser } from '@sentry/browser';
+import { getClient, init, setUser } from '@sentry/browser';
 
 sentry({
 	getClient,
+	init,
 	setUser,
-	init: () => import('./instrument'),
+	initOptions: {
+		dsn: 'https://your-key@o0.ingest.sentry.io/0',
+		replaysSessionSampleRate: 0.1,
+		replaysOnErrorSampleRate: 1,
+	},
 	replay: {
 		load: () => import('./sentry-replay').then((m) => m.createReplay()),
 	},
@@ -80,10 +75,16 @@ sentry({
 ```
 
 SDK mode requires `@sentry/*` 10.67.0 or later. An independently initialized SDK
-can capture data before the adapter finds its client. `init` synchronizes the
-client when the callback finishes; `loadMode: 'after-consent'` also prevents
-initialization before measurement is allowed. The CDN setup applies consent
-during SDK initialization, before integrations can capture startup data.
+can capture data before the adapter finds its client. Passing `init` lets c15t
+install its consent integration before other SDK integrations run their startup
+hooks. Events captured before `init` returns also receive the consent filters.
+`loadMode: 'after-consent'` prevents initialization before measurement is allowed.
+The CDN setup installs the same startup protection.
+
+If `init` is a custom callback, forward its supplied options to `Sentry.init`.
+For a dynamic import, export an initializer and call it with those options;
+do not initialize Sentry as an import side effect. Ignoring the supplied options
+leaves startup captures unprotected.
 
 The adapter installs its filters after it finds the client. While error monitoring
 is allowed, it checks every 100 ms if initialization happens later. With
@@ -99,6 +100,7 @@ With SDK 10.67, omit `queues`, which that version does not expose:
 
 ```ts
 // Include these options in your app's Sentry.init call.
+maxBreadcrumbs: 0,
 dataCollection: {
 	userInfo: false,
 	cookies: false,
@@ -134,16 +136,16 @@ Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `dsn` | Required to load Sentry | Your project's DSN. c15t loads the SDK and calls `Sentry.init`. |
-| `initOptions` | `{}` | Passed to `Sentry.init`. `integrations` runs after Sentry loads, so it can read `window.Sentry`. |
+| `initOptions` | `{}` | Passed to `Sentry.init` in either mode. c15t puts its consent integration first. In CDN mode, `integrations` runs after Sentry loads, so it can read `window.Sentry`. |
 | `version` | `'11.4.0'` | SDK version to load. Another version loads without subresource integrity. |
 | `tracing` | `true` when traces are sampled | Loads the tracing bundle and adds `browserTracingIntegration()`. |
 | `replay` | Loads Replay when sampled | `{ category, options }`, where `options` go to `replayIntegration()`. `false` never loads Replay. |
 | `getClient` | Required for your own SDK | `getClient` from your Sentry SDK. Works when c15t starts before `Sentry.init`. |
 | `setUser` | None | `setUser` from your Sentry SDK. Called with `null` while user data is not allowed. Required with `pii.user`. |
-| `init` | None | Starts your Sentry SDK. Called once, when `loadMode` allows. Required with `loadMode: 'after-consent'` and your own SDK. |
+| `init` | None | Your SDK's `init`, or a callback that forwards the supplied options to it. Called once, when `loadMode` allows. Required with `loadMode: 'after-consent'` and your own SDK. |
 | `replay.load` | None | With your own SDK, returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
 | `loadMode` | `'always'` | `'after-consent'` starts Sentry only once `measurement` is allowed. |
-| `replay.category` | `'measurement'` | Consent condition for Replay. |
+| `replay.category` | `'measurement'` | Consent condition for Replay. `pii.category` must also be allowed. |
 | `pii.category` | `'measurement'` | Consent condition for SDK data collection and user data. `'necessary'` permits it while the Sentry vendor is enabled. |
 | `pii.user` | None | Returns the user to set when user data becomes allowed. |
 | `onError` | Report to Sentry | Receives Sentry start and Replay load, start and stop failures. |
@@ -168,6 +170,12 @@ in development and stops it while `measurement` is denied.
 The final envelope filter also drops queued Replay events and recordings while
 Replay is denied, stopping, or removed.
 
+Replay also requires the PII permission, even when `replay.category` names a
+different category. Recordings contain page URLs, including queries and
+fragments, which Sentry's collection flags do not remove. Denying either
+permission prevents Replay from loading or recording and discards pending
+uploads. Granting both permits these recorded URLs.
+
 While user data is not allowed, the adapter removes `user` from events and
 feedback, the user and IP address from sessions, and SDK user attributes from
 root spans, child spans, logs and metrics. A final envelope filter also removes
@@ -176,7 +184,9 @@ events, spans, logs and metrics. It disables every supported `dataCollection`
 field and restores the original resolved settings on grant, including allowlists
 and fields your app disabled. The final filter removes request headers, cookies,
 bodies and URL query parameters and fragments, plus HTTP headers and URL details
-on root and child spans, including SDK versions that ignore the collection flags.
+on root and child spans and standard navigation and HTTP breadcrumbs, including
+SDK versions that ignore the collection flags. Breadcrumbs collected before
+withdrawal are filtered when the next event is sent.
 Tracing itself is not gated.
 
 The collection settings control SDK instrumentation. Keep sensitive values out

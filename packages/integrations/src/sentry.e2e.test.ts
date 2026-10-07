@@ -2321,7 +2321,11 @@ describe('Sentry loaded from the CDN', () => {
 			integrations: (defaults: unknown[]) => unknown[];
 		};
 		expect(initOptions.integrations([{ name: 'Default' }])).toEqual([
-			{ name: 'C15tConsent', setup: expect.any(Function) },
+			{
+				beforeSetup: expect.any(Function),
+				name: 'C15tConsent',
+				setup: expect.any(Function),
+			},
 			{ name: 'Default' },
 			custom,
 			{ name: 'BrowserTracing' },

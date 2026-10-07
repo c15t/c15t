@@ -126,6 +126,16 @@ export interface SentryClient {
 	};
 }
 
+/** A Sentry integration, without a dependency on a particular SDK package. */
+interface SentryIntegration {
+	name: string;
+}
+
+/** SDK initialization options with c15t's consent integration installed first. */
+export interface SentryInitOptions extends Record<string, unknown> {
+	integrations: (defaults: SentryIntegration[]) => SentryIntegration[];
+}
+
 /**
  * When Sentry runs.
  *
@@ -137,7 +147,8 @@ export type SentryLoadMode = 'always' | 'after-consent';
 
 export interface SentryReplayOptions {
 	/**
-	 * Permission Replay needs before it loads or records.
+	 * Permission Replay needs before it loads or records. The PII permission
+	 * must also be allowed because Replay records page URLs.
 	 * @default 'measurement'
 	 */
 	category?: HasCondition<AllConsentNames>;
@@ -152,7 +163,8 @@ export interface SentryReplayOptions {
 
 export interface SentryCdnReplayOptions {
 	/**
-	 * Permission Replay needs before it loads or records.
+	 * Permission Replay needs before it loads or records. The PII permission
+	 * must also be allowed because Replay records page URLs.
 	 * @default 'measurement'
 	 */
 	category?: HasCondition<AllConsentNames>;
@@ -230,11 +242,15 @@ export interface SentrySdkOptions extends SentrySharedOptions {
 	 */
 	setUser?: (user: SentryUser | null) => void;
 	/**
-	 * Starts Sentry, for example `() => import('./instrument')`. c15t calls it
-	 * once, when `loadMode` allows Sentry to run. Required with
-	 * `loadMode: 'after-consent'`.
+	 * Starts Sentry with the supplied options, including the consent integration.
+	 * Pass your SDK's `init`, or a callback that forwards these options to it.
+	 * c15t calls it once, when `loadMode` allows Sentry to run. Required with
+	 * `loadMode: 'after-consent'`. Ignoring the supplied options leaves startup
+	 * captures unprotected.
 	 */
-	init?: () => unknown;
+	init?: (options: SentryInitOptions) => unknown;
+	/** Options passed to the SDK's `init`, including its DSN and sample rates. */
+	initOptions?: Record<string, unknown>;
 	/** Gate Session Replay. Without it, the adapter only stops a Replay the app added itself. */
 	replay?: SentryReplayOptions;
 	dsn?: never;
@@ -546,6 +562,34 @@ const redactRequest = (request: unknown): void => {
 	}
 };
 
+/** Standard SDK breadcrumbs collect URLs independently of collection settings. */
+const redactBreadcrumbs = (breadcrumbs: unknown): void => {
+	if (!Array.isArray(breadcrumbs)) {
+		return;
+	}
+	for (const breadcrumb of breadcrumbs) {
+		if (!isRecord(breadcrumb) || !isRecord(breadcrumb.data)) {
+			continue;
+		}
+		let fields: string[] = [];
+		if (breadcrumb.category === 'navigation') {
+			fields = ['from', 'to'];
+		} else if (
+			breadcrumb.type === 'http' ||
+			breadcrumb.category === 'fetch' ||
+			breadcrumb.category === 'xhr'
+		) {
+			fields = ['url'];
+		}
+		for (const field of fields) {
+			const url = breadcrumb.data[field];
+			if (typeof url === 'string') {
+				breadcrumb.data[field] = stripUrlDetails(url);
+			}
+		}
+	}
+};
+
 /** Final redaction also catches users added by scope processors or beforeSend. */
 const redactEnvelope = (envelope: SentryEnvelope): void => {
 	for (const [header, payload] of envelope[1]) {
@@ -559,6 +603,7 @@ const redactEnvelope = (envelope: SentryEnvelope): void => {
 			case 'feedback':
 				delete payload.user;
 				redactRequest(payload.request);
+				redactBreadcrumbs(payload.breadcrumbs);
 				if (isRecord(payload.contexts)) {
 					redactCollectedAttributes(payload.contexts.trace);
 					if (header.type === 'feedback') {
@@ -653,6 +698,7 @@ const applyClientPermissions = (
 	state.replayAllowed =
 		gates.length > 0 &&
 		gates.every((gate) => gate.permissions.replay) &&
+		state.piiAllowed &&
 		clientOptions.enabled !== false &&
 		Boolean(client.getDsn());
 	applyPii(client, state);
@@ -1125,7 +1171,15 @@ const createGate = (options: GateOptions) => {
 		denyClient(detachGate(gate));
 	};
 
-	return { dispose, report, sync, update };
+	const initialize = (): void => {
+		if (disposed) {
+			denyClient();
+		} else {
+			sync();
+		}
+	};
+
+	return { dispose, initialize, report, sync, update };
 };
 
 /**
@@ -1166,8 +1220,8 @@ const hasReplayLoader = (options: SentryOptions): boolean => {
 };
 
 type IntegrationsOption =
-	| unknown[]
-	| ((defaults: unknown[]) => unknown[])
+	| SentryIntegration[]
+	| ((defaults: SentryIntegration[]) => SentryIntegration[])
 	| undefined;
 
 const isNamed = (value: unknown, name: string): boolean =>
@@ -1175,6 +1229,31 @@ const isNamed = (value: unknown, name: string): boolean =>
 	value !== null &&
 	'name' in value &&
 	value.name === name;
+
+/** Install consent before any SDK integration can capture startup data. */
+const withConsentInitOptions = (
+	initOptions: Record<string, unknown>,
+	beforeCapture: () => void
+): SentryInitOptions => {
+	const integrations = initOptions.integrations as IntegrationsOption;
+	return {
+		...initOptions,
+		integrations: (defaults) => {
+			const list =
+				typeof integrations === 'function'
+					? integrations(defaults)
+					: [...defaults, ...(integrations ?? [])];
+			return [
+				{
+					beforeSetup: beforeCapture,
+					name: 'C15tConsent',
+					setup: beforeCapture,
+				},
+				...list.filter((integration) => integration.name !== 'C15tConsent'),
+			];
+		},
+	};
+};
 
 /** Build the `Sentry.init` options for the CDN bundle. */
 const createInitOptions = (
@@ -1185,28 +1264,30 @@ const createInitOptions = (
 	beforeCapture: () => void
 ): Record<string, unknown> => {
 	const integrations = initOptions.integrations as IntegrationsOption;
-	return {
-		...initOptions,
-		dsn,
-		// Like Sentry's Loader Script, add tracing when the bundle has it.
-		integrations: (defaults: unknown[]) => {
-			let list: unknown[];
-			if (typeof integrations === 'function') {
-				list = integrations(defaults);
-			} else {
-				list = [...defaults, ...(integrations ?? [])];
-			}
-			if (
-				tracing &&
-				sentryGlobal.browserTracingIntegration &&
-				!list.some((integration) => isNamed(integration, tracingName))
-			) {
-				list.push(sentryGlobal.browserTracingIntegration());
-			}
-			// Register consent before integrations can capture startup data.
-			return [{ name: 'C15tConsent', setup: beforeCapture }, ...list];
+	return withConsentInitOptions(
+		{
+			...initOptions,
+			dsn,
+			// Like Sentry's Loader Script, add tracing when the bundle has it.
+			integrations: (defaults: SentryIntegration[]) => {
+				let list: SentryIntegration[];
+				if (typeof integrations === 'function') {
+					list = integrations(defaults);
+				} else {
+					list = [...defaults, ...(integrations ?? [])];
+				}
+				if (
+					tracing &&
+					sentryGlobal.browserTracingIntegration &&
+					!list.some((integration) => isNamed(integration, tracingName))
+				) {
+					list.push(sentryGlobal.browserTracingIntegration());
+				}
+				return list;
+			},
 		},
-	};
+		beforeCapture
+	);
 };
 
 const getCategory = (
@@ -1314,7 +1395,7 @@ const createCdnScript = (
 			if (sentryGlobal && (!previous || cdnClients.get(previous) !== options)) {
 				sentryGlobal.init(
 					createInitOptions(sentryGlobal, dsn, initOptions, tracing, () => {
-						gate.sync();
+						gate.initialize();
 					})
 				);
 				const client = sentryGlobal.getClient();
@@ -1400,7 +1481,11 @@ const createSentryScript = (options: SentryOptions): Script => {
 		start: init
 			? async () => {
 					if (!options.getClient()) {
-						await init();
+						await init(
+							withConsentInitOptions(options.initOptions ?? {}, () => {
+								gate.initialize();
+							})
+						);
 					}
 				}
 			: undefined,
