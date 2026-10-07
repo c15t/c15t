@@ -114,7 +114,7 @@ Call these only from a visitor's click or key press.
 
 | Method | Returns | What it records |
 | --- | --- | --- |
-| `acceptAll()` | `Promise<SaveResult>` | Allows every category the dialog offers. Under an IAB policy it confirms through the CMP. |
+| `acceptAll()` | `Promise<SaveResult>` | Without IAB, allows every category the dialog offers. Under an IAB policy it confirms the vendors' declared processing through the CMP. Optional categories without declared consent purposes remain denied. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy). |
 | `rejectAll()` | `Promise<SaveResult>` | Denies every optional category the dialog offers. |
 | `save(consents)` | `Promise<SaveResult>` | The categories you name, such as `{ measurement: true }`. Categories the dialog does not offer are dropped. Under an IAB policy it resolves `{ ok: false }` and emits `error`; use `saveIAB()`. |
 | `saveIAB()` | `Promise<SaveResult>` | The IAB purpose and vendor choices on `runtime.iab`. IAB entry only. |

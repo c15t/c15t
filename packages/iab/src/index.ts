@@ -213,7 +213,13 @@ export interface IABHandle {
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	/** Opt in/out of a special feature (1 = geo, 2 = device ID). */
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
-	/** Flip every vendor + purpose consent to true. */
+	/**
+	 * Grant vendor and purpose consent for declared consent purposes,
+	 * legitimate-interest signals for declared legitimate-interest purposes,
+	 * and opt-ins for declared special features. Includes custom vendors and
+	 * respects publisher restrictions. Undeclared purposes and special features
+	 * remain denied. Call `save()` to encode and persist the choice.
+	 */
 	acceptAll: () => void;
 	/** Flip every vendor + purpose consent to false. */
 	rejectAll: () => void;
@@ -286,8 +292,9 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 };
 
 /**
- * Flip every vendor / purpose / legit-interest / special-feature to the
- * same value. Used by acceptAll / rejectAll.
+ * Accept All grants only declared processing on each legal basis after
+ * publisher restrictions, including custom vendors. Reject All clears vendor,
+ * purpose, legitimate-interest and special-feature signals.
  */
 const applyBlanket = function applyBlanket(
 	kernel: ConsentKernel,
@@ -305,6 +312,18 @@ const applyBlanket = function applyBlanket(
 	];
 	const purposeIds = Object.keys(gvl.purposes ?? {}).map(Number);
 	const specialFeatureIds = Object.keys(gvl.specialFeatures ?? {}).map(Number);
+	// TCF Policies 5(3), 5(6) and 5(8): a signal is positive only for what
+	// the visitor was shown, on the legal basis a vendor declares for it.
+	// The preference centre lists only purposes and special features some
+	// vendor declares, so Accept All grants only those.
+	const declared = (
+		pick: (vendor: (typeof vendors)[number]) => number[] | undefined
+	) => new Set(vendors.flatMap((vendor) => pick(vendor) ?? []));
+	const consentPurposes = declared((vendor) => vendor.purposes);
+	const legitimateInterestPurposes = declared(
+		(vendor) => vendor.legIntPurposes
+	);
+	const declaredSpecialFeatures = declared((vendor) => vendor.specialFeatures);
 	const vendorConsents: Record<string, boolean> = Object.fromEntries(
 		vendors.map((vendor) => [
 			String(vendor.id),
@@ -320,12 +339,13 @@ const applyBlanket = function applyBlanket(
 	const purposeConsents: Record<number, boolean> = {};
 	const purposeLegitimateInterests: Record<number, boolean> = {};
 	for (const id of purposeIds) {
-		purposeConsents[id] = value;
-		purposeLegitimateInterests[id] = value;
+		purposeConsents[id] = value && consentPurposes.has(id);
+		purposeLegitimateInterests[id] =
+			value && legitimateInterestPurposes.has(id);
 	}
 	const specialFeatureOptIns: Record<number, boolean> = {};
 	for (const id of specialFeatureIds) {
-		specialFeatureOptIns[id] = value;
+		specialFeatureOptIns[id] = value && declaredSpecialFeatures.has(id);
 	}
 
 	kernel.set.iab({
