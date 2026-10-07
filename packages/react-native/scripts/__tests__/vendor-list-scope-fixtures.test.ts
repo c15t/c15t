@@ -1,4 +1,4 @@
-// oxlint-disable anti-slop/no-shape-in-symbol-names -- `shape` is the wire key of the sha-pinned vendor-list-scope fixtures, read by name in both native cores; renaming it re-pins every fixture and touches one reader per core, tracked in docs/internal/tcf-mobile-lanes.md.
+// oxlint-disable anti-slop/no-shape-in-symbol-names -- `shape` is the wire key of the sha-pinned vendor-list-scope fixtures, read by name in both native cores; renaming it re-pins every fixture and touches one reader per core.
 /**
  * Proves the committed `vendor-list-scope` fixtures say what they claim.
  *

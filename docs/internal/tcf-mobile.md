@@ -6,10 +6,7 @@ description: "Ground truth for IAB TCF in native mobile apps: the IABTCF_ storag
 Internal spec research. Not published on c15t.com. Written 2026-09-18 against branch
 `KayleeWilliams/tcf-mobile-spec`, which is based off `v3-3`, not `canary`. Code changes
 are out of scope: this document establishes what the specs require and what that means
-for `native/core-swift`, `native/core-android`, and `packages/iab`. It is a companion to
-[tcf-readiness.md](tcf-readiness.md),
-which covers the web side and the CMP-ID registration question. Nothing here re-decides
-that question.
+for `native/core-swift`, `native/core-android`, and `packages/iab`.
 
 ## How to read this
 
@@ -552,9 +549,7 @@ list, so I am not going to tell you what else is in it. [spec] for what is quote
 ### 4.2 What our TCF-policy-version negotiation means for mobile
 
 `packages/iab` does not hardcode a policy version: the encoder takes it from the served list,
-`TCModel` defaults to 5 (TCF 2.3), and a list declaring 4 encodes 4
-([tcf-readiness.md](tcf-readiness.md),
-verified there against the installed codec). The live GVL agrees with the default:
+`TCModel` defaults to 5 (TCF 2.3), and a list declaring 4 encodes 4. The live GVL agrees with the default:
 
 ```console
 $ curl -s https://vendor-list.consensu.org/v3/vendor-list.json | jq '{gvlSpecificationVersion,vendorListVersion,tcfPolicyVersion,lastUpdated}'
@@ -569,7 +564,7 @@ For a mobile core that means four things, in priority order:
 1. **Encode 5, and write `IABTCF_PolicyVersion` = 5.** At policy 5 the Disclosed Vendors segment is
    not optional, so "we set `vendorsDisclosed` to whatever appeared in consent or LI state" is a
    compliance defect, not an MVP shortcut. `packages/iab/src/index.ts:812-828` carries an inline
-   "For MVP" comment for exactly this, and tcf-readiness already records that a vendor shown in
+   "For MVP" comment for exactly this. A vendor shown in
    the UI but never toggled is missing from the string. On mobile the same bug is worse, because
    the special-purpose rule in 4.1 turns a missing bit into "not disclosed".
 2. **A policy-4 fallback stays valid but is a trap.** Strings under policy 4 are not invalidated by
@@ -786,8 +781,8 @@ these are the spec duties it would miss. Ordered by how much they matter.
    publisher-CC, or disclosure-set concept. Every field the TC string needs — 3.2 — is
    unrepresentable today. The `iab` slot is still `JsonNull` on Kotlin, while Swift already carries a
    `KernelIABState` holding the served vendor list and nothing else.
-7. **Special-purpose legitimate interest is still not encodable**, which tcf-readiness already
-   records for web and which does not change on mobile: `@iabtechlabtcf/core@1.5.21` has no
+7. **Special-purpose legitimate interest is still not encodable**, the same gap as on web,
+   and it does not change on mobile: `@iabtechlabtcf/core@1.5.21` has no
    special-purposes bitfield. Confirmed here — `Fields.js` exposes `purposeConsents`,
    `purposeLegitimateInterests`, `specialFeatureOptins`, `publisherRestrictions` and nothing else in
    that family.
@@ -818,13 +813,13 @@ these are the spec duties it would miss. Ordered by how much they matter.
 10. **No consent-screen number, no consent language, no publisher country in native state.** All
     three are core-segment fields (3.2 #6, #7, #16) and all three must describe the UI that was
     actually shown. Defaulting them, as web does for `publisherCC: 'US'` and
-    `purposeOneTreatment: false` in `cmp-api.ts:159,170,175`, is the same bug class tcf-readiness
-    already flags where "`TCData` reported over `__tcfapi` also disagrees with the TC String".
+    `purposeOneTreatment: false` in `cmp-api.ts:159,170,175`, is the same bug class that makes
+    `TCData` reported over `__tcfapi` disagree with the TC String on web.
 11. **`reset()` does not yet clear a bus**, and iOS Keychain persistence across uninstall means a
     naive reset leaves a live signal behind (section 6, point 3 and 4).
-12. **The GVL proxy question transfers.** tcf-readiness notes c15t/Inth operates `gvl.inth.app`
+12. **The GVL proxy question transfers.** c15t/Inth operates `gvl.inth.app`
     (`packages/iab/src/tcf/constants.ts:25` `GVL_ENDPOINT`). A mobile SDK pointed at a proxy we run
-    inherits the staleness and availability duties recorded there, and S2's caching rules above are
+    inherits the same staleness and availability duties, and S2's caching rules above are
     the only licence for using an archived version offline.
 
 ## 8. Where sources disagree
@@ -871,7 +866,7 @@ Not in this document as findings:
   **`TCFv2/Vendor Device Storage & Operational Disclosures.md`** — both exist in the folder listing;
   I did not download or read either. Any device-storage / `devicestorage.json` detail beyond the
   Appendix B rendering duty is out of scope here.
-- **"TCF v2.2 Compliance Form For Non-Web CMPs"**, cited by tcf-readiness.md as listed on
+- **"TCF v2.2 Compliance Form For Non-Web CMPs"**, reportedly listed on
   `iabeurope.eu/tcf-supporting-resources/`. That link is not on the page as fetched 2026-09-18 and I
   found no replacement. If that form is where mobile-specific compliance duties are enumerated, it
   is the most important unread artifact in this list.
