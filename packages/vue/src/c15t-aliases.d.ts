@@ -35,3 +35,12 @@ declare module '#c15t/server-app-config' {
 		event?: unknown
 	) => Record<string, unknown> | undefined;
 }
+
+/** A Nitro virtual the module registers for its server routes. */
+declare module '#c15t/manifest-snapshot' {
+	import type { ConsentManifest } from '@c15t/schema/types';
+
+	/** The manifest fetched during the build, or `undefined` without one. */
+	const manifest: ConsentManifest | undefined;
+	export default manifest;
+}

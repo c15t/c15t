@@ -109,9 +109,8 @@ afterEach(() => {
 });
 
 describe('manifest route background revalidation', () => {
-	test('serves the private build snapshot and resolves init without upstream policy requests', async () => {
+	test('serves the build snapshot and resolves init without upstream policy requests', async () => {
 		mocks.useRuntimeConfig.mockReturnValue({
-			c15t: { manifestSnapshot: MANIFEST },
 			public: {
 				c15t: {
 					backendURL: 'https://consent.example.com',
@@ -119,9 +118,20 @@ describe('manifest route background revalidation', () => {
 				},
 			},
 		});
-		expect(await (await callManifestRoute()).json()).toEqual(MANIFEST);
+		const dependencies = { ...routeDependencies, manifest: MANIFEST };
+		const callSnapshotManifestRoute = callRoute(
+			'/api/c15t/manifest',
+			createManifestRoute(dependencies)
+		);
+		const callSnapshotInitRoute = callRoute(
+			'/api/c15t/init',
+			createInitRoute(dependencies)
+		);
+		expect(await (await callSnapshotManifestRoute()).json()).toEqual(MANIFEST);
 		expect(
-			await (await callInitRoute({ 'x-vercel-ip-country': 'DE' })).json()
+			await (
+				await callSnapshotInitRoute({ 'x-vercel-ip-country': 'DE' })
+			).json()
 		).toMatchObject({
 			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
 		});

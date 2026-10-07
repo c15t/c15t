@@ -2,6 +2,7 @@
  * The Nuxt module's options, as they reach the app through the public
  * runtime config.
  */
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { runWithNuxtContext } from '@nuxt/kit';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
 
@@ -82,12 +83,38 @@ describe('colorScheme from the c15t config key', () => {
 	});
 });
 
+/** The module's Nitro virtual for the build snapshot, evaluated. */
+const importManifestSnapshot = async function importManifestSnapshot(
+	nuxt: Nuxt
+): Promise<unknown> {
+	const { virtual } = nuxt.options.nitro as {
+		virtual: Record<string, () => string>;
+	};
+	const source = virtual['#c15t/manifest-snapshot']?.();
+	const { default: snapshot } = (await import(
+		`data:text/javascript,${encodeURIComponent(source ?? '')}`
+	)) as { default: unknown };
+	return snapshot;
+};
+
 describe('buildManifest', () => {
 	test.each([false, true])(
-		'embeds the manifest privately with dev: %s',
+		'embeds the manifest in the server bundle with dev: %s',
 		async (dev) => {
+			// A policy pack carries `copyRevision: null`.
 			const snapshot = {
 				branding: 'c15t',
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						categories: [],
+						id: 'world-opt-in',
+						match: { fallback: true },
+						model: 'opt-in',
+						prompt: 'choice',
+						scopeMode: 'strict',
+						validity: { choiceDays: 365 },
+					}),
+				],
 				revision: 'build-snapshot',
 				schemaVersion: 2,
 			};
@@ -105,9 +132,12 @@ describe('buildManifest', () => {
 					{ dev }
 				);
 				await runWithNuxtContext(nuxt, () => module({}, nuxt));
-				expect(nuxt.options.runtimeConfig.c15t).toMatchObject({
-					manifestSnapshot: snapshot,
-				});
+				expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
+				// Nitro replaces every `null` in runtime config with `''` during
+				// the build, so the snapshot must not travel through it.
+				expect(nuxt.options.runtimeConfig.c15t).not.toHaveProperty(
+					'manifestSnapshot'
+				);
 				expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
 					manifest: 'server',
 				});
@@ -142,9 +172,7 @@ describe('buildManifest', () => {
 			);
 			await runWithNuxtContext(nuxt, () => module({}, nuxt));
 			expect(fetch).not.toHaveBeenCalled();
-			expect(nuxt.options.runtimeConfig.c15t).toMatchObject({
-				manifestSnapshot: undefined,
-			});
+			expect(await importManifestSnapshot(nuxt)).toBeUndefined();
 			expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
 				manifest: 'server',
 			});
