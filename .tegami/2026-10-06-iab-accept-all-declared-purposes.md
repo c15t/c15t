@@ -9,8 +9,10 @@ Under an IAB policy, Accept All used to consent to all 11 TCF purposes and
 every special feature in the Global Vendor List, including ones no vendor in
 your list declares and the preference centre never showed. The TCF Policies
 allow no consent signal for a purpose the visitor was not shown. Accept All now
-consents to every vendor and to the purposes, legitimate interests and special
-features those vendors declare. Everything else stays off in the TC string.
+sets vendor and purpose consent only for declared consent purposes. It sets
+separate vendor and purpose legitimate-interest signals for declared
+legitimate-interest purposes, and opts in to declared special features.
+Everything else stays off in the TC string.
 
 This can change which c15t categories Accept All grants. A category is granted
 when every purpose in it that a listed vendor processes on consent is
