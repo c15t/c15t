@@ -392,7 +392,7 @@ const redactUserAttributes = (payload: unknown): void => {
 			continue;
 		}
 		for (const key of Object.keys(attributes)) {
-			if (key.startsWith('user.')) {
+			if (key.startsWith('user.') || key.startsWith('sentry.user.')) {
 				Reflect.deleteProperty(attributes, key);
 			}
 		}

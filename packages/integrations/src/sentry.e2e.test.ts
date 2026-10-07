@@ -546,24 +546,44 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		).toBeUndefined();
 	});
 
-	it.each(['log', 'trace_metric', 'span'])(
-		'strips user attributes from %s envelopes after a later setUser',
-		async (type) => {
+	it.each([
+		{ prefix: 'user', type: 'log' },
+		{ prefix: 'sentry.user', type: 'log' },
+		{ prefix: 'user', type: 'trace_metric' },
+		{ prefix: 'sentry.user', type: 'trace_metric' },
+		{ prefix: 'user', type: 'span' },
+		{ prefix: 'sentry.user', type: 'span' },
+	])(
+		'strips $prefix attributes from $type envelopes after a later setUser',
+		async ({ type, prefix }) => {
 			const { script, sendEnvelope } = setup();
 			const { kernel } = mount(script, grantedMeasurementConsents);
 			await kernel.commands.save(deniedConsents);
 			const item = {
 				attributes: {
 					'http.method': { type: 'string', value: 'GET' },
-					'user.email': { type: 'string', value: 'user@example.com' },
-					'user.id': { type: 'string', value: 'signed-in-user' },
+					'sentry.sdk.name': { type: 'string', value: 'sentry.javascript' },
+					[`${prefix}.email`]: { type: 'string', value: 'user@example.com' },
+					[`${prefix}.id`]: { type: 'string', value: 'signed-in-user' },
+					[`${prefix}.username`]: { type: 'string', value: 'signed-in-name' },
+				},
+				data: {
+					'http.method': 'GET',
+					[`${prefix}.ip_address`]: '192.0.2.1',
 				},
 			};
-			const payload = { items: [item] };
+			const payload = {
+				ingest_settings: { infer_ip: 'auto' },
+				items: [item],
+				version: 2,
+			};
 			sendEnvelope(type, payload);
 			expect(item.attributes).toEqual({
 				'http.method': { type: 'string', value: 'GET' },
+				'sentry.sdk.name': { type: 'string', value: 'sentry.javascript' },
 			});
+			expect(item.data).toEqual({ 'http.method': 'GET' });
+			expect(payload.ingest_settings.infer_ip).toBe('never');
 		}
 	);
 
@@ -571,10 +591,18 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		const { script, sendEnvelope } = setup();
 		mount(script, grantedMeasurementConsents);
 		const payload = {
-			items: [{ attributes: { 'user.id': { type: 'string', value: 'u1' } } }],
+			items: [
+				{
+					attributes: {
+						'sentry.user.id': { type: 'string', value: 'u1' },
+						'user.id': { type: 'string', value: 'u1' },
+					},
+				},
+			],
 		};
 		expect(sendEnvelope('log', payload)).toEqual(payload);
 		expect(payload.items[0]?.attributes['user.id'].value).toBe('u1');
+		expect(payload.items[0]?.attributes['sentry.user.id'].value).toBe('u1');
 	});
 
 	it.each([false, true])(
