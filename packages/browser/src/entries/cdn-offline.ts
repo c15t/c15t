@@ -5,9 +5,13 @@
  * attributes and queued configuration unless the tag carries `data-manual`.
  */
 
+import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
+
 import { autoInit, installGlobal } from '../global-base';
 import { createOfflineGlobal } from '../offline-global';
 import { mountConsentUI } from '../ui/mount';
 
-const api = installGlobal(createOfflineGlobal({ mountUI: mountConsentUI }));
+const api = installGlobal(
+	createOfflineGlobal({ mountUI: mountConsentUI, publishDevToolsLauncher })
+);
 autoInit(api);

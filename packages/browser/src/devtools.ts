@@ -18,19 +18,21 @@
  * ```
  */
 
-import { createDevTools } from '@c15t/dev-tools';
-import type { DevToolsInstance, DevToolsOptions } from '@c15t/dev-tools';
+import type { DevToolsInstance } from '@c15t/dev-tools';
+import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
 
+import { createBrowserDevTools } from './devtools-mount';
+import type { BrowserDevToolsOptions } from './devtools-mount';
 import type { ConsentClient } from './types';
 
-/** Presentation options; the kernel and categories come from the client. */
-export type BrowserDevToolsOptions = Omit<
-	DevToolsOptions,
-	'getConsentCategories' | 'kernel'
->;
+export type { BrowserDevToolsOptions } from './devtools-mount';
 
 /**
  * Mount the DevTools panel against a client.
+ *
+ * When the client's stock UI shows the floating trigger, the trigger
+ * carries the DevTools button and the panel opens beside it; the panel's
+ * own launcher returns while the trigger is hidden.
  *
  * @param client - The page's client.
  * @param options - Panel placement and initial state.
@@ -40,13 +42,7 @@ export const mountDevTools = function mountDevTools(
 	client: ConsentClient,
 	options: BrowserDevToolsOptions = {}
 ): DevToolsInstance {
-	return createDevTools({
-		...options,
-		clearRecords: options.clearRecords ?? client.runtime.clearRecords,
-		getConsentCategories: () => client.consentCategories,
-		getPresentation: options.getPresentation ?? (() => client.presentation),
-		kernel: client.kernel,
-	});
+	return createBrowserDevTools(client, options, publishDevToolsLauncher);
 };
 
 export type {

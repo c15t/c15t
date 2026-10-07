@@ -32,6 +32,19 @@ once. With `data-manual` on the c15t tag, it waits for `c15t.init()`.
 The panel renders in its own shadow root, so your theme's CSS does not change
 it.
 
+## Open DevTools from the trigger
+
+With `data-trigger` on the c15t tag, the trigger shows a DevTools button next
+to its own while the panel is mounted, and the panel hides its floating
+launcher, so one control sits in the corner. The DevTools button sits at the
+end farthest from the corner. The panel opens just past the trigger, aligned
+with its outer edge, and follows it when you drag the trigger to another
+corner.
+
+The trigger hides while the banner or the dialog is open. The panel then shows
+its own launcher in the `data-position` corner until the trigger returns. With
+`c15t.headless.js` there is no trigger, so the panel always keeps its launcher.
+
 ## What each tab shows
 
 | Tab | Shows |
