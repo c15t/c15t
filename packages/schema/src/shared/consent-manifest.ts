@@ -1,5 +1,4 @@
-import type { Translations } from '@c15t/translations';
-import type { BaseTranslations } from '@c15t/translations/all';
+import type { BaseTranslations, Translations } from '@c15t/translations';
 
 import type { InitOutput } from '../api/init';
 import type { brandingValues, hostingValues } from './constants';

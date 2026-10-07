@@ -1,6 +1,9 @@
 import { deepMergeTranslations, selectLanguage } from '@c15t/translations';
-import type { CompleteTranslations, Translations } from '@c15t/translations';
-import type { BaseTranslations } from '@c15t/translations/all';
+import type {
+	BaseTranslations,
+	CompleteTranslations,
+	Translations,
+} from '@c15t/translations';
 import { translations as enTranslations } from '@c15t/translations/en';
 
 import {
