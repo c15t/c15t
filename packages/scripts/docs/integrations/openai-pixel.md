@@ -7,12 +7,13 @@ icon: chatgpt
 group: integrations
 ---
 
-The c15t `openaiPixel` helper ties OpenAI's ChatGPT Ads Measurement Pixel to
-`marketing`. Until a visitor allows `marketing`, c15t defines no `oaiq` queue
-and does not request `oaiq.min.js`. Once allowed, the helper queues
-`oaiq('consent', false)`, `init` and `oaiq('consent', true)` before the SDK
-loads. On withdrawal it keeps the SDK and calls `oaiq('consent', false)`, and
-c15t reloads the page by default.
+The c15t `openaiPixel` helper keeps the OpenAI ChatGPT Ads Measurement Pixel off
+the page until the visitor gives consent for `marketing`. Before consent, c15t
+does not define the `oaiq` queue. After consent, the helper queues
+`oaiq('consent', false)`, `init`, and `oaiq('consent', true)` before the SDK
+loads. If the visitor withdraws consent, the helper calls
+`oaiq('consent', false)`. The SDK stays on the page. By default, c15t also
+reloads the page.
 
 ## Configure the OpenAI Pixel
 

@@ -5,11 +5,11 @@ icon: hotjar
 group: integrations
 ---
 
-The c15t `hotjar` helper ties Hotjar to `measurement`. Until a visitor allows
-`measurement`, c15t does not define `window._hjSettings` or `window.hj` and does
-not request the Hotjar loader. The helper calls no Hotjar consent API. If the
-visitor later withdraws, c15t removes the loader script element and reloads the
-page, which ends a recording in progress.
+The c15t `hotjar` helper keeps Hotjar off the page until the visitor gives
+consent for `measurement`. Before consent, c15t does not define
+`window._hjSettings` or `window.hj`. The helper sends no consent signal to
+Hotjar. If the visitor withdraws consent, c15t removes the loader script
+element. By default, c15t also reloads the page. The reload stops Hotjar.
 
 ## Configure Hotjar
 

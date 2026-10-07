@@ -5,11 +5,12 @@ icon: tiktok
 group: integrations
 ---
 
-The c15t `tiktokPixel` helper ties the TikTok Pixel to `marketing`. Until a
-visitor allows `marketing`, c15t defines no `ttq` queue and does not request
-TikTok's `events.js`. Once allowed, the helper queues `ttq.grantConsent()` and
-`ttq.page()` before the loader. On withdrawal it keeps the pixel and calls
-`ttq.revokeConsent()`, and c15t reloads the page by default.
+The c15t `tiktokPixel` helper keeps the TikTok Pixel off the page until the
+visitor gives consent for `marketing`. Before consent, c15t does not define the
+`ttq` queue. After consent, the helper queues `ttq.grantConsent()` and
+`ttq.page()` before the loader. If the visitor withdraws consent, the helper
+calls `ttq.revokeConsent()`. The pixel stays on the page. By default, c15t also
+reloads the page.
 
 ## Configure the TikTok Pixel
 

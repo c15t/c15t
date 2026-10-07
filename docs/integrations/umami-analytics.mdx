@@ -5,10 +5,10 @@ icon: umami-analytics
 group: integrations
 ---
 
-The c15t `umamiAnalytics` helper ties Umami Analytics to `measurement`. Until a
-visitor allows `measurement`, c15t does not request the Umami tracker. If a
-visitor later withdraws `measurement`, c15t removes the script element and
-reloads the page.
+The c15t `umamiAnalytics` helper keeps the Umami tracker off the page until the
+visitor gives consent for `measurement`. The helper sends no consent signal to
+Umami. If the visitor withdraws consent, c15t removes the script element. By
+default, c15t also reloads the page.
 
 ## Configure Umami Analytics
 

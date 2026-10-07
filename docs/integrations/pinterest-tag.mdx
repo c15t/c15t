@@ -5,12 +5,12 @@ icon: pinterest
 group: integrations
 ---
 
-The c15t `pinterestTag` helper ties the Pinterest Tag to `marketing`. Until a
-visitor allows `marketing`, c15t defines no `pintrk` function and does not
-request Pinterest's `core.js`. Once allowed, the helper queues `load`,
-`pintrk('setconsent', true)` and a page visit before the loader. On withdrawal
-it keeps the tag and calls `pintrk('setconsent', false)`, and c15t reloads the
-page by default.
+The c15t `pinterestTag` helper keeps the Pinterest Tag off the page until the
+visitor gives consent for `marketing`. Before consent, c15t does not define
+`pintrk`. After consent, the helper queues `load`, `pintrk('setconsent', true)`,
+and a page visit before the loader. If the visitor withdraws consent, the helper
+calls `pintrk('setconsent', false)`. The tag stays on the page. By default, c15t
+also reloads the page.
 
 ## Configure the Pinterest Tag
 

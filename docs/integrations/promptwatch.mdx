@@ -5,10 +5,10 @@ icon: promptwatch
 group: integrations
 ---
 
-The c15t `promptwatch` helper ties the Promptwatch client to `measurement`.
-Until a visitor allows `measurement`, c15t does not request the client script.
-If a visitor later withdraws `measurement`, c15t removes the script element and
-reloads the page.
+The c15t `promptwatch` helper keeps the Promptwatch client script off the page
+until the visitor gives consent for `measurement`. The helper sends no consent
+signal to Promptwatch. If the visitor withdraws consent, c15t removes the script
+element. By default, c15t also reloads the page.
 
 ## Configure Promptwatch
 

@@ -5,13 +5,13 @@ icon: microsoft-clarity
 group: integrations
 ---
 
-The c15t `clarity` helper ties Microsoft Clarity to `measurement`. Until a
-visitor allows `measurement`, c15t does not request the Clarity script. Before
-the script loads and on each later permission change, the helper calls
-`clarity('consentv2', ...)` with `analytics_Storage` from `measurement` and
-`ad_Storage` from `marketing`; `defaultConsent` overrides the first call. After
-a withdrawal it keeps Clarity loaded, sends `analytics_Storage: 'denied'`, and
-c15t reloads the page.
+The c15t `clarity` helper keeps Microsoft Clarity off the page until the visitor
+gives consent for `measurement`. Before the script loads, and after each consent
+change, the helper calls `clarity('consentv2', ...)`. `measurement` controls
+`analytics_Storage`, and `marketing` controls `ad_Storage`. The `defaultConsent`
+option replaces the values in the first call. After the visitor withdraws
+consent, Clarity stays on the page and gets `analytics_Storage: 'denied'`. By
+default, c15t also reloads the page.
 
 ## Configure Microsoft Clarity
 

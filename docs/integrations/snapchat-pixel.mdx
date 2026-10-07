@@ -5,11 +5,11 @@ icon: snapchat
 group: integrations
 ---
 
-The c15t `snapchatPixel` helper ties the Snapchat Pixel to `marketing`. Until a
-visitor allows `marketing`, c15t defines no `snaptr` function and does not
-request Snapchat's `scevent.min.js`. The helper sends Snapchat no consent
-signal. On withdrawal c15t removes the script element and reloads the page by
-default.
+The c15t `snapchatPixel` helper keeps the Snapchat Pixel off the page until the
+visitor gives consent for `marketing`. Before consent, c15t does not define
+`snaptr`. The helper sends no consent signal to Snapchat. If the visitor
+withdraws consent, c15t removes the script element. By default, c15t also
+reloads the page.
 
 ## Configure the Snapchat Pixel
 

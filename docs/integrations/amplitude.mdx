@@ -5,12 +5,12 @@ icon: amplitude
 group: integrations
 ---
 
-The c15t `amplitude` helper ties the Amplitude Browser SDK 2 to `measurement`.
-Until a visitor allows `measurement`, c15t does not request the SDK or define
-`window.amplitude`. On a grant, the helper queues `init` and `setOptOut(false)`
-before the SDK loads. If the visitor later withdraws, the helper calls
-`amplitude.setOptOut(true)` and keeps the SDK on the page, and c15t reloads the
-page.
+The c15t `amplitude` helper keeps the Amplitude Browser SDK 2 off the page until
+the visitor gives consent for `measurement`. Before consent, c15t does not
+define `window.amplitude`. After consent, the helper queues `init` and
+`setOptOut(false)` before the SDK loads. If the visitor withdraws consent, the
+helper calls `amplitude.setOptOut(true)`. The SDK stays on the page. By default,
+c15t also reloads the page.
 
 ## Configure Amplitude
 

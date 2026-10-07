@@ -5,11 +5,11 @@ icon: crisp
 group: integrations
 ---
 
-The c15t `crisp` helper ties the Crisp chat widget to `functionality`. Until a
-visitor allows `functionality`, c15t does not request the Crisp loader or set
-`window.CRISP_WEBSITE_ID`, so no chat widget shows. If a visitor later
-withdraws `functionality`, c15t removes the script element, and the running
-widget stays until c15t reloads the page.
+The c15t `crisp` helper keeps the Crisp chat widget off the page until the
+visitor gives consent for `functionality`. Before consent, c15t does not set
+`window.CRISP_WEBSITE_ID`, so no chat widget shows. If the visitor withdraws
+consent, c15t removes the script element. The widget stays on the page until
+c15t reloads the page, which c15t does by default.
 
 ## Configure Crisp
 

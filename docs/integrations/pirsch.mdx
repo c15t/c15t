@@ -5,10 +5,11 @@ icon: pirsch
 group: integrations
 ---
 
-The c15t `pirsch` helper ties Pirsch Analytics to `measurement`. Until a visitor
-allows `measurement`, c15t does not request the Pirsch script, `pa.js` or
-`pirsch-extended.js`. If a visitor later withdraws `measurement`, c15t removes
-the script element and reloads the page.
+The c15t `pirsch` helper keeps Pirsch Analytics off the page until the visitor
+gives consent for `measurement`. Before consent, c15t loads neither `pa.js` nor
+`pirsch-extended.js`. The helper sends no consent signal to Pirsch. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
 ## Configure Pirsch
 
