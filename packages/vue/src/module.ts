@@ -150,11 +150,13 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		nuxt.options.runtimeConfig.c15t = defu(
 			nuxt.options.runtimeConfig.c15t ?? {},
 			{
-				backendURL: options.backendURL,
-				initRoute,
-				manifestRoute,
+				// Empty, so the server routes use the public value, which
+				// `NUXT_PUBLIC_C15T_BACKEND_URL` replaces at runtime. The keys
+				// exist so `NUXT_C15T_BACKEND_URL` and `NUXT_C15T_MANIFEST_URL`
+				// can give the server routes an address of their own.
+				backendURL: '',
 				manifestSnapshot,
-				manifestURL: options.manifestURL,
+				manifestURL: '',
 				// The `/init` script reads it: with `ssr: false` for the whole
 				// app, every page is a shell.
 				ssr: nuxt.options.ssr !== false,

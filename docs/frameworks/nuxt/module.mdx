@@ -59,6 +59,29 @@ reload. The browser applies a change to `scripts`, `networkBlocker`,
 `reloadOnConsentRevoked`. Storage, backend, manifest and experiment options are
 read once when the page loads.
 
+## Change the backend URL at runtime
+
+Nuxt applies `NUXT_PUBLIC_*` environment variables over
+`runtimeConfig.public` when the server starts. To point a built app at another
+backend without rebuilding it, set `NUXT_PUBLIC_C15T_BACKEND_URL`:
+
+```sh
+NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app \
+  node .output/server/index.mjs
+```
+
+The browser, server rendering and the module's init and manifest routes all use
+this value. `NUXT_PUBLIC_C15T_MANIFEST_URL` does the same for `manifestURL`.
+Keep `backendURL` in `nuxt.config.ts`: a value in `app.config.ts` is bundled
+with the app and takes precedence over runtime config.
+
+The init and manifest routes can reach the backend at an address the browser
+does not use, such as an internal hostname. Set `NUXT_C15T_BACKEND_URL` or
+`NUXT_C15T_MANIFEST_URL` for that. Only those two routes read these variables.
+
+`nuxt generate` writes the config into the static files, so a static site
+picks up a new URL only when you generate it again.
+
 ## Options
 
 ### Backend and rendering
