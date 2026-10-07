@@ -44,6 +44,9 @@ const bundles: Record<string, string> = {
 	'/c15t.headless.js': fileURLToPath(
 		import.meta.resolve('@c15t/browser/c15t.headless.js')
 	),
+	'/c15t.hosted.js': fileURLToPath(
+		import.meta.resolve('@c15t/browser/c15t.hosted.js')
+	),
 	'/c15t.iab.js': fileURLToPath(
 		import.meta.resolve('@c15t/browser/c15t.iab.js')
 	),
@@ -100,7 +103,10 @@ const renderConsentExample = function renderConsentExample(
 	if (design === 'headless') {
 		// Swap the stock tag for the headless build and the page's own bar.
 		html = html
-			.replace(/<script\s+src="[^"]*\/c15t\.js"[\s\S]*?<\/script>/u, '')
+			.replace(
+				/<script\s+src="[^"]*\/c15t\.(?:hosted\.)?js"[\s\S]*?<\/script>/u,
+				''
+			)
 			.replace(
 				'</body>',
 				`${readFileSync(here('./headless-bar.html'), 'utf8')}</body>`

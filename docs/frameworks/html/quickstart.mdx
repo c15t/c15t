@@ -10,7 +10,8 @@ group: frameworks
 site's origin to its trusted origins, and copy the project's backend URL. The
 URL is public configuration. It ends up in your page's HTML, which is expected.
 
-This guide loads `@c15t/browser` from a CDN with a `<script>` tag. The tag
+This guide loads `c15t.hosted.js` from `@c15t/browser` on a CDN with a
+`<script>` tag. The tag
 brings the banner, the preference dialog, stored choices and script gating.
 There is nothing to install or build. If your site has a bundler, the same
 package is available as an ES module; [choose your setup](/docs/concepts/choose-your-setup)
@@ -27,6 +28,11 @@ Replace `https://your-project.inth.app` with the URL from your Inth project.
 its `data-*` attributes when it runs, resolves the visitor's policy with Inth,
 then shows the banner if the policy asks for one. A returning visitor who
 already chose sees no banner.
+
+`c15t.hosted.js` keeps the stock UI and consent behavior while excluding
+offline policy presets, offline resolution and manifest transport code.
+Inth's `/init` already returns the policy resolved for this visitor. This
+bundle changes which code downloads, not where the policy resolves.
 
 `@alpha` loads the newest v3 prerelease, so a new release can change your
 banner without a deploy. For production, replace `@alpha` with the exact
@@ -111,7 +117,8 @@ If no banner appears, the policy for your location may not ask for one. See
 
 ## Other ways to run the tag
 
-- **Offline mode.** Leave out `data-backend-url` and c15t resolves the policy
+- **Offline mode.** Load `c15t.offline.js` instead of `c15t.hosted.js`, leave
+  out `data-backend-url`, and c15t resolves the policy
   in the browser, from `data-policy-rules` or its recommended rules. The
   browser does not know the visitor's country, so without `data-country` every
   visitor gets the strict opt-in fallback. Choices stay in that browser and
@@ -122,7 +129,7 @@ If no banner appears, the policy for your location may not ask for one. See
   `<script src="https://consent.example.com/c15t.js" defer></script>`, with
   your backend's origin in place of `consent.example.com`. This route belongs to
   `@c15t/backend`.
-- **Manifest mode.** Fetch or inline the backend's cacheable policy manifest so
+- **Manifest mode.** Use `c15t.js` to fetch or inline the backend's cacheable policy manifest so
   the banner can render without a per-visit request. See
   [modes](/docs/frameworks/html/attributes-and-api#choose-a-mode).
 

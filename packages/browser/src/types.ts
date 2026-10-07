@@ -320,6 +320,36 @@ export interface ConsentClientOptions extends Pick<
 	pkg?: string;
 }
 
+/** Options for `@c15t/browser/hosted` and `c15t.hosted.js`. */
+export interface HostedConsentClientOptions extends Omit<
+	ConsentClientOptions,
+	'mode' | 'manifest' | 'manifestURL' | 'policyRules'
+> {
+	/** Defaults to hosted. Factories must have `kind: 'hosted'`. */
+	mode?: 'hosted' | ProviderTransportFactory;
+	/** Hosted bundles do not resolve manifests in the browser. */
+	manifest?: never;
+	/** Hosted bundles do not fetch manifests in the browser. */
+	manifestURL?: never;
+	/** Authored rules passed to the hosted factory. Preset names are excluded. */
+	policyRules?: PolicyRule[];
+}
+
+/** Options for `@c15t/browser/offline` and `c15t.offline.js`. */
+export interface OfflineConsentClientOptions extends Omit<
+	ConsentClientOptions,
+	'mode' | 'backendURL' | 'manifest' | 'manifestURL'
+> {
+	/** Defaults to offline. Factories must have `kind: 'offline'`. */
+	mode?: 'offline' | ProviderTransportFactory;
+	/** Offline bundles persist locally without a consent backend. */
+	backendURL?: never;
+	/** Offline bundles resolve authored rules or presets, not manifests. */
+	manifest?: never;
+	/** Offline bundles do not fetch manifests. */
+	manifestURL?: never;
+}
+
 /** Handle on a mounted UI. */
 export interface ConsentUIHandle {
 	/** The element appended to the container. */

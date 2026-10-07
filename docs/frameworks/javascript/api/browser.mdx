@@ -9,6 +9,8 @@ group: frameworks
 | Import | What it gives you |
 | --- | --- |
 | `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. |
+| `@c15t/browser/hosted` | The stock UI and client for hosted mode only. Requires a backend URL or a hosted transport factory. |
+| `@c15t/browser/offline` | The stock UI and client for offline mode only, with bundled policy rules and presets. |
 | `@c15t/browser/headless` | The same client with no UI and no CSS. `mountUI()` throws. |
 | `@c15t/browser/iab` | The client with the IAB TCF CMP and the IAB banner and dialog. See [IAB TCF](/docs/frameworks/javascript/iab). |
 | `@c15t/browser/devtools` | `mountDevTools(client, options)`. See [DevTools](/docs/frameworks/javascript/dev-tools). |
@@ -18,15 +20,44 @@ Install it with:
 
 <CommandTabs command="@c15t/browser@alpha" mode="install" />
 
-In the ES module build the preference dialog is a separate chunk. It starts
-loading in idle time once the banner or the trigger is on screen, and at the
-latest when the dialog opens, so a page that only shows the banner never
-downloads it. The script-tag files (`c15t.js`, `c15t.iab.js`) stay one file
-each.
+In the ES module build the preference dialog code is a separate chunk. It
+starts loading in idle time once the banner or trigger is on screen, and at
+the latest when the dialog opens. Idle preloading can download it even when
+the visitor never opens preferences.
+
+The script-tag files (`c15t.js`, `c15t.hosted.js`, `c15t.offline.js`,
+`c15t.iab.js`) each carry their complete stylesheet in one file.
 
 `@c15t/browser` is not part of the `c15t` package. Use one entry per page.
 Each creates its own client, and two clients on one page would each run the
 script loader and blockers.
+
+### Choose a bundle for one mode
+
+Use `@c15t/browser/hosted` when Inth or a self-hosted backend supplies the
+policy. It excludes offline policy presets, offline resolution and manifest
+transport code. Hosted mode already resolves the visitor's policy on the
+server through `/init`; this entry removes unused client code without
+changing that request.
+
+Use `@c15t/browser/offline` when the browser resolves bundled rules. It
+excludes hosted and manifest transport code. The default offline transport
+keeps choices in the browser's consent cookie and localStorage, with no
+consent backend requests or server records. Not recommended for production
+environments.
+
+Both entries keep the banner, preference dialog, page hooks, script gating,
+blockers, callbacks and persistence. Their `init()` and
+`createConsentClient()` methods have the same lifecycle as the general entry.
+
+| Entry | Accepted configuration | Configuration that throws |
+| --- | --- | --- |
+| `@c15t/browser/hosted` | `backendURL`, optional `mode: 'hosted'`, or a factory from `hosted()`. `policyRules` accepts authored `PolicyRule` objects. | Missing backend URL without a hosted factory; a different mode; `manifest` or `manifestURL`; preset-name strings in `policyRules`. |
+| `@c15t/browser/offline` | Optional `mode: 'offline'` or a factory from `offline()`. `policyRules` accepts authored rules and preset names, or defaults to the recommended rules. | `backendURL`, `manifest` or `manifestURL`; a different mode. |
+
+Use `@c15t/browser` for manifest or custom mode, or when an application
+chooses its mode at runtime. Use `@c15t/browser/iab` for IAB TCF. The general
+entry continues to support every mode.
 
 ## Start the client
 
@@ -143,6 +174,11 @@ A started client also wires markup on the page, with no code:
 
 ## Helper exports
 
+The general `@c15t/browser` entry exports all the helpers below. The hosted
+entry exports `hosted`; the offline entry exports `offline` and
+`resolveRules`. Both include the page action constants, gated script
+helpers, `mountConsentUI` and `version`.
+
 | Export | What it does |
 | --- | --- |
 | `hosted`, `offline`, `manifest`, `custom` | Transport factories for the `mode` option. See [transports](/docs/frameworks/javascript/transports). |
@@ -157,6 +193,11 @@ The package also exports the `ConsentClient`, `ConsentClientOptions`,
 `ConsentUIOptions`, `ConsentBannerOptions`, `ConsentDialogOptions`,
 `ConsentTriggerOptions`, `ConsentClientEventMap`, `ConsentSnapshot` and
 `ConsentState` types.
+
+The hosted and offline entries export `HostedConsentClientOptions` and
+`OfflineConsentClientOptions`, respectively. These types restrict connection
+options to the entry's mode. Runtime validation also checks a supplied
+transport factory's `kind`.
 
 ## Check it works
 
