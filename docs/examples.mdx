@@ -86,7 +86,9 @@ uses a demonstration CMP ID. Its README lists what changes for production.
 
 ## What to try
 
-Open a starter or showcase in a private window with DevTools Network open:
+Replace the placeholder PostHog key in
+`examples/showcase-analytics/lib/scripts.ts` with your own. Open the analytics
+showcase in a private window with DevTools Network open:
 
 1. Before you choose, no PostHog request appears.
 2. Reject optional categories and reload. The banner stays closed and PostHog
@@ -98,7 +100,7 @@ Open a starter or showcase in a private window with DevTools Network open:
 
 ## Tests
 
-CI builds every starter and checks that the banner renders, that Accept
+CI smoke-tests selected starters and checks that the banner renders, that Accept
 persists across a reload and that **Privacy settings** opens the dialog:
 
 ```sh

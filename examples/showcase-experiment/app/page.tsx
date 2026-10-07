@@ -152,12 +152,6 @@ const Page = () => (
 							</span>
 							<span className="bean-roast">{bean.roast} roast</span>
 						</div>
-						<button
-							type="button"
-							className="button button-secondary bean-add"
-						>
-							Add to bag
-						</button>
 					</li>
 				))}
 			</ul>

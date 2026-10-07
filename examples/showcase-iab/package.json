@@ -6,7 +6,8 @@
 		"build": "next build",
 		"check-types": "next typegen && tsc --noEmit",
 		"dev": "next dev --port 3114",
-		"start": "next start --port 3114"
+		"start": "next start --port 3114",
+		"test": "vitest run"
 	},
 	"dependencies": {
 		"@c15t/dev-tools": "workspace:*",

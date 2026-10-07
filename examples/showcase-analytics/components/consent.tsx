@@ -5,10 +5,10 @@ import type { ClearOnRevocationConfig, ConsentRootProps } from 'c15t/next';
 import type { ReactNode } from 'react';
 
 import { brandTheme } from '@/lib/consent-theme';
+import { rememberRevocation } from '@/lib/revocation-storage';
 import { scripts, vendors } from '@/lib/scripts';
 
 import { ConsentDevTools } from './consent-dev-tools';
-import { rememberRevocation } from './revocation-notice';
 
 // Runs without a backend: policy rules ship with c15t and choices stay in
 // this browser. In production, swap this line for your project's backend:

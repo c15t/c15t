@@ -8,17 +8,17 @@ import { useCallback, useMemo } from 'react';
 import type { Product } from './products';
 import { scripts } from './scripts';
 
-/** Where an add-to-cart event went. */
+/** Tracking permissions at the time of an add-to-cart action. */
 export interface TrackedAddToCart {
-	/** GTM, GA4 and PostHog: sent only while measurement is allowed. */
+	/** Whether measurement allows analytics for this action. */
 	analytics: boolean;
-	/** Meta Pixel: sent only while marketing and Meta itself are allowed. */
+	/** Whether marketing and Meta's vendor permission allow this action. */
 	meta: boolean;
 }
 
 /**
- * Sends `add_to_cart` to the vendors the visitor allows, and reports which
- * ones got it so the page can say so.
+ * Attempts to send `add_to_cart` to the vendors the visitor allows and reports
+ * the current permissions. The result does not confirm SDK or event delivery.
  */
 export const useTrackAddToCart = () => {
 	const snapshot = useSnapshot();

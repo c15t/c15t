@@ -2,14 +2,9 @@
 
 import { useSyncExternalStore } from 'react';
 
+import { consumeRevocationNotice } from '../lib/revocation-storage';
+
 import styles from './revocation-notice.module.css';
-
-const STORAGE_KEY = 'northwind:consent-revoked';
-
-/** Called by c15t right before it reloads the page after a revocation. */
-export const rememberRevocation = () => {
-	sessionStorage.setItem(STORAGE_KEY, '1');
-};
 
 // Read the note once per page load, so a later reload doesn't show it again.
 let pending: boolean | undefined;
@@ -17,8 +12,7 @@ const listeners = new Set<() => void>();
 
 const readPending = () => {
 	if (pending === undefined) {
-		pending = sessionStorage.getItem(STORAGE_KEY) !== null;
-		sessionStorage.removeItem(STORAGE_KEY);
+		pending = consumeRevocationNotice();
 	}
 	return pending;
 };

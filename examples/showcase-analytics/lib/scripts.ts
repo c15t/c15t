@@ -13,8 +13,9 @@ export const scripts: Script[] = [
 	// settings in GTM. Your container ID is in the GTM workspace header.
 	googleTagManager({ id: 'GTM-XXXXXXX' }),
 
-	// GA4 through gtag.js. Like GTM it loads before a choice and waits for
-	// `analytics_storage` to be granted before it stores or sends anything.
+	// GA4 through gtag.js loads before a choice with `analytics_storage`
+	// denied. Consent Mode can still send cookieless measurements and consent
+	// pings to Google.
 	// Your measurement ID is under Admin > Data streams in GA4.
 	gtag({ category: 'measurement', id: 'G-XXXXXXXXXX' }),
 

@@ -22,11 +22,28 @@ export const useTcfData = function useTcfData(): TCData | null {
 			return;
 		}
 		let listenerId: number | undefined;
+		let disposed = false;
+		const removeListener = () => {
+			if (listenerId !== undefined) {
+				window.__tcfapi?.(
+					'removeEventListener',
+					2,
+					() => {
+						// Nothing to do once the listener is gone.
+					},
+					listenerId
+				);
+			}
+		};
 		api('addEventListener', 2, (data, success) => {
 			if (!(success && data)) {
 				return;
 			}
 			({ listenerId } = data);
+			if (disposed) {
+				removeListener();
+				return;
+			}
 			// `tcloaded` brings a saved choice and `useractioncomplete` a new
 			// one. `cmpuishown` means the banner or dialog is open, so the slots
 			// keep what they show until the visitor saves. No status means there
@@ -40,16 +57,8 @@ export const useTcfData = function useTcfData(): TCData | null {
 			setTcData(hasChoice ? data : null);
 		});
 		return () => {
-			if (listenerId !== undefined) {
-				api(
-					'removeEventListener',
-					2,
-					() => {
-						// Nothing to do once the listener is gone.
-					},
-					listenerId
-				);
-			}
+			disposed = true;
+			removeListener();
 		};
 	}, []);
 

@@ -467,6 +467,11 @@ address {
 	outline: none;
 }
 
+.chat-card:focus-visible {
+	outline: 2px solid var(--green);
+	outline-offset: 3px;
+}
+
 .chat-card .embed-placeholder,
 .chat-ready {
 	display: flex;

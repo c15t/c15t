@@ -1,10 +1,11 @@
 # Analytics and marketing stack
 
 Northwind's shop with Google Tag Manager, GA4, PostHog and the Meta Pixel
-wired through `@c15t/integrations`. Open the c15t DevTools panel and watch
-each script wait for consent, then load. Adding a coffee to the cart sends an
-`add_to_cart` event only to the tools the visitor allows, and the toast says
-where it went.
+wired through `@c15t/integrations`. Open the c15t DevTools panel to inspect
+each script's state. Google Tag Manager and GA4 load before a choice with
+Consent Mode set to `denied`. PostHog and Meta wait until they are allowed.
+Adding a coffee to the cart attempts to send an `add_to_cart` event to the
+tools the visitor allows. The toast shows tracking permissions for that action.
 
 ## Files
 

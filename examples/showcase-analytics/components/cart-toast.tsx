@@ -12,18 +12,18 @@ interface CartToastProps {
 
 const sharingNote = ({ analytics, meta }: TrackedAddToCart) => {
 	if (analytics && meta) {
-		return 'Sent to our analytics and to Meta.';
+		return 'Analytics and Meta are allowed for this action.';
 	}
 	if (analytics) {
-		return 'Sent to our analytics, not to Meta.';
+		return 'Analytics are allowed for this action. Meta is off.';
 	}
 	if (meta) {
-		return 'Sent to Meta, not to our analytics.';
+		return 'Meta is allowed for this action. Analytics are off.';
 	}
-	return 'Not sent anywhere. Analytics and marketing are off.';
+	return 'Analytics and Meta are off for this action.';
 };
 
-/** Confirms the add, and says where the add-to-cart event went. */
+/** Confirms the add and shows the current tracking permissions. */
 export const CartToast = ({ toast, onDismiss }: CartToastProps) => (
 	<output className={styles.region}>
 		{toast && (
