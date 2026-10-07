@@ -844,13 +844,15 @@ describe('request budget', () => {
 	test('fails within the budget header without falling back to /init', async () => {
 		const fetch = vi.fn<ManifestFetch>(hanging);
 		const startedAt = Date.now();
+		// The cache gets what is left of the header's 20 ms, which is less
+		// once a millisecond ticks before the read starts.
 		await expect(
 			route({ fetch })(
 				request('/api/c15t/init', {
 					headers: { [CONSENT_ROUTE_TIMEOUT_HEADER]: '20' },
 				})
 			)
-		).rejects.toThrow(/20 ms/u);
+		).rejects.toThrow(/no manifest within (?:1?\d|20) ms/u);
 		expect(Date.now() - startedAt).toBeLessThan(2000);
 		expect(fetch).toHaveBeenCalledTimes(1);
 	});
