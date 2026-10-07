@@ -1,6 +1,6 @@
 {
 	"name": "@c15t/node-sdk",
-	"version": "3.0.0-alpha.5",
+	"version": "3.0.0-alpha.6",
 	"description": "Typed client for the c15t consent API: check consent, link users, record consents and publish legal documents from server code.",
 	"keywords": [
 		"c15t",

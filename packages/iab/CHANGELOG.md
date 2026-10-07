@@ -1,3 +1,80 @@
+## @c15t/iab@3.0.0-alpha.6 (alpha)
+
+### Stop reporting tcloaded before the visitor chooses
+
+On a first visit, `__tcfapi('addEventListener')` reported `tcloaded` with an
+empty TC string while the banner showed, so an ad tag that trusts `tcloaded`
+could start before the visitor chose. The CMP API now follows the TCF CMP API
+v2 event rules:
+
+- While the banner or dialog is open, listeners get `cmpuishown`, then
+  `useractioncomplete` for the choice.
+- `tcloaded` means a TC string is available and no UI is showing, or GDPR
+  does not apply.
+- Listeners hear about changes only. A withdrawn string arrives with no event
+  status.
+
+### Show saved IAB choices in the preference dialog after a reload
+
+A returning visitor who opened the IAB preference dialog saw every switch off,
+even though `__tcfapi` reported their saved consent, and pressing Save revoked
+everything. The dialog starts from the stored TC string in every framework and
+in `@c15t/browser`.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Link IAB vendors to their privacy policies
+
+The IAB preference dialog showed empty privacy policy links for every vendor
+because GVL v3 dropped the `policyUrl` field. The links now come from each
+vendor's `urls[]`, in the dialog's language with English as the fallback.
+
+`@c15t/iab/headless` exports `resolveIABVendorUrls(vendor, language)` for
+custom preference UIs, and `processGVLForDialog` takes a `language`.
+
+### Accept All consents only to purposes your vendors declare
+
+Under an IAB policy, Accept All used to consent to all 11 TCF purposes and every
+special feature, including ones no listed vendor declares. Accept All sets
+consent, legitimate interest and special feature opt-ins only for what your
+vendors declare, as the TCF Policies require.
+
+This can change which c15t categories Accept All grants. A category whose
+purposes no listed vendor declares stays denied: `experience` (purposes 5 and
+6), `functionality` (10 and 11), `measurement` (7 to 9) or `marketing` (2 to 4).
+Scripts, iframes and network rules gated on it no longer load after Accept All.
+
+To check, click Accept All on a fresh visit and read `effectivePermissions`. If
+a category your scripts need stays denied, declare that processing as a custom
+vendor through `customVendors`, or gate the script on a category your vendors
+cover. See "Categories under an IAB policy" in the consent state reference.
+
 ## @c15t/iab@3.0.0-alpha.4 (alpha)
 
 ### Support IAB TCF 2.4

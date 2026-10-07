@@ -1,9 +1,17 @@
 ---
 packages:
-  '@c15t/dev-tools': minor
-  '@c15t/react': minor
-  '@c15t/ui': patch
-  c15t: minor
+  "@c15t/dev-tools":
+    replay:
+      - exit-prerelease(npm:@c15t/dev-tools)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Open DevTools from the consent trigger toolbar

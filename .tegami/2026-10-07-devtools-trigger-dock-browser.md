@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': minor
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Open DevTools from the script-tag consent trigger

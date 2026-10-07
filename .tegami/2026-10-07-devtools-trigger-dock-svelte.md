@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/svelte': minor
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
 ---
 
 ### Open DevTools from the Svelte consent trigger

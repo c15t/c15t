@@ -1,3 +1,130 @@
+## c15t@3.0.0-alpha.6 (alpha)
+
+### Report who runs the backend as `window.c15t.hosting`
+
+`c15tInstance()` takes a `hosting` option, `'self-hosted'` by default or `'inth'` on Inth's platform. `/init` and `/manifest` report it, and the browser exposes it as `window.c15t.hosting` and the snapshot's `hosting`. It is not signed, so treat it as a debugging signal.
+
+### Build Next.js Pages Router apps without `transpilePackages`
+
+A Next.js app with only a `pages/` directory builds with c15t's stock dialog.
+Before, webpack builds failed with "Global CSS cannot be imported from within
+node_modules" unless the app set `transpilePackages`, and Turbopack failed on
+linked installs.
+
+`styles.css` includes the preference dialog and widget rules again, and no
+`@c15t/react` or `@c15t/ui` module imports CSS. The render-blocking stylesheet
+grows by about 4.5 kB gzip.
+
+`@c15t/ui/styles/dialog.css`, the `@c15t/ui/styles/dialog` module and
+`c15t/astro/dialog.css` are now empty. They still resolve, so existing imports
+keep building. Remove them.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Open DevTools from the consent trigger toolbar
+
+With `<ConsentDevTools>` mounted next to a visible `ConsentDialogTriggerToolbar`
+or `ConsentDialogTrigger`, the trigger shows a DevTools button and DevTools
+hides its floating launcher, so the two no longer overlap.
+`ConsentDialogTrigger` becomes a two-button toolbar. The panel opens beside the
+toolbar and follows it when dragged. DevTools restores its own launcher when no
+trigger is visible.
+
+For hosts that render their own launcher, DevTools instances gain
+`dock(placement | null)` and `DevToolsState` reports the current `dock`.
+
+### Open DevTools from the Vue consent trigger
+
+With `ConsentDevTools` from `c15t/vue/devtools` mounted next to a visible
+`ConsentDialogTrigger`, the trigger becomes a two-button toolbar with a DevTools
+button, and DevTools hides its floating launcher. The panel opens beside the
+toolbar and follows it when dragged. DevTools restores its own launcher when the
+trigger is hidden. Style the toolbar with the `components.trigger.toolbar`,
+`toolbarItem` and `toolbarIcon` parts.
+
+### Warn when an experiment's banner asks about no category
+
+When an experiment arm's banner runs under a policy that asks about no optional
+category, accepting or rejecting records only a notice acknowledgement.
+`onChoiceRecorded` never fires and the experiment counts impressions only. This
+happens under a permissive rule when the site declares no categories through
+`consentCategories`, `scripts` or `vendors`. c15t logs a warning outside
+production the first time it happens.
+
+### Generate consent manifests during application builds
+
+Add opt-in build-time manifest snapshots for Next.js, TanStack Start, Astro,
+Nuxt and Vite apps. Build plugins take `backendURL` and fetch its `/manifest`.
+Server helpers and consent routes resolve from the snapshot without fetching
+an upstream manifest. Geography, language, privacy signals and stored consent
+still resolve per visitor.
+
+Snapshots stay fixed until the next build. Use runtime fetching for policy
+updates that must apply without a rebuild. A manifest fetch failure or
+invalid snapshot fails the build. Consent saves, session reports and IAB
+vendor lists still call the backend.
+
+Svelte's framework-free `resolveConsent` also accepts a snapshot. Both Svelte
+server helpers take a background-work callback to keep session reports alive
+on serverless hosts without `waitUntil`.
+
+Next.js runtime manifest requests use the App Router Data Cache with a
+300-second revalidation. `manifestRevalidateSeconds: false` skips that cache
+instead of caching indefinitely.
+
+### Add `ExperimentArmName` for typing a flag's arm
+
+`ExperimentArmName<typeof experiment>` is `'control'` plus the arm names of an
+experiment built with `defineExperiment()`. Use it to check a feature flag's
+value before passing it as `arm`. Import it from `c15t`.
+
+### Export category, cleanup and policy types from the framework entries
+
+You can type `consentCategories`, `clearOnRevocation` and
+`offline({ policyRules })` from the same import as the provider.
+
+- `c15t/react`, `c15t/next` and `c15t/tanstack-start` add `AllConsentNames`,
+  `ClearOnRevocationConfig`, `PolicyRule` and `policyRulePresets`.
+- `@c15t/svelte` adds `ClearOnRevocationConfig`, `PolicyRule` and
+  `policyRulePresets`.
+- `c15t/astro` adds `ClearOnRevocationConfig`.
+- `c15t/vue` adds `AllConsentNames` and `ClearOnRevocationConfig`.
+
+Importing them from `c15t` keeps working.
+
+### `ConsentProvider` requests `/init` sooner
+
+In a client render, `ConsentProvider` with `hosted()` and no `prefetch` sends
+`/init` during its first render instead of after mount, so the banner shows
+sooner (about 38 ms on a throttled mobile profile). Server renders, hydration
+and apps with a `prefetch` or `ConsentRoot` keep the previous timing.
+
 ## c15t@3.0.0-alpha.5 (alpha)
 
 ### Send the consent model as `model` on save

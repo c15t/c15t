@@ -1,8 +1,14 @@
 ---
 packages:
-  "@c15t/react": patch
-  "@c15t/core": patch
-  c15t: patch
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### `ConsentProvider` requests `/init` sooner

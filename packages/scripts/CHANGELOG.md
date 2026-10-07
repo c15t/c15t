@@ -1,3 +1,20 @@
+## @c15t/scripts@3.0.0-alpha.5 (alpha)
+
+### Add a Sentry integration
+
+Add `sentry()` from `@c15t/integrations/sentry`, with CDN and app-managed SDK modes,
+CLI setup and the `@c15t/scripts/sentry` compatibility export. Errors run before
+consent by default; Replay and SDK data collection wait for measurement.
+`loadMode: 'after-consent'` gates errors too.
+
+Apply consent at initialization and before sending data. Withdrawal stops Replay
+without flushing pending recordings. Shared configurations coordinate consent and
+reuse the SDK bundle and recorder across renders.
+
+Add core `Script.observeConsentBeforeLoad` and `Script.resourceKey`. Shared
+resources retain each registration's callbacks, consent and ownership, including
+registrations that join after loading completes.
+
 ## @c15t/scripts@3.0.0-alpha.3 (alpha)
 
 ### Update documentation links
