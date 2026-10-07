@@ -5,6 +5,13 @@ icon: sentry
 group: integrations
 ---
 
+The c15t `sentry` helper runs Sentry error monitoring under `necessary` by
+default. With a `dsn`, c15t loads Sentry's CDN bundle on every page, so the
+browser contacts Sentry before a choice. Until `measurement` is allowed, error
+events carry no user data, cookies, request headers or inferred IP address, and
+Session Replay does not load; on withdrawal, Replay stops. With
+`loadMode: 'after-consent'`, Sentry runs only while `measurement` is allowed.
+
 ## Configure Sentry
 
 Remove any existing Sentry Loader Script or CDN tags, then add this configuration.

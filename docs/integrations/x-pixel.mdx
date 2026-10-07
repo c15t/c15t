@@ -5,6 +5,11 @@ icon: x
 group: integrations
 ---
 
+The c15t `xPixel` helper ties the X Pixel to `marketing`. Until a visitor allows
+`marketing`, c15t defines no `twq` function and does not request X's `uwt.js`. X
+has no consent update API, so the helper sends no consent signal. On withdrawal
+c15t removes the script element and reloads the page by default.
+
 ## Configure the X Pixel
 
 Copy your X Pixel ID. The helper passes it to `twq('config', ...)`. Conversion

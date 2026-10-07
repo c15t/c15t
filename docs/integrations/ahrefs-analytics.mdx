@@ -5,6 +5,12 @@ icon: ahrefs
 group: integrations
 ---
 
+The c15t `ahrefsAnalytics` helper ties Ahrefs Web Analytics to `measurement`.
+Until a visitor allows `measurement`, c15t does not request the Ahrefs
+`analytics.js` script, even though Ahrefs Web Analytics is cookieless. The
+helper calls no Ahrefs consent API. If the visitor later withdraws, c15t removes
+the script element and reloads the page.
+
 ## Configure Ahrefs Analytics
 
 Copy the project key from the Ahrefs installation snippet. The helper passes it

@@ -5,6 +5,13 @@ icon: mixpanel
 group: integrations
 ---
 
+The c15t `mixpanelAnalytics` helper ties Mixpanel to `measurement` but sets
+`alwaysLoad`, so the browser requests the Mixpanel SDK on every page, before a
+visitor chooses. Once the SDK loads, the helper calls
+`mixpanel.opt_out_tracking()` while `measurement` is not allowed and
+`mixpanel.opt_in_tracking()` when it is. If a visitor later withdraws
+`measurement`, the helper opts Mixpanel out and c15t reloads the page.
+
 ## Configure Mixpanel
 
 Copy the 32-character project token from your Mixpanel installation snippet,

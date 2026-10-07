@@ -5,6 +5,14 @@ icon: posthog
 group: integrations
 ---
 
+The c15t `posthog` helper ties PostHog to `measurement`. By default
+(`loadMode: 'always'`), it loads PostHog's `array.js` on every page, so the
+browser contacts PostHog before a choice. While `measurement` is denied,
+including before a choice, the helper calls `opt_out_capturing()`; when it is
+allowed, `opt_in_capturing()`. The default `cookieless_mode: 'on_reject'`
+switches PostHog to cookieless capture after an opt-out;
+`loadMode: 'after-consent'` waits for `measurement` before loading.
+
 ## Configure PostHog
 
 Use the project token that starts with `phc_`, and the region of your PostHog

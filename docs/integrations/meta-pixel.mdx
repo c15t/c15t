@@ -5,6 +5,12 @@ icon: meta
 group: integrations
 ---
 
+The c15t `metaPixel` helper ties the Meta Pixel to `marketing`. Until a visitor
+allows `marketing`, c15t defines no `fbq` function and does not request Meta's
+`fbevents.js`. Once allowed, the helper queues `fbq('consent', 'grant')` before
+`init` and the page view. On withdrawal it keeps the script and calls
+`fbq('consent', 'revoke')`, and c15t reloads the page by default.
+
 ## Configure the Meta Pixel
 
 Copy the pixel ID from Meta Events Manager. Remove the original pixel snippet,

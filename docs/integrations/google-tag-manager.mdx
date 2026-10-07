@@ -5,6 +5,15 @@ icon: google-tag-manager
 group: integrations
 ---
 
+The c15t `googleTagManager` helper loads a Google Tag Manager container under
+the `necessary` category, so `gtm.js` loads on every page and the browser
+contacts Google before a choice. Before the container loads, the helper sends
+`gtag('consent', 'default', ...)`; each permission change sends an `update` and
+then a `consent-update` event. `measurement` drives `analytics_storage`, and
+`marketing` drives `ad_storage`, `ad_user_data` and `ad_personalization`.
+Non-Google tags in the container ignore these signals unless you add consent
+checks in GTM.
+
 ## Configure Google Tag Manager
 
 Copy the container ID, which starts with `GTM-`, from your GTM workspace.

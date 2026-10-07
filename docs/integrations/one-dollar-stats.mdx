@@ -5,6 +5,11 @@ icon: circle-dollar
 group: integrations
 ---
 
+The c15t `oneDollarStats` helper ties OneDollarStats to `measurement`. Until a
+visitor allows `measurement`, c15t does not request the `stonks.js` tracker.
+If a visitor later withdraws `measurement`, c15t removes the script element and
+reloads the page.
+
 ## Configure OneDollarStats
 
 OneDollarStats needs no API key. The helper loads the tracker and forwards

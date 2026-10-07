@@ -5,6 +5,12 @@ icon: hotjar
 group: integrations
 ---
 
+The c15t `hotjar` helper ties Hotjar to `measurement`. Until a visitor allows
+`measurement`, c15t does not define `window._hjSettings` or `window.hj` and does
+not request the Hotjar loader. The helper calls no Hotjar consent API. If the
+visitor later withdraws, c15t removes the loader script element and reloads the
+page, which ends a recording in progress.
+
 ## Configure Hotjar
 
 Copy the site ID from your Hotjar tracking code, where it is the `hjid` value.

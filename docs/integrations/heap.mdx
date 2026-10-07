@@ -5,6 +5,12 @@ icon: heap
 group: integrations
 ---
 
+The c15t `heap` helper ties Heap to `measurement`. Until a visitor allows
+`measurement`, c15t does not define `window.heap` or request `heap_config.js`,
+which loads the heap.js runtime. The helper never calls `heap.stopTracking`. If
+the visitor later withdraws, c15t removes the config script element and reloads
+the page, which stops heap.js.
+
 ## Configure Heap
 
 Copy the environment ID from your Heap installation snippet. The `heap` helper

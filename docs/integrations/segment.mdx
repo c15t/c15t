@@ -5,6 +5,12 @@ icon: segment
 group: integrations
 ---
 
+The c15t `segment` helper ties Segment Analytics.js to `measurement`. Until a
+visitor allows `measurement`, c15t does not request Analytics.js or create
+`window.analytics`. Once it is allowed, the helper queues one `page()` call
+and loads Analytics.js. If a visitor later withdraws `measurement`, c15t
+removes the script element and reloads the page.
+
 ## Configure Segment
 
 Copy the write key of your Segment JavaScript source. The helper builds the

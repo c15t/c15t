@@ -5,6 +5,12 @@ icon: tiktok
 group: integrations
 ---
 
+The c15t `tiktokPixel` helper ties the TikTok Pixel to `marketing`. Until a
+visitor allows `marketing`, c15t defines no `ttq` queue and does not request
+TikTok's `events.js`. Once allowed, the helper queues `ttq.grantConsent()` and
+`ttq.page()` before the loader. On withdrawal it keeps the pixel and calls
+`ttq.revokeConsent()`, and c15t reloads the page by default.
+
 ## Configure the TikTok Pixel
 
 Copy your TikTok Pixel ID. The helper adds it to the loader URL as `sdkid`.
