@@ -8,6 +8,8 @@ export { authCommands, loginCommand, logoutCommand } from './auth';
 export { codemodsCommand, runCodemods } from './codemods';
 // Generate command
 export { generate, generateCommand } from './generate';
+// GTM migration
+export { migrateGtm } from './gtm';
 // Project management
 export { instancesAliasCommand, projectsCommand } from './instances';
 // Self-host (existing)

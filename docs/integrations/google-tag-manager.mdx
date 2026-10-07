@@ -67,3 +67,20 @@ choices per arm. To see the arm in GTM as well, forward the `onSurfaceShown` and
 
 See the [consent verification guide](/docs/guides/verify-consent) for
 navigation and hosting checks.
+
+## Replace the container
+
+`googleTagManager()` loads `gtm.js` on every page. To drop that download,
+replace the tags with the vendor helpers c15t already ships.
+
+```bash
+npx @c15t/cli@alpha gtm GTM-XXXXXXX
+```
+
+The command prints those scripts and names tags it could not convert. It does
+not edit the project. A published container has no tag names. In GTM, use
+Admin, then Export Container, and pass that JSON file to keep the names.
+Remove the Google snippet, its `<noscript>` iframe and any plugin that loads
+the same container, then register the printed scripts.
+
+See [c15t gtm](/docs/cli/commands/gtm).

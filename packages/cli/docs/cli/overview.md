@@ -39,6 +39,7 @@ The package also installs the executable under its older name, `cli`.
 | ----------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `setup`                                               | Add c15t to a Next.js or React app, or generate framework files for any supported framework. `generate` is an alias.                                                 |
 | `codemods`                                            | Rewrite `useConsentManager()` calls for v3, or run the v1 to v2 transforms.                                                                                          |
+| `gtm`                                                 | Read a Google Tag Manager container and print the c15t scripts that replace it.                                                                                      |
 | `login`, `logout`, `status`                           | Sign in to Inth in a browser or by email approval, sign out of the shared Inth session, and check local session status. See [hosted projects](./commands/hosted.md). |
 | `projects list`, `projects select`, `projects create` | Manage Inth projects and the application project preference used by setup. `instances` is an alias.                                                                  |
 | `self-host migrate`                                   | Plan and apply database migrations for a self-hosted backend.                                                                                                        |
@@ -68,4 +69,5 @@ Remix and Gatsby have no CLI support. Follow the
 
 * [Quickstart](./quickstart.md): plan and apply setup in an existing app.
 * [Codemods](./commands/codemods.md): migrate `useConsentManager()` to v3 hooks.
+* [Replace Google Tag Manager](./commands/gtm.md): print the integrations that replace a container.
 * [Agents and automation](./automation.md): JSON results and calling the CLI from code.

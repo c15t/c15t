@@ -57,6 +57,20 @@ export const commands: CliCommand[] = [
 			'c15t codemods [id ...] [--list|--all] [--from <version>] [--to <version>] [--dry-run]',
 	},
 	{
+		action: async (context) => (await import('./gtm')).migrateGtm(context),
+		description:
+			'Replace a Google Tag Manager container with c15t integrations.',
+		examples: [
+			'c15t gtm GTM-WL5L8NW7',
+			'c15t gtm GTM-WL5L8NW7 --json',
+			'c15t gtm ./container.json',
+		],
+		hint: 'Move a container off GTM',
+		label: 'GTM',
+		name: 'gtm',
+		usage: 'c15t gtm <GTM-ID | file>',
+	},
+	{
 		action: async (context) =>
 			(await import('./auth')).loginCommand.action(context),
 		description:

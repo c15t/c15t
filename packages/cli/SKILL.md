@@ -1,6 +1,6 @@
 ---
 name: c15t-cli
-description: Set up, customize or debug c15t consent management with @c15t/cli. Use when the task is scaffolding c15t, running codemods or migrating a self-hosted backend, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
+description: Set up, customize or debug c15t consent management with @c15t/cli. Use when the task is scaffolding c15t, running codemods, replacing a Google Tag Manager container, or migrating a self-hosted backend, or when a task mentions a cookie banner, consent dialog, GDPR or CCPA prompts, blocking analytics until consent, Google Consent Mode or IAB TCF.
 ---
 
 # c15t with @c15t/cli
