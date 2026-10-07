@@ -92,6 +92,8 @@ stylesheets and in string and template literals, including inline `style`
 objects.
 
 `postcss-tailwind3` runs when `package.json` lists `tailwindcss` 3 and c15t.
+For a version such as `workspace:*`, `catalog:` or `latest`, it reads the
+installed `tailwindcss`, and prints a warning if it still can't tell.
 It adds `'c15t/postcss-tailwind3': {}`, or the
 `@c15t/nextjs/postcss-tailwind3` or `@c15t/react/postcss-tailwind3` plugin
 when the app uses scoped packages, to an object-form

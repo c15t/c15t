@@ -41,6 +41,31 @@ const majorOf = function majorOf(specifier: string | undefined): number | null {
 };
 
 /**
+ * The Tailwind CSS major version. A specifier without a version, such as
+ * `latest`, `workspace:*` or `catalog:`, falls back to the installed package.
+ */
+const tailwindMajor = async function tailwindMajor(
+	projectRoot: string,
+	specifier: string
+): Promise<number | null> {
+	const declared = majorOf(specifier);
+	if (declared !== null) {
+		return declared;
+	}
+	try {
+		const installed = JSON.parse(
+			await readFile(
+				join(projectRoot, 'node_modules', 'tailwindcss', 'package.json'),
+				'utf-8'
+			)
+		) as { version?: string };
+		return majorOf(installed.version);
+	} catch {
+		return null;
+	}
+};
+
+/**
  * The plugin entry for the c15t package the app installs: the umbrella
  * `c15t` from v3 on, otherwise the scoped framework package.
  */
@@ -147,7 +172,19 @@ export const runPostcssTailwind3Codemod =
 			...manifest?.dependencies,
 		};
 		const plugin = pluginFor(dependencies);
-		if (majorOf(dependencies.tailwindcss) !== 3 || !plugin) {
+		const specifier = dependencies.tailwindcss;
+		if (!plugin || specifier === undefined) {
+			return result;
+		}
+		const major = await tailwindMajor(options.projectRoot, specifier);
+		if (major === null) {
+			result.warnings?.push({
+				filePath: options.projectRoot,
+				message: `Could not tell the Tailwind CSS version from '${specifier}'. If the app uses Tailwind CSS 3, add '${plugin}': {} before tailwindcss in your PostCSS config.`,
+			});
+			return result;
+		}
+		if (major !== 3) {
 			return result;
 		}
 		const configPath = CONFIG_FILES.map((file) =>

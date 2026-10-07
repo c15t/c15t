@@ -48,6 +48,50 @@ export default {
 		]);
 	});
 
+	it('reads the installed version when the specifier has none', async () => {
+		const rootDir = await createProject({
+			'node_modules/tailwindcss/package.json': JSON.stringify({
+				version: '3.4.17',
+			}),
+			'package.json': manifest({
+				c15t: '3.0.0-alpha.5',
+				tailwindcss: 'workspace:*',
+			}),
+			'postcss.config.mjs': OBJECT_CONFIG,
+		});
+		const result = await codemod({ dryRun: false, projectRoot: rootDir });
+
+		expect(result.warnings).toEqual([]);
+		expect(
+			await readFile(join(rootDir, 'postcss.config.mjs'), 'utf-8')
+		).toContain("'c15t/postcss-tailwind3': {},\n\t\ttailwindcss: {},");
+	});
+
+	it.each(['latest', 'catalog:', 'workspace:*'])(
+		'warns when it cannot tell the version from %s',
+		async (specifier) => {
+			const rootDir = await createProject({
+				'package.json': manifest({
+					c15t: '3.0.0-alpha.5',
+					tailwindcss: specifier,
+				}),
+				'postcss.config.mjs': OBJECT_CONFIG,
+			});
+			const result = await codemod({ dryRun: false, projectRoot: rootDir });
+
+			expect(result.changedFiles).toEqual([]);
+			expect(result.warnings).toEqual([
+				{
+					filePath: rootDir,
+					message: `Could not tell the Tailwind CSS version from '${specifier}'. If the app uses Tailwind CSS 3, add 'c15t/postcss-tailwind3': {} before tailwindcss in your PostCSS config.`,
+				},
+			]);
+			expect(await readFile(join(rootDir, 'postcss.config.mjs'), 'utf-8')).toBe(
+				OBJECT_CONFIG
+			);
+		}
+	);
+
 	it('uses the scoped plugin and the file quote style in a CommonJS config', async () => {
 		const rootDir = await createProject({
 			'package.json': JSON.stringify({
