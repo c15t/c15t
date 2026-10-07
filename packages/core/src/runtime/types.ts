@@ -337,6 +337,28 @@ export interface ConsentRuntimeModules {
 		options: Pick<ConsentProviderRuntimeOptions, 'experiment' | 'overrides'>,
 		getKernel: () => ConsentKernel | undefined
 	) => ProviderTransportFactory;
+	/**
+	 * Lets the provider runtime start loading the script loader before
+	 * `start()` mounts it, when consent already lets a script run. Pass
+	 * `preloadScriptLoaderWith(load)` from
+	 * `@c15t/core/runtime/script-loader-preload`, with the load behind
+	 * `createScriptLoader`. Without it the loader loads when `start()`
+	 * mounts it, and the runtime ships none of the decision.
+	 *
+	 * Called once, during construction. `read` returns the kernel and the
+	 * options `start()` would use now, or `undefined` once the runtime has
+	 * started or been disposed. `prefetch` is the runtime's prefetch, which
+	 * may still be a promise. `createKernel` and `createPersistence` are the
+	 * runtime's kernel factory and persistence module, so the decision can
+	 * build the kernel `start()` would leave the loader with.
+	 * @internal
+	 */
+	preloadScriptLoader?: (
+		read: () => readonly [ConsentKernel, ConsentRuntimeOptions] | undefined,
+		prefetch: ConsentProviderRuntimeOptions['prefetch'],
+		createKernel: (options: ConsentRuntimeOptions) => ConsentKernel,
+		createPersistence: ConsentRuntimeModules['createPersistence']
+	) => void;
 }
 
 /**

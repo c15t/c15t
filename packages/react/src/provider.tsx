@@ -264,6 +264,19 @@ export interface ConsentProviderOptions
 	 * @internal
 	 */
 	__resolveStreamedInit?: ResolveStreamedInit;
+	/**
+	 * `preloadScriptLoaderWith` from
+	 * `@c15t/core/runtime/script-loader-preload`. With it the runtime starts
+	 * the script loader's download during the first render when consent
+	 * already lets a script run, instead of from the mount effect. A
+	 * framework root whose state usually holds a returning visitor's choice
+	 * (`ConsentRoot`) passes it; without it the provider ships none of that
+	 * decision. Read once, at mount.
+	 * @internal
+	 */
+	__preloadScriptLoader?: (
+		load: () => Promise<unknown>
+	) => ConsentRuntimeModules['preloadScriptLoader'];
 }
 
 /**
@@ -323,7 +336,9 @@ export type ConsentProviderProps =
  *
  * `lazyStreamPrefetch` lets `prefetch` be a promise a server streams in,
  * and loads that code only when it is one; a root that passes
- * `__resolveStreamedInit` has it in its first-load chunk instead.
+ * `__resolveStreamedInit` has it in its first-load chunk instead. A root
+ * that passes `__preloadScriptLoader` starts the script loader's download
+ * during the first render when consent already lets a script run.
  */
 /**
  * Connects a `consentSource` once its module has loaded. Few sites borrow
@@ -351,9 +366,14 @@ const connectConsentSourceOnDemand: ConsentRuntimeModules['connectConsentSource'
 		};
 	};
 
+/** The script loader's module, behind one `import()` for every caller. */
+const loadScriptLoader = async () =>
+	(await import('@c15t/core/modules/script-loader')).createScriptLoader;
+
 const reactRuntimeModules = function reactRuntimeModules(
-	resolveStreamedInit: ResolveStreamedInit | undefined
+	options: ConsentProviderOptions
 ): ConsentRuntimeModules {
+	const resolveStreamedInit = options.__resolveStreamedInit;
 	return {
 		connectConsentSource: connectConsentSourceOnDemand,
 		createClearOnRevocation: lazyRuntimeModule(
@@ -368,11 +388,9 @@ const reactRuntimeModules = function reactRuntimeModules(
 					.createNetworkBlocker
 		),
 		createPersistence,
-		createScriptLoader: lazyRuntimeModule(
-			async () =>
-				(await import('@c15t/core/modules/script-loader')).createScriptLoader
-		),
+		createScriptLoader: lazyRuntimeModule(loadScriptLoader),
 		createWindowDebug,
+		preloadScriptLoader: options.__preloadScriptLoader?.(loadScriptLoader),
 		streamPrefetch: resolveStreamedInit
 			? streamPrefetchWith(resolveStreamedInit)
 			: lazyStreamPrefetch,
@@ -533,7 +551,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	const { mode, networkBlocker } = initialOptions;
 	const runtime = createConsentProviderRuntime(
 		toRuntimeOptions(initialOptions),
-		reactRuntimeModules(initialOptions.__resolveStreamedInit)
+		reactRuntimeModules(initialOptions)
 	);
 	let options = initialOptions;
 	let expired = false;
