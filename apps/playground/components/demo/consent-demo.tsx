@@ -8,6 +8,7 @@ import {
 	hosted,
 	offline,
 } from 'c15t/react';
+import { ConsentDevTools } from 'c15t/react/devtools';
 import {
 	IABConsentBanner,
 	IABConsentDialog,
@@ -516,6 +517,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 					<ConsentBanner />
 					<ConsentDialog />
+					{process.env.NODE_ENV === 'development' ? <ConsentDevTools /> : null}
 					{/* The IAB banner carries its own resurface control, and a none
 					    rule with no added rights owes no control at all. */}
 					{scenario.showsTriggerToolbar ? (

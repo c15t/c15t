@@ -11,6 +11,20 @@ export type DevToolsPosition =
 	| 'top-right'
 	| 'top-left';
 
+/**
+ * Placement handed over by a host control that renders the launcher, such as
+ * a consent toolbar. Offsets are CSS pixels from the viewport edges of
+ * `position`'s corner to the panel.
+ */
+export interface DevToolsDock {
+	/** Corner the host control sits in. */
+	readonly position: DevToolsPosition;
+	/** Distance from the left or right viewport edge to the panel. */
+	readonly inline: number;
+	/** Distance from the top or bottom viewport edge to the panel. */
+	readonly block: number;
+}
+
 /** Kernel views available in the first v3 DevTools release. */
 export type DevToolsTab =
 	| 'consents'
@@ -42,6 +56,8 @@ export interface DevToolsState {
 	readonly isOpen: boolean;
 	readonly activeTab: DevToolsTab;
 	readonly position: DevToolsPosition;
+	/** Host placement while another control owns the launcher. */
+	readonly dock: DevToolsDock | null;
 	readonly snapshot: ConsentSnapshot;
 	/** Unsaved selections owned by this DevTools instance. */
 	readonly draft: Readonly<Partial<ConsentState>>;
@@ -67,6 +83,7 @@ export interface StateManager {
 	subscribe: (listener: DevToolsStateListener) => () => void;
 	setOpen: (isOpen: boolean) => void;
 	setActiveTab: (tab: DevToolsTab) => void;
+	setDock: (dock: DevToolsDock | null) => void;
 	setSnapshot: (snapshot: ConsentSnapshot) => void;
 	setDraft: (draft: Partial<ConsentState>) => void;
 	setScripts: (scripts: readonly ScriptDiagnostic[]) => void;
@@ -90,6 +107,7 @@ export function createStateManager(options: {
 }): StateManager {
 	let state: DevToolsState = {
 		activeTab: options.activeTab,
+		dock: null,
 		draft: Object.freeze({}),
 		draftFingerprint: null,
 		events: [],
@@ -131,6 +149,20 @@ export function createStateManager(options: {
 			if (state.activeTab !== activeTab) {
 				update({ activeTab });
 			}
+		},
+		setDock: (dock) => {
+			const current = state.dock;
+			if (
+				current === dock ||
+				(current &&
+					dock &&
+					current.position === dock.position &&
+					current.inline === dock.inline &&
+					current.block === dock.block)
+			) {
+				return;
+			}
+			update({ dock: dock ? { ...dock } : null });
 		},
 		setDraft: (draft) =>
 			update({

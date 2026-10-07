@@ -9,7 +9,10 @@
  * @packageDocumentation
  */
 
+import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
+
+import { useDevToolsLauncherAvailable } from '~/devtools-launcher';
 
 import { TriggerButton } from './atoms/button';
 import type { TriggerButtonProps } from './atoms/button';
@@ -19,7 +22,13 @@ import { TriggerRoot, useTriggerContext } from './atoms/root';
 import type { TriggerRootProps } from './atoms/root';
 import { TriggerText } from './atoms/text';
 import type { TriggerTextProps } from './atoms/text';
-import type { ConsentDialogTriggerProps } from './types';
+import { TriggerToolbar } from './atoms/toolbar';
+import type {
+	ConsentDialogTriggerProps,
+	ConsentDialogTriggerToolbarAction,
+} from './types';
+
+const EMPTY_ACTIONS: readonly ConsentDialogTriggerToolbarAction[] = [];
 
 /**
  * Convenience component that composes the compound components.
@@ -76,27 +85,46 @@ const ConsentDialogTriggerComponent = ({
 	noStyle,
 	onClick,
 	onPositionChange,
-}: ConsentDialogTriggerProps): ReactNode => (
-	<TriggerRoot
-		defaultPosition={defaultPosition}
-		persistPosition={persistPosition}
-		showWhen={showWhen}
-		onClick={onClick}
-		onPositionChange={onPositionChange}
-	>
-		<TriggerButton
-			size={size}
-			ariaLabel={ariaLabel}
-			className={className}
-			noStyle={noStyle}
+}: ConsentDialogTriggerProps): ReactNode => {
+	// With <ConsentDevTools> mounted, become a two-item toolbar that carries
+	// the DevTools launcher, so one control occupies the corner.
+	const hostsDevTools = useDevToolsLauncherAvailable();
+	const preferences = useMemo(
+		() => ({ className, icon, label: ariaLabel }),
+		[ariaLabel, className, icon]
+	);
+
+	return (
+		<TriggerRoot
+			defaultPosition={defaultPosition}
+			persistPosition={persistPosition}
+			showWhen={showWhen}
+			onClick={onClick}
+			onPositionChange={onPositionChange}
 		>
-			<TriggerIcon
-				icon={icon}
-				noStyle={noStyle}
-			/>
-		</TriggerButton>
-	</TriggerRoot>
-);
+			{hostsDevTools ? (
+				<TriggerToolbar
+					actions={EMPTY_ACTIONS}
+					noStyle={noStyle}
+					preferences={preferences}
+					size={size}
+				/>
+			) : (
+				<TriggerButton
+					size={size}
+					ariaLabel={ariaLabel}
+					className={className}
+					noStyle={noStyle}
+				>
+					<TriggerIcon
+						icon={icon}
+						noStyle={noStyle}
+					/>
+				</TriggerButton>
+			)}
+		</TriggerRoot>
+	);
+};
 
 ConsentDialogTriggerComponent.displayName = 'ConsentDialogTrigger';
 

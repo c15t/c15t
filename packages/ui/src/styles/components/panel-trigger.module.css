@@ -360,6 +360,12 @@
 	background: var(--cdtt-primary);
 }
 
+/* The DevTools item a mounted <ConsentDevTools> adds; lit while its panel is open. */
+.toolbarItem[data-c15t-trigger-action='devtools'][aria-expanded='true'] {
+	color: var(--cdtt-primary);
+	background: var(--cdtt-bg-hover);
+}
+
 .toolbarItem:focus {
 	outline: none;
 }

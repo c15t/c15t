@@ -9,9 +9,11 @@
 import type { PolicyRight } from '@c15t/schema/types';
 import styles from '@c15t/ui/styles/components/consent-dialog-trigger';
 import type { KeyboardEvent, MouseEvent, ReactNode } from 'react';
-import { useMemo, useRef, useState } from 'react';
+import { useLayoutEffect, useMemo, useRef, useState } from 'react';
 
 import { useTranslations } from '~/component-hooks/use-translations';
+import { useDevToolsLauncher } from '~/devtools-launcher';
+import type { DevToolsDock } from '~/devtools-launcher';
 import { usePolicyRule } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import type { ClassNameStyle } from '~/types/theme';
@@ -27,6 +29,7 @@ import type {
 } from '../types';
 import { TriggerIcon } from './icon';
 import { useTriggerContext } from './root';
+import { DevToolsIcon } from './trigger-icons';
 
 const cornerClassMap = {
 	'bottom-left': styles.bottomLeft,
@@ -85,7 +88,48 @@ interface ToolbarCustomItem extends ToolbarItemBase {
 	pressed?: boolean;
 }
 
-type ToolbarItem = ToolbarPreferencesItem | ToolbarCustomItem;
+interface ToolbarDevToolsItem extends ToolbarItemBase {
+	kind: 'devtools';
+}
+
+type ToolbarItem =
+	| ToolbarPreferencesItem
+	| ToolbarCustomItem
+	| ToolbarDevToolsItem;
+
+/** Space between the toolbar and a docked DevTools panel, in CSS pixels. */
+const DEVTOOLS_DOCK_GAP = 8;
+
+const DEVTOOLS_ITEM: ToolbarDevToolsItem = {
+	focusId: 'devtools',
+	icon: <DevToolsIcon />,
+	id: 'devtools',
+	kind: 'devtools',
+	label: 'c15t DevTools',
+};
+
+/**
+ * Where a DevTools panel docked to this toolbar sits: the toolbar's corner,
+ * flush with its outer edge and just past it. Layout offsets ignore the
+ * snap transform, so a mid-animation read still lands on the final spot.
+ */
+const measureDevToolsDock = function measureDevToolsDock(
+	element: HTMLElement,
+	corner: CornerPosition
+): DevToolsDock {
+	const { clientWidth, clientHeight } = element.ownerDocument.documentElement;
+	const left = element.offsetLeft;
+	const top = element.offsetTop;
+	const right = clientWidth - left - element.offsetWidth;
+	const bottom = clientHeight - top;
+	return {
+		block: corner.startsWith('top')
+			? top + element.offsetHeight + DEVTOOLS_DOCK_GAP
+			: bottom + DEVTOOLS_DOCK_GAP,
+		inline: corner.endsWith('left') ? left : right,
+		position: corner,
+	};
+};
 
 /**
  * The built-in action reflects the strongest persistent right the active
@@ -127,13 +171,17 @@ const createToolbarItems = function createToolbarItems(
 	preferences: ConsentDialogTriggerToolbarPreferences,
 	right: ToolbarPreferencesRight,
 	defaultLabel: string,
-	showPreferences: boolean
+	showPreferences: boolean,
+	showDevTools: boolean
 ): readonly ToolbarItem[] {
-	const customItems: ToolbarCustomItem[] = actions.map((action) => ({
+	const customItems: ToolbarItem[] = actions.map((action) => ({
 		...action,
 		focusId: `custom:${action.id}`,
 		kind: 'custom',
 	}));
+	if (showDevTools) {
+		customItems.push(DEVTOOLS_ITEM);
+	}
 
 	if (!showPreferences) {
 		return customItems;
@@ -161,7 +209,8 @@ const orderItemsForCorner = function orderItemsForCorner(
 	corner: CornerPosition
 ): readonly ToolbarItem[] {
 	const preferencesItem = items.find((item) => item.kind === 'preferences');
-	if (!preferencesItem) {
+	const devToolsItem = items.find((item) => item.kind === 'devtools');
+	if (!preferencesItem && !devToolsItem) {
 		return items;
 	}
 
@@ -170,10 +219,14 @@ const orderItemsForCorner = function orderItemsForCorner(
 		orientation === 'horizontal'
 			? corner.endsWith('left')
 			: corner.startsWith('top');
+	// Preferences sits in the corner; DevTools, a development aid, sits
+	// farthest from it.
+	const head = preferencesItem ? [preferencesItem] : [];
+	const tail = devToolsItem ? [devToolsItem] : [];
 
 	return cornerFacesStart
-		? [preferencesItem, ...customItems]
-		: [...customItems, preferencesItem];
+		? [...head, ...customItems, ...tail]
+		: [...tail, ...customItems, ...head];
 };
 
 export interface TriggerToolbarProps extends Omit<
@@ -233,6 +286,10 @@ export const TriggerToolbar = ({
 		dragStyle,
 		openDialog,
 	} = useTriggerContext();
+	const devTools = useDevToolsLauncher();
+	const showDevTools = devTools !== null;
+	const dockDevTools = devTools?.dock;
+	const toolbarRef = useRef<HTMLDivElement>(null);
 	const orderedItems = useMemo(
 		() =>
 			orderItemsForCorner(
@@ -241,7 +298,8 @@ export const TriggerToolbar = ({
 					preferences,
 					preferencesRight,
 					defaultPreferencesLabel,
-					showPreferences
+					showPreferences,
+					showDevTools
 				),
 				orientation,
 				corner
@@ -253,9 +311,30 @@ export const TriggerToolbar = ({
 			orientation,
 			preferences,
 			preferencesRight,
+			showDevTools,
 			showPreferences,
 		]
 	);
+
+	// Keep a docked DevTools panel beside the toolbar as it moves corners or
+	// changes size. Skip mid-drag; the drop re-runs this.
+	useLayoutEffect(() => {
+		const element = toolbarRef.current;
+		if (!dockDevTools || !element || isDragging) {
+			return;
+		}
+		const place = () => dockDevTools(measureDevToolsDock(element, corner));
+		place();
+		const view = element.ownerDocument.defaultView;
+		const observer =
+			typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(place);
+		observer?.observe(element);
+		view?.addEventListener('resize', place);
+		return () => {
+			observer?.disconnect();
+			view?.removeEventListener('resize', place);
+		};
+	}, [corner, dockDevTools, isDragging]);
 	const firstEnabledId = orderedItems.find((item) => !item.disabled)?.focusId;
 	const [activeItemId, setActiveItemId] = useState(firstEnabledId);
 	const itemRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -337,6 +416,10 @@ export const TriggerToolbar = ({
 			return;
 		}
 
+		if (item.kind === 'devtools') {
+			devTools?.toggle();
+			return;
+		}
 		item.onSelect?.();
 		if (item.kind === 'preferences') {
 			openDialog();
@@ -356,6 +439,7 @@ export const TriggerToolbar = ({
 			data-snapping={isSnapping || undefined}
 			dir="ltr"
 			onKeyDown={handleToolbarKeyDown}
+			ref={toolbarRef}
 			role="toolbar"
 			style={{ ...toolbarDOMStyle.style, ...dragStyle }}
 			tabIndex={-1}
@@ -373,6 +457,9 @@ export const TriggerToolbar = ({
 						}
 					}}
 					aria-label={item.label}
+					aria-expanded={
+						item.kind === 'devtools' ? devTools?.isOpen : undefined
+					}
 					aria-pressed={item.kind === 'custom' ? item.pressed : undefined}
 					className={[itemDOMStyle.className, item.className]
 						.filter(Boolean)
