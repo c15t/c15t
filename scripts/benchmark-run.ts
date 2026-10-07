@@ -139,6 +139,7 @@ try {
 							'benchmarks',
 							'scripts/benchmark-run.ts',
 							'scripts/benchmark-plan.ts',
+							'scripts/benchmark-rounds.ts',
 						],
 						{ encoding: 'utf8' }
 					).length > 0,
