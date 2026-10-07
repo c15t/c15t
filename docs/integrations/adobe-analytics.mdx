@@ -5,6 +5,13 @@ icon: adobe-analytics
 group: integrations
 ---
 
+The c15t `adobeAnalytics` helper ties your Adobe Data Collection Tags property,
+which loads Adobe Analytics, to `measurement`. Until a visitor allows
+`measurement`, c15t does not request the property embed script. The helper sends
+no consent signal to Adobe, so every extension the property loads runs under
+that one permission. If the visitor later withdraws, c15t removes the script
+element and reloads the page.
+
 ## Configure Adobe Analytics
 
 Copy the full embed URL for your property environment from the Adobe Data

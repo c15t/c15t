@@ -5,6 +5,12 @@ icon: youtube
 group: integrations
 ---
 
+c15t has no YouTube helper. This guide wraps a YouTube iframe in each
+framework's `ConsentGate`, or uses `data-category` with the HTML script tag,
+under a category you choose; the example uses `marketing`. Until the visitor
+allows that category, the embed has no YouTube URL to load, so it makes no
+request to YouTube. Revoking the category removes the iframe.
+
 ## Configure the video
 
 Use the ID of an embeddable video and the category matching its purpose in your

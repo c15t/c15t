@@ -5,6 +5,14 @@ icon: rudderstack
 group: integrations
 ---
 
+The c15t `rudderstack` helper ties the RudderStack JavaScript SDK to
+`measurement`. By default, c15t does not request the SDK until a visitor allows
+`measurement`, and the helper makes no RudderStack consent calls. With
+`consentManagement`, the SDK loads on every page in RudderStack's pre-consent
+mode, buffering events without persistent storage, so the browser contacts
+RudderStack before a choice. The helper then calls `rudderanalytics.consent()`,
+listing your mapped consent IDs as allowed or denied by their c15t category.
+
 ## Configure RudderStack
 
 Copy the source write key and the HTTPS data plane URL from your RudderStack

@@ -5,6 +5,11 @@ icon: linkedin
 group: integrations
 ---
 
+The c15t `linkedinInsights` helper ties the LinkedIn Insight Tag to `marketing`.
+Until a visitor allows `marketing`, c15t sets no LinkedIn globals and does not
+request `insight.min.js`. The helper sends LinkedIn no consent signal. On
+withdrawal c15t removes the script element and reloads the page by default.
+
 ## Configure the LinkedIn Insight Tag
 
 Copy the partner ID from LinkedIn Campaign Manager under Data, Signals manager,

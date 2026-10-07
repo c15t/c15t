@@ -5,6 +5,12 @@ icon: hightouch
 group: integrations
 ---
 
+The c15t `hightouch` helper ties the Hightouch Events browser SDK to
+`measurement`. Until a visitor allows `measurement`, c15t does not create the
+`window.htevents` queue or request `events.min.js`. The helper sends no consent
+signal to Hightouch. If the visitor later withdraws, c15t removes the script
+element and reloads the page.
+
 ## Configure Hightouch
 
 Copy the write key from your Hightouch Event Source. Remove the original

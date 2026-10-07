@@ -5,6 +5,13 @@ icon: pinterest
 group: integrations
 ---
 
+The c15t `pinterestTag` helper ties the Pinterest Tag to `marketing`. Until a
+visitor allows `marketing`, c15t defines no `pintrk` function and does not
+request Pinterest's `core.js`. Once allowed, the helper queues `load`,
+`pintrk('setconsent', true)` and a page visit before the loader. On withdrawal
+it keeps the tag and calls `pintrk('setconsent', false)`, and c15t reloads the
+page by default.
+
 ## Configure the Pinterest Tag
 
 Copy the numeric tag ID from Pinterest Ads Manager. Remove Pinterest's base

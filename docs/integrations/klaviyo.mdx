@@ -5,6 +5,14 @@ icon: klaviyo
 group: integrations
 ---
 
+The c15t `klaviyo` helper ties Klaviyo.js, which serves both signup forms and
+onsite tracking, to `marketing` and `measurement` together. Until a visitor
+allows both, c15t does not request Klaviyo.js or create the `klaviyo` object. On
+withdrawal c15t removes the loader and reloads the page by default.
+`mode: 'forms-only'` needs only `marketing` and sets Klaviyo's `__kla_off`
+opt-out cookie before the bundle runs; the `category` option replaces either
+condition.
+
 ## Configure Klaviyo
 
 Copy the six-character public API key, also called the site ID, from

@@ -5,6 +5,12 @@ icon: fathom-analytics
 group: integrations
 ---
 
+The c15t `fathomAnalytics` helper ties Fathom Analytics to `measurement`. Until
+a visitor allows `measurement`, c15t does not request Fathom's `script.js`, even
+though Fathom sets no cookies. The helper calls no Fathom consent API, including
+`blockTrackingForMe`. If the visitor later withdraws, c15t removes the script
+element and reloads the page.
+
 ## Configure Fathom Analytics
 
 Copy the site ID from your Fathom embed code, where it is the `data-site`

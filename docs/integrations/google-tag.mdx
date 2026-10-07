@@ -5,6 +5,14 @@ icon: google-analytics
 group: integrations
 ---
 
+The c15t `gtag` helper loads Google's gtag.js for Google Analytics or Google Ads
+under the category you pass, usually `measurement` or `marketing`; there is no
+default, and the category does not delay loading. On every page the helper sends
+`gtag('consent', 'default', ...)` and loads gtag.js, so the browser contacts
+Google before a choice. Later changes send `update`: `measurement` drives
+`analytics_storage`, and `marketing` drives `ad_storage`, `ad_user_data` and
+`ad_personalization`. The `consentMapping` option replaces this mapping.
+
 ## Configure the Google tag
 
 Copy the tag ID, for example `G-XXXXXXXXXX` for Google Analytics or

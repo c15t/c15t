@@ -5,6 +5,12 @@ icon: snapchat
 group: integrations
 ---
 
+The c15t `snapchatPixel` helper ties the Snapchat Pixel to `marketing`. Until a
+visitor allows `marketing`, c15t defines no `snaptr` function and does not
+request Snapchat's `scevent.min.js`. The helper sends Snapchat no consent
+signal. On withdrawal c15t removes the script element and reloads the page by
+default.
+
 ## Configure the Snapchat Pixel
 
 Copy the pixel ID from Snapchat Ads Manager. The helper passes it to

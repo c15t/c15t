@@ -5,6 +5,11 @@ icon: vercel-analytics
 group: integrations
 ---
 
+The c15t `vercelAnalytics` helper ties Vercel Web Analytics to `measurement`.
+Until a visitor allows `measurement`, c15t does not request the Vercel
+Analytics script or define `window.va`. If a visitor later withdraws
+`measurement`, c15t removes the script element and reloads the page.
+
 ## Configure Vercel Analytics
 
 Enable Web Analytics for the project in Vercel. Remove the `Analytics`

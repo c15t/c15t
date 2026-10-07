@@ -5,6 +5,14 @@ icon: databuddy
 group: integrations
 ---
 
+The c15t `databuddy` helper ties Databuddy to `measurement`, but it uses
+`alwaysLoad`, so the browser requests `databuddy.js` from Databuddy on every
+page, before the visitor chooses. Without `measurement` permission, the helper
+seeds `window.databuddyConfig` with `configWhenDenied` and sets
+`window.databuddy.options.disabled` to `true`. When the visitor allows
+`measurement`, it switches to `configWhenGranted` and sets `disabled` to
+`false`, and it switches back on withdrawal.
+
 ## Configure Databuddy
 
 Copy the client ID from your Databuddy project. The helper passes it to the

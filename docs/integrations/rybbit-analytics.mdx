@@ -5,6 +5,12 @@ icon: rybbit-analytics
 group: integrations
 ---
 
+The c15t `rybbitAnalytics` helper ties Rybbit Analytics to `measurement`. Until
+a visitor allows `measurement`, c15t does not request the Rybbit script.
+Options such as `sessionReplay` and `webVitals` run inside that script, under
+the same category. If a visitor later withdraws `measurement`, c15t removes the
+script element and reloads the page.
+
 ## Configure Rybbit Analytics
 
 Copy the site ID from your Rybbit tracking snippet. The helper passes it to

@@ -5,6 +5,12 @@ icon: clearbit
 group: integrations
 ---
 
+The c15t `clearbit` helper ties the Clearbit enrichment tag to `marketing`, not
+`measurement`, because Clearbit identifies visitors and their companies. Until a
+visitor allows `marketing`, c15t does not request Clearbit's `tags.js`. The
+helper calls no Clearbit consent API. If the visitor later withdraws, c15t
+removes the script element and reloads the page.
+
 ## Configure Clearbit
 
 Use the publishable key from your Clearbit tag installation. Do not put a
