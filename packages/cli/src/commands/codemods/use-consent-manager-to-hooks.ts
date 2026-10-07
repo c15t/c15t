@@ -3,6 +3,13 @@ import type * as TsMorphTypes from 'ts-morph';
 
 import { runTransform } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
+import {
+	applyEdits,
+	importedBinding,
+	lineIndent,
+	toTextEdit,
+} from './source-edits';
+import type { TextEdit } from './source-edits';
 
 /** Entries that exported `useConsentManager` before v3.0.0-alpha.3. */
 const SOURCE_SPECIFIERS = new Set([
@@ -363,12 +370,6 @@ const manualComment = function manualComment(
 	);
 };
 
-interface TextEdit {
-	start: number;
-	end: number;
-	text: string;
-}
-
 interface CallContext {
 	sourceFile: TsMorphTypes.SourceFile;
 	localName: string;
@@ -379,17 +380,6 @@ interface CallContext {
 	memo: MemoCallee;
 	usesMemo: boolean;
 }
-
-const toTextEdit = function toTextEdit(node: TsMorphTypes.Node, text: string) {
-	return { end: node.getEnd(), start: node.getStart(), text };
-};
-
-/** The whitespace that starts the node's line, exactly as written. */
-const lineIndent = function lineIndent(node: TsMorphTypes.Node): string {
-	const text = node.getSourceFile().getFullText();
-	const lineStart = text.lastIndexOf('\n', node.getStart() - 1) + 1;
-	return /^[\t ]*/u.exec(text.slice(lineStart))?.[0] ?? '';
-};
 
 /** Marks a call the codemod cannot destructure, leaving it in place. */
 const markCall = function markCall(
@@ -493,39 +483,6 @@ const planCall = function planCall(
 		context.summaries.push(`TODO: ${field}`);
 	}
 	return true;
-};
-
-/** Applies non-overlapping edits from the end of the file backwards. */
-const applyEdits = function applyEdits(
-	sourceFile: TsMorphTypes.SourceFile,
-	edits: TextEdit[]
-): void {
-	let text = sourceFile.getFullText();
-	for (const edit of [...edits].sort(
-		(left, right) => right.start - left.start
-	)) {
-		text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
-	}
-	sourceFile.replaceWithText(text);
-};
-
-/**
- * The local binding an import specifier creates. `isReference` is true only
- * for identifiers that resolve to that binding, so a parameter or local
- * function with the same name is not treated as the import.
- */
-const importedBinding = function importedBinding(
-	namedImport: TsMorphTypes.ImportSpecifier
-): { isReference: (node: TsMorphTypes.Node) => boolean } {
-	const symbol = (
-		namedImport.getAliasNode() ?? namedImport.getNameNode()
-	).getSymbol()?.compilerSymbol;
-	return {
-		isReference: (node) =>
-			symbol !== undefined &&
-			Node.isIdentifier(node) &&
-			node.getSymbol()?.compilerSymbol === symbol,
-	};
 };
 
 const findMemoCallee = function findMemoCallee(

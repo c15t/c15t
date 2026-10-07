@@ -6,14 +6,25 @@ import { CliError } from '../../core/errors';
 import { forEachSequential } from '../../utils/for-each-sequential';
 import { runActiveUiApiCodemod } from './active-ui-api';
 import { runAddStylesheetImportsCodemod } from './add-stylesheet-imports';
+import { runBackendConfigToV3Codemod } from './backend-config-to-v3';
+import { runCallbacksToV3Codemod } from './callbacks-to-v3';
 import { runComponentRenamesCodemod } from './component-renames';
+import { runConsentProviderOptionsCodemod } from './consent-provider-options';
+import { runCssVariablesToV3Codemod } from './css-variables-to-v3';
+import { runDevToolsToC15tCodemod } from './dev-tools-to-c15t';
 import { runGdprTypesToConsentCategoriesCodemod } from './gdpr-types-to-consent-categories';
+import { runIabOptionToIabProviderCodemod } from './iab-option-to-iab-provider';
 import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
+import { runNodeSdkToV3Codemod } from './node-sdk-to-v3';
+import { runPolicyPacksToPolicyRulesCodemod } from './policy-packs-to-policy-rules';
+import { runPostcssTailwind3Codemod } from './postcss-tailwind3';
 import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
+import { runRootExportsToSubpathsCodemod } from './root-exports-to-subpaths';
 import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import { runScriptsToIntegrationsCodemod } from './scripts-to-integrations';
+import { runThemeToConsentThemeCodemod } from './theme-to-consent-theme';
 import { runTrackingBlockerToNetworkBlockerCodemod } from './tracking-blocker-to-network-blocker';
 import { runTranslationsToI18nCodemod } from './translations-to-i18n';
 import { runUseConsentManagerToHooksCodemod } from './use-consent-manager-to-hooks';
@@ -45,6 +56,11 @@ export interface CodemodDefinition {
 }
 
 const LEGACY_TARGET_VERSION = '2.0.0';
+const V3_TARGET_VERSION = '3.0.0';
+const V3_VERSIONING: CodemodVersionMetadata = {
+	fromRange: '<3.0.0-0',
+	toRange: '>=3.0.0-0',
+};
 
 interface CodemodExecutionResult {
 	totalFiles: number;
@@ -54,6 +70,7 @@ interface CodemodExecutionResult {
 		summaries: string[];
 	}[];
 	errors: { filePath: string; error: string }[];
+	warnings?: { filePath: string; message: string }[];
 }
 
 const logCodemodResult = function logCodemodResult(
@@ -62,6 +79,9 @@ const logCodemodResult = function logCodemodResult(
 	dryRun: boolean
 ): void {
 	const { logger } = context;
+	for (const warning of result.warnings ?? []) {
+		logger.warn(`${warning.filePath}: ${warning.message}`);
+	}
 	if (result.changedFiles.length === 0) {
 		logger.info(
 			`No files needed updates (scanned ${result.totalFiles} source files).`
@@ -205,6 +225,94 @@ const codemods: CodemodDefinition[] = [
 		label: '@c15t/scripts -> @c15t/integrations',
 		run: runScriptsToIntegrationsCodemod,
 		targetVersion: '3.0.0',
+	},
+	{
+		hint: 'Renames ConsentManagerProvider to ConsentProvider, turns mode/backendURL/offlinePolicy into hosted() or offline(), and renames iframeBlockerConfig.',
+		id: 'consent-provider-options',
+		label: 'ConsentManagerProvider -> ConsentProvider',
+		run: runConsentProviderOptionsCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Moves imports of names that left the c15t/react and c15t/next roots to /headless, /consent-dialog-trigger, /types and /components/consent-banner.',
+		id: 'root-exports-to-subpaths',
+		label: 'root exports -> v3 subpaths',
+		run: runRootExportsToSubpathsCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Points @c15t/dev-tools/react and /tanstack imports at c15t/react/devtools or c15t/next/devtools.',
+		id: 'dev-tools-to-c15t',
+		label: '@c15t/dev-tools/react -> c15t devtools entry',
+		run: runDevToolsToC15tCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Renames policyPackPresets to policyRulePresets and worldNoBanner() to worldNone().',
+		id: 'policy-packs-to-policy-rules',
+		label: 'policyPackPresets -> policyRulePresets',
+		run: runPolicyPacksToPolicyRulesCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Renames --consent-widget-* to --consent-manager-* and --frame-* to --consent-gate-* in stylesheets and inline styles.',
+		id: 'css-variables-to-v3',
+		label: 'CSS variables -> v3 names',
+		run: runCssVariablesToV3Codemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Adds the c15t PostCSS plugin before tailwindcss in an object-form postcss.config for Tailwind CSS 3.',
+		id: 'postcss-tailwind3',
+		label: 'Tailwind CSS 3 PostCSS plugin',
+		run: runPostcssTailwind3Codemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Renames onConsentChanged to onChoiceRecorded and marks onConsentSet and onBannerFetched for manual work.',
+		id: 'callbacks-to-v3',
+		label: 'callbacks -> v3 callbacks',
+		run: runCallbacksToV3Codemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Marks theme tokens on the provider, which need ConsentTheme or generateThemeCSS() in v3.',
+		id: 'theme-to-consent-theme',
+		label: 'theme tokens -> ConsentTheme',
+		run: runThemeToConsentThemeCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Marks the iab provider option, which moves to <IABProvider> in v3.',
+		id: 'iab-option-to-iab-provider',
+		label: 'iab option -> IABProvider',
+		run: runIabOptionToIabProviderCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Moves @c15t/node-sdk code to createC15tClient() and the v3 option and method names, and marks call sites whose results changed shape.',
+		id: 'node-sdk-to-v3',
+		label: '@c15t/node-sdk -> createC15tClient()',
+		run: runNodeSdkToV3Codemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
+	},
+	{
+		hint: 'Moves policyPacks, branding, customTranslations, i18n and appName under manifest in a @c15t/backend config, and marks adapter and other removed options.',
+		id: 'backend-config-to-v3',
+		label: '@c15t/backend config -> manifest',
+		run: runBackendConfigToV3Codemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
 	},
 ];
 

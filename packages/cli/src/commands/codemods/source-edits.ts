@@ -1,0 +1,500 @@
+import { Node, SyntaxKind } from 'ts-morph';
+import type * as TsMorphTypes from 'ts-morph';
+
+/** Prefix of every comment a v3 codemod leaves for manual work. */
+export const TODO_MARKER = 'TODO(c15t v3):';
+
+/** A replacement of `[start, end)` in a file's full text. */
+export interface TextEdit {
+	start: number;
+	end: number;
+	text: string;
+}
+
+/** Result shape every source transform returns to `runTransform`. */
+export interface TransformResult {
+	changed: boolean;
+	operations: number;
+	summaries: string[];
+}
+
+export const UNCHANGED: TransformResult = {
+	changed: false,
+	operations: 0,
+	summaries: [],
+};
+
+export const toTextEdit = function toTextEdit(
+	node: TsMorphTypes.Node,
+	text: string
+): TextEdit {
+	return { end: node.getEnd(), start: node.getStart(), text };
+};
+
+/** The whitespace that starts the node's line, exactly as written. */
+export const lineIndent = function lineIndent(node: TsMorphTypes.Node): string {
+	const text = node.getSourceFile().getFullText();
+	const lineStart = text.lastIndexOf('\n', node.getStart() - 1) + 1;
+	return /^[\t ]*/u.exec(text.slice(lineStart))?.[0] ?? '';
+};
+
+/** Whether only whitespace precedes the node on its line. */
+const startsLine = function startsLine(node: TsMorphTypes.Node): boolean {
+	const text = node.getSourceFile().getFullText();
+	const lineStart = text.lastIndexOf('\n', node.getStart() - 1) + 1;
+	return text.slice(lineStart, node.getStart()).trim() === '';
+};
+
+/** Applies non-overlapping edits from the end of the file backwards. */
+export const applyEdits = function applyEdits(
+	sourceFile: TsMorphTypes.SourceFile,
+	edits: TextEdit[]
+): void {
+	let text = sourceFile.getFullText();
+	// At one position, replace before inserting, and keep insertions in
+	// the order they were queued in.
+	const ordered = edits
+		.map((edit, index) => ({ edit, index }))
+		.sort(
+			(left, right) =>
+				right.edit.start - left.edit.start ||
+				right.edit.end - left.edit.end ||
+				right.index - left.index
+		);
+	for (const { edit } of ordered) {
+		text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
+	}
+	sourceFile.replaceWithText(text);
+};
+
+/**
+ * Whether `comment` already sits on the node's line before it, or in the
+ * block of comment lines directly above it.
+ */
+const hasCommentAbove = function hasCommentAbove(
+	node: TsMorphTypes.Node,
+	comment: string
+): boolean {
+	const text = node.getSourceFile().getFullText();
+	let lineStart = text.lastIndexOf('\n', node.getStart() - 1) + 1;
+	if (text.slice(lineStart, node.getStart()).includes(comment)) {
+		return true;
+	}
+	while (lineStart > 0) {
+		const previousStart = text.lastIndexOf('\n', lineStart - 2) + 1;
+		const line = text.slice(previousStart, lineStart).trim();
+		if (!(line.startsWith('//') || line.startsWith('/*'))) {
+			return false;
+		}
+		if (line.includes(comment)) {
+			return true;
+		}
+		lineStart = previousStart;
+	}
+	return false;
+};
+
+/**
+ * Queues a `TODO(c15t v3)` comment above `node`, or inline before it when
+ * the node shares its line. Returns false when the same comment is already
+ * there, so a second run adds nothing.
+ */
+export const addTodo = function addTodo(
+	node: TsMorphTypes.Node,
+	message: string,
+	edits: TextEdit[]
+): boolean {
+	const comment = `${TODO_MARKER} ${message}`;
+	if (
+		hasCommentAbove(node, comment) ||
+		edits.some(
+			(edit) => edit.start === node.getStart() && edit.text.includes(comment)
+		)
+	) {
+		return false;
+	}
+	const text = startsLine(node)
+		? `// ${comment}\n${lineIndent(node)}`
+		: `/* ${comment} */ `;
+	edits.push({ end: node.getStart(), start: node.getStart(), text });
+	return true;
+};
+
+/**
+ * The local binding an import specifier creates. `isReference` is true only
+ * for identifiers that resolve to that binding, so a parameter or local
+ * function with the same name is not treated as the import.
+ */
+export const importedBinding = function importedBinding(
+	namedImport: TsMorphTypes.ImportSpecifier
+): { isReference: (node: TsMorphTypes.Node) => boolean } {
+	const symbol = (
+		namedImport.getAliasNode() ?? namedImport.getNameNode()
+	).getSymbol()?.compilerSymbol;
+	return {
+		isReference: (node) =>
+			symbol !== undefined &&
+			Node.isIdentifier(node) &&
+			node.getSymbol()?.compilerSymbol === symbol,
+	};
+};
+
+/** Identifiers in this file, outside imports, that refer to the import. */
+export const referencesOf = function referencesOf(
+	namedImport: TsMorphTypes.ImportSpecifier
+): TsMorphTypes.Identifier[] {
+	const binding = importedBinding(namedImport);
+	return namedImport
+		.getSourceFile()
+		.getDescendantsOfKind(SyntaxKind.Identifier)
+		.filter(
+			(identifier) =>
+				!identifier.getFirstAncestorByKind(SyntaxKind.ImportDeclaration) &&
+				binding.isReference(identifier)
+		);
+};
+
+/** An object property's key without quotes, or undefined when computed. */
+export const propertyKey = function propertyKey(
+	property: TsMorphTypes.ObjectLiteralElementLike
+): string | undefined {
+	if (
+		!Node.isPropertyAssignment(property) &&
+		!Node.isShorthandPropertyAssignment(property) &&
+		!Node.isMethodDeclaration(property)
+	) {
+		return undefined;
+	}
+	const name = property.getNameNode();
+	if (Node.isIdentifier(name)) {
+		return name.getText();
+	}
+	if (
+		Node.isStringLiteral(name) ||
+		Node.isNoSubstitutionTemplateLiteral(name)
+	) {
+		return name.getLiteralText();
+	}
+	return undefined;
+};
+
+/** The first property with this key, ignoring spreads and computed keys. */
+export const findProperty = function findProperty(
+	object: TsMorphTypes.ObjectLiteralExpression,
+	key: string
+): TsMorphTypes.ObjectLiteralElementLike | undefined {
+	return object
+		.getProperties()
+		.find((property) => propertyKey(property) === key);
+};
+
+/** The value a property supplies: its initializer, or the shorthand name. */
+export const propertyValueText = function propertyValueText(
+	property: TsMorphTypes.ObjectLiteralElementLike
+): string | undefined {
+	if (Node.isPropertyAssignment(property)) {
+		return property.getInitializer()?.getText();
+	}
+	if (Node.isShorthandPropertyAssignment(property)) {
+		return property.getName();
+	}
+	return undefined;
+};
+
+/** Writes `key: value`, or the shorthand when they are the same name. */
+export const propertyText = function propertyText(
+	key: string,
+	value: string
+): string {
+	return key === value ? key : `${key}: ${value}`;
+};
+
+/**
+ * The range that removes a list element (a property or an import
+ * specifier) and its comma. An element on its own line takes the rest of
+ * its line with it, so no blank line is left behind.
+ */
+export const propertyRemoval = function propertyRemoval(
+	property: TsMorphTypes.Node
+): TextEdit {
+	const sourceText = property.getSourceFile().getFullText();
+	const comma = /^[\t ]*,/u.exec(sourceText.slice(property.getEnd()))?.[0];
+	if (startsLine(property)) {
+		const lineStart = sourceText.lastIndexOf('\n', property.getStart() - 1) + 1;
+		const end = property.getEnd() + (comma?.length ?? 0);
+		const rest = /^[\t ]*(?:\r?\n)?/u.exec(sourceText.slice(end))?.[0] ?? '';
+		return { end: end + rest.length, start: lineStart, text: '' };
+	}
+	if (comma) {
+		const end = property.getEnd() + comma.length;
+		const trailing = /^[\t ]*/u.exec(sourceText.slice(end))?.[0] ?? '';
+		return { end: end + trailing.length, start: property.getStart(), text: '' };
+	}
+	// The last element on a line takes the comma before it instead. A JSX
+	// attribute has no comma, so it takes the space before it.
+	const before = /(?:,[\t ]*|[\t ]+)$/u.exec(
+		sourceText.slice(0, property.getStart())
+	)?.[0];
+	return {
+		end: property.getEnd(),
+		start: property.getStart() - (before?.length ?? 0),
+		text: '',
+	};
+};
+
+/** Strips `as`, `satisfies` and parentheses around an expression. */
+export const unwrapExpression = function unwrapExpression(
+	node: TsMorphTypes.Node
+): TsMorphTypes.Node {
+	let current = node;
+	while (
+		Node.isAsExpression(current) ||
+		Node.isSatisfiesExpression(current) ||
+		Node.isParenthesizedExpression(current)
+	) {
+		current = current.getExpression();
+	}
+	return current;
+};
+
+/** The quote character the file's first import uses, defaulting to `'`. */
+const preferredQuote = function preferredQuote(
+	sourceFile: TsMorphTypes.SourceFile
+): string {
+	const [first] = sourceFile.getImportDeclarations();
+	return first?.getModuleSpecifier().getText().charAt(0) ?? "'";
+};
+
+const findValueImport = function findValueImport(
+	sourceFile: TsMorphTypes.SourceFile,
+	specifier: string
+): TsMorphTypes.ImportDeclaration | undefined {
+	return sourceFile
+		.getImportDeclarations()
+		.find(
+			(declaration) =>
+				declaration.getModuleSpecifierValue() === specifier &&
+				!declaration.isTypeOnly() &&
+				!declaration.getNamespaceImport()
+		);
+};
+
+/**
+ * Appends specifiers to an import in the style it is written in: one per
+ * line for a multi-line list, comma-separated otherwise.
+ */
+const insertNamedImports = function insertNamedImports(
+	declaration: TsMorphTypes.ImportDeclaration,
+	names: string[]
+): void {
+	const bindings = declaration.getImportClause()?.getNamedBindings();
+	const last =
+		bindings && Node.isNamedImports(bindings)
+			? bindings.getElements().at(-1)
+			: undefined;
+	if (!bindings || !last) {
+		declaration.addNamedImports(names);
+		return;
+	}
+	const sourceFile = declaration.getSourceFile();
+	const after = sourceFile.getFullText().slice(last.getEnd());
+	const comma = /^[\t ]*,/u.exec(after)?.[0];
+	if (bindings.getText().includes('\n')) {
+		const indent = lineIndent(last);
+		const lines = names.map((name) => `\n${indent}${name}`);
+		sourceFile.insertText(
+			last.getEnd() + (comma?.length ?? 0),
+			comma ? lines.map((line) => `${line},`).join('') : `,${lines.join(',')}`
+		);
+		return;
+	}
+	sourceFile.insertText(
+		last.getEnd(),
+		names.map((name) => `, ${name}`).join('')
+	);
+};
+
+/**
+ * Makes `names` available from `specifier`, reusing an existing value
+ * import from it, or adding a declaration after the last import.
+ */
+export const ensureNamedImports = function ensureNamedImports(
+	sourceFile: TsMorphTypes.SourceFile,
+	specifier: string,
+	names: Iterable<string>
+): void {
+	const existing = findValueImport(sourceFile, specifier);
+	const present = new Set(
+		existing
+			?.getNamedImports()
+			.filter((named) => !named.isTypeOnly())
+			.map((named) => named.getName())
+	);
+	const missing = [...new Set(names)]
+		.filter((name) => !present.has(name))
+		.sort();
+	if (missing.length === 0) {
+		return;
+	}
+	if (existing) {
+		insertNamedImports(existing, missing);
+		return;
+	}
+	const imports = sourceFile.getImportDeclarations();
+	const quote = preferredQuote(sourceFile);
+	const index =
+		imports.length > 0 ? (imports.at(-1)?.getChildIndex() ?? 0) + 1 : 0;
+	sourceFile.insertStatements(
+		index,
+		`import { ${missing.join(', ')} } from ${quote}${specifier}${quote};`
+	);
+};
+
+/** True when the file has a binding with this name outside the given import. */
+export const isNameTaken = function isNameTaken(
+	sourceFile: TsMorphTypes.SourceFile,
+	name: string
+): boolean {
+	return sourceFile
+		.getDescendantsOfKind(SyntaxKind.Identifier)
+		.some(
+			(identifier) =>
+				identifier.getText() === name &&
+				(Node.isVariableDeclaration(identifier.getParent()) ||
+					Node.isFunctionDeclaration(identifier.getParent()) ||
+					Node.isClassDeclaration(identifier.getParent()) ||
+					Node.isParameterDeclaration(identifier.getParent()) ||
+					Node.isBindingElement(identifier.getParent()) ||
+					Node.isImportSpecifier(identifier.getParent()) ||
+					Node.isImportClause(identifier.getParent()) ||
+					Node.isNamespaceImport(identifier.getParent()))
+		);
+};
+
+/** Where one import or export specifier should go, and how to write it there. */
+export interface SpecifierMove {
+	target: string;
+	text: string;
+}
+
+/**
+ * Moves specifiers to declarations for other entries. A declaration whose
+ * every specifier moves is replaced in place; otherwise the moved
+ * specifiers are removed and new declarations follow it. Type-only
+ * declarations stay type-only.
+ */
+export const moveSpecifiers = function moveSpecifiers(
+	declaration: TsMorphTypes.ImportDeclaration | TsMorphTypes.ExportDeclaration,
+	moves: Map<TsMorphTypes.Node, SpecifierMove>,
+	edits: TextEdit[]
+): void {
+	if (moves.size === 0) {
+		return;
+	}
+	const quote = declaration.getModuleSpecifier()?.getText().charAt(0) ?? "'";
+	const isImport = Node.isImportDeclaration(declaration);
+	const keyword = isImport ? 'import' : 'export';
+	const typeOnly = declaration.isTypeOnly() ? 'type ' : '';
+	const groups = new Map<string, string[]>();
+	for (const { target, text } of moves.values()) {
+		groups.set(target, [...(groups.get(target) ?? []), text]);
+	}
+	const lines = [...groups].map(
+		([target, texts]) =>
+			`${keyword} ${typeOnly}{ ${texts.join(', ')} } from ${quote}${target}${quote};`
+	);
+	const specifiers = isImport
+		? declaration.getNamedImports()
+		: declaration.getNamedExports();
+	const keepsOthers =
+		specifiers.some((specifier) => !moves.has(specifier)) ||
+		(isImport &&
+			(declaration.getDefaultImport() !== undefined ||
+				declaration.getNamespaceImport() !== undefined));
+	if (!keepsOthers) {
+		edits.push(
+			toTextEdit(declaration, lines.join(`\n${lineIndent(declaration)}`))
+		);
+		return;
+	}
+	for (const specifier of moves.keys()) {
+		edits.push(propertyRemoval(specifier));
+	}
+	edits.push({
+		end: declaration.getEnd(),
+		start: declaration.getEnd(),
+		text: lines.map((line) => `\n${line}`).join(''),
+	});
+};
+
+/** The text of a specifier with `name` in place of its imported name. */
+export const renamedSpecifierText = function renamedSpecifierText(
+	specifier: TsMorphTypes.ImportSpecifier | TsMorphTypes.ExportSpecifier,
+	name: string,
+	keepLocalName: boolean
+): string {
+	const typePrefix = specifier.isTypeOnly() ? 'type ' : '';
+	const alias = specifier.getAliasNode()?.getText();
+	const original = specifier.getNameNode().getText();
+	if (alias) {
+		return `${typePrefix}${name} as ${alias}`;
+	}
+	if (keepLocalName && name !== original) {
+		return `${typePrefix}${name} as ${original}`;
+	}
+	return `${typePrefix}${name}`;
+};
+
+/**
+ * The object literal an expression is written as, following an identifier
+ * or shorthand property to a variable initialized in the same file.
+ */
+export const objectLiteralFor = function objectLiteralFor(
+	node: TsMorphTypes.Node | undefined
+): TsMorphTypes.ObjectLiteralExpression | undefined {
+	if (!node) {
+		return undefined;
+	}
+	const expression = Node.isShorthandPropertyAssignment(node)
+		? node
+		: unwrapExpression(node);
+	if (Node.isObjectLiteralExpression(expression)) {
+		return expression;
+	}
+	let symbol: TsMorphTypes.Symbol | undefined;
+	if (Node.isShorthandPropertyAssignment(expression)) {
+		symbol = expression
+			.getProject()
+			.getTypeChecker()
+			.getShorthandAssignmentValueSymbol(expression);
+	} else if (Node.isIdentifier(expression)) {
+		symbol = expression.getSymbol();
+	}
+	for (const declaration of symbol?.getDeclarations() ?? []) {
+		if (
+			!Node.isVariableDeclaration(declaration) ||
+			declaration.getSourceFile() !== node.getSourceFile()
+		) {
+			continue;
+		}
+		const initializer = declaration.getInitializer();
+		const object = initializer && unwrapExpression(initializer);
+		if (object && Node.isObjectLiteralExpression(object)) {
+			return object;
+		}
+	}
+	return undefined;
+};
+
+/** The node a property's value is written with: its initializer, or the shorthand itself. */
+export const propertyValueNode = function propertyValueNode(
+	property: TsMorphTypes.ObjectLiteralElementLike
+): TsMorphTypes.Node | undefined {
+	if (Node.isPropertyAssignment(property)) {
+		return property.getInitializer();
+	}
+	if (Node.isShorthandPropertyAssignment(property)) {
+		return property;
+	}
+	return undefined;
+};
