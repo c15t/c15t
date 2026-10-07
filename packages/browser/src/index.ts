@@ -2,8 +2,9 @@
  * `@c15t/browser` — consent for sites without a build step.
  *
  * Most sites load `dist/c15t.js` from a CDN and never import this module.
- * Bundler users get the same client and UI as ES modules here; the
- * headless subset lives at `@c15t/browser/headless`.
+ * This ES module keeps every transport. Use `@c15t/browser/hosted` or
+ * `@c15t/browser/offline` to include only the selected mode. The headless
+ * subset lives at `@c15t/browser/headless`.
  *
  * @example
  * ```ts

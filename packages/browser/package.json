@@ -41,6 +41,7 @@
 	"type": "module",
 	"sideEffects": [
 		"./dist/c15t.js",
+		"./dist/c15t.offline.js",
 		"./dist/c15t.iab.js",
 		"./dist/c15t.headless.js",
 		"./dist/c15t.devtools.js",
@@ -56,6 +57,16 @@
 			"types": "./dist-types/index.d.ts",
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
+		},
+		"./hosted": {
+			"types": "./dist-types/hosted.d.ts",
+			"import": "./dist/hosted.js",
+			"default": "./dist/hosted.js"
+		},
+		"./offline": {
+			"types": "./dist-types/offline.d.ts",
+			"import": "./dist/offline.js",
+			"default": "./dist/offline.js"
 		},
 		"./headless": {
 			"types": "./dist-types/headless.d.ts",
@@ -74,6 +85,7 @@
 		},
 		"./styles.css": "./dist/c15t.css",
 		"./c15t.js": "./dist/c15t.js",
+		"./c15t.offline.js": "./dist/c15t.offline.js",
 		"./c15t.headless.js": "./dist/c15t.headless.js",
 		"./c15t.devtools.js": "./dist/c15t.devtools.js",
 		"./c15t.gpp.js": "./dist/c15t.gpp.js",

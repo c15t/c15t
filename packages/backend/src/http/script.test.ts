@@ -1,6 +1,8 @@
 /**
  * The script-tag routes, exercised through real requests.
  */
+import { runInNewContext } from 'node:vm';
+
 import { policyRulePresets } from '@c15t/schema/types';
 import { Effect, ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/sql';
@@ -19,6 +21,11 @@ const [engine] = ENGINES;
 if (!engine) {
 	throw new Error('no test engine available');
 }
+
+const readQueuedConfig = function readQueuedConfig(body: string): unknown {
+	const [prelude] = body.split('\n', 1);
+	return runInNewContext(`${prelude}\nwindow.c15t[0][1];`, { window: {} });
+};
 
 describe('deriveBackendURL', () => {
 	it('normalizes long mount paths without rescanning interior slashes', () => {
@@ -173,7 +180,7 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		await runtime.dispose();
 	});
 
-	it('serves the bundle behind a manifest prelude', async () => {
+	it('serves the default hosted bundle with its backend configuration', async () => {
 		const response = await makeApp().request('http://x.c15t.dev/c15t.js');
 
 		expect(response.status).toBe(200);
@@ -193,19 +200,12 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		expect(prelude).toMatch(
 			/^\(function\(c\)\{window\.c15t=window\.c15t\|\|\[\];.*\}\)\(\{.*\}\);$/u
 		);
-		const config = JSON.parse(
-			(prelude as string).slice(
-				(prelude as string).indexOf('})(') + '})('.length,
-				-');'.length
-			)
-		) as {
-			mode: string;
-			backendURL: string;
-			manifest: { policyPacks: unknown[] };
-		};
-		expect(config.mode).toBe('manifest');
-		expect(config.backendURL).toBe('http://x.c15t.dev');
-		expect(config.manifest.policyPacks).toHaveLength(1);
+		const config = readQueuedConfig(body);
+		expect(config).toMatchObject({
+			backendURL: 'http://x.c15t.dev',
+			mode: 'hosted',
+		});
+		expect(config).not.toHaveProperty('manifest');
 		// The bundle follows and installs the global.
 		expect(body).toContain('window.c15t');
 		expect(body.length).toBeGreaterThan(prelude?.length ?? 0 + 10_000);
@@ -245,6 +245,28 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		expect(body).toContain('"consentCategories":["measurement"]');
 	});
 
+	it.each([
+		{ language: 'de', query: '?language=de' },
+		{ language: 'en', query: '' },
+	])(
+		'preserves configured overrides with script query $query',
+		async ({ query, language }) => {
+			const response = await makeApp({
+				script: {
+					config: {
+						overrides: { country: 'US', language: 'en', region: 'CA' },
+					},
+				},
+			}).request(`http://x.c15t.dev/c15t.js${query}`);
+
+			expect(response.status).toBe(200);
+			expect(readQueuedConfig(await response.text())).toMatchObject({
+				mode: 'hosted',
+				overrides: { country: 'US', language, region: 'CA' },
+			});
+		}
+	);
+
 	it('serves the headless build on its own path', async () => {
 		const response = await makeApp().request(
 			'http://x.c15t.dev/c15t.headless.js'
@@ -252,7 +274,10 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 
 		expect(response.status).toBe(200);
 		const body = await response.text();
-		expect(body).toContain('"mode":"manifest"');
+		expect(readQueuedConfig(body)).toMatchObject({
+			manifest: { policyPacks: [expect.any(Object)] },
+			mode: 'manifest',
+		});
 		expect(body).not.toContain('consent-banner-root');
 	});
 
@@ -263,6 +288,10 @@ describe(`GET /c15t.js (${engine.name})`, () => {
 		const response = await app.request('http://x.c15t.dev/privacy.iab.js');
 		expect(response.status).toBe(200);
 		const body = await response.text();
+		expect(readQueuedConfig(body)).toMatchObject({
+			manifest: { policyPacks: [expect.any(Object)] },
+			mode: 'manifest',
+		});
 		expect(body).toContain('iab-consent-banner-root');
 		expect(body).toContain('"cmpId":28');
 		expect(

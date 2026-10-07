@@ -27,7 +27,7 @@ Cookie banner, preference centre, and consent-gated script loading for sites wit
 - Headless build with the same runtime and window.c15t API for custom banners
 - data-c15t-action buttons and #c15t-preferences links wired for you
 - Vendor scripts held as `<script type="text/plain" data-c15t-category>` until consent, and iframes gated with `data-src` and `data-category`
-- Hosted, self-hosted, offline, and manifest modes; an inlined manifest renders a location-independent policy with no request at all
+- Hosted default c15t.js and browser-only c15t.offline.js; ES modules and headless entries also support manifest and custom transports
 - DevTools panel as a second tag (c15t.devtools.js) with a Location tab for trying geo-keyed policies
 - IAB GPP (`__gpp`) as a second tag (c15t.gpp.js) or with `mountGPP` from `@c15t/browser/gpp`, signalling US state opt-outs and the TCF EU string
 - ES module entry points for bundled apps, which can use the @c15t/integrations vendor helpers
@@ -49,7 +49,7 @@ Paste before `</head>`, with the backend URL from your Inth project:
 ></script>
 ```
 
-Replace `@alpha` with an exact version for production. Load `dist/c15t.headless.js` instead for the runtime without any UI.
+Replace `@alpha` with an exact version for production. The default `c15t.js` requires a backend URL. Load `dist/c15t.offline.js` for offline mode or `dist/c15t.headless.js` for the runtime without any UI.
 
 For bundled apps:
 
@@ -79,10 +79,10 @@ For further information, guides, and examples visit the [reference documentation
 
 ## Deployment Modes
 
-- **Hosted on inth.com**: Hosted c15t backend for policy storage, audit history, and hosted infrastructure
-- **Self-hosted backend**: Use @c15t/backend when you need full infrastructure control
-- **Manifest mode**: Inline or fetch the backend's cacheable `/manifest` and resolve the policy in the browser
-- **Offline mode**: Browser-only consent storage for local development and tests; not recommended for production environments
+- **Hosted on inth.com**: Load `c15t.js` with your backend URL for policy storage and audit history
+- **Self-hosted backend**: Point `c15t.js` at your @c15t/backend deployment, or use the backend's preconfigured `/c15t.js` route
+- **Manifest mode**: Use the general `@c15t/browser` ES module or `c15t.headless.js` to inline or fetch the backend's cacheable `/manifest` and resolve the policy in the browser
+- **Offline mode**: Load `c15t.offline.js` for browser-only consent storage and local policy rules
 
 ## Optional IAB entry
 

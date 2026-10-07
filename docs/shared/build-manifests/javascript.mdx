@@ -18,11 +18,14 @@ export default {
 
 Vite generates `src/c15t-manifest.ts` before compilation and development
 startup. Keep the generated file out of Git. In your browser entry point,
-add these options to the existing `init()` call:
+switch the `init` import to `@c15t/browser`, which supports manifest mode,
+and add these options to the existing `init()` call:
 
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
+import { init } from '@c15t/browser';
+
 import { consentManifest } from './c15t-manifest';
 
 init({

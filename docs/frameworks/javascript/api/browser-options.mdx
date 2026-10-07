@@ -17,6 +17,12 @@ environments. The options are read when the client is created. To change
 `ui`, call `mountUI()` again; to change anything else, dispose the client and
 create a new one.
 
+The mode-specific `@c15t/browser/hosted` and `@c15t/browser/offline` entries
+accept the same UI, gating and lifecycle options. Their connection options
+are restricted to their mode. The hosted entry requires a backend URL or a
+hosted factory and rejects preset names; the offline entry rejects backend
+and manifest options. See [mode-specific configuration](/docs/frameworks/javascript/api/browser#choose-a-bundle-for-one-mode).
+
 <import src="../../../shared/browser/client-options.mdx#connection" />
 
 [Transports](/docs/frameworks/javascript/transports) compares the modes and

@@ -9,7 +9,8 @@ group: frameworks
 [Create an Inth project](https://inth.com), set its policy rules, add your
 app's origin to its trusted origins, and copy the project's backend URL.
 
-This guide uses `@c15t/browser` as an ES module in a Vite app. `init()` starts
+This guide uses `@c15t/browser/hosted` as an ES module in a Vite app. `init()`
+starts
 the consent runtime and mounts the stock banner and preference dialog. For
 your own UI, use the [headless runtime](/docs/frameworks/javascript/headless)
 instead. Sites without a build step load the same package from a script tag;
@@ -50,6 +51,11 @@ Call `init()` once, in your browser entry point:
 
 Replace `https://your-project.inth.app` with your project's backend URL,
 including any path prefix.
+
+The hosted entry includes the stock UI and excludes the offline and manifest
+transports. Use the general `@c15t/browser` entry if your app needs those
+modes or a custom transport. The [entry-point reference](/docs/frameworks/javascript/api/browser#choose-a-bundle-for-one-mode)
+lists each bundle's configuration.
 
 `init()` returns the client. It reads stored choices, resolves the visitor's
 policy, shows the banner when the policy needs one, and loads each

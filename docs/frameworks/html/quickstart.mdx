@@ -24,13 +24,18 @@ and keep `/c15t.js` on the end.
 
 <include src="../../shared/examples/script-tag/script-tag.mdx" />
 
-Inth serves the bundle with your project's backend URL and policy already
-inside, so the tag needs no `data-backend-url`. `defer` lets the page keep
+Inth serves the hosted bundle with your project's backend URL already
+configured, so the tag needs no `data-backend-url`. `defer` lets the page keep
 parsing while the script downloads. When it runs, the tag resolves the
-visitor's policy with Inth, then shows the banner if the policy asks for one.
+visitor's policy through Inth's `/init`, then shows the banner if the policy
+asks for one.
 A returning visitor who already chose sees no banner. Attributes from the
 [attribute reference](/docs/frameworks/html/attributes-and-api), such as
 `data-language`, still work on this tag.
+
+`c15t.js` keeps the stock UI and consent behavior while excluding offline
+policy presets, offline resolution and manifest transport code. `/init`
+returns the policy resolved for this visitor.
 
 ### Where to paste it
 
@@ -111,27 +116,29 @@ If no banner appears, the policy for your location may not ask for one. See
 
 ## Other ways to run the tag
 
-- **Offline mode.** Load the tag from a CDN, as below, without
-  `data-backend-url`, and c15t resolves the policy
-  in the browser, from `data-policy-rules` or its recommended rules. The
-  browser does not know the visitor's country, so without `data-country` every
-  visitor gets the strict opt-in fallback. Choices stay in that browser and
-  there are no consent records. Not recommended for production environments.
+- **Offline mode.** Load `c15t.offline.js` from a CDN, without
+  `data-backend-url`, and c15t resolves the policy in the browser from
+  `data-policy-rules` or its recommended rules. The browser does not know
+  the visitor's country, so without `data-country` every visitor gets the
+  strict opt-in fallback. Choices stay in that browser and there are no
+  consent records. Not recommended for production environments.
 - **A self-hosted backend.** A [self-hosted c15t backend](/docs/self-host/overview)
-  serves the same bundle at `/c15t.js` with its backend URL and policy
-  manifest already inside, so the tag needs only a `src`:
+  serves the hosted bundle at `/c15t.js` with its backend URL already
+  configured, so the tag needs only a `src`:
   `<script src="https://consent.example.com/c15t.js" defer></script>`, with
   your backend's origin in place of `consent.example.com`.
-- **From a CDN.** Without a c15t backend to serve the bundle, as in offline
-  mode, load it from jsDelivr and pin a version. Add `data-backend-url` if a
-  backend should still resolve the policy:
-  `<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js" defer></script>`.
+- **From a CDN.** Load a pinned version from jsDelivr. Use `c15t.js` with
+  `data-backend-url` for hosted mode:
+  `<script src="https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/c15t.js" data-backend-url="https://your-project.inth.app" defer></script>`.
+  For offline mode, use `dist/c15t.offline.js` without `data-backend-url`.
   Replace `<version>` with the exact version listed on
   [npm](https://www.npmjs.com/package/@c15t/browser?activeTab=versions).
   `@alpha` loads the newest v3 prerelease, so a new release can change your
   banner without a deploy.
-- **Manifest mode.** Fetch or inline the backend's cacheable policy manifest so
-  the banner can render without a per-visit request. See
+- **Manifest mode.** Use the `@c15t/browser` ES module for manifest mode
+  with the stock UI, or `c15t.headless.js` with your own UI. These clients can
+  fetch or inline the backend's cacheable policy manifest. The IAB script
+  also supports manifest mode for IAB policies. See
   [modes](/docs/frameworks/html/attributes-and-api#choose-a-mode).
 
 ## Next steps

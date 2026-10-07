@@ -74,6 +74,22 @@ The sections below apply to every app.
 
 <include src="./shared/upgrade-v3/stored-consent.mdx" />
 
+## Choose the HTML bundle
+
+For HTML script tags, `c15t.js` is now the hosted bundle. Keep that filename
+for Inth or a self-hosted backend and supply `data-backend-url`, a queued
+`backendURL`, or a hosted factory. Loading it without a backend no longer
+starts offline mode.
+
+If an earlier v3 script tag used local policy rules, switch its URL to
+`c15t.offline.js`. For manifest mode, custom transports or a page that selects
+its mode at runtime, use the root ES module `@c15t/browser`, which still
+accepts every mode. The headless script supports those modes with your own
+UI, and the IAB script supports them for IAB policies. The self-hosted
+backend's `/c15t.js` route now resolves policies through `/init`; its headless
+and IAB routes still preload the manifest. See the
+[script file reference](/docs/frameworks/html/attributes-and-api#script-files).
+
 ## Upgrade a self-hosted backend
 
 Deploy the v3 backend and the v3 clients in the same release. A v3 client
