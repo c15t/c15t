@@ -11,9 +11,11 @@ c15t: {
 },
 ```
 
-The module enables server manifest mode, fetches the snapshot during Nuxt
-setup and embeds it in private server configuration. The server init and
-manifest routes use it automatically; the full manifest stays out of public
+The module enables server manifest mode, fetches the snapshot during `nuxt build`
+or development setup and embeds it in private server configuration. `nuxt prepare`
+does not fetch a manifest, so dependency installation and type preparation do not
+require the backend. The server init and manifest routes use it automatically;
+the full manifest stays out of public
 runtime configuration. Production server startup does not run module setup
 or fetch another manifest.
 

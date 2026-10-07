@@ -28,7 +28,8 @@ export interface ConsentModuleOptions {
 	/**
 	 * Fetch and embed the server manifest during Nuxt build/dev setup.
 	 * Enables server manifest mode and requires an absolute upstream URL.
-	 * Policy edits need a rebuild; a fetch failure stops it. @default false
+	 * Skips `nuxt prepare`. Policy edits need a rebuild; a fetch failure
+	 * stops it. @default false
 	 */
 	buildManifest?: boolean;
 	/**

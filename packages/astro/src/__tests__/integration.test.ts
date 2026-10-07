@@ -90,25 +90,47 @@ describe('createOwnEntryResolver', () => {
 });
 
 describe('resolveOptions', () => {
-	it('buildManifest embeds the fetched snapshot in the virtual options', async () => {
-		const fetch = vi.fn<typeof globalThis.fetch>(() =>
-			Promise.resolve(Response.json(INLINE_MANIFEST))
-		);
-		vi.stubGlobal('fetch', fetch);
-		try {
-			const { calls } = await runSetup({
-				buildManifest: true,
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
-			});
-			const update = calls.updateConfig.mock.calls[0]?.[0];
-			const source = update.vite.plugins[0]?.load('\0virtual:c15t/options');
-			expect(source).toContain(JSON.stringify(INLINE_MANIFEST.revision));
-			expect(source).toContain('"schemaVersion":2');
-			expect(fetch).toHaveBeenCalledTimes(1);
-		} finally {
-			vi.unstubAllGlobals();
+	it.each(['build', 'dev'] as const)(
+		'buildManifest keeps the %s snapshot in server options only',
+		async (command) => {
+			const fetch = vi.fn<typeof globalThis.fetch>(() =>
+				Promise.resolve(Response.json(INLINE_MANIFEST))
+			);
+			vi.stubGlobal('fetch', fetch);
+			try {
+				const { calls } = await runSetup(
+					{
+						buildManifest: true,
+						mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+					},
+					{},
+					command
+				);
+				const update = calls.updateConfig.mock.calls[0]?.[0];
+				const [plugin] = update.vite.plugins;
+				const source = plugin.load('\0virtual:c15t/options', { ssr: true });
+				expect(source).toContain(JSON.stringify(INLINE_MANIFEST.revision));
+				expect(source).toContain('"schemaVersion":2');
+				for (const loadOptions of [undefined, { ssr: false }]) {
+					const clientSource = plugin.load(
+						'\0virtual:c15t/options',
+						loadOptions
+					);
+					const clientOptions = JSON.parse(
+						clientSource.replace(/^export default /u, '').replace(/;$/u, '')
+					);
+					expect(clientOptions.mode).toEqual({
+						backendURL: 'https://consent.example.com',
+						type: 'manifest',
+					});
+					expect(clientSource).not.toContain(INLINE_MANIFEST.revision);
+				}
+				expect(fetch).toHaveBeenCalledTimes(1);
+			} finally {
+				vi.unstubAllGlobals();
+			}
 		}
-	});
+	);
 
 	it('buildManifest fails the build on an upstream error', async () => {
 		vi.stubGlobal(

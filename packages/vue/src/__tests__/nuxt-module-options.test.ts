@@ -23,14 +23,17 @@ beforeAll(async () => {
 /** The parts of a Nuxt instance the module's setup touches. */
 const createNuxt = function createNuxt(
 	c15t: Record<string, unknown>,
-	ssr = true
+	ssr = true,
+	lifecycle: { _prepare?: boolean; dev?: boolean } = {}
 ): Nuxt {
 	return {
 		hook: () => () => undefined,
 		hooks: { addHooks: () => undefined, hook: () => () => undefined },
 		options: {
+			...lifecycle,
 			_requiredModules: {},
 			alias: {},
+			app: { baseURL: '/' },
 			build: { templates: [], transpile: [] },
 			buildDir: '/virtual/.nuxt',
 			c15t,
@@ -80,35 +83,71 @@ describe('colorScheme from the c15t config key', () => {
 });
 
 describe('buildManifest', () => {
-	test('embeds the manifest privately and enables server manifest mode', async () => {
-		const snapshot = {
-			branding: 'c15t',
-			revision: 'build-snapshot',
-			schemaVersion: 2,
-		};
+	test.each([false, true])(
+		'embeds the manifest privately with dev: %s',
+		async (dev) => {
+			const snapshot = {
+				branding: 'c15t',
+				revision: 'build-snapshot',
+				schemaVersion: 2,
+			};
+			const fetch = vi
+				.fn<typeof globalThis.fetch>()
+				.mockResolvedValue(Response.json(snapshot));
+			vi.stubGlobal('fetch', fetch);
+			try {
+				const nuxt = createNuxt(
+					{
+						backendURL: 'https://consent.example.com',
+						buildManifest: true,
+					},
+					true,
+					{ dev }
+				);
+				await runWithNuxtContext(nuxt, () => module({}, nuxt));
+				expect(nuxt.options.runtimeConfig.c15t).toMatchObject({
+					manifestSnapshot: snapshot,
+				});
+				expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
+					manifest: 'server',
+				});
+				expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
+					'manifestSnapshot'
+				);
+				expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
+					'buildManifest'
+				);
+				expect(fetch).toHaveBeenCalledTimes(1);
+			} finally {
+				vi.unstubAllGlobals();
+			}
+		}
+	);
+
+	test('prepares server mode without fetching a manifest', async () => {
 		const fetch = vi
 			.fn<typeof globalThis.fetch>()
-			.mockResolvedValue(Response.json(snapshot));
+			.mockRejectedValue(
+				new Error('backend unavailable during dependency installation')
+			);
 		vi.stubGlobal('fetch', fetch);
 		try {
-			const nuxt = createNuxt({
-				backendURL: 'https://consent.example.com',
-				buildManifest: true,
-			});
+			const nuxt = createNuxt(
+				{
+					backendURL: 'https://consent.example.com',
+					buildManifest: true,
+				},
+				true,
+				{ _prepare: true }
+			);
 			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			expect(fetch).not.toHaveBeenCalled();
 			expect(nuxt.options.runtimeConfig.c15t).toMatchObject({
-				manifestSnapshot: snapshot,
+				manifestSnapshot: undefined,
 			});
 			expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
 				manifest: 'server',
 			});
-			expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
-				'manifestSnapshot'
-			);
-			expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
-				'buildManifest'
-			);
-			expect(fetch).toHaveBeenCalledTimes(1);
 		} finally {
 			vi.unstubAllGlobals();
 		}

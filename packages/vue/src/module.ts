@@ -89,9 +89,10 @@ const addDevToolsTab = (
 	});
 };
 
-const loadNuxtBuildManifest = async (
+const loadNuxtBuildManifest = (
 	enabled: boolean | undefined,
-	options: ModuleOptions
+	options: ModuleOptions,
+	prepare: boolean
 ) => {
 	if (!enabled) {
 		return undefined;
@@ -99,9 +100,10 @@ const loadNuxtBuildManifest = async (
 	if (options.manifest === 'client') {
 		throw new Error('@c15t/vue: buildManifest requires server manifest mode.');
 	}
-	const snapshot = await loadBuildManifest(options, '@c15t/vue');
 	options.manifest = 'server';
-	return snapshot;
+	// `nuxt prepare` writes types during dependency installation. The
+	// build loads its own snapshot, so preparation needs no backend request.
+	return prepare ? undefined : loadBuildManifest(options, '@c15t/vue');
 };
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
@@ -132,7 +134,8 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		const resolver = createResolver(import.meta.url);
 		const manifestSnapshot = await loadNuxtBuildManifest(
 			buildManifest,
-			options
+			options,
+			nuxt.options._prepare
 		);
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);

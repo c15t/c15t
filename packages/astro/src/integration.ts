@@ -276,19 +276,27 @@ interface VitePluginLike {
 interface VirtualOptionsPlugin extends VitePluginLike {
 	name: string;
 	resolveId: (id: string) => string | undefined;
-	load: (id: string) => string | undefined;
+	load: (id: string, options?: { ssr?: boolean }) => string | undefined;
 }
 
 const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
 	resolved: C15tResolvedOptions
 ): VirtualOptionsPlugin {
 	const serialized = JSON.stringify(resolved);
+	let clientOptions = resolved;
+	if (resolved.mode.type === 'manifest') {
+		const { manifest: _manifest, ...mode } = resolved.mode;
+		clientOptions = { ...resolved, mode };
+	}
+	const serializedClient = JSON.stringify(clientOptions);
 	return {
-		load(id: string) {
+		load(id, options) {
 			if (id !== RESOLVED_VIRTUAL_ID) {
 				return undefined;
 			}
-			return `export default ${serialized};`;
+			// The browser initializes through /init. Only server middleware
+			// and routes need policy packs and the translation catalogue.
+			return `export default ${options?.ssr ? serialized : serializedClient};`;
 		},
 		name: 'c15t:options',
 		resolveId(id: string) {

@@ -18,6 +18,9 @@ the deployment's snapshot without fetching an upstream manifest, including
 on a fresh server instance. Request geography, language, privacy signals and
 stored consent still resolve per visitor.
 
+Astro keeps the snapshot out of browser bundles. Nuxt skips manifest fetching
+during `nuxt prepare`, including dependency installation and type preparation.
+
 Snapshots stay fixed until the next build. A manifest fetch failure stops
 the build. Framework quickstarts recommend build-time snapshots for supported
 production deployments, with runtime fetching for policy updates that need

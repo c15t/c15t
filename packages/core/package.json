@@ -215,6 +215,7 @@
 		"@c15t/vitest-config": "workspace:*",
 		"genversion": "3.2.0",
 		"typescript": "7.0.2",
+		"vite": "^6.0.0",
 		"vitest-localstorage-mock": "0.1.2"
 	},
 	"browserslist": [
