@@ -203,6 +203,7 @@ if (result.ok) {
 | `C15TError`, `isC15TError()` | `C15tError`, `isC15tError(error, ...codes)` |
 | `C15TClient`, `C15TClientOptions`, `RetryConfig`, `FetchOptions`, `ResponseContext` types | `C15tClient`, `C15tClientOptions`, `C15tRetryOptions`, `C15tCallOptions`, `C15tResult` |
 | Per-call `timeout`, `retryConfig` | `timeoutMs`, `retry` |
+| Per-call `body`, `query`, `method` | Removed. Pass the body and query as the method's arguments. |
 | `$fetch`, `fetcher`, `resolveUrl`, `createResponseContext` | Removed. Pass a custom `fetch` to `createC15tClient` if you need one. |
 | `createMockClient`, `createMockResponse`, `createMockErrorResponse` | `createMockC15tClient`, `ok`, `err` from `@c15t/node-sdk/testing` |
 
@@ -216,8 +217,8 @@ types and errors in files that create a client. It turns `type` strings into
 `types` arrays, and leaves a `TODO(c15t v3)` comment at each call, because
 results are now `{ ok, data }` or `{ ok, error }`. It renames per-call
 `timeout` and `retryConfig` too. It also marks `prefix`, `debug`, per-call
-`throw`, `onSuccess` and `onError`, and a client built from environment
-variables:
+`throw`, `onSuccess`, `onError`, `body`, `query` and `method`, and a client
+built from environment variables:
 
 ```bash
 npx @c15t/cli@alpha codemods node-sdk-to-v3 --dry-run --json

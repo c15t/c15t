@@ -174,7 +174,7 @@ export async function run(input, options) {
 			"await client.subjects.get('sub_1', { types: ['cookie_banner'] }, { timeoutMs: 100 });"
 		);
 		expect(first).toContain(
-			'\t// TODO(c15t v3): Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError and throw were removed.\n'
+			'\t// TODO(c15t v3): Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError, throw, body, query and method were removed.\n'
 		);
 		expect(first).toContain('await client.subjects.create(input, options);');
 		expect(first).not.toMatch(/retryConfig:|timeout:/u);
@@ -189,7 +189,7 @@ export async function run(input, options) {
 
 const client = c15tClient({ baseUrl: '/api' });
 
-export async function run(log, retryConfig, defaults) {
+export async function run(log, retryConfig, defaults, input, audited) {
 	await client.listSubjects(
 		{ externalId: 'x' },
 		{
@@ -200,6 +200,11 @@ export async function run(log, retryConfig, defaults) {
 	);
 	await client.checkConsent({ externalId: 'x', type: 'marketing_communications' }, { retryConfig });
 	await client.status({ ...defaults, timeout: 1 });
+	await client.createSubject(input, {
+		body: audited,
+		method: 'PUT',
+	});
+	await client.listSubjects({ externalId: 'x' }, { query: { externalId: 'y' } });
 }
 `,
 			{ fileName: 'calls.ts' }
@@ -214,13 +219,22 @@ export async function run(log, retryConfig, defaults) {
 		expect(updated).toContain(
 			'\t\t\t// TODO(c15t v3): retry takes only maxRetries, initialDelayMs and maxDelayMs, or false. backoffFactor, the status code lists and retryOnNetworkError were removed.\n\t\t\tretry: { maxRetries: 3, backoffFactor: 3 },'
 		);
+		expect(updated).toContain(
+			"\t// TODO(c15t v3): body was removed from call options, and v3 ignores it. Pass the request body as the method's input argument.\n\t\tbody: audited,"
+		);
+		expect(updated).toContain(
+			"/* TODO(c15t v3): query was removed from call options, and v3 ignores it. Pass the query as the method's request argument. */ query:"
+		);
+		expect(updated).toContain(
+			'// TODO(c15t v3): method was removed from call options. Each client method sends its own HTTP method.'
+		);
 		// A variable may carry the removed retry keys.
 		expect(updated).toContain(
 			'{ /* TODO(c15t v3): retry takes only maxRetries, initialDelayMs and maxDelayMs, or false. backoffFactor, the status code lists and retryOnNetworkError were removed. */ retry: retryConfig });'
 		);
 		// A spread may carry the old keys, so the call is marked as a whole.
 		expect(updated).toContain(
-			'\t// TODO(c15t v3): Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError and throw were removed.\n'
+			'\t// TODO(c15t v3): Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError, throw, body, query and method were removed.\n'
 		);
 		expect(updated).toContain(
 			'await client.status({ ...defaults, timeoutMs: 1 });'

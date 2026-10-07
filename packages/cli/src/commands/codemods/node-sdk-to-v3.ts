@@ -100,12 +100,17 @@ const FETCH_TODO = '$fetch was removed. Call the typed client methods.';
 const CLIENT_OPTIONS_TODO =
 	'createC15tClient() options changed: token is now apiKey, timeout is now timeoutMs and retryConfig is now retry. prefix and debug were removed, and baseUrl is required.';
 const CALL_OPTION_TODOS: Record<string, string> = {
+	body: "body was removed from call options, and v3 ignores it. Pass the request body as the method's input argument.",
+	method:
+		'method was removed from call options. Each client method sends its own HTTP method.',
 	onError: 'onError was removed. Check result.ok after the call.',
 	onSuccess: 'onSuccess was removed. Check result.ok after the call.',
+	query:
+		"query was removed from call options, and v3 ignores it. Pass the query as the method's request argument.",
 	throw: 'throw was removed. Wrap the call in unwrap() to throw on failure.',
 };
 const CALL_OPTIONS_TODO =
-	'Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError and throw were removed.';
+	'Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError, throw, body, query and method were removed.';
 
 interface Context {
 	clientDeclarations: TsMorphTypes.Node[];

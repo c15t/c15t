@@ -32,7 +32,7 @@ place, so type-checking fails at each one until you resolve it.
 | `callbacks-to-v3` | `onConsentChanged` to `onChoiceRecorded` | The `onChoiceRecorded` payload, `onConsentSet` and `onBannerFetched` |
 | `theme-to-consent-theme` | `theme.slots.consentDialogFooter` to `consentWidgetFooter` | Theme tokens, which need `ConsentTheme` or `generateThemeCSS()`, and `theme.slots.frame` |
 | `iab-option-to-iab-provider` | Nothing | The `iab` provider option, which moves to `IABProvider` |
-| `node-sdk-to-v3` | `c15tClient()` and `new C15TClient()` to `createC15tClient()`, client and per-call options, method names, type and error names | Each call site, `prefix`, `debug`, dropped retry options, and per-call `throw`, `onSuccess` and `onError` |
+| `node-sdk-to-v3` | `c15tClient()` and `new C15TClient()` to `createC15tClient()`, client and per-call options, method names, type and error names | Each call site, `prefix`, `debug`, dropped retry options, and per-call `throw`, `onSuccess`, `onError`, `body`, `query` and `method` |
 | `backend-config-to-v3` | `policyPacks` (as `policyRules`), `branding`, `customTranslations`, `i18n` and `appName` into `manifest` | `adapter`, `disableGeoLocation`, `iab`, `cache`, `logger`, `telemetry`, `tablePrefix`, `background` and removed entries |
 
 v2 still accepted the deprecated `translations` option, and v3 removes it.
