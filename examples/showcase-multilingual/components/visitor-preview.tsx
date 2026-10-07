@@ -4,6 +4,10 @@ import { useInit, useModel, useOverrides, useSetOverrides } from 'c15t/next';
 import { useEffect, useId } from 'react';
 
 import type { Dictionary } from '@/lib/dictionaries';
+import {
+	readPreviewVisitor,
+	rememberPreviewVisitor,
+} from '@/lib/visitor-storage';
 
 const visitors = [
 	{ country: 'DE', key: 'de', region: undefined },
@@ -12,10 +16,6 @@ const visitors = [
 ] as const;
 
 type Visitor = (typeof visitors)[number];
-
-// Remembered for the tab, so the preview survives a reload or a language
-// switch the way a real visitor's location would.
-const STORAGE_KEY = 'northwind-preview-visitor';
 
 /**
  * Shows the shop as a visitor from another region sees it. c15t matches the
@@ -37,13 +37,12 @@ export const VisitorPreview = ({ copy }: { copy: Dictionary['preview'] }) => {
 		// Changing the location alone keeps the current policy. Init resolves
 		// the rules again for the new one.
 		void init();
-		sessionStorage.setItem(STORAGE_KEY, visitor.key);
+		rememberPreviewVisitor(visitor.key);
 	};
 
 	useEffect(() => {
-		const saved = visitors.find(
-			({ key }) => key === sessionStorage.getItem(STORAGE_KEY)
-		);
+		const savedKey = readPreviewVisitor();
+		const saved = visitors.find(({ key }) => key === savedKey);
 		if (saved) {
 			setOverrides({ country: saved.country, region: saved.region });
 			void init();
