@@ -9,7 +9,7 @@
  */
 
 // Import constants directly to avoid Zod
-import { brandingValues } from './shared/constants';
+import { brandingValues, hostingValues } from './shared/constants';
 
 // API types - Consent (v2.0: only check endpoint remains)
 export type {
@@ -79,12 +79,14 @@ export {
 
 // Shared types - derived from constants without Zod
 export type Branding = (typeof brandingValues)[number];
+export type Hosting = (typeof hostingValues)[number];
 
 export type {
 	ConsentManifest,
 	ConsentManifestBranding,
 	ConsentManifestConfig,
 	ConsentManifestGVLReference,
+	ConsentManifestHosting,
 	ConsentManifestIAB,
 	ConsentManifestPolicyFailure,
 	ConsentManifestPolicyPack,
@@ -287,7 +289,7 @@ export type {
 	PolicyValidationResult,
 } from './shared/policy-runtime';
 // Re-export constants for runtime checks (no Zod involved)
-export { brandingValues };
+export { brandingValues, hostingValues };
 
 export type {
 	LegacyMaterialCompatibility,

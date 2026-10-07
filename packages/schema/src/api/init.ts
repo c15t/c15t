@@ -2,6 +2,7 @@ import * as v from 'valibot';
 
 import { brandingSchema } from '~/shared/branding';
 import { globalVendorListSchema } from '~/shared/gvl';
+import { hostingSchema } from '~/shared/hosting';
 import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
 import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
 import { vendorSchema } from '~/shared/vendor';
@@ -147,6 +148,13 @@ export const initOutputSchema = v.object({
 			vendorListVersion: v.number(),
 		})
 	),
+	/**
+	 * Who runs the backend that answered: `inth` for inth's hosted platform,
+	 * `self-hosted` for any other `@c15t/backend`. Informational only: it is
+	 * not signed, so a backend can report either value. Absent from backends
+	 * that predate the field and from transports with no backend.
+	 */
+	hosting: v.optional(hostingSchema),
 	location: locationSchema,
 	/** Explicit, versioned policy outcome for every complete response. */
 	policyResolution: policyResolutionWireSchema,

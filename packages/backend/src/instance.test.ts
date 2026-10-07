@@ -414,3 +414,60 @@ describe('tenant configuration', () => {
 		}
 	});
 });
+
+describe('hosting', () => {
+	const serve = async (
+		options: Omit<C15TOptions, 'database'>,
+		path: string
+	): Promise<unknown> => {
+		const instance = c15tInstance({
+			database: { dialect: 'sqlite', filename: ':memory:' },
+			...options,
+		});
+		try {
+			const response = await instance.handler(
+				new Request(`http://localhost${path}`)
+			);
+			assert.strictEqual(response.status, 200);
+			return await response.json();
+		} finally {
+			await instance.dispose();
+		}
+	};
+
+	it('reports self-hosted on /init and /manifest by default', async () => {
+		expect(await serve({}, '/init')).toMatchObject({ hosting: 'self-hosted' });
+		expect(await serve({}, '/manifest')).toMatchObject({
+			hosting: 'self-hosted',
+		});
+	});
+
+	it('reports inth when the instance says so', async () => {
+		const options = { hosting: 'inth' } as const;
+		expect(await serve(options, '/init')).toMatchObject({ hosting: 'inth' });
+		expect(await serve(options, '/manifest')).toMatchObject({
+			hosting: 'inth',
+		});
+	});
+
+	it('refuses a value no client understands', () => {
+		// Every /init is validated against the schema, so a typo would fail
+		// each response instead of the deploy.
+		expect(() =>
+			c15tInstance({
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				hosting: 'inth.com' as unknown as 'inth',
+			})
+		).toThrow(/hosting must be one of "inth", "self-hosted"/u);
+	});
+
+	it('refuses hosting set on the manifest instead of the instance', () => {
+		const manifest = { hosting: 'inth' } as ConsentManifestConfig;
+		expect(() =>
+			c15tInstance({
+				database: { dialect: 'sqlite', filename: ':memory:' },
+				manifest,
+			})
+		).toThrow(/manifest\.hosting is not supported/u);
+	});
+});

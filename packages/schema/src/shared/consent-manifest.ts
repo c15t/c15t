@@ -2,7 +2,7 @@ import type { Translations } from '@c15t/translations';
 import type { BaseTranslations } from '@c15t/translations/all';
 
 import type { InitOutput } from '../api/init';
-import type { brandingValues } from './constants';
+import type { brandingValues, hostingValues } from './constants';
 import { createDeterministicFingerprintSync } from './policy-fingerprint';
 import {
 	matchPolicyRules,
@@ -20,6 +20,7 @@ import type { I18nOptions, LoggerLike } from './translations-runtime';
 import type { Vendor } from './vendor';
 
 export type ConsentManifestBranding = (typeof brandingValues)[number];
+export type ConsentManifestHosting = (typeof hostingValues)[number];
 
 export interface ConsentManifestGVLReference {
 	version?: number | string;
@@ -63,6 +64,11 @@ export interface ConsentManifest {
 	tenantId?: string;
 	appName?: string;
 	branding: ConsentManifestBranding;
+	/**
+	 * Who runs the backend that produced this manifest. Copied onto every
+	 * `/init` resolved from it. Absent from producers that do not say.
+	 */
+	hosting?: ConsentManifestHosting;
 	policyPacks?: ConsentManifestPolicyPack[];
 	/**
 	 * Present when the configured rules were invalid. Every request then
@@ -301,6 +307,7 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 
 	return {
 		branding: manifest.branding,
+		...(manifest.hosting !== undefined && { hosting: manifest.hosting }),
 		location,
 		policyResolution,
 		translations: responseTranslations as InitOutput['translations'],
@@ -332,6 +339,11 @@ export const resolveInitFromManifest = function resolveInitFromManifest(
 export interface ConsentManifestConfig {
 	readonly appName?: string;
 	readonly branding?: ConsentManifest['branding'];
+	/**
+	 * Who runs the backend. `@c15t/backend` sets this from its own `hosting`
+	 * option rather than reading it from tenant configuration.
+	 */
+	readonly hosting?: ConsentManifest['hosting'];
 	readonly policyRules?: readonly PolicyRule[];
 	readonly customTranslations?: ConsentManifest['translations'] extends
 		| { customTranslations?: infer T }
@@ -415,6 +427,7 @@ export const buildConsentManifestFromConfig =
 			appName: config.appName,
 			branding: config.branding || 'c15t',
 			cmpId: config.iab?.cmpId,
+			...(config.hosting !== undefined && { hosting: config.hosting }),
 			iab: buildGvlReference(config),
 			policyFailure,
 			policyPacks,

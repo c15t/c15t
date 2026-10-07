@@ -901,6 +901,23 @@ describe('windowDebug', () => {
 		runtime.dispose();
 	});
 
+	test('reports the hosting the init response named', async () => {
+		const runtime = createConsentRuntime({
+			mode: custom(
+				createTransport({
+					init: vi.fn().mockResolvedValue({ hosting: 'inth' }),
+				})
+			),
+		});
+
+		runtime.start();
+		expect((window as DebugWindow).c15t).toMatchObject({ hosting: null });
+
+		await runtime.kernel.commands.init();
+		expect((window as DebugWindow).c15t).toMatchObject({ hosting: 'inth' });
+		runtime.dispose();
+	});
+
 	test('leaves window.c15t alone when turned off', () => {
 		const owned = { mine: true };
 		(window as DebugWindow).c15t = owned;
