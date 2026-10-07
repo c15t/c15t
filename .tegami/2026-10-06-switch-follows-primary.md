@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/react': patch
-  '@c15t/browser': patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Switches follow the theme's primary color

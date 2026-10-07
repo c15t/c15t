@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/iab': major
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(npm:@c15t/iab)
 ---
 
 ### Accept All consents only to purposes your vendors declare

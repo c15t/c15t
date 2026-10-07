@@ -1,3 +1,31 @@
+## @c15t/cli@3.0.0-alpha.6 (alpha)
+
+### Add codemods for the rest of the v2 to v3 upgrade
+
+`c15t codemods` gains eleven v3 transforms. Each runs only when you name it.
+
+- `consent-provider-options` renames `ConsentManagerProvider` to
+  `ConsentProvider` and moves its options to `hosted()`,
+  `offline({ policyRules })` and `iframeBlocker`.
+- `root-exports-to-subpaths` moves imports that left the `c15t/react` and
+  `c15t/next` roots to their subpaths.
+- `dev-tools-to-c15t` points `@c15t/dev-tools/react` and `/tanstack` at
+  `c15t/next/devtools` or `c15t/react/devtools`.
+- `policy-packs-to-policy-rules` renames `policyPackPresets` to
+  `policyRulePresets` and `worldNoBanner()` to `worldOptOutNoPrompt()`.
+- `css-variables-to-v3` renames `--consent-widget-*` and `--frame-*`.
+- `postcss-tailwind3` adds the c15t plugin before `tailwindcss` in an
+  object-form `postcss.config`.
+- `callbacks-to-v3`, `theme-to-consent-theme` and `iab-option-to-iab-provider`
+  rename what they can and mark the rest for manual work.
+- `node-sdk-to-v3` moves `@c15t/node-sdk` code to `createC15tClient()`.
+- `backend-config-to-v3` moves `policyPacks`, `branding`, `customTranslations`,
+  `i18n` and `appName` under `manifest`.
+
+Where a change needs a decision, the codemods leave a `TODO(c15t v3)` comment,
+and most keep the v2 code so type-checking fails until you finish. Run them with
+`--dry-run --json` first to review.
+
 ## @c15t/cli@3.0.0-alpha.5 (alpha)
 
 ### Save consent when the decision table's unique index differs

@@ -1,3 +1,40 @@
+## @c15t/ui@3.0.0-alpha.6 (alpha)
+
+### Build Next.js Pages Router apps without `transpilePackages`
+
+A Next.js app with only a `pages/` directory builds with c15t's stock dialog.
+Before, webpack builds failed with "Global CSS cannot be imported from within
+node_modules" unless the app set `transpilePackages`, and Turbopack failed on
+linked installs.
+
+`styles.css` includes the preference dialog and widget rules again, and no
+`@c15t/react` or `@c15t/ui` module imports CSS. The render-blocking stylesheet
+grows by about 4.5 kB gzip.
+
+`@c15t/ui/styles/dialog.css`, the `@c15t/ui/styles/dialog` module and
+`c15t/astro/dialog.css` are now empty. They still resolve, so existing imports
+keep building. Remove them.
+
+### Open DevTools from the consent trigger toolbar
+
+With `<ConsentDevTools>` mounted next to a visible `ConsentDialogTriggerToolbar`
+or `ConsentDialogTrigger`, the trigger shows a DevTools button and DevTools
+hides its floating launcher, so the two no longer overlap.
+`ConsentDialogTrigger` becomes a two-button toolbar. The panel opens beside the
+toolbar and follows it when dragged. DevTools restores its own launcher when no
+trigger is visible.
+
+For hosts that render their own launcher, DevTools instances gain
+`dock(placement | null)` and `DevToolsState` reports the current `dock`.
+
+### Switches follow the theme's primary color
+
+The active switch track defaults to the primary color, in the light and dark
+palettes and in a stylesheet that sets `--c15t-primary` directly. Before, a
+theme that set `colors.primary` without `colors.switchTrackActive` kept the
+switches blue. Set `colors.switchTrackActive` or `--c15t-switch-track-active`
+for a different color. The default theme looks the same.
+
 ## @c15t/ui@3.0.0-alpha.5 (alpha)
 
 ### React provider on the shared runtime

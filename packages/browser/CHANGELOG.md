@@ -1,3 +1,102 @@
+## @c15t/browser@3.0.0-alpha.6 (alpha)
+
+### Keep development warnings out of production builds
+
+Development warnings, such as "Vendor … has no declaration", printed in
+production browser builds. They now read `process.env.NODE_ENV`, which
+bundlers replace at build time. Without a bundler or `process`, the warnings
+still show.
+
+### Report who runs the backend as `window.c15t.hosting`
+
+`c15tInstance()` takes a `hosting` option, `'self-hosted'` by default or `'inth'` on Inth's platform. `/init` and `/manifest` report it, and the browser exposes it as `window.c15t.hosting` and the snapshot's `hosting`. It is not signed, so treat it as a debugging signal.
+
+### Build Next.js Pages Router apps without `transpilePackages`
+
+A Next.js app with only a `pages/` directory builds with c15t's stock dialog.
+Before, webpack builds failed with "Global CSS cannot be imported from within
+node_modules" unless the app set `transpilePackages`, and Turbopack failed on
+linked installs.
+
+`styles.css` includes the preference dialog and widget rules again, and no
+`@c15t/react` or `@c15t/ui` module imports CSS. The render-blocking stylesheet
+grows by about 4.5 kB gzip.
+
+`@c15t/ui/styles/dialog.css`, the `@c15t/ui/styles/dialog` module and
+`c15t/astro/dialog.css` are now empty. They still resolve, so existing imports
+keep building. Remove them.
+
+### Open DevTools from the script-tag consent trigger
+
+When DevTools is mounted next to the stock floating trigger, through
+`mountDevTools` or the `c15t.devtools.js` tag, the trigger becomes a toolbar
+with a DevTools button and DevTools hides its own launcher. The panel opens
+beside the toolbar and follows it when dragged. The tags can load in either
+order.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Switches follow the theme's primary color
+
+The active switch track defaults to the primary color, in the light and dark
+palettes and in a stylesheet that sets `--c15t-primary` directly. Before, a
+theme that set `colors.primary` without `colors.switchTrackActive` kept the
+switches blue. Set `colors.switchTrackActive` or `--c15t-switch-track-active`
+for a different color. The default theme looks the same.
+
+### Closing the dialog brings back a banner the visitor still owes
+
+Closing preferences with Escape, `closeUI()` or `closeDialog()` left no banner
+and no dialog, even when the policy still required a choice. Closing the dialog
+leaves the same surface a save would. The banner returns while a choice or
+notice is owed. `showConsentSurface(kernel, 'none')` follows the same rule while
+the dialog is open.
+
+`useHeadlessIABConsentUI()` from `@c15t/react/iab` no longer flashes the banner
+while the TC string encodes. The Vue dialog no longer handles one Escape press
+twice.
+
+### Make hosted mode the default browser bundle
+
+`c15t.js` is the hosted script-tag bundle and requires a backend URL
+or a hosted transport factory. Use the new `c15t.offline.js` for browser-only
+policy resolution. For manifest or custom mode with the stock UI, use the
+`@c15t/browser` ES module. The headless and IAB scripts still support those
+modes.
+
+New `@c15t/browser/hosted` and `@c15t/browser/offline` ES module entries keep
+the stock UI and leave out code for other modes. Each rejects configuration
+for another mode.
+
+The self-hosted backend's `/c15t.js` route serves the hosted bundle with its
+backend URL configured and resolves policies through `/init`.
+
 ## @c15t/browser@3.0.0-alpha.5 (alpha)
 
 ### Runtime for framework providers

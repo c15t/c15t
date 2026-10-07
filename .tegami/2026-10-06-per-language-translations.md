@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/translations': minor
+  "@c15t/translations":
+    replay:
+      - exit-prerelease(npm:@c15t/translations)
 ---
 
 ### Import one language at a time

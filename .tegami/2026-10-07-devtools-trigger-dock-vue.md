@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/vue': minor
-  c15t: minor
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Open DevTools from the Vue consent trigger

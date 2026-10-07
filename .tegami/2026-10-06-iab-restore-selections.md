@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/iab': patch
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(npm:@c15t/iab)
 ---
 
 ### Show saved IAB choices in the preference dialog after a reload

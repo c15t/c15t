@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/core': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Report a spent request budget as 0 ms

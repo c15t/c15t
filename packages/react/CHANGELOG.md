@@ -1,3 +1,123 @@
+## @c15t/react@3.0.0-alpha.6 (alpha)
+
+### Keep development warnings out of production builds
+
+Development warnings, such as "Vendor … has no declaration", printed in
+production browser builds. They now read `process.env.NODE_ENV`, which
+bundlers replace at build time. Without a bundler or `process`, the warnings
+still show.
+
+### Build Next.js Pages Router apps without `transpilePackages`
+
+A Next.js app with only a `pages/` directory builds with c15t's stock dialog.
+Before, webpack builds failed with "Global CSS cannot be imported from within
+node_modules" unless the app set `transpilePackages`, and Turbopack failed on
+linked installs.
+
+`styles.css` includes the preference dialog and widget rules again, and no
+`@c15t/react` or `@c15t/ui` module imports CSS. The render-blocking stylesheet
+grows by about 4.5 kB gzip.
+
+`@c15t/ui/styles/dialog.css`, the `@c15t/ui/styles/dialog` module and
+`c15t/astro/dialog.css` are now empty. They still resolve, so existing imports
+keep building. Remove them.
+
+### `ConsentRoot` starts consented scripts sooner
+
+In Next.js and TanStack Start, `ConsentRoot` starts downloading the script
+loader during its first render when stored consent already allows one of its
+`scripts`, instead of after hydration. There is nothing to configure.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Open DevTools from the consent trigger toolbar
+
+With `<ConsentDevTools>` mounted next to a visible `ConsentDialogTriggerToolbar`
+or `ConsentDialogTrigger`, the trigger shows a DevTools button and DevTools
+hides its floating launcher, so the two no longer overlap.
+`ConsentDialogTrigger` becomes a two-button toolbar. The panel opens beside the
+toolbar and follows it when dragged. DevTools restores its own launcher when no
+trigger is visible.
+
+For hosts that render their own launcher, DevTools instances gain
+`dock(placement | null)` and `DevToolsState` reports the current `dock`.
+
+### Switches follow the theme's primary color
+
+The active switch track defaults to the primary color, in the light and dark
+palettes and in a stylesheet that sets `--c15t-primary` directly. Before, a
+theme that set `colors.primary` without `colors.switchTrackActive` kept the
+switches blue. Set `colors.switchTrackActive` or `--c15t-switch-track-active`
+for a different color. The default theme looks the same.
+
+### Closing the dialog brings back a banner the visitor still owes
+
+Closing preferences with Escape, `closeUI()` or `closeDialog()` left no banner
+and no dialog, even when the policy still required a choice. Closing the dialog
+leaves the same surface a save would. The banner returns while a choice or
+notice is owed. `showConsentSurface(kernel, 'none')` follows the same rule while
+the dialog is open.
+
+`useHeadlessIABConsentUI()` from `@c15t/react/iab` no longer flashes the banner
+while the TC string encodes. The Vue dialog no longer handles one Escape press
+twice.
+
+### Link IAB vendors to their privacy policies
+
+The IAB preference dialog showed empty privacy policy links for every vendor
+because GVL v3 dropped the `policyUrl` field. The links now come from each
+vendor's `urls[]`, in the dialog's language with English as the fallback.
+
+`@c15t/iab/headless` exports `resolveIABVendorUrls(vendor, language)` for
+custom preference UIs, and `processGVLForDialog` takes a `language`.
+
+### Export category, cleanup and policy types from the framework entries
+
+You can type `consentCategories`, `clearOnRevocation` and
+`offline({ policyRules })` from the same import as the provider.
+
+- `c15t/react`, `c15t/next` and `c15t/tanstack-start` add `AllConsentNames`,
+  `ClearOnRevocationConfig`, `PolicyRule` and `policyRulePresets`.
+- `@c15t/svelte` adds `ClearOnRevocationConfig`, `PolicyRule` and
+  `policyRulePresets`.
+- `c15t/astro` adds `ClearOnRevocationConfig`.
+- `c15t/vue` adds `AllConsentNames` and `ClearOnRevocationConfig`.
+
+Importing them from `c15t` keeps working.
+
+### `ConsentProvider` requests `/init` sooner
+
+In a client render, `ConsentProvider` with `hosted()` and no `prefetch` sends
+`/init` during its first render instead of after mount, so the banner shows
+sooner (about 38 ms on a throttled mobile profile). Server renders, hydration
+and apps with a `prefetch` or `ConsentRoot` keep the previous timing.
+
 ## @c15t/react@3.0.0-alpha.5 (alpha)
 
 ### One preference draft for every framework
