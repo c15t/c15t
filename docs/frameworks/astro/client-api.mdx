@@ -108,7 +108,7 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 
 | Member | Does |
 | --- | --- |
-| `client.acceptAll()` | Saves a grant for every category the policy covers. Under an IAB policy, the CMP sets vendor and purpose consent for declared consent purposes, separate legitimate-interest signals for declared legitimate-interest purposes, and opt-ins for declared special features. The TC string records these signals. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy) |
+| `client.acceptAll()` | Without IAB, saves a grant for every category in scope. Under an IAB policy, an optional category is granted only if a listed or custom vendor declares a consent purpose mapped to it after publisher restrictions apply. The CMP sets vendor and purpose consent for declared consent purposes, separate legitimate-interest signals for declared legitimate-interest purposes, and opt-ins for declared special features. The TC string records these signals. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy) |
 | `client.rejectAll()` | Saves a rejection of everything except `necessary`, through the CMP under an IAB policy |
 | `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }`. A `vendors` map, such as `{ vendors: { posthog: false } }`, saves vendor switches too |
 | `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |

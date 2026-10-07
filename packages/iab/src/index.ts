@@ -213,7 +213,13 @@ export interface IABHandle {
 	setPurposeLegitimateInterest: (purposeId: number, value: boolean) => void;
 	/** Opt in/out of a special feature (1 = geo, 2 = device ID). */
 	setSpecialFeatureOptIn: (featureId: number, value: boolean) => void;
-	/** Flip every vendor + purpose consent to true. */
+	/**
+	 * Grant vendor and purpose consent for declared consent purposes,
+	 * legitimate-interest signals for declared legitimate-interest purposes,
+	 * and opt-ins for declared special features. Includes custom vendors and
+	 * respects publisher restrictions. Undeclared purposes and special features
+	 * remain denied. Call `save()` to encode and persist the choice.
+	 */
 	acceptAll: () => void;
 	/** Flip every vendor + purpose consent to false. */
 	rejectAll: () => void;
@@ -286,8 +292,9 @@ const readIAB = function readIAB(kernel: ConsentKernel) {
 };
 
 /**
- * Flip every vendor / purpose / legit-interest / special-feature to the
- * same value. Used by acceptAll / rejectAll.
+ * Accept All grants only declared processing on each legal basis after
+ * publisher restrictions, including custom vendors. Reject All clears vendor,
+ * purpose, legitimate-interest and special-feature signals.
  */
 const applyBlanket = function applyBlanket(
 	kernel: ConsentKernel,

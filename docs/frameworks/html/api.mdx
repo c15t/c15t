@@ -122,7 +122,7 @@ Call these only in response to a visitor's click or key press, never at load.
 
 | Method | What it records |
 | --- | --- |
-| `acceptAll()` | Allows every category the dialog offers. Under an IAB policy it confirms through the CMP. |
+| `acceptAll()` | Without IAB, allows every category the dialog offers. Under an IAB policy it confirms the vendors' declared processing through the CMP. Optional categories without declared consent purposes remain denied. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy). |
 | `rejectAll()` | Denies every optional category the dialog offers. |
 | `save(choices)` | The categories you name, such as `{ measurement: true, marketing: false }`. Categories the dialog does not offer are ignored. A `vendors` map, such as `{ vendors: { 'x-pixel': false } }`, records vendor switches too. Fails under an IAB policy; use `saveIAB()`. |
 | `saveIAB()` | Confirms the IAB purpose and vendor choices set on the CMP. `c15t.iab.js` only. See [IAB TCF](/docs/frameworks/html/iab). |
