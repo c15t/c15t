@@ -92,7 +92,10 @@ const completionContext = (
 	};
 };
 
+type ElementCompletion = 'load' | 'error';
+
 interface ElementObserver {
+	complete: (completion: ElementCompletion) => void;
 	scriptId: string;
 	stop: () => void;
 }
@@ -102,6 +105,9 @@ const elementObservers = new WeakMap<
 	HTMLScriptElement,
 	Map<MountDeps, Map<string, ElementObserver>>
 >();
+
+// Keep physical completion when another registration joins after the event.
+const elementCompletions = new WeakMap<HTMLScriptElement, ElementCompletion>();
 
 // A batched resource is not in the DOM yet, but later registrations reuse it.
 const pendingResources = new WeakMap<
@@ -137,10 +143,12 @@ const observeElement = (
 		element.isConnected &&
 		document.getElementById(elementId) === element &&
 		isRegisteredElement();
-	const onLoad = () => {
-		if (!isCurrentElement()) {
+	let completed = false;
+	const complete = (completion: ElementCompletion) => {
+		if (completed || !isCurrentElement()) {
 			return;
 		}
+		completed = true;
 		const current = completionContext(
 			deps,
 			script,
@@ -149,63 +157,62 @@ const observeElement = (
 			element
 		);
 		if (current?.info) {
-			invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+			const info =
+				completion === 'error'
+					? {
+							...current.info,
+							error: new Error(`Failed to load script: ${current.script.src}`),
+						}
+					: current.info;
+			invokeCallback(
+				current.script,
+				completion === 'load' ? 'onLoad' : 'onError',
+				info,
+				deps.emit
+			);
 		}
 		if (!isRegisteredElement()) {
 			return;
 		}
 		deps.emit({
-			action: 'load_completed',
+			action: completion === 'load' ? 'load_completed' : 'error',
 			elementId,
-			message: 'Script finished loading',
+			message:
+				completion === 'load'
+					? 'Script finished loading'
+					: `Script failed: ${script.src}`,
 			scope: 'lifecycle',
 			scriptId: script.id,
 			source: 'script-loader',
 			timestamp: Date.now(),
 		});
 	};
+	const onLoad = () => {
+		elementCompletions.set(element, 'load');
+		complete('load');
+	};
 	const onError = () => {
-		if (!isCurrentElement()) {
-			return;
-		}
-		const current = completionContext(
-			deps,
-			script,
-			hasConsent,
-			elementId,
-			element
-		);
-		if (current?.info) {
-			const errorInfo = {
-				...current.info,
-				error: new Error(`Failed to load script: ${script.src}`),
-			};
-			invokeCallback(current.script, 'onError', errorInfo, deps.emit);
-		}
-		if (!isRegisteredElement()) {
-			return;
-		}
-		deps.emit({
-			action: 'error',
-			elementId,
-			message: `Script failed: ${script.src}`,
-			scope: 'lifecycle',
-			scriptId: script.id,
-			source: 'script-loader',
-			timestamp: Date.now(),
-		});
+		elementCompletions.set(element, 'error');
+		complete('error');
 	};
 	if (script.src) {
 		element.addEventListener('load', onLoad);
 		element.addEventListener('error', onError);
 	}
 	registrations.set(script.id, {
+		complete,
 		scriptId: script.id,
 		stop: () => {
+			completed = true;
 			element.removeEventListener('load', onLoad);
 			element.removeEventListener('error', onError);
 		},
 	});
+	const completion = elementCompletions.get(element);
+	if (completion) {
+		// Adoption's consent callback and reconcile finish before completion.
+		queueMicrotask(() => complete(completion));
+	}
 };
 
 /** Release a loader's listeners and transfer its resource to a surviving loader. @internal */
@@ -256,21 +263,13 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 		return;
 	}
 	if (!script.src) {
-		// Defer inline completion until parsing, and ignore obsolete mounts.
+		// Inline adopters share completion even if the original loader is gone.
 		setTimeout(() => {
-			if (
-				!deps.isDisposed() &&
-				deps.loadedElements.get(script.id) === element
-			) {
-				const current = completionContext(
-					deps,
-					script,
-					hasConsent,
-					elementId,
-					element
-				);
-				if (current?.info) {
-					invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+			elementCompletions.set(element, 'load');
+			for (const registrations of elementObservers.get(element)?.values() ??
+				[]) {
+				for (const observer of registrations.values()) {
+					observer.complete('load');
 				}
 			}
 		}, 0);

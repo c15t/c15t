@@ -135,6 +135,184 @@ test('retains shared registrations added after a resource is mounted', () => {
 	expect(element?.isConnected).toBe(false);
 });
 
+test.each(['load', 'error'] as const)(
+	'delivers completed %s when a shared registration receives consent later',
+	async (event) => {
+		const firstCompletion = vi.fn();
+		const lateCompletion = vi.fn();
+		const first: Script = {
+			category: 'necessary',
+			id: 'completed-first',
+			onError: firstCompletion,
+			onLoad: firstCompletion,
+			resourceKey: 'completed-consent',
+			src: 'https://example.com/shared.js',
+		};
+		const late: Script = {
+			...first,
+			category: 'functionality',
+			id: 'completed-late',
+			onError: lateCompletion,
+			onLoad: lateCompletion,
+		};
+		const { kernel } = mount([first, late]);
+		const element = document.head.querySelector('script');
+		element?.dispatchEvent(new Event(event));
+		expect(firstCompletion).toHaveBeenCalledOnce();
+		expect(lateCompletion).not.toHaveBeenCalled();
+		await kernel.commands.save({ functionality: true, measurement: true });
+		await Promise.resolve();
+		expect(lateCompletion).toHaveBeenCalledOnce();
+		expect(lateCompletion).toHaveBeenCalledWith(
+			expect.objectContaining({ element, hasConsent: true, id: late.id })
+		);
+		expect(lateCompletion.mock.calls[0]?.[0].error instanceof Error).toBe(
+			event === 'error'
+		);
+		expect(document.head.querySelectorAll('script')).toHaveLength(1);
+		await kernel.commands.save({ functionality: true, measurement: false });
+		await Promise.resolve();
+		expect(lateCompletion).toHaveBeenCalledOnce();
+	}
+);
+
+test.each(['load', 'error'] as const)(
+	'delivers completed %s to a later loader after the original loader is removed',
+	async (event) => {
+		const completion = vi.fn();
+		const first: Script = {
+			category: 'necessary',
+			id: 'completed-owner',
+			resourceKey: 'completed-loaders',
+			src: 'https://example.com/shared.js',
+		};
+		const owner = mount([first]);
+		const element = document.head.querySelector('script');
+		element?.dispatchEvent(new Event(event));
+		mount([
+			{
+				...first,
+				id: 'completed-survivor',
+				onError: completion,
+				onLoad: completion,
+			},
+		]);
+		owner.loader.dispose();
+		await Promise.resolve();
+		expect(completion).toHaveBeenCalledOnce();
+		expect(completion).toHaveBeenCalledWith(
+			expect.objectContaining({ element, id: 'completed-survivor' })
+		);
+		expect(element?.isConnected).toBe(true);
+	}
+);
+
+test.each([false, true])(
+	'delivers shared inline completion to a late registration, already completed=%s',
+	async (completed) => {
+		const firstLoad = vi.fn();
+		const lateLoad = vi.fn();
+		const first: Script = {
+			category: 'necessary',
+			id: 'completed-inline-first',
+			onLoad: firstLoad,
+			resourceKey: 'completed-inline',
+			textContent: `document.body.dataset.runs = String(Number(document.body.dataset.runs ?? 0) + 1);`,
+		};
+		const owner = mount([first]);
+		if (completed) {
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+		}
+		mount([{ ...first, id: 'completed-inline-late', onLoad: lateLoad }]);
+		owner.loader.dispose();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(firstLoad).toHaveBeenCalledTimes(completed ? 1 : 0);
+		expect(lateLoad).toHaveBeenCalledOnce();
+		expect(document.body.dataset.runs).toBe('1');
+	}
+);
+
+test('cancels a completed resource notification when its late registration is disposed', async () => {
+	const first: Script = {
+		category: 'necessary',
+		id: 'completed-dispose-first',
+		resourceKey: 'completed-dispose',
+		src: 'https://example.com/shared.js',
+	};
+	mount([first]);
+	document.head.querySelector('script')?.dispatchEvent(new Event('load'));
+	const load = vi.fn();
+	const late = mount([
+		{ ...first, id: 'completed-dispose-late', onLoad: load },
+	]);
+	late.loader.dispose();
+	await Promise.resolve();
+	expect(load).not.toHaveBeenCalled();
+});
+
+test('does not repeat queued completion after a late registration is removed and remounted', async () => {
+	const first: Script = {
+		category: 'necessary',
+		id: 'completed-remount-first',
+		resourceKey: 'completed-remount',
+		src: 'https://example.com/shared.js',
+	};
+	mount([first]);
+	document.head.querySelector('script')?.dispatchEvent(new Event('load'));
+	const previousLoad = vi.fn();
+	const currentLoad = vi.fn();
+	const late: Script = {
+		...first,
+		id: 'completed-remount-late',
+		onLoad: previousLoad,
+	};
+	const { loader } = mount([late]);
+	loader.updateScripts([]);
+	loader.updateScripts([{ ...late, onLoad: currentLoad }]);
+	await Promise.resolve();
+	expect(previousLoad).not.toHaveBeenCalled();
+	expect(currentLoad).toHaveBeenCalledOnce();
+});
+
+test.each(['load', 'error'] as const)(
+	'delivers queued %s with the latest callbacks and consent',
+	async (event) => {
+		const first: Script = {
+			category: 'necessary',
+			id: 'completed-current-first',
+			resourceKey: 'completed-current',
+			src: 'https://example.com/shared.js',
+		};
+		mount([first]);
+		document.head.querySelector('script')?.dispatchEvent(new Event(event));
+		const previousCompletion = vi.fn();
+		const currentCompletion = vi.fn();
+		const late: Script = {
+			...first,
+			alwaysLoad: true,
+			category: 'measurement',
+			id: 'completed-current-late',
+			onError: previousCompletion,
+			onLoad: previousCompletion,
+		};
+		const { kernel, loader } = mount([late]);
+		loader.updateScripts([
+			{ ...late, onError: currentCompletion, onLoad: currentCompletion },
+		]);
+		await kernel.commands.save({ measurement: false });
+		await Promise.resolve();
+		expect(previousCompletion).not.toHaveBeenCalled();
+		expect(currentCompletion).toHaveBeenCalledOnce();
+		expect(currentCompletion).toHaveBeenCalledWith(
+			expect.objectContaining({ hasConsent: false, id: late.id })
+		);
+	}
+);
+
 test.each([true, false])(
 	'keeps independent consent for shared registrations with persistence=%s',
 	async (persistAfterConsentRevoked) => {

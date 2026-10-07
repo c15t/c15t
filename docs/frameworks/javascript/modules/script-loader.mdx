@@ -56,9 +56,15 @@ Withdrawal alone does not call `onDispose`. With the default reload, the page
 reloads after withdrawal anyway; with `reloadOnConsentRevoked: false`, use
 `onConsentChange` to stop the vendor.
 
-When loaders share an external element, each receives its `onLoad` or `onError`
-event. Removing the original loader transfers ownership to a remaining loader.
-c15t removes an element it created when the last loader releases it.
+When scripts share an element, each active registration receives its own
+`onLoad` or `onError` callback. A registration that joins after c15t observed
+completion receives that callback in a microtask, after its consent callback,
+using its current callbacks and consent. Inline scripts share their deferred
+completion too. Removing a registration cancels its pending callback. c15t does
+not infer completion for elements added outside the loader.
+
+Removing the original loader transfers ownership to a remaining loader. c15t
+removes an element it created when the last loader releases it.
 
 ## Update the list
 
