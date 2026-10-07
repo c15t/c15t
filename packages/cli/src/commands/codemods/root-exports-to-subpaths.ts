@@ -1,8 +1,16 @@
+import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
 import { runTransform } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
-import { addTodo, applyEdits, moveSpecifiers, UNCHANGED } from './source-edits';
+import {
+	addTodo,
+	applyEdits,
+	isNameTaken,
+	moveSpecifiers,
+	toTextEdit,
+	UNCHANGED,
+} from './source-edits';
 import type { SpecifierMove, TextEdit, TransformResult } from './source-edits';
 
 type Destination = 'headless' | 'trigger' | 'types' | 'banner' | 'core';
@@ -221,6 +229,99 @@ const planDeclaration = function planDeclaration(
 	return operations;
 };
 
+/**
+ * `import * as c15t from '@c15t/react'`: each `c15t.Name` that moved becomes
+ * `Name`, imported from its v3 entry, unless the file already uses the name.
+ * Accesses to removed names, and moved names that clash, get a TODO.
+ */
+const planNamespaceImport = function planNamespaceImport(
+	declaration: TsMorphTypes.ImportDeclaration,
+	namespace: TsMorphTypes.Identifier,
+	family: EntryFamily,
+	edits: TextEdit[],
+	summaries: string[]
+): number {
+	const sourceFile = declaration.getSourceFile();
+	const groups = new Map<string, Map<string, boolean>>();
+	let operations = 0;
+	for (const reference of namespace.findReferencesAsNodes()) {
+		const parent = reference.getParent();
+		if (
+			reference.getSourceFile() !== sourceFile ||
+			!(
+				(Node.isPropertyAccessExpression(parent) &&
+					parent.getExpression() === reference) ||
+				(Node.isQualifiedName(parent) && parent.getLeft() === reference)
+			)
+		) {
+			continue;
+		}
+		const name = Node.isQualifiedName(parent)
+			? parent.getRight().getText()
+			: parent.getName();
+		const access = `${namespace.getText()}.${name}`;
+		const hint = REMOVED[name];
+		if (hint) {
+			if (
+				addTodo(declaration, `${access}: ${name} was removed. ${hint}`, edits)
+			) {
+				summaries.push(`TODO: ${name}`);
+				operations += 1;
+			}
+			continue;
+		}
+		const destination = MOVED.get(name);
+		if (!destination) {
+			continue;
+		}
+		const target = targetFor(family, destination);
+		if (isNameTaken(sourceFile, name)) {
+			if (
+				addTodo(
+					declaration,
+					`${access} moved to ${target}. Import ${name} from there.`,
+					edits
+				)
+			) {
+				summaries.push(`TODO: ${name}`);
+				operations += 1;
+			}
+			continue;
+		}
+		edits.push(toTextEdit(parent, name));
+		// A name used only in types is imported with `type`.
+		const typeUse =
+			Node.isQualifiedName(parent) &&
+			!parent.getFirstAncestorByKind(SyntaxKind.TypeQuery);
+		const names = groups.get(target) ?? new Map<string, boolean>();
+		names.set(name, (names.get(name) ?? true) && typeUse);
+		groups.set(target, names);
+		summaries.push(`${access} -> ${target}`);
+		operations += 1;
+	}
+	const quote = declaration.getModuleSpecifier().getText().charAt(0);
+	const typeOnly = declaration.isTypeOnly();
+	const lines = [...groups].map(([target, names]) => {
+		const list = [...names]
+			.map(([name, onlyTypes]) =>
+				onlyTypes && !typeOnly ? `type ${name}` : name
+			)
+			.join(', ');
+		return `\nimport ${typeOnly ? 'type ' : ''}{ ${list} } from ${quote}${target}${quote};`;
+	});
+	if (lines.length > 0) {
+		edits.push({
+			end: declaration.getEnd(),
+			start: declaration.getEnd(),
+			text: lines.join(''),
+		});
+	}
+	return operations;
+};
+
+const STAR_EXPORT_TODO =
+	'In v3 this entry no longer exports the names that moved to subpaths, such as the headless hooks, trigger parts and token types. Re-export the subpaths you need as well.';
+
 const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): TransformResult {
@@ -233,9 +334,33 @@ const transformSourceFile = function transformSourceFile(
 	];
 	for (const declaration of declarations) {
 		const family = FAMILIES[declaration.getModuleSpecifierValue() ?? ''];
-		if (family) {
-			operations += planDeclaration(declaration, family, edits, summaries);
+		if (!family) {
+			continue;
 		}
+		const namespace = Node.isImportDeclaration(declaration)
+			? declaration.getNamespaceImport()
+			: undefined;
+		if (namespace && Node.isImportDeclaration(declaration)) {
+			operations += planNamespaceImport(
+				declaration,
+				namespace,
+				family,
+				edits,
+				summaries
+			);
+			continue;
+		}
+		if (
+			Node.isExportDeclaration(declaration) &&
+			!declaration.hasNamedExports()
+		) {
+			if (addTodo(declaration, STAR_EXPORT_TODO, edits)) {
+				summaries.push('TODO: star export');
+				operations += 1;
+			}
+			continue;
+		}
+		operations += planDeclaration(declaration, family, edits, summaries);
 	}
 	if (edits.length === 0) {
 		return UNCHANGED;

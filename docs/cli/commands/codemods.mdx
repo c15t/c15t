@@ -69,6 +69,10 @@ matching entry: `useHeadlessConsentUI` from `c15t/next` moves to
 only on the React entries, so imports of them from `c15t/next` move to
 `c15t/react/...`, and from `@c15t/nextjs` to `@c15t/react/...`. Types such as
 `AllConsentNames` move to `c15t`, or `@c15t/core` for scoped packages.
+With `import * as c15t from 'c15t/react'`, it rewrites `c15t.useColorScheme`
+to `useColorScheme` imported from its new entry, and leaves a
+`TODO(c15t v3)` comment when that name is already taken. It also marks
+`export * from` a framework root, which no longer re-exports the moved names.
 
 `policy-packs-to-policy-rules` moves `policyPackPresets` imports from React
 and Next.js entries to `c15t`, or `@c15t/core` for scoped packages, because

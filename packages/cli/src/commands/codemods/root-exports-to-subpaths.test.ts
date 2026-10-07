@@ -105,6 +105,65 @@ import { useHeadlessConsentUI } from '@c15t/react/headless';
 `);
 	});
 
+	it('rewrites namespace accesses to moved names', async () => {
+		const source = `import * as c15t from '@c15t/react';
+
+export const colors: c15t.ColorTokens = {};
+export const useUI = () => c15t.useHeadlessConsentUI();
+export const Banner = c15t.ConsentBanner;
+export const Embed = c15t.YouTubeEmbed;
+`;
+		const { first, second, secondResult } = await transformTwice(
+			codemod,
+			source
+		);
+		expect(first)
+			.toBe(`// TODO(c15t v3): c15t.YouTubeEmbed: YouTubeEmbed was removed. Wrap your own embed in ConsentGate.
+import * as c15t from '@c15t/react';
+import { type ColorTokens } from '@c15t/react/types';
+import { useHeadlessConsentUI } from '@c15t/react/headless';
+
+export const colors: ColorTokens = {};
+export const useUI = () => useHeadlessConsentUI();
+export const Banner = c15t.ConsentBanner;
+export const Embed = c15t.YouTubeEmbed;
+`);
+		expect(second).toBe(first);
+		expect(secondResult.changedFiles).toEqual([]);
+
+		const clash = await transformFile(
+			codemod,
+			`import * as c15t from 'c15t/react';
+
+const useHeadlessConsentUI = () => null;
+export const useUI = () => c15t.useHeadlessConsentUI();
+`
+		);
+		expect(clash.updated).toContain(
+			"// TODO(c15t v3): c15t.useHeadlessConsentUI moved to c15t/react/headless. Import useHeadlessConsentUI from there.\nimport * as c15t from 'c15t/react';"
+		);
+		expect(clash.updated).toContain(
+			'export const useUI = () => c15t.useHeadlessConsentUI();'
+		);
+	});
+
+	it('marks star exports from a framework root', async () => {
+		const { updated } = await transformFile(
+			codemod,
+			`export * from '@c15t/react';
+export * as consent from 'c15t/next';
+`,
+			{ fileName: 'index.ts' }
+		);
+		const todo =
+			'// TODO(c15t v3): In v3 this entry no longer exports the names that moved to subpaths, such as the headless hooks, trigger parts and token types. Re-export the subpaths you need as well.';
+		expect(updated).toBe(`${todo}
+export * from '@c15t/react';
+${todo}
+export * as consent from 'c15t/next';
+`);
+	});
+
 	it('moves re-exports and keeps their aliases', async () => {
 		const { updated } = await transformFile(
 			codemod,
