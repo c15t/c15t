@@ -304,10 +304,10 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 		skill: {
 			install: '`npx @c15t/cli@alpha`',
 			topic:
-				'the task is scaffolding c15t, running codemods or migrating a self-hosted backend',
+				'the task is scaffolding c15t, running codemods, replacing a Google Tag Manager container, or migrating a self-hosted backend',
 		},
 		summary:
-			'c15t v3 setup, codemods, project commands and self-hosted migrations.',
+			'c15t v3 setup, codemods, Google Tag Manager replacement, project commands and self-hosted migrations.',
 	},
 ];
 

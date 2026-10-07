@@ -28,6 +28,16 @@ npx @c15t/cli@alpha setup offline --plan --json --no-telemetry
 
 Commands return their own data under `data`, such as generated edits, hosted projects, or a migration report. Do not parse terminal messages for those values.
 
+## Replace a Google Tag Manager container
+
+`gtm` reads a published container, or a JSON export from GTM, and returns the c15t scripts that replace it. It does not edit the project.
+
+```bash
+npx @c15t/cli@alpha gtm GTM-XXXXXXX --json --no-telemetry
+```
+
+`data.snippet` is the scripts module. `data.unmapped` lists tags left alone. `data.warnings` includes ids that do not match the usual `G-`, `AW-`, `DC-` or `GT-` shape. Register `data.snippet` with the c15t provider the app already has. See [Replace Google Tag Manager](./commands/gtm.md).
+
 ## Call the CLI from code
 
 ```ts

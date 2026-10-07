@@ -922,6 +922,7 @@ export default defineDocsConfig({
 						'commands/setup',
 						'commands/boilerplate',
 						'commands/codemods',
+						'commands/gtm',
 						'commands/hosted',
 						'commands/self-host',
 						'global-flags',
