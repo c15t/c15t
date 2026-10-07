@@ -3,6 +3,7 @@ import {
 	copyFileSync,
 	mkdirSync,
 	mkdtempSync,
+	readFileSync,
 	rmSync,
 	statSync,
 } from 'node:fs';
@@ -98,7 +99,7 @@ const readPackedPaths = (
 export const runTarballSize = (
 	packageDir: string,
 	pack: PackRunner = npmPack
-): { size: number; notes: string[] } => {
+): { size: number; notes: string[]; includesDialogRules: boolean | null } => {
 	const resolvedDir = resolve(packageDir);
 	const paths = readPackedPaths(
 		packageDir,
@@ -132,7 +133,20 @@ export const runTarballSize = (
 						`${basename(resolvedDir)}: ${excluded} bundled docs files left out of the measured tarball.`,
 					]
 				: [];
-		return { notes, size: artifact.size };
+		// Inspect the same flat stylesheet that was packed. A missing file is
+		// unknown, not evidence that the baseline predates the dialog CSS fix.
+		const flatStylesPath = 'dist/styles.tw3.css';
+		const flatStyles = paths.includes(flatStylesPath)
+			? readFileSync(join(staging, flatStylesPath), 'utf8').replace(
+					/\/\*[\s\S]*?\*\//gu,
+					''
+				)
+			: null;
+		const includesDialogRules =
+			flatStyles === null
+				? null
+				: /\.c15t-ui-dialogVisible-[\w-]+[^{}]*\{/u.test(flatStyles);
+		return { includesDialogRules, notes, size: artifact.size };
 	} finally {
 		rmSync(staging, { force: true, recursive: true });
 	}

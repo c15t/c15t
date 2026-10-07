@@ -210,6 +210,56 @@ const evaluateArmBudget = function evaluateArmBudget(
 	return result;
 };
 
+// Restoring dialog rules in the app-imported stylesheet (#1378) added
+// 4,487 packed bytes to Next.js. Carry that cost only across a baseline
+// measured without those rules. The 15 KiB limit remains unchanged, and
+// comparisons whose baseline already includes the rules keep the 10% cap.
+const NEXTJS_DIALOG_CSS_TARBALL_BYTES = 4487;
+
+const isNextjsTarballResult = (
+	result: BenchmarkResult | undefined
+): result is BenchmarkResult =>
+	result?.package === '@c15t/next-bundle-bench' &&
+	result.suite === 'artifact' &&
+	result.scenario === 'tarballs';
+
+const applyDialogCssTarballAllowance = (
+	budget: MetricBudget,
+	result: MetricBudgetResult,
+	head: BenchmarkResult,
+	base: BenchmarkResult | undefined
+): MetricBudgetResult => {
+	if (
+		!isNextjsTarballResult(head) ||
+		!isNextjsTarballResult(base) ||
+		budget.metric !== '@c15t/nextjs' ||
+		budget.comparator !== 'absolute-and-percent-lte' ||
+		budget.baseArm ||
+		budget.secondaryThreshold === undefined ||
+		result.status !== 'evaluated' ||
+		typeof result.actual !== 'number' ||
+		head.metadata?.nextjsIncludesDialogRules !== true ||
+		base.metadata?.nextjsIncludesDialogRules !== false
+	) {
+		return result;
+	}
+	const baseBytes = base.metrics.find(
+		(metric) => metric.name === budget.metric
+	)?.median;
+	if (baseBytes === undefined || baseBytes <= 0) {
+		return result;
+	}
+	const percentLimitBytes = (baseBytes * budget.secondaryThreshold) / 100;
+	const allowedGrowth = percentLimitBytes + NEXTJS_DIALOG_CSS_TARBALL_BYTES;
+	const pass =
+		result.actual <= budget.threshold && result.actual <= allowedGrowth;
+	return {
+		...result,
+		message: `${budget.metric} grew by ${result.actual.toFixed(2)} bytes; ${pass ? 'within' : 'above'} the ${budget.threshold}-byte and ${budget.secondaryThreshold}% limits with a ${NEXTJS_DIALOG_CSS_TARBALL_BYTES}-byte dialog CSS allowance. Baseline lacks dialog rules; head includes them.`,
+		pass,
+	};
+};
+
 const evaluateBudgets = function evaluateBudgets(
 	headResult: BenchmarkResult,
 	baseResult: BenchmarkResult | undefined,
@@ -228,10 +278,16 @@ const evaluateBudgets = function evaluateBudgets(
 			if (budget.baseArm) {
 				return evaluateArmBudget(budget, headMetric, armResults, baseKey);
 			}
-			return evaluateBudget(
+			const result = evaluateBudget(
 				budget,
 				headMetric,
 				indexedBaseMetrics.get(budget.metric)
+			);
+			return applyDialogCssTarballAllowance(
+				budget,
+				result,
+				headResult,
+				baseResult
 			);
 		});
 };
