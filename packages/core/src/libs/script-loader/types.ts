@@ -8,6 +8,13 @@ import type { HasCondition } from '../has';
  * @public
  */
 export interface ScriptCallbackInfo {
+	/**
+	 * Stable identity of the loader registration, including consent remounts.
+	 * Non-enumerable so callback serialization contains only script data.
+	 * @internal
+	 */
+	readonly registration?: symbol;
+
 	/** The original script ID */
 	id: string;
 

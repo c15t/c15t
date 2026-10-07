@@ -50,7 +50,7 @@ export interface SentrySession {
 /** Envelope items passed to Sentry's final send hook. */
 export type SentryEnvelope = readonly [
 	unknown,
-	readonly (readonly [{ type: string }, unknown])[],
+	(readonly [{ type: string }, unknown])[],
 ];
 
 /** User data in the shape `Sentry.setUser` accepts. */
@@ -235,6 +235,8 @@ interface ClientState {
 	owner: object;
 	/** Whether events may carry user data. Read by the event processor. */
 	piiAllowed: boolean;
+	/** Whether Replay envelopes may leave the browser. */
+	replayAllowed: boolean;
 	/** `dataCollection.userInfo` as the app configured it. */
 	userInfo?: boolean;
 	/** The SDK `infer_ip` setting as the app configured it. */
@@ -491,6 +493,7 @@ const createGate = (options: GateOptions) => {
 			lastEnabled: client.getOptions().enabled !== false,
 			owner,
 			piiAllowed: false,
+			replayAllowed: false,
 			userInfo: client.getDataCollectionOptions?.()?.userInfo,
 		};
 		clientStates.set(client, state);
@@ -501,6 +504,16 @@ const createGate = (options: GateOptions) => {
 			return event;
 		});
 		client.on('beforeEnvelope', (envelope) => {
+			// stop({ flush: false }) discards the pending segment in supported
+			// SDKs. Also block uploads already queued before denial or removal.
+			if (!state.replayAllowed || state.stopping) {
+				for (let index = envelope[1].length - 1; index >= 0; index -= 1) {
+					const type = envelope[1][index]?.[0].type;
+					if (type === 'replay_event' || type === 'replay_recording') {
+						envelope[1].splice(index, 1);
+					}
+				}
+			}
 			if (!state.piiAllowed) {
 				redactEnvelope(envelope);
 			}
@@ -592,6 +605,7 @@ const createGate = (options: GateOptions) => {
 		clientOptions.enabled = state.enabled && latest.errors;
 		state.lastEnabled = clientOptions.enabled !== false;
 		state.piiAllowed = latest.pii;
+		state.replayAllowed = latest.replay && isClientEnabled(client, state);
 		applyPii(client, state);
 		if (!latest.replay || !isClientEnabled(client, state)) {
 			stopReplay(client, state);
@@ -760,6 +774,7 @@ const createGate = (options: GateOptions) => {
 			}
 			const state = existing ?? getState(client);
 			state.piiAllowed = false;
+			state.replayAllowed = false;
 			applyPii(client, state);
 			if (options.errorsGated) {
 				client.getOptions().enabled = false;

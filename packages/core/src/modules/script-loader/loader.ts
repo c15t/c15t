@@ -70,6 +70,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const ownerSource = Symbol('script-loader');
+	const callbackTools = { ...tools, registration: ownerSource };
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
@@ -122,7 +123,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		nonce: options.nonce,
 		ownedScriptIds,
 		retainedElements,
-		tools,
+		tools: callbackTools,
 	};
 
 	// Track the last-seen consent-relevant references so a kernel tick
@@ -299,7 +300,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			script,
 			'onDispose',
 			buildCallbackInfo(
-				tools,
+				callbackTools,
 				script,
 				snapshot,
 				consentByScriptId.get(script.id) ?? false,

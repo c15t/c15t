@@ -44,6 +44,9 @@ export type { Script, ScriptCallbackInfo };
  * @internal
  */
 export interface ScriptLoaderTools {
+	/** Identity of this loader's callback registrations. */
+	registration?: symbol;
+
 	/** `extractConsentNamesFromCondition`. */
 	categoriesOf: typeof extractConsentNamesFromCondition;
 	/** `declareOwnedVendors`. */

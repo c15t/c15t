@@ -154,6 +154,9 @@ Sentry. A later grant restores the original sampling decision rather than
 recording in full. If `Sentry.init` already includes Replay, the adapter warns
 in development and stops it while `measurement` is denied.
 
+The final envelope filter also drops queued Replay events and recordings while
+Replay is denied, stopping, or removed.
+
 While user data is not allowed, the adapter removes `user` from events and
 feedback, the user and IP address from sessions, and SDK user attributes from
 root spans, child spans, logs and metrics. A final envelope filter also removes
@@ -171,6 +174,10 @@ keeps the SDK bundle and current Replay recording. Keep `getClient`, `setUser`,
 `init`, `replay.load`, `pii.user` and `onError` functions stable across renders. A changed
 configuration starts a new adapter lifecycle; removing it still stops Replay
 without flushing.
+
+If multiple loaders share the same configuration, Sentry stays active until
+the last loader removes it. Replay and user data require consent from every
+active loader; a denial in one loader applies to the shared SDK.
 
 The vendor slug is `sentry`; turning that vendor off denies Replay and user
 data, and error monitoring with `loadMode: 'after-consent'`. See

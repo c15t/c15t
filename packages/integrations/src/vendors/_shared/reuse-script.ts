@@ -1,4 +1,4 @@
-import type { Script } from '@c15t/core';
+import type { Script, ScriptCallbackInfo } from '@c15t/core';
 
 type ConfigFields = Record<PropertyKey, unknown>;
 type ConfigCopy = ConfigFields | unknown[];
@@ -107,22 +107,61 @@ export const createScriptReuse = <OptionsType extends object>() => {
 		let current: Script | undefined = create(savedOptions);
 		const script: Script = { ...current };
 		const entry = { options: savedOptions, script };
-		const activate = (): Script => {
+		const standaloneRegistration = Symbol('script-registration');
+		const registrations = new Map<symbol, ScriptCallbackInfo>();
+		const registrationOf = (info: ScriptCallbackInfo): symbol =>
+			info.registration ??
+			registrations.keys().next().value ??
+			standaloneRegistration;
+		const combine = (info: ScriptCallbackInfo): ScriptCallbackInfo => {
+			const states = [...registrations.values()];
+			const consents = { ...info.consents };
+			for (const name of Object.keys(consents) as (keyof typeof consents)[]) {
+				consents[name] = states.every((state) => state.consents[name]);
+			}
+			const vendor = states.find((state) => state.vendor)?.vendor;
+			return {
+				...info,
+				consents,
+				hasConsent: states.every((state) => state.hasConsent),
+				vendor: vendor
+					? {
+							...vendor,
+							granted: states.every((state) => state.vendor?.granted !== false),
+						}
+					: undefined,
+			};
+		};
+		const activate = (info: ScriptCallbackInfo): Script => {
 			current ??= create(savedOptions);
+			registrations.set(registrationOf(info), info);
 			if (typeof document !== 'undefined') {
 				active.add(entry);
 			}
 			return current;
 		};
-		script.onBeforeLoad = (info) => activate().onBeforeLoad?.(info);
-		script.onConsentChange = (info) => current?.onConsentChange?.(info);
+		script.onBeforeLoad = (info) =>
+			activate(info).onBeforeLoad?.(combine(info));
+		script.onConsentChange = (info) => {
+			if (current) {
+				activate(info).onConsentChange?.(combine(info));
+			}
+		};
 		script.onDispose = (info) => {
+			const removed = registrations.delete(registrationOf(info));
+			const remaining = registrations.values().next().value;
+			if (remaining) {
+				if (removed) {
+					current?.onConsentChange?.(combine(remaining));
+				}
+				return;
+			}
 			active.delete(entry);
 			const previous = current;
 			current = undefined;
 			previous?.onDispose?.(info);
 		};
-		script.onLoad = (info) => activate().onLoad?.(info);
+		script.onLoad = (info) => activate(info).onLoad?.(combine(info));
 		return script;
 	};
 };

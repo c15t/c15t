@@ -29,7 +29,10 @@ import type {
  */
 export interface MountDeps {
 	/** Consent reads for callback payloads. */
-	tools: Pick<ScriptLoaderTools, 'deniedVendors' | 'gateState'>;
+	tools: Pick<
+		ScriptLoaderTools,
+		'deniedVendors' | 'gateState' | 'registration'
+	>;
 	/** Stop lifecycle callbacks when disposal is requested during mounting. */
 	isDisposed: () => boolean;
 	/** Latest kernel state for callbacks completing after consent changes. */
