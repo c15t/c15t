@@ -25,7 +25,10 @@ export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
  * @throws {Error} When the manifest cannot be fetched or written.
  */
 export const consentManifest = (options: ManifestBuildOptions) =>
-	createManifestPlugin({ importSource: '@c15t/svelte/vite', ...options });
+	createManifestPlugin({
+		...options,
+		importSource: options.importSource ?? '@c15t/svelte/vite',
+	});
 
 /** The `@c15t/core` module each on-demand chunk starts from. */
 const CHUNK_MODULES: Readonly<Record<PreloadChunkName, RegExp>> = {
