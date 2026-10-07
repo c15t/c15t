@@ -36,6 +36,13 @@ covers a vendor without one.
   load before consent and pass the visitor's choice to the vendor. Read the
   vendor's guide; a category on a script does not always mean zero requests.
 
+## When the script loader downloads
+
+The script loader is a separate chunk, downloaded only when `scripts` is not
+empty. `ConsentProvider` loads it when it mounts. The Next.js and TanStack
+Start `ConsentRoot` start the download earlier, during their first render,
+when the visitor's consent already lets a script run.
+
 ## Embeds and other requests
 
 Scripts cover vendor code c15t loads for you. For the rest:

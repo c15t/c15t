@@ -163,8 +163,9 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 	{
 		directory: 'core',
 		// The resolver the Next.js and TanStack Start roots import to apply
-		// a streamed state; apps never import it.
-		exclude: ['./runtime/streamed-init'],
+		// a streamed state, and the script loader preload they pass to the
+		// provider; apps never import either.
+		exclude: ['./runtime/script-loader-preload', './runtime/streamed-init'],
 		packageName: '@c15t/core',
 		prefix: '',
 	},

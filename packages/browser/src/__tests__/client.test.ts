@@ -3,7 +3,7 @@ import {
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
 import type { ConsentClient } from '../types';
@@ -42,38 +42,77 @@ const start = function start(
 	return client;
 };
 
-afterEach(() => {
+const cleanUp = function cleanUp(): void {
 	for (const client of clients.splice(0)) {
 		client.dispose();
 	}
 	localStorage.clear();
 	clearCookies();
 	document.body.replaceChildren();
-});
+};
+
+/** A client whose saves go to `save`. */
+const withSave = (
+	save: () => Promise<{ ok: boolean }>,
+	options: Parameters<typeof start>[0] = {}
+) =>
+	start({
+		...options,
+		mode: custom({
+			init: () =>
+				Promise.resolve({
+					policyResolution: writePolicyResolutionWire(
+						resolvePolicyRules({
+							rules: [
+								{
+									...policyRulePresets.europeOptIn(),
+									categories: ['measurement', 'marketing'],
+									match: { isDefault: true },
+									scopeMode: 'strict',
+								},
+							],
+						})
+					),
+				}),
+			save,
+		}),
+	});
+
+// The client loads its script loader and network blocker, the save
+// outbox's queue and persistence's writer on demand. The first test to
+// need one would pay for its cold import, which a busy runner can stretch
+// past a second. One client loads them all before any test runs.
+beforeAll(async () => {
+	const save = vi.fn(() => Promise.resolve({ ok: true }));
+	const client = withSave(save, {
+		scripts: [
+			{
+				category: 'necessary',
+				id: 'warm-up',
+				textContent: 'window.__warmUp = true;',
+			},
+		],
+	});
+	await client.ready();
+	await client.save({ marketing: false, measurement: true });
+	await vi.waitFor(
+		() => {
+			expect(save).toHaveBeenCalledOnce();
+			expect(localStorage.getItem('c15t')).toContain('measurement');
+			expect(
+				Array.from(document.scripts).some((script) =>
+					script.textContent?.includes('__warmUp')
+				)
+			).toBe(true);
+		},
+		{ timeout: 10_000 }
+	);
+	cleanUp();
+}, 15_000);
+
+afterEach(cleanUp);
 
 describe('createConsentClient', () => {
-	const withSave = (save: () => Promise<{ ok: boolean }>) =>
-		start({
-			mode: custom({
-				init: () =>
-					Promise.resolve({
-						policyResolution: writePolicyResolutionWire(
-							resolvePolicyRules({
-								rules: [
-									{
-										...policyRulePresets.europeOptIn(),
-										categories: ['measurement', 'marketing'],
-										match: { isDefault: true },
-										scopeMode: 'strict',
-									},
-								],
-							})
-						),
-					}),
-				save,
-			}),
-		});
-
 	for (const surface of ['banner', 'dialog'] as const) {
 		for (const outcome of ['pending', 'rejected'] as const) {
 			it(`closes the ${surface} before a ${outcome} save settles`, async () => {
@@ -472,12 +511,17 @@ describe('runtime options', () => {
 		});
 		await client.ready();
 
-		await vi.waitFor(() => {
-			const loaded = Array.from(document.scripts).find((script) =>
-				script.textContent?.includes('__nonceProbe')
-			);
-			expect(loaded?.nonce).toBe('page-nonce');
-		});
+		// The first test in this file to import the on-demand script loader,
+		// so a busy runner can take over a second to load it.
+		await vi.waitFor(
+			() => {
+				const loaded = Array.from(document.scripts).find((script) =>
+					script.textContent?.includes('__nonceProbe')
+				);
+				expect(loaded?.nonce).toBe('page-nonce');
+			},
+			{ timeout: 5000 }
+		);
 		expect(onDebug).toHaveBeenCalled();
 	});
 

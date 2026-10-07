@@ -28,7 +28,7 @@ import { assembleConsentRuntime } from './assemble';
 import { afterModuleLoaded } from './lazy-module';
 import type * as ProviderUpdateModule from './provider-update';
 import type { ProviderUpdateHost } from './provider-update';
-import { normalizeKernelUser } from './runtime-kernel';
+import { createRuntimeKernel, normalizeKernelUser } from './runtime-kernel';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -276,7 +276,16 @@ export const createConsentProviderRuntime =
 				extras = [];
 				assembled.stop();
 			};
-			return { ...assembled, cleanup, iframes, network, scripts, stop, track };
+			return {
+				...assembled,
+				cleanup,
+				iframes,
+				network,
+				scripts,
+				stop,
+				track,
+				view,
+			};
 		};
 		type Built = ReturnType<typeof build>;
 
@@ -387,6 +396,20 @@ export const createConsentProviderRuntime =
 			}
 			hold?.release()();
 		};
+
+		// A host that passes `preloadScriptLoader` lets the runtime start
+		// the script loader's download now, before `start()` mounts it. It
+		// reads the options through the active runtime's view, as `start()`
+		// does: live ones from the latest update, the rest as first given.
+		modules.preloadScriptLoader?.(
+			() =>
+				started || disposed
+					? undefined
+					: [active().runtime.kernel, active().view],
+			initial.prefetch,
+			createRuntimeKernel,
+			modules.createPersistence
+		);
 
 		const runtime: ConsentRuntime = main.runtime;
 		// Records, identity, IAB, iframes and storage belong to the main
