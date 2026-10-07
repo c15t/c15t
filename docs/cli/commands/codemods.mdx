@@ -13,8 +13,9 @@ Preview every change first, then run the same command without `--dry-run`:
 npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
-Name several codemods in one command and they run in the order you give,
-each seeing the previous one's edits. Codemods that can't finish a change
+Name several codemods in one command and they run in a fixed order, whatever
+order you name them in, each seeing the previous one's edits.
+`codemods --list` prints that order. Codemods that can't finish a change
 leave a `TODO(c15t v3)` comment next to it. Most also leave the v2 code in
 place, so type-checking fails at each one until you resolve it.
 

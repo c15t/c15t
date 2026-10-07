@@ -227,10 +227,11 @@ export const App = ({ children }) => (
 		});
 
 		const mixed = await runCli(
+			// Named out of order: they still run in the registry's order.
 			[
 				'codemods',
-				'component-renames',
 				'consent-provider-options',
+				'component-renames',
 				'--dry-run',
 				'--json',
 			],
