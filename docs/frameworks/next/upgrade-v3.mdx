@@ -94,7 +94,9 @@ after hydration and the banner can be in the first HTML. Replace the client
 component with `ConsentRoot`. Pass it `resolveConsent()` from
 `c15t/next/server` as `state` and your `defineConsentConfig()` result as
 `config`, then add the manifest route. `ConsentRoot` already wraps
-`ConsentProvider`, so don't mount both. Follow the
+`ConsentProvider`, so don't mount both. If v2 set `storageConfig.storageKey`,
+pass the same name to `resolveConsent()` as `cookieName`, or the server won't
+find the stored choice. Follow the
 [App Router guide](/docs/frameworks/next/app-router) or the
 [Pages Router guide](/docs/frameworks/next/pages-router). This replaces v2's
 `fetchInitialData()`, `ssrData` and `C15tPrefetch`, which are gone.
