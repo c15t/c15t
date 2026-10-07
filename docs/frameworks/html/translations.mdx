@@ -12,7 +12,7 @@ bundle, and which source wins depends on the mode:
 | Mode | Where the copy comes from |
 | --- | --- |
 | Hosted, with `data-backend-url` | Your Inth project. The backend picks the language from the visitor's browser, or from `data-language`, and sends its copy with the policy. |
-| Manifest | The manifest's translations for the visitor's language. |
+| Manifest, including a tag loaded from your backend's `/c15t.js` | The manifest's translations for the visitor's language. |
 | Offline | English, or the language and messages you set in `i18n`. |
 
 In every mode, your `i18n.messages` for the language in use override that copy
@@ -28,8 +28,7 @@ force one, add `data-language` to the tag:
 
 ```html
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
-  data-backend-url="https://your-project.inth.app"
+  src="https://your-project.inth.app/c15t.js"
   data-language="de"
   defer
 ></script>
@@ -84,8 +83,9 @@ recognize its stock wording.
 
 ## Add a language in offline mode
 
-Offline mode shows the language named in `i18n.locale`, built from your
-messages over the English defaults:
+Load `c15t.offline.js` without `data-backend-url`. Queue your `i18n`
+configuration before that tag. Offline mode shows the language named in
+`i18n.locale`, built from your messages over the English defaults:
 
 {/* example: fragment */}
 

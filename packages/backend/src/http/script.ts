@@ -2,9 +2,9 @@
  * `GET /c15t.js` — the script-tag build, pre-configured for this backend.
  *
  * A page-builder site pastes one tag pointing here and gets the banner
- * with this instance's manifest already inlined, so a location-independent
- * policy renders without a second request. The bundle itself comes from
- * `@c15t/browser`; this module only prepends a queued `config` call.
+ * configured to resolve policy through this instance's `/init`. Headless
+ * and IAB builds preload its manifest. The bundles come from
+ * `@c15t/browser`; this module prepends a queued `config` call.
  */
 
 import { createHash } from 'node:crypto';
@@ -163,8 +163,8 @@ export interface ScriptResult {
 }
 
 /**
- * Build the script body: a queued `config` call carrying this backend's
- * manifest, then the bundle.
+ * Build the script body: hosted configuration for the full bundle, or an
+ * inlined manifest for headless and IAB, followed by the bundle.
  *
  * @param request - Variant, manifest config and caller context.
  * @returns The body with its cache headers.
@@ -174,15 +174,29 @@ export const buildScriptResponse = async function buildScriptResponse(
 	request: ScriptRequest
 ): Promise<ScriptResult> {
 	const { bundle } = request;
-	const manifest = await buildConsentManifestFromConfig(request.manifest);
-	const defaults = {
+	const defaults: Record<string, unknown> = {
 		...request.options.config,
 		backendURL: request.backendURL,
-		manifest: request.language
-			? sliceConsentManifestLanguage(manifest, request.language)
-			: manifest,
-		mode: 'manifest',
 	};
+	if (request.variant === 'full') {
+		defaults.mode = 'hosted';
+		if (request.language) {
+			const configuredOverrides = request.options.config?.overrides;
+			const overrides =
+				typeof configuredOverrides === 'object' &&
+				configuredOverrides !== null &&
+				!Array.isArray(configuredOverrides)
+					? configuredOverrides
+					: {};
+			defaults.overrides = { ...overrides, language: request.language };
+		}
+	} else {
+		const manifest = await buildConsentManifestFromConfig(request.manifest);
+		defaults.manifest = request.language
+			? sliceConsentManifestLanguage(manifest, request.language)
+			: manifest;
+		defaults.mode = 'manifest';
+	}
 	// Queued at the *front* of `window.c15t`, so anything the page pushed
 	// before the tag replays after it and wins over the baked-in defaults.
 	// A page that already holds the API (the tag loaded twice) gets a
@@ -191,8 +205,8 @@ export const buildScriptResponse = async function buildScriptResponse(
 	return {
 		body: `${prelude}${bundle}`,
 		cacheControl: createManifestCacheControl(request.cache),
-		// The prelude hash covers the manifest revision, the backend URL and
-		// `script.config` and bundle bytes, so every representation change invalidates.
+		// The hash covers config, backend URL, any inlined manifest and
+		// bundle bytes, so every representation change invalidates.
 		etag: `"${createHash('sha256').update(prelude).update(bundle).digest('hex').slice(0, 32)}.${request.variant}.${bundle.length}"`,
 	};
 };

@@ -73,6 +73,7 @@ is the strict fallback.
 | `activeUI` | `'banner' \| 'dialog' \| 'none' \| null` | The surface to render. Derived from the prompt, and changed by `set.activeUI`. |
 | `translations` | `{ language, translations } \| null` | The copy for the resolved language. |
 | `branding` | `'c15t' \| 'inth' \| 'consent' \| null` | The brand for the "Secured by" tag. |
+| `hosting` | `'inth' \| 'self-hosted' \| null` | Who runs the backend, as `/init` reported it. Separate from `branding`. `null` before init, for `offline()` and `custom()` transports that do not send it, and for backends older than the field. Not verified. |
 
 ## Context and bookkeeping
 

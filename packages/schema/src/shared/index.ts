@@ -1,10 +1,12 @@
 export { type Branding, brandingSchema, brandingValues } from './branding';
+export { type Hosting, hostingSchema, hostingValues } from './hosting';
 export {
 	buildConsentManifestFromConfig,
 	type ConsentManifest,
 	type ConsentManifestBranding,
 	type ConsentManifestConfig,
 	type ConsentManifestGVLReference,
+	type ConsentManifestHosting,
 	type ConsentManifestIAB,
 	type ConsentManifestPolicyFailure,
 	type ConsentManifestPolicyPack,

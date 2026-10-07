@@ -1,17 +1,18 @@
 /**
  * Serves the script-tag example on http://localhost:4173.
  *
- * `/c15t.js`, `/c15t.headless.js` and `/c15t.devtools.js` come straight
+ * The hosted, offline, headless and DevTools bundles come straight
  * from the built `@c15t/browser` package, the way a CDN would serve them.
  * The rest stands in for the third parties a real page loads: two vendor
  * scripts, two embeds and a tracking endpoint, all local so the example
  * works offline and every request is visible in the page's log.
  *
- * `/consent-example` is the page the HTML docs publish. Its tag points at
- * jsDelivr and a `https://your-project.inth.app` placeholder, exactly as a reader
- * copies it. This server swaps the CDN prefix for the local build and the
- * placeholder for `C15T_BACKEND_URL`, so the page runs the code the docs
- * show against this checkout.
+ * `/consent-example` is the page the HTML docs publish. Its tag loads
+ * `c15t.js` from a `https://your-project.inth.app` placeholder, exactly as a
+ * reader copies it. A c15t backend serves that file with its own URL built
+ * in. This server swaps the tag for the local build with `C15T_BACKEND_URL`
+ * as `data-backend-url`, and any other placeholder or CDN prefix for the same,
+ * so the page runs the code the docs show against this checkout.
  *
  * `/consent-example/tailwind` adds `tailwind-classes.html`, which puts
  * Tailwind utilities on banner parts through `theme.slots`. `/tailwind.css`
@@ -48,6 +49,9 @@ const bundles: Record<string, string> = {
 		import.meta.resolve('@c15t/browser/c15t.iab.js')
 	),
 	'/c15t.js': fileURLToPath(import.meta.resolve('@c15t/browser/c15t.js')),
+	'/c15t.offline.js': fileURLToPath(
+		import.meta.resolve('@c15t/browser/c15t.offline.js')
+	),
 };
 
 if (process.argv.includes('--check')) {
@@ -106,7 +110,16 @@ const renderConsentExample = function renderConsentExample(
 				`${readFileSync(here('./headless-bar.html'), 'utf8')}</body>`
 			);
 	}
+	// A backend-served bundle carries its backend URL. The local build reads
+	// it from the tag instead.
 	html = html
+		.replace(
+			new RegExp(
+				`src="${backendPlaceholder.replaceAll('.', '\\.')}/(c15t(?:\\.headless|\\.iab)?\\.js)"`,
+				'gu'
+			),
+			`src="/$1" data-backend-url="${backendURL}"`
+		)
 		.replaceAll(cdnPrefix, '/')
 		.replaceAll(backendPlaceholder, backendURL);
 	return new Response(html, {

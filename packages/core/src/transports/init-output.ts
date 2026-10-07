@@ -158,6 +158,9 @@ export const mapInitOutputToInitResponse = function mapInitOutputToInitResponse(
 	if (branding !== undefined) {
 		mapped.branding = branding;
 	}
+	if (payload.hosting !== undefined) {
+		mapped.hosting = payload.hosting;
+	}
 	if (payload.policySnapshotToken !== undefined) {
 		mapped.policySnapshotToken = payload.policySnapshotToken;
 	}
@@ -243,6 +246,9 @@ export const mergeInitResponseIntoKernelConfig =
 			(response.branding as KernelBranding | 'none') !== 'none'
 		) {
 			merged.initialBranding = response.branding;
+		}
+		if (response.hosting !== undefined) {
+			merged.initialHosting = response.hosting;
 		}
 		if (response.policyResolution !== undefined) {
 			// Read here, on the server, so the kernel is constructed from a
@@ -373,6 +379,9 @@ export const kernelConfigToInitResponse = function kernelConfigToInitResponse(
 	}
 	if (config.initialBranding !== undefined) {
 		response.branding = config.initialBranding;
+	}
+	if (config.initialHosting !== undefined) {
+		response.hosting = config.initialHosting;
 	}
 	if (
 		config.initialOverrides !== undefined &&

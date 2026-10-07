@@ -147,6 +147,7 @@ test('every snapshot input agrees with the full evaluator', async () => {
 			idempotent: false,
 			run: (k) => k.set.externalPermissions({ measurement: true }),
 		},
+		hosting: initWith({ hosting: 'inth' }),
 		iab: { idempotent: true, run: (k) => k.set.iab({ enabled: true }) },
 		location: initWith({ location: { countryCode: 'DE', regionCode: null } }),
 		noticeDismissal: {

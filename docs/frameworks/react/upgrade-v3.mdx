@@ -1,0 +1,140 @@
+---
+title: Upgrade from v2
+description: Upgrade a React app from c15t v2 (@c15t/react) to v3. Covers packages, ConsentProvider and transports, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
+group: frameworks
+---
+
+## Hand the upgrade to a coding agent
+
+<Prompt title="Upgrade this React app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
+  Upgrade this React app from c15t v2 to c15t v3.
+
+  Read https://c15t.com/docs/frameworks/react/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
+
+  1. List every c15t dependency and import: `@c15t/react`, `@c15t/scripts`, `@c15t/dev-tools` and `c15t`.
+  2. Check that React is 18 or later. Stop and tell me if it needs a major upgrade.
+  3. Replace the packages with `c15t@alpha`, plus `@c15t/integrations@alpha` if the app uses vendor helpers.
+  4. Run `npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  5. Check that `ConsentManagerProvider` is now `ConsentProvider` from `c15t/react`, with a transport such as `hosted()` as `mode`. Finish any custom mode the codemod marked.
+  6. Update callbacks, policy presets, renamed options and components, theme CSS, CSS variables and IAB setup as the guide describes.
+  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
+  8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
+
+  When you finish, list the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.
+</Prompt>
+
+## Before you start
+
+- Upgrade React and React DOM to 18 or later.
+- If you run your own c15t backend, upgrade it in the same release. A v3
+  client can't read a v2 backend. See
+  [Upgrade a self-hosted backend](/docs/upgrade-v3#upgrade-a-self-hosted-backend).
+  Inth-hosted backends need no change.
+
+## Replace the packages
+
+Remove `@c15t/react` and `@c15t/scripts`, then install `c15t` from the
+`alpha` dist-tag. npm's default tag still resolves v2.
+
+<CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
+
+Drop `@c15t/integrations@alpha` if you don't use its vendor helpers.
+
+| v2 import | v3 import |
+| --- | --- |
+| `@c15t/react` | `c15t/react` |
+| `@c15t/react/headless` | `c15t/react/headless` |
+| `@c15t/react/styles.css` | `c15t/react/styles.css` |
+| `DevTools` from `@c15t/dev-tools/react` | `DevTools` from `c15t/react/devtools` |
+| `@c15t/scripts/*` | `@c15t/integrations/*` |
+
+`@c15t/react` is still published at v3, so its imports keep working if you pin
+it to `@alpha`. These docs use `c15t/react`.
+
+Every v3 package ships ESM only. If a CommonJS file in your app calls
+`require()` on a c15t package, convert it to ESM.
+
+<include src="../../shared/upgrade-v3/integrations.mdx" />
+
+<include src="../../shared/upgrade-v3/use-consent-manager.mdx" />
+
+## Replace `ConsentManagerProvider`
+
+Swap `ConsentManagerProvider` for `ConsentProvider` from `c15t/react`, and pass
+a transport as `mode`:
+
+| v2 option | v3 option |
+| --- | --- |
+| `mode: 'hosted'` with `backendURL` | `mode: hosted({ url })` |
+| `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
+| `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
+
+{/* example: fragment */}
+
+```tsx title="After (v3): the provider, changed lines"
+import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/react';
+
+// Replace ConsentManagerProvider:
+<ConsentProvider
+  options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
+>
+```
+
+The `consent-provider-options` codemod rewrites the hosted and offline modes
+and adds the transport import. It can't translate `endpointHandlers`, so it
+leaves a `TODO(c15t v3)` comment on a custom mode:
+
+```bash
+npx @c15t/cli@alpha codemods consent-provider-options --dry-run --json
+```
+
+Keep your backend URL. An existing hosted URL such as
+`https://your-project.c15t.dev` keeps working with v3 clients. New Inth
+projects use URLs such as `https://your-project.inth.app`. The
+[React quickstart](/docs/frameworks/react/quickstart) shows the full provider,
+and [data fetching](/docs/concepts/data-fetching) covers custom transports.
+
+Offline mode keeps choices in the browser and records nothing on a server. Not
+recommended for production environments.
+
+If your app renders on the server with React Router or Remix, the banner still
+mounts after hydration, as in v2. `fetchSSRData()` from `c15t/react/server`
+can save the browser its first `/init` request. See
+[rendering](/docs/frameworks/react/rendering).
+
+<include src="../../shared/upgrade-v3/callbacks.mdx" />
+
+<include src="../../shared/upgrade-v3/policies.mdx" />
+
+<include src="../../shared/upgrade-v3/options-and-components.mdx" />
+
+<include src="../../shared/upgrade-v3/styles.mdx" />
+
+<include src="../../shared/upgrade-v3/iab.mdx" />
+
+See the [IAB guide](/docs/frameworks/react/iab) for a complete setup.
+
+<include src="../../shared/upgrade-v3/headless.mdx" />
+
+<include src="../../shared/upgrade-v3/translations.mdx" />
+
+<include src="../../shared/upgrade-v3/stored-consent.mdx" />
+
+## Update dev tools
+
+`@c15t/dev-tools/react` and `@c15t/dev-tools/tanstack` are gone. Import
+`DevTools`, `C15tTanStackDevtoolsPanel` and `c15tDevtools()` from
+`c15t/react/devtools`. Dev tools read the consent engine, so `namespace`,
+`createStoreConnector()` and `getC15tStore()` are gone too. See
+[dev tools](/docs/frameworks/react/components/dev-tools).
+
+The `dev-tools-to-c15t` codemod points the imports at `c15t/react/devtools` and
+removes the `namespace` prop:
+
+```bash
+npx @c15t/cli@alpha codemods dev-tools-to-c15t --dry-run --json
+```
+
+<include src="../../shared/upgrade-v3/cli.mdx" />
+
+<include src="../../shared/upgrade-v3/check.mdx" />

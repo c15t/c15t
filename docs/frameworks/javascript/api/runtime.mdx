@@ -47,7 +47,7 @@ Only `mode` is required.
 | `iab` | IAB options or `false` | none | CMP settings. Needs `createIAB`. |
 | `createIAB` | `createIAB` from `@c15t/iab` | none | The IAB module factory. Without it, `iab` is ignored. |
 | `enabled` | `boolean` | `true` | `false` grants every category, skips init and mounts no blocker, persistence or IAB. Scripts load at once. |
-| `windowDebug` | `boolean` | `true` | Install a small `window.c15t` object with `version`, `pkg` and `mode` on `start()`. |
+| `windowDebug` | `boolean` | `true` | Install a small `window.c15t` object with `version`, `pkg`, `mode` and `hosting` on `start()`. `hosting` reads the current snapshot, so it changes from `null` once `/init` reports it. |
 | `pkg` | `string` | `'@c15t/core'` | The package name `window.c15t` reports. |
 
 ## What start and dispose do

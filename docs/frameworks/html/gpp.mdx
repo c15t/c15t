@@ -13,15 +13,14 @@ other ad tech read US privacy signals from it.
 ## Load the GPP script
 
 Add `c15t.gpp.js` next to the c15t script. It works with `c15t.js`,
-`c15t.headless.js` and `c15t.iab.js`:
+`c15t.offline.js`, `c15t.headless.js` and `c15t.iab.js`:
 
 {/* example: fragment */}
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.gpp.js"></script>
 <script
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
-  data-backend-url="https://your-project.inth.app"
+  src="https://your-project.inth.app/c15t.js"
   defer
 ></script>
 ```

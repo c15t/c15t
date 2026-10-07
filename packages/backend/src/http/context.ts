@@ -20,7 +20,8 @@
  * possible at all.
  */
 
-import type { ConsentManifestConfig } from '@c15t/schema';
+import { hostingValues } from '@c15t/schema';
+import type { ConsentManifestConfig, Hosting } from '@c15t/schema';
 import type { IpAddressConfig } from '@c15t/schema/geo';
 import { Effect, Layer } from 'effect';
 import type { ManagedRuntime } from 'effect';
@@ -110,8 +111,22 @@ export interface AppOptions {
 	 * @default false
 	 */
 	readonly requireTenantId?: boolean;
-	/** Per-tenant configuration the manifest and /init are built from. */
-	readonly manifest?: ConsentManifestConfig;
+	/**
+	 * Who runs this backend, reported on every `/init` and `/manifest` and
+	 * exposed in the browser as `window.c15t.hosting`.
+	 *
+	 * inth's hosted platform sets `'inth'`. Leave it unset everywhere else.
+	 * The value is not signed, so treat it as a label for debugging and
+	 * support, not as proof of where a backend runs.
+	 *
+	 * @default 'self-hosted'
+	 */
+	readonly hosting?: Hosting;
+	/**
+	 * Per-tenant configuration the manifest and /init are built from.
+	 * `hosting` is set on the instance, not here.
+	 */
+	readonly manifest?: Omit<ConsentManifestConfig, 'hosting'>;
 	readonly manifestCache?: ManifestCacheOptions;
 	/**
 	 * The script-tag builds served at `/c15t.js` and `/c15t.headless.js`,
@@ -233,6 +248,40 @@ export const assertTenantOptions = function assertTenantOptions(
 			`[c15t] manifest.tenantId is no longer supported. Set tenantId on the instance instead${tenantId === undefined ? '' : ` (it is already ${JSON.stringify(tenantId)})`} and remove it from manifest.`
 		);
 	}
+};
+
+/**
+ * Reads the instance's `hosting` option.
+ *
+ * Checked at startup because every `/init` is validated against the schema:
+ * a typo such as `'inth.com'` would otherwise fail each response rather than
+ * the deploy. `manifest.hosting` is refused by name, so an untyped config
+ * that put it there learns where it goes instead of reporting the default.
+ *
+ * @param options - The instance's options.
+ * @returns The backend's hosting, `'self-hosted'` when unset.
+ * @throws {Error} When `hosting` is not a known value, or when the config
+ * sets `manifest.hosting`.
+ * @internal
+ */
+export const resolveHosting = function resolveHosting(
+	options: Pick<AppOptions, 'hosting' | 'manifest'>
+): Hosting {
+	if (options.manifest && Object.hasOwn(options.manifest, 'hosting')) {
+		throw new Error(
+			'[c15t] manifest.hosting is not supported. Set hosting on the instance instead and remove it from manifest.'
+		);
+	}
+	const hosting: unknown = options.hosting;
+	if (hosting === undefined) {
+		return 'self-hosted';
+	}
+	if (!(hostingValues as readonly unknown[]).includes(hosting)) {
+		throw new Error(
+			`[c15t] hosting must be one of ${hostingValues.map((value) => JSON.stringify(value)).join(', ')}, received ${JSON.stringify(hosting) ?? String(hosting)}.`
+		);
+	}
+	return hosting as Hosting;
 };
 
 /**

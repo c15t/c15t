@@ -72,6 +72,13 @@ export type {
 export type KernelBranding = 'c15t' | 'consent' | 'inth';
 
 /**
+ * Who runs the backend that served `/init`: inth's hosted platform or a
+ * site's own `@c15t/backend`. Reported, not verified, and independent of
+ * branding.
+ */
+export type KernelHosting = 'inth' | 'self-hosted';
+
+/**
  * Permission model the runtime enforces, derived from the effective policy
  * rule and IAB enablement.
  * - `opt-in`  — optional categories are denied until a valid explicit grant
@@ -361,6 +368,11 @@ export interface ConsentSnapshot {
 	readonly translations: Readonly<KernelTranslations> | null;
 	/** Branding identifier. */
 	readonly branding: KernelBranding | null;
+	/**
+	 * Who runs the backend, as `/init` reported it. `null` until init
+	 * resolves, and for transports or older backends that do not say.
+	 */
+	readonly hosting: KernelHosting | null;
 	/** Signed token for write-time consistency — sent back on save. */
 	readonly policySnapshotToken: string | null;
 
@@ -464,6 +476,8 @@ export interface KernelConfig {
 	initialLocation?: LocationResponse;
 	/** Initial branding. */
 	initialBranding?: KernelBranding;
+	/** Initial backend hosting (e.g. from prefetch). */
+	initialHosting?: KernelHosting;
 	/**
 	 * Marks the policy as pending transport initialization.
 	 * Suppresses `activeUI` until init completes.
@@ -548,6 +562,8 @@ export interface InitResponse {
 	translations?: KernelTranslations;
 	/** Branding preference. */
 	branding?: KernelBranding;
+	/** Who runs the backend that answered. */
+	hosting?: KernelHosting;
 	/** Signed token for write-time consistency. Sent back on save. */
 	policySnapshotToken?: string;
 

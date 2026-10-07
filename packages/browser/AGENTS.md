@@ -75,6 +75,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Translations](./docs/frameworks/javascript/translations.md): Choose the language of the c15t banner and preference dialog in a JavaScript app, change its wording with i18n, and add languages with @c15t/browser or createConsentRuntime.
 - [Transports](./docs/frameworks/javascript/transports.md): Choose where a JavaScript app's c15t policy comes from and where choices go, with the hosted, manifest, offline and custom transports for @c15t/browser, createConsentRuntime and your own kernel.
 - [Troubleshooting](./docs/frameworks/javascript/troubleshooting.md): Diagnose vendor scripts that run early, unexpected reloads, empty custom banners, CORS errors, duplicate consent owners and policy resolution in a JavaScript app that uses @c15t/browser or c15t/runtime.
+- [Upgrade from v2](./docs/frameworks/javascript/upgrade-v3.md): Upgrade a JavaScript app from the c15t v2 store and getOrCreateConsentRuntime to v3. Covers @c15t/browser, createConsentRuntime, the consent kernel, moved exports, callbacks, policies and stored consent.
 - [Vendor consent](./docs/frameworks/javascript/vendor-consent.md): Let visitors allow a category such as marketing in a JavaScript app and still turn off one vendor in it, with the vendors option on createConsentRuntime and a vendor switch you render yourself.
 
 ## Concepts

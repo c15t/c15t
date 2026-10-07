@@ -250,6 +250,7 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 
 			if (options.windowDebug !== false) {
 				const windowDebug = modules.createWindowDebug({
+					getHosting: () => kernel.getSnapshot().hosting,
 					mode: resolveWindowDebugMode(options.mode),
 					pkg: options.pkg ?? '@c15t/core',
 				});
