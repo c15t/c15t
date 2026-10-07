@@ -221,7 +221,7 @@ available, `resolveConsent` reports the error and returns the baseline state.
 A render never fetches your own handler routes: a URL on the request's origin
 under `config.manifestURL` or `config.initURL`. `resolveConsent` reports the URL
 and returns the baseline state instead. Give it the backend URL your handlers
-use, as [Optimization](/docs/frameworks/next/optimization#keep-route-handlers-pointed-upstream)
+use, as [Optimization](/docs/frameworks/next/optimization#keep-server-requests-pointed-upstream)
 shows for the `/api/c15t` prefix.
 
 Any other same-origin `backendURL` is a backend reached through your app, such
@@ -303,6 +303,7 @@ from the headers listed in [geography and privacy signals](#geography-and-privac
 | `PagesResolveConsentOptions` | `c15t/next/pages` | `ResolveConsentOptions` with `req` in place of `request` |
 | `ConsentRootProps` | `c15t/next` | Props of `ConsentRoot`; `ConsentRootProps['state']` also accepts the pending promise |
 | `ConsentConfig` | `c15t/next`, `c15t/next/server`, `c15t/next/pages` | The frozen `defineConsentConfig` result passed as `config` |
+| `ConsentManifestOptions` | `c15t/next/server`, `c15t/next/pages`, `c15t/next/api` | Options shared by `resolveConsent` and the route handlers |
 
 ### Pages Router differences
 
@@ -338,6 +339,17 @@ export function resolveRequestConsent(req: IncomingMessage) {
 }
 ```
 
+## Share options between the render and the routes
+
+`ConsentManifestOptions` holds the options `resolveConsent` and the route
+handlers share: `config`, `manifest`, `backendURL`, `manifestURL`, `fetch`,
+`reportSessions` and `trustForwardedHeaders`. Pass one object to both:
+
+<include src="../../shared/examples/nextjs/consent-options.mdx" />
+
+Spread it to add per-render options:
+`resolveConsent({ ...consentOptions, timeoutMs: 300 })`.
+
 ## Route handler options
 
 ### createNextConsentRouteHandlers options
@@ -352,6 +364,7 @@ The handlers read no environment variables.
 | `backendURL` | none | Backend base URL. The manifest route fetches `${backendURL}/manifest`. Not read when `manifestURL` is set. |
 | `manifestURL` | none | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
 | `manifest` | none | Build-time snapshot. Takes precedence over upstream URLs, serves the manifest and resolves each visitor without fetching policy. Stays fixed until rebuilding. Keep `backendURL` for consent saves and session reports. |
+| `config` | none | A `defineConsentConfig` result. Its `backendURL` and an absolute `manifestURL` are read; explicit options win. |
 | `manifestRevalidateSeconds` | `300` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
 | `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `request.url`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |

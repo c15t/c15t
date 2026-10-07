@@ -36,9 +36,8 @@ The browser resolves policy from the bundled snapshot without fetching
 `/manifest` or `/init`. Without `geoURL` or explicit location overrides it
 uses the unknown-location policy, so configure a fallback rule. The bundle
 includes the policy and resolver. Keep your scripts and other plugin options.
-The snapshot does not refresh; rebuild after policy edits. Consent saves and
-IAB vendor-list requests can still use the network. A failed build-time fetch
-stops the build.
+
+<include src="../build-time-manifest-notes.mdx" />
 
 <include src="../vite-build-manifest.mdx" />
 

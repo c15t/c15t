@@ -1,23 +1,2 @@
-Build-time manifests are the recommended production setup for apps with a
-supported build integration. The build fetches public policy and bundles
-a snapshot, removing manifest fetch latency even on a fresh server instance.
-Each visitor's geography, language, privacy signals and stored consent still
-resolve separately.
-
-Pass your absolute `backendURL` to the build plugin. It appends `/manifest`
-automatically and preserves any backend path prefix.
-
-The snapshot stays fixed until the next build and does not refresh in the
-background. Rebuild after changing policies,
-translations or vendors. A failed fetch or invalid manifest stops the build;
-it does not silently reuse a previous snapshot. If your build tool restores cached application
-output, force a new build after a backend policy edit.
-
-Use runtime manifest fetching when policy changes must reach the app without
-a rebuild, or your build environment cannot reach the backend. Runtime caches
-still fetch the manifest when empty and during refresh.
-
-Consent saves and session reports still use the backend. IAB policies can also
-fetch a Global Vendor List. Prerendered pages still defer visitor-specific
-resolution to the browser; never bake a build machine's location or cookies
-into shared HTML.
+The build fetches your public policy once and bundles it, so the server never
+fetches it at runtime.

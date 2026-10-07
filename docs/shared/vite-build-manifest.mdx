@@ -1,11 +1,2 @@
-Run Vite before a separate `tsc`, `vue-tsc` or `svelte-check` step so the
-generated module exists on a clean checkout. Starting the development server
-also generates it for editor checks. The plugin does not run during a
-standalone type check.
-
-Vite preview uses the snapshot from the existing build and does not fetch or
-regenerate it.
-
-If your build tool restores cached application output, it restores that
-output's snapshot too. After a backend policy edit, force a new application
-build instead of restoring the previous build artifact.
+Run `vite build` or `vite dev` before a standalone `tsc`, `vue-tsc` or
+`svelte-check`; the generated file doesn't exist on a fresh checkout.

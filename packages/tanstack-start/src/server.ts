@@ -66,6 +66,7 @@ import {
 import type { ManifestCache } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
+import type { ConsentServerRouteOptions } from './api';
 import { trimTrailingSlashes } from './libs/path';
 import { readConsentInputs } from './libs/request-inputs';
 
@@ -310,6 +311,40 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 }
 
 /** {@link resolveConsent} without the experiment it carries back. */
+/**
+ * The options the consent server function and the consent server route
+ * share. Bind them once and pass the same object to
+ * `createConsentStateHandler` and `createConsentServerRoute`, so the loader
+ * and the route resolve from the same backend and manifest.
+ *
+ * @example
+ * ```ts
+ * import type { ConsentManifestOptions } from '@c15t/tanstack-start/server';
+ *
+ * export const consentOptions = {
+ *   backendURL: 'https://your-project.inth.app',
+ *   manifest: consentManifest,
+ * } satisfies ConsentManifestOptions;
+ * ```
+ */
+export type ConsentManifestOptions = Pick<
+	ResolveConsentOptions & ConsentServerRouteOptions,
+	| 'cache'
+	| 'fetch'
+	| 'manifest'
+	| 'manifestURL'
+	| 'onBackgroundRevalidate'
+	| 'reportSessions'
+	| 'trustForwardedHeaders'
+> & {
+	/**
+	 * Backend base URL. Required here: without it the server function
+	 * ignores `manifest` and returns cookie-only state, while the consent
+	 * route still resolves from it.
+	 */
+	backendURL: string;
+};
+
 const resolveConsentState = async function resolveConsentState(
 	options: ResolveConsentOptions
 ): Promise<ConsentState> {

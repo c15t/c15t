@@ -2,41 +2,29 @@
 
 <include src="./next-config.mdx" />
 
-Import the snapshot in your server layout or server function and add it to the
-existing resolution options:
+Declare the options once, next to `c15t.config.ts`:
+
+<include src="../examples/nextjs/consent-options.mdx" />
+
+Pass them to `resolveConsent` in the root layout:
 
 {/* example: fragment */}
 
 ```tsx title="app/layout.tsx"
-import { consentManifest } from '@/c15t-manifest';
-
-const state = resolveConsent({
-	config: consentConfig,
-	manifest: consentManifest,
-});
+const state = resolveConsent(consentOptions);
 ```
 
-Give the manifest and optional init route handlers the same `manifest` option,
-so browser initialization uses the deployment's policy too:
+And to the manifest route:
 
-{/* example: fragment */}
+<include src="../examples/nextjs/consent-options-route.mdx" />
 
-```ts title="app/api/c15t/manifest/route.ts"
-import { consentManifest } from '@/c15t-manifest';
+Pass the same object to the optional init route. Don't import `c15t.server.ts`
+in client components.
 
-export const { manifestGET: GET } = createNextConsentRouteHandlers({
-	backendURL: 'https://your-project.inth.app',
-	manifest: consentManifest,
-});
-```
+<include src="../build-time-manifest-notes.mdx" />
 
-The same options work with Pages Router `resolveConsent` and
-`createPagesApiHandlers`. Keep the generated file out of Git and create it in
-every build. Set `outputFile` to change its path, `exportName` to change its
-export, or `importSource` to change the type import. Apps that install
-`@c15t/nextjs` directly set `importSource: '@c15t/nextjs/static'`.
-Generation defaults to the current working directory. If you run Next.js
-from outside the application directory, set `rootDir` to that directory.
-Adjust the snapshot import to match your app's aliases or generated path.
+If you install `@c15t/nextjs` directly, set `importSource: '@c15t/nextjs/static'`.
+In a monorepo, set `rootDir` to the app directory.
 
-For policy updates without a rebuild, use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data) instead.
+For policy updates without a rebuild, remove `withConsentManifest` and the
+`manifest` line, and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).

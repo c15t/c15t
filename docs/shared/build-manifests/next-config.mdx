@@ -1,4 +1,4 @@
-Wrap your existing Next.js configuration with `withConsentManifest`:
+Wrap your existing Next.js config object or function:
 
 {/* example: fragment */}
 
@@ -10,7 +10,4 @@ export default withConsentManifest(config, {
 });
 ```
 
-Here `config` is your existing configuration object or asynchronous config
-function. Use your project's absolute backend URL. The build appends `/manifest`.
-`next build` writes `c15t-manifest.ts` before compilation. `next dev` refreshes
-it when the development server starts; `next start` never fetches it.
+`next build` and `next dev` write `c15t-manifest.ts`. Keep it out of Git.

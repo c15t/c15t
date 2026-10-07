@@ -50,7 +50,7 @@ build time, so the server and the browser use the same URL.
 
 <include src="../../shared/examples/nextjs-pages-router/pages-manifest-route.mdx" />
 
-With the build-time `manifest` option, the route serves the snapshot directly
+With a [build-time snapshot](#bundle-the-manifest-during-builds), the route serves it directly
 without an upstream request. With runtime fetching, it reads `backendURL` from
 the config, fetches `${backendURL}/manifest` and caches the public policy. It
 answers methods other than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
@@ -114,9 +114,9 @@ browser retries after hydration.
 
 ## Use backend init instead of the manifest
 
-Remove `withConsentManifest` and the helpers' `manifest` option if you added
-the build integration. Delete the `manifestURL` line from `c15t.config.ts` and delete
-`pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
+If you added the build integration, remove `withConsentManifest` and the
+`manifest` line in `c15t.server.ts`. Delete the `manifestURL` line from
+`c15t.config.ts` and delete `pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
 `resolveConsent` and the browser now call `${backendURL}/init`, and consent
 choices still go to `${backendURL}/subjects`. For a browser-only setup with no
 server work, follow [client-side initialization](/docs/frameworks/next/client-side).

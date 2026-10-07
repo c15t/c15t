@@ -20,10 +20,10 @@ runtime configuration. Production server startup does not run module setup
 or fetch another manifest.
 
 Use an absolute upstream `backendURL` or `manifestURL`. This option requires
-a Nuxt server and cannot be combined with `manifest: 'client'`. Prerendered
-and cached pages still resolve each visitor through the server init route
-after hydration. For a static host without a server, keep the browser setup
-described below.
+a Nuxt server and cannot be combined with `manifest: 'client'`. For a static
+host without a server, keep the browser setup described below.
+
+<include src="../build-time-manifest-notes.mdx" />
 
 For policy updates without a rebuild, omit `buildManifest` and keep
 `manifest: 'server'` to fetch and cache the policy at runtime.

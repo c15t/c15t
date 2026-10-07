@@ -31,6 +31,14 @@ export interface NextConsentManifestHandlersOptions {
 	manifest?: ConsentManifest;
 
 	/**
+	 * A `defineConsentConfig` result. Its `backendURL` and an absolute
+	 * `manifestURL` are read, as `resolveConsent` reads them; explicit options
+	 * win. A `/`-relative `manifestURL` and `initURL` name the routes these
+	 * handlers serve, so they are never fetched.
+	 */
+	config?: ConsentConfig;
+
+	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the request's
 	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
 	 * of the request URL. Any client can send those headers, so set this
@@ -113,6 +121,13 @@ export const createManifestFetchInit = function createManifestFetchInit(
 };
 
 /**
+ * A config's `manifestURL` when it points upstream. A `/`-relative one is
+ * the route these handlers serve.
+ */
+const upstreamManifestURL = (config: ConsentConfig | undefined) =>
+	config?.manifestURL?.startsWith('/') ? undefined : config?.manifestURL;
+
+/**
  * Handler options from either the explicit options bag or a
  * `defineConsentConfig` result.
  *
@@ -136,12 +151,13 @@ const toHandlerOptions = function toHandlerOptions(
 /**
  * Build the App Router route handlers for the consent routes.
  *
- * @param optionsOrConfig - Handler options with `backendURL` or
+ * @param optionsOrConfig - Handler options with `backendURL`, `config` or
  * `manifestURL`, or a `defineConsentConfig` result. From a config only
  * `backendURL` is used: its `manifestURL` and `initURL` are the routes these
- * handlers serve.
+ * handlers serve. Accepts the same `ConsentManifestOptions` object as
+ * `resolveConsent`.
  * @returns `GET` for the init route and `manifestGET` for the manifest route.
- * Each handler throws when no `manifest`, `backendURL` or `manifestURL` is set.
+ * Each handler throws when no `manifest`, backend URL or `manifestURL` is set.
  * @example
  * ```ts
  * // app/api/consent/manifest/route.ts
@@ -164,12 +180,12 @@ export const createNextConsentRouteHandlers =
 		const { next } = createManifestFetchInit(options);
 		const handle = createConsentRouteHandler({
 			adapter: '@c15t/nextjs',
-			backendURL: options.backendURL,
+			backendURL: options.backendURL ?? options.config?.backendURL,
 			fetch: options.fetch,
 			fetchGvl: options.fetchGvl,
 			manifest: options.manifest,
 			manifestFetchInit: { next } as NextFetchInit,
-			manifestURL: options.manifestURL,
+			manifestURL: options.manifestURL ?? upstreamManifestURL(options.config),
 			reportSessions: options.reportSessions,
 			trustForwardedHeaders: options.trustForwardedHeaders,
 		});
@@ -186,3 +202,4 @@ export const createNextConsentRouteHandlers =
 
 export type { ConsentConfig } from './config';
 export { defineConsentConfig } from './config';
+export type { ConsentManifestOptions } from './server';

@@ -18,6 +18,7 @@ import type { ConsentManifest } from '@c15t/schema/types';
 import * as React from 'react';
 
 import { createManifestFetchInit } from './api';
+import type { NextConsentManifestHandlersOptions } from './api';
 import type { ConsentConfig } from './config';
 import type { ConsentState } from './types';
 
@@ -275,6 +276,34 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 */
 	waitUntil?: (task: Promise<void>) => void;
 }
+
+/**
+ * The options `resolveConsent` and `createNextConsentRouteHandlers` share.
+ * Declare them once in a server-only module and pass the same object to
+ * both, so the render and the consent routes resolve from the same backend
+ * and manifest.
+ *
+ * @example
+ * ```ts
+ * // c15t.server.ts
+ * import type { ConsentManifestOptions } from '@c15t/nextjs/server';
+ *
+ * export const consentOptions = {
+ *   config: consentConfig,
+ *   manifest: consentManifest,
+ * } satisfies ConsentManifestOptions;
+ * ```
+ */
+export type ConsentManifestOptions = Pick<
+	ResolveConsentOptions & NextConsentManifestHandlersOptions,
+	| 'backendURL'
+	| 'config'
+	| 'fetch'
+	| 'manifest'
+	| 'manifestURL'
+	| 'reportSessions'
+	| 'trustForwardedHeaders'
+>;
 
 const isProduction = function isProduction(): boolean {
 	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })

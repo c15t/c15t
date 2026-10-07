@@ -41,6 +41,7 @@ import type { ConsentManifest } from '@c15t/schema/types';
 import { readConsentInputs } from './libs/request-inputs';
 
 export type { ConsentProxyOptions } from '@c15t/core/server';
+export type { ConsentManifestOptions } from './server';
 
 /** Options for {@link createConsentServerRoute}. */
 export interface ConsentServerRouteOptions {

@@ -66,8 +66,8 @@ build time, so the server and the browser use the same URL.
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-With the build-time `manifest` option, `createNextConsentRouteHandlers` serves
-the snapshot directly without an upstream request. With runtime fetching, it
+With a [build-time snapshot](#bundle-the-manifest-during-builds), the route serves it directly
+without an upstream request. With runtime fetching, it
 reads `backendURL` from the config and fetches `${backendURL}/manifest`. The
 route caches that public policy, so fresh cache hits make no policy request
 to Inth.
@@ -147,9 +147,9 @@ server-rendered ones, see
 
 ## Use backend init instead of the manifest
 
-Remove `withConsentManifest` and the helpers' `manifest` option if you added
-the build integration. Delete the `manifestURL` line from `c15t.config.ts` and delete
-`app/api/c15t/manifest/route.ts`. The layouts stay the same. `resolveConsent`
+If you added the build integration, remove `withConsentManifest` and the
+`manifest` line in `c15t.server.ts`. Delete the `manifestURL` line from
+`c15t.config.ts` and delete `app/api/c15t/manifest/route.ts`. The layouts stay the same. `resolveConsent`
 and the browser now call `${backendURL}/init`, and consent choices still go to
 `${backendURL}/subjects`. Every visit makes a backend request, which the
 manifest avoids. For a browser-only setup with no server work, follow

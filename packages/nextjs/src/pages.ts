@@ -31,6 +31,7 @@ import type {
 } from './node-bridge';
 import { toWebHeaders, toWebRequest, writeWebResponse } from './node-bridge';
 import type {
+	ConsentManifestOptions,
 	ConsentState,
 	KernelConfig,
 	NextRequestContext,
@@ -46,6 +47,7 @@ export type {
 } from './node-bridge';
 export type {
 	ConsentConfig,
+	ConsentManifestOptions,
 	ConsentState,
 	KernelConfig,
 	NextConsentManifestHandlersOptions,

@@ -42,10 +42,9 @@ geography is missing, it calls backend `/init` and uses the backend's resolved
 policy and translations. Those visitors still wait for a backend round trip
 and can receive newer policy than the build snapshot.
 
-Consent saves and IAB vendor-list requests can still use the backend. Rebuild
-after editing policy, translations or vendors to update local resolutions;
-a failed or invalid snapshot fetch stops the build. A script-tag site without
-a build step cannot run this hook.
+A script-tag site without a build step cannot run this hook.
+
+<include src="../build-time-manifest-notes.mdx" />
 
 <include src="../vite-build-manifest.mdx" />
 

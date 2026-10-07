@@ -1,0 +1,10 @@
+{/* Generated from internals/doc-snippets/nextjs/app/api/c15t/manifest/route.ts (docs:consent-options-route) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
+
+import { consentOptions } from '@/c15t.server';
+
+export const { manifestGET: GET } =
+	createNextConsentRouteHandlers(consentOptions);
+```
