@@ -128,7 +128,8 @@ export const writeManifestModule = async (
 
 /**
  * Generates a typed manifest before any Vite framework compiles its app.
- * Runs once per plugin instance during build or development configuration.
+ * Shares a successful snapshot across build or development configuration.
+ * Failed generation can be retried. Preview uses the existing build.
  * Import the generated `consentManifest` into the app's consent setup.
  *
  * @param options - Backend URL and output settings. Defaults to
@@ -145,14 +146,24 @@ export const writeManifestModule = async (
  */
 export const consentManifest = (options: ManifestBuildOptions) => {
 	let generation: Promise<string> | undefined;
-	return {
-		configResolved: async (config: { root: string }) => {
-			generation ??= writeManifestModule(options, {
+	const generateManifest = async (rootDir: string): Promise<string> => {
+		try {
+			return await writeManifestModule(options, {
 				importSource: 'c15t/build',
 				label: '@c15t/core/build',
 				outputFile: 'src/c15t-manifest.ts',
-				rootDir: config.root,
+				rootDir,
 			});
+		} catch (error) {
+			generation = undefined;
+			throw error;
+		}
+	};
+	return {
+		apply: (_config: unknown, environment: { isPreview?: boolean }) =>
+			!environment.isPreview,
+		configResolved: async (config: { root: string }) => {
+			generation ??= generateManifest(config.root);
 			await generation;
 		},
 		enforce: 'pre' as const,

@@ -19,6 +19,9 @@ the deployment's snapshot without fetching an upstream manifest, including
 on a fresh server instance. Request geography, language, privacy signals and
 stored consent still resolve per visitor.
 
+Vite generation runs during builds and development, skips preview, and can
+retry after a failed setup.
+
 Svelte's framework-free `resolveConsent` helper also accepts a snapshot and
 resolves it locally, with optional backend session reporting.
 Both Svelte server helpers accept a background-work callback to keep session

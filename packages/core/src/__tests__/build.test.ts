@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
-import { build } from 'vite';
+import { build, resolveConfig } from 'vite';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
@@ -45,6 +45,37 @@ afterEach(async () => {
 });
 
 describe('Vite build-time manifest', () => {
+	test('preview uses the built snapshot while the backend is unavailable', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		const file = await writeManifestModule(options, {
+			importSource: 'c15t/build',
+			label: 'test/build',
+			outputFile: 'src/c15t-manifest.ts',
+		});
+		const source = await readFile(file, 'utf8');
+		const previousTime = new Date('2000-01-01T00:00:00.000Z');
+		await utimes(file, previousTime, previousTime);
+		const original = await stat(file);
+		options.fetch.mockClear();
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		await resolveConfig(
+			{
+				configFile: false,
+				logLevel: 'silent',
+				plugins: [consentManifest(options)],
+				root,
+			},
+			'serve',
+			'production',
+			'production',
+			true
+		);
+		expect(options.fetch).not.toHaveBeenCalled();
+		expect(await readFile(file, 'utf8')).toBe(source);
+		expect((await stat(file)).mtimeMs).toBe(original.mtimeMs);
+	});
+
 	test('a real Vite build generates the imported module before compiling', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
@@ -204,6 +235,38 @@ describe('framework build snapshot', () => {
 			plugin.configResolved({ root }),
 		]);
 		expect(options.fetch).toHaveBeenCalledTimes(1);
+	});
+
+	test('retries a failed generation and shares the recovered snapshot', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockResolvedValueOnce(
+			new Response('unavailable', { status: 503 })
+		);
+		const plugin = consentManifest(options);
+		const results = await Promise.allSettled([
+			plugin.configResolved({ root }),
+			plugin.configResolved({ root }),
+		]);
+		expect(results.map((result) => result.status)).toEqual([
+			'rejected',
+			'rejected',
+		]);
+		expect(options.fetch).toHaveBeenCalledTimes(1);
+		await expect(
+			stat(join(root, 'src/c15t-manifest.ts'))
+		).rejects.toMatchObject({
+			code: 'ENOENT',
+		});
+		await Promise.all([
+			plugin.configResolved({ root }),
+			plugin.configResolved({ root }),
+		]);
+		expect(
+			await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8')
+		).toContain('build-test');
+		await plugin.configResolved({ root });
+		expect(options.fetch).toHaveBeenCalledTimes(2);
 	});
 });
 
