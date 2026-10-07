@@ -139,7 +139,7 @@ Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
 | `initOptions` | `{}` | Passed to `Sentry.init` in either mode. c15t puts its consent integration first. In CDN mode, `integrations` runs after Sentry loads, so it can read `window.Sentry`. |
 | `version` | `'11.4.0'` | SDK version to load. Another version loads without subresource integrity. |
 | `tracing` | `true` when traces are sampled | Loads the tracing bundle and adds `browserTracingIntegration()`. |
-| `replay` | Loads Replay when sampled | `{ category, options }`, where `options` go to `replayIntegration()`. `false` never loads Replay. |
+| `replay` | Loads Replay when sampled | `{ category, options }`, where `options` configure the page's first `replayIntegration()`. Changed CDN configurations reuse that recorder. `false` never loads Replay. |
 | `getClient` | Required for your own SDK | `getClient` from your Sentry SDK. Works when c15t starts before `Sentry.init`. |
 | `setUser` | None | `setUser` from your Sentry SDK. Called with `null` while user data is not allowed. Required with `pii.user`. |
 | `init` | None | Your SDK's `init`, or a callback that forwards the supplied options to it. Called once, when `loadMode` allows. Required with `loadMode: 'after-consent'` and your own SDK. |
@@ -204,11 +204,15 @@ keeps the SDK bundle and current Replay recording. Keep `getClient`, `setUser`,
 configuration starts a new adapter lifecycle; changed CDN options initialize
 a client with the new DSN and settings. A new CDN configuration also initializes
 when another loader already owns the completed bundle. It initializes once;
-subsequent consent changes keep that client. Replay uses the options of the
-configuration that initialized it while that configuration remains active.
-After its removal, a surviving configuration can load Replay with its own
-Replay options. The client's resolved SDK settings and sampling rates stay
-unchanged. Consent remounts keep the client and its
+subsequent consent changes keep that client. Sentry permits one Replay instance
+per page, so changed CDN configurations reuse the existing recorder. Its original
+Replay options and sampling decision stay in effect until a page reload. The new
+client still receives the changed DSN and SDK settings.
+
+If Replay has not started loading when the initializing configuration is removed,
+a surviving configuration can load it with its own Replay options. Removing a
+loader keeps the current client's resolved SDK settings and sampling rates.
+Consent remounts keep the client and its
 Replay sampling decision. Matching CDN versions and bundle types share the
 download; a different version or tracing bundle loads its own resource.
 

@@ -168,7 +168,10 @@ export interface SentryCdnReplayOptions {
 	 * @default 'measurement'
 	 */
 	category?: HasCondition<AllConsentNames>;
-	/** Options for `replayIntegration()`, such as `maskAllText`. */
+	/**
+	 * Options for the page's first `replayIntegration()`, such as `maskAllText`.
+	 * CDN client replacements reuse that recorder and retain these options.
+	 */
 	options?: Record<string, unknown>;
 }
 
@@ -297,8 +300,6 @@ interface ClientState {
 	piiAllowed: boolean;
 	/** Whether Replay envelopes may leave the browser. */
 	replayAllowed: boolean;
-	/** Replay start methods already guarded for this client. */
-	guardedReplays: WeakSet<SentryReplay>;
 	/** Resolved SDK collection settings as the app configured them. */
 	collection?: SentryDataCollectionOptions;
 	/** The SDK `infer_ip` setting as the app configured it. */
@@ -313,6 +314,21 @@ interface ClientState {
 	/** Settles once the latest `stop()` finishes. */
 	stopping?: Promise<void>;
 	stopFailed?: boolean;
+}
+
+interface ReplayHook {
+	name: string;
+	callback: unknown;
+	unsubscribe: unknown;
+}
+
+/** Replay subscribes to different public hooks across supported SDK versions. */
+type ReplayHookRegistrar = (name: string, listener: unknown) => unknown;
+
+interface ReplayState {
+	client: SentryClient;
+	state: ClientState;
+	hooks: ReplayHook[];
 }
 
 interface GateOptions {
@@ -371,6 +387,8 @@ const defaultIntegrity: Record<string, string> = {
 // Sentry allows one Replay per page, and an app can recreate this script on
 // every render, so Replay bookkeeping lives with the client, not the adapter.
 const clientStates = new WeakMap<SentryClient, ClientState>();
+/** A reused recorder follows its current client without stacking old guards. */
+const replayStates = new WeakMap<SentryReplay, ReplayState>();
 // Register mounted gates before SDK initialization, so a later client sees
 // every applicable denial even when that gate has no reason to poll for it.
 const activeGates = new Set<ClientGate>();
@@ -519,24 +537,70 @@ const redactCollectedAttributes = (payload: unknown): void => {
 	}
 };
 
+/** Retain Replay's public client hooks so they can follow a replaced client. */
+const withReplayHooks = <Result>(
+	replay: SentryReplay,
+	setup: () => Result
+): Result => {
+	const binding = replayStates.get(replay);
+	if (!binding) {
+		return setup();
+	}
+	const { client } = binding;
+	const { on } = client;
+	const register = on as ReplayHookRegistrar;
+	client.on = (name, listener) => {
+		const unsubscribe = register.call(client, name, listener);
+		binding.hooks.push({ callback: listener, name, unsubscribe });
+		return unsubscribe;
+	};
+	try {
+		return setup();
+	} finally {
+		client.on = on;
+	}
+};
+
 /** Prevent application starts from buffering DOM data during denial or removal. */
-const guardReplay = (replay: SentryReplay, state: ClientState): void => {
-	if (state.guardedReplays.has(replay)) {
+const guardReplay = (
+	client: SentryClient,
+	replay: SentryReplay,
+	state: ClientState
+): void => {
+	const binding = replayStates.get(replay);
+	if (binding) {
+		if (binding.client !== client) {
+			const register = client.on as ReplayHookRegistrar;
+			for (const hook of binding.hooks) {
+				if (typeof hook.unsubscribe === 'function') {
+					hook.unsubscribe();
+				}
+				hook.unsubscribe = register.call(client, hook.name, hook.callback);
+			}
+		}
+		binding.client = client;
+		binding.state = state;
 		return;
 	}
-	state.guardedReplays.add(replay);
-	const allowed = (): boolean =>
-		state.replayAllowed && !state.stopping && !state.stopFailed;
+	replayStates.set(replay, { client, hooks: [], state });
+	const allowed = (): boolean => {
+		const current = replayStates.get(replay)?.state;
+		return Boolean(
+			current?.replayAllowed && !current.stopping && !current.stopFailed
+		);
+	};
 	const { flush } = replay;
 	if (flush) {
 		replay.flush = (options) =>
-			allowed() ? flush.call(replay, options) : Promise.resolve();
+			allowed()
+				? withReplayHooks(replay, () => flush.call(replay, options))
+				: Promise.resolve();
 	}
 	for (const method of ['start', 'startBuffering'] as const) {
 		const start = replay[method];
 		replay[method] = () => {
 			if (allowed()) {
-				start.call(replay);
+				withReplayHooks(replay, () => start.call(replay));
 			}
 		};
 	}
@@ -652,6 +716,15 @@ const stopReplay = (
 	report: (error: unknown) => void
 ): void => {
 	const replay = findReplay(client);
+	if (
+		replay &&
+		replayStates.has(replay) &&
+		replayStates.get(replay)?.state !== state
+	) {
+		// Old clients retain their integration reference after a CDN replacement.
+		// Their cleanup must not stop the recorder or clear the new session.
+		return;
+	}
 	try {
 		if (replay && !state.stopping) {
 			// Recording stops synchronously before the promise is returned.
@@ -809,7 +882,6 @@ const createGate = (options: GateOptions) => {
 			enabled: client.getOptions().enabled !== false,
 			errorsAllowed: true,
 			gates: new Set(),
-			guardedReplays: new WeakSet(),
 			inferIp: client.getSdkMetadata?.()?.sdk?.settings?.infer_ip,
 			lastEnabled: client.getOptions().enabled !== false,
 			piiAllowed: false,
@@ -876,7 +948,7 @@ const createGate = (options: GateOptions) => {
 		}
 		const existing = findReplay(client);
 		if (existing) {
-			guardReplay(existing, state);
+			guardReplay(client, existing, state);
 			state.mode = existing.getRecordingMode() ?? null;
 			warn(
 				'Sentry Replay was added in Sentry.init, so it loads and may record before consent. Remove replayIntegration() from Sentry.init and let sentry() load Replay instead.'
@@ -961,6 +1033,9 @@ const createGate = (options: GateOptions) => {
 		signal: AbortSignal,
 		allowed: () => boolean
 	): Promise<void> => {
+		if (replayStates.get(replay)?.state !== state) {
+			return;
+		}
 		if (replay.getRecordingMode() !== undefined) {
 			return;
 		}
@@ -971,6 +1046,42 @@ const createGate = (options: GateOptions) => {
 			replay.start();
 		} else if (state.mode === 'buffer') {
 			replay.startBuffering();
+		}
+	};
+
+	const attachReplay = async (
+		client: SentryClient,
+		state: ClientState,
+		replay: SentryReplay,
+		signal: AbortSignal,
+		allowed: () => boolean
+	): Promise<void> => {
+		const previousState = replayStates.get(replay)?.state;
+		if (previousState && previousState !== state) {
+			await previousState.stopping;
+			if (previousState.stopFailed) {
+				return;
+			}
+		}
+		if (!allowed()) {
+			return;
+		}
+		if (
+			!(await waitForReplayIdle(signal)) ||
+			!allowed() ||
+			findReplay(client)
+		) {
+			return;
+		}
+		guardReplay(client, replay, state);
+		withReplayHooks(replay, () => client.addIntegration(replay));
+		state.mode = previousState
+			? (previousState.mode ?? null)
+			: (replay.getRecordingMode() ?? null);
+		if (allowed()) {
+			await resumeReplay(replay, state, signal, allowed);
+		} else {
+			stopReplay(client, state, report);
 		}
 	};
 
@@ -1019,22 +1130,7 @@ const createGate = (options: GateOptions) => {
 		if (!replay) {
 			return;
 		}
-		if (!allowed()) {
-			return;
-		}
-		if (
-			!(await waitForReplayIdle(signal)) ||
-			!allowed() ||
-			findReplay(client)
-		) {
-			return;
-		}
-		guardReplay(replay, state);
-		client.addIntegration(replay);
-		state.mode = replay.getRecordingMode() ?? null;
-		if (!allowed()) {
-			stopReplay(client, state, report);
-		}
+		await attachReplay(client, state, replay, signal, allowed);
 	};
 
 	const queueReplay = (): void => {
@@ -1394,6 +1490,8 @@ const createCdnScript = (
 			// initializes once, without replacing it on every consent update.
 			const previous = sentryGlobal?.getClient();
 			if (sentryGlobal && (!previous || cdnClients.get(previous) !== options)) {
+				const previousState = previous && clientStates.get(previous);
+				const previousReplay = previous && findReplay(previous);
 				sentryGlobal.init(
 					createInitOptions(sentryGlobal, dsn, initOptions, tracing, () => {
 						gate.initialize();
@@ -1401,6 +1499,14 @@ const createCdnScript = (
 				);
 				const client = sentryGlobal.getClient();
 				if (client) {
+					const state = clientStates.get(client);
+					if (client !== previous && state) {
+						// Sentry permits one Replay per page. Transfer even a pending
+						// load so a new client cannot construct a second recorder.
+						state.loading =
+							previousState?.loading ??
+							(previousReplay ? Promise.resolve(previousReplay) : undefined);
+					}
 					cdnClients.set(client, options);
 					initialized = true;
 				}

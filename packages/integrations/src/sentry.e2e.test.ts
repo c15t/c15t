@@ -32,12 +32,17 @@ class FakeReplay implements SentryReplay {
 	flushed = 0;
 
 	private readonly sampling: Sampling;
+	private initialized = false;
 
 	constructor(sampling: Sampling) {
 		this.sampling = sampling;
 	}
 
 	setup(): void {
+		if (this.initialized) {
+			return;
+		}
+		this.initialized = true;
 		sessionStorage.setItem(
 			sessionKey,
 			JSON.stringify({ sampled: this.sampling })
@@ -1671,7 +1676,8 @@ const installSentryCdn = (
 	sampling: Sampling = 'session',
 	clientOptions?: Parameters<typeof createClient>[0],
 	deferBundle = false,
-	freshClients = false
+	freshClients = false,
+	deferReplay = false
 ) => {
 	const sentryClient = createClient(clientOptions);
 	const loaded: HTMLScriptElement[] = [];
@@ -1706,11 +1712,19 @@ const installSentryCdn = (
 			loaded.push(node);
 			if (node.src.endsWith('/replay.min.js')) {
 				sentryGlobal.replayIntegration = (options) => {
+					if (replays.length > 0) {
+						throw new Error(
+							'Multiple Sentry Session Replay instances are not supported'
+						);
+					}
 					replayOptions.push(options);
 					const replay = new FakeReplay(sampling);
 					replays.push(replay);
 					return replay;
 				};
+				if (deferReplay) {
+					continue;
+				}
 			} else {
 				Object.assign(window, { Sentry: sentryGlobal });
 				if (deferBundle) {
@@ -2123,44 +2137,130 @@ describe('Sentry loaded from the CDN', () => {
 		);
 	});
 
-	it('uses the adopting CDN configuration for a fresh client and Replay options', async () => {
-		const { sentryGlobal, replays, replayOptions } = installSentryCdn(
+	it.each(['session', 'buffer', false] as const)(
+		'reuses Replay and its %s sampling decision when a CDN configuration initializes a fresh client',
+		async (sampling) => {
+			const { sentryGlobal, replays, replayOptions } = installSentryCdn(
+				sampling,
+				undefined,
+				false,
+				true
+			);
+			const first = mount(
+				sentry({
+					dsn,
+					initOptions: { release: 'before', replaysSessionSampleRate: 1 },
+					replay: { options: { maskAllText: true } },
+				}),
+				grantedMeasurementConsents
+			);
+			await settle();
+			const previous = sentryGlobal.getClient();
+			expect(replays[0]?.getRecordingMode()).toBe(sampling || undefined);
+			const second = mount(
+				sentry({
+					dsn: 'https://new-key@o1.ingest.sentry.io/1',
+					initOptions: { release: 'after', replaysSessionSampleRate: 1 },
+					replay: { options: { maskAllText: false } },
+				}),
+				grantedMeasurementConsents
+			);
+			await settle();
+			expect(sentryGlobal.getClient()).not.toBe(previous);
+			expect(replays).toHaveLength(1);
+			expect(sentryGlobal.getClient()?.getIntegrationByName('Replay')).toBe(
+				replays[0]
+			);
+			expect(replays[0]?.getRecordingMode()).toBe(sampling || undefined);
+			expect(replayOptions).toEqual([{ maskAllText: true }]);
+			first.loader.dispose();
+			expect(replays[0]?.getRecordingMode()).toBe(sampling || undefined);
+			second.loader.dispose();
+			expect(replays[0]?.getRecordingMode()).toBeUndefined();
+		}
+	);
+
+	it('transfers a pending Replay download when CDN settings change', async () => {
+		const { loaded, replays, sentryGlobal } = installSentryCdn(
+			'session',
+			undefined,
+			false,
+			true,
+			true
+		);
+		const onError = vi.fn();
+		const { loader } = mount(
+			sentry({ dsn, initOptions: { replaysSessionSampleRate: 1 }, onError }),
+			grantedMeasurementConsents
+		);
+		await settle();
+		const replayBundle = loaded.find((element) =>
+			element.src.endsWith('/replay.min.js')
+		);
+		expect(replayBundle).toBeDefined();
+		loader.updateScripts([
+			sentry({
+				dsn,
+				initOptions: { release: 'replacement', replaysSessionSampleRate: 1 },
+				onError,
+			}),
+		]);
+		await settle();
+		expect(
+			loaded.filter((element) => element.src.endsWith('/replay.min.js'))
+		).toHaveLength(1);
+		replayBundle?.dispatchEvent(new Event('load'));
+		await settle();
+		expect(onError).not.toHaveBeenCalled();
+		expect(replays).toHaveLength(1);
+		expect(sentryGlobal.getClient()?.getIntegrationByName('Replay')).toBe(
+			replays[0]
+		);
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+	});
+
+	it('waits for the previous Replay stop before recording on a changed CDN client', async () => {
+		const { replays, sentryGlobal } = installSentryCdn(
 			'session',
 			undefined,
 			false,
 			true
 		);
-		const first = mount(
+		const { loader } = mount(
+			sentry({ dsn, initOptions: { replaysSessionSampleRate: 1 } }),
+			grantedMeasurementConsents
+		);
+		await settle();
+		const [replay] = replays;
+		if (!replay) {
+			throw new Error('Replay did not load');
+		}
+		const pendingStop = deferred<undefined>();
+		const stop = replay.stop.getMockImplementation();
+		if (!stop) {
+			throw new Error('Replay has no stop implementation');
+		}
+		vi.spyOn(replay, 'stop').mockImplementation(async (options) => {
+			await stop(options);
+			await pendingStop.promise;
+		});
+		loader.updateScripts([
 			sentry({
 				dsn,
-				initOptions: { release: 'before', replaysSessionSampleRate: 1 },
-				replay: { options: { maskAllText: true } },
+				initOptions: { release: 'replacement', replaysSessionSampleRate: 1 },
 			}),
-			grantedMeasurementConsents
-		);
-		await settle();
-		const previous = sentryGlobal.getClient();
-		expect(replays[0]?.getRecordingMode()).toBe('session');
-		const second = mount(
-			sentry({
-				dsn: 'https://new-key@o1.ingest.sentry.io/1',
-				initOptions: { release: 'after', replaysSessionSampleRate: 1 },
-				replay: { options: { maskAllText: false } },
-			}),
-			grantedMeasurementConsents
-		);
-		await settle();
-		expect(sentryGlobal.getClient()).not.toBe(previous);
-		expect(replays[0]?.getRecordingMode()).toBeUndefined();
-		expect(replays[1]?.getRecordingMode()).toBe('session');
-		expect(replayOptions).toEqual([
-			{ maskAllText: true },
-			{ maskAllText: false },
 		]);
-		first.loader.dispose();
-		expect(replays[1]?.getRecordingMode()).toBe('session');
-		second.loader.dispose();
-		expect(replays[1]?.getRecordingMode()).toBeUndefined();
+		await settle();
+		expect(replay.getRecordingMode()).toBeUndefined();
+		expect(
+			sentryGlobal.getClient()?.getIntegrationByName('Replay')
+		).toBeUndefined();
+		pendingStop.resolve(undefined);
+		await settle();
+		expect(sentryGlobal.getClient()?.getIntegrationByName('Replay')).toBe(
+			replay
+		);
+		expect(replay.getRecordingMode()).toBe('session');
 	});
 
 	it.each(['before removal', 'after removal'] as const)(
