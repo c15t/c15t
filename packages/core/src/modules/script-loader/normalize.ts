@@ -66,7 +66,9 @@ export interface ElementIdResolver {
 /**
  * Build a per-loader element-ID resolver.
  *
- * When `script.anonymizeId` is `false`, the ID is `c15t-script-<id>` —
+ * Resource keys let independent loaders select different physical resources
+ * under the same logical script ID. Without one, use the script ID.
+ * When `script.anonymizeId` is `false`, the ID is `c15t-script-<key>` —
  * stable across mounts so consumers can target it from CSS / extensions.
  *
  * When `script.anonymizeId` is unset or `true`, the ID is a random
@@ -81,16 +83,17 @@ export const createElementIdResolver =
 				/* empty */
 			},
 			resolve(script) {
+				const key = script.resourceKey ?? script.id;
 				const anonymize = script.anonymizeId !== false;
 				if (!anonymize) {
-					return `c15t-script-${script.id}`;
+					return `c15t-script-${key}`;
 				}
-				const cached = anonymizedElementIds.get(script.id);
+				const cached = anonymizedElementIds.get(key);
 				if (cached) {
 					return cached;
 				}
 				const generated = `c15t-${generateRandomId()}`;
-				anonymizedElementIds.set(script.id, generated);
+				anonymizedElementIds.set(key, generated);
 				return generated;
 			},
 		};
@@ -99,6 +102,7 @@ export const createElementIdResolver =
 /** Compare the DOM resource, excluding callbacks and consent eligibility. */
 export const hasSameResource = (previous: Script, next: Script): boolean => {
 	const fields = [
+		'resourceKey',
 		'src',
 		'textContent',
 		'callbackOnly',

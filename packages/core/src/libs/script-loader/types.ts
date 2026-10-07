@@ -60,6 +60,14 @@ export interface Script {
 	/** Unique identifier for the script */
 	id: string;
 
+	/**
+	 * Stable identity of the DOM resource, separate from the logical script ID.
+	 * Set this when separate loaders can select different resources for the same
+	 * integration. Matching keys share an element; different keys mount separately.
+	 * @default id
+	 */
+	resourceKey?: string;
+
 	/** URL of the script to load */
 	src?: string;
 

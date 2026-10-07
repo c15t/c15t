@@ -188,8 +188,12 @@ Recreating `sentry()` with equal option values and the same callback functions
 keeps the SDK bundle and current Replay recording. Keep `getClient`, `setUser`,
 `init`, `replay.load`, `pii.user` and `onError` functions stable across renders. A changed
 configuration starts a new adapter lifecycle; changed CDN options initialize
-a client with the new DSN and settings. Consent remounts keep the client and
-its Replay sampling decision.
+a client with the new DSN and settings. A new CDN configuration also initializes
+when another loader already owns the completed bundle. It initializes once;
+subsequent consent changes keep that client. Replay uses the options of the
+configuration that initialized it. Consent remounts keep the client and its
+Replay sampling decision. Matching CDN versions and bundle types share the
+download; a different version or tracing bundle loads its own resource.
 
 If multiple loaders target the same Sentry client, Sentry stays active until
 the last loader removes it. Every active configuration must allow Replay and

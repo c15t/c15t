@@ -1644,17 +1644,22 @@ const dsn = 'https://key@o0.ingest.sentry.io/0';
 const installSentryCdn = (
 	sampling: Sampling = 'session',
 	clientOptions?: Parameters<typeof createClient>[0],
-	deferBundle = false
+	deferBundle = false,
+	freshClients = false
 ) => {
 	const sentryClient = createClient(clientOptions);
 	const loaded: HTMLScriptElement[] = [];
 	const current: { client?: SentryClient } = {};
 	const replays: FakeReplay[] = [];
+	const replayOptions: (Record<string, unknown> | undefined)[] = [];
 	const sentryGlobal = {
 		browserTracingIntegration: vi.fn(() => ({ name: 'BrowserTracing' })),
 		getClient: () => current.client,
 		init: vi.fn((options: Record<string, unknown>) => {
-			current.client = sentryClient.client;
+			current.client =
+				freshClients && current.client
+					? createClient(clientOptions).client
+					: sentryClient.client;
 			const configured = options.integrations;
 			if (typeof configured === 'function') {
 				for (const integration of configured([])) {
@@ -1674,7 +1679,8 @@ const installSentryCdn = (
 			}
 			loaded.push(node);
 			if (node.src.endsWith('/replay.min.js')) {
-				sentryGlobal.replayIntegration = () => {
+				sentryGlobal.replayIntegration = (options) => {
+					replayOptions.push(options);
 					const replay = new FakeReplay(sampling);
 					replays.push(replay);
 					return replay;
@@ -1695,7 +1701,7 @@ const installSentryCdn = (
 		document.head.innerHTML = '';
 		document.body.innerHTML = '';
 	});
-	return { ...sentryClient, loaded, replays, sentryGlobal };
+	return { ...sentryClient, loaded, replayOptions, replays, sentryGlobal };
 };
 
 describe('Sentry loaded from the CDN', () => {
@@ -1876,7 +1882,8 @@ describe('Sentry loaded from the CDN', () => {
 	it.each(['before the SDK loads', 'after the SDK loads'])(
 		'registers an initially denied after-consent CDN loader %s',
 		async (phase) => {
-			const { replays, processEvent, sending } = installSentryCdn();
+			const { replays, processEvent, sending, sentryGlobal } =
+				installSentryCdn();
 			const config = () =>
 				sentry({
 					dsn,
@@ -1890,8 +1897,18 @@ describe('Sentry loaded from the CDN', () => {
 			const denied = mount(config());
 			await settle();
 			expect(replays[0]?.getRecordingMode()).toBeUndefined();
-			expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
-			expect(sending().enabled).toBe(false);
+			expect(sentryGlobal.init).toHaveBeenCalledTimes(
+				phase === 'before the SDK loads' ? 0 : 1
+			);
+			expect(Boolean(sentryGlobal.getClient())).toBe(
+				phase === 'after the SDK loads'
+			);
+			expect(sentryGlobal.getClient()?.getOptions().enabled ?? false).toBe(
+				false
+			);
+			expect(
+				sentryGlobal.getClient() && processEvent({ user: { id: 'u1' } }).user
+			).toBeUndefined();
 			denied.loader.dispose();
 			await settle();
 			expect(sending().enabled).toBe(true);
@@ -1932,6 +1949,161 @@ describe('Sentry loaded from the CDN', () => {
 			})
 		);
 		expect(replays[0]?.getRecordingMode()).toBe('session');
+	});
+
+	it('initializes changed CDN settings when a second loader adopts a completed bundle', async () => {
+		const { loaded, sentryGlobal, replays } = installSentryCdn();
+		const first = mount(
+			sentry({
+				dsn,
+				initOptions: { release: 'before', tracesSampleRate: 0.1 },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		const second = mount(
+			sentry({
+				dsn: 'https://new-key@o1.ingest.sentry.io/1',
+				initOptions: {
+					release: 'after',
+					replaysSessionSampleRate: 1,
+					tracesSampleRate: 0.2,
+				},
+				replay: { options: { maskAllText: false } },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
+		expect(sentryGlobal.init).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				dsn: 'https://new-key@o1.ingest.sentry.io/1',
+				release: 'after',
+				replaysSessionSampleRate: 1,
+				tracesSampleRate: 0.2,
+			})
+		);
+		expect(loaded.map((element) => element.src)).toEqual([
+			`${cdn}/11.4.0/bundle.tracing.min.js`,
+			`${cdn}/11.4.0/replay.min.js`,
+		]);
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+		await first.kernel.commands.save(deniedConsents);
+		await second.kernel.commands.save(deniedConsents);
+		await first.kernel.commands.save(grantedMeasurementConsents);
+		await second.kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+	});
+
+	it('waits for a shared CDN download before initializing distinct configurations', async () => {
+		const { loaded, sentryGlobal } = installSentryCdn(
+			'session',
+			undefined,
+			true
+		);
+		mount(
+			sentry({ dsn, initOptions: { release: 'first' } }),
+			grantedMeasurementConsents
+		);
+		mount(
+			sentry({ dsn, initOptions: { release: 'second' } }),
+			grantedMeasurementConsents
+		);
+		await vi.advanceTimersByTimeAsync(0);
+		expect(loaded).toHaveLength(1);
+		expect(sentryGlobal.init).not.toHaveBeenCalled();
+		loaded[0]?.dispatchEvent(new Event('load'));
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
+		expect(sentryGlobal.init).toHaveBeenLastCalledWith(
+			expect.objectContaining({ release: 'second' })
+		);
+	});
+
+	it('uses the adopting CDN configuration for a fresh client and Replay options', async () => {
+		const { sentryGlobal, replays, replayOptions } = installSentryCdn(
+			'session',
+			undefined,
+			false,
+			true
+		);
+		const first = mount(
+			sentry({
+				dsn,
+				initOptions: { release: 'before', replaysSessionSampleRate: 1 },
+				replay: { options: { maskAllText: true } },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		const previous = sentryGlobal.getClient();
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+		const second = mount(
+			sentry({
+				dsn: 'https://new-key@o1.ingest.sentry.io/1',
+				initOptions: { release: 'after', replaysSessionSampleRate: 1 },
+				replay: { options: { maskAllText: false } },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(sentryGlobal.getClient()).not.toBe(previous);
+		expect(replays[0]?.getRecordingMode()).toBeUndefined();
+		expect(replays[1]?.getRecordingMode()).toBe('session');
+		expect(replayOptions).toEqual([
+			{ maskAllText: true },
+			{ maskAllText: false },
+		]);
+		first.loader.dispose();
+		expect(replays[1]?.getRecordingMode()).toBe('session');
+		second.loader.dispose();
+		expect(replays[1]?.getRecordingMode()).toBeUndefined();
+	});
+
+	it('waits for consent before applying changed CDN settings to a completed bundle', async () => {
+		const { sentryGlobal } = installSentryCdn();
+		mount(
+			sentry({ dsn, initOptions: { release: 'before' } }),
+			grantedMeasurementConsents
+		);
+		await settle();
+		const second = mount(
+			sentry({
+				dsn,
+				initOptions: { release: 'after' },
+				loadMode: 'after-consent',
+			})
+		);
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledOnce();
+		await second.kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
+		expect(sentryGlobal.init).toHaveBeenLastCalledWith(
+			expect.objectContaining({ release: 'after' })
+		);
+	});
+
+	it('loads the selected CDN version and tracing bundle alongside an existing loader', async () => {
+		const { loaded, sentryGlobal } = installSentryCdn();
+		mount(sentry({ dsn }), grantedMeasurementConsents);
+		await settle();
+		mount(
+			sentry({
+				dsn,
+				initOptions: { release: 'after', tracesSampleRate: 0.2 },
+				version: '10.76.1',
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(loaded.map((element) => element.src)).toEqual([
+			`${cdn}/11.4.0/bundle.min.js`,
+			`${cdn}/10.76.1/bundle.tracing.min.js`,
+		]);
+		expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
 	});
 
 	it('preserves the SDK bundle and recording across equivalent CDN configurations', async () => {

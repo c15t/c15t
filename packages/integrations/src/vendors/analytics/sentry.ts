@@ -308,6 +308,8 @@ interface GateOptions {
 	/** Starts Sentry the first time it may run. */
 	start?: () => Promise<void>;
 	loadReplay?: () => SentryReplay | Promise<SentryReplay>;
+	/** CDN clients use Replay options from the configuration that initialized them. */
+	canLoadReplay?: (client: SentryClient) => boolean;
 	replayCategory: HasCondition<AllConsentNames>;
 	piiCategory: HasCondition<AllConsentNames>;
 	user?: () => SentryUser | null | undefined;
@@ -955,6 +957,9 @@ const createGate = (options: GateOptions) => {
 			await resumeReplay(existing, state, signal, allowed);
 			return;
 		}
+		if (options.canLoadReplay?.(client) === false) {
+			return;
+		}
 		const replay = await loadReplay(state);
 		if (!replay) {
 			return;
@@ -1211,6 +1216,7 @@ const getCategory = (
 };
 
 const cdnClients = new WeakMap<SentryClient, SentryCdnOptions>();
+const loadedCdnBundles = new WeakSet<HTMLScriptElement>();
 
 const createCdnScript = (
 	options: SentryCdnOptions,
@@ -1236,6 +1242,7 @@ const createCdnScript = (
 
 	const gate = createGate({
 		...gateOptions,
+		canLoadReplay: (client) => cdnClients.get(client) === options,
 		getClient: () => getSentryGlobal()?.getClient(),
 		loadReplay: replayAllowed
 			? async () => {
@@ -1258,6 +1265,39 @@ const createCdnScript = (
 		integrity: integrityFor(bundle),
 		scriptUrl: `${cdnBaseUrl}/${version}/${bundle}`,
 	});
+	let initialized = false;
+	const initialize = (info: ScriptCallbackInfo): void => {
+		gate.update(info);
+		if (
+			initialized ||
+			(options.loadMode === 'after-consent' && !info.hasConsent)
+		) {
+			return;
+		}
+		const sentryGlobal = getSentryGlobal();
+		try {
+			// Consent remounts keep their client. A newly adopted configuration
+			// initializes once, without replacing it on every consent update.
+			const previous = sentryGlobal?.getClient();
+			if (sentryGlobal && (!previous || cdnClients.get(previous) !== options)) {
+				sentryGlobal.init(
+					createInitOptions(sentryGlobal, dsn, initOptions, tracing, () => {
+						gate.sync();
+					})
+				);
+				const client = sentryGlobal.getClient();
+				if (client) {
+					cdnClients.set(client, options);
+					initialized = true;
+				}
+			} else if (previous) {
+				initialized = true;
+			}
+		} catch (error) {
+			gate.report(error);
+		}
+		gate.update(info);
+	};
 
 	return {
 		...resolved,
@@ -1265,34 +1305,23 @@ const createCdnScript = (
 		category,
 		observeConsentBeforeLoad: true,
 		onBeforeLoad: gate.update,
-		onConsentChange: gate.update,
+		onConsentChange: (info) => {
+			if (info.element && loadedCdnBundles.has(info.element)) {
+				initialize(info);
+			} else {
+				gate.update(info);
+			}
+		},
 		onDispose: gate.dispose,
 		onLoad: (info) => {
-			gate.update(info);
-			const sentryGlobal = getSentryGlobal();
-			try {
-				// Consent remounts keep their client. Changed configuration starts
-				// a new client so the DSN and initialization options take effect.
-				const previous = sentryGlobal?.getClient();
-				if (
-					sentryGlobal &&
-					(!previous || cdnClients.get(previous) !== options)
-				) {
-					sentryGlobal.init(
-						createInitOptions(sentryGlobal, dsn, initOptions, tracing, () => {
-							gate.sync();
-						})
-					);
-					const initialized = sentryGlobal.getClient();
-					if (initialized) {
-						cdnClients.set(initialized, options);
-					}
-				}
-			} catch (error) {
-				gate.report(error);
+			if (info.element) {
+				loadedCdnBundles.add(info.element);
 			}
-			gate.update(info);
+			initialize(info);
 		},
+		// Independent loaders may select different versions or bundle types.
+		// Share only the physical resource that matches this configuration.
+		resourceKey: `${scriptId}-${version}-${bundle}`,
 	};
 };
 

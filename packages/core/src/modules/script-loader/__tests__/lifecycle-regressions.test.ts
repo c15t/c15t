@@ -27,6 +27,70 @@ const mount = (scripts: Script[]) => {
 	return { kernel, loader };
 };
 
+test.each([true, false])(
+	'shares matching resource keys and separates different ones with anonymizeId=%s',
+	(anonymizeId) => {
+		const firstLoad = vi.fn();
+		const secondLoad = vi.fn();
+		const sharedLoad = vi.fn();
+		const config: Script = {
+			anonymizeId,
+			category: 'measurement',
+			id: 'resource-key',
+			resourceKey: 'vendor-bundle-one',
+			src: 'https://example.com/one.js',
+		};
+		const first = mount([{ ...config, onLoad: firstLoad }]);
+		const second = mount([
+			{
+				...config,
+				onLoad: secondLoad,
+				resourceKey: 'vendor-bundle-two',
+				src: 'https://example.com/two.js',
+			},
+		]);
+		const shared = mount([{ ...config, onLoad: sharedLoad }]);
+		const elements = [...document.head.querySelectorAll('script')];
+		expect(elements.map((element) => element.src)).toEqual([
+			'https://example.com/one.js',
+			'https://example.com/two.js',
+		]);
+		first.loader.dispose();
+		expect(elements[0]?.isConnected).toBe(true);
+		elements[0]?.dispatchEvent(new Event('load'));
+		elements[1]?.dispatchEvent(new Event('load'));
+		expect(firstLoad).not.toHaveBeenCalled();
+		expect(sharedLoad).toHaveBeenCalledOnce();
+		expect(secondLoad).toHaveBeenCalledOnce();
+		shared.loader.dispose();
+		expect(elements[0]?.isConnected).toBe(false);
+		expect(elements[1]?.isConnected).toBe(true);
+		second.loader.dispose();
+		expect(elements[1]?.isConnected).toBe(false);
+	}
+);
+
+test('replaces a resource-key change while retaining the logical script ID', () => {
+	const loaded = vi.fn();
+	const config: Script = {
+		category: 'measurement',
+		id: 'resource-key-change',
+		onLoad: loaded,
+		resourceKey: 'before',
+		src: 'https://example.com/vendor.js',
+	};
+	const { loader } = mount([config]);
+	const previous = document.head.querySelector('script');
+	loader.updateScripts([{ ...config, resourceKey: 'after' }]);
+	const current = document.head.querySelector('script');
+	expect(current).not.toBe(previous);
+	expect(previous?.isConnected).toBe(false);
+	previous?.dispatchEvent(new Event('load'));
+	expect(loaded).not.toHaveBeenCalled();
+	current?.dispatchEvent(new Event('load'));
+	expect(loaded).toHaveBeenCalledOnce();
+});
+
 test.each(['dispose', 'remove', 'revoke'] as const)(
 	'preserves a shared external download when its creator must %s',
 	async (action) => {
