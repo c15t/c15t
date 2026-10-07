@@ -22,8 +22,10 @@ rates per arm.
   `defineExperiment()` and has the flag lookup. Swap the stub for your flag
   provider.
 - [`components/consent.tsx`](components/consent.tsx) passes the experiment
-  and the flag's arm to `ConsentRoot`, and reports `onSurfaceShown` and
-  `onChoiceRecorded` to analytics.
+  and the flag's arm to `ConsentRoot`.
+- [`lib/consent-callbacks.ts`](lib/consent-callbacks.ts) reports banner
+  impressions and choices to analytics. Opening the dialog adds no banner
+  impression; choices in the dialog still carry the banner's arm.
 - [`lib/analytics.ts`](lib/analytics.ts) logs each event to the console.
   Its comment shows the one-line swap for PostHog, GA4 or GTM.
 

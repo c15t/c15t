@@ -1,10 +1,9 @@
 'use client';
 
 import { ConsentBanner, ConsentDialog, ConsentRoot, offline } from 'c15t/next';
-import type { ConsentProviderCallbacks } from 'c15t/next';
 import type { ReactNode } from 'react';
 
-import { track } from '@/lib/analytics';
+import { callbacks } from '@/lib/consent-callbacks';
 import { brandTheme } from '@/lib/consent-theme';
 import { bannerArmFromFlag, bannerExperiment } from '@/lib/experiment';
 
@@ -13,41 +12,6 @@ import { bannerArmFromFlag, bannerExperiment } from '@/lib/experiment';
 // which also counts impressions and choices per arm for you:
 // const mode = hosted({ url: 'https://your-project.inth.app' });
 const mode = offline();
-
-// Report each banner impression and each choice with the arm it ran under.
-// `experiment` is undefined for a visitor outside the test, such as a
-// returning visitor who opens Privacy settings from the footer.
-const callbacks = {
-	onChoiceRecorded: ({
-		consentAction,
-		experiment,
-		timeToDecisionMs,
-		uiSource,
-	}) => {
-		if (!experiment) {
-			return;
-		}
-		track('consent_choice_made', {
-			arm: experiment.arm,
-			assigned_by: experiment.assignedBy,
-			consent_action: consentAction,
-			experiment_id: experiment.id,
-			surface: uiSource,
-			time_to_decision_ms: timeToDecisionMs,
-		});
-	},
-	onSurfaceShown: ({ experiment, surface }) => {
-		if (!experiment) {
-			return;
-		}
-		track('consent_banner_shown', {
-			arm: experiment.arm,
-			assigned_by: experiment.assignedBy,
-			experiment_id: experiment.id,
-			surface,
-		});
-	},
-} satisfies ConsentProviderCallbacks;
 
 export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentRoot
