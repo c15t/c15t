@@ -101,6 +101,11 @@ const createClient = ({
 		},
 	];
 	const envelopeHooks: ((envelope: SentryEnvelope) => void)[] = [];
+	const transport = {
+		send: vi.fn((_envelope: SentryEnvelope) =>
+			Promise.resolve({ statusCode: 200 })
+		),
+	};
 	const options = { enabled };
 	const dataCollection = { userInfo };
 	const metadata = {
@@ -126,6 +131,7 @@ const createClient = ({
 		getIntegrationByName: (name: string) => integrations.get(name),
 		getOptions: () => options,
 		getSdkMetadata: () => metadata,
+		getTransport: () => transport,
 		on: (
 			name: 'beforeSendSession' | 'beforeEnvelope',
 			hook:
@@ -143,6 +149,12 @@ const createClient = ({
 		for (const hook of envelopeHooks) {
 			hook(envelope);
 		}
+		return envelope;
+	};
+	const sendTransport = async (
+		envelope: SentryEnvelope
+	): Promise<SentryEnvelope> => {
+		await transport.send(envelope);
 		return envelope;
 	};
 	const sendEnvelope = <PayloadType>(
@@ -182,6 +194,7 @@ const createClient = ({
 		processEvent,
 		sendEnvelope,
 		sendSession,
+		sendTransport,
 		sending,
 	};
 };
@@ -696,7 +709,7 @@ describe('Sentry adapter through the kernel and script loader', () => {
 	it.each(['withdrawal', 'removal'])(
 		'drops pending Replay envelopes after %s while keeping error monitoring',
 		async (action) => {
-			const { script, processEnvelope } = setup();
+			const { script, sendTransport } = setup();
 			const { kernel, loader } = mount(script, grantedMeasurementConsents);
 			await settle();
 			const createEnvelope = (): SentryEnvelope => [
@@ -707,13 +720,13 @@ describe('Sentry adapter through the kernel and script loader', () => {
 					[{ type: 'event' }, { message: 'Error monitoring remains active' }],
 				],
 			];
-			expect(processEnvelope(createEnvelope())[1]).toHaveLength(3);
+			expect((await sendTransport(createEnvelope()))[1]).toHaveLength(3);
 			if (action === 'withdrawal') {
 				await kernel.commands.save(deniedConsents);
 			} else {
 				loader.dispose();
 			}
-			expect(processEnvelope(createEnvelope())[1]).toEqual([
+			expect((await sendTransport(createEnvelope()))[1]).toEqual([
 				[{ type: 'event' }, { message: 'Error monitoring remains active' }],
 			]);
 		}

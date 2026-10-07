@@ -83,6 +83,13 @@ export interface SentryClient {
 	getSdkMetadata?: () =>
 		| { sdk?: { settings?: { infer_ip?: string } } }
 		| undefined;
+	/** Replay sends directly through the client transport, bypassing event hooks. */
+	getTransport?: () =>
+		| {
+				// oxlint-disable-next-line typescript/method-signature-style -- Match SDK transport methods across envelope header types.
+				send(envelope: SentryEnvelope): PromiseLike<unknown>;
+		  }
+		| undefined;
 	on: {
 		(
 			hook: 'beforeSendSession',
@@ -503,7 +510,7 @@ const createGate = (options: GateOptions) => {
 			}
 			return event;
 		});
-		client.on('beforeEnvelope', (envelope) => {
+		const filterEnvelope = (envelope: SentryEnvelope): void => {
 			// stop({ flush: false }) discards the pending segment in supported
 			// SDKs. Also block uploads already queued before denial or removal.
 			if (!state.replayAllowed || state.stopping) {
@@ -517,7 +524,16 @@ const createGate = (options: GateOptions) => {
 			if (!state.piiAllowed) {
 				redactEnvelope(envelope);
 			}
-		});
+		};
+		client.on('beforeEnvelope', filterEnvelope);
+		const transport = client.getTransport?.();
+		if (transport) {
+			const { send } = transport;
+			transport.send = (envelope) => {
+				filterEnvelope(envelope);
+				return send.call(transport, envelope);
+			};
+		}
 		client.on('beforeSendSession', (session) => {
 			if (state.piiAllowed) {
 				return;
