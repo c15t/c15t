@@ -9,6 +9,7 @@ import type {
 } from '../types';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { createHostedTransport } from './hosted';
+import { hostedModes } from './hosted-modes';
 
 /** Runtime values supplied by a provider to a transport factory. */
 export interface ProviderTransportContext {
@@ -116,20 +117,29 @@ export interface HostedModeOptions {
 export const hosted = function hosted(
 	options: HostedModeOptions
 ): ProviderTransportFactory {
-	return Object.assign(
+	// The options as of this call: editing the object afterwards changes
+	// neither the transports this factory builds nor what a provider
+	// compares them by. `fetch` and `initialData` stay the same values.
+	const settings: HostedModeOptions = {
+		...options,
+		headers: options.headers && { ...options.headers },
+	};
+	const mode = Object.assign(
 		() =>
 			createHostedTransport({
-				assertDecisionInputs: options.assertDecisionInputs,
-				backendURL: options.url,
-				decisionInputs: options.decisionInputs,
-				domain: options.domain,
-				fetch: options.fetch,
-				headers: options.headers,
-				initURL: options.initURL,
-				initialData: options.initialData,
+				assertDecisionInputs: settings.assertDecisionInputs,
+				backendURL: settings.url,
+				decisionInputs: settings.decisionInputs,
+				domain: settings.domain,
+				fetch: settings.fetch,
+				headers: settings.headers,
+				initURL: settings.initURL,
+				initialData: settings.initialData,
 			}),
 		{ kind: 'hosted' as const }
 	);
+	hostedModes.set(mode, settings);
+	return mode;
 };
 
 export { custom } from './custom';

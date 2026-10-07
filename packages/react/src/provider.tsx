@@ -14,9 +14,11 @@ import type {
 	ConsentKernel,
 	ConsentPresentation,
 	ExperimentState,
+	HostedModeOptions,
 	I18nConfig,
 	KernelConfig,
 	KernelOverrides,
+	KernelTransport,
 	KernelUser,
 	LegalLinks,
 	ProviderTransportFactory,
@@ -30,6 +32,7 @@ import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
 	createConsentProviderRuntime,
+	hostedModes,
 	lazyRuntimeModule,
 	lazyStreamPrefetch,
 	streamPrefetchWith,
@@ -58,6 +61,7 @@ import { KernelContext, ProviderServicesContext } from './context';
 import type { ProviderServices } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
+import { useIsHydrated } from './hooks/use-is-hydrated';
 import type {
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
@@ -392,6 +396,40 @@ const treeIABModes = new WeakMap<
 	ProviderTransportFactory,
 	ProviderTransportFactory
 >();
+/**
+ * An `/init` request a render sent, the `hosted()` options and the
+ * serialized init context it was sent for, and the transport that sent it.
+ */
+interface EarlyInit {
+	readonly options: HostedModeOptions;
+	readonly key: string;
+	readonly transport: KernelTransport;
+}
+/**
+ * Early requests no runtime has committed to yet. The first runtime built
+ * for equivalent `hosted()` options and the same init context to commit
+ * takes one; see {@link createOwnedRuntimeEntry}.
+ */
+const sentEarly = new Set<EarlyInit>();
+/**
+ * The transport the latest runtime construction built, and how to build
+ * another for the same runtime. Construction is synchronous, so the
+ * provider reads them right after.
+ */
+let builtTransport: KernelTransport | undefined;
+let buildTransport: () => KernelTransport;
+
+/**
+ * Whether two `hosted()` calls reach the same backend the same way, as when
+ * a render calls `hosted()` inline. `fetch` and `initialData` must be the
+ * same value; the other options are data and compare by content. `fetch` is
+ * the one a transport built now would use: an omitted one resolves to the
+ * global `fetch`, which can change between a render and its retry.
+ */
+const sameHosted = (a: HostedModeOptions, b: HostedModeOptions): boolean =>
+	a.fetch === b.fetch &&
+	a.initialData === b.initialData &&
+	JSON.stringify(a) === JSON.stringify(b);
 const withTreeIAB = function withTreeIAB(
 	mode: ProviderTransportFactory
 ): ProviderTransportFactory {
@@ -402,7 +440,10 @@ const withTreeIAB = function withTreeIAB(
 	if (!wrapped) {
 		wrapped = Object.assign(
 			(context: Parameters<ProviderTransportFactory>[0]) =>
-				mode(Object.create(context, { iabEnabled: { value: undefined } })),
+				(builtTransport = (buildTransport = () =>
+					mode(
+						Object.create(context, { iabEnabled: { value: undefined } })
+					))()),
 			{ kind: mode.kind }
 		);
 		treeIABModes.set(mode, wrapped);
@@ -462,11 +503,34 @@ let entrySequence = 0;
  * requests, and any runtime still uncommitted after
  * {@link UNCOMMITTED_HOLD_MS} disposes itself, failing what it held as
  * blocked. On the server nothing is held and nothing is tracked.
+ *
+ * In a client render, a `hosted()` runtime that will ask the backend for
+ * its policy sends that `/init` request here, during the render, instead
+ * of from the mount effect: before the first paint rather than after it.
+ * `clientRender` comes from React, not from `window`: a server render
+ * never mounts, even with a DOM shim, and hydration asks at mount as
+ * before. The answer still applies at mount: the
+ * kernel's first `init()` takes this request when its context (overrides,
+ * language, user) is unchanged, and sends its own otherwise. The request
+ * goes out on a transport of its own, held in {@link sentEarly}. A runtime
+ * built for equivalent `hosted()` options and the same init context before
+ * any commit sends nothing, so a render React repeats or throws away costs
+ * no second request, even when it called `hosted()` again. A runtime asking
+ * for another context sends its own and leaves this one to the runtime it
+ * was sent for. The first of these runtimes to commit
+ * takes the transport and its request; any other, such as a sibling
+ * provider with the same mode, keeps its own transport and asks at mount.
+ * Not sent with a `prefetch` (the server answered, or is answering), a
+ * `consentSource` or `enabled: false` (no init), an `experiment` (its arm,
+ * picked after mount, travels with the request), or any mode `hosted()`
+ * did not return itself: a custom transport's `init()` may expect a
+ * mounted page, and a wrapper's transport may not be swapped for another.
  */
 const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
-	initialOptions: ConsentProviderOptions
+	initialOptions: ConsentProviderOptions,
+	clientRender: boolean
 ): OwnedRuntimeEntry {
-	const { networkBlocker } = initialOptions;
+	const { mode, networkBlocker } = initialOptions;
 	const runtime = createConsentProviderRuntime(
 		toRuntimeOptions(initialOptions),
 		reactRuntimeModules(initialOptions.__resolveStreamedInit)
@@ -477,9 +541,15 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	// Mount effects run so far; a deferred dispose checks it.
 	let mounts = 0;
 	let timer: ReturnType<typeof setTimeout> | undefined;
+	// This runtime's own transport, and the early request it may take.
+	const transport = builtTransport as KernelTransport;
+	let early: EarlyInit | undefined;
+	let sent: EarlyInit | undefined;
 	entrySequence += 1;
 	const pending: PendingEntry = {
 		expire() {
+			// Nobody took the request this runtime sent: drop it.
+			sentEarly.delete(sent as EarlyInit);
 			uncommitted.delete(pending);
 			clearTimeout(timer);
 			expired = true;
@@ -498,6 +568,46 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	} else {
 		uncommitted.add(pending);
 		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
+		// `policyPending`: enabled, no `consentSource`, no policy yet.
+		const snapshot = runtime.kernel.getSnapshot();
+		const hostedMode = hostedModes.get(mode);
+		const hostedOptions = hostedMode && {
+			...hostedMode,
+			fetch: hostedMode.fetch ?? globalThis.fetch,
+		};
+		if (
+			clientRender &&
+			hostedOptions &&
+			snapshot.policyPending &&
+			!(initialOptions.prefetch || initialOptions.experiment)
+		) {
+			const context = { overrides: snapshot.overrides, user: snapshot.user };
+			const key = JSON.stringify(context);
+			for (const other of sentEarly) {
+				if (other.key === key && sameHosted(other.options, hostedOptions)) {
+					early = other;
+				}
+			}
+			if (!early) {
+				// Not this runtime's transport: whichever runtime commits first
+				// takes it.
+				const carrier = buildTransport();
+				const init = carrier.init as NonNullable<KernelTransport['init']>;
+				const request = init(context);
+				// Nobody reads it when the render that sent it never commits.
+				// oxlint-disable-next-line promise/prefer-await-to-then -- Only marks the rejection handled.
+				request.catch(() => undefined);
+				let used = false;
+				carrier.init = (next) => {
+					const reuse = !used && JSON.stringify(next) === key;
+					used = true;
+					return reuse ? request : init(next);
+				};
+				sent = { key, options: hostedOptions, transport: carrier };
+				early = sent;
+				sentEarly.add(sent);
+			}
+		}
 	}
 
 	const commit = function commit(): boolean {
@@ -508,6 +618,11 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 			return true;
 		}
 		committed = true;
+		// One-shot: the first runtime to commit takes the early request and
+		// its transport, so no two kernels ever share one.
+		if (sentEarly.delete(early as EarlyInit)) {
+			Object.assign(transport, early?.transport);
+		}
 		uncommitted.delete(pending);
 		clearTimeout(timer);
 		if (pending.holdKey !== null) {
@@ -565,8 +680,11 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 const createRuntimeHolder = function createRuntimeHolder() {
 	let entry: OwnedRuntimeEntry | null = null;
 	return {
-		get(options: ConsentProviderOptions): OwnedRuntimeEntry {
-			entry ??= createOwnedRuntimeEntry(options);
+		get(
+			options: ConsentProviderOptions,
+			clientRender: boolean
+		): OwnedRuntimeEntry {
+			entry ??= createOwnedRuntimeEntry(options, clientRender);
 			return entry;
 		},
 		reset() {
@@ -576,6 +694,7 @@ const createRuntimeHolder = function createRuntimeHolder() {
 };
 
 const increment = (count: number): number => count + 1;
+const subscribeNothing = (): (() => void) => () => undefined;
 
 /**
  * The provider-built runtime: one per provider instance. `undefined` when
@@ -587,11 +706,16 @@ const useOwnedRuntime = function useOwnedRuntime(
 	// oxlint-disable-next-line react/hook-use-state -- Created once, during the first render.
 	const [holder] = useState(createRuntimeHolder);
 	const [, rerender] = useReducer(increment, 0);
+	// React's server snapshot on the server and while hydrating: only a
+	// client render sends `/init` early.
+	const clientRender = useIsHydrated();
 	const rebuild = useCallback(() => {
 		holder.reset();
 		rerender();
 	}, [holder]);
-	return options ? { entry: holder.get(options), rebuild } : undefined;
+	return options
+		? { entry: holder.get(options, clientRender), rebuild }
+		: undefined;
 };
 
 /** A layout effect in the browser; nothing to run on the server. */
@@ -628,8 +752,6 @@ const OwnedRuntimeLifecycle = ({
 
 	return null;
 };
-
-const subscribeNothing = (): (() => void) => () => undefined;
 
 const isPromiseLike = function isPromiseLike(
 	value: unknown

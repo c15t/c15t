@@ -7,6 +7,7 @@ import { writePolicyResolutionWire } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
 import type { KernelTransport, SavePayload } from '../index';
+import { hostedModes } from '../transports/hosted-modes';
 import { custom, hosted } from '../transports/mode';
 import type { ProviderTransportContext } from '../transports/mode';
 import { matchedResolution, optInRule } from './fixtures/kernel-fixtures';
@@ -114,6 +115,58 @@ describe('hosted()', () => {
 			policyId: 'eu-opt-in',
 			region: 'BE',
 		});
+	});
+
+	test('recognizes its own factories, not wrappers that copy them', () => {
+		const options = { url: '/api/c15t' };
+		const mode = hosted(options);
+		const wrapper = Object.assign(
+			(providerContext: ProviderTransportContext) => mode(providerContext),
+			mode
+		);
+
+		expect(hostedModes.get(mode)).toEqual(options);
+		expect(wrapper.kind).toBe('hosted');
+		expect(hostedModes.get(wrapper)).toBeUndefined();
+	});
+
+	test('keeps the options it was called with when the object changes', async () => {
+		const fetchSpy = vi.fn(() =>
+			Promise.resolve(new Response('{}', { status: 500 }))
+		);
+		const initialData = Promise.resolve(undefined);
+		const options = {
+			fetch: fetchSpy as typeof globalThis.fetch,
+			headers: { 'accept-language': 'de' },
+			initialData,
+			url: 'https://old.example',
+		};
+		const mode = hosted(options);
+		options.url = 'https://new.example';
+		options.headers['accept-language'] = 'fr';
+
+		expect(hostedModes.get(mode)).toEqual({
+			fetch: fetchSpy,
+			headers: { 'accept-language': 'de' },
+			initialData,
+			url: 'https://old.example',
+		});
+		expect(hostedModes.get(mode)?.fetch).toBe(fetchSpy);
+		expect(hostedModes.get(mode)?.initialData).toBe(initialData);
+
+		// `initialData` resolves to nothing, so both inits reach the backend,
+		// each with the options as passed.
+		const transport = mode(context);
+		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
+		await transport.init?.({ overrides: {}, user: null }).catch(() => null);
+		expect(fetchSpy).toHaveBeenCalledTimes(2);
+		for (const [url, init] of fetchSpy.mock.calls as unknown as [
+			string,
+			RequestInit & { headers: Record<string, string> },
+		][]) {
+			expect(url).toBe('https://old.example/init');
+			expect(init.headers['accept-language']).toBe('de');
+		}
 	});
 });
 
