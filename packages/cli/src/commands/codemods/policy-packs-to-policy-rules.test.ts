@@ -66,6 +66,41 @@ const rules = [policyRulePresets.worldOptOutNoPrompt()];
 `);
 	});
 
+	it('moves several adjacent specifiers on one line', async () => {
+		const { result, updated } = await transformFile(
+			codemod,
+			`import { ConsentProvider, policyPackPresets, type PolicyPackPresets } from 'c15t/next';
+
+export const presets: PolicyPackPresets = policyPackPresets;
+`
+		);
+		expect(result.errors).toEqual([]);
+		expect(updated).toBe(`import { ConsentProvider } from 'c15t/next';
+import { policyRulePresets, type PolicyRulePresets } from 'c15t';
+
+export const presets: PolicyRulePresets = policyRulePresets;
+`);
+
+		const multiLine = await transformFile(
+			codemod,
+			`import {
+	policyPackPresets, type PolicyPackPresets,
+	ConsentProvider,
+} from '@c15t/react';
+
+export const presets: PolicyPackPresets = policyPackPresets;
+`
+		);
+		expect(multiLine.result.errors).toEqual([]);
+		expect(multiLine.updated).toBe(`import {
+	ConsentProvider,
+} from '@c15t/react';
+import { policyRulePresets, type PolicyRulePresets } from '@c15t/core';
+
+export const presets: PolicyRulePresets = policyRulePresets;
+`);
+	});
+
 	it('keeps an alias and renames destructured presets', async () => {
 		const { updated } = await transformFile(
 			codemod,

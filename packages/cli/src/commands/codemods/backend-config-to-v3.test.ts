@@ -11,6 +11,51 @@ import { runBackendConfigToV3Codemod as codemod } from './backend-config-to-v3';
 describe('backend-config-to-v3 codemod', { timeout: 20_000 }, () => {
 	afterEach(cleanupProjects);
 
+	it('moves several adjacent manifest keys on one line', async () => {
+		const created = await transformFile(
+			codemod,
+			`import { defineConfig } from '@c15t/backend';
+export default defineConfig({ appName: 'a', branding: 'none', i18n: {} });
+`,
+			{ fileName: 'c15t-backend.config.ts' }
+		);
+		expect(created.result.errors).toEqual([]);
+		expect(created.updated).toContain(
+			"export default defineConfig({ manifest: { appName: 'a', branding: 'none', i18n: {} } });"
+		);
+
+		const merged = await transformFile(
+			codemod,
+			`import { defineConfig } from '@c15t/backend';
+export default defineConfig({ manifest: { appName: 'a' }, branding: 'none', i18n: {} });
+`,
+			{ fileName: 'c15t-backend.config.ts' }
+		);
+		expect(merged.result.errors).toEqual([]);
+		expect(merged.updated).toContain(
+			"export default defineConfig({ manifest: { appName: 'a', branding: 'none', i18n: {}, } });"
+		);
+
+		const multiLine = await transformFile(
+			codemod,
+			`import { defineConfig } from '@c15t/backend';
+export default defineConfig({
+	trustedOrigins: [], appName: 'a',
+	branding: 'none', i18n: {},
+});
+`,
+			{ fileName: 'c15t-backend.config.ts' }
+		);
+		expect(multiLine.result.errors).toEqual([]);
+		expect(multiLine.updated).toContain(`export default defineConfig({
+	trustedOrigins: [], manifest: {
+		appName: 'a',
+		branding: 'none',
+		i18n: {},
+	},
+});`);
+	});
+
 	it('moves manifest options under manifest and marks removed options', async () => {
 		const { result, updated } = await transformFile(
 			codemod,

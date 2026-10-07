@@ -61,7 +61,30 @@ export const applyEdits = function applyEdits(
 				right.edit.end - left.edit.end ||
 				right.index - left.index
 		);
-	for (const { edit } of ordered) {
+	// Edits apply against the original offsets, so an overlap would delete
+	// the wrong text. Drop exact duplicates and fail the file on any other
+	// overlap instead of corrupting it.
+	const applied: typeof ordered = [];
+	for (const entry of ordered) {
+		const previous = applied.at(-1)?.edit;
+		const { edit } = entry;
+		if (
+			previous &&
+			previous.start === edit.start &&
+			previous.end === edit.end &&
+			previous.text === edit.text &&
+			edit.start < edit.end
+		) {
+			continue;
+		}
+		if (previous && previous.start < edit.end) {
+			throw new Error(
+				`Codemod produced overlapping edits at offsets ${edit.start}-${edit.end} and ${previous.start}-${previous.end}.`
+			);
+		}
+		applied.push(entry);
+	}
+	for (const { edit } of applied) {
 		text = text.slice(0, edit.start) + edit.text + text.slice(edit.end);
 	}
 	sourceFile.replaceWithText(text);
@@ -210,36 +233,106 @@ export const propertyText = function propertyText(
 };
 
 /**
- * The range that removes a list element (a property or an import
- * specifier) and its comma. An element on its own line takes the rest of
- * its line with it, so no blank line is left behind.
+ * The range that removes the list elements from `first` to `last` (properties
+ * or import specifiers) and their comma. Elements on their own lines take
+ * the rest of the last line with them, so no blank line is left behind.
  */
-export const propertyRemoval = function propertyRemoval(
-	property: TsMorphTypes.Node
+const spanRemoval = function spanRemoval(
+	first: TsMorphTypes.Node,
+	last: TsMorphTypes.Node
 ): TextEdit {
-	const sourceText = property.getSourceFile().getFullText();
-	const comma = /^[\t ]*,/u.exec(sourceText.slice(property.getEnd()))?.[0];
-	if (startsLine(property)) {
-		const lineStart = sourceText.lastIndexOf('\n', property.getStart() - 1) + 1;
-		const end = property.getEnd() + (comma?.length ?? 0);
+	const sourceText = first.getSourceFile().getFullText();
+	const comma = /^[\t ]*,/u.exec(sourceText.slice(last.getEnd()))?.[0];
+	if (startsLine(first)) {
+		const lineStart = sourceText.lastIndexOf('\n', first.getStart() - 1) + 1;
+		const end = last.getEnd() + (comma?.length ?? 0);
 		const rest = /^[\t ]*(?:\r?\n)?/u.exec(sourceText.slice(end))?.[0] ?? '';
 		return { end: end + rest.length, start: lineStart, text: '' };
 	}
 	if (comma) {
-		const end = property.getEnd() + comma.length;
+		const end = last.getEnd() + comma.length;
 		const trailing = /^[\t ]*/u.exec(sourceText.slice(end))?.[0] ?? '';
-		return { end: end + trailing.length, start: property.getStart(), text: '' };
+		// At the end of a line, take the space before the element instead, so
+		// the line keeps no trailing whitespace.
+		const endsLine = /^\r?\n/u.test(sourceText.slice(end + trailing.length));
+		const leading = endsLine
+			? (/[\t ]*$/u.exec(sourceText.slice(0, first.getStart()))?.[0] ?? '')
+			: '';
+		return {
+			end: end + trailing.length,
+			start: first.getStart() - leading.length,
+			text: '',
+		};
 	}
 	// The last element on a line takes the comma before it instead. A JSX
 	// attribute has no comma, so it takes the space before it.
 	const before = /(?:,[\t ]*|[\t ]+)$/u.exec(
-		sourceText.slice(0, property.getStart())
+		sourceText.slice(0, first.getStart())
 	)?.[0];
 	return {
-		end: property.getEnd(),
-		start: property.getStart() - (before?.length ?? 0),
+		end: last.getEnd(),
+		start: first.getStart() - (before?.length ?? 0),
 		text: '',
 	};
+};
+
+/**
+ * The range that removes one list element (a property, an import specifier
+ * or a JSX attribute) and its comma. To remove several elements of the same
+ * list, use `elementRemovals`, so two removals never claim the same comma.
+ */
+export const propertyRemoval = function propertyRemoval(
+	property: TsMorphTypes.Node
+): TextEdit {
+	return spanRemoval(property, property);
+};
+
+/** The elements of the list that holds `element`, without the commas. */
+const siblingsOf = function siblingsOf(
+	element: TsMorphTypes.Node
+): TsMorphTypes.Node[] {
+	return (
+		element
+			.getParentSyntaxList()
+			?.getChildren()
+			.filter((child) => child.getKind() !== SyntaxKind.CommaToken) ?? [element]
+	);
+};
+
+/**
+ * Ranges that remove `elements` and their commas. Adjacent elements of one
+ * list are removed as a single run: removing `b` and `c` from
+ * `{ a: 1, b: 2, c: 3 }` leaves `{ a: 1 }`.
+ */
+export const elementRemovals = function elementRemovals(
+	elements: Iterable<TsMorphTypes.Node>
+): TextEdit[] {
+	const removing = new Set(elements);
+	const covered = new Set<TsMorphTypes.Node>();
+	const edits: TextEdit[] = [];
+	const ordered = [...removing].sort(
+		(left, right) => left.getStart() - right.getStart()
+	);
+	for (const element of ordered) {
+		if (covered.has(element)) {
+			continue;
+		}
+		const siblings = siblingsOf(element);
+		let index = siblings.indexOf(element);
+		let last = element;
+		covered.add(element);
+		while (index >= 0) {
+			const next = siblings[index + 1];
+			if (!next || !removing.has(next)) {
+				break;
+			}
+			covered.add(next);
+			last = next;
+			index += 1;
+		}
+		edits.push(spanRemoval(element, last));
+	}
+	return edits;
 };
 
 /** Strips `as`, `satisfies` and parentheses around an expression. */
@@ -417,9 +510,7 @@ export const moveSpecifiers = function moveSpecifiers(
 		);
 		return;
 	}
-	for (const specifier of moves.keys()) {
-		edits.push(propertyRemoval(specifier));
-	}
+	edits.push(...elementRemovals(moves.keys()));
 	edits.push({
 		end: declaration.getEnd(),
 		start: declaration.getEnd(),

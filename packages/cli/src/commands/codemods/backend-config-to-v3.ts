@@ -10,11 +10,11 @@ import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import {
 	addTodo,
 	applyEdits,
+	elementRemovals,
 	findProperty,
 	lineIndent,
 	objectLiteralFor,
 	propertyKey,
-	propertyRemoval,
 	propertyValueText,
 	TODO_MARKER,
 	toTextEdit,
@@ -189,9 +189,7 @@ const mergeIntoManifest = function mergeIntoManifest(
 		start: insertAt,
 		text: last && !comma ? `,${text}` : text,
 	});
-	for (const property of moving) {
-		edits.push(propertyRemoval(property));
-	}
+	edits.push(...elementRemovals(moving));
 };
 
 /** Replaces the first moved property with a new `manifest` holding all of them. */
@@ -218,9 +216,7 @@ const createManifest = function createManifest(
 		const entries = moving.map((property) => movedText(property, '', ''));
 		edits.push(toTextEdit(first, `manifest: { ${entries.join(', ')} }`));
 	}
-	for (const property of rest) {
-		edits.push(propertyRemoval(property));
-	}
+	edits.push(...elementRemovals(rest));
 };
 
 const planManifest = function planManifest(

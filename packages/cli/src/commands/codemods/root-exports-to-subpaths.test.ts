@@ -74,6 +74,37 @@ import { useColorScheme } from '@c15t/nextjs/headless';
 `);
 	});
 
+	it('moves several adjacent specifiers on one line', async () => {
+		const { result, updated } = await transformFile(
+			codemod,
+			`import { ConsentBanner, Card, Title, useHeadlessConsentUI } from '@c15t/react';
+`
+		);
+		expect(result.errors).toEqual([]);
+		expect(updated).toBe(`import { ConsentBanner } from '@c15t/react';
+import { Card, Title } from '@c15t/react/components/consent-banner';
+import { useHeadlessConsentUI } from '@c15t/react/headless';
+`);
+
+		const multiLine = await transformFile(
+			codemod,
+			`import {
+	ConsentBanner, Card,
+	Title, useHeadlessConsentUI,
+	ConsentDialog,
+} from '@c15t/react';
+`
+		);
+		expect(multiLine.result.errors).toEqual([]);
+		expect(multiLine.updated).toBe(`import {
+	ConsentBanner,
+	ConsentDialog,
+} from '@c15t/react';
+import { Card, Title } from '@c15t/react/components/consent-banner';
+import { useHeadlessConsentUI } from '@c15t/react/headless';
+`);
+	});
+
 	it('moves re-exports and keeps their aliases', async () => {
 		const { updated } = await transformFile(
 			codemod,

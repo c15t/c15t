@@ -6,6 +6,7 @@ import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import {
 	addTodo,
 	applyEdits,
+	elementRemovals,
 	ensureNamedImports,
 	findProperty,
 	isNameTaken,
@@ -326,11 +327,14 @@ const planHosted = function planHosted(
 		return;
 	}
 	plan.edits.push(toTextEdit(anchor, replacement));
-	for (const property of [backend, headers, customFetch]) {
-		if (property && property !== anchor) {
-			plan.edits.push(propertyRemoval(property));
-		}
-	}
+	plan.edits.push(
+		...elementRemovals(
+			[backend, headers, customFetch].filter(
+				(property): property is TsMorphTypes.ObjectLiteralElementLike =>
+					property !== undefined && property !== anchor
+			)
+		)
+	);
 	requireImport(plan, entry, 'hosted');
 	plan.summaries.push('mode/backendURL -> hosted()');
 	plan.operations += 1;

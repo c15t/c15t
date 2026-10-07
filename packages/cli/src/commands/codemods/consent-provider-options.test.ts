@@ -336,6 +336,42 @@ export const data = fetchSSRData({ backendURL: '/api/c15t' });
 		expect(result.changedFiles).toEqual([]);
 	});
 
+	it('folds several adjacent transport keys on one line into hosted()', async () => {
+		const { result, updated } = await transformFile(
+			codemod,
+			`import { ConsentManagerProvider } from '@c15t/react';
+
+export const App = ({ children, headers, customFetch }) => (
+	<ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t', headers, customFetch }}>{children}</ConsentManagerProvider>
+);
+`
+		);
+		expect(result.errors).toEqual([]);
+		expect(updated).toContain(
+			"<ConsentProvider options={{ mode: hosted({ url: '/api/c15t', headers, fetch: customFetch }) }}>{children}</ConsentProvider>"
+		);
+
+		const multiLine = await transformFile(
+			codemod,
+			`import type { ConsentManagerOptions } from '@c15t/react';
+
+declare const customFetch: typeof fetch;
+export const options: ConsentManagerOptions = {
+	backendURL: '/api/c15t',
+	headers: { 'x-a': '1' }, customFetch,
+	mode: 'hosted',
+	consentCategories: ['necessary'],
+};
+`
+		);
+		expect(multiLine.result.errors).toEqual([]);
+		expect(multiLine.updated)
+			.toContain(`export const options: ConsentProviderOptions = {
+	mode: hosted({ url: '/api/c15t', headers: { 'x-a': '1' }, fetch: customFetch }),
+	consentCategories: ['necessary'],
+};`);
+	});
+
 	it('marks a mode held in a variable or expression', async () => {
 		const source = `import type { ConsentManagerOptions } from '@c15t/react';
 
