@@ -9,19 +9,22 @@ group: frameworks
 This guide sets up a server-rendered SvelteKit app. The root layout's server
 `load` resolves each visitor's consent before the page renders, so the banner
 is part of the first HTML and a returning visitor's choice applies from the
-first paint. For prerendered pages, a static site, SPA mode or a manifest
-cache, follow this guide and then [rendering and deployment](/docs/frameworks/sveltekit/rendering).
+first paint. For prerendered pages, a static site or SPA mode, follow this
+guide and then [rendering and deployment](/docs/frameworks/sveltekit/rendering).
+The `examples/sveltekit` app in the c15t repository is the finished result.
 
 `@c15t/svelte` supports SvelteKit 2 and 3 with Svelte 5. The examples use
 SvelteKit 3. On SvelteKit 2, import `building` and `dev` from
 `$app/environment` instead of `$app/env`, and write `#lib/` imports as `$lib/`
-without the `.js` extension.
+without the `.js` extension. SvelteKit 2 has no `src/env.ts`: import `env` from
+`$env/dynamic/public` and read `env.PUBLIC_C15T_BACKEND_URL`. Its adapter
+stays in `svelte.config.js`.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
 Create an Inth project, then:
 
-1. Set its policy rules, including the `measurement` and `marketing`
-   categories for the vendors below.
+1. Set its policy rules, including the `measurement` category for the
+   vendor below.
 2. Add your app's origin, such as `http://localhost:5173`, to its trusted
    origins.
 3. Copy the project's backend URL. The server uses it to resolve consent and
@@ -29,6 +32,10 @@ Create an Inth project, then:
 
 A self-hosted backend works the same way with your own URL; see
 [self-hosting](/docs/self-host/overview).
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install
 
@@ -39,25 +46,35 @@ The `c15t` package has no Svelte entry point.
 
 ## Register vendor scripts
 
-Create `src/lib/example-scripts.ts`. PostHog waits for measurement permission
-and X Pixel for marketing permission. It selects PostHog's EU region; change
-`region` to `'us'` for a US project.
+Create `src/lib/scripts.ts`. PostHog waits for measurement permission:
 
-<include src="../../shared/examples/sveltekit-demo/scripts.mdx" />
+<include src="../../shared/examples/sveltekit/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. Remove any `<script>` tags in `src/app.html` or SDK imports that already load
-these vendors, so c15t is the only thing that loads them.
+Replace `phc_your_project_key` with your PostHog project key. Remove any
+`<script>` tags in `src/app.html` or SDK imports that already load PostHog, so
+c15t is the only thing that loads it.
+
+## Set the backend URL
+
+Declare the backend URL as a public environment variable in `src/env.ts`, so
+the server load and the browser read the same value:
+
+<include src="../../shared/examples/sveltekit/env.mdx" />
+
+Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any path
+prefix, in `.env` or your host's environment. Without it, the app falls back
+to the `https://your-project.inth.app` placeholder.
 
 ## Resolve consent in the root layout load
 
-<include src="../../shared/examples/sveltekit-demo/layout-server.mdx" />
+<include src="../../shared/examples/sveltekit/layout-server.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix. `loadConsent` reads the visitor's consent cookie, location headers and Global
-Privacy Control, asks the backend's `/init` for the policy, and returns a
-plain, serializable object for the provider's `prefetch` prop. It never
-throws. If the backend fails or takes longer than 500 ms, it returns the
+`loadConsent` reads the visitor's consent cookie, location headers and Global
+Privacy Control, resolves their policy, and returns a plain, serializable
+object for the provider's `prefetch` prop. The build-time step below supplies
+the policy snapshot. Without it, this base load calls the backend's `/init`.
+It never throws. With runtime fetching, if the backend fails or takes longer
+than 500 ms, it returns the
 stored choice without a policy. The page then renders without a banner in the
 HTML, optional categories stay denied, and the browser resolves the policy
 after hydration. Pass `timeoutMs` to change the wait, or `false` to wait as
@@ -71,12 +88,12 @@ has the details.
 
 ## Render the provider in the root layout
 
-<include src="../../shared/examples/sveltekit-demo/layout.mdx" />
+<include src="../../shared/examples/sveltekit/layout.mdx" />
 
 Pass `data.prefetch` through unchanged. The provider starts from it, so the
 server and the browser render the same banner and the browser makes no second
 `/init` request. `hosted()` points the browser at the same backend for saving
-choices; use the same URL as the server load.
+choices.
 
 `ConsentBanner` shows the banner when the policy asks for one.
 `ConsentDialog` is the preference dialog; it loads in its own chunk after the
@@ -87,6 +104,26 @@ footer. `@c15t/svelte/styles.css` holds the stock styles for all three.
 Keep the provider in the root layout so it stays mounted across client-side
 navigation.
 
+## Add the server hook
+
+`c15tHandle` reads the consent cookie, location headers and Global Privacy
+Control once per request, for `loadConsent` and any other load or endpoint
+that needs them. Add it to `src/hooks.server.ts`:
+
+<include src="../../shared/examples/sveltekit/hooks.mdx" />
+
+Then add the `c15tPreload()` plugin to `vite.config.ts`. With it, `c15tHandle`
+preloads the script loader on pages that register scripts:
+
+<include src="../../shared/examples/sveltekit/vite-config.mdx" />
+
+[Rendering and deployment](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle)
+shows how to type `event.locals.c15t`.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/sveltekit.mdx" />
+
 ## Verify consent
 
 Build the app with `vite build` and serve the production build with
@@ -94,14 +131,13 @@ Build the app with `vite build` and serve the production build with
 
 1. View the page source. It contains `data-testid="consent-banner-root"`, so
    the banner is in the server HTML.
-2. In the Network panel, no requests go to PostHog or X.
+2. In the Network panel, no requests go to PostHog.
 3. Select **Reject All** and reload. The page source no longer contains the
-   banner, and the vendor requests stay absent.
+   banner, and PostHog requests stay absent.
 4. Select **Privacy settings**, turn on **Analytics** (the `measurement`
-   category) and save. PostHog loads; X Pixel does not.
-5. Turn on **Marketing** too. X Pixel loads.
-6. Turn both off and save. The page reloads and neither vendor loads.
-7. Navigate to another route and back. The choice holds without a new banner.
+   category) and save. PostHog loads.
+5. Turn it off and save. The page reloads and PostHog does not load.
+6. Navigate to another route and back. The choice holds without a new banner.
 
 If the banner is missing from the page source, see
 [troubleshooting](/docs/frameworks/sveltekit/troubleshooting).

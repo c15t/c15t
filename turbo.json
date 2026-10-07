@@ -145,7 +145,7 @@
 			"outputs": ["dist/**", "dist-types/**", "src/version.ts"],
 			"env": ["WITH_RSDOCTOR"]
 		},
-		"@c15t/example-nuxt#build": {
+		"@c15t/fixture-nuxt#build": {
 			"dependsOn": ["^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
@@ -159,7 +159,7 @@
 			"outputs": [".nuxt/**", ".output/**", ".vercel/output/**"],
 			"env": ["VERCEL", "NITRO_PRESET", "NUXT_PUBLIC_C15T_BACKEND_URL"]
 		},
-		"@c15t/example-nuxt-vapor#build": {
+		"@c15t/fixture-nuxt-vapor#build": {
 			"dependsOn": ["^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
@@ -178,7 +178,7 @@
 				"C15T_NUXT_FUTURE"
 			]
 		},
-		"@c15t/example-tanstack-start#build": {
+		"@c15t/fixture-tanstack-start#build": {
 			"dependsOn": ["^build"],
 			"inputs": [
 				"$TURBO_DEFAULT$",
@@ -266,7 +266,7 @@
 			"persistent": true,
 			"interruptible": true
 		},
-		"@c15t/example-demo#dev": {
+		"@c15t/playground#dev": {
 			"cache": false,
 			"persistent": true,
 			"interruptible": true,
@@ -284,7 +284,7 @@
 				"@c15t/ui#dev"
 			]
 		},
-		"@c15t/example-nuxt#dev": {
+		"@c15t/fixture-nuxt#dev": {
 			"cache": false,
 			"persistent": true,
 			"interruptible": true,
@@ -298,7 +298,7 @@
 				"@c15t/ui#dev"
 			]
 		},
-		"@c15t/example-tanstack-start#dev": {
+		"@c15t/fixture-tanstack-start#dev": {
 			"cache": false,
 			"persistent": true,
 			"interruptible": true,
@@ -708,7 +708,7 @@
 			"dependsOn": ["build", "^build", "transit"],
 			"outputs": []
 		},
-		"@c15t/example-demo#test": {
+		"@c15t/playground#test": {
 			"dependsOn": ["build", "^build", "transit"],
 			"outputs": []
 		}

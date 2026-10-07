@@ -18,6 +18,7 @@ import { KERNEL_EVENT_TYPES, kernelEventToDevToolsEvent } from './events';
 import { readSelection } from './selection';
 import { createStateManager } from './state-manager';
 import type {
+	DevToolsDock,
 	DevToolsPosition,
 	DevToolsState,
 	DevToolsStateListener,
@@ -93,6 +94,13 @@ export interface DevToolsInstance {
 	close: () => void;
 	toggle: () => void;
 	setActiveTab: (tab: DevToolsTab) => void;
+	/**
+	 * Hand the launcher to a host control, such as a consent toolbar that
+	 * renders its own DevTools button. While docked, the floating launcher is
+	 * hidden and the panel opens from the dock's corner, clear of the host
+	 * control. Pass `null` to bring the launcher back.
+	 */
+	dock: (dock: DevToolsDock | null) => void;
 	clearEvents: () => void;
 	getState: () => DevToolsState;
 	subscribe: (listener: DevToolsStateListener) => () => void;
@@ -296,6 +304,7 @@ export function createDevTools(options: DevToolsOptions): DevToolsInstance {
 			view.destroy();
 			stateManager.destroy();
 		},
+		dock: (dock) => stateManager.setDock(dock),
 		element: view.element,
 		getState: stateManager.getState,
 		open: () => stateManager.setOpen(true),

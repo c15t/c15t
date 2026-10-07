@@ -125,6 +125,11 @@
 			"types": "./dist-types/devtools.d.ts",
 			"import": "./dist/devtools.js",
 			"default": "./dist/devtools.js"
+		},
+		"./build": {
+			"types": "./dist-types/build.d.ts",
+			"import": "./dist/build.js",
+			"default": "./dist/build.js"
 		}
 	},
 	"publishConfig": {

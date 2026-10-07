@@ -5,24 +5,15 @@
 	"scripts": {
 		"build": "nuxt build",
 		"check-types": "nuxt typecheck",
-		"db:migrate": "bunx @c15t/cli self-host migrate",
 		"dev": "nuxt dev",
-		"generate": "nuxt generate",
-		"preview:static": "vite preview --outDir .output/public --host 127.0.0.1 --strictPort",
 		"start": "node .output/server/index.mjs"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
 		"@c15t/integrations": "workspace:*",
-		"@effect/sql-pglite": "4.0.0",
-		"@electric-sql/pglite": "0.4.2",
 		"c15t": "workspace:*",
-		"h3": "1.15.11",
-		"nuxt": "^4.5.1",
-		"pg": "^8.20.0"
+		"nuxt": "^4.5.1"
 	},
 	"devDependencies": {
-		"@types/pg": "^8.20.0",
 		"typescript": "6.0.3",
 		"vue-tsc": "^3.3.6"
 	}

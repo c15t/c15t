@@ -1,0 +1,18 @@
+<!-- #region docs:consent-surfaces title="app/components/ConsentSurfaces.vue" -->
+<script setup lang="ts">
+// The module registers ConsentDialogTrigger globally. It does not register
+// the banner or the dialog, so import them.
+import ConsentBanner from 'c15t/vue/runtime/components/consent-banner.vue';
+import ConsentManager from 'c15t/vue/runtime/components/consent-manager.vue';
+</script>
+
+<template>
+	<!-- Render these in app.vue in place of ConsentRoot, not next to it. -->
+	<ConsentBanner
+		variant="bar"
+		position="bottom"
+	/>
+	<ConsentManager />
+	<ConsentDialogTrigger />
+</template>
+<!-- #endregion docs:consent-surfaces -->

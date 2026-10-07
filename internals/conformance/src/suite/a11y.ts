@@ -373,6 +373,36 @@ export const runA11yConformance = function runA11yConformance(
 			}
 		});
 
+		conformanceTest(
+			api,
+			'a11y Escape on the dialog brings back a banner the visitor still owes',
+			async () => {
+				const mounted = await mountBanner(driver);
+				try {
+					const body = ownerBody(mounted);
+					const customizeButton = await waitForElement(
+						body,
+						TEST_IDS.consentBanner.customizeButton
+					);
+					customizeButton.click();
+					await waitForElement(body, TEST_IDS.consentDialog.root);
+					const dialog = getDialogElement(body);
+					api.expect(dialog).not.toBeNull();
+					if (!dialog) {
+						return;
+					}
+
+					keydown(dialog, 'Escape');
+					await waitForElementRemoved(body, TEST_IDS.consentDialog.root);
+
+					await waitForElement(body, TEST_IDS.consentBanner.root);
+					api.expect(driver.getStore().getState().activeUI).toBe('banner');
+				} finally {
+					await mounted.unmount();
+				}
+			}
+		);
+
 		conformanceTest(api, 'a11y dialog restores focus on Escape', async () => {
 			const mounted = await mountBanner(driver);
 			try {
@@ -394,11 +424,15 @@ export const runA11yConformance = function runA11yConformance(
 				keydown(dialog, 'Escape');
 				await waitForElementRemoved(body, TEST_IDS.consentDialog.root);
 
-				// Focus restore runs on a deferred (setTimeout 0) tick; poll for
-				// the expected target rather than a fixed sleep.
+				// The visitor still owes a choice, so the banner comes back and
+				// focus returns to its Customize button, whether the adapter kept
+				// the banner mounted or rendered it again. Focus restore runs on
+				// a deferred (setTimeout 0) tick; poll for the expected target
+				// rather than a fixed sleep.
+				await waitForElement(body, TEST_IDS.consentBanner.root);
 				const expected = returnTarget.isConnected
 					? returnTarget
-					: body.ownerDocument.body;
+					: byTestId(body, TEST_IDS.consentBanner.customizeButton);
 				const active = await waitForActiveElement(
 					body.ownerDocument,
 					(el) => el === expected

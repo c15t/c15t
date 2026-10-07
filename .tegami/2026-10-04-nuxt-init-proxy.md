@@ -7,4 +7,7 @@ packages:
 
 ### Forward vendors and privacy signals through the Nuxt `/init` proxy
 
-When a backend has no `/manifest`, the Nuxt `/init` route proxies `GET /init` and rebuilds the response. It dropped `vendors`, `vendorListVersion` and `resolvedPrivacySignals` on the way, so a client behind the proxy received no vendor list and none of the privacy signals the backend resolved. The route now forwards all three.
+When the backend has no `/manifest`, the Nuxt `/init` route proxies the
+backend's `/init`. It dropped `vendors`, `vendorListVersion` and
+`resolvedPrivacySignals`, so clients got no vendor list or privacy signals. It
+forwards all three.

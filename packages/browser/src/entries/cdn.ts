@@ -6,11 +6,17 @@
  * `data-manual`.
  */
 
+import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
+
 import { autoInit, installGlobal } from '../global-base';
 import { createHostedGlobal } from '../hosted-global';
 import { mountConsentUI } from '../ui/mount';
 
 const api = installGlobal(
-	createHostedGlobal({ mountUI: mountConsentUI, pkg: '@c15t/browser' })
+	createHostedGlobal({
+		mountUI: mountConsentUI,
+		pkg: '@c15t/browser',
+		publishDevToolsLauncher,
+	})
 );
 autoInit(api);

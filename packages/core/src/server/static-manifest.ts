@@ -66,7 +66,7 @@ export interface StaticManifestModuleOptions {
  * @param options - Manifest URL and optional fetch implementation.
  * @param label - Framework name used in errors.
  * @returns The backend manifest.
- * @throws {Error} When fetch is unavailable or the backend returns an error.
+ * @throws {Error} When fetch is unavailable or the response is not a valid manifest.
  */
 export const loadStaticManifest = async (
 	options: Pick<StaticManifestModuleOptions, 'manifestURL' | 'fetch'>,
@@ -85,7 +85,18 @@ export const loadStaticManifest = async (
 			`${label}: /manifest responded ${response.status} ${response.statusText}`
 		);
 	}
-	return (await response.json()) as ConsentManifest;
+	try {
+		// Build/static loading owns validation; request resolvers need no schemas.
+		const { parseConsentManifest } = await import('@c15t/schema');
+		return parseConsentManifest(await response.json());
+	} catch (cause) {
+		throw new Error(
+			`${label}: /manifest returned an invalid consent manifest.`,
+			{
+				cause,
+			}
+		);
+	}
 };
 
 /** Generates a typed module with validated export and import names.

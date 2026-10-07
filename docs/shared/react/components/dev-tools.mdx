@@ -41,6 +41,29 @@ group: reference
   it. `shadow={false}` mounts it in the light DOM with its stylesheet in
   `<head>`.
 
+  ## Open DevTools from the consent trigger
+
+  While `ConsentDialogTriggerToolbar` or the ready-made `ConsentDialogTrigger`
+  is visible, the trigger shows a DevTools button and DevTools hides its own
+  floating launcher, so one control occupies the corner. The button sits at the
+  end of the toolbar farthest from its corner. The panel opens just past the
+  toolbar, aligned with its outer edge, and follows it when a visitor drags the
+  toolbar to another corner. `position` applies again once no trigger is
+  visible.
+
+  `ConsentDialogTrigger` becomes a two-button toolbar while DevTools is
+  mounted. A trigger composed from `ConsentDialogTrigger.Root` keeps its own
+  markup, and DevTools keeps its floating launcher beside it.
+
+  DevTools brings its launcher back whenever no trigger is visible, for example
+  while `showWhen="after-prompt"` waits for a choice. A production build that
+  loads DevTools only in development shows no DevTools button in the trigger.
+
+  With the imperative engine, call `devTools.dock({ position, inline, block })`
+  to hide the launcher and anchor the panel `inline` and `block` pixels from the
+  viewport edges of `position`'s corner. Call `devTools.dock(null)` to restore
+  the launcher.
+
   ## Panels
 
   Accept and reject apply only to categories displayed by the provider, leaving

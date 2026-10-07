@@ -177,6 +177,54 @@
 }
 
 /*
+ * Docked: a host control (the consent toolbar) renders the launcher, so the
+ * floating one hides and the panel opens just past the host. Pinning both
+ * inline sides sizes the root to the visible viewport, scrollbar excluded,
+ * so the panel never runs off the far edge. The empty part of the root
+ * passes clicks through to the page.
+ */
+.c15t-dev-tools--docked {
+	pointer-events: none;
+}
+
+.c15t-dev-tools--docked .c15t-dev-tools__panel {
+	width: min(28rem, 100%);
+	max-height: min(
+		40rem,
+		calc(100dvh - var(--c15t-dev-tools-dock-block) - 0.75rem)
+	);
+	pointer-events: auto;
+}
+
+.c15t-dev-tools--docked .c15t-dev-tools__toggle {
+	display: none;
+}
+
+.c15t-dev-tools--docked.c15t-dev-tools--bottom-right {
+	right: var(--c15t-dev-tools-dock-inline);
+	bottom: var(--c15t-dev-tools-dock-block);
+	left: 0.75rem;
+}
+
+.c15t-dev-tools--docked.c15t-dev-tools--bottom-left {
+	right: 0.75rem;
+	bottom: var(--c15t-dev-tools-dock-block);
+	left: var(--c15t-dev-tools-dock-inline);
+}
+
+.c15t-dev-tools--docked.c15t-dev-tools--top-right {
+	top: var(--c15t-dev-tools-dock-block);
+	right: var(--c15t-dev-tools-dock-inline);
+	left: 0.75rem;
+}
+
+.c15t-dev-tools--docked.c15t-dev-tools--top-left {
+	top: var(--c15t-dev-tools-dock-block);
+	right: 0.75rem;
+	left: var(--c15t-dev-tools-dock-inline);
+}
+
+/*
  * Embedded in a devtools shell, the panel belongs to that shell, not to the
  * app's consent theme: use the own palette and a system font, and let the
  * host pick light or dark.

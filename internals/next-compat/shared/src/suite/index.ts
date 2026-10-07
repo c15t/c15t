@@ -152,6 +152,20 @@ const watchEmbedRequests = function watchEmbedRequests(
 	};
 };
 
+/** Paths of the `<link rel="stylesheet">` elements in an HTML document. */
+const stylesheetPathsIn = function stylesheetPathsIn(html: string): string[] {
+	const paths = new Set<string>();
+	for (const [tag] of html.matchAll(/<link\b[^>]*>/gu)) {
+		// No capture group: the cells type-check this file for ES2017, which
+		// has no named groups.
+		const href = /\shref="[^"]+"/u.exec(tag)?.[0].slice(' href="'.length, -1);
+		if (href && /\srel="stylesheet"/u.test(tag)) {
+			paths.add(new URL(href, 'http://cell.invalid').pathname);
+		}
+	}
+	return [...paths].sort();
+};
+
 const clearInitRequests = async function clearInitRequests(baseURL: string) {
 	await fetch(`${baseURL}/api/c15t/__compat/requests`, { method: 'DELETE' });
 };
@@ -467,5 +481,45 @@ export const defineCompatSuite = function defineCompatSuite({
 		for (const scenario of scenarios) {
 			registerScenario(scenario);
 		}
+
+		// The app imports `@c15t/nextjs/styles.css` and nothing else. That
+		// stylesheet carries the dialog's rules, so opening the dialog must
+		// neither load another stylesheet nor paint an unstyled card. A
+		// stylesheet imported from package code instead is what the Pages
+		// Router refuses to build.
+		it('styles the dialog from the stylesheet the app imports', async () => {
+			const [scenario] = scenarios;
+			if (!scenario) {
+				throw new Error('the suite needs a scenario to open the dialog on');
+			}
+			const pageStylesheets = stylesheetPathsIn(
+				await fetchHTML(baseURL, scenario.path)
+			);
+			expect(pageStylesheets).not.toEqual([]);
+
+			const loadedStylesheets = new Set<string>();
+			page.on('request', (request) => {
+				if (request.resourceType() === 'stylesheet') {
+					loadedStylesheets.add(new URL(request.url()).pathname);
+				}
+			});
+			await page.goto(`${baseURL}${scenario.path}`, { waitUntil: 'load' });
+			await waitForInit(page);
+			await page.click('[data-testid="consent-banner-customize-button"]');
+			const card = page.locator('[data-testid="consent-dialog-card"]');
+			await card.waitFor({ state: 'visible', timeout: 30_000 });
+
+			// `.card` in the dialog's rules: `position: relative; display: flex`.
+			// An unstyled card is a static block.
+			expect(
+				await card.evaluate((element) => {
+					const style = getComputedStyle(element);
+					return { display: style.display, position: style.position };
+				})
+			).toEqual({ display: 'flex', position: 'relative' });
+			expect([...loadedStylesheets].sort()).toEqual(pageStylesheets);
+			expect(pageErrors).toEqual([]);
+			expect(consoleErrors).toEqual([]);
+		});
 	});
 };

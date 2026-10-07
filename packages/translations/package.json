@@ -31,7 +31,8 @@
 	],
 	"type": "module",
 	"sideEffects": [
-		"./dist/all.js"
+		"./dist/all.js",
+		"./dist/languages/*.js"
 	],
 	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
@@ -50,6 +51,176 @@
 			"types": "./dist-types/translations/en.d.ts",
 			"import": "./dist/translations/en.js",
 			"default": "./dist/translations/en.js"
+		},
+		"./bg": {
+			"types": "./dist-types/languages/bg.d.ts",
+			"import": "./dist/languages/bg.js",
+			"default": "./dist/languages/bg.js"
+		},
+		"./cs": {
+			"types": "./dist-types/languages/cs.d.ts",
+			"import": "./dist/languages/cs.js",
+			"default": "./dist/languages/cs.js"
+		},
+		"./cy": {
+			"types": "./dist-types/languages/cy.d.ts",
+			"import": "./dist/languages/cy.js",
+			"default": "./dist/languages/cy.js"
+		},
+		"./da": {
+			"types": "./dist-types/languages/da.d.ts",
+			"import": "./dist/languages/da.js",
+			"default": "./dist/languages/da.js"
+		},
+		"./de": {
+			"types": "./dist-types/languages/de.d.ts",
+			"import": "./dist/languages/de.js",
+			"default": "./dist/languages/de.js"
+		},
+		"./el": {
+			"types": "./dist-types/languages/el.d.ts",
+			"import": "./dist/languages/el.js",
+			"default": "./dist/languages/el.js"
+		},
+		"./es": {
+			"types": "./dist-types/languages/es.d.ts",
+			"import": "./dist/languages/es.js",
+			"default": "./dist/languages/es.js"
+		},
+		"./et": {
+			"types": "./dist-types/languages/et.d.ts",
+			"import": "./dist/languages/et.js",
+			"default": "./dist/languages/et.js"
+		},
+		"./fi": {
+			"types": "./dist-types/languages/fi.d.ts",
+			"import": "./dist/languages/fi.js",
+			"default": "./dist/languages/fi.js"
+		},
+		"./fr": {
+			"types": "./dist-types/languages/fr.d.ts",
+			"import": "./dist/languages/fr.js",
+			"default": "./dist/languages/fr.js"
+		},
+		"./ga": {
+			"types": "./dist-types/languages/ga.d.ts",
+			"import": "./dist/languages/ga.js",
+			"default": "./dist/languages/ga.js"
+		},
+		"./gu": {
+			"types": "./dist-types/languages/gu.d.ts",
+			"import": "./dist/languages/gu.js",
+			"default": "./dist/languages/gu.js"
+		},
+		"./he": {
+			"types": "./dist-types/languages/he.d.ts",
+			"import": "./dist/languages/he.js",
+			"default": "./dist/languages/he.js"
+		},
+		"./hi": {
+			"types": "./dist-types/languages/hi.d.ts",
+			"import": "./dist/languages/hi.js",
+			"default": "./dist/languages/hi.js"
+		},
+		"./hr": {
+			"types": "./dist-types/languages/hr.d.ts",
+			"import": "./dist/languages/hr.js",
+			"default": "./dist/languages/hr.js"
+		},
+		"./hu": {
+			"types": "./dist-types/languages/hu.d.ts",
+			"import": "./dist/languages/hu.js",
+			"default": "./dist/languages/hu.js"
+		},
+		"./id": {
+			"types": "./dist-types/languages/id.d.ts",
+			"import": "./dist/languages/id.js",
+			"default": "./dist/languages/id.js"
+		},
+		"./is": {
+			"types": "./dist-types/languages/is.d.ts",
+			"import": "./dist/languages/is.js",
+			"default": "./dist/languages/is.js"
+		},
+		"./it": {
+			"types": "./dist-types/languages/it.d.ts",
+			"import": "./dist/languages/it.js",
+			"default": "./dist/languages/it.js"
+		},
+		"./lb": {
+			"types": "./dist-types/languages/lb.d.ts",
+			"import": "./dist/languages/lb.js",
+			"default": "./dist/languages/lb.js"
+		},
+		"./lt": {
+			"types": "./dist-types/languages/lt.d.ts",
+			"import": "./dist/languages/lt.js",
+			"default": "./dist/languages/lt.js"
+		},
+		"./lv": {
+			"types": "./dist-types/languages/lv.d.ts",
+			"import": "./dist/languages/lv.js",
+			"default": "./dist/languages/lv.js"
+		},
+		"./mt": {
+			"types": "./dist-types/languages/mt.d.ts",
+			"import": "./dist/languages/mt.js",
+			"default": "./dist/languages/mt.js"
+		},
+		"./nb": {
+			"types": "./dist-types/languages/nb.d.ts",
+			"import": "./dist/languages/nb.js",
+			"default": "./dist/languages/nb.js"
+		},
+		"./nl": {
+			"types": "./dist-types/languages/nl.d.ts",
+			"import": "./dist/languages/nl.js",
+			"default": "./dist/languages/nl.js"
+		},
+		"./nn": {
+			"types": "./dist-types/languages/nn.d.ts",
+			"import": "./dist/languages/nn.js",
+			"default": "./dist/languages/nn.js"
+		},
+		"./pl": {
+			"types": "./dist-types/languages/pl.d.ts",
+			"import": "./dist/languages/pl.js",
+			"default": "./dist/languages/pl.js"
+		},
+		"./pt": {
+			"types": "./dist-types/languages/pt.d.ts",
+			"import": "./dist/languages/pt.js",
+			"default": "./dist/languages/pt.js"
+		},
+		"./rm": {
+			"types": "./dist-types/languages/rm.d.ts",
+			"import": "./dist/languages/rm.js",
+			"default": "./dist/languages/rm.js"
+		},
+		"./ro": {
+			"types": "./dist-types/languages/ro.d.ts",
+			"import": "./dist/languages/ro.js",
+			"default": "./dist/languages/ro.js"
+		},
+		"./sk": {
+			"types": "./dist-types/languages/sk.d.ts",
+			"import": "./dist/languages/sk.js",
+			"default": "./dist/languages/sk.js"
+		},
+		"./sl": {
+			"types": "./dist-types/languages/sl.d.ts",
+			"import": "./dist/languages/sl.js",
+			"default": "./dist/languages/sl.js"
+		},
+		"./sv": {
+			"types": "./dist-types/languages/sv.d.ts",
+			"import": "./dist/languages/sv.js",
+			"default": "./dist/languages/sv.js"
+		},
+		"./zh": {
+			"types": "./dist-types/languages/zh.d.ts",
+			"import": "./dist/languages/zh.js",
+			"default": "./dist/languages/zh.js"
 		}
 	},
 	"publishConfig": {

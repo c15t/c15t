@@ -15,6 +15,7 @@ import { createKernel } from '../kernel';
 import type { InternalKernel } from '../kernel/internals';
 import { hostExperiment, seedExperiment } from '../libs/experiment';
 import { extractConsentNamesFromCondition } from '../libs/has';
+import { isProductionBuild } from '../libs/is-production';
 import { resolveVendors } from '../libs/vendors';
 import type { User } from '../options/user';
 import { disabledPolicyResolution } from '../policy';
@@ -127,9 +128,7 @@ export const hasResolvedPrefetch = function hasResolvedPrefetch(
 const warnInDevelopment = function warnInDevelopment(
 	...message: unknown[]
 ): void {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv !== 'production') {
+	if (!isProductionBuild()) {
 		console.warn(...message);
 	}
 };

@@ -16,8 +16,16 @@ packages:
 
 ### Block network requests sent before the network blocker loads
 
-The network blocker loaded after mount, so a `fetch` or XHR that matched a rule and was sent from a child component's mount effect, from an effect next to the provider, or from a client module evaluated inside it went out without a consent check. This happened on first visits, for visitors who had rejected, and when the policy request failed or hung. `ConsentProvider` and `ConsentRoot` now hold matching requests from their first render in the browser, and the blocker decides them once it loads. Vue holds them from plugin install until the root mounts. `createConsentRuntime()`, which `@c15t/svelte` and the `c15t` browser client use, holds them from construction until `start()`. A provider that unmounts before its blocker loads, a runtime disposed before `start()`, or a Vue context disposed before its root mounts answers the requests it held as blocked (a 451 response for `fetch`, a failed XHR) rather than sending them, since nothing checked consent for them. Requests another caller still holds keep waiting.
+A `fetch` or XHR matching a `networkBlocker` rule that was sent during mount,
+before the blocker loaded, went out without a consent check. `ConsentProvider`
+and `ConsentRoot` hold matching requests from their first browser render, Vue
+from plugin install, and `createConsentRuntime()` (used by `@c15t/svelte` and
+the `c15t` browser client) from construction. The blocker decides them once it
+loads. While consent is unknown they wait instead of failing. Requests that
+match no rule are not delayed. If the provider unmounts or the runtime is
+disposed first, held requests are answered as blocked (a 451 response for
+`fetch`, a failed XHR).
 
-While consent is unknown, a matching request that would be blocked now waits instead of failing. It is sent if the resolved policy and the visitor's stored choice allow it, and blocked if they do not or if the policy fails to load. Requests that match no rule are not delayed. Apps without `networkBlocker` still do not download the blocker; the hold adds about 0.8 KB gzip to first-load JavaScript.
-
-Requests made before the provider renders are still out of reach, including inline scripts, tags loaded before hydration, and client modules that webpack evaluates when a route's chunk loads. The new network blocker pages for Next.js and React describe these limits and how to keep tracking calls out of that window.
+Requests made before the provider renders, such as inline scripts and tags
+loaded before hydration, are still out of reach. The network blocker pages for
+Next.js and React describe these limits.

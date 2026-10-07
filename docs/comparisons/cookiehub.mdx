@@ -1,0 +1,64 @@
+---
+title: c15t vs CookieHub
+description: Choose c15t for native web framework coverage and backend ownership. Compare CookieHub's React components, consent APIs, automatic scans and hosted logs.
+group: reference
+---
+
+## Keep your consent system under product-team control
+
+c15t is the stronger fit when you want native consent components across web frameworks and control of the backend. Your team can review and change the engine with the application.
+
+CookieHub combines managed banners, scans and consent logs. It also has React components and developer APIs, so framework integration is an overlap.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Compare what you get
+
+| What you need | c15t | CookieHub |
+| --- | --- | --- |
+| Use native web components | React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro and TanStack Start | React package plus browser and CMS integrations |
+| Connect application features | Reactive state, vendor choices and headless APIs | JavaScript methods, events and category controls |
+| Control scripts and embeds | Declared categories and vendors for scripts, requests and embeds | Automatic controls plus React script, analytics and video components |
+| Choose the record backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent log, enabled per domain |
+| Find cookies | **No automatic scanner in the packages** | Website scanner |
+| Handle regional rules | Backend policy and framework configuration | Managed region settings |
+| Build a custom interface | Themes, component parts or your own markup | Banner settings and JavaScript controls |
+
+Sources: [CookieHub overview](https://docs.cookiehub.com/), [React integration](https://www.cookiehub.com/react), [JavaScript API](https://www.cookiehub.com/javascript-api) and [consent log](https://docs.cookiehub.com/dashboard/consent-log).
+
+## Compare framework depth and source ownership
+
+CookieHub's React package can control scripts, analytics and video embeds. Its events let an application respond when a visitor changes a category choice.
+
+c15t combines [native framework adapters](/docs/frameworks) with an engine and backend that your team can change. Use its components or build product-specific controls with [headless APIs](/docs/frameworks/react/headless).
+
+This is useful when your product uses different web frameworks or when consent changes need code review. The benefit is control of the full system.
+
+For Next.js, c15t also documents [server, streamed and browser paths](/docs/frameworks/next/rendering). The App Router's default streamed path does not put the banner in the initial HTML. Choose and test the path your application needs.
+
+## Check what a saved record means
+
+CookieHub's log can contain consent actions and session entries. A session entry does not carry a consent status. Turn on its log before you start collection, as its docs explain.
+
+With c15t, connect to Inth to store consent records in its database. Check successful writes separately from the choice shown in the browser.
+
+Choose CookieHub when the managed scanner and dashboard fit your workflow. Choose c15t when your developers need broader native integration and control of the record backend.
+
+## What c15t does not include
+
+- The packages do not include automated cookie discovery or a CMS plugin management console.
+- They do not generate privacy policies or include a full privacy operations suite.
+- Script, request and embed rules need configuration. A banner does not cover every tag already on the site.
+- A browser choice does not prove that the backend saved a remote record.
+
+Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+The release covered here is an alpha. Include setup, backend operation and any separate scans in your cost comparison.
+
+## Test a real application route
+
+Start with the [framework guide](/docs/frameworks). Add one analytics vendor and one embed, then navigate between application routes.
+
+Test refusal, acceptance, reload and withdrawal. Use the [verification guide](/docs/guides/verify-consent) to check actual requests and saved records.
+
+Sources checked on 6 October 2026. Framework coverage does not establish a measured performance or compliance advantage.

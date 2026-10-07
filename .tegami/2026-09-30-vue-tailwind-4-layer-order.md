@@ -10,6 +10,10 @@ packages:
 
 ### Keep Vue components styled next to Tailwind 4
 
-Vue components import their stylesheets one component at a time, and Vite links those stylesheets ahead of the app's CSS when they share a chunk. The first of them declared `@layer components` before Tailwind 4 declared `base`, so Tailwind's preflight removed the banner's padding, borders and button backgrounds. Each `@c15t/ui/styles/components/*.css` file now opens with Tailwind 4's layer order, `@layer properties, theme, base, components, utilities;`, as the aggregate stylesheets already did.
-
-The dialog trigger stylesheet now keeps its rules in `@layer components` as well, so a Tailwind utility passed to the Vue trigger overrides it the same way it does in React.
+With Tailwind 4, Tailwind's preflight could strip the padding, borders and
+button backgrounds from Vue components, because their stylesheets declared
+`@layer components` before Tailwind declared `base`. Each
+`@c15t/ui/styles/components/*.css` file opens with
+`@layer properties, theme, base, components, utilities;`. The dialog trigger's
+rules also move into `@layer components`, so Tailwind utilities on the Vue
+trigger override them as in React.

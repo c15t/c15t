@@ -64,6 +64,9 @@
  * });
  * ```
  */
+
+import { isProductionBuild } from '../libs/is-production';
+
 const LOADED = Symbol('c15t-lazy-module-loaded');
 
 /**
@@ -139,10 +142,7 @@ export const lazyRuntimeModule = function lazyRuntimeModule<
 				// failed chunk or a factory that throws is otherwise silent. A
 				// chunk that failed for lack of a network loads once there is
 				// one again.
-				if (
-					(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process
-						?.env?.NODE_ENV !== 'production'
-				) {
+				if (!isProductionBuild()) {
 					console.warn(
 						'c15t: a runtime module failed to load and stays inactive.',
 						error

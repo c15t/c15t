@@ -155,10 +155,12 @@ export interface AstroConsentClient {
 	/** Close the open dialog. */
 	closeDialog: () => void;
 	/**
-	 * Accept every category the policy offers. Under an IAB policy this
-	 * accepts every purpose and vendor through the CMP, so the TC string
-	 * records it. The open banner or dialog closes once the choice is
-	 * recorded locally, before the backend answers.
+	 * Without IAB, accept every category in scope. Under an IAB policy, the CMP
+	 * grants only the vendors' declared processing after publisher restrictions
+	 * apply, including custom vendors. Optional categories without declared
+	 * consent purposes remain denied. The TC string records the IAB signals.
+	 * The open banner or dialog closes once the choice is recorded locally,
+	 * before the backend answers.
 	 */
 	acceptAll: () => Promise<void>;
 	/**

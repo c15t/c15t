@@ -25,6 +25,8 @@ const onKeydown = function onKeydown(event: KeyboardEvent) {
 	}
 };
 
+// One document listener handles Escape wherever focus is. A second one on
+// the dialog element would close twice for a key pressed inside it.
 onMounted(() => {
 	document.addEventListener('keydown', onKeydown);
 });
@@ -41,7 +43,6 @@ onBeforeUnmount(() => {
 		:aria-modal="isModal() ? 'true' : undefined"
 		:data-state="getDialogState(dialog?.open() ?? true)"
 		tabindex="-1"
-		@keydown="onKeydown"
 	>
 		<slot />
 	</div>

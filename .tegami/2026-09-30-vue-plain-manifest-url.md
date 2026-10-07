@@ -10,4 +10,7 @@ packages:
 
 ### Fetch a `manifestURL` in the browser from the plain Vue plugin
 
-With the plain Vue plugin, setting `manifestURL` without `manifest` now selects client manifest mode: the browser fetches that manifest and resolves the policy itself. Before, it selected server mode and called `/api/c15t/init`, a route only the Nuxt module registers. The Nuxt module is unchanged: its `manifest` option defaults to `false`, so a `manifestURL` there needs `manifest: 'server'` or `manifest: 'client'` as well.
+With the plain Vue plugin, setting `manifestURL` without `manifest` selects
+client manifest mode, so the browser fetches the manifest itself. Before, it
+called `/api/c15t/init`, a route only the Nuxt module registers. In Nuxt, a
+`manifestURL` still needs `manifest: 'server'` or `manifest: 'client'`.

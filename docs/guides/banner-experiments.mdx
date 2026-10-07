@@ -23,6 +23,22 @@ the arm names in `arm` and `split`. The callbacks forward each impression and
 choice to `window.dataLayer`; see
 [send the events to your own analytics](#send-the-events-to-your-own-analytics-too).
 
+Your flag provider returns a plain string. To check it before passing it as
+`arm`, type it with `ExperimentArmName` from `c15t`, which is `control` plus
+the experiment's arm names:
+
+{/* example: fragment */}
+
+```ts
+import type { ExperimentArmName } from 'c15t';
+
+// 'control' | 'wall'
+type BannerArm = ExperimentArmName<typeof bannerExperiment>;
+
+const armFromFlag = (value: string | undefined): BannerArm | undefined =>
+	value === 'control' || value === 'wall' ? value : undefined;
+```
+
 Omit `arm` to let c15t pick, and set `split` to weight the arms:
 
 ```ts
@@ -52,6 +68,14 @@ no effect; remount the provider (a `key` in React) to switch experiments.
 
 Assignment and arm validation load as a separate chunk, only on pages that
 set `experiment`. A site without an experiment does not download them.
+
+An experiment compares choices, so the banner has to ask about at least one
+category. Under a rule with `scopeMode: 'permissive'`, the banner asks only
+about the categories your site declares through `consentCategories`,
+`scripts` or `vendors`. With none declared, it asks about none: accepting or rejecting records a notice
+acknowledgement instead of a choice, `onChoiceRecorded` never fires, and the
+experiment counts impressions without choices. Outside production, c15t logs
+a warning the first time the banner shows an arm in that state.
 
 ### Astro
 
@@ -149,13 +173,12 @@ keeps their arm when you change the weights.
 Resolve the flag where consent resolves and pass the experiment to
 `resolveConsent`. The server reports the arm with `/init`, and the returned
 state carries the experiment to `ConsentRoot`, so the client needs no
-`experiment` option of its own. The Next.js example does this in the root
-layout of its `/experiment` route:
+`experiment` option of its own. In Next.js, do this in the root layout:
 
 <include src="../shared/examples/nextjs/experiment-layout.mdx" />
 
-In the example, `lib/flags.ts` stands in for the flag above and reads the arm
-from the URL. `ExperimentConsent` is the `Consent` wrapper from the
+`@/lib/flags` exports the flag above. `ExperimentConsent` is the `Consent`
+wrapper from the
 [App Router guide](/docs/frameworks/next/app-router) with the event callbacks
 from [send the events to your own analytics](#send-the-events-to-your-own-analytics-too)
 in `options`. The layout awaits consent inside `<Suspense>`, as in
@@ -512,7 +535,7 @@ arm by the visitors whose reports carry that arm.
 
 ## Try it
 
-Every example app under `examples/` runs this experiment outside the pages
+Every example app under `internals/fixtures/` runs this experiment outside the pages
 the docs publish. Each page shows the assigned arm and the events the
 callbacks sent. Adding `arm=wall` sets the arm the way a flag would, so the
 page shows `assignedBy: host`. Run each command in the example's directory.

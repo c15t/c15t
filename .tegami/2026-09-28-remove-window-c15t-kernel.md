@@ -7,4 +7,6 @@ packages:
 
 ### Stop exposing the kernel on `window.c15tKernel`
 
-`ConsentProvider` no longer sets `window.c15tKernel`. Nothing in c15t has read it since DevTools started taking the kernel directly, and the global kept the whole kernel reachable from any script on the page, including after the provider unmounted. `window.c15t` still carries the debug information. Pages that use the React provider ship 54 bytes less JavaScript after gzip.
+`ConsentProvider` no longer sets `window.c15tKernel`. Nothing in c15t read it,
+and it kept the whole kernel reachable from any script on the page, even after
+the provider unmounted. `window.c15t` still carries the debug information.

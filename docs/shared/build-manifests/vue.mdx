@@ -1,0 +1,47 @@
+<include src="../build-time-manifest.mdx" />
+
+Add `consentManifest` from `c15t/build` to your existing Vite plugins, alongside
+the Vue and c15t Vue plugins:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts (plugins option)"
+import { consentManifest } from 'c15t/build';
+
+export default {
+	plugins: [
+		// Keep your existing framework plugins here.
+		consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	],
+};
+```
+
+Vite writes `src/c15t-manifest.ts` before compilation or development startup.
+Keep the generated file out of Git. Import it in `src/main.ts` and add these
+options to the existing Vue plugin setup:
+
+{/* example: fragment */}
+
+```ts title="src/main.ts"
+import { consentManifest } from './c15t-manifest';
+
+app.use(c15tVue, {
+	backendURL: 'https://your-project.inth.app',
+	manifest: 'client',
+	manifestSnapshot: consentManifest,
+});
+```
+
+The browser resolves policy from the bundled snapshot without fetching
+`/manifest` or `/init`. Without `geoURL` or explicit location overrides it
+uses the unknown-location policy, so configure a fallback rule. The bundle
+includes the policy and resolver. Keep your scripts and other plugin options.
+The snapshot does not refresh; rebuild after policy edits. Consent saves and
+IAB vendor-list requests can still use the network. A failed build-time fetch
+stops the build.
+
+<include src="../vite-build-manifest.mdx" />
+
+For policy updates without a rebuild, omit the snapshot and use [runtime
+manifest fetching](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser).
+Keep the original backend `/init` setup when you need backend geolocation.

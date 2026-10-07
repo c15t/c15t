@@ -122,7 +122,7 @@ Call these only in response to a visitor's click or key press, never at load.
 
 | Method | What it records |
 | --- | --- |
-| `acceptAll()` | Allows every category the dialog offers. Under an IAB policy it confirms through the CMP. |
+| `acceptAll()` | Without IAB, allows every category the dialog offers. Under an IAB policy it confirms the vendors' declared processing through the CMP. Optional categories without declared consent purposes remain denied. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy). |
 | `rejectAll()` | Denies every optional category the dialog offers. |
 | `save(choices)` | The categories you name, such as `{ measurement: true, marketing: false }`. Categories the dialog does not offer are ignored. A `vendors` map, such as `{ vendors: { 'x-pixel': false } }`, records vendor switches too. Fails under an IAB policy; use `saveIAB()`. |
 | `saveIAB()` | Confirms the IAB purpose and vendor choices set on the CMP. `c15t.iab.js` only. See [IAB TCF](/docs/frameworks/html/iab). |
@@ -140,7 +140,7 @@ the choice stays in effect, and c15t retries the request later.
 | --- | --- |
 | `showBanner()` | Shows the banner. Records nothing. |
 | `openDialog()` | Opens the preference dialog. Records nothing. |
-| `closeDialog()` | Closes the banner or dialog. Records nothing. |
+| `closeDialog()` | Closes the dialog, or the banner when no dialog is open. Closing the dialog brings the banner back while the policy still owes a choice. Records nothing. |
 | `setLanguage(code)` | Switches language and re-renders with that language's copy, from the backend or, in offline mode, from the bundled copy and `i18n.messages`. See [translations](/docs/frameworks/html/translations). |
 | `mountUI(options?)` | Removes the stock UI and mounts it again, with new UI options or the configured ones. Throws in `c15t.headless.js`. |
 

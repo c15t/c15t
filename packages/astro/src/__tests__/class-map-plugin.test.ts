@@ -96,14 +96,9 @@ describe('class maps without CSS', () => {
 		).toBe('export {};');
 	});
 
-	it('points the dialog stylesheet module at the variant with no CSS', async () => {
-		const { result } = await resolveWith('@c15t/ui/styles/dialog', withCSS);
-		expect(result).toBe(join(directory, 'panel.node.js'));
-	});
-
-	it('leaves the client its own `?url` import of the dialog stylesheet', async () => {
+	it('leaves the client its own `?url` import of a dialog stylesheet', async () => {
 		const { result } = await resolveWith(
-			'@c15t/ui/styles/dialog.css?url',
+			'@c15t/ui/styles/primitives.css?url',
 			withCSS
 		);
 		expect(result).toBeNull();

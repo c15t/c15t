@@ -1,0 +1,65 @@
+---
+title: c15t vs Borlabs Cookie
+description: Choose c15t for consent beyond WordPress, with native web components and a separate backend. Compare Borlabs Cookie's local records, service controls and scanner.
+group: reference
+---
+
+## Keep control when your product extends beyond WordPress
+
+c15t is the stronger fit when your team needs consent in a custom web application. Its framework components and backend let you own the consent system independently of WordPress.
+
+Borlabs Cookie is a WordPress product with local visitor data, individual service controls and developer tools. Self-hosting alone does not distinguish c15t from Borlabs.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Compare what you get
+
+| What you need | c15t | Borlabs Cookie |
+| --- | --- | --- |
+| Build outside WordPress | Native web framework adapters, browser and headless options | WordPress only |
+| Control the interface | Themes, component parts and headless APIs | Dialog settings, custom content placeholders and JavaScript API |
+| Let visitors choose services | Category and individual vendor state | Service groups with individual service choices |
+| Control scripts and embeds | Declared rules for scripts, requests and embeds | Script, style and content controls |
+| Keep records on your servers | Deploy the supplied c15t backend | Consent logs within the WordPress setup. Visitor data stays on your server |
+| Use a managed backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Consent runs within your WordPress installation |
+| Discover services | **No automatic scanner in the packages** | Scanner with suggested service packages |
+| Operate within WordPress | Developer setup. No bundled WordPress wizard | Setup assistant, package library, WP CLI and Composer support |
+
+Sources: [Borlabs product and platform scope](https://borlabs.io/), [feature list](https://borlabs.io/borlabs-cookie/features/) and [JavaScript API](https://borlabs.io/docs/javascript-api-v3/).
+
+## Connect consent to your application
+
+Borlabs already covers several reasons teams choose a consent tool: local data, service choices, embeds and consent logs. Its API also supports custom integrations.
+
+c15t adds a [native workflow across web frameworks](/docs/frameworks). Your team can put privacy controls into a product screen and connect them to shared consent state.
+
+Use [headless APIs](/docs/frameworks/react/headless) for your markup. Declare [vendors](/docs/frameworks/react/vendor-consent) beside the integrations they control.
+
+The backend is a separate service that can run with your chosen database. That separation helps when the application frontend and consent service need their own deployment lifecycle.
+
+## Choose where administration belongs
+
+Choose c15t when your main product is a custom web application or extends beyond a WordPress site. Keep consent in the product's code review and release process.
+
+Borlabs can be the better fit when your team wants consent administration inside WordPress. Its scanner and package library can reduce the manual configuration of supported plugins and services.
+
+With either product, your team must check new integrations and consent changes. Local data storage does not remove the work of updates, backups and operational checks.
+
+## What c15t does not include
+
+- The packages do not include a WordPress administration screen, setup assistant or automatic service scanner.
+- They do not generate privacy policies or manage wider legal-document work.
+- Vendor rules cover configured targets. They do not discover every tag or CMS plugin automatically.
+- A browser choice does not prove that the backend saved the record.
+
+Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+The release covered here is an alpha. Include setup and backend operation when you compare the total work and cost.
+
+## Test the application boundary
+
+Follow the [framework guide](/docs/frameworks). Connect one vendor and one embed that your product needs outside WordPress.
+
+Test refusal, acceptance, reload and withdrawal with the [verification guide](/docs/guides/verify-consent). Check requests and records. Check any tags that the CMS still supplies too.
+
+Sources checked on 6 October 2026. This comparison credits the local data, service choices and developer APIs in both products.

@@ -103,6 +103,30 @@ describe('region extraction', () => {
 		]);
 	});
 
+	test('publishes acceptance fixtures under the fixture name', () => {
+		const [region] = findRegions(
+			'internals/fixtures/nuxt/app/app.vue',
+			'<!-- #region docs:root -->\n<ConsentRoot />\n<!-- #endregion docs:root -->'
+		);
+		expect(region).toMatchObject({
+			app: 'internals/fixtures/nuxt',
+			destination: `${generatedExamplesDir}/nuxt/root.mdx`,
+			title: 'app/app.vue',
+		});
+	});
+
+	test('publishes doc snippets under the snippet set name', () => {
+		const [region] = findRegions(
+			'internals/doc-snippets/nuxt/callbacks.ts',
+			'// #region docs:callbacks\nx\n// #endregion docs:callbacks'
+		);
+		expect(region).toMatchObject({
+			app: 'internals/doc-snippets/nuxt',
+			destination: `${generatedExamplesDir}/nuxt/callbacks.mdx`,
+			title: 'callbacks.ts',
+		});
+	});
+
 	test('defaults the title to the path inside the example app', () => {
 		const [region] = findRegions(
 			'internals/next-compat/next-16-app/app/layout.tsx',
@@ -250,10 +274,10 @@ describe('region extraction', () => {
 	});
 
 	test('names fence languages from file names', () => {
-		expect(languageFor('examples/nuxt/.env.example')).toBe('dotenv');
-		expect(languageFor('examples/astro-demo/src/pages/index.astro')).toBe(
-			'astro'
-		);
+		expect(languageFor('internals/fixtures/nuxt/.env.example')).toBe('dotenv');
+		expect(
+			languageFor('internals/fixtures/astro-demo/src/pages/index.astro')
+		).toBe('astro');
 	});
 });
 
@@ -290,7 +314,7 @@ describe('hand-written docs examples', () => {
 		);
 		expect(
 			added,
-			'Move new setup code into a tested example region (see examples/shared/README.md).'
+			'Move new setup code into a starter or doc-snippets region (see examples/README.md and the writing-docs skill).'
 		).toEqual([]);
 		expect(
 			stale,

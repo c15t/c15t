@@ -30,7 +30,7 @@ The component reads `client.isVendorAllowed('youtube')`, so declare `youtube`
 in the `vendors` option of `c15t()` with `category: 'measurement'`. An
 undeclared vendor reads as not allowed, and the video never loads:
 
-<include src="../../shared/examples/astro-demo/consent-video.mdx" />
+<include src="../../shared/examples/astro/consent-video.mdx" />
 
 Use it like any Astro component. How it works:
 
@@ -87,7 +87,7 @@ custom element alone. See [Server API](/docs/frameworks/astro/server).
 
 1. Open the page in a private window with DevTools Network open. There is no
    request to the embed's host, and no iframe from it in the Elements panel.
-2. Allow the embed's category from **Cookie preferences**. The iframe appears
+2. Allow the embed's category from **Privacy settings**. The iframe appears
    and loads.
 3. Reload. The iframe loads again without a new choice.
 4. Withdraw the category and save. The page reloads, and the embed's host

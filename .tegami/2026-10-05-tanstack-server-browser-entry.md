@@ -8,8 +8,14 @@ packages:
       - exit-prerelease(npm:c15t)
 ---
 
-### Route files that import `consentLoaderOptions` no longer pull consent code into other chunks
+### Keep `consentLoaderOptions` imports from bloating TanStack Start chunks
 
-Route definitions ship to the browser, so a route file that imports `consentLoaderOptions` from `@c15t/tanstack-start/server` used to bring the server helpers' imports of `@c15t/core` into the client build's module graph. Vite split chunks by that graph: each consent route loaded about 3 KB more gzip in 5 extra files, and routes without c15t loaded 5 extra files too.
+A route file that imports `consentLoaderOptions` from
+`@c15t/tanstack-start/server` used to pull consent code into the client build,
+adding about 3 KB gzip in 5 extra files to each consent route. Browser builds
+now resolve `@c15t/tanstack-start/server` and `c15t/tanstack-start/server` to
+a slim build.
 
-Browser builds now resolve `@c15t/tanstack-start/server` (and `c15t/tanstack-start/server`) to a build that exports `consentLoaderOptions` and nothing else that imports code. `resolveConsent()`, `createConsentStateHandler()` and `mergeInitIntoConsentState()` keep their names there so client code still builds, but calling one in the browser throws: they read the request and run on the server only.
+`resolveConsent()`, `createConsentStateHandler()` and
+`mergeInitIntoConsentState()` still import in client code, but throw if called
+in the browser.

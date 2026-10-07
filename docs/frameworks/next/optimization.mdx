@@ -1,15 +1,20 @@
 ---
 title: Performance
-description: Reuse cached policy data and optionally reduce browser connection overhead without changing consent behavior.
+description: Bundle policy at build time to avoid manifest fetch latency, use runtime caching when policies must refresh without a rebuild, and optionally keep browser consent requests on your origin.
 group: frameworks
 ---
 
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next.mdx" />
+
 ## Reuse cached policy data
 
-The [App Router](/docs/frameworks/next/app-router) and
-[Pages Router](/docs/frameworks/next/pages-router) guides use cached manifests
-with Inth. A manifest contains public policy configuration that your app server
-can reuse across requests. Each visitor's consent is still resolved separately.
+Use runtime manifest caching when policy changes must reach your app without
+a rebuild. Omit `withConsentManifest` and the server helpers' `manifest`
+option from the build-time setup. A manifest contains public policy
+configuration that your app server can reuse across requests. Each visitor's
+consent still resolves separately.
 
 A warm cache avoids repeated backend policy resolution. It does not eliminate
 all requests. Your app may read its local manifest route, cold caches fetch
@@ -29,6 +34,7 @@ page.
 
 | Fetching path | Work during initialization |
 | --- | --- |
+| Build-time manifest, recommended | Resolve consent locally from the deployment's snapshot, including on a fresh server instance. |
 | Regular backend `/init` | Wait for the backend to resolve consent and return the result. |
 | Cold manifest cache | Fetch public policy from the backend, cache it and resolve consent locally. |
 | Warm manifest cache | Reuse cached policy and resolve consent locally; local route requests and rendering still take time. |
@@ -62,7 +68,8 @@ The same setup works with a self-hosted c15t backend.
 
 ### Add the backend rewrite
 
-Merge this fallback into your existing Next.js configuration:
+Merge this fallback into your existing Next.js configuration. Keep the
+`withConsentManifest` wrapper if you use the recommended build integration:
 
 ```ts title="next.config.ts"
 import type { NextConfig } from 'next';
@@ -112,40 +119,46 @@ takes `consentConfig`, plus the upstream URL described next.
 
 ### Keep route handlers pointed upstream
 
-The manifest route from your router guide passes `consentConfig` to
-`createNextConsentRouteHandlers`, which fetches from the config's
-`backendURL`. Once that is `/api/c15t`, the route would fetch itself. Pass the
-absolute upstream URL to the handler instead:
+Keep the handler's `backendURL` absolute and preserve the bundled snapshot.
+With runtime fetching, passing a config whose `backendURL` is `/api/c15t`
+would make the route fetch itself. Use the upstream URL:
 
 {/* example: fragment */}
 
 ```ts title="app/api/c15t/manifest/route.ts"
+import { consentManifest } from '@/c15t-manifest';
+
 export const { manifestGET: GET } = createNextConsentRouteHandlers({
 	backendURL: 'https://your-project.inth.app',
+	manifest: consentManifest,
 });
 ```
 
 Make the same change in the
 [optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route)
 if you added one, and in Pages Router `createPagesApiHandlers` calls. A
-`manifestURL` handler option must also point upstream.
+`manifestURL` handler option must also point upstream. With runtime fetching,
+omit the snapshot import and `manifest` option.
 
-Pass the same upstream URL to `resolveConsent`. With `consentConfig` alone the
-render would read `/api/c15t/manifest`, which is your own manifest route, so it
-skips the request and the browser resolves the policy instead. The explicit
-`backendURL` wins over the config's, and the render reads the upstream manifest
-through the same in-process cache as the route:
+Pass the snapshot and upstream URL to `resolveConsent` too:
 
 {/* example: fragment */}
 
 ```tsx title="app/layout.tsx"
+import { consentManifest } from '@/c15t-manifest';
+
 const state = resolveConsent({
 	config: consentConfig,
 	backendURL: 'https://your-project.inth.app',
+	manifest: consentManifest,
 });
 ```
 
 Use the same options in Pages Router `getServerSideProps`, together with `req`.
+With runtime fetching, omit the snapshot import and `manifest` option. Keep
+the upstream URL: without it, the render skips a request to its own manifest
+route and lets the browser resolve the policy. The explicit `backendURL`
+wins over the config's and fetches through the in-process manifest cache.
 A configuration with only `backendURL: '/api/c15t'` works without this:
 `resolveConsent` calls `/api/c15t/init` through the rewrite. Passing the
 upstream URL still saves that request a trip through your own server.
@@ -167,10 +180,26 @@ rewrites or API handlers. Use a hosting-level proxy or direct public Inth URL.
 
 ## Configure manifest cache refresh
 
-`createNextConsentRouteHandlers` uses the Next.js Data Cache plus an in-process
-manifest cache. The in-process cache also covers Pages Router runtimes without
-the Data Cache. It supports ETag revalidation and respects upstream cache
-headers, including responses marked private.
+This section applies to runtime fetching. A build-time snapshot stays fixed
+until the next build and does not use cache revalidation.
+
+In the App Router, `resolveConsent` and `createNextConsentRouteHandlers` pass
+`next: { revalidate: 300 }` to upstream manifest fetches. Next.js's Data Cache
+can reuse that policy across requests and server instances when your host
+provides a shared cache. A new function instance can therefore read cached
+policy even with an empty SDK cache. A Data Cache miss still waits for the
+backend.
+
+The SDK also keeps an in-process manifest cache, which supports ETag
+revalidation and respects upstream cache headers, including responses marked
+private. Pages Router helpers use this cache; ordinary Pages Router fetches
+do not use the App Router Data Cache.
+
+For route handlers, `manifestRevalidateSeconds` changes the Data Cache's
+300-second revalidation interval. Set it to `false` or `0` to skip that layer.
+The SDK cache still follows the upstream cache headers. Visitor-specific
+backend `/init` calls use `cache: 'no-store'`, and resolved consent is never
+shared between visitors.
 
 Once the upstream `s-maxage` has passed, the in-process cache keeps serving the
 cached manifest for as long as the upstream `stale-while-revalidate` allows
@@ -181,7 +210,7 @@ slow or unavailable backend does not delay rendering on a server that has
 already loaded the manifest. Inth sends `s-maxage=300` and a 24 hour
 `stale-while-revalidate` by default; lower the second value on a self-hosted
 backend if a policy change must reach servers sooner after an outage. A server
-with an empty cache still waits for the first upstream response.
+with both caches empty still waits for the first upstream response.
 
 The background refresh is detached from the request. On runtimes that stop
 work once a response is sent, register it with the platform so it can finish.
@@ -213,6 +242,11 @@ the backend counts the visitor from that instead. The browser makes no request.
 `resolveConsent` reports its renders the same way through its `waitUntil`
 option. Pass `reportSessions: false` to either to send none.
 
+Build-time snapshots need no background manifest refresh. On serverless
+hosts, `onBackgroundRevalidate` can still keep the optional session report
+alive after the response. It is not required for resolving consent from the
+snapshot.
+
 ## Avoid repeating startup work
 
 Keep one boundary in the App Router root layout or Pages Router `_app.tsx`.
@@ -223,10 +257,10 @@ Choose when to resolve consent according to your page. See
 [rendering and deployment](/docs/frameworks/next/rendering) for server
 rendering, streaming and browser initialization.
 
-Measure cold entry, a warm manifest cache and client navigation separately.
+Measure cold entry, warm requests and client navigation separately.
 Check server requests as well as the browser Network panel. Confirm that
-consent saves reach the backend and policy updates appear after the configured
-refresh window. If you add a rewrite, also confirm browser consent requests
+consent saves reach the backend and policy updates appear after a rebuild, or
+the configured refresh window with runtime caching. If you add a rewrite, also confirm browser consent requests
 use your origin.
 
 ## Start returning visitors' scripts sooner

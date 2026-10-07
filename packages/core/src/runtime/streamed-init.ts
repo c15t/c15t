@@ -21,6 +21,7 @@
  *   init runs as though there were no prefetch.
  */
 import type { InternalKernel } from '../kernel/internals';
+import { isProductionBuild } from '../libs/is-production';
 import type { kernelConfigToInitResponse } from '../transports/init-output';
 import type {
 	ConsentKernel,
@@ -37,9 +38,7 @@ const hasKeys = function hasKeys(value: KernelOverrides): boolean {
 };
 
 const warn = function warn(...message: unknown[]): void {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv !== 'production') {
+	if (!isProductionBuild()) {
 		console.warn(...message);
 	}
 };

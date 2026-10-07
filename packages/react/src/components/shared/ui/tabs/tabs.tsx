@@ -8,8 +8,6 @@ import {
 } from '@c15t/ui/primitives/tabs';
 import type { TabsOrientation } from '@c15t/ui/primitives/tabs';
 import styles from '@c15t/ui/styles/components/tabs';
-// These classes' rules are in the dialog stylesheet, not styles.css.
-import '@c15t/ui/styles/dialog';
 import {
 	createContext,
 	forwardRef as createForwardRef,

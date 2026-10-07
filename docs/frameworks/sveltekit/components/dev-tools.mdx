@@ -10,7 +10,7 @@ Render `ConsentDevTools` inside `ConsentManagerProvider`, and load it only in
 development. `dev` from `$app/env` (`$app/environment` on SvelteKit 2) is `true` in `vite dev` and
 `false` in a production build, which then drops the import:
 
-<include src="../../../shared/examples/sveltekit-demo/dev-tools.mdx" />
+<include src="../../../shared/examples/sveltekit/dev-tools.mdx" />
 
 Render `<ConsentDevTools />` from that file in the root layout or any page.
 The panel mounts in the browser only; it is never part of server HTML.

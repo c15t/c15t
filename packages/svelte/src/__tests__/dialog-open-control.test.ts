@@ -68,7 +68,7 @@ describe('ConsentDialog open prop', () => {
 		await waitFor(() => expect(query(ROOT)).toBeNull());
 	});
 
-	test('without `open`, Escape closes the dialog', async () => {
+	test('without `open`, Escape closes the dialog back to the owed banner', async () => {
 		render(Fixture, { options });
 		await fireEvent.click(query('[data-testid="open-dialog"]') as HTMLElement);
 		await waitFor(() => expect(query(ROOT)).not.toBeNull());
@@ -76,6 +76,7 @@ describe('ConsentDialog open prop', () => {
 		await fireEvent.keyDown(query(ROOT) as HTMLElement, { key: 'Escape' });
 
 		await waitFor(() => expect(query(ROOT)).toBeNull());
-		expect(query('[data-testid="active-ui"]')?.textContent).toBe('none');
+		// The fixture's policy still owes a choice.
+		expect(query('[data-testid="active-ui"]')?.textContent).toBe('banner');
 	});
 });

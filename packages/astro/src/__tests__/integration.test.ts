@@ -33,7 +33,8 @@ const specifier = (entry: string): string =>
 
 const runSetup = async function runSetup(
 	options: C15tAstroOptions,
-	config: Record<string, unknown> = {}
+	config: Record<string, unknown> = {},
+	command: 'build' | 'dev' | 'preview' = 'build'
 ) {
 	const integration = c15t(options);
 	const calls: SetupCalls = {
@@ -44,6 +45,7 @@ const runSetup = async function runSetup(
 	};
 	await integration.hooks['astro:config:setup']?.({
 		...calls,
+		command,
 		config,
 	} as unknown as Parameters<
 		NonNullable<(typeof integration)['hooks']['astro:config:setup']>
@@ -88,6 +90,89 @@ describe('createOwnEntryResolver', () => {
 });
 
 describe('resolveOptions', () => {
+	it.each(['build', 'dev'] as const)(
+		'buildManifest keeps the %s snapshot in server options only',
+		async (command) => {
+			const fetch = vi.fn<typeof globalThis.fetch>(() =>
+				Promise.resolve(Response.json(INLINE_MANIFEST))
+			);
+			vi.stubGlobal('fetch', fetch);
+			try {
+				const { calls } = await runSetup(
+					{
+						buildManifest: true,
+						mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+					},
+					{},
+					command
+				);
+				const update = calls.updateConfig.mock.calls[0]?.[0];
+				const [plugin] = update.vite.plugins;
+				const source = plugin.load('\0virtual:c15t/options', { ssr: true });
+				expect(source).toContain(JSON.stringify(INLINE_MANIFEST.revision));
+				expect(source).toContain('"schemaVersion":2');
+				for (const loadOptions of [undefined, { ssr: false }]) {
+					const clientSource = plugin.load(
+						'\0virtual:c15t/options',
+						loadOptions
+					);
+					const clientOptions = JSON.parse(
+						clientSource.replace(/^export default /u, '').replace(/;$/u, '')
+					);
+					expect(clientOptions.mode).toEqual({
+						backendURL: 'https://consent.example.com',
+						type: 'manifest',
+					});
+					expect(clientSource).not.toContain(INLINE_MANIFEST.revision);
+				}
+				expect(fetch).toHaveBeenCalledTimes(1);
+			} finally {
+				vi.unstubAllGlobals();
+			}
+		}
+	);
+
+	it.each([
+		{ error: '503', response: () => new Response(null, { status: 503 }) },
+		{
+			error: 'invalid consent manifest',
+			response: () => Response.json({ error: 'not a manifest' }),
+		},
+	])('buildManifest stops the build on $error', async ({ response, error }) => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(response()))
+		);
+		try {
+			await expect(
+				runSetup({
+					buildManifest: true,
+					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				})
+			).rejects.toThrow(error);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('preview never fetches a new build snapshot', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		vi.stubGlobal('fetch', fetch);
+		try {
+			await runSetup(
+				{
+					buildManifest: true,
+					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				},
+				{},
+				'preview'
+			);
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it('defaults the ui adapter to svelte', () => {
 		expect(resolveOptions({ mode: offlineMode() }).ui).toBe('svelte');
 	});
@@ -394,10 +479,9 @@ describe('astro:config:setup', () => {
 	});
 
 	it.each(['react', 'svelte', 'vue'] as const)(
-		'keeps the dialog stylesheet off every %s page',
+		'injects no separate dialog stylesheet on %s pages',
 		async (ui) => {
-			// Render-blocking CSS for a surface most visitors never open. The
-			// client links it on the first open instead.
+			// `styles.css` already holds the dialog's rules.
 			const { calls } = await runSetup({ mode: offlineMode(), ui });
 			const found = calls.injectScript.mock.calls.find(
 				([stage]) => stage === 'page-ssr'
@@ -406,14 +490,16 @@ describe('astro:config:setup', () => {
 		}
 	);
 
-	it.each([
-		[
-			'svelte',
-			['@c15t/ui/styles/dialog.css', '@c15t/ui/styles/primitives.css'],
-		],
-		['react', ['@c15t/ui/styles/dialog.css']],
-		['vue', ['@c15t/ui/styles/dialog.css']],
-	] as const)(
+	it.each(['react', 'vue'] as const)(
+		'leaves the %s dialog nothing to link beyond styles.css',
+		async (ui) => {
+			const { calls } = await runSetup({ mode: offlineMode(), ui });
+			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+			expect(code).not.toContain('registerDialogStyles(');
+		}
+	);
+
+	it.each([['svelte', ['@c15t/ui/styles/primitives.css']]] as const)(
 		'registers the %s dialog stylesheets for the client to link',
 		async (ui, stylesheets) => {
 			const { calls } = await runSetup({ mode: offlineMode(), ui });

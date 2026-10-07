@@ -133,6 +133,8 @@ export interface BenchmarkMetadata {
 	backendLatencyMs?: number;
 	/** @deprecated Older artifacts' name for `backendLatencyMs`. */
 	initLatencyMs?: number;
+	/** Dialog selectors found in the Next.js tarball's flat stylesheet. */
+	nextjsIncludesDialogRules?: boolean | null;
 }
 
 export interface BrowserNavigationTimingMetrics {

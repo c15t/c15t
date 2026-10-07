@@ -1,0 +1,13 @@
+---
+import BaseLayout from '../layouts/cached.astro';
+---
+
+<BaseLayout title="Gated inline script">
+	<!-- #region docs:gated-inline-script title="src/pages/index.astro (partial)" -->
+	<script data-c15t-category="measurement" is:inline type="text/plain">
+		document.getElementById('inline-script-status').textContent =
+			'Measurement script ran';
+	</script>
+	<!-- #endregion docs:gated-inline-script -->
+	<p id="inline-script-status">Measurement script blocked</p>
+</BaseLayout>

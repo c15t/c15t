@@ -109,6 +109,25 @@ afterEach(() => {
 });
 
 describe('manifest route background revalidation', () => {
+	test('serves the private build snapshot and resolves init without upstream policy requests', async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			c15t: { manifestSnapshot: MANIFEST },
+			public: {
+				c15t: {
+					backendURL: 'https://consent.example.com',
+					reportSessions: false,
+				},
+			},
+		});
+		expect(await (await callManifestRoute()).json()).toEqual(MANIFEST);
+		expect(
+			await (await callInitRoute({ 'x-vercel-ip-country': 'DE' })).json()
+		).toMatchObject({
+			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
+		});
+		expect(mocks.serverFetch).not.toHaveBeenCalled();
+	});
+
 	test("hands a stale read's refresh and the event to onBackgroundRevalidate", async () => {
 		vi.useFakeTimers();
 		try {
@@ -308,6 +327,21 @@ describe('init route', () => {
 
 		expect(mocks.serverFetch.mock.calls[0]?.[0]).toBe(
 			'https://private.example/manifest'
+		);
+	});
+
+	test('an empty private URL leaves the public one', async () => {
+		// What Nitro hands over when only NUXT_PUBLIC_C15T_BACKEND_URL is set.
+		mocks.useRuntimeConfig.mockReturnValue({
+			c15t: { backendURL: '', manifestURL: '', ssr: true },
+			public: { c15t: { backendURL: 'https://public.example' } },
+		});
+		mocks.serverFetch.mockResolvedValue(manifestResponse({}));
+
+		await callInitRoute();
+
+		expect(mocks.serverFetch.mock.calls[0]?.[0]).toBe(
+			'https://public.example/manifest'
 		);
 	});
 

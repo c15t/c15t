@@ -1158,7 +1158,7 @@ A host app integrates two pods, both resolvable from this repository:
   `react-native.config.js` and `react-native.config.ts` and nothing else, so a `.cjs`
   is not read. Reproduced on this tree, not theorised. With the file named `.cjs`,
   `expo-modules-autolinking react-native-config --platform android --json` from
-  `examples/expo-dev` returned only `expo`. Expo then falls back to
+  `internals/fixtures/expo-dev` returned only `expo`. Expo then falls back to
   `sourceDir: 'android'`, whose `build.gradle.kts` declares no namespace, so
   `parsePackageNameAsync` returns nothing, `resolveDependencyConfigImplAndroidAsync`
   returns `null`, and the package is dropped from the generated `PackageList.java`

@@ -43,8 +43,7 @@
 	],
 	"type": "module",
 	"sideEffects": [
-		"**/*.css",
-		"./dist/styles/dialog.js"
+		"**/*.css"
 	],
 	"main": "./dist/index.js",
 	"types": "./dist-types/index.d.ts",
@@ -56,7 +55,6 @@
 		"./styles/dialog.css": "./dist/styles/dialog.css",
 		"./styles/dialog": {
 			"types": "./dist/styles/dialog.d.ts",
-			"node": "./dist/styles/dialog.node.js",
 			"import": "./dist/styles/dialog.js",
 			"default": "./dist/styles/dialog.js"
 		},

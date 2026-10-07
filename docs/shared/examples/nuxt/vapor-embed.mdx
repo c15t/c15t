@@ -1,0 +1,21 @@
+{/* Generated from internals/doc-snippets/nuxt/app/components/VaporVideoEmbed.vue (docs:vapor-embed) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```vue title="app/components/VideoEmbed.vue"
+<!-- A Vapor component passing both slots to ConsentGate. -->
+<script setup vapor lang="ts"></script>
+
+<template>
+	<ConsentGate category="measurement">
+		<iframe
+			src="https://www.youtube-nocookie.com/embed/czTksCF6X8Y"
+			title="YouTube video"
+			loading="lazy"
+			allowfullscreen
+		/>
+		<template #placeholder>
+			<p>Allow measurement to load this YouTube video.</p>
+			<ConsentPreferencesLink>Choose video permissions</ConsentPreferencesLink>
+		</template>
+	</ConsentGate>
+</template>
+```

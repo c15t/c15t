@@ -1,71 +1,122 @@
 ---
-title: Compare c15t with other consent tools
-description: How c15t v3 compares with Cookiebot, OneTrust, Usercentrics, Didomi, iubenda, Osano, CookieConsent, Klaro, react-cookie-consent, Silktide Consent Manager and tarteaucitron.js, from their published documentation.
+title: Compare c15t with consent tools and custom code
+description: Compare c15t with consent platforms, browser libraries and custom code. See its strengths, setup requirements and the features its packages do not include.
 group: reference
 ---
 
-## What c15t is
+## Choose c15t for consent your product team can own
 
-c15t is an open-source consent runtime with components for each framework. You
-install it in your app's code, and it reads policy and stores consent records
-through a backend: [Inth](https://inth.com), a
-[self-hosted c15t backend](/docs/self-host/overview), or no backend in offline
-mode.
+c15t is our recommended choice for product teams that need native framework integration, control of the consent interface and ownership of the backend. You can review consent behaviour with the application that depends on it.
 
-| Capability | c15t v3 |
-| --- | --- |
-| License | Apache-2.0, every published package |
-| Framework support | Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, a script tag for plain HTML, and a headless JavaScript runtime |
-| Consent records | Stored by Inth or by `@c15t/backend` on PostgreSQL, MySQL or SQLite |
-| Policies | Region-based policy rules, with presets for Europe, US states, California, Québec, Canada and more |
-| Vendor loading | Consent-aware loaders in `@c15t/integrations`, a network blocker, and gated embeds |
-| Google Consent Mode v2 | Through the [Google tag](/docs/integrations/google-tag) and [Tag Manager](/docs/integrations/google-tag-manager) integrations |
-| IAB TCF | TCF 2.4 through `@c15t/iab` |
-| Presentation | Stock components, theme tokens, component slots, or [headless hooks](/docs/customization/overview) |
+The strongest reason to choose c15t is this combination of control and integration. Other tools also have APIs, custom styles, service controls or consent records.
 
-c15t does not scan your site for cookies or generate privacy policies.
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
-## Compare hosted consent platforms
+## See what c15t includes
 
-These products run the banner and its configuration as a hosted service. The
-second column summarizes what each vendor's own pages describe; follow the link
-for the sources and a test plan.
-
-| Product | What its published pages describe | Pricing basis they state |
+| Requirement | c15t status | What that means |
 | --- | --- | --- |
-| [Cookiebot](/docs/comparisons/cookiebot) | Hosted banner setup and cookie scanning | Plans by domain and subpage count |
-| [Didomi](/docs/comparisons/didomi) | A console for managing notices, plus SDKs and APIs | No public price on the linked page |
-| [iubenda](/docs/comparisons/iubenda) | Cookie consent, consent records and privacy and cookie policy generators | Included pageviews, with extra usage billed |
-| [OneTrust](/docs/comparisons/onetrust) | Scheduled scanning, cookie inventories and a consent transaction database | No public price on the linked page |
-| [Osano](/docs/comparisons/osano) | Cookie classification, blocking, customizable banners and reporting | How often `Osano.js` is served, estimated from daily active users |
-| [Usercentrics Web CMP](/docs/comparisons/usercentrics) | A hosted website consent product | Plans with monthly session and domain allowances |
+| Native web integration | **Included** | React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro and TanStack Start, plus browser and headless JavaScript options |
+| Your own consent interface | **Included** | Themes, component parts and headless APIs |
+| Consent-aware application features | **Included** | Read policy permissions, explicit choices and vendor state |
+| Category and vendor controls | **Included with configuration** | Apply rules to registered scripts, requests and embeds |
+| Server-resolved consent | **Supported by framework** | Next.js offers streamed, awaited and browser paths |
+| Remote consent records | **Hosted by Inth** | Inth, the team behind c15t, runs the backend and stores consent records in a database. Self-hosting is optional |
+| Google Consent Mode | **Integration available** | Follow the Google tag or GTM guide. Inspect actual requests |
+| IAB Transparency and Consent Framework | **Add-on available** | TCF 2.4 through `@c15t/iab`. Configure the relevant policy |
+| Banner experiments | **Included with configuration** | Compare presentation and theme while policy and policy text stay fixed |
+| Legal-document versions and snapshots | **Backend helpers available** | Supply your legal text and build the acceptance flow |
+| Automatic website scans | **Not included in the packages** | Use a separate discovery and inventory process |
+| Generated privacy and cookie policies | **Not included** | Supply or get the legal documents separately |
+| Full privacy operations suite | **Not included** | Data-subject case management, enterprise data discovery and assessments are separate requirements |
 
-## Compare browser libraries
+See [framework setup](/docs/frameworks), [custom interfaces](/docs/frameworks/react/headless), [vendor controls](/docs/frameworks/react/vendor-consent), [banner experiments](/docs/guides/banner-experiments) and [backend features](/docs/self-host/overview).
 
-These are libraries you install in the page and configure in code.
+The release covered here is currently an alpha. Review the [upgrade guide](/docs/upgrade-v3) before you change a current installation.
 
-| Library | What its published pages describe | Consent records |
+## Compare c15t with code you build yourself
+
+[c15t vs building consent yourself](/docs/comparisons/build-your-own) compares the full implementation. It also covers AI-assisted code.
+
+Choose c15t to reuse the consent engine, framework components and backend while you keep control of the interface. The guide covers what your team still owns and when custom code can make sense.
+
+## Compare c15t with consent platforms
+
+Choose c15t when application integration and source ownership drive the decision. Check the separate operational services that you would still need.
+
+| Provider | Why choose c15t | What the other provider also offers |
 | --- | --- | --- |
-| [CookieConsent v3](/docs/comparisons/cookieconsent-v3) | Categories and a preference modal, with setup for HTML, React, Vue and Angular | You send them to your own backend from its callbacks |
-| [Klaro](/docs/comparisons/klaro) | Service configuration and annotated script tags; a hosted version also exists | Not described in the linked setup guide |
-| [react-cookie-consent](/docs/comparisons/react-cookie-consent) | A React consent bar with accept and decline callbacks and cookie helpers | Not described |
-| [Silktide Consent Manager](/docs/comparisons/silktide-consent-manager) | A free banner with no domain or user limits, Google Consent Mode v2 and translations | Not described |
-| [tarteaucitron.js](/docs/comparisons/tarteaucitron) | A service panel that stores choices in a cookie, with built-in service definitions | A browser cookie |
+| [Cookiebot](/docs/comparisons/cookiebot) | Native components, explicit vendor rules and control over package releases | Hosted configuration, scans and automatic blocking |
+| [Usercentrics](/docs/comparisons/usercentrics) | Native application state and an engine and backend you can change | Website operations, records and plan-dependent experiments |
+| [OneTrust](/docs/comparisons/onetrust) | Own the implementation as well as the interface | A headless server API, scans and broader privacy operations |
+| [Didomi](/docs/comparisons/didomi) | Framework components and experiments in your product workflow | React integration, a notice console, APIs and A/B tests |
+| [iubenda](/docs/comparisons/iubenda) | Control the interface, vendor code and record backend | Generated legal documents, scans and managed consent |
+| [Osano](/docs/comparisons/osano) | Inspect and change consent behaviour in your application | Classification, managed records and contractual services |
+| [CookieYes](/docs/comparisons/cookieyes) | Broader native framework coverage, individual vendor choices and a supplied backend | Open-source React and Next.js SDKs, plus hosted scans and policies |
+| [Ketch](/docs/comparisons/ketch) | Own the web components, consent engine and backend | Identity services, mobile SDKs and connected privacy operations |
+| [Ethyca](/docs/comparisons/ethyca) | Native web consent components and a deployable backend | Fides source and wider Janus consent services. Check current deployment and support scope |
+| [Enzuzo](/docs/comparisons/enzuzo) | Build consent into the product and control its record backend | Hosted scans, legal policies, data-request tools and an Enterprise headless mode |
+| [Cookie Control](/docs/comparisons/cookie-control) | Native components, individual vendor choices and backend ownership | Premium scans and account configuration. v9 code configuration and APIs |
+| [Axeptio](/docs/comparisons/axeptio) | Own the application interface, consent engine and backend | Visual consent editor, service APIs, scans and A/B tests |
+| [Termly](/docs/comparisons/termly) | Native product controls and a backend you can run | Policy generators, scans, hosted records and consent APIs |
+| [CookieScript](/docs/comparisons/cookiescript) | Own the full engine and record service | Site scans, developer controls and a downloadable banner file |
+| [CookieHub](/docs/comparisons/cookiehub) | Broader native web integration and backend ownership | React components, APIs, automatic scans and managed logs |
+| [consentmanager](/docs/comparisons/consentmanager) | Native web components and an engine and backend you can change | Central operations, scans, custom interfaces, experiments and connected-TV tools |
+| [TrustArc](/docs/comparisons/trustarc) | Control consent inside the product and choose its backend | React integration, tracker discovery, reports and wider privacy operations |
+| [CookieFirst](/docs/comparisons/cookiefirst) | Broader native web integration and a deployable backend | React support, custom interfaces, service choices, scans and cookie-policy tools |
+| [Sourcepoint by Didomi](/docs/comparisons/sourcepoint) | Own consent inside a custom web application | Publisher campaigns, vendor controls, records and connected-TV support |
 
-## Test before you choose
+Each linked page cites the provider's own sources. A wider privacy suite can be the better fit when that wider scope is the main requirement.
 
-Run the same test on each tool you shortlist, with your own app and vendors:
+## Compare c15t with CMS plugins
 
-1. Load the site in a private window and check DevTools Network. Optional vendor
-   requests should not start before a choice.
-2. Reject, reload, and confirm the vendors stay blocked.
-3. Accept, then reopen preferences and withdraw. Check what the vendor still
-   does after withdrawal.
-4. Check where the record of each choice is stored and how you retrieve it.
+Choose c15t when your product needs consent beyond a CMS. These alternatives have useful native workflows for the platforms they support.
 
-For c15t, follow the [framework guide](/docs/frameworks) with
-[Inth](https://inth.com), then run the [verification guide](/docs/guides/verify-consent).
-Review legal requirements separately from these results.
+| Provider | Why choose c15t | What the other provider also offers |
+| --- | --- | --- |
+| [Complianz](/docs/comparisons/complianz) | Native web components and a backend independent of WordPress | WordPress scans, legal tools and records. A separate Shopify app |
+| [Borlabs Cookie](/docs/comparisons/borlabs-cookie) | Consent across custom web frameworks with a separate backend | Local visitor data, service controls, scans and consent logs within WordPress |
 
-Competitor sources were reviewed on 10 September 2026. Pricing changes; check
-each vendor's current terms for your region and traffic.
+Platform scope matters. A WordPress feature does not establish the same support in a Shopify app or a custom frontend.
+
+## Compare c15t with browser libraries
+
+Choose c15t when you want the framework integration and consent backend together. A smaller library can be enough when your team already owns the other infrastructure.
+
+| Library | Why choose c15t | What to recognise in the alternative |
+| --- | --- | --- |
+| [CookieConsent v3](/docs/comparisons/cookieconsent-v3) | Native state and a supplied record backend | Category and service controls. Callbacks can connect to your backend |
+| [Klaro](/docs/comparisons/klaro) | Dedicated framework adapters and a deployable backend | Open-source client. Hosted plans also have records and scans |
+| [react-cookie-consent](/docs/comparisons/react-cookie-consent) | Policy, preferences and vendor controls beyond a React bar | A small component for an application that supplies the rest |
+| [Silktide Consent Manager](/docs/comparisons/silktide-consent-manager) | Regional policy, framework state and remote records | A free browser manager with scripts and Consent Mode support |
+| [tarteaucitron.js](/docs/comparisons/tarteaucitron) | Connect service choices to application state and backend records | Individual service controls. Separate Pro automation |
+
+These tools are also open source. c15t's advantage is the combined application and backend workflow.
+
+## Know the limits before you choose
+
+c15t controls the integrations and targets that you configure. A visible banner does not automatically stop every script already on the site.
+
+Some integrations load before consent and receive denied signals. Withdrawal normally reloads the page. Optional cleanup cannot remove all vendor data.
+
+A local choice is not proof of a successful save.
+
+The software has no licence fee. Inth, infrastructure, implementation and any separate site scans or legal services still have costs.
+
+These comparisons cover the c15t packages and their documented backend options. The open-source software does not include every commercial Inth service.
+
+## Prove the advantage in your application
+
+Start with [Inth and a framework guide](/docs/frameworks). Use a test deployment and one owner for consent.
+
+1. Register one analytics vendor and one embed.
+2. Check their expected behaviour under the selected policy.
+3. Reject, reload, accept and later withdraw consent.
+4. Inspect actual requests, the interface and the saved record.
+5. Compare the code, infrastructure and operational work needed by each option.
+
+Follow the [verification guide](/docs/guides/verify-consent). For Next.js, also check the selected [rendering path](/docs/frameworks/next/rendering).
+
+Sources checked on 6 October 2026. Recommendations reflect application integration and ownership.
+
+We did not benchmark these products or assess legal compliance. We mark documented limits separately from features that the reviewed sources do not establish.

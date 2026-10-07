@@ -1,6 +1,8 @@
 import { normalizePolicyRule } from '@c15t/schema/types';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, expectTypeOf, it } from 'vitest';
 
+import { defineExperiment } from '../../index';
+import type { ExperimentArmName } from '../../index';
 import {
 	actionAppearanceFromTheme,
 	applyExperimentTheme,
@@ -27,6 +29,26 @@ const experiment: ConsentExperiment = {
 	},
 	id: 'banner-shape',
 };
+
+describe('ExperimentArmName', () => {
+	it('is control plus the arms defineExperiment inferred', () => {
+		const bannerLayout = defineExperiment({
+			arms: {
+				bar: { prompt: { variant: 'bar' } },
+				wall: { prompt: { variant: 'wall' } },
+			},
+			id: 'banner-layout',
+		});
+		type BannerArm = ExperimentArmName<typeof bannerLayout>;
+
+		expectTypeOf<BannerArm>().toEqualTypeOf<'control' | 'bar' | 'wall'>();
+		expectTypeOf<'grid'>().not.toExtend<BannerArm>();
+		// Every name is one `arm` accepts, so a typed flag value passes as is.
+		expectTypeOf<BannerArm>().toExtend<
+			NonNullable<(typeof bannerLayout)['arm']>
+		>();
+	});
+});
 
 describe('pickExperimentArm', () => {
 	it('can pick control, which is always an arm', () => {

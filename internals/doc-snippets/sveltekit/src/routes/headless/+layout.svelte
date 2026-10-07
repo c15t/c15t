@@ -1,0 +1,32 @@
+<!-- #region docs:headless-layout title="src/routes/+layout.svelte" -->
+<script lang="ts">
+	import {
+		ConsentDialog,
+		ConsentDialogLink,
+		ConsentManagerProvider,
+		hosted,
+	} from '@c15t/svelte';
+
+	import CustomConsentBanner from '#lib/custom-consent-banner.svelte';
+	import { scripts } from '#lib/scripts.js';
+
+	// The stock dialog still needs the stylesheet.
+	import '@c15t/svelte/styles.css';
+
+	let { children } = $props();
+
+	const mode = hosted({ url: 'https://your-project.inth.app' });
+</script>
+
+<ConsentManagerProvider
+	{mode}
+	{scripts}
+>
+	{@render children()}
+	<footer>
+		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
+	</footer>
+	<CustomConsentBanner />
+	<ConsentDialog />
+</ConsentManagerProvider>
+<!-- #endregion docs:headless-layout -->

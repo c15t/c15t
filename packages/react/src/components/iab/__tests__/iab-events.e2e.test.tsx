@@ -22,6 +22,13 @@ import {
 	waitForElement,
 } from './e2e-setup';
 
+const getDefined = <Value,>(value: Value): NonNullable<Value> => {
+	if (value === null || value === undefined) {
+		throw new Error('Expected value to be defined');
+	}
+	return value;
+};
+
 describe('IAB Events E2E Tests', () => {
 	beforeEach(() => {
 		clearConsentState();
@@ -29,19 +36,41 @@ describe('IAB Events E2E Tests', () => {
 	});
 
 	describe('Event Status Values', () => {
-		test('should emit "tcloaded" when CMP is ready', async () => {
+		test('should emit "tcloaded" with the saved TC string for a returning visitor', async () => {
+			const firstVisit = await render(
+				<ConsentProvider options={defaultProviderIABOptions}>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</ConsentProvider>
+			);
+			const acceptButton = await waitForElement(
+				'[data-testid="iab-consent-banner-accept-button"]'
+			);
+			await waitForCMP();
+			await userEvent.click(acceptButton);
+			await vi.waitFor(() =>
+				expect(window.localStorage.getItem('euconsent-v2')).toBeTruthy()
+			);
+			await firstVisit.unmount();
+			delete (window as { __tcfapi?: unknown }).__tcfapi;
+
 			render(
 				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
 					<IABConsentDialog />
 				</ConsentProvider>
 			);
-
-			await waitForElement('[data-testid="iab-consent-banner-card"]');
 			await waitForCMP();
 
-			const eventData = await addCMPEventListener();
-			expect(eventData.eventStatus).toBe('tcloaded');
+			const eventData = await vi.waitFor(async () => {
+				const data = await addCMPEventListener();
+				expect(data.eventStatus).toBe('tcloaded');
+				return data;
+			});
+			expect(eventData.tcString).toBeTruthy();
+			expect(
+				document.querySelector('[data-testid="iab-consent-banner-card"]')
+			).toBeNull();
 		});
 
 		test('should emit "cmpuishown" when UI is displayed', async () => {
@@ -75,8 +104,9 @@ describe('IAB Events E2E Tests', () => {
 				{ timeout: 2000 }
 			);
 
-			// Should have received tcloaded at minimum
-			expect(events).toContain('tcloaded');
+			// The banner is up, so the CMP must not report tcloaded.
+			expect(events).toContain('cmpuishown');
+			expect(events).not.toContain('tcloaded');
 		});
 
 		test('should emit "useractioncomplete" after user action', async () => {
@@ -119,6 +149,56 @@ describe('IAB Events E2E Tests', () => {
 			);
 
 			expect(events).toContain('useractioncomplete');
+		});
+	});
+
+	describe('First visit', () => {
+		test('ad tags see the banner, then the choice, and never tcloaded', async () => {
+			const events: { eventStatus?: string; tcString: string }[] = [];
+			await render(
+				<ConsentProvider options={defaultProviderIABOptions}>
+					<IABConsentBanner />
+					<IABConsentDialog />
+				</ConsentProvider>
+			);
+			// An ad tag registers as soon as `__tcfapi` exists, stub or not.
+			const tcfapi = await vi.waitFor(() =>
+				getDefined((window as { __tcfapi?: TcfApiTestFunction }).__tcfapi)
+			);
+			tcfapi(
+				'addEventListener',
+				2,
+				(data: { eventStatus?: string; tcString: string }) => {
+					events.push({
+						eventStatus: data.eventStatus,
+						tcString: data.tcString,
+					});
+				}
+			);
+			const acceptButton = await waitForElement(
+				'[data-testid="iab-consent-banner-accept-button"]'
+			);
+			await waitForCMP();
+			await vi.waitFor(() =>
+				expect(events.map((event) => event.eventStatus)).toContain('cmpuishown')
+			);
+
+			await userEvent.click(acceptButton);
+			await vi.waitFor(() =>
+				expect(events.map((event) => event.eventStatus)).toContain(
+					'useractioncomplete'
+				)
+			);
+
+			const statuses = events.map((event) => event.eventStatus);
+			expect(statuses).not.toContain('tcloaded');
+			expect(statuses.indexOf('cmpuishown')).toBeLessThan(
+				statuses.indexOf('useractioncomplete')
+			);
+			const completed = events.find(
+				(event) => event.eventStatus === 'useractioncomplete'
+			);
+			expect(completed?.tcString).toBeTruthy();
 		});
 	});
 

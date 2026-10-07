@@ -23,6 +23,7 @@ import type {
 	ConsentDialogHandle,
 } from './adapter';
 import { requireDialogSurface } from './adapter';
+import { closeDialogSurface } from './close-dialog';
 import { buildProviderProps } from './provider-props';
 
 /** The Svelte 5 dialog surface implementation. */
@@ -45,7 +46,7 @@ export const svelteDialogAdapter: ConsentDialogAdapter = {
 
 		return {
 			close() {
-				context.runtime.kernel.set.activeUI('none');
+				closeDialogSurface(context.runtime);
 			},
 			async destroy() {
 				await unmount(component, { outro: true });

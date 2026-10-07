@@ -19,4 +19,6 @@ packages:
 
 ### Stop the floating trigger's transitions when `disableAnimation` is set
 
-The floating dialog trigger and the trigger toolbar now carry `data-disable-animation` when the provider's `disableAnimation` is on, and the stylesheet then drops their hover and snap-to-corner transitions. They already stop under `prefers-reduced-motion: reduce`.
+With the provider's `disableAnimation` on, the floating dialog trigger and
+trigger toolbar carry `data-disable-animation` and drop their hover and
+snap-to-corner transitions.

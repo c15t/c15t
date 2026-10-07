@@ -82,7 +82,7 @@ other categories as they were. **Privacy settings** opens the dialog.
 
 | Method | Effect |
 | --- | --- |
-| `setActiveUI(surface)` | `'dialog'` opens preferences, `'banner'` shows the banner, `'none'` closes both. Records nothing. |
+| `setActiveUI(surface)` | `'dialog'` opens preferences, `'banner'` shows the banner, `'none'` closes the open surface. Closing preferences brings the banner back while the policy still owes a choice. Records nothing. |
 | `setConsent(category, value)` | Changes one category in the unsaved draft. `setSelectedConsent` is the same method. |
 | `setSelectedVendor(vendorId, granted)` | Changes one vendor in the draft. Ignored for undeclared or disabled vendors. |
 | `saveConsents('custom')` | Records the draft. Throws when the policy changed since the draft started; see [the draft](#work-with-the-draft). |
@@ -144,7 +144,7 @@ the manager for values that update.
 | `purposeConsents`, `vendorConsents`, `specialFeatureOptIns` | The visitor's TCF choices, staged or saved. |
 | `tcString` | The saved TC String, or `null`. |
 | `nonIABVendors` | Custom vendors outside the IAB list. |
-| `acceptAll()`, `rejectAll()` | Set every purpose and vendor. |
+| `acceptAll()`, `rejectAll()` | Accept All sets vendor and purpose consent for declared consent purposes, separate vendor and purpose legitimate-interest signals for declared legitimate-interest purposes, and opt-ins for declared special features. Reject All clears these signals. |
 | `setPurposeConsent(id, value)`, `setPurposeLegitimateInterest(id, value)` | Change one purpose. |
 | `setVendorConsent(id, value)`, `setVendorLegitimateInterest(id, value)` | Change one vendor. |
 | `setSpecialFeatureOptIn(id, value)` | Change one special feature. |

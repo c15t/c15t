@@ -30,6 +30,39 @@ beforeEach(() => {
 });
 
 describe('@c15t/nextjs/api', () => {
+	test('serves a deployment manifest and resolves each visitor without fetching policy', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const { GET, manifestGET } = createNextConsentRouteHandlers({
+			backendURL: 'https://consent.example.com',
+			fetch,
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		const manifest = await manifestGET(
+			new Request('https://app.example.com/api/c15t/manifest')
+		);
+		expect(await manifest.json()).toEqual(MANIFEST_FIXTURE);
+		await Promise.all(
+			[
+				{ country: 'DE', policyId: 'eu-opt-in', region: '' },
+				{ country: 'US', policyId: 'us-ca-opt-out', region: 'CA' },
+			].map(async ({ country, policyId, region }) => {
+				const response = await GET(
+					new Request('https://app.example.com/api/c15t/init', {
+						headers: {
+							'x-vercel-ip-country': country,
+							'x-vercel-ip-country-region': region,
+						},
+					})
+				);
+				expect(await response.json()).toMatchObject({
+					policyResolution: { policyId, status: 'matched' },
+				});
+			})
+		);
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	test('GET answers init and manifestGET the manifest, with the Data Cache hint', async () => {
 		const fetch = manifestFetch();
 		const { GET, manifestGET } = createNextConsentRouteHandlers({
@@ -109,8 +142,11 @@ describe('@c15t/nextjs/api', () => {
 
 	test('createManifestFetchInit defaults the Data Cache lifetime to 300 seconds', () => {
 		expect(createManifestFetchInit().next).toEqual({ revalidate: 300 });
+	});
+
+	test('false disables the Data Cache rather than caching indefinitely', () => {
 		expect(
 			createManifestFetchInit({ manifestRevalidateSeconds: false }).next
-		).toEqual({ revalidate: false });
+		).toEqual({ revalidate: 0 });
 	});
 });

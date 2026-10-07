@@ -159,7 +159,7 @@ describe('__tcfapi E2E Tests', () => {
 			expect(event1.listenerId).not.toBe(event2.listenerId);
 		});
 
-		test('should fire eventStatus="tcloaded" initially', async () => {
+		test('should fire eventStatus="cmpuishown" initially while the banner shows', async () => {
 			render(
 				<ConsentProvider options={defaultProviderIABOptions}>
 					<IABConsentBanner />
@@ -171,7 +171,7 @@ describe('__tcfapi E2E Tests', () => {
 			await waitForCMP();
 
 			const eventData = await addCMPEventListener();
-			expect(eventData.eventStatus).toBe('tcloaded');
+			expect(eventData.eventStatus).toBe('cmpuishown');
 		});
 	});
 

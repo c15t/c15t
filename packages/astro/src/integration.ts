@@ -84,8 +84,9 @@ const UI_ADAPTERS: Record<
 		adapterExport: string;
 		surfaceModule: string;
 		/**
-		 * The stylesheets the island's dialog needs beyond `styles.css`. The
-		 * client links them when the dialog opens.
+		 * The stylesheets the island's dialog needs beyond `styles.css`, which
+		 * already holds the dialog's rules. The client links them when the
+		 * dialog opens.
 		 */
 		dialogStyles: string[];
 	}
@@ -94,7 +95,7 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'reactDialogAdapter',
 		adapterModule: '@c15t/astro/ui/react',
 		astroIntegration: '@astrojs/react',
-		dialogStyles: ['@c15t/ui/styles/dialog.css'],
+		dialogStyles: [],
 		packages: ['@astrojs/react', '@c15t/react', 'react', 'react-dom'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.tsx',
 	},
@@ -104,10 +105,7 @@ const UI_ADAPTERS: Record<
 		astroIntegration: '@astrojs/svelte',
 		// The Svelte components read the `@c15t/ui/styles/primitives` class
 		// maps, whose rules live in their own stylesheet.
-		dialogStyles: [
-			'@c15t/ui/styles/dialog.css',
-			'@c15t/ui/styles/primitives.css',
-		],
+		dialogStyles: ['@c15t/ui/styles/primitives.css'],
 		packages: ['@astrojs/svelte', 'svelte'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.svelte',
 	},
@@ -115,7 +113,7 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'vueDialogAdapter',
 		adapterModule: '@c15t/astro/ui/vue',
 		astroIntegration: '@astrojs/vue',
-		dialogStyles: ['@c15t/ui/styles/dialog.css'],
+		dialogStyles: [],
 		packages: ['@astrojs/vue', '@c15t/vue', 'vue'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.vue',
 	},
@@ -276,19 +274,27 @@ interface VitePluginLike {
 interface VirtualOptionsPlugin extends VitePluginLike {
 	name: string;
 	resolveId: (id: string) => string | undefined;
-	load: (id: string) => string | undefined;
+	load: (id: string, options?: { ssr?: boolean }) => string | undefined;
 }
 
 const createVirtualOptionsPlugin = function createVirtualOptionsPlugin(
 	resolved: C15tResolvedOptions
 ): VirtualOptionsPlugin {
 	const serialized = JSON.stringify(resolved);
+	let clientOptions = resolved;
+	if (resolved.mode.type === 'manifest') {
+		const { manifest: _manifest, ...mode } = resolved.mode;
+		clientOptions = { ...resolved, mode };
+	}
+	const serializedClient = JSON.stringify(clientOptions);
 	return {
-		load(id: string) {
+		load(id, options) {
 			if (id !== RESOLVED_VIRTUAL_ID) {
 				return undefined;
 			}
-			return `export default ${serialized};`;
+			// The browser initializes through /init. Only server middleware
+			// and routes need policy packs and the translation catalogue.
+			return `export default ${options?.ssr ? serialized : serializedClient};`;
 		},
 		name: 'c15t:options',
 		resolveId(id: string) {
@@ -403,8 +409,8 @@ const buildBootScript = function buildBootScript(
 		);
 	}
 	// `?url` makes each stylesheet an emitted file and the import a string,
-	// so no dialog rule reaches the page until the client links it.
-	if (resolved.styles !== false) {
+	// so none of its rules reach the page until the client links it.
+	if (resolved.styles !== false && adapter.dialogStyles.length > 0) {
 		const names = adapter.dialogStyles.map((_, index) => `dialogStyle${index}`);
 		adapter.dialogStyles.forEach((specifier, index) => {
 			lines.push(
@@ -440,9 +446,9 @@ export const buildStylesImport = function buildStylesImport(
 	if (resolved.styles === false) {
 		return '';
 	}
-	// The dialog's stylesheets are not here: they would block every first
-	// paint for a surface most visitors never open. The boot script
-	// registers them and the client links them on the first open.
+	// `styles.css` holds the dialog's rules too. The primitive rules the
+	// Svelte dialog also needs are not here: the boot script registers them
+	// and the client links them on the first open.
 	const lines = [`import ${quote('@c15t/astro/styles.css')};`];
 	if (isIABConfigured(resolved.iab)) {
 		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
@@ -626,6 +632,23 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				updateConfig,
 			}) {
 				command = setupCommand;
+				if (
+					options.buildManifest &&
+					(command === 'build' || command === 'dev')
+				) {
+					if (resolved.mode.type !== 'manifest') {
+						throw new Error(
+							'@c15t/astro: buildManifest requires manifest mode.'
+						);
+					}
+					if (!resolved.mode.manifest) {
+						const { loadBuildManifest } = await import('@c15t/core/build');
+						resolved.mode = {
+							...resolved.mode,
+							manifest: await loadBuildManifest(resolved.mode, '@c15t/astro'),
+						};
+					}
+				}
 				const resolveEntry = await createOwnEntryResolver();
 
 				// With Astro's own CSP on, allow the inline code the components

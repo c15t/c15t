@@ -1,8 +1,13 @@
 /**
- * Which stylesheet each component's rules go into. Names are the flat files
+ * Where each component's rules sit in `styles.css`. Names are the flat files
  * in `dist/styles/components` (`prompt` is the consent banner, `panel` the
  * consent dialog, `manager` the preference widget, `consent-gate` the
  * ConsentGate placeholder).
+ *
+ * Both groups go into `styles.css`, first-paint rules first. The order
+ * matters where a dialog rule and a first-paint rule match the same element
+ * with the same specificity: the dialog rule wins, as it did while it
+ * shipped in a stylesheet that loaded later.
  *
  * `generate-css-entrypoints.ts` fails the build when a component is in
  * neither list, so a new component needs a deliberate choice.
@@ -11,8 +16,7 @@
 /**
  * Surfaces a first paint can show: the banner, the dialog trigger and the
  * ConsentGate placeholder, plus the pieces they render (buttons, actions,
- * branding, legal links). Their rules go into the render-blocking
- * `styles.css`.
+ * branding, legal links).
  */
 export const FIRST_PAINT_COMPONENTS = [
 	'branding',
@@ -26,8 +30,7 @@ export const FIRST_PAINT_COMPONENTS = [
 
 /**
  * Rendered only inside the consent dialog or the preference widget. Their
- * rules go into `styles/dialog.css`, which the dialog's module imports so the
- * bundler ships it with the dialog chunk.
+ * rules follow the first-paint rules in `styles.css`.
  */
 export const DIALOG_COMPONENTS = [
 	'accordion',

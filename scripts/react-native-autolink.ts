@@ -51,7 +51,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const EXAMPLE_DIR = join(ROOT, 'examples', 'react-native-bare');
+const EXAMPLE_DIR = join(ROOT, 'internals', 'fixtures', 'react-native-bare');
 
 /** The package under check, packed and installed rather than read in place. */
 const PACKAGE_DIR = join(ROOT, 'packages', 'react-native');
@@ -60,7 +60,7 @@ const PACKAGE_DIR = join(ROOT, 'packages', 'react-native');
  * The Expo fixture. It links through `expo-modules-autolinking`, which is a second
  * implementation of the same question and reads the library config differently.
  */
-const EXPO_EXAMPLE_DIR = join(ROOT, 'examples', 'expo-dev');
+const EXPO_EXAMPLE_DIR = join(ROOT, 'internals', 'fixtures', 'expo-dev');
 
 const PACKAGE_NAME = '@c15t/react-native';
 

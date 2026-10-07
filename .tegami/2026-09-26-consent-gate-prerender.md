@@ -10,13 +10,8 @@ packages:
 
 ### Prerender pages that render `ConsentGate`
 
-With Next.js `cacheComponents: true`, `next build` failed on a page that
-rendered `ConsentGate` in its prerendered shell, because the gate called
-`Date.now()` during server rendering. The server render and hydration now
-evaluate the gate at the snapshot's own evaluation time. In the browser the
-gate still checks the current time, so an expired grant never shows the
-embed.
-
-The page needs no `Suspense` boundary around `ConsentGate`: a static page
-stays static, and its prerendered HTML contains the placeholder instead of
-an empty fallback. `useVendorAllowed` gets the same change.
+With Next.js `cacheComponents: true`, `next build` failed on pages that rendered
+`ConsentGate` in the prerendered shell, because the gate called `Date.now()` on
+the server. Server render and hydration use the snapshot's evaluation time, and
+the browser still checks the current time. No `Suspense` boundary is needed.
+`useVendorAllowed` gets the same fix.

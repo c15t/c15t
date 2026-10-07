@@ -131,7 +131,7 @@ group: reference
 <section id="page-actions">
   | Value | What a click does |
   | --- | --- |
-  | `accept` | Accepts every category the dialog offers, like the banner's accept button. Under an IAB policy it confirms through the CMP. |
+  | `accept` | Like the banner's accept button, allows every category the dialog offers without IAB. Under an IAB policy it confirms the vendors' declared processing through the CMP. Optional categories without declared consent purposes remain denied. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy). |
   | `reject` | Rejects every optional category the dialog offers. |
   | `customize` | Opens the preference dialog. Records nothing. |
   | `dismiss` | Dismisses a notice. This records an acknowledgement, not consent, and does nothing unless the policy shows a notice. |

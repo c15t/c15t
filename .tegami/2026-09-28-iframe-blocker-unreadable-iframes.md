@@ -10,6 +10,9 @@ packages:
 
 ### Keep blocking iframes past an unreadable iframe or an empty category
 
-The iframe blocker now skips an iframe the page can't read, not only an unreadable node that contains it. Before, one such iframe made `createIframeBlocker` throw on startup and stopped each later pass early, so other consent-gated iframes loaded. The on-demand watcher in `@c15t/react` had the same gap.
+The iframe blocker skips an iframe the page can't read. Before, one such
+iframe made `createIframeBlocker` throw on startup, and other gated iframes
+loaded. The on-demand watcher in `@c15t/react` had the same bug.
 
-An empty `data-category` is now treated like an unknown category: the iframe stays blocked and logs a console warning. Before, it counted as no category, so the iframe loaded without consent.
+An empty `data-category` keeps the iframe blocked and logs a warning. Before,
+the iframe loaded without consent.

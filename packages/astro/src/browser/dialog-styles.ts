@@ -1,9 +1,9 @@
 /**
- * The preference dialog's stylesheets.
+ * Stylesheets the preference dialog needs beyond `styles.css`.
  *
- * `styles.css` is the only render-blocking stylesheet, and it carries only
- * what a first paint can show. The dialog's rules ship separately and are
- * needed once someone opens it. The islands cannot bring them along
+ * `styles.css` carries the dialog's own rules. The Svelte dialog also renders
+ * the `@c15t/ui/styles/primitives` class maps, whose rules ship separately
+ * and are needed once someone opens it. The islands cannot bring them along
  * themselves: Astro's production build drops the CSS a page script reaches
  * through a dynamic import, so the Svelte and Vue islands arrive with none.
  * Where a chunk does keep its CSS, the `<link>` Vite adds for it lives in

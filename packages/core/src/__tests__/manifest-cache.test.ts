@@ -2390,6 +2390,31 @@ describe('withResolutionBudget', () => {
 			withResolutionBudget(Promise.resolve('ok'), undefined)
 		).resolves.toBe('ok');
 	});
+
+	test('reports a spent budget as 0 ms', async () => {
+		const never = new Promise<string>(() => {
+			// Never settles.
+		});
+		await expect(withResolutionBudget(never, -5)).rejects.toThrow(
+			'did not finish within 0 ms.'
+		);
+	});
+
+	test('the cache reports a spent budget as 0 ms', async () => {
+		await expect(
+			fetchCachedManifest({
+				cache: createManifestCache(),
+				fetch: vi.fn(
+					() =>
+						new Promise<Response>(() => {
+							// Never answers.
+						})
+				),
+				sourceURL: URL_UNDER_TEST,
+				timeoutMs: -5,
+			})
+		).rejects.toThrow('no manifest within 0 ms;');
+	});
 });
 
 describe('manifest fetch protection', () => {

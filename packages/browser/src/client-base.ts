@@ -34,6 +34,7 @@ import type { Theme } from '@c15t/ui/theme';
 
 import { createBrowserRuntime } from './create-runtime';
 import { createDeferred } from './deferred';
+import type { PublishDevToolsLauncher } from './devtools-mount';
 import { createGatedScriptActivator } from './gated-scripts';
 import { hasDecided } from './has-decided';
 import type {
@@ -83,6 +84,11 @@ export interface CreateConsentClientContext {
 	defaultGPP?: RuntimeGPPOptions | boolean;
 	/** Mounts the prebuilt UI. Absent in the headless build. */
 	mountUI?: ConsentUIMounter;
+	/**
+	 * The launcher slot the prebuilt UI's trigger reads. Only the
+	 * script-tag global uses it; see `C15tGlobalBase.publishDevToolsLauncher`.
+	 */
+	publishDevToolsLauncher?: PublishDevToolsLauncher;
 	/** Package name reported on `window.c15t`. */
 	pkg?: string;
 }

@@ -9,7 +9,6 @@
 		"start": "vite preview --host 127.0.0.1"
 	},
 	"dependencies": {
-		"@c15t/dev-tools": "workspace:*",
 		"@c15t/integrations": "workspace:*",
 		"@c15t/svelte": "workspace:*",
 		"c15t": "workspace:*",

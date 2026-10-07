@@ -8,7 +8,7 @@ group: frameworks
 
 Render one `ConsentDialog` in the layout that wraps every page:
 
-<include src="../../../shared/examples/astro-demo/layout.mdx" />
+<include src="../../../shared/examples/astro/layout.mdx" />
 
 `ConsentDialog` renders an empty host element on the server. The preference
 dialog mounts into the page the first time something opens it:
@@ -89,17 +89,20 @@ flight waits for the answer.
 
 ## Stylesheets
 
-The integration links the dialog's stylesheets the first time the dialog
-opens, and waits for them to load before the dialog paints. With
-`styles: false`, import `c15t/astro/dialog.css` yourself, and
-`c15t/astro/primitives.css` for the Svelte dialog. See
+The dialog's rules are in `c15t/astro/styles.css`, which the integration adds
+to every page. The Svelte dialog also needs the primitives stylesheet: the
+integration links it the first time the dialog opens and waits for it to load
+before the dialog paints. With `styles: false`, import
+`c15t/astro/styles.css` yourself, and `c15t/astro/primitives.css` for the
+Svelte dialog. See
 [load the stylesheet yourself](/docs/frameworks/astro/customize#load-the-stylesheet-yourself).
 
 ## Across `ClientRouter` navigation
 
 The dialog host is part of `<body>`, which `ClientRouter` replaces. When a
 visitor navigates with the dialog open, c15t mounts it again on the new page,
-so it stays open. The dialog stylesheets carry over to the new page too.
+so it stays open. A stylesheet c15t linked for the dialog carries over to the
+new page too.
 
 ## Accessibility
 

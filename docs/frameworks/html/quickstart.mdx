@@ -22,7 +22,7 @@ Paste this tag into the `<head>` of every page.
 Replace `https://your-project.inth.app` with the URL from your Inth project,
 and keep `/c15t.js` on the end.
 
-<include src="../../shared/examples/script-tag/script-tag.mdx" />
+<include src="../../shared/examples/html/script-tag.mdx" />
 
 Inth serves the hosted bundle with your project's backend URL already
 configured, so the tag needs no `data-backend-url`. `defer` lets the page keep
@@ -56,11 +56,12 @@ to `text/plain` and name its category in `data-c15t-category`. The browser
 ignores a `text/plain` script, so the vendor stays off until c15t sees
 permission for that category and runs the script.
 
-<include src="../../shared/examples/script-tag/vendor-scripts.mdx" />
+<include src="../../shared/examples/html/vendor-scripts.mdx" />
 
-Both forms work. The PostHog tag loads the vendor's snippet from a file on your
-site, and the X Pixel tag holds its snippet inline. Replace `YOUR_X_PIXEL_ID`
-with your pixel ID, and use the snippet from your PostHog project settings.
+The PostHog tag loads the vendor's snippet from a file on your site. Save the
+snippet from your PostHog project settings as that file. A vendor snippet you
+paste inline works the same way: keep it inside the tag and change the tag's
+`type` and category.
 
 Remove the original, active copy of each vendor tag, including copies a theme
 setting or another plugin adds. Use `measurement` for analytics and
@@ -75,7 +76,7 @@ Move an iframe's URL from `src` to `data-src` and add `data-category`. c15t
 sets `src` once the category is allowed and removes it again if the visitor
 withdraws permission.
 
-<include src="../../shared/examples/script-tag/embed.mdx" />
+<include src="../../shared/examples/html/embed.mdx" />
 
 Without a `src`, the iframe loads nothing. Show a placeholder next to it with
 CSS, such as `iframe:not([src]) { display: none; }` and a message that links to
@@ -88,7 +89,7 @@ Visitors need a way to change their choice after the banner closes. A link to
 `#c15t-preferences` opens the preference dialog, with no JavaScript on your
 page:
 
-<include src="../../shared/examples/script-tag/preferences-link.mdx" />
+<include src="../../shared/examples/html/preferences-link.mdx" />
 
 Put it in the footer of every page. A button with
 `data-c15t-action="customize"` does the same, and `data-trigger` on the script
@@ -101,12 +102,12 @@ and page hook.
 Open the site in a private window with the browser's developer tools open on
 the Network tab.
 
-1. Before you choose, filter for `posthog` and `ads-twitter`. There are no
-   requests, and the YouTube iframe has no `src`.
-2. Click **Reject All** and reload. The banner stays closed and the vendor
+1. Before you choose, filter for `posthog`. There are no requests, and the
+   YouTube iframe has no `src`.
+2. Click **Reject All** and reload. The banner stays closed and the PostHog
    requests stay absent.
-3. Open **Privacy settings**, turn on **Analytics** (the `measurement` category) only and save. PostHog's
-   `array.js` and the YouTube player load. X Pixel's `uwt.js` does not.
+3. Open **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog's
+   `array.js` and the YouTube player load.
 4. Open **Privacy settings** again and turn **Analytics** off. The page reloads,
    and PostHog and YouTube do not load again.
 

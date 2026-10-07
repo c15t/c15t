@@ -137,6 +137,28 @@ export const defineExperiment = function defineExperiment<Arm extends string>(
 	return experiment;
 };
 
+/**
+ * The arm names an experiment accepts: `control` plus each key of `arms`.
+ * Use it to type the flag value you pass as `arm`.
+ *
+ * @typeParam Experiment - The experiment's type, usually
+ * `typeof experiment` for one built with {@link defineExperiment}.
+ *
+ * @example
+ * ```ts
+ * const bannerShape = defineExperiment({
+ *   id: 'banner-shape',
+ *   arms: { wall: { prompt: { variant: 'wall' } } },
+ * });
+ *
+ * type BannerShapeArm = ExperimentArmName<typeof bannerShape>;
+ * // 'control' | 'wall'
+ * ```
+ */
+export type ExperimentArmName<
+	Experiment extends Pick<ConsentExperiment, 'arms'>,
+> = typeof CONTROL_ARM | Extract<keyof Experiment['arms'], string>;
+
 /** The arm names of an experiment, `control` first. */
 export const experimentArmNames = function experimentArmNames(
 	experiment: ConsentExperiment

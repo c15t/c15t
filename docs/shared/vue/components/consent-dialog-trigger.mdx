@@ -19,6 +19,10 @@ group: reference
   `triggerShowWhen: 'after-consent'`, it also stays hidden while the banner
   waits for an answer, and appears once the visitor saves a choice or
   dismisses a notice.
+
+  While `ConsentDevTools` is mounted, the trigger becomes a two-button
+  toolbar: the preferences button in the corner and a DevTools button beside
+  it that opens the DevTools panel next to the toolbar.
 </section>
 
 <section id="options">
@@ -47,6 +51,8 @@ group: reference
   `text`. Setting `components.trigger.text`, even to `{}`, shows
   `triggerAriaLabel` as visible text next to the icon. The button carries
   `data-size` and, while dragged, `data-dragging`.
+  The toolbar shown while `ConsentDevTools` is mounted takes `toolbar`,
+  `toolbarItem` and `toolbarIcon` instead.
 </section>
 
 <section id="verify">

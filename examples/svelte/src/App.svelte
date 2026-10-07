@@ -9,25 +9,19 @@
 	} from '@c15t/svelte';
 
 	import '@c15t/svelte/styles.css';
-	import ExamplePage from './ExamplePage.svelte';
 	import { scripts } from './scripts';
-	// #hide docs
-	import { testBackend } from './test-backend';
-	// #endhide docs
 
-	const mode = hosted({
-		url: 'https://your-project.inth.app',
-		// #hide docs
-		...testBackend('url'),
-		// #endhide docs
-	});
+	const mode = hosted({ url: 'https://your-project.inth.app' });
 </script>
 
 <ConsentManagerProvider
 	{mode}
 	{scripts}
 >
-	<ExamplePage />
+	<main>
+		<h1>c15t + Svelte</h1>
+		<p>Your app goes here.</p>
+	</main>
 	<footer>
 		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 	</footer>

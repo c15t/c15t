@@ -19,6 +19,12 @@ import {
 import { replaceBenchmarkFixtures } from './benchmark-overlay';
 import { createBenchmarkPlan } from './benchmark-plan';
 import { resolveBenchmarkRevisions } from './benchmark-revisions';
+import {
+	iterationsPerRound,
+	poolRoundDirectories,
+	roundOrder,
+} from './benchmark-rounds';
+import type { BenchmarkArm } from './benchmark-rounds';
 import { runCommand } from './browser-process';
 import { installBrowsers } from './install-browsers';
 
@@ -49,22 +55,38 @@ const base = join(directory, 'base');
 const report = resolve('.ci-reports', mode);
 rmSync(report, { force: true, recursive: true });
 mkdirSync(report, { recursive: true });
+// Measuring all of base and then all of head let a runner that slowed down
+// or sped up mid-job fail the gate on a docs-only change. Alternating rounds
+// spread that drift over both arms, and their samples are pooled before the
+// comparison. Bundle sizes do not drift, so one pass is enough.
+const rounds = mode === 'bundle' ? 1 : 3;
+const iterations = iterationsPerRound(mode === 'quick' ? 15 : 30, rounds);
 const env = {
 	...process.env,
 	BENCHMARK_BASE_SHA: baseSha,
-	BENCH_ITERATIONS: mode === 'quick' ? '15' : '30',
+	BENCH_ITERATIONS: iterations,
 	BENCH_WARMUP_ITERATIONS: '3',
 	[BENCH_BACKEND_LATENCY_ENV]: `${backendLatencyMs}`,
-	C15T_BENCH_ITERATIONS: mode === 'quick' ? '15' : '30',
+	C15T_BENCH_ITERATIONS: iterations,
 	C15T_BENCH_WARMUP_ITERATIONS: '3',
-	// Microsecond operations need enough iterations for JIT warmup and sampling.
+	// Microsecond operations need enough iterations per process for JIT
+	// warmup and sampling: a third as many raises their medians, and some
+	// sit close to absolute allowances. Every round runs the full count.
 	C15T_CORE_BENCH_ITERATIONS: '5000',
 	C15T_CORE_BENCH_WARMUP_ITERATIONS: '1000',
 };
+// Kept in the report, so a failed later round still uploads the earlier ones.
+const roundDirectory = (round: number, arm: BenchmarkArm) =>
+	join(report, 'rounds', String(round + 1), arm);
 
-const measure = async function measure(cwd: string, sha: string, arm: string) {
+const measure = async function measure(
+	cwd: string,
+	sha: string,
+	arm: BenchmarkArm,
+	round: number
+) {
 	process.stdout.write(
-		`Measuring ${arm} ${sha} with the ${mode} suite at ${backendLatencyMs} ms backend latency.\n`
+		`Measuring ${arm} ${sha} (round ${round + 1} of ${rounds}) with the ${mode} suite at ${backendLatencyMs} ms backend latency.\n`
 	);
 	rmSync(join(cwd, '.benchmarks/head'), { force: true, recursive: true });
 	await runCommand(
@@ -79,8 +101,14 @@ const measure = async function measure(cwd: string, sha: string, arm: string) {
 		],
 		{ cwd, env: { ...env, GITHUB_SHA: sha } }
 	);
-	cpSync(join(cwd, '.benchmarks/head'), join(report, arm), { recursive: true });
+	cpSync(join(cwd, '.benchmarks/head'), roundDirectory(round, arm), {
+		recursive: true,
+	});
 };
+const revisions = {
+	base: { cwd: base, sha: baseSha },
+	head: { cwd: root, sha: headSha },
+} as const;
 
 try {
 	execFileSync('git', ['worktree', 'add', '--detach', base, baseSha], {
@@ -112,6 +140,7 @@ try {
 							'benchmarks',
 							'scripts/benchmark-run.ts',
 							'scripts/benchmark-plan.ts',
+							'scripts/benchmark-rounds.ts',
 						],
 						{ encoding: 'utf8' }
 					).length > 0,
@@ -119,13 +148,24 @@ try {
 				headSha,
 				mode,
 				packages,
+				rounds,
 			},
 			null,
 			2
 		)
 	);
-	await measure(base, baseSha, 'base');
-	await measure(root, headSha, 'head');
+	for (let round = 0; round < rounds; round += 1) {
+		for (const arm of roundOrder(round)) {
+			// oxlint-disable-next-line no-await-in-loop -- Rounds must not overlap on one runner.
+			await measure(revisions[arm].cwd, revisions[arm].sha, arm, round);
+		}
+	}
+	for (const arm of ['base', 'head'] as const) {
+		poolRoundDirectories(
+			Array.from({ length: rounds }, (_, round) => roundDirectory(round, arm)),
+			join(report, arm)
+		);
+	}
 	await runCommand(['bunx', 'tsx', 'benchmarks/shared/run-compare.ts'], {
 		cwd: root,
 		env: {

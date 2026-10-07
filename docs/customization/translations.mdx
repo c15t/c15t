@@ -30,6 +30,37 @@ site-wide change. Astro's serializable integration options have their own
 types, so verify that shape before copying a React object. The Vue plugin and
 Nuxt module have no `i18n` option; their copy comes from the backend.
 
+## Load only the languages you use
+
+c15t bundles English. Every other language it ships is a separate entry point
+in `@c15t/translations`, named by its language code. Importing one registers
+c15t's built-in copy for that language. Offline mode can then switch to it,
+and your messages that repeat its wording don't hide backend edits. Import
+them in the file that configures the provider, so they load in the browser:
+
+{/* example: fragment */}
+
+```ts
+import '@c15t/translations/de';
+import '@c15t/translations/fr';
+```
+
+Each entry also exports that copy as `translations`, if you want to read a
+string or build your messages from it:
+
+{/* example: fragment */}
+
+```ts
+import { translations as de } from '@c15t/translations/de';
+```
+
+The entries are `bg`, `cs`, `cy`, `da`, `de`, `el`, `es`, `et`, `fi`, `fr`,
+`ga`, `gu`, `he`, `hi`, `hr`, `hu`, `id`, `is`, `it`, `lb`, `lt`, `lv`, `mt`,
+`nb`, `nl`, `nn`, `pl`, `pt`, `rm`, `ro`, `sk`, `sl`, `sv` and `zh`.
+`@c15t/translations/all` still loads every language at once. The `c15t`
+package doesn't re-export these entries, so add `@c15t/translations` to your
+dependencies.
+
 ## Combine messages with backend copy
 
 With a backend or a manifest, the copy it sends for the visitor's language is
@@ -40,11 +71,11 @@ its primary language, so `de-AT` uses your `de` messages when there is no
 `de-AT` entry. Messages for other languages are not applied.
 
 A key only overrides the backend when your text differs from c15t's built-in
-wording for that language. So passing the stock bundles from
-`@c15t/translations/all` to enable languages keeps backend edits visible,
-while a key you actually reworded stays pinned in code. Core bundles only
-English; for other languages, import `@c15t/translations/all` so c15t can
-recognize its stock wording.
+wording for that language. So passing a stock bundle to enable a language
+keeps backend edits visible, while a key you actually reworded stays pinned
+in code. c15t only recognizes the built-in wording of English and of the
+languages you [import](#load-only-the-languages-you-use), such as
+`@c15t/translations/de` or `@c15t/translations/all`.
 
 ## Write labels that describe the action
 

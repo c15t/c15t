@@ -80,7 +80,7 @@ jobs:
         with:
           built: ${{ inputs.built || false }}
           browsers: 'true'
-      - name: Measure base and head in sequence
+      - name: Measure base and head in alternating rounds
         env:
           BENCHMARK_BASE_REF: ${{ needs.plan.outputs.base_sha }}
           BENCHMARK_MODE: ${{ inputs.mode || 'full' }}

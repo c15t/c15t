@@ -73,7 +73,7 @@ BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts full
 
 The runner creates an isolated checkout at the exact base revision and installs
 its frozen lockfile. It overlays the current benchmark fixtures onto that base,
-then measures base and head sequentially. Product source and dependency
+then measures base and head in alternating rounds. Product source and dependency
 versions stay specific to each revision. Fixture scripts and exports can change,
 but dependency declarations stay at the base revision. A fixture requiring a
 dependency absent from the base manifest fails before measurement. `.ci-reports/<mode>/provenance.json`
@@ -82,8 +82,13 @@ sit alongside it. A failed measurement cannot reuse a previous report.
 
 CI runs one benchmark package per runner: two parallel jobs for `quick` and
 eight for `full`. A planning job resolves both revisions to commit IDs before
-starting the matrix. Each runner measures its base and head sequentially with
-`--concurrency=1`, so timing loops do not compete for CPU. Local commands still
+starting the matrix. Each runner measures base and head with `--concurrency=1`,
+so timing loops do not compete for CPU. Runtime modes split the iterations into
+three rounds that alternate base-head, head-base, base-head, then pool each
+scenario's samples across rounds before comparing. A runner that slows down or
+speeds up mid-job then shifts both arms instead of whichever arm ran second;
+measuring all of base and then all of head failed the gate on docs-only pushes.
+`bundle` sizes do not drift and run once. Local commands still
 run the whole profile sequentially unless `BENCHMARK_PACKAGE` selects one
 package, for example:
 
@@ -93,11 +98,13 @@ BENCHMARK_PACKAGE=@c15t/react-browser-bench bun scripts/benchmark-run.ts full
 
 Unknown packages and packages outside the selected profile fail before any
 measurement. Each job enforces every expected result and budget for its package
-and uploads `runtime-benchmarks-<id>` with base, head, comparison and
-provenance files. The matrix `id` is the package name with `@c15t/` removed,
+and uploads `runtime-benchmarks-<id>` with pooled base and head results, each
+round's raw results under `rounds/`, the comparison and provenance files. The matrix `id` is the package name with `@c15t/` removed,
 for example `runtime-benchmarks-react-browser-bench` for
 `@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
-Sample counts, warmups and budget thresholds are unchanged. Browser benches
+Rounds split browser and script-lifecycle iterations, so pooled sample counts
+match a single pass. Core microbenchmarks run their full 5,000 iterations every
+round, and warmups repeat every round. Budget thresholds are unchanged. Browser benches
 run against the 200 ms backend described under the environment knobs below.
 
 `bundle` measures real Next route assets, publish tarballs and consumer import
@@ -105,6 +112,15 @@ entries. Entry reports separate initial and deferred JavaScript with gzip and
 Brotli sizes. Route reports also measure CSS. The ordinary React entry checks
 that IAB, devtools and all locales have not entered its module graph. Missing
 or empty assets fail the run.
+
+The Next.js tarball normally allows at most 15 KiB and 10% growth. Restoring
+dialog rules in the app-imported stylesheet in #1378 added 4,487 packed bytes.
+The percentage check allows those bytes only when the measured baseline's
+`dist/styles.tw3.css` lacks the dialog visibility rules and the head includes them.
+Both arms record `metadata.nextjsIncludesDialogRules` from the packed file.
+A missing stylesheet or metadata grants no allowance. The 15 KiB limit stays
+in force, and baselines that already include the rules use the normal 10% cap.
+Comparison reports retain the measured sizes and name any applied allowance.
 
 `quick` covers core operations, policy resolution and script lifecycle with
 15 browser samples after 3 warmups. Engine operations use 5,000 samples after

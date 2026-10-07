@@ -16,6 +16,7 @@ import {
 } from './auto-init';
 import type { CreateConsentClientContext } from './client-base';
 import { createDeferred } from './deferred';
+import type { PublishDevToolsLauncher } from './devtools-mount';
 import type {
 	ConsentClient,
 	ConsentClientEventMap,
@@ -111,6 +112,16 @@ export interface C15tGlobalBase {
 	push: (...calls: unknown[]) => number;
 	/** The DevTools panel, once `c15t.devtools.js` has mounted it. */
 	devtools: DevToolsInstance | null;
+	/**
+	 * Offer a DevTools panel's launcher to the stock trigger, which then
+	 * shows a DevTools button and docks the panel. `c15t.devtools.js` is a
+	 * separate bundle with its own copy of the launcher slot, so it
+	 * publishes through this one, the copy the trigger reads. Absent from
+	 * builds without the stock UI.
+	 *
+	 * @internal
+	 */
+	publishDevToolsLauncher?: PublishDevToolsLauncher;
 	/** Resolves once the policy is resolved. Safe to call before `init()`. */
 	ready: () => Promise<ConsentSnapshot>;
 	/** Listen for a client event. Safe to call before `init()`. */
@@ -528,6 +539,7 @@ export const createGlobalWith = function createGlobalWith(
 		provideGPP(module) {
 			gppModule.resolve(module);
 		},
+		publishDevToolsLauncher: context.publishDevToolsLauncher,
 		push(...calls) {
 			replayQueue(api, calls);
 			return calls.length;

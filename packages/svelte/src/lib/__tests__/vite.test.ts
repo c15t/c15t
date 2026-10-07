@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { MODULE_PRELOAD_PLACEHOLDERS } from '../kit/module-preload';
-import { c15tPreload, resolveChunkHrefs } from '../vite';
+import { c15tPreload, consentManifest, resolveChunkHrefs } from '../vite';
 
 const CORE = '/app/node_modules/@c15t/core/dist/modules';
 
@@ -41,6 +41,44 @@ afterEach(async () => {
 		directories
 			.splice(0)
 			.map((directory) => rm(directory, { force: true, recursive: true }))
+	);
+});
+
+describe('Svelte manifest generation', () => {
+	test.each([
+		{ expectedImport: '@c15t/svelte/vite', settings: {} },
+		{
+			expectedImport: '@c15t/svelte/vite',
+			settings: { importSource: undefined },
+		},
+		{
+			expectedImport: '@c15t/core/build',
+			settings: { importSource: '@c15t/core/build' },
+		},
+	])(
+		'generates an available type import with settings $settings',
+		async ({ expectedImport, settings }) => {
+			const root = await mkdtemp(path.join(tmpdir(), 'c15t-svelte-manifest-'));
+			directories.push(root);
+			await consentManifest({
+				...settings,
+				backendURL: 'https://consent.example.com',
+				fetch: () =>
+					Promise.resolve(
+						Response.json({
+							branding: 'c15t',
+							revision: 'svelte-build',
+							schemaVersion: 2,
+						})
+					),
+			}).configResolved({ root });
+			const source = await readFile(
+				path.join(root, 'src/c15t-manifest.ts'),
+				'utf8'
+			);
+			expect(source).toContain(`from '${expectedImport}'`);
+			expect(source).toContain('satisfies ConsentManifest');
+		}
 	);
 });
 

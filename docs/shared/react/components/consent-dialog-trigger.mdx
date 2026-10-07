@@ -30,4 +30,9 @@ group: reference
   | `size` | `'sm' \| 'md' \| 'lg'` | `'md'` | Size of each action. |
   | `ariaLabel` | `string` | `'Privacy controls'` | Accessible name for the toolbar group. |
   | `noStyle` | `boolean` | `false` | Remove the default styling. |
+
+  While `<ConsentDevTools>` is mounted, the toolbar adds a DevTools button at
+  the end farthest from its corner and opens the DevTools panel beside itself.
+  The ready-made `ConsentDialogTrigger` switches to this toolbar layout for as
+  long as DevTools is mounted.
 </section>

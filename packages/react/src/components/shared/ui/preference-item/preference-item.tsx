@@ -9,8 +9,6 @@ import {
 	togglePreferenceItemValue,
 } from '@c15t/ui/primitives/preference-item';
 import styles from '@c15t/ui/styles/components/preference-item';
-// These classes' rules are in the dialog stylesheet, not styles.css.
-import '@c15t/ui/styles/dialog';
 import {
 	createContext,
 	forwardRef as createForwardRef,

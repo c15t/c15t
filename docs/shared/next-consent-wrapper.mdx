@@ -6,21 +6,19 @@ group: frameworks
 
 ## Register scripts in a client wrapper
 
-The [runnable Next.js example](/docs/examples) uses PostHog for measurement and
-X Pixel for marketing. Replace the placeholder IDs `phc_your_project_key` and
-`your-pixel-id` with your own. Remove a vendor's entry to leave it out, or
-replace its helper with the [integration](/docs/integrations/overview) your
-application uses. Include the
-measurement and marketing categories in your policy for these two vendors.
+The [runnable Next.js example](/docs/examples) loads PostHog under the
+measurement category. Replace the placeholder `phc_your_project_key` with your
+project key, or replace the helper with the
+[integration](/docs/integrations/overview) your application uses. Include the
+measurement category in your policy.
 
 Create `lib/scripts.ts` with the example's script configuration:
 
 <include src="./examples/nextjs/scripts.mdx" />
 
 PostHog waits for measurement consent here. `cookieless_mode: 'never'` disables
-cookieless capture after rejection. X Pixel waits for marketing consent. Remove
-any existing loader for these vendors, including `next/script` and tag-manager
-entries, so each integration loads once.
+cookieless capture after rejection. Remove any existing PostHog loader,
+including `next/script` and tag-manager entries, so the integration loads once.
 
 Create this client wrapper. It owns everything that has to run in the browser:
 the consent config, the scripts, the banner, the dialog and a persistent

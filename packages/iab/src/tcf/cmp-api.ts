@@ -343,6 +343,28 @@ export const createCMPApi = function createCMPApi(
 	};
 
 	/**
+	 * Whether vendors can act on the published state without the visitor:
+	 * a TC string is available, or GDPR does not apply.
+	 */
+	const hasSignal = (): boolean => tcString !== '' || gdprApplies === false;
+
+	/**
+	 * The status a new listener is told. TCF CMP API v2: `tcloaded` means a
+	 * valid TC string is available and no UI will be shown, and the CMP must
+	 * not send it when it shows the UI instead. While the UI is up the
+	 * status is `cmpuishown`. Without either there is no status yet.
+	 */
+	const currentStatus = (): EventStatus | undefined => {
+		if (cmpStatus !== 'loaded') {
+			return undefined;
+		}
+		if (displayStatus === 'visible') {
+			return 'cmpuishown';
+		}
+		return hasSignal() ? 'tcloaded' : undefined;
+	};
+
+	/**
 	 * Handles the 'addEventListener' command.
 	 */
 	const handleAddEventListener = async function handleAddEventListener(
@@ -353,10 +375,7 @@ export const createCMPApi = function createCMPApi(
 		eventListeners.set(listenerId, handler);
 
 		// Registration always returns its ID, including while the list is loading.
-		const tcData = await buildTCData(
-			cmpStatus === 'loaded' ? 'tcloaded' : undefined,
-			listenerId
-		);
+		const tcData = await buildTCData(currentStatus(), listenerId);
 		handler(tcData, true);
 	};
 
@@ -376,7 +395,7 @@ export const createCMPApi = function createCMPApi(
 	 * Notifies all event listeners of a state change.
 	 */
 	const notifyEventListeners = async function notifyEventListeners(
-		eventStatus: EventStatus
+		eventStatus: EventStatus | undefined
 	): Promise<void> {
 		await forEachSequential(eventListeners, {
 			run: async ([listenerId, listener]) => {
@@ -517,6 +536,9 @@ export const createCMPApi = function createCMPApi(
 			consentData?: TCFConsentData,
 			applies?: boolean
 		) => {
+			const changed =
+				newTcString !== tcString ||
+				(applies !== undefined && applies !== gdprApplies);
 			gdprApplies = applies ?? gdprApplies;
 			tcString = newTcString;
 			// Keep a private copy: a caller changing its object in place must
@@ -525,9 +547,21 @@ export const createCMPApi = function createCMPApi(
 				newTcString && consentData ? copyConsentData(consentData) : null;
 			// Invalidate cache
 			cachedTCData = null;
-			if (cmpStatus === 'loaded') {
-				notifyEventListeners(consentData ? 'useractioncomplete' : 'tcloaded');
+			if (cmpStatus !== 'loaded') {
+				return;
 			}
+			if (consentData) {
+				notifyEventListeners('useractioncomplete');
+				return;
+			}
+			// Authority can expire or change in another tab while the UI is up.
+			// Report those changes too, without calling them tcloaded.
+			if (!changed) {
+				return;
+			}
+			// A withdrawn string is no `tcloaded`: listeners still hear that
+			// it is gone, with no status.
+			notifyEventListeners(hasSignal() ? currentStatus() : undefined);
 		},
 
 		updateVendorList: (nextGvl) => {

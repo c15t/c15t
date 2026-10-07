@@ -1,14 +1,14 @@
 ---
 title: Quickstart
-description: Add c15t consent management to a Next.js App Router app with Inth, a cached policy manifest and consent-gated scripts, then check it works. Links to the Pages Router and static export guides.
+description: Add c15t consent management to a Next.js App Router app with Inth, a build-time policy manifest and consent-gated scripts, then check it works. Links to the Pages Router and static export guides.
 group: frameworks
 ---
 
 ## Before you start
 
 This quickstart sets up the App Router with a Next.js server, which is what
-most Next.js apps use. Your server caches the Inth project's public policy
-manifest and resolves consent for each visitor, so the browser gets the answer
+most Next.js apps use. Your build bundles the Inth project's public policy
+manifest and your server resolves consent for each visitor, so the browser gets the answer
 with the page and makes no `/init` request. Consent choices go to Inth.
 
 Using the Pages Router, `output: 'export'` or cached pages? Find your app in
@@ -19,6 +19,10 @@ site's origin to its trusted origins, and copy its backend URL. The URL is
 public configuration, not a secret. A
 [self-hosted backend](/docs/self-host/quickstart) uses the same files with its
 own URL.
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
@@ -42,15 +46,18 @@ Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
 
 <include src="../../shared/examples/nextjs/config.mdx" />
 
-Use your Inth project's backend URL, including any path prefix. `manifestURL`
-points at the route you add next.
+`NEXT_PUBLIC_C15T_BACKEND_URL` holds your project's backend URL, including
+any path prefix. Set it in `.env.local` and in your host's build settings, or
+replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables at
+build time, so the server and the browser use the same URL. `manifestURL` points at the route you add next.
 
 ## Serve the manifest route
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-The route fetches the public policy manifest from your backend and caches it,
-so warm requests make no policy request to Inth.
+The base route fetches and caches the public policy manifest. The build-time
+manifest step below gives this route a snapshot, so a fresh server can serve
+it without a policy request to Inth.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
@@ -67,17 +74,21 @@ hidden and optional categories stay denied. To send the banner in the first
 HTML instead, see
 [render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html).
 
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next.mdx" />
+
 ## Check it works
 
 Start the production build with `next build` and `next start`, then open the
 site in a fresh browser session with DevTools open.
 
 1. Under an opt-in policy, the banner appears and the Network panel shows no
-   PostHog or X Pixel request.
-2. Click **Reject All**, then reload. The banner stays closed and neither
-   vendor loads.
+   PostHog request.
+2. Click **Reject All**, then reload. The banner stays closed and PostHog does
+   not load.
 3. Open **Privacy settings** in the footer and turn on **Analytics** (the
-   `measurement` category) only. PostHog loads and X Pixel stays blocked.
+   `measurement` category). PostHog loads.
 4. Open **Privacy settings** again and turn **Analytics** off. The page
    reloads and PostHog does not load again.
 5. The browser makes no `/init` request, and choices post to
@@ -110,4 +121,5 @@ Not recommended for production environments.
 - [Scripts](/docs/frameworks/next/scripts): more vendors and how each loads
   and revokes.
 - [Customize](/docs/frameworks/next/customize): theme, layout and copy.
-- [Runnable Next.js example](/docs/examples): every file these guides show.
+- [Runnable Next.js example](/docs/examples): this quickstart as an app you
+  can run.

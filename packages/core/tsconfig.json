@@ -3,6 +3,7 @@
 	"compilerOptions": {
 		"rootDir": "src",
 		"lib": ["dom", "esnext"],
+		"types": ["node"],
 		"paths": {
 			"@c15t/schema": ["../schema/dist-types/index.d.ts"],
 			"@c15t/schema/*": ["../schema/dist-types/*"],

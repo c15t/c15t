@@ -99,11 +99,10 @@ describe('@c15t/ui/postcss-tailwind3', () => {
 		for (const file of [
 			'styles.css',
 			'iab/styles.css',
-			'styles/dialog.css',
 			'styles/primitives.css',
 		]) {
 			const from = join(TEST_DIR, '..', '..', 'dist', file);
-			// oxlint-disable-next-line no-await-in-loop -- Four small files.
+			// oxlint-disable-next-line no-await-in-loop -- Three small files.
 			const result = await postcss([tailwind3Plugin]).process(
 				readFileSync(from, 'utf8'),
 				{ from }

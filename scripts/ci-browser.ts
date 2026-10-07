@@ -92,8 +92,23 @@ try {
 			// oxlint-disable-next-line no-await-in-loop -- Isolate builds and browsers while retaining all failures.
 			await check(
 				`${target} example`,
-				['bun', 'run', '--cwd', 'examples/shared', 'test'],
+				['bun', 'run', '--cwd', 'internals/fixtures/acceptance', 'test'],
 				{ ...process.env, EXAMPLE_TARGET: target }
+			);
+		}
+	} else if (kind === 'starters') {
+		for (const target of targets) {
+			// oxlint-disable-next-line no-await-in-loop -- Isolate builds and browsers while retaining all failures.
+			await check(
+				`${target} starter`,
+				[
+					'bun',
+					'run',
+					'--cwd',
+					'internals/fixtures/acceptance',
+					'test:starters',
+				],
+				{ ...process.env, STARTER_TARGET: target }
 			);
 		}
 	} else if (kind === 'compat') {
@@ -112,7 +127,7 @@ try {
 	} else if (kind === 'journeys') {
 		await check(
 			'SSR consent journeys',
-			['bun', 'run', '--cwd', 'examples/shared', 'test:ssr'],
+			['bun', 'run', '--cwd', 'internals/fixtures/acceptance', 'test:ssr'],
 			{ ...process.env, C15T_E2E_APPS: targets.join(',') }
 		);
 	} else if (kind === 'styles') {

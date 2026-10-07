@@ -951,6 +951,39 @@ function positionClass(position: DevToolsPosition): string {
 	return `c15t-dev-tools--${position}`;
 }
 
+const POSITIONS = [
+	'bottom-right',
+	'bottom-left',
+	'top-right',
+	'top-left',
+] as const satisfies readonly DevToolsPosition[];
+
+/**
+ * Move the floating root to the configured corner, or to the host's dock.
+ * A docked root hides its launcher and offsets the panel past the host.
+ */
+// oxlint-disable-next-line func-style -- Named helpers aid stack traces.
+function applyPlacement(root: HTMLElement, state: DevToolsState): void {
+	const position = state.dock?.position ?? state.position;
+	for (const corner of POSITIONS) {
+		root.classList.toggle(positionClass(corner), corner === position);
+	}
+	root.classList.toggle('c15t-dev-tools--docked', state.dock !== null);
+	if (state.dock) {
+		root.style.setProperty(
+			'--c15t-dev-tools-dock-inline',
+			`${state.dock.inline}px`
+		);
+		root.style.setProperty(
+			'--c15t-dev-tools-dock-block',
+			`${state.dock.block}px`
+		);
+	} else {
+		root.style.removeProperty('--c15t-dev-tools-dock-inline');
+		root.style.removeProperty('--c15t-dev-tools-dock-block');
+	}
+}
+
 /**
  * Create a view for a kernel-bound state manager.
  * @param options - Kernel, scope getter, state manager, and optional container.
@@ -1230,6 +1263,9 @@ export function createDevToolsView(options: ViewOptions): DevToolsView {
 	// oxlint-disable-next-line func-style -- Hoisted render helpers share view state.
 	function render(): void {
 		const state = options.stateManager.getState();
+		if (!options.embedded) {
+			applyPlacement(root, state);
+		}
 		if (!state.isOpen && renderedState && !renderedState.isOpen) {
 			renderedState = state;
 			return;

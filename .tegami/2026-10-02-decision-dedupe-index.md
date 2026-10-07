@@ -10,6 +10,13 @@ packages:
 
 ### Save consent when the decision table's unique index differs
 
-On Postgres and SQLite, runtime policy decisions were inserted with `on conflict ("dedupeKey")`. A database whose `runtimePolicyDecision` table had no unique index on `dedupeKey` alone, such as one indexed on `(tenantId, dedupeKey)`, rejected that statement, so every consent save that recorded a decision failed with a 500. When the database has no index for that conflict target, decision inserts now retry with a conflict on any unique index treated as the duplicate. Databases with the expected index keep the targeted statement.
+On Postgres and SQLite, consent saves that recorded a policy decision failed
+with a 500 when `runtimePolicyDecision` had no unique index on `dedupeKey`
+alone, for example one on `(tenantId, dedupeKey)`. Those inserts fall back to
+any unique index.
 
-`createMigrator().plan()` and `apply()` report schema problems they do not repair in a new `drift` field, and `c15t self-host migrate --plan` prints them as warnings. The first check flags a decision table without a unique index on `dedupeKey` alone and gives the `create unique index` statement to add it. A composite index on `(tenantId, dedupeKey)` does not deduplicate single-tenant rows, because `tenantId` is null there.
+`createMigrator().plan()` and `apply()` report schema problems they don't repair
+in a new `drift` field, and `c15t self-host migrate --plan` prints them as
+warnings. The first check flags this missing index and gives the
+`create unique index` statement to add it. A `(tenantId, dedupeKey)` index does
+not deduplicate single-tenant rows, where `tenantId` is null.

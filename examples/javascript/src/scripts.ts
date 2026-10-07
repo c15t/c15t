@@ -1,6 +1,5 @@
 // #region docs:scripts
 import { posthog } from '@c15t/integrations/posthog';
-import { xPixel } from '@c15t/integrations/x-pixel';
 
 export const scripts = [
 	posthog({
@@ -8,6 +7,5 @@ export const scripts = [
 		initOptions: { cookieless_mode: 'never' },
 		loadMode: 'after-consent',
 	}),
-	xPixel({ pixelId: 'your-pixel-id' }),
 ];
 // #endregion docs:scripts

@@ -9,7 +9,7 @@ group: frameworks
 Put one `ConsentDialogTrigger` in your footer, so visitors can change their
 choice at any time. Its children are the label:
 
-<include src="../../../shared/examples/astro-demo/layout.mdx" />
+<include src="../../../shared/examples/astro/layout.mdx" />
 
 `ConsentDialogTrigger` renders a plain `<button>` or `<a>` with no styles of
 its own. It carries `data-c15t-action="customize"`, and the same shared
@@ -48,7 +48,7 @@ With an IAB TCF policy, set `kind="iab"`:
 {/* example: fragment */}
 
 ```astro title="src/layouts/iab.astro (partial)"
-<ConsentDialogTrigger kind="iab">Cookie preferences</ConsentDialogTrigger>
+<ConsentDialogTrigger kind="iab">Privacy settings</ConsentDialogTrigger>
 ```
 
 The page needs `IABConsentDialog` for `kind="iab"`, and `ConsentDialog` for

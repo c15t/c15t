@@ -11,6 +11,7 @@ export {
 	type DevToolsOptions,
 } from './core/devtools';
 export type {
+	DevToolsDock,
 	DevToolsEvent,
 	DevToolsPosition,
 	DevToolsState,

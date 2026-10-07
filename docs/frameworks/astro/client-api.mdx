@@ -16,7 +16,7 @@ before the runtime starts. The runtime starts from a module script, and module
 scripts run in document order, so a script of yours can run first. Try again
 on `DOMContentLoaded`, which fires after every module script has run:
 
-<include src="../../shared/examples/astro-demo/consent-video.mdx" />
+<include src="../../shared/examples/astro/consent-video.mdx" />
 
 The exports that take no client, such as `getConsent()` and `openDialog()`,
 look the client up for you and do nothing before it starts.
@@ -84,7 +84,7 @@ console warning that names the id.
 | Member | Does |
 | --- | --- |
 | `openDialog(kind?, tab?)` | Opens `'preferences'` (default) or `'iab'`. For `'iab'`, `tab` is `'purposes'` or `'vendors'` |
-| `client.closeDialog()` | Closes the open dialog |
+| `client.closeDialog()` | Closes the open dialog. The banner comes back while the policy still owes a choice |
 | `preloadDialog()` | Downloads the dialog without opening it |
 
 `openDialog()` downloads and mounts the dialog island the first time. While
@@ -108,7 +108,7 @@ document.querySelector('#privacy-link')?.addEventListener('click', () => {
 
 | Member | Does |
 | --- | --- |
-| `client.acceptAll()` | Saves a grant for every category the policy covers. Under an IAB policy it accepts every purpose and vendor through the CMP, so the TC string records it |
+| `client.acceptAll()` | Without IAB, saves a grant for every category in scope. Under an IAB policy, an optional category is granted only if a listed or custom vendor declares a consent purpose mapped to it after publisher restrictions apply. The CMP sets vendor and purpose consent for declared consent purposes, separate legitimate-interest signals for declared legitimate-interest purposes, and opt-ins for declared special features. The TC string records these signals. See [categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy) |
 | `client.rejectAll()` | Saves a rejection of everything except `necessary`, through the CMP under an IAB policy |
 | `client.save(consents)` | Saves the categories you pass, such as `{ measurement: true }`. A `vendors` map, such as `{ vendors: { posthog: false } }`, saves vendor switches too |
 | `client.identify(user)` | Links the consent record to your own user, as `{ externalId }` |
@@ -202,7 +202,7 @@ the new page contains it.
 the vendors you registered, and only while their consent allows it. Pass the
 same scripts and the page's `getConsent`:
 
-<include src="../../shared/examples/astro-demo/analytics-events.mdx" />
+<include src="../../shared/examples/astro/analytics-events.mdx" />
 
 Events sent while consent is denied are dropped, not queued. Keep search text
 and other personal data out of event properties unless you have set up their
@@ -226,7 +226,7 @@ test harness does. The script loader, the network blocker and a
 - Load a page with the video component above in a fresh private window. The
   placeholder shows, and DevTools Network has no request to
   `youtube-nocookie.com`.
-- Allow and deny measurement from **Cookie preferences**. The video appears
+- Allow and deny measurement from **Privacy settings**. The video appears
   after you allow it and disappears after you withdraw it, when the page
   reloads.
 - Navigate with `ClientRouter` and confirm your script still reacts. Scripts

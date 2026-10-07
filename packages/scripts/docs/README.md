@@ -86,7 +86,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Choose your setup](./concepts/choose-your-setup.md): Pick the c15t setup for your framework, rendering mode and hosting, and decide who runs the consent backend.
 - [Consent categories](./concepts/consent-categories.md): Assign scripts, embeds and features to c15t consent categories, and understand which categories the preference dialog shows.
 - [Consent state reference](./concepts/consent-state.md): How c15t saves choices, gates IAB vendors, hydrates server records and keeps browser tabs and storage in step.
-- [Data fetching](./concepts/data-fetching.md): How c15t gets policy data through a cached manifest, backend /init, the browser or offline rules, and where consent choices are saved.
+- [Data fetching](./concepts/data-fetching.md): Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or offline rules, and understand where consent choices are saved.
 - [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Policies](./concepts/policies.md): How policy models, prompts and scope decide what c15t asks visitors, where to change the rules, and why a banner may not appear.
 
@@ -104,7 +104,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Customize the interface](./customization/overview.md): Change c15t's consent banner and dialog one step at a time, from a prop to your own markup, and find where each step lives in your framework.
 - [Banner designs](./customization/recipes.md): Five consent banner designs built with c15t, from one prop to your own markup, with tested code for React, Vue, Svelte, Astro and plain HTML.
 - [Component parts](./customization/slots.md): Find every part of c15t's banner, dialog, widget, trigger and ConsentGate placeholder, its key in your framework's part API, and the data attributes to select on.
-- [Stylesheets and CSS layers](./customization/stylesheets.md): Load the right c15t stylesheet for your framework, see when the dialog's CSS loads, order c15t's cascade layer against your own, and run c15t without its styles.
+- [Stylesheets and CSS layers](./customization/stylesheets.md): Load the right c15t stylesheet for your framework, see which file holds the dialog's rules, order c15t's cascade layer against your own, and run c15t without its styles.
 - [Tailwind CSS](./customization/tailwind.md): Load c15t's styles next to Tailwind CSS 4 or 3 in every framework, put utilities on c15t component parts, and use Tailwind's dark variant with c15t.
 - [Theme tokens](./customization/tokens.md): Change c15t's colors, type, radius, spacing, shadows and motion with theme tokens, and see every --c15t-* variable with its default.
 - [Copy and translations](./customization/translations.md): Change consent wording through i18n and test the complete prompt and preferences flow.

@@ -6,28 +6,31 @@ group: frameworks
 
 ## Pick your rendering path
 
-Each path changes only `src/routes/__root.tsx`, and the same-origin path adds
-one server route. Pages, components and hooks stay the same.
+Rendering choices change `src/routes/__root.tsx`. The recommended build-time
+manifest also adds a Vite plugin; the same-origin path adds one server route. Pages, components and hooks stay the same.
 
 | Your app | Root loader | Banner in the first HTML | Setup |
 | --- | --- | --- | --- |
-| Start server with a reliable backend | Awaits consent | Yes | [Quickstart](/docs/frameworks/tanstack-start/quickstart) |
+| Start server, recommended | Awaits consent from a build-time manifest | Yes | [Quickstart](/docs/frameworks/tanstack-start/quickstart) |
+| Policy changes must apply without a rebuild | Awaits consent from a runtime manifest cache | Yes | [Runtime fetching](#await-consent-in-the-loader) |
 | Serverless or often cold-started server | Streams consent | No, it mounts after hydration | [Stream the page](#stream-the-page-while-consent-resolves) |
 | Browser must only talk to your origin | Awaits consent | Yes | [Same-origin route](#keep-consent-requests-on-your-origin) |
 | SPA mode, prerendered pages or a static host | None | No, the browser resolves consent | [No server render](#spa-mode-prerendered-pages-and-static-hosts) |
 
-The `examples/tanstack-start` app in the
-[c15t repository](https://github.com/c15t/c15t) builds and tests a root route
-for each path.
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/tanstack-start.mdx" />
 
 ## Await consent in the loader
 
 The [quickstart](/docs/frameworks/tanstack-start/quickstart) root loader awaits
 the consent server function. The server reads the visitor's cookie and location
-headers, resolves their policy from a cached manifest, and renders the banner
-into the HTML.
+headers, resolves their policy from the build-time snapshot, and renders the
+banner into the HTML. To apply policy updates without rebuilding, omit the
+build plugin and the handler's `manifest` option to use a runtime cache.
 
-The first request after a server starts has no cached manifest and waits for
+With runtime fetching, the first request after a server starts has no cached
+manifest and waits for
 the backend. The server function waits at most 500 ms, then renders without
 consent UI and lets the browser resolve consent. Later requests read the cached
 manifest and add little time. Change the wait with `timeoutMs` in
@@ -111,9 +114,10 @@ is safe: while TanStack Start prerenders (`TSS_PRERENDERING`),
 `resolveConsent` treats the render as shared. It reads no cookie or location
 header, returns no stored consent, clock or GPC signal, and makes no manifest
 request, so no build-time state is baked into the HTML. Pass `shared: true`
-to force the same for other HTML you cache for every visitor. The example
-prerenders every page with `tanstackStart({ prerender: { enabled: true } })`
-and serves the output as static files. SPA mode renders the same root route
+to force the same for other HTML you cache for every visitor. To prerender
+every page, configure the Vite plugin as
+`tanstackStart({ prerender: { enabled: true } })` and serve the output as
+static files. SPA mode renders the same root route
 into its shell.
 
 `c15t/tanstack-start/static` is a lower-level alternative that bundles the
@@ -126,7 +130,7 @@ rebuild. A manifest with neither rule resolves to a failed
 
 ## Run on hosts that stop work after the response
 
-The manifest cache refreshes in the background after its `s-maxage`. Some
+With runtime fetching, the manifest cache refreshes in the background after its `s-maxage`. Some
 serverless runtimes stop background work once the response is sent. Pass your
 platform's `waitUntil` as `onBackgroundRevalidate` to
 `createConsentStateHandler` and `createConsentServerRoute` so the refresh

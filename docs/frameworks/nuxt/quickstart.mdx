@@ -23,6 +23,10 @@ origins, and copy the backend URL. To run the service yourself, use a
 policies in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
+
 ## Install c15t
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
@@ -39,11 +43,16 @@ Replace `https://your-project.inth.app` with your project's backend URL,
 including any path prefix.
 
 `manifest: 'server'` adds two routes to your Nuxt server,
-`/api/c15t/manifest` and `/api/c15t/init`. The server downloads your project's
-public policy manifest, caches it, and resolves each visitor from the request's
-location and language headers. Consent saves still go to Inth.
+`/api/c15t/manifest` and `/api/c15t/init`. The server resolves each visitor from
+the request's location and language headers. The build-time step below
+supplies the public policy snapshot; without it, the routes fetch and cache
+the manifest at runtime. Consent saves still go to Inth.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling the
 backend on every request.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/nuxt.mdx" />
 
 ## Mount the consent UI
 
@@ -64,17 +73,15 @@ their own styles.
 
 ## Register consent-gated scripts
 
-Remove any existing PostHog or X Pixel snippet so each script loads once, and
-add measurement and marketing to your Inth policy.
+Remove any existing PostHog snippet so the script loads once, and add
+measurement to your Inth policy.
 
 Create `app/consent-scripts.ts`. PostHog waits for measurement permission and
-uses its EU region; change `region` to `'us'` for a US project. X Pixel waits
-for marketing permission.
+uses its EU region; change `region` to `'us'` for a US project.
 
 <include src="../../shared/examples/nuxt/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID.
+Replace `phc_your_project_key` with your PostHog project key.
 
 Register the scripts in `app/app.config.ts`:
 
@@ -94,6 +101,9 @@ withdraws permission.
 
 <include src="../../shared/examples/nuxt/embed.mdx" />
 
+Nuxt registers components in `app/components` for you. Render
+`<VideoEmbed />` in a page where the video belongs.
+
 ## Verify the setup
 
 Build and start the production server with `nuxt build` and
@@ -102,13 +112,11 @@ browser's DevTools on the Network tab, under a policy that asks for consent.
 
 1. Load a page and view its source. The banner markup,
    `data-testid="consent-banner-root"`, is in the HTML. The Network tab shows
-   no requests to `posthog.com`, `static.ads-twitter.com` or
-   `youtube-nocookie.com`.
+   no requests to `posthog.com` or `youtube-nocookie.com`.
 2. Click **Reject All**, then reload. The banner stays closed and the vendor
    requests stay absent.
-3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog's `array.js`
-   loads and the video appears. X Pixel stays blocked until you allow
-   Marketing.
+3. Click **Privacy settings**, turn on **Analytics** (the `measurement`
+   category) and save. PostHog's `array.js` loads and the video appears.
 4. Turn **Analytics** off and save. The page reloads, the video is gone and
    PostHog does not load again.
 

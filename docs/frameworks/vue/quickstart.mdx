@@ -18,6 +18,10 @@ origins, and copy the backend URL. To run the service yourself, use a
 policies in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
+
 ## Install c15t
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
@@ -41,23 +45,26 @@ including any path prefix.
 `c15t/vue` is the Nuxt module. Do not pass it to `app.use()`.
 
 The plugin creates the consent runtime for this app. When the app mounts, it
-reads the visitor's stored choice, asks Inth for their policy, and starts the
-script loader for the `scripts` you pass. The next section creates
+reads the visitor's stored choice, resolves their policy, and starts the
+script loader for the `scripts` you pass. The build-time step below replaces
+the default backend `/init` request with a bundled policy snapshot. The next section creates
 `src/scripts.ts`.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/vue.mdx" />
 
 ## Register consent-gated scripts
 
-Remove any existing PostHog or X Pixel snippet so each script loads once, and
-add measurement and marketing to your Inth policy.
+Remove any existing PostHog snippet so the script loads once, and add
+measurement to your Inth policy.
 
-Create `src/scripts.ts`. PostHog waits for measurement permission. X Pixel
-waits for marketing permission.
+Create `src/scripts.ts`. PostHog waits for measurement permission.
 
 <include src="../../shared/examples/vue/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. PostHog defaults to its EU region; set
-`region: 'us'` for a US project.
+Replace `phc_your_project_key` with your PostHog project key. PostHog
+defaults to its EU region; set `region: 'us'` for a US project.
 
 ## Mount the consent UI
 
@@ -65,11 +72,12 @@ Replace `phc_your_project_key` with your PostHog project key and
 
 `ConsentRoot` renders the banner when the visitor's policy asks for one and
 loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
-button that reopens preferences, labelled with the dialog's title in the
-visitor's language: Privacy Settings in English. It renders nothing until the
-policy offers preferences. Replace `HomePage` with your own content or router
-view. Keep `ConsentRoot` in the root component so it stays mounted. The
-components bring their own styles; there is no stylesheet to import.
+button that reopens preferences. Without slot content, its label is the
+dialog's title in the visitor's language: Privacy Settings in English. It
+renders nothing until the policy offers preferences. Replace the `<main>`
+element with your own content or router view. Keep `ConsentRoot` in the root
+component so it stays mounted. The components bring their own styles; there
+is no stylesheet to import.
 
 ## Gate an embed
 
@@ -79,20 +87,22 @@ withdraws permission.
 
 <include src="../../shared/examples/vue/embed.mdx" />
 
+Render `<VideoEmbed />` in a page where the video belongs.
+
 ## Verify the setup
 
 Build and preview the production app with `vite build` and `vite preview`.
 Open it in a private window with your browser's DevTools on the Network tab,
 under a policy that asks for consent.
 
-1. Load the page. A request to your backend's `/init` resolves the policy and
-   the banner appears. No requests to `posthog.com`,
-   `static.ads-twitter.com` or `youtube-nocookie.com` appear.
+1. Load the page. The bundled manifest resolves the policy and the banner
+   appears, with no `/manifest` or `/init` request. Test the unknown-location
+   rule, or supply `geoURL` if you need regional policies. No requests to
+   `posthog.com` or `youtube-nocookie.com` appear.
 2. Click **Reject All**, then reload. The banner stays closed and the vendor
    requests stay absent.
 3. Click **Privacy settings**, turn on **Analytics** (the `measurement` category) and save. PostHog's `array.js`
-   loads and the video appears. X Pixel stays blocked until you allow
-   Marketing.
+   loads and the video appears.
 4. Turn **Analytics** off and save. The page reloads, the video is gone and
    PostHog does not load again.
 

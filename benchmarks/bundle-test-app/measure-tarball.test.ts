@@ -53,7 +53,8 @@ const ok = (stdout: string) => ({ status: 0, stderr: '', stdout });
 const fakePack =
 	(
 		packOutput: string,
-		staged: { cwd?: string; files?: string[] } = {}
+		staged: { cwd?: string; files?: string[] } = {},
+		files: Record<string, string> = packageFiles
 	): PackRunner =>
 	(cwd, args) => {
 		if (args.includes('--dry-run')) {
@@ -61,7 +62,7 @@ const fakePack =
 				JSON.stringify([
 					{
 						filename: 'fixture.tgz',
-						files: Object.keys(packageFiles).map((path) => ({ path })),
+						files: Object.keys(files).map((path) => ({ path })),
 						size: 1,
 					},
 				])
@@ -125,6 +126,7 @@ describe('runTarballSize', () => {
 				fakePack(JSON.stringify([{ filename: 'fixture.tgz', size: 4 }]), staged)
 			)
 		).toEqual({
+			includesDialogRules: null,
 			notes: [
 				`${root.split(/[/\\]/u).at(-1)}: 3 bundled docs files left out of the measured tarball.`,
 			],
@@ -133,6 +135,41 @@ describe('runTarballSize', () => {
 		expect(staged.files).toEqual([join('dist', 'index.js'), 'package.json']);
 		expect(staged.cwd && existsSync(staged.cwd)).toBe(false);
 		expect(existsSync(join(root, 'docs/quickstart.md'))).toBe(true);
+	});
+
+	it.each([
+		['.c15t-ui-dialogVisible-dkX4M:not(.headless){opacity:1}', true],
+		['.c15t-ui-overlay-DoHh4:not(.headless){position:fixed}', false],
+		[':root{--consent-dialog-overlay-z-index:999998}', false],
+		['/* .c15t-ui-dialogVisible-dkX4M{opacity:1} */', false],
+	])(
+		'records dialog rules from the packed flat stylesheet: %s',
+		(css, expected) => {
+			const root = createPackage();
+			const files = { ...packageFiles, 'dist/styles.tw3.css': css };
+			writeFiles(root, files);
+			const artifact = runTarballSize(
+				root,
+				fakePack(
+					JSON.stringify([{ filename: 'fixture.tgz', size: 4 }]),
+					{},
+					files
+				)
+			);
+			expect(artifact.includesDialogRules).toBe(expected);
+		}
+	);
+
+	it('does not inspect a stylesheet excluded from the package', () => {
+		const root = createPackage();
+		writeFiles(root, {
+			'dist/styles.tw3.css': '.c15t-ui-dialogVisible-dkX4M{opacity:1}',
+		});
+		const artifact = runTarballSize(
+			root,
+			fakePack(JSON.stringify([{ filename: 'fixture.tgz', size: 4 }]))
+		);
+		expect(artifact.includesDialogRules).toBeNull();
 	});
 
 	it('measures the same size as the package published without docs', () => {

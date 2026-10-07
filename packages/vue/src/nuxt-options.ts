@@ -26,6 +26,13 @@ export interface C15tNuxtConfig
 /** Module-only options. They stay out of runtime config. */
 export interface ConsentModuleOptions {
 	/**
+	 * Fetch and embed the server manifest during Nuxt build/dev setup.
+	 * Enables server manifest mode and requires an absolute upstream URL.
+	 * Skips `nuxt prepare`. Policy edits need a rebuild; a fetch failure
+	 * stops it. @default false
+	 */
+	buildManifest?: boolean;
+	/**
 	 * Add a c15t tab to Nuxt DevTools in development. The tab embeds c15t
 	 * DevTools for the app's consent kernel. @default true
 	 */

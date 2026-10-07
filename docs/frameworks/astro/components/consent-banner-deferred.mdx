@@ -10,7 +10,7 @@ Use `ConsentBannerDeferred` in place of `ConsentBanner` when the page HTML is
 cached or prerendered but the banner must still come from each visitor's own
 request:
 
-<include src="../../../shared/examples/astro-demo/cached-layout.mdx" />
+<include src="../../../shared/examples/astro/cached-layout.mdx" />
 
 `ConsentBannerDeferred` renders `ConsentBanner` with Astro's `server:defer`
 directive. The page HTML stays the same for everyone. After the page loads,

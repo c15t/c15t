@@ -28,8 +28,16 @@ packages:
 
 ### Session reports from manifest mode
 
-A host that resolves init from a cached manifest never calls `/init`, so the backend could not count the visitors it served. Every server-side resolution now sends `POST /sessions` to the backend after the fact, server-to-server and detached from the response: the Next.js, TanStack Start, SvelteKit, Nuxt and Astro init routes, and the Next.js, TanStack Start and Astro render-time prefetches. The report carries the manifest revision, the matched policy, country, region, language and GPC signal. The visitor's user agent travels as `User-Agent` and the visitor's single client address on a dedicated `X-C15T-Client-IP` header, which the backend masks and records under its `ipAddress` settings; the forwarding chain itself is not sent, and neither are cookies. The browser makes no request.
+Hosts that resolve init from a cached manifest never call `/init`, so the
+backend couldn't count their visitors. Every server-side resolution (the
+adapters' init routes and render-time prefetches) sends `POST /sessions` to
+the backend, server to server. The report carries the manifest revision,
+matched policy, country, region, language, GPC signal, user agent and the
+visitor's IP, which the backend masks under its `ipAddress` settings. Cookies
+are not sent, and the browser makes no request.
 
-`@c15t/backend` adds the `POST /sessions` route and a `sessions.onReport` option. Reports are written to the request's wide event and handed to the sink; nothing is stored. The backend's own `/init` emits the same event, so one sink sees hosted and manifest traffic alike.
-
-Reports are handed to the same `onBackgroundRevalidate` hook as a background manifest refresh, so a host that already passes `after` or a platform `waitUntil` needs no change. `resolveConsent` in `@c15t/nextjs/server` gains `waitUntil` for the App Router. Set `reportSessions: false` on any adapter to send none. `createManifestTransport` in `@c15t/core` gains a `report` option; `@c15t/schema` adds `consentSessionReportSchema` and `buildConsentSessionReport`.
+`@c15t/backend` adds the `POST /sessions` route and a `sessions.onReport`
+option. Nothing is stored. Reports run through `onBackgroundRevalidate`, so a
+host that already passes `after` or `waitUntil` needs no change. Next.js
+`resolveConsent` gains `waitUntil`, and `createManifestTransport` gains a
+`report` option. Set `reportSessions: false` on any adapter to send none.

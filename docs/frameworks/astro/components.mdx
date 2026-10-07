@@ -9,7 +9,7 @@ group: frameworks
 Every component reads `Astro.locals.c15t`, which the integration's middleware
 sets on each request. Put them in the layout that wraps every page:
 
-<include src="../../shared/examples/astro-demo/layout.mdx" />
+<include src="../../shared/examples/astro/layout.mdx" />
 
 The `c15t()` integration in `astro.config.mjs` plays the part a provider plays
 in React or Vue. It holds the configuration every component reads. See

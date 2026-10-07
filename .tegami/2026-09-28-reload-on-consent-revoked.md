@@ -22,8 +22,14 @@ packages:
 
 ### Reload the page when a visitor revokes consent
 
-Revoking consent removed a vendor's script element but left its code running. Listeners, timers, history hooks and chat widgets kept working until the next full page load. v2 reloaded the page on revocation, and v3 lost that behaviour when the consent policy contracts were unified.
+Revoking consent removed a vendor's script but left its code running until
+the next page load. As in v2, when an accept, reject or save turns off a
+granted category or vendor, the page reloads once in-flight saves settle.
+`onBeforeConsentRevocationReload` runs just before. Rejecting on a first
+opt-in visit does not reload. Rejecting opt-out defaults does. Expiry, policy
+changes and privacy signals never reload.
 
-When an accept, reject or save turns off a category or vendor that was granted, the page now reloads after every in-flight save request settles, so the next page runs only permitted code. `onBeforeConsentRevocationReload` runs just before the reload. A first visit that rejects under opt-in does not reload, because nothing gated had run. Rejecting defaults under opt-out does, because gated code ran before the choice. Expiry, policy changes and privacy signals do not reload.
-
-Set `reloadOnConsentRevoked: false` to turn this off. The option is available on `ConsentProvider`, `ConsentRoot` `options`, `createConsentRuntime()`, the Vue plugin config, the browser client, and the Astro integration. `@c15t/svelte` receives it through its runtime options.
+Set `reloadOnConsentRevoked: false` to turn it off. It works on
+`ConsentProvider`, `ConsentRoot` `options`, `createConsentRuntime()`, the Vue
+plugin, the browser client, the Astro integration and `@c15t/svelte`'s
+runtime options.

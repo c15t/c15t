@@ -191,11 +191,11 @@ generator emits for `src/specs`, and
 runner; the app build below is the one that proves the protocol compiles.
 
 Those three cover the wire layer. The React-linked half compiles only inside an app, so
-its acceptance path runs in `examples/react-native-bare/ios`:
+its acceptance path runs in `internals/fixtures/react-native-bare/ios`:
 
 ```sh
 export DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer
-cd examples/react-native-bare/ios
+cd internals/fixtures/react-native-bare/ios
 /opt/homebrew/bin/pod install
 xcodebuild -workspace C15tBare.xcworkspace -scheme C15tBare -configuration Debug \
   -destination 'platform=iOS Simulator,id=<device-udid>' -derivedDataPath ./DerivedData build

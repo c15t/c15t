@@ -1,0 +1,64 @@
+---
+title: c15t vs TrustArc
+description: Choose c15t for consent that your product team can change and host. Compare TrustArc's React integration, tracker scans, managed records and privacy operations.
+group: reference
+---
+
+## Give your product team control of consent
+
+c15t is the stronger fit when your developers need to own the consent interface, engine and backend. You can connect choices to product features and review changes with application code.
+
+TrustArc suits organisations that need managed cookie operations within a broader privacy programme. It also supplies developer APIs and a React integration.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Compare what you get
+
+| What you need | c15t | TrustArc |
+| --- | --- | --- |
+| Connect a web application | Native framework components and reactive state | React components, hosted scripts and CMS integrations |
+| Own interface markup | Themes, component parts and headless APIs | Custom banner settings and supplied integration components |
+| Choose the backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent records and reports |
+| Control vendor code | Declared rules for scripts, requests and embeds | Tracker controls, tag-manager integrations and automatic controls |
+| Find trackers | **No automatic scanner in the packages** | Cookie and tracker discovery, also on protected pages |
+| Manage privacy operations | **No bundled enterprise privacy suite** | Wider products for data mapping, assessments and individual rights |
+| Use APIs for reports | Backend APIs. Build the reports you need | Consent reporting API and dashboards |
+
+Sources: [TrustArc Cookie Consent Manager](https://trustarc.com/products/consent-consumer-rights/cookie-consent-manager/), [React integration](https://trustarchelp.zendesk.com/hc/en-us/articles/41699369644691-Cookie-Consent-Manager-React-Framework-Integration) and [reporting API guide](https://trustarchelp.zendesk.com/hc/en-us/sections/36065296349971-Cookie-Consent-Manager-Reporting-API-Guide).
+
+## Own the behaviour behind the interface
+
+TrustArc's React components mount its scripts and banner. Its guide also lists Next.js among the tested frameworks. A comparison that treats TrustArc as unable to work with React would be wrong.
+
+c15t gives your team [native adapters across web frameworks](/docs/frameworks), an editable engine and a backend you can deploy. Use [headless APIs](/docs/frameworks/react/headless) to put privacy controls into product screens.
+
+For example, an account setting and a video placeholder can read the same consent state. Your developers own the markup and the integration rules.
+
+This control matters when a standard banner integration does not cover the product flow you want to build.
+
+## Buy the operational scope you need
+
+Choose c15t when consent is primarily an application requirement. Your team can use Inth for backend operation and retain the option to run the open-source service.
+
+TrustArc can be the better fit when scans, central reports and broader privacy operations drive the decision. Those products cover work beyond the c15t packages.
+
+Compare the actual services and support in each proposal. Open-source software removes the package licence fee. Setup and service costs remain.
+
+## What c15t does not include
+
+- The packages do not include automated tracker discovery or enterprise data mapping.
+- They do not replace privacy assessments, legal-document services or individual-rights case management.
+- Vendor controls need configuration. They do not automatically cover all tags already on the site.
+- A choice in the browser is not proof of a successful remote save.
+
+Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+The release covered here is an alpha. Check the required deployment and support scope before you replace a current service.
+
+## Evaluate the product and operations separately
+
+Start with the [framework guide](/docs/frameworks). Build one product consent control and connect one vendor and one embed.
+
+Test refusal, acceptance, reload and withdrawal with the [verification guide](/docs/guides/verify-consent). Check actual requests and record storage, then compare the separate scan, report and support needs.
+
+Sources checked on 6 October 2026. This comparison does not establish measured performance, legal compliance or support equivalence.

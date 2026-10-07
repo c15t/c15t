@@ -27,6 +27,31 @@ const request = (path: string, init?: RequestInit) =>
 	new Request(`https://app.example.com/api/c15t/${path}`, init);
 
 describe('createConsentServerRoute', () => {
+	test('serves the deployment snapshot without fetching an upstream manifest', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const routes = createConsentServerRoute({
+			backendURL: BACKEND,
+			fetch,
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		expect(
+			await (await routes.manifestGET({ request: request('manifest') })).json()
+		).toEqual(MANIFEST_FIXTURE);
+		expect(
+			await (
+				await routes.initGET({
+					request: request('init', {
+						headers: { 'x-vercel-ip-country': 'DE' },
+					}),
+				})
+			).json()
+		).toMatchObject({
+			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
+		});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	test('returns the in-process handlers, and the proxy handlers with proxy on', () => {
 		const plain = createConsentServerRoute({ backendURL: BACKEND });
 		expect(Object.keys(plain).sort()).toEqual([

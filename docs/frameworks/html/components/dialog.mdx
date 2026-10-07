@@ -92,7 +92,8 @@ when your page renders its own dialog with [headless](/docs/frameworks/html/head
   `presentation.preferences.blocking: false` to leave the page usable behind
   it.
 - Escape closes it without saving, wherever focus is. That includes a
-  non-blocking dialog while focus is on the page behind it. Clicking the
+  non-blocking dialog while focus is on the page behind it. If the policy
+  still owes a choice, the banner comes back. Clicking the
   backdrop does not close it.
 - The dialog has no close button by design. A visitor using a mouse closes it
   by saving, accepting or rejecting.

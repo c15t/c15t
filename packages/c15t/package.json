@@ -185,6 +185,11 @@
 			"import": "./shims/runtime/provider.js",
 			"default": "./shims/runtime/provider.js"
 		},
+		"./build": {
+			"types": "./shims/build.d.ts",
+			"import": "./shims/build.js",
+			"default": "./shims/build.js"
+		},
 		"./react": {
 			"types": "./shims/react.d.ts",
 			"import": "./shims/react.js",
@@ -408,6 +413,11 @@
 			"import": "./shims/next/devtools.js",
 			"default": "./shims/next/devtools.js"
 		},
+		"./next/build": {
+			"types": "./shims/next/build.d.ts",
+			"import": "./shims/next/build.js",
+			"default": "./shims/next/build.js"
+		},
 		"./tanstack-start/styles.css": "./dist/tanstack-start/styles.css",
 		"./tanstack-start/styles.tw3.css": "./dist/tanstack-start/styles.tw3.css",
 		"./tanstack-start/iab/styles.css": "./dist/tanstack-start/iab/styles.css",
@@ -447,6 +457,11 @@
 			"types": "./shims/tanstack-start/static.d.ts",
 			"import": "./shims/tanstack-start/static.js",
 			"default": "./shims/tanstack-start/static.js"
+		},
+		"./tanstack-start/build": {
+			"types": "./shims/tanstack-start/build.d.ts",
+			"import": "./shims/tanstack-start/build.js",
+			"default": "./shims/tanstack-start/build.js"
 		},
 		"./vue": {
 			"types": "./shims/vue.d.ts",

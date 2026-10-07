@@ -73,23 +73,15 @@ handler receives, so `/api/c15t/init` routes to `/init`.
 
 ### Next.js App Router
 
-```ts title="app/api/c15t/[[...path]]/route.ts"
-import { c15tInstance } from '@c15t/backend';
-
-import config from '../../../../c15t-backend.config';
-
-export const runtime = 'nodejs';
-const backend = c15tInstance({ ...config, basePath: '/api/c15t' });
-
-export const GET = (request: Request) => backend.handler(request);
-export const POST = GET;
-export const PUT = GET;
-export const PATCH = GET;
-export const OPTIONS = GET;
-```
+<include src="../shared/examples/self-host/nextjs-route.mdx" />
 
 This route needs a Node.js server. A Next.js static export cannot run it; deploy
 the backend separately and give the app its absolute URL.
+
+[`examples/self-host`](https://github.com/c15t/c15t/tree/v3/examples/self-host)
+runs this route with an in-process PGlite database in development and
+PostgreSQL from `DATABASE_URL` when deployed. Its banner calls the backend at
+the same-origin path `/api/c15t`.
 
 ### TanStack Start
 
@@ -112,7 +104,7 @@ The SvelteKit example creates its `c15tInstance()` as `backend` in
 `src/lib/server/c15t-backend.ts`. The route at `/api/self-host` imports that
 module dynamically on the first request and forwards each request to it:
 
-<include src="../shared/examples/sveltekit-demo/self-host-route.mdx" />
+<include src="../shared/examples/sveltekit/self-host-route.mdx" />
 
 Keep the import dynamic on SvelteKit 3. A static import lets the build place
 modules the backend shares with its lazily loaded chunks in the route's own

@@ -1,0 +1,65 @@
+---
+title: c15t vs consentmanager
+description: Choose c15t to own consent inside your web application. Compare consentmanager's site operations, custom interfaces, scans, experiments and connected-TV tools.
+group: reference
+---
+
+## Own consent where your application needs it
+
+c15t is the stronger fit when your developers need native web components and control of the consent engine and backend. You can review consent behaviour with the application features that depend on it.
+
+consentmanager suits teams that need central operations across websites, apps and connected TVs. Its product also includes scans, experiments and customisation options.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Compare what you get
+
+| What you need | c15t | consentmanager |
+| --- | --- | --- |
+| Integrate with a web application | Native framework components and reactive state | Website code, CMS plugins and developer APIs |
+| Build a custom interface | Themes, component parts and headless APIs | Custom HTML and CSS on listed plans. CTV API supports custom interfaces |
+| Choose the backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed platform with plan-dependent own-domain delivery |
+| Control vendors | Declared category and vendor rules | Vendor and purpose settings, plus automatic script controls |
+| Discover cookies | **No automatic scanner in the packages** | Cookie crawler and classification |
+| Test banner designs | Presentation and theme experiments with fixed policy and policy text | Plan-dependent A/B tests and automatic design selection |
+| Cover connected TVs | **No bundled connected-TV SDK** | HbbTV and CTV SDKs on listed plans |
+| Manage teams and reports | Build around your chosen backend | Plan-dependent user roles, reports and exports |
+
+Sources: [consentmanager feature comparison](https://www.consentmanager.net/en/features/) and [CTV API guide](https://help.consentmanager.net/books/cmp/page/ctv-api-integration).
+
+## Keep the consent rules beside your product code
+
+With c15t, privacy controls can live inside an account screen or feature. Use the [framework components](/docs/frameworks) or create the markup with [headless APIs](/docs/frameworks/react/headless).
+
+Declare [vendor choices](/docs/frameworks/react/vendor-consent) with the integrations they control. Your team can check the code path from a visitor's action to the saved choice.
+
+consentmanager also supports custom interfaces and developer APIs. c15t's advantage is the combined native web workflow and source code for the engine and backend.
+
+An own-domain delivery option does not establish that you can deploy the entire record backend yourself. Check the exact hosting scope when you compare proposals.
+
+## Choose the operations you need
+
+Use c15t when your main requirement is consent inside a web product. Its [banner experiments](/docs/guides/banner-experiments) let your team test presentation while policy and policy text stay fixed.
+
+consentmanager can be the better fit when one team needs scans, reports and campaign operations across sites and connected TVs. Check which features belong to the selected plan.
+
+These workflows carry different responsibilities. With c15t, your team supplies site inventories and operates the backend if it chooses self-hosting.
+
+## What c15t does not include
+
+- The packages do not include a website crawler or a central campaign operations console.
+- They do not include a connected-TV SDK or generated legal policies.
+- Vendor controls cover configured targets. A visible banner does not stop every tag already on the site.
+- Local consent state does not prove a successful write.
+
+Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
+
+The release covered here is an alpha. Include setup, Inth or your own servers, and separate operational tools in the budget.
+
+## Compare your actual deployment
+
+Use the [framework guide](/docs/frameworks) to connect one vendor and one embed. Test refusal, acceptance, reload and withdrawal.
+
+Check requests and backend records with the [verification guide](/docs/guides/verify-consent). Evaluate connected-TV and central operations requirements separately from the web consent flow.
+
+Sources checked on 6 October 2026. This comparison does not measure performance or promise legal compliance.

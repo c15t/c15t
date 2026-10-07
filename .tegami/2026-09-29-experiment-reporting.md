@@ -40,12 +40,25 @@ packages:
 
 ### Count each experiment arm's visitors through `/init`
 
-The backend now learns which arm a visitor runs before they choose, so a dashboard can compute an opt-in rate per arm without any analytics setup. While a visitor has no stored choice, `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header, and the backend adds `experiment: { id, arm }` to that request's session report. Manifest-mode renders and init routes put it on the report they send to `POST /sessions`. A visitor who already chose is not counted, because they are not shown the banner.
+While a visitor has no stored choice, `/init` sends their experiment arm in an
+`x-c15t-experiment: <id>=<arm>` header and the backend adds
+`experiment: { id, arm }` to the session report. A dashboard can compute an
+opt-in rate per arm without any analytics setup.
 
-On a server-rendered page, pass the experiment with the visitor's arm to `resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`, `@c15t/tanstack-start` and `@c15t/svelte`. The server sends only `{ id, arm }` to the backend, and the returned state carries the experiment to the client, so the provider needs no `experiment` option of its own. A streamed (unawaited) state arrives after the provider mounts, so pass the experiment to the client too; the provider warns in development when you forget. Astro and Nuxt send the arm they rendered on their own. `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader` and `parseExperimentHeader`, and the session report schema gains an optional `experiment`.
+On server-rendered pages, pass the experiment with the visitor's arm to
+`resolveConsent({ experiment: { ...bannerShape, arm } })` in `c15t/next`,
+`@c15t/tanstack-start` and `@c15t/svelte`. The returned state carries it to the
+client. If you stream the state unawaited, pass the experiment to the provider
+too. It warns in development when you forget. Astro and Nuxt send the arm on
+their own.
 
-The `choice:recorded` kernel event and `onChoiceRecorded` payload now include `uiSource` and `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm, so forwarding experiment events to GTM, PostHog or any other tool is one callback.
+Also added:
 
-Opt-out experiments are measurable too. The `notice:dismissed` kernel event now carries `surface`, `timeToDecisionMs` and `experiment`. The surface is the snapshot's `activeUI`, so a programmatic `dismissNotice()` with no prompt open reports `surface: 'none'` and no timing, the same as a programmatic `save()`.
-
-Dev-tools show the assigned experiment arm and the first impression time of each surface on the Policy tab.
+- `@c15t/schema` exports `CONSENT_EXPERIMENT_HEADER`, `formatExperimentHeader`
+  and `parseExperimentHeader`.
+- `choice:recorded` and `onChoiceRecorded` include `uiSource` and
+  `consentAction`, and `onSurfaceShown` and `onChoiceRecorded` carry the arm.
+- `notice:dismissed` carries `surface`, `timeToDecisionMs` and `experiment`, so
+  opt-out experiments are measurable.
+- DevTools show the assigned arm and each surface's first impression time on the
+  Policy tab.

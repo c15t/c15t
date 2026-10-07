@@ -19,8 +19,11 @@ packages:
 
 ### Render theme styles before hydration
 
-Render theme CSS in the server HTML to prevent React and Next.js consent banners from flashing default styles before hydration. Preserve the stylesheet and CSP nonce through hydration, and escape theme values so HTML-like strings remain inside the stylesheet.
+React and Next.js render theme CSS in the server HTML, so consent banners no
+longer flash default styles before hydration. The stylesheet keeps its CSP
+nonce through hydration, and theme values are escaped so HTML-like strings
+stay inside the stylesheet. Explicit dark mode and system color preferences
+also apply before hydration.
 
-Apply explicit dark mode and system color preferences before hydration while preserving client-side theme updates.
-
-Reduce the theme generator's initial JavaScript and generated CSS size without changing theme tokens or contrast colors.
+The theme generator ships less JavaScript and CSS, with the same tokens and
+contrast colors.

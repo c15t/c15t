@@ -72,6 +72,73 @@ afterEach(() => {
 });
 
 describe('loadConsent', () => {
+	test.each([false, true])(
+		'keeps snapshot session reports alive, platform hook available: %s',
+		async (hasPlatformHook) => {
+			let finish: ((response: Response) => void) | undefined;
+			const fetch = vi.fn<typeof globalThis.fetch>(
+				() =>
+					new Promise((resolve) => {
+						finish = resolve;
+					})
+			);
+			const callerHook = vi.fn();
+			const platform = { waitUntil: vi.fn() };
+			const event = createEvent({ fetch, headers: { 'x-c15t-country': 'DE' } });
+			if (hasPlatformHook) {
+				(event as { platform?: unknown }).platform = { context: platform };
+			}
+			const state = await loadConsent(event, {
+				backendURL: 'https://consent.example.com',
+				fetch,
+				manifest: MANIFEST_FIXTURE,
+				onBackgroundRevalidate: callerHook,
+			});
+			expect(state.initialPolicyResolution?.status).toBe('matched');
+			expect(fetch).toHaveBeenCalledWith(
+				'https://consent.example.com/sessions',
+				expect.objectContaining({ method: 'POST' })
+			);
+			const hook = hasPlatformHook ? platform.waitUntil : callerHook;
+			expect(hook).toHaveBeenCalledTimes(1);
+			expect(callerHook).toHaveBeenCalledTimes(hasPlatformHook ? 0 : 1);
+			expect(platform.waitUntil.mock.contexts[0]).toBe(
+				hasPlatformHook ? platform : undefined
+			);
+			expect(callerHook.mock.calls[0]?.[1]).toBe(
+				hasPlatformHook ? undefined : event
+			);
+			const task = hook.mock.calls[0]?.[0];
+			expect(task).toBeInstanceOf(Promise);
+			finish?.(new Response(null, { status: 204 }));
+			await task;
+		}
+	);
+
+	test('resolves a deployment manifest locally even when an init route is configured', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const event = createEvent({
+			fetch,
+			headers: {
+				'accept-language': 'de-DE',
+				'x-vercel-ip-country': 'DE',
+			},
+		});
+		const state = await loadConsent(event, {
+			backendURL: 'https://consent.example.com',
+			fetch,
+			initRoute: '/api/c15t',
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+		expect(state.initialTranslations?.language).toBe('de');
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	test('reads the inputs the handle normalized; per-call inputs win', async () => {
 		const event = await withHandle(
 			createEvent({

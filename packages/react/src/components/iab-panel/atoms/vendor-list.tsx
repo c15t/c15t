@@ -1,12 +1,14 @@
 'use client';
 
 import type { GlobalVendorList } from '@c15t/core';
+import { resolveIABVendorUrls } from '@c15t/iab/headless';
 import styles from '@c15t/ui/styles/components/iab-consent-dialog';
 import { useEffect, useState } from 'react';
 import type { FC } from 'react';
 
 import * as PreferenceItem from '~/components/shared/ui/preference-item';
 import * as Switch from '~/components/shared/ui/switch';
+import { useTranslations as useKernelTranslations } from '~/hooks';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
@@ -67,6 +69,7 @@ export const VendorList: FC<VendorListProps> = ({
 		new Set()
 	);
 	const iab = useIABTranslations();
+	const language = useKernelTranslations()?.language;
 
 	// Map IAB vendors
 	const iabVendors: ProcessedVendor[] = vendorData
@@ -82,11 +85,8 @@ export const VendorList: FC<VendorListProps> = ({
 				id: Number(id),
 				isCustom: false,
 				legIntPurposes: vendor.legIntPurposes || [],
-				legitimateInterestUrl:
-					vendor.urls?.find((url) => url.legIntClaim)?.legIntClaim ?? null,
+				...resolveIABVendorUrls(vendor, language),
 				name: vendor.name,
-				policyUrl:
-					(vendor as unknown as { policyUrl?: string }).policyUrl ?? '',
 				purposes: vendor.purposes || [],
 				specialFeatures: vendor.specialFeatures || [],
 				specialPurposes: vendor.specialPurposes || [],

@@ -57,8 +57,10 @@ because turning one off would change nothing the vendors rely on; its
 objection control is the opt-out. Such a purpose does not decide its c15t
 category: the category follows the purposes in it that the visitor can
 consent to. Legitimate interest never grants a category on its own. If none of
-a category's purposes has a consent basis, the category needs all of them
-consented, which only Accept All does. Stack switches
+a category's purposes has a consent basis, nothing can consent to them, Accept
+All included, so the category stays denied. See
+[categories under an IAB policy](/docs/concepts/consent-state#categories-under-an-iab-policy).
+Stack switches
 cover only the purposes some vendor processes on consent. Display-model rows
 expose this as `hasConsentBasis`. Custom preference UIs can call
 `applyPublisherRestrictionsToGVL` from `@c15t/iab/headless`, or pass

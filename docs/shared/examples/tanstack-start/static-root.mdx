@@ -1,4 +1,4 @@
-{/* Generated from examples/tanstack-start/src/rendering/static-root.tsx (docs:static-root) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from internals/doc-snippets/tanstack-start/src/rendering/static-root.tsx (docs:static-root) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```tsx title="src/routes/__root.tsx"
 import {
@@ -19,7 +19,8 @@ import { scripts } from '../scripts';
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
-const backendURL = 'https://your-project.inth.app';
+const backendURL =
+	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://your-project.inth.app';
 
 // No loader: the HTML is built ahead of time, so the browser resolves
 // consent after it loads.

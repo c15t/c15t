@@ -8,20 +8,20 @@
  * without its CSS import as `<name>.node.js` for runtimes that cannot load
  * CSS; this points the browser build at those instead.
  *
- * The dialog's own stylesheets are delivered by the client, which links
- * them when the dialog opens (see `browser/dialog-styles.ts`). The islands
- * import them too, directly or through `@c15t/ui/styles/dialog`, and those
- * imports resolve to an empty module here: left alone, a build either drops
- * them or ships the same rules a second time.
+ * The islands' stylesheet imports resolve to an empty module here: the
+ * injected stylesheet already holds the component and dialog rules, and the
+ * client links the Svelte primitives' rules when the dialog opens (see
+ * `browser/dialog-styles.ts`). Left alone, a build either drops them or
+ * ships the same rules a second time.
  */
 
 /** `@c15t/ui/styles/components/<name>`, but not the `.css` subpaths. */
 const CLASS_MAP = /^@c15t\/ui\/styles\/components\/[a-z-]+$/u;
 
-/** `@c15t/ui/styles/dialog`, the module that imports `dialog.css`. */
-const DIALOG_STYLES_MODULE = /^@c15t\/ui\/styles\/dialog$/u;
-
-/** Stylesheets the client links itself when the dialog opens. */
+/**
+ * Stylesheets the injected one already covers or the client links itself.
+ * `dialog.css` is empty, and an import of it would still link a file.
+ */
 const CLIENT_LINKED_CSS =
 	/^@c15t\/ui\/styles\/(?:dialog|primitives|components\/[a-z-]+)\.css$/u;
 
@@ -95,7 +95,7 @@ export const createClassMapPlugin = function createClassMapPlugin(
 			if (CLIENT_LINKED_CSS.test(id)) {
 				return EMPTY_STYLESHEET_ID;
 			}
-			if (!(CLASS_MAP.test(id) || DIALOG_STYLES_MODULE.test(id))) {
+			if (!CLASS_MAP.test(id)) {
 				return null;
 			}
 			const resolved = await this.resolve(id, importer, {

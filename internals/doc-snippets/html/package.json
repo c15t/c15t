@@ -1,0 +1,5 @@
+{
+	"name": "@c15t/doc-snippets-html",
+	"private": true,
+	"description": "HTML snippets the docs publish. internals/fixtures/script-tag serves them, so its acceptance tests cover them."
+}

@@ -49,6 +49,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 | `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. The browser requests `/init` from it and sends consent saves to it. |
 | `manifest` | Unset | `'client'` downloads the public policy manifest and resolves the policy in the browser instead of calling `/init`. See [rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser). |
 | `manifestURL` | `/api/c15t/manifest` | Where client mode downloads the manifest. Set it to an absolute URL, such as `https://your-project.inth.app/manifest`. Setting it with `manifest` unset selects client mode. |
+| `manifestSnapshot` | Unset | The build-time manifest object. With `manifest: 'client'`, uses this snapshot instead of fetching `manifestURL`. See the recommended [build-time setup](/docs/frameworks/vue/rendering#bundle-the-manifest-during-builds). |
 | `geoURL` | Unset | Client mode only. An endpoint you run that returns `{ country, region }` for the visitor. |
 | `consentCategories` | The policy's categories | Limits the categories the dialog and widget show, within the policy's scope. |
 | `vendors` | Unset | Vendors listed under their category with their own switch. See [vendor consent](/docs/frameworks/vue/vendor-consent). |
@@ -95,6 +96,7 @@ Every option is optional. Options that hold functions, such as `scripts` and
 
 ## Verify
 
-Open the app with the Network tab open. After the page loads, one request goes
-to your backend's `/init`, or to `manifestURL` in client mode. In the
+Open the app with the Network tab open. A bundled snapshot makes no policy
+request. Runtime client mode requests `manifestURL`; without manifest mode,
+the browser calls the backend's `/init`. In the
 Application panel, a `c15t` cookie appears after you accept or reject.

@@ -124,7 +124,7 @@ suite('the published artifact', () => {
 	});
 
 	it('exposes the cache adapters consumers were told to use', async () => {
-		// examples/demo imports this by subpath; it was added to the exports map
+		// apps/playground imports this by subpath; it was added to the exports map
 		// during the rewrite and nothing resolved it as npm would.
 		const cache = (await import(
 			join(packageRoot, manifest.exports['./cache']?.import ?? '')

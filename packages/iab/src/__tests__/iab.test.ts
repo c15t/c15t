@@ -196,7 +196,7 @@ describe('createIAB: mutations', () => {
 		iab.dispose();
 	});
 
-	test('acceptAll flips every vendor + purpose + special feature', () => {
+	test('acceptAll grants every vendor and what they declare', () => {
 		const kernel = createConsentKernel();
 		const iab = createIAB({ cmpId: 28, gvl: MOCK_GVL, kernel });
 
@@ -207,7 +207,8 @@ describe('createIAB: mutations', () => {
 		expect(snap.iab?.purposeConsents[1]).toBe(true);
 		expect(snap.iab?.purposeConsents[2]).toBe(true);
 		expect(snap.iab?.purposeConsents[3]).toBe(true);
-		expect(snap.iab?.specialFeatureOptIns[1]).toBe(true);
+		// No vendor declares the special feature, so it is never shown.
+		expect(snap.iab?.specialFeatureOptIns[1]).toBe(false);
 		// c15t categories should follow.
 		expect(snap.effectivePermissions.marketing).toBe(false);
 		expect(snap.explicitChoice).toBeNull();

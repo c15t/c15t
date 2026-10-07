@@ -1,0 +1,104 @@
+.region {
+	position: fixed;
+	top: 88px;
+	right: 24px;
+	z-index: 40;
+	width: min(360px, calc(100vw - 40px));
+}
+
+.toast {
+	display: flex;
+	align-items: flex-start;
+	gap: 12px;
+	padding: 14px 12px 14px 16px;
+	border: 1px solid var(--nw-border);
+	border-radius: 6px;
+	background: #fff;
+	box-shadow: 0 6px 20px rgb(31 35 40 / 0.08);
+	animation: toast-in 180ms cubic-bezier(0.2, 0, 0, 1);
+
+	& > div {
+		flex: 1;
+	}
+}
+
+.title {
+	margin: 0;
+	font-weight: 600;
+}
+
+.note {
+	display: flex;
+	align-items: baseline;
+	gap: 8px;
+	margin: 4px 0 0;
+	color: var(--nw-muted);
+	font-size: 0.875rem;
+
+	&::before {
+		content: '';
+		flex: none;
+		width: 7px;
+		height: 7px;
+		border-radius: 50%;
+		background: #b9b0a2;
+		transform: translateY(-1px);
+	}
+
+	&[data-shared]::before {
+		background: var(--nw-green);
+	}
+}
+
+.close {
+	position: relative;
+	display: grid;
+	place-items: center;
+	flex: none;
+	width: 28px;
+	height: 28px;
+	margin: -4px 0 0;
+	padding: 0;
+	border: 0;
+	border-radius: 4px;
+	background: none;
+	color: var(--nw-muted);
+	cursor: pointer;
+
+	/* 28px visible, 44px to tap. */
+	&::before {
+		content: '';
+		position: absolute;
+		inset: -8px;
+	}
+
+	&:hover {
+		background: var(--nw-cream-deep);
+		color: var(--nw-ink);
+	}
+
+	&:focus-visible {
+		outline: 2px solid var(--nw-green);
+		outline-offset: 1px;
+	}
+}
+
+@keyframes toast-in {
+	from {
+		opacity: 0;
+		transform: translateY(-6px);
+	}
+}
+
+@media (max-width: 720px) {
+	.region {
+		top: 12px;
+		right: 20px;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.toast {
+		animation: none;
+	}
+}

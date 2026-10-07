@@ -18,7 +18,10 @@
 				"name": "next"
 			}
 		],
-		"target": "ES2017"
+		"target": "ES2017",
+		"paths": {
+			"@c15t/next-compat-shared/*": ["./.compat-shared/src/*"]
+		}
 	},
 	"include": [
 		"next-env.d.ts",

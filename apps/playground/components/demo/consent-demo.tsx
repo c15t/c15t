@@ -1,0 +1,546 @@
+'use client';
+
+import {
+	ConsentBanner,
+	ConsentDialog,
+	ConsentDialogTriggerToolbar,
+	ConsentProvider,
+	hosted,
+	offline,
+} from 'c15t/react';
+import { ConsentDevTools } from 'c15t/react/devtools';
+import {
+	IABConsentBanner,
+	IABConsentDialog,
+	IABProvider,
+} from 'c15t/react/iab';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useMemo } from 'react';
+
+import { createDemoScripts } from '../../lib/demo-scripts';
+import { demoExperiment, parseSurfaceParams } from '../../lib/prompt-surface';
+import {
+	DEFAULT_SCENARIO_ID,
+	DEMO_CMP_ID,
+	DEMO_CUSTOM_VENDORS,
+	DEMO_IAB_VENDOR_IDS,
+	DEMO_SCENARIO_HEADER,
+	demoI18nMessages,
+	demoScenarios,
+	getScenarioById,
+	getScenarioPolicyRules,
+} from '../../lib/scenarios';
+import { cn } from '../../lib/utils';
+import {
+	ThemeSwitcherButton,
+	useThemePreset,
+} from '../consent-manager/theme-switcher';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
+import { VideoDemo } from '../video-demo';
+import { ExperimentEvents, useExperimentLog } from './experiment-events';
+import { LiquidGlassFilter } from './liquid-glass-filter';
+import { LiveStatus } from './live-status';
+
+/** DevTools mounts in development only; production renders nothing. */
+const DevelopmentDevTools =
+	process.env.NODE_ENV === 'development' ? ConsentDevTools : () => null;
+
+const HOSTED_BACKEND_URL = 'https://c15t-demo-consent-io.inth.app';
+
+const CONSENT_CATEGORIES = [
+	'necessary',
+	'functionality',
+	'measurement',
+	'marketing',
+] as const;
+
+type DemoMode = 'offline' | 'hosted';
+
+interface ConsentDemoProps {
+	/**
+	 * Which backend the hosted mode talks to.
+	 * - `hosted`: the shared inth.com demo instance (sales-facing default)
+	 * - `self-host`: this app's own /api/self-host route (development only)
+	 */
+	backend?: 'hosted' | 'self-host';
+}
+
+interface DemoParams {
+	scenarioId: string;
+	mode: DemoMode;
+	country: string;
+	region: string;
+}
+
+const parseParams = function parseParams(
+	searchParams: URLSearchParams
+): DemoParams {
+	const scenarioId =
+		searchParams.get('scenario') ??
+		// legacy links
+		searchParams.get('example') ??
+		DEFAULT_SCENARIO_ID;
+	const scenario = getScenarioById(scenarioId);
+	const mode: DemoMode =
+		searchParams.get('mode') === 'hosted' ? 'hosted' : 'offline';
+	const country = (
+		searchParams.get('country') ?? scenario.country
+	).toUpperCase();
+	const region = (
+		searchParams.get('region') ??
+		scenario.region ??
+		''
+	).toUpperCase();
+
+	return { country, mode, region, scenarioId: scenario.id };
+};
+
+const buildSearch = function buildSearch(params: DemoParams): string {
+	const next = new URLSearchParams();
+	const scenario = getScenarioById(params.scenarioId);
+
+	if (params.scenarioId !== DEFAULT_SCENARIO_ID) {
+		next.set('scenario', params.scenarioId);
+	}
+	if (params.mode !== 'offline') {
+		next.set('mode', params.mode);
+	}
+	// Only keep explicit location overrides that differ from the scenario.
+	if (params.country && params.country !== scenario.country) {
+		next.set('country', params.country);
+	}
+	if (params.region && params.region !== (scenario.region ?? '')) {
+		next.set('region', params.region);
+	}
+
+	const search = next.toString();
+	return search ? `?${search}` : '';
+};
+
+/**
+ * Soft color fields behind the page so the Liquid Glass preset's backdrop
+ * blur has something to refract — over a flat background, frosted glass
+ * reads as plain gray.
+ */
+const GlassBackdrop = () => (
+	<div
+		aria-hidden
+		className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+	>
+		<div className="absolute -top-40 -left-40 size-[36rem] rounded-full bg-gradient-to-br from-indigo-400/40 via-sky-300/30 to-transparent blur-3xl dark:from-indigo-500/25 dark:via-sky-500/15" />
+		<div className="absolute top-1/3 -right-40 size-[32rem] rounded-full bg-gradient-to-bl from-pink-400/35 via-violet-300/25 to-transparent blur-3xl dark:from-pink-500/20 dark:via-violet-500/15" />
+		<div className="absolute -bottom-48 left-1/4 size-[40rem] rounded-full bg-gradient-to-tr from-emerald-300/35 via-cyan-300/25 to-transparent blur-3xl dark:from-emerald-500/15 dark:via-cyan-500/10" />
+	</div>
+);
+const PillButton = ({
+	active,
+	onClick,
+	children,
+}: {
+	active: boolean;
+	onClick: () => void;
+	children: React.ReactNode;
+}) => (
+	<button
+		type="button"
+		onClick={onClick}
+		aria-pressed={active}
+		className={cn(
+			'rounded-full border px-4 py-2 text-left text-sm transition',
+			active
+				? 'border-foreground bg-foreground text-background'
+				: 'border-border text-foreground hover:border-foreground/40'
+		)}
+	>
+		{children}
+	</button>
+);
+const ScenarioGroup = ({
+	title,
+	description,
+	group,
+	activeId,
+	onSelect,
+}: {
+	title: string;
+	description: string;
+	group: 'preset' | 'custom';
+	activeId: string;
+	onSelect: (id: string) => void;
+}) => {
+	const scenarios = demoScenarios.filter(
+		(scenario) => scenario.group === group
+	);
+
+	return (
+		<div className="space-y-3">
+			<div>
+				<p className="text-sm font-medium">{title}</p>
+				<p className="text-muted-foreground text-xs">{description}</p>
+			</div>
+			<div className="flex flex-wrap gap-2">
+				{scenarios.map((scenario) => {
+					const isActive = scenario.id === activeId;
+					return (
+						<button
+							key={scenario.id}
+							type="button"
+							onClick={() => onSelect(scenario.id)}
+							aria-pressed={isActive}
+							className={cn(
+								'rounded-full border px-4 py-2 text-left text-sm transition',
+								isActive
+									? 'border-foreground bg-foreground text-background'
+									: 'border-border text-foreground hover:border-foreground/40'
+							)}
+						>
+							<span>{scenario.label}</span>
+							<span
+								className={cn(
+									'ml-2 font-mono text-[11px]',
+									isActive ? 'text-background/70' : 'text-muted-foreground'
+								)}
+							>
+								{scenario.country || 'unknown'}
+								{scenario.region ? `-${scenario.region}` : ''}
+							</span>
+						</button>
+					);
+				})}
+			</div>
+		</div>
+	);
+};
+export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
+	const router = useRouter();
+	const pathname = usePathname();
+	const searchParams = useSearchParams();
+	const {
+		theme: presetTheme,
+		preset,
+		mounted: themeMounted,
+	} = useThemePreset();
+
+	const params = parseParams(searchParams);
+	const scenario = getScenarioById(params.scenarioId);
+	// `?experiment=1` swaps the scenario presentation for the banner-shape
+	// experiment; `&arm=bar` sets the arm the way a flag provider would.
+	const surface = parseSurfaceParams(searchParams);
+	const { experiment: experimentEnabled, arm } = surface;
+	// The log belongs to one experiment run: switching the arm or turning
+	// the experiment off starts a fresh list instead of mixing runs.
+	const experimentRun = experimentEnabled ? `exp:${arm}` : '';
+	const { events: experimentEvents, callbacks: experimentCallbacks } =
+		useExperimentLog(experimentRun);
+	const experiment = useMemo(
+		() => demoExperiment({ arm, experiment: experimentEnabled }),
+		[experimentEnabled, arm]
+	);
+	const isSelfHost = backend === 'self-host';
+	const hostedLabel = isSelfHost ? 'Self-hosted' : 'Hosted';
+
+	const navigate = useCallback(
+		(next: Partial<DemoParams>) => {
+			const merged: DemoParams = { ...params, ...next };
+			router.replace(`${pathname}${buildSearch(merged)}`, { scroll: false });
+		},
+		[router, pathname, params]
+	);
+
+	const selectScenario = useCallback(
+		(id: string) => {
+			const nextScenario = getScenarioById(id);
+			navigate({
+				country: nextScenario.country,
+				region: nextScenario.region ?? '',
+				scenarioId: nextScenario.id,
+			});
+		},
+		[navigate]
+	);
+
+	const iabConfig = useMemo(
+		() =>
+			// oxlint-disable-next-line sort-keys -- Preserve declaration order, interface shape, and public compatibility.
+			({
+				// Offline mode has no server to supply a CMP ID, so the client
+				// config must provide one. Matches the self-host backend.
+				cmpId: DEMO_CMP_ID,
+				vendors: DEMO_IAB_VENDOR_IDS,
+				customVendors: DEMO_CUSTOM_VENDORS,
+			}),
+		[]
+	);
+
+	const overrides = useMemo(() => {
+		const nextOverrides: { country?: string; region?: string } = {};
+		if (params.country) {
+			nextOverrides.country = params.country;
+		}
+		if (params.region) {
+			nextOverrides.region = params.region;
+		}
+		return nextOverrides;
+	}, [params.country, params.region]);
+
+	// Remount the provider whenever the simulated environment changes so the
+	// consent manager re-initializes from scratch.
+	const providerKey = [
+		backend,
+		params.mode,
+		params.scenarioId,
+		params.country,
+		params.region,
+		experimentRun,
+	].join('-');
+
+	// Use the default theme during SSR/hydration to avoid mismatches, then
+	// switch to the visitor's preset. The IAB banner keeps its default
+	// center-of-page placement, but clicks pass through the backdrop so the
+	// demo controls stay usable while it is open.
+	const activeTheme = themeMounted ? presetTheme : undefined;
+	const demoTheme = useMemo(
+		() => ({
+			...activeTheme,
+			slots: {
+				...activeTheme?.slots,
+				iabConsentBanner: {
+					style: { pointerEvents: 'none' },
+				},
+				iabConsentBannerCard: {
+					style: { pointerEvents: 'auto' },
+				},
+			},
+		}),
+		[activeTheme]
+	);
+
+	const sharedOptions = {
+		consentCategories: [...CONSENT_CATEGORIES],
+		i18n: {
+			messages:
+				demoI18nMessages[scenario.policy.i18n?.messageProfile ?? 'default']
+					.translations,
+		},
+		overrides,
+		// Scenarios without an explicit presentation take the demo's per-policy
+		// shape, so different regimes look different out of the box. The
+		// experiment replaces it so the arms, not the scenario, decide the shape.
+		...(experiment
+			? { callbacks: experimentCallbacks, experiment }
+			: { presentation: scenario.runtimePresentation }),
+		scripts: createDemoScripts('demo-analytics'),
+		theme: demoTheme,
+	};
+
+	const providerOptions =
+		params.mode === 'hosted'
+			? {
+					...sharedOptions,
+					mode: hosted({
+						headers: isSelfHost
+							? { [DEMO_SCENARIO_HEADER]: params.scenarioId }
+							: undefined,
+						url: isSelfHost ? '/api/self-host' : HOSTED_BACKEND_URL,
+					}),
+				}
+			: {
+					mode: offline({
+						policyRules: getScenarioPolicyRules(params.scenarioId),
+					}),
+					...sharedOptions,
+				};
+
+	return (
+		<main className="bg-background min-h-screen">
+			{themeMounted && preset === 'glass' && (
+				<>
+					<GlassBackdrop />
+					<LiquidGlassFilter />
+				</>
+			)}
+			<div className="relative mx-auto flex max-w-6xl flex-col gap-8 px-4 py-8 sm:px-6 lg:px-8">
+				<header className="border-border/80 flex flex-wrap items-center justify-between gap-4 border-b pb-6">
+					<div className="space-y-1">
+						<h1 className="text-xl font-semibold tracking-tight">
+							c15t demo{isSelfHost ? ' — self-hosted backend' : ''}
+						</h1>
+						<p className="text-muted-foreground text-sm">
+							Pick a scenario to see which policy resolves and the banner it
+							produces.
+						</p>
+					</div>
+
+					<div className="text-muted-foreground flex flex-wrap items-center gap-3 text-sm">
+						<a
+							href="https://c15t.com/docs"
+							target="_blank"
+							rel="noreferrer"
+							className="hover:text-foreground underline-offset-4 transition hover:underline"
+						>
+							Docs
+						</a>
+						<ThemeSwitcherButton />
+					</div>
+				</header>
+
+				<ConsentProvider
+					key={providerKey}
+					options={providerOptions}
+				>
+					<div className="grid gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(20rem,0.95fr)]">
+						<section className="space-y-8">
+							{/* Mode — dev-only control. Hidden on the sales-facing page
+							    (offline is the only mode that matters there), but still
+							    shown if a ?mode=hosted link brought you here so the
+							    state is never invisible. */}
+							{(isSelfHost || params.mode === 'hosted') && (
+								<div className="space-y-3">
+									<p className="label-pixel text-muted-foreground">Mode</p>
+									<div className="flex flex-wrap gap-2">
+										<PillButton
+											active={params.mode === 'offline'}
+											onClick={() => navigate({ mode: 'offline' })}
+										>
+											Offline
+										</PillButton>
+										<PillButton
+											active={params.mode === 'hosted'}
+											onClick={() => navigate({ mode: 'hosted' })}
+										>
+											{hostedLabel}
+										</PillButton>
+									</div>
+									<p className="text-muted-foreground text-sm">
+										{
+											// oxlint-disable-next-line no-nested-ternary -- Preserve established branch order and control flow.
+											params.mode === 'offline'
+												? 'Offline mode simulates the selected scenario locally — no backend required.'
+												: isSelfHost
+													? 'Policies resolve through this app’s /api/self-host route using the selected scenario.'
+													: 'Connected to a hosted inth.com instance. Policies come from that instance’s configuration, so scenario packs below only apply in offline mode.'
+										}
+									</p>
+								</div>
+							)}
+
+							{/* Scenarios */}
+							<div className="space-y-5">
+								<ScenarioGroup
+									title="Built-in presets"
+									description="Policy packs that ship with c15t."
+									group="preset"
+									activeId={params.scenarioId}
+									onSelect={selectScenario}
+								/>
+								<ScenarioGroup
+									title="Custom examples"
+									description="Overrides that show how far policy packs can be shaped."
+									group="custom"
+									activeId={params.scenarioId}
+									onSelect={selectScenario}
+								/>
+							</div>
+
+							{/* Manual location override */}
+							<div className="space-y-3">
+								<p className="label-pixel text-muted-foreground">
+									Location override
+								</p>
+								<div className="flex flex-wrap items-end gap-3">
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="country"
+											className="text-xs"
+										>
+											Country
+										</Label>
+										<Input
+											id="country"
+											value={params.country}
+											onChange={(event) =>
+												navigate({
+													country: event.target.value.toUpperCase(),
+												})
+											}
+											placeholder="DE"
+											maxLength={2}
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
+										/>
+									</div>
+									<div className="space-y-1.5">
+										<Label
+											htmlFor="region"
+											className="text-xs"
+										>
+											Region
+										</Label>
+										<Input
+											id="region"
+											value={params.region}
+											onChange={(event) =>
+												navigate({ region: event.target.value.toUpperCase() })
+											}
+											placeholder="CA"
+											maxLength={3}
+											className="border-border/80 w-20 rounded-full font-mono shadow-none"
+										/>
+									</div>
+									<p className="text-muted-foreground pb-2 text-xs">
+										Pretend the visitor is somewhere else without changing the
+										scenario.
+									</p>
+								</div>
+							</div>
+
+							{experiment ? (
+								<ExperimentEvents events={experimentEvents} />
+							) : null}
+
+							<VideoDemo inline />
+						</section>
+
+						{/* Live status */}
+						<section className="border-border/80 space-y-6 border-t pt-8 lg:border-t-0 lg:border-l lg:pt-0 lg:pl-8">
+							<div className="space-y-2">
+								<p className="label-pixel text-muted-foreground">
+									Current scenario
+								</p>
+								<h2 className="text-2xl font-semibold tracking-tight">
+									{scenario.label}
+								</h2>
+								<p className="text-muted-foreground text-sm leading-6">
+									{scenario.description}
+								</p>
+							</div>
+
+							<LiveStatus mode={params.mode} />
+						</section>
+					</div>
+
+					<ConsentBanner />
+					<ConsentDialog />
+					<DevelopmentDevTools />
+					{/* The IAB banner carries its own resurface control, and a none
+					    rule with no added rights owes no control at all. */}
+					{scenario.showsTriggerToolbar ? (
+						<ConsentDialogTriggerToolbar
+							ariaLabel="Privacy controls"
+							defaultPosition="bottom-right"
+							persistPosition={false}
+							showWhen="after-prompt"
+						/>
+					) : null}
+					<IABProvider {...iabConfig}>
+						<IABConsentBanner
+							trapFocus={false}
+							scrollLock={false}
+						/>
+						<IABConsentDialog />
+					</IABProvider>
+				</ConsentProvider>
+			</div>
+		</main>
+	);
+};

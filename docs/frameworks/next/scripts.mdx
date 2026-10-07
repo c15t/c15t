@@ -101,14 +101,14 @@ To send your own events only to allowed integrations, see
 
 Open the production build in a fresh browser session with DevTools open.
 
-1. Under an opt-in policy, neither PostHog nor X Pixel requests anything before
-   you choose.
-2. Open **Privacy settings** and turn on **Analytics** (the `measurement` category) only. PostHog loads and
-   X Pixel stays blocked.
+1. Under an opt-in policy, no vendor requests anything before you choose.
+2. Open **Privacy settings** and turn on **Analytics** (the `measurement`
+   category) only. PostHog loads, and marketing vendors such as Meta Pixel stay
+   blocked.
 3. Reject, reload, and reopen **Privacy settings**. The rejection is still
-   selected and neither vendor loads.
+   selected and no vendor loads.
 4. Turn a granted category off. The page reloads and that vendor does not load
    again.
 
-The [runnable example](/docs/examples) has the same script definitions, and
+The [runnable example](/docs/examples) registers PostHog, and
 [the consent checks](/docs/guides/verify-consent) cover the release checklist.

@@ -17,6 +17,20 @@ The panel reads the client's kernel and the categories its dialog offers.
 language and GPC signal and runs the policy again, so you can check what a
 visitor elsewhere gets.
 
+## Open DevTools from the trigger
+
+With `ui.trigger` on, the stock trigger shows a DevTools button next to its own
+while the panel is mounted, and the panel hides its floating launcher, so one
+control sits in the corner. The DevTools button sits at the end farthest from
+the corner. The panel opens just past the trigger, aligned with its outer
+edge, and follows it when a visitor drags the trigger to another corner.
+`mountDevTools` and `mountConsentUI` can run in either order.
+
+The trigger hides while the banner or the dialog is open. The panel then shows
+its own launcher in its `position` corner until the trigger returns.
+`destroy()` on the panel turns the trigger back into a single button. A panel
+mounted with `embedded: true` keeps the trigger as it is.
+
 ## Mount the panel with a runtime or kernel
 
 For [`createConsentRuntime`](/docs/frameworks/javascript/headless) or a kernel

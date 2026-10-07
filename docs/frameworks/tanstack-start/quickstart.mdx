@@ -9,7 +9,7 @@ group: frameworks
 This guide sets up the recommended path for a TanStack Start app with server
 rendering. On each request, a server function in the root loader reads the
 visitor's consent cookie and location headers, resolves their policy from a
-cached policy manifest, and hands the result to `ConsentRoot`. The banner is
+build-time policy manifest, and hands the result to `ConsentRoot`. The banner is
 part of the first HTML, and gated scripts can run right after hydration.
 
 It needs a running Start server. For SPA mode, prerendered pages or a static
@@ -21,6 +21,10 @@ rules for your regions, add your site's origin to the trusted origins, and copy
 the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
@@ -44,16 +48,14 @@ If `src/start.ts` already exists, add `consentRequestMiddleware()` to its
 
 ## Register your vendor scripts
 
-Create `src/scripts.ts`. PostHog waits for measurement permission and X Pixel
-waits for marketing permission, so your policy must include both categories.
-PostHog uses its EU host; change `region` to `'us'` for a US project. Remove any
-other PostHog or X Pixel loader from your app so each vendor loads once.
+Create `src/scripts.ts`. PostHog waits for measurement permission, so your
+policy must include that category. PostHog uses its EU host; change `region` to
+`'us'` for a US project. Remove any other PostHog loader from your app so
+PostHog loads once.
 
 <include src="../../shared/examples/tanstack-start/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. Remove the loader for a vendor you don't
-use.
+Replace `phc_your_project_key` with your PostHog project key.
 
 ## Resolve consent in the root route
 
@@ -61,15 +63,17 @@ Replace or merge `src/routes/__root.tsx`:
 
 <include src="../../shared/examples/tanstack-start/root.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-exactly as Inth shows it, including any path prefix.
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
+shows it, including any path prefix, or replace the
+`https://your-project.inth.app` fallback. Vite writes the value into both the
+server and browser builds.
 
 What each part does:
 
 - **`getConsentState`** runs on the server. `createConsentStateHandler` reads
-  the `c15t` cookie and the headers from the middleware, fetches the policy
-  manifest from your backend, caches it in memory, and resolves this visitor's
-  policy. Declare the `createServerFn()` call in your own module, as shown.
+  the `c15t` cookie and the headers from the middleware, then resolves this
+  visitor's policy. The build-time step below supplies its manifest snapshot;
+  without a snapshot, the handler fetches and caches the manifest at runtime. Declare the `createServerFn()` call in your own module, as shown.
   Start's compiler finds server code by that call site, so a server function
   built inside a package does not work. In the browser build,
   `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
@@ -85,10 +89,14 @@ What each part does:
   serializable data, and vendor loaders contain functions.
 - **The stylesheet** loads through `head()` with Vite's `?url` import.
 
-If the backend does not answer within 500 ms, the server function gives up and
+With runtime fetching, if the backend does not answer within 500 ms, the server function gives up and
 returns the cookie and header state. The page renders without the banner,
 optional categories stay denied, and the browser resolves consent after it
 loads.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/tanstack-start.mdx" />
 
 ## Gate your own features
 
@@ -120,14 +128,13 @@ the test only.
 
 1. **Server HTML.** View the page source. It contains an element with
    `data-testid="consent-banner-root"`.
-2. **Before a choice.** There are no requests to `posthog.com` or
-   `static.ads-twitter.com`.
+2. **Before a choice.** There are no requests to `posthog.com`.
 3. **Reject All.** The banner closes and the vendor requests stay absent.
 4. **Reload and view source again.** The HTML no longer contains the banner,
    because the server read the stored rejection from the `c15t` cookie.
 5. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
-   `measurement` category) and **Marketing** off. Turn on **Analytics** and save. PostHog's `array.js` loads and
-   X Pixel stays absent.
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and
+   save. PostHog's `array.js` loads.
 6. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
 [Troubleshooting](/docs/frameworks/tanstack-start/troubleshooting) covers the
@@ -145,5 +152,4 @@ release checklist.
 - [Components](/docs/frameworks/tanstack-start/components) and
   [hooks](/docs/frameworks/tanstack-start/hooks).
 - The runnable app in `examples/tanstack-start` of the
-  [c15t repository](https://github.com/c15t/c15t) contains this setup and every
-  rendering variant.
+  [c15t repository](https://github.com/c15t/c15t) contains this setup.

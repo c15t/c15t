@@ -49,6 +49,7 @@ import type {
 	ProbePolicyContract,
 } from '../../../../internals/conformance/src/contract/policy-driver';
 import type { ScenarioPolicy } from '../../../../internals/conformance/src/contract/policy-scenarios';
+import { preloadPersistenceWriter } from '../../../core/src/modules/persistence/mount';
 import { validateStoredConsentEnvelope } from '../../../core/src/modules/persistence/record-codec';
 import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
 import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
@@ -212,7 +213,11 @@ const getDom = (kernel: ConsentKernel): PolicyDomEvidence => {
 
 /** Execute raw shared scenarios against a mounted Vue runtime and real controls. */
 export const createPolicySession: CreatePolicySession = async (setup) => {
-	await Promise.resolve();
+	// Persistence loads its write code on demand, and a save's write waits
+	// for it. Load it first, as core's own test setup does: otherwise the
+	// first write can land after the step's settle, and even after this
+	// session's cleanup, in the next scenario's storage.
+	await preloadPersistenceWriter();
 	let resolution = prepare(setup.policy);
 	let response: InitResponse = {
 		cmpId: setup.policy.model === 'iab' ? 123 : undefined,

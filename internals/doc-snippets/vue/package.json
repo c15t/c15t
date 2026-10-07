@@ -1,0 +1,17 @@
+{
+	"name": "@c15t/doc-snippets-vue",
+	"private": true,
+	"type": "module",
+	"scripts": {
+		"check-types": "vue-tsc --noEmit"
+	},
+	"dependencies": {
+		"@c15t/integrations": "workspace:*",
+		"c15t": "workspace:*",
+		"vue": "^3.5.39"
+	},
+	"devDependencies": {
+		"typescript": "6.0.3",
+		"vue-tsc": "^3.2.6"
+	}
+}

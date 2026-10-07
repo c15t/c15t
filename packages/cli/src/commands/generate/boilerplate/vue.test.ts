@@ -112,7 +112,7 @@ const server = await createServer({
   { find: '#c15t/composables', replacement: ${JSON.stringify(resolve(packageRoot, framework === 'nuxt' ? 'src/index.ts' : 'src/runtime/composables/index.ts'))} },
   { find: '@c15t/integrations/segment', replacement: ${JSON.stringify(resolve(packageRoot, '../integrations/src/vendors/analytics/segment.ts'))} },
   { find: '@c15t/vue/vue-plugin', replacement: ${JSON.stringify(resolve(packageRoot, 'src/index.ts'))} },
-  { find: '@c15t/vue/consent-root', replacement: ${JSON.stringify(resolve(packageRoot, 'src/runtime/components/consent-root.vue'))} },
+  { find: '@c15t/vue/consent-root', replacement: ${JSON.stringify(resolve(packageRoot, 'src/runtime/components/root.vue'))} },
  ] },
  ssr: { noExternal: ['@c15t/ui'] },
 });
@@ -133,11 +133,18 @@ try {
 } finally { await server.close(); }
 `
 				);
-				const output = execFileSync('bun', [resolve(directory, 'verify.mjs')], {
-					cwd: packageRoot,
-					encoding: 'utf8',
-					timeout: 60_000,
-				});
+				// Match Vitest's Node runtime, which leaves dependency tsconfig
+				// aliases to type checking instead of loading declarations.
+				const output = execFileSync(
+					process.execPath,
+					[resolve(directory, 'verify.mjs')],
+					{
+						cwd: packageRoot,
+						encoding: 'utf8',
+						killSignal: 'SIGKILL',
+						timeout: 60_000,
+					}
+				);
 				expect(output).toContain('rendered');
 			} finally {
 				await rm(directory, { force: true, recursive: true });

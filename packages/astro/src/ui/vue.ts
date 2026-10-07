@@ -21,6 +21,7 @@ import type {
 	ConsentDialogHandle,
 } from './adapter';
 import { requireDialogSurface } from './adapter';
+import { closeDialogSurface } from './close-dialog';
 import { buildProviderProps } from './provider-props';
 
 /** The Vue 3 dialog surface implementation. */
@@ -51,7 +52,7 @@ export const vueDialogAdapter: ConsentDialogAdapter = {
 
 		return {
 			close() {
-				context.runtime.kernel.set.activeUI('none');
+				closeDialogSurface(context.runtime);
 			},
 			destroy() {
 				app.unmount();

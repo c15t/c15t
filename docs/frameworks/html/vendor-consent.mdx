@@ -11,7 +11,7 @@ group: frameworks
 Queue a `config` call with `vendors` before the c15t script tag. Each `id` is
 the slug your gated tags and iframes name:
 
-<include src="../../shared/examples/script-tag/vendors.mdx" />
+<include src="../../shared/examples/html/vendors.mdx" />
 
 `vendors` is an ordinary `config` option, so `c15t.init({ vendors })` on a
 page with `data-manual` works too. See
@@ -25,11 +25,11 @@ Add `data-c15t-vendor` to a gated `<script type="text/plain">` tag, next to
 its `data-c15t-category`. The tag runs once its category is allowed and the
 visitor has not switched its vendor off:
 
-<include src="../../shared/examples/script-tag/vendor-scripts.mdx" />
+<include src="../../shared/examples/html/vendor-gated-scripts.mdx" />
 
 Add `data-vendor` to a gated iframe:
 
-<include src="../../shared/examples/script-tag/embed.mdx" />
+<include src="../../shared/examples/html/vendor-gated-embed.mdx" />
 
 | Target | Field |
 | --- | --- |

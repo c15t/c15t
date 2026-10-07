@@ -25,10 +25,17 @@ packages:
 
 ### An undeclared vendor reads as not allowed
 
-Breaking change: reading vendor consent for an id that no `vendors` entry, script slug or backend vendor list declares now returns `false`. Before, React's `useVendorAllowed`, Astro's `client.isVendorAllowed` and `@c15t/browser`'s `isVendorAllowed` returned `true` for such an id without checking any category, so a typo or a missing declaration read as allowed before the visitor consented. In development, c15t logs one warning per undeclared id that names the missing declaration. Declare every vendor you read, for example `vendors: [{ id: 'youtube', category: 'measurement', ... }]`.
+Breaking. Reading vendor consent for an id that no `vendors` entry, script slug
+or backend vendor list declares returns `false`. React's `useVendorAllowed`,
+Astro's `client.isVendorAllowed` and `@c15t/browser`'s `isVendorAllowed` used to
+return `true`, so a typo read as allowed before the visitor consented. In
+development, c15t warns once per undeclared id. Declare every vendor you read,
+for example `vendors: [{ id: 'youtube', category: 'measurement', ... }]`.
 
-The rule lives in one helper, `isVendorAllowed(snapshot, vendorId, now?)`, exported from `c15t` and `@c15t/core`. A declared vendor keeps its behaviour: it is allowed when its category condition passes and, outside an IAB policy, the visitor has not switched it off.
+The check is exported as `isVendorAllowed(snapshot, vendorId, now?)` from `c15t`
+and `@c15t/core`. Vue adds `useVendorAllowed(vendorId)`, auto-imported in Nuxt,
+and the Svelte manager from `getConsentManager()` adds
+`isVendorAllowed(vendorId)`.
 
-Vue gains `useVendorAllowed(vendorId)`, which returns a computed boolean and is auto-imported in Nuxt. The Svelte consent manager from `getConsentManager()` gains `isVendorAllowed(vendorId)`.
-
-Scripts, iframes and network rules that carry an undeclared `vendor` slug are gated as before: they follow their category.
+Scripts, iframes and network rules with an undeclared `vendor` slug still follow
+their category.

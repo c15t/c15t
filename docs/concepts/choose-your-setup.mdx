@@ -11,7 +11,7 @@ to the alternatives it rules out.
 
 | Your app | Setup | Guide |
 | --- | --- | --- |
-| Next.js App Router with a Next.js server | Server resolves consent from a cached manifest and streams it to the page | [App Router](/docs/frameworks/next/rendering#pick-your-rendering-path) |
+| Next.js App Router with a Next.js server | Server resolves consent from a build-time manifest and streams it to the page | [App Router](/docs/frameworks/next/quickstart) |
 | Next.js App Router, banner must be in the first HTML | Await consent inside `Suspense` | [Stream or await](/docs/frameworks/next/rendering#stream-or-await-consent-in-the-app-router) |
 | Next.js with static, ISR or `'use cache'` pages | Browser resolves consent on those pages | [Static, ISR and cached pages](/docs/frameworks/next/rendering#render-static-isr-and-cached-pages) |
 | Next.js Pages Router | Resolve consent in `getServerSideProps` | [Pages Router](/docs/frameworks/next/rendering#pick-your-rendering-path) |
@@ -21,14 +21,14 @@ to the alternatives it rules out.
 | TanStack Start in SPA mode or prerendered | Browser resolves consent | [TanStack Start rendering](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
 | React with Vite, or another single-page app | Browser resolves consent | [React](/docs/frameworks/react/quickstart) |
 | React Router framework mode, Remix, or another server-rendered React app | Browser resolves consent after hydration | [React rendering](/docs/frameworks/react/rendering#react-router-remix-and-other-server-rendered-apps) |
-| Nuxt with a Nuxt server | Nuxt module resolves consent on the server from a cached manifest | [Nuxt](/docs/frameworks/nuxt/quickstart) |
+| Nuxt with a Nuxt server | Nuxt module resolves consent on the server from a build-time manifest | [Nuxt](/docs/frameworks/nuxt/quickstart) |
 | Nuxt with prerendered or cached routes | Nuxt server for most pages, the browser on prerendered and cached routes | [Nuxt prerendered and cached routes](/docs/frameworks/nuxt/rendering#prerendered-and-cached-routes) |
 | Nuxt with `nuxt generate` on static hosting | Nuxt module, browser resolves consent from the manifest or `/init` | [Nuxt static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting) |
 | Nuxt with `ssr: false` | Nuxt module, browser resolves consent from the manifest | [Nuxt single-page app](/docs/frameworks/nuxt/rendering#build-a-single-page-app-with-ssr-false) |
 | Vue with Vite | Vue plugin, browser resolves consent | [Vue](/docs/frameworks/vue/quickstart) |
 | Vue rendered on the server without Nuxt | Vue plugin; the banner mounts after hydration. Use Nuxt for the banner in server HTML. | [Vue rendering](/docs/frameworks/vue/rendering#server-rendering-without-nuxt) |
 | Astro with static output | Browser resolves consent through the hosted backend | [Astro static output](/docs/frameworks/astro/rendering#static-output-with-hosted) |
-| Astro with server output and an adapter | Middleware resolves consent from a cached manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
+| Astro with server output and an adapter | Middleware resolves consent from a build-time manifest | [Astro server output](/docs/frameworks/astro/rendering#server-output-with-manifest) |
 | Svelte with Vite | Svelte provider, browser resolves consent | [Svelte](/docs/frameworks/svelte/quickstart) |
 | SvelteKit with a server | Root layout load resolves consent on the server | [SvelteKit](/docs/frameworks/sveltekit/quickstart) |
 | SvelteKit with `adapter-static`, prerendered pages or SPA mode | Browser resolves consent | [SvelteKit rendering](/docs/frameworks/sveltekit/rendering#build-a-static-site) |
@@ -74,9 +74,18 @@ public policy manifest, never a response that contains a visitor's consent.
 
 ## How the server gets the policy
 
-Server setups fetch policy one of two ways:
+Use a build-time manifest as the default for supported production builds.
+Next.js, TanStack Start, Nuxt server output, Astro server output and SvelteKit
+can resolve requests from the deployment's snapshot. Vite apps can bundle it
+for browser resolution too; location-based policies may still need a location
+request. The framework quickstarts show the build hook and snapshot wiring.
 
-- **Manifest**, used by the Next.js, Nuxt and Astro server guides.
+<include src="../shared/build-time-manifest.mdx" />
+
+For deployments that need policy updates without a rebuild, choose a runtime
+path:
+
+- **Cached manifest**.
   Your server downloads the project's public policy file, caches it, and
   resolves each visitor locally. Consent saves still go to the backend.
 - **`/init`**. Each visit asks the backend to resolve the visitor. Simpler, but

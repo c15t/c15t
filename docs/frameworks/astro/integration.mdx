@@ -17,7 +17,7 @@ adds four things to your site:
 - The c15t stylesheet on every page.
 - In `manifest()` mode, the `/api/c15t/init` and `/api/c15t/manifest` routes.
 
-<include src="../../shared/examples/astro-demo/static-config.mdx" />
+<include src="../../shared/examples/astro-static/static-config.mdx" />
 
 List the Astro integration of your `ui` framework before `c15t()`. Import
 `c15t` and the mode helpers from `c15t/astro`.
@@ -79,6 +79,7 @@ mode fits which Astro output.
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
+| `buildManifest` | `boolean` | `false` | Recommended with `manifest()` and server output. Fetches policy during build and development setup and embeds it in generated options. Requires an absolute upstream URL. Rebuild after policy edits. See [build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds). |
 | `consentCategories` | `AllConsentNames[]` | Inferred from scripts and the policy | Categories the banner and dialog offer |
 | `scripts` | `Script[]` | None | Scripts without callbacks, loaded when their category is allowed. See [Scripts](/docs/frameworks/astro/scripts) |
 | `vendors` | `Vendor[]` | None | Vendors the dialog lists with their own switch inside a category. Merged with vendors from the backend manifest. See [Vendor consent](/docs/frameworks/astro/vendor-consent) |
@@ -162,7 +163,7 @@ you serve those routes yourself. See
 A path to a module whose default export adds live values in the browser.
 Use an absolute path, as the quickstart does with `fileURLToPath`:
 
-<include src="../../shared/examples/astro-demo/client-entrypoint.mdx" />
+<include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
 The default export is a `C15tClientOptionsExtension` from `c15t/astro`:
 

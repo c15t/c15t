@@ -8,6 +8,10 @@ packages:
       - exit-prerelease(npm:c15t)
 ---
 
-### Type `nonce`, `iframeBlocker`, `storageConfig`, `domain` and `app.config.ts` for Nuxt
+### Type more Nuxt module options and `app.config.ts`
 
-The Nuxt module options now accept `nonce`, `iframeBlocker`, `storageConfig` and `domain`, which the runtime already read. The `c15t` key of `app.config.ts` is now typed, including when the module is registered as `c15t/vue`, and accepts `networkBlocker.onRequestBlocked`. Module options pass through JSON and cannot hold that callback, so set it in `app.config.ts`.
+The Nuxt module options accept `nonce`, `iframeBlocker`, `storageConfig` and
+`domain`. The `c15t` key of `app.config.ts` is typed, including when the
+module is registered as `c15t/vue`, and accepts
+`networkBlocker.onRequestBlocked`. Set that callback in `app.config.ts`,
+because module options pass through JSON.

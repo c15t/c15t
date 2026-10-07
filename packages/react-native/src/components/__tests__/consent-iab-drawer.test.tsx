@@ -14,7 +14,7 @@
 
 import { afterEach, describe, expect, test } from 'vitest';
 
-import { IAB_DEMO_DISPLAY_MODEL } from '../../../../../examples/react-native-bare/src/fixtures/iab-display-model';
+import { IAB_DEMO_DISPLAY_MODEL } from '../../../../../internals/fixtures/react-native-bare/src/fixtures/iab-display-model';
 import { flushPromises } from '../../__tests__/helpers/fake-native';
 import {
 	animationState,
