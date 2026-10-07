@@ -14,10 +14,10 @@ value, and passed `preferences` and `previousPreferences`. v3's
 `onChoiceRecorded` fires for every accept, reject or save that confirms a
 category, including one that saves the same values again, because each save
 renews the choice's confirmation time. Its payload carries `snapshot`,
-`confirmed` and `actionAt`. To act only when a save changes a value, keep the
-last `snapshot.effectivePermissions` you saw and compare it category by
-category. Don't compare `explicitChoice`, whose timestamps change on every
-save. As in v2, a first save that changes a value counts as a change.
+`confirmed` and `actionAt`. v3 has no callback that fires only when a save
+changes a value. If you need the before and after values, use
+`onPermissionsChanged`: it passes `previous` and the new `snapshot` whenever
+effective permissions change, whether a save or something else changed them.
 
 v2's `onConsentSet` also fired on initialization and hydration. In v3,
 `onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`

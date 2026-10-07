@@ -64,7 +64,7 @@ Import hooks from `c15t/react`, `c15t/next` or `c15t/tanstack-start`, and
 | `consents` | `useConsents()` |
 | `saveConsents('all')` | `useHeadlessConsentUI().saveCustomPreferences('all')` |
 | `saveConsents('necessary')` | `useHeadlessConsentUI().saveCustomPreferences('none')` |
-| `saveConsents('custom')` | `useHeadlessConsentUI().saveCustomPreferences()`, which saves the draft |
+| `saveConsents('custom')` | `useConsentDraft().save()`, or `useHeadlessConsentUI().saveCustomPreferences()` inside a `ConsentDraftProvider` |
 | `selectedConsents` | `useConsentDraft().values` |
 | `setSelectedConsent(name, value)` | `useConsentDraft().set(name, value)` |
 | `setConsent(name, value)` | `useSaveConsents()`, called with `{ [name]: value }` |
@@ -92,8 +92,10 @@ banner or dialog after a successful save. `useSaveConsents()` calls the engine
 directly and does not close anything.
 
 In v2, `useConsentManager()` kept one draft per component. In v3,
-`useConsentDraft()` and `useHeadlessConsentUI()` share the draft of the nearest
-`ConsentDraftProvider`. When one component stages choices and another saves
-them, render both inside the same `ConsentDraftProvider`; otherwise the save
-commits nothing you staged. `ConsentWidget` already includes one. The codemod
+`useConsentDraft()` and `useHeadlessConsentUI()` share a draft only inside a
+`ConsentDraftProvider`. Without one, `saveCustomPreferences()` saves a fresh
+draft and ignores what `useConsentDraft().set()` staged, even in the same
+component. Save with `useConsentDraft().save()`, or render the code that stages
+and the code that saves inside one `ConsentDraftProvider`. `ConsentWidget`
+already includes one. The codemod
 adds a `TODO(c15t v3)` comment where this applies.

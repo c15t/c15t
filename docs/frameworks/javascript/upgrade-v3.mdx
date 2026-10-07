@@ -94,7 +94,7 @@ choice, so don't treat a `true` permission as a recorded grant. See
 | v2 export from `c15t` | v3 |
 | --- | --- |
 | `getCookie`, `setCookie`, `deleteCookie`, `getConsentFromStorage`, `saveConsentToStorage`, `deleteConsentFromStorage` | Removed. `createPersistence()` from `c15t/modules/persistence` owns storage. |
-| `loadScripts`, `unloadScripts`, `updateScripts`, `isScriptLoaded`, `getLoadedScriptIds` | `c15t/modules/script-loader` |
+| `loadScripts`, `unloadScripts`, `updateScripts`, `isScriptLoaded`, `getLoadedScriptIds` | Removed. Pass `scripts` to `createConsentRuntime()`, which mounts the loader on `start()`. To run a loader yourself, `createScriptLoader({ kernel, scripts })` from `c15t/modules/script-loader` returns `updateScripts(next)`, `getLoadedScriptIds()` and `dispose()`. Use `getLoadedScriptIds().includes(id)` for `isScriptLoaded(id)`. |
 | `createIframeBlocker` | `c15t/modules/iframe-blocker` |
 | `getEffectivePolicy`, `filterConsentCategoriesByPolicy` and the other policy helpers | `resolveConsentPresentation()` from `c15t` and the helpers in `c15t/surface-actions` |
 | `C15tClient`, `OfflineClient`, `CustomClient`, `API_ENDPOINTS` | Transports: `hosted()`, `offline()` and `custom()` from `c15t` |
