@@ -9,8 +9,8 @@ automatically and preserves any backend path prefix.
 
 The snapshot stays fixed until the next build and does not refresh in the
 background. Rebuild after changing policies,
-translations or vendors. A failed fetch stops the build; it does not silently
-reuse a previous snapshot. If your build tool restores cached application
+translations or vendors. A failed fetch or invalid manifest stops the build;
+it does not silently reuse a previous snapshot. If your build tool restores cached application
 output, force a new build after a backend policy edit.
 
 Use runtime manifest fetching when policy changes must reach the app without

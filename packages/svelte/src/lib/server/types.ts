@@ -58,6 +58,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/** Report manifest resolutions to the backend. @default true */
 	reportSessions?: boolean;
 	/**
+	 * Hands session reports to the host's `waitUntil` so they outlive the response.
+	 * The promise never rejects. Defaults to detached work without registration.
+	 */
+	onBackgroundRevalidate?: (task: Promise<void>) => void;
+	/**
 	 * The URL SvelteKit resolved the request under (`event.url`). A
 	 * relative `backendURL` resolves against its origin. `loadConsent`
 	 * passes it for you.

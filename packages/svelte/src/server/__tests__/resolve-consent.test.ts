@@ -44,6 +44,34 @@ const backend = () =>
 	);
 
 describe('@c15t/svelte/server resolveConsent', () => {
+	test('hands a snapshot session report to the caller before it finishes', async () => {
+		let finish: ((response: Response) => void) | undefined;
+		const fetch = vi.fn<typeof globalThis.fetch>(
+			() =>
+				new Promise((resolve) => {
+					finish = resolve;
+				})
+		);
+		const onBackgroundRevalidate = vi.fn();
+		const state = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch,
+			headers: new Headers({ 'cf-ipcountry': 'DE' }),
+			manifest: MANIFEST_FIXTURE,
+			onBackgroundRevalidate,
+		});
+		expect(state.initialPolicyResolution?.status).toBe('matched');
+		expect(fetch).toHaveBeenCalledWith(
+			'https://consent.example.com/sessions',
+			expect.objectContaining({ method: 'POST' })
+		);
+		expect(onBackgroundRevalidate).toHaveBeenCalledTimes(1);
+		const task = onBackgroundRevalidate.mock.calls[0]?.[0];
+		expect(task).toBeInstanceOf(Promise);
+		finish?.(new Response(null, { status: 204 }));
+		await task;
+	});
+
 	test.each([
 		{
 			backendURL: 'https://consent.example.com',

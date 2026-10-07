@@ -55,8 +55,10 @@ browser takes over after hydration:
 
 - The server HTML contains your page but no banner and no consent state.
 - After hydration the browser resolves the bundled manifest, then shows the
-  banner if the policy asks for one. Regional policies may still call `/init`
-  when the browser lacks location. With `hosted()`, it always calls `/init`.
+  banner if the policy asks for one. When required country or region is
+  missing, it calls `/init` and uses the backend's current policy and
+  translations, which can differ from the build snapshot. With `hosted()`,
+  it always calls `/init`.
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 
@@ -105,7 +107,7 @@ browser path.
 
 A prerendered page is the same HTML for every visitor, so it cannot contain one
 visitor's consent. Use the quickstart's build-time snapshot. Consent saves and
-any location requests go to the backend URL directly, so the static host
+any `/init` requests go to the backend URL directly, so the static host
 needs no server route. Add the site's
 origin to the trusted origins in your Inth project.
 
@@ -133,7 +135,7 @@ custom transports.
    `data-testid="consent-banner-root"`.
 2. In DevTools Network, confirm there is no `/manifest` request with a
    build-time snapshot. A regional policy may still need an `/init` request
-   for location. With `hosted()`, one `/init` request runs unless you supply
-   `initialData`.
+   to resolve consent when geography is missing. With `hosted()`, one `/init`
+   request runs unless you supply `initialData`.
 3. The banner appears once the policy resolves. Vendor requests stay absent
    until you allow their category.

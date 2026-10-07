@@ -5,10 +5,15 @@ the Vue and c15t Vue plugins:
 
 {/* example: fragment */}
 
-```ts title="vite.config.ts"
+```ts title="vite.config.ts (plugins option)"
 import { consentManifest } from 'c15t/build';
 
-consentManifest({ backendURL: 'https://your-project.inth.app' });
+export default {
+	plugins: [
+		// Keep your existing framework plugins here.
+		consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	],
+};
 ```
 
 Vite writes `src/c15t-manifest.ts` before compilation or development startup.

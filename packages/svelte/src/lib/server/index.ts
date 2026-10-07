@@ -66,6 +66,7 @@ export const resolveConsent = function resolveConsent(
 			: undefined,
 		timeoutMs: options.timeoutMs,
 		trustForwardedHeaders: options.trustForwardedHeaders,
+		waitUntil: options.onBackgroundRevalidate,
 	});
 };
 

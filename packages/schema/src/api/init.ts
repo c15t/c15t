@@ -1,10 +1,10 @@
 import * as v from 'valibot';
 
-import { brandingSchema } from '~/shared/branding';
-import { globalVendorListSchema } from '~/shared/gvl';
-import { nonIABVendorSchema } from '~/shared/non-iab-vendor';
-import { policyResolutionWireSchema } from '~/shared/policy-wire-schema';
-import { vendorSchema } from '~/shared/vendor';
+import { brandingSchema } from '../shared/branding';
+import { globalVendorListSchema } from '../shared/gvl';
+import { nonIABVendorSchema } from '../shared/non-iab-vendor';
+import { policyResolutionWireSchema } from '../shared/policy-wire-schema';
+import { vendorSchema } from '../shared/vendor';
 
 /**
  * A title and description pair. Either may be omitted; the client fills

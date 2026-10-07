@@ -5,10 +5,15 @@ your existing Vite plugins:
 
 {/* example: fragment */}
 
-```ts title="vite.config.ts"
+```ts title="vite.config.ts (plugins option)"
 import { consentManifest } from 'c15t/build';
 
-consentManifest({ backendURL: 'https://your-project.inth.app' });
+export default {
+	plugins: [
+		// Keep your existing framework plugins here.
+		consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	],
+};
 ```
 
 Vite generates `src/c15t-manifest.ts` before compilation and development
@@ -27,12 +32,17 @@ init({
 });
 ```
 
-Keep your scripts and UI options. The browser uses the snapshot without a
-manifest fetch. Policies that need geography still call `/init` when the
-browser has no country. Consent saves and IAB vendor-list requests can still
-use the backend. Rebuild after editing policy, translations or vendors;
-a failed snapshot fetch stops the build. A script-tag site without a build
-step cannot run this hook.
+Keep your scripts and UI options. The browser resolves the snapshot without
+a manifest request when the policy does not need geography, or the required
+country and region are known through `overrides`. When required
+geography is missing, it calls backend `/init` and uses the backend's resolved
+policy and translations. Those visitors still wait for a backend round trip
+and can receive newer policy than the build snapshot.
+
+Consent saves and IAB vendor-list requests can still use the backend. Rebuild
+after editing policy, translations or vendors to update local resolutions;
+a failed or invalid snapshot fetch stops the build. A script-tag site without
+a build step cannot run this hook.
 
 <include src="../vite-build-manifest.mdx" />
 

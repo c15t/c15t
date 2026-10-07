@@ -1,6 +1,7 @@
 ---
 packages:
   '@c15t/core': minor
+  '@c15t/schema': patch
   '@c15t/nextjs': minor
   '@c15t/tanstack-start': minor
   '@c15t/astro': minor
@@ -20,11 +21,15 @@ stored consent still resolve per visitor.
 
 Svelte's framework-free `resolveConsent` helper also accepts a snapshot and
 resolves it locally, with optional backend session reporting.
+Both Svelte server helpers accept a background-work callback to keep session
+reports alive on serverless hosts without an event-provided `waitUntil`.
 
 Astro keeps the snapshot out of browser bundles. Nuxt skips manifest fetching
 during `nuxt prepare`, including dependency installation and type preparation.
 
-Snapshots stay fixed until the next build. A manifest fetch failure stops
+Snapshots stay fixed until the next build. Browser manifest transports can
+fall back to the backend's current `/init` resolution when required geography
+is missing. A manifest fetch failure or invalid snapshot stops
 the build. Framework quickstarts recommend build-time snapshots for supported
 production deployments, with runtime fetching for policy updates that need
 to apply without a rebuild. Consent saves, session reports and IAB vendor

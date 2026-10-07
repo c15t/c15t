@@ -381,8 +381,8 @@ The handlers are built on the consent route handler in `@c15t/core/server`,
 which the TanStack Start, SvelteKit, Astro and Nuxt adapters share, so the
 rules below are the same in every framework.
 
-`GET` resolves the cached manifest with the request's geography, language and
-GPC headers and responds with `cache-control: private, no-store` and
+`GET` resolves the build snapshot or runtime cached manifest with the request's
+geography, language and GPC headers and responds with `cache-control: private, no-store` and
 `x-c15t-policy-contract: 1`. The payload echoes the inputs it used as
 `resolvedOverrides` and `resolvedPrivacySignals`. When the request carries an
 `x-c15t-policy-contract` header with a different value, the response keeps the
@@ -392,8 +392,12 @@ with `reason: 'unsupported-contract'`. Whenever the resolution is not
 `gvlReference`, `cmpId` or `customVendors`. Requests without the header are
 treated as compatible.
 
-`manifestGET` forwards the upstream `cache-control`, `etag`, `last-modified`
-and `content-language` headers, adds `content-type: application/json` and an
+With a build-time `manifest`, `manifestGET` returns the complete snapshot as
+JSON with status `200`. It makes no upstream request, adds no cache or validator
+headers and does not answer `If-None-Match` with `304` or slice by `language`.
+
+With runtime fetching, `manifestGET` forwards the upstream `cache-control`,
+`etag`, `last-modified` and `content-language` headers, adds `content-type: application/json` and an
 `age` computed from the in-process cache, and answers a matching
 `If-None-Match` with `304`. It never invents a `cache-control` header the
 upstream did not send. The only query parameter passed upstream is a
@@ -401,8 +405,8 @@ upstream did not send. The only query parameter passed upstream is a
 is dropped, so a visitor's query string neither reaches the backend nor adds
 cache entries.
 
-When the manifest cannot be read and `backendURL` is set, `GET` asks the
-backend's own `GET /init` instead, forwarding only the geography, language and
+With runtime fetching, when the manifest cannot be read and `backendURL` is
+set, `GET` asks the backend's own `GET /init` instead, forwarding only the geography, language and
 GPC headers. This covers backends without `/manifest`. It happens for a `404`
 and for the first failure of a failing backend, not for every request while
 the manifest cache backs off. Otherwise the handler rejects and Next.js

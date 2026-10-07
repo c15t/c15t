@@ -64,9 +64,11 @@ including any path prefix.
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-`createNextConsentRouteHandlers` reads `backendURL` from the config and fetches
-`${backendURL}/manifest`. The route caches the public policy, so warm requests
-make no policy request to Inth.
+With the build-time `manifest` option, `createNextConsentRouteHandlers` serves
+the snapshot directly without an upstream request. With runtime fetching, it
+reads `backendURL` from the config and fetches `${backendURL}/manifest`. The
+route caches that public policy, so fresh cache hits make no policy request
+to Inth.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 

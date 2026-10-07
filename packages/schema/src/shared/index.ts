@@ -1,4 +1,5 @@
 export { type Branding, brandingSchema, brandingValues } from './branding';
+export { parseConsentManifest } from './consent-manifest-schema';
 export {
 	buildConsentManifestFromConfig,
 	type ConsentManifest,

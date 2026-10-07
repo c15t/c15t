@@ -73,10 +73,15 @@ Add `consentManifest` to your existing Vite plugins:
 
 {/* example: fragment */}
 
-```ts title="vite.config.ts"
+```ts title="vite.config.ts (plugins option)"
 import { consentManifest } from '@c15t/svelte/vite';
 
-consentManifest({ backendURL: 'https://your-project.inth.app' });
+export default {
+	plugins: [
+		// Keep your existing framework plugins here.
+		consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	],
+};
 ```
 
 Vite writes `src/c15t-manifest.ts` before compilation or development startup.
@@ -97,11 +102,18 @@ const mode = manifest({
 ```
 
 Pass `mode` to `ConsentManagerProvider` and keep the other provider options.
-The browser uses the snapshot without a manifest request. Policies that need
-geography still call `/init` if no country is available in `inputs` or
-overrides. Policy and resolver code are part of the browser bundle. Rebuild
-after policy, translation or vendor changes. A failed snapshot fetch stops
-the build; consent saves and IAB vendor-list requests can still use the network.
+The browser resolves the snapshot without a manifest request when it has the
+geography the policy needs, or the policy does not depend on geography.
+Supply known country and region through `inputs` or overrides to keep regional
+resolution on the snapshot. When required geography is missing, it calls
+backend `/init` and uses its resolved policy and translations. Those visitors
+still wait for a backend round trip and can receive newer policy than the
+build snapshot.
+
+Policy and resolver code are part of the browser bundle. Rebuild after policy,
+translation or vendor changes to update local resolutions. A failed or invalid
+snapshot fetch stops the build; consent saves and IAB vendor-list requests
+can still use the network.
 
 <include src="../../shared/vite-build-manifest.mdx" />
 

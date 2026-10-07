@@ -43,7 +43,8 @@ one source:
 | `backendURL` | `string` | none | The backend's base URL, absolute or `/`-relative. See the note on relative URLs below. |
 | `initRoute` | `string` | none | Your manifest route, such as `/api/c15t`. Wins over `backendURL`. |
 | `manifest` | `ConsentManifest` | none | Build-time snapshot. Wins over `initRoute` and resolves consent locally for each visitor. Stays fixed until rebuilding. |
-| `reportSessions` | `boolean` | `true` | With a snapshot, reports each resolved visit to an absolute `backendURL` through `/sessions`. Keep this work alive with the platform's `waitUntil`. |
+| `reportSessions` | `boolean` | `true` | With a snapshot, reports each resolved visit to an absolute `backendURL` through `/sessions`. |
+| `onBackgroundRevalidate` | `(promise, event) => void` | platform hook when available | Keeps session reports and unfinished init requests alive after the response. `event.platform.context.waitUntil` takes precedence; this callback is the fallback. See [keep background work alive](./rendering#keep-background-work-alive-after-the-response). |
 | `timeoutMs` | `number` or `false` | `500` | Longest wait for the backend or route, in milliseconds. `false` or `Infinity` waits as long as it takes; any other value that is not a finite, non-negative number uses the default. |
 | `shared` | `boolean` | the handle's `shared` | The page is served to every visitor, as a prerendered page is. Pass SvelteKit's `building` flag. See [prerendered pages](#prerendered-pages). |
 | `cookieName` | `string` | `c15t`, or the handle's | The consent cookie. Match the provider's `storageConfig.storageKey`. |
@@ -205,6 +206,7 @@ with each visitor's request inputs.
 | `backendURL` | `string` | none | Calls `<backendURL>/init` when no snapshot is supplied. With `manifest`, an absolute URL receives session reports. Without either, only the cookie and headers are read. A relative URL resolves against `requestURL`, or the `host` header when there is none. |
 | `manifest` | `ConsentManifest` | none | Build-time snapshot. Resolves locally using this visitor's inputs and takes precedence over backend policy fetching. |
 | `reportSessions` | `boolean` | `true` | Reports manifest resolutions to an absolute `backendURL`. Set `false` to skip reports. Hosted `/init` already counts the visitor. |
+| `onBackgroundRevalidate` | `(promise) => void` | none | Pass the host's `waitUntil` to keep session reports alive after a serverless response. |
 | `requestURL` | `string` or `URL` | none | The URL the framework resolved the request under, such as SvelteKit's `event.url`. `loadConsent` passes it for you. |
 | `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against `forwarded`, `x-forwarded-host` and `x-forwarded-proto`, and sends the visitor IP to the backend as `x-forwarded-for`. |
 | `cookieName` | `string` | `c15t` | The consent cookie. |

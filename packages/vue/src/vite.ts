@@ -2,6 +2,8 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { consentManifest as createManifestPlugin } from '@c15t/core/build';
+import type { ManifestBuildOptions } from '@c15t/core/build';
 import type { Plugin } from 'vite';
 
 const dir = path.dirname(fileURLToPath(import.meta.url));
@@ -66,6 +68,16 @@ export const c15tVue = function c15tVue(): Plugin {
 };
 
 export default c15tVue;
-/** Build-time snapshots for plain Vue applications. */
-export { consentManifest } from '@c15t/core/build';
 export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
+
+/**
+ * Generates a manifest before plain Vue compilation.
+ * @param options - Backend URL and generated module settings. Appends `/manifest`.
+ * @returns A Vite plugin using `@c15t/vue/vite` for its type import.
+ * @throws {Error} When the manifest cannot be fetched or written.
+ */
+export const consentManifest = (options: ManifestBuildOptions) =>
+	createManifestPlugin({
+		...options,
+		importSource: options.importSource ?? '@c15t/vue/vite',
+	});

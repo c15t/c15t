@@ -153,10 +153,16 @@ describe('buildManifest', () => {
 		}
 	});
 
-	test('fails setup when the upstream cannot supply the snapshot', async () => {
+	test.each([
+		{ error: '503', response: () => new Response(null, { status: 503 }) },
+		{
+			error: 'invalid consent manifest',
+			response: () => Response.json({ error: 'not a manifest' }),
+		},
+	])('stops the build on $error', async ({ response, error }) => {
 		vi.stubGlobal(
 			'fetch',
-			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
+			vi.fn(() => Promise.resolve(response()))
 		);
 		try {
 			const nuxt = createNuxt({
@@ -165,7 +171,7 @@ describe('buildManifest', () => {
 			});
 			await expect(
 				runWithNuxtContext(nuxt, () => module({}, nuxt))
-			).rejects.toThrow('503');
+			).rejects.toThrow(error);
 		} finally {
 			vi.unstubAllGlobals();
 		}

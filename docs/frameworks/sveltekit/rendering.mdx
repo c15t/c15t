@@ -126,6 +126,13 @@ Without it, those runtimes can cut the refresh and the visit report short.
 Requests keep getting the cached manifest, but it can stay stale for longer,
 and the backend misses those visits.
 
+When passing a snapshot directly to `loadConsent`, add the same optional
+`onBackgroundRevalidate: (promise) => waitUntil(promise)` callback to that
+call. It keeps the session report alive after the response. `loadConsent`
+uses `event.platform.context.waitUntil` when available and this callback
+otherwise. The framework-free `resolveConsent` helper also accepts
+`onBackgroundRevalidate`; it has no event from which to find a platform hook.
+
 ## Resolve request context once with c15tHandle
 
 `loadConsent` reads the consent cookie and headers itself. If several loads

@@ -2,6 +2,7 @@ import { mkdtemp, readFile, rm, stat, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { build } from 'vite';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -95,6 +96,10 @@ describe('manifest output', () => {
 			'https://consent.example.com/api/c15t///',
 			'https://consent.example.com/api/c15t/manifest',
 		],
+		[
+			'https://consent.example.com/api/?key=x#config',
+			'https://consent.example.com/api/manifest?key=x#config',
+		],
 	])(
 		'fetches /manifest under backendURL %s',
 		async (backendURL, manifestURL) => {
@@ -157,6 +162,13 @@ describe('manifest output', () => {
 });
 
 describe('framework build snapshot', () => {
+	test('keeps an explicit manifest URL intact, including its query', async () => {
+		const options = optionsFor(await createRoot());
+		const manifestURL = 'https://consent.example.com/public.json?version=2';
+		await loadBuildManifest({ ...options, manifestURL }, 'test/build');
+		expect(options.fetch).toHaveBeenCalledWith(manifestURL, expect.any(Object));
+	});
+
 	test('derives the upstream manifest URL from the backend', async () => {
 		const options = optionsFor(await createRoot());
 		expect(
@@ -192,5 +204,94 @@ describe('framework build snapshot', () => {
 			plugin.configResolved({ root }),
 		]);
 		expect(options.fetch).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('build snapshot validation', () => {
+	const pack = createConsentManifestPolicyPack({
+		id: 'regional',
+		match: { countries: ['DE'] },
+		model: 'opt-in',
+		prompt: 'choice',
+	});
+
+	test.each([
+		null,
+		[],
+		{},
+		{ ...MANIFEST_FIXTURE, schemaVersion: 1 },
+		{ ...MANIFEST_FIXTURE, revision: null },
+		{ ...MANIFEST_FIXTURE, branding: 'unknown' },
+		{ ...MANIFEST_FIXTURE, policyPacks: {} },
+		{ ...MANIFEST_FIXTURE, policyPacks: [null] },
+		{ ...MANIFEST_FIXTURE, policyPacks: [{ ...pack, fingerprints: {} }] },
+		{
+			...MANIFEST_FIXTURE,
+			policyPacks: [{ ...pack, match: {} }],
+		},
+		{ ...MANIFEST_FIXTURE, translations: { customTranslations: { en: null } } },
+		{
+			...MANIFEST_FIXTURE,
+			translations: { customTranslations: { en: { common: 'invalid' } } },
+		},
+		{
+			...MANIFEST_FIXTURE,
+			translations: {
+				customTranslations: { en: { common: { acceptAll: {} } } },
+			},
+		},
+		{
+			...MANIFEST_FIXTURE,
+			translations: { i18n: { messages: { default: { translations: [] } } } },
+		},
+		{ ...MANIFEST_FIXTURE, iab: { enabled: 'yes' } },
+		{ ...MANIFEST_FIXTURE, vendors: [{ id: 'missing-fields' }] },
+	])(
+		'rejects invalid JSON data before loading or writing: %j',
+		async (body) => {
+			const options = optionsFor(await createRoot());
+			options.fetch.mockImplementation(() =>
+				Promise.resolve(Response.json(body))
+			);
+			await expect(loadBuildManifest(options, 'test/build')).rejects.toThrow(
+				'test/build: /manifest returned an invalid consent manifest'
+			);
+			const defaults = {
+				importSource: 'c15t/build',
+				label: 'test/build',
+				outputFile: 'generated/manifest.ts',
+			};
+			await expect(writeManifestModule(options, defaults)).rejects.toThrow(
+				'invalid consent manifest'
+			);
+			await expect(
+				stat(join(options.rootDir, defaults.outputFile))
+			).rejects.toMatchObject({
+				code: 'ENOENT',
+			});
+		}
+	);
+
+	test('accepts a regional manifest and preserves its translation copy', async () => {
+		const body = {
+			...MANIFEST_FIXTURE,
+			policyPacks: [pack],
+			translations: {
+				i18n: {
+					messages: {
+						default: {
+							translations: {
+								de: { common: { acceptAll: 'Alle akzeptieren' } },
+							},
+						},
+					},
+				},
+			},
+		};
+		const options = optionsFor(await createRoot());
+		options.fetch.mockResolvedValue(Response.json(body));
+		await expect(loadBuildManifest(options, 'test/build')).resolves.toEqual(
+			body
+		);
 	});
 });

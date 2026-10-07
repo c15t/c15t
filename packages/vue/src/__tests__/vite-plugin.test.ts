@@ -7,15 +7,55 @@
  * emitted `dist/` tree.
  */
 import { existsSync } from 'node:fs';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
-import { c15tVue } from '../vite';
+import { c15tVue, consentManifest } from '../vite';
 
 const packageDir = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const distVitePath = join(packageDir, 'dist/vite.mjs');
+
+describe('Vue manifest generation', () => {
+	it.each([
+		{},
+		{ importSource: undefined },
+		{ importSource: '@c15t/core/build' },
+	])(
+		'generates a type import available to standalone Vue users: %o',
+		async (settings) => {
+			const root = await mkdtemp(join(tmpdir(), 'c15t-vue-manifest-'));
+			try {
+				await consentManifest({
+					...settings,
+					backendURL: 'https://consent.example.com',
+					fetch: vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
+						Promise.resolve(
+							Response.json({
+								branding: 'c15t',
+								revision: 'vue-build',
+								schemaVersion: 2,
+							})
+						)
+					),
+				}).configResolved({ root });
+				const source = await readFile(
+					join(root, 'src/c15t-manifest.ts'),
+					'utf8'
+				);
+				expect(source).toContain(
+					`from '${settings.importSource ?? '@c15t/vue/vite'}'`
+				);
+				expect(source).toContain('satisfies ConsentManifest');
+			} finally {
+				await rm(root, { force: true, recursive: true });
+			}
+		}
+	);
+});
 
 interface ResolvedPluginPaths {
 	stubPath: string;

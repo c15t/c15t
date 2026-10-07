@@ -19,11 +19,7 @@ const resolveBuildManifestURL = (
 	},
 	label: string
 ): string => {
-	const source =
-		options.manifestURL ??
-		(options.backendURL
-			? `${options.backendURL.replace(/\/+$/u, '')}/manifest`
-			: undefined);
+	const source = options.manifestURL ?? options.backendURL;
 	let url: URL;
 	try {
 		url = new URL(source ?? '');
@@ -36,6 +32,9 @@ const resolveBuildManifestURL = (
 		throw new Error(
 			`${label}: build-time manifests require an http(s) upstream URL.`
 		);
+	}
+	if (options.manifestURL === undefined) {
+		url.pathname = `${url.pathname.replace(/\/+$/u, '')}/manifest`;
 	}
 	return url.href;
 };

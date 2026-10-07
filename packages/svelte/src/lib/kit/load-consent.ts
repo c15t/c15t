@@ -9,11 +9,10 @@
  * request: `event.request`, `event.url`, `event.fetch`, the platform's
  * `waitUntil`, and the inputs `c15tHandle` normalized.
  */
-import { resolveRequestConsent } from '@c15t/core/server';
+import { readWaitUntil, resolveRequestConsent } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
-import { waitUntilFromEvent } from './routes';
 import type { C15tLocals, ConsentRequestOptions, ConsentState } from './types';
 
 /** Options for {@link loadConsent}. */
@@ -22,6 +21,12 @@ export interface LoadConsentOptions extends ConsentRequestOptions {
 	manifest?: ConsentManifest;
 	/** Report manifest resolutions to the backend. @default true */
 	reportSessions?: boolean;
+	/**
+	 * Keeps session reports and unfinished init requests alive after the response.
+	 * Used when `event.platform.context.waitUntil` is unavailable. Pass the
+	 * platform's `waitUntil`, such as the one from `@vercel/functions`.
+	 */
+	onBackgroundRevalidate?: (task: Promise<void>, event: RequestEvent) => void;
 	/**
 	 * Hosted mode: the c15t backend base URL, absolute or origin-relative.
 	 * `loadConsent` calls its `/init` directly. A relative URL resolves
@@ -119,6 +124,20 @@ const readLocals = function readLocals(
 	return (event.locals as { c15t?: C15tLocals }).c15t;
 };
 
+/** Prefer the adapter's hook; use the caller's hook on other platforms. */
+const backgroundWorkFor = (
+	event: RequestEvent,
+	fallback: LoadConsentOptions['onBackgroundRevalidate']
+) => {
+	const platformHook = readWaitUntil(
+		(event.platform as { context?: unknown } | undefined)?.context
+	);
+	return (
+		platformHook ??
+		(fallback ? (task: Promise<void>) => fallback(task, event) : undefined)
+	);
+};
+
 /**
  * Loads the consent prefetch for a request.
  *
@@ -199,6 +218,6 @@ export const loadConsent = function loadConsent(
 		storage: cookieName ? { storageKey: cookieName } : undefined,
 		timeoutMs: options.timeoutMs,
 		trustForwardedHeaders: options.trustForwardedHeaders,
-		waitUntil: (task) => waitUntilFromEvent(task, event),
+		waitUntil: backgroundWorkFor(event, options.onBackgroundRevalidate),
 	});
 };

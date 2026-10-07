@@ -54,9 +54,10 @@ import { consentConfig } from '@/c15t.config';
 export default createPagesApiHandlers(consentConfig).manifest;
 ```
 
-The route reads `backendURL` from the config and fetches
-`${backendURL}/manifest`. It caches the public policy and answers methods other
-than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
+With the build-time `manifest` option, the route serves the snapshot directly
+without an upstream request. With runtime fetching, it reads `backendURL` from
+the config, fetches `${backendURL}/manifest` and caches the public policy. It
+answers methods other than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
 the App Router route from the [App Router guide](/docs/frameworks/next/app-router#serve-the-manifest-route)
 instead; the runnable example does that.
 
