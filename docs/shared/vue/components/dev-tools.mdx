@@ -27,6 +27,20 @@ group: reference
   Accept and reject in the Consents panel apply only to the categories the
   policy covers, filtered by `consentCategories`. Necessary stays on.
   `DevTools` and `C15TDevTools` are other names for the same component.
+
+  ## Open DevTools from the consent trigger
+
+  While `ConsentDialogTrigger` is visible, it becomes a two-button toolbar
+  with a DevTools button, and DevTools hides its own floating launcher, so one
+  control occupies the corner. The DevTools button sits at the end farthest
+  from the trigger's corner. The panel opens just past the toolbar, aligned
+  with its outer edge, and follows it when a visitor drags the toolbar to
+  another corner. `position` applies again once no trigger is visible.
+
+  DevTools brings its launcher back whenever the trigger is hidden, for
+  example while `triggerShowWhen: 'after-consent'` waits for a choice. A
+  production build that loads DevTools only in development shows the single
+  trigger button.
 </section>
 
 <section id="props">

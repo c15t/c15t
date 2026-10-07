@@ -131,8 +131,9 @@ The widget is the list of categories inside the dialog. React and Vue call it
 | Label | `trigger.text` | None |
 | Toolbar, its items and icons | `trigger.toolbar`, `trigger.toolbarItem`, `trigger.toolbarIcon` | `consentDialogTriggerToolbar`, `consentDialogTriggerToolbarItem`, `consentDialogTriggerToolbarIcon` |
 
-Only React renders the toolbar. Vue has no toolbar, and the toolbar slots only
-reach Astro's React dialog.
+React renders the toolbar from `ConsentDialogTriggerToolbar`, and while
+`ConsentDevTools` is mounted. Vue renders it only while `ConsentDevTools` is
+mounted. In Astro, the toolbar slots reach the React dialog.
 
 ## Legal links and IAB TCF parts
 
