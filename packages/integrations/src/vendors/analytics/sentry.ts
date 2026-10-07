@@ -257,13 +257,25 @@ interface Permissions {
 	replay: boolean;
 }
 
+interface ClientGate {
+	client?: SentryClient;
+	errorsGated: boolean;
+	permissions: Permissions;
+	getClient: () => SentryClient | undefined;
+	getState: (client: SentryClient) => ClientState;
+	onChange: (client?: SentryClient, state?: ClientState) => void;
+	report: (error: unknown) => void;
+}
+
 interface ClientState {
 	/** Whether the app left the client enabled. The adapter never enables it past that. */
 	enabled: boolean;
 	/** Last enabled value written or observed by the adapter. */
 	lastEnabled: boolean;
-	/** Current adapter instance, including replacements on the same client. */
-	owner: object;
+	/** Every active configuration targeting this client, including distinct options. */
+	gates: Set<ClientGate>;
+	/** Effective error permission, retained for the final gate's removal. */
+	errorsAllowed: boolean;
 	/** Whether events may carry user data. Read by the event processor. */
 	piiAllowed: boolean;
 	/** Whether Replay envelopes may leave the browser. */
@@ -340,6 +352,9 @@ const defaultIntegrity: Record<string, string> = {
 // Sentry allows one Replay per page, and an app can recreate this script on
 // every render, so Replay bookkeeping lives with the client, not the adapter.
 const clientStates = new WeakMap<SentryClient, ClientState>();
+// Register mounted gates before SDK initialization, so a later client sees
+// every applicable denial even when that gate has no reason to poll for it.
+const activeGates = new Set<ClientGate>();
 // The same applies to starting Sentry: one start per `getClient`.
 const starts = new WeakMap<() => SentryClient | undefined, Promise<void>>();
 
@@ -576,6 +591,125 @@ const redactEnvelope = (envelope: SentryEnvelope): void => {
 	}
 };
 
+const stopReplay = (
+	client: SentryClient,
+	state: ClientState,
+	report: (error: unknown) => void
+): void => {
+	const replay = findReplay(client);
+	try {
+		if (replay && !state.stopping) {
+			// Recording stops synchronously before the promise is returned.
+			const pending = replay.stop({ flush: false });
+			state.stopping = (async () => {
+				try {
+					await pending;
+					state.stopFailed = false;
+				} catch (error) {
+					state.stopFailed = true;
+					report(error);
+				} finally {
+					state.stopping = undefined;
+				}
+			})();
+		}
+	} catch (error) {
+		state.stopFailed = true;
+		report(error);
+	} finally {
+		forgetReplaySession();
+	}
+};
+
+/** Apply the intersection once, then notify gates without letting them overwrite it. */
+const applyClientPermissions = (
+	client: SentryClient,
+	state: ClientState,
+	report: (error: unknown) => void
+): void => {
+	const gates = [...state.gates];
+	const clientOptions = client.getOptions();
+	const enabled = clientOptions.enabled !== false;
+	// Preserve changes the app makes while Sentry is running.
+	if (enabled !== state.lastEnabled) {
+		state.enabled = enabled;
+	}
+	if (gates.length > 0) {
+		state.errorsAllowed = gates.every((gate) => gate.permissions.errors);
+	}
+	clientOptions.enabled = state.enabled && state.errorsAllowed;
+	state.lastEnabled = clientOptions.enabled !== false;
+	state.piiAllowed =
+		gates.length > 0 && gates.every((gate) => gate.permissions.pii);
+	state.replayAllowed =
+		gates.length > 0 &&
+		gates.every((gate) => gate.permissions.replay) &&
+		clientOptions.enabled !== false &&
+		Boolean(client.getDsn());
+	applyPii(client, state);
+	if (!state.replayAllowed) {
+		stopReplay(client, state, report);
+	}
+	for (const gate of gates) {
+		gate.onChange(client, state);
+	}
+};
+
+const detachGate = (gate: ClientGate): SentryClient | undefined => {
+	const { client } = gate;
+	if (!client) {
+		return;
+	}
+	const state = clientStates.get(client);
+	state?.gates.delete(gate);
+	if (state?.gates.size === 0) {
+		state.errorsAllowed = !gate.errorsGated;
+	}
+	gate.client = undefined;
+	gate.onChange();
+	return client;
+};
+
+/** Discover shared clients before applying any gate, including late SDK initialization. */
+const syncClientGates = (
+	released?: SentryClient,
+	releasedReport?: (error: unknown) => void
+): void => {
+	const clients = new Map<SentryClient, (error: unknown) => void>();
+	if (released && releasedReport) {
+		clients.set(released, releasedReport);
+	}
+	for (const gate of activeGates) {
+		try {
+			const client = gate.getClient();
+			if (client !== gate.client) {
+				const previous = detachGate(gate);
+				if (previous) {
+					clients.set(previous, gate.report);
+				}
+				if (client) {
+					gate.getState(client).gates.add(gate);
+					gate.client = client;
+				}
+			}
+			if (gate.client) {
+				clients.set(gate.client, gate.report);
+			}
+		} catch (error) {
+			gate.report(error);
+			if (gate.client) {
+				clients.set(gate.client, gate.report);
+			}
+		}
+	}
+	for (const [client, report] of clients) {
+		const state = clientStates.get(client);
+		if (state) {
+			applyClientPermissions(client, state, report);
+		}
+	}
+};
+
 /** Share consent and Replay lifecycle handling between SDK and CDN modes. */
 const createGate = (options: GateOptions) => {
 	let latest: Permissions | undefined;
@@ -585,7 +719,6 @@ const createGate = (options: GateOptions) => {
 	let piiWanted: boolean | undefined;
 	let clientTimer: ReturnType<typeof setTimeout> | undefined;
 	let pendingReplay: AbortController | undefined;
-	const owner = {};
 
 	const report = (error: unknown): void => {
 		try {
@@ -612,17 +745,17 @@ const createGate = (options: GateOptions) => {
 	const getState = (client: SentryClient): ClientState => {
 		const known = clientStates.get(client);
 		if (known) {
-			known.owner = owner;
 			return known;
 		}
 		const collection = client.getDataCollectionOptions?.();
 		const state: ClientState = {
 			collection: collection ? { ...collection } : undefined,
 			enabled: client.getOptions().enabled !== false,
+			errorsAllowed: true,
+			gates: new Set(),
 			guardedReplays: new WeakSet(),
 			inferIp: client.getSdkMetadata?.()?.sdk?.settings?.infer_ip,
 			lastEnabled: client.getOptions().enabled !== false,
-			owner,
 			piiAllowed: false,
 			replayAllowed: false,
 		};
@@ -701,67 +834,46 @@ const createGate = (options: GateOptions) => {
 		client.getOptions().enabled !== false &&
 		Boolean(client.getDsn());
 
-	const stopReplay = (client: SentryClient, state: ClientState): void => {
-		const replay = findReplay(client);
-		try {
-			if (replay && !state.stopping) {
-				// Recording stops synchronously before the promise is returned.
-				const pending = replay.stop({ flush: false });
-				state.stopping = (async () => {
-					try {
-						await pending;
-						state.stopFailed = false;
-					} catch (error) {
-						state.stopFailed = true;
-						report(error);
-					} finally {
-						state.stopping = undefined;
-					}
-				})();
+	const gate: ClientGate = {
+		errorsGated: options.errorsGated,
+		getClient: options.getClient,
+		getState,
+		onChange: (client, state) => {
+			const replayAllowed = state?.replayAllowed ?? false;
+			if (replayAllowed !== replayWanted) {
+				replayWanted = replayAllowed;
+				revision += 1;
+				pendingReplay?.abort();
+				pendingReplay = undefined;
+				// oxlint-disable-next-line no-use-before-define -- Replay startup synchronizes this gate, so the callbacks depend on each other.
+				queueReplay();
 			}
-		} catch (error) {
-			state.stopFailed = true;
-			report(error);
-		} finally {
-			forgetReplaySession();
-		}
+			if (!client || !state) {
+				piiWanted = undefined;
+				return;
+			}
+			if (options.setUser && state.piiAllowed !== piiWanted) {
+				piiWanted = state.piiAllowed;
+				try {
+					const user = state.piiAllowed ? options.user?.() : null;
+					if (user !== undefined) {
+						options.setUser(user);
+					}
+				} catch (error) {
+					report(error);
+				}
+			}
+		},
+		permissions: { errors: false, pii: false, replay: false },
+		report,
 	};
 
 	const sync = (): SentryClient | undefined => {
 		if (disposed || !latest) {
 			return;
 		}
-		const client = options.getClient();
-		if (!client) {
-			return;
-		}
-		const state = getState(client);
-		const clientOptions = client.getOptions();
-		const enabled = clientOptions.enabled !== false;
-		// Preserve changes the app makes while Sentry is running.
-		if (enabled !== state.lastEnabled) {
-			state.enabled = enabled;
-		}
-		clientOptions.enabled = state.enabled && latest.errors;
-		state.lastEnabled = clientOptions.enabled !== false;
-		state.piiAllowed = latest.pii;
-		state.replayAllowed = latest.replay && isClientEnabled(client, state);
-		applyPii(client, state);
-		if (!latest.replay || !isClientEnabled(client, state)) {
-			stopReplay(client, state);
-		}
-		if (options.setUser && latest.pii !== piiWanted) {
-			piiWanted = latest.pii;
-			try {
-				const user = latest.pii ? options.user?.() : null;
-				if (user !== undefined) {
-					options.setUser(user);
-				}
-			} catch (error) {
-				report(error);
-			}
-		}
-		return client;
+		syncClientGates();
+		return gate.client;
 	};
 
 	const loadReplay = async (
@@ -812,7 +924,7 @@ const createGate = (options: GateOptions) => {
 		const isCurrent = () =>
 			!signal.aborted &&
 			!disposed &&
-			latest?.replay === true &&
+			replayWanted === true &&
 			startRevision === revision;
 		if (!(await waitForReplayPaint(signal)) || !isCurrent()) {
 			return;
@@ -827,7 +939,8 @@ const createGate = (options: GateOptions) => {
 		const state = getState(client);
 		const allowed = () =>
 			isCurrent() &&
-			state.owner === owner &&
+			state.gates.has(gate) &&
+			state.replayAllowed &&
 			options.getClient() === client &&
 			isClientEnabled(client, state);
 		if (!allowed()) {
@@ -860,12 +973,12 @@ const createGate = (options: GateOptions) => {
 		client.addIntegration(replay);
 		state.mode = replay.getRecordingMode() ?? null;
 		if (!allowed()) {
-			stopReplay(client, state);
+			stopReplay(client, state, report);
 		}
 	};
 
 	const queueReplay = (): void => {
-		if (pendingReplay || disposed || !latest?.replay) {
+		if (pendingReplay || disposed || !replayWanted) {
 			return;
 		}
 		const controller = new AbortController();
@@ -903,25 +1016,20 @@ const createGate = (options: GateOptions) => {
 		}, clientRetryMs);
 	};
 
-	const denyClient = (): void => {
+	const denyClient = (released?: SentryClient): void => {
 		try {
+			syncClientGates(released, report);
 			const client = options.getClient();
 			if (!client) {
 				return;
 			}
 			const existing = clientStates.get(client);
-			if (existing && existing.owner !== owner) {
+			if (existing && existing.gates.size > 0) {
 				return;
 			}
 			const state = existing ?? getState(client);
-			state.piiAllowed = false;
-			state.replayAllowed = false;
-			applyPii(client, state);
-			if (options.errorsGated) {
-				client.getOptions().enabled = false;
-				state.lastEnabled = false;
-			}
-			stopReplay(client, state);
+			state.errorsAllowed = !options.errorsGated;
+			applyClientPermissions(client, state, report);
 			options.setUser?.(null);
 		} catch (error) {
 			report(error);
@@ -974,12 +1082,8 @@ const createGate = (options: GateOptions) => {
 		if (typeof document === 'undefined') {
 			return;
 		}
-		if (latest.replay !== replayWanted) {
-			replayWanted = latest.replay;
-			revision += 1;
-			pendingReplay?.abort();
-			pendingReplay = undefined;
-		}
+		gate.permissions = latest;
+		activeGates.add(gate);
 		if (errors && options.start) {
 			void settle(start());
 		}
@@ -1004,7 +1108,8 @@ const createGate = (options: GateOptions) => {
 		clearTimeout(clientTimer);
 		clientTimer = undefined;
 		latest = undefined;
-		denyClient();
+		activeGates.delete(gate);
+		denyClient(detachGate(gate));
 	};
 
 	return { dispose, report, sync, update };
@@ -1271,6 +1376,8 @@ const reuseSentryScript = createScriptReuse<SentryOptions>();
  * Equal configurations share a script before mounting and across remounts,
  * without interrupting an active Replay recording.
  * Keep callback functions stable when recreating the options object.
+ * Distinct configurations targeting the same client also share consent:
+ * every active configuration must allow each feature before it can run.
  *
  * @param options - A DSN for c15t to load Sentry, or your Sentry SDK functions.
  * @returns A script for the c15t script loader.

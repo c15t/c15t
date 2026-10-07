@@ -704,6 +704,241 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(replay.getRecordingMode()).toBeUndefined();
 	});
 
+	it.each(['denied', 'granted'] as const)(
+		'coordinates distinct SDK configurations when the %s loader mounts first',
+		async (first) => {
+			vi.spyOn(console, 'warn').mockImplementation(() => {});
+			const { client, processEvent, sending } = createClient({
+				userInfo: true,
+			});
+			const getClient = () => client;
+			const replay = new FakeReplay('session');
+			const load = vi.fn(() => replay);
+			const setUser = vi.fn();
+			const restrictive = sentry({
+				getClient,
+				init: () => undefined,
+				loadMode: 'after-consent',
+				replay: { load },
+			});
+			const permissive = sentry({
+				getClient,
+				pii: { category: 'necessary', user: () => ({ id: 'u1' }) },
+				replay: { category: 'necessary', load },
+				setUser,
+			});
+			const denied = first === 'denied' ? mount(restrictive) : undefined;
+			const granted = mount(permissive, grantedMeasurementConsents);
+			const blocking = denied ?? mount(restrictive);
+			await settle();
+			expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+			expect(sending()).toEqual({
+				enabled: false,
+				inferIp: 'never',
+				userInfo: false,
+			});
+			expect(setUser).toHaveBeenLastCalledWith(null);
+			expect(load).not.toHaveBeenCalled();
+			await blocking.kernel.commands.save(grantedMeasurementConsents);
+			await settle();
+			expect(sending()).toEqual({
+				enabled: true,
+				inferIp: 'auto',
+				userInfo: true,
+			});
+			expect(setUser).toHaveBeenLastCalledWith({ id: 'u1' });
+			expect(replay.getRecordingMode()).toBe('session');
+			await blocking.kernel.commands.save(deniedConsents);
+			expect(replay.getRecordingMode()).toBeUndefined();
+			expect(setUser).toHaveBeenLastCalledWith(null);
+			blocking.loader.dispose();
+			await settle();
+			expect(sending().enabled).toBe(true);
+			expect(setUser).toHaveBeenLastCalledWith({ id: 'u1' });
+			expect(replay.getRecordingMode()).toBe('session');
+			expect(load).toHaveBeenCalledOnce();
+			granted.loader.dispose();
+			expect(replay.getRecordingMode()).toBeUndefined();
+			expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		}
+	);
+
+	it('keeps a distinct granted SDK configuration recording after another is removed', async () => {
+		const { client, processEvent } = createClient();
+		const replay = new FakeReplay('session');
+		const first = mount(
+			sentry({ getClient: () => client, replay: { load: () => replay } }),
+			grantedMeasurementConsents
+		);
+		const second = mount(
+			sentry({
+				getClient: () => client,
+				replay: { category: 'necessary', load: () => replay },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		second.loader.dispose();
+		expect(replay.getRecordingMode()).toBe('session');
+		expect(replay.stop).not.toHaveBeenCalled();
+		expect(processEvent({ user: { id: 'u1' } }).user).toEqual({ id: 'u1' });
+		first.loader.dispose();
+		expect(replay.getRecordingMode()).toBeUndefined();
+	});
+
+	it('coordinates distinct SDK configurations when a shared client initializes later', async () => {
+		const { client, processEvent, sending } = createClient();
+		const current: { client?: SentryClient } = {};
+		const getClient = () => current.client;
+		const replay = new FakeReplay('session');
+		const load = vi.fn(() => replay);
+		const denied = mount(
+			sentry({ getClient, init: () => undefined, loadMode: 'after-consent' })
+		);
+		const granted = mount(
+			sentry({
+				getClient: () => current.client,
+				init: () => {
+					current.client = client;
+				},
+				pii: { category: 'necessary' },
+				replay: { category: 'necessary', load },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(sending().enabled).toBe(false);
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		expect(load).not.toHaveBeenCalled();
+		denied.loader.dispose();
+		await settle();
+		expect(sending().enabled).toBe(true);
+		expect(replay.getRecordingMode()).toBe('session');
+		granted.loader.dispose();
+	});
+
+	it('blocks a pending Replay load when a distinct SDK configuration denies it', async () => {
+		const { client } = createClient();
+		const pending = deferred<SentryReplay>();
+		const load = vi.fn(() => pending.promise);
+		const granted = mount(
+			sentry({ getClient: () => client, replay: { load } }),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(load).toHaveBeenCalledOnce();
+		const denied = mount(sentry({ getClient: () => client }));
+		const replay = new FakeReplay('session');
+		pending.resolve(replay);
+		await settle();
+		expect(client.addIntegration).not.toHaveBeenCalled();
+		expect(replay.getRecordingMode()).toBeUndefined();
+		denied.loader.dispose();
+		await settle();
+		expect(client.addIntegration).toHaveBeenCalledOnce();
+		expect(load).toHaveBeenCalledOnce();
+		expect(replay.getRecordingMode()).toBe('session');
+		granted.loader.dispose();
+	});
+
+	it('releases a distinct SDK gate from its previous client when getClient changes', async () => {
+		const first = createClient();
+		const second = createClient();
+		const current = { client: first.client };
+		const blocking = mount(sentry({ getClient: () => current.client }));
+		mount(
+			sentry({ getClient: () => first.client, pii: { category: 'necessary' } }),
+			grantedMeasurementConsents
+		);
+		expect(first.processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		current.client = second.client;
+		await blocking.kernel.commands.save({
+			...deniedConsents,
+			experience: true,
+		});
+		expect(first.processEvent({ user: { id: 'u1' } }).user).toEqual({
+			id: 'u1',
+		});
+		expect(second.processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		blocking.loader.dispose();
+		expect(first.processEvent({ user: { id: 'u1' } }).user).toEqual({
+			id: 'u1',
+		});
+	});
+
+	it('intersects PII and Replay permissions independently across distinct SDK configurations', async () => {
+		const { client, processEvent, sending } = createClient();
+		const replay = new FakeReplay('session');
+		const load = vi.fn(() => replay);
+		const first = mount(
+			sentry({
+				getClient: () => client,
+				pii: { category: 'marketing' },
+				replay: { category: 'necessary', load },
+			})
+		);
+		const second = mount(
+			sentry({
+				getClient: () => client,
+				pii: { category: 'necessary' },
+				replay: { load },
+			})
+		);
+		await settle();
+		expect(sending().enabled).toBe(true);
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		expect(load).not.toHaveBeenCalled();
+		await first.kernel.commands.save({ ...deniedConsents, marketing: true });
+		expect(processEvent({ user: { id: 'u1' } }).user).toEqual({ id: 'u1' });
+		await settle();
+		expect(load).not.toHaveBeenCalled();
+		await second.kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(replay.getRecordingMode()).toBe('session');
+	});
+
+	it('keeps consent independent for distinct Sentry clients', () => {
+		const denied = createClient();
+		const granted = createClient();
+		const first = mount(sentry({ getClient: () => denied.client }));
+		mount(
+			sentry({ getClient: () => granted.client }),
+			grantedMeasurementConsents
+		);
+		expect(denied.processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		expect(granted.processEvent({ user: { id: 'u1' } }).user).toEqual({
+			id: 'u1',
+		});
+		first.loader.dispose();
+		expect(granted.processEvent({ user: { id: 'u1' } }).user).toEqual({
+			id: 'u1',
+		});
+	});
+
+	it('preserves a distinct surviving SDK gate when removed initialization completes', async () => {
+		const { client, processEvent, sending } = createClient();
+		const current: { client?: SentryClient } = {};
+		const pending = deferred<undefined>();
+		const removed = mount(
+			sentry({
+				getClient: () => current.client,
+				init: () => pending.promise,
+				loadMode: 'after-consent',
+			}),
+			grantedMeasurementConsents
+		);
+		removed.loader.dispose();
+		mount(
+			sentry({ getClient: () => current.client }),
+			grantedMeasurementConsents
+		);
+		current.client = client;
+		pending.resolve(undefined);
+		await settle();
+		expect(sending().enabled).toBe(true);
+		expect(processEvent({ user: { id: 'u1' } }).user).toEqual({ id: 'u1' });
+	});
+
 	it.each([
 		{ method: 'start' as const, source: 'app' },
 		{ method: 'startBuffering' as const, source: 'app' },
@@ -1575,6 +1810,31 @@ describe('Sentry loaded from the CDN', () => {
 		await settle();
 		expect(replays[0]?.getRecordingMode()).toBe('session');
 		second.loader.dispose();
+		expect(replays[0]?.getRecordingMode()).toBeUndefined();
+	});
+
+	it('coordinates distinct SDK and CDN gates sharing a late-initialized client', async () => {
+		const { sentryGlobal, sending, processEvent, replays } = installSentryCdn();
+		const denied = mount(
+			sentry({
+				getClient: sentryGlobal.getClient,
+				init: () => undefined,
+				loadMode: 'after-consent',
+			})
+		);
+		const granted = mount(
+			sentry({ dsn, initOptions: { replaysSessionSampleRate: 1 } }),
+			grantedMeasurementConsents
+		);
+		await settle();
+		expect(sending().enabled).toBe(false);
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		expect(replays).toHaveLength(0);
+		denied.loader.dispose();
+		await settle();
+		expect(sending().enabled).toBe(true);
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+		granted.loader.dispose();
 		expect(replays[0]?.getRecordingMode()).toBeUndefined();
 	});
 

@@ -179,9 +179,9 @@ The collection settings control SDK instrumentation. Keep sensitive values out
 of custom messages, tags, extras, attachments and URL paths; those fields remain
 part of error diagnostics.
 
-Removing the integration stops Replay without flushing, cancels pending starts
-and denies user data. With `loadMode: 'after-consent'`, removal also disables
-the client. Recreating the integration reuses the client's Replay instance and
+Removing the final integration for a client stops Replay without flushing,
+cancels pending starts and denies user data. With `loadMode: 'after-consent'`,
+final removal also disables the client. Recreating the integration reuses the client's Replay instance and
 sampling decision. An app-initiated `Sentry.close()` stays closed after re-grant.
 
 Recreating `sentry()` with equal option values and the same callback functions
@@ -189,13 +189,17 @@ keeps the SDK bundle and current Replay recording. Keep `getClient`, `setUser`,
 `init`, `replay.load`, `pii.user` and `onError` functions stable across renders. A changed
 configuration starts a new adapter lifecycle; changed CDN options initialize
 a client with the new DSN and settings. Consent remounts keep the client and
-its Replay sampling decision. Removing the configuration stops Replay without flushing.
+its Replay sampling decision.
 
-If multiple loaders share the same configuration, Sentry stays active until
-the last loader removes it. Replay and user data require consent from every
-configured loader, including a CDN loader waiting for consent. Each loader
-evaluates compound feature conditions independently; every loader must allow
-the feature. A denial in one loader applies to the shared SDK.
+If multiple loaders target the same Sentry client, Sentry stays active until
+the last loader removes it. Every active configuration must allow Replay and
+user data, even when its categories or callback functions differ. An
+`after-consent` configuration must also allow error monitoring. Each loader
+evaluates its own compound feature conditions independently, including a CDN
+loader waiting for consent and an SDK adapter registered before initialization.
+A denial applies to the shared client. Removing a loader releases its restriction
+and reapplies the surviving loaders' permissions. Separate Sentry clients keep
+separate permissions.
 If the SDK bundle is still downloading when its original loader is removed,
 the remaining loader keeps the download and initializes Sentry when it completes.
 
