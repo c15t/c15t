@@ -5,6 +5,7 @@ import type {
 	DevToolsPosition,
 	DevToolsTab,
 } from '@c15t/dev-tools';
+import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
 import {
 	defineComponent,
 	h,
@@ -79,7 +80,15 @@ const useProviderDevTools = (
 			props.getConsentCategories?.() ?? config.value.consentCategories
 		);
 	let devTools: DevToolsInstance | null = null;
+	let withdrawLauncher: (() => void) | undefined;
 	let stopWatching: (() => void) | undefined;
+
+	const destroyDevTools = () => {
+		withdrawLauncher?.();
+		withdrawLauncher = undefined;
+		devTools?.destroy();
+		devTools = null;
+	};
 
 	onMounted(() => {
 		stopWatching = watch(
@@ -91,8 +100,7 @@ const useProviderDevTools = (
 				() => Boolean(props.clearRecords ?? context?.clearRecords),
 			],
 			() => {
-				devTools?.destroy();
-				devTools = null;
+				destroyDevTools();
 				const placement = getPlacement();
 				if (!placement) {
 					return;
@@ -112,6 +120,11 @@ const useProviderDevTools = (
 					kernel,
 					maxEvents: props.maxEvents,
 				});
+				// A visible consent trigger can render the floating launcher
+				// instead; an embedded panel has none to hand over.
+				if (!placement.embedded) {
+					withdrawLauncher = publishDevToolsLauncher(kernel, devTools);
+				}
 			},
 			{ immediate: true }
 		);
@@ -119,8 +132,7 @@ const useProviderDevTools = (
 
 	onUnmounted(() => {
 		stopWatching?.();
-		devTools?.destroy();
-		devTools = null;
+		destroyDevTools();
 	});
 };
 
