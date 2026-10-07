@@ -14,6 +14,7 @@ export default mergeConfig(
 			alias: assignInOrder(
 				{},
 				{ '~': resolve(__dirname, './src') },
+				{ '@c15t/core/build': resolve(__dirname, '../core/src/build.ts') },
 				{ '#imports': resolve(__dirname, './src/runtime/vue/stubs.ts') },
 				{
 					'#c15t/composables': resolve(

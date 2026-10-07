@@ -36,6 +36,7 @@ import type {
 	ConsentRouteRequestContext,
 	ManifestCache,
 } from '@c15t/core/server';
+import type { ConsentManifest } from '@c15t/schema/types';
 
 import { readConsentInputs } from './libs/request-inputs';
 
@@ -55,6 +56,8 @@ export interface ConsentServerRouteOptions {
 	 * `backendURL`.
 	 */
 	manifestURL?: string;
+	/** Deployment-bound manifest. Takes precedence over upstream URLs. */
+	manifest?: ConsentManifest;
 
 	/**
 	 * Fetch implementation for manifest and GVL requests. Defaults to
@@ -203,12 +206,13 @@ export type ConsentServerRouteHandlersFor<
 /**
  * Creates the same-origin consent route handlers.
  *
- * @param options - Backend location (`backendURL` or `manifestURL`), fetch,
- * GVL, cache, and proxy options.
+ * @param options - Manifest snapshot or backend location (`backendURL` or
+ * `manifestURL`), fetch, GVL, cache, and proxy options.
  * @returns Handlers for `createFileRoute('/api/c15t/$')({ server: { handlers } })`.
  * With `proxy` off the set is `GET`, `manifestGET`, and `initGET`; with it
  * on, `POST`, `PATCH`, `PUT`, `DELETE`, `OPTIONS`, and `proxyHandler` join.
- * Each handler throws when neither `backendURL` nor `manifestURL` is set.
+ * Manifest and init handlers throw when none of `manifest`, `backendURL`, or
+ * `manifestURL` is set. Proxy writes still require `backendURL`.
  * @example
  * ```ts
  * export const Route = createFileRoute('/api/c15t/$')({
@@ -231,6 +235,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 		cache: resolved.cache,
 		fetch: resolved.fetch,
 		fetchGvl: resolved.fetchGvl,
+		manifest: resolved.manifest,
 		manifestURL: resolved.manifestURL,
 		proxy: resolved.proxy,
 		reportSessions: resolved.reportSessions,

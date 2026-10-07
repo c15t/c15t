@@ -1,14 +1,14 @@
 ---
 title: Quickstart
-description: Add c15t consent management to a Next.js App Router app with Inth, a cached policy manifest and consent-gated scripts, then check it works. Links to the Pages Router and static export guides.
+description: Add c15t consent management to a Next.js App Router app with Inth, a build-time policy manifest and consent-gated scripts, then check it works. Links to the Pages Router and static export guides.
 group: frameworks
 ---
 
 ## Before you start
 
 This quickstart sets up the App Router with a Next.js server, which is what
-most Next.js apps use. Your server caches the Inth project's public policy
-manifest and resolves consent for each visitor, so the browser gets the answer
+most Next.js apps use. Your build bundles the Inth project's public policy
+manifest and your server resolves consent for each visitor, so the browser gets the answer
 with the page and makes no `/init` request. Consent choices go to Inth.
 
 Using the Pages Router, `output: 'export'` or cached pages? Find your app in
@@ -19,6 +19,10 @@ site's origin to its trusted origins, and copy its backend URL. The URL is
 public configuration, not a secret. A
 [self-hosted backend](/docs/self-host/quickstart) uses the same files with its
 own URL.
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
@@ -49,8 +53,9 @@ points at the route you add next.
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-The route fetches the public policy manifest from your backend and caches it,
-so warm requests make no policy request to Inth.
+The base route fetches and caches the public policy manifest. The build-time
+manifest step below gives this route a snapshot, so a fresh server can serve
+it without a policy request to Inth.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
@@ -66,6 +71,10 @@ later in the same response. Until the browser applies it, the banner stays
 hidden and optional categories stay denied. To send the banner in the first
 HTML instead, see
 [render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html).
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next.mdx" />
 
 ## Check it works
 

@@ -1,0 +1,40 @@
+<include src="../build-time-manifest.mdx" />
+
+<include src="./next-config.mdx" />
+
+Import the snapshot in every page that resolves consent. Add `manifest` to
+its existing `resolveConsent` call, keeping the request and shared config:
+
+{/* example: fragment */}
+
+```tsx title="pages/index.tsx"
+import { consentManifest } from '@/c15t-manifest';
+
+const state = await resolveConsent({
+	config: consentConfig,
+	req,
+	manifest: consentManifest,
+});
+```
+
+Give the manifest API handler the same snapshot:
+
+{/* example: fragment */}
+
+```ts title="pages/api/c15t/manifest.ts"
+import { consentManifest } from '@/c15t-manifest';
+
+export default createPagesApiHandlers({
+	...consentConfig,
+	manifest: consentManifest,
+}).manifest;
+```
+
+Pass the snapshot to the optional local init handler too. Keep the generated
+file out of Git and generate it on every build. `outputFile`, `exportName`
+and `importSource` customize the generated module. Apps that install
+`@c15t/nextjs` directly set `importSource: '@c15t/nextjs/static'`. Set `rootDir`
+if Next.js runs outside the application directory, and adjust the snapshot
+import to match your aliases or generated path.
+
+For policy updates without a rebuild, use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data) instead.

@@ -8,12 +8,18 @@ group: frameworks
 
 | Your app | c15t setup |
 | --- | --- |
-| Vue with Vite, served as static files | The [quickstart](/docs/frameworks/vue/quickstart). The browser calls your backend's `/init`. |
-| Vue with Vite, with a cacheable policy file | The quickstart plus `manifest: 'client'` and `manifestURL`. |
+| Vue with Vite, served as static files | The [quickstart](/docs/frameworks/vue/quickstart), with the recommended build-time manifest. Plan location inputs or an unknown-location rule. |
+| Policy changes must apply without a rebuild | [Runtime manifest fetching](#resolve-from-the-manifest-in-the-browser), or [backend `/init`](#resolve-consent-in-the-browser) for backend geolocation. |
 | Vue rendered on the server without Nuxt | Supported; the banner mounts after hydration. For the banner in server HTML, use the Nuxt module from the [framework list](/docs/frameworks). |
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/vue.mdx" />
 
 ## Resolve consent in the browser
 
+Use backend `/init` when policy updates must apply without a rebuild and
+you need backend geolocation. Omit the snapshot and client manifest options.
 The Vue plugin renders nothing consent-related until the page loads. After the
 root component mounts, the plugin reads the visitor's stored choice from their
 cookie and localStorage and requests their policy from the backend's `/init`.
@@ -83,8 +89,9 @@ first HTML, and hydrates without another request.
 
 ## Verify your deployment
 
-Serve the production build and open the Network tab. With the default setup,
-the page makes one request to your backend's `/init`. With
-`manifest: 'client'`, it requests `manifestURL` instead. Reject, reload, and
+Serve the production build and open the Network tab. With the recommended
+build-time snapshot, the page makes no `/manifest` or `/init` request. With
+runtime client manifest mode, it requests `manifestURL`. With `manifest`
+unset and no snapshot, it requests the backend's `/init`. Reject, reload, and
 confirm the banner stays closed. Then follow
 [verify consent](/docs/guides/verify-consent) for the vendor checks.

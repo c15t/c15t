@@ -11,11 +11,13 @@ import type {
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
-import type { InitOutput } from '@c15t/schema/types';
+import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import type { HTMLAttributes } from 'vue';
 
 export interface ConsentManifestNuxtConfig {
+	/** Inline snapshot for client manifest mode. Policy edits need a rebuild. */
+	manifestSnapshot?: ConsentManifest;
 	/**
 	 * Enables Nuxt manifest mode. `server` registers same-origin init and
 	 * manifest routes; `client` resolves the manifest in the browser and never

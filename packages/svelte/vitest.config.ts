@@ -16,6 +16,10 @@ import { defineConfig, mergeConfig } from 'vitest/config';
 
 const workspaceAliases = [
 	{
+		find: '@c15t/core/build',
+		replacement: resolve(__dirname, '../core/src/build.ts'),
+	},
+	{
 		find: '@c15t/core/transports',
 		replacement: resolve(__dirname, '../core/src/transports/index.ts'),
 	},

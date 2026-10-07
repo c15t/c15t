@@ -23,6 +23,10 @@ cached setups.
 | Static pages on any static host, no adapter | `output: 'static'` | `hosted()` |
 | Pages rendered on each request, with a server adapter | `output: 'server'` | `manifest()` |
 
+For server output, use the build-time manifest setup below as the production
+default. Rebuild after changing policies, translations or vendors. Static
+output keeps browser initialization through Inth.
+
 ## Install the packages
 
 <CommandTabs command="c15t@alpha @astrojs/svelte svelte @c15t/integrations@alpha" mode="install" />
@@ -61,6 +65,10 @@ resolves each request from it. The first HTML already contains the banner, or
 no banner at all for a visitor who has chosen. It adds `/api/c15t/init` and
 `/api/c15t/manifest` routes, so it needs a server adapter. Use the adapter for
 your host in place of `@astrojs/node`.
+
+For server output, enable the recommended build-time snapshot:
+
+<include src="../../shared/build-manifests/astro.mdx" />
 
 The integration writes its options into the page as JSON. Keep callbacks,
 vendor helpers and secrets out of `c15t({ ... })`. They belong in the module

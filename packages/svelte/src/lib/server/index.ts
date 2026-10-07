@@ -10,9 +10,12 @@ import type {
  * Resolves the visitor's consent state from a SvelteKit request.
  *
  * 1. Reads the consent cookie, the CDN geo headers, `accept-language`, and
- *    the GPC signal. Without a `backendURL` this is the whole result, and no
- *    network call is made.
- * 2. With a `backendURL`, calls `${backendURL}/init` with the request
+ *    the GPC signal. Without a manifest or `backendURL` this is the whole
+ *    result, and no network call is made.
+ * 2. With a manifest, resolves locally using this visitor's inputs. An
+ *    absolute `backendURL` receives session reports unless disabled with
+ *    `reportSessions: false`. IAB vendor lists can still require a fetch.
+ * 3. With only a `backendURL`, calls `${backendURL}/init` with the request
  *    context and folds the response into the state, so first paint is
  *    correct without waiting for a client roundtrip.
  *
@@ -23,7 +26,7 @@ import type {
  * client runs init on mount.
  *
  * @param options - Request headers, cookie name, geo/language overrides,
- * and the backend location.
+ * the manifest snapshot, and the backend location.
  * @returns A serializable state for the provider's `prefetch` prop.
  * @example
  * ```ts
@@ -45,13 +48,14 @@ export const resolveConsent = function resolveConsent(
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
 		localFetch: options.frameworkFetch,
-		mode: options.backendURL ? 'hosted' : undefined,
+		manifest: options.manifest,
 		now: options.now,
 		overrides: {
 			country: options.country,
 			language: options.language,
 			region: options.region,
 		},
+		reportSessions: options.reportSessions,
 		request: {
 			cookie: options.cookieHeader,
 			headers: options.headers,
@@ -62,6 +66,7 @@ export const resolveConsent = function resolveConsent(
 			: undefined,
 		timeoutMs: options.timeoutMs,
 		trustForwardedHeaders: options.trustForwardedHeaders,
+		waitUntil: options.onBackgroundRevalidate,
 	});
 };
 

@@ -50,6 +50,7 @@ const alias = {
 	),
 	'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
 	'@c15t/core/static': resolve(__dirname, '../core/src/static.ts'),
+	'@c15t/core/build': resolve(__dirname, '../core/src/build.ts'),
 	'@c15t/core/surface-actions': resolve(
 		__dirname,
 		'../core/src/surface-actions/index.ts'

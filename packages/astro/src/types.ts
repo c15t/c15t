@@ -163,6 +163,12 @@ export interface C15tMiddlewareOptions {
 
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
+	/**
+	 * Fetch the manifest during build/dev setup and bundle it for this deployment.
+	 * Requires manifest mode with an absolute upstream URL. Policy edits need a
+	 * rebuild. A fetch failure stops the build. @default false
+	 */
+	buildManifest?: boolean;
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
 	/**

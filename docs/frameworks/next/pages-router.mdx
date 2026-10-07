@@ -1,13 +1,13 @@
 ---
 title: Pages Router
-description: Set up c15t in the Next.js Pages Router with Inth, a cached policy manifest, getServerSideProps and consent-gated scripts.
+description: Set up c15t in the Next.js Pages Router with Inth, a build-time policy manifest, getServerSideProps and consent-gated scripts.
 group: frameworks
 ---
 
 ## Before you start
 
 This guide uses [Inth](https://inth.com) for policies and consent records. Your
-Next.js server caches the project's public policy manifest and resolves consent
+Next.js build bundles the project's public policy manifest. The server resolves consent
 for each visitor in `getServerSideProps`. The browser sends consent choices to
 Inth.
 
@@ -54,9 +54,10 @@ import { consentConfig } from '@/c15t.config';
 export default createPagesApiHandlers(consentConfig).manifest;
 ```
 
-The route reads `backendURL` from the config and fetches
-`${backendURL}/manifest`. It caches the public policy and answers methods other
-than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
+With the build-time `manifest` option, the route serves the snapshot directly
+without an upstream request. With runtime fetching, it reads `backendURL` from
+the config, fetches `${backendURL}/manifest` and caches the public policy. It
+answers methods other than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
 the App Router route from the [App Router guide](/docs/frameworks/next/app-router#serve-the-manifest-route)
 instead; the runnable example does that.
 
@@ -107,13 +108,18 @@ request.
 Add this `getServerSideProps` to every page that should render consent on the
 server, and return `initialConsent` from each. Do not resolve consent in
 `getStaticProps`. It runs without the visitor's request, so it cannot read
-their cookies or location. If the manifest request fails or takes longer than
+their cookies or location. With runtime fetching, if the manifest request fails or takes longer than
 `timeoutMs`, 500 ms by default, the page renders without a policy and the
 browser retries after hydration.
 
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next-pages.mdx" />
+
 ## Use backend init instead of the manifest
 
-Delete the `manifestURL` line from `c15t.config.ts` and delete
+Remove `withConsentManifest` and the helpers' `manifest` option if you added
+the build integration. Delete the `manifestURL` line from `c15t.config.ts` and delete
 `pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
 `resolveConsent` and the browser now call `${backendURL}/init`, and consent
 choices still go to `${backendURL}/subjects`. For a browser-only setup with no

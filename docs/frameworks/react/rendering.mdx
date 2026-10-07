@@ -21,10 +21,17 @@ read the visitor's cookie and location on the server, so the banner can be in
 the first HTML. [Choose your setup](/docs/concepts/choose-your-setup#server-rendering-or-browser-rendering)
 explains the difference in general terms.
 
+## Bundle the manifest during Vite builds
+
+<include src="../../shared/build-manifests/react.mdx" />
+
 ## Client-rendered apps
 
-The [quickstart](/docs/frameworks/react/quickstart) setup runs entirely in the
-browser:
+The recommended [quickstart](/docs/frameworks/react/quickstart) bundles the
+manifest and resolves it in the browser. See [build-time manifests](#bundle-the-manifest-during-vite-builds).
+
+For policy updates without rebuilding, keep `hosted({ url })`. That runtime
+path works as follows:
 
 1. The page loads with no consent state. Every optional category is denied.
 2. `ConsentProvider` requests `GET /init` from your backend URL while it first
@@ -47,8 +54,11 @@ around the outlet. In React Router framework mode that is `app/root.tsx`.
 browser takes over after hydration:
 
 - The server HTML contains your page but no banner and no consent state.
-- After hydration the browser requests `/init`, then shows the banner if the
-  policy asks for one.
+- After hydration the browser resolves the bundled manifest, then shows the
+  banner if the policy asks for one. When required country or region is
+  missing, it calls `/init` and uses the backend's current policy and
+  translations, which can differ from the build snapshot. With `hosted()`,
+  it always calls `/init`.
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 
@@ -96,8 +106,9 @@ browser path.
 ## Static and prerendered pages
 
 A prerendered page is the same HTML for every visitor, so it cannot contain one
-visitor's consent. Use the quickstart setup unchanged. The browser talks to the
-backend URL directly, so the static host needs no server route. Add the site's
+visitor's consent. Use the quickstart's build-time snapshot. Consent saves and
+any `/init` requests go to the backend URL directly, so the static host
+needs no server route. Add the site's
 origin to the trusted origins in your Inth project.
 
 Do not cache a response that contains a visitor's consent in a CDN or a shared
@@ -122,7 +133,9 @@ custom transports.
 1. Open the page in a private window and view the page source. In a
    server-rendered app the HTML contains your content and no element with
    `data-testid="consent-banner-root"`.
-2. In DevTools Network, filter by your backend URL. One `/init` request runs
-   after the JavaScript loads, or none if you pass `initialData`.
-3. The banner appears once that request finishes. Vendor requests stay absent
+2. In DevTools Network, confirm there is no `/manifest` request with a
+   build-time snapshot. A regional policy may still need an `/init` request
+   to resolve consent when geography is missing. With `hosted()`, one `/init`
+   request runs unless you supply `initialData`.
+3. The banner appears once the policy resolves. Vendor requests stay absent
    until you allow their category.

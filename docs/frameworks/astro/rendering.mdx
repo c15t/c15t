@@ -64,6 +64,10 @@ config fails to load.
 `hosted()` also works with server output. Every server render then calls the
 backend's `/init`, so each page view waits on a backend request.
 
+### Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/astro.mdx" />
+
 ### Set how long a render waits for the backend
 
 The middleware waits up to 500 ms for the policy. If the backend has not

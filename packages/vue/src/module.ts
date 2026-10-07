@@ -1,5 +1,6 @@
 import { existsSync, realpathSync } from 'node:fs';
 
+import { loadBuildManifest } from '@c15t/core/build';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import {
 	addComponent,
@@ -88,6 +89,23 @@ const addDevToolsTab = (
 	});
 };
 
+const loadNuxtBuildManifest = (
+	enabled: boolean | undefined,
+	options: ModuleOptions,
+	prepare: boolean
+) => {
+	if (!enabled) {
+		return undefined;
+	}
+	if (options.manifest === 'client') {
+		throw new Error('@c15t/vue: buildManifest requires server manifest mode.');
+	}
+	options.manifest = 'server';
+	// `nuxt prepare` writes types during dependency installation. The
+	// build loads its own snapshot, so preparation needs no backend request.
+	return prepare ? undefined : loadBuildManifest(options, '@c15t/vue');
+};
+
 // Annotated explicitly: the inferred type names `NuxtModule` through
 // @nuxt/schema's store path, which is not portable across installs (TS2883).
 const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
@@ -103,7 +121,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		configKey: 'c15t',
 		name: '@c15t/vue',
 	},
-	setup({ devtools, initPrefetch, ...options }, nuxt) {
+	async setup({ buildManifest, devtools, initPrefetch, ...options }, nuxt) {
 		// Nuxt merges module options with `defu`, which skips `null`, so a
 		// `colorScheme: null` under the `c15t` key would arrive unset and
 		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to
@@ -114,6 +132,11 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			options.colorScheme = null;
 		}
 		const resolver = createResolver(import.meta.url);
+		const manifestSnapshot = await loadNuxtBuildManifest(
+			buildManifest,
+			options,
+			nuxt.options._prepare
+		);
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);
@@ -130,6 +153,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				backendURL: options.backendURL,
 				initRoute,
 				manifestRoute,
+				manifestSnapshot,
 				manifestURL: options.manifestURL,
 				// The `/init` script reads it: with `ssr: false` for the whole
 				// app, every page is a shell.

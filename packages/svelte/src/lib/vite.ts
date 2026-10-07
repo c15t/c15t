@@ -9,9 +9,26 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { consentManifest as createManifestPlugin } from '@c15t/core/build';
+import type { ManifestBuildOptions } from '@c15t/core/build';
+
 // With its extension: Node loads this file straight from `dist`, unbundled.
 import { MODULE_PRELOAD_PLACEHOLDERS } from './kit/module-preload.js';
 import type { PreloadChunkName } from './kit/module-preload.js';
+
+export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
+
+/**
+ * Generates a manifest before Svelte or SvelteKit compilation.
+ * @param options - Backend URL and generated module settings. Appends `/manifest`.
+ * @returns A Vite plugin using `@c15t/svelte/vite` for its type import.
+ * @throws {Error} When the manifest cannot be fetched or written.
+ */
+export const consentManifest = (options: ManifestBuildOptions) =>
+	createManifestPlugin({
+		...options,
+		importSource: options.importSource ?? '@c15t/svelte/vite',
+	});
 
 /** The `@c15t/core` module each on-demand chunk starts from. */
 const CHUNK_MODULES: Readonly<Record<PreloadChunkName, RegExp>> = {

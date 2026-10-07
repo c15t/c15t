@@ -16,6 +16,10 @@ your own UI, use the [headless runtime](/docs/frameworks/javascript/headless)
 instead. Sites without a build step load the same package from a script tag;
 [choose your setup](/docs/concepts/choose-your-setup) points to that guide.
 
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
+
 ## Install
 
 <CommandTabs command="@c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
@@ -53,8 +57,8 @@ transports. Use the general `@c15t/browser` entry if your app needs those
 modes or a custom transport. The [entry-point reference](/docs/frameworks/javascript/api/browser#choose-a-bundle-for-one-mode)
 lists each bundle's configuration.
 
-`init()` returns the client. It reads stored choices, asks Inth for the
-visitor's policy, shows the banner when the policy needs one, and loads each
+`init()` returns the client. It reads stored choices, resolves the visitor's
+policy, shows the banner when the policy needs one, and loads each
 script once its category is allowed. The banner renders in a shadow root with
 its own styles, so you do not import a stylesheet. The client lasts for the
 page; call `consent.dispose()` only if your app removes consent entirely.
@@ -62,6 +66,10 @@ page; call `consent.dispose()` only if your app removes consent entirely.
 When a visitor withdraws a permission they had given, the client saves the
 choice and reloads the page, because code that already ran cannot be unloaded.
 [Scripts](/docs/frameworks/javascript/scripts) explains how to change that.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/javascript.mdx" />
 
 ## Gate embeds and add a privacy settings button
 

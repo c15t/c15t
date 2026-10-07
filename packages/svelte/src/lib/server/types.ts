@@ -3,6 +3,7 @@ import type {
 	KernelConfig,
 	ServerExperiment,
 } from '@c15t/core';
+import type { ConsentManifest } from '@c15t/schema/types';
 
 /**
  * How the request is read: the consent cookie name and explicit
@@ -43,13 +44,24 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/**
 	 * c15t backend base URL, absolute or origin-relative. When set, the
 	 * helper calls `${backendURL}/init` and folds the response into the
-	 * returned state. Omit it to only read cookies and headers.
+	 * returned state when no manifest is supplied. With a manifest, an
+	 * absolute backend URL receives session reports. Without either, only
+	 * cookies and headers are read.
 	 *
 	 * A relative URL resolves against `requestURL`, or the `host` header
 	 * when there is none. `x-forwarded-*` headers are ignored unless
 	 * `trustForwardedHeaders` is set.
 	 */
 	backendURL?: string;
+	/** Deployment-bound manifest. Resolves locally using this visitor's inputs. */
+	manifest?: ConsentManifest;
+	/** Report manifest resolutions to the backend. @default true */
+	reportSessions?: boolean;
+	/**
+	 * Hands session reports to the host's `waitUntil` so they outlive the response.
+	 * The promise never rejects. Defaults to detached work without registration.
+	 */
+	onBackgroundRevalidate?: (task: Promise<void>) => void;
 	/**
 	 * The URL SvelteKit resolved the request under (`event.url`). A
 	 * relative `backendURL` resolves against its origin. `loadConsent`
@@ -70,7 +82,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * @defaultValue false
 	 */
 	trustForwardedHeaders?: boolean;
-	/** Fetch implementation for the `/init` call. */
+	/** Fetch implementation for `/init`, session reports, and IAB vendor lists. */
 	fetch?: typeof globalThis.fetch;
 	/**
 	 * Default request fetch supplied by the SvelteKit adapter.

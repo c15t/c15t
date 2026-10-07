@@ -107,6 +107,11 @@
 			"types": "./dist-types/static.d.ts",
 			"import": "./dist/static.js",
 			"default": "./dist/static.js"
+		},
+		"./build": {
+			"types": "./dist-types/build.d.ts",
+			"import": "./dist/build.js",
+			"default": "./dist/build.js"
 		}
 	},
 	"publishConfig": {
