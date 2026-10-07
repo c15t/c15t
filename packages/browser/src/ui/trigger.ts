@@ -16,14 +16,11 @@ import type { DevToolsLauncherTarget } from '@c15t/ui/utils/devtools-launcher';
 import { classes } from '../generated/styles';
 import { hasDecided } from '../has-decided';
 import type { ConsentTriggerOptions } from '../types';
-import { cx, h, svg } from './dom';
+import { createBrandMark } from './branding';
+import { cx, h } from './dom';
 import type { Surface, SurfaceContext } from './surface';
 import { createTriggerToolbar } from './trigger-toolbar';
 import type { TriggerToolbar } from './trigger-toolbar';
-
-const CONSENT_MARK = [
-	'M53.179 70.787c6.17 0 11.172-5.002 11.172-11.172 0-4.009-2.111-7.524-5.283-9.495a23.87 23.87 0 0 1 8.817-1.677c13.217 0 23.93 10.714 23.93 23.93s-10.713 23.93-23.93 23.93c-13.216 0-23.93-10.714-23.93-23.93 0-1.924.227-3.795.656-5.588a11.148 11.148 0 0 0 8.568 4.002Z',
-];
 
 const POSITION_CLASS: Record<CornerPosition, keyof typeof classes.trigger> = {
 	'bottom-left': 'bottomLeft',
@@ -87,12 +84,14 @@ export const createTrigger = function createTrigger(
 	let toolbar: TriggerToolbar | null = null;
 	let stopDocking: (() => void) | null = null;
 
+	// The mark follows the resolved branding, like the React trigger's.
+	let { branding } = ctx.client.getSnapshot();
 	const createIcon = function createIcon(): HTMLSpanElement {
 		return slot(
 			h(
 				'span',
 				{ 'aria-hidden': 'true', class: noStyle ? '' : styles.icon },
-				svg('0 0 140 97', CONSENT_MARK)
+				createBrandMark(branding)
 			),
 			'consentDialogTriggerIcon'
 		);
@@ -290,7 +289,7 @@ export const createTrigger = function createTrigger(
 	const createToolbar = function createToolbar(): TriggerToolbar {
 		const created = createTriggerToolbar({
 			ariaLabel: options.ariaLabel ?? 'Open privacy settings',
-			icon: svg('0 0 140 97', CONSENT_MARK),
+			icon: createBrandMark(branding),
 			noStyle,
 			onDevTools: () => launcher?.toggle(),
 			onPreferences: () => ctx.client.openDialog(),
@@ -366,6 +365,13 @@ export const createTrigger = function createTrigger(
 			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
 			claimWhileVisible();
+			if (snapshot.branding !== branding) {
+				({ branding } = snapshot);
+				const next = createIcon();
+				icon.replaceWith(next);
+				icon = next;
+				toolbar?.setIcon(createBrandMark(branding));
+			}
 			if (renderedExperiment === snapshot.experiment) {
 				applyClasses(snapTimer !== undefined);
 				return;

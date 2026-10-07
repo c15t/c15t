@@ -86,6 +86,16 @@ describe('trigger with DevTools', () => {
 		expect(root.querySelector('[role="toolbar"]')).toBeNull();
 	});
 
+	it('draws the whole c15t mark on the button and the toolbar', async () => {
+		const { client, root } = await start();
+		const mark = (scope: Element | null) =>
+			scope?.querySelector('svg')?.getAttribute('viewBox');
+
+		expect(mark(root.querySelector('[data-c15t-trigger]'))).toBe('0 0 446 445');
+		devTools(client);
+		expect(mark(action(root, 'preferences'))).toBe('0 0 446 445');
+	});
+
 	it('becomes a toolbar that docks DevTools mounted after it', async () => {
 		const { root } = await start();
 		const panel = devTools(clients[0] as ConsentClient);

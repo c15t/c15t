@@ -50,6 +50,8 @@ export interface TriggerToolbar {
 	setCorner: (corner: CornerPosition) => void;
 	/** Reflect whether the DevTools panel is open. */
 	setOpen: (isOpen: boolean) => void;
+	/** Swap the preferences item's icon, for example after a branding change. */
+	setIcon: (icon: SVGSVGElement) => void;
 }
 
 /**
@@ -164,6 +166,9 @@ export const createTriggerToolbar = function createTriggerToolbar(
 			if (element.firstElementChild !== order[0]) {
 				element.append(...order);
 			}
+		},
+		setIcon(icon) {
+			preferences.firstElementChild?.replaceChildren(icon);
 		},
 		setOpen(isOpen) {
 			devtools.setAttribute('aria-expanded', String(isOpen));
