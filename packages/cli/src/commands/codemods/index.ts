@@ -334,6 +334,28 @@ const validateVersionFlags = (flags: CliContext['flags']): void => {
 };
 
 /**
+ * The release a run migrates to: the latest target among the selected
+ * transforms, so a run of v3 transforms reports 3.0.0.
+ */
+const runTarget = function runTarget(selected: CodemodDefinition[]): string {
+	let latest = LEGACY_TARGET_VERSION;
+	for (const item of selected) {
+		const target = item.targetVersion ?? LEGACY_TARGET_VERSION;
+		if (Number.parseInt(target, 10) > Number.parseInt(latest, 10)) {
+			latest = target;
+		}
+	}
+	return latest;
+};
+
+/** The result `kind` for a run that migrates to `targetVersion`. */
+const runKind = function runKind(targetVersion: string): string {
+	return targetVersion === LEGACY_TARGET_VERSION
+		? 'legacy-codemods'
+		: 'codemods';
+};
+
+/**
  * Runs one or more selected codemods for the current project.
  *
  * @param context CLI execution context.
@@ -424,13 +446,22 @@ export const runCodemods = async (context: CliContext) => {
 		};
 	}
 	const session = await createCodemodSession(projectRoot);
-	const results: { id: string; result: CodemodRunResult }[] = [];
+	const targetVersion = runTarget(selected);
+	const results: {
+		id: string;
+		result: CodemodRunResult;
+		targetVersion: string;
+	}[] = [];
 	await forEachSequential(selected, {
 		run: async (item) => {
 			// Each migration sees the preceding migration's edits, including in dry runs.
 			const result = await item.run({ dryRun, projectRoot, session });
 			logCodemodResult(context, result, dryRun);
-			results.push({ id: item.id, result });
+			results.push({
+				id: item.id,
+				result,
+				targetVersion: item.targetVersion ?? LEGACY_TARGET_VERSION,
+			});
 			if (result.errors.length > 0) {
 				throw new CliError('MIGRATION_FAILED', {
 					details: `${item.id} failed for ${result.errors.length} file(s). ${dryRun ? 'No changes saved.' : 'Some files may have changed; review the working tree.'} ${result.errors.map(({ filePath, error }) => `${filePath}: ${error}`).join('; ')}`,
@@ -441,10 +472,10 @@ export const runCodemods = async (context: CliContext) => {
 	return {
 		declaredVersion,
 		dryRun,
-		kind: 'legacy-codemods',
+		kind: runKind(targetVersion),
 		results,
 		sourceVersion,
-		targetVersion: '2.0.0',
+		targetVersion,
 	};
 };
 

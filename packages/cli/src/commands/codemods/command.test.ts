@@ -211,6 +211,53 @@ export const App = ({ children }) => (
 		expect(await readFile(filePath, 'utf8')).toBe(source);
 	}, 20_000);
 
+	it('reports the release that the named transforms migrate to', async () => {
+		const { cwd } = await fixture('2.3.0');
+		const v3 = await runCli(
+			['codemods', 'consent-provider-options', '--dry-run', '--json'],
+			{ cwd }
+		);
+		expect(v3, JSON.stringify(v3)).toMatchObject({
+			data: {
+				kind: 'codemods',
+				results: [{ id: 'consent-provider-options', targetVersion: '3.0.0' }],
+				targetVersion: '3.0.0',
+			},
+			success: true,
+		});
+
+		const mixed = await runCli(
+			[
+				'codemods',
+				'component-renames',
+				'consent-provider-options',
+				'--dry-run',
+				'--json',
+			],
+			{ cwd }
+		);
+		expect(mixed, JSON.stringify(mixed)).toMatchObject({
+			data: {
+				kind: 'codemods',
+				results: [
+					{ id: 'component-renames', targetVersion: '2.0.0' },
+					{ id: 'consent-provider-options', targetVersion: '3.0.0' },
+				],
+				targetVersion: '3.0.0',
+			},
+			success: true,
+		});
+
+		const legacy = await runCli(
+			['codemods', 'component-renames', '--dry-run', '--json'],
+			{ cwd }
+		);
+		expect(legacy).toMatchObject({
+			data: { kind: 'legacy-codemods', targetVersion: '2.0.0' },
+			success: true,
+		});
+	}, 20_000);
+
 	it('uses an explicit source version for all legacy transforms and rejects unsupported targets', async () => {
 		const { cwd, filePath, source } = await fixture();
 		const preview = await runCli(
