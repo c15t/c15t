@@ -2,6 +2,10 @@
 title: Intercom
 description: Load the Intercom messenger only after functionality consent with
   the c15t intercom helper, set its region and check it in DevTools.
+seoTitle: Intercom cookie consent with c15t
+seoDescription: Show the Intercom Messenger only after visitors give
+  functionality consent. Set it up with the c15t intercom helper and its
+  regional API settings.
 icon: intercom
 group: integrations
 ---

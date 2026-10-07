@@ -2,6 +2,9 @@
 title: Meta Pixel
 description: Load the Meta Pixel only after marketing consent with the c15t
   metaPixel helper, guard fbq event calls, and check it in DevTools.
+seoTitle: Meta Pixel cookie consent with c15t
+seoDescription: Load the Meta Pixel only after visitors give marketing consent.
+  The c15t metaPixel helper sends fbq consent grant and revoke signals for you.
 icon: meta
 group: integrations
 ---

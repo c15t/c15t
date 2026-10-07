@@ -3,6 +3,9 @@ title: Google Maps
 description: Gate a Google Maps iframe embed with c15t v3 so the map loads only
   after the visitor allows its consent category, in Next.js, TanStack Start,
   React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML or JavaScript.
+seoTitle: Google Maps embed cookie consent with c15t
+seoDescription: Show Google Maps embeds only after consent. c15t keeps the map
+  iframe empty until then, in Next.js, React, Vue, Svelte, Astro and HTML.
 icon: google-maps
 group: integrations
 ---
