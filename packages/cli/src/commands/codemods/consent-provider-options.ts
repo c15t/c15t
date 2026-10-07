@@ -239,10 +239,35 @@ export const hasHandWrittenRules = function hasHandWrittenRules(
 /** How far to follow variables and conditionals when resolving a mode. */
 const MAX_MODE_DEPTH = 5;
 
+/** The v3 transport factories. */
+const TRANSPORT_FACTORIES = new Set(['custom', 'hosted', 'offline']);
+
+/** Whether a call invokes `hosted()`, `offline()` or `custom()`, or an alias of one. */
+const callsTransportFactory = function callsTransportFactory(
+	call: TsMorphTypes.CallExpression
+): boolean {
+	const callee = call.getExpression();
+	if (Node.isPropertyAccessExpression(callee)) {
+		return TRANSPORT_FACTORIES.has(callee.getName());
+	}
+	if (!Node.isIdentifier(callee)) {
+		return false;
+	}
+	return (
+		TRANSPORT_FACTORIES.has(callee.getText()) ||
+		(callee.getSymbol()?.getDeclarations() ?? []).some(
+			(declaration) =>
+				Node.isImportSpecifier(declaration) &&
+				TRANSPORT_FACTORIES.has(declaration.getName())
+		)
+	);
+};
+
 /**
- * Whether a `mode` value is already a v3 transport: a call such as
- * `hosted()`, a choice between transports, a variable that holds one, or a
- * value typed as an object. v2 modes were strings.
+ * Whether a `mode` value is already a v3 transport: a call to `hosted()`,
+ * `offline()` or `custom()`, a choice between transports, a variable that
+ * holds one, or a value typed as an object. v2 modes were strings, so a
+ * helper that returns one, such as `getConsentMode()`, is not a transport.
  */
 const isTransport = function isTransport(
 	node: TsMorphTypes.Node,
@@ -252,7 +277,7 @@ const isTransport = function isTransport(
 		return false;
 	}
 	const value = unwrapExpression(node);
-	if (Node.isCallExpression(value)) {
+	if (Node.isCallExpression(value) && callsTransportFactory(value)) {
 		return true;
 	}
 	if (Node.isConditionalExpression(value)) {

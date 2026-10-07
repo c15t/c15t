@@ -383,6 +383,10 @@ export const options: ConsentManagerOptions = { mode };
 export const fromConfig: ConsentManagerOptions = {
 	mode: config.mode,
 };
+const getConsentMode = () => (useOffline ? 'offline' : 'hosted');
+export const fromHelper: ConsentManagerOptions = {
+	mode: getConsentMode(),
+};
 `;
 		const { first, second, secondResult } = await transformTwice(
 			codemod,
@@ -397,6 +401,9 @@ export const fromConfig: ConsentManagerOptions = {
 		expect(first).toContain(
 			`\t// ${todo} Replace this value and remove backendURL, offlinePolicy and endpointHandlers.\n\tmode: config.mode,`
 		);
+		expect(first).toContain(
+			`\t// ${todo} Replace this value and remove backendURL, offlinePolicy and endpointHandlers.\n\tmode: getConsentMode(),`
+		);
 		expect(second).toBe(first);
 		expect(secondResult.changedFiles).toEqual([]);
 	});
@@ -404,7 +411,7 @@ export const fromConfig: ConsentManagerOptions = {
 	it('leaves a mode that already holds a v3 transport alone', async () => {
 		const { result } = await transformFile(
 			codemod,
-			`import { hosted, offline, type ConsentProviderOptions } from '@c15t/react';
+			`import { hosted, hosted as remote, offline, type ConsentProviderOptions } from '@c15t/react';
 
 declare const useOffline: boolean;
 const mode = offline();
@@ -415,6 +422,7 @@ export const b: ConsentProviderOptions = { mode: transport };
 export const c: ConsentProviderOptions = {
 	mode: useOffline ? offline() : hosted({ url: '/api/c15t' }),
 };
+export const d: ConsentProviderOptions = { mode: remote({ url: '/api/c15t' }) };
 `
 		);
 		expect(result.changedFiles).toEqual([]);
