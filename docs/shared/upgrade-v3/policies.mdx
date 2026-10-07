@@ -32,6 +32,15 @@ const mode = offline({
 
 `worldNone()` is a separate, new preset: it shows nothing and grants no
 rights, while `worldOptOutNoPrompt()` keeps v2's opt-out and preference rights.
+
+The `policy-packs-to-policy-rules` codemod renames `policyPackPresets` and
+`worldNoBanner()`, and moves the import to `c15t` where it came from
+`c15t/react` or `c15t/next`. `consent-provider-options` moves
+`offlinePolicy.policyPacks` into `offline({ policyRules })`. Preset calls need
+no other change, but a hand-written v2 pack uses `consent` and `ui` keys,
+which v3 rules replace with flat keys such as `model` and `prompt`; the
+codemods mark those with a `TODO(c15t v3)` comment.
+
 v3 adds presets for more regions. `offline()` without `policyRules` uses
 `recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
 change a rule's model or prompt, and

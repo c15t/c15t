@@ -9,6 +9,15 @@ Callbacks stay under `callbacks` in your options, with new names:
 | `onBannerFetched` | No callback. In React and Next.js, read `usePolicyResolution()` to know when the policy has resolved. In JavaScript, read `resolution` from the kernel snapshot. |
 | `onError`, `onBeforeConsentRevocationReload` | Unchanged |
 
+The `callbacks-to-v3` codemod renames `onConsentChanged` to
+`onChoiceRecorded`. It leaves a `TODO(c15t v3)` comment there about the new
+payload, and on `onConsentSet` and `onBannerFetched`, which it can't choose a
+replacement for:
+
+```bash
+npx @c15t/cli@alpha codemods callbacks-to-v3 --dry-run --json
+```
+
 v2's `onConsentChanged` fired only when a save changed at least one category's
 value, and passed `preferences` and `previousPreferences`. v3's
 `onChoiceRecorded` fires for every accept, reject or save that confirms a

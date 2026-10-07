@@ -14,11 +14,11 @@ group: frameworks
   1. Find every use of the `c15t` package and `@c15t/scripts`: `getOrCreateConsentRuntime`, `configureConsentManager`, `consentStore`, cookie helpers, script loader and iframe blocker functions.
   2. Decide which v3 entry fits. Use `@c15t/browser` if the app wants the stock banner, `createConsentRuntime` from `c15t/runtime` if it renders its own UI, and `createConsentKernel` only if it mounts each module itself. Tell me which one you picked and why.
   3. Install `c15t@alpha`, or `@c15t/browser@alpha` for the stock banner, plus `@c15t/integrations@alpha` if the app uses vendor helpers and `@c15t/dev-tools@alpha` if it uses dev tools.
-  4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json`, review it, then run it without `--dry-run`.
+  4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations consent-provider-options policy-packs-to-policy-rules callbacks-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   5. If you picked `createConsentRuntime`, call `runtime.start()` after creating it. Replace each store call with its v3 equivalent from the guide's mapping table.
   6. Update callbacks and policy presets as the guide describes.
   7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
-  8. Run the typecheck and build.
+  8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
 
   When you finish, list the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.
 </Prompt>
@@ -58,6 +58,11 @@ exported from `c15t`. `translations` becomes `i18n`, and
 `createConsentRuntime()` only builds the runtime. Call `runtime.start()` to
 read stored consent, resolve the policy and mount the script loader and
 blockers. Until then nothing is gated.
+
+The `consent-provider-options` codemod rewrites `mode`, `backendURL` and
+`iframeBlockerConfig` in the object you pass to `getOrCreateConsentRuntime()`
+and adds the `hosted` or `offline` import from `c15t`. Rename the call to
+`createConsentRuntime()` from `c15t/runtime` yourself.
 
 ## Replace store calls
 
