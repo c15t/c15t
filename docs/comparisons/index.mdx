@@ -8,8 +8,6 @@ group: reference
 
 c15t is our recommended choice for product teams that need native framework integration, control of the consent interface and ownership of the backend. You can review consent behaviour with the application that depends on it.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 The strongest reason to choose c15t is this combination of control and integration. Other tools also have APIs, custom styles, service controls or consent records.
 
 <include src="../shared/comparisons/inth-hosting.mdx" />
@@ -101,9 +99,7 @@ c15t controls the integrations and targets that you configure. A visible banner 
 
 Some integrations load before consent and receive denied signals. Withdrawal normally reloads the page. Optional cleanup cannot remove all vendor data.
 
-Connect to Inth to store consent records in its database. A local choice is not proof of a successful save, and browser-only mode has no backend records.
-
-Use browser-only mode for development and tests. Not recommended for production environments.
+A local choice is not proof of a successful save.
 
 The software has no licence fee. Inth, infrastructure, implementation and any separate site scans or legal services still have costs.
 

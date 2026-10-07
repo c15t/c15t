@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when your developers want to own the consent interface, vendor rules and backend implementation. Changes can follow the same code review and release process as the application.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 Didomi combines a shared notice console with SDKs, APIs and consent analytics. It also supports React and custom interfaces, so developer access is common to both products.
 
 <include src="../shared/comparisons/inth-hosting.mdx" />
@@ -52,7 +50,7 @@ Didomi also has A/B tests. c15t's advantage for application teams is the ability
 - **An automatic record migration.** Your team must map vendor identifiers, purposes, policy versions and previous choices.
 - **A legal guarantee for an experiment.** Presentation checks flag some issues. They do not certify a layout.
 
-In Next.js, a banner in server HTML needs the awaited [rendering path](/docs/frameworks/next/rendering). The default streamed path shows it after hydration.
+In the Next.js App Router, a banner in server HTML needs the awaited [rendering path](/docs/frameworks/next/rendering). The default streamed path shows it after hydration.
 
 ## Test the workflow you will use each week
 

@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when consent must share your product's components, state and release process. Your team can design the interface, review vendor rules and choose the backend.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 Cookie Control is CIVIC's consent product. Premium offers scan-based setup and a hosted configuration wizard. Its v9 edition uses a JavaScript configuration that developers manage.
 
 <include src="../shared/comparisons/inth-hosting.mdx" />
@@ -18,7 +16,7 @@ Cookie Control is CIVIC's consent product. Premium offers scan-based setup and a
 
 | What you need | c15t | Cookie Control |
 | --- | --- | --- |
-| Integrate with application code | Native framework components and reactive state | JavaScript module and APIs. Premium also supplies CMS plugins |
+| Integrate with application code | Native framework components and reactive state | JavaScript module and APIs. v9 also has WordPress, Drupal and Joomla plugins |
 | Build your own interface | Themes, component parts and headless APIs | Banner appearance, text and category customisation |
 | Review configuration in code | Consent components and integration rules in your application | v9 supports code configuration. Premium publishes configuration from an account |
 | Control vendor activity | Category and individual vendor rules for registered targets | Category controls. Premium adds automatic script and iframe controls |
@@ -45,7 +43,7 @@ A c15t visitor can accept a category and refuse one named vendor within it. The 
 
 Cookie Control's reviewed Premium API uses category callbacks. Its scan and script tools help teams manage those categories with less manual setup.
 
-For Next.js applications, c15t also offers explicit [server and browser response paths](/docs/frameworks/next/rendering). The default streamed path does not include the banner in initial HTML.
+For Next.js applications, c15t also offers explicit [server and browser response paths](/docs/frameworks/next/rendering). The App Router's default streamed path does not include the banner in initial HTML.
 
 Your team can pin the c15t packages and review releases. Cookie Control v9 also documents versioned scripts and code configuration, so that control is not unique to c15t.
 
@@ -56,8 +54,6 @@ c15t does not supply Premium's website scanner, configuration wizard or privacy 
 c15t does not automatically find and stop every tracker already on the site. Register the scripts, requests and embeds that need controls.
 
 Withdrawal normally reloads the page. Optional cookie cleanup cannot delete every vendor cookie or remove data that a vendor already received.
-
-Connect to Inth to store consent records in its database. Browser-only mode has no backend records. Not recommended for production environments.
 
 The software has no licence fee. Backend operations and implementation still cost money. The release covered here is currently an alpha.
 

@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when your product team wants consent in its codebase and control over the backend. Its open-source engine, native components and vendor integrations work together.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 OneTrust offers extensive consent operations and a server-side API for custom interfaces. The reason to choose c15t is control of the implementation, not exclusive access to headless consent.
 
 <include src="../shared/comparisons/inth-hosting.mdx" />
@@ -44,7 +42,7 @@ With c15t, a server can cache a public consent manifest, the document that conta
 
 Backend refreshes and consent saves still need a connection. See [data fetching](/docs/concepts/data-fetching).
 
-In Next.js, the default streamed path lets the page appear first. Await consent when the banner must arrive in server HTML. That choice adds a wait.
+In the Next.js App Router, the default streamed path lets the page appear first. Await consent when the banner must arrive in server HTML. That choice adds a wait.
 
 These [rendering options](/docs/frameworks/next/rendering) let your team choose the tradeoff. Neither an API nor server rendering proves a speed advantage without a comparable test.
 

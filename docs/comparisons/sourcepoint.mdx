@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when your developers need native web components and control of the consent backend. You can build privacy choices into the product and review their behaviour in code.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 Sourcepoint suits publishers and teams with consent campaigns across websites, apps and connected TVs. It has developer APIs as well as managed operations.
 
 Sourcepoint is part of Didomi after the [announced acquisition](https://www.didomi.io/blog/didomi-sourcepoint). This guide covers Sourcepoint's product and docs. See the separate [Didomi comparison](/docs/comparisons/didomi) for that product.
@@ -52,7 +50,7 @@ For either product, check the actual vendor list, policy and deployment. Support
 - The packages do not include automated vendor discovery or a publisher campaign console.
 - They do not include a connected-TV SDK or a full privacy operations suite.
 - Vendor rules cover configured targets. A visible banner does not stop every tag already on the site.
-- Connect to Inth to store consent records in its database. Local state alone does not prove a successful write.
+- Local state alone does not prove a successful write.
 
 Some integrations load with denied signals. Withdrawal normally reloads the page, and optional cleanup cannot remove all vendor data.
 

@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when your team needs consent components, vendor choices and backend records inside a web product. You can build the interface in your framework and review its behaviour with the application.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 Ethyca addresses a wider set of privacy and data governance tasks. Its current Janus product offers consent APIs across web, mobile and backend systems.
 
 Ethyca also publishes Fides source code. This comparison distinguishes that code from current commercial products and services.
@@ -39,7 +37,7 @@ Use [native framework components](/docs/frameworks) or build the interface throu
 
 The [vendor controls](/docs/frameworks/react/vendor-consent) let a visitor refuse one named vendor within an accepted category. Registered scripts, requests and embeds can respect that choice.
 
-For Next.js, choose the [consent response path](/docs/frameworks/next/rendering). The default streamed path shows the page first and does not include the banner in initial HTML.
+For Next.js, choose the [consent response path](/docs/frameworks/next/rendering). The App Router's default streamed path shows the page first and does not include the banner in initial HTML.
 
 Ethyca also supports headless consent. Choose c15t for its documented web component workflow and the backend that accompanies it.
 
@@ -61,14 +59,12 @@ c15t also does not supply an equivalent native mobile SDK suite or automatic con
 
 Your team must configure the application integrations. A banner does not automatically stop every tracker already on the site, and withdrawal cannot erase data already sent elsewhere.
 
-Connect to Inth to store consent records in its database. Browser-only mode has no backend records. Not recommended for production environments.
-
 The software has no licence fee. Hosting, maintenance and implementation still cost money.
 
 ## Try the difference in your application
 
 1. Start with [Inth and your framework guide](/docs/frameworks).
-2. Add a consent control to an product screen.
+2. Add a consent control to a product screen.
 3. Register a vendor and test a refusal inside an accepted category.
 4. Inspect the requests, interface and backend record.
 5. List any wider governance workflows that still need a separate system.

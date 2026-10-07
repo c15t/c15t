@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when your product needs consent state across components, vendor rules and backend records. It gives your team a common model for the interface and the code behind it.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 Silktide Consent Manager is a free, open-source browser manager. It supports preference controls, consent-based script injection and Google Consent Mode. It is more than a decorative banner.
 
 <include src="../shared/comparisons/inth-hosting.mdx" />
@@ -40,9 +38,9 @@ That gives you a defined route beyond local browser preferences. A visitor's loc
 
 ## Choose how the page receives consent
 
-For Next.js, c15t supports [streamed, awaited and browser paths](/docs/frameworks/next/rendering). Use the default streamed path to let the page appear before consent resolves.
+For Next.js, c15t supports [streamed, awaited and browser paths](/docs/frameworks/next/rendering). In the App Router, use the default streamed path to let the page appear before consent resolves.
 
-If the banner must arrive in server HTML, use an awaited path. That adds a wait, so measure the effect on your application.
+If the banner must arrive in App Router server HTML, use an awaited path. That adds a wait, so measure the effect on your application.
 
 Silktide's published setup runs in the browser. c15t's advantage here is its documented framework and server workflow, not a measured speed claim.
 

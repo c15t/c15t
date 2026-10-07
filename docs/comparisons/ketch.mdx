@@ -8,8 +8,6 @@ group: reference
 
 c15t is the stronger fit when your main task is consent inside a web application. Your team can change the components, review vendor rules and release the consent code with the product.
 
-[Inth](https://inth.com) is the official hosting platform for c15t. It runs the consent backend and stores consent records in a database. Your consent interface and vendor controls stay in your application.
-
 Ketch serves a broader need: consent across identities and connected systems, with privacy operations in the same platform. It also offers APIs, SDKs and custom interfaces.
 
 <include src="../shared/comparisons/inth-hosting.mdx" />
@@ -20,7 +18,7 @@ Ketch serves a broader need: consent across identities and connected systems, wi
 | --- | --- | --- |
 | Integrate with web application code | Native framework components and reactive consent state | Web APIs and SDKs. Ketch also advertises React support |
 | Build your own interface | Themes, component parts and headless APIs | Visual editor, SDKs and custom integration APIs |
-| Choose the backend | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed platform. Reviewed public sources do not establish a deployable equivalent backend |
+| Choose the backend | Inth, or the Apache-2.0 backend on your own infrastructure | Managed platform. Reviewed public sources do not establish a deployable equivalent backend |
 | Review vendor behaviour | Explicit rules for registered scripts, requests and embeds | Tag controls and connectors to other systems |
 | Keep consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed records tied to the visitor and connected systems |
 | Find trackers automatically | **Not included in the c15t packages** | Tracker scans and related analysis |
@@ -57,16 +55,14 @@ The c15t packages also do not include an equivalent system that resolves identit
 
 Your team must register scripts, request rules and embeds. c15t cannot automatically control every vendor already on the site.
 
-Connect to Inth to store consent records in its database. A choice in the browser is not proof of a successful backend save.
-
-Browser-only mode has no backend records. Not recommended for production environments.
+A choice in the browser is not proof of a successful backend save.
 
 Withdrawal normally reloads the page. The software has no licence fee, but implementation and backend operations still have costs. The release covered here is currently an alpha.
 
 ## Try the difference in your application
 
 1. Start with [Inth and a framework guide](/docs/frameworks).
-2. Build a consent control inside an product screen.
+2. Build a consent control inside a product screen.
 3. Register one analytics vendor and one embed.
 4. Refuse, accept and withdraw consent. Inspect requests and the saved record.
 5. Compare the application work with the separate privacy operations that your business needs.
