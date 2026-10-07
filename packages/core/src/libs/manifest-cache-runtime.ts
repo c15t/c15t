@@ -1052,10 +1052,11 @@ const waitForFill = function waitForFill(
 		'onBackgroundRevalidate' | 'timeoutMs'
 	>
 ): Promise<CachedManifestResponse> {
-	const { timeoutMs } = options;
-	if (timeoutMs === undefined || !Number.isFinite(timeoutMs)) {
+	if (options.timeoutMs === undefined || !Number.isFinite(options.timeoutMs)) {
 		return fill.promise;
 	}
+	// A caller's budget can already be spent; report that as 0 ms, not less.
+	const timeoutMs = Math.max(0, options.timeoutMs);
 	const giveUp = function giveUp(): ManifestUnavailableError {
 		// Observe the abandoned fill even when nothing keeps it alive, so its
 		// failure is not reported as an unhandled rejection.
@@ -1072,7 +1073,7 @@ const waitForFill = function waitForFill(
 			`c15t manifest cache: no manifest within ${timeoutMs} ms; the request continues in the background.`
 		);
 	};
-	const remaining = fill.startedAt + Math.max(0, timeoutMs) - Date.now();
+	const remaining = fill.startedAt + timeoutMs - Date.now();
 	if (remaining <= 0) {
 		// Joined a fill that already ran past the budget: the upstream is
 		// slow, so answer now rather than add to the wait.
@@ -1099,13 +1100,14 @@ export const withResolutionBudget = function withResolutionBudget<Value>(
 	if (timeoutMs === undefined || !Number.isFinite(timeoutMs)) {
 		return task;
 	}
+	const budgetMs = Math.max(0, timeoutMs);
 	return raceTimer(
 		task,
-		Math.max(0, timeoutMs),
+		budgetMs,
 		() =>
 			new ManifestUnavailableError(
 				'timeout',
-				`c15t: consent resolution did not finish within ${timeoutMs} ms.`
+				`c15t: consent resolution did not finish within ${budgetMs} ms.`
 			)
 	);
 };
