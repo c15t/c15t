@@ -43,7 +43,7 @@ const initRequest = (country: string, region = '') =>
 const upstream = () =>
 	vi.fn<typeof globalThis.fetch>((input) =>
 		Promise.resolve(
-			String(input).endsWith('/manifest')
+			/\/manifest(?:\.json)?$/u.test(String(input))
 				? Response.json(MANIFEST_FIXTURE)
 				: new Response(null, { status: 202 })
 		)
@@ -127,6 +127,23 @@ describe('shared ConsentManifestOptions', () => {
 
 		// Both read the same upstream entry in the process cache.
 		expect(urls(fetch)).toEqual(['https://consent.example.com/manifest']);
+	});
+
+	test('an absolute config.manifestURL is the source on both sides', async () => {
+		const fetch = upstream();
+		const consentOptions = {
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				manifestURL: 'https://cdn.example.com/manifest.json',
+			}),
+			fetch,
+			reportSessions: false,
+		} satisfies ConsentManifestOptions;
+
+		await resolveConsent({ ...consentOptions, request: requestOf('DE') });
+		await createNextConsentRouteHandlers(consentOptions).GET(initRequest('DE'));
+
+		expect(urls(fetch)).toEqual(['https://cdn.example.com/manifest.json']);
 	});
 });
 

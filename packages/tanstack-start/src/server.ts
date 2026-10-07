@@ -329,7 +329,6 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
  */
 export type ConsentManifestOptions = Pick<
 	ResolveConsentOptions & ConsentServerRouteOptions,
-	| 'backendURL'
 	| 'cache'
 	| 'fetch'
 	| 'manifest'
@@ -337,7 +336,14 @@ export type ConsentManifestOptions = Pick<
 	| 'onBackgroundRevalidate'
 	| 'reportSessions'
 	| 'trustForwardedHeaders'
->;
+> & {
+	/**
+	 * Backend base URL. Required here: without it the server function
+	 * ignores `manifest` and returns cookie-only state, while the consent
+	 * route still resolves from it.
+	 */
+	backendURL: string;
+};
 
 const resolveConsentState = async function resolveConsentState(
 	options: ResolveConsentOptions

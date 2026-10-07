@@ -342,8 +342,8 @@ export function resolveRequestConsent(req: IncomingMessage) {
 ## Share options between the render and the routes
 
 `ConsentManifestOptions` holds the options `resolveConsent` and the route
-handlers share: `config`, `manifest`, `backendURL`, `fetch`, `reportSessions`
-and `trustForwardedHeaders`. Pass one object to both:
+handlers share: `config`, `manifest`, `backendURL`, `manifestURL`, `fetch`,
+`reportSessions` and `trustForwardedHeaders`. Pass one object to both:
 
 <include src="../../shared/examples/nextjs/consent-options.mdx" />
 
@@ -364,7 +364,7 @@ The handlers read no environment variables.
 | `backendURL` | none | Backend base URL. The manifest route fetches `${backendURL}/manifest`. Not read when `manifestURL` is set. |
 | `manifestURL` | none | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
 | `manifest` | none | Build-time snapshot. Takes precedence over upstream URLs, serves the manifest and resolves each visitor without fetching policy. Stays fixed until rebuilding. Keep `backendURL` for consent saves and session reports. |
-| `config` | none | A `defineConsentConfig` result. Only its `backendURL` is read, and an explicit `backendURL` wins. |
+| `config` | none | A `defineConsentConfig` result. Its `backendURL` and an absolute `manifestURL` are read; explicit options win. |
 | `manifestRevalidateSeconds` | `300` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
 | `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `request.url`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |

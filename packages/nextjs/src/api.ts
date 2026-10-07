@@ -31,9 +31,10 @@ export interface NextConsentManifestHandlersOptions {
 	manifest?: ConsentManifest;
 
 	/**
-	 * A `defineConsentConfig` result. Only its `backendURL` is read, and an
-	 * explicit `backendURL` wins. Its `manifestURL` and `initURL` are the
-	 * routes these handlers serve, so they are never fetched.
+	 * A `defineConsentConfig` result. Its `backendURL` and an absolute
+	 * `manifestURL` are read, as `resolveConsent` reads them; explicit options
+	 * win. A `/`-relative `manifestURL` and `initURL` name the routes these
+	 * handlers serve, so they are never fetched.
 	 */
 	config?: ConsentConfig;
 
@@ -120,6 +121,13 @@ export const createManifestFetchInit = function createManifestFetchInit(
 };
 
 /**
+ * A config's `manifestURL` when it points upstream. A `/`-relative one is
+ * the route these handlers serve.
+ */
+const upstreamManifestURL = (config: ConsentConfig | undefined) =>
+	config?.manifestURL?.startsWith('/') ? undefined : config?.manifestURL;
+
+/**
  * Handler options from either the explicit options bag or a
  * `defineConsentConfig` result.
  *
@@ -177,7 +185,7 @@ export const createNextConsentRouteHandlers =
 			fetchGvl: options.fetchGvl,
 			manifest: options.manifest,
 			manifestFetchInit: { next } as NextFetchInit,
-			manifestURL: options.manifestURL,
+			manifestURL: options.manifestURL ?? upstreamManifestURL(options.config),
 			reportSessions: options.reportSessions,
 			trustForwardedHeaders: options.trustForwardedHeaders,
 		});

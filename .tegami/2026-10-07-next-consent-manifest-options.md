@@ -17,4 +17,4 @@ export const consentOptions = {
 ```
 
 `createNextConsentRouteHandlers` and `createPagesApiHandlers` now accept
-`config` and read its `backendURL`.
+`config`.

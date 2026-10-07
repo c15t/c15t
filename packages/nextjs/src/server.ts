@@ -300,6 +300,7 @@ export type ConsentManifestOptions = Pick<
 	| 'config'
 	| 'fetch'
 	| 'manifest'
+	| 'manifestURL'
 	| 'reportSessions'
 	| 'trustForwardedHeaders'
 >;

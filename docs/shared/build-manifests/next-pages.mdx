@@ -34,5 +34,5 @@ only from `getServerSideProps` and API routes.
 If you install `@c15t/nextjs` directly, set `importSource: '@c15t/nextjs/static'`.
 In a monorepo, set `rootDir` to the app directory.
 
-For policy updates without a rebuild, remove `manifest` from
-`consentOptions` and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+For policy updates without a rebuild, remove `withConsentManifest` and the
+`manifest` line, and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
