@@ -4,8 +4,8 @@
  * Client-only debug and adapter identification module. Installs a tiny,
  * read-only `window.c15t` object for browser inspection after a framework
  * adapter has mounted. This is the v3 successor to v2's `window.c15tStore`
- * exposure, but intentionally exposes only static public metadata
- * (`version`, `pkg`, `mode`) instead of the mutable store.
+ * exposure, but intentionally exposes only public metadata (`version`,
+ * `pkg`, `mode`, `hosting`) instead of the mutable store.
  *
  * Concerns are split across siblings:
  * - `types.ts` — public type definitions.
@@ -68,7 +68,7 @@ const inertHandle: WindowDebugHandle = {
 
 /**
  * Installs a frozen `window.c15t` debug object describing the mounted
- * c15t adapter: `{ version, pkg, mode }`.
+ * c15t adapter: `{ version, pkg, mode, hosting }`.
  *
  * @param options - The adapter identity to report: `pkg` (installed
  * adapter package name) and `mode` (resolved transport kind).
@@ -79,7 +79,7 @@ const inertHandle: WindowDebugHandle = {
  * @example
  * ```ts
  * const handle = createWindowDebug({ pkg: '@c15t/react', mode: 'hosted' });
- * // window.c15t -> { version: '2.1.0', pkg: '@c15t/react', mode: 'hosted' }
+ * // window.c15t -> { version: '2.1.0', pkg: '@c15t/react', mode: 'hosted', hosting: null }
  * handle.dispose();
  * ```
  */
@@ -91,7 +91,11 @@ export const createWindowDebug = function createWindowDebug(
 	}
 
 	const target = window as WindowWithC15tDebug;
+	const { getHosting } = options;
 	const installed: C15tWindowDebug = Object.freeze({
+		get hosting() {
+			return getHosting?.() ?? null;
+		},
 		mode: options.mode,
 		pkg: options.pkg,
 		version,

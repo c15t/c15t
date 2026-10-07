@@ -1,0 +1,48 @@
+## Move policy packs to policy rules
+
+v2 policy packs become policy rules, and `policyPackPresets` becomes
+`policyRulePresets`, exported from `c15t`. Where the rules live depends on your
+backend:
+
+- **Inth**: set the rules in your Inth project. Rules in client code do not
+  change a hosted policy.
+- **Self-hosted**: move the backend's `policyPacks` to `manifest.policyRules`.
+  See [policy configuration](/docs/self-host/guides/policy-packs).
+- **Offline**: move `offlinePolicy.policyPacks` to `offline({ policyRules })`.
+
+{/* example: fragment */}
+
+```tsx title="After (v3): offline policy rules"
+import { offline, policyRulePresets } from 'c15t';
+
+const mode = offline({
+	policyRules: [
+		policyRulePresets.europeOptIn(),
+		policyRulePresets.worldOptOutNoPrompt(),
+	],
+});
+```
+
+| v2 preset | v3 preset |
+| --- | --- |
+| `europeOptIn()`, `europeIab()` | Same names |
+| `californiaOptIn()`, `californiaOptOut()` | Same names |
+| `quebecOptIn()` | Same name |
+| `worldNoBanner()` | `worldOptOutNoPrompt()` |
+
+`worldNone()` is a separate, new preset: it shows nothing and grants no
+rights, while `worldOptOutNoPrompt()` keeps v2's opt-out and preference rights.
+
+The `policy-packs-to-policy-rules` codemod renames `policyPackPresets` and
+`worldNoBanner()`, and moves the import to `c15t` where it came from
+`c15t/react` or `c15t/next`. `consent-provider-options` moves
+`offlinePolicy.policyPacks` into `offline({ policyRules })`. Preset calls need
+no other change, but a hand-written v2 pack uses `consent` and `ui` keys,
+which v3 rules replace with flat keys such as `model` and `prompt`; the
+codemods mark those with a `TODO(c15t v3)` comment.
+
+v3 adds presets for more regions. `offline()` without `policyRules` uses
+`recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
+change a rule's model or prompt, and
+[how consent works](/docs/concepts/how-consent-works) for the difference
+between a permission and a recorded choice.

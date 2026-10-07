@@ -34,6 +34,7 @@ import type {
 	ConsentState,
 	KernelActiveUI,
 	KernelBranding,
+	KernelHosting,
 	KernelIABState,
 	KernelOverrides,
 	KernelPrivacySignals,
@@ -64,6 +65,7 @@ export interface SnapshotPatch {
 	location?: LocationResponse | null;
 	translations?: KernelTranslations | null;
 	branding?: KernelBranding | null;
+	hosting?: KernelHosting | null;
 
 	policySnapshotToken?: string | null;
 	activeUI?: KernelActiveUI;
@@ -123,6 +125,7 @@ export const isUnchangedPatch = function isUnchangedPatch(
 		pick(patch.location, current.location) === current.location &&
 		pick(patch.translations, current.translations) === current.translations &&
 		pick(patch.branding, current.branding) === current.branding &&
+		pick(patch.hosting, current.hosting) === current.hosting &&
 		pick(patch.policySnapshotToken, current.policySnapshotToken) ===
 			current.policySnapshotToken &&
 		pick(patch.activeUI, current.activeUI) === current.activeUI &&
@@ -389,6 +392,7 @@ export const buildNextSnapshot = function buildNextSnapshot(
 		experimentPending,
 		explicitChoice,
 		externalPermissions,
+		hosting: pick(patch.hosting, current.hosting),
 		iab,
 		location: pick(patch.location, current.location),
 		model: deriveModel(policyRule, iab?.enabled ?? false),

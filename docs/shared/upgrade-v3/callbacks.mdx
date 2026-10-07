@@ -1,0 +1,52 @@
+## Replace callbacks
+
+Callbacks stay under `callbacks` in your options, with new names:
+
+| v2 callback | v3 callback |
+| --- | --- |
+| `onConsentSet` | `onPermissionsChanged` to react to what may run now. `onChoiceRecorded` to react to the visitor's accept, reject or save. |
+| `onConsentChanged` | `onChoiceRecorded`. See the note below the table. |
+| `onBannerFetched` | No callback. In React and Next.js, read `usePolicyResolution()` to know when the policy has resolved. In JavaScript, read `resolution` from the kernel snapshot. |
+| `onError`, `onBeforeConsentRevocationReload` | Unchanged |
+
+The `callbacks-to-v3` codemod renames `onConsentChanged` to
+`onChoiceRecorded`. It leaves a `TODO(c15t v3)` comment there about the new
+payload, and on `onConsentSet` and `onBannerFetched`, which it can't choose a
+replacement for:
+
+```bash
+npx @c15t/cli@alpha codemods callbacks-to-v3 --dry-run --json
+```
+
+v2's `onConsentChanged` fired only when a save changed at least one category's
+value, and passed `preferences` and `previousPreferences`. v3's
+`onChoiceRecorded` fires for every accept, reject or save that confirms a
+category, including one that saves the same values again, because each save
+renews the choice's confirmation time. Its payload carries `snapshot`,
+`confirmed` and `actionAt`. v3 has no callback that fires only when a save
+changes a value. If you need the before and after values, use
+`onPermissionsChanged`: it passes `previous` and the new `snapshot` whenever
+effective permissions change, whether a save or something else changed them.
+
+v2's `onConsentSet` also fired on initialization and hydration. In v3,
+`onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`
+runs when effective permissions change for any reason, including expiry, a
+policy update or a privacy signal. Neither runs at startup if the resolved
+permissions match the defaults, such as an opt-in policy that leaves every
+category denied. If an external API needs the starting state, read it once at
+startup as well: in React and Next.js from `useEffectivePermissions()` in an
+effect, which also runs on later changes, and in JavaScript from
+`kernel.events.on('init:applied', ({ snapshot }) => ...)`.
+
+{/* example: fragment */}
+
+```ts title="After (v3): callbacks in your options"
+callbacks: {
+  onChoiceRecorded(event) {
+    console.log('Visitor recorded a choice', event);
+  },
+  onPermissionsChanged(event) {
+    console.log('Effective permissions changed', event);
+  },
+},
+```

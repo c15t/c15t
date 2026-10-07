@@ -1,0 +1,65 @@
+## Rename options and components
+
+| v2 | v3 |
+| --- | --- |
+| `translations` | `i18n` |
+| `backendURL`, `mode: 'hosted'` | `mode: hosted({ url })` |
+| `ssrData` (Next.js) | `ConsentRoot` with `state` from `resolveConsent()` |
+| `iframeBlockerConfig` | `iframeBlocker`, or `false` to turn it off |
+| `Frame` | `ConsentGate`. `Frame` still works as a deprecated alias. |
+| `frame` translations, such as `frame.title` | `consentGate`, such as `consentGate.title`. Copy under `frame` still applies and logs a warning outside production. |
+| `FrameTranslations` | `ConsentGateTranslations`. `FrameTranslations` still works as a deprecated alias. |
+| `--frame-*` CSS variables | `--consent-gate-*`, with the same suffixes, such as `--consent-gate-placeholder-background-color`. The old names no longer apply. |
+| `YouTubeEmbed`, `GoogleMap` | Removed. Wrap your own embed in `ConsentGate`. |
+| `useConsentScript()` | Removed. Register the script in `scripts` with a `@c15t/integrations` helper. |
+| `useSSRStatus()` | Removed |
+| `ConsentButton` | Removed. Use the `ConsentBanner` and `ConsentWidget` buttons, or call `useHeadlessConsentUI()` from your own button. |
+| `@c15t/react/cookie-banner` | `c15t/react/consent-banner` |
+| `retryConfig` | Removed |
+| `store`, including `namespace`, `debug`, `initialConsentCategories` and `initialTranslationConfig` | Removed. Use the top-level `consentCategories` and `i18n` options. Debug information is on `window.c15t`. |
+| `window.c15tStore` | `window.c15t` |
+| `iab: iab({ ... })` | `IABProvider`. See [Move IAB setup](#move-iab-setup-to-iabprovider). |
+
+The `consent-provider-options` codemod renames `ConsentManagerProvider` and
+its option and prop types, turns `mode` and `backendURL` into `hosted()` or
+`offline()`, and renames `iframeBlockerConfig`. v2 still accepted the
+deprecated `translations` option; the `translations-to-i18n` codemod moves it
+to `i18n`.
+
+```bash
+npx @c15t/cli@alpha codemods consent-provider-options translations-to-i18n --dry-run --json
+```
+
+`ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`
+and `ConsentWidget` keep their names. The `scripts`, `networkBlocker`,
+`legalLinks`, `overrides`, `theme` and `colorScheme` options keep theirs too,
+but `theme` tokens no longer produce CSS on their own. See
+[Update styles and themes](#update-styles-and-themes).
+
+`persistence` and `storageConfig` are read once, when the provider mounts. v2
+moved a stored choice when the storage key changed. Remount the provider to
+change storage. Reading a vendor that nothing declares, through `vendors`, a
+script or the backend, returns `false`.
+
+Some names left the root `c15t/react` entry:
+
+| v2 import from the root | v3 import |
+| --- | --- |
+| `useHeadlessConsentUI`, `useConsentDialogTrigger`, `useColorScheme`, `useFocusTrap` and the translation helpers | `c15t/react/headless` |
+| Flat banner parts such as `ConsentBannerCard` and `ConsentBannerAcceptButton` | `ConsentBanner.Card`, `ConsentBanner.AcceptButton` and the other compound parts, or the same names from `c15t/react/components/consent-banner` |
+| `TriggerRoot`, `TriggerButton`, `TriggerIcon`, `TriggerText`, `useTriggerContext`, `useDraggable` | `c15t/react/consent-dialog-trigger` |
+| Token types such as `ColorTokens` and `TypographyTokens` | `c15t/react/types`. `Theme` stays on the root. |
+| `configureConsentManager`, `policyPackPresets`, `ConsentStoreState`, `ConsentManagerInterface` | Removed. Use `policyRulePresets` from `c15t`. |
+
+The `root-exports-to-subpaths` codemod moves these imports to their new
+entries and marks removed names with a `TODO(c15t v3)` comment:
+
+```bash
+npx @c15t/cli@alpha codemods root-exports-to-subpaths --dry-run --json
+```
+
+`ConsentGate` changes one behavior from `Frame`. When its category is granted,
+the embed now mounts after hydration instead of in the server HTML, so an
+iframe loads once instead of twice. Size the wrapper with `className` or
+`style` to hold its space. Test ids change from `frame-placeholder` and
+`frame-open-dialog` to `consent-gate-placeholder` and `consent-gate-button`.

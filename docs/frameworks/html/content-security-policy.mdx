@@ -12,7 +12,7 @@ when they are allowed. Each needs a directive:
 
 | Directive | Allow | Why |
 | --- | --- | --- |
-| `script-src` | `https://cdn.jsdelivr.net`, or the host you serve `c15t.js` from | The c15t bundle. |
+| `script-src` | The host that serves `c15t.js`, such as `https://your-project.inth.app`. Add `https://cdn.jsdelivr.net` for `c15t.gpp.js`, `c15t.devtools.js`, or a bundle you load from the CDN. | The c15t bundle. |
 | `script-src` | A nonce or hash for each inline script | Your queued `config` and `on` calls, and inline gated snippets. |
 | `script-src` | Each vendor's script origin | Gated `<script src>` tags and `scripts` entries. |
 | `connect-src` | Your backend's origin, such as `https://your-project.inth.app` | `/init`, `/subjects`, and `/manifest` in manifest mode. |
@@ -38,8 +38,7 @@ script that talks to `window.c15t`, and on every gated inline script:
 </script>
 <script
   nonce="RANDOM_PER_RESPONSE"
-  src="https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/c15t.js"
-  data-backend-url="https://your-project.inth.app"
+  src="https://your-project.inth.app/c15t.js"
   defer
 ></script>
 <script nonce="RANDOM_PER_RESPONSE" type="text/plain" data-c15t-category="measurement">

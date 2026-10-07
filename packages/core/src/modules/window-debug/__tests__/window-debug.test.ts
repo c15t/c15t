@@ -11,6 +11,7 @@ type WindowWithC15t = Window & {
 		version: string;
 		pkg: string;
 		mode: string;
+		hosting: string | null;
 	};
 };
 
@@ -38,10 +39,28 @@ describe('window-debug', () => {
 		const debug = (window as WindowWithC15t).c15t;
 		expect(debug).toBeTruthy();
 		expect(debug).toEqual({
+			hosting: null,
 			mode: 'hosted',
 			pkg: '@c15t/react',
 			version,
 		});
+		expect(Object.isFrozen(debug)).toBe(true);
+
+		handle.dispose();
+	});
+
+	test('reads hosting when accessed, so a later /init shows up', () => {
+		let hosting: 'inth' | 'self-hosted' | null = null;
+		const handle = createWindowDebug({
+			getHosting: () => hosting,
+			mode: 'hosted',
+			pkg: '@c15t/react',
+		});
+		const debug = (window as WindowWithC15t).c15t;
+
+		expect(debug?.hosting).toBeNull();
+		hosting = 'inth';
+		expect(debug?.hosting).toBe('inth');
 		expect(Object.isFrozen(debug)).toBe(true);
 
 		handle.dispose();

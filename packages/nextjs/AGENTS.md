@@ -18,7 +18,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [How consent works](./docs/concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize the interface](./docs/customization/overview.md): Change c15t's consent banner and dialog one step at a time, from a prop to your own markup, and find where each step lives in your framework.
 - [Verify consent](./docs/guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
 
 ## More documentation
 
@@ -58,6 +58,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to a Next.js site built with output export, where the browser resolves consent through Inth without request helpers or API routes.
 - [Translations](./docs/frameworks/next/translations.md): Where c15t banner and dialog copy comes from in Next.js, how the server and browser pick the visitor's language, and how to override copy and switch languages from a Client Component.
 - [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Diagnose failed c15t consent prefetch in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
+- [Upgrade from v2](./docs/frameworks/next/upgrade-v3.md): Upgrade a Next.js app from c15t v2 (@c15t/nextjs) to v3. Covers packages, ConsentRoot or ConsentProvider, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
 - [Vendor consent](./docs/frameworks/next/vendor-consent.md): Let visitors allow a category such as marketing in a Next.js app and still turn off one vendor in it, with the vendors prop on ConsentRoot and useVendorAllowed.
 
 ## Concepts
@@ -137,4 +138,4 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## Reference
 
-- [Migrate to v3](./docs/upgrade-v3.md): Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+- [Migrate to v3](./docs/upgrade-v3.md): Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.

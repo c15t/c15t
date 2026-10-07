@@ -56,6 +56,22 @@ describe('resolveInitFromManifest translations', () => {
 	});
 });
 
+describe('manifest hosting', () => {
+	test('copies hosting from the config onto every resolved init', async () => {
+		const built = await buildConsentManifestFromConfig({ hosting: 'inth' });
+
+		expect(built.hosting).toBe('inth');
+		expect(resolveInitFromManifest(built, {}).hosting).toBe('inth');
+	});
+
+	test('leaves hosting out when the producer does not say', async () => {
+		const built = await buildConsentManifestFromConfig({});
+
+		expect(built).not.toHaveProperty('hosting');
+		expect(resolveInitFromManifest(built, {})).not.toHaveProperty('hosting');
+	});
+});
+
 describe('canonical manifest contract', () => {
 	test('serialized manifests preserve the US missing-state fallback', async () => {
 		const built = await buildConsentManifestFromConfig({

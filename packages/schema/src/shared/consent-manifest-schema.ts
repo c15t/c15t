@@ -8,6 +8,7 @@ import type {
 	ConsentManifest,
 	ConsentManifestPolicyPack,
 } from './consent-manifest';
+import { hostingSchema } from './hosting';
 import { nonIABVendorSchema } from './non-iab-vendor';
 import { isPlainPolicyObject } from './policy-rule-invariants';
 import {
@@ -81,6 +82,7 @@ const manifestSchema: v.GenericSchema<unknown, ConsentManifest> = v.looseObject(
 		appName: v.optional(v.string()),
 		branding: brandingSchema,
 		cmpId: v.optional(v.number()),
+		hosting: v.optional(hostingSchema),
 		iab: v.optional(
 			v.looseObject({
 				customVendors: v.optional(v.array(nonIABVendorSchema)),

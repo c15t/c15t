@@ -9,8 +9,9 @@ group: guides
 Most problems show up in one of these places. Run them before changing code.
 
 1. **Which c15t is running.** In the browser console, run `window.c15t`. v3
-   prints `{ version, pkg, mode }`, for example `mode: 'manifest'` from
-   `@c15t/nextjs`. `undefined` means no c15t provider has mounted on this
+   prints `{ version, pkg, mode, hosting }`, for example `mode: 'manifest'`
+   from `@c15t/nextjs`. `hosting` is `'inth'` or `'self-hosted'` once the
+   backend has answered `/init`, and `null` before then or without a backend. `undefined` means no c15t provider has mounted on this
    page. A `window.c15tStore` object means the page runs v2. With the script
    tag, `window.c15t` is the full browser API instead.
 2. **The backend request.** In DevTools Network, filter by your backend URL.

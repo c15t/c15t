@@ -3,6 +3,7 @@ import type {
 	AllConsentNames,
 	ConsentSnapshot,
 	HasCondition,
+	KernelHosting,
 	KernelUser,
 	Unsubscribe,
 } from '@c15t/core';
@@ -51,8 +52,8 @@ export type QueuedCall = [method: string, ...args: unknown[]];
  * Actions such as `openDialog` or `acceptAll` wait for the client and its
  * policy; unsupported methods are skipped with a warning.
  * Before `init()` the read methods throw and `on()`/`ready()` wait; after
- * it everything proxies to the page's client. `version`, `pkg` and `mode`
- * keep the shape `@c15t/core` installs for devtools.
+ * it everything proxies to the page's client. `version`, `pkg`, `mode` and
+ * `hosting` keep the shape `@c15t/core` installs for devtools.
  */
 export interface C15tGlobal {
 	/** Package version. */
@@ -61,6 +62,11 @@ export interface C15tGlobal {
 	readonly pkg: string;
 	/** Transport kind, once initialised. */
 	readonly mode: string | null;
+	/**
+	 * Who runs the backend, `'inth'` or `'self-hosted'`, once `/init` has
+	 * reported it. `null` before then and for backends that do not say.
+	 */
+	readonly hosting: KernelHosting | null;
 	/** The page's client, once initialised. */
 	readonly client: ConsentClient | null;
 	/**
@@ -450,6 +456,9 @@ export const createGlobal = function createGlobal(
 		has: (condition) => require().has(condition),
 		hasConsented: () => require().hasConsented(),
 		hosted,
+		get hosting() {
+			return client?.getSnapshot().hosting ?? null;
+		},
 		identify: (user) => require().identify(user),
 		init(options) {
 			if (client) {

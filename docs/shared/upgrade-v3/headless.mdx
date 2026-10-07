@@ -1,0 +1,15 @@
+## Update headless UI code
+
+`useHeadlessConsentUI()` keeps its name and moves to `c15t/react/headless`.
+The `root-exports-to-subpaths` codemod moves the import.
+Some of its methods take different arguments:
+
+| v2 | v3 |
+| --- | --- |
+| `performAction(action, { surface })` | `performAction(action)`. It also accepts `'dismiss'` and `'customize'`. |
+| `openBanner({ force })` | `openBanner()` |
+| `saveCustomPreferences({ uiSource })` | `saveCustomPreferences()`, `saveCustomPreferences('all')` or `saveCustomPreferences('none')` |
+| `banner.layout`, `dialog.layout`, `hasPolicyHints` | `banner` and `dialog` carry `variant`, `position`, `rights`, `requiredActions` and `diagnostics` |
+
+The `UseHeadlessConsentUIResult` type is no longer exported. Use
+`ReturnType<typeof useHeadlessConsentUI>` if you need it.

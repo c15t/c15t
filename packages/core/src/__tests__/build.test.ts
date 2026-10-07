@@ -222,6 +222,7 @@ describe('build snapshot validation', () => {
 		{ ...MANIFEST_FIXTURE, schemaVersion: 1 },
 		{ ...MANIFEST_FIXTURE, revision: null },
 		{ ...MANIFEST_FIXTURE, branding: 'unknown' },
+		{ ...MANIFEST_FIXTURE, hosting: 'unknown' },
 		{ ...MANIFEST_FIXTURE, policyPacks: {} },
 		{ ...MANIFEST_FIXTURE, policyPacks: [null] },
 		{ ...MANIFEST_FIXTURE, policyPacks: [{ ...pack, fingerprints: {} }] },
@@ -269,6 +270,26 @@ describe('build snapshot validation', () => {
 			).rejects.toMatchObject({
 				code: 'ENOENT',
 			});
+		}
+	);
+
+	test.each(['inth', 'self-hosted'])(
+		'preserves backend hosting %s in generated snapshots',
+		async (hosting) => {
+			const body = { ...MANIFEST_FIXTURE, hosting };
+			const options = optionsFor(await createRoot());
+			options.fetch.mockImplementation(() =>
+				Promise.resolve(Response.json(body))
+			);
+			await expect(loadBuildManifest(options, 'test/build')).resolves.toEqual(
+				body
+			);
+			const file = await writeManifestModule(options, {
+				importSource: 'c15t/build',
+				label: 'test/build',
+				outputFile: 'generated/manifest.ts',
+			});
+			expect(await readFile(file, 'utf8')).toContain(`"hosting": "${hosting}"`);
 		}
 	);
 

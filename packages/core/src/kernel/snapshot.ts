@@ -390,6 +390,7 @@ export const buildInitialSnapshot = function buildInitialSnapshot(
 		experimentPending: config.initialExperimentPending === true,
 		explicitChoice,
 		externalPermissions,
+		hosting: config.initialHosting ?? null,
 		iab,
 		location: config.initialLocation ? { ...config.initialLocation } : null,
 		model: deriveModel(effective.rule, iab?.enabled ?? false),

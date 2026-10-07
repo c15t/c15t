@@ -15,9 +15,13 @@ group: frameworks
 
 ## Script files
 
-`@c15t/browser` publishes four browser bundles. Load them from
-`https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/<file>` or the same
-path on unpkg.
+`@c15t/browser` publishes four browser bundles. Inth and a self-hosted c15t
+backend serve `c15t.js`, `c15t.headless.js` and `c15t.iab.js` from the
+backend's URL, such as `https://your-project.inth.app/c15t.js`, with the
+backend URL and policy already inside. Load a file from
+`https://cdn.jsdelivr.net/npm/@c15t/browser@<version>/dist/<file>`, or the
+same path on unpkg, when no backend serves it, such as `c15t.devtools.js` or
+a page in offline mode.
 
 | File | What it contains |
 | --- | --- |
@@ -103,6 +107,11 @@ write them:
 | Hosted | `data-backend-url` | Each fresh visit asks the backend's `/init` endpoint for the visitor's policy. Choices are saved to the backend. |
 | Manifest | `data-manifest-url`, or `mode: 'manifest'` with an inline `manifest` in `config` | The browser resolves the policy from the backend's public, cacheable `/manifest`. Choices still go to the backend. |
 | Offline | No backend URL | Policy rules come from `data-policy-rules` or c15t's recommended rules. Choices stay in the browser. Not recommended for production environments. |
+
+A tag loaded from a backend's `/c15t.js`, such as
+`https://your-project.inth.app/c15t.js`, starts in manifest mode with the
+backend URL and the manifest already inside, so it needs none of these
+attributes.
 
 In manifest mode, c15t can take the backend URL from a manifest URL that ends
 in `/manifest`. A manifest on another host, or an inline manifest, also needs
