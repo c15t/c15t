@@ -9,12 +9,16 @@
  * Order does not matter: loaded first, it queues itself on `window.c15t`
  * the way any pre-load call does and mounts once the client initialises.
  * The panel lands on `window.c15t.devtools`.
+ *
+ * This file is its own bundle, so its copy of the launcher slot is not the
+ * one the main tag's trigger reads. It publishes through
+ * `window.c15t.publishDevToolsLauncher`, the main tag's copy, instead.
  */
 
 import type { DevToolsPosition, DevToolsTab } from '@c15t/dev-tools';
 
-import { mountDevTools } from '../devtools';
-import type { BrowserDevToolsOptions } from '../devtools';
+import { createBrowserDevTools } from '../devtools-mount';
+import type { BrowserDevToolsOptions } from '../devtools-mount';
 import type { C15tGlobal, QueuedCall } from '../global';
 import type { ConsentClient } from '../types';
 
@@ -59,10 +63,17 @@ type GlobalWindow = Window & { c15t?: C15tGlobal | QueuedCall[] };
 
 const options = readOptions(document.currentScript);
 const mount = function mount(client: ConsentClient): void {
-	const instance = mountDevTools(client, options);
 	const api = (window as GlobalWindow).c15t;
-	if (api && !Array.isArray(api)) {
-		api.devtools = instance;
+	const global = api && !Array.isArray(api) ? api : null;
+	// The headless tag has no trigger and no slot; the panel keeps its own
+	// launcher.
+	const instance = createBrowserDevTools(
+		client,
+		options,
+		global?.publishDevToolsLauncher
+	);
+	if (global) {
+		global.devtools = instance;
 	}
 };
 

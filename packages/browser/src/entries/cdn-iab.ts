@@ -1,5 +1,6 @@
 /** One-tag IAB install. Load instead of c15t.js. */
 import { createIAB, initializeIABStub, destroyIABStub } from '@c15t/iab';
+import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
 
 import { autoInit, createGlobal, installGlobal } from '../global';
 import { mountIABConsentUI } from '../iab/mount';
@@ -15,6 +16,7 @@ const api = installGlobal(
 			return destroyIABStub;
 		},
 		pkg: '@c15t/browser/iab',
+		publishDevToolsLauncher,
 	})
 );
 if (api.pkg !== '@c15t/browser/iab') {

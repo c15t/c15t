@@ -5,12 +5,21 @@ import {
 	persistPosition,
 } from '@c15t/ui/utils';
 import type { CornerPosition } from '@c15t/ui/utils';
+import {
+	claimDevToolsLauncher,
+	followDevToolsDock,
+	getDevToolsLauncherSnapshot,
+	subscribeDevToolsLauncher,
+} from '@c15t/ui/utils/devtools-launcher';
+import type { DevToolsLauncherTarget } from '@c15t/ui/utils/devtools-launcher';
 
 import { classes } from '../generated/styles';
 import { hasDecided } from '../has-decided';
 import type { ConsentTriggerOptions } from '../types';
 import { cx, h, svg } from './dom';
 import type { Surface, SurfaceContext } from './surface';
+import { createTriggerToolbar } from './trigger-toolbar';
+import type { TriggerToolbar } from './trigger-toolbar';
 
 const CONSENT_MARK = [
 	'M53.179 70.787c6.17 0 11.172-5.002 11.172-11.172 0-4.009-2.111-7.524-5.283-9.495a23.87 23.87 0 0 1 8.817-1.677c13.217 0 23.93 10.714 23.93 23.93s-10.713 23.93-23.93 23.93c-13.216 0-23.93-10.714-23.93-23.93 0-1.924.227-3.795.656-5.588a11.148 11.148 0 0 0 8.568 4.002Z',
@@ -33,6 +42,11 @@ const SNAP_MS = 300;
  * Hidden while the banner or dialog is up. Drag it to another corner and
  * it snaps there and remembers the choice, the way the framework triggers
  * do.
+ *
+ * While a DevTools panel is mounted for the same client (`mountDevTools`
+ * or `c15t.devtools.js`), the visible trigger becomes a two-item toolbar
+ * that carries the DevTools launcher and docks the panel beside itself.
+ * Hidden, it hands the launcher back to the panel.
  *
  * @param ctx - The mount context.
  * @param options - Trigger options.
@@ -62,6 +76,16 @@ export const createTrigger = function createTrigger(
 	let snapTimer: ReturnType<typeof setTimeout> | undefined;
 	// The arm the slots were applied for.
 	let renderedExperiment = ctx.client.getSnapshot().experiment;
+	// The element holding the pointer, for release on drop.
+	let captured: Element | null = null;
+
+	// DevTools launcher: claimed while visible, rendered while owned.
+	const { kernel } = ctx.client;
+	const claim = {};
+	let releaseClaim: (() => void) | null = null;
+	let launcher: DevToolsLauncherTarget | null = null;
+	let toolbar: TriggerToolbar | null = null;
+	let stopDocking: (() => void) | null = null;
 
 	const createIcon = function createIcon(): HTMLSpanElement {
 		return slot(
@@ -92,6 +116,20 @@ export const createTrigger = function createTrigger(
 
 	const applyClasses = function applyClasses(snapping = false): void {
 		element.setAttribute('data-position', corner);
+		if (toolbar) {
+			toolbar.element.setAttribute('data-position', corner);
+			if (!noStyle) {
+				toolbar.element.setAttribute(
+					'class',
+					cx(
+						styles.toolbar,
+						styles[POSITION_CLASS[corner]],
+						dragging && styles.dragging,
+						snapping && styles.snapping
+					)
+				);
+			}
+		}
 		if (!noStyle) {
 			element.setAttribute(
 				'class',
@@ -127,11 +165,26 @@ export const createTrigger = function createTrigger(
 		applyClasses(snapTimer !== undefined);
 	};
 
+	/** The element on screen: the toolbar while it hosts DevTools. */
+	const current = function current(): HTMLElement {
+		return toolbar?.element ?? element;
+	};
+
+	/** Keep a docked panel beside the toolbar; paused mid-drag. */
+	const dock = function dock(): void {
+		stopDocking?.();
+		stopDocking = null;
+		if (launcher && toolbar && !dragging) {
+			stopDocking = followDevToolsDock(toolbar.element, corner, launcher.dock);
+		}
+	};
+
 	const moveTo = function moveTo(next: CornerPosition): void {
 		corner = next;
 		if (persist) {
 			persistPosition(next);
 		}
+		toolbar?.setCorner(next);
 		applyClasses(true);
 		if (snapTimer !== undefined) {
 			clearTimeout(snapTimer);
@@ -142,19 +195,24 @@ export const createTrigger = function createTrigger(
 		}, SNAP_MS);
 	};
 
-	element.addEventListener('pointerdown', (event) => {
+	const onPointerDown = function onPointerDown(event: PointerEvent): void {
 		if (event.button !== 0) {
 			return;
 		}
-		element.setPointerCapture(event.pointerId);
+		// Capture on the item pressed, so the click still lands on it.
+		captured =
+			(event.target instanceof Element && event.target.closest('button')) ||
+			current();
+		captured.setPointerCapture(event.pointerId);
 		dragging = true;
 		dragged = false;
 		startX = event.clientX;
 		startY = event.clientY;
 		startedAt = Date.now();
 		applyClasses();
-	});
-	element.addEventListener('pointermove', (event) => {
+		dock();
+	};
+	const onPointerMove = function onPointerMove(event: PointerEvent): void {
 		if (!dragging) {
 			return;
 		}
@@ -163,49 +221,64 @@ export const createTrigger = function createTrigger(
 		if (Math.abs(dx) > DRAG_SLOP_PX || Math.abs(dy) > DRAG_SLOP_PX) {
 			dragged = true;
 		}
-		element.style.transform = `translate(${dx}px, ${dy}px)`;
-		element.style.transition = 'none';
-	});
+		const root = current();
+		root.style.transform = `translate(${dx}px, ${dy}px)`;
+		root.style.transition = 'none';
+	};
 	const endDrag = function endDrag(event: PointerEvent, cancelled: boolean) {
-		if (element.hasPointerCapture(event.pointerId)) {
-			element.releasePointerCapture(event.pointerId);
+		if (captured?.hasPointerCapture(event.pointerId)) {
+			captured.releasePointerCapture(event.pointerId);
 		}
+		captured = null;
 		if (!dragging) {
 			return;
 		}
 		dragging = false;
-		element.style.transform = '';
-		element.style.transition = '';
-		if (cancelled || !dragged) {
-			applyClasses();
-			return;
-		}
+		const root = current();
+		root.style.transform = '';
+		root.style.transition = '';
 		const dx = event.clientX - startX;
 		const dy = event.clientY - startY;
 		const elapsed = Math.max(Date.now() - startedAt, 1);
-		const next = calculateCornerFromDrag(corner, dx, dy, {
-			velocityX: dx / elapsed,
-			velocityY: dy / elapsed,
-		});
+		const next =
+			cancelled || !dragged
+				? corner
+				: calculateCornerFromDrag(corner, dx, dy, {
+						velocityX: dx / elapsed,
+						velocityY: dy / elapsed,
+					});
 		if (next === corner) {
 			applyClasses();
-			return;
+		} else {
+			moveTo(next);
 		}
-		moveTo(next);
+		dock();
 	};
-	element.addEventListener('pointerup', (event) => {
-		endDrag(event, false);
-	});
-	element.addEventListener('pointercancel', (event) => {
-		endDrag(event, true);
-	});
-	element.addEventListener('click', () => {
-		// A drag that ended on the button is not a request to open.
+	const listen = function listen(target: HTMLElement): void {
+		target.addEventListener('pointerdown', onPointerDown);
+		target.addEventListener('pointermove', onPointerMove);
+		target.addEventListener('pointerup', (event) => {
+			endDrag(event, false);
+		});
+		target.addEventListener('pointercancel', (event) => {
+			endDrag(event, true);
+		});
+	};
+	listen(element);
+
+	/** Whether a click is a request, not the end of a drag. */
+	const shouldActivate = function shouldActivate(): boolean {
 		if (dragged) {
 			dragged = false;
-			return;
+			return false;
 		}
-		ctx.client.openDialog();
+		return true;
+	};
+	element.addEventListener('click', () => {
+		// A drag that ended on the button is not a request to open.
+		if (shouldActivate()) {
+			ctx.client.openDialog();
+		}
 	});
 	element.addEventListener('keydown', (event) => {
 		if (event.key === 'Enter' || event.key === ' ') {
@@ -213,6 +286,65 @@ export const createTrigger = function createTrigger(
 			ctx.client.openDialog();
 		}
 	});
+
+	const createToolbar = function createToolbar(): TriggerToolbar {
+		const created = createTriggerToolbar({
+			ariaLabel: options.ariaLabel ?? 'Open privacy settings',
+			icon: svg('0 0 140 97', CONSENT_MARK),
+			noStyle,
+			onDevTools: () => launcher?.toggle(),
+			onPreferences: () => ctx.client.openDialog(),
+			shouldActivate,
+			size,
+		});
+		if (ctx.disableAnimation) {
+			created.element.setAttribute('data-disable-animation', '');
+		}
+		created.setCorner(corner);
+		listen(created.element);
+		return created;
+	};
+
+	/**
+	 * Show the toolbar while this trigger owns a mounted panel's launcher,
+	 * the plain button otherwise.
+	 */
+	const renderLauncher = function renderLauncher(): void {
+		const slotState = getDevToolsLauncherSnapshot(kernel);
+		const next = slotState.owner === claim ? slotState.instance : null;
+		if (next !== launcher) {
+			launcher = next;
+			// Swapping elements mid-drag would strand the drag state.
+			dragging = false;
+			current().style.transform = '';
+			current().style.transition = '';
+			if (next && !toolbar) {
+				toolbar = createToolbar();
+				element.replaceWith(toolbar.element);
+			} else if (!next && toolbar) {
+				toolbar.element.replaceWith(element);
+				toolbar = null;
+			}
+			applyClasses(snapTimer !== undefined);
+			dock();
+		}
+		toolbar?.setOpen(slotState.isOpen);
+	};
+	const unsubscribeLauncher = subscribeDevToolsLauncher(kernel, renderLauncher);
+
+	/** Claim the launcher while visible; hidden, DevTools shows its own. */
+	const claimWhileVisible = function claimWhileVisible(): void {
+		if (visible && !releaseClaim) {
+			releaseClaim = claimDevToolsLauncher(kernel, claim);
+		} else if (!visible && releaseClaim) {
+			const release = releaseClaim;
+			releaseClaim = null;
+			stopDocking?.();
+			stopDocking = null;
+			release();
+		}
+		renderLauncher();
+	};
 
 	applyClasses();
 	ctx.root.append(element);
@@ -222,12 +354,18 @@ export const createTrigger = function createTrigger(
 			if (snapTimer !== undefined) {
 				clearTimeout(snapTimer);
 			}
+			unsubscribeLauncher();
+			stopDocking?.();
+			releaseClaim?.();
+			releaseClaim = null;
+			toolbar?.element.remove();
 			element.remove();
 		},
 		sync(snapshot: ConsentSnapshot) {
 			const allowed = showWhen === 'always' || hasDecided(snapshot);
 			visible = allowed && snapshot.activeUI === 'none';
 			element.hidden = !visible;
+			claimWhileVisible();
 			if (renderedExperiment === snapshot.experiment) {
 				applyClasses(snapTimer !== undefined);
 				return;
