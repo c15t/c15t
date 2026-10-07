@@ -129,6 +129,22 @@ const storeChoice = function storeChoice(
 	);
 };
 
+/** A prefetch whose server read a marketing choice at `confirmedAt`. */
+const serverChoice = function serverChoice(
+	marketing: boolean,
+	confirmedAt: number
+): RuntimePrefetch {
+	const resolution = matchedResolution(optInRule());
+	return {
+		initialPolicyResolution: resolution,
+		initialRecords: choiceRecords(
+			{ marketing },
+			{ confirmedAt, fingerprint: resolution.fingerprints.choice }
+		),
+		now: NOW,
+	};
+};
+
 /** A denial stored in localStorage only, as a dropped cookie write leaves. */
 const storeDenial = function storeDenial(confirmedAt: number): void {
 	storeChoice(false, confirmedAt);
@@ -358,6 +374,22 @@ describe('a provider runtime leaves its script loader to start()', () => {
 		['resolved', (prefetch: RuntimePrefetch) => prefetch],
 		['streamed', (prefetch: RuntimePrefetch) => Promise.resolve(prefetch)],
 	] as const)(
+		'when the server read a denial newer than a stored grant, %s',
+		async (_, deliver) => {
+			storeChoice(true, NOW - 60_000);
+			const { load } = create({
+				persistence: true,
+				prefetch: deliver(serverChoice(false, NOW - 1000)),
+			});
+			await settle();
+			expect(load).not.toHaveBeenCalled();
+		}
+	);
+
+	test.each([
+		['resolved', (prefetch: RuntimePrefetch) => prefetch],
+		['streamed', (prefetch: RuntimePrefetch) => Promise.resolve(prefetch)],
+	] as const)(
 		'when a consent source decides over a %s grant',
 		async (_, deliver) => {
 			const { load } = create({
@@ -402,6 +434,47 @@ describe('a provider runtime leaves its script loader to start()', () => {
 		} finally {
 			vi.unstubAllGlobals();
 		}
+	});
+});
+
+// A returning visitor's newer grant reached only localStorage, and the
+// server read an older denial from the cookie.
+describe('a stored grant newer than the server read denial', () => {
+	// A ready prefetch seeds the kernel, and `start()` applies only newer
+	// stored denials over the seed, so the denial holds.
+	test('leaves the loader to start() under a resolved prefetch', () => {
+		storeChoice(true, NOW - 1000);
+		const { load } = create({
+			persistence: true,
+			prefetch: serverChoice(false, NOW - 60_000),
+		});
+		expect(load).not.toHaveBeenCalled();
+	});
+
+	// A streamed runtime starts without the server's records, hydrates the
+	// stored grant, then folds the server's records in newest-wins.
+	test('loads the loader once a streamed prefetch arrives', async () => {
+		storeChoice(true, NOW - 1000);
+		const { load } = create({
+			persistence: true,
+			prefetch: Promise.resolve(serverChoice(false, NOW - 60_000)),
+		});
+		await settle();
+		expect(load).toHaveBeenCalledTimes(1);
+	});
+
+	test('matches what the streamed runtime mounts the loader with', async () => {
+		storeChoice(true, NOW - 1000);
+		const { runtime } = create({
+			persistence: true,
+			prefetch: Promise.resolve(serverChoice(false, NOW - 60_000)),
+		});
+		await settle();
+		runtime.start();
+		await settle();
+		expect(runtime.kernel.getSnapshot().effectivePermissions.marketing).toBe(
+			true
+		);
 	});
 });
 
@@ -551,4 +624,15 @@ describe('the kernel the decision builds', () => {
 			expect(disposals).toEqual(built);
 		}
 	);
+
+	test('is disposed once a streamed state folds its records in', async () => {
+		const { built, disposals, load } = createWatched({
+			persistence: true,
+			prefetch: Promise.resolve(prefetchFor({ marketing: true })),
+		});
+		await settle();
+		expect(load).toHaveBeenCalledTimes(1);
+		expect(built).toHaveLength(1);
+		expect(disposals).toEqual(built);
+	});
 });

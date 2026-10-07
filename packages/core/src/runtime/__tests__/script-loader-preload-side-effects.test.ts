@@ -41,15 +41,16 @@ const resolution = matchedResolution(optInRule());
 const fingerprint = resolution.fingerprints.choice;
 const SUBJECT_ID = 'sub_2VZxR7YmNpKq3WfLs8TgHd';
 
-/** The server read a marketing grant from the cookie at `confirmedAt`. */
-const seededGrant = (confirmedAt: number): RuntimePrefetch => ({
+/** The server read a marketing choice from the cookie at `confirmedAt`. */
+const seeded = (marketing: boolean, confirmedAt: number): RuntimePrefetch => ({
 	initialPolicyResolution: resolution,
-	initialRecords: choiceRecords(
-		{ marketing: true },
-		{ confirmedAt, fingerprint }
-	),
+	initialRecords: choiceRecords({ marketing }, { confirmedAt, fingerprint }),
 	now: NOW,
 });
+
+/** The server read a marketing grant from the cookie at `confirmedAt`. */
+const seededGrant = (confirmedAt: number): RuntimePrefetch =>
+	seeded(true, confirmedAt);
 
 /** The server read no records. */
 const unseeded: RuntimePrefetch = {
@@ -76,8 +77,12 @@ const storeEnvelope = (
 	);
 };
 
-/** What the browser has stored, and what the server read, per case. */
-const cases: [string, () => RuntimePrefetch, boolean][] = [
+/**
+ * What the browser has stored, what the server read, and whether the
+ * loader loads: from a resolved state, then from a streamed one when that
+ * differs.
+ */
+const cases: [string, () => RuntimePrefetch, boolean, boolean?][] = [
 	[
 		'a stored denial newer than the server read',
 		() => {
@@ -134,6 +139,17 @@ const cases: [string, () => RuntimePrefetch, boolean][] = [
 			storeEnvelope(true, NOW - 1000);
 			return unseeded;
 		},
+		true,
+	],
+	[
+		// A streamed state hydrates storage in full and folds the server's
+		// records in newest-wins; a resolved one keeps the seed's denial.
+		'a stored grant newer than the server read denial',
+		() => {
+			storeEnvelope(true, NOW - 1000);
+			return seeded(false, NOW - 60_000);
+		},
+		false,
 		true,
 	],
 	[
@@ -327,9 +343,12 @@ describe('the early script loader decision leaves no trace', () => {
 			await expect(runCase(arrange, false, loads)).resolves.toBeUndefined();
 		});
 
-		test.each(cases)('%s, from a streamed state', async (_, arrange, loads) => {
-			await expect(runCase(arrange, true, loads)).resolves.toBeUndefined();
-		});
+		test.each(cases)(
+			'%s, from a streamed state',
+			async (_, arrange, loads, streamed = loads) => {
+				await expect(runCase(arrange, true, streamed)).resolves.toBeUndefined();
+			}
+		);
 	});
 
 	describe('before the write code has loaded', () => {
@@ -346,8 +365,11 @@ describe('the early script loader decision leaves no trace', () => {
 			await expect(runCase(arrange, false, loads)).resolves.toBeUndefined();
 		});
 
-		test.each(cases)('%s, from a streamed state', async (_, arrange, loads) => {
-			await expect(runCase(arrange, true, loads)).resolves.toBeUndefined();
-		});
+		test.each(cases)(
+			'%s, from a streamed state',
+			async (_, arrange, loads, streamed = loads) => {
+				await expect(runCase(arrange, true, streamed)).resolves.toBeUndefined();
+			}
+		);
 	});
 });

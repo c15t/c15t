@@ -19,11 +19,17 @@
  * decides in their place, and a prefetch without a policy grants nothing
  * until `init()` asks the backend for one. Otherwise it judges the kernel
  * `start()` would leave the loader with: built by the runtime's own kernel
- * factory from the runtime's options and the prefetch, streamed or not,
- * then hydrated by the runtime's own persistence module and given the
- * browser's Global Privacy Control signal. So its categories, vendors,
- * overrides, stored records, including a newer denial a dropped cookie
- * write left only in localStorage, and GPC are the ones `start()` applies.
+ * factory from the runtime's options and the prefetch, then hydrated by the
+ * runtime's own persistence module and given the browser's Global Privacy
+ * Control signal. So its categories, vendors, overrides, stored records and
+ * GPC are the ones `start()` applies.
+ *
+ * The records follow the order `start()` applies them in. A ready
+ * prefetch's records seed the kernel, and only newer stored denials apply
+ * over them, such as one a dropped cookie write left only in localStorage.
+ * A streamed prefetch's records arrive with the first `init()`: the kernel
+ * is built without them, storage hydrates it in full, then the kernel's own
+ * `init()` folds them in newest-wins, so a newer stored grant holds.
  *
  * Each script then goes through the loader's own test: `alwaysLoad`, or
  * consent for its category and vendor.
@@ -34,6 +40,8 @@
  * group apart once another module imports one of its members, and every
  * page that uses the group pays for it.
  */
+import { writePolicyResolutionWire } from '@c15t/schema/types';
+
 import { evaluateConsent } from '../modules/has';
 import type { ConsentKernel } from '../types';
 import type {
@@ -55,7 +63,9 @@ type PreloadScriptLoader = NonNullable<
  * @param createKernel - The runtime's kernel factory.
  * @param createPersistence - The runtime's persistence module.
  * @param streamed - What a streamed prefetch resolved to, once it has.
- * @returns `true` when a script would mount once the loader loads.
+ * @returns `true` when a script would mount once the loader loads; a
+ * promise of it when `streamed` carries records, which the kernel folds in
+ * through `init()`.
  * @internal
  */
 export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
@@ -64,8 +74,25 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 	createKernel: Parameters<PreloadScriptLoader>[2],
 	createPersistence: Parameters<PreloadScriptLoader>[3],
 	streamed?: RuntimePrefetch
-): boolean {
+): boolean | Promise<boolean> {
 	let judged = kernel;
+	let folding: Promise<boolean> | undefined;
+	const runs = (): boolean => {
+		const snapshot = judged.getSnapshot();
+		const now = Date.now();
+		// The loader's own test: `alwaysLoad`, or consent for the script's
+		// category and vendor.
+		return (options.scripts ?? []).some(
+			(script) =>
+				script.alwaysLoad === true || evaluateConsent(script, snapshot, now)
+		);
+	};
+	const dispose = (): void => {
+		// Whatever happened, the kernel built here is only ever read.
+		if (judged !== kernel) {
+			judged.dispose();
+		}
+	};
 	try {
 		const prefetch = streamed ?? options.prefetch;
 		if (
@@ -73,19 +100,29 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 			!options.consentSource &&
 			prefetch?.initialPolicyResolution
 		) {
+			const resolution = prefetch.initialPolicyResolution;
+			// A streamed prefetch's records come with the first `init()`, after
+			// storage; a ready one's seed the kernel.
+			const records = streamed?.initialRecords;
+			const seed = streamed ? undefined : prefetch.initialRecords;
 			// The options may be the runtime's live view, which does not
 			// spread: inherit from them instead.
 			judged = createKernel(
 				Object.assign(Object.create(options) as ConsentRuntimeOptions, {
-					// Never asked for anything: the kernel is only read.
-					mode: (() => ({})) as unknown as ConsentRuntimeOptions['mode'],
-					prefetch,
+					// Asked only for the streamed records, which it answers itself.
+					mode: (() => ({
+						init: () =>
+							Promise.resolve({
+								policyResolution: writePolicyResolutionWire(resolution),
+								records,
+							}),
+					})) as unknown as ConsentRuntimeOptions['mode'],
+					prefetch: { ...prefetch, initialRecords: seed },
 				})
 			);
 			const { persistence } = options;
 			if (persistence !== false) {
 				const settings = typeof persistence === 'object' ? persistence : {};
-				const seed = prefetch.initialRecords;
 				// As `start()` mounts it: records a server read from the cookie
 				// stay, and only newer stored denials apply over them.
 				createPersistence({
@@ -109,21 +146,27 @@ export const scriptLoaderRunsAtStart = function scriptLoaderRunsAtStart(
 			if (gpc === true) {
 				judged.set.privacySignals({ gpc: true });
 			}
+			if (records) {
+				// Newest receipt per category wins, as in the streamed runtime.
+				folding = (async () => {
+					try {
+						await judged.commands.init();
+						return runs();
+					} catch {
+						return false;
+					} finally {
+						dispose();
+					}
+				})();
+				return folding;
+			}
 		}
-		const snapshot = judged.getSnapshot();
-		const now = Date.now();
-		// The loader's own test: `alwaysLoad`, or consent for the script's
-		// category and vendor.
-		return (options.scripts ?? []).some(
-			(script) =>
-				script.alwaysLoad === true || evaluateConsent(script, snapshot, now)
-		);
+		return runs();
 	} catch {
 		return false;
 	} finally {
-		// Whatever happened, the kernel built here is only ever read.
-		if (judged !== kernel) {
-			judged.dispose();
+		if (!folding) {
+			dispose();
 		}
 	}
 };
@@ -157,10 +200,10 @@ export const preloadScriptLoaderWith = function preloadScriptLoaderWith(
 		if (typeof document === 'undefined' || !read()?.[1].scripts?.length) {
 			return;
 		}
-		const runs = (streamed?: RuntimePrefetch): boolean => {
+		const runs = (streamed?: RuntimePrefetch) => {
 			const state = read();
-			return Boolean(
-				state &&
+			return (
+				!!state &&
 				scriptLoaderRunsAtStart(
 					state[0],
 					state[1],
@@ -171,14 +214,15 @@ export const preloadScriptLoaderWith = function preloadScriptLoaderWith(
 			);
 		};
 		// Synchronous up to the first `await`: a known prefetch decides, and
-		// the import starts, during construction.
+		// the import starts, during construction. Only a streamed one can
+		// answer with a promise.
 		void (async () => {
 			try {
 				if (
-					runs() ||
+					runs() === true ||
 					(typeof (prefetch as PromiseLike<unknown> | undefined)?.then ===
 						'function' &&
-						runs(await (prefetch as PromiseLike<RuntimePrefetch>)))
+						(await runs(await (prefetch as PromiseLike<RuntimePrefetch>))))
 				) {
 					await load();
 				}
