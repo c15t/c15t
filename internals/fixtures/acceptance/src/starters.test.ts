@@ -1,5 +1,5 @@
 // oxlint-disable no-loop-func -- Each sequential suite owns its browser context and request record.
-import { mkdir } from 'node:fs/promises';
+import { mkdir, readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -18,7 +18,7 @@ import type { Requests } from './browser';
 import { startPostgres } from './postgres';
 import { startApp } from './server';
 import {
-	browserCdnPrefix,
+	hostedScriptURL,
 	placeholderBackendURL,
 	selectedStarterTargets,
 } from './starter-targets';
@@ -27,6 +27,17 @@ import { exampleEnvironment } from './targets';
 
 const repository = fileURLToPath(new URL('../../../..', import.meta.url));
 const browserDist = join(repository, 'packages/browser/dist');
+
+// What `@c15t/backend` serves on `/c15t.js`: this checkout's full bundle
+// behind the queued hosted config its script route prepends.
+const hostedScript = async function hostedScript(): Promise<string> {
+	const bundle = await readFile(join(browserDist, 'c15t.js'), 'utf8');
+	const config = JSON.stringify({
+		backendURL: placeholderBackendURL,
+		mode: 'hosted',
+	});
+	return `(function(c){window.c15t=window.c15t||[];Array.isArray(window.c15t)?window.c15t.unshift(["config",c]):window.c15t.config(c)})(${config});\n${bundle}`;
+};
 
 // The same migration the starter runs on a development start, applied to
 // the PostgreSQL database a production server requires.
@@ -136,11 +147,12 @@ for (const target of selectedStarterTargets()) {
 					});
 				});
 			}
-			await context.route(`${browserCdnPrefix}**`, async (route) => {
-				const file = new URL(route.request().url()).pathname.slice(
-					new URL(browserCdnPrefix).pathname.length
-				);
-				await route.fulfill({ path: join(browserDist, file) });
+			// Registered after the placeholder proxy, so it takes precedence.
+			await context.route(hostedScriptURL, async (route) => {
+				await route.fulfill({
+					body: await hostedScript(),
+					contentType: 'text/javascript; charset=utf-8',
+				});
 			});
 		};
 

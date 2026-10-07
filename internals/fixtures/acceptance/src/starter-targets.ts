@@ -30,9 +30,11 @@ export interface StarterTarget {
 
 export const placeholderBackendURL = 'https://your-project.inth.app';
 
-/** The jsDelivr prefix the plain HTML starter loads `@c15t/browser` from. */
-export const browserCdnPrefix =
-	'https://cdn.jsdelivr.net/npm/@c15t/browser@alpha/dist/';
+/**
+ * The hosted script tag the plain HTML starter loads. A real backend serves
+ * it from `@c15t/browser`; the fixture does not, so the test serves it.
+ */
+export const hostedScriptURL = `${placeholderBackendURL}/c15t.js`;
 
 const nextStart = (port: number) => ['run', 'start', '--port', String(port)];
 const vitePreview = (port: number) => [
@@ -132,8 +134,8 @@ export const starterTargets: StarterTarget[] = [
 		start: vitePreview,
 	})),
 	{
-		// Loads `@c15t/browser` from jsDelivr, which the test serves from
-		// this checkout's build. `serve.ts` reads PORT.
+		// Loads the hosted `c15t.js`, which the test serves from this
+		// checkout's build. `serve.ts` reads PORT.
 		directory: 'examples/html',
 		id: 'html',
 		placeholderBackend: true,
