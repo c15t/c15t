@@ -95,8 +95,16 @@ describe('DevTools launcher in the consent trigger', () => {
 		});
 		const panel = root.querySelector<HTMLElement>('.c15t-dev-tools__panel');
 		expect(panel?.hidden).toBe(false);
-		expect(panel?.getBoundingClientRect().bottom).toBeLessThanOrEqual(
-			toolbarTop
+		const panelRect = panel?.getBoundingClientRect();
+		const toolbarRect = toolbar.getBoundingClientRect();
+		expect(panelRect?.bottom).toBeLessThanOrEqual(toolbarTop);
+		// Flush with the toolbar's outer edge and inside the visible viewport.
+		expect(Math.round(panelRect?.right ?? 0)).toBe(
+			Math.round(toolbarRect.right)
+		);
+		expect(panelRect?.left).toBeGreaterThanOrEqual(0);
+		expect(panelRect?.right).toBeLessThanOrEqual(
+			document.documentElement.clientWidth
 		);
 
 		await userEvent.click(item);
