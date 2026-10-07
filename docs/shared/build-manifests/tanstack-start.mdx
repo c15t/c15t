@@ -40,6 +40,8 @@ so TanStack Start's compiler can split its server code. The root loader and
 
 Keep `src/c15t-manifest.ts` out of Git and generate it on every build.
 `outputFile`, `exportName` and `importSource` customize the generated module.
+Omitting `importSource` or passing `undefined` uses
+`c15t/tanstack-start/static` for the type import.
 Apps that install `@c15t/tanstack-start` directly set
 `importSource: '@c15t/tanstack-start/static'`.
 

@@ -22,6 +22,9 @@ stored consent still resolve per visitor.
 Vite generation runs during builds and development, skips preview, and can
 retry after a failed setup.
 
+TanStack Start keeps its default generated type import when `importSource`
+is undefined and preserves explicit overrides.
+
 Svelte's framework-free `resolveConsent` helper also accepts a snapshot and
 resolves it locally, with optional backend session reporting.
 Both Svelte server helpers accept a background-work callback to keep session

@@ -26,6 +26,6 @@ export type { ManifestBuildOptions } from '@c15t/core/build';
  */
 export const consentManifest = (options: ManifestBuildOptions) =>
 	createManifestPlugin({
-		importSource: 'c15t/tanstack-start/static',
 		...options,
+		importSource: options.importSource ?? 'c15t/tanstack-start/static',
 	});
