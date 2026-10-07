@@ -31,6 +31,13 @@ export interface NextConsentManifestHandlersOptions {
 	manifest?: ConsentManifest;
 
 	/**
+	 * A `defineConsentConfig` result. Only its `backendURL` is read, and an
+	 * explicit `backendURL` wins. Its `manifestURL` and `initURL` are the
+	 * routes these handlers serve, so they are never fetched.
+	 */
+	config?: ConsentConfig;
+
+	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the request's
 	 * `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead
 	 * of the request URL. Any client can send those headers, so set this
@@ -89,14 +96,6 @@ export interface NextConsentManifestHandlersOptions {
 	fetchGvl?: ConsentRouteFetchGvl;
 }
 
-/** The App Router route handlers for the consent routes. */
-export interface NextConsentRouteHandlers {
-	/** Resolves init for the request's visitor. Mount it on the init route. */
-	GET: (request: Request) => Promise<Response>;
-	/** Serves the manifest. Mount it on the manifest route as `GET`. */
-	manifestGET: (request: Request) => Promise<Response>;
-}
-
 /**
  * The upstream manifest request as the App Router sees it: JSON with the
  * c15t protocol headers, and a `next.revalidate` hint for the Data Cache.
@@ -144,12 +143,13 @@ const toHandlerOptions = function toHandlerOptions(
 /**
  * Build the App Router route handlers for the consent routes.
  *
- * @param optionsOrConfig - Handler options with `backendURL` or
+ * @param optionsOrConfig - Handler options with `backendURL`, `config` or
  * `manifestURL`, or a `defineConsentConfig` result. From a config only
  * `backendURL` is used: its `manifestURL` and `initURL` are the routes these
- * handlers serve.
+ * handlers serve. Accepts the same `ConsentManifestOptions` object as
+ * `resolveConsent`.
  * @returns `GET` for the init route and `manifestGET` for the manifest route.
- * Each handler throws when no `manifest`, `backendURL` or `manifestURL` is set.
+ * Each handler throws when no `manifest`, backend URL or `manifestURL` is set.
  * @example
  * ```ts
  * // app/api/consent/manifest/route.ts
@@ -163,7 +163,7 @@ const toHandlerOptions = function toHandlerOptions(
 export const createNextConsentRouteHandlers =
 	function createNextConsentRouteHandlers(
 		optionsOrConfig: NextConsentManifestHandlersOptions | ConsentConfig
-	): NextConsentRouteHandlers {
+	) {
 		const options = toHandlerOptions(optionsOrConfig);
 		// Two cache layers on purpose. `next.revalidate` reaches the App Router
 		// Data Cache; the shared in-process cache covers the Pages Router and
@@ -172,7 +172,7 @@ export const createNextConsentRouteHandlers =
 		const { next } = createManifestFetchInit(options);
 		const handle = createConsentRouteHandler({
 			adapter: '@c15t/nextjs',
-			backendURL: options.backendURL,
+			backendURL: options.backendURL ?? options.config?.backendURL,
 			fetch: options.fetch,
 			fetchGvl: options.fetchGvl,
 			manifest: options.manifest,
@@ -194,3 +194,4 @@ export const createNextConsentRouteHandlers =
 
 export type { ConsentConfig } from './config';
 export { defineConsentConfig } from './config';
+export type { ConsentManifestOptions } from './server';

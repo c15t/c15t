@@ -115,7 +115,7 @@ browser retries after hydration.
 ## Use backend init instead of the manifest
 
 If you added the build integration, remove `withConsentManifest` and the
-`manifest` option in `c15t.server.ts`. Delete the `manifestURL` line from
+`manifest` line in `c15t.server.ts`. Delete the `manifestURL` line from
 `c15t.config.ts` and delete `pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
 `resolveConsent` and the browser now call `${backendURL}/init`, and consent
 choices still go to `${backendURL}/subjects`. For a browser-only setup with no

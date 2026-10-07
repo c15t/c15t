@@ -148,7 +148,7 @@ server-rendered ones, see
 ## Use backend init instead of the manifest
 
 If you added the build integration, remove `withConsentManifest` and the
-`manifest` option in `c15t.server.ts`. Delete the `manifestURL` line from
+`manifest` line in `c15t.server.ts`. Delete the `manifestURL` line from
 `c15t.config.ts` and delete `app/api/c15t/manifest/route.ts`. The layouts stay the same. `resolveConsent`
 and the browser now call `${backendURL}/init`, and consent choices still go to
 `${backendURL}/subjects`. Every visit makes a backend request, which the

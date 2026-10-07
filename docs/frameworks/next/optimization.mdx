@@ -119,27 +119,24 @@ Keep using `consentConfig` for `ConsentRoot`. Omit a separate `ConsentRoot`
 ### Keep server requests pointed upstream
 
 The server must still reach the backend directly. With runtime fetching, a
-manifest route whose `backendURL` is `/api/c15t` would fetch itself. Pass the
-upstream URL to `createConsentServer` in `c15t.server.ts`, keeping any
-snapshot:
+manifest route whose `backendURL` is `/api/c15t` would fetch itself. Add the
+upstream URL to the shared options in `c15t.server.ts`:
 
 {/* example: fragment */}
 
 ```ts title="c15t.server.ts"
-export const consent = createConsentServer({
+export const consentOptions = {
 	backendURL: 'https://your-project.inth.app',
 	config: consentConfig,
 	manifest: consentManifest,
-});
+} satisfies ConsentManifestOptions;
 ```
 
-This `backendURL` overrides `config.backendURL` for server requests only:
-`consent.resolve()`, the manifest route and the optional local init route. The
-browser keeps the config's `/api/c15t`. If your layout and route still call
-`resolveConsent` and `createNextConsentRouteHandlers` directly, create
-`c15t.server.ts` as the [build-time manifest step](/docs/frameworks/next/app-router#bundle-the-manifest-during-builds)
-shows, and omit `manifest` for runtime fetching. The Pages Router uses
-`createConsentServer` from `c15t/next/pages` with the same options.
+Both `resolveConsent` and the route handlers prefer it over
+`config.backendURL`; the browser keeps `/api/c15t`. Without a snapshot, omit
+`manifest`. If you have no `c15t.server.ts` yet, create it as the
+[build-time manifest step](/docs/frameworks/next/app-router#bundle-the-manifest-during-builds)
+shows.
 
 Without the upstream URL, the render skips a request to its own manifest route
 and lets the browser resolve the policy. A configuration with only

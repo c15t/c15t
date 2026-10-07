@@ -1,17 +1,20 @@
 /**
- * `createConsentServer` binds one config and manifest source for the render
- * and the consent routes. The helpers it wraps are pinned in their own
- * suites; these check that both sides receive the same bound options.
+ * One `ConsentManifestOptions` object drives both `resolveConsent` and the
+ * route handlers. The helpers' own behaviour is pinned in their suites;
+ * these check that the shared object reaches both sides the same way.
  */
 import { clearManifestCache } from '@c15t/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
+import { createNextConsentRouteHandlers } from '../api';
 import { defineConsentConfig } from '../config';
-import type { ConsentConfig } from '../config';
 import type { NodeApiResponseLike } from '../node-bridge';
-import { createConsentServer as createPagesConsentServer } from '../pages';
-import { createConsentServer } from '../server';
-import type { NextRequestContext } from '../server';
+import {
+	createPagesApiHandlers,
+	resolveConsent as resolvePagesConsent,
+} from '../pages';
+import { resolveConsent } from '../server';
+import type { ConsentManifestOptions, NextRequestContext } from '../server';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const config = defineConsentConfig({
@@ -46,45 +49,68 @@ const upstream = () =>
 		)
 	);
 
+const urls = (fetch: ReturnType<typeof upstream>) =>
+	fetch.mock.calls.map(([input]) => String(input));
+
 beforeEach(() => {
 	clearManifestCache();
 });
 
-describe('createConsentServer', () => {
+describe('shared ConsentManifestOptions', () => {
 	test('the render and the routes resolve from one snapshot without fetching policy', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const consent = createConsentServer({
+		const consentOptions = {
 			config,
 			fetch,
 			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
-		});
+		} satisfies ConsentManifestOptions;
+		const { GET, manifestGET } = createNextConsentRouteHandlers(consentOptions);
 
 		await Promise.all(
 			[
 				['DE', '', 'eu-opt-in'],
 				['US', 'CA', 'us-ca-opt-out'],
 			].map(async ([country = '', region = '', policyId]) => {
-				const state = await consent.resolve({
+				const state = await resolveConsent({
+					...consentOptions,
 					request: requestOf(country, region),
 				});
 				expect(state.initialPolicyResolution?.policy?.id).toBe(policyId);
-				const init = await consent.handlers.GET(initRequest(country, region));
+				const init = await GET(initRequest(country, region));
 				expect(await init.json()).toMatchObject({
 					policyResolution: { policyId },
 				});
 			})
 		);
-		const manifest = await consent.handlers.manifestGET(
+		const manifest = await manifestGET(
 			new Request('https://app.example.com/api/c15t/manifest')
 		);
 		expect(await manifest.json()).toEqual(MANIFEST_FIXTURE);
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	test('a backendURL override sends both sides upstream past a same-origin rewrite', async () => {
+	test('the route handlers report sessions to config.backendURL', async () => {
 		const fetch = upstream();
-		const consent = createConsentServer({
+		const tasks: Promise<void>[] = [];
+		const { GET } = createNextConsentRouteHandlers({
+			config,
+			fetch,
+			manifest: MANIFEST_FIXTURE,
+			onBackgroundRevalidate: (task) => {
+				tasks.push(task);
+			},
+		});
+
+		await GET(initRequest('DE'));
+		await Promise.all(tasks);
+
+		expect(urls(fetch)).toEqual(['https://consent.example.com/sessions']);
+	});
+
+	test('an explicit backendURL sends both sides upstream past a same-origin rewrite', async () => {
+		const fetch = upstream();
+		const consentOptions = {
 			backendURL: 'https://consent.example.com',
 			config: defineConsentConfig({
 				backendURL: '/api/c15t',
@@ -92,72 +118,36 @@ describe('createConsentServer', () => {
 			}),
 			fetch,
 			reportSessions: false,
-		});
+		} satisfies ConsentManifestOptions;
 
-		await consent.resolve({ request: requestOf('DE') });
-		await consent.handlers.manifestGET(
+		await resolveConsent({ ...consentOptions, request: requestOf('DE') });
+		await createNextConsentRouteHandlers(consentOptions).manifestGET(
 			new Request('https://app.example.com/api/c15t/manifest')
 		);
 
 		// Both read the same upstream entry in the process cache.
-		expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
-			'https://consent.example.com/manifest',
-		]);
-	});
-
-	test('hands detached work from the render and the routes to waitUntil', async () => {
-		const fetch = upstream();
-		const tasks: Promise<void>[] = [];
-		const consent = createConsentServer({
-			config,
-			fetch,
-			manifest: MANIFEST_FIXTURE,
-			waitUntil: (task) => {
-				tasks.push(task);
-			},
-		});
-
-		await consent.resolve({ request: requestOf('DE') });
-		await consent.handlers.GET(initRequest('DE'));
-		await Promise.all(tasks);
-
-		expect(tasks).toHaveLength(2);
-		expect(
-			fetch.mock.calls.filter(
-				([input]) => String(input) === 'https://consent.example.com/sessions'
-			)
-		).toHaveLength(2);
-	});
-
-	test('rejects a config that did not come from defineConsentConfig', () => {
-		expect(() =>
-			createConsentServer({
-				config: {
-					backendURL: 'https://consent.example.com',
-				} as ConsentConfig,
-			})
-		).toThrow(/defineConsentConfig/u);
+		expect(urls(fetch)).toEqual(['https://consent.example.com/manifest']);
 	});
 });
 
-describe('Pages Router createConsentServer', () => {
+describe('shared ConsentManifestOptions in the Pages Router', () => {
 	test('getServerSideProps and the API routes resolve from one snapshot', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const consent = createPagesConsentServer({
+		const consentOptions = {
 			config,
 			fetch,
 			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
-		});
+		} satisfies ConsentManifestOptions;
+		const headers = {
+			host: 'app.example.com',
+			'x-vercel-ip-country': 'US',
+			'x-vercel-ip-country-region': 'CA',
+		};
 
-		const state = await consent.resolve({
-			req: {
-				headers: {
-					host: 'app.example.com',
-					'x-vercel-ip-country': 'US',
-					'x-vercel-ip-country-region': 'CA',
-				},
-			},
+		const state = await resolvePagesConsent({
+			...consentOptions,
+			req: { headers },
 		});
 		expect(state.initialPolicyResolution?.policy?.id).toBe('us-ca-opt-out');
 
@@ -174,22 +164,14 @@ describe('Pages Router createConsentServer', () => {
 				chunks.push(chunk);
 			},
 		};
-		await consent.handlers.init(
-			{
-				headers: {
-					host: 'app.example.com',
-					'x-vercel-ip-country': 'US',
-					'x-vercel-ip-country-region': 'CA',
-				},
-				method: 'GET',
-				url: '/api/c15t/init',
-			},
+		await createPagesApiHandlers(consentOptions).init(
+			{ headers, method: 'GET', url: '/api/c15t/init' },
 			res
 		);
-		expect(res.statusCode).toBe(200);
 		const body = new TextDecoder().decode(
 			new Uint8Array(chunks.flatMap((chunk) => [...chunk]))
 		);
+		expect(res.statusCode).toBe(200);
 		expect(JSON.parse(body)).toMatchObject({
 			policyResolution: { policyId: 'us-ca-opt-out' },
 		});

@@ -1,5 +1,8 @@
-// #region docs:consent-server-route title="app/api/c15t/manifest/route.ts"
-import { consent } from '@/c15t.server';
+// #region docs:consent-options-route title="app/api/c15t/manifest/route.ts"
+import { createNextConsentRouteHandlers } from 'c15t/next/api';
 
-export const GET = consent.handlers.manifestGET;
-// #endregion docs:consent-server-route
+import { consentOptions } from '@/c15t.server';
+
+export const { manifestGET: GET } =
+	createNextConsentRouteHandlers(consentOptions);
+// #endregion docs:consent-options-route
