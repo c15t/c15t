@@ -7,6 +7,17 @@
 		persistPosition as persistToStorage,
 	} from '@c15t/ui/utils';
 	import type { CornerPosition, DragState } from '@c15t/ui/utils';
+	import {
+		claimDevToolsLauncher,
+		EMPTY_DEVTOOLS_LAUNCHER_SNAPSHOT,
+		followDevToolsDock,
+		getDevToolsLauncherSnapshot,
+		subscribeDevToolsLauncher,
+	} from '@c15t/ui/utils/devtools-launcher';
+	import type {
+		DevToolsLauncherSnapshot,
+		DevToolsLauncherTarget,
+	} from '@c15t/ui/utils/devtools-launcher';
 	import { onMount, untrack } from 'svelte';
 
 	import { portal } from '../actions/portal';
@@ -15,8 +26,10 @@
 	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import C15TIconOnly from './icons/c15-t-icon-only.svelte';
 	import ConsentIconOnly from './icons/consent-icon-only.svelte';
+	import DevToolsIcon from './icons/dev-tools-icon.svelte';
 
 	type TriggerVisibility = 'always' | 'never';
+	type ToolbarItem = 'devtools' | 'preferences';
 
 	let {
 		defaultPosition = 'bottom-right' as CornerPosition,
@@ -76,6 +89,70 @@
 			return holdIdleDialogWarming(theme.preloadDialog);
 		}
 	});
+
+	// With ConsentDevTools mounted for this kernel, the trigger becomes a
+	// two-item toolbar that carries the DevTools launcher, so one control
+	// occupies the corner.
+	const launcherClaim = Symbol('ConsentDialogTrigger');
+	let launcher: DevToolsLauncherSnapshot = $state.raw(
+		EMPTY_DEVTOOLS_LAUNCHER_SNAPSHOT
+	);
+
+	$effect(() => {
+		const { kernel } = consent;
+		const read = () => {
+			launcher = getDevToolsLauncherSnapshot(kernel);
+		};
+		read();
+		return subscribeDevToolsLauncher(kernel, read);
+	});
+
+	const showToolbar = $derived(visible && launcher.instance !== null);
+
+	// Claim the launcher only while the toolbar is on screen. Releasing it,
+	// for example when the trigger hides, gives DevTools its launcher back.
+	$effect(() => {
+		if (showToolbar) {
+			return claimDevToolsLauncher(consent.kernel, launcherClaim);
+		}
+	});
+
+	// The first visible trigger owns the launcher; others render without it.
+	const devTools: DevToolsLauncherTarget | null = $derived(
+		launcher.owner === launcherClaim ? launcher.instance : null
+	);
+	const isDragging = $derived(dragState.isDragging);
+	let toolbarElement: HTMLDivElement | undefined = $state();
+
+	// Keep the docked panel beside the toolbar as it changes corner or size.
+	// Skip mid-drag; the drop re-runs this.
+	$effect(() => {
+		const target = devTools;
+		const element = toolbarElement;
+		if (!target || !element || isDragging) {
+			return;
+		}
+		return followDevToolsDock(element, corner, (placement) =>
+			target.dock(placement)
+		);
+	});
+
+	// Preferences sits in the corner; DevTools, a development aid, sits
+	// farthest from it.
+	const toolbarItems: ToolbarItem[] = $derived.by(() => {
+		if (!devTools) {
+			return ['preferences'];
+		}
+		return corner.endsWith('left')
+			? ['preferences', 'devtools']
+			: ['devtools', 'preferences'];
+	});
+	let focusedItem: ToolbarItem | undefined = $state();
+	const tabStopItem = $derived(
+		focusedItem && toolbarItems.includes(focusedItem)
+			? focusedItem
+			: toolbarItems[0]
+	);
 
 	// Position class mapping
 	const cornerClassMap: Record<CornerPosition, string> = {
@@ -190,6 +267,42 @@
 		dragState = createInitialDragState();
 	};
 
+	const handleDevToolsClick = function handleDevToolsClick() {
+		if (hasDragged) {
+			return;
+		}
+		devTools?.toggle();
+	};
+
+	const handleToolbarKeyDown = function handleToolbarKeyDown(e: KeyboardEvent) {
+		const index = tabStopItem ? toolbarItems.indexOf(tabStopItem) : 0;
+		let next: ToolbarItem | undefined;
+		switch (e.key) {
+			case 'ArrowRight':
+				next = toolbarItems[(index + 1) % toolbarItems.length];
+				break;
+			case 'ArrowLeft':
+				next =
+					toolbarItems[(index - 1 + toolbarItems.length) % toolbarItems.length];
+				break;
+			case 'Home':
+				[next] = toolbarItems;
+				break;
+			case 'End':
+				next = toolbarItems.at(-1);
+				break;
+			default:
+				return;
+		}
+		e.preventDefault();
+		if (next) {
+			focusedItem = next;
+			toolbarElement
+				?.querySelector<HTMLElement>(`[data-c15t-trigger-item="${next}"]`)
+				?.focus();
+		}
+	};
+
 	const handleClick = function handleClick(e: MouseEvent) {
 		// Don't open dialog if this was a drag interaction
 		if (hasDragged) {
@@ -227,6 +340,55 @@
 			noStyle
 		)
 	);
+	const toolbarStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogTriggerToolbar',
+			theme.theme,
+			{
+				baseClassName: [
+					styles.toolbar,
+					positionClass,
+					dragState.isDragging && styles.dragging,
+					isSnapping && styles.snapping,
+				],
+				noStyle,
+			},
+			noStyle
+		)
+	);
+	const preferencesItemStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogTriggerToolbarItem',
+			theme.theme,
+			{
+				baseClassName: [styles.toolbarItem, sizeClassMap[size]],
+				className,
+				noStyle,
+			},
+			noStyle
+		)
+	);
+	const devToolsItemStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogTriggerToolbarItem',
+			theme.theme,
+			{ baseClassName: [styles.toolbarItem, sizeClassMap[size]], noStyle },
+			noStyle
+		)
+	);
+	const toolbarIconStyle = $derived(
+		resolveComponentStyles(
+			'consentDialogTriggerToolbarIcon',
+			theme.theme,
+			{ baseClassName: styles.toolbarIcon, noStyle },
+			noStyle
+		)
+	);
+	const toolbarAttributeStyle = $derived(
+		[toStyleAttribute(toolbarStyle.style), dragStyle]
+			.filter(Boolean)
+			.join(';') || undefined
+	);
 	const buttonStyle = $derived(
 		[toStyleAttribute(triggerStyle.style), dragStyle]
 			.filter(Boolean)
@@ -234,36 +396,125 @@
 	);
 </script>
 
+{#snippet brandingIcon()}
+	{#if branding === 'consent'}
+		<ConsentIconOnly />
+	{:else}
+		<C15TIconOnly />
+	{/if}
+{/snippet}
+
 {#if visible}
 	<div use:portal>
-		<button
-			type="button"
-			class={triggerStyle.className || ''}
-			style={buttonStyle}
-			data-c15t-trigger="true"
-			data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
-			data-disable-animation={theme.disableAnimation ? '' : undefined}
-			aria-label={ariaLabel}
-			onclick={handleClick}
-			onpointerdown={handlePointerDown}
-			onpointermove={handlePointerMove}
-			onpointerup={handlePointerUp}
-			onpointercancel={handlePointerCancel}
-			onpointerenter={warmDialog}
-			onfocus={warmDialog}
-			data-testid="consent-dialog-trigger"
-		>
-			<span
-				class={iconStyle.className || ''}
-				style={toStyleAttribute(iconStyle.style)}
-				aria-hidden="true"
+		{#if showToolbar}
+			<div
+				bind:this={toolbarElement}
+				class={toolbarStyle.className || ''}
+				style={toolbarAttributeStyle}
+				role="toolbar"
+				tabindex="-1"
+				dir="ltr"
+				aria-label="Privacy controls"
+				aria-orientation="horizontal"
+				data-corner={corner}
+				data-c15t-trigger-toolbar="true"
+				data-c15t-trigger="true"
+				data-disable-animation={theme.disableAnimation ? '' : undefined}
+				data-dragging={isDragging || undefined}
+				data-snapping={isSnapping || undefined}
+				onkeydown={handleToolbarKeyDown}
+				onpointerdown={handlePointerDown}
+				onpointermove={handlePointerMove}
+				onpointerup={handlePointerUp}
+				onpointercancel={handlePointerCancel}
 			>
-				{#if branding === 'consent'}
-					<ConsentIconOnly />
-				{:else}
-					<C15TIconOnly />
-				{/if}
-			</span>
-		</button>
+				{#each toolbarItems as item (item)}
+					{#if item === 'devtools'}
+						<button
+							type="button"
+							class={devToolsItemStyle.className || ''}
+							style={toStyleAttribute(devToolsItemStyle.style)}
+							tabindex={tabStopItem === item ? 0 : -1}
+							aria-label="c15t DevTools"
+							aria-expanded={launcher.isOpen}
+							data-c15t-trigger-action="devtools"
+							data-c15t-trigger-item="devtools"
+							onclick={handleDevToolsClick}
+							onfocus={() => (focusedItem = item)}
+						>
+							<span
+								class={toolbarIconStyle.className || ''}
+								style={toStyleAttribute(toolbarIconStyle.style)}
+								aria-hidden="true"
+							>
+								<span
+									class={iconStyle.className || ''}
+									style={toStyleAttribute(iconStyle.style)}
+								>
+									<DevToolsIcon />
+								</span>
+							</span>
+						</button>
+					{:else}
+						<button
+							type="button"
+							class={preferencesItemStyle.className || ''}
+							style={toStyleAttribute(preferencesItemStyle.style)}
+							tabindex={tabStopItem === item ? 0 : -1}
+							aria-label={ariaLabel}
+							data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
+							data-c15t-trigger-action="preferences"
+							data-c15t-trigger-item="preferences"
+							onclick={handleClick}
+							onpointerenter={warmDialog}
+							onfocus={() => {
+								focusedItem = item;
+								warmDialog();
+							}}
+							data-testid="consent-dialog-trigger"
+						>
+							<span
+								class={toolbarIconStyle.className || ''}
+								style={toStyleAttribute(toolbarIconStyle.style)}
+								aria-hidden="true"
+							>
+								<span
+									class={iconStyle.className || ''}
+									style={toStyleAttribute(iconStyle.style)}
+								>
+									{@render brandingIcon()}
+								</span>
+							</span>
+						</button>
+					{/if}
+				{/each}
+			</div>
+		{:else}
+			<button
+				type="button"
+				class={triggerStyle.className || ''}
+				style={buttonStyle}
+				data-c15t-trigger="true"
+				data-c15t-rights={consent.snapshot.policyRule.rights.join(' ')}
+				data-disable-animation={theme.disableAnimation ? '' : undefined}
+				aria-label={ariaLabel}
+				onclick={handleClick}
+				onpointerdown={handlePointerDown}
+				onpointermove={handlePointerMove}
+				onpointerup={handlePointerUp}
+				onpointercancel={handlePointerCancel}
+				onpointerenter={warmDialog}
+				onfocus={warmDialog}
+				data-testid="consent-dialog-trigger"
+			>
+				<span
+					class={iconStyle.className || ''}
+					style={toStyleAttribute(iconStyle.style)}
+					aria-hidden="true"
+				>
+					{@render brandingIcon()}
+				</span>
+			</button>
+		{/if}
 	</div>
 {/if}

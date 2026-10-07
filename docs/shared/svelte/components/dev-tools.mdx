@@ -37,6 +37,21 @@ so your CSS does not restyle it and its CSS does not leak into the page.
 `shadow={false}` mounts the panel in the light DOM instead and puts its
 stylesheet in `<head>`.
 
+## Open DevTools from the consent trigger
+
+While `ConsentDialogTrigger` is visible, it becomes a two-button toolbar with
+a DevTools button, and DevTools hides its own floating launcher, so one
+control occupies the corner. The DevTools button sits at the end of the
+toolbar farthest from its corner. The panel opens just past the toolbar,
+aligned with its outer edge, and follows it when a visitor drags the toolbar
+to another corner. `position` applies again once no trigger is visible. The
+trigger that `ConsentDialog`'s `showTrigger` prop renders behaves the same
+way.
+
+DevTools brings its launcher back whenever no trigger is visible, for example
+with `showWhen="never"` or while the dialog is open. A production build that
+loads DevTools only in development shows no DevTools button in the trigger.
+
 ## Keep it out of production
 
 The panel can clear consent and change the location the policy resolves for.

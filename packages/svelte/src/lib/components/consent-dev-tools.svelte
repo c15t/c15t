@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { createDevTools } from '@c15t/dev-tools';
+	import { publishDevToolsLauncher } from '@c15t/ui/utils/devtools-launcher';
 	import { untrack } from 'svelte';
 
 	import { getConsentContext } from '../context.svelte';
@@ -54,7 +55,13 @@
 			kernel: context.kernel,
 		};
 		const devTools = untrack(() => createDevTools(options));
+		// A visible ConsentDialogTrigger for the same kernel can render the
+		// launcher instead.
+		const withdrawLauncher = publishDevToolsLauncher(options.kernel, devTools);
 
-		return () => devTools.destroy();
+		return () => {
+			withdrawLauncher();
+			devTools.destroy();
+		};
 	});
 </script>
