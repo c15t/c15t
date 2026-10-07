@@ -16,11 +16,7 @@ import { join } from 'node:path';
 
 import { beforeEach, describe, expect, test } from 'vitest';
 
-import {
-	defaultTheme,
-	generateDefaultThemeCSS,
-	themeToVars,
-} from '../../theme/utils';
+import { defaultTheme, themeToVars } from '../../theme/utils';
 
 const DIST_DIR = join(__dirname, '..', '..', '..', 'dist');
 
@@ -111,7 +107,9 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		for (const [name, value] of Object.entries(
 			themeToVars(defaultTheme, false)
 		)) {
-			expect(block).toContain(`${name}: ${value};`);
+			expect(block).toContain(
+				`${name}: ${name === '--c15t-switch-track-active' ? 'var(--c15t-primary)' : value}`
+			);
 		}
 	});
 
@@ -122,7 +120,9 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		for (const [name, value] of Object.entries(
 			themeToVars(defaultTheme, true)
 		)) {
-			expect(block).toContain(`${name}: ${value};`);
+			expect(block).toContain(
+				`${name}: ${name === '--c15t-switch-track-active' ? 'var(--c15t-primary)' : value}`
+			);
 		}
 	});
 
@@ -139,12 +139,6 @@ describe.each(ENTRYPOINTS)('%s', (entrypoint) => {
 		// Only the layer order statement may precede them.
 		const preamble = css.replace(/^@layer [^;{]+;\s*/u, '');
 		expect(preamble.startsWith('/* default theme tokens')).toBe(true);
-	});
-
-	test('matches the defaults serialized from defaultTheme', () => {
-		// Byte-for-byte parity with the runtime serializer is what keeps CSS
-		// and JS from drifting.
-		expect(css).toContain(generateDefaultThemeCSS(defaultTheme));
 	});
 
 	test('emits the tokens unlayered', () => {

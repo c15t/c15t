@@ -394,7 +394,8 @@ const themeCSSVariableResolvers: Record<
 	'surface-hover': (_theme, colors) => colors?.surfaceHover,
 	'switch-thumb': (_theme, colors) => colors?.switchThumb,
 	'switch-track': (_theme, colors) => colors?.switchTrack,
-	'switch-track-active': (_theme, colors) => colors?.switchTrackActive,
+	'switch-track-active': (_theme, colors) =>
+		colors?.switchTrackActive ?? colors?.primary,
 	text: (_theme, colors) => colors?.text,
 	'text-muted': (_theme, colors) => colors?.textMuted,
 	'text-on-primary': (_theme, colors) =>
