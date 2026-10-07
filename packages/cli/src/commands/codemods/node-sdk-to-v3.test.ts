@@ -227,6 +227,77 @@ export async function run(log, retryConfig, defaults) {
 		);
 	});
 
+	it('rewrites client options held in a variable and marks options it cannot read', async () => {
+		const source = `import { c15tClient } from '@c15t/node-sdk';
+
+const options = { baseUrl: '/api', token: 'k', timeout: 1000 };
+export const client = c15tClient(options);
+export const make = (settings) => c15tClient(settings);
+export const spread = (base) => c15tClient({ ...base, token: 'k' });
+`;
+		const { first, second, secondResult } = await transformTwice(
+			codemod,
+			source,
+			'client.ts'
+		);
+		const todo =
+			'// TODO(c15t v3): createC15tClient() options changed: token is now apiKey, timeout is now timeoutMs and retryConfig is now retry. prefix and debug were removed, and baseUrl is required.';
+
+		expect(first).toContain(
+			"const options = { baseUrl: '/api', apiKey: 'k', timeoutMs: 1000 };\nexport const client = createC15tClient(options);"
+		);
+		expect(first).toContain(
+			`${todo}\nexport const make = (settings) => createC15tClient(settings);`
+		);
+		expect(first).toContain(
+			`${todo}\nexport const spread = (base) => createC15tClient({ ...base, apiKey: 'k' });`
+		);
+		expect(second).toBe(first);
+		expect(secondResult.changedFiles).toEqual([]);
+	});
+
+	it('reports the TODO for options without baseUrl', async () => {
+		const { result, updated } = await transformFile(
+			codemod,
+			`import { c15tClient } from '@c15t/node-sdk';
+export const client = c15tClient({ token: 'k' });
+`,
+			{ fileName: 'client.ts' }
+		);
+		expect(updated).toContain(
+			'// TODO(c15t v3): createC15tClient() reads no environment variables.'
+		);
+		expect(result.changedFiles[0]?.summaries).toContain(
+			'TODO: environment variables'
+		);
+	});
+
+	it('migrates a namespace import', async () => {
+		const source = `import * as sdk from '@c15t/node-sdk';
+
+const client = sdk.c15tClient({ baseUrl: '/api', token: 'k' });
+export const legacy: sdk.C15TClient = new sdk.C15TClient({ baseUrl: '/api' });
+export const isError = (error: unknown) => sdk.isC15TError(error);
+export const run = () => client.checkConsent({ externalId: 'x', type: 'marketing' });
+`;
+		const { first, second, secondResult } = await transformTwice(
+			codemod,
+			source,
+			'sdk.ts'
+		);
+
+		expect(first).toBe(`import * as sdk from '@c15t/node-sdk';
+
+const client = sdk.createC15tClient({ baseUrl: '/api', apiKey: 'k' });
+export const legacy: sdk.C15tClient = sdk.createC15tClient({ baseUrl: '/api' });
+export const isError = (error: unknown) => sdk.isC15tError(error);
+${RESULT_TODO} Check result.ok before reading data, or wrap the call in unwrap().
+export const run = () => client.consents.check({ externalId: 'x', types: ['marketing'] });
+`);
+		expect(second).toBe(first);
+		expect(secondResult.changedFiles).toEqual([]);
+	});
+
 	it('leaves other clients and v3 code alone', async () => {
 		const unrelated = await transformFile(
 			codemod,

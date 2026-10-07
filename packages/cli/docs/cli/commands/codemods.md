@@ -101,7 +101,10 @@ prints a warning; add the plugin by hand as
 ### Node.js SDK and backend
 
 `node-sdk-to-v3` follows clients created in the same file, including class
-properties and parameters typed as `C15TClient`. It turns `type: 'a,b'`
+properties, parameters typed as `C15TClient`, and clients made through
+`import * as sdk from '@c15t/node-sdk'`. It rewrites client options written
+in the call or in a variable in the same file; options from anywhere else
+get a `TODO(c15t v3)` comment. It turns `type: 'a,b'`
 strings into `types: ['a', 'b']`, and moves a v2 `init(options)` argument to
 `init(undefined, options)`. In per-call options it renames `timeout` to
 `timeoutMs` and `retryConfig` to `retry`. Call options passed as a variable

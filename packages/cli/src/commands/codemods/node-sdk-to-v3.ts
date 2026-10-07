@@ -8,6 +8,7 @@ import {
 	applyEdits,
 	ensureNamedImports,
 	findProperty,
+	objectLiteralFor,
 	propertyKey,
 	referencesOf,
 	toTextEdit,
@@ -96,6 +97,8 @@ const RETRY_TODO =
 const TYPES_TODO =
 	"Pass types as an array, such as types: ['privacy_policy'], instead of a comma-separated type string.";
 const FETCH_TODO = '$fetch was removed. Call the typed client methods.';
+const CLIENT_OPTIONS_TODO =
+	'createC15tClient() options changed: token is now apiKey, timeout is now timeoutMs and retryConfig is now retry. prefix and debug were removed, and baseUrl is required.';
 const CALL_OPTION_TODOS: Record<string, string> = {
 	onError: 'onError was removed. Check result.ok after the call.',
 	onSuccess: 'onSuccess was removed. Check result.ok after the call.',
@@ -331,21 +334,39 @@ const planCall = function planCall(
 	context.operations += 1;
 };
 
-/** Renames client options and marks the ones v3 dropped. */
+/**
+ * Renames client options and marks the ones v3 dropped. Options in a
+ * variable initialized in the same file are rewritten there; options from
+ * anywhere else get a TODO.
+ */
 const planOptions = function planOptions(
 	call: TsMorphTypes.CallExpression | TsMorphTypes.NewExpression,
 	context: Context
 ): void {
 	const [argument] = call.getArguments() ?? [];
-	const object = argument && unwrapExpression(argument);
-	if (!object || !Node.isObjectLiteralExpression(object)) {
-		if (!argument && addTodo(statementOf(call), ENV_TODO, context.edits)) {
+	const markEnv = () => {
+		if (addTodo(statementOf(call), ENV_TODO, context.edits)) {
 			context.summaries.add('TODO: environment variables');
 		}
+	};
+	const markOptions = () => {
+		if (addTodo(statementOf(call), CLIENT_OPTIONS_TODO, context.edits)) {
+			context.summaries.add('TODO: client options');
+		}
+	};
+	if (!argument) {
+		markEnv();
 		return;
 	}
-	if (!findProperty(object, 'baseUrl')) {
-		addTodo(statementOf(call), ENV_TODO, context.edits);
+	const object = objectLiteralFor(argument);
+	if (!object) {
+		markOptions();
+		return;
+	}
+	if (object.getProperties().some((item) => Node.isSpreadAssignment(item))) {
+		markOptions();
+	} else if (!findProperty(object, 'baseUrl')) {
+		markEnv();
 	}
 	for (const property of object.getProperties()) {
 		const key = propertyKey(property);
@@ -432,6 +453,22 @@ const planFactoryCalls = function planFactoryCalls(
 	}
 };
 
+/** Records the parameter, property or variable a client type annotates. */
+const recordTypedHolder = function recordTypedHolder(
+	reference: TsMorphTypes.Node,
+	context: Context
+): void {
+	const holder = reference.getFirstAncestor(
+		(ancestor) =>
+			Node.isParameterDeclaration(ancestor) ||
+			Node.isPropertyDeclaration(ancestor) ||
+			Node.isVariableDeclaration(ancestor)
+	);
+	if (holder) {
+		context.clientDeclarations.push(holder);
+	}
+};
+
 /** `new C15TClient()` becomes the factory; type uses become `C15tClient`. */
 const planClientClass = function planClientClass(
 	named: TsMorphTypes.ImportSpecifier,
@@ -453,15 +490,7 @@ const planClientClass = function planClientClass(
 			continue;
 		}
 		typeReferences.push(reference);
-		const holder = reference.getFirstAncestor(
-			(ancestor) =>
-				Node.isParameterDeclaration(ancestor) ||
-				Node.isPropertyDeclaration(ancestor) ||
-				Node.isVariableDeclaration(ancestor)
-		);
-		if (holder) {
-			context.clientDeclarations.push(holder);
-		}
+		recordTypedHolder(reference, context);
 	}
 	context.operations += 1;
 	if (typeReferences.length === 0) {
@@ -504,14 +533,85 @@ const planRename = function planRename(
 	context.operations += 1;
 };
 
+/**
+ * `import * as sdk from '@c15t/node-sdk'`: renames `sdk.c15tClient`,
+ * `new sdk.C15TClient()`, `sdk.C15TClient` types and the other renamed
+ * exports, and follows the clients they create.
+ */
+const planNamespace = function planNamespace(
+	namespace: TsMorphTypes.Identifier,
+	context: Context
+): void {
+	for (const reference of namespace.findReferencesAsNodes()) {
+		if (
+			reference.getSourceFile() !== namespace.getSourceFile() ||
+			reference.getStart() === namespace.getStart()
+		) {
+			continue;
+		}
+		const parent = reference.getParent();
+		let nameNode: TsMorphTypes.Node | undefined;
+		if (
+			Node.isPropertyAccessExpression(parent) &&
+			parent.getExpression() === reference
+		) {
+			nameNode = parent.getNameNode();
+		} else if (Node.isQualifiedName(parent) && parent.getLeft() === reference) {
+			nameNode = parent.getRight();
+		}
+		if (!(parent && nameNode)) {
+			continue;
+		}
+		const name = nameNode.getText();
+		const outer = parent.getParent();
+		if (name === 'C15TClient') {
+			if (Node.isNewExpression(outer) && outer.getExpression() === parent) {
+				planOptions(outer, context);
+				recordHolder(outer, context);
+				context.edits.push({
+					end: parent.getEnd(),
+					start: outer.getStart(),
+					text: `${namespace.getText()}.${FACTORY}`,
+				});
+				context.summaries.add(`new C15TClient -> ${FACTORY}`);
+			} else {
+				context.edits.push(toTextEdit(nameNode, 'C15tClient'));
+				recordTypedHolder(parent, context);
+				context.summaries.add('C15TClient -> C15tClient');
+			}
+			context.operations += 1;
+			continue;
+		}
+		if (
+			name === 'c15tClient' &&
+			Node.isCallExpression(outer) &&
+			outer.getExpression() === parent
+		) {
+			planOptions(outer, context);
+			recordHolder(outer, context);
+		}
+		const next = RENAMES[name];
+		if (next) {
+			context.edits.push(toTextEdit(nameNode, next));
+			context.summaries.add(`${name} -> ${next}`);
+			context.operations += 1;
+		}
+	}
+};
+
 const transformSourceFile = function transformSourceFile(
 	sourceFile: TsMorphTypes.SourceFile
 ): TransformResult {
-	const specifiers = sourceFile
+	const declarations = sourceFile
 		.getImportDeclarations()
-		.filter((declaration) => declaration.getModuleSpecifierValue() === ENTRY)
-		.flatMap((declaration) => declaration.getNamedImports());
-	if (specifiers.length === 0) {
+		.filter((declaration) => declaration.getModuleSpecifierValue() === ENTRY);
+	const specifiers = declarations.flatMap((declaration) =>
+		declaration.getNamedImports()
+	);
+	const namespaces = declarations.flatMap(
+		(declaration) => declaration.getNamespaceImport() ?? []
+	);
+	if (specifiers.length === 0 && namespaces.length === 0) {
 		return UNCHANGED;
 	}
 	const context: Context = {
@@ -530,6 +630,9 @@ const transformSourceFile = function transformSourceFile(
 			planFactoryCalls(referencesOf(named), context);
 		}
 		planRename(named, context);
+	}
+	for (const namespace of namespaces) {
+		planNamespace(namespace, context);
 	}
 	for (const reference of clientReferences(context.clientDeclarations)) {
 		planCall(reference, context);
