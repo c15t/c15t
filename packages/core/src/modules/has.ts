@@ -7,6 +7,7 @@ import { evaluateConsentRecord } from '../consent-record/evaluate';
 import type { AllConsentNames } from '../consent/consent-types';
 import { extractConsentNamesFromCondition, has } from '../libs/has';
 import type { HasCondition } from '../libs/has';
+import { isProductionBuild } from '../libs/is-production';
 import type { PublisherRestriction } from '../options/iab-tcf';
 import type { ConsentSnapshot } from '../types';
 
@@ -431,9 +432,7 @@ const warnedUndeclaredVendors = new Set<string>();
 const warnUndeclaredVendor = function warnUndeclaredVendor(
 	vendorId: string
 ): void {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (nodeEnv === 'production' || warnedUndeclaredVendors.has(vendorId)) {
+	if (isProductionBuild() || warnedUndeclaredVendors.has(vendorId)) {
 		return;
 	}
 	warnedUndeclaredVendors.add(vendorId);

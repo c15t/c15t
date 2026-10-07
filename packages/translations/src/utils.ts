@@ -82,10 +82,26 @@ function deepMergeSection<TSection extends Record<string, unknown>>(
 
 let warnedLegacyFrame = false;
 
+// Typed here so this package needs no Node types. TypeScript erases it,
+// leaving the expression bundlers look for.
+declare const process: { env: { NODE_ENV?: string } };
+
+/**
+ * Whether this is a production build. Bundlers replace the literal
+ * `process.env.NODE_ENV`, so the warning stays out of production browser
+ * builds; `globalThis.process` would hide it from that replacement. Without
+ * a bundler or `process`, the read throws and counts as development.
+ */
+const isProductionBuild = function isProductionBuild(): boolean {
+	try {
+		return process.env.NODE_ENV === 'production';
+	} catch {
+		return false;
+	}
+};
+
 const warnLegacyFrameOnce = function warnLegacyFrameOnce(): void {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	if (warnedLegacyFrame || nodeEnv === 'production') {
+	if (warnedLegacyFrame || isProductionBuild()) {
 		return;
 	}
 	warnedLegacyFrame = true;

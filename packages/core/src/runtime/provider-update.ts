@@ -80,15 +80,20 @@ export interface ProviderUpdateHost {
 	tools: ProviderUpdateTools;
 }
 
-const isProduction = function isProduction(): boolean {
-	return (
-		(globalThis as { process?: { env?: { NODE_ENV?: string } } }).process?.env
-			?.NODE_ENV === 'production'
-	);
+// This module imports no values (see above), so it repeats the production
+// check from `libs/is-production.ts` instead of importing it.
+declare const process: { env: { NODE_ENV?: string } };
+
+const isProductionBuild = function isProductionBuild(): boolean {
+	try {
+		return process.env.NODE_ENV === 'production';
+	} catch {
+		return false;
+	}
 };
 
 const warnInDevelopment = function warnInDevelopment(message: string): void {
-	if (!isProduction()) {
+	if (!isProductionBuild()) {
 		console.warn(message);
 	}
 };
@@ -337,7 +342,10 @@ export const applyProviderUpdate = function applyProviderUpdate(
 ): void {
 	const { tools } = host;
 	const { normalizeKernelUser } = tools;
-	if (!isProduction() && initialOnlyKey(current) !== initialOnlyKey(previous)) {
+	if (
+		!isProductionBuild() &&
+		initialOnlyKey(current) !== initialOnlyKey(previous)
+	) {
 		console.warn(
 			'c15t: `mode`, `i18n`, `experiment`, `persistence` and `storageConfig` are read once. Create a new runtime (remount the provider) to change them.'
 		);
