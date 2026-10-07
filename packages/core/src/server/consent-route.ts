@@ -853,6 +853,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 			customVendors: mapped.customVendors,
 			gvl: mapped.gvl,
 			gvlReference: mapped.gvlReference,
+			hosting: mapped.hosting,
 			location: payload.location,
 			policyResolution: writePolicyResolutionWire(
 				readPolicyResolutionWire(mapped.policyResolution)

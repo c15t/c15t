@@ -1,3 +1,4 @@
+import { custom } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { readPageOptions, readScriptOptions } from '../auto-init';
@@ -345,5 +346,22 @@ describe('window.c15t', () => {
 		// `@c15t/core` writes its own frozen debug object there on start.
 		expect(testWindow.c15t).toBe(api);
 		expect(api.init({ ui: false })).toBe(api.client);
+	});
+
+	it('reports the hosting the backend named once init resolves', async () => {
+		const api = createGlobal({ pkg: '@c15t/browser/test' });
+		installGlobal(api);
+		expect(api.hosting).toBeNull();
+
+		api.init({
+			mode: custom({
+				init: vi.fn().mockResolvedValue({ hosting: 'inth' }),
+				save: vi.fn().mockResolvedValue({ ok: true }),
+			}),
+			ui: false,
+		});
+		await api.ready();
+
+		expect(api.hosting).toBe('inth');
 	});
 });

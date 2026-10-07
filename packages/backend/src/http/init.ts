@@ -156,6 +156,7 @@ export const buildInitResponse = async function buildInitResponse(
 		? resolved
 		: {
 				branding: resolved.branding,
+				...(resolved.hosting !== undefined && { hosting: resolved.hosting }),
 				location: resolved.location,
 				policyResolution: writePolicyResolutionWire({
 					policy: null,

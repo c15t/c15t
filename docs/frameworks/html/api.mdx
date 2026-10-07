@@ -161,6 +161,7 @@ can follow them.
 | `version` | The `@c15t/browser` version. |
 | `pkg` | `@c15t/browser`, `@c15t/browser/headless` or `@c15t/browser/iab`, by bundle. |
 | `mode` | `hosted`, `offline`, `manifest` or `custom` once started, else `null`. A transport factory passed as `mode` reports `custom`, except `hosted()` and `offline()`. |
+| `hosting` | `'inth'` or `'self-hosted'` once `/init` reports who runs the backend, else `null`. Stays `null` in `offline` mode and with backends older than the field. |
 | `client` | The started client, or `null`. It has the same methods plus `kernel`, `runtime`, `options`, `consentCategories`, `ui` and `setOverrides()`. |
 | `devtools` | The DevTools panel once `c15t.devtools.js` mounted it, else `null`. |
 | `hosted`, `offline`, `manifest`, `custom` | Transport factories, for `c15t.init({ mode: c15t.manifest({ … }) })` with `data-manual`. |

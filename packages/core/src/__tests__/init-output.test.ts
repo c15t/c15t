@@ -106,6 +106,19 @@ describe('mergeInitResponseIntoKernelConfig', () => {
 		).toBe('c15t');
 	});
 
+	test('hosting survives a prefetch round trip', () => {
+		// SSR prefetch folds /init into a config and replays it as the
+		// client's init; hosting has to come out the other side.
+		const response = kernelConfigToInitResponse({
+			initialHosting: 'inth',
+			initialPolicyResolution: matchedResolution(optInRule({ id: 'p1' })),
+		});
+		expect(response?.hosting).toBe('inth');
+		expect(mergeInitResponseIntoKernelConfig({}, response).initialHosting).toBe(
+			'inth'
+		);
+	});
+
 	test('policy trio + subjectId fold through', () => {
 		const merged = mergeInitResponseIntoKernelConfig(
 			{},
