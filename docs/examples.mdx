@@ -1,6 +1,6 @@
 ---
 title: Examples
-description: Runnable c15t apps from the c15t repository. Starters show the smallest setup for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML and JavaScript.
+description: Runnable c15t apps from the c15t repository. Starters show the smallest setup for Next.js, TanStack Start, React, Nuxt, Vue, Astro, Svelte, SvelteKit, HTML and JavaScript. Showcases show custom banners, preference centers, gated embeds, analytics, IAB TCF, experiments and multilingual sites.
 ---
 
 ## Run an example from the c15t repository
@@ -61,9 +61,32 @@ at `/api/c15t` in the same app. It runs on an embedded PGlite database in
 development and Postgres from `DATABASE_URL` when deployed. The
 [backend quickstart](/docs/self-host/quickstart) publishes its route handler.
 
+## Showcases
+
+Showcases are Next.js apps for Northwind Coffee, a made-up coffee roaster.
+Each one shows one thing c15t can do inside a believable product.
+
+| Showcase | Directory | What it shows |
+| --- | --- | --- |
+| Custom banner | `examples/showcase-custom-banner` | A banner and preferences sheet built on the headless hooks, with no c15t stylesheet |
+| Preference center | `examples/showcase-preference-center` | Consent settings as a page in account settings, with categories, vendors and the last saved time |
+| Gated embeds | `examples/showcase-gated-embeds` | YouTube, Google Maps and a support chat behind designed placeholders that load in place |
+| Analytics | `examples/showcase-analytics` | Google Tag Manager with Consent Mode v2, GA4, PostHog and the Meta Pixel, with DevTools showing each script's state |
+| IAB TCF | `examples/showcase-iab` | A publisher's ad slots filled from the TC string, with GPP |
+| Banner experiment | `examples/showcase-experiment` | An A/B test between two banner layouts, with exposure and choice events per arm |
+| Multilingual | `examples/showcase-multilingual` | Banner language from the route and policy from the visitor's region |
+
+Showcases run in offline mode, so they work without an Inth project. Offline
+mode keeps choices in the browser and records nothing on a server. Not
+recommended for production environments. Each README shows the one-line swap to
+`hosted({ url: 'https://your-project.inth.app' })`.
+
+The IAB showcase serves a three-vendor list from `public/vendor-list.json` and
+uses a demonstration CMP ID. Its README lists what changes for production.
+
 ## What to try
 
-Open a starter in a private window with DevTools Network open:
+Open a starter or showcase in a private window with DevTools Network open:
 
 1. Before you choose, no PostHog request appears.
 2. Reject optional categories and reload. The banner stays closed and PostHog
