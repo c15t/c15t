@@ -18,6 +18,9 @@ the deployment's snapshot without fetching an upstream manifest, including
 on a fresh server instance. Request geography, language, privacy signals and
 stored consent still resolve per visitor.
 
+Svelte's framework-free `resolveConsent` helper also accepts a snapshot and
+resolves it locally, with optional backend session reporting.
+
 Astro keeps the snapshot out of browser bundles. Nuxt skips manifest fetching
 during `nuxt prepare`, including dependency installation and type preparation.
 

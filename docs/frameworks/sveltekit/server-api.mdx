@@ -196,19 +196,22 @@ or custom vendors.
 ## resolveConsent
 
 `resolveConsent(options)` from `@c15t/svelte/server` does what `loadConsent`
-does without a SvelteKit event.
+does without a SvelteKit event. Pass `manifest` to resolve a build-time snapshot
+with each visitor's request inputs.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
 | `headers` | `Headers` | required | The incoming request's headers. |
-| `backendURL` | `string` | none | Calls `<backendURL>/init`. Without it, only the cookie and headers are read. A relative URL resolves against `requestURL`, or the `host` header when there is none. |
+| `backendURL` | `string` | none | Calls `<backendURL>/init` when no snapshot is supplied. With `manifest`, an absolute URL receives session reports. Without either, only the cookie and headers are read. A relative URL resolves against `requestURL`, or the `host` header when there is none. |
+| `manifest` | `ConsentManifest` | none | Build-time snapshot. Resolves locally using this visitor's inputs and takes precedence over backend policy fetching. |
+| `reportSessions` | `boolean` | `true` | Reports manifest resolutions to an absolute `backendURL`. Set `false` to skip reports. Hosted `/init` already counts the visitor. |
 | `requestURL` | `string` or `URL` | none | The URL the framework resolved the request under, such as SvelteKit's `event.url`. `loadConsent` passes it for you. |
 | `trustForwardedHeaders` | `boolean` | `false` | Resolves a relative `backendURL` against `forwarded`, `x-forwarded-host` and `x-forwarded-proto`, and sends the visitor IP to the backend as `x-forwarded-for`. |
 | `cookieName` | `string` | `c15t` | The consent cookie. |
 | `cookieHeader` | `string` or `null` | `headers.get('cookie')` | A cookie header to read instead. |
 | `country`, `region`, `language` | `string` | from headers | Forces one input. |
 | `forwardHeaders` | `string[]` | none | Extra headers to send to `/init`, under the same rule as `loadConsent`. |
-| `fetch` | `typeof fetch` | global `fetch` | The fetch for `/init`. |
+| `fetch` | `typeof fetch` | global `fetch` | The fetch for `/init`, session reports and IAB vendor lists. |
 | `timeoutMs` | `number` or `false` | `500` | Longest wait for `/init`, in milliseconds, with the same rule as `loadConsent`. |
 | `now` | `number` | the current time | The request time, shared with the browser. |
 

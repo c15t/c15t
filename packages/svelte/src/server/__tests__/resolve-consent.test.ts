@@ -11,6 +11,7 @@ import {
 } from '@c15t/schema/types';
 import { describe, expect, test, vi } from 'vitest';
 
+import { MANIFEST_FIXTURE } from '../../lib/kit/__tests__/manifest-fixture';
 import { resolveConsent } from '../../lib/server';
 
 const INIT = {
@@ -43,6 +44,48 @@ const backend = () =>
 	);
 
 describe('@c15t/svelte/server resolveConsent', () => {
+	test.each([
+		{
+			backendURL: 'https://consent.example.com',
+			country: 'DE',
+			language: 'de',
+			policyId: 'eu-opt-in',
+		},
+		{
+			backendURL: undefined,
+			country: 'US',
+			language: 'en',
+			policyId: 'notice-default',
+		},
+	])(
+		'resolves a snapshot for $country without fetching policy',
+		async ({ backendURL, country, language, policyId }) => {
+			const fetch = backend();
+			const state = await resolveConsent({
+				backendURL,
+				fetch,
+				headers: new Headers({
+					'accept-language': language,
+					'cf-ipcountry': country,
+					cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1234567890',
+					'sec-gpc': '1',
+				}),
+				manifest: MANIFEST_FIXTURE,
+				reportSessions: false,
+			});
+			expect(fetch).not.toHaveBeenCalled();
+			expect(state.initialPolicyResolution).toMatchObject({
+				policyId,
+				status: 'matched',
+			});
+			expect(state.initialTranslations?.language).toBe(language);
+			expect(state.initialRecords?.choice?.categories.marketing?.value).toBe(
+				true
+			);
+			expect(state.initialPrivacySignals).toEqual({ gpc: true });
+		}
+	);
+
 	test('reads geo, language and the consent cookie without a backend', async () => {
 		const fetch = backend();
 		const state = await resolveConsent({

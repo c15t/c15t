@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, utimes } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -121,6 +121,9 @@ describe('manifest output', () => {
 	test('does not rewrite an unchanged manifest but replaces a changed one', async () => {
 		const options = optionsFor(await createRoot());
 		const path = await writeManifestModule(options, defaults);
+		// A rewrite must change this even on filesystems with coarse timestamps.
+		const previousTime = new Date('2000-01-01T00:00:00.000Z');
+		await utimes(path, previousTime, previousTime);
 		const original = await stat(path);
 		await writeManifestModule(options, defaults);
 		expect((await stat(path)).mtimeMs).toBe(original.mtimeMs);
