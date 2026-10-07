@@ -23,8 +23,13 @@ describe('branding logo module', () => {
 	test('only the dialog trigger imports the trigger icons', () => {
 		const importers = Object.entries(rawSources)
 			.filter(([, text]) => /from '[^']*trigger-icons'/u.test(text))
-			.map(([file]) => file);
+			.map(([file]) => file)
+			.sort();
 
-		expect(importers).toEqual(['../components/panel-trigger/atoms/icon.tsx']);
+		// The trigger's icon and its DevTools toolbar.
+		expect(importers).toEqual([
+			'../components/panel-trigger/atoms/icon.tsx',
+			'../components/panel-trigger/atoms/toolbar.tsx',
+		]);
 	});
 });
