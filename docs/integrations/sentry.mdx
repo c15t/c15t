@@ -195,9 +195,16 @@ configuration starts a new adapter lifecycle; changed CDN options initialize
 a client with the new DSN and settings. A new CDN configuration also initializes
 when another loader already owns the completed bundle. It initializes once;
 subsequent consent changes keep that client. Replay uses the options of the
-configuration that initialized it. Consent remounts keep the client and its
+configuration that initialized it while that configuration remains active.
+After its removal, a surviving configuration can load Replay with its own
+Replay options. The client's resolved SDK settings and sampling rates stay
+unchanged. Consent remounts keep the client and its
 Replay sampling decision. Matching CDN versions and bundle types share the
 download; a different version or tracing bundle loads its own resource.
+
+The CDN Replay script inherits the nonce from the main Sentry bundle. Set the
+loader or provider's `nonce` once; a per-script `nonce` overrides it for both
+bundles.
 
 If multiple loaders target the same Sentry client, Sentry stays active until
 the last loader removes it. Every active configuration must allow Replay and

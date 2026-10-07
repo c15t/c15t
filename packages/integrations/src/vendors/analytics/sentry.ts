@@ -308,7 +308,7 @@ interface GateOptions {
 	/** Starts Sentry the first time it may run. */
 	start?: () => Promise<void>;
 	loadReplay?: () => SentryReplay | Promise<SentryReplay>;
-	/** CDN clients use Replay options from the configuration that initialized them. */
+	/** Prefer the initializing CDN configuration's Replay options while it is active. */
 	canLoadReplay?: (client: SentryClient) => boolean;
 	replayCategory: HasCondition<AllConsentNames>;
 	piiCategory: HasCondition<AllConsentNames>;
@@ -437,12 +437,19 @@ const applyPii = (client: SentryClient, state: ClientState): void => {
 	}
 };
 
-const loadScriptElement = (src: string, integrity?: string): Promise<void> =>
+const loadScriptElement = (
+	src: string,
+	integrity?: string,
+	nonce?: string
+): Promise<void> =>
 	new Promise((resolve, reject) => {
 		const element = document.createElement('script');
 		element.src = src;
 		element.async = true;
 		element.setAttribute('crossorigin', 'anonymous');
+		if (nonce) {
+			element.nonce = nonce;
+		}
 		if (integrity) {
 			element.setAttribute('integrity', integrity);
 		}
@@ -817,7 +824,7 @@ const createGate = (options: GateOptions) => {
 			!has(options.piiCategory, ALL_DENIED)
 		) {
 			warn(
-				'Sentry.init ran before c15t, so its first session can infer the visitor IP address before consent. Pass init to sentry(), or set dataCollection: { userInfo: false } in Sentry.init.'
+				'Sentry.init ran before c15t, so its first session can infer the visitor IP address before consent. Pass init to sentry(), or disable SDK collection and filter startup events as described in the Sentry integration guide.'
 			);
 		}
 		const existing = findReplay(client);
@@ -847,9 +854,10 @@ const createGate = (options: GateOptions) => {
 				revision += 1;
 				pendingReplay?.abort();
 				pendingReplay = undefined;
-				// oxlint-disable-next-line no-use-before-define -- Replay startup synchronizes this gate, so the callbacks depend on each other.
-				queueReplay();
 			}
+			// Ownership can become available without changing consent.
+			// oxlint-disable-next-line no-use-before-define -- Replay startup synchronizes this gate, so the callbacks depend on each other.
+			queueReplay();
 			if (!client || !state) {
 				piiWanted = undefined;
 				return;
@@ -1227,6 +1235,7 @@ const getCategory = (
 };
 
 const cdnClients = new WeakMap<SentryClient, SentryCdnOptions>();
+const activeCdnConfigurations = new WeakSet<SentryCdnOptions>();
 const loadedCdnBundles = new WeakSet<HTMLScriptElement>();
 
 const createCdnScript = (
@@ -1247,16 +1256,24 @@ const createCdnScript = (
 	const replayAllowed = hasReplayLoader(options);
 	const replayOptions =
 		options.replay === false ? undefined : options.replay?.options;
+	let nonce: string | undefined;
 
 	const gate = createGate({
 		...gateOptions,
-		canLoadReplay: (client) => cdnClients.get(client) === options,
+		canLoadReplay: (client) => {
+			const owner = cdnClients.get(client);
+			return (
+				owner === options ||
+				(owner !== undefined && !activeCdnConfigurations.has(owner))
+			);
+		},
 		getClient: () => getSentryGlobal()?.getClient(),
 		loadReplay: replayAllowed
 			? async () => {
 					await loadScriptElement(
 						`${cdnBaseUrl}/${version}/${replayBundle}`,
-						integrityFor(replayBundle)
+						integrityFor(replayBundle),
+						nonce
 					);
 					return getSentryGlobal()?.replayIntegration?.(
 						replayOptions
@@ -1268,6 +1285,13 @@ const createCdnScript = (
 		},
 		startsSentry: true,
 	});
+	const update = (info: ScriptCallbackInfo): void => {
+		activeCdnConfigurations.add(options);
+		if (info.element) {
+			nonce = info.element.nonce || undefined;
+		}
+		gate.update(info);
+	};
 
 	const resolved = resolveManifest(sentryManifest, {
 		integrity: integrityFor(bundle),
@@ -1275,7 +1299,7 @@ const createCdnScript = (
 	});
 	let initialized = false;
 	const initialize = (info: ScriptCallbackInfo): void => {
-		gate.update(info);
+		update(info);
 		if (
 			initialized ||
 			(options.loadMode === 'after-consent' && !info.hasConsent)
@@ -1304,7 +1328,7 @@ const createCdnScript = (
 		} catch (error) {
 			gate.report(error);
 		}
-		gate.update(info);
+		update(info);
 	};
 
 	return {
@@ -1312,15 +1336,18 @@ const createCdnScript = (
 		alwaysLoad: options.loadMode === 'after-consent' ? undefined : true,
 		category,
 		observeConsentBeforeLoad: true,
-		onBeforeLoad: gate.update,
+		onBeforeLoad: update,
 		onConsentChange: (info) => {
 			if (info.element && loadedCdnBundles.has(info.element)) {
 				initialize(info);
 			} else {
-				gate.update(info);
+				update(info);
 			}
 		},
-		onDispose: gate.dispose,
+		onDispose: () => {
+			activeCdnConfigurations.delete(options);
+			gate.dispose();
+		},
 		onLoad: (info) => {
 			if (info.element) {
 				loadedCdnBundles.add(info.element);

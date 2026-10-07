@@ -239,10 +239,10 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
-const mount = (script: Script, initial = deniedConsents) => {
+const mount = (script: Script, initial = deniedConsents, nonce?: string) => {
 	const kernel = createConsentKernel();
 	void kernel.commands.save(initial);
-	const loader = createScriptLoader({ kernel, scripts: [script] });
+	const loader = createScriptLoader({ kernel, nonce, scripts: [script] });
 	disposers.push(
 		() => kernel.dispose(),
 		() => loader.dispose()
@@ -1493,7 +1493,9 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		const { script } = setup({ client: { userInfo: true } });
 		mount(script);
 		expect(warn).toHaveBeenCalledWith(
-			expect.stringContaining('dataCollection: { userInfo: false }')
+			expect.stringContaining(
+				'disable SDK collection and filter startup events'
+			)
 		);
 	});
 
@@ -1729,6 +1731,33 @@ const installSentryCdn = (
 };
 
 describe('Sentry loaded from the CDN', () => {
+	it.each([
+		{ expected: 'provider-nonce', nonce: undefined },
+		{ expected: 'script-nonce', nonce: 'script-nonce' },
+	])(
+		'forwards the bundle nonce to Replay with %j',
+		async ({ nonce, expected }) => {
+			const { loaded, replays } = installSentryCdn();
+			const { kernel } = mount(
+				{
+					...sentry({ dsn, initOptions: { replaysSessionSampleRate: 1 } }),
+					nonce,
+				},
+				deniedConsents,
+				'provider-nonce'
+			);
+			await settle();
+			expect(loaded).toHaveLength(1);
+			expect(loaded[0]?.nonce).toBe(expected);
+			await kernel.commands.save(grantedMeasurementConsents);
+			await settle();
+			expect(loaded).toHaveLength(2);
+			expect(loaded[1]?.src).toBe(`${cdn}/11.4.0/replay.min.js`);
+			expect(loaded[1]?.nonce).toBe(expected);
+			expect(replays[0]?.getRecordingMode()).toBe('session');
+		}
+	);
+
 	it.each([
 		{ initOptions: {}, replay: undefined },
 		{ initOptions: { replaysSessionSampleRate: 1 }, replay: false as const },
@@ -2118,6 +2147,45 @@ describe('Sentry loaded from the CDN', () => {
 		second.loader.dispose();
 		expect(replays[1]?.getRecordingMode()).toBeUndefined();
 	});
+
+	it.each(['before removal', 'after removal'] as const)(
+		'loads Replay when the initializing CDN configuration is removed and consent is granted %s',
+		async (grant) => {
+			const { loaded, sentryGlobal, replays, replayOptions } =
+				installSentryCdn();
+			const survivor = mount(
+				sentry({
+					dsn,
+					initOptions: { replaysSessionSampleRate: 1 },
+					replay: { options: { maskAllText: true } },
+				})
+			);
+			await settle();
+			const owner = mount(
+				sentry({
+					dsn,
+					initOptions: { release: 'owner' },
+					replay: false,
+				}),
+				grantedMeasurementConsents
+			);
+			await settle();
+			if (grant === 'before removal') {
+				await survivor.kernel.commands.save(grantedMeasurementConsents);
+				await settle();
+			}
+			expect(loaded).toHaveLength(1);
+			expect(replays).toHaveLength(0);
+			owner.loader.dispose();
+			if (grant === 'after removal') {
+				await survivor.kernel.commands.save(grantedMeasurementConsents);
+			}
+			await settle();
+			expect(loaded[1]?.src).toBe(`${cdn}/11.4.0/replay.min.js`);
+			expect(replayOptions).toEqual([{ maskAllText: true }]);
+			expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
+		}
+	);
 
 	it('waits for consent before applying changed CDN settings to a completed bundle', async () => {
 		const { sentryGlobal } = installSentryCdn();
