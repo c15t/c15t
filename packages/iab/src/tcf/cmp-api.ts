@@ -554,14 +554,14 @@ export const createCMPApi = function createCMPApi(
 				notifyEventListeners('useractioncomplete');
 				return;
 			}
-			// Listeners hear about changes only. While the UI is up the visitor
-			// is still deciding, and their choice arrives as useractioncomplete.
-			if (!changed || displayStatus === 'visible') {
+			// Authority can expire or change in another tab while the UI is up.
+			// Report those changes too, without calling them tcloaded.
+			if (!changed) {
 				return;
 			}
 			// A withdrawn string is no `tcloaded`: listeners still hear that
 			// it is gone, with no status.
-			notifyEventListeners(hasSignal() ? 'tcloaded' : undefined);
+			notifyEventListeners(hasSignal() ? currentStatus() : undefined);
 		},
 
 		updateVendorList: (nextGvl) => {

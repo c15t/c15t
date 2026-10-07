@@ -226,6 +226,53 @@ test.each([0, 1000])(
 	}
 );
 
+test.each(['timer', 'snapshot'] as const)(
+	'notifies vendors when authority expires with the dialog open via %s',
+	async (trigger) => {
+		const kernel = makeKernel();
+		const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		await addon.save();
+		const accepted = addon.cmpApi?.getTcString();
+		expect(accepted).toBeTruthy();
+
+		const listener = vi.fn();
+		window.__tcfapi?.('addEventListener', 2, listener);
+		await vi.waitFor(() =>
+			expect(listener).toHaveBeenLastCalledWith(
+				expect.objectContaining({ tcString: accepted }),
+				true
+			)
+		);
+		kernel.set.activeUI('dialog');
+		await vi.waitFor(() =>
+			expect(listener).toHaveBeenLastCalledWith(
+				expect.objectContaining({ eventStatus: 'cmpuishown' }),
+				true
+			)
+		);
+		listener.mockClear();
+
+		if (trigger === 'timer') {
+			await vi.advanceTimersByTimeAsync(DAY);
+		} else {
+			// A suspended tab can resume before its expiry timer runs.
+			vi.setSystemTime(NOW + DAY);
+			kernel.set.activeUI('dialog');
+		}
+
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(addon.cmpApi?.getTcString()).toBe('');
+		await vi.waitFor(() =>
+			expect(listener).toHaveBeenLastCalledWith(
+				expect.objectContaining({ eventStatus: undefined, tcString: '' }),
+				true
+			)
+		);
+	}
+);
+
 test('stored authority hydration preserves clocks and does not write or record choice', async () => {
 	const original = makeKernel();
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel: original });

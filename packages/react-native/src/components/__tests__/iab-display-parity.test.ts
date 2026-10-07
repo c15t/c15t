@@ -235,7 +235,8 @@ describe('the partner list the mirror adds', () => {
 				legIntPurposes: entry.legIntPurposes,
 				legitimateInterestUrl: null,
 				name: entry.name,
-				policyUrl: '',
+				policyUrl:
+					entry.urls?.find((url) => url.langId === 'en')?.privacy ?? '',
 				purposes: entry.purposes,
 				specialFeatures: entry.specialFeatures,
 				specialPurposes: entry.specialPurposes,

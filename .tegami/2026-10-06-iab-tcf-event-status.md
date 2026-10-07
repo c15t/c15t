@@ -17,6 +17,7 @@ The CMP API now follows the TCF CMP API v2 event rules:
   without a `tcloaded` in between.
 - `tcloaded` means a TC string is available and no UI is showing, as for a
   returning visitor, or that GDPR does not apply.
-- Listeners hear about changes only. A string withdrawn without UI, after
-  expiry or a save in another tab, reaches them with no event status rather
-  than as `tcloaded`.
+- Listeners hear about changes only, including expiry or a save in another
+  tab while the dialog is open. A replacement string reaches them as
+  `cmpuishown` while UI is showing. A withdrawn string reaches them with no
+  event status rather than as `tcloaded`.
