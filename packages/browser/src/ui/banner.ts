@@ -264,8 +264,8 @@ export const createBanner = function createBanner(
 				overlay?.classList.add(styles.overlayVisible);
 			}
 			if (!(flip || disableAnimation)) {
-				// `@starting-style` transitions from the entering state on the
-				// first frame; nothing here has to wait for layout.
+				// The entering classes mark the mount. The stylesheet gives
+				// the banner no entry animation, so it shows on this frame.
 				element.classList.add(styles.bannerEntering);
 				overlay?.classList.add(styles.overlayEntering);
 			}
@@ -282,9 +282,9 @@ export const createBanner = function createBanner(
 			cleanups.push(setupScrollLock());
 		}
 		if (flip) {
-			// Without `@starting-style`, force layout so the browser observes
-			// the hidden state before the flip; otherwise a fresh mount can
-			// skip the entry transition.
+			// Without `@starting-style`, the mount starts hidden and flips.
+			// The visible state has no transition, so the banner shows at
+			// once; the forced layout keeps the flip a style change.
 			void element.offsetHeight;
 			element.classList.replace(styles.bannerHidden, styles.bannerVisible);
 			overlay?.classList.replace(styles.overlayHidden, styles.overlayVisible);

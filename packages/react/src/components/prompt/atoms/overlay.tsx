@@ -77,8 +77,8 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		// `overlayEntering` is the `@starting-style` state the stylesheet
-		// transitions from on the first frame; no hidden render is needed.
+		// The overlay shows on its first frame; `overlayEntering` marks the
+		// mount and carries no entry animation.
 		const animationClass = shouldApplyAnimation
 			? `${styles.overlayVisible} ${styles.overlayEntering}`
 			: undefined;

@@ -25,9 +25,8 @@ const readDurationMs = function readDurationMs(target: Element | null): number {
  * Visibility / mount lifecycle for the consent banner.
  *
  * - On show: mounts the element in its visible state with the
- *   `bannerEntering` class. That class is the `@starting-style` state the
- *   stylesheet transitions from on the first frame, so no reflow or class
- *   flip is needed. Browsers without `@starting-style` show it in place.
+ *   `bannerEntering` class. The stylesheet gives the banner no entry
+ *   animation, so it shows on its first frame.
  * - On hide: flips to `.bannerHidden`, then unmounts after the duration
  *   declared by the `--consent-banner-animation-duration` CSS variable.
  * - When animation is disabled (provider option or `prefers-reduced-motion`):

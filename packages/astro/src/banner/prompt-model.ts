@@ -276,8 +276,8 @@ const PROMPT_SLOTS = {
  * @param classNames - The stylesheet class maps.
  * @param props - The component props.
  * @param theme - The integration's `theme`.
- * @param disableAnimation - Leave out the entering classes, which are the
- * `@starting-style` state the entry animation starts from.
+ * @param disableAnimation - Leave out the entering classes, which mark the
+ * mount. The stylesheet gives them no entry animation.
  * @returns The class list and style for each element.
  */
 const resolveClasses = function resolveClasses(

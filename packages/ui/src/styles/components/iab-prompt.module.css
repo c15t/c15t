@@ -67,38 +67,21 @@
 		tab-size: var(--iab-consent-banner-tab-size);
 	}
 
-	/* Banner animation classes */
+	/*
+	 * The banner appears on its first frame, with no entry animation. It
+	 * usually shows as the page loads, where motion reads as layout shift.
+	 * Hiding still fades out. Adapters keep adding `bannerEntering` on
+	 * mount; that state is fully visible.
+	 */
+	.bannerEntering,
 	.bannerVisible {
 		opacity: 1;
-		transform: scale(1);
-		transition:
-			opacity var(--iab-consent-banner-animation-duration)
-				var(--iab-consent-banner-animation-timing),
-			transform var(--iab-consent-banner-animation-duration)
-				var(--c15t-easing-spring);
 	}
 
 	.bannerHidden {
 		opacity: 0;
-		transform: scale(0.95);
-		transition:
-			opacity var(--iab-consent-banner-animation-duration)
-				var(--iab-consent-banner-animation-timing),
-			transform var(--iab-consent-banner-animation-duration)
-				var(--iab-consent-banner-animation-timing);
-	}
-
-	/*
-	 * Entry for a banner inserted with `.bannerVisible` already set. Browsers
-	 * with `@starting-style` transition from this state on the first frame,
-	 * so the mount needs no forced layout between the hidden and visible
-	 * classes.
-	 */
-	@starting-style {
-		.bannerEntering {
-			opacity: 0;
-			transform: scale(0.95);
-		}
+		transition: opacity var(--iab-consent-banner-animation-duration)
+			var(--iab-consent-banner-animation-timing);
 	}
 
 	@media (min-width: 640px) {
@@ -293,11 +276,10 @@
 		z-index: 999997;
 	}
 
-	/* Animation classes for overlay */
+	/* The backdrop appears with the banner and fades out. */
+	.overlayEntering,
 	.overlayVisible {
 		opacity: 1;
-		transition: opacity var(--iab-consent-banner-animation-duration)
-			var(--iab-consent-banner-animation-timing);
 	}
 
 	.overlayHidden {
@@ -306,21 +288,13 @@
 			var(--iab-consent-banner-animation-timing);
 	}
 
-	@starting-style {
-		.overlayEntering {
-			opacity: 0;
-		}
-	}
-
 	:global(.c15t-dark) .overlay {
 		background-color: var(--iab-consent-banner-overlay-background-color-dark);
 	}
 
 	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
-		.bannerVisible,
 		.bannerHidden,
-		.overlayVisible,
 		.overlayHidden {
 			transition: none;
 		}

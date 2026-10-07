@@ -33,10 +33,9 @@ import { Overlay } from './overlay';
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
 
 /**
- * The banner renders in its visible state. `bannerEntering` is the
- * `@starting-style` state the stylesheet transitions from on the first
- * frame, so no hidden render, timer or layout read is needed to start the
- * entry. Browsers without `@starting-style` show the banner in place.
+ * The banner renders in its visible state and shows on its first frame;
+ * the stylesheet gives it no entry animation. `bannerEntering` marks the
+ * mount for stylesheets that target it.
  */
 const getBannerAnimationClass = (
 	disableAnimation: boolean | undefined

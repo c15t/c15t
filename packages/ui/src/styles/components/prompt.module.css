@@ -68,67 +68,36 @@
 		tab-size: var(--consent-banner-tab-size);
 	}
 
-	/* Banner — Vue <Transition> enter/leave classes */
-	.bannerEnterActive:not(:global(.headless)) {
-		transition:
-			opacity var(--consent-banner-animation-duration)
-				var(--consent-banner-animation-timing),
-			transform var(--consent-banner-animation-duration)
-				var(--c15t-easing-spring);
-	}
-
-	.bannerLeaveActive:not(:global(.headless)) {
-		transition:
-			opacity var(--consent-banner-animation-duration)
-				var(--consent-banner-animation-timing),
-			transform var(--consent-banner-animation-duration)
-				var(--consent-banner-animation-timing);
-	}
-
+	/*
+	 * The banner appears on its first frame, with no entry animation. It
+	 * usually shows as the page loads, where a slide reads as layout shift.
+	 * Hiding still fades out. Adapters keep adding the enter classes and
+	 * `bannerEntering` on mount; those states are fully visible.
+	 */
+	.bannerEnterActive:not(:global(.headless)),
 	.bannerEnterFrom:not(:global(.headless)),
-	.bannerLeaveTo:not(:global(.headless)) {
-		opacity: 0;
-		transform: translateY(50px);
-	}
-
 	.bannerEnterTo:not(:global(.headless)),
-	.bannerLeaveFrom:not(:global(.headless)) {
-		opacity: 1;
-		transform: translateY(0);
-	}
-
-	/* Legacy/compat class toggles */
+	.bannerEntering:not(:global(.headless)),
+	.bannerLeaveFrom:not(:global(.headless)),
 	.bannerVisible:not(:global(.headless)) {
 		opacity: 1;
-		transform: translateY(0);
-		transition:
-			opacity var(--consent-banner-animation-duration)
-				var(--consent-banner-animation-timing),
-			transform var(--consent-banner-animation-duration)
-				var(--c15t-easing-spring);
 	}
 
+	/* Banner — Vue <Transition> leave classes */
+	.bannerLeaveActive:not(:global(.headless)) {
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
+	}
+
+	.bannerLeaveTo:not(:global(.headless)) {
+		opacity: 0;
+	}
+
+	/* Legacy/compat class toggle */
 	.bannerHidden:not(:global(.headless)) {
 		opacity: 0;
-		transform: translateY(50px);
-		transition:
-			opacity var(--consent-banner-animation-duration)
-				var(--consent-banner-animation-timing),
-			transform var(--consent-banner-animation-duration)
-				var(--consent-banner-animation-timing);
-	}
-
-	/*
-	 * Entry for a banner inserted with `.bannerVisible` already set. Browsers
-	 * with `@starting-style` transition from this state on the first frame,
-	 * so the mount needs no forced layout between the hidden and visible
-	 * classes. The script-tag banner uses it; other hosts keep their toggles.
-	 */
-	@starting-style {
-		.bannerEntering:not(:global(.headless)) {
-			opacity: 0;
-			transform: translateY(50px);
-		}
+		transition: opacity var(--consent-banner-animation-duration)
+			var(--consent-banner-animation-timing);
 	}
 
 	@media (min-width: 640px) {
@@ -164,7 +133,7 @@
 	   floating card. */
 
 	/* floating: horizontally centred edges. Width comes from the card shell;
-	   no transform, because the enter/exit animation already owns it. */
+	   auto margins centre it, so the root carries no transform. */
 	.root[data-variant='floating'][data-position='bottom-center']:not(
 			:global(.headless)
 		) {
@@ -773,40 +742,31 @@
 		z-index: 999997;
 	}
 
-	/* Overlay — Vue <Transition> enter/leave classes */
+	/* The backdrop of a blocking banner appears with it and fades out. */
 	.overlayEnterActive:not(:global(.headless)),
+	.overlayEnterFrom:not(:global(.headless)),
+	.overlayEnterTo:not(:global(.headless)),
+	.overlayEntering:not(:global(.headless)),
+	.overlayLeaveFrom:not(:global(.headless)),
+	.overlayVisible:not(:global(.headless)) {
+		opacity: 1;
+	}
+
+	/* Overlay — Vue <Transition> leave classes */
 	.overlayLeaveActive:not(:global(.headless)) {
 		transition: opacity var(--consent-banner-animation-duration)
 			var(--consent-banner-animation-timing);
 	}
 
-	.overlayEnterFrom:not(:global(.headless)),
 	.overlayLeaveTo:not(:global(.headless)) {
 		opacity: 0;
 	}
 
-	.overlayEnterTo:not(:global(.headless)),
-	.overlayLeaveFrom:not(:global(.headless)) {
-		opacity: 1;
-	}
-
-	/* Legacy/compat class toggles */
-	.overlayVisible:not(:global(.headless)) {
-		opacity: 1;
-		transition: opacity var(--consent-banner-animation-duration)
-			var(--consent-banner-animation-timing);
-	}
-
+	/* Legacy/compat class toggle */
 	.overlayHidden:not(:global(.headless)) {
 		opacity: 0;
 		transition: opacity var(--consent-banner-animation-duration)
 			var(--consent-banner-animation-timing);
-	}
-
-	@starting-style {
-		.overlayEntering:not(:global(.headless)) {
-			opacity: 0;
-		}
 	}
 
 	:global(.c15t-dark) .overlay:not(:global(.headless)) {
@@ -816,13 +776,9 @@
 	/* The same selectors as the rules that animate, so these win on
 	   source order in every adapter. */
 	@media (prefers-reduced-motion: reduce) {
-		.bannerEnterActive:not(:global(.headless)),
 		.bannerLeaveActive:not(:global(.headless)),
-		.bannerVisible:not(:global(.headless)),
 		.bannerHidden:not(:global(.headless)),
-		.overlayEnterActive:not(:global(.headless)),
 		.overlayLeaveActive:not(:global(.headless)),
-		.overlayVisible:not(:global(.headless)),
 		.overlayHidden:not(:global(.headless)) {
 			transition: none;
 			animation: none;
