@@ -398,7 +398,32 @@ if (import.meta.main) {
 			)
 				.split('\0')
 				.filter(Boolean);
-	const plan = createCiPlan(files, readWorkspaces(), full);
+	const workspaces = readWorkspaces();
+	const plan = createCiPlan(files, workspaces, full);
+	const mobileBase = process.env.CI_MOBILE_DIFF_BASE;
+	if (
+		!process.argv.includes('--full') &&
+		mobileBase &&
+		!/^0+$/u.test(mobileBase)
+	) {
+		try {
+			// Compare the entire push, including removals and rewritten history.
+			const mobileFiles = execFileSync(
+				'git',
+				['diff', '--no-renames', '--name-only', '-z', mobileBase, 'HEAD', '--'],
+				{ encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
+			)
+				.split('\0')
+				.filter(Boolean);
+			const mobilePlan = createCiPlan(mobileFiles, workspaces);
+			plan.mobile = mobilePlan.mobile;
+			plan.mobileBrowserOrDevice = mobilePlan.mobileBrowserOrDevice;
+		} catch {
+			process.stderr.write(
+				'Mobile diff unavailable; keeping full mobile checks.\n'
+			);
+		}
+	}
 	writeFileSync('ci-plan.json', `${JSON.stringify(plan, null, 2)}\n`);
 	if (process.env.GITHUB_OUTPUT) {
 		for (const [key, value] of Object.entries(ciSchedulingOutputs(plan))) {

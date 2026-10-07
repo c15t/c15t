@@ -25,6 +25,7 @@ jobs:
     uses: ./.github/workflows/ci.yml
     with:
       skip_performance: true
+      mobile_diff_base: ${{ github.ref == 'refs/heads/v3' && github.event.before || '' }}
     secrets:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}

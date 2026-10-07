@@ -116,6 +116,38 @@ describe('release validation', () => {
 		});
 	});
 
+	it('selects mobile checks from the push diff only for v3 releases', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			jobs: {
+				checks: {
+					with: {
+						mobile_diff_base: `\${{ github.ref == 'refs/heads/v3' && github.event.before || '' }}`,
+					},
+				},
+			},
+		});
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				repository: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							env: { CI_MOBILE_DIFF_BASE: `\${{ inputs.mobile_diff_base }}` },
+							id: 'plan',
+						}),
+					]),
+				},
+			},
+			on: {
+				workflow_call: {
+					inputs: { mobile_diff_base: { default: '', type: 'string' } },
+				},
+			},
+		});
+		expect(readWorkflow('validation')).not.toHaveProperty(
+			'jobs.checks.with.mobile_diff_base'
+		);
+	});
+
 	it('runs full v3 comparisons separately on push, nightly, and manually', () => {
 		expect(readWorkflow('benchmark-regression')).toMatchObject({
 			jobs: {

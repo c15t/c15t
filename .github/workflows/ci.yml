@@ -9,6 +9,10 @@ on:
         description: Run release checks without waiting for separate runtime benchmarks
         type: boolean
         default: false
+      mobile_diff_base:
+        description: Select mobile checks from changes since this commit while keeping other checks full
+        type: string
+        default: ''
     secrets:
       TURBO_TOKEN:
         required: false
@@ -53,6 +57,8 @@ jobs:
           node-version: '24'
       - name: Select checks
         id: plan
+        env:
+          CI_MOBILE_DIFF_BASE: ${{ inputs.mobile_diff_base }}
         run: bun scripts/ci-plan.ts
       - name: Save selected checks
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

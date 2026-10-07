@@ -121,6 +121,14 @@ measurements. Tests, builds, consumer bundle budgets, and package validation
 remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
 
+On `v3` release pushes, the mobile SDK and device groups use the diff from the
+push's previous commit to select their checks. Other release checks still select
+the full graph. Unrelated changes skip the mobile runners; SDK, native, mobile
+benchmark, dependency and global configuration changes follow the usual mobile
+selection rules. A missing or unreadable previous commit keeps the full mobile
+checks. Other release branches, nightly validation and manual full runs retain
+their full mobile checks.
+
 Mobile work selects on paths, not on the dependency graph alone. The mobile
 SDK group runs for `packages/react-native`, `native/` and `benchmarks/mobile`,
 and for anything whose reverse dependencies reach `@c15t/react-native`, because
