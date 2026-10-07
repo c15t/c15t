@@ -212,6 +212,8 @@ search rankings or citations. The docs host must also verify HTML indexing,
 canonical URLs, redirects, sitemap entries, robots rules and matching structured
 data. Content work alone cannot prove those deployed behaviors.
 
+Record moved routes in [v3-route-moves.md](references/v3-route-moves.md).
+
 ## Verify the actual outputs
 
 - Run `bun run lint:docs` and `bun run fmt:docs`. Both currently rewrite files;
