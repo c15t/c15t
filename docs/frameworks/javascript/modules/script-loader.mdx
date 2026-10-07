@@ -24,9 +24,11 @@ one.
 | `id` | `string` | required | A unique, stable name. The loader tracks the script by it. |
 | `category` | category or condition | required | What must be allowed, such as `'measurement'` or `{ and: ['measurement', 'marketing'] }`. |
 | `src` | `string` | none | The URL to load. |
+| `resourceKey` | `string` | `id` | The DOM resource identity. Matching keys share one element within and across loaders, while each logical script keeps its callbacks and consent state. Use different keys for different resources under the same script ID. |
 | `textContent` | `string` | none | Inline code to run instead of `src`. |
 | `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
+| `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
 | `persistAfterConsentRevoked` | `boolean` | `false` | Keep the element after withdrawal instead of removing it. |
 | `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
 | `async`, `defer` | `boolean` | none | Attributes on the created element. |
@@ -47,12 +49,22 @@ error?, vendor? }`.
 | `onBeforeLoad` | Before a load attempt. It can run again for the same script if consent changes before the load starts, so make it safe to repeat. |
 | `onLoad` | After the script loaded. Use it for set-up that needs the vendor's code. |
 | `onError` | When the script failed to load. |
-| `onConsentChange` | Each time the script's consent changes, loaded or not. Use it for a vendor's opt-out call when you turn off the reload. |
+| `onConsentChange` | Each time a loaded script's consent changes. With `observeConsentBeforeLoad`, also during initial denial and later changes before loading. Use it for a vendor's opt-out call when you turn off the reload. |
 | `onDispose` | When the configuration is removed or the loader is disposed, including a script that never loaded. |
 
 Withdrawal alone does not call `onDispose`. With the default reload, the page
 reloads after withdrawal anyway; with `reloadOnConsentRevoked: false`, use
 `onConsentChange` to stop the vendor.
+
+When scripts share an element, each active registration receives its own
+`onLoad` or `onError` callback. A registration that joins after c15t observed
+completion receives that callback in a microtask, after its consent callback,
+using its current callbacks and consent. Inline scripts share their deferred
+completion too. Removing a registration cancels its pending callback. c15t does
+not infer completion for elements added outside the loader.
+
+Removing the original loader transfers ownership to a remaining loader. c15t
+removes an element it created when the last loader releases it.
 
 ## Update the list
 
@@ -65,7 +77,8 @@ once:
 - A script that adds `onDispose` is tracked by object. Replacing the object
   disposes it and starts again, even with the same `id`. Keep such objects
   stable.
-- A removed script has its element removed, unless it is retained.
+- A removed script releases its element. Shared external elements stay while
+  another loader still uses them.
 
 Updates requested from inside a callback run after the current pass; the
 latest wins. A chain of callbacks that keeps changing consent or the list is

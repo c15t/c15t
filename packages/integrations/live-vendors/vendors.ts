@@ -53,6 +53,8 @@ import {
 } from '../src/vendors/analytics/rudderstack';
 import { rybbitAnalytics } from '../src/vendors/analytics/rybbit-analytics';
 import { segment } from '../src/vendors/analytics/segment';
+import { sentry } from '../src/vendors/analytics/sentry';
+import type { SentryClient } from '../src/vendors/analytics/sentry';
 import { umamiAnalytics } from '../src/vendors/analytics/umami-analytics';
 import { vercelAnalytics } from '../src/vendors/analytics/vercel-analytics';
 import { klaviyo } from '../src/vendors/email-and-sms/klaviyo';
@@ -974,6 +976,42 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		// HTTP 404, so this probe stops at bootstrap plus endpoint reachability.
 		tier: 'loader-only',
 		vendor: 'segment',
+	},
+	{
+		createScript: () =>
+			sentry({
+				dsn: 'https://00000000000000000000000000000000@o0.ingest.sentry.io/0',
+				initOptions: {
+					autoSessionTracking: false,
+					replaysOnErrorSampleRate: 1,
+					replaysSessionSampleRate: 1,
+				},
+			}),
+		deniedConsentProbe: {
+			collectUrlSubstrings: ['browser.sentry-cdn.com/11.4.0/replay.min.js'],
+			notes:
+				'Error monitoring remains active; Replay must not load before consent.',
+			storagePrefixes: ['sentryReplaySession'],
+		},
+		loaderUrlSubstring: 'browser.sentry-cdn.com/11.4.0/bundle.min.js',
+		notes:
+			'Uses a placeholder DSN. The runner blocks all ingest requests; Replay behavior is covered by the integration lifecycle tests.',
+		runtimeCheck: () => {
+			const sdk = (
+				window as Window & {
+					Sentry?: { getClient?: () => SentryClient | undefined };
+				}
+			).Sentry;
+			return check(
+				Boolean(sdk?.getClient?.()?.getDsn()),
+				'expected an initialized Sentry browser client'
+			);
+		},
+		runtimeVersion: () =>
+			(window as Window & { Sentry?: { SDK_VERSION?: string } }).Sentry
+				?.SDK_VERSION,
+		tier: 'full',
+		vendor: 'sentry',
 	},
 	{
 		createScript: () =>

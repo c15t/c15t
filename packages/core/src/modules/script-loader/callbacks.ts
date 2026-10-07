@@ -25,7 +25,10 @@ import type {
  * of this module.
  */
 export const buildCallbackInfo = function buildCallbackInfo(
-	tools: Pick<ScriptLoaderTools, 'deniedVendors' | 'gateState'>,
+	tools: Pick<
+		ScriptLoaderTools,
+		'deniedVendors' | 'gateState' | 'registration'
+	>,
 	script: Script,
 	snapshot: ConsentSnapshot,
 	hasConsent: boolean,
@@ -41,6 +44,9 @@ export const buildCallbackInfo = function buildCallbackInfo(
 		hasConsent,
 		id: script.id,
 	};
+	if (tools.registration) {
+		Object.defineProperty(info, 'registration', { value: tools.registration });
+	}
 	if (script.vendor && snapshot.model !== 'iab') {
 		info.vendor = {
 			granted: !tools.deniedVendors(snapshot)?.has(script.vendor),

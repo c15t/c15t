@@ -852,6 +852,7 @@ export default defineDocsConfig({
 						'pirsch',
 						'rudderstack',
 						'segment',
+						'sentry',
 						'rybbit-analytics',
 						'umami-analytics',
 						'vercel-analytics',

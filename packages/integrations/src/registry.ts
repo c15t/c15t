@@ -335,6 +335,16 @@ export const builtInScriptIntegrations = [
 		vendor: 'pirsch',
 	},
 	{
+		consentCategory: { or: ['necessary', 'measurement'] },
+		docsSlug: 'sentry',
+		hint: 'Error monitoring, with Session Replay and user data after consent',
+		integrationCategory: 'analytics',
+		key: 'sentry',
+		label: 'Sentry',
+		packageSubpath: 'sentry',
+		vendor: 'sentry',
+	},
+	{
 		consentCategory: 'measurement',
 		docsSlug: 'segment',
 		hint: 'Customer data platform',

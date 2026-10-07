@@ -175,6 +175,11 @@ export const SCRIPT_SNIPPETS: Record<string, ScriptSnippet> = {
 		example: "segment({ writeKey: 'YOUR_WRITE_KEY' })",
 		importName: 'segment',
 	},
+	sentry: {
+		example:
+			"sentry({ dsn: 'https://YOUR_KEY@oXXXXXX.ingest.sentry.io/XXXXXX' })",
+		importName: 'sentry',
+	},
 	'snapchat-pixel': {
 		example: "snapchatPixel({ pixelId: 'XXXXXXXXXXXXXXX' })",
 		importName: 'snapchatPixel',

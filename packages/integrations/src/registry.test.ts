@@ -106,6 +106,7 @@ import {
 	rybbitAnalyticsManifest,
 } from './vendors/analytics/rybbit-analytics';
 import { segment, segmentManifest } from './vendors/analytics/segment';
+import { sentry, sentryManifest } from './vendors/analytics/sentry';
 import {
 	umamiAnalytics,
 	umamiAnalyticsManifest,
@@ -432,6 +433,14 @@ const helperParityCases = {
 		},
 		script: segment({ writeKey: 'abc123xyz456' }),
 	},
+	sentry: {
+		expected: {
+			alwaysLoad: true,
+			persistAfterConsentRevoked: undefined,
+			src: 'https://browser.sentry-cdn.com/11.4.0/bundle.min.js',
+		},
+		script: sentry({ dsn: 'https://key@o0.ingest.sentry.io/0' }),
+	},
 	snapchatPixel: {
 		expected: {
 			alwaysLoad: undefined,
@@ -505,6 +514,7 @@ const vendorManifests = [
 	pirschManifest,
 	rudderstackManifest,
 	segmentManifest,
+	sentryManifest,
 	rybbitAnalyticsManifest,
 	plausibleAnalyticsManifest,
 	umamiAnalyticsManifest,

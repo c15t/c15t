@@ -1,0 +1,17 @@
+{/* Generated from internals/doc-snippets/javascript/src/sentry.ts (docs:sentry-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="src/consent-scripts.ts"
+import { sentry } from '@c15t/integrations/sentry';
+
+export const scripts = [
+	sentry({
+		dsn: 'https://your-key@o0.ingest.sentry.io/0',
+		initOptions: {
+			release: 'my-app@1.0.0',
+			replaysOnErrorSampleRate: 1,
+			replaysSessionSampleRate: 0.1,
+			tracesSampleRate: 0.1,
+		},
+	}),
+];
+```

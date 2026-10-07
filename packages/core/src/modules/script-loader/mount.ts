@@ -29,7 +29,10 @@ import type {
  */
 export interface MountDeps {
 	/** Consent reads for callback payloads. */
-	tools: Pick<ScriptLoaderTools, 'deniedVendors' | 'gateState'>;
+	tools: Pick<
+		ScriptLoaderTools,
+		'deniedVendors' | 'gateState' | 'registration'
+	>;
 	/** Stop lifecycle callbacks when disposal is requested during mounting. */
 	isDisposed: () => boolean;
 	/** Latest kernel state for callbacks completing after consent changes. */
@@ -43,7 +46,7 @@ export interface MountDeps {
 	retainedElements: Map<string, HTMLScriptElement>;
 	/** Per-loader registry: scriptId → element (or `null` for callback-only). */
 	loadedElements: Map<string, HTMLScriptElement | null>;
-	/** Script IDs whose DOM element was created by this loader instance. */
+	/** Script IDs whose DOM element this loader owns, including transferred resources. */
 	ownedScriptIds: Set<string>;
 	/** Resolves the DOM `id` attribute for a script. */
 	elementIds: ElementIdResolver;
@@ -89,6 +92,161 @@ const completionContext = (
 	};
 };
 
+type ElementCompletion = 'load' | 'error';
+
+interface ElementObserver {
+	complete: (completion: ElementCompletion) => void;
+	scriptId: string;
+	stop: () => void;
+}
+
+// Each loader observes a shared download and can take over DOM ownership.
+const elementObservers = new WeakMap<
+	HTMLScriptElement,
+	Map<MountDeps, Map<string, ElementObserver>>
+>();
+
+// Keep physical completion when another registration joins after the event.
+const elementCompletions = new WeakMap<HTMLScriptElement, ElementCompletion>();
+
+// A batched resource is not in the DOM yet, but later registrations reuse it.
+const pendingResources = new WeakMap<
+	PendingMount[],
+	Map<string, PendingMount>
+>();
+
+const observeElement = (
+	deps: MountDeps,
+	script: Script,
+	hasConsent: boolean,
+	elementId: string,
+	element: HTMLScriptElement
+): void => {
+	let observers = elementObservers.get(element);
+	if (!observers) {
+		observers = new Map();
+		elementObservers.set(element, observers);
+	}
+	let registrations = observers.get(deps);
+	if (!registrations) {
+		registrations = new Map();
+		observers.set(deps, registrations);
+	}
+	if (registrations.has(script.id)) {
+		return;
+	}
+	const isRegisteredElement = () =>
+		!deps.isDisposed() &&
+		(deps.loadedElements.get(script.id) === element ||
+			deps.retainedElements.get(script.id) === element);
+	const isCurrentElement = () =>
+		element.isConnected &&
+		document.getElementById(elementId) === element &&
+		isRegisteredElement();
+	let completed = false;
+	const complete = (completion: ElementCompletion) => {
+		if (completed || !isCurrentElement()) {
+			return;
+		}
+		completed = true;
+		const current = completionContext(
+			deps,
+			script,
+			hasConsent,
+			elementId,
+			element
+		);
+		if (current?.info) {
+			const info =
+				completion === 'error'
+					? {
+							...current.info,
+							error: new Error(`Failed to load script: ${current.script.src}`),
+						}
+					: current.info;
+			invokeCallback(
+				current.script,
+				completion === 'load' ? 'onLoad' : 'onError',
+				info,
+				deps.emit
+			);
+		}
+		if (!isRegisteredElement()) {
+			return;
+		}
+		deps.emit({
+			action: completion === 'load' ? 'load_completed' : 'error',
+			elementId,
+			message:
+				completion === 'load'
+					? 'Script finished loading'
+					: `Script failed: ${script.src}`,
+			scope: 'lifecycle',
+			scriptId: script.id,
+			source: 'script-loader',
+			timestamp: Date.now(),
+		});
+	};
+	const onLoad = () => {
+		elementCompletions.set(element, 'load');
+		complete('load');
+	};
+	const onError = () => {
+		elementCompletions.set(element, 'error');
+		complete('error');
+	};
+	if (script.src) {
+		element.addEventListener('load', onLoad);
+		element.addEventListener('error', onError);
+	}
+	registrations.set(script.id, {
+		complete,
+		scriptId: script.id,
+		stop: () => {
+			completed = true;
+			element.removeEventListener('load', onLoad);
+			element.removeEventListener('error', onError);
+		},
+	});
+	const completion = elementCompletions.get(element);
+	if (completion) {
+		// Adoption's consent callback and reconcile finish before completion.
+		queueMicrotask(() => complete(completion));
+	}
+};
+
+/** Release a loader's listeners and transfer its resource to a surviving loader. @internal */
+export const releaseScriptElement = (
+	deps: MountDeps,
+	scriptId: string,
+	element: HTMLScriptElement
+): void => {
+	const observers = elementObservers.get(element);
+	const registrations = observers?.get(deps);
+	const observer = registrations?.get(scriptId);
+	registrations?.delete(scriptId);
+	observer?.stop();
+	if (registrations?.size === 0) {
+		observers?.delete(deps);
+	}
+	const survivor = observers?.entries().next().value;
+	if (deps.ownedScriptIds.has(scriptId)) {
+		if (survivor) {
+			const [nextDeps, nextRegistrations] = survivor;
+			const nextObserver = nextRegistrations.values().next().value;
+			if (nextObserver) {
+				nextDeps.ownedScriptIds.add(nextObserver.scriptId);
+			}
+		} else if (element.parentNode) {
+			element.parentNode.removeChild(element);
+		}
+	}
+	deps.ownedScriptIds.delete(scriptId);
+	if (observers?.size === 0) {
+		elementObservers.delete(element);
+	}
+};
+
 /** Finalize an append, dropping any batch entry skipped by an interrupted pass. */
 const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 	const { script, element, elementId, hasConsent } = pending;
@@ -96,6 +254,7 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 		return;
 	}
 	if (!pending.appended) {
+		releaseScriptElement(deps, script.id, element);
 		deps.loadedElements.delete(script.id);
 		deps.ownedScriptIds.delete(script.id);
 		return;
@@ -104,21 +263,13 @@ const completeMount = (deps: MountDeps, pending: PendingMount): void => {
 		return;
 	}
 	if (!script.src) {
-		// Defer inline completion until parsing, and ignore obsolete mounts.
+		// Inline adopters share completion even if the original loader is gone.
 		setTimeout(() => {
-			if (
-				!deps.isDisposed() &&
-				deps.loadedElements.get(script.id) === element
-			) {
-				const current = completionContext(
-					deps,
-					script,
-					hasConsent,
-					elementId,
-					element
-				);
-				if (current?.info) {
-					invokeCallback(current.script, 'onLoad', current.info, deps.emit);
+			elementCompletions.set(element, 'load');
+			for (const registrations of elementObservers.get(element)?.values() ??
+				[]) {
+				for (const observer of registrations.values()) {
+					observer.complete('load');
 				}
 			}
 		}, 0);
@@ -234,6 +385,7 @@ export const mountScript = function mountScript(
 	if (existingElement) {
 		const element = existingElement as HTMLScriptElement;
 		deps.loadedElements.set(script.id, element);
+		observeElement(deps, script, hasConsent, elementId, element);
 		if (typeof script.onConsentChange === 'function' || deps.hasDebugListener) {
 			const info = buildCallbackInfo(
 				deps.tools,
@@ -258,34 +410,39 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	const element = document.createElement('script');
-	element.id = elementId;
-	if (script.src) {
-		element.src = script.src;
-	}
-	if (script.textContent) {
-		element.textContent = script.textContent;
-	}
-	if (script.async !== undefined) {
-		element.async = script.async;
-	}
-	if (script.defer !== undefined) {
-		element.defer = script.defer;
-	}
-	const nonce = script.nonce ?? deps.nonce;
-	if (nonce) {
-		element.nonce = nonce;
-	}
-	if (script.fetchPriority) {
-		// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
-		(element as any).fetchPriority = script.fetchPriority;
-	}
-	if (script.attributes) {
-		for (const [key, value] of Object.entries(script.attributes)) {
-			element.setAttribute(
-				key,
-				typeof value === 'string' ? value : String(value)
-			);
+	const pendingResource = batch
+		? pendingResources.get(batch)?.get(elementId)
+		: undefined;
+	const element = pendingResource?.element ?? document.createElement('script');
+	if (!pendingResource) {
+		element.id = elementId;
+		if (script.src) {
+			element.src = script.src;
+		}
+		if (script.textContent) {
+			element.textContent = script.textContent;
+		}
+		if (script.async !== undefined) {
+			element.async = script.async;
+		}
+		if (script.defer !== undefined) {
+			element.defer = script.defer;
+		}
+		const nonce = script.nonce ?? deps.nonce;
+		if (nonce) {
+			element.nonce = nonce;
+		}
+		if (script.fetchPriority) {
+			// oxlint-disable-next-line typescript/no-explicit-any -- browser API not yet in lib.dom
+			(element as any).fetchPriority = script.fetchPriority;
+		}
+		if (script.attributes) {
+			for (const [key, value] of Object.entries(script.attributes)) {
+				element.setAttribute(
+					key,
+					typeof value === 'string' ? value : String(value)
+				);
+			}
 		}
 	}
 
@@ -310,81 +467,14 @@ export const mountScript = function mountScript(
 		return;
 	}
 
-	// Listeners only make sense on external scripts; inline scripts have
-	// no network event. Diagnostics still need events without user callbacks.
-	if (script.src) {
-		const isRegisteredElement = () =>
-			!deps.isDisposed() &&
-			(deps.loadedElements.get(script.id) === element ||
-				deps.retainedElements.get(script.id) === element);
-		const isCurrentElement = () =>
-			element.isConnected &&
-			document.getElementById(elementId) === element &&
-			isRegisteredElement();
-		element.addEventListener('load', () => {
-			if (!isCurrentElement()) {
-				return;
-			}
-			const current = completionContext(
-				deps,
-				script,
-				hasConsent,
-				elementId,
-				element
-			);
-			if (current?.info) {
-				invokeCallback(current.script, 'onLoad', current.info, deps.emit);
-			}
-			if (!isRegisteredElement()) {
-				return;
-			}
-			deps.emit({
-				action: 'load_completed',
-				elementId,
-				message: 'Script finished loading',
-				scope: 'lifecycle',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
-		});
-		element.addEventListener('error', () => {
-			if (!isCurrentElement()) {
-				return;
-			}
-			const current = completionContext(
-				deps,
-				script,
-				hasConsent,
-				elementId,
-				element
-			);
-			if (current?.info) {
-				const errorInfo = {
-					...current.info,
-					error: new Error(`Failed to load script: ${script.src}`),
-				};
-				invokeCallback(current.script, 'onError', errorInfo, deps.emit);
-			}
-			if (!isRegisteredElement()) {
-				return;
-			}
-			deps.emit({
-				action: 'error',
-				elementId,
-				message: `Script failed: ${script.src}`,
-				scope: 'lifecycle',
-				scriptId: script.id,
-				source: 'script-loader',
-				timestamp: Date.now(),
-			});
-		});
-	}
+	observeElement(deps, script, hasConsent, elementId, element);
 
-	const target = script.target === 'body' ? document.body : document.head;
+	const target =
+		pendingResource?.target ??
+		(script.target === 'body' ? document.body : document.head);
 
 	if (batch) {
-		batch.push({
+		const pending: PendingMount = {
 			appended: false,
 			element,
 			elementId,
@@ -392,7 +482,14 @@ export const mountScript = function mountScript(
 			info,
 			script,
 			target,
-		});
+		};
+		batch.push(pending);
+		let resources = pendingResources.get(batch);
+		if (!resources) {
+			resources = new Map();
+			pendingResources.set(batch, resources);
+		}
+		resources.set(elementId, pending);
 		return;
 	}
 
@@ -433,6 +530,24 @@ export const unmountScript = function unmountScript(
 		element = deps.retainedElements.get(script.id);
 	}
 	if (element === undefined) {
+		if (
+			script.observeConsentBeforeLoad &&
+			typeof script.onConsentChange === 'function' &&
+			typeof document !== 'undefined'
+		) {
+			invokeCallback(
+				script,
+				'onConsentChange',
+				buildCallbackInfo(
+					deps.tools,
+					script,
+					snapshot,
+					hasConsent,
+					deps.elementIds.resolve(script)
+				),
+				deps.emit
+			);
+		}
 		return;
 	}
 
@@ -469,9 +584,8 @@ export const unmountScript = function unmountScript(
 		return;
 	}
 
-	const ownsElement = deps.ownedScriptIds.has(script.id);
-	if (ownsElement && element?.parentNode) {
-		element.parentNode.removeChild(element);
+	if (element) {
+		releaseScriptElement(deps, script.id, element);
 	}
 	deps.loadedElements.delete(script.id);
 	deps.retainedElements.delete(script.id);
@@ -516,14 +630,19 @@ export const flushPendingMounts = function flushPendingMounts(
 	batch: PendingMount[],
 	isCurrentPass: () => boolean = () => true
 ): void {
+	pendingResources.delete(batch);
 	if (batch.length === 0 || !isCurrentPass()) {
 		return;
 	}
 	// Register before insertion: inline execution and DOM adapters can dispatch
 	// load events synchronously while the element is being appended.
+	const resources = new Set<HTMLScriptElement>();
 	for (const pending of batch) {
 		deps.loadedElements.set(pending.script.id, pending.element);
-		deps.ownedScriptIds.add(pending.script.id);
+		if (!resources.has(pending.element)) {
+			deps.ownedScriptIds.add(pending.script.id);
+			resources.add(pending.element);
+		}
 	}
 
 	if (batch.length === 1) {
@@ -550,15 +669,19 @@ export const flushPendingMounts = function flushPendingMounts(
 			}
 			// A previous target can execute inline code that revokes consent or
 			// replaces this loader's scripts. Never insert invalidated entries.
-			const elements = entries
-				.filter(
-					({ script, element }) =>
-						deps.loadedElements.get(script.id) === element
-				)
-				.map((pending) => {
-					pending.appended = true;
-					return pending.element;
-				});
+			const elements = [
+				...new Set(
+					entries
+						.filter(
+							({ script, element }) =>
+								deps.loadedElements.get(script.id) === element
+						)
+						.map((pending) => {
+							pending.appended = true;
+							return pending.element;
+						})
+				),
+			];
 			if (elements.length === 0) {
 				continue;
 			}

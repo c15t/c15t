@@ -9,7 +9,12 @@ import { createDebugEmitter } from './debug';
 import { registerScriptDiagnostics } from './diagnostics';
 import type { ScriptDiagnostic, ScriptDiagnosticStatus } from './diagnostics';
 import { buildReconcilePass, hasScriptConsent } from './eligibility';
-import { flushPendingMounts, mountScript, unmountScript } from './mount';
+import {
+	flushPendingMounts,
+	mountScript,
+	releaseScriptElement,
+	unmountScript,
+} from './mount';
 import type { MountDeps } from './mount';
 import {
 	createElementIdResolver,
@@ -70,6 +75,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 	};
 
 	const ownerSource = Symbol('script-loader');
+	const callbackTools = { ...tools, registration: ownerSource };
 	const registerCategories = (scripts: Script[]) => {
 		kernel.set.registerConsentCategories(
 			scripts.flatMap((script) => categoriesOf(script.category))
@@ -122,7 +128,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 		nonce: options.nonce,
 		ownedScriptIds,
 		retainedElements,
-		tools,
+		tools: callbackTools,
 	};
 
 	// Track the last-seen consent-relevant references so a kernel tick
@@ -216,7 +222,10 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				!force &&
 				previousEligibility === eligible &&
 				previousConsent === hasConsent &&
-				!(permissionsChanged && typeof script.onConsentChange === 'function')
+				!(
+					(permissionsChanged || script.observeConsentBeforeLoad) &&
+					typeof script.onConsentChange === 'function'
+				)
 			) {
 				continue;
 			}
@@ -299,7 +308,7 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			script,
 			'onDispose',
 			buildCallbackInfo(
-				tools,
+				callbackTools,
 				script,
 				snapshot,
 				consentByScriptId.get(script.id) ?? false,
@@ -326,8 +335,8 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 			...retainedElements,
 			...loadedElements,
 		])) {
-			if (ownedScriptIds.has(scriptId) && element?.parentNode) {
-				element.parentNode.removeChild(element);
+			if (element) {
+				releaseScriptElement(mountDeps, scriptId, element);
 			}
 		}
 		loadedElements.clear();

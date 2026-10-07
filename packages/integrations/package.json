@@ -33,6 +33,8 @@
 		"privacy",
 		"rudderstack",
 		"script-loader",
+		"sentry",
+		"session-replay",
 		"tiktok-pixel",
 		"x-pixel"
 	],
@@ -161,6 +163,11 @@
 			"types": "./dist-types/vendors/analytics/promptwatch.d.ts",
 			"import": "./dist/vendors/analytics/promptwatch.js",
 			"default": "./dist/vendors/analytics/promptwatch.js"
+		},
+		"./sentry": {
+			"types": "./dist-types/vendors/analytics/sentry.d.ts",
+			"import": "./dist/vendors/analytics/sentry.js",
+			"default": "./dist/vendors/analytics/sentry.js"
 		},
 		"./segment": {
 			"types": "./dist-types/vendors/analytics/segment.d.ts",
@@ -295,6 +302,8 @@
 		"@c15t/typescript-config": "workspace:*",
 		"@c15t/vitest-config": "workspace:*",
 		"playwright": "1.58.2",
+		"sentry-browser-v10": "npm:@sentry/browser@10.67.0",
+		"sentry-browser-v11": "npm:@sentry/browser@11.4.0",
 		"typescript": "7.0.2"
 	},
 	"browserslist": [

@@ -405,6 +405,58 @@ describe('script-loader: alwaysLoad bypasses consent', () => {
 	});
 });
 
+describe('script-loader: consent observation before loading', () => {
+	test('reports initial and updated denial without loading the resource', async () => {
+		const kernel = createConsentKernel();
+		const onConsentChange = vi.fn();
+		const onDispose = vi.fn();
+		const loader = createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					category: 'marketing',
+					id: 'observed',
+					observeConsentBeforeLoad: true,
+					onConsentChange,
+					onDispose,
+					src: 'https://example.com/observed.js',
+					vendor: 'observed-vendor',
+				},
+			],
+		});
+		expect(onConsentChange).toHaveBeenCalledWith(
+			expect.objectContaining({ element: undefined, hasConsent: false })
+		);
+		expect(head.children).toHaveLength(0);
+		await kernel.commands.save({}, { vendors: { 'observed-vendor': false } });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				hasConsent: false,
+				vendor: { granted: false, id: 'observed-vendor' },
+			})
+		);
+		await kernel.commands.save({}, { vendors: { 'observed-vendor': true } });
+		await kernel.commands.save({ measurement: true });
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				consents: expect.objectContaining({ measurement: true }),
+				hasConsent: false,
+			})
+		);
+		expect(head.children).toHaveLength(0);
+		await kernel.commands.save({ marketing: true });
+		expect(head.children).toHaveLength(1);
+		await kernel.commands.save({ marketing: false });
+		expect(head.children).toHaveLength(0);
+		expect(onConsentChange).toHaveBeenLastCalledWith(
+			expect.objectContaining({ hasConsent: false })
+		);
+		loader.dispose();
+		expect(onDispose).toHaveBeenCalledOnce();
+		kernel.dispose();
+	});
+});
+
 describe('script-loader: persistAfterConsentRevoked', () => {
 	test('notifies retained scripts on revoke and re-grant without mounting twice', async () => {
 		const onConsentChange = vi.fn();

@@ -1,0 +1,184 @@
+---
+title: Sentry
+description: Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
+icon: sentry
+group: integrations
+---
+
+## Configure Sentry
+
+Remove any existing Sentry Loader Script or CDN tags, then add this configuration.
+Errors run before consent by default; Replay and SDK data collection wait for
+`measurement`.
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+<include src="../shared/examples/javascript/sentry-scripts.mdx" />
+
+The default SDK is 11.4.0 with subresource integrity: `bundle.min.js`, or
+`bundle.tracing.min.js` when traces are sampled. `replay.min.js` loads after
+consent when a Replay sample rate is above 0.
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Use your own Sentry SDK
+
+For `@sentry/*` 10.67.0 or later, pass your SDK's functions instead of `dsn`.
+Keep Replay in a separate module so it can load after consent:
+
+```ts title="src/sentry-replay.ts"
+import { replayIntegration } from '@sentry/browser';
+
+export const createReplay = () =>
+	replayIntegration({ maskAllText: true, blockAllMedia: true });
+```
+
+In `src/consent-scripts.ts`, replace the CDN configuration with:
+
+{/* example: fragment */}
+
+```ts
+import { getClient, init, setUser } from '@sentry/browser';
+
+sentry({
+	getClient,
+	init,
+	setUser,
+	initOptions: {
+		dsn: 'https://your-key@o0.ingest.sentry.io/0',
+		replaysSessionSampleRate: 0.1,
+		replaysOnErrorSampleRate: 1,
+	},
+	replay: {
+		load: () => import('./sentry-replay').then((m) => m.createReplay()),
+	},
+});
+```
+
+Passing `init` protects startup captures before other SDK integrations run.
+Custom initializers must forward the supplied options to `Sentry.init`, including
+after a dynamic import. Avoid initialization as an import side effect.
+
+Use named imports from the same Sentry package throughout your app. Next.js and
+Vite split dynamically imported Replay into its own chunk; esbuild and Bun keep
+it in the main bundle. A main-bundle `Sentry.replayIntegration` reference through
+`import * as Sentry` also prevents the split.
+
+### If Sentry already initializes independently
+
+c15t applies filters once it finds the client; it cannot retract earlier data.
+For startup protection, disable collection and remove event users in your own
+`Sentry.init` call. With SDK 10.67, omit `queues`:
+
+{/* example: fragment */}
+
+```ts
+// Include these options in your app's Sentry.init call.
+maxBreadcrumbs: 0,
+dataCollection: {
+	userInfo: false,
+	cookies: false,
+	httpHeaders: { request: false, response: false },
+	httpBodies: [],
+	urlQueryParams: false,
+	graphQL: { document: false, variables: false },
+	genAI: { inputs: false, outputs: false },
+	databaseQueryData: false,
+	queues: false,
+	stackFrameVariables: false,
+	frameContextLines: 0,
+},
+beforeSend(event) {
+	delete event.user;
+	delete event.request;
+	return event;
+},
+```
+
+These settings keep collection and event users disabled after consent too.
+To restore event users, check effective c15t permission in `beforeSend`. Wait
+until the adapter is registered before assigning scope users or capturing logs
+and metrics.
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `dsn` | Required to load Sentry | Your project's DSN. c15t loads the SDK and calls `Sentry.init`. |
+| `initOptions` | `{}` | Passed to `Sentry.init` with c15t's consent integration first. CDN `integrations` callbacks can access `window.Sentry`. |
+| `version` | `'11.4.0'` | SDK version to load. Another version loads without subresource integrity. |
+| `tracing` | `true` when traces are sampled | Loads the tracing bundle and adds `browserTracingIntegration()`. |
+| `replay` | Loads CDN Replay when sampled | CDN: `{ category, options }` or `false`. SDK: `{ category, load }`. |
+| `getClient` | Required for your own SDK | Your SDK's `getClient`. Supports initialization after c15t starts. |
+| `setUser` | None | `setUser` from your Sentry SDK. Called with `null` while user data is not allowed. Required with `pii.user`. |
+| `init` | None | Your SDK's `init`, called once when `loadMode` allows. Required for SDK mode with `'after-consent'`. |
+| `replay.load` | None | With your own SDK, returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
+| `loadMode` | `'always'` | When error monitoring runs. See the table below. |
+| `replay.category` | `'measurement'` | Consent condition for Replay. `pii.category` must also be allowed. |
+| `pii.category` | `'measurement'` | Consent condition for SDK data collection and user data. `'necessary'` permits it while the Sentry vendor is enabled. |
+| `pii.user` | None | Returns the user to set when user data becomes allowed. |
+| `onError` | Report to an available Sentry client | Receives CDN and Replay lifecycle failures. Set it to report CDN download failures before Sentry exists. |
+
+Replay's category is registered only with an SDK `replay.load` function or
+enabled CDN Replay with a positive sample rate.
+
+## Loading and revocation
+
+| `loadMode` | When Sentry runs | On withdrawal without a reload |
+| --- | --- | --- |
+| `'always'` | On every page, before consent | Replay stops; errors keep reaching Sentry without user data |
+| `'after-consent'` | Only while `measurement` is allowed | Sentry stops sending anything |
+
+Replay needs both `replay.category` and `pii.category`, because recordings
+include page URLs with queries and fragments. Keep Replay out of `Sentry.init`:
+`replaysOnErrorSampleRate` can buffer recordings before consent. On denial or
+final removal, c15t stops Replay without flushing, discards queued uploads and
+blocks restarts. Data already sent stays in Sentry; a later grant preserves
+the original sampling decision.
+
+While PII is denied, c15t disables supported `dataCollection` settings and IP
+inference. Before sending, it removes user fields, feedback contact details,
+visitor identifiers in sessions, request data and URL queries/fragments from
+supported events, spans, logs, metrics and breadcrumbs, including retained
+breadcrumbs. A grant restores your resolved collection settings and allowlists.
+Tracing itself is not gated. Custom messages, tags, extras, attachments and
+URL paths remain diagnostics, so keep sensitive values out of them.
+
+The vendor slug is `sentry`. Turning it off denies Replay and PII, plus errors
+in `'after-consent'` mode. See [vendor consent](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
+
+### Shared clients and configuration changes
+
+Keep callback functions stable across renders. Equal options and callbacks
+reuse the SDK bundle and active recording. Changed CDN options initialize a
+client with the new DSN and settings, while reusing the page's single Replay
+recorder. Its original Replay options and sampling decision last until reload.
+
+Every active configuration targeting one client must allow each feature;
+removing a loader releases its restriction and preserves surviving loaders and
+downloads. Final removal denies PII and stops Replay, and also disables errors
+in `'after-consent'` mode. An app-initiated `Sentry.close()` stays closed after
+a grant. Separate clients have separate permissions.
+
+## Content security policy
+
+Allow `worker-src blob:` for Replay and your ingest or tunnel endpoint in
+`connect-src`. CDN mode also needs `https://browser.sentry-cdn.com` in
+`script-src`. The loader or provider's `nonce` applies to both CDN bundles;
+a per-script nonce overrides it.
+
+## Verify Sentry
+
+Test in a private window with an opt-in policy and
+`replaysSessionSampleRate: 1`. Filter DevTools Network by `sentry`.
+
+1. Load the page. `bundle.min.js` loads and errors reach Sentry, without `user`.
+   No `replay.min.js` or `replay_recording` request is sent. With
+   `loadMode: 'after-consent'`, nothing loads.
+2. Allow measurement. Without a reload, Replay loads and `replay_recording`
+   requests start.
+3. Turn measurement off and save. c15t reloads the page, and no replay request
+   follows.
+
+See the [consent verification guide](/docs/guides/verify-consent) for
+navigation, expiry and hosting checks.

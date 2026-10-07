@@ -82,6 +82,18 @@ describe('normalizeScripts', () => {
 });
 
 describe('createElementIdResolver', () => {
+	test.each([true, false])(
+		'separates resource keys while preserving logical IDs with anonymizeId=%s',
+		(anonymizeId) => {
+			const resolver = createElementIdResolver();
+			const first = { ...baseScript, anonymizeId, resourceKey: 'bundle-one' };
+			const second = { ...baseScript, anonymizeId, resourceKey: 'bundle-two' };
+			expect(resolver.resolve(first)).not.toBe(resolver.resolve(second));
+			expect(createElementIdResolver().resolve({ ...first })).toBe(
+				resolver.resolve(first)
+			);
+		}
+	);
 	test('uses stable c15t-script-<id> when anonymizeId is false', () => {
 		const resolver = createElementIdResolver();
 		expect(resolver.resolve({ ...baseScript, anonymizeId: false })).toBe(

@@ -576,7 +576,19 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 		if (!button) {
 			throw new Error(`Required rendered control missing: ${testId}`);
 		}
-		button.click();
+		// Save completion includes lazy persistence and the transport request.
+		// Await the control's save before observing, reloading or disposing.
+		const save = vi.spyOn(kernel.commands, 'save');
+		try {
+			button.click();
+			await Promise.all(
+				save.mock.results
+					.filter((result) => result.type === 'return')
+					.map((result) => result.value)
+			);
+		} finally {
+			save.mockRestore();
+		}
 		await settle();
 	};
 	return {
