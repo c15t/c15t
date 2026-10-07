@@ -74,6 +74,46 @@ describe('legacy migration command', () => {
 		);
 	});
 
+	it('chains named v3 transforms and leaves them out of --all', async () => {
+		const { cwd, filePath } = await fixture('2.3.0');
+		const source = `import { ConsentManagerProvider, useHeadlessConsentUI } from '@c15t/react';
+export const App = ({ children }) => (
+	<ConsentManagerProvider
+		options={{
+			mode: 'hosted',
+			backendURL: '/api/c15t',
+			callbacks: { onConsentChanged: () => {} },
+		}}
+	>
+		{children}
+	</ConsentManagerProvider>
+);
+`;
+		await writeFile(filePath, source);
+		const automatic = await runCli(['codemods', '--all', '--json'], { cwd });
+		expect(automatic.success).toBe(true);
+		expect(await readFile(filePath, 'utf8')).toBe(source);
+
+		const applied = await runCli(
+			[
+				'codemods',
+				'consent-provider-options',
+				'callbacks-to-v3',
+				'root-exports-to-subpaths',
+				'--json',
+			],
+			{ cwd }
+		);
+		expect(applied.success, JSON.stringify(applied)).toBe(true);
+		const updated = await readFile(filePath, 'utf8');
+		expect(updated).toContain(
+			"import { ConsentProvider, hosted } from '@c15t/react';\nimport { useHeadlessConsentUI } from '@c15t/react/headless';"
+		);
+		expect(updated).toContain("mode: hosted({ url: '/api/c15t' }),");
+		expect(updated).toContain('onChoiceRecorded: () => {}');
+		expect(updated).toContain('</ConsentProvider>');
+	}, 30_000);
+
 	it.each(['2.0.0-rc.4', '2.0.0-canary-20260731105620', '2.0.0-alpha.1'])(
 		'does not automatically apply legacy transforms to %s',
 		async (declaredVersion) => {
@@ -169,6 +209,54 @@ describe('legacy migration command', () => {
 			])
 		);
 		expect(await readFile(filePath, 'utf8')).toBe(source);
+	}, 20_000);
+
+	it('reports the release that the named transforms migrate to', async () => {
+		const { cwd } = await fixture('2.3.0');
+		const v3 = await runCli(
+			['codemods', 'consent-provider-options', '--dry-run', '--json'],
+			{ cwd }
+		);
+		expect(v3, JSON.stringify(v3)).toMatchObject({
+			data: {
+				kind: 'codemods',
+				results: [{ id: 'consent-provider-options', targetVersion: '3.0.0' }],
+				targetVersion: '3.0.0',
+			},
+			success: true,
+		});
+
+		const mixed = await runCli(
+			// Named out of order: they still run in the registry's order.
+			[
+				'codemods',
+				'consent-provider-options',
+				'component-renames',
+				'--dry-run',
+				'--json',
+			],
+			{ cwd }
+		);
+		expect(mixed, JSON.stringify(mixed)).toMatchObject({
+			data: {
+				kind: 'codemods',
+				results: [
+					{ id: 'component-renames', targetVersion: '2.0.0' },
+					{ id: 'consent-provider-options', targetVersion: '3.0.0' },
+				],
+				targetVersion: '3.0.0',
+			},
+			success: true,
+		});
+
+		const legacy = await runCli(
+			['codemods', 'component-renames', '--dry-run', '--json'],
+			{ cwd }
+		);
+		expect(legacy).toMatchObject({
+			data: { kind: 'legacy-codemods', targetVersion: '2.0.0' },
+			success: true,
+		});
 	}, 20_000);
 
 	it('uses an explicit source version for all legacy transforms and rejects unsupported targets', async () => {

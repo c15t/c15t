@@ -1,4 +1,4 @@
-import { readdir } from 'node:fs/promises';
+import { readdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 
 import { Project } from 'ts-morph';
@@ -56,10 +56,15 @@ export interface CodemodRunResult {
 		after?: string;
 	}[];
 	errors: { filePath: string; error: string }[];
+	/** Things the codemod skipped on purpose and the user should check. */
+	warnings?: { filePath: string; message: string }[];
 }
 
-/** Collect application sources in a stable order without following symlinks. */
-export const collectSourceFiles = async (root: string): Promise<string[]> => {
+/** Collect files with these extensions in a stable order without following symlinks. */
+export const collectFiles = async (
+	root: string,
+	extensions: ReadonlySet<string>
+): Promise<string[]> => {
 	const files: string[] = [];
 	const walk = async (directory: string): Promise<void> => {
 		const entries = await readdir(directory, { withFileTypes: true });
@@ -75,7 +80,7 @@ export const collectSourceFiles = async (root: string): Promise<string[]> => {
 					}
 				} else if (
 					entry.isFile() &&
-					SOURCE_EXTENSIONS.has(extname(entry.name).toLowerCase())
+					extensions.has(extname(entry.name).toLowerCase())
 				) {
 					files.push(entryPath);
 				}
@@ -85,6 +90,10 @@ export const collectSourceFiles = async (root: string): Promise<string[]> => {
 	await walk(root);
 	return files.sort();
 };
+
+/** Collect application sources in a stable order without following symlinks. */
+export const collectSourceFiles = (root: string): Promise<string[]> =>
+	collectFiles(root, SOURCE_EXTENSIONS);
 
 /** Reuse source parsing across a sequence of migration transforms. */
 export const createCodemodSession = async (
@@ -145,3 +154,60 @@ export const runTransform = async (
 	});
 	return result;
 };
+
+/**
+ * Apply a text transform to files the TypeScript parser does not read, such
+ * as stylesheets. Reports the same before/after shape as `runTransform`.
+ */
+export const runTextTransform = async (
+	options: CodemodRunOptions,
+	extensions: ReadonlySet<string>,
+	transform: (
+		text: string,
+		filePath: string
+	) => { text: string; operations: number; summaries: string[] }
+): Promise<CodemodRunResult> => {
+	const filePaths = await collectFiles(options.projectRoot, extensions);
+	const result: CodemodRunResult = {
+		changedFiles: [],
+		errors: [],
+		totalFiles: filePaths.length,
+	};
+	await forEachSequential(filePaths, {
+		run: async (filePath) => {
+			try {
+				const before = await readFile(filePath, 'utf-8');
+				const transformed = transform(before, filePath);
+				if (transformed.text === before) {
+					return;
+				}
+				if (!options.dryRun) {
+					await writeFile(filePath, transformed.text, 'utf-8');
+				}
+				result.changedFiles.push({
+					after: transformed.text,
+					before,
+					filePath,
+					operations: transformed.operations,
+					summaries: transformed.summaries,
+				});
+			} catch (error) {
+				result.errors.push({
+					error: error instanceof Error ? error.message : String(error),
+					filePath,
+				});
+			}
+		},
+	});
+	return result;
+};
+
+/** Combine the results of transforms that scanned different file sets. */
+export const mergeResults = (
+	...results: CodemodRunResult[]
+): CodemodRunResult => ({
+	changedFiles: results.flatMap((result) => result.changedFiles),
+	errors: results.flatMap((result) => result.errors),
+	totalFiles: results.reduce((total, result) => total + result.totalFiles, 0),
+	warnings: results.flatMap((result) => result.warnings ?? []),
+});

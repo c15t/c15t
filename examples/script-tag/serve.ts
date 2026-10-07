@@ -7,11 +7,12 @@
  * scripts, two embeds and a tracking endpoint, all local so the example
  * works offline and every request is visible in the page's log.
  *
- * `/consent-example` is the page the HTML docs publish. Its tag points at
- * jsDelivr and a `https://your-project.inth.app` placeholder, exactly as a reader
- * copies it. This server swaps the CDN prefix for the local build and the
- * placeholder for `C15T_BACKEND_URL`, so the page runs the code the docs
- * show against this checkout.
+ * `/consent-example` is the page the HTML docs publish. Its tag loads
+ * `c15t.js` from a `https://your-project.inth.app` placeholder, exactly as a
+ * reader copies it. A c15t backend serves that file with its own URL built
+ * in. This server swaps the tag for the local build with `C15T_BACKEND_URL`
+ * as `data-backend-url`, and any other placeholder or CDN prefix for the same,
+ * so the page runs the code the docs show against this checkout.
  *
  * `/consent-example/tailwind` adds `tailwind-classes.html`, which puts
  * Tailwind utilities on banner parts through `theme.slots`. `/tailwind.css`
@@ -106,7 +107,16 @@ const renderConsentExample = function renderConsentExample(
 				`${readFileSync(here('./headless-bar.html'), 'utf8')}</body>`
 			);
 	}
+	// A backend-served bundle carries its backend URL. The local build reads
+	// it from the tag instead.
 	html = html
+		.replace(
+			new RegExp(
+				`src="${backendPlaceholder.replaceAll('.', '\\.')}/(c15t(?:\\.headless|\\.iab)?\\.js)"`,
+				'gu'
+			),
+			`src="/$1" data-backend-url="${backendURL}"`
+		)
 		.replaceAll(cdnPrefix, '/')
 		.replaceAll(backendPlaceholder, backendURL);
 	return new Response(html, {

@@ -1,8 +1,22 @@
 ---
 title: Migrate to v3
-description: Upgrade a c15t v2 app to v3. Covers packages, the Next.js and React providers, the JavaScript runtime, custom UI built on useConsentManager, callbacks, policies, stored consent and a self-hosted backend.
+description: Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
 group: reference
 ---
+
+## Hand the upgrade to a coding agent
+
+<Prompt title="Upgrade this app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
+  Upgrade this app from c15t v2 to c15t v3.
+
+  1. Check `package.json` for c15t packages. `@c15t/nextjs` means Next.js, `@c15t/react` without it means React, and `c15t` alone means the JavaScript store.
+  2. Read the matching guide before you change anything: https://c15t.com/docs/frameworks/next/upgrade-v3.md, https://c15t.com/docs/frameworks/react/upgrade-v3.md or https://c15t.com/docs/frameworks/javascript/upgrade-v3.md. Follow it in order and do not guess v3 APIs from memory.
+  3. If the app also runs its own c15t backend with `@c15t/backend`, read https://c15t.com/docs/upgrade-v3.md and upgrade the backend in the same change. Start with `npx @c15t/cli@alpha codemods backend-config-to-v3 node-sdk-to-v3 --dry-run --json`, then run it without `--dry-run`.
+  4. Keep the existing backend URL.
+  5. Run the typecheck and build when you finish.
+
+  List the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.
+</Prompt>
 
 ## What changes in v3
 
@@ -21,397 +35,44 @@ group: reference
   rewrites most calls.
 - Callbacks have new names, and each reports either a recorded choice or a
   permission change.
+- `theme` tokens no longer generate CSS on their own. Render `ConsentTheme` or
+  add `generateThemeCSS()` output to your stylesheet.
+- IAB moves from the `iab` provider option to an `IABProvider` component in
+  React and Next.js.
+- Every package ships ESM only. `require()` of a c15t package no longer
+  resolves.
 - Visitors' existing choices keep working. v3 reads the v2 cookie.
 - A self-hosted backend takes `database` instead of `adapter`, and needs a
   schema migration.
 - `@c15t/node-sdk` has a new client, `createC15tClient()`. Its methods return
   results instead of throwing, and it reads no environment variables.
 
-## Upgrade in this order
+## Pick your guide
 
-1. Upgrade React and React DOM to 18 or newer. The v3 React and Next.js
-   adapters require them, and `c15t/next` requires Next.js 15 or 16.
-2. [Replace the packages](#replace-the-packages), including the
-   [integrations dependency](#rename-the-integrations-dependency).
-3. Run the [`useConsentManager()` codemod](#replace-useconsentmanager) if your
-   code calls it.
-4. Replace the provider for your framework: [Next.js](#nextjs-with-consentmanagerprovider),
-   [React](#react-with-consentmanagerprovider) or [JavaScript](#javascript-with-getorcreateconsentruntime).
-5. Update [callbacks](#replace-callbacks), [policies](#move-policy-packs-to-policy-rules)
-   and [other options](#rename-options-and-components).
-6. If you self-host, [upgrade the backend](#upgrade-a-self-hosted-backend) in the
-   same release as the clients.
-7. If server code calls the API, [update the Node.js SDK](#update-the-nodejs-sdk).
-8. [Check the result](#check-the-migration).
+Each guide covers one v2 package from start to finish.
 
-## Replace the packages
-
-Remove `@c15t/nextjs` and `@c15t/react`, then install `c15t` from the `alpha`
-dist-tag. npm's default tag still resolves v2.
-
-<CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
-
-Drop `@c15t/integrations@alpha` if you do not use its vendor helpers.
-
-| v2 import | v3 import |
+| You use in v2 | Follow |
 | --- | --- |
-| `@c15t/nextjs` | `c15t/next`. Server helpers are in `c15t/next/server`, `c15t/next/pages` and `c15t/next/api`. |
-| `@c15t/react` | `c15t/react` |
-| `@c15t/react/headless` | `c15t/react/headless` |
-| `@c15t/nextjs/styles.css` | `c15t/next/styles.css` |
-| `@c15t/react/styles.css` | `c15t/react/styles.css` |
-| `c15t` (`getOrCreateConsentRuntime` and the store) | `c15t` for the engine and `c15t/runtime` for a managed runtime. The APIs are new; see [JavaScript](#javascript-with-getorcreateconsentruntime). |
-| `DevTools` from `@c15t/dev-tools/react` | `DevTools` from `c15t/react/devtools` or `c15t/next/devtools` |
-| `@c15t/scripts/*` | `@c15t/integrations/*`, with unchanged helper names. See [rename the integrations dependency](#rename-the-integrations-dependency). |
+| `@c15t/nextjs` | [Next.js](/docs/frameworks/next/upgrade-v3) |
+| `@c15t/react` | [React](/docs/frameworks/react/upgrade-v3) |
+| `c15t`, with `getOrCreateConsentRuntime` or the store | [JavaScript](/docs/frameworks/javascript/upgrade-v3) |
 
-The scoped packages `@c15t/nextjs`, `@c15t/react` and `@c15t/core` still exist
-at v3, so imports from them keep working if you pin them to `@alpha`. The docs
-use the `c15t` subpaths.
+v3 also adds TanStack Start, Nuxt, Vue, Astro, Svelte, SvelteKit and a script
+tag. If you want to move to one of them, start with its quickstart from
+[Choose your setup](/docs/concepts/choose-your-setup).
 
-## Rename the integrations dependency
+If you run your own c15t backend, upgrade it in the same release as the
+clients, following [Upgrade a self-hosted backend](#upgrade-a-self-hosted-backend).
+Server code that calls the API with `@c15t/node-sdk` follows
+[Update the Node.js SDK](#update-the-nodejs-sdk).
 
-v3 renames `@c15t/scripts` to `@c15t/integrations`. Remove `@c15t/scripts`
-from your dependencies and install `@c15t/integrations` from the `alpha`
-dist-tag:
+The sections below apply to every app.
 
-<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+<include src="./shared/upgrade-v3/integrations.mdx" />
 
-Replace the package name in each import. Vendor subpaths and helper names stay
-the same.
+<include src="./shared/upgrade-v3/use-consent-manager.mdx" />
 
-Before, in v2 and earlier v3 alphas:
-
-{/* example: fragment */}
-
-```ts
-import { createEventDispatcher } from '@c15t/scripts/events';
-import { posthog } from '@c15t/scripts/posthog';
-```
-
-After:
-
-{/* example: fragment */}
-
-```ts
-import { createEventDispatcher } from '@c15t/integrations/events';
-import { posthog } from '@c15t/integrations/posthog';
-```
-
-The `scripts` configuration option and the `Script` type keep their names.
-`@c15t/scripts` stays available as a deprecated compatibility package for all
-of v3. It re-exports the implementation and types of `@c15t/integrations`, so
-you can migrate imports separately from the rest of the upgrade. Compatibility
-ends in v4; versions already published stay on npm.
-
-To preview the import changes in JavaScript and TypeScript files:
-
-```bash
-npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
-```
-
-Review the output, then run it again without `--dry-run`. The codemod runs
-only when you name it. It does not change `package.json`, lockfiles, or
-imports inside `.vue`, `.svelte` or `.astro` files; update those by hand, then
-reinstall dependencies and build the app.
-
-## Replace `useConsentManager()`
-
-`useConsentManager()` returned the whole consent state, so every component
-that called it re-rendered on every change. v3 has one hook per field. Run the
-codemod first:
-
-```bash
-npx @c15t/cli@alpha codemods use-consent-manager-to-hooks --dry-run --json
-```
-
-Review the proposed files, then run it again without `--dry-run`. For this v2
-component:
-
-{/* example: fragment */}
-
-```tsx title="Before (v2): components/accept-button.tsx"
-import { useConsentManager } from '@c15t/react';
-
-export function AcceptButton() {
-	const { activeUI, has, saveConsents } = useConsentManager();
-	if (activeUI !== 'banner' || has('marketing')) return null;
-	return (
-		<button type="button" onClick={() => void saveConsents('all')}>
-			Accept
-		</button>
-	);
-}
-```
-
-the codemod writes:
-
-```tsx title="After (v3): components/accept-button.tsx"
-import { useActiveUI, useConsent } from '@c15t/react';
-import { useHeadlessConsentUI } from '@c15t/react/headless';
-
-export function AcceptButton() {
-	const activeUI = useActiveUI() ?? 'none';
-	const hasMarketing = useConsent('marketing');
-	const { saveCustomPreferences: saveConsents } = useHeadlessConsentUI();
-	if (activeUI !== 'banner' || hasMarketing) return null;
-	return (
-		<button type="button" onClick={() => void saveConsents('all')}>
-			Accept
-		</button>
-	);
-}
-```
-
-The codemod keeps the entry you imported from. Change `@c15t/react` to
-`c15t/react` afterwards if you moved to the umbrella package. Fields it cannot
-rewrite stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment,
-which fails the build until you replace them. The table lists every v2 field.
-Import hooks from `c15t/react`, `c15t/next` or `c15t/tanstack-start`, and
-`useHeadlessConsentUI` from the matching `/headless` entry.
-
-| v2 field | v3 replacement |
-| --- | --- |
-| `activeUI` | `useActiveUI()`. It returns `null` until c15t picks a surface, where v2 returned `'none'`. |
-| `setActiveUI(ui)` | `useSetActiveUI()` |
-| `has(category)` | `useConsent(category)`, one call per category at the top of the component |
-| `consents` | `useConsents()` |
-| `saveConsents('all')` | `useHeadlessConsentUI().saveCustomPreferences('all')` |
-| `saveConsents('necessary')` | `useHeadlessConsentUI().saveCustomPreferences('none')` |
-| `saveConsents('custom')` | `useHeadlessConsentUI().saveCustomPreferences()`, which saves the draft |
-| `selectedConsents` | `useConsentDraft().values` |
-| `setSelectedConsent(name, value)` | `useConsentDraft().set(name, value)` |
-| `setConsent(name, value)` | `useSaveConsents()`, called with `{ [name]: value }` |
-| `consentInfo` | `useExplicitChoice()` |
-| `hasConsented()` | `useExplicitChoice() !== null` |
-| `consentCategories`, `consentTypes`, `getDisplayedConsents()` | `useConsentDraft().displayedCategories`, with labels from `useTranslations().consentTypes` |
-| `policyCategories` | `usePolicyCategories()`. The v2 list started with `'necessary'`; this one does not. |
-| `policyScopeMode` | `usePolicyScopeMode()` |
-| `policyBanner` | `usePromptPresentation()` |
-| `policyDialog` | `usePreferencesPresentation()` |
-| `model` | `useModel()`. It returns `null` while no policy matches, where v2 returned `'opt-in'`. |
-| `branding` | `useBranding()`. It returns `null` when unset, where v2 returned `'c15t'`. |
-| `iab` | `useIABSnapshot()` |
-| `locationInfo` | `useLocation()` |
-| `overrides`, `setOverrides()` | `useOverrides()`, `useSetOverrides()` |
-| `setLanguage()` | `useSetLanguage()` |
-| `user`, `identifyUser()` | `useUser()`, `useIdentify()` |
-| `translationConfig` | `useTranslations()` for the active strings |
-| `subscribeToConsentChanges(listener)` | `useSubscribeToConsentChanges()`, or the `onPermissionsChanged` callback |
-| `updateConsentCategories(categories)` | `useRegisterConsentCategories()` |
-| `manager` | Nothing. Use the hooks above. |
-
-`saveCustomPreferences()` saves the way the stock buttons do. It closes the
-banner or dialog after a successful save. `useSaveConsents()` calls the engine
-directly and does not close anything.
-
-In v2, `useConsentManager()` kept one draft per component. In v3,
-`useConsentDraft()` and `useHeadlessConsentUI()` share the draft of the nearest
-`ConsentDraftProvider`. When one component stages choices and another saves
-them, render both inside the same `ConsentDraftProvider`; otherwise the save
-commits nothing you staged. `ConsentWidget` already includes one. The codemod
-adds a `TODO(c15t v3)` comment where this applies.
-
-## Next.js with `ConsentManagerProvider`
-
-A typical v2 App Router app wrapped the layout in a client component:
-
-{/* example: fragment */}
-
-```tsx title="Before (v2): components/consent-manager/provider.tsx"
-'use client';
-
-import {
-	ConsentBanner,
-	ConsentDialog,
-	ConsentManagerProvider,
-} from '@c15t/nextjs';
-
-export default function ConsentManagerClient({ children }) {
-	return (
-		<ConsentManagerProvider
-			options={{ mode: 'hosted', backendURL: 'https://your-project.c15t.dev' }}
-		>
-			<ConsentBanner />
-			<ConsentDialog />
-			{children}
-		</ConsentManagerProvider>
-	);
-}
-```
-
-v3 gives you two ways forward:
-
-- **Resolve consent on the server** (recommended). The server reads the
-  visitor's policy and stored choice, so gated scripts can start right after
-  hydration and the banner can be in the first HTML. Replace the client
-  component with `ConsentRoot`, pass it `resolveConsent()` from
-  `c15t/next/server` as `state` and your `defineConsentConfig()` result as
-  `config`, and add the manifest route. Follow the
-  [App Router guide](/docs/frameworks/next/app-router) or the
-  [Pages Router guide](/docs/frameworks/next/pages-router). This replaces v2's
-  `fetchInitialData()`, `ssrData` and `C15tPrefetch`.
-- **Keep browser initialization**, as v2 did without `fetchInitialData()`. Keep
-  your client component, import from `c15t/next`, and change the provider:
-
-{/* example: fragment */}
-
-```tsx title="After (v3): components/consent-manager/provider.tsx, changed lines"
-import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next';
-
-// In the component, replace ConsentManagerProvider:
-<ConsentProvider
-  options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
->
-```
-
-Static exports use browser initialization too. See
-[static export](/docs/frameworks/next/static-export) and
-[client-side setup](/docs/frameworks/next/client-side).
-
-Either way, change the stylesheet import to `c15t/next/styles.css`, and keep
-your backend URL. An existing hosted URL such as `https://your-project.c15t.dev`
-keeps working with v3 clients. New Inth projects use URLs such as
-`https://your-project.inth.app`. The
-[CLI setup command](/docs/cli/quickstart) can generate the browser-initialized
-version for you.
-
-## React with `ConsentManagerProvider`
-
-Swap `ConsentManagerProvider` for `ConsentProvider` from `c15t/react`, and pass
-a transport as `mode`:
-
-| v2 option | v3 option |
-| --- | --- |
-| `mode: 'hosted'` with `backendURL` | `mode: hosted({ url })` |
-| `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
-| `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
-
-`hosted` and `offline` are exported from `c15t/react`. The
-[React quickstart](/docs/frameworks/react/quickstart) shows the full provider.
-[Data fetching](/docs/concepts/data-fetching) covers custom transports.
-
-Offline mode keeps choices in the browser and records nothing on a server. Not
-recommended for production environments.
-
-## JavaScript with `getOrCreateConsentRuntime`
-
-v2's `getOrCreateConsentRuntime()`, `configureConsentManager()` and the
-Zustand `consentStore` are gone. v3 has two replacements:
-
-- `createConsentKernel()` from `c15t`, with `createHostedTransport()`. You read
-  `kernel.getSnapshot()`, listen with `kernel.subscribe()`, and save with
-  `kernel.commands.save('all' | 'none' | { marketing: false })`. See the
-  [JavaScript quickstart](/docs/frameworks/javascript/quickstart).
-- A script tag that includes the stock banner, for sites without a build
-  step. See [script tag](/docs/frameworks/html/quickstart).
-
-v3 also adds adapters for TanStack Start, Nuxt, Vue, Astro, Svelte and
-SvelteKit. If you wired the v2 runtime into one of these frameworks, move to its
-adapter from [Choose your setup](/docs/concepts/choose-your-setup).
-
-## Replace callbacks
-
-Callbacks stay under `options.callbacks`, with new names:
-
-| v2 callback | v3 callback |
-| --- | --- |
-| `onConsentSet` | `onPermissionsChanged` to react to what may run now. `onChoiceRecorded` to react to the visitor's accept, reject or save. |
-| `onConsentChanged` | `onChoiceRecorded`. See the note below the table. |
-| `onBannerFetched` | No provider callback. Read `usePolicyResolution()` to know when the policy has resolved. |
-| `onError`, `onBeforeConsentRevocationReload` | Unchanged |
-
-v2's `onConsentChanged` fired only when a save changed at least one category's
-value, and passed `preferences` and `previousPreferences`. v3's
-`onChoiceRecorded` fires for every accept, reject or save that confirms a
-category, including one that saves the same values again, because each save
-renews the choice's confirmation time. Its payload carries `snapshot`,
-`confirmed` and `actionAt`. To act only on a real change, keep the last
-`snapshot.explicitChoice` you saw and compare it.
-
-v2's `onConsentSet` also fired on initialization and hydration. In v3,
-`onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`
-runs when effective permissions change for any reason, including expiry, a
-policy update or a privacy signal.
-
-{/* example: fragment */}
-
-```tsx title="After (v3): provider options"
-callbacks: {
-  onChoiceRecorded(event) {
-    console.log('Visitor recorded a choice', event);
-  },
-  onPermissionsChanged(event) {
-    console.log('Effective permissions changed', event);
-  },
-},
-```
-
-## Move policy packs to policy rules
-
-v2 policy packs become policy rules, and `policyPackPresets` becomes
-`policyRulePresets`, exported from `c15t`. Where the rules live depends on your
-backend:
-
-- **Inth**: set the rules in your Inth project. Rules in client code do not
-  change a hosted policy.
-- **Self-hosted**: move the backend's `policyPacks` to `manifest.policyRules`.
-  See [policy configuration](/docs/self-host/guides/policy-packs).
-- **Offline**: move `offlinePolicy.policyPacks` to `offline({ policyRules })`.
-
-{/* example: fragment */}
-
-```tsx title="After (v3): offline policy rules"
-import { policyRulePresets } from 'c15t';
-import { offline } from 'c15t/react';
-
-const mode = offline({
-	policyRules: [policyRulePresets.europeOptIn(), policyRulePresets.worldNone()],
-});
-```
-
-| v2 preset | v3 preset |
-| --- | --- |
-| `europeOptIn()`, `europeIab()` | Same names |
-| `californiaOptIn()`, `californiaOptOut()` | Same names |
-| `quebecOptIn()` | Same name |
-| `worldNoBanner()` | `worldNone()` |
-
-v3 adds presets for more regions. `offline()` without `policyRules` uses
-`recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
-change a rule's model or prompt, and
-[how consent works](/docs/concepts/how-consent-works) for the difference
-between a permission and a recorded choice.
-
-## Rename options and components
-
-| v2 | v3 |
-| --- | --- |
-| `translations` | `i18n` |
-| `backendURL`, `mode: 'hosted'` | `mode: hosted({ url })` |
-| `ssrData` (Next.js) | `ConsentRoot` with `state` from `resolveConsent()` |
-| `iframeBlockerConfig` | `iframeBlocker`, or `false` to turn it off |
-| `Frame` | `ConsentGate`. `Frame` still works as a deprecated alias. |
-| `frame` translations, such as `frame.title` | `consentGate`, such as `consentGate.title`. Copy under `frame` still applies and logs a warning outside production. |
-| `FrameTranslations` | `ConsentGateTranslations`. `FrameTranslations` still works as a deprecated alias. |
-| `--frame-*` CSS variables | `--consent-gate-*`, with the same suffixes, such as `--consent-gate-placeholder-background-color`. The old names no longer apply. |
-| `YouTubeEmbed`, `GoogleMap` | Removed. Wrap your own embed in `ConsentGate`. |
-| `useConsentScript()` | Removed. Register the script in `scripts` with a `@c15t/integrations` helper. |
-| `useSSRStatus()` | Removed |
-
-`ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`
-and `ConsentWidget` keep their names. The `scripts`, `networkBlocker`,
-`legalLinks`, `overrides`, `theme` and `colorScheme` options keep theirs too.
-
-## Keep visitors' existing choices
-
-v3 uses the same `c15t` cookie and storage key as v2 and reads v2 records. It
-does not rewrite them on page load; the next accept, reject or save writes a
-v3 record.
-
-A v2 denial keeps restricting its category. A v2 grant keeps applying while it
-is within the policy's validity period and the policy has not changed since the
-visitor chose. Otherwise c15t asks again. Do not copy permissions into new
-records yourself; c15t decides which v2 choices still count.
+<include src="./shared/upgrade-v3/stored-consent.mdx" />
 
 ## Upgrade a self-hosted backend
 
@@ -423,8 +84,9 @@ categories stay denied and no banner appears.
 2. Replace `adapter` with `database` in your config. The Drizzle, Prisma,
    TypeORM and Kysely adapters are gone; point `database` at the same SQL
    database instead. MongoDB has no migration path.
-3. Move `policyPacks`, `branding`, `iab` and `appName` under `manifest`, and
-   rename `policyPacks` to `policyRules`.
+3. Move `policyPacks`, `branding`, `customTranslations`, `i18n` and `appName`
+   under `manifest`, and rename `policyPacks` to `policyRules`. Split `iab`
+   between `manifest.iab` and `gvl`, as the table below shows.
 4. Back up the database, then plan and apply the schema migration:
 
 ```bash
@@ -439,9 +101,39 @@ nullable. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-ba
 covers the details, and the [backend quickstart](/docs/self-host/quickstart)
 shows a complete v3 config and route.
 
+The `backend-config-to-v3` codemod does step 3 for the keys that move as they
+are, and leaves a `TODO(c15t v3)` comment on `adapter`, `iab`,
+`disableGeoLocation` and the other options in the table below:
+
+```bash
+npx @c15t/cli@alpha codemods backend-config-to-v3 policy-packs-to-policy-rules --dry-run --json
+```
+
+Preset calls such as `policyRulePresets.europeOptIn()` need no other change.
+A hand-written v2 pack uses `consent` and `ui` keys, which v3 rules replace
+with flat keys such as `model` and `prompt`. See
+[policy configuration](/docs/self-host/guides/policy-packs).
+
+The v3 backend stores timestamps in UTC. Convert rows that a v2 backend wrote
+in another time zone before you deploy. Database setup lists the checks.
+
+Other backend options and entries change too:
+
+| v2 | v3 |
+| --- | --- |
+| `tablePrefix` | Removed. The migrator refuses a database with prefixed c15t tables, so rename them first. On PostgreSQL, `database.schema` keeps c15t's tables in their own schema. |
+| `iab.vendorIds`, `iab.endpoint`, `cache.adapter` | `gvl: { vendorIds, endpoint, cache }` |
+| `iab.enabled`, `iab.cmpId`, `iab.customVendors` | `manifest.iab` |
+| `logger`, `telemetry` | `observability`, passed to `c15tInstance()` |
+| `background`, `iab.bundled` | Removed |
+| `openapi.docsPath`, `openapi.options`, `openapi.customUiTemplate` and the `/docs` page | Removed. The spec is still at `/spec.json`. |
+| `policySnapshot.onValidationFailure` | Removed |
+| `GET /` as an alias of `/status` | Removed. Call `/status`. |
+| `@c15t/backend/define-config`, `/router`, `/types`, `/db/schema`, `/db/adapters/*`, `/db/migrator`, `/edge` | Removed. Import `defineConfig`, `createMigrator` and `policyRulePresets` from `@c15t/backend`. |
+
 ### Remove `disableGeoLocation`
 
-v3 removes the `disableGeoLocation` manifest option. Policy rules decide by
+v3 removes the top-level `disableGeoLocation` option. Policy rules decide by
 country and region. To show every visitor the same banner, configure one rule
 with `match: { isDefault: true }`. It applies wherever the visitor is, so the
 browser can resolve it without asking the backend for a location.
@@ -492,24 +184,26 @@ if (result.ok) {
 | `c15tClient(options)`, `new C15TClient(options)` | `createC15tClient(options)` |
 | `C15T_API_URL`, `C15T_API_TOKEN` read from the environment | Not read. Pass `baseUrl` and `apiKey`. |
 | `token` | `apiKey` |
-| `prefix` | Part of `baseUrl`, such as `https://app.example.com/api/c15t` |
-| `timeout` | `timeoutMs`, per attempt |
-| `retryConfig` | `retry: { maxRetries, initialDelayMs, maxDelayMs }`, or `false` |
+| `prefix` | Part of `baseUrl`. v2 replaced the base URL's path with `prefix`, so use the origin plus the prefix, such as `https://app.example.com/api/c15t`. |
+| `timeout` | `timeoutMs`, per attempt. The default drops from 30 to 10 seconds. |
+| `retryConfig` | `retry: { maxRetries, initialDelayMs, maxDelayMs }`, or `false`. `backoffFactor`, `retryableStatusCodes`, `nonRetryableStatusCodes` and `retryOnNetworkError` are gone. |
 | `debug`, `C15T_DEBUG` | `onEvent` |
 | `client.meta.status()`, `client.status()` | `c15t.status()` |
-| `client.meta.init()`, `client.init()` | `c15t.init({ language, country, region, gpc })` |
-| `getSubject(id, { type: 'a,b' })` | `subjects.get(id, { types: ['a', 'b'] })` |
+| `client.meta.init(options)`, `client.init(options)` | `c15t.init({ language, country, region, gpc }, options)`. Per-call options move to the second argument. |
+| `getSubject(id, { type: 'a,b' })`, `subjects.get(id, { type: 'a,b' })` | `subjects.get(id, { types: ['a', 'b'] })` |
 | `createSubject(input)` | `subjects.create(input)`. `givenAt` also takes a `Date`. |
 | `patchSubject(id, input)`, `subjects.patch(id, input)` | `subjects.identify(id, { externalId, identityProvider })` |
-| `listSubjects({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
+| `listSubjects({ externalId })`, `subjects.list({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
 | `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })` |
-| `summarizeExperiment(id, query)`, `experiments.summary(id, query)` | `experiments.summary(id, { from, to, domain })`, on a client with `apiKey` |
 | `ResponseContext` with `data: T \| null` | `{ ok: true, data } \| { ok: false, error }`. Check `ok` first. |
 | `unwrap()`, `expect()` on the response | `unwrap(result)`, imported from `@c15t/node-sdk` |
 | `unwrapOr()`, `map()` on the response | Check `result.ok` |
 | `throw: true` | `unwrap(result)` |
 | `onSuccess`, `onError` | Check `result.ok` after the call |
 | `C15TError`, `isC15TError()` | `C15tError`, `isC15tError(error, ...codes)` |
+| `C15TClient`, `C15TClientOptions`, `RetryConfig`, `FetchOptions`, `ResponseContext` types | `C15tClient`, `C15tClientOptions`, `C15tRetryOptions`, `C15tCallOptions`, `C15tResult` |
+| Per-call `timeout`, `retryConfig` | `timeoutMs`, `retry` |
+| Per-call `body`, `query`, `method` | Removed. Pass the body and query as the method's arguments. |
 | `$fetch`, `fetcher`, `resolveUrl`, `createResponseContext` | Removed. Pass a custom `fetch` to `createC15tClient` if you need one. |
 | `createMockClient`, `createMockResponse`, `createMockErrorResponse` | `createMockC15tClient`, `ok`, `err` from `@c15t/node-sdk/testing` |
 
@@ -518,20 +212,20 @@ if (result.ok) {
 responses, such as `givenAt` and `createdAt`, are now `Date` objects rather
 than strings.
 
-The new client also adds `manifest()` and `legalDocuments.publish()`. See the
+The `node-sdk-to-v3` codemod renames the factory, client options, methods,
+types and errors in files that create a client. It turns `type` strings into
+`types` arrays, and leaves a `TODO(c15t v3)` comment at each call, because
+results are now `{ ok, data }` or `{ ok, error }`. It renames per-call
+`timeout` and `retryConfig` too. It also marks `prefix`, `debug`, per-call
+`throw`, `onSuccess`, `onError`, `body`, `query` and `method`, and a client
+built from environment variables:
+
+```bash
+npx @c15t/cli@alpha codemods node-sdk-to-v3 --dry-run --json
+```
+
+The new client also adds `manifest()`, `legalDocuments.publish()` and
+`experiments.summary()`. The last two need a client with `apiKey`. See the
 [Node.js SDK reference](/docs/self-host/api/node-sdk).
 
-## Check the migration
-
-1. Run your typecheck and build. Remaining `TODO(c15t v3)` comments from the
-   codemod fail the build until you resolve them.
-2. Load the app with a v2 consent cookie from before the upgrade. The banner
-   stays closed if that choice still applies, and a rejected category stays
-   blocked.
-3. In a private window, check in DevTools Network that vendor requests wait for
-   consent, start after you accept, and stay absent after you reject and
-   reload.
-4. Reopen preferences from your privacy settings link and change a category.
-
-The [verification guide](/docs/guides/verify-consent) has the full release
-checklist.
+<include src="./shared/upgrade-v3/cli.mdx" />
