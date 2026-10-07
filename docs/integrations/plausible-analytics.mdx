@@ -2,15 +2,15 @@
 title: Plausible Analytics
 description: Load the Plausible Analytics tracker only after measurement consent with the c15t plausibleAnalytics helper, and check it in DevTools.
 seoTitle: Plausible Analytics cookie consent with c15t
-seoDescription: Load Plausible Analytics only after visitors give measurement consent. Set it up with the c15t plausibleAnalytics helper and check it in DevTools.
+seoDescription: Load Plausible Analytics only with measurement consent. Set it up with the c15t plausibleAnalytics helper and check it in DevTools.
 icon: plausible
 group: integrations
 ---
 
 The c15t `plausibleAnalytics` helper keeps Plausible Analytics off the page
-until the visitor gives consent for `measurement`. Before consent, c15t does not
-define `window.plausible`. The helper sends no consent signal to Plausible. If
-the visitor withdraws consent, c15t removes the script element. By default, c15t
+until `measurement` has consent. Until then, c15t does not define
+`window.plausible`. The helper sends no consent signal to Plausible. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
 also reloads the page.
 
 ## Configure Plausible Analytics

@@ -2,16 +2,16 @@
 title: Hotjar
 description: Load Hotjar only after measurement consent with the c15t hotjar helper, and check its loader and recordings in DevTools.
 seoTitle: Hotjar cookie consent with c15t
-seoDescription: Load Hotjar only after visitors give measurement consent. The c15t hotjar helper keeps the Hotjar loader off the page and stops recordings on withdrawal.
+seoDescription: Load Hotjar only with measurement consent. The c15t hotjar helper keeps the Hotjar loader off the page and stops recordings on withdrawal.
 icon: hotjar
 group: integrations
 ---
 
-The c15t `hotjar` helper keeps Hotjar off the page until the visitor gives
-consent for `measurement`. Before consent, c15t does not define
-`window._hjSettings` or `window.hj`. The helper sends no consent signal to
-Hotjar. If the visitor withdraws consent, c15t removes the loader script
-element. By default, c15t also reloads the page. The reload stops Hotjar.
+The c15t `hotjar` helper keeps Hotjar off the page until `measurement` has
+consent. Until then, c15t does not define `window._hjSettings` or `window.hj`.
+The helper sends no consent signal to Hotjar. If the visitor withdraws consent,
+c15t removes the loader script element. By default, c15t also reloads the page.
+The reload stops Hotjar.
 
 ## Configure Hotjar
 

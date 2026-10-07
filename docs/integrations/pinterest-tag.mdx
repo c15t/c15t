@@ -2,14 +2,14 @@
 title: Pinterest Tag
 description: Load the Pinterest Tag only after marketing consent with the c15t pinterestTag helper, guard pintrk event calls, and check it in DevTools.
 seoTitle: Pinterest Tag cookie consent with c15t
-seoDescription: Load the Pinterest Tag only after visitors give marketing consent. The c15t pinterestTag helper sends pintrk setconsent signals for you.
+seoDescription: Load the Pinterest Tag only with marketing consent. The c15t pinterestTag helper sends pintrk setconsent signals for you.
 icon: pinterest
 group: integrations
 ---
 
-The c15t `pinterestTag` helper keeps the Pinterest Tag off the page until the
-visitor gives consent for `marketing`. Before consent, c15t does not define
-`pintrk`. After consent, the helper queues `load`, `pintrk('setconsent', true)`,
+The c15t `pinterestTag` helper keeps the Pinterest Tag off the page until
+`marketing` has consent. Until then, c15t does not define `pintrk`. When
+`marketing` has consent, the helper queues `load`, `pintrk('setconsent', true)`,
 and a page visit before the loader. If the visitor withdraws consent, the helper
 calls `pintrk('setconsent', false)`. The tag stays on the page. By default, c15t
 also reloads the page.

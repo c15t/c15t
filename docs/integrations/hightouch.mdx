@@ -2,16 +2,16 @@
 title: Hightouch
 description: Load the Hightouch Events browser SDK only after measurement consent with the c15t hightouch helper, and check page events in DevTools.
 seoTitle: Hightouch cookie consent with c15t
-seoDescription: Load the Hightouch Events SDK only after visitors give measurement consent. The c15t hightouch helper creates the htevents queue only after consent.
+seoDescription: Load the Hightouch Events SDK only with measurement consent. The c15t hightouch helper creates the htevents queue only with consent.
 icon: hightouch
 group: integrations
 ---
 
 The c15t `hightouch` helper keeps the Hightouch Events browser SDK off the page
-until the visitor gives consent for `measurement`. Before consent, c15t does not
-create the `window.htevents` queue or load `events.min.js`. The helper sends no
-consent signal to Hightouch. If the visitor withdraws consent, c15t removes the
-script element. By default, c15t also reloads the page.
+until `measurement` has consent. Until then, c15t does not create the
+`window.htevents` queue or load `events.min.js`. The helper sends no consent
+signal to Hightouch. If the visitor withdraws consent, c15t removes the script
+element. By default, c15t also reloads the page.
 
 ## Configure Hightouch
 
