@@ -101,7 +101,13 @@ const createClient = ({
 	dsn = 'https://key@example.ingest.sentry.io/1',
 	enabled,
 	userInfo = false,
-}: { dsn?: string; enabled?: boolean; userInfo?: boolean } = {}) => {
+	collection = {},
+}: {
+	dsn?: string;
+	enabled?: boolean;
+	userInfo?: boolean;
+	collection?: Record<string, unknown>;
+} = {}) => {
 	const integrations = new Map<string, unknown>();
 	const processors: (<EventType extends SentryEvent>(
 		event: EventType
@@ -120,7 +126,7 @@ const createClient = ({
 		),
 	};
 	const options = { enabled };
-	const dataCollection = { userInfo };
+	const dataCollection = { ...collection, userInfo };
 	const metadata = {
 		sdk: { settings: { infer_ip: userInfo ? 'auto' : 'never' } },
 	};
@@ -273,6 +279,33 @@ const setup = ({
 		...options,
 	});
 	return { ...sentryClient, load, replays, script };
+};
+
+const configuredCollection = {
+	cookies: { allow: ['theme'] },
+	databaseQueryData: true,
+	frameContextLines: 7,
+	genAI: { inputs: true, outputs: false },
+	graphQL: { document: false, variables: true },
+	httpBodies: ['outgoingRequest'],
+	httpHeaders: { request: { allow: ['Referer'] }, response: false },
+	queues: false,
+	stackFrameVariables: { allow: ['known'] },
+	urlQueryParams: { deny: ['secret'] },
+	userInfo: true,
+};
+const deniedCollection = {
+	cookies: false,
+	databaseQueryData: false,
+	frameContextLines: 0,
+	genAI: { inputs: false, outputs: false },
+	graphQL: { document: false, variables: false },
+	httpBodies: [],
+	httpHeaders: { request: false, response: false },
+	queues: false,
+	stackFrameVariables: false,
+	urlQueryParams: false,
+	userInfo: false,
 };
 
 describe('Sentry adapter through the kernel and script loader', () => {
@@ -1103,6 +1136,99 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(sending()).toMatchObject({ inferIp: 'never', userInfo: false });
 	});
 
+	it('gates every SDK collection setting and restores the app configuration', async () => {
+		vi.spyOn(console, 'warn').mockImplementation(() => {});
+		const { client } = createClient({
+			collection: structuredClone(configuredCollection),
+			userInfo: true,
+		});
+		const { kernel, loader } = mount(sentry({ getClient: () => client }));
+		expect(client.getDataCollectionOptions()).toEqual(deniedCollection);
+		await kernel.commands.save(grantedMeasurementConsents);
+		expect(client.getDataCollectionOptions()).toEqual(configuredCollection);
+		await kernel.commands.save(deniedConsents);
+		expect(client.getDataCollectionOptions()).toEqual(deniedCollection);
+		await kernel.commands.save(grantedMeasurementConsents);
+		loader.dispose();
+		expect(client.getDataCollectionOptions()).toEqual(deniedCollection);
+	});
+
+	it('removes query parameters and fragments from event request URLs during denial', async () => {
+		const { client, sendEnvelope } = createClient();
+		const { kernel } = mount(sentry({ getClient: () => client }));
+		const url =
+			'https://app.example.com/account?email=visitor@example.com#token';
+		expect(
+			sendEnvelope('event', {
+				request: {
+					body: 'private',
+					cookies: { session: 'private' },
+					data: { email: 'private' },
+					headers: { Referer: url },
+					method: 'GET',
+					query_string: 'email=private',
+					url,
+				},
+			}).request
+		).toEqual({ method: 'GET', url: 'https://app.example.com/account' });
+		await kernel.commands.save(grantedMeasurementConsents);
+		expect(sendEnvelope('event', { request: { url } }).request.url).toBe(url);
+	});
+
+	it('redacts collected HTTP attributes from root and child spans during denial', () => {
+		const { client, sendEnvelope } = createClient();
+		mount(sentry({ getClient: () => client }));
+		const attributes = {
+			'http.method': 'GET',
+			'http.request.header.referer': [
+				'https://source.example.com/?email=private',
+			],
+			'http.response.header.set-cookie': ['session=private'],
+			'http.url': {
+				type: 'string',
+				value: 'https://app.example.com/?email=private',
+			},
+			'url.fragment': 'secret',
+			'url.full': 'https://app.example.com/?email=private#secret',
+			'url.query': 'email=private',
+		};
+		const filtered = {
+			'http.method': 'GET',
+			'http.url': { type: 'string', value: 'https://app.example.com/' },
+			'url.full': 'https://app.example.com/',
+		};
+		const payload = sendEnvelope('transaction', {
+			contexts: { trace: { data: structuredClone(attributes) } },
+			spans: [{ data: structuredClone(attributes) }],
+		});
+		expect(payload.contexts.trace.data).toEqual(filtered);
+		expect(payload.spans[0]?.data).toEqual(filtered);
+	});
+
+	it('does not poll for an SDK client until after-consent initialization is allowed', async () => {
+		const current: { client?: SentryClient } = {};
+		const getClient = vi.fn(() => current.client);
+		const init = vi.fn();
+		const { kernel } = mount(
+			sentry({ getClient, init, loadMode: 'after-consent' })
+		);
+		const deniedCalls = getClient.mock.calls.length;
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(getClient).toHaveBeenCalledTimes(deniedCalls);
+		expect(init).not.toHaveBeenCalled();
+		await kernel.commands.save(grantedMeasurementConsents);
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(init).toHaveBeenCalledOnce();
+		await kernel.commands.save(deniedConsents);
+		const revokedCalls = getClient.mock.calls.length;
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(getClient).toHaveBeenCalledTimes(revokedCalls);
+		const { client } = createClient();
+		current.client = client;
+		await kernel.commands.save(grantedMeasurementConsents);
+		expect(client.addEventProcessor).toHaveBeenCalledOnce();
+	});
+
 	it('warns when Sentry.init ran before c15t and infers IP addresses', () => {
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
 		const { script } = setup({ client: { userInfo: true } });
@@ -1280,16 +1406,25 @@ const dsn = 'https://key@o0.ingest.sentry.io/0';
  * Stands in for Sentry's CDN files: the bundle defines `window.Sentry`, and
  * `replay.min.js` adds the real `replayIntegration` to it.
  */
-const installSentryCdn = (sampling: Sampling = 'session') => {
-	const sentryClient = createClient();
+const installSentryCdn = (
+	sampling: Sampling = 'session',
+	clientOptions?: Parameters<typeof createClient>[0]
+) => {
+	const sentryClient = createClient(clientOptions);
 	const loaded: HTMLScriptElement[] = [];
 	const current: { client?: SentryClient } = {};
 	const replays: FakeReplay[] = [];
 	const sentryGlobal = {
 		browserTracingIntegration: vi.fn(() => ({ name: 'BrowserTracing' })),
 		getClient: () => current.client,
-		init: vi.fn((_options: Record<string, unknown>) => {
+		init: vi.fn((options: Record<string, unknown>) => {
 			current.client = sentryClient.client;
+			const configured = options.integrations;
+			if (typeof configured === 'function') {
+				for (const integration of configured([])) {
+					integration.setup?.(current.client);
+				}
+			}
 		}),
 		replayIntegration: undefined as
 			| ((options?: Record<string, unknown>) => FakeReplay)
@@ -1325,6 +1460,50 @@ const installSentryCdn = (sampling: Sampling = 'session') => {
 };
 
 describe('Sentry loaded from the CDN', () => {
+	it('applies collection denial before CDN initialization integrations capture data', async () => {
+		const { client } = installSentryCdn('session', {
+			collection: structuredClone(configuredCollection),
+			userInfo: true,
+		});
+		const observed: unknown[] = [];
+		const { kernel } = mount(
+			sentry({
+				dsn,
+				initOptions: {
+					integrations: [
+						{
+							name: 'FirstCapture',
+							setup: () => {
+								observed.push(
+									structuredClone(client.getDataCollectionOptions())
+								);
+							},
+						},
+					],
+				},
+			})
+		);
+		await settle();
+		expect(observed).toEqual([deniedCollection]);
+		await kernel.commands.save(grantedMeasurementConsents);
+		expect(client.getDataCollectionOptions()).toEqual(configuredCollection);
+	});
+
+	it('does not poll for an unloaded CDN client while after-consent initialization is denied', async () => {
+		const { sentryGlobal, loaded } = installSentryCdn();
+		Object.assign(window, { Sentry: sentryGlobal });
+		const getClient = vi.spyOn(sentryGlobal, 'getClient');
+		const { kernel } = mount(sentry({ dsn, loadMode: 'after-consent' }));
+		const calls = getClient.mock.calls.length;
+		await vi.advanceTimersByTimeAsync(60_000);
+		expect(getClient).toHaveBeenCalledTimes(calls);
+		expect(loaded).toHaveLength(0);
+		await kernel.commands.save(grantedMeasurementConsents);
+		await settle();
+		expect(loaded).toHaveLength(1);
+		expect(sentryGlobal.init).toHaveBeenCalledOnce();
+	});
+
 	it('runs the documented CDN example through grant and withdrawal', async () => {
 		const { replays, loaded, processEvent, sentryGlobal } = installSentryCdn();
 		const [script] = sentryExampleScripts;
@@ -1546,6 +1725,7 @@ describe('Sentry loaded from the CDN', () => {
 			integrations: (defaults: unknown[]) => unknown[];
 		};
 		expect(initOptions.integrations([{ name: 'Default' }])).toEqual([
+			{ name: 'C15tConsent', setup: expect.any(Function) },
 			{ name: 'Default' },
 			custom,
 			{ name: 'BrowserTracing' },

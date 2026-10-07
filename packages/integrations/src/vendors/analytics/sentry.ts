@@ -52,6 +52,25 @@ export interface SentrySession {
 	attrs?: { ip_address?: unknown };
 }
 
+/** Structural collection settings, whose value shapes differ between SDK versions. */
+type SentryDataCollectionOptions = Partial<
+	Record<
+		| 'userInfo'
+		| 'cookies'
+		| 'httpHeaders'
+		| 'httpBodies'
+		| 'urlQueryParams'
+		| 'queryParams'
+		| 'graphQL'
+		| 'genAI'
+		| 'databaseQueryData'
+		| 'queues'
+		| 'stackFrameVariables'
+		| 'frameContextLines',
+		unknown
+	>
+>;
+
 /** Envelope items passed to Sentry's final send hook. */
 export type SentryEnvelope = readonly [
 	unknown,
@@ -81,7 +100,7 @@ export interface SentryClient {
 	) => unknown;
 	/** Preserve app-initiated shutdowns separately from consent denial. */
 	close?: (timeout?: number) => PromiseLike<boolean>;
-	getDataCollectionOptions?: () => { userInfo?: boolean };
+	getDataCollectionOptions?: () => SentryDataCollectionOptions;
 	getDsn: () => unknown;
 	getIntegrationByName: (name: string) => unknown;
 	getOptions: () => { enabled?: boolean };
@@ -143,8 +162,8 @@ export interface SentryCdnReplayOptions {
 
 export interface SentryPiiOptions {
 	/**
-	 * Permission Sentry needs before events carry user data and Sentry
-	 * infers visitor IP addresses.
+	 * Permission Sentry needs for SDK data collection, including user data,
+	 * cookies, headers, bodies, query parameters and IP inference.
 	 * @default 'measurement'
 	 */
 	category?: HasCondition<AllConsentNames>;
@@ -158,7 +177,7 @@ interface SentrySharedOptions {
 	 * @default 'always'
 	 */
 	loadMode?: SentryLoadMode;
-	/** Gate user data on events, sessions and IP inference. */
+	/** Gate SDK data collection, user fields and IP inference. */
 	pii?: SentryPiiOptions;
 	/**
 	 * Receives Sentry start and Replay load, start and stop failures.
@@ -251,8 +270,8 @@ interface ClientState {
 	replayAllowed: boolean;
 	/** Replay start methods already guarded for this client. */
 	guardedReplays: WeakSet<SentryReplay>;
-	/** `dataCollection.userInfo` as the app configured it. */
-	userInfo?: boolean;
+	/** Resolved SDK collection settings as the app configured them. */
+	collection?: SentryDataCollectionOptions;
 	/** The SDK `infer_ip` setting as the app configured it. */
 	inferIp?: string;
 	/** The `load()` call for this client, shared by every adapter instance. */
@@ -293,6 +312,7 @@ const errorsCategory: AllConsentNames = 'measurement';
 /** Retry until a late-initialized SDK client appears or the adapter is removed. */
 const clientRetryMs = 100;
 const errorTags = { 'c15t.integration': 'sentry' };
+const urlDetailsPattern = /[?#]/u;
 /** Initial permissions used to decide whether early IP inference needs a warning. */
 const ALL_DENIED: ConsentState = {
 	experience: false,
@@ -365,11 +385,34 @@ const forgetReplaySession = (): void => {
 	}
 };
 
-/** Point Sentry's user data settings at the current permission. */
+/** Disable collection through SDK settings while its permission is denied. */
+const deniedDataCollection = () => ({
+	cookies: false,
+	databaseQueryData: false,
+	frameContextLines: 0,
+	genAI: { inputs: false, outputs: false },
+	graphQL: { document: false, variables: false },
+	httpBodies: [],
+	httpHeaders: { request: false, response: false },
+	queryParams: false,
+	queues: false,
+	stackFrameVariables: false,
+	urlQueryParams: false,
+	userInfo: false,
+});
+
+/** Apply denial or restore the original resolved settings, including allowlists. */
 const applyPii = (client: SentryClient, state: ClientState): void => {
 	const dataCollection = client.getDataCollectionOptions?.();
-	if (dataCollection && state.userInfo === true) {
-		dataCollection.userInfo = state.piiAllowed;
+	if (dataCollection && state.collection) {
+		const denied = deniedDataCollection();
+		for (const field of Object.keys(denied) as (keyof typeof denied)[]) {
+			if (Object.hasOwn(state.collection, field)) {
+				dataCollection[field] = state.piiAllowed
+					? state.collection[field]
+					: denied[field];
+			}
+		}
 	}
 	const settings = client.getSdkMetadata?.()?.sdk?.settings;
 	if (settings && state.inferIp !== undefined && state.inferIp !== 'never') {
@@ -398,8 +441,13 @@ const loadScriptElement = (src: string, integrity?: string): Promise<void> =>
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value);
 
-/** Strip SDK user attributes without changing unrelated telemetry fields. */
-const redactUserAttributes = (payload: unknown): void => {
+const stripUrlDetails = (url: string): string => {
+	const details = url.search(urlDetailsPattern);
+	return details === -1 ? url : url.slice(0, details);
+};
+
+/** Strip SDK user and HTTP attributes, preserving unrelated telemetry fields. */
+const redactCollectedAttributes = (payload: unknown): void => {
 	if (!isRecord(payload)) {
 		return;
 	}
@@ -409,8 +457,22 @@ const redactUserAttributes = (payload: unknown): void => {
 			continue;
 		}
 		for (const key of Object.keys(attributes)) {
-			if (key.startsWith('user.') || key.startsWith('sentry.user.')) {
+			if (
+				key.startsWith('user.') ||
+				key.startsWith('sentry.user.') ||
+				key.startsWith('http.request.header.') ||
+				key.startsWith('http.response.header.') ||
+				key === 'url.query' ||
+				key === 'url.fragment'
+			) {
 				Reflect.deleteProperty(attributes, key);
+			} else if (key === 'url.full' || key === 'http.url') {
+				const value = attributes[key];
+				if (typeof value === 'string') {
+					attributes[key] = stripUrlDetails(value);
+				} else if (isRecord(value) && typeof value.value === 'string') {
+					value.value = stripUrlDetails(value.value);
+				}
 			}
 		}
 	}
@@ -447,6 +509,19 @@ const redactFeedback = (contexts: Record<string, unknown>): void => {
 	}
 };
 
+/** HttpContext in older SDKs bypasses collection settings for headers and URLs. */
+const redactRequest = (request: unknown): void => {
+	if (!isRecord(request)) {
+		return;
+	}
+	for (const field of ['headers', 'cookies', 'data', 'body', 'query_string']) {
+		Reflect.deleteProperty(request, field);
+	}
+	if (typeof request.url === 'string') {
+		request.url = stripUrlDetails(request.url);
+	}
+};
+
 /** Final redaction also catches users added by scope processors or beforeSend. */
 const redactEnvelope = (envelope: SentryEnvelope): void => {
 	for (const [header, payload] of envelope[1]) {
@@ -459,15 +534,16 @@ const redactEnvelope = (envelope: SentryEnvelope): void => {
 			case 'replay_event':
 			case 'feedback':
 				delete payload.user;
+				redactRequest(payload.request);
 				if (isRecord(payload.contexts)) {
-					redactUserAttributes(payload.contexts.trace);
+					redactCollectedAttributes(payload.contexts.trace);
 					if (header.type === 'feedback') {
 						redactFeedback(payload.contexts);
 					}
 				}
 				if (Array.isArray(payload.spans)) {
 					for (const span of payload.spans) {
-						redactUserAttributes(span);
+						redactCollectedAttributes(span);
 					}
 				}
 				break;
@@ -484,10 +560,10 @@ const redactEnvelope = (envelope: SentryEnvelope): void => {
 			case 'log':
 			case 'trace_metric':
 			case 'span':
-				redactUserAttributes(payload);
+				redactCollectedAttributes(payload);
 				if (Array.isArray(payload.items)) {
 					for (const item of payload.items) {
-						redactUserAttributes(item);
+						redactCollectedAttributes(item);
 					}
 				}
 				if (isRecord(payload.ingest_settings)) {
@@ -539,7 +615,9 @@ const createGate = (options: GateOptions) => {
 			known.owner = owner;
 			return known;
 		}
+		const collection = client.getDataCollectionOptions?.();
 		const state: ClientState = {
+			collection: collection ? { ...collection } : undefined,
 			enabled: client.getOptions().enabled !== false,
 			guardedReplays: new WeakSet(),
 			inferIp: client.getSdkMetadata?.()?.sdk?.settings?.infer_ip,
@@ -547,7 +625,6 @@ const createGate = (options: GateOptions) => {
 			owner,
 			piiAllowed: false,
 			replayAllowed: false,
-			userInfo: client.getDataCollectionOptions?.()?.userInfo,
 		};
 		clientStates.set(client, state);
 		client.addEventProcessor((event) => {
@@ -601,7 +678,7 @@ const createGate = (options: GateOptions) => {
 		}
 		if (
 			!options.startsSentry &&
-			state.userInfo === true &&
+			state.collection?.userInfo === true &&
 			!has(options.piiCategory, ALL_DENIED)
 		) {
 			warn(
@@ -809,7 +886,7 @@ const createGate = (options: GateOptions) => {
 	// Keep the latest permission even when Sentry initializes much later.
 	// Only one short retry timer runs, and removal cancels it.
 	const retrySync = (): void => {
-		if (clientTimer !== undefined || disposed) {
+		if (clientTimer !== undefined || disposed || !latest?.errors) {
 			return;
 		}
 		clientTimer = setTimeout(() => {
@@ -890,6 +967,10 @@ const createGate = (options: GateOptions) => {
 			pii: every(options.piiCategory),
 			replay: errors && every(options.replayCategory),
 		};
+		if (!errors) {
+			clearTimeout(clientTimer);
+			clientTimer = undefined;
+		}
 		if (typeof document === 'undefined') {
 			return;
 		}
@@ -926,7 +1007,7 @@ const createGate = (options: GateOptions) => {
 		denyClient();
 	};
 
-	return { dispose, report, update };
+	return { dispose, report, sync, update };
 };
 
 /**
@@ -971,7 +1052,8 @@ const createInitOptions = (
 	sentryGlobal: SentryGlobal,
 	dsn: string,
 	initOptions: Record<string, unknown>,
-	tracing: boolean
+	tracing: boolean,
+	beforeCapture: () => void
 ): Record<string, unknown> => {
 	const integrations = initOptions.integrations as IntegrationsOption;
 	return {
@@ -992,7 +1074,8 @@ const createInitOptions = (
 			) {
 				list.push(sentryGlobal.browserTracingIntegration());
 			}
-			return list;
+			// Register consent before integrations can capture startup data.
+			return [{ name: 'C15tConsent', setup: beforeCapture }, ...list];
 		},
 	};
 };
@@ -1076,9 +1159,11 @@ const createCdnScript = (
 		alwaysLoad: options.loadMode === 'after-consent' ? undefined : true,
 		category,
 		observeConsentBeforeLoad: true,
+		onBeforeLoad: gate.update,
 		onConsentChange: gate.update,
 		onDispose: gate.dispose,
 		onLoad: (info) => {
+			gate.update(info);
 			const sentryGlobal = getSentryGlobal();
 			try {
 				// Consent remounts keep their client. Changed configuration starts
@@ -1089,7 +1174,9 @@ const createCdnScript = (
 					(!previous || cdnClients.get(previous) !== options)
 				) {
 					sentryGlobal.init(
-						createInitOptions(sentryGlobal, dsn, initOptions, tracing)
+						createInitOptions(sentryGlobal, dsn, initOptions, tracing, () => {
+							gate.sync();
+						})
 					);
 					const initialized = sentryGlobal.getClient();
 					if (initialized) {

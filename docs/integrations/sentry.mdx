@@ -16,6 +16,9 @@ and applies consent:
 - While `measurement` is denied, events and sessions carry no user, and Sentry
   infers no IP address. Feedback contact emails and names are removed while
   its message is preserved.
+- SDK collection of cookies, headers, bodies, query parameters, GraphQL and AI
+  data, database and queue payloads, stack variables and source context is disabled
+  while the user-data permission is denied. A grant restores your configuration.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -76,27 +79,42 @@ sentry({
 });
 ```
 
-Without `init`, Sentry starts before c15t and can send its first session with
-the visitor's IP address before consent. In that case, set
-`dataCollection: { userInfo: false }` in `Sentry.init`. Requires `@sentry/*`
-10.67.0 or later.
+SDK mode requires `@sentry/*` 10.67.0 or later. An independently initialized SDK
+can capture data before the adapter finds its client. `init` synchronizes the
+client when the callback finishes; `loadMode: 'after-consent'` also prevents
+initialization before measurement is allowed. The CDN setup applies consent
+during SDK initialization, before integrations can capture startup data.
 
-The adapter installs its filters after it finds the client. It keeps checking
-every 100 ms if initialization happens later. Use `init` to let c15t apply
-the current permissions as soon as initialization finishes.
+The adapter installs its filters after it finds the client. While error monitoring
+is allowed, it checks every 100 ms if initialization happens later. With
+`loadMode: 'after-consent'`, denial cancels retries and the next grant starts
+or synchronizes the client.
 
-`dataCollection.userInfo: false` does not remove users assigned by your app.
-If Sentry must initialize independently, remove `event.user` in `beforeSend`
-to protect events captured before the adapter registers. This conservative
-filter keeps user data out of error events even after consent:
+If Sentry 11 must initialize independently, disable collection in `Sentry.init`
+and remove app-assigned users in `beforeSend` to protect startup events. This
+conservative setup keeps collection and event users disabled even after consent.
+With SDK 10.67, omit `queues`, which that version does not expose:
 
 {/* example: fragment */}
 
 ```ts
 // Include these options in your app's Sentry.init call.
-dataCollection: { userInfo: false },
+dataCollection: {
+	userInfo: false,
+	cookies: false,
+	httpHeaders: { request: false, response: false },
+	httpBodies: [],
+	urlQueryParams: false,
+	graphQL: { document: false, variables: false },
+	genAI: { inputs: false, outputs: false },
+	databaseQueryData: false,
+	queues: false,
+	stackFrameVariables: false,
+	frameContextLines: 0,
+},
 beforeSend(event) {
 	delete event.user;
+	delete event.request;
 	return event;
 },
 ```
@@ -126,7 +144,7 @@ Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
 | `replay.load` | None | With your own SDK, returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
 | `loadMode` | `'always'` | `'after-consent'` starts Sentry only once `measurement` is allowed. |
 | `replay.category` | `'measurement'` | Consent condition for Replay. |
-| `pii.category` | `'measurement'` | Consent condition for user data. `'necessary'` permits it while the Sentry vendor is enabled. |
+| `pii.category` | `'measurement'` | Consent condition for SDK data collection and user data. `'necessary'` permits it while the Sentry vendor is enabled. |
 | `pii.user` | None | Returns the user to set when user data becomes allowed. |
 | `onError` | Report to Sentry | Receives Sentry start and Replay load, start and stop failures. |
 
@@ -150,8 +168,16 @@ While user data is not allowed, the adapter removes `user` from events and
 feedback, the user and IP address from sessions, and SDK user attributes from
 root spans, child spans, logs and metrics. A final envelope filter also removes
 users added by later event processors or `beforeSend`. The adapter switches Sentry's IP inference off for
-events, spans, logs and metrics. When the permission is allowed, your own
-`dataCollection` setting applies again. Tracing itself is not gated.
+events, spans, logs and metrics. It disables every supported `dataCollection`
+field and restores the original resolved settings on grant, including allowlists
+and fields your app disabled. The final filter removes request headers, cookies,
+bodies and URL query parameters and fragments, plus HTTP headers and URL details
+on root and child spans, including SDK versions that ignore the collection flags.
+Tracing itself is not gated.
+
+The collection settings control SDK instrumentation. Keep sensitive values out
+of custom messages, tags, extras, attachments and URL paths; those fields remain
+part of error diagnostics.
 
 Removing the integration stops Replay without flushing, cancels pending starts
 and denies user data. With `loadMode: 'after-consent'`, removal also disables
