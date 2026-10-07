@@ -49,7 +49,7 @@ Link a shared page into a framework sidebar with a leading `/`, such as
 
 | Group | Pages, in order |
 | --- | --- |
-| No heading | Quickstart, setup variants (Next.js routers, HTML platforms), the install reference (Nuxt module, Vue plugin), Rendering and deployment |
+| No heading | Quickstart, setup variants (Next.js routers, HTML platforms), the install reference (Nuxt module, Vue plugin), Rendering and deployment, Upgrade from v2 |
 | Scripts and embeds | Scripts, Embeds, Network blocker, Vendor consent where the adapter lists vendors in its dialog or exposes a vendor draft, Clear on revocation |
 | Customization | Customize, Banner designs (`/customization/recipes`), Theme tokens (`/customization/tokens`), Translations, Compose your own banner where the adapter exports compound parts, Headless |
 | Components | Components overview first, then one page per component |
@@ -81,6 +81,7 @@ minimum and that every framework page appears in its sidebar.
 | Callbacks | `callbacks` | Yes | Every callback, when it fires, its argument and where to register it. |
 | IAB TCF | `iab` | When supported | Components, stylesheet and server behavior for IAB policies. |
 | Troubleshooting | `troubleshooting` | Yes | Symptom, check, fix. Framework-specific failures first, then link to the shared page. |
+| Upgrade from v2 | `upgrade-v3` | When a v2 package covered the framework: Next.js, React and JavaScript | Opens with a copyable `Prompt` for coding agents, then the v2 to v3 steps for that package. Shared sections come from `docs/shared/upgrade-v3/`. `/docs/upgrade-v3` stays the overview with the backend and Node.js SDK. |
 
 Next.js keeps its router pages (`app-router`, `pages-router`,
 `static-export`, `client-side`) and Advanced pages (`geography-headers`,

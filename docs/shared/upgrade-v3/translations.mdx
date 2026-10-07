@@ -1,0 +1,12 @@
+## Update complete translation objects
+
+Partial overrides through `i18n.messages` and objects typed as `Translations`
+need no change. A complete translation object typed as `CompleteTranslations`
+fails type-checking until you add the new sections and keys: `consentGate`, which
+replaces `frame`, `rights`, the notice and dismiss strings such as
+`common.acknowledge` and `cookieBanner.noticeTitle`, and the vendor list copy
+under `consentManagerDialog.vendors`. `migrateLegacyTranslationKeys()` moves
+`frame` copy to `consentGate`.
+
+`i18n.messages` for the visitor's language now merge over the backend's copy
+instead of being replaced by it.

@@ -9,6 +9,7 @@
  */
 
 import { POLICY_CONTRACT_HEADER, POLICY_CONTRACT_VERSION } from '@c15t/schema';
+import type { ConsentManifestConfig } from '@c15t/schema';
 import { isOriginTrusted } from '@c15t/schema/geo';
 import type { ManagedRuntime } from 'effect';
 import type { SqlClient } from 'effect/sql';
@@ -19,7 +20,7 @@ import {
 	gradeLevel,
 	middleware as observability,
 } from '../observability/evlog';
-import { assertTenantOptions, makeRun } from './context';
+import { assertTenantOptions, makeRun, resolveHosting } from './context';
 import type { AppOptions, RouteContext } from './context';
 import { register as registerConsent } from './routes/consent';
 import { register as registerExperiment } from './routes/experiment';
@@ -35,9 +36,16 @@ export type { AppOptions } from './context';
 
 export const createApp = function createApp(
 	runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>,
-	options: AppOptions = {}
+	input: AppOptions = {}
 ) {
-	assertTenantOptions(options);
+	assertTenantOptions(input);
+	// Stamped into the manifest config once, so `/init`, `/manifest`, the
+	// script builds, and consent saves all build the same manifest.
+	const manifest: ConsentManifestConfig = {
+		...input.manifest,
+		hosting: resolveHosting(input),
+	};
+	const options: AppOptions = { ...input, manifest };
 	const app = new Hono();
 
 	// First, so the wide event covers CORS rejections and preflights too — a

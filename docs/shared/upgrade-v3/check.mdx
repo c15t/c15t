@@ -1,0 +1,14 @@
+## Check the migration
+
+1. Run your typecheck and build. Remaining `TODO(c15t v3)` comments from the
+   codemod fail the build until you resolve them.
+2. Load the app with a v2 consent cookie from before the upgrade. The banner
+   stays closed if that choice still applies, and a rejected category stays
+   blocked.
+3. In a private window, check in DevTools Network that vendor requests wait for
+   consent, start after you accept, and stay absent after you reject and
+   reload.
+4. Reopen preferences from your privacy settings link and change a category.
+
+The [verification guide](/docs/guides/verify-consent) has the full release
+checklist.

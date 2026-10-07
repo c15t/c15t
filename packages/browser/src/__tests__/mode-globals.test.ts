@@ -1,6 +1,12 @@
 import { policyRulePresets } from '@c15t/core';
 import type { GPPPingData } from '@c15t/iab/gpp';
-import { resolvePolicyRules } from '@c15t/schema/types';
+import {
+	POLICY_CONTRACT_HEADER,
+	POLICY_CONTRACT_VERSION,
+	resolvePolicyRules,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
+import { translations } from '@c15t/translations/en';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createGlobal } from '../global';
@@ -318,6 +324,45 @@ describe('default CDN entry', () => {
 		for (const factory of ['offline', 'manifest', 'custom']) {
 			expect(api).not.toHaveProperty(factory);
 		}
+	});
+
+	it('reports hosting from init on the default CDN entry', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn<typeof fetch>(() =>
+				Promise.resolve(
+					Response.json(
+						{
+							branding: 'c15t',
+							hosting: 'inth',
+							location: { countryCode: 'DE', regionCode: null },
+							policyResolution: writePolicyResolutionWire(resolution),
+							translations: { language: 'en', translations },
+						},
+						{
+							headers: {
+								[POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
+							},
+						}
+					)
+				)
+			)
+		);
+		vi.spyOn(document, 'currentScript', 'get').mockReturnValue(
+			scriptWith({
+				'data-backend-url': 'https://consent.example.test',
+				'data-manual': '',
+				'data-no-ui': '',
+			})
+		);
+
+		const api = await loadTag('hosted');
+		expect(api.hosting).toBeNull();
+		api.init();
+		await api.ready();
+		expect(api.hosting).toBe('inth');
+		api.dispose();
+		expect(api.hosting).toBeNull();
 	});
 
 	it('requires a backend rather than falling back to offline', async () => {

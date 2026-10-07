@@ -1,0 +1,140 @@
+---
+title: Upgrade from v2
+description: Upgrade a JavaScript app from the c15t v2 store and getOrCreateConsentRuntime to v3. Covers @c15t/browser, createConsentRuntime, the consent kernel, moved exports, callbacks, policies and stored consent.
+group: frameworks
+---
+
+## Hand the upgrade to a coding agent
+
+<Prompt title="Upgrade this JavaScript app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
+  Upgrade this JavaScript app from the c15t v2 store to c15t v3.
+
+  Read https://c15t.com/docs/frameworks/javascript/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
+
+  1. Find every use of the `c15t` package and `@c15t/scripts`: `getOrCreateConsentRuntime`, `configureConsentManager`, `consentStore`, cookie helpers, script loader and iframe blocker functions.
+  2. Decide which v3 entry fits. Use `@c15t/browser` if the app wants the stock banner, `createConsentRuntime` from `c15t/runtime` if it renders its own UI, and `createConsentKernel` only if it mounts each module itself. Tell me which one you picked and why.
+  3. Install `c15t@alpha`, or `@c15t/browser@alpha` for the stock banner, plus `@c15t/integrations@alpha` if the app uses vendor helpers and `@c15t/dev-tools@alpha` if it uses dev tools.
+  4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations consent-provider-options policy-packs-to-policy-rules callbacks-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  5. If you picked `createConsentRuntime`, call `runtime.start()` after creating it. Replace each store call with its v3 equivalent from the guide's mapping table.
+  6. Update callbacks and policy presets as the guide describes.
+  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
+  8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
+
+  When you finish, list the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.
+</Prompt>
+
+## Before you start
+
+If you run your own c15t backend, upgrade it in the same release. A v3 client
+can't read a v2 backend. See
+[Upgrade a self-hosted backend](/docs/upgrade-v3#upgrade-a-self-hosted-backend).
+Inth-hosted backends need no change.
+
+Every v3 package ships ESM only. If a CommonJS file in your app calls
+`require()` on a c15t package, convert it to ESM.
+
+## Pick a replacement
+
+v2's `getOrCreateConsentRuntime()`, `configureConsentManager()` and the
+Zustand `consentStore` are gone. Pick a replacement by how much you want c15t
+to do.
+
+| You want | Use |
+| --- | --- |
+| The stock banner and dialog | `@c15t/browser`. Call `init()` from a bundled app, or add the script tag to a site without a build step. See the [quickstart](/docs/frameworks/javascript/quickstart). |
+| Your own UI, with persistence, the script loader and the blockers wired for you | `createConsentRuntime()` from `c15t/runtime`, then `runtime.start()`. See [headless](/docs/frameworks/javascript/headless). |
+| The engine alone, mounting each module yourself | `createConsentKernel()` from `c15t`. See the [kernel API](/docs/frameworks/javascript/api/kernel). |
+
+Install `c15t` for the runtime or the kernel:
+
+<CommandTabs command="c15t@alpha" mode="install" />
+
+The runtime takes the same kind of options v2 did. `mode` and `backendURL`
+become one transport, such as `hosted({ url })` or `offline({ policyRules })`,
+exported from `c15t`. `translations` becomes `i18n`, and
+`iframeBlockerConfig` becomes `iframeBlocker`. See the
+[runtime reference](/docs/frameworks/javascript/api/runtime) for every option.
+
+`createConsentRuntime()` only builds the runtime. Call `runtime.start()` to
+read stored consent, resolve the policy and mount the script loader and
+blockers. Until then nothing is gated.
+
+The `consent-provider-options` codemod rewrites `mode`, `backendURL` and
+`iframeBlockerConfig` in the object you pass to `getOrCreateConsentRuntime()`
+and adds the `hosted` or `offline` import from `c15t`. Rename the call to
+`createConsentRuntime()` from `c15t/runtime` yourself.
+
+## Replace store calls
+
+The runtime exposes the kernel as `runtime.kernel`. Read state from
+`kernel.getSnapshot()` and listen with `kernel.subscribe()`.
+
+| v2 store | v3 |
+| --- | --- |
+| `consentStore.getState()` | `kernel.getSnapshot()` |
+| `consentStore.subscribe(listener)` | `kernel.subscribe(listener)`. The listener gets the whole snapshot, on every change. |
+| `subscribeToConsentChanges(listener)` | `kernel.events.on('permissions:changed', ({ snapshot }) => listener(snapshot.effectivePermissions))`, or the `onPermissionsChanged` callback |
+| `has(category)` | `kernel.getSnapshot().effectivePermissions[category]` |
+| `consents` | `kernel.getSnapshot().effectivePermissions` |
+| `consentInfo` | `kernel.getSnapshot().explicitChoice`, which is `null` until the visitor chooses |
+| `hasConsented()` | `kernel.getSnapshot().explicitChoice !== null` |
+| `saveConsents('all')` | `kernel.commands.save('all')` |
+| `saveConsents('necessary')` | `kernel.commands.save('none')` |
+| `selectedConsents`, `setSelectedConsent(name, value)` | `createPreferenceDraft(kernel)` from `c15t/preference-draft`, then `draft.getState()` and `draft.set(name, value)` |
+| `saveConsents('custom')` | `draft.save()` on that preference draft |
+| `setConsent(name, value)` | `kernel.commands.save({ [name]: value })` |
+| `activeUI`, `setActiveUI(ui)` | `kernel.getSnapshot().activeUI`, `kernel.set.activeUI(ui)` |
+| `locationInfo` | `kernel.getSnapshot().location` |
+| `setOverrides(overrides)` | `runtime.setOverrides(overrides)`, then `runtime.reinit()` |
+| `setLanguage(code)` | `runtime.setLanguage(code)` |
+| `identifyUser(user)` | `runtime.identify(user)` |
+
+`effectivePermissions` is what may run now. `explicitChoice` is what the
+visitor decided. Under an opt-out policy a category can be allowed before any
+choice, so don't treat a `true` permission as a recorded grant. See
+[snapshot](/docs/frameworks/javascript/api/snapshot).
+
+## Update moved exports
+
+| v2 export from `c15t` | v3 |
+| --- | --- |
+| `getCookie`, `setCookie`, `deleteCookie`, `getConsentFromStorage`, `saveConsentToStorage`, `deleteConsentFromStorage` | Removed. `createPersistence()` from `c15t/modules/persistence` owns storage. |
+| `loadScripts`, `unloadScripts`, `updateScripts`, `isScriptLoaded`, `getLoadedScriptIds` | Removed. Pass `scripts` to `createConsentRuntime()`, which mounts the loader on `start()`. To run a loader yourself, `createScriptLoader({ kernel, scripts })` from `c15t/modules/script-loader` returns `updateScripts(next)`, `getLoadedScriptIds()` and `dispose()`. Use `getLoadedScriptIds().includes(id)` for `isScriptLoaded(id)`. |
+| `createIframeBlocker` | `c15t/modules/iframe-blocker` |
+| `getEffectivePolicy`, `filterConsentCategoriesByPolicy` and the other policy helpers | `resolveConsentPresentation()` from `c15t` and the helpers in `c15t/surface-actions` |
+| `C15tClient`, `OfflineClient`, `CustomClient`, `API_ENDPOINTS` | Transports: `hosted()`, `offline()` and `custom()` from `c15t` |
+| `policyPackPresets` | `policyRulePresets` |
+| `configureConsentManager`, `createConsentManagerStore`, `clearConsentRuntimeCache` | Removed |
+
+<include src="../../shared/upgrade-v3/integrations.mdx" />
+
+<include src="../../shared/upgrade-v3/callbacks.mdx" />
+
+<include src="../../shared/upgrade-v3/policies.mdx" />
+
+<include src="../../shared/upgrade-v3/translations.mdx" />
+
+<include src="../../shared/upgrade-v3/stored-consent.mdx" />
+
+## Update dev tools
+
+Dev tools no longer depend on React. Upgrade `@c15t/dev-tools` to
+`@c15t/dev-tools@alpha` with the rest of c15t, then call
+`createDevTools({ kernel })` with your runtime's kernel. See
+[dev tools](/docs/frameworks/javascript/dev-tools).
+
+<include src="../../shared/upgrade-v3/cli.mdx" />
+
+## Check the migration
+
+1. Run your typecheck and build.
+2. Load the app with a v2 consent cookie from before the upgrade. The banner
+   stays closed if that choice still applies, and a rejected category stays
+   blocked.
+3. In a private window, check in DevTools Network that vendor requests wait for
+   consent, start after you accept, and stay absent after you reject and
+   reload.
+4. Reopen preferences and change a category.
+
+The [verification guide](/docs/guides/verify-consent) has the full release
+checklist.

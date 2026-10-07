@@ -125,6 +125,7 @@ export type {
 	KernelActiveUI,
 	KernelBranding,
 	KernelConfig,
+	KernelHosting,
 	KernelEvent,
 	KernelIABAuthority,
 	KernelIABState,

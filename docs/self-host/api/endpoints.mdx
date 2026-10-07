@@ -62,6 +62,11 @@ the response is then the intersection of that list and `gvl.vendorIds`, so the
 header can shrink the served list and cannot widen it. See
 [IAB backend configuration](/docs/self-host/guides/iab-tcf).
 
+Every `/init` and `/manifest` response carries `hosting`: `'self-hosted'`, or
+`'inth'` from Inth's hosted platform. Set it with the instance's
+[`hosting` option](/docs/self-host/api/configuration#instance-options). Backends
+older than this field omit it.
+
 `/init` uses `Cache-Control: no-store`. It can include a signed
 `policySnapshotToken` when signing is configured and a policy matched. For
 request-time framework rendering, prefer a cached manifest and local resolution

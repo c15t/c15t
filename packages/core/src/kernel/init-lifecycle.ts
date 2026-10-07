@@ -249,6 +249,9 @@ const foldInitResponse = function foldInitResponse(
 	if (response.branding !== undefined) {
 		patch.branding = response.branding;
 	}
+	if (response.hosting !== undefined) {
+		patch.hosting = response.hosting;
+	}
 
 	const resolution = readInitResolution(response);
 	patch.resolution = resolution;

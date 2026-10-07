@@ -1,6 +1,7 @@
 /**
  * Shared types for the window-debug module.
  */
+import type { KernelHosting } from '../../types';
 
 /**
  * The transport kind reported on `window.c15t`. Reflects what the
@@ -16,6 +17,11 @@ export interface WindowDebugOptions {
 	pkg: string;
 	/** Resolved transport kind the adapter is running with. */
 	mode: WindowDebugMode;
+	/**
+	 * Reads who runs the backend, from the kernel snapshot. Called on each
+	 * read of `window.c15t.hosting`, because `/init` answers after install.
+	 */
+	getHosting?: () => KernelHosting | null;
 }
 
 /**
@@ -42,6 +48,12 @@ export interface C15tWindowDebug {
 	readonly pkg: string;
 	/** The resolved transport kind. */
 	readonly mode: WindowDebugMode;
+	/**
+	 * Who runs the backend, as `/init` reported it: `'inth'` or
+	 * `'self-hosted'`. `null` until init resolves, and for transports or
+	 * backends that do not report it. Not verified.
+	 */
+	readonly hosting: KernelHosting | null;
 }
 
 /**
