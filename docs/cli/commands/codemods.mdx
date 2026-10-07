@@ -31,7 +31,7 @@ place, so type-checking fails at each one until you resolve it.
 | `callbacks-to-v3` | `onConsentChanged` to `onChoiceRecorded` | The `onChoiceRecorded` payload, `onConsentSet` and `onBannerFetched` |
 | `theme-to-consent-theme` | `theme.slots.consentDialogFooter` to `consentWidgetFooter` | Theme tokens, which need `ConsentTheme` or `generateThemeCSS()`, and `theme.slots.frame` |
 | `iab-option-to-iab-provider` | Nothing | The `iab` provider option, which moves to `IABProvider` |
-| `node-sdk-to-v3` | `c15tClient()` and `new C15TClient()` to `createC15tClient()`, client options, method names, type and error names | Each call site, `prefix`, `debug` and dropped retry options |
+| `node-sdk-to-v3` | `c15tClient()` and `new C15TClient()` to `createC15tClient()`, client and per-call options, method names, type and error names | Each call site, `prefix`, `debug`, dropped retry options, and per-call `throw`, `onSuccess` and `onError` |
 | `backend-config-to-v3` | `policyPacks` (as `policyRules`), `branding`, `customTranslations`, `i18n` and `appName` into `manifest` | `adapter`, `disableGeoLocation`, `iab`, `cache`, `logger`, `telemetry`, `tablePrefix`, `background` and removed entries |
 
 v2 still accepted the deprecated `translations` option, and v3 removes it.
@@ -98,8 +98,10 @@ prints a warning; add the plugin by hand as
 `node-sdk-to-v3` follows clients created in the same file, including class
 properties and parameters typed as `C15TClient`. It turns `type: 'a,b'`
 strings into `types: ['a', 'b']`, and moves a v2 `init(options)` argument to
-`init(undefined, options)`. A file that receives the client from another
-module keeps its old method names; search for them by hand.
+`init(undefined, options)`. In per-call options it renames `timeout` to
+`timeoutMs` and `retryConfig` to `retry`. Call options passed as a variable
+or spread get a `TODO(c15t v3)` comment. A file that receives the client
+from another module keeps its old method names; search for them by hand.
 
 `backend-config-to-v3` reads objects passed to `defineConfig()` or
 `c15tInstance()` from `@c15t/backend`, and variables typed as `C15TOptions`.

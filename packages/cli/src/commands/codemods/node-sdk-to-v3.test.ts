@@ -142,6 +142,91 @@ const tuned = makeClient({
 		expect(updated).toContain('retry: { maxRetries: 3, backoffFactor: 3 },');
 	});
 
+	it('renames per-call options and moves init options to the second argument', async () => {
+		const source = `import { c15tClient } from '@c15t/node-sdk';
+
+const client = c15tClient({ baseUrl: '/api' });
+
+export async function run(input, options) {
+	await client.status({ timeout: 5000, retryConfig: { maxRetries: 1 } });
+	await client.init({ timeout: 5000 });
+	await client.meta.init({ timeout: 2000, headers: { 'x-a': '1' } });
+	await client.getSubject('sub_1', { type: 'cookie_banner' }, { timeout: 100 });
+	await client.createSubject(input, options);
+}
+`;
+		const { first, second, secondResult } = await transformTwice(
+			codemod,
+			source,
+			'calls.ts'
+		);
+
+		expect(first).toContain(
+			'await client.status({ timeoutMs: 5000, retry: { maxRetries: 1 } });'
+		);
+		expect(first).toContain(
+			'await client.init(undefined, { timeoutMs: 5000 });'
+		);
+		expect(first).toContain(
+			"await client.init(undefined, { timeoutMs: 2000, headers: { 'x-a': '1' } });"
+		);
+		expect(first).toContain(
+			"await client.subjects.get('sub_1', { types: ['cookie_banner'] }, { timeoutMs: 100 });"
+		);
+		expect(first).toContain(
+			'\t// TODO(c15t v3): Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError and throw were removed.\n'
+		);
+		expect(first).toContain('await client.subjects.create(input, options);');
+		expect(first).not.toMatch(/retryConfig:|timeout:/u);
+		expect(second).toBe(first);
+		expect(secondResult.changedFiles).toEqual([]);
+	});
+
+	it('marks per-call options that v3 removed or reshaped', async () => {
+		const { updated } = await transformFile(
+			codemod,
+			`import { c15tClient } from '@c15t/node-sdk';
+
+const client = c15tClient({ baseUrl: '/api' });
+
+export async function run(log, retryConfig, defaults) {
+	await client.listSubjects(
+		{ externalId: 'x' },
+		{
+			throw: true,
+			onError: log,
+			retryConfig: { maxRetries: 3, backoffFactor: 3 },
+		}
+	);
+	await client.checkConsent({ externalId: 'x', type: 'marketing_communications' }, { retryConfig });
+	await client.status({ ...defaults, timeout: 1 });
+}
+`,
+			{ fileName: 'calls.ts' }
+		);
+
+		expect(updated).toContain(
+			'\t\t\t// TODO(c15t v3): throw was removed. Wrap the call in unwrap() to throw on failure.\n\t\t\tthrow: true,'
+		);
+		expect(updated).toContain(
+			'\t\t\t// TODO(c15t v3): onError was removed. Check result.ok after the call.\n\t\t\tonError: log,'
+		);
+		expect(updated).toContain(
+			'\t\t\t// TODO(c15t v3): retry takes only maxRetries, initialDelayMs and maxDelayMs, or false. backoffFactor, the status code lists and retryOnNetworkError were removed.\n\t\t\tretry: { maxRetries: 3, backoffFactor: 3 },'
+		);
+		// A variable may carry the removed retry keys.
+		expect(updated).toContain(
+			'{ /* TODO(c15t v3): retry takes only maxRetries, initialDelayMs and maxDelayMs, or false. backoffFactor, the status code lists and retryOnNetworkError were removed. */ retry: retryConfig });'
+		);
+		// A spread may carry the old keys, so the call is marked as a whole.
+		expect(updated).toContain(
+			'\t// TODO(c15t v3): Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError and throw were removed.\n'
+		);
+		expect(updated).toContain(
+			'await client.status({ ...defaults, timeoutMs: 1 });'
+		);
+	});
+
 	it('leaves other clients and v3 code alone', async () => {
 		const unrelated = await transformFile(
 			codemod,

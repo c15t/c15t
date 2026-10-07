@@ -48,10 +48,30 @@ const METHODS: Record<string, string> = {
 	'subjects.patch': 'subjects.identify',
 };
 
-const OPTION_RENAMES: Record<string, string> = {
+/** Per-call option keys renamed one to one. */
+const CALL_OPTION_RENAMES: Record<string, string> = {
 	retryConfig: 'retry',
 	timeout: 'timeoutMs',
+};
+
+const OPTION_RENAMES: Record<string, string> = {
+	...CALL_OPTION_RENAMES,
 	token: 'apiKey',
+};
+
+/**
+ * Position of the per-call options argument in v2, by v3 method. v2 and v3
+ * agree on every position except `init`, whose options move from first to
+ * second.
+ */
+const CALL_OPTIONS_INDEX: Record<string, number> = {
+	'consents.check': 1,
+	init: 0,
+	status: 0,
+	'subjects.create': 1,
+	'subjects.get': 2,
+	'subjects.identify': 2,
+	'subjects.list': 1,
 };
 
 const DROPPED_RETRY_KEYS = new Set([
@@ -76,6 +96,13 @@ const RETRY_TODO =
 const TYPES_TODO =
 	"Pass types as an array, such as types: ['privacy_policy'], instead of a comma-separated type string.";
 const FETCH_TODO = '$fetch was removed. Call the typed client methods.';
+const CALL_OPTION_TODOS: Record<string, string> = {
+	onError: 'onError was removed. Check result.ok after the call.',
+	onSuccess: 'onSuccess was removed. Check result.ok after the call.',
+	throw: 'throw was removed. Wrap the call in unwrap() to throw on failure.',
+};
+const CALL_OPTIONS_TODO =
+	'Call options changed: timeout is now timeoutMs, retryConfig is now retry, and onSuccess, onError and throw were removed.';
 
 interface Context {
 	clientDeclarations: TsMorphTypes.Node[];
@@ -159,12 +186,100 @@ const methodCallOf = function methodCallOf(
 	return { access, call, path };
 };
 
+/** Renames an options key that kept its meaning under a new name. */
+const planKeyRename = function planKeyRename(
+	property: TsMorphTypes.ObjectLiteralElementLike,
+	renames: Record<string, string>,
+	context: Context
+): void {
+	const key = propertyKey(property);
+	const renamed = key && renames[key];
+	if (!renamed) {
+		return;
+	}
+	if (Node.isPropertyAssignment(property)) {
+		context.edits.push(toTextEdit(property.getNameNode(), renamed));
+	} else if (Node.isShorthandPropertyAssignment(property)) {
+		context.edits.push(toTextEdit(property, `${renamed}: ${key}`));
+	} else {
+		return;
+	}
+	context.summaries.add(`${key} -> ${renamed}`);
+};
+
+/**
+ * Marks a `retryConfig` unless it is an object literal with only keys v3
+ * still accepts. A variable or spread may carry the removed keys.
+ */
+const planRetry = function planRetry(
+	property: TsMorphTypes.ObjectLiteralElementLike,
+	context: Context
+): void {
+	if (propertyKey(property) !== 'retryConfig') {
+		return;
+	}
+	const value = Node.isPropertyAssignment(property)
+		? unwrapExpression(property.getInitializerOrThrow())
+		: undefined;
+	const accepted =
+		value !== undefined &&
+		Node.isObjectLiteralExpression(value) &&
+		value.getProperties().every((item) => {
+			const key = propertyKey(item);
+			return key !== undefined && !DROPPED_RETRY_KEYS.has(key);
+		});
+	if (!accepted && addTodo(property, RETRY_TODO, context.edits)) {
+		context.summaries.add('TODO: retry');
+	}
+};
+
+/** Renames per-call option keys and marks the ones v3 removed. */
+const planCallOptions = function planCallOptions(
+	target: string,
+	call: TsMorphTypes.CallExpression,
+	context: Context
+): void {
+	const index = CALL_OPTIONS_INDEX[target];
+	const argument = index === undefined ? undefined : call.getArguments()[index];
+	if (!argument) {
+		return;
+	}
+	const object = unwrapExpression(argument);
+	if (Node.isIdentifier(object) && object.getText() === 'undefined') {
+		return;
+	}
+	const markCall = () => {
+		if (addTodo(statementOf(call), CALL_OPTIONS_TODO, context.edits)) {
+			context.summaries.add('TODO: call options');
+		}
+	};
+	if (!Node.isObjectLiteralExpression(object)) {
+		markCall();
+		return;
+	}
+	for (const property of object.getProperties()) {
+		if (Node.isSpreadAssignment(property)) {
+			markCall();
+			continue;
+		}
+		planKeyRename(property, CALL_OPTION_RENAMES, context);
+		planRetry(property, context);
+		const key = propertyKey(property);
+		const todo = key && CALL_OPTION_TODOS[key];
+		if (todo && addTodo(property, todo, context.edits)) {
+			context.summaries.add(`TODO: ${key}`);
+		}
+	}
+};
+
 /** Rewrites arguments whose position or format changed. */
 const planArguments = function planArguments(
 	target: string,
-	args: TsMorphTypes.Node[],
+	call: TsMorphTypes.CallExpression,
 	context: Context
 ): void {
+	const args = call.getArguments();
+	planCallOptions(target, call, context);
 	const [first, second] = args;
 	// v2 init(fetchOptions) took one argument; v3 takes the request first.
 	if (target === 'init' && first && args.length === 1) {
@@ -209,7 +324,7 @@ const planCall = function planCall(
 		});
 		context.summaries.add(`${path} -> ${target}`);
 	}
-	planArguments(target, call.getArguments(), context);
+	planArguments(target, call, context);
 	if (addTodo(statementOf(call), RESULT_TODO, context.edits)) {
 		context.summaries.add('TODO: result shape');
 	}
@@ -237,25 +352,8 @@ const planOptions = function planOptions(
 		if (!key) {
 			continue;
 		}
-		const renamed = OPTION_RENAMES[key];
-		if (renamed && Node.isPropertyAssignment(property)) {
-			context.edits.push(toTextEdit(property.getNameNode(), renamed));
-			context.summaries.add(`${key} -> ${renamed}`);
-		} else if (renamed && Node.isShorthandPropertyAssignment(property)) {
-			context.edits.push(toTextEdit(property, `${renamed}: ${key}`));
-			context.summaries.add(`${key} -> ${renamed}`);
-		}
-		if (key === 'retryConfig' && Node.isPropertyAssignment(property)) {
-			const retry = unwrapExpression(property.getInitializerOrThrow());
-			if (
-				Node.isObjectLiteralExpression(retry) &&
-				retry
-					.getProperties()
-					.some((item) => DROPPED_RETRY_KEYS.has(propertyKey(item) ?? ''))
-			) {
-				addTodo(property, RETRY_TODO, context.edits);
-			}
-		}
+		planKeyRename(property, OPTION_RENAMES, context);
+		planRetry(property, context);
 		const todo = OPTION_TODOS[key];
 		if (todo && addTodo(property, todo, context.edits)) {
 			context.summaries.add(`TODO: ${key}`);
