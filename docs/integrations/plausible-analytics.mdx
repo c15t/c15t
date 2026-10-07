@@ -5,10 +5,11 @@ icon: plausible
 group: integrations
 ---
 
-The c15t `plausibleAnalytics` helper ties Plausible Analytics to
-`measurement`. Until a visitor allows `measurement`, c15t does not request the
-Plausible tracker or define `window.plausible`. If a visitor later withdraws
-`measurement`, c15t removes the script element and reloads the page.
+The c15t `plausibleAnalytics` helper keeps Plausible Analytics off the page
+until the visitor gives consent for `measurement`. Before consent, c15t does not
+define `window.plausible`. The helper sends no consent signal to Plausible. If
+the visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
 ## Configure Plausible Analytics
 

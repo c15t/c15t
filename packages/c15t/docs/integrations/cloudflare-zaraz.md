@@ -7,13 +7,13 @@ icon: cloudflare-web-analytics
 group: integrations
 ---
 
-The c15t `cloudflareZaraz` helper is a callback-only bridge to Cloudflare Zaraz
-under the `necessary` category. It requests no script; Zaraz and its tools load
-through Cloudflare whatever the visitor chooses, so Zaraz purposes decide what
-runs. Once the Zaraz consent API is ready, the bridge calls
-`zaraz.consent.set()` so each purpose is `true` only while the c15t category
-mapped to it in `purposes` is allowed. When a purpose becomes allowed, it calls
-`zaraz.consent.sendQueuedEvents()`.
+The c15t `cloudflareZaraz` helper connects c15t consent to Cloudflare Zaraz
+under the `necessary` category. The helper loads no script. Cloudflare loads
+Zaraz and its tools for every visitor, so the Zaraz purposes control which tools
+run. When the Zaraz consent API is ready, the helper calls
+`zaraz.consent.set()`. A purpose is `true` only while the c15t category that you
+map to it in `purposes` has consent. When a purpose changes to `true`, the
+helper calls `zaraz.consent.sendQueuedEvents()`.
 
 ## Configure Cloudflare Zaraz
 

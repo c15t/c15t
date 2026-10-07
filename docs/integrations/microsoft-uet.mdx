@@ -5,13 +5,12 @@ icon: microsoft
 group: integrations
 ---
 
-The c15t `microsoftUet` helper ties Microsoft Advertising UET to `marketing` but
-loads `bat.js` on every page, so the browser contacts Microsoft before a choice.
-Before the script loads, the helper calls
-`uetq.push('consent', 'default', { ad_storage })` with `granted` or `denied`
-from the `marketing` permission, and it sends an `update` when that permission
-changes. After a withdrawal it keeps UET loaded, sends `denied`, and c15t
-reloads the page.
+The c15t `microsoftUet` helper loads Microsoft Advertising UET, `bat.js`, on
+every page, before the visitor chooses. Before the script loads, the helper
+calls `uetq.push('consent', 'default', { ad_storage })`. The `ad_storage` value
+is `granted` or `denied`, from the consent for `marketing`. When that consent
+changes, the helper sends an `update`. After the visitor withdraws consent, UET
+stays on the page and gets `denied`. By default, c15t also reloads the page.
 
 ## Configure Microsoft UET
 

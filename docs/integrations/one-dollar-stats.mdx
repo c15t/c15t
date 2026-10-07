@@ -5,10 +5,10 @@ icon: circle-dollar
 group: integrations
 ---
 
-The c15t `oneDollarStats` helper ties OneDollarStats to `measurement`. Until a
-visitor allows `measurement`, c15t does not request the `stonks.js` tracker.
-If a visitor later withdraws `measurement`, c15t removes the script element and
-reloads the page.
+The c15t `oneDollarStats` helper keeps the OneDollarStats tracker, `stonks.js`,
+off the page until the visitor gives consent for `measurement`. The helper sends
+no consent signal to OneDollarStats. If the visitor withdraws consent, c15t
+removes the script element. By default, c15t also reloads the page.
 
 ## Configure OneDollarStats
 

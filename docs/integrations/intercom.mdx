@@ -5,11 +5,12 @@ icon: intercom
 group: integrations
 ---
 
-The c15t `intercom` helper ties the Intercom messenger to `functionality`.
-Until a visitor allows `functionality`, c15t does not request the messenger or
-define `window.Intercom` and `window.intercomSettings`. If a visitor later
-withdraws `functionality`, the helper calls no Intercom API, including
-`shutdown`, and the messenger keeps running until c15t reloads the page.
+The c15t `intercom` helper keeps the Intercom Messenger off the page until the
+visitor gives consent for `functionality`. Before consent, c15t does not define
+`window.Intercom` or `window.intercomSettings`. If the visitor withdraws
+consent, the helper does not call an Intercom API, such as `shutdown`. The
+Messenger continues to work until c15t reloads the page, which c15t does by
+default.
 
 ## Configure Intercom
 

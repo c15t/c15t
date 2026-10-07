@@ -5,11 +5,11 @@ icon: logrocket
 group: integrations
 ---
 
-The c15t `logRocket` helper ties LogRocket session replay to `measurement`.
-Until a visitor allows `measurement`, c15t does not request `LogRocket.min.js`,
-and `LogRocket.init` runs only after that script loads. The helper calls no
-LogRocket consent API. If the visitor later withdraws, c15t removes the script
-element and reloads the page, which stops recording.
+The c15t `logRocket` helper keeps LogRocket session replay off the page until
+the visitor gives consent for `measurement`. `LogRocket.init` runs only after
+`LogRocket.min.js` loads. The helper sends no consent signal to LogRocket. If
+the visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page. The reload stops the session replay.
 
 ## Configure LogRocket
 

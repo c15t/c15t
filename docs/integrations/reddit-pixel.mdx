@@ -5,11 +5,11 @@ icon: reddit
 group: integrations
 ---
 
-The c15t `redditPixel` helper ties the Reddit Pixel to `marketing`. Until a
-visitor allows `marketing`, c15t defines no `rdt` function and does not request
-Reddit's `pixel.js`. The helper calls no Reddit consent API. On withdrawal it
-keeps the pixel and calls `rdt('disableFirstPartyCookies')`, and c15t reloads
-the page by default.
+The c15t `redditPixel` helper keeps the Reddit Pixel off the page until the
+visitor gives consent for `marketing`. Before consent, c15t does not define
+`rdt`. The helper sends no consent signal to Reddit. If the visitor withdraws
+consent, the helper calls `rdt('disableFirstPartyCookies')`. The pixel stays on
+the page. By default, c15t also reloads the page.
 
 ## Configure the Reddit Pixel
 

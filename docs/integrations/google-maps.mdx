@@ -5,11 +5,12 @@ icon: google-maps
 group: integrations
 ---
 
-c15t has no Google Maps helper. This guide wraps a Google Maps iframe in each
-framework's `ConsentGate`, or uses `data-category` with the HTML script tag,
-under a category you choose; the example uses `functionality`. Until the visitor
-allows that category, the embed has no Google URL to load, so it makes no
-request to Google. Revoking the category removes the iframe.
+c15t has no Google Maps helper. This guide puts a Google Maps iframe inside each
+framework's `ConsentGate`, or uses `data-category` with the HTML script tag. The
+example uses the `functionality` category, but you can choose a different
+category. Until the visitor gives consent for that category, the iframe has no
+Google URL. The browser does not connect to Google. If the visitor withdraws
+consent, c15t removes the iframe.
 
 ## Configure the map
 

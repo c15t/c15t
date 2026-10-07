@@ -5,13 +5,13 @@ icon: klaviyo
 group: integrations
 ---
 
-The c15t `klaviyo` helper ties Klaviyo.js, which serves both signup forms and
-onsite tracking, to `marketing` and `measurement` together. Until a visitor
-allows both, c15t does not request Klaviyo.js or create the `klaviyo` object. On
-withdrawal c15t removes the loader and reloads the page by default.
-`mode: 'forms-only'` needs only `marketing` and sets Klaviyo's `__kla_off`
-opt-out cookie before the bundle runs; the `category` option replaces either
-condition.
+The c15t `klaviyo` helper keeps Klaviyo.js off the page until the visitor gives
+consent for both `marketing` and `measurement`. Klaviyo.js shows signup forms
+and also tracks visitors on your site. Before consent, c15t does not create the
+`klaviyo` object. If the visitor withdraws consent, c15t removes the loader and,
+by default, reloads the page. With `mode: 'forms-only'`, the helper needs only
+`marketing` and sets the Klaviyo `__kla_off` opt-out cookie before the bundle
+runs. The `category` option replaces the default consent condition.
 
 ## Configure Klaviyo
 

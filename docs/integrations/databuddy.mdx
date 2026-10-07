@@ -5,13 +5,13 @@ icon: databuddy
 group: integrations
 ---
 
-The c15t `databuddy` helper ties Databuddy to `measurement`, but it uses
-`alwaysLoad`, so the browser requests `databuddy.js` from Databuddy on every
-page, before the visitor chooses. Without `measurement` permission, the helper
-seeds `window.databuddyConfig` with `configWhenDenied` and sets
-`window.databuddy.options.disabled` to `true`. When the visitor allows
-`measurement`, it switches to `configWhenGranted` and sets `disabled` to
-`false`, and it switches back on withdrawal.
+The c15t `databuddy` helper loads `databuddy.js` on every page, before the
+visitor chooses. The helper uses `alwaysLoad`, but its category is
+`measurement`. While `measurement` has no consent, the helper sets
+`window.databuddyConfig` to `configWhenDenied` and
+`window.databuddy.options.disabled` to `true`. When the visitor gives consent,
+the helper changes to `configWhenGranted` and sets `disabled` to `false`. If the
+visitor withdraws consent, the helper changes both values back.
 
 ## Configure Databuddy
 

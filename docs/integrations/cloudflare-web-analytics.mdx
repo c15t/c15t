@@ -5,11 +5,12 @@ icon: cloudflare-web-analytics
 group: integrations
 ---
 
-The c15t `cloudflareWebAnalytics` helper ties the Cloudflare Web Analytics
-beacon to `measurement`. Until a visitor allows `measurement`, c15t does not
-request `beacon.min.js`, even though Cloudflare Web Analytics sets no cookies.
-The helper calls no Cloudflare consent API. If the visitor later withdraws, c15t
-removes the script element and reloads the page.
+The c15t `cloudflareWebAnalytics` helper keeps the Cloudflare Web Analytics
+beacon, `beacon.min.js`, off the page until the visitor gives consent for
+`measurement`. Cloudflare says that the beacon sets no cookies, but c15t still
+waits for consent. The helper sends no consent signal to Cloudflare. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
 ## Configure Cloudflare Web Analytics
 
