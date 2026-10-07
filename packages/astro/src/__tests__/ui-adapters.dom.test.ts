@@ -110,6 +110,23 @@ describe('the react dialog adapter', () => {
 		await handle.destroy();
 	});
 
+	it('leaves the banner the kernel returned to when closed again', async () => {
+		registerDialogSurface('react', () => Promise.resolve(reactSurface));
+		const runtime = createRuntime();
+		runtime.kernel.set.activeUI('banner');
+
+		const handle = await reactDialogAdapter.mount({
+			kind: 'preferences',
+			options: OPTIONS,
+			runtime,
+			target: createHost(),
+		});
+		handle.close();
+
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		await handle.destroy();
+	});
+
 	it('warms its chunks without mounting anything', async () => {
 		const host = createHost();
 		registerDialogSurface('react', () => Promise.resolve(reactSurface));

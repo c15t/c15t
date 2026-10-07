@@ -1,5 +1,6 @@
 'use client';
 
+import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import { resolveIABBannerSummary } from '@c15t/iab/headless';
 import type {
 	HeadlessIABBannerAction,
@@ -8,6 +9,7 @@ import type {
 } from '@c15t/iab/headless';
 import { useCallback, useMemo } from 'react';
 
+import { useKernel } from '../kernel-selector';
 import { useIABConsentManager } from './use-iab-manager';
 
 export type {
@@ -67,6 +69,7 @@ export const useHeadlessIABConsentUI =
 		} = useIABConsentManager();
 		const isIABEnabled = Boolean(iab?.config.enabled);
 
+		const kernel = useKernel();
 		const bannerSummary = useMemo(() => resolveIABBannerSummary(iab), [iab]);
 
 		const openBanner = useCallback<UseHeadlessIABConsentUIResult['openBanner']>(
@@ -98,40 +101,38 @@ export const useHeadlessIABConsentUI =
 			setActiveUI('none');
 		}, [setActiveUI]);
 
-		const acceptAll = useCallback<
-			UseHeadlessIABConsentUIResult['acceptAll']
-		>(() => {
-			if (!iab) {
-				return;
-			}
-			iab.acceptAll();
-			const savePromise = iab.save();
-			setActiveUI('none');
-			return savePromise;
-		}, [iab, setActiveUI]);
+		// The surface closes in the click task and comes back if the CMP
+		// recorded nothing; see `saveIABConsentSurface`. Closing it with
+		// `setActiveUI('none')` instead would bring the banner back from the
+		// dialog while the TC string is still encoding.
+		const saveChoice = useCallback(
+			async (selection?: 'accept' | 'reject'): Promise<void> => {
+				if (!iab) {
+					return;
+				}
+				if (selection === 'accept') {
+					iab.acceptAll();
+				} else if (selection === 'reject') {
+					iab.rejectAll();
+				}
+				await saveIABConsentSurface(kernel, iab.save);
+			},
+			[iab, kernel]
+		);
 
-		const rejectAll = useCallback<
-			UseHeadlessIABConsentUIResult['rejectAll']
-		>(() => {
-			if (!iab) {
-				return;
-			}
-			iab.rejectAll();
-			const savePromise = iab.save();
-			setActiveUI('none');
-			return savePromise;
-		}, [iab, setActiveUI]);
+		const acceptAll = useCallback<UseHeadlessIABConsentUIResult['acceptAll']>(
+			() => saveChoice('accept'),
+			[saveChoice]
+		);
+
+		const rejectAll = useCallback<UseHeadlessIABConsentUIResult['rejectAll']>(
+			() => saveChoice('reject'),
+			[saveChoice]
+		);
 
 		const savePreferences = useCallback<
 			UseHeadlessIABConsentUIResult['savePreferences']
-		>(() => {
-			if (!iab) {
-				return;
-			}
-			const savePromise = iab.save();
-			setActiveUI('none');
-			return savePromise;
-		}, [iab, setActiveUI]);
+		>(() => saveChoice(), [saveChoice]);
 
 		const performBannerAction = useCallback<
 			UseHeadlessIABConsentUIResult['performBannerAction']

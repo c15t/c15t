@@ -116,7 +116,7 @@ the way every c15t adapter does, wrap your clicks in the functions from
 | `saveConsentSurface(kernel, () => kernel.commands.save(input))` | Runs the save and closes the open banner or dialog once the choice is recorded, before the backend answers. A save that records nothing new closes when it resolves successfully. The banner stays only while the policy still owes a choice or a notice. |
 | `saveConsentBlanket(kernel, 'all' \| 'none', runtime.iab)` | Accept all or reject all. Under an IAB policy it goes through the CMP so the TC string records it. |
 | `saveIABConsentSurface(kernel, () => runtime.iab.save())` | Closes an IAB surface in the click task and brings it back if the CMP recorded nothing, for example when the vendor list failed to load. |
-| `showConsentSurface(kernel, 'banner' \| 'dialog' \| 'none')` | Opens or closes a surface. A pending save started before it can no longer close or reopen anything. |
+| `showConsentSurface(kernel, 'banner' \| 'dialog' \| 'none')` | Opens or closes a surface. `'none'` with the dialog open brings the banner back while the policy still owes a choice or a notice. A pending save started before it can no longer close or reopen anything. |
 | `hasConsentUI(snapshot)` | Whether the policy owes any c15t banner or dialog. `false` until a rule resolves, for a `none` rule without rights, and while an external CMP owns the decision. |
 | `hasConsentPreferences(snapshot)` | Whether a privacy settings control has somewhere to go: `hasConsentUI`, or an external CMP. |
 

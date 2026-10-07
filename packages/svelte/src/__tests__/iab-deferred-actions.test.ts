@@ -253,10 +253,12 @@ test('closing a reopened IAB dialog supersedes a pending deferred save', async (
 		expect(query('[data-testid="iab-consent-dialog-close"]')).not.toBeNull()
 	);
 	query('[data-testid="iab-consent-dialog-close"]')?.click();
-	expect(kernel?.getSnapshot().activeUI).toBe('none');
+	// Nothing is recorded yet, so closing the dialog leaves the owed banner.
+	expect(kernel?.getSnapshot().activeUI).toBe('banner');
 	rejectLoad(new Error('offline'));
 	await new Promise((resolve) => {
 		setTimeout(resolve, 0);
 	});
-	expect(kernel?.getSnapshot().activeUI).toBe('none');
+	// The failed save does not bring the dialog back over the banner.
+	expect(kernel?.getSnapshot().activeUI).toBe('banner');
 });

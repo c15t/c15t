@@ -140,7 +140,7 @@ the choice stays in effect, and c15t retries the request later.
 | --- | --- |
 | `showBanner()` | Shows the banner. Records nothing. |
 | `openDialog()` | Opens the preference dialog. Records nothing. |
-| `closeDialog()` | Closes the banner or dialog. Records nothing. |
+| `closeDialog()` | Closes the dialog, or the banner when no dialog is open. Closing the dialog brings the banner back while the policy still owes a choice. Records nothing. |
 | `setLanguage(code)` | Switches language and re-renders with that language's copy, from the backend or, in offline mode, from the bundled copy and `i18n.messages`. See [translations](/docs/frameworks/html/translations). |
 | `mountUI(options?)` | Removes the stock UI and mounts it again, with new UI options or the configured ones. Throws in `c15t.headless.js`. |
 

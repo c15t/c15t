@@ -498,6 +498,79 @@ describe('Consent Flow E2E Tests', () => {
 		});
 	});
 
+	describe('Closing the dialog', () => {
+		const pressEscape = () =>
+			document.dispatchEvent(
+				new KeyboardEvent('keydown', {
+					bubbles: true,
+					cancelable: true,
+					key: 'Escape',
+				})
+			);
+		const query = (testId: string) =>
+			document.querySelector(`[data-testid="${testId}"]`);
+
+		test('brings the banner back while the visitor still owes a choice', async () => {
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentBanner />
+					<ConsentDialog />
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-banner-customize-button')).toBeInTheDocument();
+			});
+			await userEvent.click(
+				getDefined(query('consent-banner-customize-button'))
+			);
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-root')).toBeInTheDocument();
+				expect(query('consent-banner-root')).not.toBeInTheDocument();
+			});
+
+			pressEscape();
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-root')).not.toBeInTheDocument();
+				expect(query('consent-banner-root')).toBeInTheDocument();
+			});
+			expect(readStoredRecords(undefined, Date.now()).records.choice).toBe(
+				null
+			);
+		});
+
+		test('leaves nothing open once the visitor has chosen', async () => {
+			render(
+				<ConsentProvider options={defaultOptions}>
+					<ConsentBanner />
+					<ConsentDialog />
+					<ConsentDialogTrigger showWhen="always" />
+				</ConsentProvider>
+			);
+
+			await vi.waitFor(() => {
+				expect(query('consent-banner-accept-button')).toBeInTheDocument();
+			});
+			await userEvent.click(getDefined(query('consent-banner-accept-button')));
+			await vi.waitFor(() => {
+				expect(query('consent-banner-root')).not.toBeInTheDocument();
+			});
+
+			await userEvent.click(getDefined(query('consent-dialog-trigger')));
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-root')).toBeInTheDocument();
+			});
+
+			pressEscape();
+
+			await vi.waitFor(() => {
+				expect(query('consent-dialog-root')).not.toBeInTheDocument();
+			});
+			expect(query('consent-banner-root')).not.toBeInTheDocument();
+		});
+	});
+
 	describe('Complete Flow', () => {
 		test('should complete full consent flow: banner -> customize -> save', async () => {
 			render(

@@ -21,6 +21,7 @@ import type {
 	ConsentDialogHandle,
 } from './adapter';
 import { requireDialogSurface } from './adapter';
+import { closeDialogSurface } from './close-dialog';
 import { buildProviderProps } from './provider-props';
 
 /** The React 18/19 dialog surface implementation. */
@@ -44,7 +45,7 @@ export const reactDialogAdapter: ConsentDialogAdapter = {
 
 		return {
 			close() {
-				context.runtime.kernel.set.activeUI('none');
+				closeDialogSurface(context.runtime);
 			},
 			destroy() {
 				root.unmount();

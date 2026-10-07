@@ -274,6 +274,10 @@ describe('IAB browser entry', () => {
 			displayStatus: 'visible',
 			gdprApplies: true,
 		});
+		// No choice yet, so the banner comes back and the CMP stays visible.
+		client.closeDialog();
+		expect(client.getSnapshot().activeUI).toBe('banner');
+		expect(await ping()).toMatchObject({ displayStatus: 'visible' });
 		client.closeDialog();
 		expect(await ping()).toMatchObject({ displayStatus: 'hidden' });
 		client.setOverrides({ country: 'US', region: 'CA' });

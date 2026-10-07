@@ -81,10 +81,12 @@ describe('framework surfaces are reachable only through import()', () => {
 				join(SOURCE_ROOT, 'ui', `${name}.ts`),
 				'utf8'
 			);
-			expect(staticSpecifiers(source)).toEqual([
-				'./adapter',
-				'./provider-props',
-			]);
+			// Only sibling seam modules; the framework comes through import().
+			expect(
+				staticSpecifiers(source).filter(
+					(specifier) => !specifier.startsWith('./')
+				)
+			).toEqual([]);
 			expect(source).toMatch(/await Promise\.all\(\[/u);
 		}
 	);

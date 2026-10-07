@@ -980,6 +980,19 @@ describe('dialog stylesheets and ClientRouter swaps', () => {
 		expect(booted.getConsent().activeUI).toBe('dialog');
 	});
 
+	it('brings the banner back when the dialog closes before a choice', async () => {
+		registerRecordingAdapter();
+		renderBanner();
+		const booted = start();
+		expect(booted.getConsent().activeUI).toBe('banner');
+		await booted.openDialog();
+		expect(booted.getConsent().activeUI).toBe('dialog');
+
+		booted.closeDialog();
+
+		expect(booted.getConsent().activeUI).toBe('banner');
+	});
+
 	it('reopens a closed dialog on the page, not the one a swap removed', async () => {
 		const { targets } = registerRecordingAdapter();
 		renderBanner();
