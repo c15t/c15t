@@ -42,6 +42,10 @@ import { ExperimentEvents, useExperimentLog } from './experiment-events';
 import { LiquidGlassFilter } from './liquid-glass-filter';
 import { LiveStatus } from './live-status';
 
+/** DevTools mounts in development only; production renders nothing. */
+const DevelopmentDevTools =
+	process.env.NODE_ENV === 'development' ? ConsentDevTools : () => null;
+
 const HOSTED_BACKEND_URL = 'https://c15t-demo-consent-io.inth.app';
 
 const CONSENT_CATEGORIES = [
@@ -517,7 +521,7 @@ export const ConsentDemo = ({ backend = 'hosted' }: ConsentDemoProps) => {
 
 					<ConsentBanner />
 					<ConsentDialog />
-					{process.env.NODE_ENV === 'development' ? <ConsentDevTools /> : null}
+					<DevelopmentDevTools />
 					{/* The IAB banner carries its own resurface control, and a none
 					    rule with no added rights owes no control at all. */}
 					{scenario.showsTriggerToolbar ? (
