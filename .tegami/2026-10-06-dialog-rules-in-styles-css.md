@@ -1,11 +1,23 @@
 ---
 packages:
-  '@c15t/ui': patch
-  '@c15t/react': patch
-  '@c15t/svelte': patch
-  '@c15t/astro': patch
-  '@c15t/browser': patch
-  c15t: patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Build Next.js Pages Router apps without `transpilePackages`

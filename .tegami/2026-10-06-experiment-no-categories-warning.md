@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/core': patch
-  c15t: patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Warn when an experiment's banner asks about no category

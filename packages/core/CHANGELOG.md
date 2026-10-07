@@ -1,3 +1,112 @@
+## @c15t/core@3.0.0-alpha.6 (alpha)
+
+### Keep development warnings out of production builds
+
+Development warnings, such as "Vendor … has no declaration", printed in
+production browser builds. They now read `process.env.NODE_ENV`, which
+bundlers replace at build time. Without a bundler or `process`, the warnings
+still show.
+
+### Report who runs the backend as `window.c15t.hosting`
+
+`c15tInstance()` takes a `hosting` option, `'self-hosted'` by default or `'inth'` on Inth's platform. `/init` and `/manifest` report it, and the browser exposes it as `window.c15t.hosting` and the snapshot's `hosting`. It is not signed, so treat it as a debugging signal.
+
+### `ConsentRoot` starts consented scripts sooner
+
+In Next.js and TanStack Start, `ConsentRoot` starts downloading the script
+loader during its first render when stored consent already allows one of its
+`scripts`, instead of after hydration. There is nothing to configure.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Warn when an experiment's banner asks about no category
+
+When an experiment arm's banner runs under a policy that asks about no optional
+category, accepting or rejecting records only a notice acknowledgement.
+`onChoiceRecorded` never fires and the experiment counts impressions only. This
+happens under a permissive rule when the site declares no categories through
+`consentCategories`, `scripts` or `vendors`. c15t logs a warning outside
+production the first time it happens.
+
+### Closing the dialog brings back a banner the visitor still owes
+
+Closing preferences with Escape, `closeUI()` or `closeDialog()` left no banner
+and no dialog, even when the policy still required a choice. Closing the dialog
+leaves the same surface a save would. The banner returns while a choice or
+notice is owed. `showConsentSurface(kernel, 'none')` follows the same rule while
+the dialog is open.
+
+`useHeadlessIABConsentUI()` from `@c15t/react/iab` no longer flashes the banner
+while the TC string encodes. The Vue dialog no longer handles one Escape press
+twice.
+
+### Generate consent manifests during application builds
+
+Add opt-in build-time manifest snapshots for Next.js, TanStack Start, Astro,
+Nuxt and Vite apps. Build plugins take `backendURL` and fetch its `/manifest`.
+Server helpers and consent routes resolve from the snapshot without fetching
+an upstream manifest. Geography, language, privacy signals and stored consent
+still resolve per visitor.
+
+Snapshots stay fixed until the next build. Use runtime fetching for policy
+updates that must apply without a rebuild. A manifest fetch failure or
+invalid snapshot fails the build. Consent saves, session reports and IAB
+vendor lists still call the backend.
+
+Svelte's framework-free `resolveConsent` also accepts a snapshot. Both Svelte
+server helpers take a background-work callback to keep session reports alive
+on serverless hosts without `waitUntil`.
+
+Next.js runtime manifest requests use the App Router Data Cache with a
+300-second revalidation. `manifestRevalidateSeconds: false` skips that cache
+instead of caching indefinitely.
+
+### Add `ExperimentArmName` for typing a flag's arm
+
+`ExperimentArmName<typeof experiment>` is `'control'` plus the arm names of an
+experiment built with `defineExperiment()`. Use it to check a feature flag's
+value before passing it as `arm`. Import it from `c15t`.
+
+### `ConsentProvider` requests `/init` sooner
+
+In a client render, `ConsentProvider` with `hosted()` and no `prefetch` sends
+`/init` during its first render instead of after mount, so the banner shows
+sooner (about 38 ms on a throttled mobile profile). Server renders, hydration
+and apps with a `prefetch` or `ConsentRoot` keep the previous timing.
+
+### Report a spent request budget as 0 ms
+
+When a consent route's `x-c15t-timeout-ms` budget ran out before the manifest
+cache or consent resolution started, the timeout error named a negative
+duration, such as "no manifest within -3 ms". It now says 0 ms. Timing is
+unchanged: a spent budget already gave up at once.
+
 ## @c15t/core@3.0.0-alpha.5 (alpha)
 
 ### Runtime for framework providers

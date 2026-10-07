@@ -1,3 +1,30 @@
+## @c15t/schema@3.0.0-alpha.5 (alpha)
+
+### Report who runs the backend as `window.c15t.hosting`
+
+`c15tInstance()` takes a `hosting` option, `'self-hosted'` by default or `'inth'` on Inth's platform. `/init` and `/manifest` report it, and the browser exposes it as `window.c15t.hosting` and the snapshot's `hosting`. It is not signed, so treat it as a debugging signal.
+
+### Generate consent manifests during application builds
+
+Add opt-in build-time manifest snapshots for Next.js, TanStack Start, Astro,
+Nuxt and Vite apps. Build plugins take `backendURL` and fetch its `/manifest`.
+Server helpers and consent routes resolve from the snapshot without fetching
+an upstream manifest. Geography, language, privacy signals and stored consent
+still resolve per visitor.
+
+Snapshots stay fixed until the next build. Use runtime fetching for policy
+updates that must apply without a rebuild. A manifest fetch failure or
+invalid snapshot fails the build. Consent saves, session reports and IAB
+vendor lists still call the backend.
+
+Svelte's framework-free `resolveConsent` also accepts a snapshot. Both Svelte
+server helpers take a background-work callback to keep session reports alive
+on serverless hosts without `waitUntil`.
+
+Next.js runtime manifest requests use the App Router Data Cache with a
+300-second revalidation. `manifestRevalidateSeconds: false` skips that cache
+instead of caching indefinitely.
+
 ## @c15t/schema@3.0.0-alpha.4 (alpha)
 
 ### Send the consent model as `model` on save

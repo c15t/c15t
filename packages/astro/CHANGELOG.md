@@ -1,3 +1,95 @@
+## @c15t/astro@3.0.0-alpha.6 (alpha)
+
+### Build Next.js Pages Router apps without `transpilePackages`
+
+A Next.js app with only a `pages/` directory builds with c15t's stock dialog.
+Before, webpack builds failed with "Global CSS cannot be imported from within
+node_modules" unless the app set `transpilePackages`, and Turbopack failed on
+linked installs.
+
+`styles.css` includes the preference dialog and widget rules again, and no
+`@c15t/react` or `@c15t/ui` module imports CSS. The render-blocking stylesheet
+grows by about 4.5 kB gzip.
+
+`@c15t/ui/styles/dialog.css`, the `@c15t/ui/styles/dialog` module and
+`c15t/astro/dialog.css` are now empty. They still resolve, so existing imports
+keep building. Remove them.
+
+### Add IAB Global Privacy Platform support
+
+Every framework can install the GPP 1.1 CMP API (`__gpp`) and keep its GPP
+string in step with the visitor's choices.
+
+- React, Next.js and TanStack Start: render `ConsentGPP` from `@c15t/react/gpp`
+  (`c15t/react/gpp`) inside the consent provider or `ConsentRoot`.
+- Vue, Nuxt, Svelte, SvelteKit and Astro: set the `gpp` option. `gpp: true` uses
+  the defaults.
+- `@c15t/browser`: call `mountGPP(client)` from `@c15t/browser/gpp`, or load
+  `c15t.gpp.js` next to the main script tag.
+- `createConsentRuntime()` takes `gpp` with
+  `loadGPP: () => import('@c15t/iab/gpp')`, and `createGPP()` from
+  `@c15t/iab/gpp` mounts the API on any consent kernel.
+
+The GPP code loads only when you use it.
+
+The matched policy rule picks the section. An `iab` rule maps the TC String to
+`tcfeuv2`. A rule with the `preferences` or `opt-out` right gives US visitors
+their state section, or the US National section when the state is unknown or has
+none. `usFallback: 'none'` turns that fallback off and `usApproach: 'national'`
+always uses it. Indiana, Kentucky, Maryland and Rhode Island are not encoded yet
+and get the fallback.
+
+If another CMP already owns `__gpp`, c15t leaves it in place. The `gpp` option
+reports the conflict to `onError`, `ConsentGPP` logs it, and `mountGPP()` and
+`createGPP()` throw.
+
+### Closing the dialog brings back a banner the visitor still owes
+
+Closing preferences with Escape, `closeUI()` or `closeDialog()` left no banner
+and no dialog, even when the policy still required a choice. Closing the dialog
+leaves the same surface a save would. The banner returns while a choice or
+notice is owed. `showConsentSurface(kernel, 'none')` follows the same rule while
+the dialog is open.
+
+`useHeadlessIABConsentUI()` from `@c15t/react/iab` no longer flashes the banner
+while the TC string encodes. The Vue dialog no longer handles one Escape press
+twice.
+
+### Generate consent manifests during application builds
+
+Add opt-in build-time manifest snapshots for Next.js, TanStack Start, Astro,
+Nuxt and Vite apps. Build plugins take `backendURL` and fetch its `/manifest`.
+Server helpers and consent routes resolve from the snapshot without fetching
+an upstream manifest. Geography, language, privacy signals and stored consent
+still resolve per visitor.
+
+Snapshots stay fixed until the next build. Use runtime fetching for policy
+updates that must apply without a rebuild. A manifest fetch failure or
+invalid snapshot fails the build. Consent saves, session reports and IAB
+vendor lists still call the backend.
+
+Svelte's framework-free `resolveConsent` also accepts a snapshot. Both Svelte
+server helpers take a background-work callback to keep session reports alive
+on serverless hosts without `waitUntil`.
+
+Next.js runtime manifest requests use the App Router Data Cache with a
+300-second revalidation. `manifestRevalidateSeconds: false` skips that cache
+instead of caching indefinitely.
+
+### Export category, cleanup and policy types from the framework entries
+
+You can type `consentCategories`, `clearOnRevocation` and
+`offline({ policyRules })` from the same import as the provider.
+
+- `c15t/react`, `c15t/next` and `c15t/tanstack-start` add `AllConsentNames`,
+  `ClearOnRevocationConfig`, `PolicyRule` and `policyRulePresets`.
+- `@c15t/svelte` adds `ClearOnRevocationConfig`, `PolicyRule` and
+  `policyRulePresets`.
+- `c15t/astro` adds `ClearOnRevocationConfig`.
+- `c15t/vue` adds `AllConsentNames` and `ClearOnRevocationConfig`.
+
+Importing them from `c15t` keeps working.
+
 ## @c15t/astro@3.0.0-alpha.5 (alpha)
 
 ### Ship the script loader only to pages with scripts

@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/iab': patch
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(npm:@c15t/iab)
 ---
 
 ### Stop reporting tcloaded before the visitor chooses

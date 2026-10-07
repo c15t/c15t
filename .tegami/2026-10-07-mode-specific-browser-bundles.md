@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/browser': minor
-  '@c15t/backend': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
 ---
 
 ### Make hosted mode the default browser bundle

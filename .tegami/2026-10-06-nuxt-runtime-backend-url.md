@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/vue': patch
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Nuxt server routes follow `NUXT_PUBLIC_C15T_BACKEND_URL`
