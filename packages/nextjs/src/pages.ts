@@ -31,12 +31,17 @@ import type {
 } from './node-bridge';
 import { toWebHeaders, toWebRequest, writeWebResponse } from './node-bridge';
 import type {
+	ConsentServerOptions,
+	ConsentServerResolveOptions,
 	ConsentState,
 	KernelConfig,
 	NextRequestContext,
 	ResolveConsentOptions,
 } from './server';
-import { resolveConsent as resolveConsentFromContext } from './server';
+import {
+	createConsentServer as createAppRouterConsentServer,
+	resolveConsent as resolveConsentFromContext,
+} from './server';
 
 export type {
 	NodeApiRequestLike,
@@ -46,6 +51,7 @@ export type {
 } from './node-bridge';
 export type {
 	ConsentConfig,
+	ConsentServerOptions,
 	ConsentState,
 	KernelConfig,
 	NextConsentManifestHandlersOptions,
@@ -170,5 +176,71 @@ export const createPagesApiHandlers = function createPagesApiHandlers(
 	return {
 		init: toPagesApiHandler(handlers.GET, trustForwardedHeaders),
 		manifest: toPagesApiHandler(handlers.manifestGET, trustForwardedHeaders),
+	};
+};
+
+/** Per-request options for {@link PagesConsentServer.resolve}. */
+export type PagesConsentServerResolveOptions = Omit<
+	ConsentServerResolveOptions,
+	'request'
+> & {
+	/** The `req` from `getServerSideProps` or an API route. */
+	req: NodeRequestLike;
+};
+
+/** A Pages Router consent setup bound to one config and manifest source. */
+export interface PagesConsentServer {
+	/**
+	 * Resolves consent for `req` in `getServerSideProps`. Reads fresh request
+	 * input on every call, like `resolveConsent`.
+	 */
+	resolve: (options: PagesConsentServerResolveOptions) => Promise<ConsentState>;
+	/** API route handlers serving the same manifest source as `resolve()`. */
+	handlers: { init: PagesApiHandler; manifest: PagesApiHandler };
+}
+
+/**
+ * Binds a consent config and its manifest source once, so
+ * `getServerSideProps` and the consent API routes always resolve from the
+ * same policy. Same options as `createConsentServer` from
+ * `@c15t/nextjs/server`; the handlers take the Node `req` and `res`.
+ *
+ * @param options - The config, an optional build-time manifest, and options
+ * both sides share.
+ * @returns `resolve()` for `getServerSideProps`, and `handlers` for the
+ * `pages/api` routes.
+ * @throws {TypeError} When `config` is not a `defineConsentConfig` result.
+ * @example
+ * ```ts
+ * // c15t.server.ts
+ * import { createConsentServer } from 'c15t/next/pages';
+ *
+ * import { consentManifest } from '@/c15t-manifest';
+ * import { consentConfig } from '@/c15t.config';
+ *
+ * export const consent = createConsentServer({
+ *   config: consentConfig,
+ *   manifest: consentManifest,
+ * });
+ *
+ * // pages/api/c15t/manifest.ts
+ * export default consent.handlers.manifest;
+ * ```
+ */
+export const createConsentServer = function createConsentServer(
+	options: ConsentServerOptions
+): PagesConsentServer {
+	const server = createAppRouterConsentServer(options);
+	const trustForwardedHeaders = options.trustForwardedHeaders === true;
+	return {
+		handlers: {
+			init: toPagesApiHandler(server.handlers.GET, trustForwardedHeaders),
+			manifest: toPagesApiHandler(
+				server.handlers.manifestGET,
+				trustForwardedHeaders
+			),
+		},
+		resolve: ({ req, ...rest }) =>
+			server.resolve({ ...rest, request: createPagesRequestContext(req) }),
 	};
 };

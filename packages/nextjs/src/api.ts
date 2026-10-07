@@ -89,6 +89,14 @@ export interface NextConsentManifestHandlersOptions {
 	fetchGvl?: ConsentRouteFetchGvl;
 }
 
+/** The App Router route handlers for the consent routes. */
+export interface NextConsentRouteHandlers {
+	/** Resolves init for the request's visitor. Mount it on the init route. */
+	GET: (request: Request) => Promise<Response>;
+	/** Serves the manifest. Mount it on the manifest route as `GET`. */
+	manifestGET: (request: Request) => Promise<Response>;
+}
+
 /**
  * The upstream manifest request as the App Router sees it: JSON with the
  * c15t protocol headers, and a `next.revalidate` hint for the Data Cache.
@@ -155,7 +163,7 @@ const toHandlerOptions = function toHandlerOptions(
 export const createNextConsentRouteHandlers =
 	function createNextConsentRouteHandlers(
 		optionsOrConfig: NextConsentManifestHandlersOptions | ConsentConfig
-	) {
+	): NextConsentRouteHandlers {
 		const options = toHandlerOptions(optionsOrConfig);
 		// Two cache layers on purpose. `next.revalidate` reaches the App Router
 		// Data Cache; the shared in-process cache covers the Pages Router and

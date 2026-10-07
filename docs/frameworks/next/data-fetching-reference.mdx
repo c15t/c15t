@@ -221,7 +221,7 @@ available, `resolveConsent` reports the error and returns the baseline state.
 A render never fetches your own handler routes: a URL on the request's origin
 under `config.manifestURL` or `config.initURL`. `resolveConsent` reports the URL
 and returns the baseline state instead. Give it the backend URL your handlers
-use, as [Optimization](/docs/frameworks/next/optimization#keep-route-handlers-pointed-upstream)
+use, as [Optimization](/docs/frameworks/next/optimization#keep-server-requests-pointed-upstream)
 shows for the `/api/c15t` prefix.
 
 Any other same-origin `backendURL` is a backend reached through your app, such
@@ -303,6 +303,9 @@ from the headers listed in [geography and privacy signals](#geography-and-privac
 | `PagesResolveConsentOptions` | `c15t/next/pages` | `ResolveConsentOptions` with `req` in place of `request` |
 | `ConsentRootProps` | `c15t/next` | Props of `ConsentRoot`; `ConsentRootProps['state']` also accepts the pending promise |
 | `ConsentConfig` | `c15t/next`, `c15t/next/server`, `c15t/next/pages` | The frozen `defineConsentConfig` result passed as `config` |
+| `ConsentServerOptions` | `c15t/next/server`, `c15t/next/pages` | Options for `createConsentServer` |
+| `ConsentServer` | `c15t/next/server` | The App Router `createConsentServer` result |
+| `PagesConsentServer` | `c15t/next/pages` | The Pages Router `createConsentServer` result |
 
 ### Pages Router differences
 
@@ -337,6 +340,34 @@ export function resolveRequestConsent(req: IncomingMessage) {
 	});
 }
 ```
+
+## Shared server setup
+
+`createConsentServer(options)` binds a config and its manifest source once.
+It returns `resolve()`, which wraps `resolveConsent`, and `handlers`, which
+wraps the route handlers, so server rendering and browser initialization read
+the same policy. Use it from a server-only module such as `c15t.server.ts`.
+`c15t/next/server` exports the App Router version, whose `handlers` are `GET`
+for the init route and `manifestGET` for the manifest route.
+`c15t/next/pages` exports the Pages Router version, whose `resolve()` takes
+`req` and whose `handlers` are `init` and `manifest` for `pages/api` routes.
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `config` | required | The `defineConsentConfig` result. Its `manifestURL` and `initURL` are the routes `handlers` serve. Throws a `TypeError` for any other object. |
+| `manifest` | none | Build-time snapshot from `withConsentManifest`. `resolve()` and both handlers resolve from it without fetching policy. Omit it to fetch `${backendURL}/manifest` at runtime. |
+| `backendURL` | `config.backendURL` | Backend URL for server requests only. Set the absolute upstream URL when `config.backendURL` is a same-origin rewrite prefix. |
+| `fetch` | `globalThis.fetch` | Fetch implementation for every server-side backend request. |
+| `fetchGvl` | built-in cached fetcher | Loads the Global Vendor List for IAB policies in the init route. |
+| `reportSessions` | `true` | Session reports from `resolve()` and the init route. `false` sends none. |
+| `trustForwardedHeaders` | `false` | Same as the [resolveConsent option](#resolveconsent-options), applied to both sides. |
+| `waitUntil` | none | Keeps detached work alive on both sides. Passed to `resolve()` as `waitUntil` and to the handlers as `onBackgroundRevalidate`. In the App Router pass `(task) => after(() => task)`. |
+
+`resolve(options)` accepts the per-render [resolveConsent options](#resolveconsent-options):
+`now`, `cookieName`, `country`, `language`, `request`, `experiment`,
+`timeoutMs`, `onError` and `forwardHeaders`. Each call reads fresh request
+input. `manifestRevalidateSeconds` is not shared; pass it to
+`createNextConsentRouteHandlers` directly if you need it.
 
 ## Route handler options
 

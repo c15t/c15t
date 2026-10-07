@@ -1,0 +1,13 @@
+{/* Generated from internals/doc-snippets/nextjs/pages-router/c15t.server.ts (docs:pages-consent-server) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="c15t.server.ts"
+import { createConsentServer } from 'c15t/next/pages';
+
+import { consentManifest } from '@/c15t-manifest';
+import { consentConfig } from '@/c15t.config';
+
+export const consent = createConsentServer({
+	config: consentConfig,
+	manifest: consentManifest,
+});
+```

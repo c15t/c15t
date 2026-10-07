@@ -2,41 +2,40 @@
 
 <include src="./next-config.mdx" />
 
-Import the snapshot in your server layout or server function and add it to the
-existing resolution options:
+Bind the snapshot once in a server-only module next to `c15t.config.ts`.
+`createConsentServer` gives the render and the manifest route the same policy,
+so they cannot drift apart:
+
+<include src="../examples/nextjs/consent-server.mdx" />
+
+In the root layout, import `consent` from `@/c15t.server` and replace the
+`resolveConsent` call. `resolve()` still reads each visitor's cookies and
+location headers:
 
 {/* example: fragment */}
 
 ```tsx title="app/layout.tsx"
-import { consentManifest } from '@/c15t-manifest';
-
-const state = resolveConsent({
-	config: consentConfig,
-	manifest: consentManifest,
-});
+const state = consent.resolve();
 ```
 
-Give the manifest and optional init route handlers the same `manifest` option,
-so browser initialization uses the deployment's policy too:
+A layout that awaits consent uses `await consent.resolve()` the same way.
 
-{/* example: fragment */}
+Serve the manifest route from the same module:
 
-```ts title="app/api/c15t/manifest/route.ts"
-import { consentManifest } from '@/c15t-manifest';
+<include src="../examples/nextjs/consent-server-route.mdx" />
 
-export const { manifestGET: GET } = createNextConsentRouteHandlers({
-	backendURL: 'https://your-project.inth.app',
-	manifest: consentManifest,
-});
-```
+If you added the optional init route, export `consent.handlers.GET` from it.
+Keep importing `consentConfig` in the client `Consent` wrapper; do not import
+`c15t.server.ts` from client code.
 
-The same options work with Pages Router `resolveConsent` and
-`createPagesApiHandlers`. Keep the generated file out of Git and create it in
-every build. Set `outputFile` to change its path, `exportName` to change its
-export, or `importSource` to change the type import. Apps that install
-`@c15t/nextjs` directly set `importSource: '@c15t/nextjs/static'`.
-Generation defaults to the current working directory. If you run Next.js
-from outside the application directory, set `rootDir` to that directory.
-Adjust the snapshot import to match your app's aliases or generated path.
+Keep the generated file out of Git and create it in every build. Set
+`outputFile` to change its path, `exportName` to change its export, or
+`importSource` to change the type import. Apps that install `@c15t/nextjs`
+directly set `importSource: '@c15t/nextjs/static'`. Generation defaults to the
+current working directory. If you run Next.js from outside the application
+directory, set `rootDir` to that directory. Adjust the snapshot import to match
+your app's aliases or generated path.
 
-For policy updates without a rebuild, use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data) instead.
+For policy updates without a rebuild, remove `manifest` from
+`createConsentServer` and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+The layout and route stay the same.

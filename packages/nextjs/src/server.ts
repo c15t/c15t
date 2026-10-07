@@ -14,11 +14,14 @@
  */
 import type { ServerExperiment } from '@c15t/core';
 import { resolveRequestConsent } from '@c15t/core/server';
+import type { ConsentRouteFetchGvl } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 import * as React from 'react';
 
-import { createManifestFetchInit } from './api';
+import { createManifestFetchInit, createNextConsentRouteHandlers } from './api';
+import type { NextConsentRouteHandlers } from './api';
 import type { ConsentConfig } from './config';
+import { isConsentConfig } from './config';
 import type { ConsentState } from './types';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -139,6 +142,7 @@ export type { KernelConfig } from '@c15t/core';
 export type { ConsentState } from './types';
 export type { ConsentConfig } from './config';
 export { defineConsentConfig } from './config';
+export type { NextConsentRouteHandlers } from './api';
 
 // -- Optional: server-side prefetch of the init roundtrip -------------------
 
@@ -407,4 +411,132 @@ export const resolveConsent = async function resolveConsent(
 		trustForwardedHeaders: options.trustForwardedHeaders,
 		waitUntil: options.waitUntil,
 	})) as ConsentState;
+};
+
+// -- One server setup for the render and the consent routes ------------------
+
+/**
+ * What a Next.js consent setup binds once, for both `resolve()` and the
+ * route handlers.
+ */
+export interface ConsentServerOptions {
+	/**
+	 * A `defineConsentConfig` result. Its `backendURL` reaches both sides; its
+	 * `manifestURL` and `initURL` are the routes `handlers` serve.
+	 */
+	config: ConsentConfig;
+
+	/**
+	 * Build-time snapshot from `withConsentManifest`. The render and the
+	 * routes both resolve from it without fetching policy. Omit it to fetch
+	 * `${backendURL}/manifest` at runtime.
+	 */
+	manifest?: ConsentManifest;
+
+	/**
+	 * Absolute backend URL for server-side requests. Overrides
+	 * `config.backendURL` here only, for when that is a same-origin rewrite
+	 * prefix such as `/api/c15t` that the manifest route would otherwise
+	 * fetch through itself.
+	 */
+	backendURL?: string;
+
+	/** Fetch implementation for every server-side backend request. */
+	fetch?: typeof globalThis.fetch;
+
+	/** Loads the Global Vendor List for IAB policies in the init route. */
+	fetchGvl?: ConsentRouteFetchGvl;
+
+	/**
+	 * Report resolved inits to the backend's `POST /sessions`. `false` sends
+	 * none from the render or the routes.
+	 *
+	 * @default true
+	 */
+	reportSessions?: boolean;
+
+	/**
+	 * Resolve relative URLs against the `forwarded` and `x-forwarded-*`
+	 * headers. Set it only behind a proxy that sets them and drops incoming
+	 * ones.
+	 *
+	 * @default false
+	 */
+	trustForwardedHeaders?: boolean;
+
+	/**
+	 * Keeps detached work alive past the response: session reports and
+	 * manifest refreshes. In the App Router pass
+	 * `(task) => after(() => task)` with `after` from `next/server`. The
+	 * promise never rejects.
+	 */
+	waitUntil?: (task: Promise<void>) => void;
+}
+
+/** Per-render options for {@link ConsentServer.resolve}. */
+export type ConsentServerResolveOptions = Omit<
+	ResolveConsentOptions,
+	keyof ConsentServerOptions | 'manifestURL'
+>;
+
+/** A consent setup bound to one config and manifest source. */
+export interface ConsentServer {
+	/**
+	 * Resolves the current request's consent state. Reads fresh request
+	 * input on every call, like `resolveConsent`.
+	 */
+	resolve: (options?: ConsentServerResolveOptions) => Promise<ConsentState>;
+	/** Route handlers serving the same manifest source as `resolve()`. */
+	handlers: NextConsentRouteHandlers;
+}
+
+/**
+ * Binds a consent config and its manifest source once, so the render and the
+ * consent routes always resolve from the same policy. Use it in a server-only
+ * module; the returned functions wrap `resolveConsent` and
+ * `createNextConsentRouteHandlers` without changing what they do.
+ *
+ * @param options - The config, an optional build-time manifest, and options
+ * both sides share.
+ * @returns `resolve()` for layouts and pages, and `handlers` for the routes.
+ * @throws {TypeError} When `config` is not a `defineConsentConfig` result.
+ * @example
+ * ```ts
+ * // c15t.server.ts
+ * import { createConsentServer } from 'c15t/next/server';
+ *
+ * import { consentManifest } from '@/c15t-manifest';
+ * import { consentConfig } from '@/c15t.config';
+ *
+ * export const consent = createConsentServer({
+ *   config: consentConfig,
+ *   manifest: consentManifest,
+ * });
+ *
+ * // app/layout.tsx
+ * const state = consent.resolve();
+ *
+ * // app/api/c15t/manifest/route.ts
+ * export const GET = consent.handlers.manifestGET;
+ * ```
+ */
+export const createConsentServer = function createConsentServer(
+	options: ConsentServerOptions
+): ConsentServer {
+	const { config, fetchGvl, waitUntil, ...shared } = options;
+	if (!isConsentConfig(config)) {
+		throw new TypeError(
+			'@c15t/nextjs: createConsentServer needs a defineConsentConfig result as `config`.'
+		);
+	}
+	return {
+		handlers: createNextConsentRouteHandlers({
+			...shared,
+			backendURL: shared.backendURL ?? config.backendURL,
+			fetchGvl,
+			onBackgroundRevalidate: waitUntil,
+		}),
+		resolve: (resolveOptions = {}) =>
+			resolveConsent({ ...resolveOptions, ...shared, config, waitUntil }),
+	};
 };
