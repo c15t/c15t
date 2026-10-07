@@ -336,6 +336,54 @@ export const data = fetchSSRData({ backendURL: '/api/c15t' });
 		expect(result.changedFiles).toEqual([]);
 	});
 
+	it('marks a mode held in a variable or expression', async () => {
+		const source = `import type { ConsentManagerOptions } from '@c15t/react';
+
+declare const useOffline: boolean;
+declare const config: { mode: 'offline' | 'hosted' };
+const mode = useOffline ? 'offline' : 'hosted';
+
+export const options: ConsentManagerOptions = { mode };
+export const fromConfig: ConsentManagerOptions = {
+	mode: config.mode,
+};
+`;
+		const { first, second, secondResult } = await transformTwice(
+			codemod,
+			source
+		);
+
+		const todo =
+			'TODO(c15t v3): mode now takes a transport such as hosted({ url }) or offline().';
+		expect(first).toContain(
+			`export const options: ConsentProviderOptions = { /* ${todo} Replace this value and remove backendURL, offlinePolicy and endpointHandlers. */ mode };`
+		);
+		expect(first).toContain(
+			`\t// ${todo} Replace this value and remove backendURL, offlinePolicy and endpointHandlers.\n\tmode: config.mode,`
+		);
+		expect(second).toBe(first);
+		expect(secondResult.changedFiles).toEqual([]);
+	});
+
+	it('leaves a mode that already holds a v3 transport alone', async () => {
+		const { result } = await transformFile(
+			codemod,
+			`import { hosted, offline, type ConsentProviderOptions } from '@c15t/react';
+
+declare const useOffline: boolean;
+const mode = offline();
+const transport = useOffline ? offline() : hosted({ url: '/api/c15t' });
+
+export const a: ConsentProviderOptions = { mode };
+export const b: ConsentProviderOptions = { mode: transport };
+export const c: ConsentProviderOptions = {
+	mode: useOffline ? offline() : hosted({ url: '/api/c15t' }),
+};
+`
+		);
+		expect(result.changedFiles).toEqual([]);
+	});
+
 	it('is idempotent', async () => {
 		const { first, second, secondResult } = await transformTwice(
 			codemod,

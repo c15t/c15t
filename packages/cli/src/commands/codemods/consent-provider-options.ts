@@ -235,11 +235,56 @@ export const hasHandWrittenRules = function hasHandWrittenRules(
 	);
 };
 
+/** How far to follow variables and conditionals when resolving a mode. */
+const MAX_MODE_DEPTH = 5;
+
+/**
+ * Whether a `mode` value is already a v3 transport: a call such as
+ * `hosted()`, a choice between transports, a variable that holds one, or a
+ * value typed as an object. v2 modes were strings.
+ */
+const isTransport = function isTransport(
+	node: TsMorphTypes.Node,
+	depth = 0
+): boolean {
+	if (depth > MAX_MODE_DEPTH) {
+		return false;
+	}
+	const value = unwrapExpression(node);
+	if (Node.isCallExpression(value)) {
+		return true;
+	}
+	if (Node.isConditionalExpression(value)) {
+		return (
+			isTransport(value.getWhenTrue(), depth + 1) &&
+			isTransport(value.getWhenFalse(), depth + 1)
+		);
+	}
+	const shorthand = Node.isShorthandPropertyAssignment(value);
+	const symbol = shorthand ? value.getValueSymbol() : value.getSymbol();
+	// `const mode = hosted()`, then `{ mode }` or `mode: mode`.
+	const holdsTransport =
+		(shorthand || Node.isIdentifier(value)) &&
+		(symbol?.getDeclarations() ?? []).some((declaration) => {
+			const initializer = Node.isVariableDeclaration(declaration)
+				? declaration.getInitializer()
+				: undefined;
+			return initializer !== undefined && isTransport(initializer, depth + 1);
+		});
+	return (
+		holdsTransport ||
+		(shorthand ? value.getNameNode() : value).getType().isObject()
+	);
+};
+
 const literalMode = function literalMode(
 	mode: TsMorphTypes.ObjectLiteralElementLike | undefined
 ): { kind: 'absent' | 'literal' | 'transport' | 'other'; value?: string } {
 	if (!mode) {
 		return { kind: 'absent' };
+	}
+	if (Node.isShorthandPropertyAssignment(mode)) {
+		return { kind: isTransport(mode) ? 'transport' : 'other' };
 	}
 	if (!Node.isPropertyAssignment(mode)) {
 		return { kind: 'other' };
@@ -249,7 +294,7 @@ const literalMode = function literalMode(
 	if (value && Node.isStringLiteral(value)) {
 		return { kind: 'literal', value: value.getLiteralText() };
 	}
-	if (value && Node.isCallExpression(value)) {
+	if (value && isTransport(value)) {
 		return { kind: 'transport' };
 	}
 	return { kind: 'other' };
@@ -399,12 +444,8 @@ const planTransport = function planTransport(
 		}
 	} else if (kind === 'literal' && value === 'custom') {
 		planTodo(plan, mode, CUSTOM_TODO, "TODO: mode 'custom'");
-	} else if (
-		kind === 'other' &&
-		(backend ||
-			findProperty(object, 'offlinePolicy') ||
-			findProperty(object, 'endpointHandlers'))
-	) {
+	} else if (kind === 'other') {
+		// A variable or expression that may hold a v2 mode string.
 		planTodo(plan, mode, MODE_TODO, 'TODO: mode');
 	}
 };
