@@ -65,7 +65,7 @@ export const renderPackageSkill = function renderPackageSkill(
 		'',
 		'## Before writing code',
 		'',
-		'1. Find the framework, router, rendering mode (server, static or single-page) and host in the project.',
+		'1. Find the framework, router, rendering mode (server, static, cached or single-page) and host in the project. Check the framework config and route files for settings that prerender or cache pages.',
 	];
 	const chooser = link(
 		bundledFiles,

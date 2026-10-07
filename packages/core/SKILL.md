@@ -9,7 +9,7 @@ The Markdown under `./docs` matches the installed version. Read it before writin
 
 ## Before writing code
 
-1. Find the framework, router, rendering mode (server, static or single-page) and host in the project.
+1. Find the framework, router, rendering mode (server, static, cached or single-page) and host in the project. Check the framework config and route files for settings that prerender or cache pages.
 2. Pick the matching row in [Choose your setup](./docs/concepts/choose-your-setup.md).
 3. Follow that guide from start to finish: [JavaScript](./docs/frameworks/javascript/quickstart.md).
 

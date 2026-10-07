@@ -13,7 +13,7 @@ to the alternatives it rules out.
 | --- | --- | --- |
 | Next.js App Router with a Next.js server | Server resolves consent from a build-time manifest and streams it to the page | [App Router](/docs/frameworks/next/quickstart) |
 | Next.js App Router, banner must be in the first HTML | Await consent inside `Suspense` | [Stream or await](/docs/frameworks/next/rendering#stream-or-await-consent-in-the-app-router) |
-| Next.js with static, ISR or `'use cache'` pages | Browser resolves consent on those pages | [Static, ISR and cached pages](/docs/frameworks/next/rendering#render-static-isr-and-cached-pages) |
+| Next.js with static, ISR, `'use cache'` or `ensureStatic = 'navigation'` pages | Browser resolves consent on those pages | [Static, ISR and cached pages](/docs/frameworks/next/rendering#render-static-isr-and-cached-pages) |
 | Next.js Pages Router | Resolve consent in `getServerSideProps` | [Pages Router](/docs/frameworks/next/rendering#pick-your-rendering-path) |
 | Next.js with `output: 'export'` | Browser resolves consent | [Static export](/docs/frameworks/next/static-export) |
 | TanStack Start with a server | Root loader resolves consent on the server | [TanStack Start](/docs/frameworks/tanstack-start/quickstart) |
