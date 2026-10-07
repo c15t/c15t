@@ -10,48 +10,31 @@ import { consentManifest } from '@c15t/svelte/vite';
 plugins: [
 	consentManifest({
 		backendURL: 'https://your-project.inth.app',
-		outputFile: 'src/lib/c15t-manifest.ts',
+		outputFile: 'src/lib/server/c15t-manifest.ts',
 	}),
 	sveltekit(),
 ];
 ```
 
 Vite generates the file before compilation, including when development starts.
-Keep it out of Git. In the root layout's server load, give `loadConsent` the
-snapshot in addition to its existing options:
+Keep it out of Git. Under `src/lib/server`, SvelteKit refuses to import it into
+browser code.
 
-{/* example: fragment */}
+Bind the backend URL and the snapshot once, in a server module next to the
+generated file:
 
-```ts title="src/routes/+layout.server.ts"
-import { consentManifest } from '../lib/c15t-manifest';
-import type { LayoutServerLoad } from './$types';
+<include src="../examples/sveltekit/consent-options.mdx" />
 
-export const load: LayoutServerLoad = async (event) => ({
-	prefetch: await loadConsent(event, {
-		backendURL: 'https://your-project.inth.app',
-		manifest: consentManifest,
-		shared: building,
-	}),
-});
-```
+In the root layout's server load, spread `consentOptions` into the existing
+`loadConsent` options:
 
-Keep the quickstart's `building` import for your SvelteKit version.
+<include src="../examples/sveltekit/build-manifest-layout-server.mdx" />
+
 `loadConsent` resolves locally from the snapshot using this request's inputs.
 For prerendered pages in a server deployment, add a route that resolves from
-the same snapshot:
+the same options:
 
-{/* example: fragment */}
-
-```ts title="src/routes/api/c15t/[...path]/+server.ts"
-import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
-
-import { consentManifest } from '../../../../lib/c15t-manifest';
-
-export const { GET } = createSvelteKitConsentRouteHandlers({
-	backendURL: 'https://your-project.inth.app',
-	manifest: consentManifest,
-});
-```
+<include src="../examples/sveltekit/build-manifest-route.mdx" />
 
 In the root layout's script block, point browser initialization at that route
 while keeping saves on the backend:
@@ -74,5 +57,5 @@ server. Static hosts use the browser setup from
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, omit the build plugin and `manifest`
-option and use [runtime manifest fetching](/docs/frameworks/sveltekit/rendering#serve-the-manifest-route).
+For policy updates without a rebuild, remove the build plugin and the
+`manifest` line from `consentOptions`, and use [runtime manifest fetching](/docs/frameworks/sveltekit/rendering#serve-the-manifest-route).
