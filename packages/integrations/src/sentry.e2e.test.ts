@@ -8,6 +8,7 @@ import { deniedConsents, grantedMeasurementConsents } from './e2e-test-utils';
 import { sentry } from './vendors/analytics/sentry';
 import type {
 	SentryClient,
+	SentryEnvelope,
 	SentryEvent,
 	SentryReplay,
 	SentryReplayRecordingMode,
@@ -99,6 +100,7 @@ const createClient = ({
 			}
 		},
 	];
+	const envelopeHooks: ((envelope: SentryEnvelope) => void)[] = [];
 	const options = { enabled };
 	const dataCollection = { userInfo };
 	const metadata = {
@@ -115,20 +117,48 @@ const createClient = ({
 			}
 		}),
 		captureException: vi.fn(),
+		close: vi.fn(() => {
+			options.enabled = false;
+			return Promise.resolve(true);
+		}),
 		getDataCollectionOptions: () => dataCollection,
 		getDsn: () => (dsn ? { host: 'example.ingest.sentry.io' } : undefined),
 		getIntegrationByName: (name: string) => integrations.get(name),
 		getOptions: () => options,
 		getSdkMetadata: () => metadata,
 		on: (
-			_hook: 'beforeSendSession',
-			hook: (session: SentrySession) => void
+			name: 'beforeSendSession' | 'beforeEnvelope',
+			hook:
+				| ((session: SentrySession) => void)
+				| ((envelope: SentryEnvelope) => void)
 		) => {
-			sessionHooks.push(hook);
+			if (name === 'beforeSendSession') {
+				sessionHooks.push(hook as (session: SentrySession) => void);
+			} else {
+				envelopeHooks.push(hook as (envelope: SentryEnvelope) => void);
+			}
 		},
 	} satisfies SentryClient;
-	const processEvent = (event: SentryEvent): SentryEvent =>
-		processors.reduce((current, processor) => processor(current), event);
+	const sendEnvelope = <PayloadType>(
+		type: string,
+		payload: PayloadType
+	): PayloadType => {
+		const envelope: SentryEnvelope = [{}, [[{ type }, payload]]];
+		for (const hook of envelopeHooks) {
+			hook(envelope);
+		}
+		return payload;
+	};
+	const processEvent = (
+		event: SentryEvent,
+		afterProcessing?: (event: SentryEvent) => SentryEvent
+	): SentryEvent => {
+		const processed = processors.reduce(
+			(current, processor) => processor(current),
+			event
+		);
+		return sendEnvelope('event', afterProcessing?.(processed) ?? processed);
+	};
 	/** The session as Sentry would send it. */
 	const sendSession = (session: SentrySession): SentrySession => {
 		for (const hook of sessionHooks) {
@@ -142,7 +172,7 @@ const createClient = ({
 		inferIp: metadata.sdk.settings.infer_ip,
 		userInfo: dataCollection.userInfo,
 	});
-	return { client, processEvent, sendSession, sending };
+	return { client, processEvent, sendEnvelope, sendSession, sending };
 };
 
 const deferred = <ValueType>() => {
@@ -178,7 +208,7 @@ const mount = (script: Script, initial = deniedConsents) => {
 };
 
 /** Let the paint, load and idle wait and any pending start finish. */
-const settle = () => vi.runAllTimersAsync();
+const settle = () => vi.advanceTimersByTimeAsync(10_000);
 
 const setup = ({
 	sampling = 'session',
@@ -395,25 +425,44 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(sentryClient.client.addEventProcessor).toHaveBeenCalledOnce();
 	});
 
-	it('retries on the next consent change when Sentry.init never ran in time', async () => {
+	it('applies a grant after Sentry initializes more than a minute later', async () => {
 		const sentryClient = createClient();
 		const current: { client?: SentryClient } = {};
 		const replay = new FakeReplay('session');
-		const { kernel } = mount(
+		mount(
 			sentry({
 				getClient: () => current.client,
 				replay: { load: () => replay },
 			}),
 			grantedMeasurementConsents
 		);
-		await settle();
+		await vi.advanceTimersByTimeAsync(60_000);
 		current.client = sentryClient.client;
-		await kernel.commands.save({
-			...grantedMeasurementConsents,
-			marketing: true,
-		});
+		await vi.advanceTimersByTimeAsync(100);
+		expect(sentryClient.client.addEventProcessor).toHaveBeenCalledOnce();
 		await settle();
 		expect(sentryClient.client.addIntegration).toHaveBeenCalledWith(replay);
+	});
+
+	it('applies denial after late initialization without another consent change', async () => {
+		const { client, processEvent } = createClient();
+		const current: { client?: SentryClient } = {};
+		mount(sentry({ getClient: () => current.client }));
+		await vi.advanceTimersByTimeAsync(60_000);
+		current.client = client;
+		await vi.advanceTimersByTimeAsync(100);
+		expect(client.addEventProcessor).toHaveBeenCalledOnce();
+		expect(processEvent({ user: { id: 'late-user' } }).user).toBeUndefined();
+	});
+
+	it('cancels late-client retries when the integration is removed', async () => {
+		const getClient = vi.fn(() => undefined);
+		const { loader } = mount(sentry({ getClient }));
+		await vi.advanceTimersByTimeAsync(60_000);
+		loader.updateScripts([]);
+		const calls = getClient.mock.calls.length;
+		await vi.advanceTimersByTimeAsync(1000);
+		expect(getClient).toHaveBeenCalledTimes(calls);
 	});
 
 	it.each([
@@ -456,18 +505,96 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		await settle();
 		expect(load).toHaveBeenCalledOnce();
 		expect(onError).not.toHaveBeenCalled();
-		expect(replays[0]?.stop).not.toHaveBeenCalled();
+		expect(replays[0]?.getRecordingMode()).toBe('session');
 	});
 
-	it('does not stop Replay when the configuration is removed', async () => {
-		const { replays, script } = setup();
+	it('stops Replay and removes user data when the configuration is removed', async () => {
+		const { replays, script, processEvent } = setup();
 		const { loader } = mount(script, grantedMeasurementConsents);
 		await settle();
 		loader.updateScripts([]);
 		await settle();
-		expect(replays[0]?.stop).not.toHaveBeenCalled();
-		expect(replays[0]?.getRecordingMode()).toBe('session');
+		expect(replays[0]?.stop).toHaveBeenCalledWith({ flush: false });
+		expect(replays[0]?.getRecordingMode()).toBeUndefined();
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
 	});
+
+	it('denies necessary feature conditions when the Sentry vendor is off', async () => {
+		const replay = new FakeReplay('session');
+		const { script, processEvent } = setup({
+			pii: { category: { or: ['necessary', 'measurement'] } },
+			replay: { category: 'necessary', load: () => replay },
+		});
+		mount(script);
+		await settle();
+		script.onConsentChange?.({
+			consents: deniedConsents,
+			elementId: script.id,
+			hasConsent: false,
+			id: script.id,
+			vendor: { granted: false, id: 'sentry' },
+		});
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+		expect(replay.getRecordingMode()).toBeUndefined();
+	});
+
+	it('strips user data restored by a later processor or beforeSend', () => {
+		const { script, processEvent } = setup();
+		mount(script);
+		expect(
+			processEvent({}, (event) => ({ ...event, user: { id: 'restored' } })).user
+		).toBeUndefined();
+	});
+
+	it.each(['log', 'trace_metric', 'span'])(
+		'strips user attributes from %s envelopes after a later setUser',
+		async (type) => {
+			const { script, sendEnvelope } = setup();
+			const { kernel } = mount(script, grantedMeasurementConsents);
+			await kernel.commands.save(deniedConsents);
+			const item = {
+				attributes: {
+					'http.method': { type: 'string', value: 'GET' },
+					'user.email': { type: 'string', value: 'user@example.com' },
+					'user.id': { type: 'string', value: 'signed-in-user' },
+				},
+			};
+			const payload = { items: [item] };
+			sendEnvelope(type, payload);
+			expect(item.attributes).toEqual({
+				'http.method': { type: 'string', value: 'GET' },
+			});
+		}
+	);
+
+	it('keeps log user attributes when user data is allowed', () => {
+		const { script, sendEnvelope } = setup();
+		mount(script, grantedMeasurementConsents);
+		const payload = {
+			items: [{ attributes: { 'user.id': { type: 'string', value: 'u1' } } }],
+		};
+		expect(sendEnvelope('log', payload)).toEqual(payload);
+		expect(payload.items[0]?.attributes['user.id'].value).toBe('u1');
+	});
+
+	it.each([false, true])(
+		'keeps an app-closed client disabled when consent at close is %s',
+		async (granted) => {
+			const { client, sending } = createClient();
+			const { kernel } = mount(
+				sentry({
+					getClient: () => client,
+					init: () => undefined,
+					loadMode: 'after-consent',
+				}),
+				granted ? grantedMeasurementConsents : deniedConsents
+			);
+			await client.close();
+			await kernel.commands.save(deniedConsents);
+			await kernel.commands.save(grantedMeasurementConsents);
+			expect(sending().enabled).toBe(false);
+		}
+	);
 
 	it('reports a failed download and retries on the next grant', async () => {
 		const { client } = createClient();
@@ -680,6 +807,42 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		await kernel.commands.save(grantedMeasurementConsents);
 		await settle();
 		expect(current.client).toBe(sentryClient.client);
+	});
+
+	it('denies a client whose initialization completes after removal', async () => {
+		const sentryClient = createClient();
+		const current: { client?: SentryClient } = {};
+		const pending = deferred<undefined>();
+		const { loader } = mount(
+			sentry({
+				getClient: () => current.client,
+				init: () => pending.promise,
+				loadMode: 'after-consent',
+			}),
+			grantedMeasurementConsents
+		);
+		loader.updateScripts([]);
+		current.client = sentryClient.client;
+		pending.resolve(undefined);
+		await settle();
+		expect(sentryClient.sending().enabled).toBe(false);
+		expect(
+			sentryClient.processEvent({ user: { id: 'u1' } }).user
+		).toBeUndefined();
+	});
+
+	it('restores error monitoring when replacing after-consent with always mode', () => {
+		const { client, sending } = createClient();
+		const { loader } = mount(
+			sentry({
+				getClient: () => client,
+				init: () => undefined,
+				loadMode: 'after-consent',
+			})
+		);
+		expect(sending().enabled).toBe(false);
+		loader.updateScripts([sentry({ getClient: () => client })]);
+		expect(sending().enabled).toBe(true);
 	});
 
 	it('requires init with loadMode after-consent and your own SDK', () => {
