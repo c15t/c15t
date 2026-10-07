@@ -2,16 +2,16 @@
 title: LogRocket
 description: Load LogRocket session replay only after measurement consent with the c15t logRocket helper, including proxied setups, and check it in DevTools.
 seoTitle: LogRocket cookie consent with c15t
-seoDescription: Record LogRocket sessions only after visitors give measurement consent. The c15t logRocket helper stops session replay when a visitor withdraws consent.
+seoDescription: Record LogRocket sessions only with measurement consent. The c15t logRocket helper stops session replay when a visitor withdraws consent.
 icon: logrocket
 group: integrations
 ---
 
 The c15t `logRocket` helper keeps LogRocket session replay off the page until
-the visitor gives consent for `measurement`. `LogRocket.init` runs only after
-`LogRocket.min.js` loads. The helper sends no consent signal to LogRocket. If
-the visitor withdraws consent, c15t removes the script element. By default, c15t
-also reloads the page. The reload stops the session replay.
+`measurement` has consent. `LogRocket.init` runs only after `LogRocket.min.js`
+loads. The helper sends no consent signal to LogRocket. If the visitor withdraws
+consent, c15t removes the script element. By default, c15t also reloads the
+page. The reload stops the session replay.
 
 ## Configure LogRocket
 

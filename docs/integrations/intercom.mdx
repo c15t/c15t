@@ -2,17 +2,16 @@
 title: Intercom
 description: Load the Intercom messenger only after functionality consent with the c15t intercom helper, set its region and check it in DevTools.
 seoTitle: Intercom cookie consent with c15t
-seoDescription: Show the Intercom Messenger only after visitors give functionality consent. Set it up with the c15t intercom helper and its regional API settings.
+seoDescription: Show the Intercom Messenger only with functionality consent. Set it up with the c15t intercom helper and its regional API settings.
 icon: intercom
 group: integrations
 ---
 
-The c15t `intercom` helper keeps the Intercom Messenger off the page until the
-visitor gives consent for `functionality`. Before consent, c15t does not define
-`window.Intercom` or `window.intercomSettings`. If the visitor withdraws
-consent, the helper does not call an Intercom API, such as `shutdown`. The
-Messenger continues to work until c15t reloads the page, which c15t does by
-default.
+The c15t `intercom` helper keeps the Intercom Messenger off the page until
+`functionality` has consent. Until then, c15t does not define `window.Intercom`
+or `window.intercomSettings`. If the visitor withdraws consent, the helper does
+not call an Intercom API, such as `shutdown`. The Messenger continues to work
+until c15t reloads the page, which c15t does by default.
 
 ## Configure Intercom
 

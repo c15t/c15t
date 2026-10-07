@@ -8,12 +8,12 @@ group: integrations
 ---
 
 By default, the c15t `matomoAnalytics` helper keeps Matomo off the page until
-the visitor gives consent for `measurement`. In this mode, the helper sends no
-consent signal to Matomo. With `defaultConsent`, the helper loads `matomo.js` on
-every page, before the visitor chooses. The helper then uses the Matomo consent
-API. It calls `requireConsent` while `measurement` has no consent,
-`setConsentGiven` after consent, and `forgetConsentGiven` after the visitor
-withdraws consent.
+`measurement` has consent. In this mode, the helper sends no consent signal to
+Matomo. With `defaultConsent`, the helper loads `matomo.js` on every page,
+before the visitor chooses. The helper then uses the Matomo consent API. It
+calls `requireConsent` while `measurement` has no consent, `setConsentGiven`
+while it has consent, and `forgetConsentGiven` after the visitor withdraws
+consent.
 
 ## Configure Matomo Analytics
 

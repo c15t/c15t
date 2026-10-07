@@ -2,7 +2,7 @@
 title: Sentry
 description: Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
 seoTitle: Sentry and Session Replay consent with c15t
-seoDescription: Keep Sentry error reports free of user data, and load Session Replay only after visitors give measurement consent. Set it up with the c15t sentry helper.
+seoDescription: Keep Sentry error reports free of user data, and load Session Replay only with measurement consent. Set it up with the c15t sentry helper.
 icon: sentry
 group: integrations
 ---
@@ -11,7 +11,7 @@ With a `dsn` and the default `loadMode`, the c15t `sentry` helper loads the
 Sentry CDN bundle on every page, before the visitor chooses. Sentry reports
 errors under the `necessary` category. While `measurement` has no consent, error
 events contain no user data, cookies, request headers, or inferred IP address.
-Session Replay also waits for consent for `measurement`. It stops after the
+Session Replay also waits until `measurement` has consent. It stops after the
 visitor withdraws consent. With `loadMode: 'after-consent'`, Sentry runs only
 while `measurement` has consent.
 

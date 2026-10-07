@@ -3,14 +3,14 @@ title: Meta Pixel
 description: Load the Meta Pixel only after marketing consent with the c15t
   metaPixel helper, guard fbq event calls, and check it in DevTools.
 seoTitle: Meta Pixel cookie consent with c15t
-seoDescription: Load the Meta Pixel only after visitors give marketing consent.
-  The c15t metaPixel helper sends fbq consent grant and revoke signals for you.
+seoDescription: Load the Meta Pixel only with marketing consent. The c15t
+  metaPixel helper sends fbq consent grant and revoke signals for you.
 icon: meta
 group: integrations
 ---
 
-The c15t `metaPixel` helper keeps the Meta Pixel off the page until the visitor
-gives consent for `marketing`. Before consent, c15t does not define `fbq`. After
+The c15t `metaPixel` helper keeps the Meta Pixel off the page until `marketing`
+has consent. Until then, c15t does not define `fbq`. When `marketing` has
 consent, the helper queues `fbq('consent', 'grant')` before `init` and the page
 view. If the visitor withdraws consent, the helper calls
 `fbq('consent', 'revoke')`. The script stays on the page. By default, c15t also

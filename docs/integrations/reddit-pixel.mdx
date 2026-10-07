@@ -2,16 +2,16 @@
 title: Reddit Pixel
 description: Load the Reddit Pixel only after marketing consent with the c15t redditPixel helper, guard rdt conversion calls, and check it in DevTools.
 seoTitle: Reddit Pixel cookie consent with c15t
-seoDescription: Load the Reddit Pixel only after visitors give marketing consent. The c15t redditPixel helper turns off first-party cookies when a visitor withdraws consent.
+seoDescription: Load the Reddit Pixel only with marketing consent. The c15t redditPixel helper turns off first-party cookies when a visitor withdraws consent.
 icon: reddit
 group: integrations
 ---
 
-The c15t `redditPixel` helper keeps the Reddit Pixel off the page until the
-visitor gives consent for `marketing`. Before consent, c15t does not define
-`rdt`. The helper sends no consent signal to Reddit. If the visitor withdraws
-consent, the helper calls `rdt('disableFirstPartyCookies')`. The pixel stays on
-the page. By default, c15t also reloads the page.
+The c15t `redditPixel` helper keeps the Reddit Pixel off the page until
+`marketing` has consent. Until then, c15t does not define `rdt`. The helper
+sends no consent signal to Reddit. If the visitor withdraws consent, the helper
+calls `rdt('disableFirstPartyCookies')`. The pixel stays on the page. By
+default, c15t also reloads the page.
 
 ## Configure the Reddit Pixel
 
