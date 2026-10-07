@@ -1,0 +1,21 @@
+<script setup lang="ts">
+import { useConsentActiveUI } from 'c15t/vue/vue-plugin';
+
+import ConsentPrompt from './ConsentPrompt.vue';
+import HomePage from './HomePage.vue';
+
+const activeUI = useConsentActiveUI();
+</script>
+
+<template>
+	<ConsentPrompt />
+	<HomePage />
+	<footer>
+		<button
+			type="button"
+			@click="activeUI = 'manager'"
+		>
+			Privacy settings
+		</button>
+	</footer>
+</template>

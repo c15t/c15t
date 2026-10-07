@@ -16,9 +16,9 @@ group: frameworks
 | SPA mode, `ssr = false` | The browser | [Use SPA mode](#use-spa-mode) |
 
 Each path uses the same provider and components. Only the root layout's
-server load changes. The code on this page comes from the
-`examples/sveltekit-demo` app in the c15t repository. A static site and SPA
-mode resolve consent in the browser the same way a prerendered page does.
+server load changes. The quickstart's code is the `examples/sveltekit` app in
+the c15t repository. A static site and SPA mode resolve consent in the browser
+the same way a prerendered page does.
 [Data fetching](/docs/concepts/data-fetching) compares `/init`, the manifest
 and browser resolution in general.
 
@@ -36,7 +36,7 @@ saves still go to the backend, directly or through the
 
 Add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:
 
-<include src="../../shared/examples/sveltekit-demo/route-handlers.mdx" />
+<include src="../../shared/examples/sveltekit/route-handlers.mdx" />
 
 `createSvelteKitConsentRouteHandlers` returns `GET`, which serves two paths:
 
@@ -48,7 +48,7 @@ Add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:
 It also returns `init` and `manifest` handlers separately, if you prefer one
 file per route. Point the root layout load at the route with `initRoute`:
 
-<include src="../../shared/examples/sveltekit-demo/manifest-layout-server.mdx" />
+<include src="../../shared/examples/sveltekit/manifest-layout-server.mdx" />
 
 `loadConsent` calls the route through `event.fetch`, inside the same process,
 with the visitor's location, language and GPC. Keep the root
@@ -135,11 +135,11 @@ otherwise. The framework-free `resolveConsent` helper also accepts
 
 ## Resolve request context once with c15tHandle
 
-`loadConsent` reads the consent cookie and headers itself. If several loads
-or endpoints need consent, install `c15tHandle` in `src/hooks.server.ts` to do
-that work once per request:
+The quickstart installs `c15tHandle` in `src/hooks.server.ts`, which reads
+the consent cookie and headers once per request for every load and endpoint.
+Without it, each `loadConsent` call reads them itself:
 
-<include src="../../shared/examples/sveltekit-demo/hooks.mdx" />
+<include src="../../shared/examples/sveltekit/hooks.mdx" />
 
 It stores the result on `event.locals.c15t`, which `loadConsent` reuses, and
 rewrites the location headers into one normalized form. Compose it with your
@@ -149,7 +149,7 @@ and `cookieName` if you changed `storageConfig.storageKey`.
 
 Type `event.locals.c15t` in `src/app.d.ts`:
 
-<include src="../../shared/examples/sveltekit-demo/app-locals.mdx" />
+<include src="../../shared/examples/sveltekit/app-locals.mdx" />
 
 If you have no `App.Locals` block of your own, add
 `/// <reference types="@c15t/svelte/kit/locals" />` to `src/app.d.ts` instead.
@@ -166,7 +166,7 @@ SvelteKit 2) is `true` then.
 The quickstart's load returns no prefetch in that case, so prerendering a page
 needs only the page option:
 
-<include src="../../shared/examples/sveltekit-demo/prerender.mdx" />
+<include src="../../shared/examples/sveltekit/prerender.mdx" />
 
 On a prerendered page the HTML has no banner. After hydration the browser asks
 the backend for the policy, then shows the banner or applies the stored

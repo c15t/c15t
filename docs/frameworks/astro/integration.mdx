@@ -17,7 +17,7 @@ adds four things to your site:
 - The c15t stylesheet on every page.
 - In `manifest()` mode, the `/api/c15t/init` and `/api/c15t/manifest` routes.
 
-<include src="../../shared/examples/astro-demo/static-config.mdx" />
+<include src="../../shared/examples/astro-static/static-config.mdx" />
 
 List the Astro integration of your `ui` framework before `c15t()`. Import
 `c15t` and the mode helpers from `c15t/astro`.
@@ -163,7 +163,7 @@ you serve those routes yourself. See
 A path to a module whose default export adds live values in the browser.
 Use an absolute path, as the quickstart does with `fileURLToPath`:
 
-<include src="../../shared/examples/astro-demo/client-entrypoint.mdx" />
+<include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
 The default export is a `C15tClientOptionsExtension` from `c15t/astro`:
 

@@ -30,7 +30,7 @@ Both halves matter together. Pointed at this directory, the CLI matches a build 
 namespace, `react-native config` exits non-zero, and a host app fails while its
 `settings.gradle` is still being evaluated. A namespace declared only in `library.gradle` is
 invisible to the same lookup. `scripts/react-native-autolink.ts` runs the real command from
-`examples/react-native-bare` and fails CI on both mistakes.
+`internals/fixtures/react-native-bare` and fails CI on both mistakes.
 
 `c15t-react-native/build.gradle.kts` is the only build script the library has, in a host app and
 in this standalone build alike; the `build.gradle.kts` one level up configures nothing. What is left in

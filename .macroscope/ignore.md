@@ -324,7 +324,7 @@ packages/browser/docs/**
 **/dist-types
 **/dist-types/**
 apps/bundle-bench-react/.bundle-bench-dist/**
-examples/astro-demo/.astro/**
+internals/fixtures/astro-demo/.astro/**
 **/npm-debug.log*
 **/npm-debug.log*/**
 **/yarn-debug.log*
@@ -443,54 +443,54 @@ benchmarks/tanstack-start-browser-bench/**/.nitro/**
 benchmarks/tanstack-start-browser-bench/src/routeTree.gen.ts
 benchmarks/tanstack-start-browser-bench/src/routeTree.gen.ts/**
 
-# Additional exclusions from examples/.gitignore
-examples/**/vercel-c15t
-examples/**/vercel-c15t/**
-examples/**/v1
-examples/**/v1/**
-examples/**/tailwind-3
-examples/**/tailwind-3/**
-examples/demo/next-env.d.ts
-examples/demo/next-env.d.ts/**
+# Additional exclusions from internals/fixtures/.gitignore
+internals/fixtures/**/vercel-c15t
+internals/fixtures/**/vercel-c15t/**
+internals/fixtures/**/v1
+internals/fixtures/**/v1/**
+internals/fixtures/**/tailwind-3
+internals/fixtures/**/tailwind-3/**
+apps/playground/next-env.d.ts
+apps/playground/next-env.d.ts/**
 
-# Additional exclusions from examples/nuxt/.gitignore
-examples/nuxt/**/.output
-examples/nuxt/**/.output/**
-examples/nuxt/**/.nuxt
-examples/nuxt/**/.nuxt/**
-examples/nuxt/**/node_modules
-examples/nuxt/**/node_modules/**
-examples/nuxt/**/.pgdata
-examples/nuxt/**/.pgdata/**
+# Additional exclusions from internals/fixtures/nuxt/.gitignore
+internals/fixtures/nuxt/**/.output
+internals/fixtures/nuxt/**/.output/**
+internals/fixtures/nuxt/**/.nuxt
+internals/fixtures/nuxt/**/.nuxt/**
+internals/fixtures/nuxt/**/node_modules
+internals/fixtures/nuxt/**/node_modules/**
+internals/fixtures/nuxt/**/.pgdata
+internals/fixtures/nuxt/**/.pgdata/**
 
-# Additional exclusions from examples/nuxt-vapor/.gitignore
-examples/nuxt-vapor/**/.output
-examples/nuxt-vapor/**/.output/**
-examples/nuxt-vapor/**/.nuxt
-examples/nuxt-vapor/**/.nuxt/**
-examples/nuxt-vapor/**/node_modules
-examples/nuxt-vapor/**/node_modules/**
-examples/nuxt-vapor/**/.pgdata
-examples/nuxt-vapor/**/.pgdata/**
+# Additional exclusions from internals/fixtures/nuxt-vapor/.gitignore
+internals/fixtures/nuxt-vapor/**/.output
+internals/fixtures/nuxt-vapor/**/.output/**
+internals/fixtures/nuxt-vapor/**/.nuxt
+internals/fixtures/nuxt-vapor/**/.nuxt/**
+internals/fixtures/nuxt-vapor/**/node_modules
+internals/fixtures/nuxt-vapor/**/node_modules/**
+internals/fixtures/nuxt-vapor/**/.pgdata
+internals/fixtures/nuxt-vapor/**/.pgdata/**
 
-# Additional exclusions from examples/shared/.gitignore
-examples/shared/**/artifacts/**
+# Additional exclusions from internals/fixtures/acceptance/.gitignore
+internals/fixtures/acceptance/**/artifacts/**
 
-# Additional exclusions from examples/tanstack-start/.gitignore
-examples/tanstack-start/**/node_modules
-examples/tanstack-start/**/node_modules/**
-examples/tanstack-start/**/dist
-examples/tanstack-start/**/dist/**
-examples/tanstack-start/**/.output
-examples/tanstack-start/**/.output/**
-examples/tanstack-start/**/.tanstack
-examples/tanstack-start/**/.tanstack/**
-examples/tanstack-start/**/.nitro
-examples/tanstack-start/**/.nitro/**
-examples/tanstack-start/src/routeTree.gen.ts
-examples/tanstack-start/src/routeTree.gen.ts/**
-examples/tanstack-start/**/.pgdata
-examples/tanstack-start/**/.pgdata/**
+# Additional exclusions from internals/fixtures/tanstack-start/.gitignore
+internals/fixtures/tanstack-start/**/node_modules
+internals/fixtures/tanstack-start/**/node_modules/**
+internals/fixtures/tanstack-start/**/dist
+internals/fixtures/tanstack-start/**/dist/**
+internals/fixtures/tanstack-start/**/.output
+internals/fixtures/tanstack-start/**/.output/**
+internals/fixtures/tanstack-start/**/.tanstack
+internals/fixtures/tanstack-start/**/.tanstack/**
+internals/fixtures/tanstack-start/**/.nitro
+internals/fixtures/tanstack-start/**/.nitro/**
+internals/fixtures/tanstack-start/src/routeTree.gen.ts
+internals/fixtures/tanstack-start/src/routeTree.gen.ts/**
+internals/fixtures/tanstack-start/**/.pgdata
+internals/fixtures/tanstack-start/**/.pgdata/**
 
 # Additional exclusions from internals/next-compat/next-16-static-export/.gitignore
 internals/next-compat/next-16-static-export/lib/consent-manifest.generated.ts

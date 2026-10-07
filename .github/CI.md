@@ -9,6 +9,7 @@ benchmark should reuse an existing group unless it proves a different contract.
 | Package behavior and types | Kernel/storage/policy logic, adapter components, public types, test fixture types, external observers of packed exports, benchmark helper units | Every example journey |
 | Database behavior | SQLite, PGlite, real Postgres/MySQL, migrations and audit contracts | Browser acceptance |
 | Example acceptance | Production setup, vendor and iframe gating, revocation, navigation and outage recovery | Each benchmark timing loop |
+| Starter smoke tests | Each `examples/` starter builds for production, shows the banner (in the first HTML when server-rendered), keeps Accept across a reload, and opens the dialog from Privacy settings | Example acceptance journeys |
 | Next compatibility | Packed exports, Next 15/16, App/Pages, Cache Components, static export, first HTML and request/cache contracts | A second version matrix |
 | Framework parity | DOM, accessibility, styles, geometry, live pixel comparisons and Storybook interactions | Example screenshot copies |
 | SSR journeys | Next/Nuxt/SvelteKit headers, language, GPC, stored choices, hydration and Nuxt route contracts | Separate standalone E2E runner |
@@ -50,12 +51,29 @@ bun scripts/ci-run.ts testTypes
 bun scripts/ci-run.ts tests
 bun turbo run test --filter=@c15t/consent-observers
 CI_INTEGRATION=examples CI_TARGETS=react,vue bun scripts/ci-browser.ts
+CI_INTEGRATION=starters CI_TARGETS=nextjs,html bun scripts/ci-browser.ts
+STARTER_TARGET=react,nuxt bun run --cwd internals/fixtures/acceptance test:starters
 CI_INTEGRATION=compat CI_TARGETS=16-app,16-static-export bun scripts/ci-browser.ts
 CI_INTEGRATION=parity CI_TARGETS=react,svelte,vue,astro bun scripts/ci-browser.ts
 CI_INTEGRATION=journeys CI_TARGETS=nextjs,nuxt,sveltekit bun scripts/ci-browser.ts
 CI_INTEGRATION=styles CI_TARGETS=all bun scripts/ci-browser.ts
 TAILWIND_MATRIX_VERSIONS=v3 TAILWIND_MATRIX_FIXTURES=vue,nuxt bun run compat:styles:matrix
 ```
+
+The starters group runs `internals/fixtures/acceptance/src/starters.test.ts`
+once per starter. Every `examples/` directory except `showcase-*` is a
+starter, and its directory name is its target in
+`internals/fixtures/acceptance/src/starter-targets.ts`. A starter is selected
+when its directory or a package it depends on changes, and every starter runs
+when the acceptance workspace changes. Starters hold no test code, so the
+harness points them at the protocol fixture from outside: server-rendered
+starters through their public backend URL variable, client-only starters by
+routing browser requests for `https://your-project.inth.app` to the fixture.
+The plain HTML starter's jsDelivr script is served from `packages/browser/dist`.
+`self-host` runs its own backend, which refuses PGlite in production, so the
+harness starts PostgreSQL 16 in Docker with its data on a tmpfs and applies
+the backend migrations before starting the app. Every other external request
+is blocked and fails the test.
 
 The styles group builds the Next.js Tailwind fixtures and the framework
 matrix in `benchmarks/tailwind-matrix`: Next.js 16 and 15 (Turbopack and
@@ -144,9 +162,9 @@ through that path. It is also not the only linker: an Expo app's `settings.gradl
 `expoAutolinking.rnConfigCommand`, so Expo's own resolver answers for that app and never asks
 the community CLI anything, and the two implementations read a library's config file
 differently. `bun scripts/react-native-autolink.ts` asks both: the unscoped
-`react-native config` from `examples/react-native-bare`, and
+`react-native config` from `internals/fixtures/react-native-bare`, and
 `expo-modules-autolinking react-native-config --platform android --json` from
-`examples/expo-dev`. Each answer is checked to name the library module and the package class,
+`internals/fixtures/expo-dev`. Each answer is checked to name the library module and the package class,
 and the bare fixture additionally has to name the podspec. It runs on the Android leg of the
 mobile SDK group and, as `scripts/react-native-autolink.test.ts`, in `bun run test:scripts`.
 

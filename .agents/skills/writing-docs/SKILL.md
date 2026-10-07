@@ -24,26 +24,42 @@ read the `leadtype` skill before changing MDX components or generation.
 
 ## Take setup code from the example apps
 
-Code that wires c15t into an app comes from `examples/*` or
-`internals/next-compat/*`, which CI builds and tests. Do not hand-write a
-provider, layout, route handler or config file in MDX. Hand-written snippets
-drift: one Next.js page passed a `defineConsentConfig()` result from a server
-layout to `ConsentRoot`, which React cannot serialize.
+Code that wires c15t into an app comes from marked regions in code CI builds
+or type-checks. Do not hand-write a provider, layout, route handler or config
+file in MDX. Hand-written snippets drift: one Next.js page passed a
+`defineConsentConfig()` result from a server layout to `ConsentRoot`, which
+React cannot serialize.
 
-1. Find the example for the path you document. If none exists, add a route or
-   app and cover it in `examples/shared` before writing the page.
-2. Keep demo-only code (galleries, reset buttons, location overrides) out of
-   the file, or outside the published region. When it must sit inside one,
-   hide it with a trailing `docs:hide` comment or a `#hide docs` …
-   `#endhide docs` block; the app runs it and the snippet leaves it out.
-3. Mark the lines with `#region docs:<name>` and `#endregion docs:<name>`, then
-   run `bun scripts/sync-example-docs.ts`.
-4. Include `docs/shared/examples/<app>/<name>.mdx` from the page.
+Pick the source by what the snippet is:
+
+- Setup a quickstart or rendering page shows comes from a starter in
+  `examples/<framework>`. Starters are smoke-tested in CI and hold no test
+  code, so never add hide markers or test helpers to them. See
+  `examples/README.md`.
+- Feature code (callbacks, IAB, GPP, headless UI, embeds, self-host routes,
+  rendering variants) comes from `internals/doc-snippets/<framework>`, which
+  CI type-checks. Hide markers are allowed there only for type-check
+  scaffolding the reader does not need.
+- `internals/fixtures/*` are test apps for the acceptance journeys and publish
+  nothing. `internals/next-compat/*` still publishes its router contracts.
+
+`examples/<name>`, `internals/doc-snippets/<name>` and
+`internals/fixtures/<name>` all publish to `docs/shared/examples/<name>/`, so a
+region name must be unique across them.
+
+1. Find the starter or snippet set for the path you document. If the setup has
+   no starter, add one; if the feature has no snippet, add a small file to
+   `internals/doc-snippets/<framework>` that passes its `check-types`.
+2. Mark the lines with `#region docs:<name>` and `#endregion docs:<name>`. New
+   files must be tracked or intent-added (`git add -N`) before you sync, since
+   the sync only reads tracked files. Then run
+   `bun scripts/sync-example-docs.ts`.
+3. Include `docs/shared/examples/<name>/<region>.mdx` from the page.
 
 A fence that is deliberately a fragment, such as one changed prop, needs
 `{/* example: fragment */}` on the line before it. The baseline in
 `scripts/hand-written-examples-baseline.json` counts older hand-written fences
-and may only fall. See `examples/shared/README.md` for marker syntax.
+and may only fall. See `scripts/example-doc-sources.ts` for marker syntax.
 
 ## Write for people and agents
 

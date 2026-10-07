@@ -30,7 +30,7 @@ This file is the canonical agent guide. `CLAUDE.md` imports it. Deeper task guid
 | `docs/` | MDX source for c15t.com **and** the docs bundled into published packages |
 | `internals/` | `@c15t/typescript-config`, `@c15t/vitest-config`, storybook tests, bundle-analysis action |
 | `apps/` | Storybook apps per framework + bundle bench |
-| `examples/demo` | Next.js demo app (`bun run dev` runs this) |
+| `apps/playground` | Next.js demo app (`bun run dev` runs this) |
 | `benchmarks/` | Bundle-size, runtime, and CSS-compat benchmark harnesses |
 | `scripts/` | Repo tooling: docs generation, readme generation, publish checks |
 
@@ -60,8 +60,8 @@ bun run lint                                         # Oxlint via turbo + repo-w
 bun run fmt                                          # repo-wide Oxfmt
 bun run lint:docs && bun run fmt:docs                # remark for docs/**/*.mdx
 
-bun run dev                                          # examples/demo + watch-builds of its deps
-bun run --cwd examples/demo dev:localhost            # plain `next dev` (no portless/https)
+bun run dev                                          # apps/playground + watch-builds of its deps
+bun run --cwd apps/playground dev:localhost         # plain `next dev` (no portless/https)
 ```
 
 Browser tests (react, nextjs, tanstack-start) need Chromium: `bunx playwright@1.58.2 install`.

@@ -49,7 +49,7 @@ Nuxt 4.6 and later can compile your components with Vue Vapor. Vapor needs
 Vue 3.6, which is a release candidate, so install `vue` 3.6 alongside Nuxt and
 turn on `vue.vapor`:
 
-<include src="../../shared/examples/nuxt-vapor/nuxt-config.mdx" />
+<include src="../../shared/examples/nuxt/vapor-nuxt-config.mdx" />
 
 Mark a page or component with `<script setup vapor>` to compile it with Vapor.
 c15t's components stay on the virtual DOM, and Nuxt renders them inside Vapor
@@ -57,13 +57,13 @@ components through its interop layer. Mount `ConsentRoot` in a Vapor
 `app.vue`, pass slots to `ConsentGate` or `ConsentPreferencesLink`, and call
 the composables in a Vapor `<script setup>`, as you would elsewhere:
 
-<include src="../../shared/examples/nuxt-vapor/embed.mdx" />
+<include src="../../shared/examples/nuxt/vapor-embed.mdx" />
 
 Vapor does not make the banner or the preference dialog faster, because they
 still render with the virtual DOM. The interop layer ships the Vapor runtime
 next to the virtual DOM one, so expect more JavaScript, not less: the
-`/consent-example` page of `examples/nuxt-vapor` downloads about 18% more
-JavaScript than the same app without Vapor.
+`/consent-example` page of `internals/fixtures/nuxt-vapor` downloads about 18%
+more JavaScript than the same app without Vapor.
 
 ## Building blocks
 

@@ -84,7 +84,7 @@ export const isMobileDevicePath = function isMobileDevicePath(
 	path: string
 ): boolean {
 	return (
-		/^examples\/(?:expo-dev|react-native-bare)\//u.test(path) ||
+		/^internals\/fixtures\/(?:expo-dev|react-native-bare)\//u.test(path) ||
 		isMobileNativePath(path) ||
 		/^packages\/react-native\/(?:ios|android)\//u.test(path) ||
 		/^packages\/react-native\/(?:Package\.swift|C15tReactNative\.podspec|react-native\.config\.(?:js|cjs|mjs|ts))$/u.test(
@@ -172,11 +172,11 @@ export const createCiPlan = function createCiPlan(
 	]
 		.filter(([, directory]) =>
 			selected.some(
-				(workspace) => workspace.directory === `examples/${directory}`
+				(workspace) => workspace.directory === `internals/fixtures/${directory}`
 			)
 		)
 		.map(([id]) => id ?? '');
-	if (affected.has('@c15t/example-conformance')) {
+	if (affected.has('@c15t/fixture-acceptance')) {
 		examples.splice(
 			0,
 			examples.length,
@@ -200,6 +200,16 @@ export const createCiPlan = function createCiPlan(
 			'sveltekit'
 		);
 	}
+	// Starters are the `examples/` apps other than showcases, and each one's
+	// directory name is its smoke-test target. A new starter is selected
+	// without a second list here, and fails until it has a target.
+	const starterDirectory = /^examples\/(?!showcase-)[^/]+$/u;
+	const starters = (
+		affected.has('@c15t/fixture-acceptance') ? workspaces : selected
+	)
+		.filter((workspace) => starterDirectory.test(workspace.directory))
+		.map((workspace) => workspace.directory.replace('examples/', ''))
+		.sort();
 	const parity = selected
 		.filter((workspace) =>
 			/^apps\/storybook-(?:react|vue|svelte|astro)$/u.test(workspace.directory)
@@ -234,7 +244,7 @@ export const createCiPlan = function createCiPlan(
 				.replace('benchmarks/', '')
 				.replace('-browser-bench', '')
 		);
-	if (affected.has('@c15t/example-conformance')) {
+	if (affected.has('@c15t/fixture-acceptance')) {
 		journeys.splice(0, journeys.length, 'nextjs', 'nuxt', 'sveltekit');
 	}
 	const compat = selected
@@ -245,7 +255,7 @@ export const createCiPlan = function createCiPlan(
 			(workspace) =>
 				workspace.scripts.test &&
 				workspace.name !== '@c15t/backend' &&
-				workspace.directory !== 'examples/shared'
+				workspace.directory !== 'internals/fixtures/acceptance'
 		)
 		.map((workspace) => workspace.name);
 	const types = selected
@@ -253,6 +263,7 @@ export const createCiPlan = function createCiPlan(
 		.map((workspace) => workspace.name);
 	for (const workspace of workspaces) {
 		if (
+			starters.some((target) => workspace.directory === `examples/${target}`) ||
 			parity.some(
 				(target) => workspace.directory === `apps/storybook-${target}`
 			) ||
@@ -262,7 +273,7 @@ export const createCiPlan = function createCiPlan(
 			examples.some(
 				(target) =>
 					workspace.directory ===
-					`examples/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', html: 'script-tag', 'nuxt-prerender': 'nuxt', 'nuxt-static': 'nuxt', 'nuxt-vapor-future': 'nuxt-vapor', sveltekit: 'sveltekit-demo', 'tanstack-start-same-origin': 'tanstack-start', 'tanstack-start-static': 'tanstack-start', 'tanstack-start-streamed': 'tanstack-start' } as Record<string, string>)[target] ?? target}`
+					`internals/fixtures/${({ astro: 'astro-demo', 'astro-static': 'astro-demo', html: 'script-tag', 'nuxt-prerender': 'nuxt', 'nuxt-static': 'nuxt', 'nuxt-vapor-future': 'nuxt-vapor', sveltekit: 'sveltekit-demo', 'tanstack-start-same-origin': 'tanstack-start', 'tanstack-start-static': 'tanstack-start', 'tanstack-start-streamed': 'tanstack-start' } as Record<string, string>)[target] ?? target}`
 			)
 		) {
 			required.add(workspace.name);
@@ -309,6 +320,7 @@ export const createCiPlan = function createCiPlan(
 	const mobileBrowserOrDevice = full || runtime.some(isMobileDevicePath);
 	const integrations = [
 		{ kind: 'examples', targets: examples.join(',') },
+		{ kind: 'starters', targets: starters.join(',') },
 		{ kind: 'compat', targets: compat.join(',') },
 		{ kind: 'parity', targets: parity.join(',') },
 		{ kind: 'journeys', targets: journeys.join(',') },
@@ -339,6 +351,7 @@ export const createCiPlan = function createCiPlan(
 				workspace.directory.startsWith('benchmarks/') &&
 				Boolean(workspace.scripts['bench:ci'])
 		),
+		starters,
 		styles,
 		testBrowsers: tests.some((name) =>
 			[

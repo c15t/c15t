@@ -412,7 +412,7 @@ new boundary tests were confirmed to fail with the fix removed, and the
 
 ## Not in scope here
 
-`packages/react-native/**`, `native/**` and `examples/react-native-bare/**` are
+`packages/react-native/**`, `native/**` and `internals/fixtures/react-native-bare/**` are
 untouched. `native/CONTRACT.md:7` states the mobile deferral and reserves the
 `iab` slot so a later addition is additive. One pre-existing failure in
 `@c15t/react-native:test` (missing `src/protocol/version`) is on that lane, is

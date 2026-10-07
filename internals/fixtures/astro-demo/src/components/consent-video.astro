@@ -1,0 +1,63 @@
+---
+import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
+---
+
+<consent-video>
+	<div data-video>
+		<p>Allow measurement to load this YouTube video.</p>
+	</div>
+	<ConsentDialogTrigger>Open privacy settings</ConsentDialogTrigger>
+</consent-video>
+
+<script>
+	import { getConsentClient } from 'c15t/astro/client';
+
+	class ConsentVideo extends HTMLElement {
+		dispose?: () => void;
+
+		connect = () => {
+			const client = getConsentClient();
+			const container = this.querySelector('[data-video]');
+			if (this.dispose || !client || !container) {
+				return;
+			}
+			const render = () => {
+				// Measurement is allowed and the visitor has not switched YouTube
+				// off. An undeclared vendor is never allowed, so declare youtube.
+				if (!client.isVendorAllowed('youtube')) {
+					container.textContent =
+						'Allow measurement to load this YouTube video. No video request is sent before permission.';
+					return;
+				}
+				if (container.querySelector('iframe')) {
+					return;
+				}
+				const frame = document.createElement('iframe');
+				frame.src = 'https://www.youtube-nocookie.com/embed/czTksCF6X8Y';
+				frame.title = 'YouTube video';
+				frame.allowFullscreen = true;
+				container.replaceChildren(frame);
+			};
+			render();
+			this.dispose = client.subscribe(render);
+		};
+
+		connectedCallback() {
+			// c15t boots from a module script, which can run after this one.
+			document.addEventListener('DOMContentLoaded', this.connect, {
+				once: true,
+			});
+			this.connect();
+		}
+
+		disconnectedCallback() {
+			document.removeEventListener('DOMContentLoaded', this.connect);
+			this.dispose?.();
+			this.dispose = undefined;
+		}
+	}
+
+	if (!customElements.get('consent-video')) {
+		customElements.define('consent-video', ConsentVideo);
+	}
+</script>

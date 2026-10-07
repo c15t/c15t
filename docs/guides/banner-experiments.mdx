@@ -173,13 +173,12 @@ keeps their arm when you change the weights.
 Resolve the flag where consent resolves and pass the experiment to
 `resolveConsent`. The server reports the arm with `/init`, and the returned
 state carries the experiment to `ConsentRoot`, so the client needs no
-`experiment` option of its own. The Next.js example does this in the root
-layout of its `/experiment` route:
+`experiment` option of its own. In Next.js, do this in the root layout:
 
 <include src="../shared/examples/nextjs/experiment-layout.mdx" />
 
-In the example, `lib/flags.ts` stands in for the flag above and reads the arm
-from the URL. `ExperimentConsent` is the `Consent` wrapper from the
+`@/lib/flags` exports the flag above. `ExperimentConsent` is the `Consent`
+wrapper from the
 [App Router guide](/docs/frameworks/next/app-router) with the event callbacks
 from [send the events to your own analytics](#send-the-events-to-your-own-analytics-too)
 in `options`. The layout awaits consent inside `<Suspense>`, as in
@@ -536,7 +535,7 @@ arm by the visitors whose reports carry that arm.
 
 ## Try it
 
-Every example app under `examples/` runs this experiment outside the pages
+Every example app under `internals/fixtures/` runs this experiment outside the pages
 the docs publish. Each page shows the assigned arm and the events the
 callbacks sent. Adding `arm=wall` sets the arm the way a flag would, so the
 page shows `assignedBy: host`. Run each command in the example's directory.

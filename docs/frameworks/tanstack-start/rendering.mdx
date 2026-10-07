@@ -17,10 +17,6 @@ manifest also adds a Vite plugin; the same-origin path adds one server route. Pa
 | Browser must only talk to your origin | Awaits consent | Yes | [Same-origin route](#keep-consent-requests-on-your-origin) |
 | SPA mode, prerendered pages or a static host | None | No, the browser resolves consent | [No server render](#spa-mode-prerendered-pages-and-static-hosts) |
 
-The `examples/tanstack-start` app in the
-[c15t repository](https://github.com/c15t/c15t) builds and tests a root route
-for each path.
-
 ## Bundle the manifest during builds
 
 <include src="../../shared/build-manifests/tanstack-start.mdx" />
@@ -118,9 +114,10 @@ is safe: while TanStack Start prerenders (`TSS_PRERENDERING`),
 `resolveConsent` treats the render as shared. It reads no cookie or location
 header, returns no stored consent, clock or GPC signal, and makes no manifest
 request, so no build-time state is baked into the HTML. Pass `shared: true`
-to force the same for other HTML you cache for every visitor. The example
-prerenders every page with `tanstackStart({ prerender: { enabled: true } })`
-and serves the output as static files. SPA mode renders the same root route
+to force the same for other HTML you cache for every visitor. To prerender
+every page, configure the Vite plugin as
+`tanstackStart({ prerender: { enabled: true } })` and serve the output as
+static files. SPA mode renders the same root route
 into its shell.
 
 `c15t/tanstack-start/static` is a lower-level alternative that bundles the

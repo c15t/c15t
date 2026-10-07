@@ -103,10 +103,8 @@ shared config and manifest route from the
 For a whole app of static pages, use this as the only root layout. To mix
 static pages with server-rendered ones, give each kind its own root layout in
 a route group, such as `app/(site)/layout.tsx` with the streamed layout and
-`app/(static)/layout.tsx` with this one. The
-[runnable example](/docs/examples) uses this structure for `/app-router`,
-`/awaited` and `/client-init`. Moving between two root layouts loads the whole
-page. The visitor's choice survives because c15t stores it in a cookie and
+`app/(static)/layout.tsx` with this one. Moving between two root layouts loads
+the whole page. The visitor's choice survives because c15t stores it in a cookie and
 localStorage.
 
 Browser resolution from the manifest has no location input, so the visitor's

@@ -10,7 +10,7 @@ Move the iframe's URL from `src` to `data-src` and name its category in
 `data-category`. The c15t script tag gives the iframe its `src` once the
 category is allowed:
 
-<include src="../../shared/examples/script-tag/embed.mdx" />
+<include src="../../shared/examples/html/embed.mdx" />
 
 An iframe with no `src` loads nothing, so the vendor gets no request and sets
 no cookie until the visitor allows the category. Give every embed a `title`
@@ -30,8 +30,7 @@ Iframes without `data-category` or `data-vendor` are left alone.
 ## Show a placeholder
 
 c15t does not draw anything in place of a blocked iframe. Put your own message
-next to it and hide it once the iframe has a `src`. The quickstart page uses
-this markup:
+next to it and hide it once the iframe has a `src`:
 
 {/* example: fragment */}
 

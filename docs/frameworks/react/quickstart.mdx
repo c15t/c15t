@@ -39,16 +39,14 @@ vendor loaders used below.
 
 ## Register your vendor scripts
 
-Create `src/scripts.ts`. PostHog waits for measurement permission and X Pixel
-waits for marketing permission, so your policy must include both categories.
-Remove any other PostHog or X Pixel loader from your app so each vendor loads
-once.
+Create `src/scripts.ts`. PostHog waits for measurement permission, so your
+policy must include that category. Remove any other PostHog loader from your
+app so PostHog loads once.
 
 <include src="../../shared/examples/react/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. PostHog uses its EU host; add
-`region: 'us'` for a US project. Remove the loader for a vendor you don't use.
+Replace `phc_your_project_key` with your PostHog project key. PostHog uses its
+EU host; add `region: 'us'` for a US project.
 
 `loadMode: 'after-consent'` keeps the PostHog SDK off the page until the
 visitor allows measurement. `cookieless_mode: 'never'` turns off PostHog's
@@ -107,12 +105,12 @@ then open the site in a private window with DevTools open on the Network tab.
 Test under a policy that asks for a choice, such as an EU opt-in policy.
 
 1. **Before a choice.** The banner shows. There are no requests to
-   `posthog.com` or `static.ads-twitter.com`.
+   `posthog.com`.
 2. **Reject All.** The banner closes and the vendor requests stay absent.
 3. **Reload.** The banner stays closed and the vendor requests stay absent.
 4. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
-   `measurement` category) and **Marketing** off. Turn on **Analytics** and save. PostHog's `array.js` loads and
-   X Pixel stays absent.
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and
+   save. PostHog's `array.js` loads.
 5. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
 If the banner never appears, check the generated policy and any location

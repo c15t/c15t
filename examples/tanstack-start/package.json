@@ -5,26 +5,19 @@
 	"scripts": {
 		"build": "vite build",
 		"check-types": "tsc --noEmit",
-		"db:migrate": "bunx @c15t/cli self-host migrate",
-		"dev": "vite dev --port 3010",
-		"start": "node scripts/serve.mjs",
-		"start:static": "node scripts/serve.mjs --static"
+		"dev": "vite dev --port 3102",
+		"start": "srvx serve --prod --static=../client --entry=dist/server/server.js"
 	},
 	"dependencies": {
-		"@c15t/backend": "workspace:*",
 		"@c15t/integrations": "workspace:*",
-		"@effect/sql-pglite": "4.0.0",
-		"@electric-sql/pglite": "0.4.2",
 		"@tanstack/react-router": "1.170.41",
 		"@tanstack/react-start": "1.168.60",
 		"c15t": "workspace:*",
-		"pg": "^8.20.0",
 		"react": "19.2.7",
 		"react-dom": "19.2.7"
 	},
 	"devDependencies": {
 		"@types/node": "22.19.11",
-		"@types/pg": "^8.20.0",
 		"@types/react": "19.2.17",
 		"@types/react-dom": "19.2.3",
 		"@vitejs/plugin-react": "6.0.3",

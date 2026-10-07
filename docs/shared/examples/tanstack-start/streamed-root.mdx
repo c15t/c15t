@@ -1,4 +1,4 @@
-{/* Generated from examples/tanstack-start/src/rendering/streamed-root.tsx (docs:streamed-root) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from internals/doc-snippets/tanstack-start/src/rendering/streamed-root.tsx (docs:streamed-root) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```tsx title="src/routes/__root.tsx"
 import {
@@ -23,7 +23,8 @@ import { scripts } from '../scripts';
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
-const backendURL = 'https://your-project.inth.app';
+const backendURL =
+	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://your-project.inth.app';
 
 // Declare the server function in your own module. Start's compiler splits
 // the server code out of the browser bundle at this call site.

@@ -1,16 +1,15 @@
 {
 	"name": "@c15t/example-nextjs",
-	"version": "0.1.0",
 	"private": true,
+	"type": "module",
 	"scripts": {
 		"build": "next build",
 		"check-types": "next typegen && tsc --noEmit",
-		"dev": "next dev --port 3011",
-		"start": "next start"
+		"dev": "next dev --port 3100",
+		"start": "next start --port 3100"
 	},
 	"dependencies": {
 		"@c15t/integrations": "workspace:*",
-		"@c15t/ui": "workspace:*",
 		"c15t": "workspace:*",
 		"next": "16.2.10",
 		"react": "19.2.7",

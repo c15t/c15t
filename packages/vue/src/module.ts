@@ -365,7 +365,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		// Auto-import every public composable from the index entry. A single
 		// resolvable `from` avoids unimport's per-file registry quirks (three
 		// names registered from per-file paths were silently dropped — see
-		// examples/nuxt regression: useHasConsent undefined at runtime).
+		// internals/fixtures/nuxt regression: useHasConsent undefined at runtime).
 		const composablesEntry = ['index.ts', 'index.js']
 			.map((file) => resolver.resolve(`./runtime/composables/${file}`))
 			.find((path) => existsSync(path)) as string;

@@ -32,17 +32,17 @@ already uses your brand. Install `@c15t/ui`, which has the generator:
 Put the theme in a module under `src/lib/server`. SvelteKit refuses to import
 server-only modules into browser code, so the generator never reaches the bundle:
 
-<include src="../../shared/examples/sveltekit-demo/theme.mdx" />
+<include src="../../shared/examples/sveltekit/theme.mdx" />
 
 Return the CSS from a layout load. If your root `+layout.server.ts` already
 has a load from the quickstart, add `themeCSS` to the object it returns next
 to `prefetch`:
 
-<include src="../../shared/examples/sveltekit-demo/theme-load.mdx" />
+<include src="../../shared/examples/sveltekit/theme-load.mdx" />
 
 Render it in `<svelte:head>` in the layout:
 
-<include src="../../shared/examples/sveltekit-demo/theme-style.mdx" />
+<include src="../../shared/examples/sveltekit/theme-style.mdx" />
 
 SvelteKit writes `<svelte:head>` content before its stylesheet links. The
 `generateThemeCSS` selectors are more specific than the defaults in

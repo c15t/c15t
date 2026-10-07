@@ -15,7 +15,7 @@ const nextAppDirectories = [
 	'benchmarks/script-lifecycle-bench',
 	'benchmarks/tw3-test',
 	'benchmarks/tw4-test',
-	'examples/demo',
+	'apps/playground',
 ] as const;
 
 const nextAppFiles = nextAppDirectories.map(
@@ -27,8 +27,8 @@ const nonReactFrameworkFiles = [
 	'apps/storybook-svelte/**/*.{js,jsx,ts,tsx}',
 	'apps/storybook-vue/**/*.{js,jsx,ts,tsx}',
 	'benchmarks/nuxt-browser-bench/**/*.{js,jsx,ts,tsx}',
-	'examples/nuxt/**/*.{js,jsx,ts,tsx}',
-	'examples/nuxt-vapor/**/*.{js,jsx,ts,tsx}',
+	'internals/fixtures/nuxt/**/*.{js,jsx,ts,tsx}',
+	'internals/fixtures/nuxt-vapor/**/*.{js,jsx,ts,tsx}',
 	'packages/solid/**/*.{js,jsx,ts,tsx}',
 	'packages/svelte/**/*.{js,jsx,ts,tsx}',
 	'packages/vue/**/*.{js,jsx,ts,tsx}',

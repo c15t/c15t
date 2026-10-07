@@ -2,6 +2,7 @@ import { readdirSync } from 'node:fs';
 
 import { describe, expect, it } from 'vitest';
 
+import { starterTargets } from '../internals/fixtures/acceptance/src/starter-targets';
 import { ciSchedulingOutputs, createCiPlan, readWorkspaces } from './ci-plan';
 
 // Use the real graph: dependency additions must change selection without a second map.
@@ -63,6 +64,7 @@ describe('CI selection', () => {
 			journeys: [],
 			parity: [],
 			performance: false,
+			starters: [],
 			styles: false,
 			tests: [],
 			types: [],
@@ -136,6 +138,38 @@ describe('CI selection', () => {
 		expect(result.full).toBe(true);
 		expect(result.backend).toBe(true);
 		expect(result.examples).toHaveLength(18);
+		expect(result.starters).toHaveLength(starterTargets.length);
+	});
+	it('gives every starter in examples/ a smoke target', () => {
+		// A full run selects every starter workspace. One without a target
+		// would fail its CI leg as an unknown STARTER_TARGET.
+		expect(plan(['bun.lock']).starters).toEqual(
+			starterTargets.map((target) => target.id).sort()
+		);
+	});
+	it('smoke-tests only the starter whose directory changed', () => {
+		const result = plan(['examples/vue/src/App.vue']);
+		expect(result.starters).toEqual(['vue']);
+		expect(result.examples).toEqual([]);
+		expect(result.build).toContain('@c15t/vue');
+		expect(result.integrations).toContainEqual({
+			kind: 'starters',
+			targets: 'vue',
+		});
+	});
+	it('follows package dependencies into the starters', () => {
+		expect(plan(['packages/backend/src/index.ts']).starters).toContain(
+			'self-host'
+		);
+		const browser = plan(['packages/browser/src/index.ts']);
+		expect(browser.starters).toContain('html');
+		expect(browser.starters).toContain('javascript');
+		expect(plan(['internals/fixtures/vue/src/main.ts']).starters).toEqual([]);
+	});
+	it('runs every starter when the smoke harness changes', () => {
+		expect(
+			plan(['internals/fixtures/acceptance/src/starters.test.ts']).starters
+		).toHaveLength(starterTargets.length);
 	});
 	it('runs benchmark helper tests when benchmark infrastructure changes', () => {
 		expect(plan(['benchmarks/shared/src/budgets.ts']).tests).toContain(
@@ -143,22 +177,28 @@ describe('CI selection', () => {
 		);
 	});
 	it('builds dependencies of an example without selecting their unrelated consumers', () => {
-		const result = plan(['examples/vue/src/main.ts']);
+		const result = plan(['internals/fixtures/vue/src/main.ts']);
 		expect(result.build).toContain('@c15t/core');
 		expect(result.examples).toEqual(['vue']);
 		expect(result.compat).toEqual([]);
 	});
 	it('runs every target built from a changed example directory', () => {
-		expect(plan(['examples/script-tag/serve.ts']).examples).toEqual(['html']);
-		expect(plan(['examples/nuxt/app/app.vue']).examples).toEqual([
+		expect(plan(['internals/fixtures/script-tag/serve.ts']).examples).toEqual([
+			'html',
+		]);
+		expect(plan(['internals/fixtures/nuxt/app/app.vue']).examples).toEqual([
 			'nuxt',
 			'nuxt-prerender',
 			'nuxt-static',
 		]);
-		expect(plan(['examples/nuxt-vapor/app/app.vue']).examples).toEqual([
-			'nuxt-vapor',
-			'nuxt-vapor-future',
-		]);
+		expect(
+			plan(['internals/fixtures/nuxt-vapor/app/app.vue']).examples
+		).toEqual(['nuxt-vapor', 'nuxt-vapor-future']);
+	});
+	it('runs the HTML journeys when a snippet the fixture serves changes', () => {
+		const result = plan(['internals/doc-snippets/html/headless-bar.html']);
+		expect(result.full).toBe(false);
+		expect(result.examples).toEqual(['html']);
 	});
 	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {
 		for (const file of [
@@ -206,8 +246,8 @@ describe('CI selection', () => {
 	});
 	it('runs app builds only for files an app compiles', () => {
 		const device = [
-			'examples/expo-dev/App.tsx',
-			'examples/react-native-bare/ios/Podfile',
+			'internals/fixtures/expo-dev/App.tsx',
+			'internals/fixtures/react-native-bare/ios/Podfile',
 			'packages/react-native/ios/C15tReactNative/Bridge/Wire.swift',
 			'packages/react-native/C15tReactNative.podspec',
 			'packages/react-native/Package.swift',
@@ -262,7 +302,9 @@ describe('CI scheduling outputs', () => {
 		);
 		expect(sdk.mobile).toBe(true);
 		expect(sdk.mobileBrowserOrDevice).toBe(false);
-		const apps = ciSchedulingOutputs(plan(['examples/expo-dev/App.tsx']));
+		const apps = ciSchedulingOutputs(
+			plan(['internals/fixtures/expo-dev/App.tsx'])
+		);
 		expect(apps.mobileBrowserOrDevice).toBe(true);
 		expect(JSON.stringify(apps)).not.toContain('@c15t/');
 	});

@@ -10,13 +10,14 @@ This guide is for a Svelte 5 app without SvelteKit, such as a Vite
 single-page app. The browser resolves consent after the page loads, so the
 banner appears after the first paint. For a banner in the server HTML, use
 SvelteKit; [choose your setup](/docs/concepts/choose-your-setup) compares the
-options.
+options. The `examples/svelte` app in the c15t repository is the finished
+result.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
 Create an Inth project, then:
 
-1. Set its policy rules, including the `measurement` and `marketing`
-   categories for the vendors below.
+1. Set its policy rules, including the `measurement` category for the
+   vendor below.
 2. Add your app's origin, such as `http://localhost:5173`, to its trusted
    origins.
 3. Copy the project's backend URL.
@@ -37,14 +38,13 @@ entry point. `@c15t/integrations` holds the vendor helpers.
 
 ## Register vendor scripts
 
-Create `src/scripts.ts`. PostHog waits for measurement permission, and X Pixel
-waits for marketing permission:
+Create `src/scripts.ts`. PostHog waits for measurement permission:
 
 <include src="../../shared/examples/svelte/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. Remove any `<script>` tags or SDK imports that already load these vendors, so
-c15t is the only thing that loads them.
+Replace `phc_your_project_key` with your PostHog project key. Remove any
+`<script>` tags or SDK imports that already load PostHog, so c15t is the only
+thing that loads it.
 
 ## Mount the provider
 
@@ -53,7 +53,8 @@ Render `ConsentManagerProvider` around your app in `src/App.svelte`:
 <include src="../../shared/examples/svelte/app.mdx" />
 
 Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix. `ExamplePage` stands in for your app's content. `hosted()` points the provider
+including any path prefix. The `<main>` element stands in for your app's
+content. `hosted()` points the provider
 at your Inth project for both the policy and saved choices. The provider
 starts consent when it mounts and stops it when it unmounts, so keep it at the
 root of the app.
@@ -125,13 +126,12 @@ original `hosted()` factory to resolve consent through the backend's `/init`.
 Build and preview the production bundle with `vite build` and `vite preview`,
 then open the app in a private window with DevTools open on the Network tab:
 
-1. The banner appears. No requests go to PostHog or X yet.
-2. Select **Reject All**. Reload. The banner stays closed and the vendor
-   requests stay absent.
+1. The banner appears. No requests go to PostHog yet.
+2. Select **Reject All**. Reload. The banner stays closed and PostHog requests
+   stay absent.
 3. Select **Privacy settings**, turn on **Analytics** (the `measurement`
-   category) and save. PostHog loads; X Pixel does not.
-4. Turn on **Marketing** too. X Pixel loads.
-5. Turn both off and save. The page reloads and neither vendor loads.
+   category) and save. PostHog loads.
+4. Turn it off and save. The page reloads and PostHog does not load.
 
 If the banner does not appear, see [troubleshooting](/docs/frameworks/svelte/troubleshooting).
 [Verify consent](/docs/guides/verify-consent) has the release checklist.

@@ -48,16 +48,14 @@ If `src/start.ts` already exists, add `consentRequestMiddleware()` to its
 
 ## Register your vendor scripts
 
-Create `src/scripts.ts`. PostHog waits for measurement permission and X Pixel
-waits for marketing permission, so your policy must include both categories.
-PostHog uses its EU host; change `region` to `'us'` for a US project. Remove any
-other PostHog or X Pixel loader from your app so each vendor loads once.
+Create `src/scripts.ts`. PostHog waits for measurement permission, so your
+policy must include that category. PostHog uses its EU host; change `region` to
+`'us'` for a US project. Remove any other PostHog loader from your app so
+PostHog loads once.
 
 <include src="../../shared/examples/tanstack-start/scripts.mdx" />
 
-Replace `phc_your_project_key` with your PostHog project key and
-`your-pixel-id` with your X Pixel ID. Remove the loader for a vendor you don't
-use.
+Replace `phc_your_project_key` with your PostHog project key.
 
 ## Resolve consent in the root route
 
@@ -65,8 +63,10 @@ Replace or merge `src/routes/__root.tsx`:
 
 <include src="../../shared/examples/tanstack-start/root.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-exactly as Inth shows it, including any path prefix.
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
+shows it, including any path prefix, or replace the
+`https://your-project.inth.app` fallback. Vite writes the value into both the
+server and browser builds.
 
 What each part does:
 
@@ -128,14 +128,13 @@ the test only.
 
 1. **Server HTML.** View the page source. It contains an element with
    `data-testid="consent-banner-root"`.
-2. **Before a choice.** There are no requests to `posthog.com` or
-   `static.ads-twitter.com`.
+2. **Before a choice.** There are no requests to `posthog.com`.
 3. **Reject All.** The banner closes and the vendor requests stay absent.
 4. **Reload and view source again.** The HTML no longer contains the banner,
    because the server read the stored rejection from the `c15t` cookie.
 5. **Privacy settings.** The footer link opens the dialog with **Analytics** (the
-   `measurement` category) and **Marketing** off. Turn on **Analytics** and save. PostHog's `array.js` loads and
-   X Pixel stays absent.
+   `measurement` category) and **Marketing** off. Turn on **Analytics** and
+   save. PostHog's `array.js` loads.
 6. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
 [Troubleshooting](/docs/frameworks/tanstack-start/troubleshooting) covers the
@@ -153,5 +152,4 @@ release checklist.
 - [Components](/docs/frameworks/tanstack-start/components) and
   [hooks](/docs/frameworks/tanstack-start/hooks).
 - The runnable app in `examples/tanstack-start` of the
-  [c15t repository](https://github.com/c15t/c15t) contains this setup and every
-  rendering variant.
+  [c15t repository](https://github.com/c15t/c15t) contains this setup.

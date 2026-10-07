@@ -129,7 +129,7 @@ packages.
 
 `results/cpu4-without-cache-components.json` repeats the 4× CPU run with
 `cacheComponents` off, adding e, which awaits in an async layout without
-`Suspense` (the CLI template and `examples/nextjs`). Median FCP for b, c and e:
+`Suspense` (the CLI template and `internals/fixtures/nextjs`). Median FCP for b, c and e:
 116, 96 and 104 ms (new visitor, warm); 392, 88 and 96 ms (saved accept);
 396, 92 and 304 ms (cold manifest, where e's time to first byte rose to
 216 ms). e puts the banner in the first chunk without the reveal delay but

@@ -7,13 +7,20 @@ import { formatDocsCode } from './docs-code-format';
 /**
  * Directories whose apps are built and tested in CI. Documentation code that
  * wires c15t into an application comes from marked regions in these files.
- * `apps` is scanned for its Storybook apps, whose design recipes CI runs
+ * `internals/fixtures` holds the apps the acceptance suite runs against, and
+ * `internals/doc-snippets` holds type-checked code for docs pages that no app
+ * runs. Both publish under the same names as an `examples` app would, so a
+ * region name must be unique across `examples/<name>`,
+ * `internals/fixtures/<name>` and `internals/doc-snippets/<name>`. `apps` is
+ * scanned for its Storybook apps, whose design recipes CI runs
  * through `test-storybook`. `benchmarks/tailwind-matrix` holds one fixture per
  * framework and Tailwind version, which `scripts/verify-tailwind-matrix.ts`
  * builds and checks in Chromium.
  */
 export const exampleRoots = [
 	'examples',
+	'internals/fixtures',
+	'internals/doc-snippets',
 	'internals/next-compat',
 	'apps',
 	'benchmarks/tailwind-matrix',
@@ -137,6 +144,12 @@ export const appFor = (source: string): string => {
 	if (root === 'examples' && name) {
 		return `examples/${name}`;
 	}
+	const internal = source.match(
+		/^internals\/(?<root>fixtures|doc-snippets)\/(?<name>[^/]+)\//u
+	);
+	if (internal?.groups?.root && internal.groups.name) {
+		return `internals/${internal.groups.root}/${internal.groups.name}`;
+	}
 	const compat = source.match(/^internals\/next-compat\/(?<name>[^/]+)\//u);
 	if (compat?.groups?.name) {
 		return `internals/next-compat/${compat.groups.name}`;
@@ -158,6 +171,10 @@ const destinationFor = (app: string, name: string): string => {
 	let prefix = `next-compat/${app.slice('internals/next-compat/'.length)}`;
 	if (app.startsWith('examples/')) {
 		prefix = app.slice('examples/'.length);
+	} else if (app.startsWith('internals/fixtures/')) {
+		prefix = app.slice('internals/fixtures/'.length);
+	} else if (app.startsWith('internals/doc-snippets/')) {
+		prefix = app.slice('internals/doc-snippets/'.length);
 	} else if (app.startsWith('apps/')) {
 		prefix = app.slice('apps/'.length);
 	} else if (app.startsWith('benchmarks/tailwind-matrix/')) {

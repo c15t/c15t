@@ -84,7 +84,7 @@ No new backend is needed to change colors or banner design.
 - `presentation.prompt` selects geometry and behavior without changing the policy fingerprint.
 - `c15t.headless.js` lets the host own the HTML and CSS completely.
 
-The runnable examples are [stock](../../examples/script-tag/index.html), [custom HTML](../../examples/script-tag/custom.html), [styling](../../examples/script-tag/styled.html), and [IAB](../../examples/script-tag/iab.html). The styling page demonstrates both shadow-root CSS and page CSS through `?shadow=false`.
+The runnable examples are [stock](../fixtures/script-tag/index.html), [custom HTML](../fixtures/script-tag/custom.html), [styling](../fixtures/script-tag/styled.html), and [IAB](../fixtures/script-tag/iab.html). The styling page demonstrates both shadow-root CSS and page CSS through `?shadow=false`.
 
 A future backend editor would store and distribute presentation settings. Rendering them is already a frontend responsibility. CSS isolation also means page selectors cannot directly cross the default shadow boundary; use `ui.css` or light DOM deliberately.
 
