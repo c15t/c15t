@@ -111,10 +111,9 @@ backend `/init` and uses its resolved policy and translations. Those visitors
 still wait for a backend round trip and can receive newer policy than the
 build snapshot.
 
-Policy and resolver code are part of the browser bundle. Rebuild after policy,
-translation or vendor changes to update local resolutions. A failed or invalid
-snapshot fetch stops the build; consent saves and IAB vendor-list requests
-can still use the network.
+Policy and resolver code are part of the browser bundle.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
 
 <include src="../../shared/vite-build-manifest.mdx" />
 

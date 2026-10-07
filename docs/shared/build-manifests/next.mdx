@@ -2,15 +2,11 @@
 
 <include src="./next-config.mdx" />
 
-Bind the snapshot once in a server-only module next to `c15t.config.ts`.
-`createConsentServer` gives the render and the manifest route the same policy,
-so they cannot drift apart:
+Bind the snapshot once, next to `c15t.config.ts`:
 
 <include src="../examples/nextjs/consent-server.mdx" />
 
-In the root layout, import `consent` from `@/c15t.server` and replace the
-`resolveConsent` call. `resolve()` still reads each visitor's cookies and
-location headers:
+Use it in the root layout, with `await consent.resolve()` in an awaited layout:
 
 {/* example: fragment */}
 
@@ -18,24 +14,19 @@ location headers:
 const state = consent.resolve();
 ```
 
-A layout that awaits consent uses `await consent.resolve()` the same way.
-
-Serve the manifest route from the same module:
+And in the manifest route:
 
 <include src="../examples/nextjs/consent-server-route.mdx" />
 
-If you added the optional init route, export `consent.handlers.GET` from it.
-Keep importing `consentConfig` in the client `Consent` wrapper; do not import
-`c15t.server.ts` from client code.
+An optional init route exports `consent.handlers.GET`. Never import
+`c15t.server.ts` from client code; the `Consent` wrapper keeps importing
+`consentConfig`.
 
-Keep the generated file out of Git and create it in every build. Set
-`outputFile` to change its path, `exportName` to change its export, or
-`importSource` to change the type import. Apps that install `@c15t/nextjs`
-directly set `importSource: '@c15t/nextjs/static'`. Generation defaults to the
-current working directory. If you run Next.js from outside the application
-directory, set `rootDir` to that directory. Adjust the snapshot import to match
-your app's aliases or generated path.
+<include src="../build-time-manifest-notes.mdx" />
+
+`outputFile`, `exportName` and `importSource` change the generated file. Set
+`importSource: '@c15t/nextjs/static'` if you install `@c15t/nextjs` directly,
+and `rootDir` if Next.js runs outside the app directory.
 
 For policy updates without a rebuild, remove `manifest` from
 `createConsentServer` and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
-The layout and route stay the same.

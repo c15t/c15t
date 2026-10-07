@@ -2,15 +2,11 @@
 
 <include src="./next-config.mdx" />
 
-Bind the snapshot once in a server-only module next to `c15t.config.ts`.
-`createConsentServer` from `c15t/next/pages` gives `getServerSideProps` and
-the manifest API route the same policy, so they cannot drift apart:
+Bind the snapshot once, next to `c15t.config.ts`:
 
 <include src="../examples/nextjs/pages-consent-server.mdx" />
 
-In every page that resolves consent, import `consent` from `@/c15t.server` and
-replace the `resolveConsent` call, keeping `req`. `resolve()` still reads each
-visitor's cookies and location headers:
+Use it in each page's `getServerSideProps`:
 
 {/* example: fragment */}
 
@@ -18,7 +14,7 @@ visitor's cookies and location headers:
 const state = await consent.resolve({ req });
 ```
 
-Serve the manifest API route from the same module:
+And in the manifest API route:
 
 {/* example: fragment */}
 
@@ -28,16 +24,14 @@ import { consent } from '@/c15t.server';
 export default consent.handlers.manifest;
 ```
 
-If you added the optional local init route, export `consent.handlers.init`
-from it. Import `c15t.server.ts` only from `getServerSideProps` and API routes.
+An optional init route exports `consent.handlers.init`. Import
+`c15t.server.ts` only from `getServerSideProps` and API routes.
 
-Keep the generated file out of Git and generate it on every build.
-`outputFile`, `exportName` and `importSource` customize the generated module.
-Apps that install `@c15t/nextjs` directly set
-`importSource: '@c15t/nextjs/static'`. Set `rootDir` if Next.js runs outside
-the application directory, and adjust the snapshot import to match your aliases
-or generated path.
+<include src="../build-time-manifest-notes.mdx" />
+
+`outputFile`, `exportName` and `importSource` change the generated file. Set
+`importSource: '@c15t/nextjs/static'` if you install `@c15t/nextjs` directly,
+and `rootDir` if Next.js runs outside the app directory.
 
 For policy updates without a rebuild, remove `manifest` from
 `createConsentServer` and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
-The pages and API route stay the same.

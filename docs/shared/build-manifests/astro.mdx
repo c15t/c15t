@@ -19,5 +19,7 @@ absolute upstream `backendURL` or
 `manifestURL`; a build cannot fetch a route in the app it is still compiling.
 `astro preview` uses the completed deployment and never fetches a new snapshot.
 
+<include src="../build-time-manifest-notes.mdx" />
+
 For policy updates without a rebuild, omit `buildManifest` and keep
 `manifest()` to fetch and cache the policy at runtime.

@@ -1,0 +1,8 @@
+The snapshot is fixed at build time:
+
+- Rebuild after changing policies, translations or vendors. If your CI
+  restores cached build output, force a fresh build.
+- The build machine must reach the backend. A failed fetch or invalid manifest
+  fails the build instead of reusing an old snapshot.
+- Consent saves, session reports and IAB vendor lists still call the backend.
+- Prerendered pages still resolve each visitor in the browser.

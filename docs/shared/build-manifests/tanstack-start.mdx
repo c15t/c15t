@@ -1,7 +1,7 @@
 <include src="../build-time-manifest.mdx" />
 
-Add `consentManifest` before the TanStack Start plugin in your existing Vite
-configuration:
+Add the plugin before `tanstackStart()`. It writes `src/c15t-manifest.ts`;
+keep that file out of Git:
 
 {/* example: fragment */}
 
@@ -15,28 +15,19 @@ plugins: [
 ];
 ```
 
-Use your absolute backend URL. The build appends `/manifest`. Vite writes
-`src/c15t-manifest.ts` before compiling the app, both during a production build
-and when a development server starts.
-
-Bind the backend URL and the snapshot once:
+Bind the backend URL and snapshot once:
 
 <include src="../examples/tanstack-start/consent-options.mdx" />
 
-Keep the `.server.ts` suffix. `__root.tsx` also runs in the browser, and Start's
-compiler removes the server function's handler from the browser build along
-with this import, so the snapshot stays on the server. If browser code ever
-uses `consentOptions` directly, TanStack Start's import protection fails the
-build instead of shipping the manifest to every visitor.
+Keep the `.server.ts` suffix. If browser code ever uses `consentOptions`,
+TanStack Start's import protection fails the build instead of shipping the
+manifest.
 
-Pass `consentOptions` to the existing server function in `__root.tsx`:
+Pass it to the server function in `__root.tsx`:
 
 <include src="../examples/tanstack-start/build-manifest-server-fn.mdx" />
 
-Keep the `createServerFn().handler()` declaration in your application module
-so TanStack Start's compiler can split its server code. The root loader and
-`ConsentRoot` keep their existing setup. If you mount `createConsentServerRoute`,
-pass it the same object so browser initialization uses the same policy:
+If you mount `createConsentServerRoute`, pass it the same object:
 
 {/* example: fragment */}
 
@@ -44,14 +35,13 @@ pass it the same object so browser initialization uses the same policy:
 handlers: createConsentServerRoute({ ...consentOptions, proxy: true }),
 ```
 
-Keep `src/c15t-manifest.ts` out of Git and generate it on every build.
-`outputFile`, `exportName` and `importSource` customize the generated module.
-Omitting `importSource` or passing `undefined` uses
-`c15t/tanstack-start/static` for the type import.
-Apps that install `@c15t/tanstack-start` directly set
-`importSource: '@c15t/tanstack-start/static'`.
+<include src="../build-time-manifest-notes.mdx" />
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, remove the build plugin and the
-`manifest` line from `consentOptions`, and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
+`outputFile`, `exportName` and `importSource` change the generated file. Set
+`importSource: '@c15t/tanstack-start/static'` if you install
+`@c15t/tanstack-start` directly.
+
+For policy updates without a rebuild, remove the plugin and the `manifest`
+line, and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
