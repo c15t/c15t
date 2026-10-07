@@ -14,13 +14,20 @@ value, and passed `preferences` and `previousPreferences`. v3's
 `onChoiceRecorded` fires for every accept, reject or save that confirms a
 category, including one that saves the same values again, because each save
 renews the choice's confirmation time. Its payload carries `snapshot`,
-`confirmed` and `actionAt`. To act only on a real change, keep the last
-`snapshot.explicitChoice` you saw and compare it.
+`confirmed` and `actionAt`. To act only when a save changes a value, keep the
+last `snapshot.effectivePermissions` you saw and compare it category by
+category. Don't compare `explicitChoice`, whose timestamps change on every
+save. As in v2, a first save that changes a value counts as a change.
 
 v2's `onConsentSet` also fired on initialization and hydration. In v3,
 `onChoiceRecorded` runs only when the visitor acts, and `onPermissionsChanged`
 runs when effective permissions change for any reason, including expiry, a
-policy update or a privacy signal.
+policy update or a privacy signal. Neither runs at startup if the resolved
+permissions match the defaults, such as an opt-in policy that leaves every
+category denied. If an external API needs the starting state, read it once at
+startup as well: in React and Next.js from `useEffectivePermissions()` in an
+effect, which also runs on later changes, and in JavaScript from
+`kernel.events.on('init:applied', ({ snapshot }) => ...)`.
 
 {/* example: fragment */}
 

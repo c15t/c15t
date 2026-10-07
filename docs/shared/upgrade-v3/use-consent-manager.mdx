@@ -49,7 +49,10 @@ export function AcceptButton() {
 The codemod keeps the entry you imported from. Change `@c15t/react` to
 `c15t/react` afterwards if you moved to the umbrella package. Fields it cannot
 rewrite stay on a `useConsentManager()` call under a `TODO(c15t v3)` comment,
-which fails the build until you replace them. The table lists every v2 field.
+which fails the build until you replace them. The table lists the v2 fields
+components read. The other fields held provider configuration, such as
+`legalLinks`, `scripts` and `storageConfig`, or store internals; set
+configuration through `ConsentProvider` props.
 Import hooks from `c15t/react`, `c15t/next` or `c15t/tanstack-start`, and
 `useHeadlessConsentUI` from the matching `/headless` entry.
 
