@@ -7,4 +7,7 @@ packages:
 
 ### Gate iframes after a client router replaces the page body
 
-The iframe blocker now watches the document root instead of the `<body>` it saw at startup. Astro's `ClientRouter` and Turbo replace `<body>` on navigation, so gated iframes on a page reached by client-side navigation used to keep their `data-src` after consent was granted, and kept loading their `src` after it was denied, until the next consent change. The blocker also now starts watching when it runs from a script in `<head>`, before `<body>` exists.
+The iframe blocker watches the document root instead of the `<body>` it saw
+at startup. Before, after Astro's `ClientRouter` or Turbo replaced `<body>`,
+gated iframes on the new page ignored consent until the next consent change.
+The blocker also starts watching when it runs from a script in `<head>`.

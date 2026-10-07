@@ -9,16 +9,12 @@ packages:
 
 ### Closing the dialog brings back a banner the visitor still owes
 
-A visitor who opened preferences from the banner and closed them with Escape,
-or through `closeUI()` or `closeDialog()`, was left with no banner and no
-dialog, even though the policy still required a choice. Closing the dialog now
-leaves the same surface a save would: the banner while a choice or notice is
-owed, and nothing once one is recorded. `showConsentSurface(kernel, 'none')`
-follows the same rule when the dialog is open. Hiding a banner that is already
-showing still works as before.
+Closing preferences with Escape, `closeUI()` or `closeDialog()` left no banner
+and no dialog, even when the policy still required a choice. Closing the dialog
+leaves the same surface a save would. The banner returns while a choice or
+notice is owed. `showConsentSurface(kernel, 'none')` follows the same rule while
+the dialog is open.
 
-The React `useHeadlessIABConsentUI()` hook from `@c15t/react/iab` now closes
-the surface through `saveIABConsentSurface`, so its `acceptAll()`,
-`rejectAll()` and `savePreferences()` no longer flash the banner while the TC
-string encodes, and bring the surface back if nothing was recorded. The Vue
-dialog no longer handles one Escape press twice.
+`useHeadlessIABConsentUI()` from `@c15t/react/iab` no longer flashes the banner
+while the TC string encodes. The Vue dialog no longer handles one Escape press
+twice.

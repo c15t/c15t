@@ -7,22 +7,14 @@ packages:
 
 ### Load the Svelte consent dialog after the first paint
 
-`ConsentDialog` from `@c15t/svelte` no longer ships in the page's first load.
-The dialog, the preference widget inside it and their primitives load in
-their own chunk, before the first open:
+`ConsentDialog` from `@c15t/svelte` loads in its own chunk instead of with the
+page. It loads in idle time after the page's load event while a button that
+opens it is mounted, when that button is hovered or focused, or at the latest
+when the dialog opens. Idle loading is skipped with Save-Data, on 2G and
+offline. Set `preloadDialog: 'intent'` in the provider options to load only on
+hover, focus or open. If the load fails, the banner or trigger comes back and
+the next attempt retries.
 
-- in browser idle time after the page's load event, while a button that opens
-  the dialog is mounted (the banner's Customize button, `ConsentDialogLink`,
-  `ConsentDialogTrigger` or the `ConsentGate` placeholder);
-- when one of those buttons is hovered or focused;
-- at the latest when the dialog opens.
-
-Idle loading is skipped with Save-Data, on 2G connections and offline. Set
-`preloadDialog: 'intent'` in the provider options to load the dialog only on
-hover, focus or open. If the load fails as the dialog opens, the banner or
-trigger that opened it comes back, and the next hover, focus or open retries
-the load.
-
-`ConsentDialog`'s own `showTrigger` trigger now appears once the dialog chunk
-has loaded, right after hydration, instead of in the server HTML. Render
-`ConsentDialogTrigger` next to the dialog to keep it in the server HTML.
+`ConsentDialog`'s own `showTrigger` trigger appears after hydration instead of
+in the server HTML. Render `ConsentDialogTrigger` next to the dialog to keep it
+in the server HTML.

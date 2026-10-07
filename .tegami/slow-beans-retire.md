@@ -52,4 +52,5 @@ packages:
 
 ### Fix declaration imports for Node16 and NodeNext
 
-Fix declaration imports for TypeScript consumers using Node16 or NodeNext resolution. Preserve explicit JavaScript filenames so exported APIs retain their types without requiring `skipLibCheck`.
+Declaration imports keep explicit JavaScript filenames, so TypeScript projects
+using Node16 or NodeNext resolution get typed exports without `skipLibCheck`.

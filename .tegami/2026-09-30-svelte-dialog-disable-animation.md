@@ -10,6 +10,7 @@ packages:
 
 ### Accept `disableAnimation` on the Svelte dialogs
 
-`ConsentDialog` and `IABConsentDialog` take a `disableAnimation` prop that overrides the provider's `disableAnimation` for that dialog, as `ConsentBanner` and the React dialogs already do.
-
-The IAB dialog's backdrop now fades in when the dialog opens, like the consent dialog's and the banners'. It used to appear at full opacity at once. `disableAnimation` on the dialog or the provider turns the fade off, and so does a reduced-motion preference.
+`ConsentDialog` and `IABConsentDialog` take a `disableAnimation` prop that
+overrides the provider's, as `ConsentBanner` and the React dialogs do. The IAB
+dialog's backdrop fades in on open, like the other dialogs. `disableAnimation`
+or a reduced-motion preference turns the fade off.

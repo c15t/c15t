@@ -22,6 +22,14 @@ packages:
 
 ### Rename `Frame` to `ConsentGate`
 
-`Frame` is now `ConsentGate` in React, Next.js, TanStack Start and Svelte, and Vue's `ConsentFrame` is now `ConsentGate`. The compound parts follow: `ConsentGate.Root`, `ConsentGate.Title` and `ConsentGate.Button`, with `ConsentGateProps` and `ConsentGateCompoundComponent` types. New subpaths are `c15t/react/consent-gate`, `c15t/react/components/consent-gate` and `@c15t/vue/runtime/components/consent-gate.vue`, and Nuxt auto-registers `<ConsentGate>`.
+`Frame` is now `ConsentGate` in React, Next.js, TanStack Start and Svelte, and
+Vue's `ConsentFrame` is now `ConsentGate`. The parts are `ConsentGate.Root`,
+`ConsentGate.Title` and `ConsentGate.Button`, with `ConsentGateProps` and
+`ConsentGateCompoundComponent` types. New subpaths are
+`c15t/react/consent-gate`, `c15t/react/components/consent-gate` and
+`@c15t/vue/runtime/components/consent-gate.vue`, and Nuxt auto-registers
+`<ConsentGate>`.
 
-The old names, subpaths and Nuxt component remain as deprecated aliases for the same component. Props and behavior are unchanged. The translation keys, stylesheet, CSS custom properties and test ids that still said `frame` were renamed later in this release; see "Rename the remaining `frame` names to `consentGate`".
+The old names, subpaths and Nuxt component stay as deprecated aliases.
+Translation keys, CSS and test ids are renamed separately, in "Rename the
+remaining `frame` names to `consentGate`".

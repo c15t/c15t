@@ -10,4 +10,6 @@ packages:
 
 ### Accept `colorScheme: null` in Astro
 
-The integration's `colorScheme` accepts `null` with the same meaning as `'none'`: c15t neither sets nor clears `c15t-dark` on `<html>`. `null` is the value the React, Vue and Svelte providers use for this, so a shared config works in all of them. The default stays `'system'`.
+The integration's `colorScheme` accepts `null`, meaning the same as `'none'`, so
+c15t neither sets nor clears `c15t-dark` on `<html>`. React, Vue and Svelte use
+`null` for this, so one config works in all of them.

@@ -7,8 +7,12 @@ packages:
 
 ### Stream consent in the generated Next.js App Router wrapper
 
-With `--ssr` (or "Enable SSR consent prefetch"), `c15t setup` generated an async `ConsentManager` that awaited `resolveConsent` before rendering anything inside it. The layout wraps the whole page in that component, so every response waited for the consent backend's `/init` round trip before its first byte.
+With `--ssr`, `c15t setup` generated an async `ConsentManager` that made
+every response wait for the backend's `/init`. The generated component is
+synchronous and passes the pending `resolveConsent` result to the client
+provider. Pages render without waiting, and the banner mounts after
+hydration.
 
-The generated `ConsentManager` is now synchronous. It starts `resolveConsent` and passes the pending result to the client provider, which applies it when it arrives. Pages render without waiting for the backend; the banner mounts after hydration. The generated provider's `state` prop accepts either the promise or a resolved state.
-
-To keep the banner in the server HTML, make `ConsentManager` async, await `resolveConsent`, and wrap it in `<Suspense>` in the layout. The page then waits for consent. Existing generated files are not changed.
+To keep the banner in the server HTML, make `ConsentManager` async, await
+`resolveConsent`, and wrap it in `<Suspense>` in the layout. Existing
+generated files are not changed.

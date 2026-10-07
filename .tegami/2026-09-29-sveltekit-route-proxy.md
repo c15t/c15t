@@ -13,13 +13,10 @@ packages:
 
 ### Forward consent saves through the SvelteKit consent route
 
-`createSvelteKitConsentRouteHandlers` answered `GET` only, so a provider
-using `hosted({ url: '/api/c15t' })` got `405` on every save. Pass
-`proxy: true` and the handlers add `POST`, `PATCH`, `PUT`, `DELETE` and
-`OPTIONS`, which forward to `backendURL`. `GET` forwards paths other than
-`init` and `manifest`, which are still resolved in-process. Only those
-exact rest paths stay local, so a `paths` entry such as `reports/manifest`
-is forwarded. Export all six from the catch-all route:
+`createSvelteKitConsentRouteHandlers` answered only `GET`, so a provider using
+`hosted({ url: '/api/c15t' })` got `405` on every save. Pass `proxy: true` to
+add `POST`, `PATCH`, `PUT`, `DELETE` and `OPTIONS`, which forward to
+`backendURL`, and export all six from the catch-all route:
 
 ```ts
 // src/routes/api/c15t/[...path]/+server.ts
@@ -27,33 +24,19 @@ export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
 	createSvelteKitConsentRouteHandlers({ backendURL, proxy: true });
 ```
 
-The option and its rules match `createConsentServerRoute({ proxy })` in
-`@c15t/tanstack-start`: only `subjects`, `subjects/:id`, `init`,
-`manifest`, `health`, `status` and any `paths` you add are forwarded, and
-anything else gets `404`. Cookies are forwarded only when `cookieNames`
-names them. The client address comes from `event.getClientAddress()`, and
-`x-forwarded-host` and `x-forwarded-proto` from `event.url`.
+The proxy follows the same rules as `createConsentServerRoute({ proxy })` in
+`@c15t/tanstack-start`. It forwards only c15t's own paths and any `paths` you
+add, answers `404` for anything else, and forwards cookies only when
+`cookieNames` names them. Both proxies answer `504` when the backend times out
+and `502` when it cannot be reached. The shared helpers, such as
+`forwardConsentRequest`, are exported from `@c15t/core/server`.
 
-A relative `backendURL` or `manifestURL`, such as `/api/self-host`, is now
-fetched through `event.fetch`, so SvelteKit answers it in-process. The
-route handlers used to resolve it against `event.url`, which on
-adapter-node without `ORIGIN` takes its host from the client's `Host`
-header, so a forged header could send the manifest, init or proxied
-request to a host of the client's choosing and return its response. The
-`fetch` option now applies to absolute URLs only.
+A relative `backendURL` or `manifestURL` is fetched through `event.fetch`.
+Before, on adapter-node without `ORIGIN`, a forged `Host` header could send
+these requests to another host. The `fetch` option applies to absolute URLs
+only.
 
-To a remote backend over plain `http:`, the proxy sends only the public
-browser headers: no cookies, no custom headers and no `x-forwarded-for`.
-Such a backend no longer sees the visitor's IP address, so it cannot use it
-for geolocation or rate limiting; use an `https:` backend URL to keep it.
-Loopback `http:` backends still receive all three.
-
-The proxy rules now live in `@c15t/core/server` as `forwardConsentRequest`,
-`resolveConsentProxyOptions`, `isConsentProxyPathAllowed` and related
-helpers, and both adapters use them. Each adapter supplies only what its
-framework can trust for the forwarding headers. Both proxies now answer
-`504` with a JSON body when the backend misses the deadline and `502` when
-it cannot be reached, instead of a framework error page. They also stop
-passing `TE`, `Trailer` and any header the backend's `Connection` value
-names on to the browser. TanStack Start's proxy otherwise behaves as
-before.
+To a remote `http:` backend, the proxy no longer sends cookies, custom headers
+or `x-forwarded-for`, so the backend cannot use the visitor's IP address for
+geolocation or rate limiting. Use an `https:` backend URL to keep them. Loopback
+backends still get all three.

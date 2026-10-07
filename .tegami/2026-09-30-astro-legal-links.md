@@ -10,9 +10,12 @@ packages:
 
 ### Label Astro legal links and show them in the preference dialog
 
-A legal link with no `label` in `legalLinks` now reads as the translated name for its type, such as "Privacy Policy" or "Datenschutzerklärung", instead of the raw key `privacyPolicy`. The React, Vue and Svelte banners already did this.
+A legal link with no `label` in `legalLinks` reads as the translated name for
+its type, such as "Privacy Policy", instead of the raw key `privacyPolicy`, as
+in the React, Vue and Svelte banners.
 
-`<ConsentDialog />` takes a `legalLinks` prop with the same list `<ConsentBanner legalLinks>` takes, and passes it to the Svelte, React or Vue dialog island. Before, the Astro preference dialog never showed legal links.
+`<ConsentDialog />` takes the same `legalLinks` prop as `<ConsentBanner>`.
+Before, the Astro preference dialog never showed legal links.
 
 ```astro
 <ConsentDialog legalLinks={['privacyPolicy', 'cookiePolicy']} />

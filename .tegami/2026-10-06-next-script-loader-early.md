@@ -8,4 +8,6 @@ packages:
 
 ### `ConsentRoot` starts consented scripts sooner
 
-In Next.js and TanStack Start, `ConsentRoot` now starts downloading the script loader during its first render when the visitor's consent already allows one of its `scripts`, instead of after hydration. First visits load it at mount, as before. There is nothing to configure.
+In Next.js and TanStack Start, `ConsentRoot` starts downloading the script
+loader during its first render when stored consent already allows one of its
+`scripts`, instead of after hydration. There is nothing to configure.

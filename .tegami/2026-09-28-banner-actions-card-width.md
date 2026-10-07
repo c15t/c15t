@@ -7,6 +7,8 @@ packages:
 
 ### Lay out banner actions by card width
 
-The banner footer now switches layout on the card's width instead of the viewport's, so `--consent-banner-max-width` works on wide screens. A card narrower than 22rem puts Reject and Accept on one row and Customize on a full-width row below, where the buttons used to overflow the card. The default 440px card keeps its single row.
-
-The `widget` chip is 20rem wide by default, so it now uses the same two-row footer on every screen size.
+The banner footer switches layout on the card's width instead of the
+viewport's, so `--consent-banner-max-width` works on wide screens. Below 22rem,
+Reject and Accept share a row with Customize below, instead of overflowing.
+The default 440px card keeps its single row. The 20rem `widget` chip always
+uses the two-row footer.

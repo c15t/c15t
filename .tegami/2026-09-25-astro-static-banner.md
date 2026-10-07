@@ -10,16 +10,14 @@ packages:
 
 ### Show the Astro banner on prerendered pages
 
-`ConsentBanner` rendered nothing on a prerendered page, because the build had
-no policy, and the browser could only show or hide a banner that was already in
-the HTML.
+`ConsentBanner` rendered nothing on prerendered pages because the build had no
+policy.
 
-- In `offline()` mode the build now resolves the policy and renders the banner
-  hidden. The browser shows it to visitors who have not chosen yet.
-- In `hosted()` and `manifest()` mode, `ConsentBanner` leaves a placeholder.
-  The browser renders the banner there, with the same markup as the server
-  version, once its init returns a policy that needs one. Returning visitors
-  do not download the renderer.
-- A banner hidden after a choice no longer stays on screen: the stylesheet
-  now makes the `hidden` attribute beat the banner's own `display`.
-- The CLI's Astro boilerplate no longer tells you to avoid prerendering.
+- In `offline()` mode the build renders the banner hidden, and the browser shows
+  it to visitors who have not chosen yet.
+- In `hosted()` and `manifest()` mode, `ConsentBanner` leaves a placeholder that
+  the browser fills once init returns a policy that needs a banner. Returning
+  visitors skip the renderer download.
+
+A banner hidden after a choice no longer stays on screen. The CLI's Astro
+boilerplate no longer tells you to avoid prerendering.

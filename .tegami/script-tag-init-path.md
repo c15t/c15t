@@ -26,24 +26,16 @@ packages:
       - exit-prerelease(npm:@c15t/astro)
 ---
 
-### Start the banner's entry from the stylesheet, and keep the collator off the init path
+### Run the banner's entry transition from the stylesheet
 
-Canonical sets and fingerprint keys were sorted with
-`String.prototype.localeCompare`, whose first call initialises the ICU
-collator on the main thread before the banner can show. They now use a
-comparator that applies the same root-collation order to printable ASCII
-directly and only falls back to the collator for other strings, so every
-fingerprint stays byte-identical.
+Fingerprint keys no longer use `localeCompare`, whose first call set up the ICU
+collator on the main thread before the banner could show. Fingerprints stay
+byte-identical.
 
-Every framework also started the banner's entry transition its own way: the
-script tag and Svelte inserted the hidden state, forced a layout and flipped
-the class; React rendered hidden and flipped after a timer; Vue handed the
-flip to `Transition`; Astro's prerendered banner did not animate at all.
-`@c15t/ui` now carries the entry as `@starting-style` states, the
-`bannerEntering`, `overlayEntering`, `dialogEntering` and `contentEntering`
-classes, and each framework renders the banner in its visible state with the
-entering class. The transition runs from the first frame with no hidden
-render or layout read, and it runs the same way whether the banner arrives
-from the server or the client. Astro's prerendered banner now fades in at
-first paint like the others. Browsers without `@starting-style` show the
-banner in place; the script tag keeps its class flip for them.
+`@c15t/ui` carries the banner's entry transition as `@starting-style` states
+with the `bannerEntering`, `overlayEntering`, `dialogEntering` and
+`contentEntering` classes, and every framework renders the banner with them. The
+transition runs from the first frame, the same way for server and client
+renders, and Astro's prerendered banner fades in like the others. Browsers
+without `@starting-style` show the banner in place, except with the script tag,
+which keeps its old class flip for them.

@@ -19,8 +19,11 @@ packages:
 
 ### Remove dialog scheduling delays and preserve IAB actions
 
-Remove first-open scheduling delays from React's aggregate dialog, widget, and compound components while preserving server rendering and hydration. Keep children mounted when an external runtime provides IAB context, so loading the bridge cannot reset local drafts.
+React's dialog, widget and compound components open without a first-open delay,
+and Astro's React IAB dialog island drops its extra Suspense delay. With an
+external runtime providing IAB context, children stay mounted so local drafts
+survive, IAB actions wait for the runtime, and pending saves reject with
+`AbortError` if the provider unmounts.
 
-Remove the extra Suspense delay from Astro's React IAB dialog island.
-
-Queue external-runtime IAB actions until the runtime publishes its handle, and reject pending saves with AbortError when the borrowing provider unmounts. Correct the React and Next.js peer dependency ranges to require React and React DOM 18 or newer, matching the APIs already used by v3. Upgrade both React packages before using v3 on an older installation.
+`@c15t/react` and `@c15t/nextjs` require React and React DOM 18 or newer.
+Upgrade both before using v3 on an older install.

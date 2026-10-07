@@ -16,10 +16,11 @@ packages:
 
 ### Send the consent model as `model` on save
 
-The `/subjects` save body names the consent model `model`, the same name the rest of the v3 API uses. It was `jurisdictionModel`, the last v2 jurisdiction name on the v3 wire.
+The `/subjects` save body names the consent model `model` instead of
+`jurisdictionModel`. `@c15t/core` and the native iOS and Android cores send
+`model`. The backend still accepts `jurisdictionModel` from 2.x clients, and
+`model` wins when both are present. `postSubjectInputSchema` marks
+`jurisdictionModel` deprecated.
 
-- `@c15t/core` and the native iOS and Android cores send `model`.
-- The backend reads `model` and still accepts `jurisdictionModel` from 2.x clients. When a save carries both, `model` wins.
-- `postSubjectInputSchema` adds `model` and marks `jurisdictionModel` deprecated.
-
-The backend only reads this field when a save has no policy decision. Deploy this backend with these clients: an older v3 alpha backend ignores `model`, so its consent records for such saves have no model.
+Deploy this backend with these clients. An older v3 alpha backend ignores
+`model`, so saves without a policy decision get records with no model.

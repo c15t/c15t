@@ -13,6 +13,10 @@ packages:
 
 ### Keep the Astro color scheme when a dialog opens
 
-With `colorScheme: 'dark'` or `'system'`, opening the preference dialog with `ui: 'react'` removed `c15t-dark` from `<html>` unless the page also had a `dark` class, so the banner and dialog turned light. The dialog islands now leave the class to the page's colour-scheme setting. The provider option types in `@c15t/react` and `@c15t/ui` now accept `colorScheme: null`, which the providers already treated as "leave the class alone".
+With `colorScheme: 'dark'` or `'system'`, opening the preference dialog with
+`ui: 'react'` removed `c15t-dark` from `<html>` and turned the banner and dialog
+light. The dialog islands leave the class alone. The `@c15t/react` and
+`@c15t/ui` provider types accept `colorScheme: null`, which means the same.
 
-Set `colorScheme: 'none'` when your site's own theme switch sets `c15t-dark`. c15t then emits no colour-scheme script and never adds or removes the class, on boot, after ClientRouter navigations or when a dialog opens.
+If your site's own theme switch sets `c15t-dark`, set `colorScheme: 'none'` and
+c15t never adds or removes the class.

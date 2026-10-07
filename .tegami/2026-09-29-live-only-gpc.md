@@ -46,9 +46,10 @@ packages:
 
 ### Read GPC live instead of storing standing opt-outs
 
-**Breaking.** Global Privacy Control works as it did in v2. c15t reads the signal on each load and restricts the categories the policy maps to it while the browser sends it. When the browser stops sending it, the restriction ends. c15t no longer writes the `<key>-privacy` cookie or localStorage entry, and the backend no longer records GPC opt-outs. `/init` and saves still carry the current signal as a policy input.
-
-Clearing c15t data still deletes a `-privacy` value an earlier alpha stored. A leftover value is ignored and doesn't affect the other records.
+Breaking. Global Privacy Control works as it did in v2. c15t reads the signal on
+each load and restricts the categories the policy maps to it only while the
+browser sends it. c15t no longer writes the `<key>-privacy` cookie or
+localStorage entry, and the backend no longer records GPC opt-outs.
 
 | Removed | Replacement |
 | --- | --- |
@@ -58,6 +59,9 @@ Clearing c15t data still deletes a `-privacy` value an earlier alpha stored. A l
 | `recordPrivacyOptOut` on kernel transports, the `privacy:opt-out` event | None |
 | `@c15t/schema` privacy directive schemas and types | None |
 
-`@c15t/backend` removes `POST` and `GET /subjects/:id/privacy-directives` and `POST` and `GET /privacy-directives`. `GET /subjects/:id` no longer returns `privacyDirectives`, and `PATCH /subjects/:id` no longer returns `authority`. Migration 3 no longer creates the `privacyDirective` table or adds `subject.identityAuthority`, and migration 5 drops `subject.identityAuthority` where an earlier alpha added it. A database that ran migration 3 under an earlier alpha keeps its `privacyDirective` table and rows. c15t doesn't read them, so you can drop the table by hand.
-
-The Swift and Kotlin cores in `@c15t/react-native` read state stored by earlier alphas and drop the retired fields, so upgrading an install doesn't reset it to deny-all.
+`@c15t/backend` removes the `/subjects/:id/privacy-directives` and
+`/privacy-directives` endpoints, `privacyDirectives` from `GET /subjects/:id`
+and `authority` from `PATCH /subjects/:id`. Migration 5 drops
+`subject.identityAuthority` where an earlier alpha added it. A database that ran
+migration 3 under an earlier alpha keeps its `privacyDirective` table, which
+c15t no longer reads, so you can drop it by hand.

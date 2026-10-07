@@ -10,9 +10,12 @@ packages:
 
 ### Add `colorScheme` and dark theme tokens to Vue and Nuxt
 
-The Vue plugin and the Nuxt module accept `colorScheme`, with the same values as the React and Svelte providers. `'light'` and `'dark'` force a scheme, `'system'` follows `prefers-color-scheme` as the visitor changes it, and leaving it unset mirrors a `dark` class on `<html>` into `c15t-dark`. `null` leaves `c15t-dark` to the site. Before, Vue never set `c15t-dark`, so the dark component styles only applied when the site set that class itself.
-
-Both also accept `theme`, the same token object `@c15t/react` takes, including `theme.dark`. Its tokens go into the `<style id="c15t-css-vars">` element with `tokens`, and win where both set a variable. Vue still reads slot overrides from `components`.
+The Vue plugin and Nuxt module accept `colorScheme`, as React and Svelte do.
+`'light'` and `'dark'` force a scheme, `'system'` follows
+`prefers-color-scheme`, unset mirrors a `dark` class on `<html>` into
+`c15t-dark`, and `null` leaves `c15t-dark` to the site. Before, Vue never set
+`c15t-dark`. Both also accept `theme`, the same token object `@c15t/react`
+takes, including `theme.dark`.
 
 ```ts
 // nuxt.config.ts
@@ -25,4 +28,7 @@ export default defineNuxtConfig({
 });
 ```
 
-Nuxt renders an inline script in `<head>` that sets `c15t-dark` for `'dark'` and `'system'`, with the configured `nonce`, so a dark visitor's first paint is already dark. `generateTokensCSS()` takes the scheme and theme as a second argument for plain Vue server rendering. A plugin given a borrowed `runtime` leaves the class to the host, as it does the tokens.
+Nuxt sets `c15t-dark` from an inline `<head>` script with the configured
+`nonce`, so a dark visitor's first paint is dark. For plain Vue server
+rendering, pass the scheme and theme to `generateTokensCSS()` as its second
+argument.

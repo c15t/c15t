@@ -25,10 +25,18 @@ packages:
 
 ### Every adapter closes consent surfaces the same way
 
-Accept, reject and save now decide which surface shows next through one module in `@c15t/core`, so React, Vue, Nuxt, Svelte, Astro and `@c15t/browser` behave alike:
+React, Vue, Nuxt, Svelte, Astro and `@c15t/browser` share one rule for which
+surface shows after accept, reject or save.
 
-- After a choice, the banner shows only while the policy still owes a choice or a notice. A choice saved while the policy is still loading, or after it failed to resolve, no longer brings the banner back in Vue, Nuxt and `@c15t/browser`.
-- A banner reopened for a visitor who already chose now closes once the new choice is recorded in React and Svelte, as it already did in `@c15t/browser`.
-- On Astro, `acceptAll()`, `rejectAll()` and the banner's Accept and Reject buttons go through the IAB CMP under an IAB policy, so the TC string records the choice. Before, they saved categories only. `acceptAll()`, `rejectAll()` and `save()` now also close an open banner or dialog once the choice is recorded.
+- After a choice, the banner stays only while the policy still owes a choice or
+  notice. In Vue, Nuxt and `@c15t/browser`, a save made while the policy is
+  loading or after it failed no longer brings the banner back.
+- In React and Svelte, a reopened banner closes once the new choice is recorded.
+- On Astro under an IAB policy, `acceptAll()`, `rejectAll()` and the banner
+  buttons go through the IAB CMP, so the TC string records the choice.
+  `acceptAll()`, `rejectAll()` and `save()` also close an open banner or dialog.
 
-The rules are public at `c15t/surface-actions` (`@c15t/core/surface-actions`) for custom UI: `hasConsentUI()`, `hasConsentPreferences()`, `showConsentSurface()`, `saveConsentSurface()`, `saveIABConsentSurface()` and `saveConsentBlanket()`.
+Custom UI can import the rules from `c15t/surface-actions`
+(`@c15t/core/surface-actions`), which exports `hasConsentUI()`,
+`hasConsentPreferences()`, `showConsentSurface()`, `saveConsentSurface()`,
+`saveIABConsentSurface()` and `saveConsentBlanket()`.

@@ -7,6 +7,12 @@ packages:
 
 ### Require a backend URL in Astro manifest mode
 
-`manifest()` without a `backendURL` now fails when `astro.config` loads, with an error that says where to set one. Before, only a `manifestURL` without a `backendURL` was caught. A bare `manifest()` built, then the browser posted every save to `/api/c15t/subjects`, where nothing answers, so consent was never recorded.
+`manifest()` without a `backendURL` fails when `astro.config` loads. Before, it
+built, and the browser posted every save to `/api/c15t/subjects`, where nothing
+answers, so consent was never recorded. `C15T_BACKEND_URL` or
+`PUBLIC_C15T_BACKEND_URL` still counts and is passed to the browser too. An
+inline `manifest` without a `backendURL` still builds.
 
-`C15T_BACKEND_URL` or `PUBLIC_C15T_BACKEND_URL`, when set as `astro.config` loads, still counts. Its value is now passed to the browser as well, so saves go to that backend. An inline `manifest` without a `backendURL` still builds. `backendURL: ''` counts as set: the browser posts saves to `/subjects` on the site's own origin, and the environment variables do not replace it. It gives the server no manifest to fetch, so pair it with a `manifestURL`, an inline `manifest` or `C15T_MANIFEST_URL`; without one, `astro.config` fails to load.
+`backendURL: ''` counts as set and posts saves to `/subjects` on the site's own
+origin. Pair it with a `manifestURL`, an inline `manifest` or
+`C15T_MANIFEST_URL`, or `astro.config` fails to load.
