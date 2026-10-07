@@ -98,8 +98,8 @@ BENCHMARK_PACKAGE=@c15t/react-browser-bench bun scripts/benchmark-run.ts full
 
 Unknown packages and packages outside the selected profile fail before any
 measurement. Each job enforces every expected result and budget for its package
-and uploads `runtime-benchmarks-<id>` with base, head, comparison and
-provenance files. The matrix `id` is the package name with `@c15t/` removed,
+and uploads `runtime-benchmarks-<id>` with pooled base and head results, each
+round's raw results under `rounds/`, the comparison and provenance files. The matrix `id` is the package name with `@c15t/` removed,
 for example `runtime-benchmarks-react-browser-bench` for
 `@c15t/react-browser-bench`. A failed job does not cancel the remaining matrix jobs.
 Rounds split browser and script-lifecycle iterations, so pooled sample counts

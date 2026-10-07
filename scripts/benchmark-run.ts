@@ -75,8 +75,9 @@ const env = {
 	C15T_CORE_BENCH_ITERATIONS: '5000',
 	C15T_CORE_BENCH_WARMUP_ITERATIONS: '1000',
 };
+// Kept in the report, so a failed later round still uploads the earlier ones.
 const roundDirectory = (round: number, arm: BenchmarkArm) =>
-	join(directory, 'rounds', String(round), arm);
+	join(report, 'rounds', String(round + 1), arm);
 
 const measure = async function measure(
 	cwd: string,
