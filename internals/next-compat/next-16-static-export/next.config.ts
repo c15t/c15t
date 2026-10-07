@@ -8,7 +8,6 @@ const monorepoRoot = resolve(projectDir, '../../..');
 
 const config: NextConfig = {
 	output: 'export',
-	transpilePackages: ['@c15t/next-compat-shared'],
 	turbopack: {
 		root: monorepoRoot,
 	},

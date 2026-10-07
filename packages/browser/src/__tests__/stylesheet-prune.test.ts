@@ -26,12 +26,7 @@ import { classes, stylesheet } from '../generated/styles';
 const require = createRequire(import.meta.url);
 const uiStylesheet = (specifier: string) =>
 	readFileSync(require.resolve(specifier), 'utf8');
-// This package renders the dialog eagerly, so its sheet starts from both.
-const uiMainStylesheet = () =>
-	[
-		uiStylesheet('@c15t/ui/styles.css'),
-		uiStylesheet('@c15t/ui/styles/dialog.css'),
-	].join('\n');
+const uiMainStylesheet = () => uiStylesheet('@c15t/ui/styles.css');
 
 const rendered = collectClassNames([classes, iabClasses]);
 

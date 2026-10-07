@@ -144,7 +144,8 @@ browser render it.
 With Astro's `ClientRouter`, the browser swaps pages without reloading scripts.
 c15t creates one consent runtime per page load and keeps it across swaps. After
 each swap it re-attaches to the new page's banner, gated scripts and dialog
-triggers, applies the color scheme again, and keeps the dialog stylesheets. The
+triggers, applies the color scheme again, and keeps any stylesheet it linked
+for the dialog. The
 visitor's choice and an open dialog both carry over, and no new `/init`
 request is made.
 

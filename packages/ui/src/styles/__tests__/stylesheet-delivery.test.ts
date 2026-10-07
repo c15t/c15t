@@ -1,13 +1,10 @@
 /**
- * Guards the stylesheet contract: each component rule reaches the page once,
- * and the render-blocking stylesheet carries only what a first paint can
- * show.
+ * Guards the stylesheet contract: each component rule reaches the page once.
  *
  * - `styles.css` / `styles.tw3.css`: default tokens, every variable, and the
- *   rules for the banner, dialog trigger and ConsentGate. The app imports it
- *   once; it blocks rendering.
- * - `styles/dialog.css`: dialog and preference-widget rules. The dialog's
- *   module imports it, so bundlers ship it with the lazy dialog chunk.
+ *   rules for the banner, dialog trigger, ConsentGate, dialog and preference
+ *   widget. The app imports it once.
+ * - `styles/dialog.css`: empty, kept so existing imports resolve.
  * - `styles/primitives.css`: rules for the primitive class maps.
  * - `iab/styles.css`: IAB variables and rules, loaded next to `styles.css`.
  *
@@ -177,7 +174,7 @@ const missingFrom = (rules: string[], sheet: Set<string>) =>
  */
 const TARGETS = {
 	dialog: {
-		rules: [sheets.dialog],
+		rules: [sheets.styles, sheets.stylesTw3],
 		variables: [sheets.styles, sheets.stylesTw3],
 	},
 	'first-paint': {
@@ -220,7 +217,7 @@ describe('each component rule lands in the stylesheet for its surface', () => {
 	}
 });
 
-describe('the render-blocking stylesheet holds only first-paint rules', () => {
+describe('styles.css holds no primitive or IAB rule', () => {
 	/** Hashed class names of a class map in `dist/styles/<dir>/<name>.js`. */
 	const classNamesOf = function classNamesOf(path: string): string[] {
 		return [...readDist(path).matchAll(/c15t-ui-[\w-]+/gu)].map(
@@ -231,7 +228,6 @@ describe('the render-blocking stylesheet holds only first-paint rules', () => {
 		[...keys].map((key) => key.split('|')[1] ?? '').join('\n');
 
 	const deferred = [
-		...DIALOG_COMPONENTS.map((name) => `components/${name}.js`),
 		...listFiles(PRIMITIVES_DIR, '.module.js').map(
 			(file) => `primitives/${file}`
 		),
@@ -253,12 +249,10 @@ describe('the render-blocking stylesheet holds only first-paint rules', () => {
 		});
 	}
 
-	test('the dialog, primitive and IAB sheets declare no variables', () => {
+	test('the primitive and IAB sheets declare no variables', () => {
 		// Only styles.css declares variables. The IAB sheet adds IAB variables,
 		// which styles.css does not declare.
-		for (const sheet of [sheets.dialog, sheets.primitives]) {
-			expect([...sheet].filter(isVariableRule)).toEqual([]);
-		}
+		expect([...sheets.primitives].filter(isVariableRule)).toEqual([]);
 		expect(
 			[...sheets.iab].filter(
 				(rule) => isVariableRule(rule) && sheets.styles.has(rule)
@@ -270,24 +264,20 @@ describe('the render-blocking stylesheet holds only first-paint rules', () => {
 		const overlap = (a: Set<string>, b: Set<string>) =>
 			[...a].filter((rule) => b.has(rule));
 
-		expect(overlap(sheets.styles, sheets.dialog)).toEqual([]);
+		expect(sheets.dialog).toEqual(new Set());
 		expect(overlap(sheets.styles, sheets.primitives)).toEqual([]);
 		expect(overlap(sheets.styles, sheets.iab)).toEqual([]);
-		expect(overlap(sheets.dialog, sheets.iab)).toEqual([]);
 	});
 
-	test('the dialog and primitive sheets keep their rules in @layer components', () => {
-		for (const file of ['dialog.css', 'primitives.css']) {
-			const css = readDist(join(DIST_DIR, 'styles', file));
-			const root = parse(css);
-			// The layer order statement, then one block holding every rule.
-			const topLevel = root.nodes.filter((node) => node.type !== 'comment');
-			expect(topLevel).toHaveLength(2);
-			expect(topLevel[1]).toMatchObject({
-				name: 'layer',
-				params: 'components',
-				type: 'atrule',
-			});
-		}
+	test('the primitive sheet keeps its rules in @layer components', () => {
+		const root = parse(readDist(join(DIST_DIR, 'styles', 'primitives.css')));
+		// The layer order statement, then one block holding every rule.
+		const topLevel = root.nodes.filter((node) => node.type !== 'comment');
+		expect(topLevel).toHaveLength(2);
+		expect(topLevel[1]).toMatchObject({
+			name: 'layer',
+			params: 'components',
+			type: 'atrule',
+		});
 	});
 });

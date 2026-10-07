@@ -1,14 +1,9 @@
 /**
- * @c15t/astro — preference dialog styles.
+ * @c15t/astro — deprecated and empty.
  *
- * The integration links these when the dialog first opens, unless
- * `styles: false` is set. With `styles: false`, import them yourself next
- * to `styles.css`. The Svelte dialog (the default `ui`) also needs
- * `primitives.css`; the React and Vue dialogs do not.
- *
- * Usage with `styles: false` (src/styles/global.css):
- *   @import "@c15t/astro/styles.css";
- *   @import "@c15t/astro/dialog.css";
- *   @import "@c15t/astro/primitives.css";
+ * `@c15t/astro/styles.css` includes the preference dialog's rules. This file
+ * stays so existing `@import "@c15t/astro/dialog.css";` lines keep
+ * resolving; remove them. It points at `@c15t/ui/styles/dialog.css`, which
+ * is empty for the same reason.
  */
 @import '@c15t/ui/styles/dialog.css';

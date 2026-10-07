@@ -350,7 +350,10 @@ const main = async function main() {
 				themeComplexity: 'minimal',
 			},
 			framework: 'core',
-			metadata: { gitDirty: safeGitDirty() },
+			metadata: {
+				gitDirty: safeGitDirty(),
+				nextjsIncludesDialogRules: nextjsTarball.includesDialogRules,
+			},
 			metrics: [
 				// packages/core is @c15t/core; the c15t umbrella is a separate package.
 				summarizeMetric('@c15t/core', 'bytes', [coreTarball.size]),

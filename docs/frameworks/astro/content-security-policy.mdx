@@ -14,7 +14,7 @@ A Content Security Policy for an Astro site with c15t has to allow these:
 | The banner reveal script | Inline, after a banner on a prerendered page | `script-src` |
 | `<style id="c15t-theme">` | Inline, when the integration sets `theme` | `style-src` |
 | The page script that starts the consent runtime, and the banner's click handler | Bundled module scripts from your own origin | `script-src 'self'` |
-| `c15t/astro/styles.css` and the dialog stylesheets | Stylesheets from your own origin | `style-src 'self'` |
+| `c15t/astro/styles.css`, and the Svelte dialog's primitives stylesheet | Stylesheets from your own origin | `style-src 'self'` |
 | Vendor `<script>` elements | Created by the script loader when a category is allowed | `script-src`, plus each vendor's hosts |
 | Gated inline scripts | Your own `type="text/plain"` scripts, copied into live scripts | `script-src` |
 
@@ -67,7 +67,7 @@ reads the nonce from the `data-c15t-config` data block and puts it on:
 - The vendor scripts the script loader injects, unless a script entry sets its
   own `nonce`.
 - The gated `type="text/plain"` scripts it activates.
-- The dialog stylesheet links it adds the first time the dialog opens.
+- The stylesheet link it adds the first time the Svelte dialog opens.
 
 ### Put the nonce on your gated scripts
 

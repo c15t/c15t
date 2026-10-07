@@ -205,7 +205,9 @@ and easing tokens.
 ## Load the stylesheet yourself
 
 The integration adds `c15t/astro/styles.css` to every page ahead of your own
-CSS, and links the dialog's rules when a visitor first reaches for the dialog.
+CSS. It holds the dialog's rules too. With the Svelte dialog, the integration
+also links the primitives stylesheet when a visitor first reaches for the
+dialog.
 Do not import `c15t/astro/styles.css` again. To control the cascade layer
 order yourself, set `styles: false` and import the stylesheets from your own
 CSS. [Stylesheets and CSS layers](/docs/customization/stylesheets#load-astros-stylesheets-yourself)

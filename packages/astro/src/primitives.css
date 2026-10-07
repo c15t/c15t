@@ -1,11 +1,10 @@
 /**
  * @c15t/astro — primitive styles for the Svelte preference dialog.
  *
- * The integration links these with `dialog.css` when `ui` is `svelte` (the
- * default), unless `styles: false` is set. With `styles: false` and the
- * Svelte dialog, import them yourself:
+ * The integration links these when the dialog first opens with `ui` set to
+ * `svelte` (the default), unless `styles: false` is set. With
+ * `styles: false` and the Svelte dialog, import them yourself:
  *   @import "@c15t/astro/styles.css";
- *   @import "@c15t/astro/dialog.css";
  *   @import "@c15t/astro/primitives.css";
  */
 @import '@c15t/ui/styles/primitives.css';

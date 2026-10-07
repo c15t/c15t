@@ -313,44 +313,17 @@ describe('package exports: node condition serves class maps without CSS imports'
 });
 
 /**
- * JavaScript loads the dialog rules through `@c15t/ui/styles/dialog`, never
- * the `.css` file: bundlers follow its CSS import, and plain Node gets a
- * module that imports nothing. `styles/dialog.css` itself stays
- * unconditional, because Astro imports it from `page-ssr`, where a
- * `node`-condition swap would drop the rules from the page.
+ * `styles.css` holds the dialog's rules. `@c15t/ui/styles/dialog` and
+ * `styles/dialog.css` once loaded them separately and stay, empty, so
+ * existing imports keep resolving.
  */
-describe('package exports: @c15t/ui/styles/dialog side-effect module', () => {
-	test('bundlers get a module that imports styles/dialog.css', () => {
-		const resolvedPath = resolveExport('./styles/dialog', BUNDLER_CONDITIONS);
-
-		expect(resolvedPath).toMatch(/\/dist\/styles\/dialog\.js$/u);
-		expect(readFileSync(resolvedPath, 'utf-8')).toContain(
-			"import './dialog.css'"
-		);
-		expect(existsSync(join(dirname(resolvedPath), 'dialog.css'))).toBe(true);
-	});
-
-	test('the node condition gets a module that imports nothing', () => {
-		const resolvedPath = resolveExport('./styles/dialog', NODE_CONDITIONS);
-
-		expect(resolvedPath).toMatch(/\/dist\/styles\/dialog\.node\.js$/u);
-		expect(readFileSync(resolvedPath, 'utf-8')).not.toMatch(/\bimport\b/u);
-	});
-
+describe('package exports: deprecated dialog stylesheet entries', () => {
 	test('styles/dialog.css resolves to the stylesheet under every condition', () => {
 		for (const conditions of [BUNDLER_CONDITIONS, NODE_CONDITIONS]) {
 			expect(resolveExport('./styles/dialog.css', conditions)).toMatch(
 				/\/dist\/styles\/dialog\.css$/u
 			);
 		}
-	});
-
-	test('sideEffects keeps the bundler module from being tree-shaken', () => {
-		const { sideEffects } = JSON.parse(
-			readFileSync(join(PACKAGE_ROOT, 'package.json'), 'utf-8')
-		) as { sideEffects: string[] };
-
-		expect(sideEffects).toContain('./dist/styles/dialog.js');
 	});
 
 	test('plain Node imports it instead of failing on the CSS', () => {

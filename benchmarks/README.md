@@ -106,6 +106,15 @@ Brotli sizes. Route reports also measure CSS. The ordinary React entry checks
 that IAB, devtools and all locales have not entered its module graph. Missing
 or empty assets fail the run.
 
+The Next.js tarball normally allows at most 15 KiB and 10% growth. Restoring
+dialog rules in the app-imported stylesheet in #1378 added 4,487 packed bytes.
+The percentage check allows those bytes only when the measured baseline's
+`dist/styles.tw3.css` lacks the dialog visibility rules and the head includes them.
+Both arms record `metadata.nextjsIncludesDialogRules` from the packed file.
+A missing stylesheet or metadata grants no allowance. The 15 KiB limit stays
+in force, and baselines that already include the rules use the normal 10% cap.
+Comparison reports retain the measured sizes and name any applied allowance.
+
 `quick` covers core operations, policy resolution and script lifecycle with
 15 browser samples after 3 warmups. Engine operations use 5,000 samples after
 1,000 warmups in both profiles. `full` uses 30 browser samples and adds React, Next, Nuxt,

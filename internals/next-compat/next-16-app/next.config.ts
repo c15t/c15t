@@ -7,7 +7,6 @@ const projectDir = dirname(fileURLToPath(import.meta.url));
 const monorepoRoot = resolve(projectDir, '../../..');
 
 const config: NextConfig = {
-	transpilePackages: ['@c15t/next-compat-shared'],
 	turbopack: {
 		root: monorepoRoot,
 	},

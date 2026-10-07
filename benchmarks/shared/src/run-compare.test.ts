@@ -7,12 +7,14 @@ import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
 
 import {
+	artifactBudgets,
 	coreRuntimeBudgets,
 	coreRuntimeCoverageBudgets,
 	coreRuntimeV3Budgets,
 } from './budgets';
 import { expectedBenchmarkResults } from './expected-results';
 import type {
+	BenchmarkComparisonResult,
 	BenchmarkComparisonSummary,
 	BenchmarkResult,
 	MetricBudget,
@@ -57,6 +59,7 @@ const makeResult = function makeResult(
 
 interface CompareRun {
 	code: number;
+	comparison: BenchmarkComparisonResult | null;
 	/** `null` when the run aborted before writing a summary. */
 	summary: BenchmarkComparisonSummary | null;
 	stdout: string;
@@ -88,8 +91,12 @@ const runCompare = function runCompare(
 		stdout = failure.stdout ?? '';
 	}
 	const summaryPath = join(compareDir, 'summary.json');
+	const comparisonPath = join(compareDir, 'comparison.json');
 	return {
 		code,
+		comparison: existsSync(comparisonPath)
+			? readJson<BenchmarkComparisonResult>(comparisonPath)
+			: null,
 		stdout,
 		summary: existsSync(summaryPath)
 			? readJson<BenchmarkComparisonSummary>(summaryPath)
@@ -142,6 +149,113 @@ const coreScenarios = expectedCore.map(
 );
 const fullCore = (medians = coreMedians, budgets = coreBudgets) =>
 	coreScenarios.map((scenario) => makeResult(scenario, medians, budgets));
+
+const tarballResult = (
+	nextjsBytes: number,
+	includesDialogRules?: boolean | null,
+	reactBytes = 10_000
+): BenchmarkResult => ({
+	...makeResult('tarballs', {}, artifactBudgets),
+	metadata: { nextjsIncludesDialogRules: includesDialogRules },
+	metrics: Object.entries({
+		'@c15t/core': 10_000,
+		'@c15t/nextjs': nextjsBytes,
+		'@c15t/react': reactBytes,
+	}).map(([name, value]) => summarizeMetric(name, 'bytes', [value])),
+	package: '@c15t/next-bundle-bench',
+	suite: 'artifact',
+});
+
+describe('dialog CSS tarball allowance', () => {
+	const compareTarballs = (base: BenchmarkResult, head: BenchmarkResult) =>
+		runCompare({
+			BENCHMARK_BASE_DIR: writeResults([base]),
+			BENCHMARK_EXPECTED_SUITES: 'artifact',
+			BENCHMARK_HEAD_DIR: writeResults([head]),
+			BENCHMARK_PROFILE: 'regression',
+		});
+
+	it('accepts the measured CSS restoration when the base lacks dialog rules', () => {
+		const run = compareTarballs(
+			tarballResult(37_164, false),
+			tarballResult(41_651, true)
+		);
+		expect(run.code).toBe(0);
+		expect(summaryOf(run).budgets.passed).toBe(3);
+		expect(run.comparison?.results[0]?.metrics).toContainEqual({
+			baseMedian: 37_164,
+			delta: 4487,
+			deltaPercent: 12.074,
+			headMedian: 41_651,
+			name: '@c15t/nextjs',
+			unit: 'bytes',
+		});
+		expect(
+			run.comparison?.results[0]?.budgets.find(
+				(budget) => budget.metric === '@c15t/nextjs'
+			)?.message
+		).toContain('4487-byte dialog CSS allowance');
+	});
+
+	it.each([true, undefined, null])(
+		'keeps the 10%% limit when the base dialog state is %s',
+		(includesDialogRules) => {
+			const run = compareTarballs(
+				tarballResult(37_164, includesDialogRules),
+				tarballResult(41_651, true)
+			);
+			expect(run.code).toBe(1);
+			expect(summaryOf(run).budgets.failed).toBe(1);
+		}
+	);
+
+	it.each([false, undefined, null])(
+		'requires the head to include the restored rules, received %s',
+		(includesDialogRules) => {
+			const run = compareTarballs(
+				tarballResult(37_164, false),
+				tarballResult(41_651, includesDialogRules)
+			);
+			expect(run.code).toBe(1);
+		}
+	);
+
+	it('does not waive a zero-byte baseline', () => {
+		const run = compareTarballs(
+			tarballResult(0, false),
+			tarballResult(4487, true)
+		);
+		expect(run.code).toBe(1);
+	});
+
+	it('caps growth at 10% of the original base plus 4,487 bytes', () => {
+		expect(
+			compareTarballs(tarballResult(37_164, false), tarballResult(45_367, true))
+				.code
+		).toBe(0);
+		expect(
+			compareTarballs(tarballResult(37_164, false), tarballResult(45_368, true))
+				.code
+		).toBe(1);
+	});
+
+	it('preserves the 15 KiB absolute limit', () => {
+		const run = compareTarballs(
+			tarballResult(200_000, false),
+			tarballResult(220_000, true)
+		);
+		expect(run.code).toBe(1);
+	});
+
+	it('does not give other packages the Next.js allowance', () => {
+		const run = compareTarballs(
+			tarballResult(37_164, false),
+			tarballResult(41_651, true, 12_000)
+		);
+		expect(run.code).toBe(1);
+		expect(summaryOf(run).budgets.failed).toBe(1);
+	});
+});
 /** v2-era artifacts use the v2 runner's metric names. */
 const v2Arm = () =>
 	coreScenarios.map((scenario) =>
