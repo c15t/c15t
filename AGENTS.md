@@ -152,8 +152,8 @@ runs them. See [.github/CI.md](.github/CI.md) for commands and assertion ownersh
 pushes, nightly, and manually. Scheduled runs explicitly check out `v3` and
 activate once the workflow is on the default branch. `validation.yml` runs full
 CI nightly. `next-compat.yml` separately probes Next canary releases as advisory
-checks. Runtime benchmarks use one runner per package, with sequential base/head
-measurements on each runner. Routine PR comparisons use two quick-profile jobs;
+checks. Runtime benchmarks use one runner per package, measuring base and head
+in alternating rounds on each runner. Routine PR comparisons use two quick-profile jobs;
 full validation uses eight jobs including browser performance. Historical v2 improvement
 comparisons remain an explicit release-profile benchmark command.
 
