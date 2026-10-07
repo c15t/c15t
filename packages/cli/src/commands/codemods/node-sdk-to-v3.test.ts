@@ -312,6 +312,62 @@ export const run = () => client.consents.check({ externalId: 'x', types: ['marke
 		expect(secondResult.changedFiles).toEqual([]);
 	});
 
+	it('keeps optional chaining when it renames a method', async () => {
+		const { updated } = await transformFile(
+			codemod,
+			`import { C15TClient } from '@c15t/node-sdk';
+
+export const read = (client: C15TClient | undefined) => client?.getSubject('sub_1');
+export const ping = (client?: C15TClient) => client?.meta.status();
+`,
+			{ fileName: 'optional.ts' }
+		);
+		expect(updated).toContain(
+			"export const read = (client: C15tClient | undefined) => client?.subjects.get('sub_1');"
+		);
+		expect(updated).toContain(
+			'export const ping = (client?: C15tClient) => client?.status();'
+		);
+	});
+
+	it('marks runtime uses of the v2 class instead of renaming them', async () => {
+		const todo =
+			'// TODO(c15t v3): C15TClient is no longer a class, so instanceof checks, subclasses and other runtime uses stop working. createC15tClient() returns a plain C15tClient object.';
+		const named = await transformTwice(
+			codemod,
+			`import { C15TClient } from '@c15t/node-sdk';
+
+export const make = (): C15TClient => new C15TClient({ baseUrl: '/api' });
+export const isClient = (value: unknown) => value instanceof C15TClient;
+`,
+			'runtime.ts'
+		);
+		expect(named.first)
+			.toBe(`import { C15TClient, type C15tClient, createC15tClient } from '@c15t/node-sdk';
+
+export const make = (): C15tClient => createC15tClient({ baseUrl: '/api' });
+${todo}
+export const isClient = (value: unknown) => value instanceof C15TClient;
+`);
+		expect(named.second).toBe(named.first);
+
+		const namespace = await transformFile(
+			codemod,
+			`import * as sdk from '@c15t/node-sdk';
+
+export const isClient = (value: unknown) => value instanceof sdk.C15TClient;
+export class Wrapper implements sdk.C15TClient {}
+`,
+			{ fileName: 'runtime.ts' }
+		);
+		expect(namespace.updated).toBe(`import * as sdk from '@c15t/node-sdk';
+
+${todo}
+export const isClient = (value: unknown) => value instanceof sdk.C15TClient;
+export class Wrapper implements sdk.C15tClient {}
+`);
+	});
+
 	it('leaves other clients and v3 code alone', async () => {
 		const unrelated = await transformFile(
 			codemod,

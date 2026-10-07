@@ -1,4 +1,4 @@
-import { Node } from 'ts-morph';
+import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
 import { runTransform } from './runner';
@@ -97,6 +97,8 @@ const RETRY_TODO =
 const TYPES_TODO =
 	"Pass types as an array, such as types: ['privacy_policy'], instead of a comma-separated type string.";
 const FETCH_TODO = '$fetch was removed. Call the typed client methods.';
+const RUNTIME_CLASS_TODO =
+	'C15TClient is no longer a class, so instanceof checks, subclasses and other runtime uses stop working. createC15tClient() returns a plain C15tClient object.';
 const CLIENT_OPTIONS_TODO =
 	'createC15tClient() options changed: token is now apiKey, timeout is now timeoutMs and retryConfig is now retry. prefix and debug were removed, and baseUrl is required.';
 const CALL_OPTION_TODOS: Record<string, string> = {
@@ -162,6 +164,8 @@ const planTypes = function planTypes(
 interface MethodCall {
 	access: TsMorphTypes.PropertyAccessExpression;
 	call: TsMorphTypes.CallExpression;
+	/** Whether the access path uses optional chaining, as in `client?.status()`. */
+	optional: boolean;
 	path: string;
 }
 
@@ -178,6 +182,7 @@ const methodCallOf = function methodCallOf(
 	}
 	let access: TsMorphTypes.PropertyAccessExpression = parent;
 	let path = access.getName();
+	let optional = parent.hasQuestionDotToken();
 	const next = access.getParent();
 	if (
 		(path === 'meta' || path === 'subjects' || path === 'consent') &&
@@ -186,12 +191,13 @@ const methodCallOf = function methodCallOf(
 	) {
 		path = `${path}.${next.getName()}`;
 		access = next;
+		optional ||= next.hasQuestionDotToken();
 	}
 	const call = access.getParent();
 	if (!Node.isCallExpression(call) || call.getExpression() !== access) {
 		return undefined;
 	}
-	return { access, call, path };
+	return { access, call, optional, path };
 };
 
 /** Renames an options key that kept its meaning under a new name. */
@@ -314,7 +320,7 @@ const planCall = function planCall(
 	if (!method) {
 		return;
 	}
-	const { access, call, path } = method;
+	const { access, call, optional, path } = method;
 	if (path === '$fetch') {
 		addTodo(statementOf(call), FETCH_TODO, context.edits);
 		context.operations += 1;
@@ -328,7 +334,7 @@ const planCall = function planCall(
 		context.edits.push({
 			end: access.getEnd(),
 			start: client.getEnd(),
-			text: `.${target}`,
+			text: `${optional ? '?.' : '.'}${target}`,
 		});
 		context.summaries.add(`${path} -> ${target}`);
 	}
@@ -458,6 +464,32 @@ const planFactoryCalls = function planFactoryCalls(
 	}
 };
 
+/**
+ * Whether a `C15TClient` reference is a type, such as an annotation or an
+ * `implements` clause, rather than a runtime use of the v2 class.
+ */
+const isTypeUse = function isTypeUse(reference: TsMorphTypes.Node): boolean {
+	const parent = reference.getParent();
+	if (Node.isTypeReference(parent)) {
+		return true;
+	}
+	return (
+		Node.isExpressionWithTypeArguments(parent) &&
+		parent.getParentIfKind(SyntaxKind.HeritageClause)?.getToken() ===
+			SyntaxKind.ImplementsKeyword
+	);
+};
+
+/** Marks a runtime use of the v2 class, which v3 does not export. */
+const markRuntimeClassUse = function markRuntimeClassUse(
+	reference: TsMorphTypes.Node,
+	context: Context
+): void {
+	if (addTodo(statementOf(reference), RUNTIME_CLASS_TODO, context.edits)) {
+		context.summaries.add('TODO: C15TClient runtime use');
+	}
+};
+
 /** Records the parameter, property or variable a client type annotates. */
 const recordTypedHolder = function recordTypedHolder(
 	reference: TsMorphTypes.Node,
@@ -480,6 +512,7 @@ const planClientClass = function planClientClass(
 	context: Context
 ): void {
 	const typeReferences: TsMorphTypes.Node[] = [];
+	let runtimeUses = 0;
 	for (const reference of referencesOf(named)) {
 		const parent = reference.getParent();
 		if (Node.isNewExpression(parent) && parent.getExpression() === reference) {
@@ -494,15 +527,34 @@ const planClientClass = function planClientClass(
 			context.summaries.add(`new C15TClient -> ${FACTORY}`);
 			continue;
 		}
+		if (!isTypeUse(reference)) {
+			markRuntimeClassUse(reference, context);
+			runtimeUses += 1;
+			continue;
+		}
 		typeReferences.push(reference);
 		recordTypedHolder(reference, context);
 	}
 	context.operations += 1;
+	const alias = named.getAliasNode()?.getText();
+	if (runtimeUses > 0) {
+		// Keep the v2 name so the runtime uses still fail the build at the TODO.
+		if (typeReferences.length > 0 && !alias) {
+			context.edits.push({
+				end: named.getEnd(),
+				start: named.getEnd(),
+				text: ', type C15tClient',
+			});
+			for (const reference of typeReferences) {
+				context.edits.push(toTextEdit(reference, 'C15tClient'));
+			}
+		}
+		return;
+	}
 	if (typeReferences.length === 0) {
 		context.edits.push(toTextEdit(named, FACTORY));
 		return;
 	}
-	const alias = named.getAliasNode()?.getText();
 	const typeOnly =
 		named.isTypeOnly() || named.getImportDeclaration().isTypeOnly();
 	context.edits.push(
@@ -570,6 +622,9 @@ const planNamespace = function planNamespace(
 		const name = nameNode.getText();
 		const outer = parent.getParent();
 		if (name === 'C15TClient') {
+			const typeUse = Node.isQualifiedName(parent)
+				? !parent.getFirstAncestorByKind(SyntaxKind.TypeQuery)
+				: isTypeUse(parent);
 			if (Node.isNewExpression(outer) && outer.getExpression() === parent) {
 				planOptions(outer, context);
 				recordHolder(outer, context);
@@ -579,10 +634,12 @@ const planNamespace = function planNamespace(
 					text: `${namespace.getText()}.${FACTORY}`,
 				});
 				context.summaries.add(`new C15TClient -> ${FACTORY}`);
-			} else {
+			} else if (typeUse) {
 				context.edits.push(toTextEdit(nameNode, 'C15tClient'));
 				recordTypedHolder(parent, context);
 				context.summaries.add('C15TClient -> C15tClient');
+			} else {
+				markRuntimeClassUse(parent, context);
 			}
 			context.operations += 1;
 			continue;
