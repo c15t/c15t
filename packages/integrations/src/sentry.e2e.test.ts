@@ -1731,6 +1731,21 @@ const installSentryCdn = (
 };
 
 describe('Sentry loaded from the CDN', () => {
+	it.each(['always', 'after-consent'] as const)(
+		'reports a failed primary CDN download with loadMode %s',
+		async (loadMode) => {
+			const onError = vi.fn();
+			mount(sentry({ dsn, loadMode, onError }), grantedMeasurementConsents);
+			await vi.advanceTimersByTimeAsync(0);
+			const bundle = document.head.querySelector('script');
+			expect(bundle?.src).toBe(`${cdn}/11.4.0/bundle.min.js`);
+			bundle?.dispatchEvent(new Event('error'));
+			expect(onError).toHaveBeenCalledExactlyOnceWith(
+				new Error(`Failed to load script: ${cdn}/11.4.0/bundle.min.js`)
+			);
+		}
+	);
+
 	it.each([
 		{ expected: 'provider-nonce', nonce: undefined },
 		{ expected: 'script-nonce', nonce: 'script-nonce' },

@@ -148,7 +148,7 @@ Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
 | `replay.category` | `'measurement'` | Consent condition for Replay. `pii.category` must also be allowed. |
 | `pii.category` | `'measurement'` | Consent condition for SDK data collection and user data. `'necessary'` permits it while the Sentry vendor is enabled. |
 | `pii.user` | None | Returns the user to set when user data becomes allowed. |
-| `onError` | Report to Sentry | Receives Sentry start and Replay load, start and stop failures. |
+| `onError` | Report to an available Sentry client | Receives Sentry CDN load and start failures, and Replay load, start and stop failures. Supply this callback to report a CDN failure before Sentry is available. |
 
 The adapter registers Replay's category only when `replay.load` is supplied
 for an app-managed SDK, or when CDN Replay is enabled with a positive sample

@@ -192,8 +192,9 @@ interface SentrySharedOptions {
 	/** Gate SDK data collection, user fields and IP inference. */
 	pii?: SentryPiiOptions;
 	/**
-	 * Receives Sentry start and Replay load, start and stop failures.
-	 * Without it, the adapter reports them to Sentry with the tag
+	 * Receives Sentry CDN load and start failures, and Replay load, start
+	 * and stop failures. Without it, the adapter reports them to an
+	 * available Sentry client with the tag
 	 * `c15t.integration: sentry`.
 	 */
 	onError?: (error: unknown) => void;
@@ -1429,6 +1430,7 @@ const createCdnScript = (
 			activeCdnConfigurations.delete(options);
 			gate.dispose();
 		},
+		onError: (info) => gate.report(info.error),
 		onLoad: (info) => {
 			if (info.element) {
 				loadedCdnBundles.add(info.element);
