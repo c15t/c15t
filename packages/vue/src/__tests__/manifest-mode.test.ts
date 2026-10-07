@@ -84,6 +84,28 @@ afterEach(() => {
 });
 
 describe('@c15t/vue Nuxt manifest mode', () => {
+	test('client manifest mode resolves an inline build snapshot without fetching policy', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.example.com',
+				customFetch: fetch,
+				manifest: 'client',
+				manifestSnapshot: createManifestFixture(),
+			},
+		});
+		try {
+			await context.kernel.commands.init();
+			expect(context.snapshot.value.resolution).toMatchObject({
+				policy: { id: 'eu-opt-in' },
+				status: 'matched',
+			});
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			context.dispose();
+		}
+	});
+
 	test('resolves init locally from a cached manifest and geo headers', () => {
 		const init = resolveManifestInit({
 			headers: {

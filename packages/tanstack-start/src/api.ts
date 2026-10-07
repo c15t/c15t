@@ -36,6 +36,7 @@ import type {
 	ConsentRouteRequestContext,
 	ManifestCache,
 } from '@c15t/core/server';
+import type { ConsentManifest } from '@c15t/schema/types';
 
 import { readConsentInputs } from './libs/request-inputs';
 
@@ -55,6 +56,8 @@ export interface ConsentServerRouteOptions {
 	 * `backendURL`.
 	 */
 	manifestURL?: string;
+	/** Deployment-bound manifest. Takes precedence over upstream URLs. */
+	manifest?: ConsentManifest;
 
 	/**
 	 * Fetch implementation for manifest and GVL requests. Defaults to
@@ -231,6 +234,7 @@ export const createConsentServerRoute = function createConsentServerRoute<
 		cache: resolved.cache,
 		fetch: resolved.fetch,
 		fetchGvl: resolved.fetchGvl,
+		manifest: resolved.manifest,
 		manifestURL: resolved.manifestURL,
 		proxy: resolved.proxy,
 		reportSessions: resolved.reportSessions,

@@ -86,6 +86,9 @@ describe('resolveConsent wiring', () => {
 		expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
 			'https://consent.example.com/manifest',
 		]);
+		expect(fetch.mock.calls[0]?.[1]).toMatchObject({
+			next: { revalidate: 300 },
+		});
 		expect(state.initialPolicyResolution).toMatchObject({
 			policyId: 'eu-opt-in',
 			status: 'matched',
@@ -105,6 +108,7 @@ describe('resolveConsent wiring', () => {
 		expect(String(fetch.mock.calls[0]?.[0])).toBe(
 			'https://consent.example.com/init'
 		);
+		expect(fetch.mock.calls[0]?.[1]?.cache).toBe('no-store');
 		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
 		expect(headers.get('x-c15t-country')).toBe('FR');
 		expect(headers.get('accept-language')).toBe('de');

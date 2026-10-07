@@ -72,6 +72,30 @@ afterEach(() => {
 });
 
 describe('loadConsent', () => {
+	test('resolves a deployment manifest locally even when an init route is configured', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const event = createEvent({
+			fetch,
+			headers: {
+				'accept-language': 'de-DE',
+				'x-vercel-ip-country': 'DE',
+			},
+		});
+		const state = await loadConsent(event, {
+			backendURL: 'https://consent.example.com',
+			fetch,
+			initRoute: '/api/c15t',
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+		expect(state.initialTranslations?.language).toBe('de');
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	test('reads the inputs the handle normalized; per-call inputs win', async () => {
 		const event = await withHandle(
 			createEvent({

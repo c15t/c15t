@@ -1,0 +1,49 @@
+<include src="../build-time-manifest.mdx" />
+
+Add `consentManifest` before the TanStack Start plugin in your existing Vite
+configuration:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts"
+import { consentManifest } from 'c15t/tanstack-start/build';
+
+plugins: [
+	consentManifest({ backendURL: 'https://your-project.inth.app' }),
+	tanstackStart(),
+	viteReact(),
+];
+```
+
+Use your absolute backend URL. The build appends `/manifest`. Vite writes
+`src/c15t-manifest.ts` before compiling the app, both during a production build
+and when a development server starts. Import it at the server-function call
+site and add `manifest` to the existing handler options:
+
+{/* example: fragment */}
+
+```tsx title="src/routes/__root.tsx"
+import { consentManifest } from '../c15t-manifest';
+
+const getConsentState = createServerFn({ method: 'GET' }).handler(
+	createConsentStateHandler({
+		backendURL: 'https://your-project.inth.app',
+		manifest: consentManifest,
+	})
+);
+```
+
+Keep the `createServerFn().handler()` declaration in your application module
+so TanStack Start's compiler can split its server code. The root loader and
+`ConsentRoot` keep their existing setup. If you mount
+`createConsentServerRoute`, give it the same `manifest` option.
+
+Keep `src/c15t-manifest.ts` out of Git and generate it on every build.
+`outputFile`, `exportName` and `importSource` customize the generated module.
+Apps that install `@c15t/tanstack-start` directly set
+`importSource: '@c15t/tanstack-start/static'`.
+
+<include src="../vite-build-manifest.mdx" />
+
+For policy updates without a rebuild, omit the build plugin and `manifest`
+option and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).

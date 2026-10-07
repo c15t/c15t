@@ -626,6 +626,23 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				updateConfig,
 			}) {
 				command = setupCommand;
+				if (
+					options.buildManifest &&
+					(command === 'build' || command === 'dev')
+				) {
+					if (resolved.mode.type !== 'manifest') {
+						throw new Error(
+							'@c15t/astro: buildManifest requires manifest mode.'
+						);
+					}
+					if (!resolved.mode.manifest) {
+						const { loadBuildManifest } = await import('@c15t/core/build');
+						resolved.mode = {
+							...resolved.mode,
+							manifest: await loadBuildManifest(resolved.mode, '@c15t/astro'),
+						};
+					}
+				}
 				const resolveEntry = await createOwnEntryResolver();
 
 				// With Astro's own CSP on, allow the inline code the components

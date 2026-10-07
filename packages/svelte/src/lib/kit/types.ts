@@ -1,5 +1,8 @@
 import type { ManifestFetch, ManifestSourceOptions } from '@c15t/core/server';
-import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentRequestHeaderInputs,
+} from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import type { ConsentState } from '../server/types';
@@ -38,6 +41,8 @@ export type ConsentRequestInputs = ConsentRequestHeaderInputs;
 
 /** Manifest-mode wiring shared by the route handlers and `loadConsent`. */
 export interface ConsentManifestOptions extends ManifestSourceOptions {
+	/** Deployment-bound manifest. Takes precedence over upstream URLs. */
+	manifest?: ConsentManifest;
 	/**
 	 * Fetch implementation for an absolute `backendURL` or `manifestURL`.
 	 * Defaults to the global `fetch`. The route handlers fetch a relative

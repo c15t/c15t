@@ -1,0 +1,43 @@
+<include src="../build-time-manifest.mdx" />
+
+Add `consentManifest` to your existing Vite plugin list:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts"
+import { consentManifest } from 'c15t/build';
+
+consentManifest({ backendURL: 'https://your-project.inth.app' });
+```
+
+Vite writes `src/c15t-manifest.ts` before compiling, including at development
+startup. Keep the generated file out of Git. Install `@c15t/browser@alpha` for
+its browser manifest transport. In the quickstart's `src/consent.tsx`, replace
+the `hosted()` mode with this factory:
+
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx"
+import { manifest } from '@c15t/browser/headless';
+
+import { consentManifest } from './c15t-manifest';
+
+const mode = manifest({
+	backendURL: 'https://your-project.inth.app',
+	manifest: consentManifest,
+});
+```
+
+Keep passing `mode` to `ConsentProvider`. The browser resolves policy from the
+snapshot without `/manifest`. When policy requires geography and no country
+is available in `inputs` or overrides, the transport calls `/init` for the
+visitor's location. Policy and resolver code are part of the browser bundle.
+Rebuild after editing policies, translations or vendors. A failed snapshot
+fetch stops the build. Consent saves and IAB vendor-list requests can still
+use the network.
+
+<include src="../vite-build-manifest.mdx" />
+
+For policy updates without a rebuild, keep the original `hosted()` factory
+and omit the build plugin. That setup resolves policy through the backend
+`/init` on each page load.

@@ -66,3 +66,6 @@ export const c15tVue = function c15tVue(): Plugin {
 };
 
 export default c15tVue;
+/** Build-time snapshots for plain Vue applications. */
+export { consentManifest } from '@c15t/core/build';
+export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';

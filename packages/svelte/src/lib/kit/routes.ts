@@ -205,7 +205,7 @@ export type SvelteKitConsentRouteHandlersFor<
  * fetch implementation, GVL fetcher, proxy.
  * @returns `init`, `manifest`, and a `GET` that dispatches between them. With
  * `proxy` on, `POST`, `PATCH`, `PUT`, `DELETE`, `OPTIONS`, and `proxy` join.
- * Each handler throws when neither `backendURL` nor `manifestURL` is set.
+ * Each handler throws when no `manifest`, `backendURL` or `manifestURL` is set.
  */
 export const createSvelteKitConsentRouteHandlers =
 	function createSvelteKitConsentRouteHandlers<
@@ -217,6 +217,7 @@ export const createSvelteKitConsentRouteHandlers =
 			backendURL: options.backendURL,
 			fetch: options.fetch,
 			fetchGvl: options.fetchGvl,
+			manifest: options.manifest,
 			manifestURL: options.manifestURL,
 			proxy: options.proxy,
 			reportSessions: options.reportSessions,

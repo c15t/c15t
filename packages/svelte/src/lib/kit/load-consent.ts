@@ -10,6 +10,7 @@
  * `waitUntil`, and the inputs `c15tHandle` normalized.
  */
 import { resolveRequestConsent } from '@c15t/core/server';
+import type { ConsentManifest } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { waitUntilFromEvent } from './routes';
@@ -17,6 +18,10 @@ import type { C15tLocals, ConsentRequestOptions, ConsentState } from './types';
 
 /** Options for {@link loadConsent}. */
 export interface LoadConsentOptions extends ConsentRequestOptions {
+	/** Deployment-bound manifest. Resolves locally using this visitor's inputs. */
+	manifest?: ConsentManifest;
+	/** Report manifest resolutions to the backend. @default true */
+	reportSessions?: boolean;
 	/**
 	 * Hosted mode: the c15t backend base URL, absolute or origin-relative.
 	 * `loadConsent` calls its `/init` directly. A relative URL resolves
@@ -163,22 +168,27 @@ export const loadConsent = function loadConsent(
 		options.region !== undefined;
 	const cookieName = options.cookieName ?? locals?.cookieName;
 	const { initRoute } = options;
+	const mode = options.manifest ? 'manifest' : 'hosted';
 	return resolveRequestConsent({
 		adapter: '@c15t/svelte',
-		backendURL: initRoute ? undefined : options.backendURL,
+		backendURL: initRoute && !options.manifest ? undefined : options.backendURL,
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
+		gvlRoute: options.manifest ? initRoute : undefined,
 		initURL: initRoute,
 		// SvelteKit answers this app's own routes in-process, so the init
 		// route never leaves the server and the request's host never picks
 		// where a relative backend goes.
 		localFetch: event.fetch,
-		mode: initRoute || options.backendURL ? 'hosted' : undefined,
+		manifest: options.manifest,
+		mode:
+			options.manifest || initRoute || options.backendURL ? mode : undefined,
 		overrides: {
 			country: options.country,
 			language: options.language,
 			region: options.region,
 		},
+		reportSessions: options.reportSessions,
 		request: {
 			headers: event.request.headers,
 			inputs: locals && !overridesPerCall ? locals.inputs : undefined,

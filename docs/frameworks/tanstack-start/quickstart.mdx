@@ -9,7 +9,7 @@ group: frameworks
 This guide sets up the recommended path for a TanStack Start app with server
 rendering. On each request, a server function in the root loader reads the
 visitor's consent cookie and location headers, resolves their policy from a
-cached policy manifest, and hands the result to `ConsentRoot`. The banner is
+build-time policy manifest, and hands the result to `ConsentRoot`. The banner is
 part of the first HTML, and gated scripts can run right after hydration.
 
 It needs a running Start server. For SPA mode, prerendered pages or a static
@@ -21,6 +21,10 @@ rules for your regions, add your site's origin to the trusted origins, and copy
 the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
@@ -67,9 +71,9 @@ exactly as Inth shows it, including any path prefix.
 What each part does:
 
 - **`getConsentState`** runs on the server. `createConsentStateHandler` reads
-  the `c15t` cookie and the headers from the middleware, fetches the policy
-  manifest from your backend, caches it in memory, and resolves this visitor's
-  policy. Declare the `createServerFn()` call in your own module, as shown.
+  the `c15t` cookie and the headers from the middleware, then resolves this
+  visitor's policy. The build-time step below supplies its manifest snapshot;
+  without a snapshot, the handler fetches and caches the manifest at runtime. Declare the `createServerFn()` call in your own module, as shown.
   Start's compiler finds server code by that call site, so a server function
   built inside a package does not work. In the browser build,
   `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
@@ -85,10 +89,14 @@ What each part does:
   serializable data, and vendor loaders contain functions.
 - **The stylesheet** loads through `head()` with Vite's `?url` import.
 
-If the backend does not answer within 500 ms, the server function gives up and
+With runtime fetching, if the backend does not answer within 500 ms, the server function gives up and
 returns the cookie and header state. The page renders without the banner,
 optional categories stay denied, and the browser resolves consent after it
 loads.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/tanstack-start.mdx" />
 
 ## Gate your own features
 

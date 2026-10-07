@@ -79,6 +79,74 @@ afterEach(() => {
 	vi.restoreAllMocks();
 });
 
+describe('Pages Router build-time manifest', () => {
+	test.each([
+		['DE', 'BE', 'eu-opt-in'],
+		['US', 'CA', 'us-ca-opt-out'],
+	])(
+		'resolves %s from the snapshot without fetching policy',
+		async (country, region, policyId) => {
+			const fetch = vi.fn<typeof globalThis.fetch>();
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				fetch,
+				manifest: MANIFEST_FIXTURE,
+				reportSessions: false,
+				req: {
+					headers: {
+						host: 'app.example.com',
+						'x-vercel-ip-country': country,
+						'x-vercel-ip-country-region': region,
+					},
+				},
+			});
+			expect(state.initialPolicyResolution?.policy?.id).toBe(policyId);
+			expect(fetch).not.toHaveBeenCalled();
+		}
+	);
+
+	test('API routes serve and resolve the snapshot without an upstream fetch', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const handlers = createPagesApiHandlers({
+			backendURL: 'https://consent.example.com',
+			fetch,
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		const manifestSink = createResponseSink();
+		await handlers.manifest(
+			{
+				headers: { host: 'app.example.com' },
+				method: 'GET',
+				url: '/api/c15t/manifest',
+			},
+			manifestSink.res
+		);
+		expect(manifestSink.res.statusCode).toBe(200);
+		expect(JSON.parse(manifestSink.text())).toEqual(MANIFEST_FIXTURE);
+
+		const initSink = createResponseSink();
+		await handlers.init(
+			{
+				headers: {
+					host: 'app.example.com',
+					'x-vercel-ip-country': 'DE',
+					'x-vercel-ip-country-region': 'BE',
+				},
+				method: 'GET',
+				url: '/api/c15t/init',
+			},
+			initSink.res
+		);
+		expect(initSink.res.statusCode).toBe(200);
+		expect(JSON.parse(initSink.text()).location).toEqual({
+			countryCode: 'DE',
+			regionCode: 'BE',
+		});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+});
+
 describe('@c15t/nextjs/pages: header conversion', () => {
 	test('toWebHeaders joins repeated headers and skips undefined', () => {
 		const headers = toWebHeaders({

@@ -1,0 +1,22 @@
+<include src="../build-time-manifest.mdx" />
+
+Add `buildManifest: true` to your existing `c15t()` integration:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs"
+c15t({
+	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
+	buildManifest: true,
+});
+```
+
+The integration fetches the manifest during `astro build` and development
+setup, then embeds it in its generated options. Middleware, init routes and
+manifest routes use that same snapshot automatically. No generated file or
+extra import is needed. Use an absolute upstream `backendURL` or
+`manifestURL`; a build cannot fetch a route in the app it is still compiling.
+`astro preview` uses the completed deployment and never fetches a new snapshot.
+
+For policy updates without a rebuild, omit `buildManifest` and keep
+`manifest()` to fetch and cache the policy at runtime.

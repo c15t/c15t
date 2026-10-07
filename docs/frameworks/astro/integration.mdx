@@ -79,6 +79,7 @@ mode fits which Astro output.
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
+| `buildManifest` | `boolean` | `false` | Recommended with `manifest()` and server output. Fetches policy during build and development setup and embeds it in generated options. Requires an absolute upstream URL. Rebuild after policy edits. See [build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds). |
 | `consentCategories` | `AllConsentNames[]` | Inferred from scripts and the policy | Categories the banner and dialog offer |
 | `scripts` | `Script[]` | None | Scripts without callbacks, loaded when their category is allowed. See [Scripts](/docs/frameworks/astro/scripts) |
 | `vendors` | `Vendor[]` | None | Vendors the dialog lists with their own switch inside a category. Merged with vendors from the backend manifest. See [Vendor consent](/docs/frameworks/astro/vendor-consent) |

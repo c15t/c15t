@@ -1,0 +1,16 @@
+Wrap your existing Next.js configuration with `withConsentManifest`:
+
+{/* example: fragment */}
+
+```ts title="next.config.ts"
+import { withConsentManifest } from 'c15t/next/build';
+
+export default withConsentManifest(config, {
+	backendURL: 'https://your-project.inth.app',
+});
+```
+
+Here `config` is your existing configuration object or asynchronous config
+function. Use your project's absolute backend URL. The build appends `/manifest`.
+`next build` writes `c15t-manifest.ts` before compilation. `next dev` refreshes
+it when the development server starts; `next start` never fetches it.

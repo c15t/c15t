@@ -9,8 +9,7 @@ group: frameworks
 This guide sets up a server-rendered SvelteKit app. The root layout's server
 `load` resolves each visitor's consent before the page renders, so the banner
 is part of the first HTML and a returning visitor's choice applies from the
-first paint. For prerendered pages, a static site, SPA mode or a manifest
-cache, follow this guide and then [rendering and deployment](/docs/frameworks/sveltekit/rendering).
+first paint. For prerendered pages, a static site or SPA mode, follow this guide and then [rendering and deployment](/docs/frameworks/sveltekit/rendering).
 
 `@c15t/svelte` supports SvelteKit 2 and 3 with Svelte 5. The examples use
 SvelteKit 3. On SvelteKit 2, import `building` and `dev` from
@@ -29,6 +28,10 @@ Create an Inth project, then:
 
 A self-hosted backend works the same way with your own URL; see
 [self-hosting](/docs/self-host/overview).
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install
 
@@ -55,9 +58,10 @@ these vendors, so c15t is the only thing that loads them.
 
 Replace `https://your-project.inth.app` with your project's backend URL,
 including any path prefix. `loadConsent` reads the visitor's consent cookie, location headers and Global
-Privacy Control, asks the backend's `/init` for the policy, and returns a
-plain, serializable object for the provider's `prefetch` prop. It never
-throws. If the backend fails or takes longer than 500 ms, it returns the
+Privacy Control, resolves their policy, and returns a plain, serializable
+object for the provider's `prefetch` prop. The build-time step below supplies
+the policy snapshot. Without it, this base load calls the backend's `/init`. It never
+throws. With runtime fetching, if the backend fails or takes longer than 500 ms, it returns the
 stored choice without a policy. The page then renders without a banner in the
 HTML, optional categories stay denied, and the browser resolves the policy
 after hydration. Pass `timeoutMs` to change the wait, or `false` to wait as
@@ -86,6 +90,10 @@ footer. `@c15t/svelte/styles.css` holds the stock styles for all three.
 
 Keep the provider in the root layout so it stays mounted across client-side
 navigation.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/sveltekit.mdx" />
 
 ## Verify consent
 

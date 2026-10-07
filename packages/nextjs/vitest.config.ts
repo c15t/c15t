@@ -65,6 +65,7 @@ export default mergeConfig(
 					'../core/src/transports/index.ts'
 				),
 				'@c15t/core/server': resolve(__dirname, '../core/src/server/index.ts'),
+				'@c15t/core/build': resolve(__dirname, '../core/src/build.ts'),
 				'@c15t/core/static': resolve(__dirname, '../core/src/static.ts'),
 				'@c15t/core/surface-actions': resolve(
 					__dirname,
@@ -135,11 +136,6 @@ export default mergeConfig(
 			},
 		},
 		test: {
-			browser: {
-				enabled: true,
-				instances: [{ browser: 'chromium' }],
-				provider: playwright(),
-			},
 			coverage: {
 				exclude: ['**/__tests__/**'],
 				// Coverage ratchet: floors below current coverage so regressions
@@ -151,12 +147,33 @@ export default mergeConfig(
 					statements: 45,
 				},
 			},
-			include: [
-				'src/**/*.test.tsx',
-				'src/**/*.test.ts',
-				'src/**/*.spec.tsx',
-				'src/**/*.spec.ts',
-				'src/**/*.e2e.test.tsx',
+			projects: [
+				{
+					extends: true,
+					test: {
+						environment: 'node',
+						include: ['src/__tests__/build.test.ts'],
+						name: 'node',
+					},
+				},
+				{
+					extends: true,
+					test: {
+						browser: {
+							enabled: true,
+							instances: [{ browser: 'chromium' }],
+							provider: playwright(),
+						},
+						exclude: ['src/__tests__/build.test.ts'],
+						include: [
+							'src/**/*.test.tsx',
+							'src/**/*.test.ts',
+							'src/**/*.spec.tsx',
+							'src/**/*.spec.ts',
+						],
+						name: 'browser',
+					},
+				},
 			],
 		},
 	})

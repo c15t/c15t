@@ -1,6 +1,6 @@
 ---
 title: Data fetching
-description: How c15t gets policy data through a cached manifest, backend /init, the browser or offline rules, and where consent choices are saved.
+description: Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or offline rules, and understand where consent choices are saved.
 group: concepts
 ---
 
@@ -14,7 +14,8 @@ removes backend requests. For a recommendation by framework, start with
 
 | Fetching path | Where policy resolves | Where choices are submitted | Choose it when |
 | --- | --- | --- | --- |
-| Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Your host has a runtime server and you want to reuse policy data across requests |
+| Build-time manifest, recommended | Your server or browser resolves a bundled policy snapshot with each visitor's inputs | Inth or your c15t backend | Your framework supports a build integration and policy changes can ship with a rebuild |
+| Cached manifest on your server | Your application resolves public policy data with each request's location and signals | Inth or your c15t backend | Policy changes must reach the app without rebuilding, or builds cannot access the backend |
 | Regular backend `/init` | The consent backend | The same backend | You want the fewest moving parts, need backend-owned request resolution, or have no application server |
 | Manifest in the browser | The browser, using supplied or unknown location | Inth or your c15t backend | You deliberately want client resolution and have planned geography, bundle size and policy refresh |
 | Offline | The browser or local runtime, using bundled rules | No backend submission | Local development and tests. Not recommended for production environments. |
@@ -36,6 +37,16 @@ request path before promising a latency improvement.
 Do not put secrets, visitor identifiers or consent records into a manifest.
 Keep personalized init responses out of shared caches. Changing a policy also
 requires a refresh strategy for cached or build-time manifests.
+
+## Use a build-time manifest by default
+
+<include src="../shared/build-time-manifest.mdx" />
+
+The framework quickstarts include the build integration for supported
+deployments. Server resolution uses the snapshot without an upstream manifest
+request. Browser resolution includes the policy and resolver in the client
+bundle, and may still request location for regional policies. Static Nuxt and
+Astro sites and script-tag sites keep the runtime setup from their guides.
 
 ## How manifest mode counts visitors
 
@@ -155,10 +166,13 @@ the kernel contract. Prefer a built-in transport when your backend supports it.
 ## Verify the selected path
 
 Inspect browser and server requests separately. A server manifest fetch will
-not appear in the browser's Network panel. On a warm manifest path, check that
+not appear in the browser's Network panel. With a build-time snapshot, start a
+fresh production server and confirm it makes no upstream `/manifest` request.
+After a policy edit, rebuild and confirm the new policy appears. On a runtime
+manifest path, check that
 page requests do not call the backend `/init`, a visitor's choice still reaches
 the backend's `/subjects`, and policy changes become visible after the configured
-refresh. In the recommended Next.js setup, the browser should call only
+refresh. With a same-origin consent proxy, the browser should call only
 `/api/c15t` paths for consent HTTP traffic; inspect server logs to verify their
 upstream destinations.
 

@@ -42,6 +42,26 @@ beforeEach(() => {
 });
 
 describe('createSvelteKitConsentRouteHandlers', () => {
+	test('serves and resolves a build snapshot without an upstream policy request', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const handlers = createSvelteKitConsentRouteHandlers({
+			backendURL: BACKEND,
+			fetch,
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		expect(
+			await (await handlers.manifest(restEvent('manifest'))).json()
+		).toEqual(MANIFEST_FIXTURE);
+		const response = await handlers.init(
+			restEvent('init', { headers: { 'x-vercel-ip-country': 'DE' } })
+		);
+		expect(await response.json()).toMatchObject({
+			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
+		});
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	test('returns GET, init and manifest, and the write methods with proxy on', () => {
 		expect(
 			Object.keys(

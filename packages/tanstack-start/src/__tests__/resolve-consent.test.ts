@@ -11,6 +11,7 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { rememberConsentInputs } from '../libs/request-inputs';
 import { createConsentStateHandler, resolveConsent } from '../server';
+import { loadStaticManifest } from '../static';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const manifestFetch = () =>
@@ -33,6 +34,34 @@ afterEach(() => {
 });
 
 describe('resolveConsent wiring', () => {
+	test('the server function resolves a build-time snapshot without runtime policy requests', async () => {
+		const manifest = await loadStaticManifest({
+			fetch: manifestFetch(),
+			manifestURL: 'https://consent.example.com/manifest',
+		});
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const handler = createConsentStateHandler({
+			backendURL: 'https://consent.example.com',
+			fetch,
+			manifest,
+			reportSessions: false,
+			request: requestOf({
+				'accept-language': 'de-DE',
+				'sec-gpc': '1',
+				'x-vercel-ip-country': 'DE',
+			}),
+		});
+		const state = await handler();
+		expect(state.initialPolicyResolution).toMatchObject({
+			policyId: 'eu-opt-in',
+			status: 'matched',
+		});
+		expect(state.initialTranslations?.language).toBe('de');
+		expect(state.initialPrivacySignals?.gpc).toBe(true);
+		expect(state).not.toHaveProperty('transport');
+		expect(fetch).not.toHaveBeenCalled();
+	});
+
 	test('resolves the backend manifest for the request', async () => {
 		const fetch = manifestFetch();
 		const state = await resolveConsent({

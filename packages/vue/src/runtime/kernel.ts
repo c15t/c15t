@@ -469,6 +469,9 @@ const createVueManifestTransport = function createVueManifestTransport(
 
 	const fetchManifest =
 		async function fetchManifest(): Promise<ConsentManifest> {
+			if (config.manifestSnapshot) {
+				return config.manifestSnapshot;
+			}
 			const fetchImpl =
 				config.customFetch ?? globalThis.fetch?.bind(globalThis);
 			if (!fetchImpl) {

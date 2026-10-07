@@ -11,7 +11,8 @@ to record their choice.
 
 | Transport | Policy comes from | Choices go to | Use it when |
 | --- | --- | --- | --- |
-| Hosted | The backend's `/init`, per visit | The backend's `/subjects` | The default. Inth or a self-hosted backend resolves the visitor's location. |
+| Build-time manifest, recommended | Public policy bundled during the build, resolved in the browser | The backend's `/subjects` | You use Vite and can rebuild after policy edits. Regional policies may still request location. |
+| Hosted | The backend's `/init`, per visit | The backend's `/subjects` | Policy changes must apply without rebuilding, or you need backend resolution on every visit. Used when only `backendURL` is configured. |
 | Manifest | The backend's public `/manifest`, resolved in the browser | The backend's `/subjects` | You want the banner to render without a per-visit `/init` request. |
 | Offline | Rules bundled in your app | Nowhere; the browser only | Prototypes and tests. Not recommended for production environments. |
 | Custom | Your own `init` function | Your own `save` function | You run your own consent API. |
@@ -76,6 +77,10 @@ come from the manifest's own translations.
 `createManifestTransport` from `c15t/transports/manifest` is the server
 version. It bundles every language, so keep it out of browser code.
 
+### Bundle the manifest during Vite builds
+
+<include src="../../shared/build-manifests/javascript.mdx" />
+
 ## Offline
 
 `offline()` resolves bundled rules in the browser and sends nothing. `c15t`
@@ -132,7 +137,8 @@ endpoint handlers such as `setConsent`.
 
 1. With hosted mode, the Network tab shows one `/init` request per fresh
    visit and a `/subjects` request after a choice.
-2. With manifest mode, it shows a `/manifest` request and no `/init`, unless
+2. With a build-time manifest, it shows no `/manifest` request. With runtime
+   manifest mode, it shows a `/manifest` request. Neither calls `/init`, unless
    the policy needs a country the page did not supply.
 3. With offline mode, it shows no c15t request at all, and the choice survives
    a reload.

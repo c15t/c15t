@@ -14,6 +14,7 @@ import type {
 	ConsentRouteName,
 	ManifestFetch,
 } from '@c15t/core/server';
+import type { ConsentManifest } from '@c15t/schema/types';
 import { defineEventHandler, sendWebResponse, toWebRequest } from 'h3';
 import type { EventHandlerRequest, H3Event } from 'h3';
 
@@ -65,7 +66,7 @@ export const waitUntilFromEvent = function waitUntilFromEvent(
 
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
-): ConsentConfig {
+): ConsentConfig & { manifestSnapshot?: ConsentManifest } {
 	const config =
 		typeof runtimeConfig === 'object' && runtimeConfig !== null
 			? (runtimeConfig as C15TNitroRuntimeConfig)
@@ -73,7 +74,7 @@ const readConsentConfig = function readConsentConfig(
 	return {
 		...(config.public?.c15t ?? {}),
 		...(config.c15t ?? {}),
-	} as ConsentConfig;
+	} as ConsentConfig & { manifestSnapshot?: ConsentManifest };
 };
 
 /**
@@ -99,6 +100,7 @@ const createRoute = function createRoute(
 			adapter: '@c15t/vue',
 			backendURL: config.backendURL,
 			fetch: dependencies.fetch,
+			manifest: config.manifestSnapshot,
 			manifestURL: config.manifestURL,
 			reportSessions: config.reportSessions,
 		});

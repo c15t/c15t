@@ -1,13 +1,13 @@
 ---
 title: App Router
-description: Set up c15t in the Next.js App Router with Inth, a cached policy manifest, consent-gated scripts and a streamed or awaited root layout.
+description: Set up c15t in the Next.js App Router with Inth, a build-time policy manifest, consent-gated scripts and a streamed or awaited root layout.
 group: frameworks
 ---
 
 ## Before you start
 
 This guide uses [Inth](https://inth.com) for policies and consent records. Your
-Next.js server caches the project's public policy manifest and resolves consent
+Next.js build bundles the project's public policy manifest. The server resolves consent
 for each visitor. The browser sends consent choices to Inth.
 
 A [self-hosted backend](/docs/self-host/quickstart) uses the same files with
@@ -89,7 +89,7 @@ choice sees none, and the scripts that choice allows load. A choice that has
 expired, was recorded under a different policy, or does not cover every
 required category prompts again.
 
-If the manifest request fails or takes longer than `timeoutMs`, 500 ms by
+With runtime fetching, if the manifest request fails or takes longer than `timeoutMs`, 500 ms by
 default, `resolveConsent` returns a baseline state without a policy. The page
 has already rendered. The browser retries after hydration, and gated scripts
 and embeds stay blocked until a policy resolves. Pass `onError` to report
@@ -99,6 +99,10 @@ The layout calls `next/headers`, so routes under it render per request. With
 `cacheComponents: true` the layout stays synchronous, and Next.js keeps the
 page in the prerendered static shell. See
 [Cache Components](/docs/frameworks/next/rendering#use-cache-components).
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next.mdx" />
 
 ## Render the banner in the server HTML
 
@@ -110,7 +114,7 @@ Component and mount it inside `Suspense`:
 The server renders the consent subtree after the policy resolves, so the
 banner arrives already decided and does not change after hydration. The page
 content waits with it. Next.js streams an empty shell first and the page in a
-later chunk of the same response. A slow manifest response keeps the page
+later chunk of the same response. With runtime fetching, a slow manifest response keeps the page
 blank for up to `timeoutMs`. If the request fails, the page renders without a
 banner, optional categories stay denied, and the browser resolves the policy
 after hydration.
@@ -139,7 +143,8 @@ server-rendered ones, see
 
 ## Use backend init instead of the manifest
 
-Delete the `manifestURL` line from `c15t.config.ts` and delete
+Remove `withConsentManifest` and the helpers' `manifest` option if you added
+the build integration. Delete the `manifestURL` line from `c15t.config.ts` and delete
 `app/api/c15t/manifest/route.ts`. The layouts stay the same. `resolveConsent`
 and the browser now call `${backendURL}/init`, and consent choices still go to
 `${backendURL}/subjects`. Every visit makes a backend request, which the

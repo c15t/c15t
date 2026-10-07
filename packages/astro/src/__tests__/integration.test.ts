@@ -33,7 +33,8 @@ const specifier = (entry: string): string =>
 
 const runSetup = async function runSetup(
 	options: C15tAstroOptions,
-	config: Record<string, unknown> = {}
+	config: Record<string, unknown> = {},
+	command: 'build' | 'dev' | 'preview' = 'build'
 ) {
 	const integration = c15t(options);
 	const calls: SetupCalls = {
@@ -44,6 +45,7 @@ const runSetup = async function runSetup(
 	};
 	await integration.hooks['astro:config:setup']?.({
 		...calls,
+		command,
 		config,
 	} as unknown as Parameters<
 		NonNullable<(typeof integration)['hooks']['astro:config:setup']>
@@ -88,6 +90,61 @@ describe('createOwnEntryResolver', () => {
 });
 
 describe('resolveOptions', () => {
+	it('buildManifest embeds the fetched snapshot in the virtual options', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(Response.json(INLINE_MANIFEST))
+		);
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const { calls } = await runSetup({
+				buildManifest: true,
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			});
+			const update = calls.updateConfig.mock.calls[0]?.[0];
+			const source = update.vite.plugins[0]?.load('\0virtual:c15t/options');
+			expect(source).toContain(JSON.stringify(INLINE_MANIFEST.revision));
+			expect(source).toContain('"schemaVersion":2');
+			expect(fetch).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('buildManifest fails the build on an upstream error', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
+		);
+		try {
+			await expect(
+				runSetup({
+					buildManifest: true,
+					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				})
+			).rejects.toThrow('503');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	it('preview never fetches a new build snapshot', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		vi.stubGlobal('fetch', fetch);
+		try {
+			await runSetup(
+				{
+					buildManifest: true,
+					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				},
+				{},
+				'preview'
+			);
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	it('defaults the ui adapter to svelte', () => {
 		expect(resolveOptions({ mode: offlineMode() }).ui).toBe('svelte');
 	});

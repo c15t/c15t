@@ -1,6 +1,7 @@
 import { c15tProtocolHeaders } from '@c15t/core';
 import { createConsentRouteHandler } from '@c15t/core/server';
 import type { ConsentRouteFetchGvl } from '@c15t/core/server';
+import type { ConsentManifest } from '@c15t/schema/types';
 
 import type { ConsentConfig } from './config';
 import { isConsentConfig } from './config';
@@ -26,6 +27,8 @@ export interface NextConsentManifestHandlersOptions {
 	 * `backendURL`.
 	 */
 	manifestURL?: string;
+	/** Deployment-bound manifest. Takes precedence over upstream URLs. */
+	manifest?: ConsentManifest;
 
 	/**
 	 * Resolve a relative `backendURL` or `manifestURL` against the request's
@@ -101,8 +104,10 @@ export const createManifestFetchInit = function createManifestFetchInit(
 		method: 'GET',
 		next: {
 			revalidate:
-				options.manifestRevalidateSeconds ??
-				DEFAULT_MANIFEST_REVALIDATE_SECONDS,
+				options.manifestRevalidateSeconds === false
+					? 0
+					: (options.manifestRevalidateSeconds ??
+						DEFAULT_MANIFEST_REVALIDATE_SECONDS),
 		},
 	};
 };
@@ -136,7 +141,7 @@ const toHandlerOptions = function toHandlerOptions(
  * `backendURL` is used: its `manifestURL` and `initURL` are the routes these
  * handlers serve.
  * @returns `GET` for the init route and `manifestGET` for the manifest route.
- * Each handler throws when neither `backendURL` nor `manifestURL` is set.
+ * Each handler throws when no `manifest`, `backendURL` or `manifestURL` is set.
  * @example
  * ```ts
  * // app/api/consent/manifest/route.ts
@@ -162,6 +167,7 @@ export const createNextConsentRouteHandlers =
 			backendURL: options.backendURL,
 			fetch: options.fetch,
 			fetchGvl: options.fetchGvl,
+			manifest: options.manifest,
 			manifestFetchInit: { next } as NextFetchInit,
 			manifestURL: options.manifestURL,
 			reportSessions: options.reportSessions,

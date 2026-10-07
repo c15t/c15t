@@ -24,6 +24,10 @@ Create an Inth project, then:
 A self-hosted backend or offline mode works too; see
 [other setups](#other-setups).
 
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-vite-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
+
 ## Install
 
 <CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
@@ -62,6 +66,47 @@ footer.
 
 `@c15t/svelte/styles.css` holds the stock styles for all three. Import it
 once.
+
+## Bundle the manifest during Vite builds
+
+Add `consentManifest` to your existing Vite plugins:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts"
+import { consentManifest } from '@c15t/svelte/vite';
+
+consentManifest({ backendURL: 'https://your-project.inth.app' });
+```
+
+Vite writes `src/c15t-manifest.ts` before compilation or development startup.
+Keep it out of Git. Install `@c15t/browser@alpha` for its browser manifest
+transport. In the provider's script block, replace the `hosted()` factory:
+
+{/* example: fragment */}
+
+```ts title="src/App.svelte script block"
+import { manifest } from '@c15t/browser/headless';
+
+import { consentManifest } from './c15t-manifest';
+
+const mode = manifest({
+	backendURL: 'https://your-project.inth.app',
+	manifest: consentManifest,
+});
+```
+
+Pass `mode` to `ConsentManagerProvider` and keep the other provider options.
+The browser uses the snapshot without a manifest request. Policies that need
+geography still call `/init` if no country is available in `inputs` or
+overrides. Policy and resolver code are part of the browser bundle. Rebuild
+after policy, translation or vendor changes. A failed snapshot fetch stops
+the build; consent saves and IAB vendor-list requests can still use the network.
+
+<include src="../../shared/vite-build-manifest.mdx" />
+
+For policy updates without a rebuild, omit the build plugin and keep the
+original `hosted()` factory to resolve consent through the backend's `/init`.
 
 ## Verify consent
 

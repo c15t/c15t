@@ -79,6 +79,60 @@ describe('colorScheme from the c15t config key', () => {
 	});
 });
 
+describe('buildManifest', () => {
+	test('embeds the manifest privately and enables server manifest mode', async () => {
+		const snapshot = {
+			branding: 'c15t',
+			revision: 'build-snapshot',
+			schemaVersion: 2,
+		};
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(Response.json(snapshot));
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const nuxt = createNuxt({
+				backendURL: 'https://consent.example.com',
+				buildManifest: true,
+			});
+			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			expect(nuxt.options.runtimeConfig.c15t).toMatchObject({
+				manifestSnapshot: snapshot,
+			});
+			expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
+				manifest: 'server',
+			});
+			expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
+				'manifestSnapshot'
+			);
+			expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
+				'buildManifest'
+			);
+			expect(fetch).toHaveBeenCalledTimes(1);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	test('fails setup when the upstream cannot supply the snapshot', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
+		);
+		try {
+			const nuxt = createNuxt({
+				backendURL: 'https://consent.example.com',
+				buildManifest: true,
+			});
+			await expect(
+				runWithNuxtContext(nuxt, () => module({}, nuxt))
+			).rejects.toThrow('503');
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+});
+
 describe('the early /init script for ssr: false pages', () => {
 	const setUp = async function setUp(
 		c15t: Record<string, unknown>,

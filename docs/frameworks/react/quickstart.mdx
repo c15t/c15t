@@ -7,8 +7,9 @@ group: frameworks
 ## Before you start
 
 This guide sets up a client-rendered React app built with Vite. The browser
-loads the page, asks the consent backend for the visitor's policy, then shows
-the banner or runs the scripts the visitor allowed.
+loads the page, resolves the visitor's policy, then shows the banner or runs
+the scripts the visitor allowed. The build-time step bundles the public
+policy; regional policies may still need a backend location request.
 
 - **Next.js or TanStack Start?** Use that framework's guide from the
   [framework list](/docs/frameworks). Their adapters resolve consent on the
@@ -24,6 +25,10 @@ rules for your regions, add your site's origin to the trusted origins, and copy
 the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
+
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
@@ -71,6 +76,10 @@ router, render the router inside `Consent` so navigation does not remount the
 provider. The stylesheet import in `src/consent.tsx` styles the banner and
 dialog; import it once.
 
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/react.mdx" />
+
 ## Gate your own features
 
 Read a category's permission with `useConsent` inside the provider:
@@ -106,8 +115,8 @@ Test under a policy that asks for a choice, such as an EU opt-in policy.
    X Pixel stays absent.
 5. **Turn Analytics off again.** The page reloads and PostHog does not load.
 
-If the banner never appears, check the Network tab for the request to
-`/init` on your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
+If the banner never appears, check the generated policy and any location
+request to `/init` on your backend URL. [Troubleshooting](/docs/frameworks/react/troubleshooting)
 covers the common causes. [Verify consent](/docs/guides/verify-consent) has the
 full release checklist.
 

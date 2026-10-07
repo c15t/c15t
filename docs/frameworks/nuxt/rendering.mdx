@@ -8,8 +8,8 @@ group: frameworks
 
 | Your deployment | c15t setup | Banner in the first HTML |
 | --- | --- | --- |
-| A Nuxt server renders each request (`nuxt build`) | `manifest: 'server'`. See the [quickstart](/docs/frameworks/nuxt/quickstart). | Yes |
-| A Nuxt server with some prerendered or cached routes (`routeRules` with `prerender`, `swr`, `isr` or `cache`) | The same `manifest: 'server'` setup. See [prerendered and cached routes](#prerendered-and-cached-routes). | No on those routes, yes elsewhere |
+| A Nuxt server renders each request (`nuxt build`) | `buildManifest: true`, recommended. See the [quickstart](/docs/frameworks/nuxt/quickstart). | Yes |
+| A Nuxt server with some prerendered or cached routes (`routeRules` with `prerender`, `swr`, `isr` or `cache`) | The same `buildManifest: true` setup. See [prerendered and cached routes](#prerendered-and-cached-routes). | No on those routes, yes elsewhere |
 | Static hosting with `nuxt generate` | `manifest: 'client'` with an absolute `manifestURL`, or `manifest` unset. See [deploy to static hosting](#deploy-to-static-hosting). | No |
 | A single-page app with `ssr: false` | `manifest: 'client'` with an absolute `manifestURL`. See [build a single-page app](#build-a-single-page-app-with-ssr-false). | No |
 
@@ -18,8 +18,8 @@ whether the HTML belongs to one visitor or to everyone.
 
 ## Render each request on the server
 
-With `manifest: 'server'`, every server render reads the visitor's consent
-cookie and location headers, resolves their policy from a cached manifest, and
+With the recommended `buildManifest: true`, every server render reads the visitor's consent
+cookie and location headers, resolves their policy from the bundled snapshot, and
 sends the result with the page. The browser reuses it during hydration, so
 consent-gated scripts can start right after hydration and the banner needs no
 extra request. The [quickstart](/docs/frameworks/nuxt/quickstart) sets this
@@ -28,11 +28,13 @@ up, and `examples/nuxt` in the c15t repository runs it.
 The module adds `/api/c15t/manifest` and `/api/c15t/init` to your Nuxt
 server. The browser uses the init route when it needs to resolve the policy
 itself, for example on a prerendered route or after a failed server render.
-The manifest route caches the public manifest and serves it stale while it
-refreshes, so a slow backend does not hold up rendering.
+The manifest route serves the deployment's snapshot without fetching upstream.
+To apply policy updates without rebuilding, omit `buildManifest` and keep
+`manifest: 'server'`. That path fetches and caches the public manifest at
+runtime and refreshes it in the background.
 
 Server rendering waits at most `timeoutMs`, 500 milliseconds by default, for
-the policy. When the backend is slower or down, the page renders without
+the policy. With runtime fetching, when the backend is slower or down, the page renders without
 consent UI in the HTML, optional categories stay denied, gated scripts and
 iframes stay blocked, and the browser resolves the policy after hydration.
 
@@ -43,6 +45,10 @@ leaves the server. With `manifest` unset, the server calls the backend's
 carries the resolved location, language and GPC and the `user-agent`, and,
 over `https` or to a loopback host, the consent cookie alone, never the rest
 of the cookie jar. Prefer `manifest: 'server'`.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/nuxt.mdx" />
 
 ## Prerendered and cached routes
 
@@ -61,7 +67,7 @@ export default defineNuxtConfig({
 });
 ```
 
-Keep `manifest: 'server'` from the quickstart. Routes without these rules
+Keep `buildManifest: true` from the quickstart. Routes without these rules
 still render per request with the banner in the HTML. Until the browser has
 the policy, optional categories stay denied and gated scripts and iframes stay
 blocked.

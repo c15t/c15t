@@ -23,6 +23,10 @@ origins, and copy the backend URL. To run the service yourself, use a
 policies in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
+Build-time manifests are the recommended production setup. Complete the
+[build-time manifest step](#bundle-the-manifest-during-builds) before
+deploying, and rebuild after changing policies, translations or vendors.
+
 ## Install c15t
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
@@ -39,11 +43,16 @@ Replace `https://your-project.inth.app` with your project's backend URL,
 including any path prefix.
 
 `manifest: 'server'` adds two routes to your Nuxt server,
-`/api/c15t/manifest` and `/api/c15t/init`. The server downloads your project's
-public policy manifest, caches it, and resolves each visitor from the request's
-location and language headers. Consent saves still go to Inth.
+`/api/c15t/manifest` and `/api/c15t/init`. The server resolves each visitor from
+the request's location and language headers. The build-time step below
+supplies the public policy snapshot; without it, the routes fetch and cache
+the manifest at runtime. Consent saves still go to Inth.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling the
 backend on every request.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/nuxt.mdx" />
 
 ## Mount the consent UI
 

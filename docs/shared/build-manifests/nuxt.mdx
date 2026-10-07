@@ -1,0 +1,27 @@
+<include src="../build-time-manifest.mdx" />
+
+Add `buildManifest: true` under the existing `c15t` key in `nuxt.config.ts`:
+
+{/* example: fragment */}
+
+```ts title="nuxt.config.ts"
+c15t: {
+	backendURL: 'https://your-project.inth.app',
+	buildManifest: true,
+},
+```
+
+The module enables server manifest mode, fetches the snapshot during Nuxt
+setup and embeds it in private server configuration. The server init and
+manifest routes use it automatically; the full manifest stays out of public
+runtime configuration. Production server startup does not run module setup
+or fetch another manifest.
+
+Use an absolute upstream `backendURL` or `manifestURL`. This option requires
+a Nuxt server and cannot be combined with `manifest: 'client'`. Prerendered
+and cached pages still resolve each visitor through the server init route
+after hydration. For a static host without a server, keep the browser setup
+described below.
+
+For policy updates without a rebuild, omit `buildManifest` and keep
+`manifest: 'server'` to fetch and cache the policy at runtime.

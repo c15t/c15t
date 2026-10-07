@@ -9,6 +9,11 @@ group: frameworks
 Find the row that matches your app. Most App Router apps with a Next.js server
 use the first row.
 
+For server deployments, use the recommended
+[build-time manifest](/docs/frameworks/next/optimization#bundle-the-manifest-during-builds)
+with either router. A fresh server resolves from the deployment's snapshot;
+policy changes require a rebuild.
+
 | Your app | Where consent resolves | Banner in the server HTML | Recipe |
 | --- | --- | --- | --- |
 | App Router with a Next.js server | Root layout starts `resolveConsent` and streams the result | No, it mounts after hydration. The page renders without waiting. | [Stream consent](/docs/frameworks/next/app-router#start-consent-resolution-in-the-root-layout) |
@@ -42,8 +47,9 @@ root layout. They differ in what waits for it.
 The streamed layout passes the pending promise to `ConsentRoot`, so a slow or
 failed manifest request never holds the page. Start with it.
 
-The awaited layout moves the page inside the consent boundary. A slow manifest
-response keeps the page blank for up to `timeoutMs`, 500 ms by default. React
+The awaited layout moves the page inside the consent boundary. With runtime
+fetching, a slow manifest response keeps the page blank for up to `timeoutMs`,
+500 ms by default. React
 can also hold a streamed boundary's reveal for up to 300 ms after the browser's
 first paint or an earlier boundary's reveal, even with a warm manifest cache.
 `<SpeedInsights />` from `@vercel/speed-insights` is one such boundary, because
@@ -110,18 +116,21 @@ for these pages, add the
 
 ## Choose how the server gets the policy
 
-The rendering path decides when consent resolves. The URLs in
-`defineConsentConfig` decide where the policy comes from.
+The rendering path decides when consent resolves. The build integration and
+server helper's `manifest` option supply a snapshot; the URLs in
+`defineConsentConfig` configure runtime fetching and browser routes.
 
 | Source | Config | Use it when |
 | --- | --- | --- |
-| Cached manifest | `backendURL` and `manifestURL` | You deploy a Next.js server. Recommended. |
+| Build-time manifest, recommended | `withConsentManifest`, `manifest` on server helpers, and the shared `backendURL` and `manifestURL` | Your app has a Next.js server and policy changes ship with a rebuild. |
+| Cached manifest | `backendURL` and `manifestURL`, with no snapshot | Policy changes must apply without a rebuild. |
 | Backend `/init` | `backendURL` only | You want the fewest files, or you export a static site. |
 | Offline | No backend URL | Local development and tests. Not recommended for production environments. |
 
-With a manifest, your Next.js server caches the project's public policy and
-resolves each visitor locally. Warm requests make no policy request to the
-backend. With backend `/init`, every server render or browser initialization
+With a build-time manifest, your Next.js server resolves each visitor locally
+without fetching policy. With runtime caching, warm requests make no policy
+request to the backend, but an empty cache fetches upstream.
+With backend `/init`, every server render or browser initialization
 asks the backend to resolve the visitor. Consent saves go to
 `${backendURL}/subjects` either way.
 
