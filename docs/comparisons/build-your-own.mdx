@@ -1,0 +1,89 @@
+---
+title: c15t vs building consent yourself
+description: Keep your own consent design without building every layer from scratch. Compare c15t with a custom implementation, including AI-assisted code.
+group: reference
+---
+
+## Keep your design. Reuse the consent system.
+
+Choose c15t when your team wants a custom consent experience with a supplied engine, framework components and backend. Your developers can focus on how consent fits the product.
+
+A custom implementation can match these features. The difference is which parts your team must design, test and support. This comparison includes code written by people or with AI assistance.
+
+The release covered here is currently an alpha. Evaluate its APIs and [upgrade path](/docs/upgrade-v3) before production use.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Compare the work your team owns
+
+| What you need | With c15t | With your own implementation |
+| --- | --- | --- |
+| Show a consent interface | Use framework components or build a custom UI through headless APIs | Build the banner, preference controls and application state |
+| Separate permissions from choices | A shared consent model distinguishes the two | Define what each state means and which events record a choice |
+| Offer category and vendor choices | Configure the supplied preference controls and vendor rules | Design the choice model and connect it to each vendor |
+| Control scripts, requests and embeds | Register supported integrations and explicit rules | Build or adopt controls for each way that a vendor can run |
+| Resolve policy for a visitor | Configure policy rules and the fallback for unknown locations | Build policy selection, fallback behaviour and policy updates |
+| Store remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Build or adopt record storage, delivery and recovery from failures |
+| Support server output | Follow the selected framework's server or browser path | Handle initial state, hydration and saved choices in each framework |
+| Handle withdrawal | Use the runtime's withdrawal flow and configured cleanup | Define how each vendor stops and which data your code can remove |
+| Support future changes | Review c15t updates and test your integrations | Own updates across the implementation and its dependencies |
+
+The c15t column still needs setup and tests. It describes reusable software, not a completed consent deployment.
+
+## Can I vibe code a consent banner?
+
+AI can help you write a banner, a custom consent system or an integration with c15t. Your team still owns the design decisions and checks the result.
+
+The useful comparison is the complete visitor flow. A button that saves a cookie covers only part of it.
+
+Check a fresh visit, a saved refusal, a later change of mind and a failed backend save. Also check navigation, policy changes and each vendor's behaviour.
+
+For example, a banner can save a refusal while a separate analytics script still runs. Both a custom implementation and c15t need that unconditional loader removed.
+
+Use AI to build your product's interface on c15t's [headless APIs](/docs/frameworks/react/headless). You keep control of the design and reuse the consent model underneath it.
+
+## Reuse the parts that must agree
+
+The banner, settings screen, script controls and backend record need to describe the same decision. c15t connects them through one [consent model](/docs/concepts/how-consent-works).
+
+A permission under a policy is not always an explicit grant from a visitor. Your application must preserve that distinction when it decides what can run and what to record.
+
+[Vendor consent](/docs/frameworks/react/vendor-consent) also lets a visitor refuse one named service within an accepted category. Your registered integrations can use that choice.
+
+The [framework guides](/docs/frameworks) supply the integration path. For Next.js, choose the [response behaviour](/docs/frameworks/next/rendering) that fits the application. The App Router's default streamed path does not include the banner in initial HTML.
+
+c15t's source is open under Apache-2.0. Your team can inspect it, pin package versions and change it when necessary.
+
+## What c15t does not include
+
+- **Automatic control of every tracker.** Your team must register integrations and remove duplicate or unconditional loaders.
+- **A website scanner or legal-policy generator.** The packages do not supply these tools. Your team must supply the inventory and legal text separately.
+- **A guarantee that no request occurs before consent.** Some integrations load with denied signals. Check the selected policy and actual network behaviour.
+- **Automatic deletion of all vendor data.** Withdrawal normally reloads the page. Optional cleanup cannot remove every cookie or erase data already sent elsewhere.
+- **Remote records without a backend.** A local choice is not proof that a backend received it.
+- **An end to maintenance.** Your team still owns configuration, dependency updates, accessibility checks and production tests. Self-hosting also includes database operations and availability.
+
+The software has no licence fee, but Inth, infrastructure and implementation still have costs.
+
+Neither approach establishes legal compliance by itself. Choose the applicable policy and legal text for your organisation.
+
+## When your own implementation can make sense
+
+Custom code can fit a narrow requirement when your team already has the policy, vendor controls, record service and tests. It can also fit constraints that c15t does not support.
+
+Compare that work honestly. An interface on infrastructure you already operate is a different task from a new consent system.
+
+c15t is our recommended choice when you need those layers together. You can still own the interface and, if needed, the backend.
+
+## Prove the choice with one vendor
+
+1. Choose one analytics vendor and one embed in a test application.
+2. Connect c15t with [Inth and the correct framework guide](/docs/frameworks).
+3. Test refusal, acceptance, reload and withdrawal in a production build.
+4. Inspect actual requests and the backend record after each choice.
+5. Simulate a backend failure and inspect the result after recovery.
+6. Compare the custom implementation against the same cases and name an owner for future changes.
+
+Use the [verification guide](/docs/guides/verify-consent) and [cleanup limits](/docs/frameworks/react/clear-on-revocation) as the review checklist.
+
+Reviewed against c15t on 6 October 2026. This comparison describes implementation responsibilities. We did not benchmark AI tools or measure implementation time.

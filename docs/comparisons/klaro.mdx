@@ -1,44 +1,63 @@
 ---
 title: c15t vs Klaro
-description: Compare Klaro service configuration and script attributes with c15t v3 framework adapters, Inth hosting and consent-aware loaders.
+description: Choose c15t for native framework state and a backend you can run. Compare Klaro's open-source service controls, hosted records and scanning.
 group: reference
 ---
 
-## Choose the integration style
+## Choose c15t for consent built into framework code
 
-Evaluate Klaro when a JavaScript configuration and annotated HTML resources fit
-the site. Evaluate c15t when your framework components and vendor registration
-should use the same consent runtime, with Inth handling managed policy and
-records.
+c15t is the stronger fit when your product needs native components and an integrated path from consent state to backend records. Your developers can own both the interface and the engine.
 
-Klaro's open-source setup asks you to configure third-party services and change
-script attributes so the browser does not execute or fetch them before consent.
-Its documentation also links to a hosted version. Do not assume that Klaro is
-only available as a self-managed script.
-[Klaro getting started](https://klaro.org/docs/getting-started)
+Klaro also has an open-source client and a hosted service. Its hosted plans include records and scans, so neither open source nor managed consent is exclusive to c15t.
 
-## Compare integration work
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
-| Decision | c15t v3 | Klaro documented setup |
+## Compare the integration model
+
+| What you need | c15t | Klaro |
 | --- | --- | --- |
-| Register optional code | Configure vendor scripts or explicit feature gates | Configure services and annotate the corresponding HTML resources |
-| Application state | Consume adapter hooks or the headless runtime | Evaluate the JavaScript API against application requirements |
-| Presentation | Use tokens, slots or custom markup | Use the provided styles or the version without bundled CSS |
-| Backend ownership | Start with Inth or operate the c15t backend | Choose the open-source setup or investigate the hosted offering |
+| Integrate with application UI | Native framework components and reactive state | JavaScript consent manager with an API and state watchers |
+| Control individual services | Category and vendor rules for declared targets | Service configuration and annotated resources |
+| Change the interface | Themes, component parts and headless APIs | Open-source client and configurable styles |
+| Choose the Next.js response | Server resolution, streamed state or browser resolution | Browser integration in the reviewed setup guide |
+| Keep remote records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Hosted plans include managed records |
+| Run the frontend yourself | Apache-2.0 packages | Open-source client that you can host |
+| Run the record backend yourself | Deployable open-source backend | Reviewed commercial pages describe a hosted record service |
+| Discover site services | **No scanner in the c15t packages** | Hosted plans include URL scans |
 
-## Check scripts inserted after navigation
+Sources: [Klaro setup](https://klaro.org/docs/getting-started), [JavaScript API](https://klaro.org/docs/api/js_api), [configuration](https://klaro.org/docs/integration/annotated-configuration) and [hosted plans](https://www.klaro.org/pricing).
 
-A static HTML example does not cover every resource in a client-rendered app.
-Test one script present in the initial page and one introduced after navigation.
-Confirm the selected integration controls both before consent and after a
-rejection. For c15t, remove unconditional vendor loaders and register their
-replacements once under the persistent consent owner.
+## Keep application features on the same consent state
 
-Before budgeting a migration, list which Klaro service identifiers map to c15t
-categories and integrations. A service choice is not automatically equivalent
-to a category-wide recorded grant. Preserve that distinction when deciding
-whether records can be migrated or a new choice is needed.
+c15t lets a privacy control, vendor script and video placeholder use the same state. Your team can change them with the rest of the application.
 
-Try [Inth](https://inth.com) with the [framework setup](/docs/frameworks) and [vendor guides](/docs/integrations/overview). Use your existing Klaro service inventory to choose the first integration.
+Use [native components or headless APIs](/docs/frameworks/react/headless) to match your design. Register vendors through [integration helpers](/docs/integrations/overview) or a custom integration.
 
-Sources reviewed on 10 September 2026.
+Klaro's JavaScript API also exposes consent state and change notifications. c15t adds dedicated framework adapters and a backend implementation in the same project.
+
+## Keep service choices precise
+
+Both products can represent individual services. A migration must preserve those choices. Do not convert one service permission into consent for a whole category.
+
+With c15t, a visitor can accept a category but refuse one vendor. Its [vendor rules](/docs/frameworks/react/vendor-consent) apply to the scripts, requests and embeds that you declare.
+
+A vendor-only refusal does not trigger category cookie cleanup. Configure any additional cleanup your vendors need.
+
+## What c15t does not include
+
+- **Klaro's hosted website scans.** The c15t packages do not discover every service already on a site.
+- **A drop-in Klaro configuration importer.** Map the services, categories and previous choices explicitly.
+- **A managed backend at no cost.** Compare Inth terms with Klaro's hosted scope, or budget for your own operations.
+- **Automatic control of unregistered scripts.** Remove old loaders and connect their replacements to consent state.
+
+A manually configured Klaro client remains a reasonable choice for a site that needs browser service controls only.
+
+## Try a feature added after navigation
+
+Choose c15t when framework integration and backend ownership matter most. Start with [Inth and the framework guide](/docs/frameworks).
+
+Test one script in the initial page and another added after navigation. Check rejection, acceptance and withdrawal for both.
+
+Use the [verification guide](/docs/guides/verify-consent) to check requests and records. Compare hosted services separately from the free client libraries.
+
+Sources checked on 6 October 2026. The release covered here is an alpha. A capability absent from the reviewed Klaro guides is not proof that no commercial option exists.

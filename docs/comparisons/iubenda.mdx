@@ -1,43 +1,158 @@
 ---
 title: c15t vs iubenda
-description: Compare iubenda consent and legal-document packages with c15t v3 application integration and Inth-managed policy and records.
+description: Compare c15t and iubenda to choose how much control you need over consent, your application, and your records.
 group: reference
 ---
 
-## Decide whether legal-document tooling belongs in the purchase
+## Keep control of consent in your product
 
-Evaluate iubenda when the purchase needs to cover consent tooling together with
-privacy and cookie policy generation. Evaluate c15t when the task is integrating
-consent state, controls and vendor loading into an application, with Inth as
-the recommended managed backend.
+c15t is the stronger fit when your product team wants to own the consent interface, vendor rules and record backend. Your developers can change its open-source code. They can build consent into the application they already build.
 
-iubenda's pricing table includes its Privacy Controls and Cookie Solution,
-legal-document generation and plan-dependent services. It separates included
-pageviews and extra usage, and distinguishes cookie consent records from form
-consent services. Those are separate budget inputs.
-[iubenda pricing and inclusions](https://www.iubenda.com/en/pricing/)
+Choose iubenda if you want consent tools, website scans, and legal documents in one managed package. Its [plans](https://www.iubenda.com/en/pricing/) combine these products with different features and usage limits.
 
-## Compare the scope you need
+This page covers the current alpha release. Check the [upgrade guide](/docs/upgrade-v3) before you change a current installation.
 
-| Requirement | c15t v3 | iubenda |
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Choose the control your team needs
+
+IAB TCF means the IAB Transparency and Consent Framework. It defines rules for consent to vendors and purposes.
+
+| What you need | c15t | iubenda |
 | --- | --- | --- |
-| Application consent state | Framework hooks and policy-aware UI | Validate the integration API for the application |
-| Managed records | Configure Inth policy and consent submissions | Check the consent record services included in the plan |
-| Legal documents | Supply and maintain the application's disclosures | Evaluate the included generators and their coverage |
-| Cost model | Confirm Inth terms or self-hosted operating costs | Check pageviews, overage, form consent and required plan features |
+| Use your application framework | Native adapters for web frameworks | A hosted script and integrations for site platforms |
+| Read consent in your code | Reactive state through framework hooks | Browser functions and callbacks |
+| Send the banner from your server | Supported when your server waits for consent resolution | The web guide uses a hosted banner script |
+| Match your product design | Themes, components, or your own interface | Custom styles and banner content |
+| Set when vendors run | Category and vendor rules for scripts and embeds | Automatic blocking, manual tags, and tag-manager integrations |
+| Give visitors vendor choices | Vendor switches outside IAB TCF, plus IAB controls | Purpose categories and IAB vendor controls |
+| Choose where records stay | Inth hosts the backend and stores records in its database. Self-hosting is optional | A managed consent service |
+| Keep evidence of consent | Records in the selected backend | Consent logs in all current plans |
+| Manage legal documents | Your documents, with helpers for versions and signed snapshots | Generated policies and other legal tools |
+| Discover cookies automatically | **Not included in the c15t packages** | Website scans |
+| Get help from an assistant | Docs and skills in installed packages | A Claude and ChatGPT connector |
 
-With c15t, supply your own privacy and cookie disclosures. Linking to a policy
-from a banner does not generate or maintain that document.
+iubenda sources: [integration guide](https://www.iubenda.com/en/help/1205-how-to-configure-your-cookie-solution-advanced-guide-2/), [automatic blocking](https://www.iubenda.com/en/help/133036-prior-blocking-of-cookies-automatic-blocking-auto-blocking-2/), [consent logs](https://www.iubenda.com/en/help/45718-cookie-preference-log/), and [assistant connector](https://www.iubenda.com/en/help/222393-how-to-connect-iubenda-to-claude-and-chatgpt/).
 
-## Test the complete disclosure workflow
+## Make the consent interface match your product
 
-Choose one vendor used by your application. Update its disclosure, register its
-consent-aware loading behavior, and inspect the resulting preference screen.
-Verify where the corresponding decision is stored. If you use iubenda for
-legal documents and evaluate c15t for runtime consent, identify which product
-owns the banner and which owns the document so you do not mount two consent
-interfaces or double-initialize a tag.
+Build the consent interface you want while c15t handles consent state. Start with the c15t banner and preference centre. Change the theme, replace component parts, or build the interface yourself.
 
-For the c15t runtime, start with [Inth](https://inth.com) and the [framework setup](/docs/frameworks). Keep legal-document ownership explicit if you retain iubenda for that service.
+c15t supports React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro, and TanStack Start. A script-tag package serves sites without these frameworks.
 
-Sources reviewed on 10 September 2026.
+Your video placeholders, vendor scripts, and privacy controls can use the same consent state. Framework hooks let application code read changes to that state.
+
+Your team can review those changes with the rest of the product code. See the guides for [custom styles](/docs/frameworks/react/customize) and [your own interface](/docs/frameworks/react/headless).
+
+iubenda also has custom styles and browser functions. c15t adds native framework components that your developers can compose into the application.
+
+## Choose what the page waits for
+
+You can choose whether the page waits for consent resolution. In Next.js, c15t supports these paths:
+
+- **Show the page first.** Stream the consent state after the page starts. The banner appears after the browser applies that state.
+- **Send the banner from the server.** Wait for consent resolution before the server sends the banner. This adds a wait to that response.
+- **Keep static pages.** Resolve consent in the browser. Do not put one visitor's consent state in a page that other visitors share.
+
+Scripts configured to wait for consent stay blocked while consent resolves. The consent rules then decide which scripts can run.
+
+Your server can reuse a consent manifest, a public document with consent rules. This avoids a separate policy lookup at the backend for each application request when the cache is warm. Cache refreshes and consent saves still need the backend.
+
+See [page behaviour by deployment](/docs/frameworks/next/rendering) and [how c15t gets consent rules](/docs/concepts/data-fetching).
+
+iubenda documents [ways to optimise script delivery](https://www.iubenda.com/en/help/3834-cache-and-optimisation-of-the-iubenda-cookie-solution/). It also offers [server-side tracking](https://www.iubenda.com/en/server-side-tracking/), which processes measurement events.
+
+Those features serve different tasks from consent resolution in your application. We did not benchmark the two products, so this page makes no claim that c15t is faster.
+
+## Decide which vendor code can run
+
+You can review each vendor's consent rules with the feature that adds it. Declare the vendor through [c15t integrations](/docs/integrations/overview). Set its consent category and vendor identifier in code.
+
+A visitor can accept a category but reject one vendor in that category. For example, the visitor can accept analytics but reject a named analytics service.
+
+These vendor switches work outside IAB TCF. IAB TCF uses separate controls for vendors and purposes. See [vendor consent](/docs/frameworks/react/vendor-consent).
+
+Some integrations intentionally load before consent. Google Consent Mode integrations, for example, receive denied signals instead of a complete block. Check each integration before you assume that it sends no requests.
+
+iubenda can block scripts from site-scan results, policy categories, known trackers, and custom domain rules. This can reduce manual work on a site.
+
+c15t gives your developers explicit rules to review and test. The banner alone does not take control of every tag already on the site.
+
+## Set what happens after consent withdrawal
+
+You can define which browser data c15t removes after a visitor revokes a category. Its optional [clear-on-revocation rules](/docs/frameworks/react/clear-on-revocation) remove declared cookies and browser-storage keys.
+
+c15t normally reloads the page after withdrawal to stop vendor code that already ran. A vendor-only refusal does not trigger category cleanup. Browser code cannot delete another origin's cookies or `HttpOnly` cookies.
+
+Check these limits against the vendors on your site. Do not treat a consent change as proof that all vendor data is gone.
+
+## Choose who runs the backend
+
+You can use Inth now and keep the option to run the c15t backend yourself. Both paths use the [same backend protocol](/docs/self-host/overview).
+
+The [Apache-2.0 licence](https://github.com/c15t/c15t/blob/v3/LICENSE.md) lets your team read, change, and run the source code. Your team can trace how the application saves a visitor's choice.
+
+If you run the backend, you own its database, backups, updates, and availability. Inth is the recommended path if you do not want that operational work.
+
+iubenda also keeps consent records. Its [Cookie and Consent Preference Log](https://www.iubenda.com/en/help/45718-cookie-preference-log/) comes with every current plan, even the free plan.
+
+c15t gives you the additional choice to run the record system yourself. That choice matters when your organisation needs its own servers or database.
+
+## Keep evidence of the document you show
+
+You can tie your consent flow to a specific legal-document version. The c15t backend can store that document's version and content hash.
+
+A content hash is a value that identifies document content. The [snapshot helpers](/docs/self-host/guides/legal-document-snapshot-integration) let your server sign and check that document identity in an acceptance flow.
+
+Your developers must connect those helpers to the flow. A signed snapshot does not prove that a visitor accepted the document. c15t does not write the legal text.
+
+iubenda generates privacy and cookie policies. It is a broader fit if you need document generation as part of the same package.
+
+## Compare layouts before a wider release
+
+You can compare consent layouts without a different policy for each group. c15t [banner experiments](/docs/guides/banner-experiments) change the presentation and theme. The policy, categories, and policy text stay the same.
+
+Use your feature-flag tool to assign each visitor a variant, or let c15t assign variants by weight. Impressions and choices carry the variant identifier. Backend summaries show choices and time to decision for each variant.
+
+Presentation checks flag some design choices for review. They do not certify that an experiment meets legal requirements.
+
+iubenda's [Ultimate plan](https://www.iubenda.com/en/pricing/) includes detailed consent analytics. Check the experiment workflow that you need in a product trial.
+
+## Pay for the scope you need
+
+You can choose c15t without a software licence fee. Budget separately for Inth or the servers and work to run your own backend.
+
+iubenda bundles consent administration with legal documents and website scans. Its plans differ by pageviews, scan frequency, languages, and other features. Check its [current prices](https://www.iubenda.com/en/pricing/) for extra pageviews and form-consent services.
+
+Both products support Google Consent Mode, IAB workflows and [Global Privacy Control](https://www.iubenda.com/en/help/162529-global-privacy-control/), a browser signal for privacy preferences.
+
+Choose c15t when you want native framework code, your own interface, and control over the backend. Choose iubenda when its broader managed package matches your needs.
+
+## What c15t does not include
+
+- **Generated privacy and cookie policies.** Supply your legal text. Document snapshot helpers do not write it.
+- **Automatic website scans.** Keep a separate process to discover and classify the services on your site.
+- **The whole iubenda legal suite.** Form-consent products and wider legal administration need their own scope review.
+- **A free managed backend.** Budget for Inth or the database and service that your team operates.
+- **Automatic migration of previous choices.** Map purposes, vendor identifiers and policy versions before you reuse records.
+
+These limits refer to the c15t packages. Evaluate any additional Inth services separately.
+
+## Check the fit before you switch
+
+A small trial lets your team check the work before a wider move. Use a test deployment for the trial. Keep one owner for consent so two systems do not compete.
+
+1. Start with [Inth and the framework setup guide](/docs/frameworks).
+2. List the tags that iubenda currently controls.
+3. Move one analytics vendor and one embed into c15t.
+4. Remove their old loaders.
+5. Check a fresh visit, rejection, acceptance, reload, and withdrawal.
+6. Check the network requests, consent interface, and saved records.
+
+Do not assume that an iubenda cookie maps directly to a c15t record. Map the purposes, policy version, and saved choices before any transfer.
+
+You can keep iubenda-generated documents with c15t as the consent runtime. Follow the [consent checks](/docs/guides/verify-consent) before the public release.
+
+We reviewed the sources on 6 October 2026. The c15t claims refer to the alpha release reviewed here. The iubenda claims refer to the linked public docs.
+
+If those docs do not list a feature, that does not prove that iubenda lacks it.

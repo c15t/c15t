@@ -1,40 +1,67 @@
 ---
 title: c15t vs Cookiebot
-description: Compare Cookiebot hosted scanning and domain pricing with c15t v3 framework integration, Inth records and script registration.
+description: Choose c15t for native application components, explicit vendor controls and backend ownership. Compare Cookiebot's scan-based setup and the gaps c15t leaves.
 group: reference
 ---
 
-## Choose by who configures consent
+## Choose c15t when your team owns the application
 
-Evaluate Cookiebot when your main task is managing a website through a hosted
-banner configuration and scanning workflow. Evaluate c15t when application code
-needs to consume policy permissions, render consent through a framework adapter,
-and register vendor loaders with that state.
+c15t is the stronger fit when consent must work inside your product's code, design system and release process. Your team can build the interface, review vendor rules and choose where consent records stay.
 
-Cookiebot's [pricing page](https://www.cookiebot.com/us/pricing/) describes
-hosted banner setup, cookie scanning and plans tied to domains and subpage
-counts. It states that domains and subdomains are evaluated separately. Use the
-current regional pricing page for a quote; a domain count alone is not enough
-to compare subscriptions.
+Cookiebot is a strong option for teams that want a hosted banner with automatic website scans. c15t gives application teams direct control over the implementation.
 
-## Compare the implementation
+<include src="../shared/comparisons/inth-hosting.mdx" />
 
-| Decision | c15t v3 | Cookiebot |
+## Compare what you get
+
+| What you need | c15t | Cookiebot |
 | --- | --- | --- |
-| Where setup lives | Framework code and an Inth policy configuration | Hosted configuration and an installed banner script |
-| Consent in Next.js HTML | Choose server resolution, streaming or browser initialization | Validate the required rendering behavior against the installed integration |
-| Existing vendor tags | Move optional loaders into registered integrations or consent gates | Evaluate its scanning and blocking workflow against your actual tags |
-| Budget inputs | Request Inth terms, or cost operating a self-hosted backend | Check domains, subdomains and scanned subpages against the selected plan |
+| Integrate with application code | Native framework components and reactive consent state | Hosted script with JavaScript methods, events and callbacks |
+| Build your own interface | Themes, component parts and headless APIs | Banner customisation and SDK controls |
+| Choose the Next.js response | Stream consent, await it on the server, or resolve it in the browser | Client-side banner SDK. Server-side cookie use also documented |
+| Control vendor code | Declare categories and vendors on scripts, requests and embeds | Scan-based automatic blocking or manual script tags |
+| Choose the runtime version | Version the open-source packages with your application | Cookiebot's CMP script must load from its service |
+| Keep consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed consent log and data export |
+| Discover cookies automatically | **Not included in the c15t packages** | Website scans and scan reports |
+| Budget for the service | No software licence fee. Backend costs remain | Domain and subpage tiers. No pageview charge |
 
-## Test the migration before replacing Cookiebot
+Sources: [Cookiebot SDK](https://www.cookiebot.com/en/developer/), [automatic blocking](https://support.cookiebot.com/hc/en-us/articles/11438730619804-How-does-auto-blocking-work), [service scope](https://www.cookiebot.com/en/terms-of-service/) and [pricing](https://www.cookiebot.com/us/pricing/).
 
-Inventory tags that Cookiebot currently controls, including those installed by
-a CMS or tag manager. A c15t banner does not take control of those tags merely
-by appearing. Move one vendor at a time in a test deployment, remove its old
-loader, and verify rejection, reload and later revocation in the network panel.
-Do not treat an old consent cookie as a c15t record without an explicit mapping
-of purposes, policy revision and recorded choices.
+## Make consent part of the product
 
-For a c15t trial, use [Inth](https://inth.com) and the [framework setup](/docs/frameworks), then verify the vendor inventory you currently control through Cookiebot.
+With c15t, a video placeholder, privacy settings screen and analytics integration can use the same consent state. Your developers can review them in the same pull request.
 
-Sources reviewed on 10 September 2026.
+Use the supplied interface or build your own through [headless APIs](/docs/frameworks/react/headless). The [framework guides](/docs/frameworks) cover React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro, TanStack Start and plain websites.
+
+Cookiebot also exposes APIs. c15t's advantage is the native application components and the source code that your team can change.
+
+## Keep control of vendor rules and releases
+
+Declare each vendor through [c15t integrations](/docs/integrations/overview). Review its consent category and behaviour with the feature that introduces it.
+
+A visitor can accept a category but refuse one named vendor. These [vendor controls](/docs/frameworks/react/vendor-consent) work outside the IAB consent framework too.
+
+Your team can pin a c15t package version, test an update and release it with the application. Cookiebot's automatic-blocking guide specifies its hosted script and describes service updates.
+
+For Next.js, choose [when consent resolves](/docs/frameworks/next/rendering). The App Router's default streamed path shows the page first. It does not include the banner in initial HTML.
+
+## What c15t does not include
+
+- **An automatic cookie scanner.** Keep a separate inventory process for vendors added through the app, CMS or tag manager.
+- **Automatic control of every current tag.** Move those tags into registered integrations or explicit consent rules.
+- **Free backend operations.** Pay for Inth or run the database, backups and updates yourself.
+- **A speed guarantee.** Rendering choices give you control. They do not prove that c15t is faster on your site.
+
+Some integrations load before consent and receive denied signals. Check each vendor's documented behaviour before you expect zero requests.
+
+## Start with one real vendor
+
+Choose c15t if application ownership is the priority. Keep Cookiebot on the shortlist if automated website inventory is the main job.
+
+In a test deployment, use [Inth and your framework guide](/docs/frameworks). Move one analytics vendor and one embed, then remove their old loaders.
+
+Check rejection, acceptance, reload, withdrawal and the saved record with the [verification guide](/docs/guides/verify-consent). Map purposes and policy versions before you reuse any previous consent.
+
+Sources checked on 6 October 2026. The release covered here is an alpha.
+
+This comparison covers documented features. We did not measure relative speed or cost.

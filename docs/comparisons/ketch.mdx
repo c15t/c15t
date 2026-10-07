@@ -1,0 +1,74 @@
+---
+title: c15t vs Ketch
+description: Choose c15t to own consent components, vendor rules and the backend. Compare Ketch's connected privacy platform and the services c15t does not supply.
+group: reference
+---
+
+## Choose c15t when your product team owns consent
+
+c15t is the stronger fit when your main task is consent inside a web application. Your team can change the components, review vendor rules and release the consent code with the product.
+
+Ketch serves a broader need: consent across identities and connected systems, with privacy operations in the same platform. It also offers APIs, SDKs and custom interfaces.
+
+<include src="../shared/comparisons/inth-hosting.mdx" />
+
+## Compare what you get
+
+| What you need | c15t | Ketch |
+| --- | --- | --- |
+| Integrate with web application code | Native framework components and reactive consent state | Web APIs and SDKs. Ketch also advertises React support |
+| Build your own interface | Themes, component parts and headless APIs | Visual editor, SDKs and custom integration APIs |
+| Choose the backend | Inth, or the Apache-2.0 backend on your own infrastructure | Managed platform. Reviewed public sources do not establish a deployable equivalent backend |
+| Review vendor behaviour | Explicit rules for registered scripts, requests and embeds | Tag controls and connectors to other systems |
+| Keep consent records | Inth hosts the backend and stores records in its database. Self-hosting is optional | Managed records tied to the visitor and connected systems |
+| Find trackers automatically | **Not included in the c15t packages** | Tracker scans and related analysis |
+| Manage data-subject requests and assessments | **Not included as a privacy operations suite** | Broader platform products |
+| Support native mobile apps | **No equivalent native mobile SDKs in this comparison** | iOS and Android SDKs |
+
+Sources: [Ketch consent platform](https://www.ketch.com/platform/consent-management), [product documentation](https://docs.ketch.com/), [plans](https://www.ketch.com/pricing) and [Android SDK](https://github.com/ketch-com/ketch-android).
+
+## Keep consent changes in the product review
+
+With c15t, your banner, account settings and embedded content can use the same consent state. Your developers can review those changes beside the features that use them.
+
+The [framework guides](/docs/frameworks) cover React, Next.js, Vue, Nuxt, Svelte, SvelteKit, Astro, TanStack Start and plain websites. Use [headless APIs](/docs/frameworks/react/headless) when the supplied interface does not fit.
+
+Declare each integration and its consent rules in application code. [Individual vendor choices](/docs/frameworks/react/vendor-consent) let a visitor refuse one vendor within an accepted category.
+
+Ketch also connects consent to application code. c15t's advantage for this task is the combined framework interface, inspectable engine and deployable backend.
+
+## Control the software and its release
+
+Your team can pin c15t package versions, test a change and release it with the application. You can inspect and change the Apache-2.0 source.
+
+The backend gives you a choice between a managed service and your own deployment. Self-hosting also makes your team responsible for updates, storage and availability.
+
+Ketch publishes open-source SDKs. An open SDK does not, by itself, give you the whole service to deploy. Confirm the deployment and API terms for your Ketch plan.
+
+Ketch's identity and system connectors can help when choices must travel across a wider data estate. c15t does not supply that entire platform.
+
+## What c15t does not include
+
+c15t does not bundle Ketch's tracker scans, data mapping, assessment workflows or data-subject request operations. It does not supply Ketch's native mobile SDK coverage.
+
+The c15t packages also do not include an equivalent system that resolves identities across devices and forwards every privacy choice to enterprise tools.
+
+Your team must register scripts, request rules and embeds. c15t cannot automatically control every vendor already on the site.
+
+A choice in the browser is not proof of a successful backend save.
+
+Withdrawal normally reloads the page. The software has no licence fee, but implementation and backend operations still have costs. The release covered here is currently an alpha.
+
+## Try the difference in your application
+
+1. Start with [Inth and a framework guide](/docs/frameworks).
+2. Build a consent control inside a product screen.
+3. Register one analytics vendor and one embed.
+4. Refuse, accept and withdraw consent. Inspect requests and the saved record.
+5. Compare the application work with the separate privacy operations that your business needs.
+
+Follow the [verification guide](/docs/guides/verify-consent). Choose c15t when ownership of this application workflow is the priority.
+
+Sources checked on 6 October 2026. Some detailed Ketch documentation needs sign-in.
+
+This comparison uses public product pages and SDK sources. Unavailable details do not establish that a feature is absent.
