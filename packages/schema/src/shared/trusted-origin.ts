@@ -1,8 +1,8 @@
 /**
  * Origin allowlisting for CORS.
  *
- * Shared rather than duplicated because it is a security decision. During RFC
- * 0004's parallel phase both backends answer for the same tenants with the
+ * Shared rather than duplicated because it is a security decision. While v2
+ * and v3 backends run in parallel they answer for the same tenants with the
  * same configured trusted domains, and an origin accepted by one but rejected
  * by the other is either a hole or an outage depending on direction.
  *

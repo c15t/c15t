@@ -15,8 +15,7 @@ bun run dev
 `manifest: 'server'` enables same-origin, CDN-cacheable consent resolution — the
 module's server routes fetch `GET /api/self-host/manifest` once, cache it,
 and resolve `/api/c15t/init` locally from geo/language/GPC headers with no
-consent-backend round trip on the request path — see
-`internals/rfcs/0001-consent-manifest.md`. The banner is server-rendered into
+consent-backend round trip on the request path. The banner is server-rendered into
 the first HTML with zero CLS; live state is read via auto-imported
 composables (`useConsentActiveUI`, `useHasConsent`, `useConsentInit`).
 

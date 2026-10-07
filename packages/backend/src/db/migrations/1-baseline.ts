@@ -4,7 +4,7 @@
  * This is not a fresh design. It reproduces the physical shape that shipped
  * `@c15t/backend` 2.x already put in users' databases, verified column by
  * column against `internals/migration-fixtures/fixtures/fumadb-2.0.0/*.json`.
- * RFC 0004 freezes this schema until cutover, which is what makes the rewrite
+ * The schema stays frozen until cutover, which is what makes the rewrite
  * behaviour-preserving and the benchmarks comparable.
  *
  * Two consequences of "reproduce, don't redesign":
@@ -18,7 +18,7 @@
  * The one deliberate divergence is `runtimePolicyDecision.dedupeKey`, which
  * has to be a bounded `varchar` on MySQL because MySQL cannot index `TEXT`
  * without a prefix length. That single constraint is why fumadb cannot migrate
- * MySQL at all (RFC 0004 §3.5); see `../dialect.ts`.
+ * MySQL at all; see `../dialect.ts`.
  *
  * **What is deliberately absent:** any index on a foreign key column. No
  * shipped version has one — the only non-primary indexes in any captured

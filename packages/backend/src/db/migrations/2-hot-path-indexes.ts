@@ -34,8 +34,7 @@
  * alike. It also makes the benchmark arms able to measure migration 1 against
  * migration 2 directly, so "unindexed foreign keys were the dominant scaling
  * problem" becomes a number rather than a claim — and so the rewrite's
- * benchmark story does not silently attribute an indexing win to Effect
- * (RFC 0004 §7).
+ * benchmark story does not silently attribute an indexing win to Effect.
  *
  * ## Operational caveat
  *

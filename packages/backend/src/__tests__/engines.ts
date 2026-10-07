@@ -16,7 +16,7 @@
  *
  * - **PGlite** and **SQLite** run in-process and are always included.
  * - **MySQL** needs a server, so it joins only when `C15T_TEST_MYSQL_URL` is
- *   set. CI therefore stays Docker-free (RFC 0004 §7) while a release can be
+ *   set. CI therefore stays Docker-free while a release can be
  *   checked against all three:
  *
  * ```

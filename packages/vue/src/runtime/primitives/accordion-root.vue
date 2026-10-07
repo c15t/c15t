@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * AccordionRoot (Reka-compatible surface, RFC 0003). Single-open,
+ * AccordionRoot (Reka-compatible surface). Single-open,
  * collapsible — the only mode the consent manager uses. Content stays
  * mounted (`unmount-on-hide=false` semantics) so CSS state animations work.
  */

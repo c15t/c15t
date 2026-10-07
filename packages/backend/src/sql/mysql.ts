@@ -5,7 +5,7 @@
  * place in the package that imports it. See `./pg.ts` for the rationale.
  *
  * Two MySQL-specific constraints that downstream code must respect, both
- * recorded in RFC 0004:
+ * found during the v3 rewrite:
  *
  * - **DDL is not transactional.** Migration steps cannot be rolled back as a
  *   unit the way they can on Postgres and SQLite, so the migrator checkpoints

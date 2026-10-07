@@ -1,11 +1,11 @@
 /**
  * Migration 2 adds the indexes no shipped version had. Three properties
- * matter, and they are the ones the RFC's argument rests on:
+ * matter:
  *
  * 1. It leaves the baseline's own constraints alone — adding indexes must not
  *    quietly change a primary key or a unique constraint.
  * 2. It is idempotent, because the adoption step may re-run it after a
- *    partially applied migration (RFC §3.3).
+ *    partially applied migration.
  * 3. Every index it claims to create actually exists afterwards. An index that
  *    silently failed to apply would make the benchmark comparison meaningless
  *    in the most flattering possible direction.

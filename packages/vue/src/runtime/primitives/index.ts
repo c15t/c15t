@@ -1,5 +1,5 @@
 /**
- * Own Vue primitives (RFC 0003) — Reka-compatible export names so consent
+ * Own Vue primitives, with Reka-compatible export names so consent
  * components swap by import line only. Measured motivation: Reka's
  * tree-shaken cost for these five primitives was 52.5KB min / 16.5KB gz;
  * these implementations mirror the audited React equivalents at ~5x less.

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * FocusScope (Reka-compatible surface, RFC 0003).
+ * FocusScope (Reka-compatible surface).
  * Renders a plain div; when `trapped`, Tab focus cycles within (always
  * wrapping at the boundaries, via the shared `setupFocusTrap`) and focus
  * restores on release — same contract the consent surfaces used from Reka.

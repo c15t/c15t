@@ -8,7 +8,7 @@
  *
  * Until this existed there was no way to run migration 2 at all. Adoption
  * stamped `1-baseline` and stopped, so the hot-path indexes — the change worth
- * roughly 1.35× on the read path (RFC §11.5) — only ever ran in tests. A
+ * roughly 1.35× on the read path — only ever ran in tests. A
  * migration that nothing invokes is not shipped.
  *
  * ## Why not Effect's `Migrator`
@@ -237,7 +237,7 @@ const ensureSchema = Effect.gen(function* ensureSchema() {
  *
  * Safe to re-run: a database already up to date does nothing and reports an
  * empty plan. Safe to run against an unknown one: it refuses and says why
- * rather than guessing (RFC §3.3).
+ * rather than guessing.
  *
  * @example
  * ```ts

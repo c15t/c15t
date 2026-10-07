@@ -1,6 +1,6 @@
 /**
- * AccordionHeader + AccordionTrigger (Reka-compatible `as-child` surface,
- * RFC 0003).
+ * AccordionHeader + AccordionTrigger (Reka-compatible `as-child`
+ * surface).
  *
  * The consent manager renders the trigger `as-child` onto a plain div —
  * required because the row CONTAINS an interactive switch, and a native

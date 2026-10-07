@@ -1,5 +1,5 @@
 /**
- * Injection keys shared by the own primitives (RFC 0003).
+ * Injection keys shared by the own primitives.
  */
 import type { InjectionKey, Ref } from 'vue';
 

@@ -1,7 +1,7 @@
 /**
  * The request log, as an Effect service.
  *
- * RFC 0004 §5 replaces `@c15t/logger` in the backend with evlog: one **wide
+ * The backend uses evlog instead of `@c15t/logger`: one **wide
  * event per request** carrying everything worth knowing about it, rather than
  * `logger.debug` calls scattered across 22 files. A wide event is queryable
  * in a way that a stream of prose lines is not — "which tenant's consent

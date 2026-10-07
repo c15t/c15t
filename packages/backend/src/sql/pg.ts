@@ -7,7 +7,7 @@
  * file rather than a constraint scattered through the codebase.
  *
  * Everything downstream depends on `SqlClient` from `effect/sql`, not
- * on this module — see `src/sql/README` guidance in RFC 0004 §2. Composition
+ * on this module. Composition
  * happens once, at the runtime edge.
  *
  * @example

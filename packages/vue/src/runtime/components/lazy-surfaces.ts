@@ -10,7 +10,7 @@
  * - IAB surfaces: load only when the resolved policy is IAB (`init.gvl`)
  *
  * Measured motivation: with all surfaces static, @c15t/vue's mobile consent
- * tax was ~345-530ms (v3.md § the numbers); the weight was parse/hydration
+ * tax was ~345-530ms; the weight was parse/hydration
  * of surfaces most visitors never see.
  */
 import { defineAsyncComponent } from 'vue';

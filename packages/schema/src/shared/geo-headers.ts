@@ -5,9 +5,8 @@
  * request context (geo, language, GPC) and in which precedence order.
  * Framework packages must not re-declare these lists or re-implement the
  * extraction — they use their framework-native API to OBTAIN the raw
- * headers, then call into here to INTERPRET them. (The 2026-07-06
- * shared-logic drift audit found four diverged hand-rolled copies of
- * these rules; see `internals/audits/2026-07-06-shared-logic-drift.md`.)
+ * headers, then call into here to INTERPRET them. (An audit
+ * found four diverged hand-rolled copies of these rules.)
  *
  * Precedence rule: the explicit `x-c15t-*` override headers ALWAYS win
  * over infrastructure-derived headers (Cloudflare, Vercel, CloudFront,

@@ -3,7 +3,7 @@
 	"engine": "mysql",
 	"versions": ["1.0.0", "1.4.2", "1.8.6"],
 	"era": "legacy",
-	"rationale": "A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns (RFC §3.2), so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.",
+	"rationale": "A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns, so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.",
 	"applied": [
 		{
 			"version": "1.0.0",

@@ -8,9 +8,8 @@
  * That is deliberate and load-bearing during the parallel phase. Two backends
  * serve the same tenants; if they built manifests independently, a divergence
  * would break clients that cached one and resolved against the other, and it
- * would silently invalidate both the contract tests and the benchmark. RFC
- * 0001 states the principle — exactly one implementation — and RFC 0004 relies
- * on it.
+ * would silently invalidate both the contract tests and the benchmark.
+ * Exactly one implementation is the rule.
  *
  * Nothing here touches the database. `/manifest` is config, not data.
  */

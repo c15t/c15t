@@ -1,8 +1,8 @@
 /**
  * The HTTP surface.
  *
- * Hono stays, because RFC 0004 changes the data layer and the runtime, not the
- * wire. Routes hand off to Effect immediately and the app owns exactly two
+ * Hono stays, because the v3 rewrite changes the data layer and the runtime,
+ * not the wire. Routes hand off to Effect immediately and the app owns exactly two
  * things: turning a request into handler inputs, and turning a typed failure
  * into a response.
  *
@@ -182,7 +182,7 @@ export interface AppOptions {
 	 */
 	readonly basePath?: string;
 	/**
-	 * Wide-event logging (RFC 0004 §5).
+	 * Wide-event logging.
 	 *
 	 * On by default at `level: 'warn'` — silent when requests succeed, a line
 	 * when they fail. `level: 'info'` gives the full per-request stream;

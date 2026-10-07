@@ -1,9 +1,8 @@
 # V3 route moves
 
 Routes moved or merged during the v3 docs rewrite. The docs host owns the
-redirects; add each row there with a permanent redirect. Unlike
-[v2-route-inventory.md](v2-route-inventory.md), every destination here covers
-the old page's task.
+redirects; add each row there with a permanent redirect. Every destination
+here covers the old page's task.
 
 | Old route | New route | Reason |
 | --- | --- | --- |

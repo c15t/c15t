@@ -10,7 +10,7 @@
  * ```
  *
  * Skipped when that variable is absent, so CI stays free of a Docker
- * dependency (RFC 0004 §7) while the engine still gets exercised before a
+ * dependency while the engine still gets exercised before a
  * release.
  *
  * This file holds only what is **specific to MySQL**. Behaviour that should be

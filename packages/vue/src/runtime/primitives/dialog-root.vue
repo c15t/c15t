@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * DialogRoot (Reka-compatible surface, RFC 0003). Renders no DOM; provides
+ * DialogRoot (Reka-compatible surface). Renders no DOM; provides
  * open/modal state and a close command to portal/overlay/content.
  */
 import { provide } from 'vue';

@@ -3,7 +3,7 @@
  *
  * These assert the wire contract rather than the implementation, because wire
  * compatibility with `@c15t/backend` 2.x is the hard requirement that makes
- * running both packages side by side possible (RFC 0004 §Non-goals). Response
+ * running both packages side by side possible. Response
  * bodies are checked against the same `@c15t/schema` schemas the 2.x routes
  * validate against, so a drift fails here instead of reaching a client.
  */

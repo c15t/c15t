@@ -6,7 +6,7 @@ export type BenchmarkSuite =
 	| 'browser-runtime'
 	| 'script-lifecycle'
 	| 'artifact'
-	// Server-side query benchmarks for the backend rewrite (RFC 0004 §7).
+	// Server-side query benchmarks for the backend rewrite.
 	| 'backend-runtime'
 	// Node-side policy wire payload and synchronous resolution measurements
 	// over fixed policy fixtures (issue #1025).
@@ -47,8 +47,8 @@ export interface BenchmarkFixtureDescriptor {
 	/** Seeded row counts, keyed by table. */
 	rowCounts?: Record<string, number>;
 	/**
-	 * Which migrations were applied. Load-bearing: RFC 0004 §11.4 requires
-	 * migration 1 and migration 2 be reported separately, or an indexing win
+	 * Which migrations were applied. Load-bearing: migration 1 and
+	 * migration 2 must be reported separately, or an indexing win
 	 * is silently attributed to the rewrite.
 	 */
 	migrations?: string[];

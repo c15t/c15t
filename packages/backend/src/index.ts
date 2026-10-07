@@ -1,9 +1,7 @@
 /**
  * `@c15t/backend`, the self-hostable c15t consent backend.
  *
- * v3 is an Effect rewrite of the 2.x package. The design, the staging, and
- * the reasoning behind each decision live in
- * `internals/rfcs/0004-backend-effect-rewrite.md`.
+ * v3 is an Effect rewrite of the 2.x package.
  *
  * ```ts
  * import { c15tInstance } from '@c15t/backend';
@@ -23,7 +21,7 @@
  * `GET /consents/check`, `GET|POST /subjects`, `GET|PATCH /subjects/:id` and
  * `PUT /legal-documents/:type/current`. v3 adds routes 2.x never had:
  *
- * - `GET /manifest`, the geo-independent consent manifest (RFC 0001).
+ * - `GET /manifest`, the geo-independent consent manifest.
  * - `POST /sessions`, the server-to-server report a host sends after it
  *   resolves init from a manifest. See `http/session.ts`.
  * - `GET /c15t.js`, `/c15t.iab.js` and `/c15t.headless.js`, the script-tag
@@ -43,7 +41,7 @@
  * - **The adapter subpaths are gone.** `@c15t/backend/db/adapters/*` no longer
  *   exists — Drizzle, Prisma, TypeORM, Kysely or Mongo. Those users keep their
  *   database and change only how c15t connects to it. MongoDB has no migration
- *   path at all (RFC §11.8).
+ *   path at all.
  *
  * Database drivers are optional peers, reached through `./sql/*` or loaded on
  * demand by `database: { dialect }`. Domain code depends on `SqlClient` from

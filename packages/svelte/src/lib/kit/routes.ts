@@ -1,7 +1,7 @@
 /**
  * Same-origin consent routes for SvelteKit.
  *
- * Manifest mode (RFC 0001) moves policy resolution off the browser's critical
+ * Manifest mode moves policy resolution off the browser's critical
  * path: the host fetches one geo-independent, CDN-cacheable manifest and
  * resolves `/init` locally per request. The routes themselves live in
  * `@c15t/core/server` (`createConsentRouteHandler`), shared with the Next.js,

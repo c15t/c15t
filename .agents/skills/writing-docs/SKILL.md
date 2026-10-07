@@ -216,10 +216,6 @@ Follow [the v3 information architecture](references/v3-information-architecture.
 for the page set each framework gets, and record moved routes in
 [v3-route-moves.md](references/v3-route-moves.md).
 
-For a broad rewrite or publication review, read
-[the v3 editorial review](references/v3-editorial-review.md) for the historical
-gaps, source evaluation, demo rollout and acceptance tasks.
-
 ## Verify the actual outputs
 
 - Run `bun run lint:docs` and `bun run fmt:docs`. Both currently rewrite files;

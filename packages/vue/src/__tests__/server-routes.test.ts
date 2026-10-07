@@ -276,7 +276,7 @@ describe('init route', () => {
 			name: 'Acme',
 			privacyPolicyUrl: 'https://acme.example/privacy',
 		};
-		// RFC 0001 §3: an older backend with no /manifest must not break consent.
+		// An older backend with no /manifest must not break consent.
 		// The proxy has to go through serverFetch too, or a relative backendURL
 		// throws ERR_INVALID_URL in Node.
 		// oxlint-disable-next-line require-await -- Preserve sequential execution and callback compatibility.

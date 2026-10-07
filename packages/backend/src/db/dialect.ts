@@ -2,7 +2,7 @@
  * The handful of places where the three supported engines genuinely disagree.
  *
  * Deliberately a small closed set of physical type decisions rather than a
- * general abstraction layer. RFC 0004's argument is that hiding SQL behind a
+ * general abstraction layer. Hiding SQL behind a
  * lowest-common-denominator API is what produced the join-less query surface
  * in `@c15t/backend`; the fix is to write real SQL and name the few concrete
  * divergences, not to build another abstraction over them.
@@ -60,7 +60,7 @@
 import { Data, Effect } from 'effect';
 import { SqlClient, Statement } from 'effect/sql';
 
-/** The SQL engines c15t supports. MongoDB is not among them — RFC 0004 §2. */
+/** The SQL engines c15t supports. MongoDB is not among them. */
 export type Dialect = 'postgres' | 'mysql' | 'sqlite';
 
 /**
@@ -119,8 +119,8 @@ export interface PhysicalTypes {
 	 * BLOB/TEXT column 'dedupeKey' used in key specification without a key length
 	 * ```
 	 *
-	 * That single restriction is why fumadb cannot migrate MySQL at all
-	 * (RFC 0004 §3.5), and the legacy migrator that *could* worked precisely
+	 * That single restriction is why fumadb cannot migrate MySQL at all,
+	 * and the legacy migrator that *could* worked precisely
 	 * because it declared these columns `varchar` — which the legacy MySQL
 	 * fixtures confirm.
 	 *

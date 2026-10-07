@@ -2,7 +2,7 @@
  * Session reports: how a backend learns about visitors it never served.
  *
  * `/init` used to be the one request every visitor made, which made its
- * request log the visitor count. Manifest mode (RFC 0001) removes that
+ * request log the visitor count. Manifest mode removes that
  * request on purpose: the host resolves init from a cached manifest and the
  * backend hears nothing until a consent is saved. `POST /sessions` is the
  * replacement signal, sent server-to-server by the host after it resolves.

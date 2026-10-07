@@ -4,8 +4,8 @@
  *
  * sqlite and postgres run in-process. MySQL needs a real server, so fixtures
  * for it are generated locally against Docker and the dumps are committed —
- * CI verifies against the committed dumps rather than standing up a database
- * (RFC §7 keeps Docker off CI's critical path).
+ * CI verifies against the committed dumps rather than standing up a database,
+ * which keeps Docker off CI's critical path.
  */
 
 export type EngineName = 'sqlite' | 'postgres' | 'mysql';

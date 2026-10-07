@@ -2,8 +2,7 @@
  * The database shapes that exist in the wild, and the published package that
  * produces each one.
  *
- * See `internals/rfcs/0004-backend-effect-rewrite.md` §3.1 for why there are
- * three eras rather than two. In short: 1.0.x–1.8.x shipped a legacy
+ * There are three eras rather than two: 1.0.x–1.8.x shipped a legacy
  * introspection-diff migrator at the root export, 1.8.x *additionally* shipped
  * an opt-in `/v2` subpath backed by fumadb at schema 1.0.0, and 2.x promoted
  * that surface to the root at schema 2.0.0.
@@ -73,7 +72,7 @@ export const DATABASE_FIXTURES: readonly DatabaseFixture[] = [
 		era: 'legacy',
 		name: 'legacy-upgraded',
 		rationale:
-			'A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns (RFC §3.2), so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.',
+			'A database created at 1.0 and walked forward. The legacy migrator only ever added tables and columns, so this can retain columns a fresh 1.8 install never had. Cannot be reproduced from any schema definition in the repo.',
 		versions: ['1.0.0', '1.4.2', '1.8.6'],
 	},
 	{

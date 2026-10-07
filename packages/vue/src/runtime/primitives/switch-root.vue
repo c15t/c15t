@@ -1,6 +1,6 @@
 <script setup lang="ts">
 /**
- * SwitchRoot (Reka-compatible surface, RFC 0003).
+ * SwitchRoot (Reka-compatible surface).
  * `role="switch"` button with the same `data-state`/`data-disabled`
  * contract the CSS targets. State conventions come from the shared,
  * framework-agnostic helpers in @c15t/ui.

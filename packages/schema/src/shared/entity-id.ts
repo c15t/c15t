@@ -1,8 +1,8 @@
 /**
  * Entity id derivation.
  *
- * Lives here because **two backends must derive byte-identical ids**. During
- * RFC 0004's parallel phase both serve the same tenants, and consent
+ * Lives here because **two backends must derive byte-identical ids**. While
+ * v2 and v3 backends run in parallel they serve the same tenants, and consent
  * idempotency is keyed on a deterministic id: if the two implementations
  * disagreed by so much as an alphabet character or an epoch offset, the same
  * submission would land twice and a visitor would have duplicate consent

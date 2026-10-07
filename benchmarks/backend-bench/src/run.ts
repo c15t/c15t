@@ -1,5 +1,5 @@
 /**
- * Head-to-head query benchmarks for the backend rewrite (RFC 0004 §7).
+ * Head-to-head query benchmarks for the backend rewrite.
  *
  * A 2×2, swept across subject counts:
  *
@@ -10,9 +10,8 @@
  *
  * The off-diagonal cells are the point. Without them a single before/after
  * number cannot distinguish "the join helped" from "the indexes helped", and
- * RFC §11.4 is explicit that a large indexing win must not be silently
- * attributed to Effect. Adding indexes to the *old* pattern is what makes the
- * attribution honest.
+ * a large indexing win would be silently attributed to Effect. Adding indexes
+ * to the *old* pattern is what makes the attribution honest.
  *
  * Runs against PGlite so it needs no server and no Docker.
  */
@@ -171,7 +170,7 @@ const cell = (subjects: number, indexed: boolean) =>
 			: ['1-baseline'];
 
 		// The `v2-backend` arm — the real fumadb data layer — went with the
-		// package at cutover. Its numbers are recorded in RFC 0004 §11.5:
+		// package at cutover. Its last recorded numbers were
 		// 16.516ms unindexed and 11.927ms indexed against this join's 4.337 and
 		// 3.273, which is where the 3.64x like-for-like figure comes from.
 		//

@@ -1,8 +1,8 @@
 /**
  * Classification decides whether an upgrade is correct or destructive, so the
  * cases that matter most are the ambiguous ones — particularly a
- * fumadb-shaped database with no version marker, which an earlier draft of
- * RFC 0004 would have misfiled as legacy and converged destructively.
+ * fumadb-shaped database with no version marker, which an earlier design
+ * would have misfiled as legacy and converged destructively.
  */
 
 import { assert, describe, it } from '@effect/vitest';

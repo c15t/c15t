@@ -3,7 +3,7 @@
  *
  * This is the step that decides whether an upgrade is correct or destructive,
  * so it is deliberately conservative: it reports `unknown` rather than
- * guessing, and the caller refuses to proceed on `unknown` (RFC 0004 §3.3).
+ * guessing, and the caller refuses to proceed on `unknown`.
  *
  * ## Why not just read the version marker
  *

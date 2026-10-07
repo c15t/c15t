@@ -43,7 +43,7 @@ export default mergeConfig(
 				exclude: ['dist/**', 'dist-types/**'],
 			},
 			// No coverage thresholds yet: the package has no behaviour to cover.
-			// RFC 0004 §6 sets the floor at the old package's 55% once the first
+			// The floor is the old package's 55% once the first
 			// handlers land, and it ratchets up from there — it never ships below
 			// parity with @c15t/backend.
 		},

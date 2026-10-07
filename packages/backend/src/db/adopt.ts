@@ -2,7 +2,7 @@
  * Brings an existing c15t database up to the baseline, so Effect's `Migrator`
  * can take over from a known state.
  *
- * This is the one-time on-ramp described in RFC 0004 §3.3. Everything after it
+ * This is a one-time on-ramp. Everything after it
  * is an ordinary numbered migration; this step exists only because a database
  * from a shipped release has no ledger and an unknown shape.
  *
@@ -470,8 +470,8 @@ export const apply = Effect.fn('adopt.apply')(function* apply(
 		)}
 	`.pipe(
 		// Re-running adoption should not fail on the ledger row it already
-		// wrote. Idempotency matters here: RFC §3.3 requires the step be safe
-		// to re-run after a mid-flight failure.
+		// wrote. Idempotency matters here: the step must be safe to re-run
+		// after a mid-flight failure.
 		Effect.orElseSucceed(() => [])
 	);
 

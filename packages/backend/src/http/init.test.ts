@@ -3,7 +3,7 @@
  *
  * The load-bearing assertion is the parity one: what this backend returns for
  * `/init` must equal what a host computes locally from the same `/manifest`.
- * RFC 0001 splits those two paths precisely so a host can skip the round trip,
+ * The manifest exists so a host can skip the round trip,
  * and they are only interchangeable if they agree. A disagreement would show
  * different visitors different banners depending on which path their host
  * happened to take.

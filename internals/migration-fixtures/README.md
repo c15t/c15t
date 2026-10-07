@@ -3,7 +3,7 @@
 Ground-truth database shapes captured from **published** `@c15t/backend`
 releases, used to test that the v3 migrator upgrades real databases correctly.
 
-Supports RFC 0004 §3. Not published; not part of any build.
+Not published; not part of any build.
 
 ## Why these are generated from npm
 
@@ -30,7 +30,7 @@ capturing the result.
 
 ## Findings
 
-**There is one legacy shape, not a family.** RFC §3.2 reasoned that because the
+**There is one legacy shape, not a family.** The expectation was that because the
 legacy migrator was strictly additive with no ledger, a database created at 1.0
 and upgraded to 1.8 could retain columns a fresh 1.8 install never had.
 Measured, that does not happen: `legacy-fresh-1.0`, `legacy-fresh-1.8` and
@@ -79,8 +79,8 @@ That is likely the dominant scaling problem, ahead of the join-less query
 surface: the chunked `subjectId in (…)` fan-out in `list.handler.ts` is a
 sequential scan of `consent` per chunk. Adding those indexes is a
 post-cutover change (the baseline has to reproduce the shipped shape, not
-improve on it), but it belongs in the benchmark story — RFC §7 measures query
-count and latency precisely so this shows up as a number.
+improve on it), but it belongs in the benchmark story. The benchmarks measure
+query count and latency precisely so this shows up as a number.
 
 **Foreign keys exist on Postgres and SQLite but not on MySQL.** The legacy
 migrator emits 6 foreign keys on Postgres and SQLite and **zero** on MySQL, so
@@ -109,8 +109,8 @@ bun run generate --shape fumadb-1.0.0 --keep-workspace
 ```
 
 MySQL needs a real server, so it is opt-in and generated locally rather than in
-CI (RFC §7 keeps Docker off CI's critical path — CI verifies against the
-committed dumps instead):
+CI. Docker stays off CI's critical path, and CI verifies against the
+committed dumps instead:
 
 ```bash
 docker run --rm -d -p 3399:3306 \

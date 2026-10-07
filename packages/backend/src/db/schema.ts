@@ -126,7 +126,7 @@ export const TABLES: readonly TableSpec[] = [
 			{ name: 'preselectedCategories', nullable: true, type: 'json' },
 			{ name: 'proofConfig', nullable: true, type: 'json' },
 			// Unique, so on MySQL this must be a bounded varchar — the exact
-			// constraint fumadb violates (RFC 0004 §3.5).
+			// constraint fumadb violates.
 			{
 				name: 'dedupeKey',
 				nullable: false,

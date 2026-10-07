@@ -1,7 +1,7 @@
 {
 	"name": "@c15t/backend-bench",
 	"private": true,
-	"description": "Head-to-head query benchmarks for the backend rewrite (RFC 0004 §7).",
+	"description": "Head-to-head query benchmarks for the backend rewrite.",
 	"type": "module",
 	"scripts": {
 		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/backend-runtime bunx tsx src/run.ts",

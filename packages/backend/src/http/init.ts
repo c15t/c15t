@@ -7,7 +7,7 @@
  * `resolveInitFromManifest`. This module contributes header parsing and
  * nothing else.
  *
- * That is the whole point of RFC 0001's design. `/init` is the one endpoint on
+ * That is the whole point of the manifest. `/init` is the one endpoint on
  * the critical rendering path, and it is also the one whose output a host can
  * compute locally from the manifest. If a backend resolved it differently from
  * the shared resolver, hosts doing local resolution would disagree with the

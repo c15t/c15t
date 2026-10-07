@@ -2,7 +2,7 @@
  * The baseline migration has to land a fresh database on the *same* physical
  * shape a shipped 2.0.0 database already has.
  *
- * That is the load-bearing property of RFC 0004's frozen-schema rule. If a
+ * That is the load-bearing property of the frozen-schema rule. If a
  * fresh install and an adopted 2.0.0 database diverge, then every downstream
  * claim breaks at once: the migrator's adoption step has two targets instead
  * of one, the benchmark arms stop comparing like with like, and wire
@@ -36,7 +36,7 @@ const EXPECTED_TABLES = [
 /**
  * In-process Postgres. `@effect/sql-pglite` is published only for Effect v4,
  * so the harness the old package hand-rolled in one integration test is a
- * first-class layer here (RFC 0004 §6).
+ * first-class layer here.
  */
 const Pglite = PgliteClient.layer({});
 
@@ -79,7 +79,7 @@ describe('baseline migration', () => {
 
 				// The fixture carries fumadb's own marker table; the baseline
 				// deliberately does not create it. Our migrator owns its ledger
-				// (RFC §3.3) rather than inheriting fumadb's bookkeeping.
+				// rather than inheriting fumadb's bookkeeping.
 				const fromFixture = loaded.fixture.tables
 					.map((table) => table.name)
 					// oxlint-disable-next-line prefer-named-capture-group -- Preserve declaration order, interface shape, and public compatibility.

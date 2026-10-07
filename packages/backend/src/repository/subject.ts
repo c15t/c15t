@@ -1,7 +1,7 @@
 /**
  * Subject reads.
  *
- * This is the path RFC 0004 is largely an argument about. In `@c15t/backend`,
+ * This is the path the v3 rewrite was mostly about. In `@c15t/backend` 2.x,
  * `GET /subjects?externalId=` costs:
  *
  * 1. one query for the subjects;
