@@ -97,6 +97,28 @@ describe('poolRoundResults', () => {
 		]);
 	});
 
+	it('keeps every round’s metadata observations', () => {
+		const metric = summarizeMetric('fcpMs', 'ms', [1]);
+		const round = (metadata: BenchmarkResult['metadata']) => ({
+			...result([metric]),
+			metadata,
+		});
+		const pooled = poolRoundResults(
+			[
+				round({ bannerPaintMs: 290, consoleErrors: [], iterations: 10 }),
+				round({ bannerPaintMs: 310, consoleErrors: ['a'], iterations: 10 }),
+				round({ bannerPaintMs: null, consoleErrors: ['b'], iterations: 10 }),
+			],
+			'baseline'
+		);
+		expect(pooled.metadata).toEqual({
+			bannerPaintMs: [290, 310, null],
+			consoleErrors: ['a', 'b'],
+			iterations: 10,
+			rounds: 3,
+		});
+	});
+
 	it('rejects rounds that measured different metrics', () => {
 		expect(() =>
 			poolRoundResults(

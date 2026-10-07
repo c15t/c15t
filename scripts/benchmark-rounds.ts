@@ -1,6 +1,8 @@
 import { relative, join } from 'node:path';
 
 import type {
+	BenchmarkMetadata,
+	BenchmarkMetadataValue,
 	BenchmarkResult,
 	MetricSampleSet,
 } from '../benchmarks/shared/src/schema';
@@ -61,10 +63,45 @@ const poolMetric = function poolMetric(
 		: summarizeNullableMetric(first.name, first.unit, samples);
 };
 
+type MetadataEntry = BenchmarkMetadata[string];
+
+const sameMetadata = (left: MetadataEntry, right: MetadataEntry) =>
+	JSON.stringify(left) === JSON.stringify(right);
+
+/**
+ * Merge each round's metadata. A value every round agrees on stays as it
+ * is; per-round settings such as `iterations` therefore stay per round. A
+ * value that differs becomes its per-round list, and lists concatenate, so
+ * observations from later rounds are kept rather than dropped.
+ */
+const poolMetadata = function poolMetadata(
+	metadata: (BenchmarkMetadata | undefined)[]
+): BenchmarkMetadata {
+	const keys = new Set(metadata.flatMap((entry) => Object.keys(entry ?? {})));
+	const pooled: BenchmarkMetadata = {};
+	for (const key of keys) {
+		const values = metadata.map((entry) => entry?.[key]);
+		const [first] = values;
+		if (values.every((value) => sameMetadata(value, first))) {
+			pooled[key] = first;
+		} else {
+			// A round without the key contributes nothing.
+			pooled[key] = values
+				.filter((value) => value !== undefined)
+				.flatMap((value): BenchmarkMetadataValue[] =>
+					Array.isArray(value) ? value : [value]
+				);
+		}
+	}
+	pooled.rounds = metadata.length;
+	return pooled;
+};
+
 /**
  * Pool one scenario's results from every round into a single result.
- * Samples are concatenated and avg, median and p95 recomputed. Everything
- * else, including metadata, comes from the first round.
+ * Samples are concatenated and avg, median and p95 recomputed, and
+ * metadata is merged across rounds. Everything else comes from the first
+ * round.
  *
  * @param results - The same scenario's result from each round, in order.
  * @param label - Names the scenario in errors.
@@ -92,7 +129,7 @@ export const poolRoundResults = function poolRoundResults(
 	});
 	return {
 		...first,
-		metadata: { ...first.metadata, rounds: results.length },
+		metadata: poolMetadata(results.map((result) => result.metadata)),
 		metrics: names.map((name) =>
 			poolMetric(
 				metricsByName.map((metrics) => {
