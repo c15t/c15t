@@ -111,6 +111,39 @@ export default defineConfig({
 		);
 	});
 
+	it('follows policy packs held in a variable', async () => {
+		const { updated } = await transformFile(
+			codemod,
+			`import { defineConfig, policyPackPresets } from '@c15t/backend';
+
+const policyPacks = [{ id: 'eu', match: { regions: ['eu'] }, consent: { model: 'opt-in' } }];
+const presets = [policyPackPresets.europeOptIn()];
+export const handWritten = defineConfig({
+	appName: 'a',
+	policyPacks,
+});
+export const fromPresets = defineConfig({
+	appName: 'b',
+	policyPacks: presets,
+});
+`,
+			{ fileName: 'c15t-backend.config.ts' }
+		);
+		expect(updated).toContain(`export const handWritten = defineConfig({
+	manifest: {
+		appName: 'a',
+		// TODO(c15t v3): v3 policy rules are flat ({ id, match, model, prompt, ... }) instead of { consent, ui }. Rewrite hand-written rules; preset calls need no change.
+		policyRules: policyPacks,
+	},
+});`);
+		expect(updated).toContain(`export const fromPresets = defineConfig({
+	manifest: {
+		appName: 'b',
+		policyRules: presets,
+	},
+});`);
+	});
+
 	it('merges into an existing manifest and flags hand-written policy packs', async () => {
 		const { updated } = await transformFile(
 			codemod,

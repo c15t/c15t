@@ -220,19 +220,50 @@ const canImport = function canImport(
 		);
 };
 
-/** True when an array literal holds object literals rather than preset calls. */
+/**
+ * Whether policy packs may be hand-written rather than preset calls: an
+ * array that holds an object literal, followed through a property or a
+ * variable initialized in the same file. A value the codemod cannot read,
+ * such as an import or a call, counts too, so it gets a TODO.
+ */
 export const hasHandWrittenRules = function hasHandWrittenRules(
-	value: TsMorphTypes.Node | undefined
+	value: TsMorphTypes.Node | undefined,
+	depth = 0
 ): boolean {
-	const expression = value && unwrapExpression(value);
-	return (
-		expression !== undefined &&
-		Node.isArrayLiteralExpression(expression) &&
-		expression
+	if (!value || depth > 5) {
+		return false;
+	}
+	if (Node.isPropertyAssignment(value)) {
+		return hasHandWrittenRules(value.getInitializer(), depth + 1);
+	}
+	const expression = Node.isShorthandPropertyAssignment(value)
+		? value
+		: unwrapExpression(value);
+	if (Node.isArrayLiteralExpression(expression)) {
+		return expression
 			.getElements()
 			.some((element) =>
 				Node.isObjectLiteralExpression(unwrapExpression(element))
-			)
+			);
+	}
+	let symbol: TsMorphTypes.Symbol | undefined;
+	if (Node.isShorthandPropertyAssignment(expression)) {
+		symbol = expression.getValueSymbol();
+	} else if (Node.isIdentifier(expression)) {
+		symbol = expression.getSymbol();
+	}
+	const initializers = (symbol?.getDeclarations() ?? []).flatMap(
+		(declaration) =>
+			Node.isVariableDeclaration(declaration) &&
+			declaration.getSourceFile() === value.getSourceFile()
+				? (declaration.getInitializer() ?? [])
+				: []
+	);
+	if (initializers.length === 0) {
+		return true;
+	}
+	return initializers.some((initializer) =>
+		hasHandWrittenRules(initializer, depth + 1)
 	);
 };
 
@@ -392,12 +423,7 @@ const planOffline = function planOffline(
 		: 'offline()';
 	plan.edits.push(toTextEdit(mode, `mode: ${transport}`));
 	requireImport(plan, entry, 'offline');
-	if (
-		packsValue &&
-		packs &&
-		Node.isPropertyAssignment(packs) &&
-		hasHandWrittenRules(packs.getInitializer())
-	) {
+	if (packsValue && hasHandWrittenRules(packs)) {
 		addTodo(mode, POLICY_RULES_TODO, plan.edits);
 	}
 	if (

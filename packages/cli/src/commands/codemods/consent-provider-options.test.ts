@@ -178,6 +178,54 @@ export const App = ({ children }) => (
 		);
 	});
 
+	it('follows policy packs held in a variable', async () => {
+		const todo =
+			'// TODO(c15t v3): v3 policy rules are flat ({ id, match, model, prompt, ... }) instead of { consent, ui }.';
+		const handWritten = await transformFile(
+			codemod,
+			`import type { ConsentManagerOptions } from '@c15t/react';
+
+const policyPacks = [{ id: 'eu', match: { regions: ['eu'] }, consent: { model: 'opt-in' } }];
+export const options: ConsentManagerOptions = {
+	mode: 'offline',
+	offlinePolicy: { policyPacks },
+};
+`
+		);
+		expect(handWritten.updated).toContain(
+			`\t${todo} Rewrite hand-written rules; preset calls need no change.\n\tmode: offline({ policyRules: policyPacks }),`
+		);
+
+		const presets = await transformFile(
+			codemod,
+			`import { policyPackPresets, type ConsentManagerOptions } from '@c15t/react';
+
+const packs = [policyPackPresets.europeOptIn()];
+export const options: ConsentManagerOptions = {
+	mode: 'offline',
+	offlinePolicy: { policyPacks: packs },
+};
+`
+		);
+		expect(presets.updated).toContain(
+			'\tmode: offline({ policyRules: packs }),'
+		);
+		expect(presets.updated).not.toContain(todo);
+
+		const imported = await transformFile(
+			codemod,
+			`import type { ConsentManagerOptions } from '@c15t/react';
+import { packs } from './packs';
+
+export const options: ConsentManagerOptions = {
+	mode: 'offline',
+	offlinePolicy: { policyPacks: packs },
+};
+`
+		);
+		expect(imported.updated).toContain(todo);
+	});
+
 	it('flags hand-written policy packs and other offlinePolicy keys', async () => {
 		const { updated } = await transformFile(
 			codemod,

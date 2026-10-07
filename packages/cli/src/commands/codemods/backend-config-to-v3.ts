@@ -150,10 +150,7 @@ const movedText = function movedText(
 	const value = propertyValueText(property) ?? key;
 	const text = key === next ? property.getText() : `${next}: ${value}`;
 	const shifted = text.split('\n').join(`\n${shift}`);
-	const needsTodo =
-		key === 'policyPacks' &&
-		Node.isPropertyAssignment(property) &&
-		hasHandWrittenRules(property.getInitializer());
+	const needsTodo = key === 'policyPacks' && hasHandWrittenRules(property);
 	return needsTodo
 		? `// ${TODO_MARKER} ${POLICY_RULES_TODO}\n${indent}${shifted}`
 		: shifted;
