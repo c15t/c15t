@@ -12,6 +12,11 @@ export default mergeConfig(
 	defineConfig({
 		resolve: {
 			alias: {
+				// Exercise the docs example against the source under test.
+				'@c15t/integrations/sentry': resolve(
+					__dirname,
+					'./src/vendors/analytics/sentry.ts'
+				),
 				'~': resolve(__dirname, './src'),
 			},
 		},

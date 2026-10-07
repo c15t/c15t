@@ -14,25 +14,12 @@ and applies consent:
   wait for `measurement`.
 - Session Replay loads and records only once `measurement` is allowed.
 - While `measurement` is denied, events and sessions carry no user, and Sentry
-  infers no IP address.
+  infers no IP address. Feedback contact emails and names are removed while
+  its message is preserved.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
-```ts title="src/consent-scripts.ts"
-import { sentry } from '@c15t/integrations/sentry';
-
-export const scripts = [
-	sentry({
-		dsn: 'https://your-key@o0.ingest.sentry.io/0',
-		initOptions: {
-			release: 'my-app@1.0.0',
-			tracesSampleRate: 0.1,
-			replaysSessionSampleRate: 0.1,
-			replaysOnErrorSampleRate: 1,
-		},
-	}),
-];
-```
+<include src="../shared/examples/javascript/sentry-scripts.mdx" />
 
 The helper loads SDK 11.4.0 with subresource integrity: `bundle.min.js`, or
 `bundle.tracing.min.js` when you sample traces. It loads `replay.min.js` only
@@ -42,7 +29,9 @@ Loader Script or CDN tags from the page, or Sentry can start twice.
 With `replaysOnErrorSampleRate` above 0, Replay buffers recordings even for
 sessions that never send an error. Adding Replay directly to `Sentry.init`
 can therefore record visitors before c15t applies consent. The setup here
-loads Replay after consent. Confirm your categories with your advisers.
+loads Replay after consent. While Replay is denied or the adapter is removed,
+its `start()` and `startBuffering()` methods cannot restart recording.
+Confirm your categories with your advisers.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 

@@ -244,6 +244,8 @@ interface ClientState {
 	piiAllowed: boolean;
 	/** Whether Replay envelopes may leave the browser. */
 	replayAllowed: boolean;
+	/** Replay start methods already guarded for this client. */
+	guardedReplays: WeakSet<SentryReplay>;
 	/** `dataCollection.userInfo` as the app configured it. */
 	userInfo?: boolean;
 	/** The SDK `infer_ip` setting as the app configured it. */
@@ -409,6 +411,30 @@ const redactUserAttributes = (payload: unknown): void => {
 	}
 };
 
+/** Prevent application starts from buffering DOM data during denial or removal. */
+const guardReplay = (replay: SentryReplay, state: ClientState): void => {
+	if (state.guardedReplays.has(replay)) {
+		return;
+	}
+	state.guardedReplays.add(replay);
+	for (const method of ['start', 'startBuffering'] as const) {
+		const start = replay[method];
+		replay[method] = () => {
+			if (state.replayAllowed && !state.stopping && !state.stopFailed) {
+				start.call(replay);
+			}
+		};
+	}
+};
+
+/** Feedback keeps its message, but identifying contact fields require consent. */
+const redactFeedback = (contexts: Record<string, unknown>): void => {
+	if (isRecord(contexts.feedback)) {
+		delete contexts.feedback.contact_email;
+		delete contexts.feedback.name;
+	}
+};
+
 /** Final redaction also catches users added by scope processors or beforeSend. */
 const redactEnvelope = (envelope: SentryEnvelope): void => {
 	for (const [header, payload] of envelope[1]) {
@@ -423,12 +449,19 @@ const redactEnvelope = (envelope: SentryEnvelope): void => {
 				delete payload.user;
 				if (isRecord(payload.contexts)) {
 					redactUserAttributes(payload.contexts.trace);
+					if (header.type === 'feedback') {
+						redactFeedback(payload.contexts);
+					}
 				}
 				if (Array.isArray(payload.spans)) {
 					for (const span of payload.spans) {
 						redactUserAttributes(span);
 					}
 				}
+				break;
+			case 'user_report':
+				delete payload.email;
+				delete payload.name;
 				break;
 			case 'session':
 				delete payload.did;
@@ -496,6 +529,7 @@ const createGate = (options: GateOptions) => {
 		}
 		const state: ClientState = {
 			enabled: client.getOptions().enabled !== false,
+			guardedReplays: new WeakSet(),
 			inferIp: client.getSdkMetadata?.()?.sdk?.settings?.infer_ip,
 			lastEnabled: client.getOptions().enabled !== false,
 			owner,
@@ -564,6 +598,7 @@ const createGate = (options: GateOptions) => {
 		}
 		const existing = findReplay(client);
 		if (existing) {
+			guardReplay(existing, state);
 			state.mode = existing.getRecordingMode() ?? null;
 			warn(
 				'Sentry Replay was added in Sentry.init, so it loads and may record before consent. Remove replayIntegration() from Sentry.init and let sentry() load Replay instead.'
@@ -732,6 +767,7 @@ const createGate = (options: GateOptions) => {
 		) {
 			return;
 		}
+		guardReplay(replay, state);
 		client.addIntegration(replay);
 		state.mode = replay.getRecordingMode() ?? null;
 		if (!allowed()) {
@@ -1120,7 +1156,8 @@ const reuseSentryScript = createScriptReuse<SentryOptions>();
  * turned off, Replay and user data are treated as denied, as is error
  * monitoring with `loadMode: 'after-consent'`.
  *
- * Equal configurations reuse the mounted script without interrupting Replay.
+ * Equal configurations share a script before mounting and across remounts,
+ * without interrupting an active Replay recording.
  * Keep callback functions stable when recreating the options object.
  *
  * @param options - A DSN for c15t to load Sentry, or your Sentry SDK functions.

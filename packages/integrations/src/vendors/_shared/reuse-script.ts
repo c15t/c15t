@@ -84,29 +84,49 @@ const equalConfig = (
 };
 
 /**
- * Reuse mounted scripts with equal options across framework rerenders.
- * Only mounted browser scripts are retained, and removal releases them.
+ * Reuse browser scripts with equal options before mounting and across rerenders.
+ * Only callers retain configurations; disposal releases the running lifecycle.
  * Functions and SDK instances compare by identity; data compares by value.
  *
  * @returns A factory scoped to one integration.
  * @internal
  */
 export const createScriptReuse = <OptionsType extends object>() => {
-	const active = new Set<{ options: OptionsType; script: Script }>();
+	interface Entry {
+		options: OptionsType;
+		script: Script;
+	}
+	const entries = new Set<WeakRef<Entry>>();
+	const collected = new FinalizationRegistry<WeakRef<Entry>>((reference) => {
+		entries.delete(reference);
+	});
 
 	return (
 		options: OptionsType,
 		create: (options: OptionsType) => Script
 	): Script => {
-		for (const entry of active) {
-			if (equalConfig(entry.options, options)) {
-				return entry.script;
+		if (typeof document !== 'undefined') {
+			for (const reference of entries) {
+				const entry = reference.deref();
+				if (!entry) {
+					entries.delete(reference);
+				} else if (equalConfig(entry.options, options)) {
+					return entry.script;
+				}
 			}
 		}
 		const savedOptions = snapshotConfig(options) as OptionsType;
 		let current: Script | undefined = create(savedOptions);
 		const script: Script = { ...current };
 		const entry = { options: savedOptions, script };
+		const reference = new WeakRef(entry);
+		collected.register(entry, reference);
+		const register = (): void => {
+			if (typeof document !== 'undefined') {
+				entries.add(reference);
+			}
+		};
+		register();
 		const standaloneRegistration = Symbol('script-registration');
 		const registrations = new Map<symbol, ScriptCallbackInfo>();
 		const registrationOf = (info: ScriptCallbackInfo): symbol =>
@@ -133,11 +153,9 @@ export const createScriptReuse = <OptionsType extends object>() => {
 			};
 		};
 		const activate = (info: ScriptCallbackInfo): Script => {
-			current ??= create(savedOptions);
+			current ??= create(entry.options);
 			registrations.set(registrationOf(info), info);
-			if (typeof document !== 'undefined') {
-				active.add(entry);
-			}
+			register();
 			return current;
 		};
 		script.onBeforeLoad = (info) =>
@@ -156,7 +174,7 @@ export const createScriptReuse = <OptionsType extends object>() => {
 				}
 				return;
 			}
-			active.delete(entry);
+			// Keep the weak reservation for callers that retain and remount this script.
 			const previous = current;
 			current = undefined;
 			previous?.onDispose?.(info);
