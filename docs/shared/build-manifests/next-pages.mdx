@@ -26,14 +26,13 @@ import { consentOptions } from '@/c15t.server';
 export default createPagesApiHandlers(consentOptions).manifest;
 ```
 
-An optional init route takes the same object. Import `c15t.server.ts` only
-from `getServerSideProps` and API routes.
+Pass the same object to the optional init API route. Import `c15t.server.ts`
+only from `getServerSideProps` and API routes.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-`outputFile`, `exportName` and `importSource` change the generated file. Set
-`importSource: '@c15t/nextjs/static'` if you install `@c15t/nextjs` directly,
-and `rootDir` if Next.js runs outside the app directory.
+If you install `@c15t/nextjs` directly, set `importSource: '@c15t/nextjs/static'`.
+In a monorepo, set `rootDir` to the app directory.
 
 For policy updates without a rebuild, remove `manifest` from
 `consentOptions` and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).

@@ -18,14 +18,13 @@ And to the manifest route:
 
 <include src="../examples/nextjs/consent-options-route.mdx" />
 
-An optional init route takes the same object. Never import `c15t.server.ts`
-from client code; the `Consent` wrapper keeps importing `consentConfig`.
+Pass the same object to the optional init route. Don't import `c15t.server.ts`
+in client components.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-`outputFile`, `exportName` and `importSource` change the generated file. Set
-`importSource: '@c15t/nextjs/static'` if you install `@c15t/nextjs` directly,
-and `rootDir` if Next.js runs outside the app directory.
+If you install `@c15t/nextjs` directly, set `importSource: '@c15t/nextjs/static'`.
+In a monorepo, set `rootDir` to the app directory.
 
 For policy updates without a rebuild, remove `manifest` from
 `consentOptions` and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).

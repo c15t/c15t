@@ -1,7 +1,7 @@
 <include src="../build-time-manifest.mdx" />
 
-Add the plugin before `tanstackStart()`. It writes `src/c15t-manifest.ts`;
-keep that file out of Git:
+Add the plugin before `tanstackStart()`. Keep the generated
+`src/c15t-manifest.ts` out of Git:
 
 {/* example: fragment */}
 
@@ -15,13 +15,12 @@ plugins: [
 ];
 ```
 
-Bind the backend URL and snapshot once:
+Declare the options once:
 
 <include src="../examples/tanstack-start/consent-options.mdx" />
 
-Keep the `.server.ts` suffix. If browser code ever uses `consentOptions`,
-TanStack Start's import protection fails the build instead of shipping the
-manifest.
+The `.server.ts` suffix makes the build fail if browser code imports the
+snapshot.
 
 Pass it to the server function in `__root.tsx`:
 
@@ -39,9 +38,8 @@ handlers: createConsentServerRoute({ ...consentOptions, proxy: true }),
 
 <include src="../vite-build-manifest.mdx" />
 
-`outputFile`, `exportName` and `importSource` change the generated file. Set
-`importSource: '@c15t/tanstack-start/static'` if you install
-`@c15t/tanstack-start` directly.
+If you install `@c15t/tanstack-start` directly, set
+`importSource: '@c15t/tanstack-start/static'`.
 
 For policy updates without a rebuild, remove the plugin and the `manifest`
 line, and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).

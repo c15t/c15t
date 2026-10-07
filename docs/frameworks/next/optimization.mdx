@@ -132,17 +132,10 @@ export const consentOptions = {
 } satisfies ConsentManifestOptions;
 ```
 
-Both `resolveConsent` and the route handlers prefer it over
-`config.backendURL`; the browser keeps `/api/c15t`. Without a snapshot, omit
-`manifest`. If you have no `c15t.server.ts` yet, create it as the
-[build-time manifest step](/docs/frameworks/next/app-router#bundle-the-manifest-during-builds)
-shows.
-
-Without the upstream URL, the render skips a request to its own manifest route
-and lets the browser resolve the policy. A configuration with only
-`backendURL: '/api/c15t'` works without this: the render calls
-`/api/c15t/init` through the rewrite. Passing the upstream URL still saves
-that request a trip through your own server.
+The server helpers use it instead of `config.backendURL`; the browser keeps
+`/api/c15t`. Without a snapshot, leave out `manifest`. Create `c15t.server.ts`
+as the [build-time manifest step](/docs/frameworks/next/app-router#bundle-the-manifest-during-builds)
+shows if you don't have one.
 
 ### Check rewrite precedence
 

@@ -16,21 +16,19 @@ plugins: [
 ];
 ```
 
-Bind the backend URL and snapshot once. Under `src/lib/server`, SvelteKit
-keeps both out of browser code:
+Declare the options once. `src/lib/server` keeps them out of browser code:
 
 <include src="../examples/sveltekit/consent-options.mdx" />
 
-Spread them into the root layout's `loadConsent`:
+Pass them to the root layout's `loadConsent`:
 
 <include src="../examples/sveltekit/build-manifest-layout-server.mdx" />
 
-For prerendered pages on a server deployment, add a route with the same
-options:
+For prerendered pages, add a route with the same options:
 
 <include src="../examples/sveltekit/build-manifest-route.mdx" />
 
-Then point browser initialization at it. Saves still go to the backend:
+Then point browser initialization at it:
 
 {/* example: fragment */}
 
@@ -42,7 +40,7 @@ const mode = hosted({
 });
 ```
 
-Static hosts use [build a static site](/docs/frameworks/sveltekit/rendering#build-a-static-site)
+Static hosts follow [build a static site](/docs/frameworks/sveltekit/rendering#build-a-static-site)
 instead.
 
 <include src="../build-time-manifest-notes.mdx" />

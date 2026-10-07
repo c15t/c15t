@@ -341,16 +341,13 @@ export function resolveRequestConsent(req: IncomingMessage) {
 
 ## Share options between the render and the routes
 
-`ConsentManifestOptions`, from `c15t/next/server` and `c15t/next/pages`, is
-the set of options `resolveConsent` and the route handlers both accept:
-`config`, `manifest`, `backendURL`, `fetch`, `reportSessions` and
-`trustForwardedHeaders`. Declare it once in a server-only module and pass the
-same object to both, so server rendering and browser initialization read the
-same policy:
+`ConsentManifestOptions` holds the options `resolveConsent` and the route
+handlers share: `config`, `manifest`, `backendURL`, `fetch`, `reportSessions`
+and `trustForwardedHeaders`. Pass one object to both:
 
 <include src="../../shared/examples/nextjs/consent-options.mdx" />
 
-Spread it to add per-render options, as in
+Spread it to add per-render options:
 `resolveConsent({ ...consentOptions, timeoutMs: 300 })`.
 
 ## Route handler options
