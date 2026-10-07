@@ -226,6 +226,53 @@ test.each([0, 1000])(
 	}
 );
 
+test.each(['timer', 'snapshot'] as const)(
+	'notifies vendors when authority expires with the dialog open via %s',
+	async (trigger) => {
+		const kernel = makeKernel();
+		const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel });
+		disposers.push(addon.dispose);
+		addon.acceptAll();
+		await addon.save();
+		const accepted = addon.cmpApi?.getTcString();
+		expect(accepted).toBeTruthy();
+
+		const listener = vi.fn();
+		window.__tcfapi?.('addEventListener', 2, listener);
+		await vi.waitFor(() =>
+			expect(listener).toHaveBeenLastCalledWith(
+				expect.objectContaining({ tcString: accepted }),
+				true
+			)
+		);
+		kernel.set.activeUI('dialog');
+		await vi.waitFor(() =>
+			expect(listener).toHaveBeenLastCalledWith(
+				expect.objectContaining({ eventStatus: 'cmpuishown' }),
+				true
+			)
+		);
+		listener.mockClear();
+
+		if (trigger === 'timer') {
+			await vi.advanceTimersByTimeAsync(DAY);
+		} else {
+			// A suspended tab can resume before its expiry timer runs.
+			vi.setSystemTime(NOW + DAY);
+			kernel.set.activeUI('dialog');
+		}
+
+		expect(kernel.getSnapshot().iab?.authority).toBeNull();
+		expect(addon.cmpApi?.getTcString()).toBe('');
+		await vi.waitFor(() =>
+			expect(listener).toHaveBeenLastCalledWith(
+				expect.objectContaining({ eventStatus: undefined, tcString: '' }),
+				true
+			)
+		);
+	}
+);
+
 test('stored authority hydration preserves clocks and does not write or record choice', async () => {
 	const original = makeKernel();
 	const addon = createIAB({ cmpId: 28, gvl: completeGVL, kernel: original });
@@ -765,7 +812,7 @@ test('reconciling keeps selections this runtime changed but did not save', async
 	const firstStorage = createPersistence({ kernel: first, sync: false });
 	disposers.push(firstStorage.dispose);
 	const firstAddon = createAddon(first);
-	firstAddon.acceptAll();
+	firstAddon.rejectAll();
 	await firstAddon.save();
 	firstStorage.reconcile();
 
@@ -780,7 +827,8 @@ test('reconciling keeps selections this runtime changed but did not save', async
 	secondAddon.setPurposeConsent(10, true);
 
 	vi.setSystemTime(NOW + 1000);
-	firstAddon.rejectAll();
+	// A different string, so the reload below has something to install.
+	firstAddon.setPurposeConsent(1, true);
 	await firstAddon.save();
 	firstStorage.reconcile();
 	const rejected = first.getSnapshot().iab?.authority?.tcString;
@@ -854,10 +902,21 @@ test('a partial purpose selection saved through IAB is restored on the next load
 	const fresh = makeKernel();
 	const freshStorage = createPersistence({ kernel: fresh, sync: false });
 	disposers.push(freshStorage.dispose);
-	createAddon(fresh);
+	const freshAddon = createAddon(fresh);
 	await vi.waitFor(() =>
 		expect(fresh.getSnapshot().iab?.authority?.tcString).toBe(tcString)
 	);
+	// The preference UI shows the restored selections, and saving them
+	// unchanged writes the same choice again.
+	const restored = fresh.getSnapshot().iab?.purposeConsents ?? {};
+	expect(restored[2]).toBe(true);
+	expect(restored[1]).not.toBe(true);
+	await freshAddon.save();
+	const resaved = await decodeTCString(
+		fresh.getSnapshot().iab?.authority?.tcString ?? ''
+	);
+	expect(resaved.purposeConsents[2]).toBe(true);
+	expect(resaved.purposeConsents[1]).not.toBe(true);
 });
 
 test('a later category denial withdraws a TC string granting any of its purposes', async () => {

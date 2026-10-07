@@ -34,6 +34,11 @@ export interface HeadlessIABStateInput {
 	 * signal the IAB gates evaluate.
 	 */
 	publisherRestrictions?: readonly PublisherRestriction[];
+	/**
+	 * Language the consent UI shows, such as `'de'`. Picks each vendor's
+	 * privacy links from the GVL `urls[]`, falling back to English.
+	 */
+	language?: string;
 }
 
 export interface HeadlessIABBannerState {

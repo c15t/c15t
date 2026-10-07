@@ -583,6 +583,7 @@
 									onVendorLegitimateInterestToggle={handleVendorLegitimateInterestToggle}
 									{noStyle}
 									{iabT}
+									language={consent.snapshot.translations?.language}
 								/>
 							{/if}
 						</Tabs.Content>

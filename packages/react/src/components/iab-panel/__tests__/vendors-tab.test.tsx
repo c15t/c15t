@@ -255,6 +255,48 @@ describe('IAB preference item interactions', () => {
 			expect(content?.getAttribute('aria-hidden')).toBe('false');
 		});
 	});
+
+	test('links each vendor to the privacy policy its GVL entry declares', async () => {
+		render(
+			<ConsentProvider options={defaultIABOptions}>
+				<IABConsentDialog open />
+			</ConsentProvider>
+		);
+		const vendorsTab = await vi.waitFor(() =>
+			getDefined(
+				Array.from(
+					document.querySelectorAll<HTMLButtonElement>('[role="tab"]')
+				).find((button) => button.textContent?.toLowerCase().includes('vendor'))
+			)
+		);
+		await userEvent.click(vendorsTab);
+		const vendorRow = await vi.waitFor(() =>
+			getDefined(
+				Array.from(
+					document.querySelectorAll<HTMLElement>('[id^="vendor-"]')
+				).find((element) => element.textContent?.includes('Index Exchange'))
+			)
+		);
+
+		await userEvent.click(
+			getDefined(
+				vendorRow.querySelector<HTMLElement>(
+					'[data-slot="preference-item-trigger"]'
+				)
+			)
+		);
+
+		const policyLink = await vi.waitFor(() =>
+			getDefined(
+				Array.from(vendorRow.querySelectorAll('a')).find(
+					(link) => link.textContent === 'Privacy Policy'
+				)
+			)
+		);
+		expect(policyLink.getAttribute('href')).toBe(
+			'https://indexexchange.com/privacy'
+		);
+	});
 });
 
 describe('IAB vendors tab with publisher restrictions', () => {

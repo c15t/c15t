@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { resolveIABVendorUrls } from '@c15t/iab/headless';
 import type { GlobalVendorList, NonIABVendor } from '@c15t/schema/types';
 import dialogStyles from '@c15t/ui/styles/components/iab-consent-dialog';
 
@@ -42,11 +43,12 @@ const iabVendors = computed(() => {
 
 	// The panel passes declarations after publisher restrictions, so these
 	// are the legal bases each vendor actually uses.
+	const language = toValue(init)?.translations?.language;
 	return Object.entries(props.vendorData.vendors).map(([id, vendor]) => ({
 		id: Number(id),
 		isCustom: false,
 		name: vendor.name,
-		policyUrl: (vendor as { policyUrl?: string }).policyUrl ?? '',
+		policyUrl: resolveIABVendorUrls(vendor, language).policyUrl,
 		usesConsent: (vendor.purposes?.length ?? 0) > 0,
 		usesLegitimateInterest: (vendor.legIntPurposes?.length ?? 0) > 0,
 	}));
