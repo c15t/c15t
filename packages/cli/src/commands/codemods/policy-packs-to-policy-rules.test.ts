@@ -30,12 +30,12 @@ export const rules = [
 // EU opt-in, nothing elsewhere.
 export const rules = [
 	policyRulePresets.europeOptIn(),
-	policyRulePresets.worldNone(),
+	policyRulePresets.worldOptOutNoPrompt(),
 ];
 `);
 		expect(result.changedFiles[0]?.summaries).toEqual([
 			'policyPackPresets -> policyRulePresets',
-			'worldNoBanner -> worldNone',
+			'worldNoBanner -> worldOptOutNoPrompt',
 		]);
 	});
 
@@ -62,7 +62,7 @@ const rules = [policyPackPresets.worldNoBanner()];
 		);
 		expect(scoped.updated).toBe(`import { policyRulePresets } from '@c15t/core';
 
-const rules = [policyRulePresets.worldNone()];
+const rules = [policyRulePresets.worldOptOutNoPrompt()];
 `);
 	});
 
@@ -82,8 +82,8 @@ export const policyPacks = [europeOptIn(), worldNoBanner(), none()];
 		expect(updated)
 			.toBe(`import { policyRulePresets as presets, type PolicyRulePresets } from '@c15t/backend';
 
-const { europeOptIn, worldNone: worldNoBanner } = presets;
-const { worldNone: none } = presets;
+const { europeOptIn, worldOptOutNoPrompt: worldNoBanner } = presets;
+const { worldOptOutNoPrompt: none } = presets;
 type Presets = PolicyRulePresets;
 export const policyPacks = [europeOptIn(), worldNoBanner(), none()];
 `);
@@ -98,7 +98,7 @@ export const rule = c15t.policyPackPresets.worldNoBanner();
 `,
 			{ fileName: 'rules.ts' }
 		);
-		expect(updated).toContain('c15t.policyRulePresets.worldNone()');
+		expect(updated).toContain('c15t.policyRulePresets.worldOptOutNoPrompt()');
 	});
 
 	it('leaves unrelated and migrated code alone, and is idempotent', async () => {
@@ -114,11 +114,21 @@ export const rule = policyPackPresets.worldNoBanner();
 		const migrated = await transformFile(
 			codemod,
 			`import { policyRulePresets } from 'c15t';
-export const rule = policyRulePresets.worldNone();
+export const rule = policyRulePresets.worldOptOutNoPrompt();
 `,
 			{ fileName: 'rules.ts' }
 		);
 		expect(migrated.result.changedFiles).toEqual([]);
+
+		// `worldNone()` is a separate v3 preset that grants no rights.
+		const worldNone = await transformFile(
+			codemod,
+			`import { policyRulePresets } from 'c15t';
+export const rule = policyRulePresets.worldNone();
+`,
+			{ fileName: 'rules.ts' }
+		);
+		expect(worldNone.result.changedFiles).toEqual([]);
 
 		const { first, second } = await transformTwice(
 			codemod,

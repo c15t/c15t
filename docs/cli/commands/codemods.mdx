@@ -25,7 +25,7 @@ place, so type-checking fails at each one until you resolve it.
 | `use-consent-manager-to-hooks` | `useConsentManager()` fields to one hook each | Fields with no one-call replacement |
 | `scripts-to-integrations` | `@c15t/scripts` imports to `@c15t/integrations` | Nothing |
 | `dev-tools-to-c15t` | `@c15t/dev-tools/react` and `@c15t/dev-tools/tanstack` imports to `c15t/next/devtools` or `c15t/react/devtools`, and removes the `namespace` prop | Removed store helpers such as `getC15tStore` |
-| `policy-packs-to-policy-rules` | `policyPackPresets` to `policyRulePresets` and `worldNoBanner()` to `worldNone()` | Nothing |
+| `policy-packs-to-policy-rules` | `policyPackPresets` to `policyRulePresets` and `worldNoBanner()` to `worldOptOutNoPrompt()` | Nothing |
 | `css-variables-to-v3` | `--consent-widget-*` to `--consent-manager-*` and `--frame-*` to `--consent-gate-*` | `--consent-widget-accordion-*` |
 | `postcss-tailwind3` | Adds the c15t Tailwind CSS 3 plugin before `tailwindcss` in `postcss.config` | Nothing; prints a warning for configs it can't edit |
 | `callbacks-to-v3` | `onConsentChanged` to `onChoiceRecorded` | The `onChoiceRecorded` payload, `onConsentSet` and `onBannerFetched` |

@@ -152,7 +152,7 @@ export default defineConfig({ appName: 'x', adapter: 'y' });
 			`import { defineConfig, policyRulePresets } from '@c15t/backend';
 export default defineConfig({
 	database: { dialect: 'postgres', url: process.env.DATABASE_URL! },
-	manifest: { appName: 'x', policyRules: [policyRulePresets.worldNone()] },
+	manifest: { appName: 'x', policyRules: [policyRulePresets.worldOptOutNoPrompt()] },
 });
 `,
 			{ fileName: 'c15t.config.ts' }

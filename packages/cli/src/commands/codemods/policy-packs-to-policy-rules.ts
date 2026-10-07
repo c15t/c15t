@@ -38,7 +38,9 @@ const RENAMES: Record<string, string> = {
 	policyPackPresets: 'policyRulePresets',
 };
 
-const METHOD_RENAMES: Record<string, string> = { worldNoBanner: 'worldNone' };
+const METHOD_RENAMES: Record<string, string> = {
+	worldNoBanner: 'worldOptOutNoPrompt',
+};
 
 /** Rewrites `presets.worldNoBanner` and `const { worldNoBanner } = presets`. */
 const planMethodRenames = function planMethodRenames(
@@ -118,7 +120,7 @@ const transformSourceFile = function transformSourceFile(
 			operations += 1 + methods;
 			summaries.push(`${named.getName()} -> ${next}`);
 			if (methods > 0) {
-				summaries.push('worldNoBanner -> worldNone');
+				summaries.push('worldNoBanner -> worldOptOutNoPrompt');
 			}
 			if (target === entry) {
 				edits.push(toTextEdit(named.getNameNode(), next));
@@ -154,7 +156,7 @@ const transformSourceFile = function transformSourceFile(
 		operations += 1 + methods;
 		summaries.push(`${access.getName()} -> ${next}`);
 		if (methods > 0) {
-			summaries.push('worldNoBanner -> worldNone');
+			summaries.push('worldNoBanner -> worldOptOutNoPrompt');
 		}
 	}
 	if (edits.length === 0) {
@@ -166,9 +168,9 @@ const transformSourceFile = function transformSourceFile(
 
 /**
  * Renames `policyPackPresets` to `policyRulePresets` and `worldNoBanner()`
- * to `worldNone()`. Imports from React and Next.js entries move to the
- * headless engine entry, which is the only client entry that exports them
- * in v3.
+ * to `worldOptOutNoPrompt()`, the v3 preset with the same behaviour. Imports
+ * from React and Next.js entries move to the headless engine entry, which is
+ * the only client entry that exports them in v3.
  *
  * @param options - Codemod execution options.
  * @returns Changed files and non-fatal per-file errors.

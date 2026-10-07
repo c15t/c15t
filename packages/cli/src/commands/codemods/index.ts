@@ -251,7 +251,7 @@ const codemods: CodemodDefinition[] = [
 		versioning: V3_VERSIONING,
 	},
 	{
-		hint: 'Renames policyPackPresets to policyRulePresets and worldNoBanner() to worldNone().',
+		hint: 'Renames policyPackPresets to policyRulePresets and worldNoBanner() to worldOptOutNoPrompt().',
 		id: 'policy-packs-to-policy-rules',
 		label: 'policyPackPresets -> policyRulePresets',
 		run: runPolicyPacksToPolicyRulesCodemod,
