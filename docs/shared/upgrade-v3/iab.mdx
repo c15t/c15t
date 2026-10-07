@@ -6,6 +6,9 @@ Render `IABProvider` from `c15t/react/iab` inside `ConsentProvider` or
 to `iab()`, such as `cmpId`, `vendors`, `customVendors` and the new
 `publisherRestrictions`.
 
+The `iab-option-to-iab-provider` codemod marks the `iab` option with a
+`TODO(c15t v3)` comment; move it by hand.
+
 A `cmpId` that isn't an integer from 2 to 4095 now throws. Without a `cmpId`,
 the CMP doesn't mount, so there is no `__tcfapi` and no TC string.
 

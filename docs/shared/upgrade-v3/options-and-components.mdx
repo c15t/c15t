@@ -20,6 +20,16 @@
 | `window.c15tStore` | `window.c15t` |
 | `iab: iab({ ... })` | `IABProvider`. See [Move IAB setup](#move-iab-setup-to-iabprovider). |
 
+The `consent-provider-options` codemod renames `ConsentManagerProvider` and
+its option and prop types, turns `mode` and `backendURL` into `hosted()` or
+`offline()`, and renames `iframeBlockerConfig`. v2 still accepted the
+deprecated `translations` option; the `translations-to-i18n` codemod moves it
+to `i18n`.
+
+```bash
+npx @c15t/cli@alpha codemods consent-provider-options translations-to-i18n --dry-run --json
+```
+
 `ConsentBanner`, `ConsentDialog`, `ConsentDialogLink`, `ConsentDialogTrigger`
 and `ConsentWidget` keep their names. The `scripts`, `networkBlocker`,
 `legalLinks`, `overrides`, `theme` and `colorScheme` options keep theirs too,
@@ -40,6 +50,13 @@ Some names left the root `c15t/react` entry:
 | `TriggerRoot`, `TriggerButton`, `TriggerIcon`, `TriggerText`, `useTriggerContext`, `useDraggable` | `c15t/react/consent-dialog-trigger` |
 | Token types such as `ColorTokens` and `TypographyTokens` | `c15t/react/types`. `Theme` stays on the root. |
 | `configureConsentManager`, `policyPackPresets`, `ConsentStoreState`, `ConsentManagerInterface` | Removed. Use `policyRulePresets` from `c15t`. |
+
+The `root-exports-to-subpaths` codemod moves these imports to their new
+entries and marks removed names with a `TODO(c15t v3)` comment:
+
+```bash
+npx @c15t/cli@alpha codemods root-exports-to-subpaths --dry-run --json
+```
 
 `ConsentGate` changes one behavior from `Frame`. When its category is granted,
 the embed now mounts after hydration instead of in the server HTML, so an

@@ -11,7 +11,7 @@ group: reference
 
   1. Check `package.json` for c15t packages. `@c15t/nextjs` means Next.js, `@c15t/react` without it means React, and `c15t` alone means the JavaScript store.
   2. Read the matching guide before you change anything: https://c15t.com/docs/frameworks/next/upgrade-v3.md, https://c15t.com/docs/frameworks/react/upgrade-v3.md or https://c15t.com/docs/frameworks/javascript/upgrade-v3.md. Follow it in order and do not guess v3 APIs from memory.
-  3. If the app also runs its own c15t backend with `@c15t/backend`, read https://c15t.com/docs/upgrade-v3.md and upgrade the backend in the same change.
+  3. If the app also runs its own c15t backend with `@c15t/backend`, read https://c15t.com/docs/upgrade-v3.md and upgrade the backend in the same change. Start with `npx @c15t/cli@alpha codemods backend-config-to-v3 node-sdk-to-v3 --dry-run --json`, then run it without `--dry-run`.
   4. Keep the existing backend URL.
   5. Run the typecheck and build when you finish.
 
@@ -84,8 +84,9 @@ categories stay denied and no banner appears.
 2. Replace `adapter` with `database` in your config. The Drizzle, Prisma,
    TypeORM and Kysely adapters are gone; point `database` at the same SQL
    database instead. MongoDB has no migration path.
-3. Move `policyPacks`, `branding`, `iab` and `appName` under `manifest`, and
-   rename `policyPacks` to `policyRules`.
+3. Move `policyPacks`, `branding`, `customTranslations`, `i18n` and `appName`
+   under `manifest`, and rename `policyPacks` to `policyRules`. Split `iab`
+   between `manifest.iab` and `gvl`, as the table below shows.
 4. Back up the database, then plan and apply the schema migration:
 
 ```bash
@@ -100,6 +101,19 @@ nullable. [Database setup](/docs/self-host/guides/database-setup#upgrade-a-v2-ba
 covers the details, and the [backend quickstart](/docs/self-host/quickstart)
 shows a complete v3 config and route.
 
+The `backend-config-to-v3` codemod does step 3 for the keys that move as they
+are, and leaves a `TODO(c15t v3)` comment on `adapter`, `iab`,
+`disableGeoLocation` and the other options in the table below:
+
+```bash
+npx @c15t/cli@alpha codemods backend-config-to-v3 policy-packs-to-policy-rules --dry-run --json
+```
+
+Preset calls such as `policyRulePresets.europeOptIn()` need no other change.
+A hand-written v2 pack uses `consent` and `ui` keys, which v3 rules replace
+with flat keys such as `model` and `prompt`. See
+[policy configuration](/docs/self-host/guides/policy-packs).
+
 The v3 backend stores timestamps in UTC. Convert rows that a v2 backend wrote
 in another time zone before you deploy. Database setup lists the checks.
 
@@ -108,17 +122,18 @@ Other backend options and entries change too:
 | v2 | v3 |
 | --- | --- |
 | `tablePrefix` | Removed. The migrator refuses a database with prefixed c15t tables, so rename them first. On PostgreSQL, `database.schema` keeps c15t's tables in their own schema. |
-| `iab.vendorIds`, `cache.adapter` | `gvl: { vendorIds, cache }` |
+| `iab.vendorIds`, `iab.endpoint`, `cache.adapter` | `gvl: { vendorIds, endpoint, cache }` |
 | `iab.enabled`, `iab.cmpId`, `iab.customVendors` | `manifest.iab` |
 | `logger`, `telemetry` | `observability`, passed to `c15tInstance()` |
 | `background`, `iab.bundled` | Removed |
-| `openapi.docsPath` and the `/docs` page | Removed. The spec is still at `/spec.json`. |
+| `openapi.docsPath`, `openapi.options`, `openapi.customUiTemplate` and the `/docs` page | Removed. The spec is still at `/spec.json`. |
+| `policySnapshot.onValidationFailure` | Removed |
 | `GET /` as an alias of `/status` | Removed. Call `/status`. |
 | `@c15t/backend/define-config`, `/router`, `/types`, `/db/schema`, `/db/adapters/*`, `/db/migrator`, `/edge` | Removed. Import `defineConfig`, `createMigrator` and `policyRulePresets` from `@c15t/backend`. |
 
 ### Remove `disableGeoLocation`
 
-v3 removes the `disableGeoLocation` manifest option. Policy rules decide by
+v3 removes the top-level `disableGeoLocation` option. Policy rules decide by
 country and region. To show every visitor the same banner, configure one rule
 with `match: { isDefault: true }`. It applies wherever the visitor is, so the
 browser can resolve it without asking the backend for a location.
@@ -169,16 +184,16 @@ if (result.ok) {
 | `c15tClient(options)`, `new C15TClient(options)` | `createC15tClient(options)` |
 | `C15T_API_URL`, `C15T_API_TOKEN` read from the environment | Not read. Pass `baseUrl` and `apiKey`. |
 | `token` | `apiKey` |
-| `prefix` | Part of `baseUrl`, such as `https://app.example.com/api/c15t` |
-| `timeout` | `timeoutMs`, per attempt |
-| `retryConfig` | `retry: { maxRetries, initialDelayMs, maxDelayMs }`, or `false` |
+| `prefix` | Part of `baseUrl`. v2 replaced the base URL's path with `prefix`, so use the origin plus the prefix, such as `https://app.example.com/api/c15t`. |
+| `timeout` | `timeoutMs`, per attempt. The default drops from 30 to 10 seconds. |
+| `retryConfig` | `retry: { maxRetries, initialDelayMs, maxDelayMs }`, or `false`. `backoffFactor`, `retryableStatusCodes`, `nonRetryableStatusCodes` and `retryOnNetworkError` are gone. |
 | `debug`, `C15T_DEBUG` | `onEvent` |
 | `client.meta.status()`, `client.status()` | `c15t.status()` |
-| `client.meta.init()`, `client.init()` | `c15t.init({ language, country, region, gpc })` |
-| `getSubject(id, { type: 'a,b' })` | `subjects.get(id, { types: ['a', 'b'] })` |
+| `client.meta.init(options)`, `client.init(options)` | `c15t.init({ language, country, region, gpc }, options)`. Per-call options move to the second argument. |
+| `getSubject(id, { type: 'a,b' })`, `subjects.get(id, { type: 'a,b' })` | `subjects.get(id, { types: ['a', 'b'] })` |
 | `createSubject(input)` | `subjects.create(input)`. `givenAt` also takes a `Date`. |
 | `patchSubject(id, input)`, `subjects.patch(id, input)` | `subjects.identify(id, { externalId, identityProvider })` |
-| `listSubjects({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
+| `listSubjects({ externalId })`, `subjects.list({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
 | `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })` |
 | `ResponseContext` with `data: T \| null` | `{ ok: true, data } \| { ok: false, error }`. Check `ok` first. |
 | `unwrap()`, `expect()` on the response | `unwrap(result)`, imported from `@c15t/node-sdk` |
@@ -186,6 +201,9 @@ if (result.ok) {
 | `throw: true` | `unwrap(result)` |
 | `onSuccess`, `onError` | Check `result.ok` after the call |
 | `C15TError`, `isC15TError()` | `C15tError`, `isC15tError(error, ...codes)` |
+| `C15TClient`, `C15TClientOptions`, `RetryConfig`, `FetchOptions`, `ResponseContext` types | `C15tClient`, `C15tClientOptions`, `C15tRetryOptions`, `C15tCallOptions`, `C15tResult` |
+| Per-call `timeout`, `retryConfig` | `timeoutMs`, `retry` |
+| Per-call `body`, `query`, `method` | Removed. Pass the body and query as the method's arguments. |
 | `$fetch`, `fetcher`, `resolveUrl`, `createResponseContext` | Removed. Pass a custom `fetch` to `createC15tClient` if you need one. |
 | `createMockClient`, `createMockResponse`, `createMockErrorResponse` | `createMockC15tClient`, `ok`, `err` from `@c15t/node-sdk/testing` |
 
@@ -193,6 +211,18 @@ if (result.ok) {
 `{ subject }`, and `subject.identityProvider` is always set. Dates in
 responses, such as `givenAt` and `createdAt`, are now `Date` objects rather
 than strings.
+
+The `node-sdk-to-v3` codemod renames the factory, client options, methods,
+types and errors in files that create a client. It turns `type` strings into
+`types` arrays, and leaves a `TODO(c15t v3)` comment at each call, because
+results are now `{ ok, data }` or `{ ok, error }`. It renames per-call
+`timeout` and `retryConfig` too. It also marks `prefix`, `debug`, per-call
+`throw`, `onSuccess`, `onError`, `body`, `query` and `method`, and a client
+built from environment variables:
+
+```bash
+npx @c15t/cli@alpha codemods node-sdk-to-v3 --dry-run --json
+```
 
 The new client also adds `manifest()`, `legalDocuments.publish()` and
 `experiments.summary()`. The last two need a client with `apiKey`. See the

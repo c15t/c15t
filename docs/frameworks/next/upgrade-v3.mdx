@@ -14,8 +14,8 @@ group: frameworks
   1. List every c15t dependency and import: `@c15t/nextjs`, `@c15t/react`, `@c15t/scripts`, `@c15t/dev-tools` and `c15t`. Note whether the app uses the App Router, the Pages Router or both.
   2. Check that React is 18 or later and Next.js is 15 or later. Stop and tell me if either needs a major upgrade.
   3. Replace the packages with `c15t@alpha`, plus `@c15t/integrations@alpha` if the app uses vendor helpers.
-  4. Run `npx @c15t/cli@alpha codemods use-consent-manager-to-hooks --dry-run --json` and `npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json`. Review the output, then run them without `--dry-run`.
-  5. If the app used `fetchInitialData()`, `C15tPrefetch` or `ssrData`, move it to `ConsentRoot` with `resolveConsent()`. Otherwise keep browser initialization with `ConsentProvider` and `hosted()`.
+  4. Run `npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  5. If the app used `fetchInitialData()`, `C15tPrefetch` or `ssrData`, move it to `ConsentRoot` with `resolveConsent()`. Otherwise keep browser initialization with the `ConsentProvider` and `hosted()` the codemod wrote.
   6. Update callbacks, policy presets, renamed options and components, theme CSS, CSS variables and IAB setup as the guide describes.
   7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
   8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
@@ -115,6 +115,13 @@ import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next
 >
 ```
 
+The `consent-provider-options` codemod makes this change, including the
+`hosted` import:
+
+```bash
+npx @c15t/cli@alpha codemods consent-provider-options --dry-run --json
+```
+
 Static exports use browser initialization too. See
 [static export](/docs/frameworks/next/static-export) and
 [client-side setup](/docs/frameworks/next/client-side).
@@ -130,6 +137,9 @@ The other v2 modes map to transports:
 | --- | --- |
 | `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
 | `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
+
+The codemod rewrites the offline mode too. It can't translate
+`endpointHandlers`, so it leaves a `TODO(c15t v3)` comment on a custom mode.
 
 Offline mode keeps choices in the browser and records nothing on a server. Not
 recommended for production environments.
@@ -162,6 +172,13 @@ See the [IAB guide](/docs/frameworks/next/iab) for a complete setup.
 `c15t/next/devtools`. Dev tools read the consent engine, so `namespace`,
 `createStoreConnector()` and `getC15tStore()` are gone too. See
 [dev tools](/docs/frameworks/next/components/dev-tools).
+
+The `dev-tools-to-c15t` codemod points the imports at `c15t/next/devtools` and
+removes the `namespace` prop:
+
+```bash
+npx @c15t/cli@alpha codemods dev-tools-to-c15t --dry-run --json
+```
 
 <include src="../../shared/upgrade-v3/cli.mdx" />
 

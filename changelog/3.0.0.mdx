@@ -160,7 +160,8 @@ validation.
   privacy states, Canada, Australia, Japan, Switzerland, the UK, Brazil,
   India and much of Asia and the Middle East. Each lists its sources in
   `review`. A preset is a starting point, not legal advice.
-  `recommendedPolicyRules()` gives you a ready set.
+  `recommendedPolicyRules()` gives you a ready set. The
+  `policy-packs-to-policy-rules` codemod renames both.
 - **Notice prompts.** `prompt: 'notice'` asks for an acknowledgement instead
   of a choice, and leaves earlier refusals in place.
 - **No jurisdiction label.** v2 picked `GDPR`, `CCPA` or `NONE` from a fixed
@@ -251,8 +252,12 @@ result instead of throwing, and transient failures retry. See the
 
 - `c15t setup` scaffolds every supported framework, and `--plan` previews the
   changes first. See [setup](/docs/cli/commands/setup).
-- [Codemods](/docs/cli/commands/codemods) rewrite `useConsentManager()` calls
-  and `@c15t/scripts` imports.
+- [Codemods](/docs/cli/commands/codemods) migrate most v2 source: the
+  provider and its transports, moved exports, `useConsentManager()`,
+  callbacks, policy presets, CSS variables, the Tailwind CSS 3 plugin, dev
+  tools, `@c15t/scripts` imports, the Node.js SDK and the backend config.
+  Where a change needs a decision, they leave a `TODO(c15t v3)` comment that
+  fails the build.
 - Dev tools no longer depend on React. There is a panel for any framework,
   plus TanStack Devtools and Nuxt DevTools tabs.
 
@@ -277,9 +282,12 @@ Inth-hosted URLs work with v3 clients.
 **Start with the codemods.**
 
 ```bash
-npx @c15t/cli codemods use-consent-manager-to-hooks
-npx @c15t/cli codemods scripts-to-integrations
+npx @c15t/cli codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks scripts-to-integrations dev-tools-to-c15t policy-packs-to-policy-rules callbacks-to-v3 theme-to-consent-theme iab-option-to-iab-provider css-variables-to-v3 postcss-tailwind3 --dry-run --json
 ```
+
+Review the proposed files, then run the command again without `--dry-run`.
+Self-hosted backends and Node.js servers add `backend-config-to-v3` and
+`node-sdk-to-v3`.
 
 ## Breaking changes
 
@@ -289,22 +297,31 @@ The upgrade guides cover each of these with before and after code.
 - **Provider.** `ConsentManagerProvider` is now `ConsentProvider`, and `mode`
   plus `backendURL` become one transport, such as `hosted({ url })`. Next.js
   server rendering moves from `fetchInitialData()` to `resolveConsent()` and
-  `ConsentRoot`.
+  `ConsentRoot`. Codemod: `consent-provider-options`.
 - **Hooks.** `useConsentManager()` is gone, replaced by one hook per field.
+  Codemod: `use-consent-manager-to-hooks`.
+- **Exports.** Headless hooks, trigger atoms, token types and flat banner
+  parts leave the `c15t/react` and `c15t/next` roots for subpaths. Codemod:
+  `root-exports-to-subpaths`.
 - **Callbacks.** `onConsentSet` and `onConsentChanged` become
-  `onPermissionsChanged` and `onChoiceRecorded`, with new payloads.
+  `onPermissionsChanged` and `onChoiceRecorded`, with new payloads. Codemod:
+  `callbacks-to-v3`.
 - **Themes and styles.** `theme` tokens no longer produce CSS on their own, so
   render `ConsentTheme`. Tailwind CSS 3 needs the `c15t/postcss-tailwind3`
-  plugin, and several CSS variables are renamed.
+  plugin, and several CSS variables are renamed. Codemods:
+  `theme-to-consent-theme`, `postcss-tailwind3` and `css-variables-to-v3`.
 - **IAB.** The `iab` provider option becomes `IABProvider`, and `@c15t/iab`
-  drops `createIABManager`.
+  drops `createIABManager`. Codemod: `iab-option-to-iab-provider`.
 - **Removed.** `YouTubeEmbed`, `GoogleMap`, `useConsentScript()` and
   `ConsentButton`.
 - **JavaScript.** The v2 store and `getOrCreateConsentRuntime()` are gone.
 - **Self-hosted backend.** `adapter` becomes `database`, `policyPacks` moves
-  to `manifest.policyRules`, and the schema needs a migration.
-- **Node SDK.** `c15tClient()` becomes `createC15tClient()`.
+  to `manifest.policyRules`, and the schema needs a migration. Codemod:
+  `backend-config-to-v3`.
+- **Node SDK.** `c15tClient()` becomes `createC15tClient()`. Codemod:
+  `node-sdk-to-v3`.
 - **CLI and dev tools.** Run `c15t login` again. Dev tools move to
-  `c15t/react/devtools` and `c15t/next/devtools`.
+  `c15t/react/devtools` and `c15t/next/devtools`. Codemod:
+  `dev-tools-to-c15t`.
 
 <ContributorBlock usernames={["KayleeWilliams", "BurnedChris", "dan-hale", "bennajah", "prashantbhudwal"]} title="Thank you to our contributors" />
