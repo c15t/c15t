@@ -1,48 +1,30 @@
 ---
 title: Sentry
-description: Run Sentry with c15t consent. Load the Sentry SDK from Sentry's CDN or keep your own, gate error monitoring if you need to, and load Session Replay and send user data only after measurement is allowed.
+description: Configure Sentry's CDN or your own SDK with consent for error monitoring, Session Replay and user data.
 icon: sentry
 group: integrations
 ---
 
 ## Configure Sentry
 
-`sentry` loads the Sentry browser SDK from Sentry's CDN, calls `Sentry.init`
-and applies consent:
-
-- Error monitoring runs for every visitor. Set `loadMode: 'after-consent'` to
-  wait for `measurement`.
-- Session Replay loads and records only once `measurement` is allowed.
-- While `measurement` is denied, events and sessions carry no user, and Sentry
-  infers no IP address. Feedback contact emails and names are removed while
-  its message is preserved.
-- SDK collection of cookies, headers, bodies, query parameters, GraphQL and AI
-  data, database and queue payloads, stack variables and source context is disabled
-  while the user-data permission is denied. A grant restores your configuration.
+Remove any existing Sentry Loader Script or CDN tags, then add this configuration.
+Errors run before consent by default; Replay and SDK data collection wait for
+`measurement`.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
 <include src="../shared/examples/javascript/sentry-scripts.mdx" />
 
-The helper loads SDK 11.4.0 with subresource integrity: `bundle.min.js`, or
-`bundle.tracing.min.js` when you sample traces. It loads `replay.min.js` only
-once Replay is allowed and a Replay sample rate is above 0. Remove Sentry's
-Loader Script or CDN tags from the page, or Sentry can start twice.
-
-With `replaysOnErrorSampleRate` above 0, Replay buffers recordings even for
-sessions that never send an error. Adding Replay directly to `Sentry.init`
-can therefore record visitors before c15t applies consent. The setup here
-loads Replay after consent. While Replay is denied or the adapter is removed,
-its `start()`, `startBuffering()` and `flush()` methods cannot restart recording.
-Confirm your categories with your advisers.
+The default SDK is 11.4.0 with subresource integrity: `bundle.min.js`, or
+`bundle.tracing.min.js` when traces are sampled. `replay.min.js` loads after
+consent when a Replay sample rate is above 0.
 
 <include src="../shared/integrations/register-scripts.mdx" />
 
 ## Use your own Sentry SDK
 
-If your app installs Sentry from npm, such as `@sentry/nextjs`, pass its
-functions instead of a DSN. Pass the SDK's `init` and put its configuration in
-`initOptions`. Keep `replayIntegration()` in a separate module:
+For `@sentry/*` 10.67.0 or later, pass your SDK's functions instead of `dsn`.
+Keep Replay in a separate module so it can load after consent:
 
 ```ts title="src/sentry-replay.ts"
 import { replayIntegration } from '@sentry/browser';
@@ -51,8 +33,7 @@ export const createReplay = () =>
 	replayIntegration({ maskAllText: true, blockAllMedia: true });
 ```
 
-Then pass your SDK's functions to `sentry` in `src/consent-scripts.ts`, in
-place of `dsn`:
+In `src/consent-scripts.ts`, replace the CDN configuration with:
 
 {/* example: fragment */}
 
@@ -74,27 +55,20 @@ sentry({
 });
 ```
 
-SDK mode requires `@sentry/*` 10.67.0 or later. An independently initialized SDK
-can capture data before the adapter finds its client. Passing `init` lets c15t
-install its consent integration before other SDK integrations run their startup
-hooks. Events captured before `init` returns also receive the consent filters.
-`loadMode: 'after-consent'` prevents initialization before measurement is allowed.
-The CDN setup installs the same startup protection.
+Passing `init` protects startup captures before other SDK integrations run.
+Custom initializers must forward the supplied options to `Sentry.init`, including
+after a dynamic import. Avoid initialization as an import side effect.
 
-If `init` is a custom callback, forward its supplied options to `Sentry.init`.
-For a dynamic import, export an initializer and call it with those options;
-do not initialize Sentry as an import side effect. Ignoring the supplied options
-leaves startup captures unprotected.
+Use named imports from the same Sentry package throughout your app. Next.js and
+Vite split dynamically imported Replay into its own chunk; esbuild and Bun keep
+it in the main bundle. A main-bundle `Sentry.replayIntegration` reference through
+`import * as Sentry` also prevents the split.
 
-The adapter installs its filters after it finds the client. While error monitoring
-is allowed, it checks every 100 ms if initialization happens later. With
-`loadMode: 'after-consent'`, denial cancels retries and the next grant starts
-or synchronizes the client.
+### If Sentry already initializes independently
 
-If Sentry 11 must initialize independently, disable collection in `Sentry.init`
-and remove app-assigned users in `beforeSend` to protect startup events. This
-conservative setup keeps collection and event users disabled even after consent.
-With SDK 10.67, omit `queues`, which that version does not expose:
+c15t applies filters once it finds the client; it cannot retract earlier data.
+For startup protection, disable collection and remove event users in your own
+`Sentry.init` call. With SDK 10.67, omit `queues`:
 
 {/* example: fragment */}
 
@@ -121,38 +95,32 @@ beforeSend(event) {
 },
 ```
 
-To permit event users after consent, your `beforeSend` filter must check the
-effective c15t permission too. Avoid assigning scope users or capturing logs
-and metrics until c15t has registered the adapter. Filters cannot retract data
-sent before registration.
-
-Import from the same Sentry package everywhere and use named imports. Next.js
-and Vite then move Replay, about 39 KB gzipped, into its own chunk; esbuild and
-Bun keep it in the main bundle. A `Sentry.replayIntegration` reference through
-`import * as Sentry` anywhere in the main bundle also keeps it there.
+These settings keep collection and event users disabled after consent too.
+To restore event users, check effective c15t permission in `beforeSend`. Wait
+until the adapter is registered before assigning scope users or capturing logs
+and metrics.
 
 ## Options
 
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `dsn` | Required to load Sentry | Your project's DSN. c15t loads the SDK and calls `Sentry.init`. |
-| `initOptions` | `{}` | Passed to `Sentry.init` in either mode. c15t puts its consent integration first. In CDN mode, `integrations` runs after Sentry loads, so it can read `window.Sentry`. |
+| `initOptions` | `{}` | Passed to `Sentry.init` with c15t's consent integration first. CDN `integrations` callbacks can access `window.Sentry`. |
 | `version` | `'11.4.0'` | SDK version to load. Another version loads without subresource integrity. |
 | `tracing` | `true` when traces are sampled | Loads the tracing bundle and adds `browserTracingIntegration()`. |
-| `replay` | Loads Replay when sampled | `{ category, options }`, where `options` configure the page's first `replayIntegration()`. Changed CDN configurations reuse that recorder. `false` never loads Replay. |
-| `getClient` | Required for your own SDK | `getClient` from your Sentry SDK. Works when c15t starts before `Sentry.init`. |
+| `replay` | Loads CDN Replay when sampled | CDN: `{ category, options }` or `false`. SDK: `{ category, load }`. |
+| `getClient` | Required for your own SDK | Your SDK's `getClient`. Supports initialization after c15t starts. |
 | `setUser` | None | `setUser` from your Sentry SDK. Called with `null` while user data is not allowed. Required with `pii.user`. |
-| `init` | None | Your SDK's `init`, or a callback that forwards the supplied options to it. Called once, when `loadMode` allows. Required with `loadMode: 'after-consent'` and your own SDK. |
+| `init` | None | Your SDK's `init`, called once when `loadMode` allows. Required for SDK mode with `'after-consent'`. |
 | `replay.load` | None | With your own SDK, returns a new `replayIntegration()`. Called once, the first time Replay is allowed. |
-| `loadMode` | `'always'` | `'after-consent'` starts Sentry only once `measurement` is allowed. |
+| `loadMode` | `'always'` | When error monitoring runs. See the table below. |
 | `replay.category` | `'measurement'` | Consent condition for Replay. `pii.category` must also be allowed. |
 | `pii.category` | `'measurement'` | Consent condition for SDK data collection and user data. `'necessary'` permits it while the Sentry vendor is enabled. |
 | `pii.user` | None | Returns the user to set when user data becomes allowed. |
-| `onError` | Report to an available Sentry client | Receives Sentry CDN load and start failures, and Replay load, start and stop failures. Supply this callback to report a CDN failure before Sentry is available. |
+| `onError` | Report to an available Sentry client | Receives CDN and Replay lifecycle failures. Set it to report CDN download failures before Sentry exists. |
 
-The adapter registers Replay's category only when `replay.load` is supplied
-for an app-managed SDK, or when CDN Replay is enabled with a positive sample
-rate. Error monitoring and SDK data collection register their own categories.
+Replay's category is registered only with an SDK `replay.load` function or
+enabled CDN Replay with a positive sample rate.
 
 ## Loading and revocation
 
@@ -161,85 +129,43 @@ rate. Error monitoring and SDK data collection register their own categories.
 | `'always'` | On every page, before consent | Replay stops; errors keep reaching Sentry without user data |
 | `'after-consent'` | Only while `measurement` is allowed | Sentry stops sending anything |
 
-On withdrawal the adapter calls `replay.stop({ flush: false })` before c15t's
-reload, so the pending segment is never sent; segments already sent stay in
-Sentry. A later grant restores the original sampling decision rather than
-recording in full. If `Sentry.init` already includes Replay, the adapter warns
-in development and stops it while `measurement` is denied.
+Replay needs both `replay.category` and `pii.category`, because recordings
+include page URLs with queries and fragments. Keep Replay out of `Sentry.init`:
+`replaysOnErrorSampleRate` can buffer recordings before consent. On denial or
+final removal, c15t stops Replay without flushing, discards queued uploads and
+blocks restarts. Data already sent stays in Sentry; a later grant preserves
+the original sampling decision.
 
-The final envelope filter also drops queued Replay events and recordings while
-Replay is denied, stopping, or removed.
+While PII is denied, c15t disables supported `dataCollection` settings and IP
+inference. Before sending, it removes user fields, feedback contact details,
+visitor identifiers in sessions, request data and URL queries/fragments from
+supported events, spans, logs, metrics and breadcrumbs, including retained
+breadcrumbs. A grant restores your resolved collection settings and allowlists.
+Tracing itself is not gated. Custom messages, tags, extras, attachments and
+URL paths remain diagnostics, so keep sensitive values out of them.
 
-Replay also requires the PII permission, even when `replay.category` names a
-different category. Recordings contain page URLs, including queries and
-fragments, which Sentry's collection flags do not remove. Denying either
-permission prevents Replay from loading or recording and discards pending
-uploads. Granting both permits these recorded URLs.
+The vendor slug is `sentry`. Turning it off denies Replay and PII, plus errors
+in `'after-consent'` mode. See [vendor consent](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
 
-While user data is not allowed, the adapter removes `user` from events and
-feedback, the user and IP address from sessions, and SDK user attributes from
-root spans, child spans, logs and metrics. A final envelope filter also removes
-users added by later event processors or `beforeSend`. The adapter switches Sentry's IP inference off for
-events, spans, logs and metrics. It disables every supported `dataCollection`
-field and restores the original resolved settings on grant, including allowlists
-and fields your app disabled. The final filter removes request headers, cookies,
-bodies and URL query parameters and fragments, plus HTTP headers and URL details
-on root and child spans and standard navigation and HTTP breadcrumbs, including
-SDK versions that ignore the collection flags. Breadcrumbs collected before
-withdrawal are filtered when the next event is sent.
-Tracing itself is not gated.
+### Shared clients and configuration changes
 
-The collection settings control SDK instrumentation. Keep sensitive values out
-of custom messages, tags, extras, attachments and URL paths; those fields remain
-part of error diagnostics.
+Keep callback functions stable across renders. Equal options and callbacks
+reuse the SDK bundle and active recording. Changed CDN options initialize a
+client with the new DSN and settings, while reusing the page's single Replay
+recorder. Its original Replay options and sampling decision last until reload.
 
-Removing the final integration for a client stops Replay without flushing,
-cancels pending starts and denies user data. With `loadMode: 'after-consent'`,
-final removal also disables the client. Recreating the integration reuses the client's Replay instance and
-sampling decision. An app-initiated `Sentry.close()` stays closed after re-grant.
+Every active configuration targeting one client must allow each feature;
+removing a loader releases its restriction and preserves surviving loaders and
+downloads. Final removal denies PII and stops Replay, and also disables errors
+in `'after-consent'` mode. An app-initiated `Sentry.close()` stays closed after
+a grant. Separate clients have separate permissions.
 
-Recreating `sentry()` with equal option values and the same callback functions
-keeps the SDK bundle and current Replay recording. Keep `getClient`, `setUser`,
-`init`, `replay.load`, `pii.user` and `onError` functions stable across renders. A changed
-configuration starts a new adapter lifecycle; changed CDN options initialize
-a client with the new DSN and settings. A new CDN configuration also initializes
-when another loader already owns the completed bundle. It initializes once;
-subsequent consent changes keep that client. Sentry permits one Replay instance
-per page, so changed CDN configurations reuse the existing recorder. Its original
-Replay options and sampling decision stay in effect until a page reload. The new
-client still receives the changed DSN and SDK settings.
+## Content security policy
 
-If Replay has not started loading when the initializing configuration is removed,
-a surviving configuration can load it with its own Replay options. Removing a
-loader keeps the current client's resolved SDK settings and sampling rates.
-Consent remounts keep the client and its
-Replay sampling decision. Matching CDN versions and bundle types share the
-download; a different version or tracing bundle loads its own resource.
-
-The CDN Replay script inherits the nonce from the main Sentry bundle. Set the
-loader or provider's `nonce` once; a per-script `nonce` overrides it for both
-bundles.
-
-If multiple loaders target the same Sentry client, Sentry stays active until
-the last loader removes it. Every active configuration must allow Replay and
-user data, even when its categories or callback functions differ. An
-`after-consent` configuration must also allow error monitoring. Each loader
-evaluates its own compound feature conditions independently, including a CDN
-loader waiting for consent and an SDK adapter registered before initialization.
-A denial applies to the shared client. Removing a loader releases its restriction
-and reapplies the surviving loaders' permissions. Separate Sentry clients keep
-separate permissions.
-If the SDK bundle is still downloading when its original loader is removed,
-the remaining loader keeps the download and initializes Sentry when it completes.
-
-The vendor slug is `sentry`; turning that vendor off denies Replay and user
-data, and error monitoring with `loadMode: 'after-consent'`. See
-[vendor consent for your framework](/docs/integrations/overview#vendor-switches-and-cookie-cleanup).
-Replay compresses in a `blob:` worker, so allow `worker-src blob:`. With `dsn`,
-allow `https://browser.sentry-cdn.com` in `script-src`.
-Allow your SDK's ingest endpoint in `connect-src`: the DSN host for Sentry SaaS,
-your configured host for self-hosted Sentry, or your tunnel endpoint when using
-a proxy.
+Allow `worker-src blob:` for Replay and your ingest or tunnel endpoint in
+`connect-src`. CDN mode also needs `https://browser.sentry-cdn.com` in
+`script-src`. The loader or provider's `nonce` applies to both CDN bundles;
+a per-script nonce overrides it.
 
 ## Verify Sentry
 
