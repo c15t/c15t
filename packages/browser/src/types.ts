@@ -320,7 +320,7 @@ export interface ConsentClientOptions extends Pick<
 	pkg?: string;
 }
 
-/** Options for `@c15t/browser/hosted` and `c15t.hosted.js`. */
+/** Options for `@c15t/browser/hosted` and the default `c15t.js` bundle. */
 export interface HostedConsentClientOptions extends Omit<
 	ConsentClientOptions,
 	'mode' | 'manifest' | 'manifestURL' | 'policyRules'

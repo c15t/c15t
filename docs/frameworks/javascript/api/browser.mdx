@@ -8,7 +8,7 @@ group: frameworks
 
 | Import | What it gives you |
 | --- | --- |
-| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. |
+| `@c15t/browser` | `init`, `createConsentClient` and `mountConsentUI`, with the stock banner, dialog and trigger. Supports hosted, offline, manifest and custom modes. |
 | `@c15t/browser/hosted` | The stock UI and client for hosted mode only. Requires a backend URL or a hosted transport factory. |
 | `@c15t/browser/offline` | The stock UI and client for offline mode only, with bundled policy rules and presets. |
 | `@c15t/browser/headless` | The same client with no UI and no CSS. `mountUI()` throws. |
@@ -25,8 +25,11 @@ starts loading in idle time once the banner or trigger is on screen, and at
 the latest when the dialog opens. Idle preloading can download it even when
 the visitor never opens preferences.
 
-The script-tag files (`c15t.js`, `c15t.hosted.js`, `c15t.offline.js`,
-`c15t.iab.js`) each carry their complete stylesheet in one file.
+The script-tag files `c15t.js`, `c15t.offline.js` and `c15t.iab.js` each carry
+their complete stylesheet in one file. The default `c15t.js` uses the hosted
+client and requires a backend URL or hosted factory. `c15t.offline.js` uses
+the offline client. For manifest or custom mode with the stock UI, use the
+ES module root `@c15t/browser`, which continues to support every mode.
 
 `@c15t/browser` is not part of the `c15t` package. Use one entry per page.
 Each creates its own client, and two clients on one page would each run the

@@ -41,7 +41,6 @@
 	"type": "module",
 	"sideEffects": [
 		"./dist/c15t.js",
-		"./dist/c15t.hosted.js",
 		"./dist/c15t.offline.js",
 		"./dist/c15t.iab.js",
 		"./dist/c15t.headless.js",
@@ -86,7 +85,6 @@
 		},
 		"./styles.css": "./dist/c15t.css",
 		"./c15t.js": "./dist/c15t.js",
-		"./c15t.hosted.js": "./dist/c15t.hosted.js",
 		"./c15t.offline.js": "./dist/c15t.offline.js",
 		"./c15t.headless.js": "./dist/c15t.headless.js",
 		"./c15t.devtools.js": "./dist/c15t.devtools.js",

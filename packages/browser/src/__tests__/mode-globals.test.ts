@@ -56,7 +56,7 @@ const loadTag = async function loadTag(
 ): Promise<C15tGlobalBase> {
 	vi.resetModules();
 	if (mode === 'hosted') {
-		await import('../entries/cdn-hosted');
+		await import('../entries/cdn');
 	} else {
 		await import('../entries/cdn-offline');
 	}
@@ -180,12 +180,15 @@ describe.each(entries)('$mode browser global', ({ create, mode }) => {
 			],
 		];
 		vi.spyOn(document, 'currentScript', 'get').mockReturnValue(
-			scriptWith({ 'data-mode': mode, 'data-no-ui': '' })
+			scriptWith({ 'data-no-ui': '' })
 		);
 
 		const api = await loadTag(mode);
 		await api.ready();
 		expect(api.mode).toBe(mode);
+		expect(api.pkg).toBe(
+			mode === 'hosted' ? '@c15t/browser' : '@c15t/browser/offline'
+		);
 		expect(loaded).not.toHaveBeenCalled();
 		const saving = api.acceptAll();
 		expect(api.has('measurement')).toBe(true);
@@ -289,4 +292,107 @@ describe.each(entries)('$mode browser global', ({ create, mode }) => {
 			expect(window.__gpp).toBeUndefined();
 		}
 	);
+});
+
+describe('default CDN entry', () => {
+	it('selects hosted from the backend tag without an explicit mode', async () => {
+		testWindow.c15t = [
+			[
+				'config',
+				{
+					prefetch: { initialPolicyResolution: resolution },
+					ui: false,
+				},
+			],
+		];
+		vi.spyOn(document, 'currentScript', 'get').mockReturnValue(
+			scriptWith({ 'data-backend-url': 'https://consent.example.test' })
+		);
+
+		const api = await loadTag('hosted');
+		await api.ready();
+
+		expect(api.pkg).toBe('@c15t/browser');
+		expect(api.mode).toBe('hosted');
+		expect(api).toHaveProperty('hosted', expect.any(Function));
+		for (const factory of ['offline', 'manifest', 'custom']) {
+			expect(api).not.toHaveProperty(factory);
+		}
+	});
+
+	it('requires a backend rather than falling back to offline', async () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		vi.stubGlobal('fetch', fetchSpy);
+		vi.spyOn(document, 'currentScript', 'get').mockReturnValue(
+			scriptWith({ 'data-no-ui': '' })
+		);
+
+		await expect(loadTag('hosted')).rejects.toThrow(/provide backendURL/u);
+
+		expect(installed().client).toBeNull();
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(localStorage.length).toBe(0);
+	});
+
+	it.each<[string, ConsentClientOptions, RegExp]>([
+		['offline mode', { mode: 'offline' }, /only hosted mode/u],
+		['preset names', { policyRules: ['europeOptIn'] }, /policy preset names/u],
+		[
+			'inline manifest',
+			{ manifest: { branding: 'c15t', revision: '1', schemaVersion: 2 } },
+			/manifest inputs/u,
+		],
+		['manifest URL', { manifestURL: '/manifest' }, /manifest inputs/u],
+	])('rejects %s before starting', async (_name, options, error) => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		vi.stubGlobal('fetch', fetchSpy);
+		testWindow.c15t = [
+			[
+				'config',
+				{ backendURL: 'https://consent.example.test', ui: false, ...options },
+			],
+		];
+
+		await expect(loadTag('hosted')).rejects.toThrow(error);
+
+		expect(installed().client).toBeNull();
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(localStorage.length).toBe(0);
+	});
+
+	it('rejects an offline script-tag mode', async () => {
+		vi.spyOn(document, 'currentScript', 'get').mockReturnValue(
+			scriptWith({ 'data-mode': 'offline' })
+		);
+
+		await expect(loadTag('hosted')).rejects.toThrow(/data-mode/u);
+		expect(testWindow.c15t).toBeUndefined();
+	});
+});
+
+describe('offline CDN entry', () => {
+	it('resolves offline presets without a backend or explicit mode', async () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		vi.stubGlobal('fetch', fetchSpy);
+		testWindow.c15t = [
+			[
+				'config',
+				{
+					consentCategories: ['measurement'],
+					overrides: { country: 'DE' },
+					policyRules: ['europeOptIn'],
+					ui: false,
+				},
+			],
+		];
+
+		const api = await loadTag('offline');
+		const snapshot = await api.ready();
+		await api.acceptAll();
+
+		expect(api.mode).toBe('offline');
+		expect(snapshot.model).toBe('opt-in');
+		expect(api.has('measurement')).toBe(true);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
 });

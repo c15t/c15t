@@ -1,15 +1,24 @@
 ---
 packages:
   '@c15t/browser': minor
+  '@c15t/backend': patch
 ---
 
-### Add hosted and offline browser bundles
+### Make hosted mode the default browser bundle
 
-Add `@c15t/browser/hosted` and `@c15t/browser/offline` ES module entries,
-plus the `c15t.hosted.js` and `c15t.offline.js` script-tag bundles. Both keep
-the stock UI, consent actions, storage, callbacks, script gating and blockers.
+Make `c15t.js` the hosted script-tag bundle and add `c15t.offline.js` for
+browser-only policy resolution. The default bundle now requires a backend
+URL or a hosted transport factory. For manifest or custom mode with the
+stock UI, use the `@c15t/browser` ES module. The headless and IAB scripts
+continue to support those modes.
 
-The hosted bundle excludes offline policy presets, offline resolution and
-manifest transport code. The offline bundle excludes hosted and manifest
-transport code. Each entry rejects configuration for another mode. Existing
-general, headless and IAB entries remain available.
+Add `@c15t/browser/hosted` and `@c15t/browser/offline` ES module entries.
+Both keep the stock UI, consent actions, storage, callbacks, script gating
+and blockers. The hosted bundle excludes offline policy presets, offline
+resolution and manifest transport code. The offline bundle excludes hosted
+and manifest transport code. Each entry rejects configuration for another
+mode. The general ES module, headless and IAB entries remain available.
+
+Serve the hosted bundle from the self-hosted backend's `/c15t.js` route
+with its backend URL already configured. This route now resolves policies
+through `/init`. The headless and IAB routes keep their manifest preload.

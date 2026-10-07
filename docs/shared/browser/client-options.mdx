@@ -9,6 +9,11 @@ group: reference
 <section id="connection">
   ## Connection and policy
 
+  The general `@c15t/browser` ES module, headless and IAB builds accept every
+  mode below. `c15t.js` and `@c15t/browser/hosted` accept hosted mode only and
+  require a backend URL or hosted factory. `c15t.offline.js` and
+  `@c15t/browser/offline` accept offline mode only.
+
   | Option | Type | Default | What it does |
   | --- | --- | --- | --- |
   | `backendURL` | `string` | none | Your Inth or self-hosted backend URL. Used by hosted and manifest modes. |

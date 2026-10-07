@@ -8,8 +8,9 @@ group: frameworks
 
 Load `c15t.iab.js` instead of `c15t.js` when your policy uses IAB TCF. It
 contains the CMP, the TC string encoder, the IAB banner and the purpose and
-vendor preference dialog. `c15t.js` and `c15t.headless.js` leave all of that
-out, so pages without an IAB policy stay smaller.
+vendor preference dialog. `c15t.js`, `c15t.offline.js` and
+`c15t.headless.js` leave all of that out, so pages without an IAB policy stay
+smaller.
 
 {/* example: fragment */}
 
@@ -41,8 +42,8 @@ CMP that wrote it, so never copy an ID from an example. A backend can supply
 `cmpId` and the vendor list instead. `vendors` limits the list to the vendors
 your site works with.
 
-Load only one c15t bundle. `c15t.iab.js` throws an error if `c15t.js` or
-`c15t.headless.js` loaded first. When the resolved policy is not an IAB
+Load only one c15t bundle. `c15t.iab.js` throws an error if `c15t.js`,
+`c15t.offline.js` or `c15t.headless.js` loaded first. When the resolved policy is not an IAB
 policy, the IAB build shows the ordinary banner. If an IAB policy cannot load
 its vendor list, the banner shows an error and keeps its confirm buttons
 disabled.

@@ -1,7 +1,7 @@
 /**
  * Serves the script-tag example on http://localhost:4173.
  *
- * `/c15t.js`, `/c15t.headless.js` and `/c15t.devtools.js` come straight
+ * The hosted, offline, headless and DevTools bundles come straight
  * from the built `@c15t/browser` package, the way a CDN would serve them.
  * The rest stands in for the third parties a real page loads: two vendor
  * scripts, two embeds and a tracking endpoint, all local so the example
@@ -44,13 +44,13 @@ const bundles: Record<string, string> = {
 	'/c15t.headless.js': fileURLToPath(
 		import.meta.resolve('@c15t/browser/c15t.headless.js')
 	),
-	'/c15t.hosted.js': fileURLToPath(
-		import.meta.resolve('@c15t/browser/c15t.hosted.js')
-	),
 	'/c15t.iab.js': fileURLToPath(
 		import.meta.resolve('@c15t/browser/c15t.iab.js')
 	),
 	'/c15t.js': fileURLToPath(import.meta.resolve('@c15t/browser/c15t.js')),
+	'/c15t.offline.js': fileURLToPath(
+		import.meta.resolve('@c15t/browser/c15t.offline.js')
+	),
 };
 
 if (process.argv.includes('--check')) {
@@ -103,10 +103,7 @@ const renderConsentExample = function renderConsentExample(
 	if (design === 'headless') {
 		// Swap the stock tag for the headless build and the page's own bar.
 		html = html
-			.replace(
-				/<script\s+src="[^"]*\/c15t\.(?:hosted\.)?js"[\s\S]*?<\/script>/u,
-				''
-			)
+			.replace(/<script\s+src="[^"]*\/c15t\.js"[\s\S]*?<\/script>/u, '')
 			.replace(
 				'</body>',
 				`${readFileSync(here('./headless-bar.html'), 'utf8')}</body>`
