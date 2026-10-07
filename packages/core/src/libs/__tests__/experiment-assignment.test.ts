@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createExperimentController } from '../../experiment';
 import { createConsentKernel } from '../../kernel';
 import { createConsentRuntime } from '../../runtime';
+import type { ConsentRuntimeOptions } from '../../runtime';
 import { custom } from '../../transports/mode';
 import { createOfflineTransport } from '../../transports/offline';
 import type { KernelEvent, KernelTransport } from '../../types';
@@ -299,6 +300,73 @@ describe('createExperimentController', () => {
 		}
 		controller.dispose();
 		kernel.dispose();
+	});
+});
+
+/**
+ * A permissive opt-in rule: with no categories declared on the page, the
+ * banner asks about none of them.
+ */
+const permissiveRule: PolicyRule = { ...choiceRule, scopeMode: 'permissive' };
+
+describe('an experiment whose banner asks about no categories', () => {
+	// A saved choice would keep the next test's banner from showing.
+	beforeEach(() => {
+		for (const cookie of document.cookie.split(';')) {
+			const name = cookie.split('=')[0]?.trim();
+			if (name) {
+				document.cookie = `${name}=; max-age=0; path=/`;
+			}
+		}
+	});
+
+	/** Run the experiment through a runtime until the banner has shown. */
+	const showBanner = async function showBanner(
+		consentCategories?: ConsentRuntimeOptions['consentCategories']
+	) {
+		const runtime = createConsentRuntime({
+			consentCategories,
+			experiment: { ...experiment, arm: 'bar' },
+			mode: custom(sequencedTransport([[permissiveRule]])),
+		});
+		const shown: KernelEvent[] = [];
+		const recorded: KernelEvent[] = [];
+		runtime.kernel.events.on('surface:shown', (event) => shown.push(event));
+		runtime.kernel.events.on('choice:recorded', (event) =>
+			recorded.push(event)
+		);
+		runtime.start();
+		await vi.waitFor(() => expect(shown).toHaveLength(1));
+		expect(shown[0]).toMatchObject({ experiment: { arm: 'bar' } });
+		return { recorded, runtime };
+	};
+
+	test('warns in development that no choice will be recorded', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const { recorded, runtime } = await showBanner();
+		await runtime.kernel.commands.save('all');
+		expect(recorded).toHaveLength(0);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(String(warn.mock.calls[0]?.[0])).toContain('banner-shape');
+		runtime.dispose();
+	});
+
+	test('stays quiet once the page declares a category to ask about', async () => {
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const { recorded, runtime } = await showBanner(['measurement']);
+		await runtime.kernel.commands.save('all');
+		expect(recorded).toHaveLength(1);
+		expect(warn).not.toHaveBeenCalled();
+		runtime.dispose();
+	});
+
+	test('stays quiet in production', async () => {
+		vi.stubEnv('NODE_ENV', 'production');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const { runtime } = await showBanner();
+		expect(warn).not.toHaveBeenCalled();
+		runtime.dispose();
+		vi.unstubAllEnvs();
 	});
 });
 

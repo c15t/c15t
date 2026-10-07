@@ -300,6 +300,7 @@ export type {
 	ConsentExperiment,
 	ExperimentActionStyle,
 	ExperimentArm,
+	ExperimentArmName,
 	ExperimentArmTheme,
 	ExperimentAssignment,
 	ExperimentGate,

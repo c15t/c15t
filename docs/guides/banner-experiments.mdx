@@ -23,6 +23,22 @@ the arm names in `arm` and `split`. The callbacks forward each impression and
 choice to `window.dataLayer`; see
 [send the events to your own analytics](#send-the-events-to-your-own-analytics-too).
 
+Your flag provider returns a plain string. To check it before passing it as
+`arm`, type it with `ExperimentArmName` from `c15t`, which is `control` plus
+the experiment's arm names:
+
+{/* example: fragment */}
+
+```ts
+import type { ExperimentArmName } from 'c15t';
+
+// 'control' | 'wall'
+type BannerArm = ExperimentArmName<typeof bannerExperiment>;
+
+const armFromFlag = (value: string | undefined): BannerArm | undefined =>
+	value === 'control' || value === 'wall' ? value : undefined;
+```
+
 Omit `arm` to let c15t pick, and set `split` to weight the arms:
 
 ```ts
@@ -52,6 +68,14 @@ no effect; remount the provider (a `key` in React) to switch experiments.
 
 Assignment and arm validation load as a separate chunk, only on pages that
 set `experiment`. A site without an experiment does not download them.
+
+An experiment compares choices, so the banner has to ask about at least one
+category. Under a rule with `scopeMode: 'permissive'`, the banner asks only
+about the categories your site declares through `consentCategories`,
+`scripts` or `vendors`. With none declared, it asks about none: accepting or rejecting records a notice
+acknowledgement instead of a choice, `onChoiceRecorded` never fires, and the
+experiment counts impressions without choices. Outside production, c15t logs
+a warning the first time the banner shows an arm in that state.
 
 ### Astro
 
