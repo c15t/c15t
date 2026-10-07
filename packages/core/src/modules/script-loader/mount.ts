@@ -436,6 +436,24 @@ export const unmountScript = function unmountScript(
 		element = deps.retainedElements.get(script.id);
 	}
 	if (element === undefined) {
+		if (
+			script.observeConsentBeforeLoad &&
+			typeof script.onConsentChange === 'function' &&
+			typeof document !== 'undefined'
+		) {
+			invokeCallback(
+				script,
+				'onConsentChange',
+				buildCallbackInfo(
+					deps.tools,
+					script,
+					snapshot,
+					hasConsent,
+					deps.elementIds.resolve(script)
+				),
+				deps.emit
+			);
+		}
 		return;
 	}
 

@@ -27,6 +27,7 @@ one.
 | `textContent` | `string` | none | Inline code to run instead of `src`. |
 | `callbackOnly` | `boolean` | `false` | Add no element, run only the callbacks. For a vendor already on the page. |
 | `alwaysLoad` | `boolean` | `false` | Load whatever the consent state, for tags that manage consent themselves through the vendor's API. |
+| `observeConsentBeforeLoad` | `boolean` | `false` | Notify `onConsentChange` during initial denial and subsequent updates before the resource loads. Useful for integrations that coordinate a shared SDK. |
 | `persistAfterConsentRevoked` | `boolean` | `false` | Keep the element after withdrawal instead of removing it. |
 | `target` | `'head' \| 'body'` | `'head'` | Where the element goes. |
 | `async`, `defer` | `boolean` | none | Attributes on the created element. |
@@ -47,7 +48,7 @@ error?, vendor? }`.
 | `onBeforeLoad` | Before a load attempt. It can run again for the same script if consent changes before the load starts, so make it safe to repeat. |
 | `onLoad` | After the script loaded. Use it for set-up that needs the vendor's code. |
 | `onError` | When the script failed to load. |
-| `onConsentChange` | Each time the script's consent changes, loaded or not. Use it for a vendor's opt-out call when you turn off the reload. |
+| `onConsentChange` | Each time a loaded script's consent changes. With `observeConsentBeforeLoad`, also during initial denial and later changes before loading. Use it for a vendor's opt-out call when you turn off the reload. |
 | `onDispose` | When the configuration is removed or the loader is disposed, including a script that never loaded. |
 
 Withdrawal alone does not call `onDispose`. With the default reload, the page

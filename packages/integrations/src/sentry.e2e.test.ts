@@ -1,6 +1,6 @@
 /** @vitest-environment jsdom */
 import { createConsentKernel } from '@c15t/core';
-import type { Script } from '@c15t/core';
+import type { AllConsentNames, HasCondition, Script } from '@c15t/core';
 import { createScriptLoader } from '@c15t/core/modules/script-loader';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -77,6 +77,15 @@ class FakeReplay implements SentryReplay {
 		}
 		await Promise.resolve();
 		sessionStorage.removeItem(sessionKey);
+	});
+
+	// Like the SDK, flush can start through an internal recorder method.
+	flush = vi.fn(() => {
+		if (!this.enabled) {
+			this.enabled = true;
+			this.mode = 'session';
+		}
+		return Promise.resolve();
 	});
 
 	getRecordingMode = (): SentryReplayRecordingMode | undefined =>
@@ -667,6 +676,8 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		{ method: 'startBuffering' as const, source: 'app' },
 		{ method: 'start' as const, source: 'adapter' },
 		{ method: 'startBuffering' as const, source: 'adapter' },
+		{ method: 'flush' as const, source: 'app' },
+		{ method: 'flush' as const, source: 'adapter' },
 	])(
 		'blocks $source Replay.$method calls during denial and after removal',
 		async ({ method, source }) => {
@@ -686,20 +697,20 @@ describe('Sentry adapter through the kernel and script loader', () => {
 			await settle();
 			await kernel.commands.save(deniedConsents);
 			await settle();
-			replay[method]();
+			await replay[method]();
 			expect(replay.getRecordingMode()).toBeUndefined();
 			expect(sessionStorage.getItem(sessionKey)).toBeNull();
 			await kernel.commands.save(grantedMeasurementConsents);
 			await settle();
 			expect(replay.getRecordingMode()).toBe('session');
 			await replay.stop({ flush: false });
-			replay[method]();
+			await replay[method]();
 			expect(replay.getRecordingMode()).toBe(
-				method === 'start' ? 'session' : 'buffer'
+				method === 'startBuffering' ? 'buffer' : 'session'
 			);
 			loader.dispose();
 			await settle();
-			replay[method]();
+			await replay[method]();
 			expect(replay.getRecordingMode()).toBeUndefined();
 		}
 	);
@@ -723,6 +734,38 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(replay.getRecordingMode()).toBe('session');
 		granted.loader.dispose();
 		expect(replay.getRecordingMode()).toBeUndefined();
+	});
+
+	it('requires each loader to satisfy an OR feature condition independently', async () => {
+		const { client, processEvent } = createClient();
+		const getClient = () => client;
+		const replay = new FakeReplay('session');
+		const load = () => replay;
+		const category: HasCondition<AllConsentNames> = {
+			or: ['measurement', 'functionality'],
+		};
+		const config = () =>
+			sentry({ getClient, pii: { category }, replay: { category, load } });
+		mount(config(), grantedMeasurementConsents);
+		mount(config(), { ...deniedConsents, functionality: true });
+		await settle();
+		expect(replay.getRecordingMode()).toBe('session');
+		expect(processEvent({ user: { id: 'u1' } }).user).toEqual({ id: 'u1' });
+	});
+
+	it('requires each loader to satisfy a NOT feature condition independently', async () => {
+		const { client, processEvent } = createClient();
+		const getClient = () => client;
+		const replay = new FakeReplay('session');
+		const load = () => replay;
+		const category = { not: 'measurement' } as const;
+		const config = () =>
+			sentry({ getClient, pii: { category }, replay: { category, load } });
+		mount(config());
+		mount(config(), grantedMeasurementConsents);
+		await settle();
+		expect(replay.getRecordingMode()).toBeUndefined();
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
 	});
 
 	it('can mount the same SDK script again after removal', async () => {
@@ -1350,6 +1393,67 @@ describe('Sentry loaded from the CDN', () => {
 		expect(replays[0]?.getRecordingMode()).toBe('session');
 		second.loader.dispose();
 		expect(replays[0]?.getRecordingMode()).toBeUndefined();
+	});
+
+	it.each(['before the SDK loads', 'after the SDK loads'])(
+		'registers an initially denied after-consent CDN loader %s',
+		async (phase) => {
+			const { replays, processEvent, sending } = installSentryCdn();
+			const config = () =>
+				sentry({
+					dsn,
+					initOptions: { replaysSessionSampleRate: 1 },
+					loadMode: 'after-consent',
+				});
+			const granted = mount(config(), grantedMeasurementConsents);
+			if (phase === 'after the SDK loads') {
+				await settle();
+			}
+			const denied = mount(config());
+			await settle();
+			expect(replays[0]?.getRecordingMode()).toBeUndefined();
+			expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+			expect(sending().enabled).toBe(false);
+			denied.loader.dispose();
+			await settle();
+			expect(sending().enabled).toBe(true);
+			expect(replays[0]?.getRecordingMode()).toBe('session');
+			await granted.kernel.commands.save(deniedConsents);
+			expect(replays[0]?.getRecordingMode()).toBeUndefined();
+		}
+	);
+
+	it('applies a replaced CDN DSN and initialization settings', async () => {
+		const { replays, sentryGlobal } = installSentryCdn();
+		const { loader } = mount(
+			sentry({
+				dsn,
+				initOptions: { release: 'before', replaysSessionSampleRate: 0 },
+			}),
+			grantedMeasurementConsents
+		);
+		await settle();
+		loader.updateScripts([
+			sentry({
+				dsn: 'https://new-key@o1.ingest.sentry.io/1',
+				initOptions: {
+					release: 'after',
+					replaysSessionSampleRate: 1,
+					tracesSampleRate: 0.5,
+				},
+			}),
+		]);
+		await settle();
+		expect(sentryGlobal.init).toHaveBeenCalledTimes(2);
+		expect(sentryGlobal.init).toHaveBeenLastCalledWith(
+			expect.objectContaining({
+				dsn: 'https://new-key@o1.ingest.sentry.io/1',
+				release: 'after',
+				replaysSessionSampleRate: 1,
+				tracesSampleRate: 0.5,
+			})
+		);
+		expect(replays[0]?.getRecordingMode()).toBe('session');
 	});
 
 	it('preserves the SDK bundle and recording across equivalent CDN configurations', async () => {

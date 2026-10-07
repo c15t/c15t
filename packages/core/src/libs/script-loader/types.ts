@@ -187,8 +187,17 @@ export interface Script {
 	onError?: (info: ScriptCallbackInfo) => void;
 
 	/**
+	 * Notify `onConsentChange` before the script loads, including initial denial.
+	 * Useful when several loaders coordinate a shared SDK. This does not load
+	 * the resource without consent. Notifications run only in the browser.
+	 * @default false
+	 */
+	observeConsentBeforeLoad?: boolean;
+
+	/**
 	 * Callback executed whenever the consent store is changed.
-	 * This callback only applies to scripts already loaded.
+	 * This callback applies to loaded scripts unless `observeConsentBeforeLoad`
+	 * is enabled, which also reports initial and subsequent denial before loading.
 	 *
 	 * @param info - Information about the script and current consent state
 	 *

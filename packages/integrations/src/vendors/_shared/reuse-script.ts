@@ -1,5 +1,15 @@
 import type { Script, ScriptCallbackInfo } from '@c15t/core';
 
+const registrationStates = new WeakMap<
+	ScriptCallbackInfo,
+	readonly ScriptCallbackInfo[]
+>();
+
+/** Read each loader's state before evaluating compound feature conditions. @internal */
+export const getScriptRegistrations = (
+	info: ScriptCallbackInfo
+): readonly ScriptCallbackInfo[] => registrationStates.get(info) ?? [info];
+
 type ConfigFields = Record<PropertyKey, unknown>;
 type ConfigCopy = ConfigFields | unknown[];
 
@@ -135,14 +145,9 @@ export const createScriptReuse = <OptionsType extends object>() => {
 			standaloneRegistration;
 		const combine = (info: ScriptCallbackInfo): ScriptCallbackInfo => {
 			const states = [...registrations.values()];
-			const consents = { ...info.consents };
-			for (const name of Object.keys(consents) as (keyof typeof consents)[]) {
-				consents[name] = states.every((state) => state.consents[name]);
-			}
 			const vendor = states.find((state) => state.vendor)?.vendor;
-			return {
+			const combined = {
 				...info,
-				consents,
 				hasConsent: states.every((state) => state.hasConsent),
 				vendor: vendor
 					? {
@@ -151,6 +156,8 @@ export const createScriptReuse = <OptionsType extends object>() => {
 						}
 					: undefined,
 			};
+			registrationStates.set(combined, states);
+			return combined;
 		};
 		const activate = (info: ScriptCallbackInfo): Script => {
 			current ??= create(entry.options);
@@ -160,11 +167,8 @@ export const createScriptReuse = <OptionsType extends object>() => {
 		};
 		script.onBeforeLoad = (info) =>
 			activate(info).onBeforeLoad?.(combine(info));
-		script.onConsentChange = (info) => {
-			if (current) {
-				activate(info).onConsentChange?.(combine(info));
-			}
-		};
+		script.onConsentChange = (info) =>
+			activate(info).onConsentChange?.(combine(info));
 		script.onDispose = (info) => {
 			const removed = registrations.delete(registrationOf(info));
 			const remaining = registrations.values().next().value;

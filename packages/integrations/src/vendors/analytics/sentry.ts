@@ -16,7 +16,10 @@ import {
 	waitForReplayPaint,
 } from '../_shared/replay-scheduler';
 import { requireId } from '../_shared/required-id';
-import { createScriptReuse } from '../_shared/reuse-script';
+import {
+	createScriptReuse,
+	getScriptRegistrations,
+} from '../_shared/reuse-script';
 import { trimToUndefined } from '../_shared/script-url';
 
 /** Recording mode that Sentry Replay reports while it records. */
@@ -32,6 +35,8 @@ export interface SentryReplay {
 	start: () => void;
 	startBuffering: () => void;
 	stop: (options?: { flush?: boolean }) => Promise<void>;
+	/** Sentry flush() can start a recorder that is currently stopped. */
+	flush?: (options?: { continueRecording?: boolean }) => Promise<void>;
 	getRecordingMode: () => SentryReplayRecordingMode | undefined;
 }
 
@@ -417,10 +422,17 @@ const guardReplay = (replay: SentryReplay, state: ClientState): void => {
 		return;
 	}
 	state.guardedReplays.add(replay);
+	const allowed = (): boolean =>
+		state.replayAllowed && !state.stopping && !state.stopFailed;
+	const { flush } = replay;
+	if (flush) {
+		replay.flush = (options) =>
+			allowed() ? flush.call(replay, options) : Promise.resolve();
+	}
 	for (const method of ['start', 'startBuffering'] as const) {
 		const start = replay[method];
 		replay[method] = () => {
-			if (state.replayAllowed && !state.stopping && !state.stopFailed) {
+			if (allowed()) {
 				start.call(replay);
 			}
 		};
@@ -866,15 +878,17 @@ const createGate = (options: GateOptions) => {
 			return;
 		}
 		// Vendor denial overrides every feature condition, including necessary.
-		const vendorAllowed = info.vendor?.granted !== false;
-		const errors =
-			!options.errorsGated ||
-			(vendorAllowed && has(errorsCategory, info.consents));
+		const registrations = getScriptRegistrations(info);
+		const every = (category: HasCondition<AllConsentNames>): boolean =>
+			registrations.every(
+				(state) =>
+					state.vendor?.granted !== false && has(category, state.consents)
+			);
+		const errors = !options.errorsGated || every(errorsCategory);
 		latest = {
 			errors,
-			pii: vendorAllowed && has(options.piiCategory, info.consents),
-			replay:
-				vendorAllowed && errors && has(options.replayCategory, info.consents),
+			pii: every(options.piiCategory),
+			replay: errors && every(options.replayCategory),
 		};
 		if (typeof document === 'undefined') {
 			return;
@@ -1008,6 +1022,8 @@ const getCategory = (
 	return features;
 };
 
+const cdnClients = new WeakMap<SentryClient, SentryCdnOptions>();
+
 const createCdnScript = (
 	options: SentryCdnOptions,
 	category: HasCondition<AllConsentNames>,
@@ -1059,17 +1075,26 @@ const createCdnScript = (
 		...resolved,
 		alwaysLoad: options.loadMode === 'after-consent' ? undefined : true,
 		category,
+		observeConsentBeforeLoad: true,
 		onConsentChange: gate.update,
 		onDispose: gate.dispose,
 		onLoad: (info) => {
 			const sentryGlobal = getSentryGlobal();
 			try {
-				// The script loads again after a re-grant without a reload. The
-				// bundle reuses the running client, so initialize only once.
-				if (sentryGlobal && !sentryGlobal.getClient()) {
+				// Consent remounts keep their client. Changed configuration starts
+				// a new client so the DSN and initialization options take effect.
+				const previous = sentryGlobal?.getClient();
+				if (
+					sentryGlobal &&
+					(!previous || cdnClients.get(previous) !== options)
+				) {
 					sentryGlobal.init(
 						createInitOptions(sentryGlobal, dsn, initOptions, tracing)
 					);
+					const initialized = sentryGlobal.getClient();
+					if (initialized) {
+						cdnClients.set(initialized, options);
+					}
 				}
 			} catch (error) {
 				gate.report(error);

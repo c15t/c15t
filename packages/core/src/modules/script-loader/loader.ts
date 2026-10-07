@@ -217,7 +217,10 @@ export const createScriptLoaderWith = function createScriptLoaderWith(
 				!force &&
 				previousEligibility === eligible &&
 				previousConsent === hasConsent &&
-				!(permissionsChanged && typeof script.onConsentChange === 'function')
+				!(
+					(permissionsChanged || script.observeConsentBeforeLoad) &&
+					typeof script.onConsentChange === 'function'
+				)
 			) {
 				continue;
 			}
