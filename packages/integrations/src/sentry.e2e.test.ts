@@ -519,6 +519,101 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
 	});
 
+	it('preserves recording across equivalent SDK configurations', async () => {
+		const { client, processEvent } = createClient();
+		const replay = new FakeReplay('session');
+		const getClient = () => client;
+		const load = vi.fn(() => replay);
+		const setUser = vi.fn();
+		const user = () => ({ id: 'u1' });
+		const config = () =>
+			sentry({
+				getClient,
+				pii: { category: { or: ['measurement'] }, user },
+				replay: { category: { or: ['measurement'] }, load },
+				setUser,
+			});
+		const { loader } = mount(config(), grantedMeasurementConsents);
+		await settle();
+		const session = sessionStorage.getItem(sessionKey);
+		setUser.mockClear();
+		loader.updateScripts([config()]);
+		expect(replay.getRecordingMode()).toBe('session');
+		expect(replay.stop).not.toHaveBeenCalled();
+		expect(setUser).not.toHaveBeenCalledWith(null);
+		expect(sessionStorage.getItem(sessionKey)).toBe(session);
+		await settle();
+		expect(load).toHaveBeenCalledOnce();
+		expect(client.addIntegration).toHaveBeenCalledOnce();
+		loader.updateScripts([]);
+		expect(replay.stop).toHaveBeenCalledWith({ flush: false });
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+	});
+
+	it('keeps an in-flight Replay load across equivalent SDK configurations', async () => {
+		const { client } = createClient();
+		const getClient = () => client;
+		const pending = deferred<SentryReplay>();
+		const load = vi.fn(() => pending.promise);
+		const config = () => sentry({ getClient, replay: { load } });
+		const { loader } = mount(config(), grantedMeasurementConsents);
+		await settle();
+		loader.updateScripts([config()]);
+		const replay = new FakeReplay('session');
+		pending.resolve(replay);
+		await settle();
+		expect(load).toHaveBeenCalledOnce();
+		expect(replay.stop).not.toHaveBeenCalled();
+		expect(replay.getRecordingMode()).toBe('session');
+	});
+
+	it('can mount the same SDK script again after removal', async () => {
+		const { script, replays, processEvent } = setup();
+		const { loader } = mount(script, grantedMeasurementConsents);
+		await settle();
+		loader.updateScripts([]);
+		expect(replays[0]?.getRecordingMode()).toBeUndefined();
+		loader.updateScripts([script]);
+		await settle();
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+		expect(processEvent({ user: { id: 'u1' } }).user).toEqual({ id: 'u1' });
+	});
+
+	it('applies changed SDK feature conditions on replacement', async () => {
+		const { client, processEvent } = createClient();
+		const getClient = () => client;
+		const replay = new FakeReplay('session');
+		const load = () => replay;
+		const { loader } = mount(
+			sentry({ getClient, replay: { load } }),
+			grantedMeasurementConsents
+		);
+		await settle();
+		loader.updateScripts([
+			sentry({
+				getClient,
+				pii: { category: 'marketing' },
+				replay: { category: 'marketing', load },
+			}),
+		]);
+		expect(replay.getRecordingMode()).toBeUndefined();
+		expect(processEvent({ user: { id: 'u1' } }).user).toBeUndefined();
+	});
+
+	it('applies a changed user callback on SDK replacement', () => {
+		const { client } = createClient();
+		const getClient = () => client;
+		const setUser = vi.fn();
+		const { loader } = mount(
+			sentry({ getClient, pii: { user: () => ({ id: 'u1' }) }, setUser }),
+			grantedMeasurementConsents
+		);
+		loader.updateScripts([
+			sentry({ getClient, pii: { user: () => ({ id: 'u2' }) }, setUser }),
+		]);
+		expect(setUser).toHaveBeenLastCalledWith({ id: 'u2' });
+	});
+
 	it('denies necessary feature conditions when the Sentry vendor is off', async () => {
 		const replay = new FakeReplay('session');
 		const { script, processEvent } = setup({
@@ -544,6 +639,50 @@ describe('Sentry adapter through the kernel and script loader', () => {
 		expect(
 			processEvent({}, (event) => ({ ...event, user: { id: 'restored' } })).user
 		).toBeUndefined();
+	});
+
+	it.each(['user', 'sentry.user'])(
+		'strips %s attributes from transaction root and child spans after withdrawal',
+		async (prefix) => {
+			const { script, sendEnvelope } = setup();
+			const { kernel } = mount(script, grantedMeasurementConsents);
+			const createPayload = () => ({
+				contexts: {
+					trace: {
+						data: { 'http.method': 'GET', [`${prefix}.id`]: 'u1' },
+						span_id: 'span1',
+					},
+				},
+				spans: [{ data: { 'http.method': 'GET', [`${prefix}.id`]: 'u1' } }],
+				user: { id: 'u1' },
+			});
+			const allowed = createPayload();
+			expect(sendEnvelope('transaction', allowed)).toEqual(createPayload());
+			await kernel.commands.save(deniedConsents);
+			const denied = sendEnvelope('transaction', createPayload());
+			expect(denied.user).toBeUndefined();
+			expect(denied.contexts.trace).toEqual({
+				data: { 'http.method': 'GET' },
+				span_id: 'span1',
+			});
+			expect(denied.spans).toEqual([{ data: { 'http.method': 'GET' } }]);
+		}
+	);
+
+	it('strips a feedback user restored after processing while preserving the feedback', async () => {
+		const { script, sendEnvelope } = setup();
+		const { kernel } = mount(script, grantedMeasurementConsents);
+		const createPayload = () => ({
+			contexts: { feedback: { message: 'Something broke' } },
+			type: 'feedback',
+			user: { id: 'restored' },
+		});
+		expect(sendEnvelope('feedback', createPayload())).toEqual(createPayload());
+		await kernel.commands.save(deniedConsents);
+		expect(sendEnvelope('feedback', createPayload())).toEqual({
+			contexts: { feedback: { message: 'Something broke' } },
+			type: 'feedback',
+		});
 	});
 
 	it.each([
@@ -938,6 +1077,52 @@ const installSentryCdn = (sampling: Sampling = 'session') => {
 };
 
 describe('Sentry loaded from the CDN', () => {
+	it('preserves the SDK bundle and recording across equivalent CDN configurations', async () => {
+		const { loaded, replays, sentryGlobal } = installSentryCdn();
+		const config = () =>
+			sentry({
+				dsn,
+				initOptions: { replaysSessionSampleRate: 1 },
+				replay: { options: { maskAllText: true } },
+			});
+		const { loader } = mount(config(), grantedMeasurementConsents);
+		await settle();
+		const [bundle] = loaded;
+		const session = sessionStorage.getItem(sessionKey);
+		sentryGlobal.setUser.mockClear();
+		loader.updateScripts([config()]);
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+		expect(replays[0]?.stop).not.toHaveBeenCalled();
+		expect(sentryGlobal.setUser).not.toHaveBeenCalledWith(null);
+		await settle();
+		expect(loaded).toHaveLength(2);
+		expect(bundle?.isConnected).toBe(true);
+		expect(sentryGlobal.init).toHaveBeenCalledOnce();
+		expect(sessionStorage.getItem(sessionKey)).toBe(session);
+	});
+
+	it('keeps a pending SDK bundle across equivalent CDN configurations', async () => {
+		const { loaded, sentryGlobal } = installSentryCdn();
+		const { loader } = mount(sentry({ dsn }));
+		loader.updateScripts([sentry({ dsn })]);
+		await settle();
+		expect(loaded).toHaveLength(1);
+		expect(sentryGlobal.init).toHaveBeenCalledOnce();
+	});
+
+	it('resumes recording after removing and recreating a CDN configuration', async () => {
+		const { replays } = installSentryCdn();
+		const config = () =>
+			sentry({ dsn, initOptions: { replaysSessionSampleRate: 1 } });
+		const { loader } = mount(config(), grantedMeasurementConsents);
+		await settle();
+		loader.updateScripts([]);
+		expect(replays[0]?.getRecordingMode()).toBeUndefined();
+		loader.updateScripts([config()]);
+		await settle();
+		expect(replays[0]?.getRecordingMode()).toBe('session');
+	});
+
 	it('loads the pinned bundle with integrity and initializes Sentry once', async () => {
 		const { loaded, sentryGlobal } = installSentryCdn();
 		const script = sentry({

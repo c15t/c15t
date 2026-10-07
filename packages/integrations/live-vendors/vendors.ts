@@ -981,8 +981,11 @@ export const liveVendorProbeConfigs: LiveVendorProbeConfig[] = [
 		createScript: () =>
 			sentry({
 				dsn: 'https://00000000000000000000000000000000@o0.ingest.sentry.io/0',
-				initOptions: { autoSessionTracking: false },
-				replay: false,
+				initOptions: {
+					autoSessionTracking: false,
+					replaysOnErrorSampleRate: 1,
+					replaysSessionSampleRate: 1,
+				},
 			}),
 		deniedConsentProbe: {
 			collectUrlSubstrings: ['browser.sentry-cdn.com/11.4.0/replay.min.js'],

@@ -16,6 +16,7 @@ import {
 	waitForReplayPaint,
 } from '../_shared/replay-scheduler';
 import { requireId } from '../_shared/required-id';
+import { createScriptReuse } from '../_shared/reuse-script';
 import { trimToUndefined } from '../_shared/script-url';
 
 /** Recording mode that Sentry Replay reports while it records. */
@@ -409,7 +410,11 @@ const redactEnvelope = (envelope: SentryEnvelope): void => {
 			case 'event':
 			case 'transaction':
 			case 'replay_event':
+			case 'feedback':
 				delete payload.user;
+				if (isRecord(payload.contexts)) {
+					redactUserAttributes(payload.contexts.trace);
+				}
 				if (Array.isArray(payload.spans)) {
 					for (const span of payload.spans) {
 						redactUserAttributes(span);
@@ -1007,51 +1012,8 @@ const createCdnScript = (
 	};
 };
 
-/**
- * Run Sentry with c15t consent: error monitoring, Session Replay and user
- * data.
- *
- * Pass `dsn` and c15t loads Sentry from Sentry's CDN, pinned and with
- * subresource integrity, then calls `Sentry.init`. Pass `getClient` instead
- * when your app runs the Sentry SDK itself.
- *
- * Error monitoring runs for every visitor unless `loadMode` is
- * `after-consent`. Replay loads and records only once its permission is
- * allowed, and stops on withdrawal. While user data is not allowed, events
- * and sessions carry no user and Sentry infers no IP address.
- *
- * The script's vendor slug is `sentry`; while a visitor has that vendor
- * turned off, Replay and user data are treated as denied, as is error
- * monitoring with `loadMode: 'after-consent'`.
- *
- * @param options - A DSN for c15t to load Sentry, or your Sentry SDK functions.
- * @returns A script for the c15t script loader.
- * @throws {Error} If `dsn` is empty, `pii.user` is set without `setUser`, or
- *   `loadMode: 'after-consent'` is set with `getClient` but without `init`.
- * @example
- * ```ts
- * sentry({
- * 	dsn: 'https://your-key@o0.ingest.sentry.io/0',
- * 	initOptions: {
- * 		replaysSessionSampleRate: 0.1,
- * 		replaysOnErrorSampleRate: 1,
- * 	},
- * });
- * ```
- * @example
- * ```ts
- * import { getClient, setUser } from '@sentry/browser';
- *
- * sentry({
- * 	getClient,
- * 	setUser,
- * 	replay: {
- * 		load: () => import('./sentry-replay').then((m) => m.createReplay()),
- * 	},
- * });
- * ```
- */
-export const sentry = (options: SentryOptions): Script => {
+/** Build the SDK or CDN script and its consent gate. */
+const createSentryScript = (options: SentryOptions): Script => {
 	const replayCategory =
 		(options.replay ? options.replay.category : undefined) ?? defaultCategory;
 	const piiCategory = options.pii?.category ?? defaultCategory;
@@ -1107,3 +1069,55 @@ export const sentry = (options: SentryOptions): Script => {
 		vendor: scriptId,
 	};
 };
+
+const reuseSentryScript = createScriptReuse<SentryOptions>();
+
+/**
+ * Run Sentry with c15t consent: error monitoring, Session Replay and user
+ * data.
+ *
+ * Pass `dsn` and c15t loads Sentry from Sentry's CDN, pinned and with
+ * subresource integrity, then calls `Sentry.init`. Pass `getClient` instead
+ * when your app runs the Sentry SDK itself.
+ *
+ * Error monitoring runs for every visitor unless `loadMode` is
+ * `after-consent`. Replay loads and records only once its permission is
+ * allowed, and stops on withdrawal. While user data is not allowed, events
+ * and sessions carry no user and Sentry infers no IP address.
+ *
+ * The script's vendor slug is `sentry`; while a visitor has that vendor
+ * turned off, Replay and user data are treated as denied, as is error
+ * monitoring with `loadMode: 'after-consent'`.
+ *
+ * Equal configurations reuse the mounted script without interrupting Replay.
+ * Keep callback functions stable when recreating the options object.
+ *
+ * @param options - A DSN for c15t to load Sentry, or your Sentry SDK functions.
+ * @returns A script for the c15t script loader.
+ * @throws {Error} If `dsn` is empty, `pii.user` is set without `setUser`, or
+ *   `loadMode: 'after-consent'` is set with `getClient` but without `init`.
+ * @example
+ * ```ts
+ * sentry({
+ * 	dsn: 'https://your-key@o0.ingest.sentry.io/0',
+ * 	initOptions: {
+ * 		replaysSessionSampleRate: 0.1,
+ * 		replaysOnErrorSampleRate: 1,
+ * 	},
+ * });
+ * ```
+ * @example
+ * ```ts
+ * import { getClient, setUser } from '@sentry/browser';
+ *
+ * sentry({
+ * 	getClient,
+ * 	setUser,
+ * 	replay: {
+ * 		load: () => import('./sentry-replay').then((m) => m.createReplay()),
+ * 	},
+ * });
+ * ```
+ */
+export const sentry = (options: SentryOptions): Script =>
+	reuseSentryScript(options, createSentryScript);

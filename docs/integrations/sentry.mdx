@@ -154,10 +154,10 @@ Sentry. A later grant restores the original sampling decision rather than
 recording in full. If `Sentry.init` already includes Replay, the adapter warns
 in development and stops it while `measurement` is denied.
 
-While user data is not allowed, the adapter removes `user` from events, the user
-and IP address from sessions, and SDK user attributes from spans, logs and
-metrics. A final envelope filter also removes users added by later event
-processors or `beforeSend`. The adapter switches Sentry's IP inference off for
+While user data is not allowed, the adapter removes `user` from events and
+feedback, the user and IP address from sessions, and SDK user attributes from
+root spans, child spans, logs and metrics. A final envelope filter also removes
+users added by later event processors or `beforeSend`. The adapter switches Sentry's IP inference off for
 events, spans, logs and metrics. When the permission is allowed, your own
 `dataCollection` setting applies again. Tracing itself is not gated.
 
@@ -165,6 +165,12 @@ Removing the integration stops Replay without flushing, cancels pending starts
 and denies user data. With `loadMode: 'after-consent'`, removal also disables
 the client. Recreating the integration reuses the client's Replay instance and
 sampling decision. An app-initiated `Sentry.close()` stays closed after re-grant.
+
+Recreating `sentry()` with equal option values and the same callback functions
+keeps the SDK bundle and current Replay recording. Keep `getClient`, `setUser`,
+`init`, `replay.load`, `pii.user` and `onError` functions stable across renders. A changed
+configuration starts a new adapter lifecycle; removing it still stops Replay
+without flushing.
 
 The vendor slug is `sentry`; turning that vendor off denies Replay and user
 data, and error monitoring with `loadMode: 'after-consent'`. See
