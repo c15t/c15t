@@ -16,7 +16,10 @@ backend:
 import { offline, policyRulePresets } from 'c15t';
 
 const mode = offline({
-	policyRules: [policyRulePresets.europeOptIn(), policyRulePresets.worldNone()],
+	policyRules: [
+		policyRulePresets.europeOptIn(),
+		policyRulePresets.worldOptOutNoPrompt(),
+	],
 });
 ```
 
@@ -25,8 +28,10 @@ const mode = offline({
 | `europeOptIn()`, `europeIab()` | Same names |
 | `californiaOptIn()`, `californiaOptOut()` | Same names |
 | `quebecOptIn()` | Same name |
-| `worldNoBanner()` | `worldNone()` |
+| `worldNoBanner()` | `worldOptOutNoPrompt()` |
 
+`worldNone()` is a separate, new preset: it shows nothing and grants no
+rights, while `worldOptOutNoPrompt()` keeps v2's opt-out and preference rights.
 v3 adds presets for more regions. `offline()` without `policyRules` uses
 `recommendedPolicyRules()`. Read [policies](/docs/concepts/policies) before you
 change a rule's model or prompt, and

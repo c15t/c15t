@@ -156,7 +156,7 @@ client's `presentation` option. Rules with unknown keys or categories now fail
 validation.
 
 - **Presets.** `policyPackPresets` is now `policyRulePresets`, and
-  `worldNoBanner()` is now `worldNone()`. 28 presets are new, covering the US
+  `worldNoBanner()` is now `worldOptOutNoPrompt()`. 28 presets are new, covering the US
   privacy states, Canada, Australia, Japan, Switzerland, the UK, Brazil,
   India and much of Asia and the Middle East. Each lists its sources in
   `review`. A preset is a starting point, not legal advice.
@@ -267,8 +267,8 @@ Node.js SDK.
 
 **Visitors keep their choices.** v3 reads the `c15t` cookie and storage key
 v2 wrote. A v2 denial keeps blocking its category, and a v2 grant keeps
-applying until it expires. For rules built from presets, v3 also asks again
-if the policy changed since the grant.
+applying until it expires. When the rule comes from a preset and the v2 record
+noted its policy, v3 also asks again if that policy changed.
 
 **Upgrade clients and backend together.** A v3 client can't read a v2
 backend's `/init`. It shows no banner and keeps optional categories denied.

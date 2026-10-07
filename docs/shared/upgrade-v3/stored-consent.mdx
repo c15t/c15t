@@ -4,7 +4,9 @@ v3 uses the same `c15t` cookie and storage key as v2 and reads v2 records. It
 does not rewrite them on page load; the next accept, reject or save writes a
 v3 record.
 
-A v2 denial keeps restricting its category. A v2 grant keeps applying while it
-is within the policy's validity period and the policy has not changed since the
-visitor chose. Otherwise c15t asks again. Do not copy permissions into new
+A v2 denial keeps restricting its category. A v2 grant keeps applying until
+the policy's validity period runs out, and then c15t asks again. If the rule
+comes from a preset and the v2 record noted the policy it was made under, c15t
+also asks again when that policy has changed. Under custom rules, a v2 grant
+applies until it expires. Do not copy permissions into new
 records yourself; c15t decides which v2 choices still count.

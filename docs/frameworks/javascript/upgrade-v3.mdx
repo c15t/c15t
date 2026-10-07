@@ -13,9 +13,9 @@ group: frameworks
 
   1. Find every use of the `c15t` package and `@c15t/scripts`: `getOrCreateConsentRuntime`, `configureConsentManager`, `consentStore`, cookie helpers, script loader and iframe blocker functions.
   2. Decide which v3 entry fits. Use `@c15t/browser` if the app wants the stock banner, `createConsentRuntime` from `c15t/runtime` if it renders its own UI, and `createConsentKernel` only if it mounts each module itself. Tell me which one you picked and why.
-  3. Install `c15t@alpha`, or `@c15t/browser@alpha` for the stock banner, plus `@c15t/integrations@alpha` if the app uses vendor helpers.
+  3. Install `c15t@alpha`, or `@c15t/browser@alpha` for the stock banner, plus `@c15t/integrations@alpha` if the app uses vendor helpers and `@c15t/dev-tools@alpha` if it uses dev tools.
   4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json`, review it, then run it without `--dry-run`.
-  5. Replace each store call with its v3 equivalent from the guide's mapping table.
+  5. If you picked `createConsentRuntime`, call `runtime.start()` after creating it. Replace each store call with its v3 equivalent from the guide's mapping table.
   6. Update callbacks and policy presets as the guide describes.
   7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
   8. Run the typecheck and build.
@@ -42,7 +42,7 @@ to do.
 | You want | Use |
 | --- | --- |
 | The stock banner and dialog | `@c15t/browser`. Call `init()` from a bundled app, or add the script tag to a site without a build step. See the [quickstart](/docs/frameworks/javascript/quickstart). |
-| Your own UI, with persistence, the script loader and the blockers wired for you | `createConsentRuntime()` from `c15t/runtime`. See [headless](/docs/frameworks/javascript/headless). |
+| Your own UI, with persistence, the script loader and the blockers wired for you | `createConsentRuntime()` from `c15t/runtime`, then `runtime.start()`. See [headless](/docs/frameworks/javascript/headless). |
 | The engine alone, mounting each module yourself | `createConsentKernel()` from `c15t`. See the [kernel API](/docs/frameworks/javascript/api/kernel). |
 
 Install `c15t` for the runtime or the kernel:
@@ -55,6 +55,10 @@ exported from `c15t`. `translations` becomes `i18n`, and
 `iframeBlockerConfig` becomes `iframeBlocker`. See the
 [runtime reference](/docs/frameworks/javascript/api/runtime) for every option.
 
+`createConsentRuntime()` only builds the runtime. Call `runtime.start()` to
+read stored consent, resolve the policy and mount the script loader and
+blockers. Until then nothing is gated.
+
 ## Replace store calls
 
 The runtime exposes the kernel as `runtime.kernel`. Read state from
@@ -63,13 +67,16 @@ The runtime exposes the kernel as `runtime.kernel`. Read state from
 | v2 store | v3 |
 | --- | --- |
 | `consentStore.getState()` | `kernel.getSnapshot()` |
-| `consentStore.subscribe(listener)`, `subscribeToConsentChanges(listener)` | `kernel.subscribe(listener)`, or the `onPermissionsChanged` callback |
+| `consentStore.subscribe(listener)` | `kernel.subscribe(listener)`. The listener gets the whole snapshot, on every change. |
+| `subscribeToConsentChanges(listener)` | `kernel.events.on('permissions:changed', ({ snapshot }) => listener(snapshot.effectivePermissions))`, or the `onPermissionsChanged` callback |
 | `has(category)` | `kernel.getSnapshot().effectivePermissions[category]` |
 | `consents` | `kernel.getSnapshot().effectivePermissions` |
-| `consentInfo`, `hasConsented()` | `kernel.getSnapshot().explicitChoice`, which is `null` until the visitor chooses |
+| `consentInfo` | `kernel.getSnapshot().explicitChoice`, which is `null` until the visitor chooses |
+| `hasConsented()` | `kernel.getSnapshot().explicitChoice !== null` |
 | `saveConsents('all')` | `kernel.commands.save('all')` |
 | `saveConsents('necessary')` | `kernel.commands.save('none')` |
-| `saveConsents('custom')` | `kernel.commands.save()`, which saves the staged draft |
+| `selectedConsents`, `setSelectedConsent(name, value)` | `createPreferenceDraft(kernel)` from `c15t/preference-draft`, then `draft.getState()` and `draft.set(name, value)` |
+| `saveConsents('custom')` | `draft.save()` on that preference draft |
 | `setConsent(name, value)` | `kernel.commands.save({ [name]: value })` |
 | `activeUI`, `setActiveUI(ui)` | `kernel.getSnapshot().activeUI`, `kernel.set.activeUI(ui)` |
 | `locationInfo` | `kernel.getSnapshot().location` |
@@ -106,8 +113,9 @@ choice, so don't treat a `true` permission as a recorded grant. See
 
 ## Update dev tools
 
-Dev tools no longer depend on React. Call `createDevTools({ kernel })` from
-`@c15t/dev-tools` with your runtime's kernel. See
+Dev tools no longer depend on React. Upgrade `@c15t/dev-tools` to
+`@c15t/dev-tools@alpha` with the rest of c15t, then call
+`createDevTools({ kernel })` with your runtime's kernel. See
 [dev tools](/docs/frameworks/javascript/dev-tools).
 
 <include src="../../shared/upgrade-v3/cli.mdx" />
