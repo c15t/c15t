@@ -342,7 +342,19 @@ const DEFAULT_THEME_BANNER =
 	'/* default theme tokens (generated from defaultTheme) */';
 const DEFAULT_THEME_CSS = [
 	DEFAULT_THEME_BANNER,
-	generateDefaultThemeCSS(defaultTheme),
+	// Only the package defaults use a primary reference, so CSS-only themes
+	// can change the switch color by setting --c15t-primary.
+	generateDefaultThemeCSS({
+		...defaultTheme,
+		colors: {
+			...defaultTheme.colors,
+			switchTrackActive: 'var(--c15t-primary)',
+		},
+		dark: {
+			...defaultTheme.dark,
+			switchTrackActive: 'var(--c15t-primary)',
+		},
+	}),
 ].join('\n');
 
 /**

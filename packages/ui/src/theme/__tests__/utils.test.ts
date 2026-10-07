@@ -3,6 +3,7 @@ import { describe, expect, test } from 'vitest';
 import type { Theme } from '../types';
 import {
 	defaultTheme,
+	generateDefaultThemeCSS,
 	generateThemeCSS,
 	getContrastColor,
 	themeToVars,
@@ -286,6 +287,18 @@ describe('getContrastColor', () => {
 
 	test('supports rgb color inputs', () => {
 		expect(getContrastColor('rgb(255, 214, 10)')).toBe('#000000');
+	});
+});
+
+describe('generateDefaultThemeCSS', () => {
+	test('preserves explicit light and dark active switch colors', () => {
+		const css = generateDefaultThemeCSS({
+			colors: { primary: '#008000', switchTrackActive: '#ff8000' },
+			dark: { primary: '#80ff80', switchTrackActive: '#ff80ff' },
+		});
+
+		expect(css).toContain('--c15t-switch-track-active: #ff8000');
+		expect(css).toContain('--c15t-switch-track-active: #ff80ff');
 	});
 });
 
