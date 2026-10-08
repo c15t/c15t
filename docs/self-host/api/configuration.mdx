@@ -43,7 +43,7 @@ fallback. Add reviewed rules for other locations in
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
 | `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
 | `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. `replayWindowSeconds` (default 604,800, 7 days) is how long after a token expires a save made while it was valid is still accepted; `0` refuses every late save. See [late saves](/docs/self-host/api/endpoints#late-saves). |
-| `identityToken` | `signingKey`, and optionally `issuer` (default `c15t`) and `audience` (default `c15t-identity`), for verifying [identity tokens](/docs/self-host/api/endpoints#verify-identity-links) a browser sends with `identify()`. The key must be at least 32 bytes, such as the output of `openssl rand -base64 32`; a shorter one throws when the instance is built. Without a key, only requests with an API key verify a link. Use a key for this tenant alone. |
+| `identityToken` | `signingKey` of at least 32 bytes, plus optional `issuer` (default `c15t`) and `audience` (default `c15t-identity`), for verifying [identity tokens](/docs/self-host/api/endpoints#verify-identity-links). Without it, only API-key requests verify links. Keep the key secret, one per tenant. |
 | `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
 | `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
 | `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |
@@ -116,10 +116,6 @@ pin one, such as `localhost:3000`. `*.example.com` matches subdomains, and `*`
 allows every origin. CORS controls which browser pages can read responses. It is not authentication and does not
 prevent a non-browser client from calling a public endpoint. Keep API keys,
 database credentials and signing keys in server environment variables.
-
-An identity token signing key lets its holder link any subject to any of your
-user IDs, so treat it like an API key. On a shared database, give each tenant
-its own key.
 
 A `tenantId` scopes an instance, not an arbitrary incoming header. Construct the
 correct tenant instance in trusted application code. Do not choose a tenant from

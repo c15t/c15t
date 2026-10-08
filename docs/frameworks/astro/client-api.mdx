@@ -125,9 +125,8 @@ made. A save that turns off a category that was allowed reloads the page,
 unless the integration sets `reloadOnConsentRevoked: false`.
 
 Call `identify()` after your visitor signs in. `externalId` is your own user
-ID. `identityProvider` and `properties` are optional. Pass an `identityToken`
-signed by your server to [verify the link](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser); without one, server-side
-reads by your user ID ignore it.
+ID. `identityProvider`, `properties` and an
+[`identityToken`](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser) that verifies the link are optional.
 
 ## Run gated inline scripts
 

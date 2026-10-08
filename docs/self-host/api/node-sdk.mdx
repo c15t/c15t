@@ -176,7 +176,7 @@ type SubjectError = C15tErrorCodeOf<typeof c15t.subjects.get>;
 | Method | Endpoint | API key |
 | --- | --- | --- |
 | `consents.check({ externalId, types })` | `GET /consents/check` | Required |
-| `subjects.identify(id, { externalId, identityProvider, identityToken })` | `PATCH /subjects/:id` | No, but only a client with a key or a token [verifies the link](#link-a-user-after-sign-in) |
+| `subjects.identify(id, { externalId, identityProvider, identityToken })` | `PATCH /subjects/:id` | No, but [verifies](#link-a-user-after-sign-in) only with a key or token |
 | `subjects.get(id, { types })` | `GET /subjects/:id` | No |
 | `subjects.create(input)` | `POST /subjects` | No |
 | `subjects.list({ externalId })` | `GET /subjects` | Required |
@@ -266,10 +266,9 @@ backend stores `external` without it. `data.subject` holds `id`, `externalId`
 and `identityProvider`. An unknown subject ID returns `NOT_FOUND`. Linking the
 same user again changes nothing.
 
-A link made without a key or an identity token is stored but unverified, so
-`consents.check` and `subjects.list` ignore it, so per-user reads only reflect
-links your server vouched for. An unverified link can't replace a verified
-one; that returns `IDENTITY_CONFLICT`.
+Without a key or an identity token the link is stored but unverified, and
+`consents.check` and `subjects.list` ignore it. It also can't replace a
+verified link; that returns `IDENTITY_CONFLICT`.
 
 ### Verify a link made in the browser
 
@@ -301,16 +300,11 @@ creates, so call `identify()` for a visitor who consented before signing in:
 await identify({ externalId: user.id, identityToken });
 ```
 
-`createIdentityToken` returns a JWT that expires after `ttlSeconds`, one hour
-by default. Mint a fresh one per page load rather than storing it. When you
-pass `identityProvider` to `createIdentityToken`, the browser must send the
-same one. A token the backend can't verify returns `IDENTITY_TOKEN_INVALID`
-and links nothing. A token sent with the first consent save, before the
-subject exists, never blocks the save: when it fails, the consent is still
-recorded and the link stays unverified.
-
-Links made before the backend checked them are unverified. Relink those users
-with `c15tAdmin.subjects.identify` or a token on their next sign-in.
+The token expires after `ttlSeconds`, one hour by default, so mint one per page
+load. If you pass `identityProvider`, the browser must send the same one. A
+token that fails returns `IDENTITY_TOKEN_INVALID` and links nothing. See
+[verify identity links](/docs/self-host/api/endpoints#verify-identity-links)
+for the full rules.
 
 ### Export a user's records
 

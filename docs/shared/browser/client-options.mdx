@@ -43,7 +43,7 @@ group: reference
   | `callbacks` | `{ onChoiceRecorded?, onPermissionsChanged?, onError?, onBeforeConsentRevocationReload? }` | none | Functions c15t calls on consent events. |
   | `storageConfig` | `{ storageKey?, crossSubdomain?, defaultDomain?, defaultExpiryDays? }` | key `c15t`, current host, 365 days | The name, domain and lifetime of the consent cookie and localStorage key. |
   | `persistence` | `boolean` or `{ storageConfig?, skipHydration?, sync? }` | `true` | Read and write choices in the cookie and localStorage, and follow other tabs. `false` keeps choices in memory only. `{ sync: false }` stops following other tabs. |
-  | `user` | `{ externalId, identityProvider?, identityToken?, externalIdType?, properties? }` | none | An identified visitor, sent with consent records. `identityToken` is a short-lived token your server signs to [verify the link](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). This option only links a subject the next save creates; call `identify()` to link a visitor who already has one. |
+  | `user` | `{ externalId, identityProvider?, identityToken?, externalIdType?, properties? }` | none | An identified visitor, sent with consent records. [`identityToken`](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser) verifies the link. Links only a subject the next save creates; use `identify()` for an existing one. |
   | `iab` | IAB options or `false` | none | CMP settings such as `cmpId` and `vendors`. Only the IAB build accepts it; the other builds throw when it is set. |
 </section>
 

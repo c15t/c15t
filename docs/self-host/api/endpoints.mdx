@@ -194,37 +194,25 @@ on each request, and the client applies the signal live in the browser.
 
 ## Verify identity links
 
-`POST /subjects` (with `externalSubjectId`) and `PATCH /subjects/:id` accept an
-external ID from the browser. `GET /subjects?externalId=` and
-`GET /consents/check` count a subject only when its link was verified. A link is verified when the request:
+`GET /subjects?externalId=` and `GET /consents/check` count a subject only when
+its link to the external ID was verified: the `POST /subjects` or
+`PATCH /subjects/:id` that made it carried an API key, or an `identityToken`
+signed with [`identityToken.signingKey`](/docs/self-host/api/configuration).
+Unverified links are stored but skipped by those reads.
 
-- carries an API key, as calls from your own server do; or
-- carries an `identityToken` that your server signed with the backend's
-  [`identityToken.signingKey`](/docs/self-host/api/configuration), naming the
-  same external ID.
-
-An unverified link is still stored, and still visible through
-`GET /subjects/:id`. It doesn't answer "what did this user consent to".
-
-Mint tokens with `createIdentityToken` from the
-[Node.js SDK](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser).
-A token is an HS256 JWT with `sub` set to the external ID, `aud` set to
-`c15t-identity`, `iss` set to `c15t`, a required `exp`, and an optional `idp`
-that must match `identityProvider`.
+Mint tokens with [`createIdentityToken`](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). From
+another language, sign an HS256 JWT with `sub` set to the external ID, `aud`
+`c15t-identity`, `iss` `c15t`, an `exp`, and optionally `idp` matching
+`identityProvider`.
 
 | Response | Cause |
 | --- | --- |
 | `401 IDENTITY_TOKEN_INVALID` | `PATCH` only. The token doesn't verify, has expired, or names another external ID or provider. Nothing changes. |
 | `409 IDENTITY_CONFLICT` | `PATCH` only. The subject's current link is verified and this request isn't, so it can't replace it. Sending the same identity again succeeds. |
 
-`POST /subjects` never refuses a consent because of its token. With a bad or
-expired token the consent is recorded and the link stays unverified. Call
-`PATCH /subjects/:id` with a fresh token to verify it. The token only applies
-when the save creates the subject.
-
-Links made before this check existed are unverified. Relink them from your
-server with an API key, or send a token from the browser on the visitor's next
-sign-in.
+`POST /subjects` never refuses a consent because of its token: a bad token
+leaves the link unverified, and the token only applies when the save creates
+the subject. Verify an existing subject with `PATCH /subjects/:id`.
 
 ## Make an administrative request
 
