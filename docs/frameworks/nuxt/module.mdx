@@ -20,7 +20,7 @@ the whole setup.
 | What | Details |
 | --- | --- |
 | Components | `ConsentRoot`, `ConsentWidget`, `ConsentPreferencesLink`, `ConsentDialogTrigger`, `ConsentGate` and the deprecated `ConsentFrame`, all global. See [components](/docs/frameworks/nuxt/components). |
-| Composables | 25 composables, auto-imported. See [composables](/docs/frameworks/nuxt/composables). |
+| Composables | 29 composables, auto-imported. See [composables](/docs/frameworks/nuxt/composables). |
 | A Nuxt plugin | Creates the consent runtime for each request on the server and once in the browser, resolves the visitor's policy during server rendering, and writes the `tokens` option into the page head. |
 | Server routes | With `buildManifest: true` or `manifest: 'server'`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
 | The `#c15t/composables` alias | Points at the module's composables, for the few that are not auto-imported. |
@@ -46,7 +46,7 @@ keys, including when you register it as `c15t/vue`.
 
 | Put it in | Options |
 | --- | --- |
-| `nuxt.config.ts` | Plain data: `backendURL`, `manifest`, `manifestURL`, `tokens`, `presentation`, `components`, `legalLinks`, trigger options, network blocker `rules`. |
+| `nuxt.config.ts` | Plain data: `backendURL`, `manifest`, `manifestURL`, `tokens`, `presentation`, `components`, `legalLinks`, trigger options, network blocker `rules`. Also the options that only work here: `buildManifest`, `initPrefetch` and `devtools`. |
 | `app/app.config.ts` | Anything with a function: `scripts`, `callbacks`, `networkBlocker.onRequestBlocked`. |
 
 Module options reach the browser as JSON through `runtimeConfig.public`,
@@ -71,13 +71,21 @@ NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app \
 ```
 
 The browser, server rendering and the module's init and manifest routes all use
-this value. `NUXT_PUBLIC_C15T_MANIFEST_URL` does the same for `manifestURL`.
-Keep `backendURL` in `nuxt.config.ts`: a value in `app.config.ts` is bundled
-with the app and takes precedence over runtime config.
+this value. `NUXT_PUBLIC_C15T_MANIFEST_URL` does the same for `manifestURL`
+when `nuxt.config.ts` sets `manifestURL`; an empty string is enough. Keep
+`backendURL` in `nuxt.config.ts`: a value in `app.config.ts` is bundled with
+the app and takes precedence over runtime config.
+
+With `buildManifest: true`, the policy comes from the build. The init and
+manifest routes serve the bundled snapshot and never download one, so these
+variables only change where consent saves and session reports go, and the
+manifest URL variables have no effect. To use another project's policy, set
+the URL when you build and build again.
 
 The init and manifest routes can reach the backend at an address the browser
 does not use, such as an internal hostname. Set `NUXT_C15T_BACKEND_URL` or
-`NUXT_C15T_MANIFEST_URL` for that. Only those two routes read these variables.
+`NUXT_C15T_MANIFEST_URL` for that. Only those two routes read these variables,
+and only when they download the manifest at runtime.
 
 `nuxt generate` writes the config into the static files, so a static site
 picks up a new URL only when you generate it again.
@@ -90,14 +98,15 @@ picks up a new URL only when you generate it again.
 | --- | --- | --- |
 | `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. Consent saves go here. |
 | `manifest` | `false` | `'server'` resolves each visitor on the Nuxt server from a cached manifest. `'client'` resolves in the browser. `false` calls the backend's `/init`. `true` is an older name for `'server'`. |
-| `buildManifest` | `false` | Recommended for Nuxt server deployments. Fetches a snapshot during build and development setup, enables server manifest mode and embeds it in the server bundle. Requires an absolute upstream URL. Rebuild after policy edits. Cannot be combined with `manifest: 'client'`. |
-| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. It does not choose a mode: with `manifest` unset the module keeps its `false` default and calls `/init`, so set `manifest: 'server'` (or `true`) to add the init and manifest server routes. |
+| `buildManifest` | `false` | Recommended for Nuxt server deployments. Fetches a snapshot during `nuxt build` and when `nuxt dev` starts, enables server manifest mode and embeds it in the server bundle. `nuxt prepare` skips the fetch. A failed fetch stops the build. Requires an absolute upstream URL. Runtime URL environment variables don't change the snapshot, so rebuild after policy edits. Cannot be combined with `manifest: 'client'`, and needs a Nuxt server, not `nuxt generate`. |
+| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. With `buildManifest: true`, it is where the build downloads the snapshot, and the server doesn't use it at runtime. It does not choose a mode: with `manifest` unset the module keeps its `false` default and calls `/init`, so set `buildManifest: true` or `manifest: 'server'` to add the init and manifest server routes. |
 | `manifestSnapshot` | Unset | A manifest object to use instead of downloading one, for example imported from a JSON file in `nuxt.config.ts`. In client mode the browser resolves the policy from it and does not request the manifest. Where the module adds a manifest route, that route serves it. The app's JavaScript includes it in every mode, because `app.config.ts` can switch to client mode. `buildManifest` takes precedence on the server, and a `manifestSnapshot` in `app.config.ts` takes precedence in the browser. Rebuild after policy edits. |
 | `geoURL` | Unset | Client mode only. An endpoint that returns `{ country, region }` for the visitor. |
 | `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
 | `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
 | `timeoutMs` | `500` | Longest wait for the policy during server rendering. `false` or `Infinity` waits as long as the backend takes; any other value that is not a finite, non-negative number uses the default. |
 | `initPrefetch` | `true` | Pages with `ssr: false` and `manifest` unset start `/init` from an inline script in the page head, before the app's JavaScript loads. Skipped when `consentSource`, `customFetch` or `experiment` is set, and when Nitro auto-imports are off, as under `future.compatibilityVersion: 5`, because the server cannot then read `app.config.ts`. `false` turns it off. To turn it off for some routes, set the route rule `c15t: { initPrefetch: false }`. See [Content Security Policy](/docs/frameworks/nuxt/content-security-policy#allow-the-early-init-script). |
+| `devtools` | `true` | Adds a c15t tab to Nuxt DevTools in development. Production builds don't include it. See [DevTools](/docs/frameworks/nuxt/components/dev-tools). |
 | `reportSessions` | `true` | Server mode only. The init route reports each visitor it resolves to the backend, so Inth counts visitors it never served `/init` to. Needs an absolute `backendURL`. |
 
 [Rendering and deployment](/docs/frameworks/nuxt/rendering) explains which

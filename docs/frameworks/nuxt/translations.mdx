@@ -18,8 +18,9 @@ keys and how to write labels that describe each action.
 
 The request's `Accept-Language` header decides:
 
-- With `manifest: 'server'`, the Nuxt server reads the header during server
-  rendering and resolves the text from the cached manifest. The banner is in
+- With `buildManifest: true` or `manifest: 'server'`, the Nuxt server reads
+  the header during server rendering and resolves the text from the bundled
+  or cached manifest. The banner is in
   the visitor's language in the first HTML.
 - With `manifest` unset, the server forwards the header to the backend's
   `/init`.
