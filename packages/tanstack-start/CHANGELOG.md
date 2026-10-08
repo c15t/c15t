@@ -1,3 +1,17 @@
+## @c15t/tanstack-start@3.0.0-alpha.7 (alpha)
+
+### Share TanStack Start consent options with `ConsentManifestOptions`
+
+Pass one options object to `createConsentStateHandler` and
+`createConsentServerRoute`, so both use the same build-time snapshot:
+
+```ts
+export const consentOptions = {
+	backendURL: 'https://your-project.inth.app',
+	manifest: consentManifest,
+} satisfies ConsentManifestOptions;
+```
+
 ## @c15t/tanstack-start@3.0.0-alpha.6 (alpha)
 
 ### `ConsentRoot` starts consented scripts sooner

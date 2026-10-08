@@ -1,3 +1,49 @@
+## @c15t/core@3.0.0-alpha.7 (alpha)
+
+### Report failed and dropped consent saves
+
+Development builds log a `[c15t]` warning when a save is queued for retry, a
+replay fails, or a save is dropped. A queued save dropped after 10 attempts,
+7 days or a refusal now reaches `onError`.
+
+### Add a Sentry integration
+
+Add `sentry()` from `@c15t/integrations/sentry`, with CDN and app-managed SDK modes,
+CLI setup and the `@c15t/scripts/sentry` compatibility export. Errors run before
+consent by default; Replay and SDK data collection wait for measurement.
+`loadMode: 'after-consent'` gates errors too.
+
+Apply consent at initialization and before sending data. Withdrawal stops Replay
+without flushing pending recordings. Shared configurations coordinate consent and
+reuse the SDK bundle and recorder across renders.
+
+Add core `Script.observeConsentBeforeLoad` and `Script.resourceKey`. Shared
+resources retain each registration's callbacks, consent and ownership, including
+registrations that join after loading completes.
+
+### Stop the first vendor helper call from loading the ICU collator
+
+Integration helpers such as `googleTagManager()` and `metaPixel()` built their
+manifest cache key by sorting config keys with `localeCompare`. The first
+`localeCompare` call in a page makes the browser set up its collator, so a page
+that had not compared strings yet paid for it on the first helper call. The
+cache key now sorts keys with a plain comparison.
+
+The preference draft's vendor list sort had the same problem. It now uses
+`compareCanonical` like the rest of core, so mounting a preference center no
+longer loads the collator either.
+
+In headless Chromium with 4x CPU throttling, a page that calls the GTM, GA4 and
+Meta Pixel helpers spends about 30 ms less on the main thread during load.
+
+### Verified identity links
+
+`GET /subjects?externalId=` and `GET /consents/check` now count only verified links between a subject and your user ID. A link is verified by an API key, or by an `identityToken` from `createIdentityToken` in `@c15t/node-sdk`, passed to `identify({ externalId, identityToken })` and checked against the new `identityToken.signingKey` option.
+
+- `GET /consents/check` requires an API key, so `consents.check` moves to the node-sdk client created with `apiKey`.
+- Existing links, including those made by v2, stay unverified until relinked.
+- Migration 8 adds `subject.verifiedExternalId`.
+
 ## @c15t/core@3.0.0-alpha.6 (alpha)
 
 ### Keep development warnings out of production builds

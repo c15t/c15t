@@ -1,3 +1,20 @@
+## @c15t/nextjs@3.0.0-alpha.7 (alpha)
+
+### Share Next.js consent options with `ConsentManifestOptions`
+
+Pass one options object to `resolveConsent` and the consent route handlers, so
+both use the same build-time snapshot:
+
+```ts
+export const consentOptions = {
+	config: consentConfig,
+	manifest: consentManifest,
+} satisfies ConsentManifestOptions;
+```
+
+`createNextConsentRouteHandlers` and `createPagesApiHandlers` now accept
+`config`.
+
 ## @c15t/nextjs@3.0.0-alpha.6 (alpha)
 
 ### `ConsentRoot` starts consented scripts sooner

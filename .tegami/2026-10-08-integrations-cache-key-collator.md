@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/integrations': patch
-  '@c15t/core': patch
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Stop the first vendor helper call from loading the ICU collator

@@ -1,3 +1,32 @@
+## c15t@3.0.0-alpha.7 (alpha)
+
+### Share Next.js consent options with `ConsentManifestOptions`
+
+Pass one options object to `resolveConsent` and the consent route handlers, so
+both use the same build-time snapshot:
+
+```ts
+export const consentOptions = {
+	config: consentConfig,
+	manifest: consentManifest,
+} satisfies ConsentManifestOptions;
+```
+
+`createNextConsentRouteHandlers` and `createPagesApiHandlers` now accept
+`config`.
+
+### Share TanStack Start consent options with `ConsentManifestOptions`
+
+Pass one options object to `createConsentStateHandler` and
+`createConsentServerRoute`, so both use the same build-time snapshot:
+
+```ts
+export const consentOptions = {
+	backendURL: 'https://your-project.inth.app',
+	manifest: consentManifest,
+} satisfies ConsentManifestOptions;
+```
+
 ## c15t@3.0.0-alpha.6 (alpha)
 
 ### Report who runs the backend as `window.c15t.hosting`
