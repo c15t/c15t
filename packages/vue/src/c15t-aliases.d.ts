@@ -44,3 +44,12 @@ declare module '#c15t/manifest-snapshot' {
 	const manifest: ConsentManifest | undefined;
 	export default manifest;
 }
+
+/** A Nuxt template the module registers for client manifest mode. */
+declare module '#c15t/client-manifest-snapshot' {
+	import type { ConsentManifest } from '@c15t/schema/types';
+
+	/** A `manifestSnapshot` from the `c15t` key, in client manifest mode. */
+	const manifest: ConsentManifest | undefined;
+	export default manifest;
+}

@@ -3,6 +3,7 @@ import type { RequestConsentState } from '@c15t/core/server';
 import { defu } from 'defu';
 import { computed, markRaw, toRaw, watch } from 'vue';
 
+import clientManifestSnapshot from '#c15t/client-manifest-snapshot';
 import {
 	defineNuxtPlugin,
 	useAppConfig,
@@ -72,6 +73,11 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			(merged.colorScheme as string | null | undefined) === ''
 		) {
 			merged.colorScheme = null;
+		}
+		// The module bundles a `c15t` key snapshot here in client manifest
+		// mode. A snapshot in app config wins.
+		if (clientManifestSnapshot && !merged.manifestSnapshot) {
+			merged.manifestSnapshot = clientManifestSnapshot;
 		}
 		return merged;
 	});

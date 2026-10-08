@@ -2,12 +2,14 @@ import { existsSync, realpathSync } from 'node:fs';
 
 import { loadBuildManifest } from '@c15t/core/build';
 import { defaultConsentConfig } from '@c15t/schema/config';
+import type { ConsentManifest } from '@c15t/schema/types';
 import {
 	addComponent,
 	addImports,
 	addPlugin,
 	addServerHandler,
 	addServerPlugin,
+	addTemplate,
 	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
@@ -89,6 +91,10 @@ const addDevToolsTab = (
 	});
 };
 
+/** Source of a module whose default export is the manifest snapshot. */
+const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
+	`export default ${snapshot ? JSON.stringify(snapshot) : 'undefined'};`;
+
 const loadNuxtBuildManifest = (
 	enabled: boolean | undefined,
 	options: ModuleOptions,
@@ -132,11 +138,16 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			options.colorScheme = null;
 		}
 		const resolver = createResolver(import.meta.url);
-		const manifestSnapshot = await loadNuxtBuildManifest(
-			buildManifest,
-			options,
-			nuxt.options._prepare
-		);
+		// A `manifestSnapshot` under the `c15t` key stays out of runtime config,
+		// like the build snapshot below.
+		const configuredSnapshot = options.manifestSnapshot;
+		delete options.manifestSnapshot;
+		const manifestSnapshot =
+			(await loadNuxtBuildManifest(
+				buildManifest,
+				options,
+				nuxt.options._prepare
+			)) ?? configuredSnapshot;
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);
@@ -167,7 +178,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		// during the build, and the routes would reject each policy pack.
 		nuxt.options.nitro.virtual ||= {};
 		nuxt.options.nitro.virtual['#c15t/manifest-snapshot'] = () =>
-			`export default ${manifestSnapshot ? JSON.stringify(manifestSnapshot) : 'undefined'};`;
+			renderSnapshotModule(manifestSnapshot);
+		// The app bundles a `c15t` key snapshot in every mode, because app
+		// config can switch to client manifest mode after this setup. The
+		// build snapshot stays on the server: `buildManifest` needs server mode.
+		nuxt.options.alias['#c15t/client-manifest-snapshot'] = addTemplate({
+			filename: 'c15t-client-manifest-snapshot.mjs',
+			getContents: () => renderSnapshotModule(configuredSnapshot),
+		}).dst;
 
 		nuxt.options.runtimeConfig.public.c15t = defu(
 			nuxt.options.runtimeConfig.public.c15t ?? {},
@@ -261,20 +279,22 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				{ nitro: true, nuxt: true }
 			);
 			// Nitro's typed routes import the server handlers, and with them
-			// the build snapshot virtual.
+			// the snapshot virtual. The plugin imports the client snapshot.
 			addTypeTemplate(
 				{
 					filename: 'types/c15t-manifest-snapshot.d.ts',
 					getContents: () =>
-						[
-							"declare module '#c15t/manifest-snapshot' {",
-							`\timport type { C15tNuxtConfig } from ${JSON.stringify(specifier)};`,
-							'',
-							"\tconst manifest: C15tNuxtConfig['manifestSnapshot'];",
-							'\texport default manifest;',
-							'}',
-							'',
-						].join('\n'),
+						['#c15t/manifest-snapshot', '#c15t/client-manifest-snapshot']
+							.flatMap((id) => [
+								`declare module '${id}' {`,
+								`\timport type { C15tNuxtConfig } from ${JSON.stringify(specifier)};`,
+								'',
+								"\tconst manifest: C15tNuxtConfig['manifestSnapshot'];",
+								'\texport default manifest;',
+								'}',
+								'',
+							])
+							.join('\n'),
 				},
 				{ nitro: true, nuxt: true }
 			);
