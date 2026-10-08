@@ -1,13 +1,11 @@
-Wrap your existing Next.js config object or function:
+Wrap your Next.js config in `withConsentManifest`. An existing config object
+or function goes in as the first argument, unchanged:
 
-{/* example: fragment */}
+<include src="../examples/nextjs/next-config.mdx" />
 
-```ts title="next.config.ts"
-import { withConsentManifest } from 'c15t/next/build';
-
-export default withConsentManifest(config, {
-	backendURL: 'https://your-project.inth.app',
-});
-```
-
-`next build` and `next dev` write `c15t-manifest.ts`. Keep it out of Git.
+`next build`, `next dev` and `next typegen` fetch `${backendURL}/manifest` and
+write the policy to `c15t-manifest.ts` in the directory you run them from.
+`next start` serves the built snapshot and fetches no policy. The build reads
+`NEXT_PUBLIC_C15T_BACKEND_URL` with the same fallback as `c15t.config.ts`, so
+saves and the snapshot point at the same project. Keep `c15t-manifest.ts` out
+of Git.

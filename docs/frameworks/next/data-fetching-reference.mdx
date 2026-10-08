@@ -62,15 +62,15 @@ cached manifest in your app instead of calling the backend's `/init`.
 
 Add `initURL: '/api/c15t/init'` to your existing `defineConsentConfig` value,
 keeping `backendURL` and `manifestURL`. Then add the handler for your router.
-Like the manifest handler, it reads the upstream backend from the config's
-`backendURL`.
+Pass it the same `consentOptions` from `c15t.server.ts` as the manifest route,
+so it resolves the build-time snapshot.
 
 ```ts title="app/api/c15t/init/route.ts"
 import { createNextConsentRouteHandlers } from 'c15t/next/api';
 
-import { consentConfig } from '@/c15t.config';
+import { consentOptions } from '@/c15t.server';
 
-export const { GET } = createNextConsentRouteHandlers(consentConfig);
+export const { GET } = createNextConsentRouteHandlers(consentOptions);
 ```
 
 For Pages Router, use this file instead:
@@ -78,9 +78,9 @@ For Pages Router, use this file instead:
 ```ts title="pages/api/c15t/init.ts"
 import { createPagesApiHandlers } from 'c15t/next/pages';
 
-import { consentConfig } from '@/c15t.config';
+import { consentOptions } from '@/c15t.server';
 
-export default createPagesApiHandlers(consentConfig).init;
+export default createPagesApiHandlers(consentOptions).init;
 ```
 
 Without `initURL`, browser initialization resolves the manifest locally. It
@@ -457,11 +457,12 @@ only with `trustForwardedHeaders: true`.
 The [App Router](/docs/frameworks/next/app-router) and
 [Pages Router](/docs/frameworks/next/pages-router) manifest setups use this flow:
 
-1. The app's manifest handler fetches the absolute backend's `/manifest`
-   endpoint and caches public policy data.
-2. `resolveConsent({ config: consentConfig })` reads the manifest route,
-   resolves policy with the current request's inputs and restores valid consent
-   cookies.
+1. `next build` bundles the backend's `/manifest` response as a snapshot.
+   With runtime fetching instead, the server fetches the absolute backend's
+   `/manifest` endpoint and caches the public policy data.
+2. `resolveConsent(consentOptions)` resolves policy from that snapshot or
+   cache with the current request's inputs and restores valid consent
+   cookies. The manifest route serves the same policy to the browser.
 3. `ConsentRoot` receives that result as `state` and the URL configuration
    as `config`. Hydration preserves the resolved state.
 4. If browser initialization is needed, it resolves the manifest locally. An

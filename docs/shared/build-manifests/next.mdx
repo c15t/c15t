@@ -2,29 +2,20 @@
 
 <include src="./next-config.mdx" />
 
-Declare the options once, next to `c15t.config.ts`:
+Pair the config with the snapshot in `c15t.server.ts`, next to
+`c15t.config.ts`:
 
 <include src="../examples/nextjs/consent-options.mdx" />
 
-Pass them to `resolveConsent` in the root layout:
-
-{/* example: fragment */}
-
-```tsx title="app/layout.tsx"
-const state = resolveConsent(consentOptions);
-```
-
-And to the manifest route:
-
-<include src="../examples/nextjs/consent-options-route.mdx" />
-
-Pass the same object to the optional init route. Don't import `c15t.server.ts`
-in client components.
+Pass `consentOptions` to `resolveConsent` in the root layout, to the manifest
+route and to the optional init route. Don't import `c15t.server.ts` in client
+components.
 
 <include src="../build-time-manifest-notes.mdx" />
 
 If you install `@c15t/nextjs` directly, set `importSource: '@c15t/nextjs/static'`.
 In a monorepo, set `rootDir` to the app directory.
 
-For policy updates without a rebuild, remove `withConsentManifest` and the
-`manifest` line, and use [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+To apply policy edits without a rebuild, remove `withConsentManifest`, and the
+`consentManifest` import and `manifest` line from `c15t.server.ts`. The server
+then uses [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).

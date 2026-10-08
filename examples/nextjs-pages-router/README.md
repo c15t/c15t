@@ -1,14 +1,17 @@
 # Next.js Pages Router
 
-c15t in a Next.js Pages Router app. The page resolves consent in
-`getServerSideProps` from a cached policy manifest, so the banner is in the
-server HTML and the browser makes no `/init` request. PostHog loads only after
-the visitor allows measurement.
+c15t in a Next.js Pages Router app. The build bundles your project's policy
+into the server, and the page resolves consent from it in
+`getServerSideProps`, so the banner is in the server HTML and the browser makes
+no `/init` request. PostHog loads only after the visitor allows measurement.
 
 ## Files
 
 - `c15t.config.ts` holds the backend URL and the manifest route's path.
-- `pages/api/c15t/manifest.ts` serves the cached policy manifest.
+- `next.config.ts` wraps the config in `withConsentManifest`, which writes the
+  policy to `c15t-manifest.ts` during `next build` and `next dev`.
+- `c15t.server.ts` pairs the config with that policy for server code.
+- `pages/api/c15t/manifest.ts` serves the bundled policy.
 - `pages/_app.tsx` mounts the client wrapper from `components/consent.tsx`
   with the state a page resolved on the server.
 - `pages/index.tsx` resolves consent in `getServerSideProps`.
@@ -23,10 +26,14 @@ bun run build:libs
 bun run --cwd examples/nextjs-pages-router dev
 ```
 
-Open `http://localhost:3101`. Set `NEXT_PUBLIC_C15T_BACKEND_URL` in
-`.env.local` to your project's backend URL, and add the app's origin to the
-project's trusted origins. Replace `phc_your_project_key` in `lib/scripts.ts`
-with your PostHog project key.
+Open `http://localhost:3101`. The app talks to the
+`https://benchmarks-inth.inth.app` demo Inth project. `next dev` and
+`next build` download its policy when they start, and stop if they can't.
+
+To use your own project, set `NEXT_PUBLIC_C15T_BACKEND_URL` in `.env.local` to
+its backend URL, and add the app's origin to its trusted origins. Rebuild after
+you change the policy, translations or vendors in your project. Replace
+`phc_your_project_key` in `lib/scripts.ts` with your PostHog project key.
 
 The [Pages Router guide](https://c15t.com/docs/frameworks/next/pages-router)
 walks through these files.

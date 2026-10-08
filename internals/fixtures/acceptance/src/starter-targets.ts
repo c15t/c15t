@@ -48,7 +48,9 @@ const vitePreview = (port: number) => [
 export const starterTargets: StarterTarget[] = [
 	{
 		// The layout passes consent without awaiting it, so the banner mounts
-		// after hydration.
+		// after hydration. NEXT_PUBLIC_C15T_BACKEND_URL from the shared
+		// environment is where both Next.js builds download the bundled
+		// manifest and where the browser saves choices.
 		directory: 'examples/nextjs',
 		id: 'nextjs',
 		routes: ['/'],
