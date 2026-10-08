@@ -64,8 +64,13 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			runtimeConfig.public.c15t
 		) as Partial<RuntimeConsentConfig>;
 		// `defu` skips `null`, so an app config `colorScheme: null` would fall
-		// back to the module options. `null` leaves `c15t-dark` to the site.
-		if (appConfig.c15t?.colorScheme === null) {
+		// back to the module options. Nitro replaces `null` in runtime config
+		// with `''` during the build, so a module option `colorScheme: null`
+		// arrives as `''`. Both leave `c15t-dark` to the site.
+		if (
+			appConfig.c15t?.colorScheme === null ||
+			(merged.colorScheme as string | null | undefined) === ''
+		) {
 			merged.colorScheme = null;
 		}
 		return merged;
