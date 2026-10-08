@@ -19,9 +19,11 @@ requests it already makes, as query parameters:
 
 Session reports gain `journey: { id, scope, storedChoice, prompt, domain }`.
 The backend's `/init` and the adapters' init routes fill it in from the
-request. `prompt` is `due`, `stored` or `not-required`. A report and a save
-with the same id belong to one page load, so a dashboard can follow visitors
-from page load to choice without fingerprinting or extra requests.
+request. `prompt` is `due`, `stored` or `not-required`; a resolution with no
+matched or configured policy still shows the fallback banner, so it counts as
+`due` or `stored`. A report and a save with the same id belong to one page
+load, so a dashboard can follow visitors from page load to choice without
+fingerprinting or extra requests.
 
 The id is not the subject id and is never written to a cookie. Set `journey`
 on the provider or runtime to choose how long it lives:
@@ -31,9 +33,19 @@ on the provider or runtime to choose how long it lives:
   navigates before choosing keeps it, and removed after a choice.
 - `false`: no journey.
 
-Server renders start the journey, send it on their `/init` or session report,
-and hand the id to the browser in the state. `reportSessions: false` turns that
-off. Backends that do not read the parameters ignore them.
+Server renders start the journey, send it on their `/init` (with the page's
+`Origin`, so the report gets its domain) or session report, and hand the id to
+the browser in the state. `reportSessions: false` turns that off. React's early
+`/init` and the inline prefetch script start it too, and the runtime continues
+it, so every save with a journey follows an `/init` or report with the same
+id. `buildPrefetchScript` takes `journey` and `storageKey`. A save replayed
+after going offline carries no journey. Backends that do not read the
+parameters ignore them.
+
+`'tab'` suits pages that resolve init in the browser: a server render cannot
+read `sessionStorage`, so it reports a new id on every page. The option is on
+the core runtime and the React provider (and so Next.js and TanStack Start) for
+now; Vue, Svelte, Astro and the script tag use `'page'`.
 
 Request URLs now carry a query string. If you pass `hosted()` a `fetch` that
 routes on the exact URL, match the path instead.
