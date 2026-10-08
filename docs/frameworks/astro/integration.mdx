@@ -188,6 +188,9 @@ one copy. Keep it small, because it loads on every page.
 | `unknown ui` | `ui` is not `'svelte'`, `'react'` or `'vue'` |
 | `ui: "svelte" needs @astrojs/svelte` | The `ui` framework's Astro integration is missing |
 | `manifest mode injects on-demand routes` | `astro build` runs with the routes on and no server adapter |
+| `buildManifest requires manifest mode` | `buildManifest: true` with `hosted()` or `offline()` |
+| `build-time manifests require an absolute upstream URL` | `buildManifest: true` with a relative or empty `backendURL` or `manifestURL` |
+| `/manifest responded` or `/manifest returned an invalid consent manifest` | `buildManifest: true` could not download a manifest when `astro build` or `astro dev` started |
 
 [Troubleshooting](/docs/frameworks/astro/troubleshooting) has the fix for
 each.
