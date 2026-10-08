@@ -1,7 +1,11 @@
 import { c15tInstance } from '@c15t/backend';
 import { policyRulePresets } from 'c15t';
 
+const apiKey = process.env.C15T_API_KEY;
+
 export const backend = c15tInstance({
+	// The consent-check page reads with this key.
+	apiKeys: apiKey ? [apiKey] : [],
 	basePath: '/api/self-host',
 	// No Kysely instance to build: c15t opens its own connection.
 	database: { dialect: 'sqlite', filename: 'c15t.db' },

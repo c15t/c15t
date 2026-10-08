@@ -1,6 +1,6 @@
 import type { ConsentPolicyType } from '@c15t/node-sdk';
 
-import { c15t } from '#lib/c15t-client.js';
+import { c15tAdmin } from '#lib/c15t-client.js';
 
 import type { PageServerLoad } from './$types';
 
@@ -19,7 +19,19 @@ export const load: PageServerLoad = async ({ url }) => {
 		.map((entry) => entry.trim())
 		.filter(Boolean) as [ConsentPolicyType, ...ConsentPolicyType[]];
 
-	const result = await c15t.consents.check({ externalId, types });
+	if (!c15tAdmin) {
+		return {
+			error: {
+				code: 'MISSING_API_KEY',
+				message: 'Set C15T_API_KEY: consents.check needs an API key.',
+			},
+			externalId,
+			result: null,
+			type,
+		};
+	}
+
+	const result = await c15tAdmin.consents.check({ externalId, types });
 
 	if (!result.ok) {
 		return {
