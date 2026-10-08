@@ -20,6 +20,7 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -40,6 +41,7 @@ for (const engine of ENGINES) {
 				yield* vendorChoice;
 				yield* attribution;
 				yield* optionalJurisdiction;
+				yield* verifiedExternalId;
 			})
 		);
 
@@ -72,6 +74,8 @@ for (const engine of ENGINES) {
 									id: subject.id,
 									identityProvider: subject.identityProvider ?? null,
 									updatedAt: now,
+									// Fixtures stand for links the customer's server made.
+									verifiedExternalId: subject.externalId ?? null,
 								})
 							)}`;
 						}

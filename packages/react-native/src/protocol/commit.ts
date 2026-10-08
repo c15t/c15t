@@ -105,6 +105,8 @@ export interface KernelUser {
 	externalId: string;
 	externalIdType?: string;
 	identityProvider?: string;
+	/** Server-signed proof of `externalId`; the backend verifies it. */
+	identityToken?: string;
 	properties?: Record<string, string | number | boolean>;
 }
 

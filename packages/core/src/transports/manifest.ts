@@ -408,6 +408,7 @@ export const createManifestTransport = function createManifestTransport(
 				body: JSON.stringify({
 					externalId: user.externalId,
 					identityProvider: user.identityProvider,
+					identityToken: user.identityToken,
 				}),
 				credentials,
 				headers: jsonHeaders,

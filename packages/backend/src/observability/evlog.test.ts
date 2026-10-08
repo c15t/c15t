@@ -30,6 +30,7 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
 import { resolveOptions } from './evlog';
@@ -58,6 +59,7 @@ const withApp = async <A>(
 			yield* vendorChoice;
 			yield* attribution;
 			yield* optionalJurisdiction;
+			yield* verifiedExternalId;
 			const sql = yield* SqlClient.SqlClient;
 			yield* sql`
 				insert into ${sql('domain')} ${sql.insert({

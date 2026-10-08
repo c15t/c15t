@@ -45,6 +45,8 @@ export interface SubjectPostBody {
 	subjectId: string;
 	externalSubjectId?: string;
 	identityProvider?: string;
+	/** Proof of `externalSubjectId`; see `KernelUser.identityToken`. */
+	identityToken?: string;
 	domain: string;
 	type: 'cookie_banner';
 	preferences: Record<string, boolean>;
@@ -153,6 +155,7 @@ export const buildSubjectPostBody = function buildSubjectPostBody(
 		// it so the backend derives the same consent id.
 		givenAt: payload.confirmed.actionAt,
 		identityProvider: payload.user?.identityProvider,
+		identityToken: payload.user?.identityToken,
 		metadata: buildMetadata(payload),
 		model: payload.model ?? undefined,
 		policySnapshotToken: payload.policySnapshotToken ?? undefined,

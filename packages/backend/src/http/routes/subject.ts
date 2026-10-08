@@ -33,8 +33,14 @@ import {
 import type { ConsentRow } from '../../repository/subject';
 import { validateRequestAuth } from '../auth';
 import { prepareSubmission } from '../consent-submission';
-import type { RouteContext } from '../context';
-import { BadRequestError, ConflictError, NotFoundError } from '../errors';
+import type { AppOptions, RouteContext } from '../context';
+import {
+	BadRequestError,
+	ConflictError,
+	IdentityTokenError,
+	NotFoundError,
+} from '../errors';
+import { verifyIdentity } from '../identity-token';
 
 /** One consent as the wire reports it, with 2.x fields plus v3 receipts. */
 const toConsentItem = (consent: ConsentRow): ConsentItem => ({
@@ -50,6 +56,38 @@ const toConsentItem = (consent: ConsentRow): ConsentItem => ({
 	type: consent.type,
 	vendorChoice: consent.vendorChoice,
 });
+
+/**
+ * Checks what a request proves about the external id it links, and records
+ * the outcome on the request's wide event.
+ */
+const checkIdentity = Effect.fn('subject.checkIdentity')(
+	function* checkIdentity(
+		headers: Headers,
+		options: AppOptions,
+		link: {
+			readonly externalId: string;
+			readonly identityProvider: string | undefined;
+			readonly token: string | undefined;
+		}
+	) {
+		const identity = yield* Effect.promise(() =>
+			verifyIdentity(
+				{
+					...link,
+					hasApiKey: validateRequestAuth(headers, options.apiKeys),
+				},
+				options.identityToken
+			)
+		);
+		yield* setFields({
+			identity: identity.verified
+				? { verified: true, verifiedBy: identity.by }
+				: { reason: identity.reason, verified: false },
+		});
+		return identity;
+	}
+);
 
 export const register = function register({
 	app,
@@ -236,6 +274,18 @@ export const register = function register({
 					});
 					const { input } = prepared;
 
+					// A save is a legal record, so a token that fails here does not
+					// refuse it. The link is stored unverified and the wide event says
+					// why; `PATCH` with a fresh token can verify it later.
+					const identity =
+						input.externalSubjectId === undefined
+							? undefined
+							: yield* checkIdentity(c.req.raw.headers, options, {
+									externalId: input.externalSubjectId,
+									identityProvider: input.identityProvider,
+									token: input.identityToken,
+								});
+
 					const domain = yield* findOrCreateDomain(input.domain);
 					const policy = yield* findOrCreateRuntimePolicy(input.type);
 					const purposeIds = yield* findOrCreatePurposeIds(
@@ -250,6 +300,7 @@ export const register = function register({
 						decision: prepared.decision?.input,
 						domainId: domain.id,
 						externalId: input.externalSubjectId ?? null,
+						externalIdVerified: identity?.verified === true,
 						givenAt: prepared.givenAt,
 						identityProvider: input.identityProvider ?? null,
 						ipAddress: prepared.ipAddress,
@@ -339,6 +390,10 @@ export const register = function register({
 			summary: 'Link a subject to an external identity',
 			tags: ['Subject'],
 		}),
+		// No API key required: the browser links its own subject after sign-in,
+		// and the subject id is the capability. The link counts as verified,
+		// and so shows up in reads by external id, only with an API key or a
+		// signed `identityToken`. See `../identity-token.ts`.
 		async (c) => {
 			const subjectId = c.req.param('id');
 			const body = await c.req.json().catch(() => undefined);
@@ -352,15 +407,38 @@ export const register = function register({
 							message: 'externalId is required',
 						});
 					}
+					if (
+						body.identityToken !== undefined &&
+						typeof body.identityToken !== 'string'
+					) {
+						return yield* new BadRequestError({
+							code: 'INPUT_VALIDATION_FAILED',
+							message: 'identityToken must be a string',
+						});
+					}
+
+					// Matches @c15t/backend's default: an identity supplied
+					// without a named provider is still externally sourced.
+					const identityProvider: string = body.identityProvider ?? 'external';
+					const identity = yield* checkIdentity(c.req.raw.headers, options, {
+						externalId: body.externalId,
+						identityProvider,
+						token: body.identityToken,
+					});
+					if (!identity.verified && identity.reason === 'invalid') {
+						return yield* new IdentityTokenError({
+							message:
+								'identityToken did not verify, or names a different identity',
+						});
+					}
 
 					const linked = yield* linkExternalId({
 						externalId: body.externalId,
-						// Matches @c15t/backend's default: an identity supplied
-						// without a named provider is still externally sourced.
-						identityProvider: body.identityProvider ?? 'external',
+						identityProvider,
 						ipAddress: getIpAddress(c.req.raw.headers, options.ipAddress),
 						subjectId,
 						userAgent: c.req.header('user-agent') ?? null,
+						verifiedBy: identity.verified ? identity.by : null,
 					});
 
 					if (linked === undefined) {
@@ -371,7 +449,16 @@ export const register = function register({
 					}
 
 					return { subject: linked };
-				})
+				}).pipe(
+					Effect.catchTag('IdentityConflictError', (error) =>
+						Effect.fail(
+							new ConflictError({
+								code: 'IDENTITY_CONFLICT',
+								message: error.message,
+							})
+						)
+					)
+				)
 			);
 
 			if (!result.ok) {

@@ -139,6 +139,7 @@ const createStoredLists = function createStoredLists(
 		return (
 			isOptionalString(value.externalIdType) &&
 			isOptionalString(value.identityProvider) &&
+			isOptionalString(value.identityToken) &&
 			(value.properties === undefined || isScalarRecord(value.properties))
 		);
 	};

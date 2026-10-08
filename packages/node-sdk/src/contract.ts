@@ -366,7 +366,7 @@ export type C15tIdentifySubjectInput = Omit<PatchSubjectFullInput, 'id'>;
 export interface C15tCheckConsentInput<
 	Types extends readonly ConsentPolicyType[],
 > {
-	/** Your user id, as linked with `subjects.identify`. */
+	/** Your user id, as linked with `subjects.identify` or a verified `identify()`. */
 	readonly externalId: string;
 	/** Policy types to report. Every one appears in `results`. */
 	readonly types: Types;
@@ -658,7 +658,13 @@ const identifySubject = defineEndpoint({
 		asObject(value.subject, 'subject');
 		return value as PatchSubjectOutput;
 	},
-	errorCodes: ['DATABASE_ERROR', 'EXTERNAL_ID_REQUIRED', 'NOT_FOUND'],
+	errorCodes: [
+		'DATABASE_ERROR',
+		'EXTERNAL_ID_REQUIRED',
+		'IDENTITY_CONFLICT',
+		'IDENTITY_TOKEN_INVALID',
+		'NOT_FOUND',
+	],
 	// Linking the same external id again leaves the subject unchanged.
 	idempotent: true,
 	method: 'PATCH',
@@ -680,7 +686,7 @@ const identifySubject = defineEndpoint({
 });
 
 const checkConsent = defineEndpoint({
-	auth: 'none',
+	auth: 'api-key',
 	decode: (body, _response, input): CheckConsentOutput => {
 		const value = asObject(body, 'body');
 		const results = asObject(value.results, 'results');
@@ -697,7 +703,12 @@ const checkConsent = defineEndpoint({
 		}
 		return value as CheckConsentOutput;
 	},
-	errorCodes: ['DATABASE_ERROR', 'EXTERNAL_ID_REQUIRED', 'TYPE_REQUIRED'],
+	errorCodes: [
+		'DATABASE_ERROR',
+		'EXTERNAL_ID_REQUIRED',
+		'TYPE_REQUIRED',
+		'UNAUTHORIZED',
+	],
 	idempotent: true,
 	method: 'GET',
 	name: 'consents.check',

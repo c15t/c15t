@@ -80,6 +80,19 @@ const baseSubjectConsentSchema = v.object({
 		)
 	),
 	/**
+	 * Signed proof of `externalSubjectId`, minted by your server. Without it
+	 * the link is stored unverified and does not count in reads by external
+	 * id. Ignored when the subject already exists.
+	 */
+	identityToken: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Identity token signed by your server, proving externalSubjectId. Unverified links are stored but not returned by external-id reads.'
+			)
+		)
+	),
+	/**
 	 * Regulation label a 2.x client sends. Accepted so those clients keep
 	 * validating; the backend ignores it.
 	 *

@@ -19,6 +19,7 @@ import { up as indexes } from '../db/migrations/2-hot-path-indexes';
 import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-directives';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -147,6 +148,7 @@ for (const engine of ENGINES) {
 					yield* receipts;
 					yield* attribution;
 					yield* optionalJurisdiction;
+					yield* verifiedExternalId;
 				})
 			);
 			app = createApp(runtime, { apiKeys: [API_KEY] });

@@ -275,8 +275,8 @@ export const CASES: readonly ConformanceCase[] = [
 		name: 'check reports requested types that have no consent',
 		rationale:
 			'An omitted key makes "no consent" indistinguishable from "unknown type" to a caller gating scripts.',
-		request: () =>
-			json('/consents/check?externalId=ext_1&type=cookie,marketing'),
+		request: ({ apiKey }) =>
+			authed(apiKey, '/consents/check?externalId=ext_1&type=cookie,marketing'),
 		seed: BASE_FIXTURE,
 	},
 	{
@@ -284,7 +284,16 @@ export const CASES: readonly ConformanceCase[] = [
 		name: 'check requires both parameters',
 		rationale:
 			'Either alone is ambiguous, and guessing the other would answer a question nobody asked.',
-		request: () => json('/consents/check?externalId=ext_1'),
+		request: ({ apiKey }) => authed(apiKey, '/consents/check?externalId=ext_1'),
+	},
+	{
+		expect: (response) => assertStatus(response, 401),
+		name: 'check requires an API key',
+		rationale:
+			'It reports per-user consent, which is server-to-server data like subjects.list.',
+		request: () =>
+			json('/consents/check?externalId=ext_1&type=cookie,marketing'),
+		seed: BASE_FIXTURE,
 	},
 
 	// ------------------------------------------------------------------ init

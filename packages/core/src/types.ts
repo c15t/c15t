@@ -160,6 +160,17 @@ export interface KernelUser {
 	externalId: string;
 	externalIdType?: string;
 	identityProvider?: string;
+	/**
+	 * Signed proof of `externalId`, minted by your server with
+	 * `createIdentityToken` from `@c15t/node-sdk`. The backend counts the
+	 * link in reads by external id only when it verifies. Short-lived: pass a
+	 * fresh one on each page load rather than storing it.
+	 *
+	 * A `user` passed at creation travels only with saves, and a save links
+	 * only a subject it creates. Call `identify()` to link a subject that
+	 * already exists.
+	 */
+	identityToken?: string;
 	properties?: Record<string, string | number | boolean>;
 }
 

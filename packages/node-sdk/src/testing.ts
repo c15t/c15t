@@ -65,7 +65,7 @@ export type C15tMockCheckConsentHandler = (
 				>
 			>;
 		},
-		'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'TYPE_REQUIRED'
+		'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'TYPE_REQUIRED' | 'UNAUTHORIZED'
 	>
 >;
 

@@ -1003,6 +1003,7 @@ describe('createHostedTransport: request shape', () => {
 			{
 				externalId: 'user-42',
 				identityProvider: 'clerk',
+				identityToken: 'signed.identity.token',
 				properties: { plan: 'pro' },
 			},
 			'subject/42'
@@ -1013,9 +1014,11 @@ describe('createHostedTransport: request shape', () => {
 			expect.objectContaining({ method: 'PATCH' })
 		);
 		const [, init] = fetchSpy.mock.calls[0] ?? [];
+		// The token proves the identity; properties stay on the client.
 		expect(JSON.parse((init as RequestInit).body as string)).toEqual({
 			externalId: 'user-42',
 			identityProvider: 'clerk',
+			identityToken: 'signed.identity.token',
 		});
 	});
 
@@ -1029,7 +1032,11 @@ describe('createHostedTransport: request shape', () => {
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
-		const user = { externalId: 'user-42', identityProvider: 'clerk' };
+		const user = {
+			externalId: 'user-42',
+			identityProvider: 'clerk',
+			identityToken: 'signed.identity.token',
+		};
 
 		// Kernel-local identity: no pending promise waits for a subject that
 		// may never be created, so a later clear has nothing to cancel.
@@ -1063,6 +1070,7 @@ describe('createHostedTransport: request shape', () => {
 		expect(JSON.parse((init as RequestInit).body as string)).toMatchObject({
 			externalSubjectId: 'user-42',
 			identityProvider: 'clerk',
+			identityToken: 'signed.identity.token',
 		});
 	});
 

@@ -127,7 +127,7 @@ Call these only in response to a visitor's click or key press, never at load.
 | `save(choices)` | The categories you name, such as `{ measurement: true, marketing: false }`. Categories the dialog does not offer are ignored. A `vendors` map, such as `{ vendors: { 'x-pixel': false } }`, records vendor switches too. Fails under an IAB policy; use `saveIAB()`. |
 | `saveIAB()` | Confirms the IAB purpose and vendor choices set on the CMP. `c15t.iab.js` only. See [IAB TCF](/docs/frameworks/html/iab). |
 | `dismissNotice()` | Acknowledges a notice. Grants nothing. Resolves with `{ ok: false, reason: 'not-required' }` when no notice is showing. |
-| `identify(user)` | Links the consent record to a signed-in user, such as `{ externalId: 'user_123', identityProvider: 'auth0' }`. |
+| `identify(user)` | Links the consent record to a signed-in user, such as `{ externalId: 'user_123', identityProvider: 'auth0' }`. An [`identityToken`](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser) verifies the link. |
 
 `acceptAll()`, `rejectAll()`, `save()` and `saveIAB()` resolve to a result
 with an `ok` flag. The choice applies in the browser and the banner closes

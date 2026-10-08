@@ -1,5 +1,6 @@
 /**
- * `GET /consents/check` — consent lookup by external id.
+ * `GET /consents/check` — consent lookup by external id. Needs an API key,
+ * and counts only subjects whose link to the external id was verified.
  *
  * Registered by `createApp`. Split by resource, mirroring `@c15t/backend`'s
  * `routes/` layout — a single file holding every route grows past the point
@@ -11,17 +12,32 @@ import { Effect } from 'effect';
 import { describeRoute } from 'hono-openapi';
 
 import { listByExternalId } from '../../repository/subject';
+import { validateRequestAuth } from '../auth';
 import type { RouteContext } from '../context';
 import { BadRequestError } from '../errors';
 
-export const register = function register({ app, run }: RouteContext): void {
+export const register = function register({
+	app,
+	options,
+	run,
+}: RouteContext): void {
 	app.get(
 		'/consents/check',
 		describeRoute({
+			security: [{ bearerAuth: [] }],
 			summary: 'Check consent by external id and policy type',
 			tags: ['Consent'],
 		}),
 		async (c) => {
+			// API-key only, like `GET /subjects?externalId=`: it reports per-user
+			// consent, which is server-to-server data.
+			if (!validateRequestAuth(c.req.raw.headers, options.apiKeys)) {
+				return c.json(
+					{ cause: { code: 'UNAUTHORIZED' }, message: 'Unauthorized' },
+					401
+				);
+			}
+
 			const externalId = c.req.query('externalId');
 			const type = c.req.query('type');
 

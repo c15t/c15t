@@ -26,6 +26,11 @@ export type {
 	C15tManifestResult,
 	C15tPublishLegalDocumentInput,
 } from './contract';
+export { createIdentityToken } from './identity-token';
+export type {
+	C15tIdentityTokenOptions,
+	C15tIdentityTokenUser,
+} from './identity-token';
 export { C15tConfigurationError } from './configuration-error';
 export type { C15tConfigurationIssue } from './configuration-error';
 export {

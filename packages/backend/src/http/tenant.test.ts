@@ -33,6 +33,7 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
@@ -57,10 +58,15 @@ for (const engine of ENGINES) {
 		const appFor = (tenantId: string | undefined) =>
 			createApp(runtime, { apiKeys: [API_KEY], tenantId });
 
+		// With the API key, as the customer's server would send it, so the
+		// external id link is verified and reads by external id can see it.
 		const post = (app: ReturnType<typeof createApp>, body: unknown) =>
 			app.request('/subjects', {
 				body: JSON.stringify(body),
-				headers: { 'Content-Type': 'application/json' },
+				headers: {
+					Authorization: `Bearer ${API_KEY}`,
+					'Content-Type': 'application/json',
+				},
 				method: 'POST',
 			});
 
@@ -75,6 +81,7 @@ for (const engine of ENGINES) {
 					yield* vendorChoice;
 					yield* attribution;
 					yield* optionalJurisdiction;
+					yield* verifiedExternalId;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// Untenanted so every tenant's instance can reference them; the

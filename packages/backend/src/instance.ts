@@ -40,6 +40,7 @@ import type { DatabaseOption } from './db/connect';
 import { createApp } from './http/app';
 import { assertTenantOptions, resolveHosting } from './http/context';
 import type { AppOptions } from './http/context';
+import { assertIdentityTokenOptions } from './http/identity-token';
 
 export interface C15TOptions extends AppOptions {
 	/**
@@ -170,6 +171,7 @@ export const c15tInstance = (options: C15TOptions): C15TInstance => {
 	const { database, ...app } = options;
 	// Before the runtime exists, so a refused configuration opens no pool.
 	assertTenantOptions(app);
+	assertIdentityTokenOptions(app);
 	resolveHosting(app);
 	void warnOnPolicyFailure(options);
 	warnOnVendorListGap(options);

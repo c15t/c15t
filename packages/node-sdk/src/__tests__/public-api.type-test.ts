@@ -40,6 +40,7 @@ expectTypeOf(publicClient).toEqualTypeOf<C15tPublicClient>();
 // Key-only methods are not on a client without a key.
 // @ts-expect-error subjects.list needs an API key.
 publicClient.subjects.list({ externalId: 'user_123' });
+expectTypeOf(publicClient).not.toHaveProperty('consents');
 expectTypeOf(publicClient).not.toHaveProperty('experiments');
 expectTypeOf(publicClient).not.toHaveProperty('legalDocuments');
 
@@ -86,7 +87,19 @@ if (subject.ok) {
 
 // Every method lists exactly the codes its endpoint can return.
 expectTypeOf<C15tErrorCodeOf<typeof c15t.subjects.identify>>().toEqualTypeOf<
-	'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'NOT_FOUND' | C15tClientErrorCode
+	| 'DATABASE_ERROR'
+	| 'EXTERNAL_ID_REQUIRED'
+	| 'IDENTITY_CONFLICT'
+	| 'IDENTITY_TOKEN_INVALID'
+	| 'NOT_FOUND'
+	| C15tClientErrorCode
+>();
+expectTypeOf<C15tErrorCodeOf<typeof c15t.consents.check>>().toEqualTypeOf<
+	| 'DATABASE_ERROR'
+	| 'EXTERNAL_ID_REQUIRED'
+	| 'TYPE_REQUIRED'
+	| 'UNAUTHORIZED'
+	| C15tClientErrorCode
 >();
 expectTypeOf<C15tErrorCodeOf<typeof c15t.subjects.list>>().toEqualTypeOf<
 	| 'DATABASE_ERROR'

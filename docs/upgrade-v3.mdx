@@ -210,7 +210,7 @@ if (result.ok) {
 | `createSubject(input)` | `subjects.create(input)`. `givenAt` also takes a `Date`. |
 | `patchSubject(id, input)`, `subjects.patch(id, input)` | `subjects.identify(id, { externalId, identityProvider })` |
 | `listSubjects({ externalId })`, `subjects.list({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
-| `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })` |
+| `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })`, on a client with `apiKey` |
 | `ResponseContext` with `data: T \| null` | `{ ok: true, data } \| { ok: false, error }`. Check `ok` first. |
 | `unwrap()`, `expect()` on the response | `unwrap(result)`, imported from `@c15t/node-sdk` |
 | `unwrapOr()`, `map()` on the response | Check `result.ok` |
@@ -227,6 +227,10 @@ if (result.ok) {
 `{ subject }`, and `subject.identityProvider` is always set. Dates in
 responses, such as `givenAt` and `createdAt`, are now `Date` objects rather
 than strings.
+
+`consents.check` and `subjects.list` count only verified links. Links made by
+v2 don't count until you relink them with `subjects.identify` on a keyed
+client, or [with an identity token](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser) on the user's next sign-in.
 
 The `node-sdk-to-v3` codemod renames the factory, client options, methods,
 types and errors in files that create a client. It turns `type` strings into

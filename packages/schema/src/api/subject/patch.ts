@@ -32,6 +32,20 @@ export const patchSubjectInputSchema = v.object({
 			v.examples(['auth0', 'clerk'])
 		)
 	),
+	/**
+	 * Signed proof of `externalId`, minted by your server. A request with an
+	 * API key does not need one. Without either, the link is stored
+	 * unverified: it does not count in reads by external id, and it cannot
+	 * replace a verified link.
+	 */
+	identityToken: v.optional(
+		v.pipe(
+			v.string(),
+			v.description(
+				'Identity token signed by your server, proving externalId. Not needed with an API key.'
+			)
+		)
+	),
 });
 
 /**

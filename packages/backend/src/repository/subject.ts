@@ -31,6 +31,7 @@
  * backticks; `sql(…)` defers the choice to the connected dialect's compiler.
  */
 
+// oxlint-disable-next-line max-classes-per-file -- One tagged error per repository failure, beside the code that raises it.
 import { generateEntityId } from '@c15t/schema';
 import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema';
 import { Data, Effect } from 'effect';
@@ -99,6 +100,7 @@ interface JoinedRow {
 	readonly subject_id: string;
 	readonly subject_externalId: string | null;
 	readonly subject_identityProvider: string | null;
+	readonly subject_verifiedExternalId: string | null;
 	// Engine-shaped: SQLite returns epoch milliseconds where the others
 	// return a Date. Decoded on the way out by `groupSubjects`.
 	readonly subject_createdAt: unknown;
@@ -128,6 +130,7 @@ const JOINED_COLUMNS: readonly (readonly [column: string, alias: string])[] = [
 	['s.id', 'subject_id'],
 	['s.externalId', 'subject_externalId'],
 	['s.identityProvider', 'subject_identityProvider'],
+	['s.verifiedExternalId', 'subject_verifiedExternalId'],
 	['s.createdAt', 'subject_createdAt'],
 	['c.id', 'consent_id'],
 	['c.policyId', 'consent_policyId'],
@@ -324,7 +327,31 @@ const latestPolicyIds = Effect.fn('repository.latestPolicyIds')(
 );
 
 /**
- * Every subject with a given external id, and each subject's consents.
+ * Whether a subject row is verifiably linked to `externalId`, compared byte
+ * for byte rather than by the database's collation.
+ */
+const isVerifiedLink = (
+	row: {
+		readonly subject_externalId: string | null;
+		readonly subject_verifiedExternalId: string | null;
+	},
+	externalId: string
+): boolean =>
+	row.subject_externalId === externalId &&
+	row.subject_verifiedExternalId === externalId;
+
+/**
+ * Every subject verifiably linked to an external id, and each subject's
+ * consents.
+ *
+ * A subject counts only when `verifiedExternalId` equals `externalId`: the
+ * link was made with an API key or a signed identity token, and nothing has
+ * rewritten it since. An unverified link is a claim any browser can make, so
+ * it must not answer "what did this user consent to". See migration 8.
+ *
+ * The match is checked again in JavaScript, byte for byte. MySQL's default
+ * collations compare case- and accent-insensitively, so SQL alone would treat
+ * a verified `Alice` rewritten to `alice` as still verified.
  *
  * One query. The old implementation issued one plus a chunk per hundred
  * subject ids, sequentially, because it had no join available.
@@ -336,12 +363,14 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
 
 		const rows = yield* sql<JoinedRow>`
 			${select}
-			where ${sql('s.externalId')} = ${externalId} and ${yield* tenantScope('s')}
+			where ${sql('s.externalId')} = ${externalId}
+				and ${sql('s.verifiedExternalId')} = ${externalId}
+				and ${yield* tenantScope('s')}
 			order by ${sql('s.id')}, ${sql('c.givenAt')} desc
 		`;
 
 		return groupSubjects(
-			rows,
+			rows.filter((row) => isVerifiedLink(row, externalId)),
 			yield* latestPolicyIds(),
 			yield* purposeCodesById()
 		);
@@ -349,7 +378,8 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
 );
 
 /**
- * How many subjects carry an external id.
+ * How many subjects are verifiably linked to an external id, by the same
+ * rule as {@link listByExternalId}.
  *
  * `list.handler.ts` returns `count: subjectItems.length` — the length of the
  * page, not a total. Any client paginating on it is reading a number that
@@ -358,11 +388,19 @@ export const listByExternalId = Effect.fn('repository.listByExternalId')(
 export const countByExternalId = Effect.fn('repository.countByExternalId')(
 	function* countByExternalId(externalId: string) {
 		const sql = yield* SqlClient.SqlClient;
-		const rows = yield* sql<{ total: number | string }>`
-			select count(*) as total from ${sql('subject')}
-			where ${sql('externalId')} = ${externalId} and ${yield* tenantScope()}
+		const rows = yield* sql<{
+			subject_externalId: string | null;
+			subject_verifiedExternalId: string | null;
+		}>`
+			select
+				${sql('externalId')} as ${sql('subject_externalId')},
+				${sql('verifiedExternalId')} as ${sql('subject_verifiedExternalId')}
+			from ${sql('subject')}
+			where ${sql('externalId')} = ${externalId}
+				and ${sql('verifiedExternalId')} = ${externalId}
+				and ${yield* tenantScope()}
 		`;
-		return Number(rows[0]?.total ?? 0);
+		return rows.filter((row) => isVerifiedLink(row, externalId)).length;
 	}
 );
 
@@ -400,7 +438,29 @@ export const findById = Effect.fn('repository.findById')(function* findById(
 });
 
 /**
+ * An unverified request tried to replace a verified identity.
+ *
+ * A verified link was proved by the customer's server, so only the same kind
+ * of proof can change it.
+ */
+export class IdentityConflictError extends Data.TaggedError(
+	'IdentityConflictError'
+)<{
+	readonly message: string;
+}> {}
+
+/**
  * Links a subject to an external identity.
+ *
+ * `verified` says whether the caller proved the identity (API key or signed
+ * identity token). The rules:
+ *
+ * - A verified link always applies and records `verifiedExternalId`.
+ * - An unverified link may not change a subject whose current identity is
+ *   verified. Relinking the same identity is a no-op, so retries succeed.
+ * - Otherwise an unverified link applies and clears `verifiedExternalId`.
+ *   The subject id is the capability here: whoever holds it is the device,
+ *   and a shared device signing a second user in is a normal flow.
  *
  * The update and its audit entry are one transaction. An audit log that can
  * disagree with the row it describes is worse than none — it makes the trail
@@ -412,6 +472,8 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		subjectId: string;
 		externalId: string;
 		identityProvider: string;
+		/** How the caller proved the identity, or `null` when it did not. */
+		verifiedBy: 'api_key' | 'identity_token' | null;
 		ipAddress: string | null;
 		userAgent: string | null;
 	}) {
@@ -422,8 +484,12 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 		const found = yield* sql<{
 			externalId: string | null;
 			identityProvider: string | null;
+			verifiedExternalId: string | null;
 		}>`
-			select ${sql('externalId')}, ${sql('identityProvider')}
+			select
+				${sql('externalId')},
+				${sql('identityProvider')},
+				${sql('verifiedExternalId')}
 			from ${sql('subject')}
 			where ${sql('id')} = ${input.subjectId} and ${scope}
 		`;
@@ -433,16 +499,80 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 			return undefined;
 		}
 
+		const wasVerified =
+			before.externalId !== null &&
+			before.verifiedExternalId === before.externalId;
+		const verified = input.verifiedBy !== null;
+		// A null provider is the default one: rows written outside this
+		// backend may leave it empty, and the route fills in `external`.
+		const unchanged =
+			before.externalId === input.externalId &&
+			(before.identityProvider ?? 'external') === input.identityProvider;
+
+		if (!verified && wasVerified) {
+			if (unchanged) {
+				return {
+					externalId: input.externalId,
+					id: input.subjectId,
+					identityProvider: input.identityProvider,
+				};
+			}
+			return yield* new IdentityConflictError({
+				message:
+					'This subject is linked to a verified identity. Changing it needs an API key or an identity token.',
+			});
+		}
+
+		const verifiedExternalId = verified ? input.externalId : null;
+
 		yield* sql.withTransaction(
 			// oxlint-disable-next-line no-shadow -- Preserve established bindings and assignment semantics.
 			Effect.gen(function* linkExternalId() {
+				const target = [sql`${sql('id')} = ${input.subjectId}`, scope];
+				if (!verified) {
+					// An unverified write must not land on a link verified since
+					// the read above, so it carries the check in its own predicate.
+					// Byte for byte on MySQL, whose default collations would call
+					// `Alice` and `alice` the same link.
+					const differs = sql.onDialectOrElse({
+						mysql: () =>
+							sql`cast(${sql('verifiedExternalId')} as binary) <> cast(${sql('externalId')} as binary)`,
+						orElse: () =>
+							sql`${sql('verifiedExternalId')} <> ${sql('externalId')}`,
+					});
+					target.push(sql`(
+						${sql('verifiedExternalId')} is null
+						or ${sql('externalId')} is null
+						or ${differs}
+					)`);
+				}
 				yield* sql`
 					update ${sql('subject')} set
 						${sql('externalId')} = ${input.externalId},
 						${sql('identityProvider')} = ${input.identityProvider},
+						${sql('verifiedExternalId')} = ${verifiedExternalId},
 						${sql('updatedAt')} = ${encode(new Date())}
-					where ${sql('id')} = ${input.subjectId} and ${scope}
+					where ${sql.and(target)}
 				`;
+				if (!verified) {
+					const after = yield* sql<{
+						externalId: string | null;
+						verifiedExternalId: string | null;
+					}>`
+						select ${sql('externalId')}, ${sql('verifiedExternalId')}
+						from ${sql('subject')}
+						where ${sql('id')} = ${input.subjectId} and ${scope}
+					`;
+					if (
+						after[0]?.externalId !== input.externalId ||
+						after[0]?.verifiedExternalId !== null
+					) {
+						return yield* new IdentityConflictError({
+							message:
+								'This subject was linked to a verified identity while the request was in flight.',
+						});
+					}
+				}
 
 				// Records what changed, not just that something did: a trail that
 				// cannot answer "from what?" cannot support a subject access
@@ -457,6 +587,10 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 									from: before.identityProvider,
 									to: input.identityProvider,
 								},
+								verifiedExternalId: {
+									from: before.verifiedExternalId,
+									to: verifiedExternalId,
+								},
 							}),
 							createdAt: new Date(),
 							entityId: input.subjectId,
@@ -466,6 +600,7 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 							metadata: JSON.stringify({
 								externalId: input.externalId,
 								identityProvider: input.identityProvider,
+								verifiedBy: input.verifiedBy,
 							}),
 							subjectId: input.subjectId,
 							userAgent: input.userAgent,
@@ -500,6 +635,8 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 		subjectId: string;
 		externalId?: string | null;
 		identityProvider?: string | null;
+		/** Whether the caller proved `externalId`. See {@link linkExternalId}. */
+		externalIdVerified?: boolean;
 		tenantId?: string | null;
 	}) {
 		const sql = yield* SqlClient.SqlClient;
@@ -517,6 +654,10 @@ export const findOrCreate = Effect.fn('repository.findOrCreate')(
 					: 'anonymous',
 				tenantId: input.tenantId ?? null,
 				updatedAt: now,
+				verifiedExternalId:
+					input.externalId && input.externalIdVerified
+						? input.externalId
+						: null,
 			},
 		});
 

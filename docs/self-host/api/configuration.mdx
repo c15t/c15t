@@ -43,6 +43,7 @@ fallback. Add reviewed rules for other locations in
 | `manifestCache` | Public manifest cache durations in seconds. Defaults to `sMaxAge: 300`, `staleWhileRevalidate: 86400`. |
 | `apiKeys` | Keys accepted as `Authorization: Bearer <key>` for administrative endpoints. No keys means no request authenticates. |
 | `policySnapshot` | Optional policy decision signing key, issuer, audience and lifetime. Default lifetime is 1,800 seconds when signing is enabled. `replayWindowSeconds` (default 604,800, 7 days) is how long after a token expires a save made while it was valid is still accepted; `0` refuses every late save. See [late saves](/docs/self-host/api/endpoints#late-saves). |
+| `identityToken` | `signingKey` of at least 32 bytes, plus optional `issuer` (default `c15t`) and `audience` (default `c15t-identity`), for verifying [identity tokens](/docs/self-host/api/endpoints#verify-identity-links). Without it, only API-key requests verify links. Keep the key secret, one per tenant. |
 | `legalDocumentSnapshot` | Legal-document signing configuration type. It does not automatically issue or verify HTTP tokens. Use the [explicit signing helpers](/docs/self-host/guides/legal-document-snapshot-integration); their default lifetime is 86,400 seconds. |
 | `gvl` | Server-side Global Vendor List loading and cache configuration. Writing the block is the opt-in: `/init` carries the list for every matched IAB policy. `enabled: false` declines. |
 | `ipAddress` | IP recording options. Masking is on unless disabled; `tracking: false` records no IP. |

@@ -17,6 +17,7 @@ import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as dropIdentityAuthority } from '../db/migrations/5-drop-subject-identity-authority';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from '../http/app';
 import type { AppOptions } from '../http/context';
@@ -63,6 +64,7 @@ export const createHttpHarness = async function createHttpHarness(
 			yield* dropIdentityAuthority;
 			yield* attribution;
 			yield* optionalJurisdiction;
+			yield* verifiedExternalId;
 		})
 	);
 	const app = createApp(runtime, options);

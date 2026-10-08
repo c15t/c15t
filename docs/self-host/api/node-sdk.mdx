@@ -23,7 +23,7 @@ of a c15t backend, hosted on Inth or self-hosted. Use it in server code:
   with `experiments.summary`.
 
 Do not use it in the browser. The framework adapters already call the backend
-for the banner, and three methods need an API key that must stay on the server.
+for the banner, and four methods need an API key that must stay on the server.
 
 ## Install
 
@@ -44,8 +44,9 @@ falls back to the demo's local backend. `baseUrl` keeps its path: with `https://
 requests `https://app.example.com/api/c15t/status`. For Inth, use the URL from
 your project, such as `https://your-project.inth.app`.
 
-A client without `apiKey` has no `subjects.list`, `experiments.summary` or
-`legalDocuments.publish`. Those three endpoints require a key. Create a second
+A client without `apiKey` has no `consents.check`, `subjects.list`,
+`experiments.summary` or `legalDocuments.publish`. Those four endpoints require
+a key. Create a second
 client with one where you need them:
 
 {/* example: fragment */}
@@ -174,8 +175,8 @@ type SubjectError = C15tErrorCodeOf<typeof c15t.subjects.get>;
 
 | Method | Endpoint | API key |
 | --- | --- | --- |
-| `consents.check({ externalId, types })` | `GET /consents/check` | No |
-| `subjects.identify(id, { externalId, identityProvider })` | `PATCH /subjects/:id` | No |
+| `consents.check({ externalId, types })` | `GET /consents/check` | Required |
+| `subjects.identify(id, { externalId, identityProvider, identityToken })` | `PATCH /subjects/:id` | No, but [verifies](#link-a-user-after-sign-in) only with a key or token |
 | `subjects.get(id, { types })` | `GET /subjects/:id` | No |
 | `subjects.create(input)` | `POST /subjects` | No |
 | `subjects.list({ externalId })` | `GET /subjects` | Required |
@@ -186,6 +187,8 @@ type SubjectError = C15tErrorCodeOf<typeof c15t.subjects.get>;
 | `manifest({ language, ifNoneMatch })` | `GET /manifest` | No |
 
 Every method also takes [call options](#call-options) as its last argument.
+`createIdentityToken` is a separate export, not a client method; see
+[Verify a link made in the browser](#verify-a-link-made-in-the-browser).
 The examples below use the `c15t` and `c15tAdmin` clients from
 [Create a client](#create-a-client).
 
@@ -193,11 +196,12 @@ The examples below use the `c15t` and `c15tAdmin` clients from
 
 `consents.check` reports, for each requested policy type, whether the user has
 a consent record of that type and whether one of those records is for the
-current policy version. The user is your own ID, linked with
-`subjects.identify`.
+current policy version. The user is your own ID. Only subjects with a
+[verified link](#link-a-user-after-sign-in) to it count, and the method needs
+an API key.
 
 ```ts
-const result = await c15t.consents.check({
+const result = await c15tAdmin.consents.check({
 	externalId: user.id,
 	types: ['marketing_communications'],
 });
@@ -245,27 +249,68 @@ when the subject has no usable choice.
 ### Link a user after sign-in
 
 `subjects.identify` links a subject, the ID the c15t client stores in the
-visitor's browser, to your user ID. After that, `consents.check` and
+visitor's browser, to your user ID. After a verified link, `consents.check` and
 `subjects.list` find the subject's records by your ID.
 
 ```ts
-const result = await c15t.subjects.identify(subjectId, {
+const result = await c15tAdmin.subjects.identify(subjectId, {
 	externalId: user.id,
 	identityProvider: 'auth0',
 });
 ```
 
-The browser adapters do this themselves when you call their `identify()` after
-sign-in. Call `subjects.identify` when your server handles sign-in and the
-frontend sends the subject ID with the request. `identityProvider` is optional;
-the backend stores `external` without it. `data.subject` holds `id`,
-`externalId` and `identityProvider`. An unknown subject ID returns `NOT_FOUND`.
-Linking the same user again changes nothing.
+A client with an API key verifies every link it makes. Call
+`subjects.identify` this way when your server handles sign-in and the frontend
+sends the subject ID with the request. `identityProvider` is optional; the
+backend stores `external` without it. `data.subject` holds `id`, `externalId`
+and `identityProvider`. An unknown subject ID returns `NOT_FOUND`. Linking the
+same user again changes nothing.
+
+Without a key or an identity token the link is stored but unverified, and
+`consents.check` and `subjects.list` ignore it. It also can't replace a
+verified link; that returns `IDENTITY_CONFLICT`.
+
+### Verify a link made in the browser
+
+The browser adapters link the subject themselves when you call their
+`identify()` after sign-in. To verify that link, sign an identity token on
+your server and pass it to `identify()`. Set the same key as the backend's
+[`identityToken.signingKey`](/docs/self-host/api/configuration):
+
+{/* example: fragment */}
+
+```ts title="src/lib/server/identity.ts"
+import { createIdentityToken } from '@c15t/node-sdk';
+
+const signingKey = process.env.C15T_IDENTITY_SIGNING_KEY;
+if (!signingKey) throw new Error('Set C15T_IDENTITY_SIGNING_KEY');
+
+export function identityTokenFor(userId: string) {
+	return createIdentityToken({ externalId: userId }, { signingKey });
+}
+```
+
+Render the token into the signed-in page and pass it to `identify()`. A `user`
+passed when creating the client only links a subject that the next save
+creates, so call `identify()` for a visitor who consented before signing in:
+
+{/* example: fragment */}
+
+```ts
+await identify({ externalId: user.id, identityToken });
+```
+
+The token expires after `ttlSeconds`, one hour by default, so mint one per page
+load. If you pass `identityProvider`, the browser must send the same one. A
+failed token makes `identify()` return `IDENTITY_TOKEN_INVALID`, but never
+blocks the first consent save; that link just stays unverified. See
+[verify identity links](/docs/self-host/api/endpoints#verify-identity-links)
+for the full rules.
 
 ### Export a user's records
 
-`subjects.list` returns every subject linked to one of your user IDs, each with
-its consents. It needs an API key.
+`subjects.list` returns every subject verifiably linked to one of your user
+IDs, each with its consents. It needs an API key.
 
 ```ts
 const result = await c15tAdmin.subjects.list({ externalId: user.id });
@@ -513,9 +558,9 @@ Write the code under test to take the client as a parameter:
 {/* example: fragment */}
 
 ```ts title="src/newsletter.ts"
-import type { C15tPublicClient } from '@c15t/node-sdk';
+import type { C15tClient } from '@c15t/node-sdk';
 
-export async function canEmail(c15t: C15tPublicClient, userId: string) {
+export async function canEmail(c15t: C15tClient, userId: string) {
 	const result = await c15t.consents.check({
 		externalId: userId,
 		types: ['marketing_communications'],
