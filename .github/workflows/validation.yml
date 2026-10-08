@@ -7,7 +7,12 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 jobs:
   checks:
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
     uses: ./.github/workflows/ci.yml

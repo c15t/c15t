@@ -114,20 +114,29 @@ changes and remains useful during development.
 Docs and generated package docs do not select runtime work. Runtime changes
 follow reverse dependencies, while builds include forward dependencies of all
 selected hosts. Unknown paths, root config, lockfiles and removed packages
-select everything. Full publishing-branch and nightly runs cover the entire
-graph. Stable check `CI complete` fails if any selected job fails or cancels.
+select everything. Nightly runs, manual full runs, and releases outside `v3`
+cover the entire graph. Stable check `CI complete` fails if any required selected
+job fails or cancels.
 Release runs skip runtime benchmarks so publishing does not wait for timing
 measurements. Tests, builds, consumer bundle budgets, and package validation
 remain required. Quick runtime comparisons still gate affected PRs. Full
 validation and manual CI runs still include full runtime comparisons.
 
-On `v3` release pushes, the mobile SDK and device groups use the diff from the
-push's previous commit to select their checks. Other release checks still select
-the full graph. Unrelated changes skip the mobile runners; SDK, native, mobile
-benchmark, dependency and global configuration changes follow the usual mobile
-selection rules. A missing or unreadable previous commit keeps the full mobile
-checks. Other release branches, nightly validation and manual full runs retain
-their full mobile checks.
+On `v3`, release checks compare with the last successful ancestor run of
+`release.yml`. Failed and superseded pushes stay in that range until a later
+run validates them. Missing history, API errors, and unreadable revisions fall
+back to full checks. Release selection ignores workspace-version-only changes
+in `bun.lock`. Publish-lock metadata does not select runtime tests.
+Version-only workspace manifests
+select builds of those packages and their dependencies without selecting runtime
+consumers. Real dependency or resolution changes still select full validation.
+PR selection remains conservative for release metadata.
+
+Publishing restores the same-run `ci-build` artifact and its Turbo results. The
+release hook builds code and docs for the packages Tegami will actually upload,
+plus their build dependencies, then checks only those packages' tarballs. The
+guard reuses completed standard docs preparation; custom packing hooks and the
+actual publication's `prepack` checks still run.
 
 Outside `canary`, release checks for consecutive pushes run side by side. Only
 the publish job waits for the previous release on the same branch. Once it gets
@@ -140,9 +149,10 @@ run, so every commit publishes its own snapshot. Runs publish in the order they
 start, which normally matches push order.
 
 Mobile work selects on paths, not on the dependency graph alone. The mobile
-SDK group runs for `packages/react-native`, `native/` and `benchmarks/mobile`,
-and for anything whose reverse dependencies reach `@c15t/react-native`, because
-the JS boundary drives the same kernel the web packages ship.
+SDK group runs for native sources and app fixtures, the React Native Codegen
+specs, build scripts and manifest, and `benchmarks/mobile`. JavaScript-only
+SDK changes and changes to web packages select affected package tests, including
+the mobile JavaScript boundary, without selecting native toolchains.
 `@c15t/benchmarking` is a dependency of both the mobile bench and the backend,
 so the bench is matched by path on purpose: a workspace edge there would put a
 macOS runner on every backend pull request. The device group is narrower, and
@@ -151,8 +161,11 @@ takes only the files an app compiles -- the native kernels, the binding's
 example apps -- plus the runs that select everything. Mobile Markdown,
 `native/CONTRACT.md` included, selects neither group.
 
-The device group is advisory and absent from `complete`, so `CI complete` stays
-green when a pod fetch fails; read it as a build report. It is the most
+`mobile-device.yml` runs advisory app builds independently on publishing-branch
+pushes, using its own last successful ancestor. It cannot delay publishing.
+PRs and full validation call the same workflow and restore their library outputs.
+The device group is absent from `complete`, so `CI complete` stays green when
+a pod fetch fails; read it as a build report. It is the most
 expensive thing here: roughly 25 macOS minutes and 12 Ubuntu minutes per
 selected run, and the same again on a dependency bump, because a full run
 selects it. The mobile SDK group is required when selected and costs roughly 10
@@ -222,9 +235,8 @@ over forked JVMs, so all four read the runner's load. `ios_binding_bytes` alone
 stays unmeasured by design. The Kotlin bench needs a warm Gradle run first, because the harness
 invokes Gradle with `--offline`, and the harness needs Xcode at
 `/Applications/Xcode.app`, which the Xcode step links when the image installs a
-versioned bundle. The SDK's vitest suite runs here too, on Linux, next to the
-package behaviour group's copy: the mobile group owns the mobile JS contract,
-and a JS-only regression should not wait on a native toolchain.
+versioned bundle. The package behavior group owns the SDK's Vitest suite, so
+it runs once and a JavaScript regression does not wait on a native toolchain.
 
 `benchmark-regression.yml` also runs full comparisons independently on pushes
 to `v3`, nightly at 02:43 UTC, and manually. Scheduled runs check out `v3`;
@@ -246,8 +258,28 @@ the old required checks.
 
 The setup action installs the pinned toolchain and resolved Playwright
 versions. Package outputs and task cache travel together in a tar artifact;
-node_modules does not. Browser jobs keep failure logs and traces and report
-one table per group. Newer PR commits cancel older runs.
+node_modules does not. Each job restores its own prior Turbo cache before
+merging same-run build results, then saves completed tasks under a key containing
+its scope, source SHA, run ID, and attempt. Tests, type checks, docs, and publication
+results therefore survive future runs and retries. PRs restore caches but do not
+save them or receive remote-cache credentials. Browser jobs keep failure logs and
+traces and report one table per group. Newer PR commits cancel older runs.
+
+Remote caching uses GitHub OIDC. The shared setup action exchanges each job's
+identity for a Vercel token with only `read-write:remote-cache`. Tokens expire
+after 30 minutes, and the action requests revocation when the job ends. The
+Vercel Turborepo CLI policy checks the repository
+name and immutable repository/owner IDs, restricts refs to `main`, `canary`,
+`2.0.0`, and `v3`, and allows only push, scheduled, and manual runs of the CI,
+release, validation, mobile-device, bundle-analysis, and benchmark workflows.
+The audience is `https://vercel.com/inth`. Calling workflows map repository
+variables `TURBO_TEAM` and `TURBO_CACHE_POLICY` into environment variables for the
+composite setup action, which cannot read the `vars` context directly. CI does
+not use a stored `TURBO_TOKEN` secret. PRs and other branches skip the exchange,
+and Vercel rejects their identities even if a modified workflow requests a token.
+Reusable workflow callers must grant `id-token: write` on the calling job, since
+called workflows cannot increase the caller's permissions. Other jobs keep
+read-only permissions.
 
 Coverage is evidence, not a percentage target. The summary lists changed
 instrumented statement-start lines and branches plus uncovered lines; full

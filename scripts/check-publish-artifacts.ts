@@ -768,11 +768,51 @@ export const scanUiComponentStyleArtifacts =
 		return issues;
 	};
 
-const main = function main(): void {
-	const packageDirs = readdirSync(PACKAGES_DIR, { withFileTypes: true })
+/** Require every requested public package; an unknown name must not skip the guard. */
+export const selectPublishDirectories = function selectPublishDirectories(
+	names: string[],
+	packagesDirectory = PACKAGES_DIR
+): string[] {
+	const requested = new Set(names);
+	const packageDirs = readdirSync(packagesDirectory, { withFileTypes: true })
 		.filter((entry) => entry.isDirectory())
-		.map((entry) => join(PACKAGES_DIR, entry.name))
-		.filter((packageDir) => existsSync(join(packageDir, 'package.json')));
+		.map((entry) => join(packagesDirectory, entry.name))
+		.filter((packageDir) => existsSync(join(packageDir, 'package.json')))
+		.filter((packageDir) => {
+			const manifest = readManifest(packageDir);
+			if (manifest.private || !manifest.name) {
+				return false;
+			}
+			if (!names.length || requested.has(manifest.name)) {
+				requested.delete(manifest.name);
+				return true;
+			}
+			return false;
+		});
+	if (requested.size) {
+		throw new Error(`Unknown public packages: ${[...requested].join(', ')}`);
+	}
+	return packageDirs;
+};
+
+/** Cached builds already ran docs generation; retain any other packing hooks. */
+export const canReusePackPreparation = (manifest: PackageManifest): boolean => {
+	const { scripts } = manifest;
+	return (
+		!scripts?.prepare &&
+		!scripts?.postpack &&
+		[
+			'bun run build:docs && bun ../../scripts/verify-package-artifacts.ts',
+			'bun ../../scripts/verify-package-artifacts.ts',
+		].includes(scripts?.prepack ?? '')
+	);
+};
+
+const main = function main(): void {
+	const args = process.argv.slice(2).filter((arg) => arg !== '--');
+	const built = args.includes('--built');
+	const names = args.filter((arg) => arg !== '--built');
+	const packageDirs = selectPublishDirectories(names);
 
 	const offenders: {
 		packageName: string;
@@ -793,7 +833,9 @@ const main = function main(): void {
 		// second version of the kernel that nothing but this line ever reads.
 		const vendoredDrift = scanVendoredNativeSources(packageDir);
 
-		const packed = runPack(packageDir);
+		const packed = runPack(packageDir, {
+			ignoreScripts: built && canReusePackPreparation(manifest),
+		});
 		checkedPackages += 1;
 
 		const blockedFiles = packed.files

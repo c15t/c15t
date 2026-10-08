@@ -4,6 +4,8 @@ import { dirname, join } from 'node:path';
 
 import fg from 'fast-glob';
 
+import { selectReleaseChanges } from './ci-release-changes';
+
 export interface Workspace {
 	name: string;
 	directory: string;
@@ -75,10 +77,8 @@ export const isMobileNativePath = function isMobileNativePath(
  * JavaScript.
  *
  * The device group pays for `expo prebuild`, `pod install`, and two app builds, so
- * it keys on the sources those builds read: the native kernels, the binding's iOS and
- * Android halves, and the two example apps. A JavaScript-only change inside
- * `packages/react-native/src` still runs the mobile SDK jobs, which cover the kernel
- * toolchains and the vitest suite, without spending app-build minutes on it.
+ * it keys on the native kernels, the binding's iOS and Android halves, and the two
+ * example apps. JavaScript-only SDK changes run in the package test job.
  */
 export const isMobileDevicePath = function isMobileDevicePath(
 	path: string
@@ -108,6 +108,33 @@ export const isMobileBenchmarkPath = function isMobileBenchmarkPath(
 	path: string
 ): boolean {
 	return path.startsWith('benchmarks/mobile/');
+};
+
+/** Build only the selected packages and their forward dependencies. */
+export const packageBuildClosure = function packageBuildClosure(
+	names: Iterable<string>,
+	workspaces: Workspace[]
+): string[] {
+	const required = new Set(names);
+	let previous = -1;
+	while (previous !== required.size) {
+		previous = required.size;
+		for (const workspace of workspaces) {
+			if (required.has(workspace.name)) {
+				for (const dependency of workspace.dependencies) {
+					required.add(dependency);
+				}
+			}
+		}
+	}
+	return workspaces
+		.filter(
+			(workspace) =>
+				workspace.directory.startsWith('packages/') &&
+				required.has(workspace.name) &&
+				workspace.scripts.build
+		)
+		.map((workspace) => workspace.name);
 };
 
 /** Select reverse dependencies first, then build their forward dependency closure. */
@@ -279,40 +306,23 @@ export const createCiPlan = function createCiPlan(
 			required.add(workspace.name);
 		}
 	}
-	previous = -1;
-	while (previous !== required.size) {
-		previous = required.size;
-		for (const workspace of workspaces) {
-			if (required.has(workspace.name)) {
-				for (const dependency of workspace.dependencies) {
-					required.add(dependency);
-				}
-			}
-		}
-	}
-	const build = workspaces
-		.filter(
-			(workspace) =>
-				workspace.directory.startsWith('packages/') &&
-				required.has(workspace.name) &&
-				workspace.scripts.build
-		)
-		.map((workspace) => workspace.name);
+	const build = packageBuildClosure(required, workspaces);
 	const styles = selected.some((workspace) =>
 		/benchmarks\/(?:tw3-test|tw4-test|no-tw-test|css-layer-preview|tailwind-matrix\/v[34](?:\/next-15(?:-turbopack)?)?)$/u.test(
 			workspace.directory
 		)
 	);
-	// The mobile SDK's own jobs. The selected SDK covers a kernel change that reaches it
-	// as a dependency, because the JS boundary runs the same engine the web packages
-	// do; the path filters cover the tree that has no workspace to select. A full run
-	// selects the SDK, so it always runs these too.
+	// The package job owns affected JavaScript and protocol tests. Native toolchains
+	// only run when their inputs change, or during full validation.
 	const mobile =
-		selected.some(
-			(workspace) => workspace.directory === 'packages/react-native'
-		) ||
+		full ||
 		runtime.some(
-			(path) => isMobileNativePath(path) || isMobileBenchmarkPath(path)
+			(path) =>
+				isMobileDevicePath(path) ||
+				isMobileBenchmarkPath(path) ||
+				/^packages\/react-native\/(?:src\/specs\/|scripts\/|package\.json$)/u.test(
+					path
+				)
 		);
 	// Advisory, and expensive: app builds run on a macOS runner and a full Android
 	// build, so only files an app compiles select it, plus the runs that select
@@ -328,6 +338,7 @@ export const createCiPlan = function createCiPlan(
 	].filter((entry) => entry.targets.length > 0);
 	return {
 		backend: affected.has('@c15t/backend'),
+		baseRef: '',
 		build,
 		bundle: affected.has('@c15t/next-bundle-bench'),
 		compat,
@@ -374,6 +385,7 @@ export type CiPlan = ReturnType<typeof createCiPlan>;
 /** Keep workspace names in the artifact, outside GitHub's job-output secret filter. */
 export const ciSchedulingOutputs = (plan: CiPlan) => ({
 	backend: plan.backend,
+	baseRef: plan.baseRef,
 	build: plan.build.length > 0,
 	bundle: plan.bundle,
 	docs: plan.docs,
@@ -388,55 +400,51 @@ export const ciSchedulingOutputs = (plan: CiPlan) => ({
 
 if (import.meta.main) {
 	const base = process.env.CI_DIFF_BASE;
-	const full = process.argv.includes('--full') || !base;
-	const files = full
-		? []
-		: execFileSync(
+	let full = process.argv.includes('--full') || !base || /^0+$/u.test(base);
+	let files: string[] = [];
+	if (!full) {
+		try {
+			files = execFileSync(
 				'git',
 				['diff', '--no-renames', '--name-only', '-z', `${base}...HEAD`],
-				{ encoding: 'utf8' }
-			)
-				.split('\0')
-				.filter(Boolean);
-	const workspaces = readWorkspaces();
-	const plan = createCiPlan(files, workspaces, full);
-	const mobileBase = process.env.CI_MOBILE_DIFF_BASE;
-	if (
-		!process.argv.includes('--full') &&
-		mobileBase &&
-		!/^0+$/u.test(mobileBase)
-	) {
-		try {
-			// Compare the entire push, including removals and rewritten history.
-			const mobileFiles = execFileSync(
-				'git',
-				['diff', '--no-renames', '--name-only', '-z', mobileBase, 'HEAD', '--'],
 				{ encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }
 			)
 				.split('\0')
 				.filter(Boolean);
-			const mobilePlan = createCiPlan(mobileFiles, workspaces);
-			plan.mobile = mobilePlan.mobile;
-			plan.mobileBrowserOrDevice = mobilePlan.mobileBrowserOrDevice;
-		} catch {
+		} catch (error) {
+			if (process.env.CI_RELEASE_SELECTION !== 'true') {
+				throw error;
+			}
+			full = true;
 			process.stderr.write(
-				'Mobile diff unavailable; keeping full mobile checks.\n'
+				'Release diff unavailable; selecting full checks.\n'
 			);
 		}
 	}
+	const workspaces = readWorkspaces();
+	const changes =
+		!full && base && process.env.CI_RELEASE_SELECTION === 'true'
+			? selectReleaseChanges(files, base, workspaces)
+			: { files, versionedPackages: [] };
+	const plan = createCiPlan(changes.files, workspaces, full);
+	plan.baseRef = full ? '' : (base ?? '');
+	plan.build = packageBuildClosure(
+		[...plan.build, ...changes.versionedPackages],
+		workspaces
+	);
 	writeFileSync('ci-plan.json', `${JSON.stringify(plan, null, 2)}\n`);
 	if (process.env.GITHUB_OUTPUT) {
 		for (const [key, value] of Object.entries(ciSchedulingOutputs(plan))) {
 			appendFileSync(
 				process.env.GITHUB_OUTPUT,
-				`${key}=${JSON.stringify(value)}\n`
+				`${key}=${typeof value === 'string' ? value : JSON.stringify(value)}\n`
 			);
 		}
 	}
 	if (process.env.GITHUB_STEP_SUMMARY) {
 		appendFileSync(
 			process.env.GITHUB_STEP_SUMMARY,
-			`## Selected checks\n\nBase: ${base ?? 'full run'}\n\n\`\`\`json\n${JSON.stringify(plan, null, 2)}\n\`\`\`\n`
+			`## Selected checks\n\nBase: ${plan.baseRef || 'full run'}\n\n\`\`\`json\n${JSON.stringify(plan, null, 2)}\n\`\`\`\n`
 		);
 	}
 	process.stdout.write(`${JSON.stringify(plan, null, 2)}\n`);

@@ -426,9 +426,9 @@ describe('publishing through npm', () => {
 				name: 'fixture',
 				private: true,
 				scripts: {
-					'build:libs': fail === 'build' ? 'exit 1' : 'bun build-fixture.mjs',
 					'check:publish-artifacts':
 						fail === 'artifacts' ? 'exit 1' : 'bun check-fixture.mjs',
+					turbo: fail === 'build' ? 'exit 1' : 'bun build-fixture.mjs',
 				},
 				workspaces: ['packages/*'],
 			})
@@ -437,6 +437,7 @@ describe('publishing through npm', () => {
 			root,
 			'build-fixture.mjs',
 			`import { mkdirSync, writeFileSync } from 'node:fs';
+writeFileSync('build-scope.json', JSON.stringify(process.argv.slice(2)));
 for (const name of ['core', 'logger']) {
  mkdirSync('packages/' + name + '/dist', { recursive: true });
  writeFileSync('packages/' + name + '/dist/index.js', 'export const built = true;');
@@ -447,6 +448,7 @@ for (const name of ['core', 'logger']) {
 			'check-fixture.mjs',
 			`import { existsSync, writeFileSync } from 'node:fs';
 if (!existsSync('packages/core/dist/index.js')) process.exit(1);
+writeFileSync('artifact-scope.json', JSON.stringify(process.argv.slice(2)));
 writeFileSync('artifacts-checked', 'ok');`
 		);
 		// A fake npm executable records uploads. No registry writes leave this test.
@@ -522,6 +524,20 @@ await runReleaseCli(createRelease({ branch: 'v3', cwd: process.cwd(), github: fa
 			'3.0.0-alpha.0'
 		);
 		publishInIsolation(root);
+		expect(
+			JSON.parse(readFileSync(join(root, 'build-scope.json'), 'utf8')).sort()
+		).toEqual(
+			[
+				'run',
+				'build',
+				'build:docs',
+				'--filter=@c15t/logger',
+				'--filter=@c15t/core',
+			].sort()
+		);
+		expect(
+			JSON.parse(readFileSync(join(root, 'artifact-scope.json'), 'utf8')).sort()
+		).toEqual(['--built', '@c15t/core', '@c15t/logger']);
 		expect(readFileSync(join(root, 'bun.lock'), 'utf8')).not.toContain(
 			'3.0.0-alpha.0'
 		);

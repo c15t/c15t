@@ -10,6 +10,12 @@ inputs:
   browsers:
     description: Install Chromium for the resolved Playwright versions.
     default: 'false'
+  cache-scope:
+    description: Independent cache for this job's completed tasks.
+    default: build
+  registry-url:
+    description: Package registry configured for release publishing.
+    default: ''
 runs:
   using: composite
   steps:
@@ -19,14 +25,28 @@ runs:
     - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
       with:
         node-version: ${{ inputs.node-version }}
+        registry-url: ${{ inputs.registry-url }}
     - shell: bash
       run: bun install --frozen-lockfile
+    # Vercel also checks the repository ID, branch, event, and workflow claims.
+    # PRs keep using local caches without a credential for the shared remote cache.
+    - name: Authenticate to Turborepo Remote Cache
+      if: >-
+        github.repository == 'c15t/c15t' && contains(fromJSON('["push", "schedule", "workflow_dispatch"]'), github.event_name) && contains(fromJSON('["refs/heads/main", "refs/heads/canary", "refs/heads/2.0.0", "refs/heads/v3"]'), github.ref)
+      uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
+      with:
+        team: ${{ env.TURBO_TEAM }}
+        audience: https://vercel.com/inth
+        policy: ${{ env.TURBO_CACHE_POLICY }}
+        revoke: true
     - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
-      if: inputs.built != 'true'
       with:
         path: .turbo/cache
-        key: turbo-${{ runner.os }}-${{ github.sha }}
-        restore-keys: turbo-${{ runner.os }}-
+        key: turbo-v2-${{ runner.os }}-${{ inputs.cache-scope }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}
+        restore-keys: |
+          turbo-v2-${{ runner.os }}-${{ inputs.cache-scope }}-${{ github.sha }}-
+          turbo-v2-${{ runner.os }}-${{ inputs.cache-scope }}-
+          turbo-${{ runner.os }}-
     - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: inputs.built == 'true'
       with:

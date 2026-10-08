@@ -202,7 +202,7 @@ describe('CI selection', () => {
 	});
 	it('runs the mobile SDK jobs for the package, the kernels, and the mobile bench', () => {
 		for (const file of [
-			'packages/react-native/src/index.ts',
+			'packages/react-native/src/specs/NativeC15t.ts',
 			'packages/react-native/android/c15t-react-native/library.gradle',
 			'benchmarks/mobile/src/run.ts',
 		]) {
@@ -217,9 +217,10 @@ describe('CI selection', () => {
 			'@c15t/mobile-bench'
 		);
 	});
-	it('follows a core change into the mobile SDK that runs the same kernel', () => {
+	it('tests the mobile JavaScript oracle without rebuilding unchanged native toolchains', () => {
 		const result = plan(['packages/core/src/kernel.ts']);
-		expect(result.mobile).toBe(true);
+		expect(result.tests).toContain('@c15t/react-native');
+		expect(result.mobile).toBe(false);
 		expect(result.mobileBrowserOrDevice).toBe(false);
 	});
 	it.each([
@@ -300,7 +301,7 @@ describe('CI scheduling outputs', () => {
 		const sdk = ciSchedulingOutputs(
 			plan(['packages/react-native/src/index.ts'])
 		);
-		expect(sdk.mobile).toBe(true);
+		expect(sdk.mobile).toBe(false);
 		expect(sdk.mobileBrowserOrDevice).toBe(false);
 		const apps = ciSchedulingOutputs(
 			plan(['internals/fixtures/expo-dev/App.tsx'])

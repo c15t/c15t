@@ -32,6 +32,8 @@ permissions:
 
 env:
   NODE_OPTIONS: --max-old-space-size=6144
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
 
 jobs:
   plan:
@@ -63,6 +65,9 @@ jobs:
           bun scripts/benchmark-revisions.ts >> "$GITHUB_OUTPUT"
 
   benchmark:
+    permissions:
+      contents: read
+      id-token: write
     name: Runtime regression budgets (${{ matrix.id }})
     needs: plan
     runs-on: blacksmith-4vcpu-ubuntu-2404
