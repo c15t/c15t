@@ -85,9 +85,10 @@ For further information, guides, and examples visit the [reference documentation
 | `legalDocuments.publish(type, { version, hash, effectiveDate })` | Required |
 | `experiments.summary(id, { from, to, domain })` | Required |
 | `status()`, `init()`, `manifest()` | No |
-| `createIdentityToken(user, { signingKey })` | No; signs locally |
 
 Every method takes `{ signal, timeoutMs, headers, retry, requestId }` as its last argument.
+
+`createIdentityToken(user, { signingKey })` is a separate export, not a client method. It signs a token locally for the browser's `identify()`, takes no call options, and throws a `TypeError` on invalid input.
 
 ## Upgrading from v2
 

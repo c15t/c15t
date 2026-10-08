@@ -185,9 +185,10 @@ type SubjectError = C15tErrorCodeOf<typeof c15t.subjects.get>;
 | `status()` | `GET /status` | No |
 | `init({ language, country, region, gpc })` | `GET /init` | No |
 | `manifest({ language, ifNoneMatch })` | `GET /manifest` | No |
-| `createIdentityToken(user, options)` | None, signs locally | No, uses the identity signing key |
 
 Every method also takes [call options](#call-options) as its last argument.
+`createIdentityToken` is a separate export, not a client method; see
+[Verify a link made in the browser](#verify-a-link-made-in-the-browser).
 The examples below use the `c15t` and `c15tAdmin` clients from
 [Create a client](#create-a-client).
 
