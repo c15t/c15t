@@ -6,7 +6,7 @@ import type { ConsentBannerOptions } from '../types';
 import { renderActionFooter, resolveActions } from './actions';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs, supportsStartingStyle } from './dom';
+import { h, markLateEntry, readDurationMs, supportsStartingStyle } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 
@@ -231,7 +231,10 @@ export const createBanner = function createBanner(
 		renderedFrom = null;
 	};
 
-	const show = function show(snapshot: ConsentSnapshot): void {
+	const show = function show(
+		snapshot: ConsentSnapshot,
+		entering: boolean
+	): void {
 		removeNow();
 		element = build(snapshot);
 		renderedFrom = {
@@ -263,12 +266,16 @@ export const createBanner = function createBanner(
 				element.classList.add(styles.bannerVisible);
 				overlay?.classList.add(styles.overlayVisible);
 			}
-			if (!(flip || disableAnimation)) {
-				// `@starting-style` transitions from the entering state on the
-				// first frame; nothing here has to wait for layout.
+			if (!disableAnimation) {
+				// The entering classes mark the mount. The banner shows on
+				// this frame, unless it is marked late below. On the flip
+				// path they sit under the hidden state until the flip.
 				element.classList.add(styles.bannerEntering);
 				overlay?.classList.add(styles.overlayEntering);
 			}
+		}
+		if (entering) {
+			markLateEntry([element, overlay]);
 		}
 		if (overlay) {
 			ctx.root.append(overlay);
@@ -282,9 +289,10 @@ export const createBanner = function createBanner(
 			cleanups.push(setupScrollLock());
 		}
 		if (flip) {
-			// Without `@starting-style`, force layout so the browser observes
-			// the hidden state before the flip; otherwise a fresh mount can
-			// skip the entry transition.
+			// Without `@starting-style`, the mount starts hidden and flips.
+			// The visible state has no transition, so the banner shows at
+			// once, unless it is marked late and the entering rule fades it
+			// in; the forced layout keeps the flip a style change.
 			void element.offsetHeight;
 			element.classList.replace(styles.bannerHidden, styles.bannerVisible);
 			overlay?.classList.replace(styles.overlayHidden, styles.overlayVisible);
@@ -326,9 +334,9 @@ export const createBanner = function createBanner(
 				hide();
 				return;
 			}
+			const onScreen = element !== null && hideTimer === undefined;
 			if (
-				element &&
-				hideTimer === undefined &&
+				onScreen &&
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
 				renderedFrom.policyRule === snapshot.policyRule &&
@@ -337,7 +345,9 @@ export const createBanner = function createBanner(
 			) {
 				return;
 			}
-			show(snapshot);
+			// A banner already on screen rebuilds in place, for new copy or a
+			// new policy, rather than entering again.
+			show(snapshot, !(onScreen || disableAnimation));
 		},
 	};
 };

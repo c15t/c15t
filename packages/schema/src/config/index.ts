@@ -514,6 +514,7 @@ export interface ConsentConfig<T = Record<string, unknown>> {
 			| 'c15t-duration-slow'
 			| 'c15t-easing'
 			| 'c15t-easing-out'
+			| 'c15t-easing-in'
 			| 'c15t-easing-in-out'
 			| 'c15t-easing-spring',
 			string | number

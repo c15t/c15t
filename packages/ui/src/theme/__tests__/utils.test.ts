@@ -48,6 +48,7 @@ describe('defaultTheme', () => {
 		expect(defaultTheme.motion.duration).toBeDefined();
 		expect(defaultTheme.motion.easing).toBeDefined();
 		expect(defaultTheme.motion.easingOut).toBeDefined();
+		expect(defaultTheme.motion.easingIn).toBeDefined();
 		expect(defaultTheme.motion.easingInOut).toBeDefined();
 		expect(defaultTheme.motion.easingSpring).toBeDefined();
 	});
@@ -150,6 +151,7 @@ describe('themeToVars', () => {
 					normal: '200ms',
 				},
 				easing: 'ease-in-out',
+				easingIn: 'cubic-bezier(0.55, 0.055, 0.675, 0.19)',
 				easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
 				easingOut: 'cubic-bezier(0.215, 0.61, 0.355, 1)',
 				easingSpring: 'cubic-bezier(0.34, 1.56, 0.64, 1)',
@@ -161,6 +163,9 @@ describe('themeToVars', () => {
 		expect(vars['--c15t-easing']).toBe('ease-in-out');
 		expect(vars['--c15t-easing-out']).toBe(
 			'cubic-bezier(0.215, 0.61, 0.355, 1)'
+		);
+		expect(vars['--c15t-easing-in']).toBe(
+			'cubic-bezier(0.55, 0.055, 0.675, 0.19)'
 		);
 		expect(vars['--c15t-easing-in-out']).toBe(
 			'cubic-bezier(0.645, 0.045, 0.355, 1)'

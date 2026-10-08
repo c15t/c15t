@@ -58,6 +58,8 @@ export const defaultTheme: Required<Omit<Theme, 'slots'>> = {
 			slow: '200ms',
 		},
 		easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
+		// ease-in-cubic: slow start, fast end - ideal for exits
+		easingIn: 'cubic-bezier(0.55, 0.055, 0.675, 0.19)',
 		// ease-in-out-cubic: smooth acceleration and deceleration - ideal for movement
 		easingInOut: 'cubic-bezier(0.645, 0.045, 0.355, 1)',
 		// ease-out-cubic: fast start, smooth end - ideal for enter/exit
@@ -359,6 +361,7 @@ const themeCSSVariableResolvers: Record<
 	'duration-normal': (theme) => theme.motion?.duration?.normal,
 	'duration-slow': (theme) => theme.motion?.duration?.slow,
 	easing: (theme) => theme.motion?.easing,
+	'easing-in': (theme) => theme.motion?.easingIn,
 	'easing-in-out': (theme) => theme.motion?.easingInOut,
 	'easing-out': (theme) => theme.motion?.easingOut,
 	'easing-spring': (theme) => theme.motion?.easingSpring,

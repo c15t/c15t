@@ -26,6 +26,7 @@ export const defaultConsentConfig = {
 		'c15t-duration-normal': '150ms',
 		'c15t-duration-slow': '200ms',
 		'c15t-easing': 'cubic-bezier(0.4, 0, 0.2, 1)',
+		'c15t-easing-in': 'cubic-bezier(0.55, 0.055, 0.675, 0.19)',
 		'c15t-easing-in-out': 'cubic-bezier(0.645, 0.045, 0.355, 1)',
 		'c15t-easing-out': 'cubic-bezier(0.215, 0.61, 0.355, 1)',
 		'c15t-easing-spring': 'cubic-bezier(0.34, 1.56, 0.64, 1)',

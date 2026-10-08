@@ -12,9 +12,12 @@
 	--iab-consent-banner-border-radius: var(--c15t-radius-lg);
 	--iab-consent-banner-max-width: 560px;
 
-	/* Animation variables */
+	/* Animation variables. A banner that mounts after the page has painted
+	   fades in on the entry pair; hiding fades out on the exit pair. */
+	--iab-consent-banner-entry-duration: var(--c15t-duration-normal);
+	--iab-consent-banner-entry-timing: var(--c15t-easing-out);
 	--iab-consent-banner-animation-duration: var(--c15t-duration-fast);
-	--iab-consent-banner-animation-timing: var(--c15t-easing);
+	--iab-consent-banner-animation-timing: var(--c15t-easing-in);
 
 	/* Border */
 	--iab-consent-banner-border-width: 1px;
@@ -67,38 +70,37 @@
 		tab-size: var(--iab-consent-banner-tab-size);
 	}
 
-	/* Banner animation classes */
+	/*
+	 * The banner appears on its first frame when it shows with the page.
+	 * There it is part of the first paint, and motion reads as layout
+	 * shift. Hiding still fades out. Adapters keep adding `bannerEntering`
+	 * on mount; that state is fully visible.
+	 */
+	.bannerEntering,
 	.bannerVisible {
 		opacity: 1;
-		transform: scale(1);
-		transition:
-			opacity var(--iab-consent-banner-animation-duration)
-				var(--iab-consent-banner-animation-timing),
-			transform var(--iab-consent-banner-animation-duration)
-				var(--c15t-easing-spring);
+	}
+
+	/*
+	 * A banner that mounts after the page has painted fades in instead, so
+	 * it does not pop into a page someone is already reading. Adapters mark
+	 * that mount with `data-entry="late"`. It fades only, never moves.
+	 */
+	.bannerEntering[data-entry='late']:not(.bannerHidden) {
+		transition: opacity var(--iab-consent-banner-entry-duration)
+			var(--iab-consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.bannerEntering[data-entry='late'] {
+			opacity: 0;
+		}
 	}
 
 	.bannerHidden {
 		opacity: 0;
-		transform: scale(0.95);
-		transition:
-			opacity var(--iab-consent-banner-animation-duration)
-				var(--iab-consent-banner-animation-timing),
-			transform var(--iab-consent-banner-animation-duration)
-				var(--iab-consent-banner-animation-timing);
-	}
-
-	/*
-	 * Entry for a banner inserted with `.bannerVisible` already set. Browsers
-	 * with `@starting-style` transition from this state on the first frame,
-	 * so the mount needs no forced layout between the hidden and visible
-	 * classes.
-	 */
-	@starting-style {
-		.bannerEntering {
-			opacity: 0;
-			transform: scale(0.95);
-		}
+		transition: opacity var(--iab-consent-banner-animation-duration)
+			var(--iab-consent-banner-animation-timing);
 	}
 
 	@media (min-width: 640px) {
@@ -293,11 +295,21 @@
 		z-index: 999997;
 	}
 
-	/* Animation classes for overlay */
+	/* The backdrop enters and leaves with the banner. */
+	.overlayEntering,
 	.overlayVisible {
 		opacity: 1;
-		transition: opacity var(--iab-consent-banner-animation-duration)
-			var(--iab-consent-banner-animation-timing);
+	}
+
+	.overlayEntering[data-entry='late']:not(.overlayHidden) {
+		transition: opacity var(--iab-consent-banner-entry-duration)
+			var(--iab-consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.overlayEntering[data-entry='late'] {
+			opacity: 0;
+		}
 	}
 
 	.overlayHidden {
@@ -306,21 +318,15 @@
 			var(--iab-consent-banner-animation-timing);
 	}
 
-	@starting-style {
-		.overlayEntering {
-			opacity: 0;
-		}
-	}
-
 	:global(.c15t-dark) .overlay {
 		background-color: var(--iab-consent-banner-overlay-background-color-dark);
 	}
 
 	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
-		.bannerVisible,
+		.bannerEntering[data-entry='late']:not(.bannerHidden),
+		.overlayEntering[data-entry='late']:not(.overlayHidden),
 		.bannerHidden,
-		.overlayVisible,
 		.overlayHidden {
 			transition: none;
 		}

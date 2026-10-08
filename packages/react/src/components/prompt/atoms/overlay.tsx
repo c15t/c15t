@@ -9,6 +9,7 @@ import type { HTMLAttributes } from 'react';
 
 import { Slot } from '~/components/shared/libs/slot';
 import { useActiveUI } from '~/hooks';
+import { useLateEntry } from '~/hooks/use-late-entry';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -77,8 +78,8 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const shouldApplyAnimation =
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
-		// `overlayEntering` is the `@starting-style` state the stylesheet
-		// transitions from on the first frame; no hidden render is needed.
+		// The overlay shows on its first frame; `overlayEntering` marks the
+		// mount, and with `data-entry="late"` the stylesheet fades it in.
 		const animationClass = shouldApplyAnimation
 			? `${styles.overlayVisible} ${styles.overlayEntering}`
 			: undefined;
@@ -87,6 +88,8 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const finalClassName = cn(theme.className, animationClass);
 
 		useScrollLock(!!(showBanner && scrollLock));
+		const lateEntry =
+			useLateEntry(!!(showBanner && scrollLock)) && !disableAnimation;
 
 		if (!(showBanner && scrollLock)) {
 			return null;
@@ -95,6 +98,7 @@ const ConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			...theme,
 			'aria-hidden': true,
 			className: finalClassName,
+			'data-entry': lateEntry ? 'late' : undefined,
 			'data-testid': 'consent-banner-overlay',
 		};
 		return asChild && isValidElement(children) ? (

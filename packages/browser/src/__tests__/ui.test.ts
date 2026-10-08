@@ -350,8 +350,9 @@ describe('mountConsentUI', () => {
 			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
 				true
 			);
+			// The entering class stays, so a late flip can still fade in.
 			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
-				false
+				true
 			);
 			expect(layout).toHaveBeenCalledTimes(1);
 
@@ -384,6 +385,99 @@ describe('mountConsentUI', () => {
 			expect(dialog.classList.contains(classes.dialog.contentEntering)).toBe(
 				true
 			);
+		});
+
+		/** The page first painted `ago` milliseconds before the mount. */
+		const paintedAgo = function paintedAgo(ago: number) {
+			vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) =>
+				type === 'paint'
+					? [
+							{
+								name: 'first-contentful-paint',
+								startTime: 0,
+							} as PerformanceEntry,
+						]
+					: []
+			);
+			vi.spyOn(performance, 'now').mockReturnValue(ago);
+		};
+
+		it('marks a banner that mounts after the page painted as a late entry', async () => {
+			declareStartingStyle();
+			paintedAgo(1000);
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.dataset.entry).toBe('late');
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				true
+			);
+		});
+
+		it('fades a late banner in through the flip without @starting-style', async () => {
+			paintedAgo(1000);
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.dataset.entry).toBe('late');
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerHidden)).toBe(
+				false
+			);
+		});
+
+		it('shows a banner that mounts with the first paint at once', async () => {
+			declareStartingStyle();
+			paintedAgo(50);
+			const { root } = await mount({ disableAnimation: false });
+
+			expect(query(root, 'consent-banner-root').dataset.entry).toBeUndefined();
+		});
+
+		it('does not mark a late entry when animation is disabled', async () => {
+			declareStartingStyle();
+			paintedAgo(1000);
+			const { root } = await mount();
+
+			expect(query(root, 'consent-banner-root').dataset.entry).toBeUndefined();
+		});
+
+		it('does not fade a banner in again when it rebuilds in place', async () => {
+			declareStartingStyle();
+			paintedAgo(50);
+			const experiment = {
+				arm: 'floating',
+				arms: {
+					bar: { prompt: { variant: 'bar' as const } },
+					floating: { prompt: { variant: 'floating' as const } },
+				},
+				id: 'banner-shape',
+			};
+			const { client, root } = await mount(
+				{ disableAnimation: false },
+				{ experiment }
+			);
+			await vi.waitFor(() =>
+				expect(query(root, 'consent-banner-root').dataset.variant).toBe(
+					'floating'
+				)
+			);
+			paintedAgo(5000);
+			client.kernel.set.experiment({
+				acknowledgedDiagnostics: false,
+				arm: 'bar',
+				assignedBy: 'c15t',
+				id: 'banner-shape',
+			});
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.dataset.variant).toBe('bar');
+			expect(banner.dataset.entry).toBeUndefined();
 		});
 
 		it('skips the entering state when animation is disabled', async () => {

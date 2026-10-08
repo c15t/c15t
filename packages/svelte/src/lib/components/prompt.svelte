@@ -362,6 +362,7 @@
 			<Overlay
 				{styles}
 				entering={!disableAnimation}
+				lateEntry={visibility.lateEntry && !disableAnimation}
 				visible={visibility.isVisible}
 			/>
 		{/if}
@@ -375,6 +376,9 @@
 			data-blocking={isBlocking ? 'true' : undefined}
 			data-prompt={promptKind}
 			data-model={consent.state.model}
+			data-entry={visibility.lateEntry && !disableAnimation
+				? 'late'
+				: undefined}
 			data-testid="consent-banner-root"
 			use:scrollLock={shouldScrollLock}
 		>

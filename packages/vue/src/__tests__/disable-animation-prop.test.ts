@@ -53,7 +53,7 @@ const query = (selector: string) =>
 
 const render = async function render(
 	component: Component,
-	activeUI: 'banner' | 'manager',
+	activeUI: 'banner' | 'manager' | null,
 	configDisableAnimation: boolean,
 	disableAnimation: boolean | undefined
 ) {
@@ -114,6 +114,49 @@ describe('the disableAnimation prop', () => {
 			expect(bannerRoot()?.classList.contains(entering)).toBe(!expected);
 		}
 	);
+
+	/** The page first painted at 0; the clock reads `now`. */
+	const setClock = function setClock(now: number) {
+		vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) =>
+			type === 'paint'
+				? [{ name: 'first-contentful-paint', startTime: 0 } as PerformanceEntry]
+				: []
+		);
+		vi.spyOn(performance, 'now').mockReturnValue(now);
+	};
+
+	test('fades in a banner that opens after the page painted', async () => {
+		setClock(50);
+		await render(ConsentBanner, null, false, undefined);
+		expect(bannerRoot()).toBeNull();
+		setClock(5000);
+		const { context } = mounted ?? {};
+		if (context) {
+			context.activeUI.value = 'banner';
+		}
+		await vi.waitFor(() => expect(bannerRoot()).not.toBeNull());
+		expect(bannerRoot()?.dataset.entry).toBe('late');
+		expect(bannerRoot()?.classList.contains(entering)).toBe(true);
+	});
+
+	test('shows a banner open at setup at once', async () => {
+		setClock(5000);
+		await render(ConsentBanner, 'banner', false, undefined);
+		await vi.waitFor(() => expect(bannerRoot()).not.toBeNull());
+		expect(bannerRoot()?.dataset.entry).toBeUndefined();
+	});
+
+	test('does not mark a late banner when animation is disabled', async () => {
+		setClock(50);
+		await render(ConsentBanner, null, false, true);
+		setClock(5000);
+		const { context } = mounted ?? {};
+		if (context) {
+			context.activeUI.value = 'banner';
+		}
+		await vi.waitFor(() => expect(bannerRoot()).not.toBeNull());
+		expect(bannerRoot()?.dataset.entry).toBeUndefined();
+	});
 
 	test.each([
 		{ config: false, expected: true, prop: true },

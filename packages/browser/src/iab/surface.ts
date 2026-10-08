@@ -8,7 +8,7 @@ import type { ConsentUIOptions } from '../types';
 import { renderActionFooter, resolveActions } from '../ui/actions';
 import { renderBranding } from '../ui/branding';
 import { resolveCopy } from '../ui/copy';
-import { cx, h } from '../ui/dom';
+import { cx, h, markLateEntry, supportsStartingStyle } from '../ui/dom';
 import { renderLegalLinks } from '../ui/surface';
 import type { Surface, SurfaceContext } from '../ui/surface';
 import { createIABPreferences } from './preferences';
@@ -30,6 +30,7 @@ export const createIABSurface = (
 		moreVendorsText,
 	} = options.iab ?? {};
 	const css = (...values: string[]): string => (noStyle ? '' : cx(...values));
+	const animate = !(bannerOptions.disableAnimation ?? ctx.disableAnimation);
 	let root: HTMLElement | null = null;
 	let overlay: HTMLElement | null = null;
 	let preferences: IABPreferences | null = null;
@@ -101,7 +102,11 @@ export const createIABSurface = (
 		updateFeedback();
 	};
 	// oxlint-disable-next-line complexity -- Banner and dialog share one lifecycle with per-surface copy, layout, and policy constraints.
-	const build = (snapshot: ConsentSnapshot, dialog: boolean): void => {
+	const build = (
+		snapshot: ConsentSnapshot,
+		dialog: boolean,
+		entering: boolean
+	): void => {
 		const { t: all, dir, language } = resolveCopy(snapshot);
 		const t = all.iab;
 		const styles = dialog ? classes.dialog : classes.banner;
@@ -318,7 +323,11 @@ export const createIABSurface = (
 				h(
 					'div',
 					{
-						class: css(classes.banner.root, classes.banner.bannerVisible),
+						class: css(
+							classes.banner.root,
+							classes.banner.bannerVisible,
+							animate ? classes.banner.bannerEntering : ''
+						),
 						'data-blocking': String(actions.blocking),
 						'data-position': position,
 						'data-testid': `${prefix}-root`,
@@ -335,15 +344,48 @@ export const createIABSurface = (
 			overlay = slot(
 				h('div', {
 					'aria-hidden': 'true',
-					class: css(styles.overlay, styles.overlayVisible),
+					class: css(
+						styles.overlay,
+						styles.overlayVisible,
+						!dialog && animate ? classes.banner.overlayEntering : ''
+					),
 					'data-testid': `${prefix}-overlay`,
 					role: 'presentation',
 				}),
 				dialog ? 'iabConsentDialogOverlay' : 'iabConsentBannerOverlay'
 			);
+		}
+		// A banner that arrives after the page painted fades in. Without
+		// `@starting-style` it starts hidden and flips to visible once it
+		// is in the document, so the fade still runs.
+		const late =
+			!dialog && entering && animate && markLateEntry([root, overlay]);
+		const flip = late && !noStyle && !supportsStartingStyle();
+		if (flip) {
+			root.classList.replace(
+				classes.banner.bannerVisible,
+				classes.banner.bannerHidden
+			);
+			overlay?.classList.replace(
+				classes.banner.overlayVisible,
+				classes.banner.overlayHidden
+			);
+		}
+		if (overlay) {
 			ctx.root.append(overlay);
 		}
 		ctx.root.append(root);
+		if (flip) {
+			void root.offsetHeight;
+			root.classList.replace(
+				classes.banner.bannerHidden,
+				classes.banner.bannerVisible
+			);
+			overlay?.classList.replace(
+				classes.banner.overlayHidden,
+				classes.banner.overlayVisible
+			);
+		}
 		if (actions.blocking) {
 			release.push(
 				setupScrollLock(),
@@ -387,8 +429,11 @@ export const createIABSurface = (
 			preferences?.sync(snapshot);
 			return;
 		}
+		// A rebuild of the surface already on screen, such as when the
+		// vendor list arrives, swaps it in place rather than entering again.
+		const entering = rendered?.ui !== ui;
 		clear();
-		build(snapshot, ui === 'dialog');
+		build(snapshot, ui === 'dialog', entering);
 		rendered = { loadFailed, ready, snapshot, ui };
 	};
 	const watch = (handle: ConsentRuntimeIABHandle | null): void => {

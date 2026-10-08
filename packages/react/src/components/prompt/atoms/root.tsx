@@ -16,6 +16,7 @@ import {
 	useModel,
 	usePolicyRule,
 } from '~/hooks';
+import { useLateEntry } from '~/hooks/use-late-entry';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -33,10 +34,9 @@ import { Overlay } from './overlay';
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
 
 /**
- * The banner renders in its visible state. `bannerEntering` is the
- * `@starting-style` state the stylesheet transitions from on the first
- * frame, so no hidden render, timer or layout read is needed to start the
- * entry. Browsers without `@starting-style` show the banner in place.
+ * The banner renders in its visible state and shows on its first frame.
+ * `bannerEntering` marks the mount; with `data-entry="late"` as well, the
+ * stylesheet fades it in.
  */
 const getBannerAnimationClass = (
 	disableAnimation: boolean | undefined
@@ -278,6 +278,8 @@ const ConsentBannerRootChildren = createForwardRef<
 		// and the current model matches. Without a policy nothing renders.
 		const shouldShowBanner =
 			hasConsentUI && activeUI === 'banner' && models.includes(model);
+		// A banner that arrives after the page painted fades in.
+		const lateEntry = useLateEntry(shouldShowBanner) && !disableAnimation;
 		const contentStyle = mergeSlotProps(components?.banner?.root, {
 			baseClassName: styles.root,
 			className: className || forwardedClassName,
@@ -303,6 +305,7 @@ const ConsentBannerRootChildren = createForwardRef<
 					data-blocking={surface.blocking ? 'true' : undefined}
 					data-prompt={policy.prompt}
 					data-model={policy.model}
+					data-entry={lateEntry ? 'late' : undefined}
 					data-testid="consent-banner-root"
 					dir={textDirection}
 				>

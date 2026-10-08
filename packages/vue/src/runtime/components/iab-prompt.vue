@@ -24,6 +24,7 @@ import {
 } from '../composables/kernel';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { useLateEntry } from '../composables/use-late-entry';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
@@ -117,6 +118,11 @@ const showBanner = computed(
 		isOpen.value &&
 		Boolean(gvl.value || initValue.value?.gvlReference) &&
 		bannerSummary.value.isReady
+);
+// A banner that opens after the page painted fades in.
+const lateEntry = useLateEntry(showBanner);
+const entryAttribute = computed(() =>
+	lateEntry.value && !disableAnimation.value ? 'late' : undefined
 );
 
 const descriptionText = computed(() =>
@@ -214,6 +220,7 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 					])
 				"
 				aria-hidden="true"
+				:data-entry="entryAttribute"
 				data-testid="iab-consent-banner-overlay"
 			/>
 		</Transition>
@@ -236,6 +243,7 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 					])
 				"
 				data-testid="iab-consent-banner-root"
+				:data-entry="entryAttribute"
 				:data-position="
 					textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
 				"

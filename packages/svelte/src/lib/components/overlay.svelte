@@ -17,16 +17,23 @@
 
 	let {
 		entering,
+		lateEntry = false,
 		styles,
 		variant = 'banner',
 		visible = true,
 	}: {
 		/**
-		 * Add the `@starting-style` entering class on a visible overlay so it
-		 * fades in from the first frame. Defaults to the theme's animation
+		 * Add the entering class on a visible overlay, which the dialog's
+		 * stylesheet fades in from the first frame and the banner's fades in
+		 * only with `lateEntry`. Defaults to the theme's animation
 		 * setting, so a caller only passes it to override that.
 		 */
 		entering?: boolean;
+		/**
+		 * Mark the mount `data-entry="late"`, for a banner that arrives
+		 * after the page has painted. The stylesheet fades it in.
+		 */
+		lateEntry?: boolean;
 		styles: OverlayStyles;
 		variant?: 'banner' | 'dialog' | 'iab-banner' | 'iab-dialog';
 		visible?: boolean;
@@ -78,6 +85,7 @@
 <div
 	class={className}
 	style={toStyleAttribute(themeStyle.style)}
+	data-entry={lateEntry ? 'late' : undefined}
 	data-testid={testId}
 	aria-hidden="true"
 ></div>

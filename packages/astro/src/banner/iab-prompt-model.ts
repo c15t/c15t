@@ -213,8 +213,8 @@ const IAB_PROMPT_SLOTS = {
 /**
  * Class names and inline styles for every element: the stock classes, or
  * none with `noStyle`, then the element's `theme.slots` entry. With
- * `disableAnimation` the entering classes, the `@starting-style` state the
- * entry animation starts from, are left out before the slots apply.
+ * `disableAnimation` the entering classes, which mark the mount, are left
+ * out before the slots apply.
  */
 const resolveIABClasses = function resolveIABClasses(
 	classNames: IABPromptClassNames,

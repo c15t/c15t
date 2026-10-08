@@ -1,3 +1,5 @@
+import { isLateEntry } from '@c15t/ui/utils/late-entry';
+
 /** Anything `h()` accepts as a child. */
 export type Child = Node | string | number | null | undefined | false;
 
@@ -162,4 +164,23 @@ export const prefersReducedMotion = function prefersReducedMotion(): boolean {
  */
 export const supportsStartingStyle = function supportsStartingStyle(): boolean {
 	return 'CSSStartingStyleRule' in globalThis;
+};
+
+/**
+ * Mark a mount that arrives after the page has painted, so the stylesheet
+ * fades it in rather than popping it into a page someone is already reading.
+ *
+ * @param elements - The banner root and its backdrop, when it has one.
+ * @returns Whether the mount was marked late.
+ */
+export const markLateEntry = function markLateEntry(
+	elements: readonly (HTMLElement | null)[]
+): boolean {
+	if (!isLateEntry()) {
+		return false;
+	}
+	for (const element of elements) {
+		element?.setAttribute('data-entry', 'late');
+	}
+	return true;
 };

@@ -295,8 +295,8 @@ const ruleViolation = function ruleViolation(
 	if (SPACING_PROPERTY.test(property) && hasDesignNumber(value)) {
 		return 'spacing';
 	}
-	// The theme has an easing token for each of these keywords but `ease-in`;
-	// `linear` and `steps()` are left alone, since no token stands for them.
+	// The theme has an easing token for each of these keywords; `linear` and
+	// `steps()` are left alone, since no token stands for them.
 	if (
 		/^(?:transition|animation)(?:-duration|-timing-function)?$/u.test(
 			property
