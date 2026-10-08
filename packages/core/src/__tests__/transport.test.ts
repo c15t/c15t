@@ -2579,6 +2579,47 @@ describe('consent journey query parameters', () => {
 		);
 	});
 
+	test('a manifest init resolved in the browser leaves its journey off the save', async () => {
+		const fetchSpy = respond();
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+			manifest: MANIFEST_FIXTURE,
+		});
+		const journey = { id: JOURNEY_ID, scope: 'page' as const };
+		await transport.init?.({
+			journey: { ...journey, storedChoice: false },
+			overrides: {},
+			user: null,
+		});
+		// No /init and no report named the id, so the save sends none.
+		await transport.save?.({ ...savePayload, journey });
+		expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe(
+			'https://api.example.com/c15t/subjects'
+		);
+	});
+
+	test('a manifest init that reports keeps the journey on the save', async () => {
+		const fetchSpy = respond();
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+			manifest: MANIFEST_FIXTURE,
+			report: { adapter: '@c15t/test', source: 'route' },
+		});
+		const journey = { id: JOURNEY_ID, scope: 'page' as const };
+		await transport.init?.({
+			journey: { ...journey, storedChoice: false },
+			overrides: {},
+			user: null,
+		});
+		await transport.save?.({ ...savePayload, journey });
+		const saved = fetchSpy.mock.calls.find(([url]) =>
+			String(url).includes('/subjects')
+		);
+		expect(String(saved?.[0])).toContain(`c15tJourney=${JOURNEY_ID}`);
+	});
+
 	test('manifest save carries the journey on the URL', async () => {
 		const fetchSpy = respond();
 		const transport = createManifestTransport({

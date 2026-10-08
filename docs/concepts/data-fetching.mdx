@@ -94,7 +94,9 @@ Where the journey starts:
 - Otherwise the runtime starts it when it starts.
 
 The runtime continues the first of these that exists, so a save carries the id
-of an `/init` or report that came before it. A save queued while offline and
+of an `/init` or report that came before it. Manifest mode that resolves init in the
+browser makes no request at all, so a page resolved that way has no journey:
+its saves carry none. A save queued while offline and
 sent again later, on this page or another, carries no journey. When an init
 route has to ask the backend's own `/init`, it forwards the journey with the
 page's `Origin`; the backend falls back to the request's host when a browser

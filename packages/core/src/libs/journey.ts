@@ -233,3 +233,40 @@ export const hasStoredConsentRecord = function hasStoredConsentRecord(
 		return false;
 	}
 };
+
+/**
+ * Journeys an init resolved in the browser with no request that carried
+ * them: a manifest transport resolving init locally, with no `/init` and no
+ * session report. A save of such a journey must not send its id either, or
+ * a backend would get an id no init or report ever named.
+ *
+ * @returns What a transport records and checks.
+ * @internal
+ */
+export const createUnreportedJourneys = function createUnreportedJourneys() {
+	const ids = new Set<string>();
+	return {
+		/** An init carried this journey in a request (an `/init` or a report). */
+		reported(journey: Pick<KernelJourney, 'id'> | undefined): void {
+			if (journey) {
+				ids.delete(journey.id);
+			}
+		},
+		/** An init resolved this journey locally; nothing carried it. */
+		resolvedLocally(journey: Pick<KernelJourney, 'id'> | undefined): void {
+			if (journey) {
+				ids.add(journey.id);
+			}
+		},
+		/** The save without its journey when no request carried that id. */
+		strip<Payload extends { journey?: Pick<KernelJourney, 'id'> }>(
+			payload: Payload
+		): Payload {
+			if (!(payload.journey && ids.has(payload.journey.id))) {
+				return payload;
+			}
+			const { journey: _unreported, ...rest } = payload;
+			return rest as Payload;
+		},
+	};
+};

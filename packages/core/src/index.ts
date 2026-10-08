@@ -311,6 +311,7 @@ export type {
 	StartExperimentOptions,
 } from './libs/experiment';
 export type { ConsentJourneyOption, JourneyState } from './libs/journey';
+export { createUnreportedJourneys } from './libs/journey';
 export {
 	EXPERIMENT_STORAGE_KEY,
 	JOURNEY_STORAGE_KEY,

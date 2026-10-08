@@ -7,6 +7,7 @@ packages:
   '@c15t/nextjs': minor
   '@c15t/tanstack-start': minor
   '@c15t/vue': patch
+  '@c15t/browser': patch
   c15t: minor
 ---
 
@@ -41,7 +42,8 @@ the browser in the state. `reportSessions: false` turns that off. React's early
 `/init` and the inline prefetch script start it too, and the runtime continues
 it, so every save with a journey follows an `/init` or report with the same
 id. `buildPrefetchScript` takes `journey` and `storageKey`. A save replayed
-after going offline carries no journey. Backends that do not read the
+after going offline carries no journey, and neither does a save after init was
+resolved from a manifest in the browser, since no request reported it. Backends that do not read the
 parameters ignore them.
 
 `'tab'` suits pages that resolve init in the browser: a server render cannot

@@ -102,7 +102,9 @@ describe('manifest()', () => {
 		await client.ready();
 		await client.acceptAll();
 		expect(fetchSpy).toHaveBeenCalledOnce();
-		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
+		// Resolved in the browser: no /init or report named a journey, so the
+		// save carries none.
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
 			'https://example.test/subjects'
 		);
 		const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body));
