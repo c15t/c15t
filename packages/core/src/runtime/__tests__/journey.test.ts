@@ -289,6 +289,44 @@ describe('a journey a server render started', () => {
 	});
 });
 
+describe('a streamed prefetch the runtime cannot stream', () => {
+	test('keeps the journey its own init sent', async () => {
+		const transportInit = vi.fn<NonNullable<KernelTransport['init']>>(() =>
+			Promise.resolve({
+				policyResolution: writePolicyResolutionWire(
+					matchedResolution(optInRule())
+				),
+			})
+		);
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const stream = Promise.withResolvers<{ journey: { id: string } }>();
+		// No `streamPrefetch` module: the promise is ignored and the runtime
+		// asks for the policy itself.
+		const runtime = createConsentProviderRuntime(
+			{
+				consentCategories: ['necessary', 'measurement'],
+				mode: custom({ init: transportInit, save }),
+				prefetch: stream.promise,
+			},
+			defaultRuntimeModules
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().activeUI).toBe('banner')
+		);
+		const sent = transportInit.mock.calls[0]?.[0].journey?.id;
+		expect(sent).toMatch(/^[\da-f-]{36}$/u);
+
+		stream.resolve({ journey: { id: SERVER_ID } });
+		await stream.promise;
+		await runtime.kernel.commands.save('all');
+		expect(save.mock.calls[0]?.[0].journey?.id).toBe(sent);
+	});
+});
+
 describe('a journey a request before the runtime started', () => {
 	test('the inline prefetch script sends it and the save carries it', async () => {
 		vi.stubGlobal('fetch', fakeFetch);

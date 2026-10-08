@@ -287,7 +287,14 @@ export const createConsentProviderRuntime =
 
 		const main = build(true);
 		main.runtime.subscribe(notify);
-		if (initial.prefetch && initial.prefetch !== knownPrefetch) {
+		// Only a prefetch the runtime streams into its first init: without
+		// `streamPrefetch` the promise is ignored, the runtime's own init
+		// carries its own journey, and the save must carry that one too.
+		if (
+			modules.streamPrefetch &&
+			initial.prefetch &&
+			initial.prefetch !== knownPrefetch
+		) {
 			// A streamed state carries the journey the server started. It
 			// lands before the first save: no prompt shows until it does.
 			void (async () => {
