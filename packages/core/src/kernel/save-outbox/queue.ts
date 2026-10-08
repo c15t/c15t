@@ -395,6 +395,13 @@ const isSamePendingSave = function isSamePendingSave(
 	);
 };
 
+/**
+ * What queueing a failed save did: `superseded` when the records were
+ * cleared or replaced first, so there was nothing left to queue, and
+ * `unstored` when storage refused the write.
+ */
+export type EnqueueResult = 'queued' | 'superseded' | 'unstored';
+
 /** `retry` keeps the entry for another attempt; the others remove it. */
 type ReplayOutcome = 'saved' | 'retry' | 'rejected';
 
@@ -416,11 +423,8 @@ export interface QueueWorkerOptions {
 
 /** The queue operations of one outbox. */
 export interface QueueWorker {
-	/**
-	 * Queue what `current()` still holds, read inside the transaction.
-	 * Resolves to whether anything was queued.
-	 */
-	enqueue: (current: () => SavePayload | null) => Promise<boolean>;
+	/** Queue what `current()` still holds, read inside the transaction. */
+	enqueue: (current: () => SavePayload | null) => Promise<EnqueueResult>;
 	/** Drop the queued saves `payload` superseded. */
 	discard: (payload: SavePayload) => Promise<void>;
 	/** Move the visitor off a subject id the backend refused. */
@@ -496,17 +500,18 @@ export const createQueueWorker = function createQueueWorker({
 	/** Queue what `current()` still holds, read inside the transaction. */
 	const enqueue = function enqueue(
 		current: () => SavePayload | null
-	): Promise<boolean> {
+	): Promise<EnqueueResult> {
 		return store.transact((tx) => {
 			const payload = current();
 			if (!payload) {
-				return false;
+				return 'superseded';
 			}
 			const now = Date.now();
 			const pending = readPendingSaves(tx, now);
 			pending.push({ attempts: 0, payload, queuedAt: now });
-			tx.write('saves', normalizePendingSaves(pending, now));
-			return true;
+			return tx.write('saves', normalizePendingSaves(pending, now))
+				? 'queued'
+				: 'unstored';
 		});
 	};
 

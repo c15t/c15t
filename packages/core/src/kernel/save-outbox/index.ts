@@ -62,7 +62,7 @@ import type {
 	SaveResult,
 } from '../../types';
 import type { KernelRuntime } from '../runtime';
-import type { QueueWorker, QueueWorkerOptions } from './queue';
+import type { EnqueueResult, QueueWorker, QueueWorkerOptions } from './queue';
 import { queueTools } from './queue-tools';
 import type { SaveOutboxStore } from './store';
 import {
@@ -126,16 +126,23 @@ export interface SaveOutboxOptions {
  * Tell a developer that a save did not reach the backend. Otherwise the only
  * signal is `onError`, and a queued save looks the same as a recorded one.
  */
+const SAVE_FAILED_WARNINGS = {
+	queued:
+		'[c15t] Consent save failed. The choice is kept in this browser and queued, and is resent on the next init or when the browser comes back online.',
+	rejected:
+		'[c15t] The backend refused the consent save, so it will not be resent. The choice is kept in this browser only.',
+	unstored:
+		'[c15t] Consent save failed, and storage refused to queue it, so it will not be resent. The choice is kept in this browser only.',
+} as const;
+
 const warnSaveFailed = function warnSaveFailed(
-	outcome: 'queued' | 'rejected',
+	outcome: keyof typeof SAVE_FAILED_WARNINGS | 'superseded',
 	error?: unknown
 ): void {
-	warnInDevelopment(
-		outcome === 'queued'
-			? '[c15t] Consent save failed. The choice is kept in this browser and queued, and is resent on the next init or when the browser comes back online.'
-			: '[c15t] The backend refused the consent save, so it will not be resent. The choice is kept in this browser only.',
-		error
-	);
+	// A save whose records were cleared or replaced meanwhile lost nothing.
+	if (outcome !== 'superseded') {
+		warnInDevelopment(SAVE_FAILED_WARNINGS[outcome], error);
+	}
 };
 
 /**
@@ -179,12 +186,12 @@ export const createSaveOutbox = function createSaveOutbox({
 	 * waiting for code, and is kept even when the network that failed it
 	 * cannot deliver the module either.
 	 *
-	 * Resolves to whether anything was queued: nothing is when the records
-	 * were cleared or superseded while the transaction waited for the store.
+	 * Nothing is queued when the records were cleared or replaced while the
+	 * transaction waited for the store, or when storage refuses the write.
 	 */
 	const enqueue = function enqueue(
 		current: () => SavePayload | null
-	): Promise<boolean> {
+	): Promise<EnqueueResult> {
 		if (worker) {
 			return worker.enqueue(current);
 		}
@@ -192,14 +199,15 @@ export const createSaveOutbox = function createSaveOutbox({
 		return store.transact((tx) => {
 			const payload = current();
 			if (!payload) {
-				return false;
+				return 'superseded';
 			}
 			const stored = tx.read('saves');
-			tx.write('saves', [
+			return tx.write('saves', [
 				...(Array.isArray(stored) ? stored : []),
 				{ attempts: 0, payload, queuedAt: Date.now() },
-			]);
-			return true;
+			])
+				? 'queued'
+				: 'unstored';
 		});
 	};
 
@@ -252,9 +260,7 @@ export const createSaveOutbox = function createSaveOutbox({
 			await discard(remaining);
 			return;
 		}
-		if (await enqueue(current)) {
-			warnSaveFailed('queued', error);
-		}
+		warnSaveFailed(await enqueue(current), error);
 		retryWhenOnline();
 	};
 
@@ -337,9 +343,7 @@ export const createSaveOutbox = function createSaveOutbox({
 			if (result.ok) {
 				await discard(remaining);
 			} else {
-				if (await enqueue(currentPayload)) {
-					warnSaveFailed('queued');
-				}
+				warnSaveFailed(await enqueue(currentPayload));
 				retryWhenOnline();
 			}
 			if (result.ok && currentPayload()) {

@@ -27,7 +27,10 @@ import type {
 } from '../../types';
 import { createKernel } from '../index';
 import type { InternalKernel } from '../internals';
-import { createMemoryOutboxStore } from '../save-outbox';
+import {
+	createBrowserOutboxStore,
+	createMemoryOutboxStore,
+} from '../save-outbox';
 import type { SaveOutboxStore } from '../save-outbox';
 
 interface QueuedEntry {
@@ -1665,6 +1668,34 @@ describe('save outbox: development warnings', () => {
 
 			expect(await queued()).toEqual([]);
 			expect(warn).not.toHaveBeenCalled();
+			kernel.dispose();
+		}
+	);
+
+	test.each([
+		['threw', () => Promise.reject(new Error('save offline'))],
+		['answered as failed', () => Promise.resolve({ ok: false })],
+	])(
+		'a save the transport %s warns that it was not queued when storage is full',
+		async (_label, save) => {
+			const warn = silencedWarn();
+			const full = createBrowserOutboxStore({
+				localStorage: () =>
+					({
+						getItem: () => null,
+						removeItem: () => undefined,
+						setItem: () => {
+							throw new DOMException('full', 'QuotaExceededError');
+						},
+					}) as unknown as Storage,
+				locks: () => null,
+			});
+			const kernel = kernelOn({ transport: { save } }, full);
+
+			await kernel.commands.save('all');
+
+			expect(warn).toHaveBeenCalledOnce();
+			expect(warn.mock.calls[0]?.[0]).toContain('storage refused to queue it');
 			kernel.dispose();
 		}
 	);
