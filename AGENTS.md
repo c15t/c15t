@@ -148,6 +148,16 @@ runs them. See [.github/CI.md](.github/CI.md) for commands and assertion ownersh
 
 `release.yml` calls CI with runtime benchmarks skipped before publishing on
 `canary`, `main`, `2.0.0`, and `v3`, preserving its npm trusted-publisher identity.
+On `v3`, checks select changes since the last successful ancestor release run;
+unavailable history falls back to full validation. Version-only workspace manifests
+select forward builds, while version-only lockfile updates and publish-lock metadata
+do not select runtime suites. Real dependency changes still select full checks.
+Publishing restores CI builds and checks only the packages Tegami will upload.
+Jobs save their completed Turbo tasks under separate cache scopes after their work.
+Affected React Native JavaScript tests run in the package job. Native toolchains
+select native, Codegen, mobile build and benchmark inputs. `mobile-device.yml`
+runs advisory app builds independently on release pushes and is called by PR
+and full validation CI, so release publication does not wait for it.
 `benchmark-regression.yml` runs full runtime comparisons independently on `v3`
 pushes, nightly, and manually. Scheduled runs explicitly check out `v3` and
 activate once the workflow is on the default branch. `validation.yml` runs full

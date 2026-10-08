@@ -1,0 +1,15 @@
+name: Save completed Turbo tasks
+description: Persist this job's successful tasks without overwriting another job's cache.
+inputs:
+  scope:
+    description: Must match the cache-scope used by setup.
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: bun scripts/prune-turbo-cache.ts
+    - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+      with:
+        path: .turbo/cache
+        key: turbo-v2-${{ runner.os }}-${{ inputs.scope }}-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}

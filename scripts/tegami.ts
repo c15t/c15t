@@ -183,15 +183,32 @@ const releaseChecks = function releaseChecks(
 					throw new Error(`Publish lock npm tag does not match ${distTag}.`);
 				}
 			}
-			if (plan.options.dryRun || plan.getPackagesToPublish().length === 0) {
+			const packages = plan.getPackagesToPublish();
+			if (plan.options.dryRun || packages.length === 0) {
 				return;
 			}
-			for (const script of ['build:libs', 'check:publish-artifacts']) {
-				execFileSync('bun', ['run', script], {
-					cwd: this.cwd,
-					stdio: 'inherit',
-				});
-			}
+			// ^build brings in forward dependencies; unrelated libraries stay out.
+			execFileSync(
+				'bun',
+				[
+					'turbo',
+					'run',
+					'build',
+					'build:docs',
+					...packages.map((pkg) => `--filter=${pkg.name}`),
+				],
+				{ cwd: this.cwd, stdio: 'inherit' }
+			);
+			execFileSync(
+				'bun',
+				[
+					'run',
+					'check:publish-artifacts',
+					'--built',
+					...packages.map((pkg) => pkg.name),
+				],
+				{ cwd: this.cwd, stdio: 'inherit' }
+			);
 		},
 		enforce: 'post',
 		initPublishLock({ lock, draft }) {
