@@ -74,12 +74,16 @@ request-time parts per request. Both App Router layouts work:
   per-request part.
 
 Next.js suggests `export const instant = false` to fix that error. Don't use it
-for consent. It makes every route under the layout render on the server for
-every request, with no static shell. Add the `Suspense` boundary instead.
+for consent. It only turns the check off. The layout still waits for consent
+before it sends anything, so every route under it renders per request with no
+static shell. Add the `Suspense` boundary instead.
 
-With `partialPrefetching: true`, links prefetch without running
-`resolveConsent`. It runs once, for the page load. Client navigation keeps the
-same root layout, so it does not run again.
+With `partialPrefetching: true`, prefetches never resolve consent.
+`resolveConsent` calls `connection()` before it reads the request, and
+`connection()` never finishes during a prefetch. A `<Link prefetch={true}>`
+that renders the layout on the server stops there. Consent resolves once, for
+the page load. Client navigation keeps the same root layout, so it does not
+resolve again.
 
 `ConsentGate` does not read the clock while rendering, so a page that renders
 it can stay in the static shell without its own `Suspense` boundary.
@@ -135,9 +139,11 @@ use depends on your consent layout:
 | `'prefetch'` | Works | Works, but links show only the `Suspense` fallback before the click | Works |
 | `'navigation'` | Build fails | Build fails | Works |
 
-`'shell'` and `'prefetch'` need `cacheComponents: true` and
-`partialPrefetching: true`. Prefetches never run `resolveConsent`, so one
-visitor's consent never ends up in static output. Use the streamed layout if
+Every level needs `cacheComponents: true`. `'shell'` and `'prefetch'` also
+need `partialPrefetching: true`. At both levels, prefetches never resolve
+consent, including a `<Link prefetch={true}>` under `'shell'`, as
+[Use Cache Components](#use-cache-components) explains. One visitor's consent
+never ends up in a prefetch or in static output. Use the streamed layout if
 prefetched pages should show their content before the click.
 
 `'navigation'` requires the whole route to be static, including the root layout
