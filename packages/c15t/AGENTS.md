@@ -88,7 +88,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Rendering and deployment](./docs/frameworks/tanstack-start/rendering.md): Choose how a TanStack Start app resolves consent, with an awaited or streamed root loader, a same-origin consent route, or SPA mode, prerendered pages and static hosting.
 - [Scripts](./docs/frameworks/tanstack-start/scripts.md): Load vendor scripts by consent category in a TanStack Start app with ConsentRoot, and clear stored data or reload the page when a visitor withdraws consent.
 - [Translations](./docs/frameworks/tanstack-start/translations.md): Where c15t banner and dialog copy comes from in TanStack Start, how the server and browser pick the visitor's language, and how to override copy and switch languages from the root route.
-- [Troubleshooting](./docs/frameworks/tanstack-start/troubleshooting.md): Fix a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
+- [Troubleshooting](./docs/frameworks/tanstack-start/troubleshooting.md): Fix build-time manifest failures, a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
 - [Vendor consent](./docs/frameworks/tanstack-start/vendor-consent.md): Let visitors allow a category such as marketing in a TanStack Start app and still turn off one vendor in it, with the vendors prop on ConsentRoot and useVendorAllowed.
 
 ### React

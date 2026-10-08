@@ -1,8 +1,31 @@
 ---
 title: Troubleshooting
-description: Fix a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
+description: Fix build-time manifest failures, a missing server-rendered banner, server function errors, proxy and firewall failures, and early vendor requests in a TanStack Start app that uses c15t.
 group: frameworks
 ---
+
+## vite build or vite dev stops while fetching the manifest
+
+**Check.** Read the error. The `consentManifest` plugin downloads the
+manifest when Vite starts, and a failed download stops the build or dev
+server.
+
+| Error | Fix |
+| --- | --- |
+| `build-time manifests require an absolute upstream URL` | `backendURL` is empty, relative or not a URL. Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t` |
+| `/manifest responded 404` | The URL is not a c15t backend, or it is missing a path prefix. Copy the backend URL from Inth exactly |
+| `/manifest responded` with another status | The backend refused or failed the request. Check that the project exists and that the build machine can reach it |
+| `/manifest returned an invalid consent manifest` | The URL answered with something other than a c15t manifest, such as an HTML page. Check the URL |
+| `fetch failed`, with `ENOTFOUND` or another network error | The build machine cannot reach the backend. Allow the request, or switch to [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader) |
+
+## Cannot find module './c15t-manifest'
+
+**Check.** Look for `src/c15t-manifest.ts`. The plugin writes it when
+`vite build` or `vite dev` starts. The file is not committed, so a fresh
+checkout does not have it.
+
+**Fix.** Run `vite build` or `vite dev` before `tsc`. In CI, type-check after
+the build.
 
 ## The banner is not in the server HTML
 
@@ -13,7 +36,7 @@ group: frameworks
 | --- | --- |
 | The root loader streams the consent promise | Expected. The banner mounts after hydration. Await the server function to render it on the server; see [rendering](/docs/frameworks/tanstack-start/rendering) |
 | The page is prerendered or the app runs in SPA mode | Expected. The browser resolves consent after the page loads |
-| The backend took longer than 500 ms, often on the first request after a start | The server rendered without consent and the browser resolved it. Later requests use the cached manifest. Raise `timeoutMs` in `createConsentStateHandler` if needed |
+| With runtime fetching, the backend took longer than 500 ms, often on the first request after a start | The server rendered without consent and the browser resolved it. Later requests use the cached manifest. Raise `timeoutMs` in `createConsentStateHandler` if needed |
 | No country header reaches the server | Check that `consentRequestMiddleware()` is in `src/start.ts` and that your host adds a geo header. Without one the visitor gets your fallback policy |
 | The visitor has a stored choice | Expected. The server reads the `c15t` cookie and renders no banner |
 
@@ -23,7 +46,7 @@ group: frameworks
 identifies each server function by the file and the top-level assignment where
 you call it, so a call inside a package, a function or a conditional fails.
 
-**Fix.** Declare `const getConsentState = createServerFn(...).handler(createConsentStateHandler({ backendURL }))`
+**Fix.** Declare `const getConsentState = createServerFn(...).handler(createConsentStateHandler(consentOptions))`
 at the top level of your own route module, as in the
 [quickstart](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route).
 

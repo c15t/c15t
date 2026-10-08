@@ -60,7 +60,7 @@ What happens next depends on your
 
 | Code | What it does with the location |
 | --- | --- |
-| `createConsentStateHandler` and `resolveConsent` | Resolve the visitor's policy in the Start server, from the cached manifest. The manifest request to your backend carries no visitor location, only headers you name in `forwardHeaders` |
+| `createConsentStateHandler` and `resolveConsent` | Resolve the visitor's policy in the Start server, from the bundled manifest or, with runtime fetching, a cached one. The manifest request to your backend carries no visitor location, only headers you name in `forwardHeaders` |
 | `/api/c15t/init` from `createConsentServerRoute` | Resolves the policy in the Start server from the same inputs, for the browser's init request |
 | `createConsentServerRoute({ proxy: true })` | Forwards the location headers, `accept-language`, `sec-gpc`, `user-agent`, `origin` and `referer` to your backend on proxied requests such as `POST /subjects` |
 | `ConsentRoot` with `initRoute={false}` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
@@ -114,7 +114,7 @@ Pass `country`, `region` or `language` to force an input:
 
 - On `consentRequestMiddleware({ country: 'DE' })`, for every request, such as
   a site that serves one country or a local test.
-- On `createConsentStateHandler({ backendURL, country: 'DE' })`, for that
+- On `createConsentStateHandler({ ...consentOptions, country: 'DE' })`, for that
   server function. It accepts `country` and `language`, not `region`.
 
 An option on the server function wins over the middleware. In the browser,

@@ -13,11 +13,14 @@ manifest also adds a Vite plugin; the same-origin path adds one server route. Pa
 | --- | --- | --- | --- |
 | Start server, recommended | Awaits consent from a build-time manifest | Yes | [Quickstart](/docs/frameworks/tanstack-start/quickstart) |
 | Policy changes must apply without a rebuild | Awaits consent from a runtime manifest cache | Yes | [Runtime fetching](#await-consent-in-the-loader) |
-| Serverless or often cold-started server | Streams consent | No, it mounts after hydration | [Stream the page](#stream-the-page-while-consent-resolves) |
+| Runtime fetching on a serverless or often cold-started server | Streams consent | No, it mounts after hydration | [Stream the page](#stream-the-page-while-consent-resolves) |
 | Browser must only talk to your origin | Awaits consent | Yes | [Same-origin route](#keep-consent-requests-on-your-origin) |
 | SPA mode, prerendered pages or a static host | None | No, the browser resolves consent | [No server render](#spa-mode-prerendered-pages-and-static-hosts) |
 
 ## Bundle the manifest during builds
+
+The [quickstart](/docs/frameworks/tanstack-start/quickstart) and
+`examples/tanstack-start` use this setup.
 
 <include src="../../shared/build-manifests/tanstack-start.mdx" />
 
@@ -26,8 +29,10 @@ manifest also adds a Vite plugin; the same-origin path adds one server route. Pa
 The [quickstart](/docs/frameworks/tanstack-start/quickstart) root loader awaits
 the consent server function. The server reads the visitor's cookie and location
 headers, resolves their policy from the build-time snapshot, and renders the
-banner into the HTML. To apply policy updates without rebuilding, omit the
-build plugin and the handler's `manifest` option to use a runtime cache.
+banner into the HTML. To apply policy updates without rebuilding, remove the
+`consentManifest` plugin from `vite.config.ts` and the `manifest` line from
+`src/consent-options.server.ts`. The server then fetches the manifest and
+caches it in memory.
 
 With runtime fetching, the first request after a server starts has no cached
 manifest and waits for
@@ -38,9 +43,10 @@ manifest and add little time. Change the wait with `timeoutMs` in
 
 ## Stream the page while consent resolves
 
-Return the pending server function call instead of awaiting it. TanStack Router
-streams the promise to the browser and `ConsentRoot` accepts it as `state`. The
-only change from the quickstart root is the loader:
+With runtime fetching, return the pending server function call instead of
+awaiting it. TanStack Router streams the promise to the browser and
+`ConsentRoot` accepts it as `state`. This root fetches the manifest at
+runtime, and its loader does not await:
 
 <include src="../../shared/examples/tanstack-start/streamed-root.mdx" />
 
@@ -75,8 +81,8 @@ What the route serves:
 
 | Request | Handled by |
 | --- | --- |
-| `GET /api/c15t/init` or `GET /api/c15t` | The route, from the cached manifest, for this request's location, language and privacy signal |
-| `GET /api/c15t/manifest` | The route, passing the backend's cached manifest through |
+| `GET /api/c15t/init` or `GET /api/c15t` | The route, from the bundled manifest, for this request's location, language and privacy signal |
+| `GET /api/c15t/manifest` | The route, serving the bundled manifest |
 | `POST /api/c15t/subjects` and other consent paths | Forwarded to your backend because `proxy: true` |
 | Any other path | `404`, so the route is never an open proxy |
 
@@ -130,10 +136,12 @@ rebuild. A manifest with neither rule resolves to a failed
 
 ## Run on hosts that stop work after the response
 
-With runtime fetching, the manifest cache refreshes in the background after its `s-maxage`. Some
-serverless runtimes stop background work once the response is sent. Pass your
+After a render, the server function reports the visitor's session to the
+backend in the background. With runtime fetching, the manifest cache also
+refreshes in the background after its `s-maxage`. Some serverless runtimes
+stop background work once the response is sent. Pass your
 platform's `waitUntil` as `onBackgroundRevalidate` to
-`createConsentStateHandler` and `createConsentServerRoute` so the refresh
+`createConsentStateHandler` and `createConsentServerRoute` so that work
 finishes. The promise never rejects.
 
 ## Check the rendering path
