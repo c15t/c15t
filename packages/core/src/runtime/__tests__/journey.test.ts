@@ -248,13 +248,13 @@ describe("journey: 'tab'", () => {
 		],
 	] as const)(
 		'drops a kept id when the next page settles on %s',
-		async (_label, next) => {
+		async (_label, arrange) => {
 			const first = await load({ journey: 'tab' });
 			const id = init()[0]?.journey?.id;
 			expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe(id);
 			leave(first);
 
-			next();
+			arrange();
 			const second = await load({ journey: 'tab' });
 			// This page continued the journey but owes no prompt.
 			expect(init()[1]?.journey?.id).toBe(id);

@@ -1044,9 +1044,8 @@ describe('/init fallback for a backend without /manifest', () => {
 		const query = `?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`;
 		const lastInitOrigin = () =>
 			new Headers(
-				fetch.mock.calls
-					.filter(([url]) => String(url).includes('/init'))
-					.at(-1)?.[1]?.headers
+				fetch.mock.calls.findLast(([url]) => String(url).includes('/init'))?.[1]
+					?.headers
 			).get('origin');
 		// A same-origin GET carries no Origin: the request URL is the page's.
 		await handle(request(`/api/c15t/init${query}`));
