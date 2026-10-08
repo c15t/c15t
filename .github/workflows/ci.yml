@@ -162,6 +162,8 @@ jobs:
         run: bun scripts/ci-run.ts tests
       - name: Summarize coverage
         if: ${{ !cancelled() }}
+        env:
+          CI_DIFF_BASE: ${{ needs.repository.outputs.baseRef }}
         run: bun scripts/coverage-summary.ts --plan ci-plan.json
       - name: Save coverage and test evidence
         if: ${{ !cancelled() }}

@@ -23,6 +23,23 @@ const readWorkflow = function readWorkflow(name: string): unknown {
 };
 
 describe('release validation', () => {
+	it('summarizes coverage against the selected release ancestor', () => {
+		expect(readWorkflow('ci')).toMatchObject({
+			jobs: {
+				packages: {
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							env: {
+								CI_DIFF_BASE: `\${{ needs.repository.outputs.baseRef }}`,
+							},
+							name: 'Summarize coverage',
+						}),
+					]),
+				},
+			},
+		});
+	});
+
 	it('runs Tegami in the trusted release workflow with provenance and Node 24', () => {
 		expect(readWorkflow('ci')).toMatchObject({
 			jobs: {
