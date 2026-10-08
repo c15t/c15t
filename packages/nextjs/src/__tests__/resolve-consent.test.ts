@@ -105,7 +105,8 @@ describe('resolveConsent wiring', () => {
 			fetch,
 			request: requestOf({ 'accept-language': 'de-DE' }, 'c15t=x; session=y'),
 		});
-		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		// The query carries the consent journey the render started.
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
 			'https://consent.example.com/init'
 		);
 		expect(fetch.mock.calls[0]?.[1]?.cache).toBe('no-store');
@@ -125,9 +126,9 @@ describe('resolveConsent wiring', () => {
 			fetch,
 			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
 		});
-		expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
-			'https://app.example.com/api/c15t/init',
-		]);
+		expect(
+			fetch.mock.calls.map(([input]) => String(input).split('?')[0])
+		).toEqual(['https://app.example.com/api/c15t/init']);
 		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
 		expect(headers.get('x-c15t-country')).toBe('DE');
 		expect(state.initialPolicyResolution?.status).toBe('matched');

@@ -247,7 +247,10 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
-		expect(url).toBe('https://app.example.com/api/self-host/init');
+		// The query carries the consent journey the render started.
+		expect(String(url).split('?')[0]).toBe(
+			'https://app.example.com/api/self-host/init'
+		);
 		const headers = (init as RequestInit).headers as Record<string, string>;
 		// The consent cookie alone, never the site's session cookies.
 		expect(headers.cookie).toBe('c15t=stored');
@@ -313,7 +316,7 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 			},
 		});
 
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+		expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
 			'https://app.example.com/api/c15t/init'
 		);
 		expect(config.initialPolicyResolution?.status).toBe('matched');

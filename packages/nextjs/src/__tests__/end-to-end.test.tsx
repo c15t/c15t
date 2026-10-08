@@ -11,6 +11,7 @@ import type { KernelConfig } from '@c15t/core';
  */
 import { useConsent, useSaveConsents, useSnapshot } from '@c15t/react';
 import {
+	readJourneyParams,
 	resolvePolicyRules,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -29,6 +30,9 @@ type WindowWithC15t = Window & {
 		mode: string;
 	};
 };
+
+/** A request URL without its query, which carries the consent journey. */
+const pathOf = (url: unknown): string => String(url).split('?')[0] ?? '';
 
 const POLICY_RESOLUTION = writePolicyResolutionWire(
 	resolvePolicyRules({
@@ -336,11 +340,17 @@ describe('ConsentRoot: config picks the transport', () => {
 				.element(getByTestId('probe'))
 				.toHaveTextContent('gdpr|DE|true');
 			await vi.waitFor(() => {
-				expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+				expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
 					'/api/consent/init',
 					'https://consent.example.com/subjects',
 				]);
 			});
+			// The init and the save it led to carry one journey.
+			const [initJourney, saveJourney] = fetchSpy.mock.calls.map(([url]) =>
+				readJourneyParams(String(url))
+			);
+			expect(initJourney?.scope).toBe('page');
+			expect(saveJourney?.id).toBe(initJourney?.id);
 			// Manifest-resolved init issues no snapshot token, so the save
 			// asserts the policy it was made against.
 			const saveInit = fetchSpy.mock.calls[1]?.[1];
@@ -384,7 +394,7 @@ describe('ConsentRoot: config picks the transport', () => {
 				.toHaveTextContent('eu-opt-in|DE|false');
 			await getByTestId('save').click();
 			await vi.waitFor(() => {
-				expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
+				expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
 					'/api/consent/manifest',
 					'https://consent.example.com/subjects',
 				]);
@@ -424,7 +434,7 @@ describe('ConsentRoot: config picks the transport', () => {
 			await expect
 				.element(getByTestId('probe'))
 				.toHaveTextContent('gdpr|DE|false');
-			expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
 				'https://consent.example.com/init'
 			);
 		} finally {
