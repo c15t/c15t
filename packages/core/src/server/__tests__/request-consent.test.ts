@@ -34,6 +34,7 @@ const NOW = 1_780_000_000_000;
 /** The URL a render fetched, without the consent journey it adds as a query. */
 const target = (input: unknown): string => String(input).split('?')[0] ?? '';
 const CONSENTED = `c15t=c.necessary:1,c.marketing:1,i.t:${NOW - 1000}`;
+const DISMISSED = `c15t-notice=v=1&t=${NOW - 1000}&f=${'a'.repeat(64)}`;
 
 const MANIFEST = {
 	branding: 'c15t',
@@ -896,6 +897,20 @@ describe('consent journey', () => {
 			c15tJourneyScope: 'page',
 			c15tStored: '1',
 		});
+	});
+
+	test('a stored notice dismissal is a stored answer', async () => {
+		const fetch = upstream();
+		const state = await render({
+			backendURL: BACKEND,
+			fetch,
+			headers: { cookie: DISMISSED },
+		});
+		// The cookie decoded into a dismissal the browser will hydrate.
+		expect(state.initialRecords?.noticeDismissal).toBeTruthy();
+		expect(state.initialRecords?.choice).toBeFalsy();
+		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
+		expect(sent.searchParams.get('c15tStored')).toBe('1');
 	});
 
 	test('the vendor list reference the browser follows carries no journey', async () => {

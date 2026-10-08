@@ -177,8 +177,31 @@ export const claimEarlyJourney = function claimEarlyJourney(options: {
 };
 
 /**
- * Whether a consent record is stored under `storageKey`, without decoding
- * it. The inline prefetch script runs the same check.
+ * Where a choice or a notice dismissal is stored: the cookies and the
+ * localStorage keys (with the legacy one) for `storageKey`.
+ *
+ * @param storageKey - The consent storage key.
+ * @returns The cookie names and localStorage keys.
+ * @internal
+ */
+export const storedAnswerKeys = function storedAnswerKeys(storageKey: string): {
+	cookies: string[];
+	local: string[];
+} {
+	const notice = `${storageKey}-notice`;
+	return {
+		cookies: [storageKey, notice],
+		local: [
+			storageKey,
+			notice,
+			...(storageKey === STORAGE_KEY ? [] : [STORAGE_KEY]),
+		],
+	};
+};
+
+/**
+ * Whether a consent choice or notice dismissal is stored under `storageKey`,
+ * without decoding it. The inline prefetch script runs the same check.
  *
  * @param storageKey - The consent storage key. Defaults to `c15t`.
  * @returns `true` when a record is present.
@@ -190,14 +213,16 @@ export const hasStoredConsentRecord = function hasStoredConsentRecord(
 	if (typeof document === 'undefined') {
 		return false;
 	}
+	const { cookies, local } = storedAnswerKeys(storageKey);
 	try {
 		if (
 			document.cookie
 				.split('; ')
-				.some(
-					(pair) =>
-						pair.startsWith(`${storageKey}=`) &&
-						pair.length > storageKey.length + 1
+				.some((pair) =>
+					cookies.some(
+						(name) =>
+							pair.startsWith(`${name}=`) && pair.length > name.length + 1
+					)
 				)
 		) {
 			return true;
@@ -206,10 +231,7 @@ export const hasStoredConsentRecord = function hasStoredConsentRecord(
 		// Cookies blocked; localStorage may still answer.
 	}
 	try {
-		return [
-			storageKey,
-			...(storageKey === STORAGE_KEY ? [] : [STORAGE_KEY]),
-		].some((key) => window.localStorage.getItem(key) !== null);
+		return local.some((key) => window.localStorage.getItem(key) !== null);
 	} catch {
 		return false;
 	}

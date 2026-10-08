@@ -48,7 +48,7 @@ export const consentSessionJourneySchema = v.object({
 	 */
 	prompt: v.picklist(['due', 'stored', 'not-required']),
 	scope: v.picklist(['page', 'tab']),
-	/** Whether the browser had a stored choice at the start. */
+	/** Whether the browser had a stored choice or notice dismissal at the start. */
 	storedChoice: v.boolean(),
 });
 

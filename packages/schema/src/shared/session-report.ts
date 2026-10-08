@@ -94,8 +94,8 @@ export const CONSENT_JOURNEY_PARAM = 'c15tJourney';
 export const CONSENT_JOURNEY_SCOPE_PARAM = 'c15tJourneyScope';
 
 /**
- * Query parameter on `GET /init` that says whether the browser had a stored
- * consent choice when the journey started: `1` or `0`.
+ * Query parameter on `GET /init`: `1` when the browser had a stored choice
+ * or notice dismissal when the journey started, else `0`.
  */
 export const CONSENT_JOURNEY_STORED_PARAM = 'c15tStored';
 
@@ -112,7 +112,7 @@ export type ConsentJourneyScope = 'page' | 'tab';
 export interface ConsentJourneyParams {
 	id: string;
 	scope: ConsentJourneyScope;
-	/** Whether a choice was stored at the start. Sent on `/init` only. */
+	/** Whether a choice or notice dismissal was stored at the start. `/init` only. */
 	storedChoice?: boolean;
 }
 
@@ -233,7 +233,7 @@ export const appendJourneyParams = function appendJourneyParams(
  * fallback, so they are owed like a matched prompt.
  *
  * @param init - The resolved init payload.
- * @param storedChoice - Whether the browser had a stored choice.
+ * @param storedChoice - Whether a choice or notice dismissal was stored.
  * @returns The prompt state at the start of the journey.
  */
 export const deriveJourneyPrompt = function deriveJourneyPrompt(
@@ -255,7 +255,7 @@ export const deriveJourneyPrompt = function deriveJourneyPrompt(
 export interface SessionJourney {
 	id: string;
 	scope: ConsentJourneyScope;
-	/** Whether the browser had a stored choice at the start. */
+	/** Whether a choice or notice dismissal was stored at the start. */
 	storedChoice: boolean;
 	/** Hostname of the site the visitor was on, when known. */
 	domain?: string;

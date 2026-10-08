@@ -554,7 +554,7 @@ export interface KernelJourney {
 	readonly id: string;
 	/** `page` lives for one page load; `tab` for the tab while a prompt is due. */
 	readonly scope: ConsentJourneyScope;
-	/** Whether the browser had a stored consent choice when the journey started. */
+	/** Whether a choice or notice dismissal was stored when the journey started. */
 	readonly storedChoice: boolean;
 }
 

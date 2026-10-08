@@ -23,6 +23,11 @@ import type {
 
 export type { JourneyStorage } from '../libs/journey';
 
+const hasStoredAnswer = (
+	snapshot: Pick<ConsentSnapshot, 'explicitChoice' | 'noticeDismissal'>
+): boolean =>
+	snapshot.explicitChoice !== null || snapshot.noticeDismissal !== null;
+
 /** Options for {@link createJourneyController}. */
 export interface JourneyControllerOptions {
 	/** The runtime's `journey` option. */
@@ -97,7 +102,8 @@ export const createJourneyController = function createJourneyController(
 			adopted: serverId ?? readEarlyJourney()?.id,
 			option: options.option,
 			storage,
-			storedChoice: kernel.getSnapshot().explicitChoice !== null,
+			// A persisted answer hydration applied: a choice or a dismissal.
+			storedChoice: hasStoredAnswer(kernel.getSnapshot()),
 		});
 		if (!opened) {
 			return;

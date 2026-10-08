@@ -515,10 +515,12 @@ const hasStoredChoice = function hasStoredChoice(
 		return false;
 	}
 	const now = settings.now ? settings.now() : Date.now();
-	return Boolean(
-		readStoredRecords(settings.storageConfig ?? options.storageConfig, now)
-			.records.choice
+	const { records } = readStoredRecords(
+		settings.storageConfig ?? options.storageConfig,
+		now
 	);
+	// A choice or a notice dismissal: either one answers the prompt.
+	return Boolean(records.choice || records.noticeDismissal);
 };
 
 /**

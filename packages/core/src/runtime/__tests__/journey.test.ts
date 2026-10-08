@@ -5,6 +5,7 @@
  * saves carry, and where (if anywhere) the id is kept between pages.
  */
 import {
+	buildConsentSessionReport,
 	readJourneyParams,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -186,6 +187,33 @@ describe("journey: 'page' (the default)", () => {
 			id: init()[0]?.journey?.id,
 			scope: 'page',
 		});
+	});
+
+	test('a dismissed notice is a stored answer on the next page', async () => {
+		initPolicy = matchedResolution(noticeRule());
+		const first = await load();
+		await first.kernel.commands.dismissNotice();
+		leave(first);
+
+		const second = await load();
+		// Hydration applied the dismissal: no notice shows.
+		expect(second.kernel.getSnapshot().activeUI).toBe('none');
+		const sent = init()[1]?.journey;
+		expect(sent?.storedChoice).toBe(true);
+		const report = buildConsentSessionReport({
+			init: {
+				policyResolution: writePolicyResolutionWire(initPolicy),
+				translations: { language: 'en', translations },
+			} as never,
+			journey: sent && {
+				id: sent.id,
+				scope: sent.scope,
+				storedChoice: sent.storedChoice ?? false,
+			},
+			manifest: { revision: 'rev-1' },
+			source: 'init',
+		});
+		expect(report.journey?.prompt).toBe('stored');
 	});
 
 	test('a reload starts a new journey and says a choice was stored', async () => {

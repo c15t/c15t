@@ -307,6 +307,24 @@ describe('prefetch utilities', () => {
 			}
 		});
 
+		it('says an answer is stored when a notice dismissal exists', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			document.cookie = 'c15t-notice=v=1&t=1&f=abc; path=/';
+			try {
+				window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+				expect(sent(fetch)?.storedChoice).toBe(true);
+				// The script's twin reads the same keys.
+				delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+				void primePrefetchedInitialData({ backendURL: '/api/other' });
+				expect(
+					readJourneyParams(String(fetch.mock.calls[1]?.[0]))?.storedChoice
+				).toBe(true);
+			} finally {
+				document.cookie = 'c15t-notice=; max-age=0; path=/';
+			}
+		});
+
 		it('a tab journey continues the id in sessionStorage', () => {
 			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
 			sessionStorage.setItem('c15t-journey-v1', id);

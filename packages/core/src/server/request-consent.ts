@@ -548,7 +548,10 @@ const startServerJourney = function startServerJourney(
 	const journey: SessionJourney = {
 		id,
 		scope,
-		storedChoice: Boolean(base.initialRecords?.choice),
+		// A persisted answer: a choice or a notice dismissal.
+		storedChoice: Boolean(
+			base.initialRecords?.choice || base.initialRecords?.noticeDismissal
+		),
 	};
 	if (domain) {
 		journey.domain = domain;

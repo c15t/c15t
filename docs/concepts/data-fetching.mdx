@@ -67,13 +67,14 @@ makes:
 
 | Request | Query parameters |
 | --- | --- |
-| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` if a choice was stored) |
+| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` if a choice or notice dismissal was stored) |
 | `POST /subjects` | `c15tJourney`, `c15tJourneyScope` |
 
 Session reports carry it as `journey: { id, scope, storedChoice, prompt, domain }`.
 A report and a save with the same `id` belong to one page load. `prompt` is
 `due`, `stored` or `not-required`; a page that falls back to the default opt-in
-banner counts as `due` or `stored`.
+banner counts as `due` or `stored`. A stored answer counts as `stored` even if a
+policy change makes c15t ask again.
 
 The id is random, is never the subject id and is never written to a cookie.
 Every save that carries one follows an `/init` or report with the same id.
@@ -88,8 +89,8 @@ Saves replayed after going offline carry none.
 Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;
 in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
 the inline prefetch script, pass it to `buildPrefetchScript`. Vue, Svelte, Astro
-and the script tag use `'page'`. Browser-only manifest mode reports no init, so
-it sends no journey.
+and the script tag use `'page'`. A manifest that resolves locally in the
+browser reports no init, so it sends no journey.
 
 If you pass `hosted()` a `fetch`, match on the path: URLs now carry a query string.
 

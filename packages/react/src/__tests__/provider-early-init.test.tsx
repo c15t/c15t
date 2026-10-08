@@ -862,6 +862,30 @@ test('skipHydration: the early /init says no choice is stored, as the runtime wi
 	}
 });
 
+test('a dismissed notice: the early /init says an answer is stored', async () => {
+	const earlier = createConsentKernel(
+		policyFixture({}, { id: 'notice', model: 'opt-out', prompt: 'notice' })
+	);
+	const persistence = createPersistence({ kernel: earlier });
+	await earlier.commands.dismissNotice();
+	await vi.waitFor(() => expect(document.cookie).toContain('c15t-notice='));
+	try {
+		const view = await render(
+			<ConsentProvider options={{ mode: mode() }}>
+				<PolicyProbe />
+			</ConsentProvider>
+		);
+		expect(readJourneyParams(String(initCalls()[0]?.[0]))?.storedChoice).toBe(
+			true
+		);
+		await view.unmount();
+	} finally {
+		persistence.clear();
+		persistence.dispose();
+		earlier.dispose();
+	}
+});
+
 test('a runtime whose render never commits sends one request and reads nothing from it', async () => {
 	const timers: { delay: number | undefined; run: () => void }[] = [];
 	const nativeSetTimeout = window.setTimeout;
