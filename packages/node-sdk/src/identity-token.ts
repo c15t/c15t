@@ -13,8 +13,9 @@
 /** Options for {@link createIdentityToken}. */
 export interface C15tIdentityTokenOptions {
 	/**
-	 * The secret shared with the backend's `identityToken.signingKey`. Keep it
-	 * on your server: anyone holding it can sign in as any user.
+	 * The secret shared with the backend's `identityToken.signingKey`, at
+	 * least 32 bytes. Keep it on your server: anyone holding it can sign in as
+	 * any user.
 	 */
 	readonly signingKey: string;
 	/**
@@ -44,6 +45,8 @@ export interface C15tIdentityTokenUser {
 }
 
 const DEFAULT_TTL_SECONDS = 3600;
+/** The backend refuses shorter keys too; see its `identityToken` option. */
+const MIN_KEY_BYTES = 32;
 
 const base64url = (bytes: Uint8Array): string => {
 	let binary = '';
@@ -69,8 +72,8 @@ const encodeJson = (value: unknown): string =>
  * @param user - Your user id and, optionally, its identity provider.
  * @param options - The shared signing key and token lifetime.
  * @returns A compact JWT.
- * @throws {TypeError} When `externalId` or `signingKey` is empty, or
- * `ttlSeconds` is not a positive integer.
+ * @throws {TypeError} When `externalId` is empty, `signingKey` is shorter
+ * than 32 bytes, or `ttlSeconds` is not a positive integer.
  *
  * @example
  * ```ts
@@ -91,8 +94,13 @@ export const createIdentityToken = async function createIdentityToken(
 	if (typeof user?.externalId !== 'string' || user.externalId === '') {
 		throw new TypeError('createIdentityToken: externalId must be a string.');
 	}
-	if (typeof options?.signingKey !== 'string' || options.signingKey === '') {
-		throw new TypeError('createIdentityToken: signingKey must be a string.');
+	if (
+		typeof options?.signingKey !== 'string' ||
+		new TextEncoder().encode(options.signingKey).length < MIN_KEY_BYTES
+	) {
+		throw new TypeError(
+			`createIdentityToken: signingKey must be a string of at least ${MIN_KEY_BYTES} bytes.`
+		);
 	}
 	const ttl = options.ttlSeconds ?? DEFAULT_TTL_SECONDS;
 	if (!Number.isSafeInteger(ttl) || ttl <= 0) {

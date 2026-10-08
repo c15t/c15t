@@ -390,7 +390,7 @@ describe('identity tokens', () => {
 		const subjectId = await anonymousSubject();
 		const identityToken = await createIdentityToken(
 			{ externalId: 'user_wrong_key' },
-			{ signingKey: 'not-the-shared-key' }
+			{ signingKey: 'not-the-key-the-backend-was-given' }
 		);
 
 		const error = errorOf(

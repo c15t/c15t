@@ -19,7 +19,9 @@
  * verified, so they stay unverified until the customer's server relinks
  * them with an API key or the browser sends a token.
  *
- * No index: both reads already filter on the indexed `externalId` first.
+ * No index: both reads already filter on the indexed `externalId` first. So
+ * `text` rather than `indexedText`: MySQL's `varchar(255)` would refuse a
+ * longer id that an adopted database's `text` `externalId` can hold.
  *
  * Idempotent. The column is checked before it is added.
  */
@@ -34,7 +36,7 @@ import type { ColumnSpec } from '../schema';
 export const VERIFIED_EXTERNAL_ID_COLUMN: ColumnSpec = {
 	name: 'verifiedExternalId',
 	nullable: true,
-	type: 'indexedText',
+	type: 'text',
 };
 
 const columnExists = Effect.fn('migration.columnExists')(function* columnExists(

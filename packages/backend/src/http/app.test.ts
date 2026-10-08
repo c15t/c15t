@@ -27,7 +27,7 @@ import { up as verifiedExternalId } from '../db/migrations/8-verified-external-i
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
 
-const SIGNING_KEY = 'identity-signing-key-for-tests';
+const SIGNING_KEY = 'identity-signing-key-for-backend-tests';
 
 /** An identity token as `@c15t/node-sdk`'s `createIdentityToken` signs it. */
 const tokenFor = (
@@ -1216,6 +1216,14 @@ for (const engine of ENGINES) {
 					assert.deepStrictEqual(code, [401, 'IDENTITY_TOKEN_INVALID']);
 				}
 				assert.deepStrictEqual(await listed('ext_2'), []);
+			});
+
+			it('refuses a signing key shorter than 32 bytes at startup', () => {
+				assert.throws(
+					() =>
+						createApp(runtime, { identityToken: { signingKey: 'short-key' } }),
+					/at least 32 bytes/u
+				);
 			});
 
 			it('refuses every token when no signing key is configured', async () => {

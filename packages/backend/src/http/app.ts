@@ -22,6 +22,7 @@ import {
 } from '../observability/evlog';
 import { assertTenantOptions, makeRun, resolveHosting } from './context';
 import type { AppOptions, RouteContext } from './context';
+import { assertIdentityTokenOptions } from './identity-token';
 import { register as registerConsent } from './routes/consent';
 import { register as registerExperiment } from './routes/experiment';
 import { register as registerInit } from './routes/init';
@@ -39,6 +40,7 @@ export const createApp = function createApp(
 	input: AppOptions = {}
 ) {
 	assertTenantOptions(input);
+	assertIdentityTokenOptions(input);
 	// Stamped into the manifest config once, so `/init`, `/manifest`, the
 	// script builds, and consent saves all build the same manifest.
 	const manifest: ConsentManifestConfig = {

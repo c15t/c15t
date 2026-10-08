@@ -41,6 +41,39 @@ export interface IdentityTokenOptions {
 	readonly audience?: string;
 }
 
+/**
+ * Shortest accepted signing key, in UTF-8 bytes: HS256's own output size.
+ * Every token is an offline guessing target for its key, so a short one can
+ * be recovered from any token a browser sees.
+ */
+export const MIN_IDENTITY_SIGNING_KEY_BYTES = 32;
+
+/**
+ * Refuses an identity signing key too short to resist offline guessing.
+ *
+ * @param options - The instance's options.
+ * @throws {Error} When `identityToken.signingKey` is set but is not a string
+ * of at least {@link MIN_IDENTITY_SIGNING_KEY_BYTES} UTF-8 bytes.
+ * @internal
+ */
+export const assertIdentityTokenOptions =
+	function assertIdentityTokenOptions(options: {
+		readonly identityToken?: IdentityTokenOptions;
+	}): void {
+		const key: unknown = options.identityToken?.signingKey;
+		if (key === undefined) {
+			return;
+		}
+		if (
+			typeof key !== 'string' ||
+			new TextEncoder().encode(key).length < MIN_IDENTITY_SIGNING_KEY_BYTES
+		) {
+			throw new Error(
+				`[c15t] identityToken.signingKey must be at least ${MIN_IDENTITY_SIGNING_KEY_BYTES} bytes. Generate one with \`openssl rand -base64 32\`.`
+			);
+		}
+	};
+
 /** What a request proved about the identity it links. */
 export type IdentityVerification =
 	| {
