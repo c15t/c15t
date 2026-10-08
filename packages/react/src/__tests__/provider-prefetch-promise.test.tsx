@@ -181,7 +181,10 @@ describe('a streamed policy', () => {
 		const result = await (kernel as ConsentKernel).commands.save('none');
 		expect(result.ok).toBe(true);
 		expect(fetch).toHaveBeenCalledTimes(1);
-		expect(fetch.mock.calls[0]?.[0]).toBe('/api/c15t/subjects');
+		// The path; the query carries the consent journey.
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
+			'/api/c15t/subjects'
+		);
 		expect(JSON.parse(fetch.mock.calls[0]?.[1].body)).toMatchObject({
 			country: 'DE',
 			fingerprint:

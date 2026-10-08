@@ -73,8 +73,11 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
+/** `/init` requests, by path: a mounted runtime adds its journey as a query. */
 const initCalls = () =>
-	backendFetch.mock.calls.filter(([url]) => String(url).endsWith('/init'));
+	backendFetch.mock.calls.filter(([url]) =>
+		String(url).split('?')[0]?.endsWith('/init')
+	);
 
 /** Records, while it renders, how many `/init` requests were already out. */
 const SeenAtRender = ({ seen }: { seen: number[] }) => {
