@@ -199,6 +199,16 @@ describe('IAB browser entry', () => {
 			expect(root.className).not.toContain('bannerHidden');
 		});
 
+		it('marks a late IAB banner with noStyle for custom styles', async () => {
+			paintedAgo(50);
+			const client = await start({
+				ui: { disableAnimation: false, noStyle: true, styles: false },
+			});
+			const root = await reshow(client, 5000);
+			expect(root.dataset.entry).toBe('late');
+			expect(root.className).toBe('');
+		});
+
 		it('does not mark a late IAB banner when animation is disabled', async () => {
 			paintedAgo(50);
 			const client = await start({

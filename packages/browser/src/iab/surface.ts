@@ -358,12 +358,9 @@ export const createIABSurface = (
 		// A banner that arrives after the page painted fades in. Without
 		// `@starting-style` it starts hidden and flips to visible once it
 		// is in the document, so the fade still runs.
-		const flip =
-			!(dialog || noStyle) &&
-			entering &&
-			animate &&
-			markLateEntry([root, overlay]) &&
-			!supportsStartingStyle();
+		const late =
+			!dialog && entering && animate && markLateEntry([root, overlay]);
+		const flip = late && !noStyle && !supportsStartingStyle();
 		if (flip) {
 			root.classList.replace(
 				classes.banner.bannerVisible,
