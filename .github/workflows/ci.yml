@@ -23,8 +23,11 @@ on:
 permissions:
   contents: read
 
+# A new push to a pull request replaces its running checks. Every other run
+# gets a group of its own: release checks for consecutive pushes run side by
+# side, and release.yml serializes only the publish job.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:

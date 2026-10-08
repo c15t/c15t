@@ -45,7 +45,7 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "github.ref != 'refs/heads/canary'",
+							if: "steps.tip.outputs.current == 'true' && github.ref != 'refs/heads/canary'",
 							run: 'bun run tegami ci',
 						}),
 						expect.objectContaining({
@@ -53,7 +53,7 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "github.ref == 'refs/heads/canary'",
+							if: "steps.tip.outputs.current == 'true' && github.ref == 'refs/heads/canary'",
 							run: 'bun run tegami version --no-checks\nbun run tegami publish\n',
 						}),
 					]),
@@ -68,6 +68,31 @@ describe('release validation', () => {
 					permissions: { 'id-token': 'write' },
 					'runs-on': 'ubuntu-latest',
 				},
+			},
+		});
+	});
+
+	it('queues only publishing, so release checks for consecutive pushes overlap', () => {
+		const release = readWorkflow('release');
+		expect(release).not.toHaveProperty('concurrency');
+		expect(release).toMatchObject({
+			jobs: {
+				publish: {
+					concurrency: {
+						'cancel-in-progress': false,
+						group: `release-\${{ github.ref }}`,
+					},
+					steps: expect.arrayContaining([
+						expect.objectContaining({ id: 'tip' }),
+					]),
+				},
+			},
+		});
+		// A per-ref group here would queue release checks again from inside
+		// the reusable workflow.
+		expect(readWorkflow('ci')).toMatchObject({
+			concurrency: {
+				group: `ci-\${{ github.event.pull_request.number || github.run_id }}`,
 			},
 		});
 	});

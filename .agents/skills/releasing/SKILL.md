@@ -54,7 +54,8 @@ channel tags, and rejection of a publish lock from another branch.
 - Canary snapshots use the source commit SHA and publish directly. Their generated
   versions and lock are temporary; never commit a canary version draft.
 - Retry failed releases from the same commit. Tegami skips published versions and
-  finishes pending tasks. Do not discard an unfinished stable/alpha/RC publish lock
+  finishes pending tasks. Once a newer commit lands on the branch, an older run's
+  publish job skips itself, and the newer run releases both. Do not discard an unfinished stable/alpha/RC publish lock
   to force a new version PR.
 - New npm package names need trusted publishing configured for `c15t/c15t` and
   workflow `release.yml`. Existing packages keep their current configuration.

@@ -7,11 +7,6 @@ on:
 
 permissions: {}
 
-# Keep checks and publishing in the same branch-level concurrency group.
-concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   # npm trusted publishing binds the OIDC identity to the *top-level* workflow
   # file. Publishing must therefore start here and pull the checks in, rather
@@ -33,6 +28,11 @@ jobs:
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
+    # Checks for consecutive pushes run side by side; only publishing waits
+    # for the previous release on the branch to finish.
+    concurrency:
+      group: release-${{ github.ref }}
+      cancel-in-progress: false
     # npm trusted publishing requires a GitHub-hosted runner.
     runs-on: ubuntu-latest
     permissions:
@@ -47,6 +47,21 @@ jobs:
         with:
           # Tegami uses release tags and changelog history.
           fetch-depth: 0
+
+      # Checks run in parallel, so an older push can finish them after a newer
+      # one. Releasing it would run Tegami on a stale tree, for example
+      # reopening a version PR the newer commit already merged. The newest
+      # commit's run releases everything before it, so a superseded run stops.
+      - name: Skip superseded commits
+        id: tip
+        run: |
+          tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+          if [ "$tip" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Not releasing $GITHUB_SHA: $GITHUB_REF is now at $tip, and that run releases this commit too."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
 
       # Setup Bun using the version from the shared checks workflow.
       - name: Setup Bun
@@ -68,7 +83,7 @@ jobs:
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
       - name: Version or publish packages
-        if: github.ref != 'refs/heads/canary'
+        if: steps.tip.outputs.current == 'true' && github.ref != 'refs/heads/canary'
         run: bun run tegami ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -76,7 +91,7 @@ jobs:
 
       # Each canary commit gets its own snapshot; never reuse a lock synced from main.
       - name: Version and publish canary snapshot
-        if: github.ref == 'refs/heads/canary'
+        if: steps.tip.outputs.current == 'true' && github.ref == 'refs/heads/canary'
         run: |
           bun run tegami version --no-checks
           bun run tegami publish

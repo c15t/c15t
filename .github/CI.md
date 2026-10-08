@@ -129,6 +129,11 @@ selection rules. A missing or unreadable previous commit keeps the full mobile
 checks. Other release branches, nightly validation and manual full runs retain
 their full mobile checks.
 
+Release checks for consecutive pushes run side by side. Only the publish job
+waits for the previous release on the same branch. A publish job whose commit is
+no longer the branch tip skips releasing, because the newer run releases both
+commits.
+
 Mobile work selects on paths, not on the dependency graph alone. The mobile
 SDK group runs for `packages/react-native`, `native/` and `benchmarks/mobile`,
 and for anything whose reverse dependencies reach `@c15t/react-native`, because
