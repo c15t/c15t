@@ -24,9 +24,14 @@ const worker = process.env.VITEST_POOL_ID ?? '1';
 /** The URL's database name, suffixed for this worker. */
 const workerDatabase = function workerDatabase(sharedUrl: string) {
 	const url = new URL(sharedUrl);
-	const name = `${decodeURIComponent(url.pathname.slice(1))}_w${worker}`;
-	// Interpolated into DDL below, which cannot take a bound parameter.
-	if (!/^\w+$/u.test(name)) {
+	const shared = decodeURIComponent(url.pathname.slice(1));
+	if (!shared) {
+		throw new Error('Name a database in the test database URL');
+	}
+	const name = `${shared}_w${worker}`;
+	// Interpolated into quoted DDL below, which cannot take a bound parameter,
+	// so reject only what could escape the quoting.
+	if (!/^[\w.-]+$/u.test(name)) {
 		throw new Error(`Cannot derive a worker database from "${name}"`);
 	}
 	// Postgres silently truncates longer identifiers, which would create one

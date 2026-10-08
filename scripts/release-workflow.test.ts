@@ -45,7 +45,7 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "steps.tip.outputs.current == 'true' && github.ref != 'refs/heads/canary'",
+							if: "github.ref != 'refs/heads/canary'",
 							run: 'bun run tegami ci',
 						}),
 						expect.objectContaining({
@@ -85,13 +85,12 @@ describe('release validation', () => {
 						'cancel-in-progress': false,
 						group: `release-\${{ github.ref }}`,
 					},
-					steps: expect.arrayContaining([
-						expect.objectContaining({
-							id: 'tip',
-							if: "github.ref != 'refs/heads/canary'",
-						}),
-					]),
+					// Superseded runs stop before joining the release group, so
+					// they cannot take the tip's pending slot.
+					if: "github.repository == 'c15t/c15t' && needs.tip.outputs.current == 'true'",
+					needs: ['checks', 'tip'],
 				},
+				tip: { needs: 'checks' },
 			},
 		});
 		// A per-ref group here would queue release checks again from inside
@@ -107,7 +106,7 @@ describe('release validation', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: {
 				checks: { with: { skip_performance: true } },
-				publish: { needs: 'checks' },
+				publish: { needs: ['checks', 'tip'] },
 			},
 		});
 		expect(readWorkflow('validation')).not.toHaveProperty(

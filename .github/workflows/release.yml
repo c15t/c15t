@@ -32,9 +32,46 @@ jobs:
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
       TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
+  # Outside canary, checks overlap, so an older push can finish them after a
+  # newer one. Releasing it would run Tegami on a stale tree, for example
+  # reopening a version PR the newer commit already merged, so a superseded
+  # run does not release. This runs as its own job, before `publish` joins the
+  # release group: the group holds one pending job, and a superseded run taking
+  # that slot would push out the tip's publish job and then skip itself.
+  tip:
+    name: Check branch tip
+    needs: checks
+    if: github.repository == 'c15t/c15t'
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      current: ${{ steps.tip.outputs.current }}
+    steps:
+      - name: Skip superseded commits
+        id: tip
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          if [ "$GITHUB_REF" = refs/heads/canary ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          tip=$(git ls-remote --exit-code "$REPOSITORY_URL" "$GITHUB_REF" | cut -f1)
+          if [ -z "$tip" ]; then
+            echo "::error::Could not read $GITHUB_REF from $REPOSITORY_URL."
+            exit 1
+          fi
+          if [ "$tip" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Not releasing $GITHUB_SHA: $GITHUB_REF is now at $tip, and that run releases this commit if its checks pass."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
-    needs: checks
+    needs: [checks, tip]
     # Only one release per branch publishes at a time.
     concurrency:
       group: release-${{ github.ref }}
@@ -46,34 +83,13 @@ jobs:
       pull-requests: write # Tegami opens version pull requests
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
-    if: github.repository == 'c15t/c15t'
+    if: github.repository == 'c15t/c15t' && needs.tip.outputs.current == 'true'
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
         with:
           # Tegami uses release tags and changelog history.
           fetch-depth: 0
-
-      # Outside canary, checks overlap, so an older push can finish them after
-      # a newer one. Releasing it would run Tegami on a stale tree, for example
-      # reopening a version PR the newer commit already merged. The newest
-      # commit's run releases everything before it, so a superseded run stops.
-      - name: Skip superseded commits
-        id: tip
-        if: github.ref != 'refs/heads/canary'
-        shell: bash
-        run: |
-          tip=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)
-          if [ -z "$tip" ]; then
-            echo "::error::Could not read $GITHUB_REF from origin."
-            exit 1
-          fi
-          if [ "$tip" = "$GITHUB_SHA" ]; then
-            echo "current=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Not releasing $GITHUB_SHA: $GITHUB_REF is now at $tip, and that run releases this commit too."
-            echo "current=false" >> "$GITHUB_OUTPUT"
-          fi
 
       # Setup Bun using the version from the shared checks workflow.
       - name: Setup Bun
@@ -95,7 +111,7 @@ jobs:
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
       - name: Version or publish packages
-        if: steps.tip.outputs.current == 'true' && github.ref != 'refs/heads/canary'
+        if: github.ref != 'refs/heads/canary'
         run: bun run tegami ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

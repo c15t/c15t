@@ -131,8 +131,9 @@ their full mobile checks.
 
 Outside `canary`, release checks for consecutive pushes run side by side. Only
 the publish job waits for the previous release on the same branch. A publish job
-whose commit is no longer the branch tip skips releasing, because the newer run
-releases both commits. After publishing a pending version PR merge, Tegami goes
+whose commit is no longer the branch tip skips releasing. The newer run releases
+both commits if its checks pass; if they fail, nothing releases until a later
+push passes. After publishing a pending version PR merge, Tegami goes
 on to open the next version PR for notes that arrived since. `canary` runs stay
 queued whole, so every commit still publishes its own snapshot in push order.
 
