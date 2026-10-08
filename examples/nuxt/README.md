@@ -17,15 +17,20 @@ From the repository root:
 ```sh
 bun install
 bun run build:libs
+bun run --cwd examples/nuxt dev
+```
+
+The app talks to the `https://benchmarks-inth.inth.app` demo Inth project.
+`nuxt dev` and `nuxt build` download its policy when they start, and stop if
+they can't. To use your own project, set `NUXT_PUBLIC_C15T_BACKEND_URL` to its
+backend URL and add the app's origin to its trusted origins:
+
+```sh
 NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app \
 	bun run --cwd examples/nuxt dev
 ```
 
-Use your project's backend URL, and add the app's origin to the project's
-trusted origins. `nuxt dev` and `nuxt build` download the policy when they
-start and stop if they can't, so the placeholder URL in `nuxt.config.ts` does
-not run. Rebuild after you change the policy, translations or vendors in your
-project.
+Rebuild after you change the policy, translations or vendors in your project.
 
 Replace `phc_your_project_key` with your PostHog project key.
 
