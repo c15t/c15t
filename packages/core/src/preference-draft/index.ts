@@ -33,6 +33,8 @@
  *
  * @packageDocumentation
  */
+import { compareCanonical } from '@c15t/schema/types';
+
 import { displayedCategories as listDisplayed } from '../consent/consent-types';
 import type { AllConsentNames } from '../consent/consent-types';
 import { vendorRenders } from '../libs/vendors';
@@ -202,7 +204,7 @@ const vendorSurface = function vendorSurface(
 		(snapshot.vendors?.declared ?? [])
 			.filter(vendorRenders)
 			.map((vendor) => [vendor.id, vendor.disabled === true, vendor.category])
-			.sort(([left], [right]) => String(left).localeCompare(String(right)))
+			.sort(([left], [right]) => compareCanonical(String(left), String(right)))
 	);
 };
 

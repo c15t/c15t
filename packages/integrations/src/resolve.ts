@@ -25,8 +25,10 @@ const serializeConfigValue = function serializeConfigValue(
 	}
 
 	if (typeof value === 'object') {
+		// The key only needs a stable order. `localeCompare` would load the ICU
+		// collator on the first vendor helper call of a page.
 		const entries = Object.entries(value as Record<string, unknown>).sort(
-			([left], [right]) => left.localeCompare(right)
+			([left], [right]) => (left < right ? -1 : 1)
 		);
 
 		return `{${entries

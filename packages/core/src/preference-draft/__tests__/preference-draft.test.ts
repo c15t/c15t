@@ -533,4 +533,19 @@ describe('stale drafts', () => {
 		).toEqual(['cdn', 'google-analytics', 'meta-pixel']);
 		expect(draft.getState()).toMatchObject({ isDirty: true, isStale: false });
 	});
+
+	test('comparing vendor surfaces does not load the collator', () => {
+		// The first `localeCompare` call in a page initialises ICU collation,
+		// which is slow on the main thread.
+		const { kernel } = setup();
+		const localeCompare = vi.spyOn(String.prototype, 'localeCompare');
+		const draft = createPreferenceDraft(kernel);
+		draft.setVendor('meta-pixel', false);
+		kernel.set.vendors(
+			{ declared: [...DECLARED].reverse() },
+			{ replaceSource: 'config' }
+		);
+		expect(draft.getState()).toMatchObject({ isDirty: true, isStale: false });
+		expect(localeCompare).not.toHaveBeenCalled();
+	});
 });

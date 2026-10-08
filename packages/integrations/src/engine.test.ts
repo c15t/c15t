@@ -339,6 +339,52 @@ describe('scripts engine', () => {
 		compileSpy.mockRestore();
 	});
 
+	it('shares one cache entry across config key orders without loading the collator', () => {
+		// The first `localeCompare` call in a page initialises ICU collation,
+		// which is slow on the main thread.
+		const compileSpy = vi.spyOn(compileEngine, 'compileManifest');
+		const localeCompare = vi.spyOn(String.prototype, 'localeCompare');
+		const manifest: VendorManifest = {
+			...vendorManifestContract,
+			category: 'measurement',
+			install: [
+				{
+					src: 'https://cdn.example.com/{{id}}.js?l={{dataLayerName}}',
+
+					type: 'loadScript',
+				},
+			],
+			vendor: 'cache-key-order',
+		};
+
+		resolveManifest(manifest, {
+			dataLayerName: 'dataLayer',
+			id: 'vendor-id',
+			// oxlint-disable-next-line sort-keys -- Key order is the point: the same config in another order shares a cache entry.
+			options: { b: 1, a: [{ y: 2, x: 1 }] },
+		});
+		// oxlint-disable-next-line sort-keys -- Key order is the point: the same config in another order shares a cache entry.
+		const reordered = resolveManifest(manifest, {
+			options: { a: [{ x: 1, y: 2 }], b: 1 },
+			id: 'vendor-id',
+			dataLayerName: 'dataLayer',
+		});
+		resolveManifest(manifest, {
+			dataLayerName: 'dataLayer',
+			id: 'other-id',
+			options: { a: [{ x: 1, y: 2 }], b: 1 },
+		});
+
+		expect(compileSpy).toHaveBeenCalledTimes(2);
+		expect(reordered.src).toBe(
+			'https://cdn.example.com/vendor-id.js?l=dataLayer'
+		);
+		expect(localeCompare).not.toHaveBeenCalled();
+
+		compileSpy.mockRestore();
+		localeCompare.mockRestore();
+	});
+
 	it('converts resolved manifests into Script objects for external and callback-only flows', () => {
 		const external = resolvedManifestToScript({
 			afterLoadSteps: [],
