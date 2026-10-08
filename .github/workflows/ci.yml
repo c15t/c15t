@@ -21,16 +21,12 @@ on:
       built:
         description: Same-run library outputs are available in ci-build
         value: ${{ jobs.repository.outputs.build }}
-    secrets:
-      TURBO_TOKEN:
-        required: false
-      TURBO_TEAM:
-        required: false
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
+  id-token: write
 
 # A new push to a pull request replaces its running checks. Every other run
 # gets a group of its own: release checks for consecutive pushes run side by
@@ -42,8 +38,6 @@ concurrency:
 env:
   NODE_OPTIONS: --max-old-space-size=6144
   CI_DIFF_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
-  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
 
 jobs:
   repository:
@@ -484,9 +478,6 @@ jobs:
     uses: ./.github/workflows/mobile-device.yml
     with:
       built: true
-    secrets:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
   bundle:
     needs: [repository, build]

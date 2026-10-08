@@ -29,6 +29,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 env:
   NODE_OPTIONS: --max-old-space-size=6144

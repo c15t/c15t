@@ -265,6 +265,20 @@ results therefore survive future runs and retries. PRs restore caches but do not
 save them or receive remote-cache credentials. Browser jobs keep failure logs and
 traces and report one table per group. Newer PR commits cancel older runs.
 
+Remote caching uses GitHub OIDC. The shared setup action exchanges each job's
+identity for a Vercel token with only `read-write:remote-cache`. Tokens expire
+after 30 minutes, and the action requests revocation when the job ends. The
+Vercel Turborepo CLI policy checks the repository
+name and immutable repository/owner IDs, restricts refs to `main`, `canary`,
+`2.0.0`, and `v3`, and allows only push, scheduled, and manual runs of the CI,
+release, validation, mobile-device, bundle-analysis, and benchmark workflows.
+The audience is `https://vercel.com/inth`. Repository variables `TURBO_TEAM` and
+`TURBO_CACHE_POLICY` select the team and policy. CI does not use a stored
+`TURBO_TOKEN` secret. PRs and other branches skip the exchange, and Vercel rejects
+their identities even if a modified workflow requests a token. Reusable workflow
+callers must grant `id-token: write`, since called workflows cannot increase the
+caller's permissions.
+
 Coverage is evidence, not a percentage target. The summary lists changed
 instrumented statement-start lines and branches plus uncovered lines; full
 coverage remains an artifact. Missing or empty reports fail for selected suites

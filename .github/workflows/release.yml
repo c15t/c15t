@@ -26,14 +26,12 @@ jobs:
     permissions:
       contents: read
       actions: read
+      id-token: write
     uses: ./.github/workflows/ci.yml
     with:
       skip_performance: true
       release_affected: ${{ github.ref == 'refs/heads/v3' }}
       skip_mobile_device: true
-    secrets:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
@@ -50,9 +48,6 @@ jobs:
       id-token: write # Required for OIDC trusted publishing with npm (bypasses 2FA requirement)
 
     if: github.repository == 'c15t/c15t'
-    env:
-      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
-      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
     steps:
       - name: Check out code
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5

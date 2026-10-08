@@ -9,24 +9,16 @@ on:
         description: Restore library outputs from the calling CI run
         type: boolean
         default: false
-    secrets:
-      TURBO_TOKEN:
-        required: false
-      TURBO_TEAM:
-        required: false
   workflow_dispatch:
 
 permissions:
   contents: read
   actions: read
+  id-token: write
 
 concurrency:
   group: mobile-device-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
-
-env:
-  TURBO_TOKEN: ${{ github.event_name != 'pull_request' && secrets.TURBO_TOKEN || '' }}
-  TURBO_TEAM: ${{ github.event_name != 'pull_request' && secrets.TURBO_TEAM || '' }}
 
 jobs:
   plan:
