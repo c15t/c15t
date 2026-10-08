@@ -15,7 +15,15 @@
 
 	let { children, data } = $props();
 
-	const mode = hosted({ url: PUBLIC_C15T_BACKEND_URL });
+	const mode = hosted({
+		// The route resolves from the bundled policy, so each save asserts the
+		// decision it was made against.
+		assertDecisionInputs: true,
+		// Where the browser resolves consent when the server did not, such as
+		// on a prerendered page. Saves still go to `url`.
+		initURL: '/api/c15t',
+		url: PUBLIC_C15T_BACKEND_URL,
+	});
 </script>
 
 <ConsentManagerProvider

@@ -1,14 +1,25 @@
 // #region docs:vite-config
-import { c15tPreload } from '@c15t/svelte/vite';
+import { c15tPreload, consentManifest } from '@c15t/svelte/vite';
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 
-export default defineConfig({
-	plugins: [
-		sveltekit({ adapter: adapter() }),
-		// Lets c15tHandle preload the script loader on pages with scripts.
-		c15tPreload(),
-	],
+export default defineConfig(({ mode }) => {
+	// Reads the variable from the environment or a `.env` file, like the app.
+	const env = loadEnv(mode, process.cwd(), 'PUBLIC_');
+	return {
+		plugins: [
+			// Downloads the project's policy when Vite starts and writes it to a
+			// module the server imports.
+			consentManifest({
+				backendURL:
+					env.PUBLIC_C15T_BACKEND_URL || 'https://benchmarks-inth.inth.app',
+				outputFile: 'src/lib/server/c15t-manifest.ts',
+			}),
+			sveltekit({ adapter: adapter() }),
+			// Lets c15tHandle preload the script loader on pages with scripts.
+			c15tPreload(),
+		],
+	};
 });
 // #endregion docs:vite-config

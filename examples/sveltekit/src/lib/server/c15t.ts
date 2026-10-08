@@ -1,6 +1,4 @@
-{/* Generated from examples/sveltekit/src/lib/server/c15t.ts (docs:consent-options) by scripts/sync-example-docs.ts. Edit the source file. */}
-
-```ts title="src/lib/server/c15t.ts"
+// #region docs:consent-options
 import { PUBLIC_C15T_BACKEND_URL } from '$app/env/public';
 import type { ConsentManifestOptions } from '@c15t/svelte/kit';
 
@@ -12,4 +10,4 @@ export const consentOptions = {
 	backendURL: PUBLIC_C15T_BACKEND_URL,
 	manifest: consentManifest,
 } satisfies ConsentManifestOptions;
-```
+// #endregion docs:consent-options

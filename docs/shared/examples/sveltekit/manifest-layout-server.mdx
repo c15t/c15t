@@ -9,8 +9,9 @@ import type { LayoutServerLoad } from './$types';
 export const load: LayoutServerLoad = async (event) => ({
 	// Resolve through this app's own route, which caches the policy manifest,
 	// instead of calling the backend on every page load.
-	prefetch: building
-		? undefined
-		: await loadConsent(event, { initRoute: '/api/c15t' }),
+	prefetch: await loadConsent(event, {
+		initRoute: '/api/c15t',
+		shared: building,
+	}),
 });
 ```
