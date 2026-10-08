@@ -40,6 +40,7 @@ Only `mode` is required.
 | `policyRules` | `PolicyRule[]` | none | Rules a local transport resolves. |
 | `i18n` | `{ locale?, messages }` | English | Initial language, and messages that override the bundled or backend copy key by key for the same language. See [translations](/docs/frameworks/javascript/translations). |
 | `presentation` | `{ prompt?, preferences? }` | none | Layout and blocking, for UIs that call `resolveConsentPresentation`. |
+| `journey` | `'page'`, `'tab'` or `false` | `'page'` | Send a random journey id on `/init` and saves so a backend can link them. `'tab'` keeps the id in `sessionStorage` while a prompt is due. Read once. See [session reports](/docs/concepts/data-fetching#link-an-init-to-the-save-that-follows). |
 | `user` | `{ externalId, identityProvider? }` | none | An identified visitor. |
 | `vendors` | `Vendor[]` | none | Vendors offered for vendor-level consent outside IAB. |
 | `nonce` | `string` | none | CSP nonce the script loader puts on every `<script>` it creates. A script's own `nonce` wins. |
