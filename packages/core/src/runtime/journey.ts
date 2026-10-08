@@ -8,7 +8,8 @@
  * the prefetch) or, with `'tab'`, one an earlier page in the same tab left
  * in `sessionStorage`. It reaches the backend through the transport the
  * runtime builds: {@link withJourney} adds it to every `init` context and to
- * every save as the save leaves, so a queued save is never stored with it.
+ * every save this page sends live. A queued save is never stored with it,
+ * and a replay carries none.
  *
  * `'tab'` writes the id only while a prompt is due (no stored choice and a
  * first layer showing) and removes it once a choice or a notice dismissal
@@ -243,10 +244,12 @@ export const withJourney = function withJourney(
 		};
 	}
 	if (transport.save) {
-		wrapped.save = (payload) => {
-			const current = journey.forSave();
+		wrapped.save = (payload, context) => {
+			// Only the page that made a save sends it with its journey.
+			const current = context?.replay ? undefined : journey.forSave();
 			return (transport.save as NonNullable<KernelTransport['save']>)(
-				current ? { ...payload, journey: current } : payload
+				current ? { ...payload, journey: current } : payload,
+				context
 			);
 		};
 	}

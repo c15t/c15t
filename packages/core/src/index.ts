@@ -147,6 +147,7 @@ export type {
 	ResolvedVendor,
 	PromptSurface,
 	SaveInput,
+	SaveContext,
 	SavePayload,
 	SaveUISource,
 	SaveResult,

@@ -650,10 +650,10 @@ export interface SavePayload {
 		gpc: boolean;
 	};
 	/**
-	 * The consent journey of the page that sends this save, added by the
-	 * browser runtime as the save leaves. The hosted transport sends it as
-	 * query parameters on `POST /subjects`. Never stored with a queued save:
-	 * a replay carries the journey of the page that replays it.
+	 * The consent journey of the page that made this save, added by the
+	 * browser runtime when that page sends it. The hosted transport sends it
+	 * as query parameters on `POST /subjects`. Never stored with a queued
+	 * save, and a replay carries none.
 	 */
 	journey?: Pick<KernelJourney, 'id' | 'scope'>;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
@@ -675,9 +675,18 @@ export interface SavePayload {
  * Pluggable transport. Each method is optional — a partial transport is
  * valid. Missing methods make the corresponding command a no-op.
  */
+/** How the kernel is sending a save. */
+export interface SaveContext {
+	/**
+	 * `true` when the save was queued and is being sent again, possibly by a
+	 * later page than the one that made it.
+	 */
+	replay?: boolean;
+}
+
 export interface KernelTransport {
 	init?: (ctx: InitContext) => Promise<InitResponse>;
-	save?: (payload: SavePayload) => Promise<SaveResult>;
+	save?: (payload: SavePayload, context?: SaveContext) => Promise<SaveResult>;
 	identify?: (user: KernelUser, subjectId: string | null) => Promise<void>;
 	/**
 	 * Load the server-side record of a subject as validated receipts. The

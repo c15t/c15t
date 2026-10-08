@@ -155,6 +155,28 @@ describe("journey: 'page' (the default)", () => {
 		expect(everythingStored()).not.toContain(id);
 	});
 
+	test('a save queued on one page is replayed by the next without a journey', async () => {
+		saveStatus = 503;
+		const first = await load();
+		await first.kernel.commands.save('all');
+		expect(saves()[0]?.journey).not.toBeNull();
+		leave(first);
+
+		saveStatus = 200;
+		requests = [];
+		const second = await load();
+		// The next page replays the queued save once its init applied.
+		await vi.waitFor(() => expect(saves()).toHaveLength(1));
+		expect(saves()[0]?.journey).toBeNull();
+
+		// A save this page makes itself still carries its own journey.
+		await second.kernel.commands.save('none');
+		expect(saves()[1]?.journey).toEqual({
+			id: init()[0]?.journey?.id,
+			scope: 'page',
+		});
+	});
+
 	test('a reload starts a new journey and says a choice was stored', async () => {
 		const first = await load();
 		await first.kernel.commands.save('all');
