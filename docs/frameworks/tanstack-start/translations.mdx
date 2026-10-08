@@ -23,16 +23,16 @@ keys and explains how code messages combine with the project's copy.
 
 In the [quickstart](/docs/frameworks/tanstack-start/quickstart) setup, the
 root loader's `resolveConsent` reads the request's `Accept-Language` header.
-It resolves the policy and its copy from the cached manifest on the server, so
+It resolves the policy and its copy from the bundled manifest on the server, so
 the banner in the first HTML is already in the visitor's language.
 
 To override the header, set `language` in one of these places:
 
 - `consentRequestMiddleware({ language })` in `src/start.ts` fixes one
   language for every request.
-- `createConsentStateHandler({ backendURL, language })` fixes one language for
+- `createConsentStateHandler({ ...consentOptions, language })` fixes one language for
   the root loader.
-- `resolveConsent({ backendURL, language })` from
+- `resolveConsent({ ...consentOptions, language })` from
   `c15t/tanstack-start/server`, called in your own server function, takes a
   different language per request, such as the locale from your URL.
 

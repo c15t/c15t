@@ -19,6 +19,7 @@ import {
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
 
+import { consentOptions } from '../consent-options.server';
 import { scripts } from '../scripts';
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
@@ -29,10 +30,7 @@ const consentRoute = '/api/c15t';
 // Declare the server function in your own module. Start's compiler splits
 // the server code out of the browser bundle at this call site.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler({
-		backendURL: 'https://your-project.inth.app',
-		routePrefix: consentRoute,
-	})
+	createConsentStateHandler({ ...consentOptions, routePrefix: consentRoute })
 );
 
 const RootComponent = () => {

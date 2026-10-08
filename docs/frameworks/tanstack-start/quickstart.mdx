@@ -22,9 +22,9 @@ the backend URL.
 [Choose your setup](/docs/concepts/choose-your-setup#decide-who-runs-the-consent-backend)
 covers self-hosting and offline mode.
 
-Build-time manifests are the recommended production setup. Complete the
-[build-time manifest step](#bundle-the-manifest-during-builds) before
-deploying, and rebuild after changing policies, translations or vendors.
+The setup bundles your policy into the server at build time, the
+recommended production setup. Rebuild after changing policies, translations
+or vendors.
 
 ## Install c15t
 
@@ -32,6 +32,37 @@ deploying, and rebuild after changing policies, translations or vendors.
 
 `c15t` contains the TanStack Start adapter at `c15t/tanstack-start`.
 `@c15t/integrations` holds the vendor loaders used below.
+
+## Bundle your policy at build time
+
+Add the `consentManifest` plugin to `vite.config.ts`, before `tanstackStart()`:
+
+<include src="../../shared/examples/tanstack-start/vite-config.mdx" />
+
+When `vite build` or `vite dev` starts, the plugin downloads your project's
+public policy from `${backendURL}/manifest` and writes it to
+`src/c15t-manifest.ts`. Keep that file out of Git.
+
+`https://benchmarks-inth.inth.app` is a demo project, so the config runs as
+is. Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
+shows it, including any path prefix, or replace the fallback. The app code
+below reads the same variable. Vite writes its value into the server and
+browser builds, so setting it when you start a built app has no effect.
+
+Declare the server's consent options in `src/consent-options.server.ts`:
+
+<include src="../../shared/examples/tanstack-start/consent-options.mdx" />
+
+The `.server.ts` suffix makes the build fail if browser code imports the
+snapshot.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+<include src="../../shared/vite-build-manifest.mdx" />
+
+To apply policy edits without rebuilding, remove the plugin and the `manifest`
+line. The server function then fetches and caches the policy at runtime; see
+[runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
 
 ## Read location headers on every request
 
@@ -63,19 +94,15 @@ Replace or merge `src/routes/__root.tsx`:
 
 <include src="../../shared/examples/tanstack-start/root.mdx" />
 
-Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
-shows it, including any path prefix, or replace the
-`https://your-project.inth.app` fallback. Vite writes the value into both the
-server and browser builds.
-
 What each part does:
 
 - **`getConsentState`** runs on the server. `createConsentStateHandler` reads
   the `c15t` cookie and the headers from the middleware, then resolves this
-  visitor's policy. The build-time step below supplies its manifest snapshot;
-  without a snapshot, the handler fetches and caches the manifest at runtime. Declare the `createServerFn()` call in your own module, as shown.
-  Start's compiler finds server code by that call site, so a server function
-  built inside a package does not work. In the browser build,
+  visitor's policy from the bundled snapshot, so the render never waits on
+  Inth. Declare the `createServerFn()` call in your own module, as shown.
+  Start's compiler finds server code by that call site and removes it, with
+  the `consent-options.server` import, from the browser build. A server
+  function built inside a package does not work. In the browser build,
   `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
   helpers throw if browser code calls them.
 - **The loader** awaits the result. `consentLoaderOptions` stops the loader
@@ -83,20 +110,12 @@ What each part does:
   state does not change between routes.
 - **`ConsentRoot`** creates the consent runtime from that state, so the server
   HTML and the first browser render match. `initRoute={false}` sends the
-  browser's requests straight to your backend URL. The server function and
-  `ConsentRoot` share the `backendURL` constant.
+  browser's requests straight to your backend URL. Consent saves go there
+  too, so `backendURL` reads `VITE_C15T_BACKEND_URL` like the consent
+  options, and saves reach the project the snapshot came from.
 - **`scripts`** stays in this module. A server function can only return
   serializable data, and vendor loaders contain functions.
 - **The stylesheet** loads through `head()` with Vite's `?url` import.
-
-With runtime fetching, if the backend does not answer within 500 ms, the server function gives up and
-returns the cookie and header state. The page renders without the banner,
-optional categories stay denied, and the browser resolves consent after it
-loads.
-
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/tanstack-start.mdx" />
 
 ## Gate your own features
 

@@ -3,17 +3,7 @@
 Add the plugin before `tanstackStart()`. Keep the generated
 `src/c15t-manifest.ts` out of Git:
 
-{/* example: fragment */}
-
-```ts title="vite.config.ts"
-import { consentManifest } from 'c15t/tanstack-start/build';
-
-plugins: [
-	consentManifest({ backendURL: 'https://your-project.inth.app' }),
-	tanstackStart(),
-	viteReact(),
-];
-```
+<include src="../examples/tanstack-start/vite-config.mdx" />
 
 Declare the options once:
 
