@@ -24,7 +24,7 @@ Typed client for hosted and self-hosted c15t backends. Check consent before send
 
 - One `createC15tClient()` call with an explicit backend URL. No environment variables are read
 - Methods resolve to `{ ok: true, data }` or `{ ok: false, error }` and never reject. Error codes are typed per method
-- Key-only methods (`subjects.list`, `experiments.summary`, `legalDocuments.publish`) exist only on a client created with an API key
+- Key-only methods (`consents.check`, `subjects.list`, `experiments.summary`, `legalDocuments.publish`) exist only on a client created with an API key
 - Input is validated before anything is sent, and response dates are `Date` objects
 - Per-attempt timeouts and retries for network errors, timeouts and 408, 429, 500, 502, 503 and 504, honouring `Retry-After`
 - A typed mock client in `@c15t/node-sdk/testing`
@@ -77,14 +77,15 @@ For further information, guides, and examples visit the [reference documentation
 
 | Method | API key |
 | --- | --- |
-| `consents.check({ externalId, types })` | No |
-| `subjects.identify(id, { externalId, identityProvider })` | No |
+| `consents.check({ externalId, types })` | Required |
+| `subjects.identify(id, { externalId, identityProvider, identityToken })` | No; verified only with a key or token |
 | `subjects.get(id, { types })` | No |
 | `subjects.create(input)` | No |
 | `subjects.list({ externalId })` | Required |
 | `legalDocuments.publish(type, { version, hash, effectiveDate })` | Required |
 | `experiments.summary(id, { from, to, domain })` | Required |
 | `status()`, `init()`, `manifest()` | No |
+| `createIdentityToken(user, { signingKey })` | No; signs locally |
 
 Every method takes `{ signal, timeoutMs, headers, retry, requestId }` as its last argument.
 

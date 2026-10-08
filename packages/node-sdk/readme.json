@@ -4,7 +4,7 @@
 	"features": [
 		"One `createC15tClient()` call with an explicit backend URL. No environment variables are read",
 		"Methods resolve to `{ ok: true, data }` or `{ ok: false, error }` and never reject. Error codes are typed per method",
-		"Key-only methods (`subjects.list`, `experiments.summary`, `legalDocuments.publish`) exist only on a client created with an API key",
+		"Key-only methods (`consents.check`, `subjects.list`, `experiments.summary`, `legalDocuments.publish`) exist only on a client created with an API key",
 		"Input is validated before anything is sent, and response dates are `Date` objects",
 		"Per-attempt timeouts and retries for network errors, timeouts and 408, 429, 500, 502, 503 and 504, honouring `Retry-After`",
 		"A typed mock client in `@c15t/node-sdk/testing`"
@@ -22,7 +22,7 @@
 	"docsLink": "https://c15t.com/docs/self-host/api/node-sdk",
 	"showCLIGeneration": false,
 	"customSections": {
-		"Methods": "| Method | API key |\n| --- | --- |\n| `consents.check({ externalId, types })` | No |\n| `subjects.identify(id, { externalId, identityProvider })` | No |\n| `subjects.get(id, { types })` | No |\n| `subjects.create(input)` | No |\n| `subjects.list({ externalId })` | Required |\n| `legalDocuments.publish(type, { version, hash, effectiveDate })` | Required |\n| `experiments.summary(id, { from, to, domain })` | Required |\n| `status()`, `init()`, `manifest()` | No |\n\nEvery method takes `{ signal, timeoutMs, headers, retry, requestId }` as its last argument.",
+		"Methods": "| Method | API key |\n| --- | --- |\n| `consents.check({ externalId, types })` | Required |\n| `subjects.identify(id, { externalId, identityProvider, identityToken })` | No; verified only with a key or token |\n| `subjects.get(id, { types })` | No |\n| `subjects.create(input)` | No |\n| `subjects.list({ externalId })` | Required |\n| `legalDocuments.publish(type, { version, hash, effectiveDate })` | Required |\n| `experiments.summary(id, { from, to, domain })` | Required |\n| `status()`, `init()`, `manifest()` | No |\n| `createIdentityToken(user, { signingKey })` | No; signs locally |\n\nEvery method takes `{ signal, timeoutMs, headers, retry, requestId }` as its last argument.",
 		"Upgrading from v2": "`c15tClient()` and the `C15TClient` class are replaced by `createC15tClient()`. Results replace `ResponseContext`, `C15TError` is now `C15tError`, and `subjects.patch` is now `subjects.identify`. See the [migration guide](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk)."
 	}
 }
