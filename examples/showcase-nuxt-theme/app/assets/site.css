@@ -86,7 +86,8 @@ a {
 }
 
 .page {
-	padding: 3rem 0 6rem;
+	padding-top: 3rem;
+	padding-bottom: 6rem;
 }
 
 .page h1 {
