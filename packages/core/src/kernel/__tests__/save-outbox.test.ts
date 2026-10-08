@@ -1829,6 +1829,64 @@ describe('save outbox: replay failures and dropped saves', () => {
 		kernel.dispose();
 	});
 
+	test.each([
+		['runs out of attempts', { attempts: 9 }],
+		['waited more than seven days', { queuedAt: 0 }],
+	])(
+		'a save that %s is reported only once storage takes the removal',
+		async (_label, edit) => {
+			// Storage that refuses writes keeps the entry, so it is not dropped
+			// yet, and reporting it would report it again on the next replay.
+			let refuse = false;
+			let refusedWrites = 0;
+			const refusing: SaveOutboxStore = {
+				clear: store.clear,
+				transact: (run) =>
+					store.transact((tx) =>
+						run({
+							read: tx.read,
+							write: (slot, value) => {
+								if (refuse) {
+									refusedWrites += 1;
+									return false;
+								}
+								return tx.write(slot, value);
+							},
+						})
+					),
+			};
+			const { errors, kernel } = await withQueuedSave(
+				vi.fn().mockRejectedValue(offline),
+				refusing
+			);
+			await editQueue((entries) =>
+				entries.map((entry) => ({ ...entry, ...edit }))
+			);
+
+			refuse = true;
+			await kernel.commands.init();
+			await vi.waitFor(() => {
+				expect(refusedWrites).toBeGreaterThan(0);
+			});
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(errors).toEqual([]);
+			expect(await queued()).toHaveLength(1);
+
+			refuse = false;
+			await kernel.commands.init();
+			await vi.waitFor(async () => {
+				expect(await queued()).toEqual([]);
+			});
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(errors).toHaveLength(1);
+			kernel.dispose();
+		}
+	);
+
 	test('two tabs replaying the same last attempt report it once', async () => {
 		const save = vi.fn().mockRejectedValue(offline);
 		const first = await withQueuedSave(save);

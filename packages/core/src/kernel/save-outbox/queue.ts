@@ -338,7 +338,11 @@ const createStoredLists = function createStoredLists(
 		}
 		const normalized = normalizePendingSaves(stored, now);
 		if (JSON.stringify(normalized) !== JSON.stringify(stored)) {
-			tx.write('saves', normalized);
+			// Storage that refused the write still holds the expired saves,
+			// so they are reported by the read that removes them.
+			if (!tx.write('saves', normalized)) {
+				return normalized;
+			}
 			const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
 			const expired = Array.isArray(stored)
 				? stored.filter(
@@ -743,8 +747,9 @@ export const createQueueWorker = function createQueueWorker({
 			}
 		}
 		// The entry's attempts after this one, or `null` when another kernel
-		// changed or removed it while the request was out.
-		const attempts = await store.transact((tx) => {
+		// changed or removed it while the request was out; and whether
+		// storage took the updated list.
+		const { attempts, written } = await store.transact((tx) => {
 			let counted: number | null = null;
 			const next: PendingSaveEntry[] = [];
 			for (const candidate of readPendingSaves(tx)) {
@@ -757,16 +762,19 @@ export const createQueueWorker = function createQueueWorker({
 					next.push({ ...candidate, attempts: counted });
 				}
 			}
-			tx.write('saves', next);
-			return counted;
+			return { attempts: counted, written: tx.write('saves', next) };
 		});
-		const kept =
-			outcome === 'retry' &&
+		// A refused write leaves the entry stored as it was: it stays queued,
+		// and a drop is reported only by the write that removes it.
+		const removed =
 			attempts !== null &&
-			attempts < MAX_REPLAY_ATTEMPTS;
-		if (attempts !== null && outcome === 'rejected') {
+			written &&
+			(outcome === 'rejected' ||
+				(outcome === 'retry' && attempts >= MAX_REPLAY_ATTEMPTS));
+		const kept = attempts !== null && outcome !== 'saved' && !removed;
+		if (removed && outcome === 'rejected') {
 			reportDropped(failure);
-		} else if (attempts !== null && outcome === 'retry' && !kept) {
+		} else if (removed) {
 			reportDropped(
 				new Error(
 					`c15t save outbox: dropped a queued consent save after ${MAX_REPLAY_ATTEMPTS} failed attempts`,
