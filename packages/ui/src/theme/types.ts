@@ -204,6 +204,12 @@ export interface MotionTokens {
 	 */
 	easingOut?: string;
 	/**
+	 * CSS easing function for exits.
+	 * Use for elements leaving the screen, so they speed up as they go.
+	 * @default 'cubic-bezier(0.55, 0.055, 0.675, 0.19)'
+	 */
+	easingIn?: string;
+	/**
 	 * CSS easing function for on-screen movement.
 	 * Use when elements already on screen need to move or morph.
 	 * @default 'cubic-bezier(0.645, 0.045, 0.355, 1)'
@@ -316,6 +322,8 @@ export interface ThemeCSSVariables {
 	'--c15t-easing'?: string;
 	/** `motion.easingOut` (default: `cubic-bezier(0.215, 0.61, 0.355, 1)`) */
 	'--c15t-easing-out'?: string;
+	/** `motion.easingIn` (default: `cubic-bezier(0.55, 0.055, 0.675, 0.19)`) */
+	'--c15t-easing-in'?: string;
 	/** `motion.easingInOut` (default: `cubic-bezier(0.645, 0.045, 0.355, 1)`) */
 	'--c15t-easing-in-out'?: string;
 	/** `motion.easingSpring` (default: `cubic-bezier(0.34, 1.56, 0.64, 1)`) */

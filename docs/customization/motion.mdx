@@ -6,7 +6,7 @@ group: customization
 
 ## Change the speed with motion tokens
 
-c15t animates its surfaces with three durations and four easing curves. Set
+c15t animates its surfaces with three durations and five easing curves. Set
 them in the theme's `motion` object, or as CSS variables:
 
 | CSS variable | Theme key | Default | Used by |
@@ -14,8 +14,9 @@ them in the theme's `motion` object, or as CSS variables:
 | `--c15t-duration-fast` | `motion.duration.fast` | `80ms` | Banner fade out, buttons, tabs |
 | `--c15t-duration-normal` | `motion.duration.normal` | `150ms` | Preference dialog, switches, accordions |
 | `--c15t-duration-slow` | `motion.duration.slow` | `200ms` | Legal links, floating trigger |
-| `--c15t-easing` | `motion.easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Banner fade out, switches, accordions |
+| `--c15t-easing` | `motion.easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Switches, accordions |
 | `--c15t-easing-out` | `motion.easingOut` | `cubic-bezier(0.215, 0.61, 0.355, 1)` | Preference dialog, floating trigger hover |
+| `--c15t-easing-in` | `motion.easingIn` | `cubic-bezier(0.55, 0.055, 0.675, 0.19)` | Banner fade out |
 | `--c15t-easing-in-out` | `motion.easingInOut` | `cubic-bezier(0.645, 0.045, 0.355, 1)` | Floating trigger snapping to a corner |
 | `--c15t-easing-spring` | `motion.easingSpring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | The dialog's scale in |
 

@@ -16,9 +16,10 @@
 	--consent-banner-wall-max-width: 30rem;
 	--consent-banner-branding-tag-offset: 2rem;
 
-	/* Animation variables */
+	/* Animation variables. The banner only animates as it hides, so the
+	   timing is an exit curve. */
 	--consent-banner-animation-duration: var(--c15t-duration-fast);
-	--consent-banner-animation-timing: var(--c15t-easing);
+	--consent-banner-animation-timing: var(--c15t-easing-in);
 
 	/* Border */
 	--consent-banner-border-width: 1px;

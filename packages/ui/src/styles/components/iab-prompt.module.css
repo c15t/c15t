@@ -12,9 +12,10 @@
 	--iab-consent-banner-border-radius: var(--c15t-radius-lg);
 	--iab-consent-banner-max-width: 560px;
 
-	/* Animation variables */
+	/* Animation variables. The banner only animates as it hides, so the
+	   timing is an exit curve. */
 	--iab-consent-banner-animation-duration: var(--c15t-duration-fast);
-	--iab-consent-banner-animation-timing: var(--c15t-easing);
+	--iab-consent-banner-animation-timing: var(--c15t-easing-in);
 
 	/* Border */
 	--iab-consent-banner-border-width: 1px;
