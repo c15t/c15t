@@ -213,6 +213,11 @@ export const openaiPixelManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'openai-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://developers.openai.com/ads',
+		name: 'OpenAI Pixel',
+		privacyPolicyUrl: 'https://openai.com/policies/privacy-policy/',
+	},
 } as const satisfies VendorManifest;
 
 /**

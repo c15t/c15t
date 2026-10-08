@@ -1,6 +1,19 @@
+import type { Vendor } from '@c15t/schema/types';
+
 import type { ConsentState } from '../../consent/compliance';
 import type { AllConsentNames } from '../../consent/consent-types';
 import type { HasCondition } from '../has';
+
+/**
+ * What a script knows about the vendor its `vendor` slug names: enough for a
+ * preference surface to list the vendor without a `vendors` declaration.
+ * A vendor declared in `vendors` or by the backend replaces these details
+ * as a whole.
+ *
+ * @public
+ */
+export type VendorDetails = Pick<Vendor, 'name' | 'privacyPolicyUrl'> &
+	Partial<Pick<Vendor, 'description' | 'homepageUrl' | 'legalName'>>;
 
 /**
  * Information passed to script callbacks
@@ -263,6 +276,28 @@ export interface Script {
 	 * ```
 	 */
 	vendor?: string;
+
+	/**
+	 * Name, privacy policy and other details of the vendor `vendor` names, so
+	 * the preference surface lists it with its own switch. Ignored without
+	 * `vendor`. A declaration in `vendors` or from the backend wins over
+	 * these. Every `@c15t/integrations` helper sets them.
+	 *
+	 * @example
+	 * ```ts
+	 * const script: Script = {
+	 *   id: 'meta-pixel',
+	 *   src: 'https://connect.facebook.net/en_US/fbevents.js',
+	 *   category: 'marketing',
+	 *   vendor: 'meta-pixel',
+	 *   vendorDetails: {
+	 *     name: 'Meta Pixel',
+	 *     privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	 *   },
+	 * };
+	 * ```
+	 */
+	vendorDetails?: VendorDetails;
 
 	/**
 	 * IAB TCF vendor ID - links script to a registered vendor.

@@ -39,6 +39,7 @@ import type { RecordIssue } from './consent-record/validation';
 import type { AllConsentNames } from './consent/consent-types';
 import type { ExperimentAssignment, ExperimentGate } from './libs/experiment';
 import type { HasCondition } from './libs/has';
+import type { VendorDetails } from './libs/script-loader/types';
 import type { PublisherRestriction } from './options/iab-tcf';
 
 // Re-export schema types that consumers need so they don't have to
@@ -248,8 +249,9 @@ export interface KernelIABState {
 
 /**
  * Where a declared vendor came from. Presentation fields follow
- * `config` over `manifest`; a `script` source only has the slug and the
- * owning integration's category.
+ * `config` over `manifest` over `script`; a `script` source has the slug,
+ * the owning integration's category and whatever `vendorDetails` the
+ * integration carries.
  */
 export type VendorSource = 'config' | 'manifest' | 'script';
 
@@ -268,6 +270,11 @@ export type ResolvedVendor = Pick<Vendor, 'id' | 'category'> &
 		 * script-sourced fallback instead of nothing.
 		 */
 		ownerCategory?: HasCondition<AllConsentNames>;
+		/**
+		 * `vendorDetails` of those scripts, kept beside `ownerCategory` so the
+		 * script-sourced fallback is still listed by name.
+		 */
+		ownerDetails?: VendorDetails;
 		/**
 		 * The lower-priority declaration this entry replaced, kept so removing
 		 * this entry's source restores it: a config entry remembers the backend

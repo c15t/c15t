@@ -50,6 +50,11 @@ export const rybbitAnalyticsManifest = {
 		},
 	],
 	vendor: 'rybbit-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://rybbit.com/',
+		name: 'Rybbit',
+		privacyPolicyUrl: 'https://rybbit.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface RybbitAnalyticsOptions {

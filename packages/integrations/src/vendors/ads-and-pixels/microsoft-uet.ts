@@ -101,6 +101,12 @@ export const microsoftUetManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'microsoft-uet',
+	vendorDetails: {
+		homepageUrl: 'https://ads.microsoft.com/',
+		legalName: 'Microsoft Corporation',
+		name: 'Microsoft Advertising',
+		privacyPolicyUrl: 'https://www.microsoft.com/privacy/privacystatement',
+	},
 } as const satisfies VendorManifest;
 
 export interface MicrosoftUetOptions {

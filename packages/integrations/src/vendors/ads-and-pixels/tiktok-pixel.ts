@@ -167,6 +167,11 @@ export const tiktokPixelManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'tiktok-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://business.tiktok.com/',
+		name: 'TikTok Pixel',
+		privacyPolicyUrl: 'https://www.tiktok.com/legal/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface TikTokPixelOptions {

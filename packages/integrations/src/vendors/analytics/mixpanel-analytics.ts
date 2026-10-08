@@ -113,6 +113,12 @@ export const mixpanelAnalyticsManifest = {
 		},
 	],
 	vendor: 'mixpanel-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://mixpanel.com/',
+		legalName: 'Mixpanel, Inc.',
+		name: 'Mixpanel',
+		privacyPolicyUrl: 'https://mixpanel.com/legal/privacy-policy/',
+	},
 } as const satisfies VendorManifest;
 
 export interface MixpanelAnalyticsOptions {

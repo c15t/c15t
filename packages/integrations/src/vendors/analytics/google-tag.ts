@@ -67,6 +67,12 @@ export const gtagManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'gtag',
+	vendorDetails: {
+		homepageUrl: 'https://developers.google.com/tag-platform/gtagjs',
+		legalName: 'Google LLC',
+		name: 'Google Tag',
+		privacyPolicyUrl: 'https://policies.google.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface GtagOptions {

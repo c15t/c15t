@@ -53,6 +53,11 @@ export const hotjarManifest = {
 		},
 	],
 	vendor: 'hotjar',
+	vendorDetails: {
+		homepageUrl: 'https://contentsquare.com/hotjar/',
+		name: 'Hotjar',
+		privacyPolicyUrl: 'https://contentsquare.com/privacy-policy/',
+	},
 } as const satisfies VendorManifest;
 
 export interface HotjarOptions {

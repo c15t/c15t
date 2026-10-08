@@ -51,6 +51,12 @@ export const fathomAnalyticsManifest = {
 		},
 	],
 	vendor: 'fathom-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://usefathom.com/',
+		legalName: 'Conva Ventures Inc.',
+		name: 'Fathom Analytics',
+		privacyPolicyUrl: 'https://usefathom.com/legal/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface FathomAnalyticsOptions {

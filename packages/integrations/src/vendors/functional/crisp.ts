@@ -53,6 +53,12 @@ export const crispManifest = {
 		},
 	],
 	vendor: 'crisp',
+	vendorDetails: {
+		homepageUrl: 'https://crisp.chat/',
+		legalName: 'Crisp IM SAS',
+		name: 'Crisp',
+		privacyPolicyUrl: 'https://crisp.chat/privacy/',
+	},
 } as const satisfies VendorManifest;
 
 export interface CrispOptions {

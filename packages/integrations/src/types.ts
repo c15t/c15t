@@ -1,4 +1,4 @@
-import type { AllConsentNames, HasCondition } from '@c15t/core';
+import type { AllConsentNames, HasCondition, VendorDetails } from '@c15t/core';
 
 export const VENDOR_MANIFEST_KIND = 'c15t.vendor-manifest';
 export const VENDOR_MANIFEST_SCHEMA_VERSION = 1;
@@ -295,6 +295,12 @@ export interface VendorManifest extends ManifestContract {
 	/** Unique vendor identifier (used as Script.id) */
 	vendor: string;
 
+	/**
+	 * Name and privacy policy of the vendor, so the preference dialog lists
+	 * it with its own switch. Becomes `Script.vendorDetails`.
+	 */
+	vendorDetails?: VendorDetails;
+
 	/** Consent category or condition required to load this vendor */
 	category: ManifestCategoryCondition;
 
@@ -389,6 +395,7 @@ export interface VendorManifest extends ManifestContract {
  */
 export interface ResolvedManifest extends ManifestContract {
 	vendor: string;
+	vendorDetails?: VendorDetails;
 	category: HasCondition<AllConsentNames>;
 	alwaysLoad?: boolean;
 	persistAfterConsentRevoked?: boolean;

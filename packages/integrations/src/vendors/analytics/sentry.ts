@@ -1300,6 +1300,12 @@ export const sentryManifest = {
 		},
 	],
 	vendor: 'sentry',
+	vendorDetails: {
+		homepageUrl: 'https://sentry.io/',
+		legalName: 'Functional Software, Inc.',
+		name: 'Sentry',
+		privacyPolicyUrl: 'https://sentry.io/privacy/',
+	},
 } as const satisfies VendorManifest;
 
 const hasPositiveRate = (value: unknown): boolean =>

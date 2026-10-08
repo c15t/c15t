@@ -71,6 +71,12 @@ export const logRocketManifest = {
 		},
 	],
 	vendor: 'logrocket',
+	vendorDetails: {
+		homepageUrl: 'https://logrocket.com/',
+		legalName: 'LogRocket, Inc.',
+		name: 'LogRocket',
+		privacyPolicyUrl: 'https://logrocket.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface LogRocketOptions {

@@ -73,6 +73,12 @@ export const googleTagManagerManifest = {
 		},
 	],
 	vendor: 'google-tag-manager',
+	vendorDetails: {
+		homepageUrl: 'https://marketingplatform.google.com/about/tag-manager/',
+		legalName: 'Google LLC',
+		name: 'Google Tag Manager',
+		privacyPolicyUrl: 'https://policies.google.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface GoogleTagManagerOptions {

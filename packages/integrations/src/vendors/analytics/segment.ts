@@ -174,6 +174,12 @@ export const segmentManifest = {
 		},
 	],
 	vendor: 'segment',
+	vendorDetails: {
+		homepageUrl: 'https://www.twilio.com/en-us/segment',
+		legalName: 'Twilio Inc.',
+		name: 'Segment',
+		privacyPolicyUrl: 'https://www.twilio.com/en-us/legal/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface SegmentOptions {

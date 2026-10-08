@@ -161,6 +161,12 @@ export const snapchatPixelManifest = {
 		},
 	],
 	vendor: 'snapchat-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://forbusiness.snapchat.com/',
+		legalName: 'Snap Inc.',
+		name: 'Snap Pixel',
+		privacyPolicyUrl: 'https://values.snap.com/privacy/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface SnapchatPixelOptions {

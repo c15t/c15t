@@ -683,6 +683,7 @@ export const resolvedManifestToScript = function resolvedManifestToScript(
 		// The manifest's vendor slug doubles as the vendor-level consent id, so
 		// a subject can turn this vendor off inside a granted category.
 		vendor: resolvedManifest.vendor,
+		vendorDetails: resolvedManifest.vendorDetails,
 	};
 
 	if (

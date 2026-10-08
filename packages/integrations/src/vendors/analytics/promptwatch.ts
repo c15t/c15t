@@ -25,6 +25,12 @@ export const promptwatchManifest = {
 		},
 	],
 	vendor: 'promptwatch',
+	vendorDetails: {
+		homepageUrl: 'https://promptwatch.com/',
+		legalName: 'Promptwatch B.V.',
+		name: 'Promptwatch',
+		privacyPolicyUrl: 'https://promptwatch.com/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface PromptwatchOptions {

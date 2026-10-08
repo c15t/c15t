@@ -259,6 +259,12 @@ export const amplitudeManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'amplitude',
+	vendorDetails: {
+		homepageUrl: 'https://amplitude.com/',
+		legalName: 'Amplitude, Inc.',
+		name: 'Amplitude',
+		privacyPolicyUrl: 'https://amplitude.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface AmplitudeOptions {

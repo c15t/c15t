@@ -227,6 +227,11 @@ export const redditPixelManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'reddit-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://www.business.reddit.com/',
+		name: 'Reddit Pixel',
+		privacyPolicyUrl: 'https://www.reddit.com/policies/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface RedditPixelOptions {

@@ -226,6 +226,12 @@ export const clarityManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'microsoft-clarity',
+	vendorDetails: {
+		homepageUrl: 'https://clarity.microsoft.com/',
+		legalName: 'Microsoft Corporation',
+		name: 'Microsoft Clarity',
+		privacyPolicyUrl: 'https://www.microsoft.com/privacy/privacystatement',
+	},
 } as const satisfies VendorManifest;
 
 export interface ClarityOptions {

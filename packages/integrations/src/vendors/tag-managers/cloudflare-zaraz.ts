@@ -206,5 +206,11 @@ export const cloudflareZaraz = (options: CloudflareZarazOptions): Script => {
 		// Like the manifest helpers, the script ID doubles as the vendor slug,
 		// so visitors can turn Zaraz off inside a granted category.
 		vendor: vendorId,
+		vendorDetails: {
+			homepageUrl: 'https://developers.cloudflare.com/zaraz/',
+			legalName: 'Cloudflare, Inc.',
+			name: 'Cloudflare Zaraz',
+			privacyPolicyUrl: 'https://www.cloudflare.com/privacypolicy/',
+		},
 	};
 };
