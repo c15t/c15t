@@ -989,7 +989,8 @@ describe('consent journey', () => {
 			domain: 'app.example.com',
 			id: state.journey?.id,
 			prompt: 'due',
-			scope: 'tab',
+			// A server-rendered page is a page journey, even under 'tab'.
+			scope: 'page',
 			storedChoice: false,
 		});
 	});
@@ -1035,11 +1036,11 @@ describe('consent journey', () => {
 		expect(state).not.toHaveProperty('journey');
 	});
 
-	test('the configured scope goes on the hosted /init', async () => {
+	test('a tab journey goes on the hosted /init as a page journey', async () => {
 		const fetch = upstream();
 		await render({ backendURL: BACKEND, fetch, journey: 'tab' });
 		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
-		expect(sent.searchParams.get('c15tJourneyScope')).toBe('tab');
+		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
 	});
 
 	test('offline mode starts none', async () => {

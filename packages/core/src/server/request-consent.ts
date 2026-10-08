@@ -315,9 +315,9 @@ export interface ResolveRequestConsentOptions {
 	 */
 	reportSessions?: boolean;
 	/**
-	 * The journey scope this render reports; pass the provider's `journey`.
-	 * When the render starts none, the state's `journey` is `null` so the
-	 * browser sends none either.
+	 * The provider's `journey`. A render reports `'page'` either way; `false`
+	 * starts none, and the state's `journey` is then `null` so the browser
+	 * sends none either.
 	 *
 	 * @default 'page'
 	 */
@@ -530,13 +530,13 @@ const startServerJourney = function startServerJourney(
 	if (options.shared || !mode || mode === 'offline') {
 		return undefined;
 	}
-	const scope = options.journey ?? 'page';
+	const enabled = options.journey !== false;
 	// A manifest render reports only to an absolute backend; without one no
 	// report would carry the id, and a save carrying it would link to nothing.
 	const unreported =
 		mode === 'manifest' &&
 		!resolveSessionReportBackendURL({ backendURL: options.backendURL });
-	if (scope === false || options.reportSessions === false || unreported) {
+	if (!enabled || options.reportSessions === false || unreported) {
 		return null;
 	}
 	const { domain, speculative } = read();
@@ -547,7 +547,9 @@ const startServerJourney = function startServerJourney(
 	}
 	const journey: SessionJourney = {
 		id,
-		scope,
+		// A server-rendered page is a page journey on both sides, `'tab'` or
+		// not: a render cannot read the tab's `sessionStorage`.
+		scope: 'page',
 		// A persisted answer: a choice or a notice dismissal.
 		storedChoice: Boolean(
 			base.initialRecords?.choice || base.initialRecords?.noticeDismissal

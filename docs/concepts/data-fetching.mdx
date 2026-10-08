@@ -83,7 +83,7 @@ Saves replayed after going offline carry none.
 | `journey` | Behavior |
 | --- | --- |
 | `'page'` (default) | One id per page load, in memory. |
-| `'tab'` | Kept in `sessionStorage` while a prompt is due, and removed once the visitor chooses or no prompt is due. Best when the browser resolves init: a server render can't read `sessionStorage`. |
+| `'tab'` | Kept in `sessionStorage` while a prompt is due, and removed once the visitor chooses or no prompt is due. Only when the browser resolves init; server-rendered pages use `'page'`. |
 | `false` | No journey. |
 
 Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;

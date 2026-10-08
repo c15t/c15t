@@ -95,7 +95,7 @@ describe('resolveConsent wiring', () => {
 		});
 	});
 
-	test('the config journey sets the scope the render reports, and false turns it off', async () => {
+	test('a tab config reports a page journey, and false turns it off', async () => {
 		const tab = backend();
 		const started = await resolveConsent({
 			config: defineConsentConfig({
@@ -106,7 +106,8 @@ describe('resolveConsent wiring', () => {
 			request: requestOf({}),
 		});
 		const sent = new URL(String(tab.mock.calls[0]?.[0]));
-		expect(sent.searchParams.get('c15tJourneyScope')).toBe('tab');
+		// A server-rendered page is a page journey, even under 'tab'.
+		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
 		expect(sent.searchParams.get('c15tJourney')).toBe(started.journey?.id);
 
 		for (const options of [

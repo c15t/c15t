@@ -52,9 +52,8 @@ export interface JourneyController {
 	/**
 	 * Continue the journey a server state started, when that state arrives
 	 * after construction (a streamed prefetch), or end it when the state
-	 * says the page has none (`null`). Ignored once a save carried the
-	 * current id; an id is also ignored for a `'tab'` journey an earlier
-	 * page started.
+	 * says the page has none (`null`). A server's id makes it a `'page'`
+	 * journey. Ignored once a save carried the current id.
 	 */
 	adopt: (id: string | null | undefined) => void;
 	/** The journey an `init` carries, or `undefined` for none. */
@@ -77,7 +76,7 @@ export const createJourneyController = function createJourneyController(
 	const storage = options.storage ?? sessionStorageOf;
 	let serverId = parseJourneyId(options.serverId);
 	let journey: KernelJourney | undefined;
-	// The id came from an earlier page of this tab: it outranks a server's.
+	// The id came from an earlier page of this tab.
 	let continued = false;
 	// A save carried the id, so it can no longer change.
 	let sent = false;
@@ -95,12 +94,31 @@ export const createJourneyController = function createJourneyController(
 		}
 	};
 
+	/**
+	 * A server-rendered page is a `'page'` journey on both sides: the server
+	 * reported its id as one, and a render cannot read `sessionStorage`. Drop
+	 * a tab's id so the next page the browser resolves starts fresh.
+	 */
+	const forgetTab = function forgetTab(): void {
+		stored = false;
+		continued = false;
+		if (options.option !== 'tab') {
+			return;
+		}
+		try {
+			storage()?.removeItem(JOURNEY_STORAGE_KEY);
+		} catch {
+			// Unusable storage holds nothing this page wrote.
+		}
+	};
+
 	const create = function create(kernel: ConsentKernel): void {
 		// A server render's id first, then one an early request of this page
 		// already sent (React's early `/init`, the inline prefetch script).
+		const fromServer = serverId !== null;
 		const opened = openJourney({
 			adopted: serverId ?? readEarlyJourney()?.id,
-			option: options.option,
+			option: fromServer && options.option === 'tab' ? 'page' : options.option,
 			storage,
 			// A persisted answer hydration applied: a choice or a dismissal.
 			storedChoice: hasStoredAnswer(kernel.getSnapshot()),
@@ -110,6 +128,9 @@ export const createJourneyController = function createJourneyController(
 		}
 		({ journey, continued } = opened);
 		stored = continued;
+		if (fromServer) {
+			forgetTab();
+		}
 	};
 
 	const write = function write(): void {
@@ -204,21 +225,16 @@ export const createJourneyController = function createJourneyController(
 				return;
 			}
 			const parsed = parseJourneyId(id);
-			if (!parsed || continued || sent) {
+			if (!parsed || sent) {
 				return;
 			}
 			if (!journey) {
 				serverId = parsed;
 				return;
 			}
-			if (parsed === journey.id) {
-				return;
-			}
-			journey = Object.freeze({ ...journey, id: parsed });
-			if (stored) {
-				stored = false;
-				write();
-			}
+			// The server resolved this page: its id, as a page journey.
+			journey = Object.freeze({ ...journey, id: parsed, scope: 'page' });
+			forgetTab();
 		},
 		forInit: () => journey,
 		forSave() {

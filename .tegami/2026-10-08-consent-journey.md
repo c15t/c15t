@@ -20,9 +20,10 @@ a backend can link a page load to the choice that follows without
 fingerprinting or extra requests.
 
 Set `journey` to choose how long the id lives: `'page'` (default, in memory),
-`'tab'` (in `sessionStorage` while a prompt is due) or `false`. In Next.js set
-it in `defineConsentConfig`; in TanStack Start pass it to both `resolveConsent`
-and `ConsentRoot`. Vue, Svelte, Astro and the script tag use `'page'` for now.
+`'tab'` (in `sessionStorage` while a prompt is due, on pages the browser
+resolves) or `false`. In Next.js set it in `defineConsentConfig`; in TanStack
+Start pass it to both `resolveConsent` and `ConsentRoot`. Vue, Svelte, Astro and
+the script tag use `'page'` for now.
 
 Request URLs now carry a query string. If you pass `hosted()` a `fetch` that
 routes on the exact URL, match the path instead.

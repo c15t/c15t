@@ -81,7 +81,7 @@ describe('resolveConsent wiring', () => {
 		expect(state).not.toHaveProperty('transport');
 	});
 
-	test('reports the configured journey scope, and false or no reports turn it off', async () => {
+	test('reports a page journey, and false or no reports turn it off', async () => {
 		const sessions = vi.fn<typeof globalThis.fetch>(() =>
 			Promise.resolve(new Response(null, { status: 204 }))
 		);
@@ -94,7 +94,11 @@ describe('resolveConsent wiring', () => {
 		});
 		await vi.waitFor(() => expect(sessions).toHaveBeenCalled());
 		const report = JSON.parse(String(sessions.mock.calls[0]?.[1]?.body));
-		expect(report.journey).toMatchObject({ id: tab.journey?.id, scope: 'tab' });
+		// A server-rendered page is a page journey, even under 'tab'.
+		expect(report.journey).toMatchObject({
+			id: tab.journey?.id,
+			scope: 'page',
+		});
 
 		for (const off of [
 			{ journey: false as const },

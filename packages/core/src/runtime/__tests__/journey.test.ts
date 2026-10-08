@@ -314,6 +314,68 @@ describe("journey: 'tab'", () => {
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
 	});
 
+	test('a server-rendered page is a page journey and drops the tab id', async () => {
+		// An earlier page the browser resolved left a tab id.
+		sessionStorage.setItem(
+			JOURNEY_STORAGE_KEY,
+			'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+		);
+		const runtime = createConsentRuntime({
+			consentCategories: ['necessary', 'measurement'],
+			journey: 'tab',
+			mode: backend(),
+			prefetch: {
+				initialPolicyResolution: matchedResolution(optInRule()),
+				journey: { id: SERVER_ID },
+			},
+		});
+		runtimes.push(runtime);
+		runtime.start();
+		// The prompt is due, yet nothing is kept for later pages.
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
+		await runtime.kernel.commands.save('all');
+		expect(saves()[0]?.journey).toEqual({ id: SERVER_ID, scope: 'page' });
+	});
+
+	test('a streamed server state also makes it a page journey', async () => {
+		sessionStorage.setItem(
+			JOURNEY_STORAGE_KEY,
+			'f47ac10b-58cc-4372-a567-0e02b2c3d479'
+		);
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const stream = Promise.withResolvers<{
+			initialPolicyResolution: ReturnType<typeof matchedResolution>;
+			journey: { id: string };
+		}>();
+		const runtime = createConsentProviderRuntime(
+			{
+				consentCategories: ['necessary', 'measurement'],
+				journey: 'tab',
+				mode: custom({ init: () => Promise.resolve({}), save }),
+				prefetch: stream.promise,
+			},
+			{ ...defaultRuntimeModules, streamPrefetch }
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		stream.resolve({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			journey: { id: SERVER_ID },
+		});
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().activeUI).toBe('banner')
+		);
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
+		await runtime.kernel.commands.save('all');
+		expect(save.mock.calls[0]?.[0].journey).toEqual({
+			id: SERVER_ID,
+			scope: 'page',
+		});
+	});
+
 	test('blocked sessionStorage makes it a page journey', async () => {
 		vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
 			throw new DOMException('Storage access blocked', 'SecurityError');
