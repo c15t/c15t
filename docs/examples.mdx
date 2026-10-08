@@ -40,7 +40,7 @@ PostHog only after the visitor allows measurement.
 | Next.js | `examples/nextjs-pages-router` | Pages Router with `getServerSideProps` |
 | TanStack Start | `examples/tanstack-start` | Request middleware, a server function and the root route |
 | React | `examples/react` | A Vite single-page app |
-| Nuxt | `examples/nuxt` | The Nuxt module with server-side consent resolution |
+| Nuxt | `examples/nuxt` | The Nuxt module with the policy bundled at build time and resolved on the server |
 | Nuxt | `examples/nuxt-static` | `nuxt generate` with the manifest resolved in the browser |
 | Vue | `examples/vue` | The Vue plugin in a Vite single-page app |
 | Astro | `examples/astro` | Server output with the Node adapter |
@@ -63,8 +63,9 @@ development and Postgres from `DATABASE_URL` when deployed. The
 
 ## Showcases
 
-Showcases are Next.js apps for Northwind Coffee, a made-up coffee roaster.
-Each one shows one thing c15t can do inside a believable product.
+Showcases are apps for Northwind Coffee, a made-up coffee roaster. Each one
+shows one thing c15t can do inside a believable product. All but one are
+Next.js apps.
 
 | Showcase | Directory | What it shows |
 | --- | --- | --- |
@@ -75,11 +76,14 @@ Each one shows one thing c15t can do inside a believable product.
 | IAB TCF | `examples/showcase-iab` | A publisher's ad slots filled from the TC string, with GPP |
 | Banner experiment | `examples/showcase-experiment` | An A/B test between two banner layouts, with exposure and choice events per arm |
 | Multilingual | `examples/showcase-multilingual` | Banner language from the route and policy from the visitor's region |
+| Nuxt theme | `examples/showcase-nuxt-theme` | The stock Nuxt banner and dialog in a brand's colors, layout and dark mode, styled through module options |
 
-Showcases run in offline mode, so they work without an Inth project. Offline
-mode keeps choices in the browser and records nothing on a server. Not
-recommended for production environments. Each README shows the one-line swap to
-`hosted({ url: 'https://your-project.inth.app' })`.
+The Next.js showcases run in offline mode, so they work without an Inth
+project. Offline mode keeps choices in the browser and records nothing on a
+server. Not recommended for production environments. Each README shows the
+one-line swap to `hosted({ url: 'https://your-project.inth.app' })`. The Nuxt
+module has no offline mode, so the Nuxt showcase talks to a demo Inth project
+and reads `NUXT_PUBLIC_C15T_BACKEND_URL` for your own.
 
 The IAB showcase serves a three-vendor list from `public/vendor-list.json` and
 uses a demonstration CMP ID. Its README lists what changes for production.
