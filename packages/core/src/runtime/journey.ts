@@ -255,10 +255,16 @@ export const withJourney = function withJourney(
 	const wrapped: KernelTransport = {};
 	if (transport.init) {
 		wrapped.init = (ctx) => {
-			const current = journey.forInit();
-			return (transport.init as NonNullable<KernelTransport['init']>)(
-				current ? { ...ctx, journey: current } : ctx
-			);
+			// Read when the request is built, not now: a streamed prefetch can
+			// hand over the server's journey while this init waits for it, and
+			// the `/init` it falls back to must carry the id the save will.
+			const next = { ...ctx };
+			Object.defineProperty(next, 'journey', {
+				configurable: true,
+				enumerable: true,
+				get: journey.forInit,
+			});
+			return (transport.init as NonNullable<KernelTransport['init']>)(next);
 		};
 	}
 	if (transport.save) {

@@ -344,6 +344,42 @@ describe('a journey a server render started', () => {
 		expect(save.mock.calls[0]?.[0].journey).toBeUndefined();
 	});
 
+	test('a streamed state without a policy: the fallback /init and the save share its id', async () => {
+		const sentIds: (string | undefined)[] = [];
+		const transportInit = vi.fn<NonNullable<KernelTransport['init']>>((ctx) => {
+			// What a transport reads when it builds the request.
+			sentIds.push(ctx.journey?.id);
+			return Promise.resolve({
+				policyResolution: writePolicyResolutionWire(
+					matchedResolution(optInRule())
+				),
+			});
+		});
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const stream = Promise.withResolvers<{ journey: { id: string } }>();
+		const runtime = createConsentProviderRuntime(
+			{
+				consentCategories: ['necessary', 'measurement'],
+				mode: custom({ init: transportInit, save }),
+				prefetch: stream.promise,
+			},
+			{ ...defaultRuntimeModules, streamPrefetch }
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		// The server timed out: its state has a journey and no policy, so
+		// the runtime falls back to its own /init.
+		stream.resolve({ journey: { id: SERVER_ID } });
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().activeUI).toBe('banner')
+		);
+		expect(sentIds).toEqual([SERVER_ID]);
+		await runtime.kernel.commands.save('all');
+		expect(save.mock.calls[0]?.[0].journey?.id).toBe(SERVER_ID);
+	});
+
 	test('a streamed prefetch hands over its id before the first save', async () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })
