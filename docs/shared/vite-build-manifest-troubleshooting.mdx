@@ -1,0 +1,22 @@
+## Why does the build fail to download the manifest?
+
+**Check.** `vite build` or `vite dev` stops before compiling, with an error
+from `consentManifest` that starts with `@c15t/core/build:`.
+
+| Error | Cause | Fix |
+| --- | --- | --- |
+| `build-time manifests require an absolute upstream URL.` | `backendURL` is empty or relative, such as `/api/c15t` | Pass the absolute backend URL from your Inth project |
+| `build-time manifests require an http(s) upstream URL.` | `backendURL` uses another protocol | Use the `https://` URL Inth shows |
+| `/manifest responded 404` | The URL is not your project's backend, such as the `https://your-project.inth.app` placeholder or a URL missing its path prefix | Copy the backend URL exactly as Inth shows it, or set `VITE_C15T_BACKEND_URL` |
+| `/manifest returned an invalid consent manifest.` | The URL answered with something other than a consent manifest, such as an HTML page | Point `backendURL` at the backend itself, not your site or a dashboard page |
+| `fetch failed` | The build cannot reach the backend | Build where the backend is reachable. A failed download never reuses an old snapshot |
+
+## Why can't TypeScript find ./c15t-manifest?
+
+**Check.** `tsc`, `vue-tsc` or your editor reports that it cannot find the
+module `./c15t-manifest`, on a fresh checkout or in CI.
+
+**Fix.** `consentManifest` writes `src/c15t-manifest.ts` when `vite build` or
+`vite dev` starts, and the file is not in Git. Run one of them before the type
+check. In CI, run the build first, or cache the generated file with the build
+output.

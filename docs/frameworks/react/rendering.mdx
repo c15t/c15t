@@ -23,6 +23,9 @@ explains the difference in general terms.
 
 ## Bundle the manifest during Vite builds
 
+The [quickstart](/docs/frameworks/react/quickstart) and `examples/react` in
+the c15t repository use this setup.
+
 <include src="../../shared/build-manifests/react.mdx" />
 
 ## Client-rendered apps
@@ -30,8 +33,8 @@ explains the difference in general terms.
 The recommended [quickstart](/docs/frameworks/react/quickstart) bundles the
 manifest and resolves it in the browser. See [build-time manifests](#bundle-the-manifest-during-vite-builds).
 
-For policy updates without rebuilding, keep `hosted({ url })`. That runtime
-path works as follows:
+For policy updates without rebuilding, use `hosted({ url })` from
+`c15t/react` as the mode. That runtime path works as follows:
 
 1. The page loads with no consent state. Every optional category is denied.
 2. `ConsentProvider` requests `GET /init` from your backend URL while it first
@@ -124,7 +127,12 @@ With `hosted({ url })`, the browser calls two backend endpoints:
 | `GET {url}/init` | Once per page load, to resolve the policy |
 | `POST {url}/subjects` | When the visitor accepts, rejects or saves |
 
-Both go to the backend's origin, so it must list your site as a trusted origin.
+With a bundled manifest, `manifest({ backendURL })` sends the same
+`/subjects` request, and requests `/init` only when the policy depends on a
+country or region the browser does not know.
+
+These requests go to the backend's origin, so it must list your site as a
+trusted origin.
 [Data fetching](/docs/concepts/data-fetching) compares this with proxies and
 custom transports.
 

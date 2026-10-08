@@ -17,8 +17,8 @@ export default {
 
 Vite writes `src/c15t-manifest.ts` before compiling, including at development
 startup. Keep the generated file out of Git. Install `@c15t/browser@alpha` for
-its browser manifest transport. In the quickstart's `src/consent.tsx`, replace
-the `hosted()` mode with this factory:
+its browser manifest transport. In `src/consent.tsx`, create the provider's
+mode with `manifest()` instead of `hosted()`:
 
 {/* example: fragment */}
 
@@ -49,6 +49,6 @@ Policy and resolver code are part of the browser bundle.
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, keep the original `hosted()` factory
-and omit the build plugin. That setup resolves policy through the backend
-`/init` on each page load.
+For policy updates without a rebuild, use `hosted({ url })` from `c15t/react`
+as the mode and omit the build plugin. That setup resolves policy through the
+backend `/init` on each page load.

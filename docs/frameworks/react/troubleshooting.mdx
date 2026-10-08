@@ -4,23 +4,17 @@ description: Fix a missing banner, early vendor requests, unstyled components an
 group: frameworks
 ---
 
-## The /init request goes to your-project.inth.app
-
-**Check.** In DevTools Network, the `GET` request to `/init` goes to
-`your-project.inth.app` and fails.
-
-**Fix.** Replace the placeholder URL in `hosted({ url })` in `src/consent.tsx`
-with the backend URL from your Inth project, exactly as Inth shows it, then
-rebuild.
+<include src="../../shared/vite-build-manifest-troubleshooting.mdx" />
 
 ## There is no banner
 
 **Check.** In DevTools Network, find the `GET` request to `/init` on your
-backend URL.
+backend URL. With the bundled manifest, the browser makes no request before
+the banner unless the policy depends on a country or region it does not know.
 
 | What you see | Cause | Fix |
 | --- | --- | --- |
-| No `/init` request | `ConsentProvider` is not mounted, or an error stopped `src/consent.tsx` from rendering | Check the console for errors and render one provider at the app root, as in the [quickstart](/docs/frameworks/react/quickstart) |
+| No request and no banner | `ConsentProvider` is not mounted, an error stopped `src/consent.tsx` from rendering, or the bundled policy asks for no banner | Check the console for errors, render one provider at the app root as in the [quickstart](/docs/frameworks/react/quickstart), and inspect the active policy with the component below |
 | `/init` fails with a CORS error | Your site's origin is not trusted | Add the exact origin, including port in development, to the trusted origins in your Inth project |
 | `/init` returns 200 | The policy for this visitor asks for no banner, or a stored choice is still valid | Inspect the active policy with the component below, or clear site data |
 

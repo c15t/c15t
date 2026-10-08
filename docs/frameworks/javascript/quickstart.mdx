@@ -9,23 +9,41 @@ group: frameworks
 [Create an Inth project](https://inth.com), set its policy rules, add your
 app's origin to its trusted origins, and copy the project's backend URL.
 
-This guide uses `@c15t/browser/hosted` as an ES module in a Vite app. `init()`
-starts
-the consent runtime and mounts the stock banner and preference dialog. For
-your own UI, use the [headless runtime](/docs/frameworks/javascript/headless)
-instead. Sites without a build step load the same package from a script tag;
+This guide uses `@c15t/browser` as an ES module in a Vite app, with your
+project's policy bundled at build time. `init()` starts the consent runtime
+and mounts the stock banner and preference dialog. For your own UI, use the
+[headless runtime](/docs/frameworks/javascript/headless) instead. Sites
+without a build step load the same package from a script tag;
 [choose your setup](/docs/concepts/choose-your-setup) points to that guide.
 
-Build-time manifests are the recommended production setup. Complete the
-[build-time manifest step](#bundle-the-manifest-during-builds) before
-deploying, and rebuild after changing policies, translations or vendors.
+Bundling the policy at build time is the recommended production setup.
+Rebuild after changing policies, translations or vendors.
 
 ## Install
 
-<CommandTabs command="@c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/browser@alpha c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-`@c15t/browser` is not part of the `c15t` package. `@c15t/integrations` supplies
-the PostHog helper used below.
+`@c15t/browser` is not part of the `c15t` package. `c15t` supplies the Vite
+plugin at `c15t/build`, and `@c15t/integrations` the PostHog helper used
+below.
+
+## Bundle your policy
+
+Add `consentManifest` to `vite.config.ts`:
+
+<include src="../../shared/examples/javascript/vite-config.mdx" />
+
+`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
+is. Replace it with your project's backend URL, including any path prefix, or
+set `VITE_C15T_BACKEND_URL` when you build.
+
+`consentManifest` downloads your project's public policy from `/manifest` when
+`vite build` or `vite dev` starts, and writes it to `src/c15t-manifest.ts`.
+Add that file to `.gitignore`.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+<include src="../../shared/vite-build-manifest.mdx" />
 
 ## Register consent-gated scripts
 
@@ -51,12 +69,20 @@ Call `init()` once, in your browser entry point:
 
 <include src="../../shared/examples/javascript/init.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix.
+`mode: 'manifest'` resolves the policy from the bundled snapshot in the
+browser, with no `/manifest` request. Use the same backend URL as in
+`vite.config.ts`: consent choices go to it, and so does an `/init` request
+when the policy depends on the visitor's country or region and `overrides`
+does not supply it. That request returns the backend's current policy, which
+can be newer than the snapshot. Vite reads `VITE_C15T_BACKEND_URL` at build
+time for both files, so set it before you build, not when you serve the
+files.
 
-The hosted entry includes the stock UI and excludes the offline and manifest
-transports. Use the general `@c15t/browser` entry if your app needs those
-modes or a custom transport. The [entry-point reference](/docs/frameworks/javascript/api/browser#choose-a-bundle-for-one-mode)
+To apply policy edits without rebuilding, remove `consentManifest`, import
+`init` from `@c15t/browser/hosted`, and drop `manifest` and `mode` from the
+call. The browser then requests the policy from `/init` on every page
+load, and the hosted entry leaves out the manifest and offline code. The
+[entry-point reference](/docs/frameworks/javascript/api/browser#choose-a-bundle-for-one-mode)
 lists each bundle's configuration.
 
 `init()` returns the client. It reads stored choices, resolves the visitor's
@@ -68,10 +94,6 @@ page; call `consent.dispose()` only if your app removes consent entirely.
 When a visitor withdraws a permission they had given, the client saves the
 choice and reloads the page, because code that already ran cannot be unloaded.
 [Scripts](/docs/frameworks/javascript/scripts) explains how to change that.
-
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/javascript.mdx" />
 
 ## Gate embeds and add a privacy settings button
 
@@ -90,8 +112,8 @@ opens the dialog too, without code.
 
 ## Change the look
 
-Pass theme tokens in `ui.theme`. This version of `init()` turns the buttons
-purple and rounds the cards:
+Pass theme tokens in `ui.theme`, next to the options your `init()` call
+already has. This example turns the buttons purple and rounds the cards:
 
 <include src="../../shared/examples/javascript/theme.mdx" />
 

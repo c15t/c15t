@@ -6,9 +6,9 @@ group: frameworks
 
 ## Before you start
 
-This guide is for a Vue 3 single-page app built with Vite. The browser
-resolves each visitor's policy after the page loads, so it works on any static
-host. For a Vue app that renders on the server, use the c15t Nuxt module.
+This guide is for a Vue 3 single-page app built with Vite. The build bundles
+your project's public policy, and the browser resolves each visitor's policy
+from it after the page loads, so it works on any static host. For a Vue app that renders on the server, use the c15t Nuxt module.
 [Choose your setup](/docs/concepts/choose-your-setup) compares every option.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
@@ -18,20 +18,33 @@ origins, and copy the backend URL. To run the service yourself, use a
 policies in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
-Build-time manifests are the recommended production setup. Complete the
-[build-time manifest step](#bundle-the-manifest-during-builds) before
-deploying, and rebuild after changing policies, translations or vendors.
+Bundling the policy at build time is the recommended production setup.
+Rebuild after changing policies, translations or vendors.
 
 ## Install c15t
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-## Add the Vite plugin
+## Add the Vite plugins
 
-The c15t components share code with the Nuxt module and import Nuxt-style
-module names. The Vite plugin resolves those names in a plain Vue app.
+Add two plugins to `vite.config.ts`. The c15t components share code with the
+Nuxt module and import Nuxt-style module names; `c15tVue()` from
+`c15t/vue/vite` resolves those names in a plain Vue app. `consentManifest`
+from `c15t/build` bundles your policy.
 
 <include src="../../shared/examples/vue/vite-config.mdx" />
+
+`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
+is. Replace it with your project's backend URL, including any path prefix, or
+set `VITE_C15T_BACKEND_URL` when you build.
+
+`consentManifest` downloads your project's public policy from `/manifest` when
+`vite build` or `vite dev` starts, and writes it to `src/c15t-manifest.ts`.
+Add that file to `.gitignore`.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+<include src="../../shared/vite-build-manifest.mdx" />
 
 ## Install the Vue plugin
 
@@ -39,20 +52,27 @@ Install the plugin from `c15t/vue/vue-plugin` in `src/main.ts`:
 
 <include src="../../shared/examples/vue/main.mdx" />
 
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix.
+Use the same backend URL as in `vite.config.ts`; consent choices go to it.
+Vite reads `VITE_C15T_BACKEND_URL` at build time for both files, so set it
+before you build, not when you serve the files.
 
 `c15t/vue` is the Nuxt module. Do not pass it to `app.use()`.
 
 The plugin creates the consent runtime for this app. When the app mounts, it
 reads the visitor's stored choice, resolves their policy, and starts the
-script loader for the `scripts` you pass. The build-time step below replaces
-the default backend `/init` request with a bundled policy snapshot. The next section creates
-`src/scripts.ts`.
+script loader for the `scripts` you pass. `manifest: 'client'` with
+`manifestSnapshot` resolves the policy from the bundled snapshot, with no
+`/manifest` or `/init` request. The browser does not know the visitor's
+location, so without `geoURL`, or a `country` and `region` passed to
+`ConsentRoot`, every visitor gets the policy your project assigns when the
+location is unknown. Configure that fallback rule in your project, or see
+[rendering](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser)
+for `geoURL`.
 
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/vue.mdx" />
+To apply policy edits without rebuilding, remove `consentManifest`, `manifest`
+and `manifestSnapshot`. The plugin then requests the policy from the backend's
+`/init` on every page load, and the backend resolves the visitor's location.
+The next section creates `src/scripts.ts`.
 
 ## Register consent-gated scripts
 

@@ -10,7 +10,8 @@
 	},
 	"dependencies": {
 		"@c15t/browser": "workspace:*",
-		"@c15t/integrations": "workspace:*"
+		"@c15t/integrations": "workspace:*",
+		"c15t": "workspace:*"
 	},
 	"devDependencies": {
 		"typescript": "6.0.3",

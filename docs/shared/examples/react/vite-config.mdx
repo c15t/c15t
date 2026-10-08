@@ -1,15 +1,15 @@
-// #region docs:vite-config
-import vue from '@vitejs/plugin-vue';
+{/* Generated from examples/react/vite.config.ts (docs:vite-config) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="vite.config.ts"
+import react from '@vitejs/plugin-react';
 import { consentManifest } from 'c15t/build';
-import c15tVue from 'c15t/vue/vite';
 import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), 'VITE_');
 	return {
 		plugins: [
-			vue(),
-			c15tVue(),
+			react(),
 			// Downloads the policy and writes src/c15t-manifest.ts.
 			consentManifest({
 				backendURL:
@@ -18,4 +18,4 @@ export default defineConfig(({ mode }) => {
 		],
 	};
 });
-// #endregion docs:vite-config
+```

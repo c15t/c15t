@@ -11,7 +11,9 @@ plugin is missing.
 
 **Fix.** Add `c15tVue()` from `c15t/vue/vite` to the `plugins` array, next to
 `@vitejs/plugin-vue`. See the
-[quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugin).
+[quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugins).
+
+<include src="../../shared/vite-build-manifest-troubleshooting.mdx" />
 
 ## app.use() fails or does nothing
 
@@ -32,22 +34,24 @@ composables inside `setup`.
 ## Why is there no banner?
 
 **Check.** [DevTools](/docs/frameworks/vue/components/dev-tools) shows the
-matched policy. In the Network tab, find the `/init` request.
+matched policy. Without a bundled snapshot, find the `/init` request in the
+Network tab.
 
 **Fix.** Work through these causes in order:
 
 1. **The visitor's policy asks for no banner.** A policy with prompt `none`
    shows no banner, which is common in opt-out regions. See
    [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
-2. **`ConsentRoot` is inside a route that unmounts.** Put it in the root
+2. **The bundled snapshot resolves the unknown-location policy.** With
+   `manifestSnapshot` and no `geoURL`, every visitor gets the policy your
+   project assigns when the location is unknown. Check that rule, then
+   rebuild.
+3. **`ConsentRoot` is inside a route that unmounts.** Put it in the root
    component.
-3. **The backend did not answer.** `/init` must return 200. A CORS error means
-   your site's origin is missing from the Inth project's trusted origins.
-   While resolution fails, c15t shows no UI and keeps every optional category
-   denied.
-4. **`backendURL` is still the placeholder.** Use your project's URL, not
-   `https://your-project.inth.app`. In the Network tab, `/init` goes to your
-   backend's host.
+4. **The backend did not answer.** Without a snapshot, `/init` must
+   return 200. A CORS error means your site's origin is missing from the
+   Inth project's trusted origins. While resolution fails, c15t shows no UI and
+   keeps every optional category denied.
 5. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
 
