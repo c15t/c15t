@@ -83,41 +83,64 @@ describe('colorScheme from the c15t config key', () => {
 	});
 });
 
-/** The module's Nitro virtual for the build snapshot, evaluated. */
-const importManifestSnapshot = async function importManifestSnapshot(
-	nuxt: Nuxt
-): Promise<unknown> {
-	const { virtual } = nuxt.options.nitro as {
-		virtual: Record<string, () => string>;
+/** A manifest whose policy pack carries `copyRevision: null`. */
+const createSnapshot = function createSnapshot() {
+	return {
+		branding: 'c15t',
+		policyPacks: [
+			createConsentManifestPolicyPack({
+				categories: [],
+				id: 'world-opt-in',
+				match: { fallback: true },
+				model: 'opt-in',
+				prompt: 'choice',
+				scopeMode: 'strict',
+				validity: { choiceDays: 365 },
+			}),
+		],
+		revision: 'build-snapshot',
+		schemaVersion: 2,
 	};
-	const source = virtual['#c15t/manifest-snapshot']?.();
+};
+
+const evaluateModule = async function evaluateModule(
+	source: string | undefined
+): Promise<unknown> {
 	const { default: snapshot } = (await import(
 		`data:text/javascript,${encodeURIComponent(source ?? '')}`
 	)) as { default: unknown };
 	return snapshot;
 };
 
+/** The module's Nitro virtual for the server routes' snapshot, evaluated. */
+const importManifestSnapshot = function importManifestSnapshot(
+	nuxt: Nuxt
+): Promise<unknown> {
+	const { virtual } = nuxt.options.nitro as {
+		virtual: Record<string, () => string>;
+	};
+	return evaluateModule(virtual['#c15t/manifest-snapshot']?.());
+};
+
+/** The module's template for the app's snapshot, evaluated. */
+const importClientManifestSnapshot = function importClientManifestSnapshot(
+	nuxt: Nuxt
+): Promise<unknown> {
+	const { alias, build } = nuxt.options as unknown as {
+		alias: Record<string, string>;
+		build: { templates: { dst: string; getContents: () => string }[] };
+	};
+	const template = build.templates.find(
+		({ dst }) => dst === alias['#c15t/client-manifest-snapshot']
+	);
+	return evaluateModule(template?.getContents());
+};
+
 describe('buildManifest', () => {
 	test.each([false, true])(
 		'embeds the manifest in the server bundle with dev: %s',
 		async (dev) => {
-			// A policy pack carries `copyRevision: null`.
-			const snapshot = {
-				branding: 'c15t',
-				policyPacks: [
-					createConsentManifestPolicyPack({
-						categories: [],
-						id: 'world-opt-in',
-						match: { fallback: true },
-						model: 'opt-in',
-						prompt: 'choice',
-						scopeMode: 'strict',
-						validity: { choiceDays: 365 },
-					}),
-				],
-				revision: 'build-snapshot',
-				schemaVersion: 2,
-			};
+			const snapshot = createSnapshot();
 			const fetch = vi
 				.fn<typeof globalThis.fetch>()
 				.mockResolvedValue(Response.json(snapshot));
@@ -204,6 +227,33 @@ describe('buildManifest', () => {
 			vi.unstubAllGlobals();
 		}
 	});
+});
+
+describe('manifestSnapshot under the c15t key', () => {
+	test.each([
+		{ inBundle: true, manifest: 'client' },
+		{ inBundle: false, manifest: 'server' },
+	])(
+		'stays out of runtime config in $manifest mode',
+		async ({ inBundle, manifest }) => {
+			const snapshot = createSnapshot();
+			const nuxt = createNuxt({
+				backendURL: 'https://consent.example.com',
+				manifest,
+				manifestSnapshot: snapshot,
+			});
+			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			// Nitro replaces every `null` in runtime config with `''` during
+			// the build.
+			expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
+				'manifestSnapshot'
+			);
+			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
+			expect(await importClientManifestSnapshot(nuxt)).toEqual(
+				inBundle ? snapshot : undefined
+			);
+		}
+	);
 });
 
 describe('the early /init script for ssr: false pages', () => {

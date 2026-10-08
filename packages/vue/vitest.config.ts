@@ -29,6 +29,10 @@ export default mergeConfig(
 					),
 				},
 				{
+					'#c15t/client-manifest-snapshot': resolve(
+						__dirname,
+						'./src/__tests__/manifest-snapshot.ts'
+					),
 					'#c15t/manifest-snapshot': resolve(
 						__dirname,
 						'./src/__tests__/manifest-snapshot.ts'
