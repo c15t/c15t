@@ -150,8 +150,9 @@ describe('affected release selection', () => {
 		write('.tegami/publish-lock.yaml', 'versioned');
 		write('packages/core/CHANGELOG.md', 'release note');
 		commit();
-		expect(select()).toMatchObject({
-			build: ['@c15t/core', '@c15t/logger'],
+		const plan = select();
+		expect(plan.build.toSorted()).toEqual(['@c15t/core', '@c15t/logger']);
+		expect(plan).toMatchObject({
 			docs: true,
 			full: false,
 			integrations: [],
