@@ -1,173 +1,151 @@
 c15t:release:
   - branch: v3
-    id: npm:@c15t/astro
+    id: npm:@c15t/tanstack-start
+    version: 3.0.0-alpha.9
+  - branch: v3
+    id: npm:@c15t/integrations
     version: 3.0.0-alpha.8
   - branch: v3
-    id: npm:@c15t/svelte
-    version: 3.0.0-alpha.8
+    id: npm:@c15t/dev-tools
+    version: 3.0.0-alpha.9
+  - branch: v3
+    id: npm:@c15t/backend
+    version: 3.0.0-alpha.9
+  - branch: v3
+    id: npm:@c15t/astro
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/ui
-    version: 3.0.0-alpha.8
-  - branch: v3
-    id: npm:@c15t/node-sdk
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/browser
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/iab
-    version: 3.0.0-alpha.8
-  - branch: v3
-    id: npm:@c15t/scripts
-    version: 3.0.0-alpha.7
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/vue
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/logger
     version: 3.0.0-alpha.1
   - branch: v3
-    id: npm:@c15t/backend
-    version: 3.0.0-alpha.8
-  - branch: v3
     id: npm:c15t
-    version: 3.0.0-alpha.8
-  - branch: v3
-    id: npm:@c15t/integrations
-    version: 3.0.0-alpha.7
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/nextjs
-    version: 3.0.0-alpha.8
-  - branch: v3
-    id: npm:@c15t/dev-tools
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/schema
     version: 3.0.0-alpha.7
   - branch: v3
     id: npm:@c15t/react
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/cli
-    version: 3.0.0-alpha.8
-  - branch: v3
-    id: npm:@c15t/tanstack-start
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/core
-    version: 3.0.0-alpha.8
+    version: 3.0.0-alpha.9
   - branch: v3
     id: npm:@c15t/translations
     version: 3.0.0-alpha.6
+  - branch: v3
+    id: npm:@c15t/scripts
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/svelte
+    version: 3.0.0-alpha.9
+  - branch: v3
+    id: npm:@c15t/node-sdk
+    version: 3.0.0-alpha.8
 core:changelogs:
-  - content: "---\npackages:\n  \"@c15t/schema\":\n    type: minor\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: minor\n---\n\n### Link a page's `/init` to the save that follows\n\nc15t now sends a random journey id on `GET /init` and `POST /subjects` as query\nparameters (`c15tJourney`, `c15tJourneyScope`, plus `c15tStored` on `/init`).\nSession reports gain `journey: { id, scope, storedChoice, prompt, domain }`, so\na backend can link a page load to the choice that follows without\nfingerprinting or extra requests.\n\nSet `journey` to choose how long the id lives: `'page'` (default, in memory),\n`'tab'` (in `sessionStorage` while a prompt is due, on pages the browser\nresolves) or `false`. In Next.js set it in `defineConsentConfig`; in TanStack\nStart pass it to both `resolveConsent` and `ConsentRoot`. Vue, Svelte, Astro and\nthe script tag use `'page'` for now.\n\nRequest URLs now carry a query string. If you pass `hosted()` a `fetch` that\nroutes on the exact URL, match the path instead.\n"
-    filename: 2026-10-08-consent-journey.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Stream the banner before hydration\n\nWhen `ConsentRoot`'s `state` (or `prefetch`) is a promise, `ConsentBanner` now\nrenders on the server once it resolves and follows the page in a later chunk of\nthe same response, visible before hydration. It shows only when the resolved\npolicy calls for a banner; otherwise it mounts after hydration as before. Set\n`streamBanner: false` in the provider options to keep the old behavior.\n"
-    filename: 2026-10-08-stream-banner.md
+  - content: "---\npackages:\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/integrations\":\n    type: minor\n---\n\n### List integration vendors in the preference dialog\n\n`@c15t/integrations` helpers now set `vendorDetails` (name and privacy policy)\non their scripts, so the dialog gives each vendor its own switch without a\n`vendors` declaration. A vendor declared in `vendors` or by the backend still\nreplaces these details.\n"
+    filename: 2026-10-08-integration-vendor-details.md
     v: 0.0.0
 core:packages:
-  - id: npm:@c15t/astro
-    updated: true
-  - id: npm:@c15t/svelte
-    updated: true
-  - id: npm:@c15t/ui
-    updated: true
-  - id: npm:@c15t/node-sdk
+  - id: npm:@c15t/tanstack-start
     updated: true
   - changelogIds:
-      - 2026-10-08-consent-journey.md
-    id: npm:@c15t/browser
-    updated: true
-  - id: npm:@c15t/iab
-    updated: true
-  - id: npm:@c15t/scripts
-    updated: true
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-    id: npm:@c15t/vue
-    updated: true
-  - id: npm:@c15t/logger
-    updated: false
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-    id: npm:@c15t/backend
-    updated: true
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-      - 2026-10-08-stream-banner.md
-    id: npm:c15t
-    updated: true
-  - id: npm:@c15t/integrations
-    updated: true
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-      - 2026-10-08-stream-banner.md
-    id: npm:@c15t/nextjs
+      - 2026-10-08-integration-vendor-details.md
+    id: npm:@c15t/integrations
     updated: true
   - id: npm:@c15t/dev-tools
     updated: true
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-    id: npm:@c15t/schema
+  - id: npm:@c15t/backend
     updated: true
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-      - 2026-10-08-stream-banner.md
-    id: npm:@c15t/react
+  - id: npm:@c15t/astro
+    updated: true
+  - id: npm:@c15t/ui
+    updated: true
+  - id: npm:@c15t/browser
+    updated: true
+  - id: npm:@c15t/iab
+    updated: true
+  - id: npm:@c15t/vue
+    updated: true
+  - id: npm:@c15t/logger
+    updated: false
+  - id: npm:c15t
+    updated: true
+  - id: npm:@c15t/nextjs
+    updated: true
+  - id: npm:@c15t/schema
+    updated: false
+  - id: npm:@c15t/react
     updated: true
   - id: npm:@c15t/cli
     updated: true
   - changelogIds:
-      - 2026-10-08-consent-journey.md
-      - 2026-10-08-stream-banner.md
-    id: npm:@c15t/tanstack-start
-    updated: true
-  - changelogIds:
-      - 2026-10-08-consent-journey.md
-      - 2026-10-08-stream-banner.md
+      - 2026-10-08-integration-vendor-details.md
     id: npm:@c15t/core
     updated: true
   - id: npm:@c15t/translations
     updated: false
+  - id: npm:@c15t/scripts
+    updated: true
+  - id: npm:@c15t/svelte
+    updated: true
+  - id: npm:@c15t/node-sdk
+    updated: false
 npm:packages:
   - distTag: alpha
-    id: npm:@c15t/node-sdk
+    id: npm:@c15t/tanstack-start
   - distTag: alpha
-    id: npm:@c15t/iab
+    id: npm:@c15t/dev-tools
   - distTag: alpha
     id: npm:@c15t/backend
+  - distTag: alpha
+    id: npm:@c15t/iab
   - distTag: alpha
     id: npm:c15t
   - distTag: alpha
     id: npm:@c15t/nextjs
   - distTag: alpha
-    id: npm:@c15t/dev-tools
-  - distTag: alpha
     id: npm:@c15t/react
   - distTag: alpha
     id: npm:@c15t/cli
-  - distTag: alpha
-    id: npm:@c15t/tanstack-start
   - distTag: alpha
     id: npm:@c15t/core
   - distTag: alpha
     id: npm:@c15t/translations
   - distTag: alpha
-    id: npm:@c15t/astro
+    id: npm:@c15t/node-sdk
   - distTag: alpha
-    id: npm:@c15t/svelte
+    id: npm:@c15t/integrations
+  - distTag: alpha
+    id: npm:@c15t/astro
   - distTag: alpha
     id: npm:@c15t/ui
   - distTag: alpha
     id: npm:@c15t/browser
   - distTag: alpha
-    id: npm:@c15t/scripts
-  - distTag: alpha
     id: npm:@c15t/vue
   - distTag: alpha
     id: npm:@c15t/logger
   - distTag: alpha
-    id: npm:@c15t/integrations
-  - distTag: alpha
     id: npm:@c15t/schema
+  - distTag: alpha
+    id: npm:@c15t/scripts
+  - distTag: alpha
+    id: npm:@c15t/svelte

@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/core': minor
-  '@c15t/integrations': minor
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
 ---
 
 ### List integration vendors in the preference dialog
