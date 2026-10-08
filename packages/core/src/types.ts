@@ -1,4 +1,5 @@
 import type {
+	ConsentJourneyScope,
 	InitOutput,
 	GlobalVendorList,
 	LocationResponse,
@@ -534,6 +535,27 @@ export interface InitContext {
 	 * each arm's banner was owed to.
 	 */
 	experiment?: { id: string; arm: string };
+	/**
+	 * The consent journey this page load belongs to, set by the browser
+	 * runtime. The hosted transport sends it as query parameters on
+	 * `GET /init` (`c15tJourney`, `c15tJourneyScope`, `c15tStored`) so the
+	 * backend's session report can be linked to the save that follows.
+	 */
+	journey?: KernelJourney;
+}
+
+/**
+ * A consent journey: a random id the browser runtime creates per page load
+ * (or per tab), which links an init to the save that follows. Not the
+ * subject id, and never written to a cookie.
+ */
+export interface KernelJourney {
+	/** A random UUID. */
+	readonly id: string;
+	/** `page` lives for one page load; `tab` for the tab while a prompt is due. */
+	readonly scope: ConsentJourneyScope;
+	/** Whether the browser had a stored consent choice when the journey started. */
+	readonly storedChoice: boolean;
 }
 
 /**
@@ -627,6 +649,13 @@ export interface SavePayload {
 		language: string;
 		gpc: boolean;
 	};
+	/**
+	 * The consent journey of the page that sends this save, added by the
+	 * browser runtime as the save leaves. The hosted transport sends it as
+	 * query parameters on `POST /subjects`. Never stored with a queued save:
+	 * a replay carries the journey of the page that replays it.
+	 */
+	journey?: Pick<KernelJourney, 'id' | 'scope'>;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */

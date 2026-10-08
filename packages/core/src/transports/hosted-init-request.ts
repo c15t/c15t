@@ -1,4 +1,5 @@
 import {
+	appendJourneyParams,
 	CONSENT_EXPERIMENT_HEADER,
 	formatExperimentHeader,
 } from '@c15t/schema/types';
@@ -25,7 +26,8 @@ export interface HostedInitRequest {
  * has loaded both build it here, so they send the same request.
  *
  * @param options - Backend URL, optional `initURL`, credentials mode, the
- *   already-allowlisted caller headers, and the init overrides.
+ *   already-allowlisted caller headers, the init overrides, and the
+ *   experiment arm and consent journey the request carries.
  * @returns The URL, the request headers and the fetch options.
  * @internal
  */
@@ -37,7 +39,9 @@ export const createHostedInitRequest =
 		headers?: Record<string, string>;
 		overrides: InitContext['overrides'];
 		experiment?: InitContext['experiment'];
+		journey?: InitContext['journey'];
 	}): HostedInitRequest {
+		const url = options.initURL ?? `${trimSlash(options.backendURL)}/init`;
 		const requestHeaders = {
 			...options.headers,
 			...buildRequestContextHeaders(options.overrides),
@@ -58,6 +62,14 @@ export const createHostedInitRequest =
 				method: 'GET',
 			},
 			requestHeaders,
-			url: options.initURL ?? `${trimSlash(options.backendURL)}/init`,
+			// Query parameters, not a header: a new header would fail the CORS
+			// preflight of a backend that does not allow it.
+			url: options.journey
+				? appendJourneyParams(url, {
+						id: options.journey.id,
+						scope: options.journey.scope,
+						storedChoice: options.journey.storedChoice,
+					})
+				: url,
 		};
 	};

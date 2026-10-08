@@ -25,6 +25,7 @@
  * complete granted-or-denied map with one confirmation time, so the backend
  * stores the vendor decision without knowing the vendor list.
  */
+import { appendJourneyParams } from '@c15t/schema/types';
 import type { SubjectChoiceWire, VendorChoiceWire } from '@c15t/schema/types';
 
 import { OPTIONAL_CONSENT_CATEGORIES } from '../consent-record/types';
@@ -34,6 +35,25 @@ import type {
 } from '../consent-record/types';
 import type { ExperimentAssignment } from '../libs/experiment';
 import type { SavePayload } from '../types';
+
+/**
+ * The `POST /subjects` URL, with the save's consent journey as query
+ * parameters when it has one.
+ *
+ * @param base - Backend URL without a trailing slash.
+ * @param journey - The journey the runtime added to the save.
+ * @returns The URL to post the save to.
+ * @internal
+ */
+export const subjectsURL = function subjectsURL(
+	base: string,
+	journey: SavePayload['journey']
+): string {
+	const url = `${base}/subjects`;
+	return journey
+		? appendJourneyParams(url, { id: journey.id, scope: journey.scope })
+		: url;
+};
 
 export interface BuildSubjectPostBodyOptions {
 	domain: string;

@@ -40,7 +40,7 @@ import { deferInitGvl, deferInitGvlToRoute } from './gvl-reference';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
 import { saveFailure } from './save-rejection';
-import { buildSubjectPostBody } from './subject-body';
+import { buildSubjectPostBody, subjectsURL } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import {
 	mapSubjectRecordToHydrationRecords,
@@ -461,6 +461,7 @@ export const createManifestTransport = function createManifestTransport(
 					headers: options.report.headers ?? options.headers,
 					init: payload,
 					inputs,
+					journey: ctx.journey,
 					manifest,
 					method: options.report.method,
 					source: options.report.source,
@@ -501,7 +502,7 @@ export const createManifestTransport = function createManifestTransport(
 
 		async save(payload): Promise<SaveResult> {
 			const response = await fetchImpl(
-				`${requireBackendURL('save')}/subjects`,
+				subjectsURL(requireBackendURL('save'), payload.journey),
 				{
 					body: JSON.stringify({
 						...buildSubjectPostBody(payload, { domain }),

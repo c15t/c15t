@@ -31,6 +31,8 @@ const BACKEND = 'https://consent.example.com';
 const APP = 'https://app.example.com';
 const GVL_URL = 'https://gvl.example/vendor-list.json';
 const NOW = 1_780_000_000_000;
+/** The URL a render fetched, without the consent journey it adds as a query. */
+const target = (input: unknown): string => String(input).split('?')[0] ?? '';
 const CONSENTED = `c15t=c.necessary:1,c.marketing:1,i.t:${NOW - 1000}`;
 
 const MANIFEST = {
@@ -257,7 +259,7 @@ describe('target resolution', () => {
 			fetch,
 			headers: { 'x-forwarded-host': 'evil.example' },
 		});
-		expect(String(fetch.mock.calls[0]?.[0])).toBe(`${APP}/consent/init`);
+		expect(target(fetch.mock.calls[0]?.[0])).toBe(`${APP}/consent/init`);
 	});
 
 	test('forwarded headers decide the origin only when trusted', async () => {
@@ -268,7 +270,7 @@ describe('target resolution', () => {
 			headers: { 'x-forwarded-host': 'edge.example' },
 			trustForwardedHeaders: true,
 		});
-		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		expect(target(fetch.mock.calls[0]?.[0])).toBe(
 			'https://edge.example/consent/init'
 		);
 	});
@@ -316,7 +318,7 @@ describe('target resolution', () => {
 				fetch,
 				ownRoutes: ['/api/consent'],
 			});
-			expect(String(fetch.mock.calls[0]?.[0])).toBe(`${APP}/api/consentx/init`);
+			expect(target(fetch.mock.calls[0]?.[0])).toBe(`${APP}/api/consentx/init`);
 		});
 
 		test('a same-origin backend outside the consent routes is fetched', async () => {
@@ -332,7 +334,7 @@ describe('target resolution', () => {
 				fetch,
 				ownRoutes: [],
 			});
-			expect(String(fetch.mock.calls[0]?.[0])).toBe(`${APP}/api/c15t/init`);
+			expect(target(fetch.mock.calls[0]?.[0])).toBe(`${APP}/api/c15t/init`);
 			expect(state.initialPolicyResolution?.status).toBe('matched');
 		});
 
@@ -379,7 +381,7 @@ describe('target resolution', () => {
 				localFetch,
 			});
 			expect(fetch).not.toHaveBeenCalled();
-			expect(localFetch.mock.calls[0]?.[0]).toBe('/api/c15t/init');
+			expect(target(localFetch.mock.calls[0]?.[0])).toBe('/api/c15t/init');
 			const headers = new Headers(localFetch.mock.calls[0]?.[1]?.headers);
 			expect(headers.get(CONSENT_ROUTE_TIMEOUT_HEADER)).toMatch(/^\d+$/u);
 			// The app's own route reads no cookie, so none is sent.
@@ -398,7 +400,9 @@ describe('target resolution', () => {
 				localFetch,
 			});
 			expect(fetch).not.toHaveBeenCalled();
-			expect(localFetch.mock.calls[0]?.[0]).toBe('/api/bench-consent/init');
+			expect(target(localFetch.mock.calls[0]?.[0])).toBe(
+				'/api/bench-consent/init'
+			);
 		});
 	});
 });
@@ -872,6 +876,90 @@ describe('session reports', () => {
 			setTimeout(resolve, 0);
 		});
 		expect(callsTo(fetch, '/sessions')).toHaveLength(0);
+	});
+});
+
+describe('consent journey', () => {
+	const UUID = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/u;
+
+	test('hosted mode sends the journey on /init and hands its id to the browser', async () => {
+		const fetch = upstream();
+		const state = await render({
+			backendURL: BACKEND,
+			fetch,
+			headers: { cookie: CONSENTED },
+		});
+		expect(state.journey?.id).toMatch(UUID);
+		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
+		expect(Object.fromEntries(sent.searchParams)).toEqual({
+			c15tJourney: state.journey?.id,
+			c15tJourneyScope: 'page',
+			c15tStored: '1',
+		});
+	});
+
+	test('the vendor list reference the browser follows carries no journey', async () => {
+		const fetch = upstream(MANIFEST, {
+			...(INIT as object),
+			gvl: GVL,
+		});
+		const state = await render({ backendURL: BACKEND, fetch });
+		expect(state.journey?.id).toMatch(UUID);
+		expect(JSON.stringify(state)).not.toContain('c15tJourney');
+	});
+
+	test('manifest mode reports the journey with the site domain', async () => {
+		const fetch = upstream();
+		// Germany matches the opt-in policy, so the prompt is owed.
+		const state = await render({
+			backendURL: BACKEND,
+			fetch,
+			headers: { 'cf-ipcountry': 'DE' },
+			journey: 'tab',
+			mode: 'manifest',
+		});
+		await vi.waitFor(() => expect(callsTo(fetch, '/sessions')).toHaveLength(1));
+		const body = JSON.parse(String(callsTo(fetch, '/sessions')[0]?.[1]?.body));
+		expect(body.journey).toEqual({
+			domain: 'app.example.com',
+			id: state.journey?.id,
+			prompt: 'due',
+			scope: 'tab',
+			storedChoice: false,
+		});
+	});
+
+	test('a failed upstream still hands the journey to the browser', async () => {
+		const failing = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.reject(new Error('down'))
+		);
+		const state = await render({ backendURL: BACKEND, fetch: failing });
+		expect(state.initialPolicyResolution).toBeUndefined();
+		expect(state.journey?.id).toMatch(UUID);
+	});
+
+	test.each([
+		['journey: false', { journey: false }, {}],
+		['reportSessions: false', { reportSessions: false }, {}],
+		['a prefetch', {}, { 'sec-purpose': 'prefetch' }],
+		['a shared render', { shared: true }, {}],
+	] as const)('%s starts none', async (_label, options, headers) => {
+		const fetch = upstream();
+		const state = await render({
+			backendURL: BACKEND,
+			fetch,
+			headers,
+			...options,
+		});
+		expect(state.journey).toBeUndefined();
+		for (const [input] of fetch.mock.calls) {
+			expect(String(input)).not.toContain('c15tJourney');
+		}
+	});
+
+	test('offline mode starts none', async () => {
+		const state = await render({ offline: {} });
+		expect(state.journey).toBeUndefined();
 	});
 });
 

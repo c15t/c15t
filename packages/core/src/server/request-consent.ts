@@ -35,12 +35,15 @@
  */
 
 import {
+	appendJourneyParams,
 	CONSENT_EXPERIMENT_HEADER,
 	CONSENT_REQUEST_HEADER_NAMES,
 	consentInputsToOverrides,
 	extractConsentRequestInputs,
 	formatExperimentHeader,
 	getIpAddress,
+	isSpeculativeRequest,
+	journeyDomainFrom,
 	POLICY_CONTRACT_VERSION,
 } from '@c15t/schema/types';
 import type {
@@ -48,11 +51,14 @@ import type {
 	ConsentRequestHeaderInputs,
 	InitOutput,
 	ResolveInitFromManifestInputs,
+	SessionJourney,
 } from '@c15t/schema/types';
 
 import type { StorageConfig } from '../libs/cookie/types';
 import { experimentArmRef } from '../libs/experiment';
 import type { ExperimentState, ServerExperiment } from '../libs/experiment';
+import { createJourneyId } from '../libs/journey';
+import type { ConsentJourneyOption, JourneyState } from '../libs/journey';
 import {
 	DEFAULT_RESOLVE_TIMEOUT_MS,
 	fetchCachedManifest,
@@ -111,10 +117,12 @@ const RENDER_REQUEST_HEADER = 'x-c15t-render-request';
 
 /**
  * The state a server render hands the client: a `KernelConfig` without the
- * transport (functions do not serialize), plus the experiment it ran.
+ * transport (functions do not serialize), plus the experiment it ran and
+ * the consent journey it started.
  */
 export type RequestConsentState = Omit<KernelConfig, 'transport'> &
-	ExperimentState;
+	ExperimentState &
+	JourneyState;
 
 /** What the adapter read from the request with its framework's own API. */
 export interface ConsentRequestFacts {
@@ -306,6 +314,17 @@ export interface ResolveRequestConsentOptions {
 	 */
 	reportSessions?: boolean;
 	/**
+	 * Start a consent journey for this render: a random id the hosted
+	 * `/init` (as query parameters) or the session report carries, handed
+	 * to the browser in the state so its save carries the same id. The
+	 * value is the scope the report records; pass the provider's `journey`
+	 * option. `false`, `reportSessions: false`, a shared render, offline
+	 * mode and a prefetch or prerender request start none.
+	 *
+	 * @default 'page'
+	 */
+	journey?: ConsentJourneyOption;
+	/**
 	 * The banner experiment with this request's arm. While the visitor has
 	 * no stored choice, the hosted `/init` or the session report carries the
 	 * arm. The state carries the experiment either way, except in a shared
@@ -491,6 +510,48 @@ const resolveMode = function resolveMode(
 	return undefined;
 };
 
+/**
+ * The consent journey a render starts, or `undefined` for none. See
+ * {@link ResolveRequestConsentOptions.journey}.
+ *
+ * @param options - The resolution options.
+ * @param mode - How the policy is resolved.
+ * @param base - The request-only state, for the stored choice.
+ * @param read - The request facts, read only when a journey may start.
+ * @returns The journey, with the site's hostname when known.
+ */
+const startServerJourney = function startServerJourney(
+	options: ResolveRequestConsentOptions,
+	mode: RequestConsentMode | undefined,
+	base: RequestConsentState,
+	read: () => { domain: string | undefined; speculative: boolean }
+): SessionJourney | undefined {
+	const scope = options.journey ?? 'page';
+	if (
+		scope === false ||
+		options.reportSessions === false ||
+		options.shared ||
+		!mode ||
+		mode === 'offline'
+	) {
+		return undefined;
+	}
+	const { domain, speculative } = read();
+	const id = speculative ? undefined : createJourneyId();
+	if (!id) {
+		return undefined;
+	}
+	const journey: SessionJourney = {
+		id,
+		scope,
+		storedChoice: Boolean(base.initialRecords?.choice),
+	};
+	if (domain) {
+		journey.domain = domain;
+	}
+	return journey;
+};
+
 /** Swallows a promise's outcome, for work handed to the platform. */
 const settle = async function settle(task: Promise<unknown>): Promise<void> {
 	try {
@@ -577,11 +638,34 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 	options: ResolveRequestConsentOptions
 ): Promise<RequestConsentState> {
 	const { inputs, state: base } = readRequestConsent(options);
-	const carry = (state: RequestConsentState): RequestConsentState =>
-		options.experiment && !options.shared
-			? { ...state, experiment: options.experiment }
-			: state;
 	const mode = resolveMode(options);
+	const trust = options.trustForwardedHeaders === true;
+	let visitorHeaders: Headers | undefined;
+	const readVisitorHeaders = (): Headers => {
+		visitorHeaders ??= toHeaders(options.request.headers);
+		return visitorHeaders;
+	};
+	const requestOrigin = (): string | null =>
+		resolveRequestOrigin({
+			headers: options.request.headers,
+			requestURL: options.request.url,
+			trustForwardedHeaders: trust,
+		});
+	const journey = startServerJourney(options, mode, base, () => ({
+		domain: journeyDomainFrom(requestOrigin()),
+		speculative: isSpeculativeRequest(readVisitorHeaders()),
+	}));
+	const carry = function carry(
+		state: RequestConsentState
+	): RequestConsentState {
+		const carried: RequestConsentState =
+			options.experiment && !options.shared
+				? { ...state, experiment: options.experiment }
+				: state;
+		// The browser adopts this id, even when the render fell back to the
+		// request-only state: its own init then carries it.
+		return journey ? { ...carried, journey: { id: journey.id } } : carried;
+	};
 	if (!mode || (options.shared && mode !== 'offline')) {
 		return carry(base);
 	}
@@ -595,7 +679,6 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 	// Set once the render stops waiting. The browser then resolves the view
 	// and reports it, so the abandoned resolution must not report it too.
 	let abandoned = false;
-	const trust = options.trustForwardedHeaders === true;
 	const ownRoutes = options.ownRoutes ?? [DEFAULT_CONSENT_ROUTE_PREFIX];
 	const configuredFetch = (): typeof globalThis.fetch =>
 		options.fetch ?? globalThis.fetch.bind(globalThis);
@@ -606,19 +689,6 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 		options.experiment && !options.shared && !base.initialRecords?.choice
 			? experimentArmRef(options.experiment)
 			: undefined;
-	let visitorHeaders: Headers | undefined;
-	const readVisitorHeaders = (): Headers => {
-		visitorHeaders ??= toHeaders(options.request.headers);
-		return visitorHeaders;
-	};
-
-	const requestOrigin = (): string | null =>
-		resolveRequestOrigin({
-			headers: options.request.headers,
-			requestURL: options.request.url,
-			trustForwardedHeaders: trust,
-		});
-
 	const isOwnRoute = function isOwnRoute(absolute: string): boolean {
 		const origin = requestOrigin();
 		let target: URL;
@@ -852,6 +922,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 								experiment: arm,
 								fetch: options.fetch,
 								headers: readVisitorHeaders(),
+								journey,
 								source: 'render',
 								waitUntil: options.waitUntil,
 							},
@@ -958,7 +1029,12 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 			let response: Response;
 			let payload: InitOutput;
 			try {
-				response = await target.fetch(target.url, init);
+				// The backend's own session report for this `/init` then carries
+				// the journey. The deferred list below keeps the plain URL.
+				response = await target.fetch(
+					journey ? appendJourneyParams(target.url, journey) : target.url,
+					init
+				);
 				if (!response.ok) {
 					throw new Error(
 						`/init responded ${response.status} ${response.statusText}`

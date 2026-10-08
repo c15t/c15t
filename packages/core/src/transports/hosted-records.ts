@@ -15,7 +15,7 @@ import type { KernelTransport, KernelUser, SaveResult } from '../types';
 import { buildDecisionAssertion } from './decision-inputs';
 import type { RememberedDecisionInputs } from './decision-inputs';
 import { saveFailure } from './save-rejection';
-import { buildSubjectPostBody } from './subject-body';
+import { buildSubjectPostBody, subjectsURL } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import type { TransportHydrationRecords } from './subject-record';
 import { c15tProtocolHeaders } from './version-header';
@@ -240,7 +240,7 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				}
 			}
 
-			const response = await fetchImpl(`${base}/subjects`, {
+			const response = await fetchImpl(subjectsURL(base, payload.journey), {
 				body: JSON.stringify({
 					...buildSubjectPostBody(payload, { domain }),
 					...buildDecisionAssertion(payload, decision?.inputs()),

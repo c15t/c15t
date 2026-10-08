@@ -232,6 +232,7 @@ export const createHostedTransport = function createHostedTransport(
 			experiment: ctx.experiment,
 			headers: initHeaders,
 			initURL,
+			journey: ctx.journey,
 			overrides: ctx.overrides,
 		});
 		const { requestHeaders } = request;
