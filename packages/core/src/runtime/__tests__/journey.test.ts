@@ -14,6 +14,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	matchedResolution,
+	noneRule,
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { buildPrefetchScript } from '../../libs/prefetch/prefetch';
@@ -42,6 +43,8 @@ interface SentRequest {
 
 let requests: SentRequest[] = [];
 let saveStatus = 200;
+let initStatus = 200;
+let initPolicy = matchedResolution(optInRule());
 const runtimes: ConsentRuntime[] = [];
 
 const fakeFetch: typeof globalThis.fetch = (input, init) => {
@@ -51,6 +54,9 @@ const fakeFetch: typeof globalThis.fetch = (input, init) => {
 		method: init?.method ?? 'GET',
 		path: url.pathname,
 	});
+	if (url.pathname.endsWith('/init') && initStatus !== 200) {
+		return Promise.resolve(new Response(null, { status: initStatus }));
+	}
 	if (url.pathname.endsWith('/subjects') && saveStatus !== 200) {
 		return Promise.resolve(new Response(null, { status: saveStatus }));
 	}
@@ -60,9 +66,7 @@ const fakeFetch: typeof globalThis.fetch = (input, init) => {
 				? {
 						branding: 'c15t',
 						location: { countryCode: 'DE', regionCode: null },
-						policyResolution: writePolicyResolutionWire(
-							matchedResolution(optInRule())
-						),
+						policyResolution: writePolicyResolutionWire(initPolicy),
 						translations: { language: 'en', translations },
 					}
 				: { subjectId: 'sub_1' },
@@ -111,6 +115,8 @@ const everythingStored = (): string =>
 beforeEach(() => {
 	requests = [];
 	saveStatus = 200;
+	initStatus = 200;
+	initPolicy = matchedResolution(optInRule());
 	localStorage.clear();
 	sessionStorage.clear();
 	clearStoredConsentRecords();
@@ -226,6 +232,42 @@ describe("journey: 'tab'", () => {
 		expect(third.kernel.getSnapshot().activeUI).toBe('none');
 		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
 	});
+
+	test.each([
+		[
+			'a policy that prompts for nothing',
+			() => {
+				initPolicy = matchedResolution(noneRule());
+			},
+		],
+		[
+			'a failed resolution',
+			() => {
+				initStatus = 503;
+			},
+		],
+	] as const)(
+		'drops a kept id when the next page settles on %s',
+		async (_label, next) => {
+			const first = await load({ journey: 'tab' });
+			const id = init()[0]?.journey?.id;
+			expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe(id);
+			leave(first);
+
+			next();
+			const second = await load({ journey: 'tab' });
+			// This page continued the journey but owes no prompt.
+			expect(init()[1]?.journey?.id).toBe(id);
+			expect(second.kernel.getSnapshot().activeUI).toBe('none');
+			expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
+			leave(second);
+
+			initStatus = 200;
+			initPolicy = matchedResolution(optInRule());
+			await load({ journey: 'tab' });
+			expect(init()[2]?.journey?.id).not.toBe(id);
+		}
+	);
 
 	test('blocked sessionStorage makes it a page journey', async () => {
 		vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
@@ -376,7 +418,14 @@ describe('createJourneyController storage failures', () => {
 		const listeners = new Set<() => void>();
 		return {
 			events: { on: () => () => undefined },
-			getSnapshot: () => ({ activeUI, explicitChoice: null }),
+			getSnapshot: () => ({
+				activeUI,
+				experimentPending: false,
+				explicitChoice: null,
+				policyPending: true,
+				promptRequirement: { kind: 'none' },
+				resolution: { status: 'matched' },
+			}),
 			subscribe: (listener: () => void) => {
 				listeners.add(listener);
 				return () => listeners.delete(listener);

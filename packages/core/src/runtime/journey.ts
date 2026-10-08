@@ -15,7 +15,8 @@
  *
  * `'tab'` writes the id only while a prompt is due (no stored choice and a
  * first layer showing) and removes it once a choice or a notice dismissal
- * is recorded. Any storage error makes the journey a `'page'` one.
+ * is recorded, or once the resolved state owes no prompt (a failed
+ * resolution, or a policy that prompts for nothing). Any storage error makes the journey a `'page'` one.
  */
 
 import { parseJourneyId } from '@c15t/schema/types';
@@ -29,6 +30,7 @@ import type { ConsentJourneyOption, JourneyStorage } from '../libs/journey';
 import { JOURNEY_STORAGE_KEY } from '../libs/storage-keys';
 import type {
 	ConsentKernel,
+	ConsentSnapshot,
 	KernelJourney,
 	KernelTransport,
 	SavePayload,
@@ -142,13 +144,34 @@ export const createJourneyController = function createJourneyController(
 		}
 	};
 
+	/**
+	 * The resolved state shows no first layer: the resolution failed, or it
+	 * settled on a policy that prompts for nothing. An id an earlier page left
+	 * would otherwise stay in `sessionStorage` and join unrelated page loads.
+	 */
+	const owesNoPrompt = function owesNoPrompt(
+		snapshot: ConsentSnapshot
+	): boolean {
+		if (snapshot.activeUI !== 'none') {
+			return false;
+		}
+		if (snapshot.resolution.status === 'failed') {
+			return true;
+		}
+		return (
+			!snapshot.policyPending &&
+			!snapshot.experimentPending &&
+			snapshot.promptRequirement.kind === 'none'
+		);
+	};
+
 	const watch = function watch(kernel: ConsentKernel): () => void {
 		const sync = function sync(): void {
 			if (journey?.scope !== 'tab') {
 				return;
 			}
 			const snapshot = kernel.getSnapshot();
-			if (snapshot.explicitChoice !== null) {
+			if (snapshot.explicitChoice !== null || owesNoPrompt(snapshot)) {
 				remove();
 			} else if (snapshot.activeUI !== 'none') {
 				write();
