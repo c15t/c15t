@@ -178,24 +178,28 @@ export const createSaveOutbox = function createSaveOutbox({
 	 * read normalizes the list. A failed save therefore settles without
 	 * waiting for code, and is kept even when the network that failed it
 	 * cannot deliver the module either.
+	 *
+	 * Resolves to whether anything was queued: nothing is when the records
+	 * were cleared or superseded while the transaction waited for the store.
 	 */
-	const enqueue = async function enqueue(
+	const enqueue = function enqueue(
 		current: () => SavePayload | null
-	): Promise<void> {
+	): Promise<boolean> {
 		if (worker) {
-			await worker.enqueue(current);
-			return;
+			return worker.enqueue(current);
 		}
 		void loadWorker();
-		await store.transact((tx) => {
+		return store.transact((tx) => {
 			const payload = current();
-			const stored = tx.read('saves');
-			if (payload) {
-				tx.write('saves', [
-					...(Array.isArray(stored) ? stored : []),
-					{ attempts: 0, payload, queuedAt: Date.now() },
-				]);
+			if (!payload) {
+				return false;
 			}
+			const stored = tx.read('saves');
+			tx.write('saves', [
+				...(Array.isArray(stored) ? stored : []),
+				{ attempts: 0, payload, queuedAt: Date.now() },
+			]);
+			return true;
 		});
 	};
 
@@ -248,8 +252,9 @@ export const createSaveOutbox = function createSaveOutbox({
 			await discard(remaining);
 			return;
 		}
-		await enqueue(current);
-		warnSaveFailed('queued', error);
+		if (await enqueue(current)) {
+			warnSaveFailed('queued', error);
+		}
 		retryWhenOnline();
 	};
 
@@ -332,8 +337,9 @@ export const createSaveOutbox = function createSaveOutbox({
 			if (result.ok) {
 				await discard(remaining);
 			} else {
-				await enqueue(currentPayload);
-				warnSaveFailed('queued');
+				if (await enqueue(currentPayload)) {
+					warnSaveFailed('queued');
+				}
 				retryWhenOnline();
 			}
 			if (result.ok && currentPayload()) {

@@ -416,8 +416,11 @@ export interface QueueWorkerOptions {
 
 /** The queue operations of one outbox. */
 export interface QueueWorker {
-	/** Queue what `current()` still holds, read inside the transaction. */
-	enqueue: (current: () => SavePayload | null) => Promise<void>;
+	/**
+	 * Queue what `current()` still holds, read inside the transaction.
+	 * Resolves to whether anything was queued.
+	 */
+	enqueue: (current: () => SavePayload | null) => Promise<boolean>;
 	/** Drop the queued saves `payload` superseded. */
 	discard: (payload: SavePayload) => Promise<void>;
 	/** Move the visitor off a subject id the backend refused. */
@@ -493,16 +496,17 @@ export const createQueueWorker = function createQueueWorker({
 	/** Queue what `current()` still holds, read inside the transaction. */
 	const enqueue = function enqueue(
 		current: () => SavePayload | null
-	): Promise<void> {
+	): Promise<boolean> {
 		return store.transact((tx) => {
 			const payload = current();
 			if (!payload) {
-				return;
+				return false;
 			}
 			const now = Date.now();
 			const pending = readPendingSaves(tx, now);
 			pending.push({ attempts: 0, payload, queuedAt: now });
 			tx.write('saves', normalizePendingSaves(pending, now));
+			return true;
 		});
 	};
 

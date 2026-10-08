@@ -1632,6 +1632,43 @@ describe('save outbox: development warnings', () => {
 		kernel.dispose();
 	});
 
+	test.each([
+		['threw', () => Promise.reject(new Error('save offline'))],
+		['answered as failed', () => Promise.resolve({ ok: false })],
+	])(
+		'a save the transport %s does not warn when records are cleared before it is queued',
+		async (_label, save) => {
+			const warn = silencedWarn();
+			// Another tab holds the store while the save fails, and the visitor
+			// clears their records meanwhile, so the enqueue writes nothing.
+			let waiting = false;
+			let release: () => void = () => {};
+			const gated: SaveOutboxStore = {
+				clear: store.clear,
+				async transact(run) {
+					if (!waiting) {
+						waiting = true;
+						await new Promise<void>((resolve) => {
+							release = resolve;
+						});
+					}
+					return store.transact(run);
+				},
+			};
+			const kernel = kernelOn({ transport: { save } }, gated);
+
+			const pending = kernel.commands.save('all');
+			await vi.waitFor(() => expect(waiting).toBe(true));
+			clearRecords(kernel);
+			release();
+			await pending;
+
+			expect(await queued()).toEqual([]);
+			expect(warn).not.toHaveBeenCalled();
+			kernel.dispose();
+		}
+	);
+
 	test('a failed save does not warn in production', async () => {
 		vi.stubEnv('NODE_ENV', 'production');
 		const warn = silencedWarn();
