@@ -1034,6 +1034,35 @@ describe('/init fallback for a backend without /manifest', () => {
 		);
 	});
 
+	test('names the page origin on the backend /init it forwards a journey to', async () => {
+		const fetch = backendInit({
+			location: { countryCode: null, regionCode: null },
+			translations: { language: 'en', translations: {} },
+		});
+		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+		const handle = route({ backendURL: BACKEND, fetch });
+		const query = `?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`;
+		const lastInitOrigin = () =>
+			new Headers(
+				fetch.mock.calls
+					.filter(([url]) => String(url).includes('/init'))
+					.at(-1)?.[1]?.headers
+			).get('origin');
+		// A same-origin GET carries no Origin: the request URL is the page's.
+		await handle(request(`/api/c15t/init${query}`));
+		expect(lastInitOrigin()).toBe(APP);
+		// One the browser sent wins.
+		await handle(
+			request(`/api/c15t/init${query}`, {
+				headers: { origin: 'https://www.example.org' },
+			})
+		);
+		expect(lastInitOrigin()).toBe('https://www.example.org');
+		// Without a journey nothing is added.
+		await handle(request('/api/c15t/init'));
+		expect(lastInitOrigin()).toBeNull();
+	});
+
 	test('forwards vendors and privacy signals from backend /init', async () => {
 		const acmeVendor = {
 			category: 'marketing',

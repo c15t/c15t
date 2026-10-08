@@ -837,6 +837,15 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 				forward[name] = value;
 			}
 		}
+		// The backend's own session report then carries the journey, with
+		// the page's origin: a server fetch sends no Origin of its own, and
+		// the backend's host is not the site's.
+		const journey = readJourneyParams(request.url);
+		if (journey) {
+			const origin = request.headers.get('origin');
+			forward.origin =
+				origin && origin !== 'null' ? origin : new URL(request.url).origin;
+		}
 		const init: RequestInit = { headers: forward };
 		const left = budget.remaining();
 		if (left !== undefined) {
@@ -847,8 +856,6 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		const fetchImpl = backend.fetch ?? configuredFetch();
 		const { payload, response } = await budget.bound(
 			(async () => {
-				// The backend's own session report then carries the journey.
-				const journey = readJourneyParams(request.url);
 				const upstream = await fetchImpl(
 					journey
 						? appendJourneyParams(`${backend.url}/init`, journey)
