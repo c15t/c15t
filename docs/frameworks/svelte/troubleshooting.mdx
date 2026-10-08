@@ -1,23 +1,50 @@
 ---
 title: Troubleshooting
-description: Fix a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+description: Fix a Vite build that cannot fetch the c15t manifest, a missing generated manifest module, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
 group: frameworks
 ---
 
+## The build or dev server fails fetching the manifest
+
+**Check.** `vite build` and `vite dev` download the policy through the
+`consentManifest` plugin in `vite.config.ts`. The error names the cause:
+
+| Error | Cause |
+| --- | --- |
+| `@c15t/core/build: /manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
+| `@c15t/core/build: build-time manifests require an absolute upstream URL.` | The backend URL is empty or relative. |
+| `@c15t/core/build: /manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
+| `fetch failed` | The machine running the command cannot reach the backend. |
+
+**Fix.** Set `VITE_C15T_BACKEND_URL` to your project's absolute backend URL
+where the command runs, in `.env` or the CI environment, and make sure that
+machine can reach the backend.
+
+## Cannot find module './c15t-manifest'
+
+**Check.** `src/c15t-manifest.ts` is generated and kept out of Git, so it does
+not exist on a fresh checkout until the plugin runs. `svelte-check` does not
+run Vite plugins.
+
+**Fix.** Run `vite dev` or `vite build` once before `svelte-check`.
+
 ## Consent requests go to the wrong backend
 
-**Check.** Look at the `url` passed to `hosted()` in `src/App.svelte`. It is
-still the placeholder `https://your-project.inth.app`, or a URL from another
-project.
+**Check.** Look at the backend URL in `vite.config.ts` and `src/App.svelte`.
+One still has the demo project, the placeholder
+`https://your-project.inth.app`, or a URL from another project. Vite writes
+`VITE_C15T_BACKEND_URL` into the bundle at build time, so changing it later
+does nothing until you rebuild.
 
-**Fix.** Replace it with your Inth project's backend URL, including any path
-prefix. The project must also list your app's origin as trusted.
+**Fix.** Set `VITE_C15T_BACKEND_URL` to your Inth project's backend URL,
+including any path prefix, and rebuild. The project must also list your app's
+origin as trusted.
 
 ## The banner appears after the page
 
-**Check.** In a Svelte app without a server, the browser requests the policy
+**Check.** In a Svelte app without a server, the browser resolves the policy
 after the page loads, then shows the banner. That is expected. Optional
-categories stay denied until the policy arrives.
+categories stay denied until the policy resolves.
 
 **Fix.** For a banner in the first HTML, the page has to be server-rendered;
 SvelteKit does that. See [choose your setup](/docs/concepts/choose-your-setup).

@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Resolve consent in a SvelteKit root layout load so the c15t banner is in the server HTML, then hydrate the provider with consent-gated scripts and a preferences link.
+description: Bundle your c15t policy into a SvelteKit server at build time, resolve consent in the root layout load so the banner is in the server HTML, then hydrate the provider with consent-gated scripts and a preferences link.
 group: frameworks
 ---
 
@@ -27,22 +27,22 @@ Create an Inth project, then:
    vendor below.
 2. Add your app's origin, such as `http://localhost:5173`, to its trusted
    origins.
-3. Copy the project's backend URL. The server uses it to resolve consent and
-   the browser uses it to save choices.
+3. Copy the project's backend URL. The build downloads the policy from it and
+   the browser saves choices to it.
 
 A self-hosted backend works the same way with your own URL; see
 [self-hosting](/docs/self-host/overview).
 
-Build-time manifests are the recommended production setup. Complete the
-[build-time manifest step](#bundle-the-manifest-during-builds) before
-deploying, and rebuild after changing policies, translations or vendors.
+The setup bundles your policy into the server at build time, the recommended
+production setup. Rebuild after changing policies, translations or vendors.
 
 ## Install
 
 <CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
 
-SvelteKit uses `@c15t/svelte`; its server helpers are in `@c15t/svelte/kit`.
-The `c15t` package has no Svelte entry point.
+SvelteKit uses `@c15t/svelte`; its server helpers are in `@c15t/svelte/kit`
+and its Vite plugins in `@c15t/svelte/vite`. The `c15t` package has no Svelte
+entry point.
 
 ## Register vendor scripts
 
@@ -57,34 +57,74 @@ c15t is the only thing that loads it.
 ## Set the backend URL
 
 Declare the backend URL as a public environment variable in `src/env.ts`, so
-the server load and the browser read the same value:
+the server and the browser read the same value:
 
 <include src="../../shared/examples/sveltekit/env.mdx" />
 
 Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any path
-prefix, in `.env` or your host's environment. Without it, the app falls back
-to the `https://your-project.inth.app` placeholder.
+prefix, in `.env` or your host's environment. Without it, the app uses
+`https://benchmarks-inth.inth.app`, a demo project, so the code runs as is.
+
+## Bundle the policy at build time
+
+Add `consentManifest` and `c15tPreload` to the plugins in `vite.config.ts`:
+
+<include src="../../shared/examples/sveltekit/vite-config.mdx" />
+
+`consentManifest` downloads your project's public policy from
+`<backendURL>/manifest` when Vite starts, for `vite build` and `vite dev`. On
+SvelteKit 3, `svelte-kit sync` runs it too. It writes the policy to
+`src/lib/server/c15t-manifest.ts`, which the server bundle imports. Keep that
+file out of Git. `vite.config.ts` runs before the app exists, so it reads
+`PUBLIC_C15T_BACKEND_URL` with Vite's `loadEnv` instead of `$app/env/public`.
+Keep its fallback the same as the one in `src/env.ts`.
+
+`c15tPreload` lets `c15tHandle`, added below, preload the script loader on
+pages that register scripts.
+
+Declare the consent options once, in `src/lib/server/c15t.ts`. Modules under
+`src/lib/server` never reach the browser:
+
+<include src="../../shared/examples/sveltekit/consent-options.mdx" />
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+The policy comes from the backend URL at build time. Changing
+`PUBLIC_C15T_BACKEND_URL` on a built app moves consent saves and visit
+reports, not the policy, so rebuild after you change it.
+
+To apply policy edits without a rebuild, fetch the policy at runtime instead;
+see [serve the manifest route](/docs/frameworks/sveltekit/rendering#serve-the-manifest-route).
 
 ## Resolve consent in the root layout load
 
 <include src="../../shared/examples/sveltekit/layout-server.mdx" />
 
 `loadConsent` reads the visitor's consent cookie, location headers and Global
-Privacy Control, resolves their policy, and returns a plain, serializable
-object for the provider's `prefetch` prop. The build-time step below supplies
-the policy snapshot. Without it, this base load calls the backend's `/init`.
-It never throws. With runtime fetching, if the backend fails or takes longer
-than 500 ms, it returns the
-stored choice without a policy. The page then renders without a banner in the
-HTML, optional categories stay denied, and the browser resolves the policy
-after hydration. Pass `timeoutMs` to change the wait, or `false` to wait as
-long as the backend takes.
+Privacy Control, resolves their policy from the bundled snapshot, and returns
+a plain, serializable object for the provider's `prefetch` prop. Rendering a
+page makes no policy request to the backend. `loadConsent` never throws. If
+resolution takes longer than `timeoutMs`, 500 ms by default, it returns the
+stored choice without a policy, and the browser resolves the policy after
+hydration.
 
-While SvelteKit prerenders pages at build time, `building` is `true` and the
-load returns no prefetch. A prerendered page goes to every visitor, so it must
-not contain one visitor's consent. The browser resolves consent on those
-pages. [Rendering and deployment](/docs/frameworks/sveltekit/rendering#prerender-some-pages)
+While SvelteKit prerenders pages at build time, `building` is `true`, so
+`shared: building` makes the load return no visitor's consent and no policy.
+A prerendered page goes to every visitor, so it must not contain one
+visitor's consent. The browser resolves consent on those pages through the
+route below. [Rendering and deployment](/docs/frameworks/sveltekit/rendering#prerender-some-pages)
 has the details.
+
+## Add the consent route
+
+Create `src/routes/api/c15t/[...path]/+server.ts` with the same options:
+
+<include src="../../shared/examples/sveltekit/consent-route.mdx" />
+
+`GET /api/c15t` resolves a visitor from the bundled policy, the same way the
+layout load does. The browser calls it whenever it resolves consent itself,
+such as on a prerendered page. The route exports only `GET`; choices are saved
+to the backend directly.
 
 ## Render the provider in the root layout
 
@@ -92,8 +132,11 @@ has the details.
 
 Pass `data.prefetch` through unchanged. The provider starts from it, so the
 server and the browser render the same banner and the browser makes no second
-`/init` request. `hosted()` points the browser at the same backend for saving
-choices.
+request for the policy. `hosted()` saves choices to the backend URL, and
+`initURL` sends the browser's own policy requests to `/api/c15t`. A policy
+resolved from a manifest has no signed snapshot token, so
+`assertDecisionInputs: true` sends the decision it was made against with each
+save instead.
 
 `ConsentBanner` shows the banner when the policy asks for one.
 `ConsentDialog` is the preference dialog; it loads in its own chunk after the
@@ -112,17 +155,8 @@ that needs them. Add it to `src/hooks.server.ts`:
 
 <include src="../../shared/examples/sveltekit/hooks.mdx" />
 
-Then add the `c15tPreload()` plugin to `vite.config.ts`. With it, `c15tHandle`
-preloads the script loader on pages that register scripts:
-
-<include src="../../shared/examples/sveltekit/vite-config.mdx" />
-
 [Rendering and deployment](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle)
 shows how to type `event.locals.c15t`.
-
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/sveltekit.mdx" />
 
 ## Verify consent
 
@@ -139,14 +173,14 @@ Build the app with `vite build` and serve the production build with
 5. Turn it off and save. The page reloads and PostHog does not load.
 6. Navigate to another route and back. The choice holds without a new banner.
 
-If the banner is missing from the page source, see
+If the build fails or the banner is missing from the page source, see
 [troubleshooting](/docs/frameworks/sveltekit/troubleshooting).
 [Verify consent](/docs/guides/verify-consent) has the release checklist.
 
 ## Next steps
 
-- [Rendering and deployment](/docs/frameworks/sveltekit/rendering): manifest
-  caching, prerendered pages, static sites, SPA mode and edge adapters.
+- [Rendering and deployment](/docs/frameworks/sveltekit/rendering): runtime
+  policy fetching, prerendered pages, static sites, SPA mode and edge adapters.
 - [Customize](/docs/frameworks/sveltekit/customize): brand colors rendered on
   the server, slots and copy.
 - [Scripts and embeds](/docs/frameworks/sveltekit/scripts): more vendors,

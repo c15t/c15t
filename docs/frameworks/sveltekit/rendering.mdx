@@ -10,7 +10,7 @@ group: frameworks
 | --- | --- | --- |
 | Server-rendered pages, recommended | Root layout load resolves from a build-time manifest | [Quickstart](/docs/frameworks/sveltekit/quickstart) |
 | Policy changes must apply without a rebuild | Root layout load resolves from a runtime manifest cache | [Serve the manifest route](#serve-the-manifest-route) |
-| Backend resolves every visit | Root layout load calls the backend's `/init` | Omit the snapshot and local init route from the quickstart |
+| Backend resolves every visit | Root layout load calls the backend's `/init` | Remove the plugin, the snapshot and the route, as in [bundle the manifest during builds](#bundle-the-manifest-during-builds) |
 | A server app with some prerendered pages | Server for most pages, the browser on prerendered ones | [Prerender some pages](#prerender-some-pages) |
 | A fully static site with `adapter-static` | The browser | [Build a static site](#build-a-static-site) |
 | SPA mode, `ssr = false` | The browser | [Use SPA mode](#use-spa-mode) |
@@ -29,12 +29,16 @@ and browser resolution in general.
 ## Serve the manifest route
 
 Use runtime manifest fetching when policy updates must apply without a
-rebuild. Omit the build plugin and the load's `manifest` option. Your server downloads the project's public
-policy manifest once, caches it, and resolves each visitor locally. Consent
-saves still go to the backend, directly or through the
+rebuild. Your server downloads the project's public policy manifest, caches
+it, and resolves each visitor locally. Consent saves still go to the backend,
+directly or through the
 [consent proxy](#save-consent-through-your-own-origin).
 
-Add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:
+Starting from the quickstart, remove the `consentManifest` plugin from
+`vite.config.ts`, and the `c15t-manifest` import and the `manifest` line from
+`src/lib/server/c15t.ts`. The quickstart's `/api/c15t` route then fetches the
+manifest from `backendURL` at runtime. Without the quickstart's options file,
+add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:
 
 <include src="../../shared/examples/sveltekit/route-handlers.mdx" />
 
@@ -52,8 +56,8 @@ file per route. Point the root layout load at the route with `initRoute`:
 
 `loadConsent` calls the route through `event.fetch`, inside the same process,
 with the visitor's location, language and GPC. Keep the root
-`+layout.svelte` from the quickstart unchanged. The browser's `hosted()` mode
-still uses the backend URL.
+`+layout.svelte` from the quickstart unchanged: the browser's `initURL` still
+points at the route, and its saves still go to the backend URL.
 
 This route file exports `GET` only, so a `POST` or `PATCH` to `/api/c15t`
 gets a `405`. Keep `hosted({ url })` on the backend URL, as the quickstart
@@ -66,8 +70,10 @@ Pass the absolute Inth URL as `backendURL`. A relative URL, such as
 `Host` header. One that points back at `/api/c15t` makes the route fetch
 itself.
 
-The route caches the manifest in memory for as long as its `s-maxage` allows,
-then serves it stale while it refreshes in the background. It also reports
+The route caches the manifest in memory for as long as its `s-maxage` allows.
+After that, within the backend's `stale-while-revalidate` window, it serves
+the stale copy while it refreshes in the background. Past that window, the
+next request waits for a fresh copy. It also reports
 each resolved visit to the backend so Inth still counts visitors it never
 served `/init` to; pass `reportSessions: false` to turn that off.
 
@@ -163,15 +169,17 @@ A prerendered page is built once and sent to every visitor, so it cannot
 contain one visitor's consent. SvelteKit runs the root layout load while it
 builds those pages, and `building` from `$app/env` (`$app/environment` on
 SvelteKit 2) is `true` then.
-The quickstart's load returns no prefetch in that case, so prerendering a page
-needs only the page option:
+The quickstart's load passes `shared: building`, so it returns no visitor's
+consent and no policy in that case. Prerendering a page needs only the page
+option:
 
 <include src="../../shared/examples/sveltekit/prerender.mdx" />
 
 On a prerendered page the HTML has no banner. After hydration the browser asks
-the backend for the policy, then shows the banner or applies the stored
-choice. Optional categories stay denied until then. Server-rendered pages in
-the same app keep the banner in their HTML.
+the quickstart's `/api/c15t` route for the policy, which the route resolves
+from the bundled snapshot, then shows the banner or applies the stored choice.
+Optional categories stay denied until then. Server-rendered pages in the same
+app keep the banner in their HTML.
 
 ## Build a static site
 
@@ -184,13 +192,17 @@ build. Set the option in the root layout:
 export const prerender = true;
 ```
 
-Keep the quickstart's `+layout.server.ts` or delete it; while building it
-returns nothing either way. The browser resolves consent on every page, as
-described in [prerender some pages](#prerender-some-pages).
+The browser resolves consent on every page. Server routes such as
+`/api/c15t` do not exist after a static build, so it has to ask the backend
+directly. Starting from the quickstart:
 
-On a static host, the backend URL must be the absolute Inth URL. Server
-routes such as `/api/c15t` do not exist after a static build, so do not use
-manifest mode.
+1. Delete `+layout.server.ts`, `src/lib/server/c15t.ts` and the `/api/c15t`
+   route.
+2. Remove the `consentManifest` plugin from `vite.config.ts`.
+3. Remove `initURL` and `assertDecisionInputs` from `hosted()` in
+   `+layout.svelte`. The browser then calls the backend's `/init`.
+
+On a static host, the backend URL must be the absolute Inth URL.
 
 ## Use SPA mode
 
@@ -199,9 +211,10 @@ every page in the browser. The provider and components from the quickstart
 work unchanged; there is no server HTML, so the banner appears after the
 browser resolves the policy.
 
-With a static SPA fallback page and no server, delete `+layout.server.ts`.
-`data.prefetch` is then `undefined`, and the provider resolves consent in the
-browser.
+With a static SPA fallback page and no server, make the changes in
+[build a static site](#build-a-static-site). `data.prefetch` is then
+`undefined`, and the provider resolves consent in the browser through the
+backend's `/init`.
 
 ## Resolve consent in other server code
 
@@ -219,8 +232,10 @@ const state = await resolveConsent({
 });
 ```
 
-It never throws. When the backend fails, it returns the stored choice without
-a policy. It has no time limit, so prefer `loadConsent` in a layout load.
+It never throws. When the backend fails or takes longer than `timeoutMs`,
+500 ms by default, it returns the stored choice without a policy. Pass
+`manifest` to resolve from the build-time snapshot instead. In a load, use
+`loadConsent`, which reads the request from the event.
 Import `@c15t/svelte/kit` and `@c15t/svelte/server` only from server files
 such as `+layout.server.ts`, `+server.ts` and `hooks.server.ts`; imported into
 a component they add server code to the browser bundle.

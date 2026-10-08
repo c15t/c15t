@@ -1,8 +1,37 @@
 ---
 title: Troubleshooting
-description: Fix a banner missing from SvelteKit server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
+description: Fix a SvelteKit build that cannot fetch the c15t manifest, a missing generated manifest module, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
 group: frameworks
 ---
+
+## The build, dev server or type check fails fetching the manifest
+
+**Check.** `vite build`, `vite dev` and, on SvelteKit 3, `svelte-kit sync`
+download the policy through the `consentManifest` plugin in `vite.config.ts`.
+The error names the cause:
+
+| Error | Cause |
+| --- | --- |
+| `@c15t/core/build: /manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
+| `@c15t/core/build: build-time manifests require an absolute upstream URL.` | The backend URL is empty or relative, such as `/api/c15t`. |
+| `@c15t/core/build: /manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
+| `fetch failed` | The machine running the command cannot reach the backend. |
+
+**Fix.** Set `PUBLIC_C15T_BACKEND_URL` to your project's absolute backend URL
+where the command runs, in `.env` or the CI environment. `vite.config.ts`
+reads it with `loadEnv`. Make sure the build machine can reach the backend.
+A `check-types` script that starts with `svelte-kit sync` needs the backend
+too.
+
+## Cannot find module './c15t-manifest'
+
+**Check.** `src/lib/server/c15t-manifest.ts` is generated and kept out of Git,
+so it does not exist on a fresh checkout until the plugin runs.
+
+**Fix.** Run `vite dev` or `vite build` once. On SvelteKit 3,
+`svelte-kit sync` writes it too. If the file exists, check that
+`outputFile` in `vite.config.ts` matches the import in
+`src/lib/server/c15t.ts`.
 
 ## Why is the banner missing from the server HTML?
 
@@ -15,9 +44,9 @@ in order:
    `+layout.server.ts` returns `prefetch` and that `+layout.svelte` passes
    `prefetch={data.prefetch}`.
 2. **`loadConsent` fell back.** It returns the stored choice without a policy
-   when the backend fails or takes longer than `timeoutMs`, 500 ms by default.
-   Check the server logs and the backend's response time, and raise
-   `timeoutMs` if it is slow.
+   when resolution fails or takes longer than `timeoutMs`, 500 ms by default.
+   Check the server logs. With runtime fetching, check the backend's response
+   time, and raise `timeoutMs` if it is slow.
 3. **The page is prerendered.** Prerendered pages never carry a visitor's
    consent. See
    [prerender some pages](/docs/frameworks/sveltekit/rendering#prerender-some-pages).
@@ -58,13 +87,17 @@ in-process; if it points at `/api/c15t`, the route requests itself.
 
 ## Consent requests go to the wrong backend
 
-**Check.** Look at the backend URL in `src/routes/+layout.server.ts`, the
-`hosted()` call in `src/routes/+layout.svelte` and any
-`createSvelteKitConsentRouteHandlers` route. One still has the placeholder
-`https://your-project.inth.app`, or a URL from another project.
+**Check.** Look at the backend URL in `vite.config.ts`, `src/env.ts`,
+`src/lib/server/c15t.ts` and the `hosted()` call in
+`src/routes/+layout.svelte`. One still has the demo project, the placeholder
+`https://your-project.inth.app`, or a URL from another project. The policy
+comes from the URL `vite.config.ts` had at build time, so a
+`PUBLIC_C15T_BACKEND_URL` set only when the built app starts moves saves but
+not the policy.
 
-**Fix.** Replace it with your Inth project's backend URL, including any path
-prefix. The server and the browser need the same backend.
+**Fix.** Set `PUBLIC_C15T_BACKEND_URL` to your Inth project's backend URL,
+including any path prefix, for the build and for the running app, then
+rebuild. The policy and saves need the same backend.
 
 ## Your own `:root` token rules are ignored
 
