@@ -1,34 +1,16 @@
 import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
-import { isLateEntry } from '@c15t/ui/utils/late-entry';
 
 import { classes } from '../generated/styles';
 import type { ConsentBannerOptions } from '../types';
 import { renderActionFooter, resolveActions } from './actions';
 import { renderBranding } from './branding';
 import { resolveCopy } from './copy';
-import { h, readDurationMs, supportsStartingStyle } from './dom';
+import { h, markLateEntry, readDurationMs, supportsStartingStyle } from './dom';
 import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 
 const DEFAULT_DURATION_MS = 200;
-
-/**
- * Mark a mount that arrives after the page has painted, so the stylesheet
- * fades it in rather than popping it into a page someone is already reading.
- *
- * @param elements - The banner root and its backdrop, when it has one.
- */
-const markLateEntry = function markLateEntry(
-	elements: readonly (HTMLElement | null)[]
-): void {
-	if (!isLateEntry()) {
-		return;
-	}
-	for (const element of elements) {
-		element?.setAttribute('data-entry', 'late');
-	}
-};
 /**
  * The cookie banner.
  *
@@ -284,9 +266,10 @@ export const createBanner = function createBanner(
 				element.classList.add(styles.bannerVisible);
 				overlay?.classList.add(styles.overlayVisible);
 			}
-			if (!(flip || disableAnimation)) {
+			if (!disableAnimation) {
 				// The entering classes mark the mount. The banner shows on
-				// this frame, unless it is marked late below.
+				// this frame, unless it is marked late below. On the flip
+				// path they sit under the hidden state until the flip.
 				element.classList.add(styles.bannerEntering);
 				overlay?.classList.add(styles.overlayEntering);
 			}
@@ -308,7 +291,8 @@ export const createBanner = function createBanner(
 		if (flip) {
 			// Without `@starting-style`, the mount starts hidden and flips.
 			// The visible state has no transition, so the banner shows at
-			// once; the forced layout keeps the flip a style change.
+			// once, unless it is marked late and the entering rule fades it
+			// in; the forced layout keeps the flip a style change.
 			void element.offsetHeight;
 			element.classList.replace(styles.bannerHidden, styles.bannerVisible);
 			overlay?.classList.replace(styles.overlayHidden, styles.overlayVisible);

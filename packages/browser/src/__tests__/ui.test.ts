@@ -350,8 +350,9 @@ describe('mountConsentUI', () => {
 			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
 				true
 			);
+			// The entering class stays, so a late flip can still fade in.
 			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
-				false
+				true
 			);
 			expect(layout).toHaveBeenCalledTimes(1);
 
@@ -410,6 +411,23 @@ describe('mountConsentUI', () => {
 			expect(banner.dataset.entry).toBe('late');
 			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
 				true
+			);
+		});
+
+		it('fades a late banner in through the flip without @starting-style', async () => {
+			paintedAgo(1000);
+			const { root } = await mount({ disableAnimation: false });
+
+			const banner = query(root, 'consent-banner-root');
+			expect(banner.dataset.entry).toBe('late');
+			expect(banner.classList.contains(classes.banner.bannerEntering)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerVisible)).toBe(
+				true
+			);
+			expect(banner.classList.contains(classes.banner.bannerHidden)).toBe(
+				false
 			);
 		});
 

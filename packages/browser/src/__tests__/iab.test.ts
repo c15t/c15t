@@ -146,6 +146,70 @@ describe('IAB browser entry', () => {
 		expect(authority?.vendorConsents['755']).toBe(true);
 		expect(authority?.specialFeatureOptIns[1]).toBe(true);
 	});
+	describe('late entry', () => {
+		/** The page first painted `ago` milliseconds before now. */
+		const paintedAgo = function paintedAgo(ago: number) {
+			vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) =>
+				type === 'paint'
+					? [
+							{
+								name: 'first-contentful-paint',
+								startTime: 0,
+							} as PerformanceEntry,
+						]
+					: []
+			);
+			vi.spyOn(performance, 'now').mockReturnValue(ago);
+		};
+
+		const reshow = async (client: ConsentClient, ago: number) => {
+			client.kernel.set.activeUI('none');
+			await vi.waitFor(() =>
+				expect(
+					client.ui?.root.querySelector(
+						'[data-testid="iab-consent-banner-root"]'
+					)
+				).toBeNull()
+			);
+			paintedAgo(ago);
+			client.kernel.set.activeUI('banner');
+			await vi.waitFor(() => query(client, 'iab-consent-banner-root'));
+			return query(client, 'iab-consent-banner-root');
+		};
+
+		it('shows an IAB banner that mounts with the first paint at once', async () => {
+			paintedAgo(50);
+			const client = await start({
+				ui: { disableAnimation: false, styles: false },
+			});
+			expect(query(client, 'iab-consent-banner-root').dataset.entry).toBe(
+				undefined
+			);
+		});
+
+		it('fades in an IAB banner that shows after the page painted', async () => {
+			paintedAgo(50);
+			const client = await start({
+				ui: { disableAnimation: false, styles: false },
+			});
+			const root = await reshow(client, 5000);
+			expect(root.dataset.entry).toBe('late');
+			expect(root.className).toContain('bannerEntering');
+			expect(root.className).toContain('bannerVisible');
+			expect(root.className).not.toContain('bannerHidden');
+		});
+
+		it('does not mark a late IAB banner when animation is disabled', async () => {
+			paintedAgo(50);
+			const client = await start({
+				ui: { disableAnimation: true, styles: false },
+			});
+			const root = await reshow(client, 5000);
+			expect(root.dataset.entry).toBeUndefined();
+			expect(root.className).not.toContain('bannerEntering');
+		});
+	});
+
 	it('applies the IAB theme slots and part names to the IAB banner and dialog', async () => {
 		const client = await start({
 			ui: {
