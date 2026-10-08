@@ -18,21 +18,28 @@ type RecordedThenable<Value> = PromiseLike<Value> & {
 };
 
 /**
- * `use()` where React has it. React 18 suspends on a thrown promise; the
- * runtime's `settled` records its own result, so the retry reads it.
+ * React 18's way to suspend: throw the promise, and read its recorded
+ * result on the retry. The runtime's `settled` records its own result.
+ * Exported for tests.
+ *
+ * @internal
  */
-const useSettled = function useSettled<Value>(
+export const readRecorded = function readRecorded<Value>(
 	thenable: PromiseLike<Value>
 ): Value {
-	const { use } = React as { use?: <Read>(usable: PromiseLike<Read>) => Read };
-	if (use) {
-		return use(thenable);
-	}
 	const recorded = thenable as RecordedThenable<Value>;
 	if (recorded.status === 'fulfilled') {
 		return recorded.value as Value;
 	}
 	throw thenable;
+};
+
+/** `use()` where React has it (19), `readRecorded` where it does not (18). */
+const useSettled = function useSettled<Value>(
+	thenable: PromiseLike<Value>
+): Value {
+	const { use } = React as { use?: <Read>(usable: PromiseLike<Read>) => Read };
+	return use ? use(thenable) : readRecorded(thenable);
 };
 
 const StreamedScope = ({

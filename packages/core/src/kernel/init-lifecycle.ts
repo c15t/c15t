@@ -406,6 +406,9 @@ export const createInitLifecycle = function createInitLifecycle({
 	// alone so an in-flight init still lands when React StrictMode disposes
 	// and reuses the same kernel without calling init again.
 	let initGeneration = 0;
+	// The generation an adopted answer fenced: an attempt it superseded
+	// completes as the adopted answer did.
+	let adoptedGeneration = -1;
 	let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
 	let pendingRetryAttempt: number | null = null;
 	let retryInFlight = false;
@@ -512,6 +515,16 @@ export const createInitLifecycle = function createInitLifecycle({
 		return result;
 	};
 
+	/**
+	 * The result of an attempt a newer one fenced: the adopted answer's
+	 * success when an adoption fenced it, otherwise a failure.
+	 */
+	const superseded = function superseded(error: unknown): InitResult {
+		return initGeneration === adoptedGeneration
+			? { ok: true }
+			: { error, ok: false };
+	};
+
 	const runInitAttempt = async function runInitAttempt(
 		attempt: number
 	): Promise<InitResult> {
@@ -551,10 +564,11 @@ export const createInitLifecycle = function createInitLifecycle({
 			}
 			const response = await transport.init(ctx);
 			if (generation !== initGeneration) {
-				return complete({
-					error: new Error('c15t: init attempt superseded by a newer init()'),
-					ok: false,
-				});
+				return complete(
+					superseded(
+						new Error('c15t: init attempt superseded by a newer init()')
+					)
+				);
 			}
 			const current = getSnapshot();
 			const recordsAreCurrent =
@@ -585,7 +599,7 @@ export const createInitLifecycle = function createInitLifecycle({
 			return result;
 		} catch (error) {
 			if (generation !== initGeneration) {
-				return complete({ error, ok: false });
+				return complete(superseded(error));
 			}
 			emit({ command: 'init', error, type: 'command:error' });
 			commit(failedResolutionPatch(getSnapshot(), runtime.now()));
@@ -711,6 +725,7 @@ export const createInitLifecycle = function createInitLifecycle({
 		afterStart: boolean
 	): void {
 		initGeneration += 1;
+		adoptedGeneration = initGeneration;
 		clearRetry();
 		const current = getSnapshot();
 		const folded = foldInitResponse(

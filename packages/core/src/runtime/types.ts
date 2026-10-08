@@ -746,7 +746,8 @@ export interface StreamedPrefetch {
 	 * prefetch has settled. Without a resolved policy, or with an
 	 * experiment the runtime cannot run before the browser picks its arm,
 	 * it is the kernel's own server snapshot, so nothing shows before the
-	 * policy does. The same config returns the same snapshot.
+	 * policy does. Built from the options the runtime was created with, as
+	 * the server rendered; the same config returns the same snapshot.
 	 */
 	snapshotFor: (config: RuntimePrefetch | undefined) => ConsentSnapshot;
 	/**

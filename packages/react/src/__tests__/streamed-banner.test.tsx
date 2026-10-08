@@ -400,18 +400,20 @@ test('a click in the same task hydration starts records against the streamed pol
 			'[data-testid="consent-banner-accept-button"]'
 		)
 		?.click();
-	await new Promise((resolve) => {
-		setTimeout(resolve, 200);
-	});
-
-	expect(hydrated.recoverableErrors).toEqual([]);
-	expect(transportSave).toHaveBeenCalledTimes(1);
-	expect(JSON.stringify(transportSave.mock.calls[0])).toContain('gdpr');
-	expect(page.doc.querySelector(BANNER)).toBeNull();
-	(
-		globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
-	).IS_REACT_ACT_ENVIRONMENT = true;
-	await hydrated.unmount();
+	try {
+		await new Promise((resolve) => {
+			setTimeout(resolve, 200);
+		});
+		expect(hydrated.recoverableErrors).toEqual([]);
+		expect(transportSave).toHaveBeenCalledTimes(1);
+		expect(JSON.stringify(transportSave.mock.calls[0])).toContain('gdpr');
+		expect(page.doc.querySelector(BANNER)).toBeNull();
+	} finally {
+		(
+			globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }
+		).IS_REACT_ACT_ENVIRONMENT = true;
+		await hydrated.unmount();
+	}
 });
 
 const clearCookies = () => {

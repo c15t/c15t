@@ -989,7 +989,11 @@ describe('a streamed prefetch a host renders from', () => {
 		expect(
 			streamed.snapshotFor({
 				...RESOLVED_PREFETCH,
-				experiment: { arm: 'bar', id: 'banner-shape' },
+				experiment: {
+					arm: 'bar',
+					arms: { bar: { prompt: { variant: 'bar' } } },
+					id: 'banner-shape',
+				},
 			})
 		).toBe(provisional);
 	});
@@ -1060,6 +1064,10 @@ describe('a streamed prefetch a host renders from', () => {
 		const count = countApplied(runtime);
 		const errors = vi.fn();
 		runtime.kernel.events.on('command:error', errors);
+		const results: unknown[] = [];
+		runtime.kernel.events.on('command:init:completed', ({ result }) => {
+			results.push(result);
+		});
 		runtime.start();
 
 		runtime.streamed?.adopt(RESOLVED_PREFETCH);
@@ -1073,6 +1081,8 @@ describe('a streamed prefetch a host renders from', () => {
 		});
 		expect(count.applied).toBe(1);
 		expect(errors).not.toHaveBeenCalled();
+		// The fenced attempt reports the adopted answer, not a failure.
+		expect(results).toEqual([{ ok: true }]);
 		expect(transport.init).not.toHaveBeenCalled();
 	});
 

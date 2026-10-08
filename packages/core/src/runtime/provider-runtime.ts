@@ -151,18 +151,6 @@ const moduleSlot = function moduleSlot<
 	return slot;
 };
 
-/** The live options, read from the latest update. */
-const pickLive = function pickLive(
-	options: ConsentRuntimeUpdate
-): Partial<ConsentRuntimeUpdate> {
-	return Object.fromEntries(
-		[...LIVE_OPTIONS].map((key) => [
-			key,
-			options[key as keyof ConsentRuntimeUpdate],
-		])
-	);
-};
-
 /**
  * Whether a host can render a surface from this streamed config before the
  * runtime runs: it carries a resolved policy, and no experiment holds the
@@ -461,6 +449,11 @@ export const createConsentProviderRuntime =
 							if (!started) {
 								adoptedPrefetch = config;
 							}
+							// Before the banner is interactive: a choice made on it
+							// carries the journey the server started.
+							main.adoptJourney(
+								config.journey === null ? null : config.journey?.id
+							);
 							(main.runtime.kernel as InternalKernel).adoptInit(
 								response,
 								started
@@ -473,12 +466,14 @@ export const createConsentProviderRuntime =
 							if (!rendersFromStream(config, runsExperiment)) {
 								return main.runtime.kernel.getServerSnapshot();
 							}
+							// From the options the runtime was created with, as the
+							// server rendered: later updates must not change what
+							// hydration reads. Once adopted, the kernel renders live.
 							if (streamedMemo?.config !== config) {
 								streamedMemo = {
 									config,
 									snapshot: createRuntimeKernel({
 										...initial,
-										...pickLive(current),
 										// A kernel built to render from never inits.
 										mode: Object.assign(() => ({}), {
 											kind: initial.mode.kind,

@@ -376,6 +376,37 @@ describe("journey: 'tab'", () => {
 		});
 	});
 
+	test('a streamed state a hydrating banner adopts hands over its id before the save', async () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const runtime = createConsentProviderRuntime(
+			{
+				consentCategories: ['necessary', 'measurement'],
+				mode: custom({ init: () => Promise.resolve({}), save }),
+				persistence: false,
+				// Still pending: only the synchronous adoption can hand it over.
+				prefetch: new Promise(() => {
+					// Never settles.
+				}),
+			},
+			{ ...defaultRuntimeModules, streamPrefetch }
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		runtime.streamed?.adopt({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			journey: { id: SERVER_ID },
+		});
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+
+		await runtime.kernel.commands.save('all');
+		expect(save.mock.calls[0]?.[0].journey).toEqual({
+			id: SERVER_ID,
+			scope: 'page',
+		});
+	});
+
 	test('blocked sessionStorage makes it a page journey', async () => {
 		vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
 			throw new DOMException('Storage access blocked', 'SecurityError');

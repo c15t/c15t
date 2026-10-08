@@ -179,12 +179,12 @@ for (const target of selectedTargets()) {
 
 		for (const route of target.routes) {
 			if (target.id === 'nextjs') {
-				// The default App Router layout passes the pending consent state
-				// without awaiting it, and the browser-init layout passes none, so
-				// their banners mount after hydration. The awaited layout and the
-				// Pages Router resolve consent first and render the banner on
-				// the server.
-				const bannerInHTML = ['/awaited', '/pages-router'].includes(route);
+				// The default App Router layout passes the pending consent state,
+				// and the banner follows the page in a later chunk of the same
+				// response. The awaited layout and the Pages Router resolve
+				// consent first. The browser-init layout passes none, so its
+				// banner mounts after hydration.
+				const bannerInHTML = route !== '/client-init';
 				test(`${route}: initial HTML renders the page with embeds blocked`, async () => {
 					const response = await fetch(`${server.baseURL}${route}`);
 					expect(response.ok).toBe(true);
