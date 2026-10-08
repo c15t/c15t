@@ -23,9 +23,9 @@ origins, and copy the backend URL. To run the service yourself, use a
 policies in your code and choices in the browser, with no consent records.
 Not recommended for production environments.
 
-Build-time manifests are the recommended production setup. Complete the
-[build-time manifest step](#bundle-the-manifest-during-builds) before
-deploying, and rebuild after changing policies, translations or vendors.
+The setup bundles your policy into the server at build time, the
+recommended production setup. Rebuild after changing policies, translations
+or vendors.
 
 ## Install c15t
 
@@ -40,19 +40,22 @@ Register the module in `nuxt.config.ts`:
 <include src="../../shared/examples/nuxt/nuxt-config.mdx" />
 
 Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix.
+including any path prefix, or set `NUXT_PUBLIC_C15T_BACKEND_URL` when you
+build.
 
-`manifest: 'server'` adds two routes to your Nuxt server,
-`/api/c15t/manifest` and `/api/c15t/init`. The server resolves each visitor from
-the request's location and language headers. The build-time step below
-supplies the public policy snapshot; without it, the routes fetch and cache
-the manifest at runtime. Consent saves still go to Inth.
+`buildManifest: true` fetches your project's public policy once, during
+`nuxt build` and when `nuxt dev` starts, and embeds it in the server bundle.
+It also adds two routes to your Nuxt server, `/api/c15t/manifest` and
+`/api/c15t/init`. The server resolves each visitor from the bundled policy
+and the request's location and language headers, so rendering a page never
+waits on Inth. Consent saves still go to Inth.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling the
 backend on every request.
 
-## Bundle the manifest during builds
+<include src="../../shared/build-time-manifest-notes.mdx" />
 
-<include src="../../shared/build-manifests/nuxt.mdx" />
+To apply policy edits without rebuilding, replace `buildManifest: true` with
+`manifest: 'server'`. The routes then fetch and cache the policy at runtime.
 
 ## Mount the consent UI
 

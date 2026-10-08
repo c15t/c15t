@@ -27,7 +27,8 @@ Test apps live in `internals/fixtures`, and type-checked docs snippets live in
    variable, with `https://your-project.inth.app` as the fallback, because a
    real app does the same.
 4. **Runs on clone.** `bun install`, build the workspace packages, then
-   `bun run --cwd examples/<name> dev`.
+   `bun run --cwd examples/<name> dev`. A starter that bundles the policy at
+   build time also needs your backend URL, and its README says so.
 5. **Real app code.** No `?design=` switches, debug readouts or links to other
    variants. A reader can paste a file into their own app.
 6. **Short README.** What it shows, the two or three files that matter, how to
@@ -45,7 +46,7 @@ From the repository root:
 ```sh
 bun install
 bun run build:libs
-bun run --cwd examples/nuxt dev
+bun run --cwd examples/nextjs dev
 ```
 
 Replace `https://your-project.inth.app` with your project's backend URL, and

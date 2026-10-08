@@ -22,7 +22,7 @@ the whole setup.
 | Components | `ConsentRoot`, `ConsentWidget`, `ConsentPreferencesLink`, `ConsentDialogTrigger`, `ConsentGate` and the deprecated `ConsentFrame`, all global. See [components](/docs/frameworks/nuxt/components). |
 | Composables | 25 composables, auto-imported. See [composables](/docs/frameworks/nuxt/composables). |
 | A Nuxt plugin | Creates the consent runtime for each request on the server and once in the browser, resolves the visitor's policy during server rendering, and writes the `tokens` option into the page head. |
-| Server routes | With `manifest: 'server'`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
+| Server routes | With `buildManifest: true` or `manifest: 'server'`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
 | The `#c15t/composables` alias | Points at the module's composables, for the few that are not auto-imported. |
 
 In the browser, the plugin starts the consent modules once the app has
@@ -140,7 +140,7 @@ mode fits which deployment.
 
 ## Verify
 
-Run `nuxt dev` and request `/api/c15t/init` with `manifest: 'server'`. It
-returns JSON with the resolved policy for your location. View the source of
-a page under a policy that asks for consent and find
-`data-testid="consent-banner-root"`.
+Run `nuxt dev` and request `/api/c15t/init` with `buildManifest: true` or
+`manifest: 'server'`. It returns JSON with the resolved policy for your
+location. View the source of a page under a policy that asks for consent and
+find `data-testid="consent-banner-root"`.

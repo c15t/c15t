@@ -71,8 +71,9 @@ export const starterTargets: StarterTarget[] = [
 		start: () => ['run', 'start'],
 	},
 	{
-		// NUXT_PUBLIC_C15T_BACKEND_URL from the shared environment moves both
-		// the browser and the module's server routes.
+		// NUXT_PUBLIC_C15T_BACKEND_URL from the shared environment is where
+		// the build downloads the bundled manifest, and at runtime it moves
+		// the browser and the module's server routes too.
 		directory: 'examples/nuxt',
 		id: 'nuxt',
 		routes: ['/'],
