@@ -350,6 +350,90 @@ for (const engine of ENGINES) {
 			});
 		});
 
+		it('puts the journey from the /init query on the session report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+			const response = await reporting.request(
+				`/init?c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`,
+				{
+					headers: {
+						origin: 'https://shop.example.com',
+						'x-c15t-version': '3.0.0',
+					},
+				}
+			);
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			const emitted = onReport.mock.calls[0]?.[0];
+			// No policy is configured, so the browser would show the fallback
+			// prompt; the stored choice answers it.
+			assert.strictEqual(emitted.resolution, 'unconfigured');
+			assert.deepStrictEqual(emitted.journey, {
+				domain: 'shop.example.com',
+				id,
+				prompt: 'stored',
+				scope: 'tab',
+				storedChoice: true,
+			});
+		});
+
+		it('leaves a malformed or partial journey off the /init report', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			for (const query of [
+				'c15tJourney=visitor-42&c15tJourneyScope=page&c15tStored=0',
+				'c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=forever&c15tStored=0',
+				// Without the stored flag the report cannot say if a prompt was owed.
+				'c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=page',
+			]) {
+				// oxlint-disable-next-line no-await-in-loop -- One request at a time keeps the reports in order.
+				const response = await reporting.request(`/init?${query}`, {
+					headers: { 'x-c15t-version': '3.0.0' },
+				});
+				assert.strictEqual(response.status, 200);
+			}
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 3));
+			for (const [emitted] of onReport.mock.calls) {
+				assert.isFalse(Object.hasOwn(emitted, 'journey'));
+			}
+		});
+
+		it('passes a reported journey through to the sink', async () => {
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const journey = {
+				domain: 'shop.example.com',
+				id: '3b241101-e2bb-4255-8caf-4136c566a962',
+				prompt: 'due',
+				scope: 'page',
+				storedChoice: false,
+			};
+			const response = await reporting.request('/sessions', {
+				body: JSON.stringify({ ...report, journey }),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(response.status, 204);
+			assert.deepStrictEqual(onReport.mock.calls[0]?.[0].journey, journey);
+
+			const invalid = await reporting.request('/sessions', {
+				body: JSON.stringify({
+					...report,
+					journey: { ...journey, id: 'visitor-42' },
+				}),
+				headers: {
+					'content-type': 'application/json',
+					'x-c15t-version': '3.0.0',
+				},
+				method: 'POST',
+			});
+			assert.strictEqual(invalid.status, 400);
+		});
+
 		it('refuses a report a page could have sent', async () => {
 			// A cross-site POST from a browser carries Origin and cannot add the
 			// protocol header without a preflight an untrusted origin fails.
@@ -1103,6 +1187,27 @@ for (const engine of ENGINES) {
 			// would mean shipping one to every client.
 			await seed();
 			assert.strictEqual((await post(submission)).status, 200);
+		});
+
+		it('records a consent sent with journey query parameters', async () => {
+			// A v3 client appends the journey to the save URL; a backend that
+			// does not read it must still record the consent.
+			await seed();
+			const response = await app.request(
+				'/subjects?c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=page',
+				{
+					body: JSON.stringify(submission),
+					headers: {
+						'Content-Type': 'application/json',
+						'x-forwarded-for': '203.0.113.42',
+					},
+					method: 'POST',
+				}
+			);
+			assert.strictEqual(response.status, 200, await response.clone().text());
+			const body = await response.json();
+			assert.match(body.consentId, /^cns_/u);
+			assert.strictEqual(body.subjectId, submission.subjectId);
 		});
 
 		it('returns the same consent id on a replay', async () => {
