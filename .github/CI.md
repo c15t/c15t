@@ -129,10 +129,12 @@ selection rules. A missing or unreadable previous commit keeps the full mobile
 checks. Other release branches, nightly validation and manual full runs retain
 their full mobile checks.
 
-Release checks for consecutive pushes run side by side. Only the publish job
-waits for the previous release on the same branch. A publish job whose commit is
-no longer the branch tip skips releasing, because the newer run releases both
-commits.
+Outside `canary`, release checks for consecutive pushes run side by side. Only
+the publish job waits for the previous release on the same branch. A publish job
+whose commit is no longer the branch tip skips releasing, because the newer run
+releases both commits. After publishing a pending version PR merge, Tegami goes
+on to open the next version PR for notes that arrived since. `canary` runs stay
+queued whole, so every commit still publishes its own snapshot in push order.
 
 Mobile work selects on paths, not on the dependency graph alone. The mobile
 SDK group runs for `packages/react-native`, `native/` and `benchmarks/mobile`,

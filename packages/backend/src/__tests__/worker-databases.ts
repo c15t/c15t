@@ -29,6 +29,11 @@ const workerDatabase = function workerDatabase(sharedUrl: string) {
 	if (!/^\w+$/u.test(name)) {
 		throw new Error(`Cannot derive a worker database from "${name}"`);
 	}
+	// Postgres silently truncates longer identifiers, which would create one
+	// database and connect to another; MySQL allows 64.
+	if (name.length > 63) {
+		throw new Error(`Worker database name "${name}" exceeds 63 characters`);
+	}
 	url.pathname = `/${name}`;
 	return { name, url: url.toString() };
 };

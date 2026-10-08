@@ -7,6 +7,13 @@ on:
 
 permissions: {}
 
+# Canary publishes a snapshot for every commit, in push order, so its runs stay
+# queued whole. Every other branch gets a group per run: checks for consecutive
+# pushes overlap, and only the publish job below waits its turn.
+concurrency:
+  group: release-run-${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   # npm trusted publishing binds the OIDC identity to the *top-level* workflow
   # file. Publishing must therefore start here and pull the checks in, rather
@@ -28,8 +35,7 @@ jobs:
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
-    # Checks for consecutive pushes run side by side; only publishing waits
-    # for the previous release on the branch to finish.
+    # Only one release per branch publishes at a time.
     concurrency:
       group: release-${{ github.ref }}
       cancel-in-progress: false
@@ -48,14 +54,20 @@ jobs:
           # Tegami uses release tags and changelog history.
           fetch-depth: 0
 
-      # Checks run in parallel, so an older push can finish them after a newer
-      # one. Releasing it would run Tegami on a stale tree, for example
+      # Outside canary, checks overlap, so an older push can finish them after
+      # a newer one. Releasing it would run Tegami on a stale tree, for example
       # reopening a version PR the newer commit already merged. The newest
       # commit's run releases everything before it, so a superseded run stops.
       - name: Skip superseded commits
         id: tip
+        if: github.ref != 'refs/heads/canary'
+        shell: bash
         run: |
-          tip=$(git ls-remote origin "$GITHUB_REF" | cut -f1)
+          tip=$(git ls-remote --exit-code origin "$GITHUB_REF" | cut -f1)
+          if [ -z "$tip" ]; then
+            echo "::error::Could not read $GITHUB_REF from origin."
+            exit 1
+          fi
           if [ "$tip" = "$GITHUB_SHA" ]; then
             echo "current=true" >> "$GITHUB_OUTPUT"
           else
@@ -91,7 +103,7 @@ jobs:
 
       # Each canary commit gets its own snapshot; never reuse a lock synced from main.
       - name: Version and publish canary snapshot
-        if: steps.tip.outputs.current == 'true' && github.ref == 'refs/heads/canary'
+        if: github.ref == 'refs/heads/canary'
         run: |
           bun run tegami version --no-checks
           bun run tegami publish

@@ -53,7 +53,7 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "steps.tip.outputs.current == 'true' && github.ref == 'refs/heads/canary'",
+							if: "github.ref == 'refs/heads/canary'",
 							run: 'bun run tegami version --no-checks\nbun run tegami publish\n',
 						}),
 					]),
@@ -72,10 +72,13 @@ describe('release validation', () => {
 		});
 	});
 
-	it('queues only publishing, so release checks for consecutive pushes overlap', () => {
-		const release = readWorkflow('release');
-		expect(release).not.toHaveProperty('concurrency');
-		expect(release).toMatchObject({
+	it('queues only publishing outside canary, so release checks overlap', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			// Canary keeps whole runs queued so every commit's snapshot publishes.
+			concurrency: {
+				'cancel-in-progress': false,
+				group: `release-run-\${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}`,
+			},
 			jobs: {
 				publish: {
 					concurrency: {
@@ -83,7 +86,10 @@ describe('release validation', () => {
 						group: `release-\${{ github.ref }}`,
 					},
 					steps: expect.arrayContaining([
-						expect.objectContaining({ id: 'tip' }),
+						expect.objectContaining({
+							id: 'tip',
+							if: "github.ref != 'refs/heads/canary'",
+						}),
 					]),
 				},
 			},
