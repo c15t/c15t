@@ -291,7 +291,9 @@ export function identityTokenFor(userId: string) {
 }
 ```
 
-Render the token into the signed-in page and pass it with the user:
+Render the token into the signed-in page and pass it to `identify()`. A `user`
+passed when creating the client only links a subject that the next save
+creates, so call `identify()` for a visitor who consented before signing in:
 
 {/* example: fragment */}
 
