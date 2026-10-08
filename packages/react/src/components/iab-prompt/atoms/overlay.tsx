@@ -5,6 +5,7 @@ import { forwardRef as createForwardRef } from 'react';
 import type { HTMLAttributes } from 'react';
 
 import { useActiveUI } from '~/hooks';
+import { useLateEntry } from '~/hooks/use-late-entry';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTheme } from '~/hooks/use-theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -40,7 +41,7 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 			!(contextNoStyle || noStyle) && !disableAnimation;
 
 		// The overlay shows on its first frame; `overlayEntering` marks the
-		// mount and carries no entry animation.
+		// mount, and with `data-entry="late"` the stylesheet fades it in.
 		const animationClass = shouldApplyAnimation
 			? `${styles.overlayVisible} ${styles.overlayEntering}`
 			: undefined;
@@ -48,6 +49,8 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 		const finalClassName = cn(theme.className, animationClass);
 
 		useScrollLock(!!(shouldShow && scrollLock));
+		const lateEntry =
+			useLateEntry(!!(shouldShow && scrollLock)) && !disableAnimation;
 
 		if (!shouldShow || !scrollLock) {
 			return null;
@@ -59,6 +62,7 @@ const IABConsentBannerOverlay = createForwardRef<HTMLDivElement, OverlayProps>(
 				{...theme}
 				aria-hidden="true"
 				className={finalClassName}
+				data-entry={lateEntry ? 'late' : undefined}
 				data-testid="iab-consent-banner-overlay"
 			/>
 		);

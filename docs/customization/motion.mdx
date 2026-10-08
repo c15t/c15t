@@ -12,10 +12,10 @@ them in the theme's `motion` object, or as CSS variables:
 | CSS variable | Theme key | Default | Used by |
 | --- | --- | --- | --- |
 | `--c15t-duration-fast` | `motion.duration.fast` | `80ms` | Banner fade out, buttons, tabs |
-| `--c15t-duration-normal` | `motion.duration.normal` | `150ms` | Preference dialog, switches, accordions |
+| `--c15t-duration-normal` | `motion.duration.normal` | `150ms` | Preference dialog, late banner fade in, switches, accordions |
 | `--c15t-duration-slow` | `motion.duration.slow` | `200ms` | Legal links, floating trigger |
 | `--c15t-easing` | `motion.easing` | `cubic-bezier(0.4, 0, 0.2, 1)` | Switches, accordions |
-| `--c15t-easing-out` | `motion.easingOut` | `cubic-bezier(0.215, 0.61, 0.355, 1)` | Preference dialog, floating trigger hover |
+| `--c15t-easing-out` | `motion.easingOut` | `cubic-bezier(0.215, 0.61, 0.355, 1)` | Preference dialog, late banner fade in, floating trigger hover |
 | `--c15t-easing-in` | `motion.easingIn` | `cubic-bezier(0.55, 0.055, 0.675, 0.19)` | Banner fade out |
 | `--c15t-easing-in-out` | `motion.easingInOut` | `cubic-bezier(0.645, 0.045, 0.355, 1)` | Floating trigger snapping to a corner |
 | `--c15t-easing-spring` | `motion.easingSpring` | `cubic-bezier(0.34, 1.56, 0.64, 1)` | The dialog's scale in |
@@ -33,9 +33,13 @@ export const theme = {
 };
 ```
 
-The banner has no entry animation. It usually appears as the page loads,
-so it shows on its first frame. When it hides, Vue, Svelte and the script tag
-fade it out over `--c15t-duration-fast`.
+The banner never slides in. When it shows with the page, it is part of the
+first paint and appears on its first frame. When it arrives more than 100ms
+after the page first painted, such as after a slow script or a client-side
+init, it fades in over `--c15t-duration-normal` instead, and its root and
+backdrop carry `data-entry="late"`. A banner rendered on the server always
+shows at once. When it hides, Vue, Svelte and the script tag fade it out over
+`--c15t-duration-fast`.
 
 The theme goes where your framework's other tokens go. See
 [theme tokens](/docs/customization/tokens) and your framework's customize page.
@@ -44,7 +48,7 @@ In Vue and Nuxt, set `tokens` with the variable name without the leading
 
 ## Turn animations off
 
-`disableAnimation` removes the banner's fade out, the enter and exit
+`disableAnimation` removes the banner's fades, the enter and exit
 transitions of the dialogs, and the hover and snap transitions of the floating
 `ConsentDialogTrigger`. Set it once for every surface, then override it for one
 surface where your framework allows:

@@ -215,6 +215,7 @@
 			<Overlay
 				{styles}
 				entering={!disableAnimation}
+				lateEntry={visibility.lateEntry && !disableAnimation}
 				variant="iab-banner"
 				visible={visibility.isVisible}
 			/>
@@ -225,6 +226,9 @@
 			style={toStyleAttribute(rootStyle.style)}
 			dir={textDirection}
 			data-position={textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'}
+			data-entry={visibility.lateEntry && !disableAnimation
+				? 'late'
+				: undefined}
 			data-testid="iab-consent-banner-root"
 			tabindex="-1"
 			use:scrollLock={shouldScrollLock}

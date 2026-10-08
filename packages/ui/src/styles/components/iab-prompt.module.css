@@ -12,8 +12,10 @@
 	--iab-consent-banner-border-radius: var(--c15t-radius-lg);
 	--iab-consent-banner-max-width: 560px;
 
-	/* Animation variables. The banner only animates as it hides, so the
-	   timing is an exit curve. */
+	/* Animation variables. A banner that mounts after the page has painted
+	   fades in on the entry pair; hiding fades out on the exit pair. */
+	--iab-consent-banner-entry-duration: var(--c15t-duration-normal);
+	--iab-consent-banner-entry-timing: var(--c15t-easing-out);
 	--iab-consent-banner-animation-duration: var(--c15t-duration-fast);
 	--iab-consent-banner-animation-timing: var(--c15t-easing-in);
 
@@ -69,14 +71,30 @@
 	}
 
 	/*
-	 * The banner appears on its first frame, with no entry animation. It
-	 * usually shows as the page loads, where motion reads as layout shift.
-	 * Hiding still fades out. Adapters keep adding `bannerEntering` on
-	 * mount; that state is fully visible.
+	 * The banner appears on its first frame when it shows with the page.
+	 * There it is part of the first paint, and motion reads as layout
+	 * shift. Hiding still fades out. Adapters keep adding `bannerEntering`
+	 * on mount; that state is fully visible.
 	 */
 	.bannerEntering,
 	.bannerVisible {
 		opacity: 1;
+	}
+
+	/*
+	 * A banner that mounts after the page has painted fades in instead, so
+	 * it does not pop into a page someone is already reading. Adapters mark
+	 * that mount with `data-entry="late"`. It fades only, never moves.
+	 */
+	.bannerEntering[data-entry='late']:not(.bannerHidden) {
+		transition: opacity var(--iab-consent-banner-entry-duration)
+			var(--iab-consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.bannerEntering[data-entry='late'] {
+			opacity: 0;
+		}
 	}
 
 	.bannerHidden {
@@ -277,10 +295,21 @@
 		z-index: 999997;
 	}
 
-	/* The backdrop appears with the banner and fades out. */
+	/* The backdrop enters and leaves with the banner. */
 	.overlayEntering,
 	.overlayVisible {
 		opacity: 1;
+	}
+
+	.overlayEntering[data-entry='late']:not(.overlayHidden) {
+		transition: opacity var(--iab-consent-banner-entry-duration)
+			var(--iab-consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.overlayEntering[data-entry='late'] {
+			opacity: 0;
+		}
 	}
 
 	.overlayHidden {
@@ -295,6 +324,8 @@
 
 	/* Reduced motion preference */
 	@media (prefers-reduced-motion: reduce) {
+		.bannerEntering[data-entry='late']:not(.bannerHidden),
+		.overlayEntering[data-entry='late']:not(.overlayHidden),
 		.bannerHidden,
 		.overlayHidden {
 			transition: none;

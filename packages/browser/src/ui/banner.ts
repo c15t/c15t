@@ -1,5 +1,6 @@
 import type { ConsentSnapshot, PresentationAction } from '@c15t/core';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils';
+import { isLateEntry } from '@c15t/ui/utils/late-entry';
 
 import { classes } from '../generated/styles';
 import type { ConsentBannerOptions } from '../types';
@@ -11,6 +12,23 @@ import { renderLegalLinks } from './surface';
 import type { Surface, SurfaceContext } from './surface';
 
 const DEFAULT_DURATION_MS = 200;
+
+/**
+ * Mark a mount that arrives after the page has painted, so the stylesheet
+ * fades it in rather than popping it into a page someone is already reading.
+ *
+ * @param elements - The banner root and its backdrop, when it has one.
+ */
+const markLateEntry = function markLateEntry(
+	elements: readonly (HTMLElement | null)[]
+): void {
+	if (!isLateEntry()) {
+		return;
+	}
+	for (const element of elements) {
+		element?.setAttribute('data-entry', 'late');
+	}
+};
 /**
  * The cookie banner.
  *
@@ -231,7 +249,10 @@ export const createBanner = function createBanner(
 		renderedFrom = null;
 	};
 
-	const show = function show(snapshot: ConsentSnapshot): void {
+	const show = function show(
+		snapshot: ConsentSnapshot,
+		entering: boolean
+	): void {
 		removeNow();
 		element = build(snapshot);
 		renderedFrom = {
@@ -264,11 +285,14 @@ export const createBanner = function createBanner(
 				overlay?.classList.add(styles.overlayVisible);
 			}
 			if (!(flip || disableAnimation)) {
-				// The entering classes mark the mount. The stylesheet gives
-				// the banner no entry animation, so it shows on this frame.
+				// The entering classes mark the mount. The banner shows on
+				// this frame, unless it is marked late below.
 				element.classList.add(styles.bannerEntering);
 				overlay?.classList.add(styles.overlayEntering);
 			}
+		}
+		if (entering) {
+			markLateEntry([element, overlay]);
 		}
 		if (overlay) {
 			ctx.root.append(overlay);
@@ -326,9 +350,9 @@ export const createBanner = function createBanner(
 				hide();
 				return;
 			}
+			const onScreen = element !== null && hideTimer === undefined;
 			if (
-				element &&
-				hideTimer === undefined &&
+				onScreen &&
 				renderedFrom &&
 				renderedFrom.translations === snapshot.translations &&
 				renderedFrom.policyRule === snapshot.policyRule &&
@@ -337,7 +361,9 @@ export const createBanner = function createBanner(
 			) {
 				return;
 			}
-			show(snapshot);
+			// A banner already on screen rebuilds in place, for new copy or a
+			// new policy, rather than entering again.
+			show(snapshot, !(onScreen || disableAnimation));
 		},
 	};
 };

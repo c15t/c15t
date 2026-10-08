@@ -9,6 +9,7 @@ import { ConsentTrackingContext } from '~/context/consent-tracking-context';
 import { LocalThemeContext } from '~/context/theme-context';
 import { useActiveUI, useModel, useTranslations } from '~/hooks';
 import { useIABConsentManager } from '~/hooks/use-iab-manager';
+import { useLateEntry } from '~/hooks/use-late-entry';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
@@ -64,6 +65,8 @@ const IABConsentBannerRootChildren = createForwardRef<
 		// IAB banner shows when activeUI is 'banner' and the current model matches
 		const shouldShowBanner =
 			model !== null && activeUI === 'banner' && models.includes(model);
+		// A banner that arrives after the page painted fades in.
+		const lateEntry = useLateEntry(shouldShowBanner) && !disableAnimation;
 		const contentStyle = mergeSlotProps(components?.['iab-banner']?.root, {
 			baseClassName: [styles.root],
 			className: className || forwardedClassName,
@@ -91,6 +94,7 @@ const IABConsentBannerRootChildren = createForwardRef<
 					data-position={
 						textDirection === 'ltr' ? 'bottom-left' : 'bottom-right'
 					}
+					data-entry={lateEntry ? 'late' : undefined}
 					data-testid="iab-consent-banner-root"
 					dir={textDirection}
 					tabIndex={-1}

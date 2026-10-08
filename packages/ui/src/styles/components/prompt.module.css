@@ -16,8 +16,10 @@
 	--consent-banner-wall-max-width: 30rem;
 	--consent-banner-branding-tag-offset: 2rem;
 
-	/* Animation variables. The banner only animates as it hides, so the
-	   timing is an exit curve. */
+	/* Animation variables. A banner that mounts after the page has painted
+	   fades in on the entry pair; hiding fades out on the exit pair. */
+	--consent-banner-entry-duration: var(--c15t-duration-normal);
+	--consent-banner-entry-timing: var(--c15t-easing-out);
 	--consent-banner-animation-duration: var(--c15t-duration-fast);
 	--consent-banner-animation-timing: var(--c15t-easing-in);
 
@@ -70,10 +72,10 @@
 	}
 
 	/*
-	 * The banner appears on its first frame, with no entry animation. It
-	 * usually shows as the page loads, where a slide reads as layout shift.
-	 * Hiding still fades out. Adapters keep adding the enter classes and
-	 * `bannerEntering` on mount; those states are fully visible.
+	 * The banner appears on its first frame when it shows with the page.
+	 * There it is part of the first paint, and a slide reads as layout
+	 * shift. Hiding still fades out. Adapters keep adding the enter classes
+	 * and `bannerEntering` on mount; those states are fully visible.
 	 */
 	.bannerEnterActive:not(:global(.headless)),
 	.bannerEnterFrom:not(:global(.headless)),
@@ -82,6 +84,24 @@
 	.bannerLeaveFrom:not(:global(.headless)),
 	.bannerVisible:not(:global(.headless)) {
 		opacity: 1;
+	}
+
+	/*
+	 * A banner that mounts after the page has painted fades in instead, so
+	 * it does not pop into a page someone is already reading. Adapters mark
+	 * that mount with `data-entry="late"`. It fades only, never moves.
+	 */
+	.bannerEntering[data-entry='late']:not(.bannerHidden):not(
+			:global(.headless)
+		) {
+		transition: opacity var(--consent-banner-entry-duration)
+			var(--consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.bannerEntering[data-entry='late']:not(:global(.headless)) {
+			opacity: 0;
+		}
 	}
 
 	/* Banner — Vue <Transition> leave classes */
@@ -743,7 +763,7 @@
 		z-index: 999997;
 	}
 
-	/* The backdrop of a blocking banner appears with it and fades out. */
+	/* The backdrop of a blocking banner enters and leaves with it. */
 	.overlayEnterActive:not(:global(.headless)),
 	.overlayEnterFrom:not(:global(.headless)),
 	.overlayEnterTo:not(:global(.headless)),
@@ -751,6 +771,19 @@
 	.overlayLeaveFrom:not(:global(.headless)),
 	.overlayVisible:not(:global(.headless)) {
 		opacity: 1;
+	}
+
+	.overlayEntering[data-entry='late']:not(.overlayHidden):not(
+			:global(.headless)
+		) {
+		transition: opacity var(--consent-banner-entry-duration)
+			var(--consent-banner-entry-timing);
+	}
+
+	@starting-style {
+		.overlayEntering[data-entry='late']:not(:global(.headless)) {
+			opacity: 0;
+		}
 	}
 
 	/* Overlay — Vue <Transition> leave classes */
@@ -777,6 +810,12 @@
 	/* The same selectors as the rules that animate, so these win on
 	   source order in every adapter. */
 	@media (prefers-reduced-motion: reduce) {
+		.bannerEntering[data-entry='late']:not(.bannerHidden):not(
+				:global(.headless)
+			),
+		.overlayEntering[data-entry='late']:not(.overlayHidden):not(
+				:global(.headless)
+			),
 		.bannerLeaveActive:not(:global(.headless)),
 		.bannerHidden:not(:global(.headless)),
 		.overlayLeaveActive:not(:global(.headless)),

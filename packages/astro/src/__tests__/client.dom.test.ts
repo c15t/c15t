@@ -377,6 +377,80 @@ describe('banner actions', () => {
 		}
 	);
 
+	describe('late entry', () => {
+		/** The page first painted at 0; the clock reads `now`. */
+		const setClock = function setClock(now: number) {
+			vi.spyOn(performance, 'getEntriesByType').mockImplementation((type) =>
+				type === 'paint'
+					? [
+							{
+								name: 'first-contentful-paint',
+								startTime: 0,
+							} as PerformanceEntry,
+						]
+					: []
+			);
+			vi.spyOn(performance, 'now').mockReturnValue(now);
+		};
+
+		const markup = (hidden: boolean) => `
+			<div data-testid="consent-banner-overlay"${hidden ? ' hidden' : ''}></div>
+			<div data-testid="consent-banner-root" data-blocking="true"${hidden ? ' hidden' : ''}>
+				<div data-testid="consent-banner-card" tabindex="-1"></div>
+			</div>
+		`;
+		const root = () =>
+			document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-root"]'
+			);
+		const overlay = () =>
+			document.querySelector<HTMLElement>(
+				'[data-testid="consent-banner-overlay"]'
+			);
+		const shown = { activeUI: 'banner' } as ConsentSnapshot;
+		const hidden = { activeUI: 'none' } as ConsentSnapshot;
+
+		afterEach(() => {
+			syncBannerVisibility(hidden);
+			vi.restoreAllMocks();
+		});
+
+		it('marks a hidden banner revealed after the page painted', () => {
+			setClock(5000);
+			document.body.innerHTML = markup(true);
+			syncBannerVisibility(shown);
+			expect(root()?.hidden).toBe(false);
+			expect(root()?.dataset.entry).toBe('late');
+			expect(overlay()?.dataset.entry).toBe('late');
+		});
+
+		it('does not mark a banner revealed with the first paint', () => {
+			setClock(50);
+			document.body.innerHTML = markup(true);
+			syncBannerVisibility(shown);
+			expect(root()?.dataset.entry).toBeUndefined();
+			expect(overlay()?.dataset.entry).toBeUndefined();
+		});
+
+		it('leaves a server-rendered banner that is already shown alone', () => {
+			setClock(5000);
+			document.body.innerHTML = markup(false);
+			syncBannerVisibility(shown);
+			expect(root()?.dataset.entry).toBeUndefined();
+		});
+
+		it('decides again each time the banner is revealed', () => {
+			setClock(5000);
+			document.body.innerHTML = markup(true);
+			syncBannerVisibility(shown);
+			syncBannerVisibility(hidden);
+			setClock(5000);
+			vi.spyOn(performance, 'getEntriesByType').mockReturnValue([]);
+			syncBannerVisibility(shown);
+			expect(root()?.dataset.entry).toBeUndefined();
+		});
+	});
+
 	it('leaves scroll alone for a non-blocking banner', () => {
 		renderBanner();
 		syncBannerVisibility({ activeUI: 'banner' } as ConsentSnapshot);

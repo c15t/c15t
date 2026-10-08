@@ -1,3 +1,4 @@
+import { isLateEntry } from '@c15t/ui/utils/late-entry';
 import { onMount, untrack } from 'svelte';
 
 const DEFAULT_DURATION_MS = 200;
@@ -25,8 +26,9 @@ const readDurationMs = function readDurationMs(target: Element | null): number {
  * Visibility / mount lifecycle for the consent banner.
  *
  * - On show: mounts the element in its visible state with the
- *   `bannerEntering` class. The stylesheet gives the banner no entry
- *   animation, so it shows on its first frame.
+ *   `bannerEntering` class, so it shows on its first frame. A mount after
+ *   the page has painted reports `lateEntry`, which the component writes
+ *   as `data-entry="late"` for the stylesheet to fade it in.
  * - On hide: flips to `.bannerHidden`, then unmounts after the duration
  *   declared by the `--consent-banner-animation-duration` CSS variable.
  * - When animation is disabled (provider option or `prefers-reduced-motion`):
@@ -34,9 +36,8 @@ const readDurationMs = function readDurationMs(target: Element | null): number {
  * - Server render: when the very first evaluation already says "show" — which
  *   only happens once a `prefetch` has seeded a resolved policy, since
  *   without one the kernel's model is `null` and `activeUI` is `'none'` — the
- *   banner starts mounted and visible in the first HTML. The entry runs
- *   once, at first paint; hydration does not replay it because the element
- *   has already been styled.
+ *   banner starts mounted and visible in the first HTML, as part of the
+ *   first paint, so it is never a late entry.
  */
 export const useBannerVisibility = function useBannerVisibility(
 	getShouldShow: () => boolean,
@@ -49,6 +50,7 @@ export const useBannerVisibility = function useBannerVisibility(
 	let isVisible = $state(serverVisible);
 	let isMounted = $state(serverVisible);
 	let shouldRender = $state(serverVisible);
+	let lateEntry = $state(false);
 	onMount(() => {
 		isMounted = true;
 	});
@@ -59,6 +61,10 @@ export const useBannerVisibility = function useBannerVisibility(
 		const disableAnim = getDisableAnimation();
 
 		if (shouldShow) {
+			if (!untrack(() => shouldRender)) {
+				// Decided once per mount, as the element is about to render.
+				lateEntry = isLateEntry();
+			}
 			shouldRender = true;
 			isVisible = true;
 			return;
@@ -97,6 +103,9 @@ export const useBannerVisibility = function useBannerVisibility(
 		},
 		get isVisible() {
 			return isVisible;
+		},
+		get lateEntry() {
+			return lateEntry;
 		},
 		get shouldRender() {
 			return shouldRender;

@@ -54,6 +54,7 @@ import {
 } from '@c15t/core/surface-actions';
 import { setupColorScheme } from '@c15t/ui/utils/color-scheme';
 import { setupFocusTrap, setupScrollLock } from '@c15t/ui/utils/dom';
+import { isLateEntry } from '@c15t/ui/utils/late-entry';
 
 import {
 	IAB_PROMPT_SLOT_ATTRIBUTE,
@@ -569,9 +570,11 @@ const BANNER_ROOT_SELECTOR =
  *
  * The server already decided the initial state, so this only has to keep
  * the DOM honest afterwards — after a save, or after a ClientRouter
- * navigation replaced the markup. A banner the server resolved as blocking
- * (`data-blocking="true"`) also locks scroll and traps focus in its card
- * while it is shown.
+ * navigation replaced the markup. A banner revealed after the page has
+ * painted is marked `data-entry="late"`, which the stylesheet fades in when
+ * the entering class is present, so `disableAnimation` still turns it off.
+ * A banner the server resolved as blocking (`data-blocking="true"`) also
+ * locks scroll and traps focus in its card while it is shown.
  *
  * @param snapshot - The current kernel snapshot.
  */
@@ -584,6 +587,20 @@ export const syncBannerVisibility = function syncBannerVisibility(
 		return;
 	}
 	const shouldShow = snapshot.activeUI === 'banner';
+	const entry = shouldShow && banner.hidden && isLateEntry() ? 'late' : null;
+	const reveal = function reveal(element: HTMLElement): void {
+		if (!element.hidden) {
+			return;
+		}
+		if (entry) {
+			element.setAttribute('data-entry', entry);
+		} else {
+			element.removeAttribute('data-entry');
+		}
+	};
+	if (shouldShow) {
+		reveal(banner);
+	}
 	banner.hidden = !shouldShow;
 	banner.setAttribute('data-c15t-visible', shouldShow ? 'true' : 'false');
 
@@ -591,6 +608,9 @@ export const syncBannerVisibility = function syncBannerVisibility(
 	for (const overlay of document.querySelectorAll<HTMLElement>(
 		'[data-testid="consent-banner-overlay"], [data-testid="iab-consent-banner-overlay"]'
 	)) {
+		if (blocking) {
+			reveal(overlay);
+		}
 		overlay.hidden = !blocking;
 	}
 	if (!blocking) {

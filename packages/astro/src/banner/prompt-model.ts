@@ -277,7 +277,8 @@ const PROMPT_SLOTS = {
  * @param props - The component props.
  * @param theme - The integration's `theme`.
  * @param disableAnimation - Leave out the entering classes, which mark the
- * mount. The stylesheet gives them no entry animation.
+ * mount. The stylesheet fades the banner in only when the client also
+ * marks a late reveal with `data-entry="late"`.
  * @returns The class list and style for each element.
  */
 const resolveClasses = function resolveClasses(

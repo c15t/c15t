@@ -23,6 +23,7 @@ import {
 } from '../composables';
 import { useConsentPolicyActions } from '../composables/use-consent-policy-actions';
 import { useConsentScrollLock } from '../composables/use-consent-scroll-lock';
+import { useLateEntry } from '../composables/use-late-entry';
 import { useMounted } from '../composables/use-mounted';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { slotAttrs } from '../utils/slot-attrs';
@@ -137,6 +138,11 @@ const disableAnimation = computed(() =>
 );
 
 const scrollLock = computed(() => surface.value.scrollLock);
+// A banner that opens after the page painted fades in.
+const lateEntry = useLateEntry(isOpen);
+const entryAttribute = computed(() =>
+	lateEntry.value && !disableAnimation.value ? 'late' : undefined
+);
 useConsentScrollLock(computed(() => isOpen.value && scrollLock.value));
 
 const shouldTrapFocus = computed(() =>
@@ -252,6 +258,7 @@ const onAction = function onAction(action: PresentationAction) {
 					])
 				"
 				aria-hidden="true"
+				:data-entry="entryAttribute"
 				data-testid="consent-banner-overlay"
 			/>
 		</Transition>
@@ -274,6 +281,7 @@ const onAction = function onAction(action: PresentationAction) {
 					])
 				"
 				data-testid="consent-banner-root"
+				:data-entry="entryAttribute"
 				:data-variant="variant"
 				:data-position="resolvedPosition"
 				:data-blocking="blocking ? 'true' : undefined"
