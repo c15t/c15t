@@ -126,8 +126,10 @@ Where to set it:
 | `@c15t/tanstack-start` | `ConsentRoot` `options.journey` | `resolveConsent({ journey })`; pass both the same value |
 | Vue, Svelte, Astro, script tag | `'page'` only for now | `'page'` only for now |
 
-Pass the same value to `buildPrefetchScript({ journey })` when you use the
-inline prefetch script.
+The Vue, Svelte and Astro server renders start a `'page'` journey, which is
+what their browsers keep, so the two agree. Their `reportSessions: false` turns
+it off on both sides. Pass the same value to `buildPrefetchScript({ journey })`
+when you use the inline prefetch script.
 
 A `fetch` you pass to `hosted()` sees the query string, so match on the path
 rather than the full URL.
