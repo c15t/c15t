@@ -68,8 +68,12 @@ excluded from versioning and publishing.
 
 ## Publishing checks
 
-Before uploading any package, the release hook builds the libraries and bundled
-docs and runs `check:publish-artifacts`. Bun packs each package, resolves
+Before uploading any package, the release hook builds code and bundled docs for
+the packages in the publish plan and their build dependencies, then runs
+`check:publish-artifacts --built` for that package set. The publishing job restores
+CI outputs and Turbo caches. The guard reuses completed standard docs preparation and retains
+custom packing hooks. A missing export or forbidden tarball file still fails
+the release. Bun packs each package, resolves
 `workspace:` dependencies in the tarball, and Tegami invokes `npm publish` for
 OIDC authentication. Existing package `prepack` checks still run.
 

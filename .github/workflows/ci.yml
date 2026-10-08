@@ -9,10 +9,18 @@ on:
         description: Run release checks without waiting for separate runtime benchmarks
         type: boolean
         default: false
-      mobile_diff_base:
-        description: Select mobile checks from changes since this commit while keeping other checks full
-        type: string
-        default: ''
+      release_affected:
+        description: Select changes since the last successful release on this branch
+        type: boolean
+        default: false
+      skip_mobile_device:
+        description: Run advisory native app builds in their separate push workflow
+        type: boolean
+        default: false
+    outputs:
+      built:
+        description: Same-run library outputs are available in ci-build
+        value: ${{ jobs.repository.outputs.build }}
     secrets:
       TURBO_TOKEN:
         required: false
@@ -22,6 +30,7 @@ on:
 
 permissions:
   contents: read
+  actions: read
 
 # A new push to a pull request replaces its running checks. Every other run
 # gets a group of its own: release checks for consecutive pushes run side by
@@ -48,6 +57,7 @@ jobs:
       testBrowsers: ${{ steps.plan.outputs.testBrowsers }}
       bundle: ${{ steps.plan.outputs.bundle }}
       performance: ${{ steps.plan.outputs.performance }}
+      baseRef: ${{ steps.plan.outputs.baseRef }}
       mobile: ${{ steps.plan.outputs.mobile }}
       mobileBrowserOrDevice: ${{ steps.plan.outputs.mobileBrowserOrDevice }}
     steps:
@@ -58,10 +68,16 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           node-version: '24'
+          cache-scope: repository
+      - name: Find the last validated release
+        if: inputs.release_affected
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: bun scripts/ci-release-base.ts
       - name: Select checks
         id: plan
         env:
-          CI_MOBILE_DIFF_BASE: ${{ inputs.mobile_diff_base }}
+          CI_RELEASE_SELECTION: ${{ inputs.release_affected }}
         run: bun scripts/ci-plan.ts
       - name: Save selected checks
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -79,6 +95,10 @@ jobs:
       - name: Generate package documentation
         if: steps.plan.outputs.docs == 'true'
         run: bun turbo run build:docs
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: repository
 
   build:
     name: Build packages once
@@ -102,14 +122,10 @@ jobs:
           name: ci-build
           path: ci-build.tar
           retention-days: 1
-      - name: Prune shared cache
-        if: github.event_name != 'pull_request'
-        run: bun scripts/prune-turbo-cache.ts
-      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830
+      - uses: ./.github/actions/save-turbo-cache
         if: github.event_name != 'pull_request'
         with:
-          path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
+          scope: build
 
   packages:
     name: Package behavior and types
@@ -126,6 +142,7 @@ jobs:
         with:
           built: ${{ needs.build.result == 'success' }}
           browsers: ${{ needs.repository.outputs.testBrowsers }}
+          cache-scope: packages
       - name: Read selected checks
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
         with:
@@ -153,6 +170,10 @@ jobs:
             benchmarks/*/coverage/
           retention-days: 7
           if-no-files-found: ignore
+      - uses: ./.github/actions/save-turbo-cache
+        if: ${{ success() && github.event_name != 'pull_request' }}
+        with:
+          scope: packages
 
   backend:
     name: Database behavior and migrations
@@ -185,6 +206,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           built: 'true'
+          cache-scope: backend
       - name: Test every supported database
         env:
           C15T_TEST_PG_URL: postgres://postgres:c15t@127.0.0.1:5432/c15t
@@ -199,6 +221,10 @@ jobs:
           name: backend-test-reports
           path: packages/backend/coverage/
           retention-days: 7
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: backend
 
   browser:
     name: Browser integration (${{ matrix.kind }})
@@ -218,6 +244,7 @@ jobs:
         with:
           built: 'true'
           browsers: 'true'
+          cache-scope: browser-${{ matrix.kind }}
       - name: Run selected integration contracts
         env:
           CI_INTEGRATION: ${{ matrix.kind }}
@@ -236,6 +263,10 @@ jobs:
             .ci-reports/
           if-no-files-found: ignore
           retention-days: 7
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: browser-${{ matrix.kind }}
 
   # Mobile SDK. The native kernels speak their own toolchains, so no JS job can cover
   # them: Swift needs a macOS runner with Xcode, and the Android library assembly needs
@@ -250,10 +281,8 @@ jobs:
   # job rather than the browser matrix is what a mobile pull request pays for. Both legs
   # use GitHub-hosted runners only, so nothing here waits on a self-hosted machine.
   #
-  # `mobile` selects this job for packages/react-native, native/, and
-  # benchmarks/mobile, and for anything whose dependency graph reaches
-  # @c15t/react-native, because the JavaScript boundary drives the same kernel the web
-  # packages ship.
+  # Native sources, protocol/spec changes, mobile benchmark inputs and full
+  # validation select this job. Affected JavaScript tests run in `packages`.
   mobile:
     name: Mobile SDK (${{ matrix.kind }})
     needs: [repository, build]
@@ -288,6 +317,7 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           built: 'true'
+          cache-scope: mobile-${{ matrix.kind }}
       - name: Select the pinned Xcode
         if: matrix.kind == 'ios-toolchain'
         run: |
@@ -419,19 +449,6 @@ jobs:
         # that app's build before a single task runs. This asks the CLI from the bare example
         # app's own install, which is the cheapest place that answer exists.
         run: bun scripts/react-native-autolink.ts
-      - name: Run the React Native test suite
-        if: matrix.kind == 'android-js'
-        # Keep this unfiltered. The package's coverage ratchet gates on an
-        # unfiltered vitest run, so adding a path filter here would drop the
-        # 90% floor without failing anything.
-        #
-        # This is also where the spec drift check runs: src/specs/__tests__ generates the
-        # spec for both platforms through android/codegen/generate-spec.mjs and fails if the
-        # hand-written Android stand-in or the hand-written iOS module signatures disagree
-        # with it. It needs Node and the react-native devDependency and nothing else, so the
-        # Linux leg is where it belongs; the Gradle step above proves the same generated
-        # output compiles.
-        run: bun turbo run test --filter=@c15t/react-native
       - name: Measure the mobile budgets
         run: bun run --cwd benchmarks/mobile bench:ci
       # The harness already failed the job above if a measured number broke a ceiling.
@@ -454,181 +471,29 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
-  # Mobile device builds. Advisory: this job is deliberately absent from `complete`, so
-  # `CI complete` stays green when a pod fetch or a simulator-SDK build breaks for a
-  # reason the SDK has nothing to do with. Read it as a build report.
-  #
-  # This is the most expensive thing CI can do for this repository. Budget roughly 25
-  # minutes of macOS time (two `pod install` runs against a full React Native pod tree,
-  # two Xcode app builds, one Expo config resolution) and roughly 12 minutes of Ubuntu
-  # time (two Metro bundles and two Gradle app assemblies) per selected run. A full run
-  # selects it too, so a dependency bump or a native change pays the macOS cost even
-  # when no example app was touched. SwiftPM, Gradle, and CocoaPods are cached because
-  # without them most of that budget is dependency resolution.
+      - uses: ./.github/actions/save-turbo-cache
+        if: github.event_name != 'pull_request'
+        with:
+          scope: mobile-${{ matrix.kind }}
+
+  # Native app builds remain visible on PRs and full validation. Release pushes
+  # run the advisory workflow independently so publishing cannot wait for it.
   mobileBrowserOrDevice:
-    name: Mobile device builds (${{ matrix.kind }})
     needs: [repository, build]
-    if: needs.repository.outputs.mobileBrowserOrDevice == 'true'
-    runs-on: ${{ matrix.runner }}
-    timeout-minutes: 60
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - kind: ios
-            runner: macos-latest
-          - kind: android
-            runner: ubuntu-latest
-    env:
-      # Same acceptance list as the mobile job above, and for the same reason.
-      C15T_XCODE_VERSIONS: '27 26'
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5
-        with:
-          persist-credentials: false
-      - uses: ./.github/actions/setup
-        with:
-          built: 'true'
-      - name: Select the pinned Xcode
-        if: matrix.kind == 'ios'
-        run: |
-          target=""
-          for version in ${C15T_XCODE_VERSIONS}; do
-            # Newest point release of this major first; the glob sorts lexically, so
-            # take the last match. A missing major expands to no matches at all.
-            for candidate in /Applications/Xcode_${version}*.app /Applications/Xcode-${version}*.app; do
-              if [ -d "${candidate}/Contents/Developer" ]; then
-                target="${candidate}"
-              fi
-            done
-            if [ -n "${target}" ]; then
-              break
-            fi
-          done
-          if [ -z "${target}" ] && [ -d /Applications/Xcode.app/Contents/Developer ]; then
-            target=/Applications/Xcode.app
-          fi
-          if [ -z "${target}" ]; then
-            echo "No Xcode ${C15T_XCODE_VERSIONS} in /Applications. This runner has:" >&2
-            ls /Applications >&2
-            exit 1
-          fi
-          if [ "${target}" != "/Applications/Xcode.app" ] && [ ! -e /Applications/Xcode.app ]; then
-            sudo ln -s "${target}" /Applications/Xcode.app
-          fi
-          echo "DEVELOPER_DIR=/Applications/Xcode.app/Contents/Developer" >> "${GITHUB_ENV}"
-          xcodebuild -version
-          accepted="$(printf '%s' "${C15T_XCODE_VERSIONS}" | tr ' ' '|')"
-          xcodebuild -version | head -n 1 | grep -qE "^Xcode (${accepted})[. ]" || {
-            echo "Expected Xcode ${C15T_XCODE_VERSIONS}, found the version above." >&2
-            exit 1
-          }
-      - name: Use the JDK the Gradle toolchain asks for
-        if: matrix.kind == 'android'
-        run: |
-          if [ -z "${JAVA_HOME_17_X64:-}" ]; then
-            echo "No JDK 17 on this runner: JAVA_HOME_17_X64 is unset." >&2
-            exit 1
-          fi
-          echo "JAVA_HOME=${JAVA_HOME_17_X64}" >> "${GITHUB_ENV}"
-      - name: Cache SwiftPM
-        if: matrix.kind == 'ios'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: |
-            native/core-swift/.build
-            packages/react-native/.build
-            ~/Library/Caches/org.swift.swiftpm
-          key: swiftpm-${{ runner.os }}-${{ hashFiles('native/core-swift/Package.swift', 'native/core-swift/Sources/**/*.swift', 'packages/react-native/Package.swift') }}
-      - name: Cache CocoaPods
-        if: matrix.kind == 'ios'
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: |
-            ~/.cocoapods
-            ~/Library/Caches/CocoaPods
-          key: cocoapods-${{ runner.os }}-${{ hashFiles('internals/fixtures/react-native-bare/ios/Podfile', 'internals/fixtures/expo-dev/ios/Podfile', 'packages/react-native/C15tReactNative.podspec', 'native/core-swift/C15tCore.podspec', 'bun.lock') }}
-      - name: Cache Gradle
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-            ~/.gradle/build-cache
-          key: gradle-app-${{ runner.os }}-${{ hashFiles('internals/fixtures/*/android/*.gradle', 'internals/fixtures/*/android/app/*.gradle', 'internals/fixtures/*/android/gradle/**', 'internals/fixtures/*/android/gradle.properties', 'native/core-android/gradle/libs.versions.toml') }}
-      # Every build below targets a generic destination. No simulator is booted and no
-      # device is attached, which is why this group is "browser or device" and not an
-      # end-to-end run: the journeys those builds would prove belong to their own group.
-      - name: Build the binding's iOS slice
-        if: matrix.kind == 'ios'
-        run: |
-          cd packages/react-native/ios
-          xcodebuild -project C15tReactNative.xcodeproj -scheme C15tReactNative \
-            -destination 'generic/platform=iOS Simulator' -configuration Release build
-      - name: Build the bare React Native app for iOS
-        if: matrix.kind == 'ios'
-        run: |
-          set -ex
-          cd internals/fixtures/react-native-bare/ios
-          pod install --repo-update
-          xcodebuild -workspace C15tBare.xcworkspace -scheme C15tBare \
-            -destination 'generic/platform=iOS Simulator' -configuration Release build
-      - name: Build the Expo dev-client app for iOS
-        if: matrix.kind == 'ios'
-        run: |
-          set -ex
-          # The config plugin is what wires the native core into an Expo project, so
-          # resolve it before building. A plugin that stops emitting the right native
-          # code fails here, where the message names the plugin.
-          mkdir -p internals/fixtures/expo-dev/.artifacts
-          bun run --cwd internals/fixtures/expo-dev config
-          # The native projects are generated, not committed: prebuild writes ios/
-          # from app.config.ts and the plugin. Installation is left to the pod step
-          # below, which is the one the cache key describes.
-          (cd internals/fixtures/expo-dev && bun x expo prebuild --platform ios --clean --no-install)
-          cd internals/fixtures/expo-dev/ios
-          pod install --repo-update
-          xcodebuild -workspace c15tExpoDev.xcworkspace -scheme c15tExpoDev \
-            -destination 'generic/platform=iOS Simulator' -configuration Release build
-      - name: Bundle the JavaScript for both platforms
-        if: matrix.kind == 'android'
-        run: |
-          bun run --cwd internals/fixtures/react-native-bare bundle
-          bun run --cwd internals/fixtures/expo-dev bundle
-      - name: Assemble the Android apps
-        if: matrix.kind == 'android'
-        run: |
-          set -ex
-          # `sh` rather than the wrapper path: the two example wrappers do not agree on
-          # the executable bit, and a Gradle launcher is POSIX sh either way.
-          sh internals/fixtures/react-native-bare/android/gradlew -p internals/fixtures/react-native-bare/android assembleDebug
-          # The Expo project's android/ is generated by prebuild, never committed. The
-          # prebuild is the check here: the app's React Native 0.86 hosts AGP 8.12 and
-          # Kotlin 2.1, and the included native/core-android needs AGP 9 and Kotlin 2.2,
-          # so its assemble cannot run until the core is on Maven or builds under AGP 8.
-          # See withC15tLocalCoreGradle in internals/fixtures/expo-dev/app.config.ts.
-          (cd internals/fixtures/expo-dev && bun x expo prebuild --platform android --clean --no-install)
-          grep -q "c15t-core" internals/fixtures/expo-dev/android/settings.gradle
-          echo "::notice title=Expo Android assemble skipped::native/core-android needs AGP 9 and Kotlin 2.2; the Expo app's React Native 0.86 hosts AGP 8.12 and Kotlin 2.1. Publish the core to Maven or build it under AGP 8 to enable this assemble."
-      - name: Save device build evidence
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        with:
-          name: mobile-device-${{ matrix.kind }}
-          path: |
-            internals/fixtures/react-native-bare/.artifacts/
-            internals/fixtures/expo-dev/.artifacts/
-            internals/fixtures/react-native-bare/android/app/build/outputs/
-            internals/fixtures/expo-dev/android/app/build/outputs/
-          if-no-files-found: ignore
-          retention-days: 7
+    if: needs.repository.outputs.mobileBrowserOrDevice == 'true' && !inputs.skip_mobile_device
+    uses: ./.github/workflows/mobile-device.yml
+    with:
+      built: true
+    secrets:
+      TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      TURBO_TEAM: ${{ secrets.TURBO_TEAM }}
 
   bundle:
     needs: [repository, build]
     if: needs.repository.outputs.bundle == 'true'
     uses: ./.github/workflows/bundle-analysis.yml
     with:
-      base_ref: ${{ github.event.pull_request.base.sha || 'HEAD^' }}
+      base_ref: ${{ needs.repository.outputs.baseRef || github.event.pull_request.base.sha || 'HEAD^' }}
       built: true
 
   performance:

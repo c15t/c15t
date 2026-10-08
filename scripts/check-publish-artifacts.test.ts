@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import {
 	appendFileSync,
 	existsSync,
@@ -14,6 +15,7 @@ import { afterAll, afterEach, describe, expect, it } from 'vitest';
 
 import {
 	allowedCommonJsArtifacts,
+	canReusePackPreparation,
 	getBlockedReason,
 	kernelFreePackages,
 	runPack,
@@ -22,6 +24,7 @@ import {
 	scanPublishedLicenses,
 	scanUiComponentStyleArtifacts,
 	scanVendoredNativeSources,
+	selectPublishDirectories,
 } from './check-publish-artifacts';
 import type { PackageManifest } from './manifest-utils';
 import { hostReadPaths } from './react-native-autolink';
@@ -41,6 +44,96 @@ const makeTree = function makeTree(
 		writeFileSync(target, contents);
 	}
 };
+
+describe('release artifact selection', () => {
+	it('checks exactly the requested public packages and rejects unknown or private names', () => {
+		const root = mkdtempSync(join(tmpdir(), 'c15t-publish-selection-'));
+		try {
+			for (const name of ['first', 'second', 'private']) {
+				mkdirSync(join(root, name));
+				writeFileSync(
+					join(root, name, 'package.json'),
+					JSON.stringify({ name, private: name === 'private' })
+				);
+			}
+			expect(selectPublishDirectories(['first'], root)).toEqual([
+				join(root, 'first'),
+			]);
+			expect(selectPublishDirectories([], root)).toEqual([
+				join(root, 'first'),
+				join(root, 'second'),
+			]);
+			expect(() => selectPublishDirectories(['missing'], root)).toThrow(
+				'missing'
+			);
+			expect(() => selectPublishDirectories(['private'], root)).toThrow(
+				'private'
+			);
+		} finally {
+			rmSync(root, { force: true, recursive: true });
+		}
+	});
+
+	it('only reuses standard docs and verification preparation after successful builds', () => {
+		const prepack =
+			'bun run build:docs && bun ../../scripts/verify-package-artifacts.ts';
+		expect(canReusePackPreparation({ scripts: { prepack } })).toBe(true);
+		expect(
+			canReusePackPreparation({ scripts: { prepack: 'bun sync-native.ts' } })
+		).toBe(false);
+		expect(
+			canReusePackPreparation({
+				scripts: { prepack, prepare: 'bun generate.ts' },
+			})
+		).toBe(false);
+		expect(
+			canReusePackPreparation({ scripts: { postpack: 'bun sign.ts', prepack } })
+		).toBe(false);
+	});
+
+	it('guards selected tarballs after reusing preparation and leaves unrelated packages out', () => {
+		const root = mkdtempSync(join(tmpdir(), 'c15t-publish-guard-'));
+		try {
+			for (const name of ['selected', 'unrelated']) {
+				makeTree(root, {
+					[`packages/${name}/package.json`]: JSON.stringify({
+						exports: './dist/index.js',
+						files: ['dist'],
+						name: `c15t-ci-${name}`,
+						scripts: {
+							// This hook cannot run in the fixture. The guard must reuse its build.
+							prepack: 'bun ../../scripts/verify-package-artifacts.ts',
+						},
+						version: '1.0.0',
+					}),
+				});
+			}
+			makeTree(root, { 'packages/selected/dist/index.js': 'export {};' });
+			const guard = (name: string) =>
+				spawnSync(
+					'bun',
+					[join(ROOT, 'scripts/check-publish-artifacts.ts'), '--built', name],
+					{ cwd: root, encoding: 'utf8', timeout: 10_000 }
+				);
+			const selected = guard('c15t-ci-selected');
+			expect(selected.status, selected.stderr).toBe(0);
+			expect(selected.stdout).toContain('Checked 1 packages.');
+			const missing = guard('c15t-ci-unrelated');
+			expect(missing.status).toBe(1);
+			expect(missing.stderr).toContain(
+				'manifest target missing from packed files'
+			);
+			makeTree(root, {
+				'packages/selected/dist/leaked.test.js': 'export {};',
+			});
+			const leaked = guard('c15t-ci-selected');
+			expect(leaked.status).toBe(1);
+			expect(leaked.stderr).toContain('test file');
+		} finally {
+			rmSync(root, { force: true, recursive: true });
+		}
+	});
+});
 
 describe('getBlockedReason', () => {
 	it('rejects CommonJS artifacts outside dist', () => {
