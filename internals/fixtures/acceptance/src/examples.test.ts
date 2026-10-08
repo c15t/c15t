@@ -522,11 +522,13 @@ for (const target of selectedTargets()) {
 		}
 
 		if (target.id.startsWith('tanstack-start')) {
-			// Awaited server rendering puts the banner in the HTML. A streamed
-			// loader and prerendered pages mount it after hydration.
+			// Awaited server rendering puts the banner in the HTML, and a
+			// streamed loader sends it in a later chunk of the same response.
+			// Prerendered pages mount it after hydration.
 			const bannerInHTML = [
 				'tanstack-start',
 				'tanstack-start-same-origin',
+				'tanstack-start-streamed',
 			].includes(target.id);
 			// Only the same-origin variant sends consent traffic to the app.
 			const sameOrigin = target.id === 'tanstack-start-same-origin';

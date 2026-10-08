@@ -56,6 +56,7 @@ import {
 	useGateSelector,
 	useKernel,
 	useKernelSelector,
+	useServerSnapshot,
 } from './kernel-selector';
 import type { Theme } from './types/theme';
 import { useUIConfig } from './ui-config-context';
@@ -66,10 +67,11 @@ import { useUIConfig } from './ui-config-context';
  */
 export const useSnapshot = function useSnapshot(): ConsentSnapshot {
 	const kernel = useKernel();
+	const serverSnapshot = useServerSnapshot(kernel);
 	return useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => kernel.getSnapshot(),
-		() => kernel.getServerSnapshot()
+		serverSnapshot as () => ConsentSnapshot
 	);
 };
 

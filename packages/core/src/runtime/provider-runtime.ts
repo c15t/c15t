@@ -20,16 +20,23 @@
  * whose options changed without touching the others.
  */
 import type { AllConsentNames } from '../consent/consent-types';
+import type { InternalKernel } from '../kernel/internals';
 import { extractConsentNamesFromCondition } from '../libs/has';
 import { isProductionBuild } from '../libs/is-production';
 import { declareOwnedVendors, resolveVendors } from '../libs/vendors';
 import { holdNetworkRequests, NOT_HELD } from '../modules/network-blocker/hold';
 import type { NetworkHold } from '../modules/network-blocker/hold';
+import { kernelConfigToInitResponse } from '../transports/init-output';
+import type { ConsentSnapshot } from '../types';
 import { assembleConsentRuntime } from './assemble';
 import { afterModuleLoaded } from './lazy-module';
 import type * as ProviderUpdateModule from './provider-update';
 import type { ProviderUpdateHost } from './provider-update';
-import { createRuntimeKernel, normalizeKernelUser } from './runtime-kernel';
+import {
+	createRuntimeKernel,
+	hasResolvedPrefetch,
+	normalizeKernelUser,
+} from './runtime-kernel';
 import type {
 	ConsentProviderRuntime,
 	ConsentProviderRuntimeOptions,
@@ -38,6 +45,7 @@ import type {
 	ConsentRuntimeOptions,
 	ConsentRuntimeUpdate,
 	RuntimePrefetch,
+	StreamedPrefetch,
 } from './types';
 
 type Callbacks = NonNullable<ConsentRuntimeUpdate['callbacks']>;
@@ -143,6 +151,78 @@ const moduleSlot = function moduleSlot<
 	return slot;
 };
 
+/** The live options, read from the latest update. */
+const pickLive = function pickLive(
+	options: ConsentRuntimeUpdate
+): Partial<ConsentRuntimeUpdate> {
+	return Object.fromEntries(
+		[...LIVE_OPTIONS].map((key) => [
+			key,
+			options[key as keyof ConsentRuntimeUpdate],
+		])
+	);
+};
+
+/**
+ * Whether a host can render a surface from this streamed config before the
+ * runtime runs: it carries a resolved policy, and no experiment holds the
+ * prompt until the browser has picked its arm (a streamed one arrives too
+ * late to run at all).
+ */
+const rendersFromStream = function rendersFromStream(
+	config: RuntimePrefetch | undefined,
+	runsExperiment: boolean
+): config is RuntimePrefetch {
+	return Boolean(
+		config &&
+		hasResolvedPrefetch(config) &&
+		!runsExperiment &&
+		!config.experiment
+	);
+};
+
+/**
+ * A promise that records its result on itself, the convention React's
+ * `use()` reads, so a surface hydrating after it settled reads it without
+ * suspending: React hydrates a boundary synchronously for a click only
+ * when nothing in it suspends. React Flight hands a client component a
+ * promise that records its result the same way, so one that settled before
+ * hydration is read at once.
+ */
+const settle = function settle(
+	prefetch: PromiseLike<RuntimePrefetch | undefined>
+): PromiseLike<RuntimePrefetch | undefined> {
+	type Recorded = PromiseLike<RuntimePrefetch | undefined> & {
+		status?: string;
+		value?: RuntimePrefetch;
+	};
+	const source = prefetch as Recorded;
+	if (source.status === 'fulfilled') {
+		const value = source.value ?? undefined;
+		return Object.assign(Promise.resolve(value), {
+			status: 'fulfilled',
+			value,
+		});
+	}
+	const recorded: { settled?: Recorded } = {};
+	const settled: Recorded = (async () => {
+		let config: RuntimePrefetch | undefined;
+		try {
+			config = (await prefetch) ?? undefined;
+		} catch {
+			// A rejected stream renders as though nothing was prefetched.
+		}
+		if (recorded.settled) {
+			recorded.settled.status = 'fulfilled';
+			recorded.settled.value = config;
+		}
+		return config;
+	})();
+	settled.status = 'pending';
+	recorded.settled = settled;
+	return settled;
+};
+
 /**
  * Creates the runtime a framework provider renders.
  *
@@ -189,6 +269,10 @@ export const createConsentProviderRuntime =
 		let enabled = options.enabled ?? true;
 		let started = false;
 		let disposed = false;
+		// A streamed config the main kernel adopted before its first init:
+		// `start()` then treats the kernel as built from it, as it would a
+		// ready prefetch.
+		let adoptedPrefetch: RuntimePrefetch | undefined;
 		let overridesChanged = false;
 		const listeners = new Set<() => void>();
 		const notify = function notify() {
@@ -240,6 +324,9 @@ export const createConsentProviderRuntime =
 						return mode;
 					}
 					if (key === 'prefetch') {
+						if (on && adoptedPrefetch) {
+							return adoptedPrefetch;
+						}
 						// A pending prefetch is streamed into the first init. Once
 						// overrides or the language changed before start or while
 						// disabled, the prefetch answers for other inputs: start
@@ -319,6 +406,91 @@ export const createConsentProviderRuntime =
 			permissive = build(false);
 		}
 		const active = (): Built => permissive ?? main;
+
+		// Whether the main kernel holds its first init answer, adopted or
+		// fetched. Adoption happens at most once, and never over it.
+		let initApplied = false;
+		main.runtime.kernel.events.on('init:applied', () => {
+			initApplied = true;
+		});
+		// The records the streamed config answers for: those at construction,
+		// then those `start()` hydrated. A clear after that wins over the
+		// config's records, as it does over the streamed init's.
+		let streamedRecordsGeneration = main.runtime.kernel.getRecordsGeneration();
+		const runsExperiment = initial.experiment !== undefined;
+		let streamedMemo:
+			| { config: RuntimePrefetch; snapshot: ConsentSnapshot }
+			| undefined;
+		const streamed: StreamedPrefetch | undefined =
+			modules.streamPrefetch &&
+			enabled &&
+			!initial.consentSource &&
+			initial.prefetch !== knownPrefetch
+				? {
+						adopt(config) {
+							if (
+								initApplied ||
+								disposed ||
+								permissive ||
+								typeof document === 'undefined' ||
+								!rendersFromStream(config, runsExperiment)
+							) {
+								return;
+							}
+							const response = kernelConfigToInitResponse(config);
+							if (!response) {
+								return;
+							}
+							if (
+								main.runtime.kernel.getRecordsGeneration() !==
+								streamedRecordsGeneration
+							) {
+								response.records = undefined;
+								response.subjectId = undefined;
+							}
+							// The runtime's own overrides win over the server's, as
+							// they do when the streamed init applies the config.
+							const resolvedOverrides = {
+								...(response.resolvedOverrides ?? {}),
+								...(current.overrides ?? {}),
+							};
+							if (Object.keys(resolvedOverrides).length > 0) {
+								response.resolvedOverrides = resolvedOverrides;
+							}
+							initApplied = true;
+							if (!started) {
+								adoptedPrefetch = config;
+							}
+							(main.runtime.kernel as InternalKernel).adoptInit(
+								response,
+								started
+							);
+						},
+						settled: settle(
+							initial.prefetch as PromiseLike<RuntimePrefetch | undefined>
+						),
+						snapshotFor(config) {
+							if (!rendersFromStream(config, runsExperiment)) {
+								return main.runtime.kernel.getServerSnapshot();
+							}
+							if (streamedMemo?.config !== config) {
+								streamedMemo = {
+									config,
+									snapshot: createRuntimeKernel({
+										...initial,
+										...pickLive(current),
+										// A kernel built to render from never inits.
+										mode: Object.assign(() => ({}), {
+											kind: initial.mode.kind,
+										}),
+										prefetch: config,
+									}).getServerSnapshot(),
+								};
+							}
+							return streamedMemo.snapshot;
+						},
+					}
+				: undefined;
 
 		const setEnabled = function setEnabled(next: boolean): void {
 			if (disposed || next === enabled) {
@@ -489,6 +661,7 @@ export const createConsentProviderRuntime =
 				}
 				started = true;
 				active().runtime.start();
+				streamedRecordsGeneration = main.runtime.kernel.getRecordsGeneration();
 				// The kernel already carries these owners from construction;
 				// registering them keeps them when another module re-declares.
 				declareOwnedVendors(runtime.kernel, ownersOf(current), ownerSource);
@@ -496,6 +669,7 @@ export const createConsentProviderRuntime =
 			get started() {
 				return started;
 			},
+			streamed,
 			subscribe(listener) {
 				listeners.add(listener);
 				return function unsubscribe() {

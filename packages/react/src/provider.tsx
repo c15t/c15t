@@ -64,7 +64,11 @@ import {
 } from 'react';
 
 import type { DialogPreload } from './chunk-warming';
-import { KernelContext, ProviderServicesContext } from './context';
+import {
+	KernelContext,
+	ProviderServicesContext,
+	StreamedPrefetchContext,
+} from './context';
 import type { ProviderServices } from './context';
 import { ExternalIABProvider } from './external-iab-context';
 import { useColorScheme } from './hooks/use-color-scheme';
@@ -186,9 +190,12 @@ export interface ConsentProviderOptions
 	 * Pass the pending `Promise<KernelConfig>` instead and the provider
 	 * mounts at once with a provisional policy, so `children` render (and
 	 * the static shell can prerender) while the consent data streams in.
-	 * Consent surfaces stay hidden until the promise resolves; its first
-	 * `init()` then applies the resolved config in place of the transport's
-	 * network init. A config that resolves without a policy (persisted
+	 * Consent surfaces stay hidden until the promise resolves. On the
+	 * server, `ConsentBanner` waits for it in its own Suspense boundary and
+	 * follows the page in a later chunk of the same response, before
+	 * hydration, when the resolved policy shows a banner; see
+	 * `streamBanner`. The resolved config then answers the first `init()`
+	 * in place of the transport's network init. A config that resolves without a policy (persisted
 	 * consents, geo, language only) is applied to the kernel and the
 	 * transport init runs as usual; a rejected promise is logged outside
 	 * production and falls through to the transport init. Initial-only:
@@ -206,6 +213,17 @@ export interface ConsentProviderOptions
 	 * ```
 	 */
 	prefetch?: ConsentProviderPrefetch | Promise<ConsentProviderPrefetch>;
+	/**
+	 * Whether `ConsentBanner` renders on the server once a `prefetch`
+	 * promise resolves, so it arrives in the streamed response before the
+	 * page hydrates. It shows only when the resolved policy shows a banner
+	 * for this visitor. Set `false` to mount the banner after hydration
+	 * instead, as with a client-only provider. No effect when `prefetch` is
+	 * not a promise. Use the same value on the server and in the browser.
+	 *
+	 * @default true
+	 */
+	streamBanner?: boolean;
 	callbacks?: ConsentProviderCallbacks;
 	/**
 	 * Remove configured browser data when its consent permission is revoked.
@@ -1057,7 +1075,15 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 							{children}
 						</ExternalIABProvider>
 					) : (
-						children
+						<StreamedPrefetchContext.Provider
+							value={
+								options.streamBanner === false
+									? undefined
+									: providerRuntime?.streamed
+							}
+						>
+							{children}
+						</StreamedPrefetchContext.Provider>
 					)}
 				</V3ThemeProvider>
 			</ProviderServicesContext.Provider>

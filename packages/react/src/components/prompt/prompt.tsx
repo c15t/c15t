@@ -19,6 +19,7 @@ import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal
 import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
 
+import { StreamedSurface } from '../shared/streamed-surface';
 import { ConsentBannerRoot } from './atoms/root';
 import {
 	ConsentBannerAcceptButton,
@@ -225,7 +226,7 @@ export interface ConsentBannerProps {
 	blocking?: boolean;
 }
 
-export const ConsentBanner: FC<ConsentBannerProps> = ({
+const ConsentBannerContent: FC<ConsentBannerProps> = ({
 	noStyle: localNoStyle,
 	disableAnimation: localDisableAnimation,
 	scrollLock: localScrollLock,
@@ -423,6 +424,16 @@ export const ConsentBanner: FC<ConsentBannerProps> = ({
 		</ErrorBoundary>
 	);
 };
+
+/**
+ * The stock banner. It reads the policy to choose its buttons, so all of
+ * it renders where the server can stream it: see `StreamedSurface`.
+ */
+export const ConsentBanner: FC<ConsentBannerProps> = (props) => (
+	<StreamedSurface>
+		<ConsentBannerContent {...props} />
+	</StreamedSurface>
+);
 
 /**
  * Component type definition for the ConsentBanner with its compound components.

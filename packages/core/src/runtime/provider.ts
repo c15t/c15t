@@ -40,4 +40,5 @@ export type {
 	ConsentRuntimeModules,
 	ConsentRuntimeUpdate,
 	RuntimePrefetch,
+	StreamedPrefetch,
 } from './types';

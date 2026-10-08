@@ -131,6 +131,7 @@ export const createKernel = function createKernel(
 	});
 
 	return {
+		adoptInit: lifecycle.adopt,
 		commands: {
 			dismissNotice: choice.dismissNotice,
 			identify: records.identify,

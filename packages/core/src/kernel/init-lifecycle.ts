@@ -364,6 +364,8 @@ export interface InitLifecycleOptions {
 
 export interface InitLifecycle {
 	init: () => Promise<InitResult>;
+	/** See `InternalKernel.adoptInit`. */
+	adopt: (response: InitResponse, afterStart: boolean) => void;
 	/**
 	 * Mark the lifecycle started and arm the deadline timer. The first call
 	 * reads the browser's GPC signal. Re-arms the timer after `dispose()`.
@@ -697,6 +699,34 @@ export const createInitLifecycle = function createInitLifecycle({
 		return runInitAttempt(1);
 	};
 
+	/**
+	 * Apply an init response now, in place of the attempt that would have
+	 * fetched it, and fence any attempt already in flight. Before the
+	 * runtime starts it only commits, as construction would have, and
+	 * `start()` then treats the kernel as built from that answer; once
+	 * started it announces `init:applied` as a completed attempt does.
+	 */
+	const adopt = function adopt(
+		response: InitResponse,
+		afterStart: boolean
+	): void {
+		initGeneration += 1;
+		clearRetry();
+		const current = getSnapshot();
+		const folded = foldInitResponse(
+			current,
+			response,
+			runtime.now(),
+			translationOverrides
+		);
+		if (afterStart) {
+			runtime.announce(folded.patch, 'init:applied', current.policyPending);
+			replaySaves();
+			return;
+		}
+		commit(folded.patch);
+	};
+
 	const dispose = function dispose(): void {
 		if (disposed) {
 			return;
@@ -716,5 +746,13 @@ export const createInitLifecycle = function createInitLifecycle({
 		onlineInstalled = false;
 	};
 
-	return { armDeadline, dispose, init, refresh, retryWhenOnline, start };
+	return {
+		adopt,
+		armDeadline,
+		dispose,
+		init,
+		refresh,
+		retryWhenOnline,
+		start,
+	};
 };
