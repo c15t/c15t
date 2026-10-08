@@ -37,6 +37,7 @@ import type { Log } from '../observability/log';
 import { toHttp } from './errors';
 import type { RouteError } from './errors';
 import type { GvlConfig } from './gvl';
+import type { IdentityTokenOptions } from './identity-token';
 import type { LegalDocumentSnapshotOptions } from './legal-document-snapshot';
 import type { ManifestCacheOptions } from './manifest';
 import type { PolicySnapshotOptions } from './policy-snapshot';
@@ -143,6 +144,17 @@ export interface AppOptions {
 	 * one signing key and TTL cannot serve both.
 	 */
 	readonly legalDocumentSnapshot?: LegalDocumentSnapshotOptions;
+	/**
+	 * Verification for identity tokens: signed proof, minted by your server,
+	 * that a browser belongs to one of your users.
+	 *
+	 * A subject linked to an external id counts toward
+	 * `GET /subjects?externalId=` and `GET /consents/check` only when the
+	 * link was verified. A request with an API key always verifies its link.
+	 * A browser verifies its link by sending a token that this key signed.
+	 * Without a key, browser links are stored but never verified.
+	 */
+	readonly identityToken?: IdentityTokenOptions;
 	/**
 	 * Server-side Global Vendor List loading.
 	 *

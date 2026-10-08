@@ -21,9 +21,9 @@ inputs, results and retries.
 | `POST /sessions` | Report an init a host resolved from a cached manifest. Server-to-server only; nothing is stored. | No |
 | `POST /subjects` | Record a consent submission and its category receipts. | No |
 | `GET /subjects/:id` | Read this subject's consent status and merged choices. Optional `?type=a,b` filter. | No, the subject ID is the capability |
-| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. | No |
-| `GET /subjects?externalId=...` | Retrieve subjects for an external identity. | Required |
-| `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type. | No |
+| `PATCH /subjects/:id` | Link `externalId` and optional `identityProvider`. The link counts in reads by external ID only when [verified](#verify-identity-links). | No |
+| `GET /subjects?externalId=...` | Retrieve subjects verifiably linked to an external identity. | Required |
+| `GET /consents/check?externalId=...&type=a,b` | Return `hasConsent` and `isLatestPolicy` for every requested type, from verified links only. | Required |
 | `GET /experiments/:id/summary?from=...&to=...&domain=...` | Choices per arm of a [banner experiment](/docs/guides/banner-experiments), split by action and surface, with the median time to decision. | Required |
 | `PUT /legal-documents/:type/current` | Publish a legal document's current version, hash and effective date. | Required |
 | `GET /spec.json` | Discover the enabled OpenAPI routes. | No |
@@ -191,6 +191,40 @@ that range the backend can't tell a genuine click time from a chosen one.
 
 The backend does not store GPC as a standing opt-out. `/init` reads `Sec-GPC`
 on each request, and the client applies the signal live in the browser.
+
+## Verify identity links
+
+`POST /subjects` (with `externalSubjectId`) and `PATCH /subjects/:id` accept an
+external ID from the browser. `GET /subjects?externalId=` and
+`GET /consents/check` count a subject only when its link was verified. A link is verified when the request:
+
+- carries an API key, as calls from your own server do; or
+- carries an `identityToken` that your server signed with the backend's
+  [`identityToken.signingKey`](/docs/self-host/api/configuration), naming the
+  same external ID.
+
+An unverified link is still stored, and still visible through
+`GET /subjects/:id`. It doesn't answer "what did this user consent to".
+
+Mint tokens with `createIdentityToken` from the
+[Node.js SDK](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser).
+A token is an HS256 JWT with `sub` set to the external ID, `aud` set to
+`c15t-identity`, `iss` set to `c15t`, a required `exp`, and an optional `idp`
+that must match `identityProvider`.
+
+| Response | Cause |
+| --- | --- |
+| `401 IDENTITY_TOKEN_INVALID` | `PATCH` only. The token doesn't verify, has expired, or names another external ID or provider. Nothing changes. |
+| `409 IDENTITY_CONFLICT` | `PATCH` only. The subject's current link is verified and this request isn't, so it can't replace it. Sending the same identity again succeeds. |
+
+`POST /subjects` never refuses a consent because of its token. With a bad or
+expired token the consent is recorded and the link stays unverified. Call
+`PATCH /subjects/:id` with a fresh token to verify it. The token only applies
+when the save creates the subject.
+
+Links made before this check existed are unverified. Relink them from your
+server with an API key, or send a token from the browser on the visitor's next
+sign-in.
 
 ## Make an administrative request
 

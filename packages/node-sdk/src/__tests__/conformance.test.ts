@@ -15,7 +15,7 @@ import type { C15TInstance, C15TOptions } from '@c15t/backend';
 import type { PolicyRule } from '@c15t/schema/types';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { createC15tClient } from '../index';
+import { createC15tClient, createIdentityToken } from '../index';
 import type {
 	C15tClient,
 	C15tCreateSubjectInput,
@@ -322,6 +322,104 @@ describe('success shapes', () => {
 			type: 'privacy_policy',
 			version: '2026-01-01',
 		});
+	});
+});
+
+describe('identity tokens', () => {
+	const IDENTITY_KEY = 'identity-key-shared-with-the-backend';
+	let backend: C15TInstance;
+	let server: Connection<C15tClient>;
+	let browser: Connection<C15tPublicClient>;
+
+	beforeAll(() => {
+		backend = startBackend({ identityToken: { signingKey: IDENTITY_KEY } });
+		server = connect(backend);
+		browser = connectPublic(backend);
+	});
+
+	/** A subject created by the browser, before anyone signs in. */
+	const anonymousSubject = async (): Promise<string> => {
+		const input = cookieBanner();
+		dataOf(await browser.client.subjects.create(input));
+		return input.subjectId;
+	};
+
+	const listed = async (externalId: string) =>
+		dataOf(await server.client.subjects.list({ externalId })).subjects.map(
+			(subject) => subject.id
+		);
+
+	it('a link proved by createIdentityToken counts for that user', async () => {
+		const subjectId = await anonymousSubject();
+		const identityToken = await createIdentityToken(
+			{ externalId: 'user_token', identityProvider: 'clerk' },
+			{ signingKey: IDENTITY_KEY }
+		);
+
+		dataOf(
+			await browser.client.subjects.identify(subjectId, {
+				externalId: 'user_token',
+				identityProvider: 'clerk',
+				identityToken,
+			})
+		);
+
+		expect(await listed('user_token')).toEqual([subjectId]);
+		const check = dataOf(
+			await server.client.consents.check({
+				externalId: 'user_token',
+				types: ['cookie_banner'],
+			})
+		);
+		expect(check.results.cookie_banner.hasConsent).toBe(true);
+	});
+
+	it('a link without proof is stored but does not count', async () => {
+		const subjectId = await anonymousSubject();
+
+		dataOf(
+			await browser.client.subjects.identify(subjectId, {
+				externalId: 'user_claimed',
+			})
+		);
+
+		expect(await listed('user_claimed')).toEqual([]);
+	});
+
+	it('a token signed with another key is IDENTITY_TOKEN_INVALID', async () => {
+		const subjectId = await anonymousSubject();
+		const identityToken = await createIdentityToken(
+			{ externalId: 'user_wrong_key' },
+			{ signingKey: 'not-the-shared-key' }
+		);
+
+		const error = errorOf(
+			await browser.client.subjects.identify(subjectId, {
+				externalId: 'user_wrong_key',
+				identityToken,
+			})
+		);
+
+		expect(error.code).toBe('IDENTITY_TOKEN_INVALID');
+		expect(error.status).toBe(401);
+	});
+
+	it('an unverified link cannot replace a verified one', async () => {
+		const subjectId = await anonymousSubject();
+		dataOf(
+			await server.client.subjects.identify(subjectId, {
+				externalId: 'user_owner',
+			})
+		);
+
+		const error = errorOf(
+			await browser.client.subjects.identify(subjectId, {
+				externalId: 'user_other',
+			})
+		);
+
+		expect(error.code).toBe('IDENTITY_CONFLICT');
+		expect(await listed('user_owner')).toEqual([subjectId]);
 	});
 });
 

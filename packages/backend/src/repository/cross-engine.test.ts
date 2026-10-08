@@ -37,6 +37,7 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { layer as tenantLayer } from '../db/tenant';
 import { encodeRow, encoder } from '../db/values';
 import { syncCurrent } from './legal-document';
@@ -61,6 +62,7 @@ const setup = Effect.gen(function* setup() {
 	yield* vendorChoice;
 	yield* attribution;
 	yield* optionalJurisdiction;
+	yield* verifiedExternalId;
 	// Included because the index migration is itself engine-divergent — MySQL
 	// has no `create index if not exists` and cannot index a bare TEXT column.
 	yield* indexes;
@@ -199,6 +201,7 @@ for (const engine of ENGINES) {
 						ipAddress: null,
 						subjectId: 'sub_1',
 						userAgent: null,
+						verifiedBy: 'api_key',
 					});
 
 					const listed = yield* listByExternalId('ext_1');
@@ -298,6 +301,7 @@ for (const engine of ENGINES) {
 									id: `sub_${tenant}`,
 									tenantId: tenant,
 									updatedAt: GIVEN_AT,
+									verifiedExternalId: 'shared_external_id',
 								})
 							)}
 						`;

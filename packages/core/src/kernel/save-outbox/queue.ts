@@ -126,6 +126,7 @@ const createStoredLists = function createStoredLists(tools: QueueTools) {
 		return (
 			isOptionalString(value.externalIdType) &&
 			isOptionalString(value.identityProvider) &&
+			isOptionalString(value.identityToken) &&
 			(value.properties === undefined || isScalarRecord(value.properties))
 		);
 	};

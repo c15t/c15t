@@ -14,6 +14,7 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { singleTenant } from '../db/tenant';
 import {
 	countByExternalId,
@@ -31,6 +32,7 @@ const migrate = Effect.gen(function* migrate() {
 	yield* vendorChoice;
 	yield* attribution;
 	yield* optionalJurisdiction;
+	yield* verifiedExternalId;
 	yield* indexes;
 });
 
@@ -66,8 +68,8 @@ const seed = Effect.fn('seed')(function* seed(
 
 	for (let subject = 0; subject < subjects; subject += 1) {
 		yield* sql.unsafe(`insert into "subject"
-			("id", "externalId", "createdAt", "updatedAt")
-			values ('sub_${ns}_${subject}', '${externalId}', now(), now())`);
+			("id", "externalId", "verifiedExternalId", "createdAt", "updatedAt")
+			values ('sub_${ns}_${subject}', '${externalId}', '${externalId}', now(), now())`);
 		const type = subject % policyTypes;
 		yield* sql.unsafe(`insert into "consent"
 			("id", "subjectId", "domainId", "policyId", "purposeIds", "givenAt")
@@ -102,8 +104,8 @@ describe('subject repository', () => {
 				yield* migrate;
 				const sql = yield* SqlClient.SqlClient;
 				yield* sql.unsafe(`insert into "subject"
-					("id", "externalId", "createdAt", "updatedAt")
-					values ('sub_lonely', 'ext_1', now(), now())`);
+					("id", "externalId", "verifiedExternalId", "createdAt", "updatedAt")
+					values ('sub_lonely', 'ext_1', 'ext_1', now(), now())`);
 
 				const subjects = yield* listByExternalId('ext_1');
 
@@ -130,8 +132,8 @@ describe('subject repository', () => {
 					("id", "version", "type", "effectiveDate", "isActive", "createdAt")
 					values ('pol_new', '2.0', 'cookie', now(), true, now())`);
 				yield* sql.unsafe(`insert into "subject"
-					("id", "externalId", "createdAt", "updatedAt")
-					values ('sub_1', 'ext_1', now(), now())`);
+					("id", "externalId", "verifiedExternalId", "createdAt", "updatedAt")
+					values ('sub_1', 'ext_1', 'ext_1', now(), now())`);
 				yield* sql.unsafe(`insert into "consent"
 					("id", "subjectId", "domainId", "policyId", "purposeIds", "givenAt")
 					values ('cns_old', 'sub_1', 'dom_1', 'pol_old', '[]', now())`);

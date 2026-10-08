@@ -41,6 +41,11 @@ export interface ConsentSubmissionRequest {
 	readonly domainId: string;
 	readonly externalId?: string | null;
 	readonly identityProvider?: string | null;
+	/**
+	 * Whether the caller proved `externalId` with an API key or an identity
+	 * token. Applies only when this request creates the subject.
+	 */
+	readonly externalIdVerified?: boolean;
 	readonly policyId?: string | null;
 	readonly purposeIds: readonly string[];
 	/** v3 receipts this act confirmed, only those categories. */
@@ -102,6 +107,7 @@ export const submit = Effect.fn('consent.submit')(function* submit(
 
 	const subject = yield* findOrCreate({
 		externalId: request.externalId,
+		externalIdVerified: request.externalIdVerified,
 		identityProvider: request.identityProvider,
 		subjectId: request.subjectId,
 		tenantId,

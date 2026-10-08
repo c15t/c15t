@@ -11,6 +11,7 @@
 import { listSubjectsOutputSchema } from '@c15t/schema';
 import { Effect, ManagedRuntime } from 'effect';
 import { SqlClient } from 'effect/sql';
+import { SignJWT } from 'jose';
 import * as v from 'valibot';
 import { afterEach, assert, beforeEach, describe, it, vi } from 'vitest';
 
@@ -22,8 +23,25 @@ import { up as receipts } from '../db/migrations/3-consent-receipts-and-privacy-
 import { up as vendorChoice } from '../db/migrations/4-vendor-choice';
 import { up as attribution } from '../db/migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from '../db/migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from '../db/migrations/8-verified-external-id';
 import { encodeRow, encoder } from '../db/values';
 import { createApp } from './app';
+
+const SIGNING_KEY = 'identity-signing-key-for-tests';
+
+/** An identity token as `@c15t/node-sdk`'s `createIdentityToken` signs it. */
+const tokenFor = (
+	externalId: string,
+	claims: { exp?: number; idp?: string; key?: string } = {}
+) =>
+	new SignJWT(claims.idp === undefined ? {} : { idp: claims.idp })
+		.setProtectedHeader({ alg: 'HS256', typ: 'JWT' })
+		.setIssuer('c15t')
+		.setAudience('c15t-identity')
+		.setSubject(externalId)
+		.setIssuedAt()
+		.setExpirationTime(claims.exp ?? Math.floor(Date.now() / 1000) + 600)
+		.sign(new TextEncoder().encode(claims.key ?? SIGNING_KEY));
 
 for (const engine of ENGINES) {
 	let runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>;
@@ -43,6 +61,7 @@ for (const engine of ENGINES) {
 				yield* vendorChoice;
 				yield* attribution;
 				yield* optionalJurisdiction;
+				yield* verifiedExternalId;
 			})
 		);
 		app = createApp(runtime, {
@@ -88,6 +107,7 @@ for (const engine of ENGINES) {
 						externalId: 'ext_1',
 						id: 'sub_1',
 						updatedAt: now,
+						verifiedExternalId: 'ext_1',
 					})
 				)}`;
 				yield* sql`insert into ${sql('consent')} ${sql.insert(
@@ -749,7 +769,8 @@ for (const engine of ENGINES) {
 			await seed();
 			const body = await (
 				await app.request(
-					'/consents/check?externalId=ext_1&type=cookie,marketing'
+					'/consents/check?externalId=ext_1&type=cookie,marketing',
+					authed
 				)
 			).json();
 
@@ -780,7 +801,10 @@ for (const engine of ENGINES) {
 			);
 
 			const body = await (
-				await app.request('/consents/check?externalId=ext_1&type=cookie')
+				await app.request(
+					'/consents/check?externalId=ext_1&type=cookie',
+					authed
+				)
 			).json();
 
 			// Consent exists but is against a superseded policy — the two flags
@@ -792,26 +816,51 @@ for (const engine of ENGINES) {
 		});
 
 		it('requires both query parameters', async () => {
-			const noExternal = await app.request('/consents/check?type=cookie');
+			const noExternal = await app.request(
+				'/consents/check?type=cookie',
+				authed
+			);
 			assert.strictEqual(noExternal.status, 400);
 			assert.strictEqual(
 				(await noExternal.json()).cause.code,
 				'EXTERNAL_ID_REQUIRED'
 			);
 
-			const noType = await app.request('/consents/check?externalId=ext_1');
+			const noType = await app.request(
+				'/consents/check?externalId=ext_1',
+				authed
+			);
 			assert.strictEqual(noType.status, 400);
 			assert.strictEqual((await noType.json()).cause.code, 'TYPE_REQUIRED');
 		});
 
 		it('reports all types false for an unknown subject', async () => {
 			const body = await (
-				await app.request('/consents/check?externalId=nobody&type=cookie')
+				await app.request(
+					'/consents/check?externalId=nobody&type=cookie',
+					authed
+				)
 			).json();
 			assert.deepStrictEqual(body.results.cookie, {
 				hasConsent: false,
 				isLatestPolicy: false,
 			});
+		});
+
+		it('requires an API key', async () => {
+			await seed();
+			// External ids are often emails or sequential ids. An open check
+			// would tell anyone which of them have consent on file.
+			const anonymous = await app.request(
+				'/consents/check?externalId=ext_1&type=cookie'
+			);
+			assert.strictEqual(anonymous.status, 401);
+
+			const wrongKey = await app.request(
+				'/consents/check?externalId=ext_1&type=cookie',
+				{ headers: { Authorization: 'Bearer sk_wrong' } }
+			);
+			assert.strictEqual(wrongKey.status, 401);
 		});
 	});
 
@@ -956,20 +1005,27 @@ for (const engine of ENGINES) {
 	});
 
 	describe('PATCH /subjects/:id', () => {
-		const patch = (id: string, body: unknown) =>
-			app.request(`/subjects/${id}`, {
+		const patch = (
+			id: string,
+			body: unknown,
+			headers: Record<string, string> = {},
+			target = app
+		) =>
+			target.request(`/subjects/${id}`, {
 				body: JSON.stringify(body),
 				headers: {
 					'Content-Type': 'application/json',
 					'x-forwarded-for': '203.0.113.42',
+					...headers,
 				},
 				method: 'PATCH',
 			});
+		const withKey = authed.headers;
 
 		it('links a subject to an external identity', async () => {
 			await seed();
 			const body = await (
-				await patch('sub_1', { externalId: 'ext_new' })
+				await patch('sub_1', { externalId: 'ext_new' }, withKey)
 			).json();
 			assert.strictEqual(body.subject.externalId, 'ext_new');
 			assert.strictEqual(body.subject.identityProvider, 'external');
@@ -977,10 +1033,11 @@ for (const engine of ENGINES) {
 
 		it('writes an audit entry recording what changed', async () => {
 			await seed();
-			await patch('sub_1', {
-				externalId: 'ext_new',
-				identityProvider: 'auth0',
-			});
+			await patch(
+				'sub_1',
+				{ externalId: 'ext_new', identityProvider: 'auth0' },
+				withKey
+			);
 
 			const entries = await runtime.runPromise(
 				Effect.gen(function* entries() {
@@ -1034,6 +1091,179 @@ for (const engine of ENGINES) {
 			// An audit entry for a change that never happened is worse than none.
 			assert.strictEqual(Number(entries[0]?.total), 0);
 		});
+
+		describe('identity verification', () => {
+			const tokenApp = () =>
+				createApp(runtime, {
+					apiKeys: [API_KEY],
+					identityToken: { signingKey: SIGNING_KEY },
+				});
+
+			/** A subject with consent and no external id, as a browser creates it. */
+			const seedAnonymous = () =>
+				runtime.runPromise(
+					Effect.gen(function* insertAnonymous() {
+						const sql = yield* SqlClient.SqlClient;
+						const encode = yield* encoder;
+						const now = new Date(1_800_000_000_000);
+						yield* sql`insert into ${sql('subject')} ${sql.insert(
+							encodeRow(encode, {
+								createdAt: now,
+								id: 'sub_anon',
+								updatedAt: now,
+							})
+						)}`;
+						yield* sql`insert into ${sql('consent')} ${sql.insert(
+							encodeRow(encode, {
+								domainId: 'dom_1',
+								givenAt: now,
+								id: 'cns_anon',
+								policyId: 'pol_1',
+								purposeIds: '[]',
+								subjectId: 'sub_anon',
+							})
+						)}`;
+					})
+				);
+
+			const listed = async (externalId: string) => {
+				const body = await (
+					await app.request(`/subjects?externalId=${externalId}`, authed)
+				).json();
+				return (body.subjects as { id: string }[]).map((item) => item.id);
+			};
+
+			const checked = async (externalId: string) => {
+				const body = await (
+					await app.request(
+						`/consents/check?externalId=${externalId}&type=cookie`,
+						authed
+					)
+				).json();
+				return body.results.cookie.hasConsent as boolean;
+			};
+
+			it('stores an unverified link without counting it for that user', async () => {
+				await seed();
+				await seedAnonymous();
+
+				// A browser links a user id it has not proved, then the
+				// customer's server asks whether that user consented.
+				const response = await patch('sub_anon', { externalId: 'ext_victim' });
+				assert.strictEqual(response.status, 200);
+
+				assert.deepStrictEqual(await listed('ext_victim'), []);
+				assert.isFalse(await checked('ext_victim'));
+			});
+
+			it('counts a link made with an API key', async () => {
+				await seed();
+				await seedAnonymous();
+
+				await patch('sub_anon', { externalId: 'ext_2' }, withKey);
+
+				assert.deepStrictEqual(await listed('ext_2'), ['sub_anon']);
+				assert.isTrue(await checked('ext_2'));
+			});
+
+			it('counts a link proved by an identity token', async () => {
+				await seed();
+				await seedAnonymous();
+
+				const response = await patch(
+					'sub_anon',
+					{ externalId: 'ext_2', identityToken: await tokenFor('ext_2') },
+					{},
+					tokenApp()
+				);
+
+				assert.strictEqual(response.status, 200);
+				assert.deepStrictEqual(await listed('ext_2'), ['sub_anon']);
+			});
+
+			it('refuses a token that does not prove the identity', async () => {
+				await seed();
+				await seedAnonymous();
+				const target = tokenApp();
+				const past = Math.floor(Date.now() / 1000) - 60;
+
+				const tokens = [
+					...(await Promise.all([
+						tokenFor('ext_other'),
+						tokenFor('ext_2', { key: 'some-other-key' }),
+						tokenFor('ext_2', { exp: past }),
+						tokenFor('ext_2', { idp: 'clerk' }),
+					])),
+					'not-a-jwt',
+				];
+				const responses = await Promise.all(
+					tokens.map((identityToken) =>
+						patch(
+							'sub_anon',
+							{ externalId: 'ext_2', identityToken },
+							{},
+							target
+						)
+					)
+				);
+				const codes = await Promise.all(
+					responses.map(async (response) => [
+						response.status,
+						(await response.json()).cause.code,
+					])
+				);
+				for (const code of codes) {
+					assert.deepStrictEqual(code, [401, 'IDENTITY_TOKEN_INVALID']);
+				}
+				assert.deepStrictEqual(await listed('ext_2'), []);
+			});
+
+			it('refuses every token when no signing key is configured', async () => {
+				await seed();
+				await seedAnonymous();
+
+				const response = await patch('sub_anon', {
+					externalId: 'ext_2',
+					identityToken: await tokenFor('ext_2'),
+				});
+
+				assert.strictEqual(response.status, 401);
+			});
+
+			it('does not let an unverified link replace a verified one', async () => {
+				await seed();
+
+				const takeover = await patch('sub_1', { externalId: 'ext_other' });
+				assert.strictEqual(takeover.status, 409);
+				assert.strictEqual(
+					(await takeover.json()).cause.code,
+					'IDENTITY_CONFLICT'
+				);
+				assert.deepStrictEqual(await listed('ext_1'), ['sub_1']);
+
+				// Relinking the identity it already has is a harmless retry.
+				const same = await patch('sub_1', { externalId: 'ext_1' });
+				assert.strictEqual(same.status, 200);
+				assert.deepStrictEqual(await listed('ext_1'), ['sub_1']);
+			});
+
+			it('stops counting a link that something else rewrote', async () => {
+				await seed();
+				// A 2.x backend sharing the database rewrites externalId and
+				// knows nothing of verifiedExternalId.
+				await runtime.runPromise(
+					Effect.gen(function* rewrite() {
+						const sql = yield* SqlClient.SqlClient;
+						yield* sql`update ${sql('subject')}
+							set ${sql('externalId')} = ${'ext_rewritten'}
+							where ${sql('id')} = ${'sub_1'}`;
+					})
+				);
+
+				assert.deepStrictEqual(await listed('ext_rewritten'), []);
+				assert.deepStrictEqual(await listed('ext_1'), []);
+			});
+		});
 	});
 
 	describe('POST /subjects', () => {
@@ -1058,6 +1288,65 @@ for (const engine of ENGINES) {
 			subjectId: 'sub_visitor1',
 			type: 'cookie_banner',
 		};
+
+		describe('with an external id', () => {
+			const checked = async (externalId: string) => {
+				const body = await (
+					await app.request(
+						`/consents/check?externalId=${externalId}&type=cookie_banner`,
+						authed
+					)
+				).json();
+				return body.results.cookie_banner.hasConsent as boolean;
+			};
+
+			it('does not count a consent recorded under a claimed external id', async () => {
+				await seed();
+				// Anyone can send this from a browser, naming any user.
+				const response = await post({
+					...submission,
+					externalSubjectId: 'ext_victim',
+				});
+
+				assert.strictEqual(response.status, 200);
+				assert.isFalse(await checked('ext_victim'));
+			});
+
+			it('counts it when an identity token proves the external id', async () => {
+				await seed();
+				app = createApp(runtime, {
+					apiKeys: [API_KEY],
+					identityToken: { signingKey: SIGNING_KEY },
+				});
+
+				const response = await post({
+					...submission,
+					externalSubjectId: 'ext_2',
+					identityToken: await tokenFor('ext_2'),
+				});
+
+				assert.strictEqual(response.status, 200);
+				assert.isTrue(await checked('ext_2'));
+			});
+
+			it('still records the consent when the token fails', async () => {
+				await seed();
+				app = createApp(runtime, {
+					apiKeys: [API_KEY],
+					identityToken: { signingKey: SIGNING_KEY },
+				});
+
+				// A consent is a legal record; an expired token must not lose it.
+				const response = await post({
+					...submission,
+					externalSubjectId: 'ext_2',
+					identityToken: await tokenFor('ext_other'),
+				});
+
+				assert.strictEqual(response.status, 200);
+				assert.isFalse(await checked('ext_2'));
+			});
+		});
 
 		it('records a consent', async () => {
 			await seed();

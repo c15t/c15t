@@ -70,11 +70,20 @@ export interface C15tPublicSubjects {
 	>;
 
 	/**
-	 * Links a subject to your own user id, so `consents.check` and
-	 * `subjects.list` can find it. Call it after the visitor signs in.
+	 * Links a subject to your own user id. Call it after the visitor signs in.
+	 *
+	 * `consents.check` and `subjects.list` only find a subject whose link was
+	 * verified. A client with an API key verifies every link it makes.
+	 * Without a key, pass an `identityToken` from `createIdentityToken`,
+	 * or the link is stored unverified.
+	 *
+	 * An unverified link cannot replace a verified one: that returns
+	 * `IDENTITY_CONFLICT`. A token that fails to verify returns
+	 * `IDENTITY_TOKEN_INVALID`.
 	 *
 	 * @param id - Subject id from the visitor's browser.
-	 * @param input - Your user id and, optionally, who issued it.
+	 * @param input - Your user id, optionally who issued it, and optionally an
+	 * identity token.
 	 */
 	identify: (
 		id: string,
@@ -83,7 +92,11 @@ export interface C15tPublicSubjects {
 	) => Promise<
 		C15tResult<
 			PatchSubjectOutput,
-			'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'NOT_FOUND'
+			| 'DATABASE_ERROR'
+			| 'EXTERNAL_ID_REQUIRED'
+			| 'IDENTITY_CONFLICT'
+			| 'IDENTITY_TOKEN_INVALID'
+			| 'NOT_FOUND'
 		>
 	>;
 }
@@ -91,8 +104,8 @@ export interface C15tPublicSubjects {
 /** `subjects` methods on a client with an API key. */
 export interface C15tSubjects extends C15tPublicSubjects {
 	/**
-	 * Lists every subject linked to one of your user ids, with their consents.
-	 * Needs an API key.
+	 * Lists every subject verifiably linked to one of your user ids, with
+	 * their consents. Needs an API key.
 	 */
 	list: (
 		query: { readonly externalId: string },
@@ -105,11 +118,12 @@ export interface C15tSubjects extends C15tPublicSubjects {
 	>;
 }
 
-/** `consents` methods. */
+/** `consents` methods. Need an API key. */
 export interface C15tConsents {
 	/**
 	 * Reports whether a user has consented to each policy type. Every
-	 * requested type appears in `results`, consented or not.
+	 * requested type appears in `results`, consented or not. Only subjects
+	 * verifiably linked to the user count; see `subjects.identify`.
 	 *
 	 * @example
 	 * ```ts
@@ -130,7 +144,10 @@ export interface C15tConsents {
 	) => Promise<
 		C15tResult<
 			C15tCheckConsentOutput<Types[number]>,
-			'DATABASE_ERROR' | 'EXTERNAL_ID_REQUIRED' | 'TYPE_REQUIRED'
+			| 'DATABASE_ERROR'
+			| 'EXTERNAL_ID_REQUIRED'
+			| 'TYPE_REQUIRED'
+			| 'UNAUTHORIZED'
 		>
 	>;
 }
@@ -206,12 +223,12 @@ export interface C15tPublicClient {
 	) => Promise<C15tResult<C15tManifestResult>>;
 
 	readonly subjects: C15tPublicSubjects;
-	readonly consents: C15tConsents;
 }
 
 /** A client created with an API key. */
 export interface C15tClient extends C15tPublicClient {
 	readonly subjects: C15tSubjects;
+	readonly consents: C15tConsents;
 	readonly experiments: C15tExperiments;
 	readonly legalDocuments: C15tLegalDocuments;
 }

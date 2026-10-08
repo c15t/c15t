@@ -43,6 +43,18 @@ export class PolicySnapshotError extends Data.TaggedError(
 }> {}
 
 /**
+ * A request offered an identity token that did not verify, or that names a
+ * different identity than the one being linked.
+ *
+ * 401 rather than storing the link unverified: the caller asked for a
+ * verified link, and silently downgrading it would leave the customer's
+ * server reading nothing for that user with no error anywhere.
+ */
+export class IdentityTokenError extends Data.TaggedError('IdentityTokenError')<{
+	readonly message: string;
+}> {}
+
+/**
  * A save collides with a record that already exists and says something else.
  *
  * 409 rather than 400: the request is well-formed, and resending it unchanged
@@ -53,9 +65,11 @@ export class PolicySnapshotError extends Data.TaggedError(
  *   receipts or vendor grants.
  * - `SUBJECT_CONFLICT`: the client-chosen `subjectId` belongs to another
  *   tenant. The client can recover by choosing a new id.
+ * - `IDENTITY_CONFLICT`: an unverified link tried to replace a verified
+ *   identity. Resend it with an API key or an identity token.
  */
 export class ConflictError extends Data.TaggedError('ConflictError')<{
-	readonly code: 'CONFLICT' | 'SUBJECT_CONFLICT';
+	readonly code: 'CONFLICT' | 'IDENTITY_CONFLICT' | 'SUBJECT_CONFLICT';
 	readonly message: string;
 }> {}
 
@@ -76,12 +90,13 @@ export type RouteError =
 	| NotFoundError
 	| BadRequestError
 	| PolicySnapshotError
+	| IdentityTokenError
 	| ConflictError
 	| StalePolicyError
 	| SqlError.SqlError;
 
 export interface HttpFailure {
-	readonly status: 400 | 404 | 409 | 422 | 500;
+	readonly status: 400 | 401 | 404 | 409 | 422 | 500;
 	readonly body: {
 		readonly message: string;
 		readonly cause?: { readonly code: string; readonly reason?: string };
@@ -103,6 +118,14 @@ export const toHttp = function toHttp(error: RouteError): HttpFailure {
 			return {
 				body: { cause: { code: error.code }, message: error.message },
 				status: 400,
+			};
+		case 'IdentityTokenError':
+			return {
+				body: {
+					cause: { code: 'IDENTITY_TOKEN_INVALID' },
+					message: error.message,
+				},
+				status: 401,
 			};
 		case 'PolicySnapshotError':
 		case 'ConflictError':

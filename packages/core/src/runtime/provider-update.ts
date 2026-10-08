@@ -119,6 +119,7 @@ const userKey = function userKey(user: KernelUser | undefined): string {
 			user.externalId,
 			user.externalIdType,
 			user.identityProvider,
+			user.identityToken,
 			user.properties,
 		]
 	);

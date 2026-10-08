@@ -33,6 +33,7 @@ import { up as receipts } from './migrations/3-consent-receipts-and-privacy-dire
 import { up as vendorChoice } from './migrations/4-vendor-choice';
 import { up as attribution } from './migrations/6-experiment-attribution';
 import { up as optionalJurisdiction } from './migrations/7-optional-decision-jurisdiction';
+import { up as verifiedExternalId } from './migrations/8-verified-external-id';
 import { layer as tenantLayer } from './tenant';
 import { encodeRow, encoder, toBoolean } from './values';
 
@@ -47,6 +48,7 @@ const seedBothTenants = Effect.gen(function* seedBothTenants() {
 	yield* vendorChoice;
 	yield* attribution;
 	yield* optionalJurisdiction;
+	yield* verifiedExternalId;
 	const sql = yield* SqlClient.SqlClient;
 	// Seeds go through the same encoder as production writes: SQLite can bind
 	// neither a Date nor a boolean.
@@ -70,6 +72,7 @@ const seedBothTenants = Effect.gen(function* seedBothTenants() {
 				id: `sub_${tenant}`,
 				tenantId: tenant,
 				updatedAt: now,
+				verifiedExternalId: 'shared_external_id',
 			})
 		)}`;
 		yield* sql`insert into ${sql('consentPolicy')} ${sql.insert(
@@ -198,6 +201,7 @@ for (const engine of ENGINES) {
 						ipAddress: null,
 						subjectId: 'sub_tenant_b',
 						userAgent: null,
+						verifiedBy: 'api_key',
 					});
 
 					assert.isUndefined(result, 'wrote to another tenant');
@@ -222,6 +226,7 @@ for (const engine of ENGINES) {
 					yield* vendorChoice;
 					yield* attribution;
 					yield* optionalJurisdiction;
+					yield* verifiedExternalId;
 					const sql = yield* SqlClient.SqlClient;
 					const encode = yield* encoder;
 					// One domain both tenants reference, so the *only* thing that
@@ -294,6 +299,7 @@ for (const engine of ENGINES) {
 							externalId: 'shared_external_id',
 							id: 'sub_null',
 							updatedAt: new Date(1_800_000_000_000),
+							verifiedExternalId: 'shared_external_id',
 						})
 					)}`;
 

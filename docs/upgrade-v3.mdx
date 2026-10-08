@@ -210,7 +210,7 @@ if (result.ok) {
 | `createSubject(input)` | `subjects.create(input)`. `givenAt` also takes a `Date`. |
 | `patchSubject(id, input)`, `subjects.patch(id, input)` | `subjects.identify(id, { externalId, identityProvider })` |
 | `listSubjects({ externalId })`, `subjects.list({ externalId })` | `subjects.list({ externalId })`, on a client with `apiKey` |
-| `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })` |
+| `checkConsent(query)`, `consent.check({ externalId, type: 'a,b' })` | `consents.check({ externalId, types: ['a', 'b'] })`, on a client with `apiKey` |
 | `ResponseContext` with `data: T \| null` | `{ ok: true, data } \| { ok: false, error }`. Check `ok` first. |
 | `unwrap()`, `expect()` on the response | `unwrap(result)`, imported from `@c15t/node-sdk` |
 | `unwrapOr()`, `map()` on the response | Check `result.ok` |
@@ -224,7 +224,13 @@ if (result.ok) {
 | `createMockClient`, `createMockResponse`, `createMockErrorResponse` | `createMockC15tClient`, `ok`, `err` from `@c15t/node-sdk/testing` |
 
 `patchSubject` returned `{ success, subject }`. `subjects.identify` returns
-`{ subject }`, and `subject.identityProvider` is always set. Dates in
+`{ subject }`, and `subject.identityProvider` is always set.
+
+`consents.check` and `subjects.list` now count only subjects whose link to
+your user ID was verified, by an API key or by an identity token your server
+signs. Links made by v2, or by a browser without a token, don't count until
+you relink them. See
+[verify a link made in the browser](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). Dates in
 responses, such as `givenAt` and `createdAt`, are now `Date` objects rather
 than strings.
 

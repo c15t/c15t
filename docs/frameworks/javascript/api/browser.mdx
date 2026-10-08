@@ -119,7 +119,7 @@ Call these only from a visitor's click or key press.
 | `save(consents)` | `Promise<SaveResult>` | The categories you name, such as `{ measurement: true }`. Categories the dialog does not offer are dropped. Under an IAB policy it resolves `{ ok: false }` and emits `error`; use `saveIAB()`. |
 | `saveIAB()` | `Promise<SaveResult>` | The IAB purpose and vendor choices on `runtime.iab`. IAB entry only. |
 | `dismissNotice()` | `Promise<NoticeDismissResult>` | Acknowledges a notice. Grants nothing. `{ ok: false, reason: 'not-required' }` when no notice is due. |
-| `identify(user)` | `Promise<void>` | Links the consent record to `{ externalId, identityProvider? }`. Failures surface through `error`. |
+| `identify(user)` | `Promise<void>` | Links the consent record to `{ externalId, identityProvider?, identityToken? }`. Pass an `identityToken` from your server to [verify the link](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). Failures surface through `error`. |
 
 Each save applies in the browser and closes the banner or dialog before the
 backend request finishes. `SaveResult.ok` is `false` when the request failed;

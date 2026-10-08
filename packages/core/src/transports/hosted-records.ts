@@ -179,6 +179,7 @@ export const createHostedRecordTransport = function createHostedRecordTransport(
 				body: JSON.stringify({
 					externalId: user.externalId,
 					identityProvider: user.identityProvider,
+					identityToken: user.identityToken,
 				}),
 				credentials,
 				headers: jsonHeaders,

@@ -52,7 +52,7 @@ Commands are asynchronous and are the only way to record anything.
 | `commands.save({ marketing: false })` | `Promise<SaveResult>` | Record only the categories you name. |
 | `commands.save()` | `Promise<SaveResult>` | Record the staged draft, falling back to the current choice or the policy's defaults for each category. |
 | `commands.dismissNotice()` | `Promise<NoticeDismissResult>` | Record that the visitor saw a notice. Grants nothing. Only works while `promptRequirement.kind` is `notice`. |
-| `commands.identify(user)` | `Promise<void>` | Link the record to `{ externalId, identityProvider? }` and load the server's record for that subject. |
+| `commands.identify(user)` | `Promise<void>` | Link the record to `{ externalId, identityProvider?, identityToken? }` and load the server's record for that subject. `identityToken` [verifies the link](/docs/self-host/api/node-sdk#verify-a-link-made-in-the-browser). |
 
 `save(input, context)` takes a second argument. `context.categories` narrows
 `'all'`, `'none'` or an empty input to the categories your UI displays, which
