@@ -205,6 +205,8 @@ export const createJourneyController = function createJourneyController(
 		adopt(id) {
 			if (id === null) {
 				if (!sent) {
+					// A kept tab id must not outlive the page that ended it.
+					remove();
 					off = true;
 					journey = undefined;
 				}

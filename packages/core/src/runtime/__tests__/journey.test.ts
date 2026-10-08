@@ -397,6 +397,37 @@ describe('a journey a server render started', () => {
 		expect(save.mock.calls[0]?.[0].journey?.id).toBe(SERVER_ID);
 	});
 
+	test('a streamed state with no journey also drops a kept tab id', async () => {
+		sessionStorage.setItem(JOURNEY_STORAGE_KEY, SERVER_ID);
+		const stream = Promise.withResolvers<{
+			initialPolicyResolution: ReturnType<typeof matchedResolution>;
+			journey: null;
+		}>();
+		const runtime = createConsentProviderRuntime(
+			{
+				consentCategories: ['necessary', 'measurement'],
+				journey: 'tab',
+				mode: custom({
+					init: () => Promise.resolve({}),
+					save: () => Promise.resolve({ ok: true }),
+				}),
+				prefetch: stream.promise,
+			},
+			{ ...defaultRuntimeModules, streamPrefetch }
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe(SERVER_ID);
+		stream.resolve({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			journey: null,
+		});
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().activeUI).toBe('banner')
+		);
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
+	});
+
 	test('a streamed prefetch hands over its id before the first save', async () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })
