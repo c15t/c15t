@@ -112,10 +112,10 @@ export const createIdentityToken = async function createIdentityToken(
 	const iat = Math.floor((options.now ?? Date.now)() / 1000);
 	const header = encodeJson({ alg: 'HS256', typ: 'JWT' });
 	const claims: Record<string, number | string> = {
-		aud: options.audience ?? 'c15t-identity',
+		aud: options.audience || 'c15t-identity',
 		exp: iat + ttl,
 		iat,
-		iss: options.issuer ?? 'c15t',
+		iss: options.issuer || 'c15t',
 		sub: user.externalId,
 	};
 	if (user.identityProvider !== undefined) {

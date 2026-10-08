@@ -532,10 +532,18 @@ export const linkExternalId = Effect.fn('repository.linkExternalId')(
 				if (!verified) {
 					// An unverified write must not land on a link verified since
 					// the read above, so it carries the check in its own predicate.
+					// Byte for byte on MySQL, whose default collations would call
+					// `Alice` and `alice` the same link.
+					const differs = sql.onDialectOrElse({
+						mysql: () =>
+							sql`cast(${sql('verifiedExternalId')} as binary) <> cast(${sql('externalId')} as binary)`,
+						orElse: () =>
+							sql`${sql('verifiedExternalId')} <> ${sql('externalId')}`,
+					});
 					target.push(sql`(
 						${sql('verifiedExternalId')} is null
 						or ${sql('externalId')} is null
-						or ${sql('verifiedExternalId')} <> ${sql('externalId')}
+						or ${differs}
 					)`);
 				}
 				yield* sql`

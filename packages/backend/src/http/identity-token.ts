@@ -132,8 +132,9 @@ export const verifyIdentity = async function verifyIdentity(
 			new TextEncoder().encode(options.signingKey),
 			{
 				algorithms: ['HS256'],
-				audience: options.audience?.trim() || DEFAULT_IDENTITY_AUDIENCE,
-				issuer: options.issuer?.trim() || DEFAULT_IDENTITY_ISSUER,
+				// Verbatim, as `createIdentityToken` signs them; empty means default.
+				audience: options.audience || DEFAULT_IDENTITY_AUDIENCE,
+				issuer: options.issuer || DEFAULT_IDENTITY_ISSUER,
 				requiredClaims: ['exp', 'sub'],
 			}
 		);
