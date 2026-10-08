@@ -18,6 +18,7 @@ import type {
 	JourneyState,
 	HostedModeOptions,
 	I18nConfig,
+	InitContext,
 	KernelConfig,
 	KernelOverrides,
 	KernelTransport,
@@ -500,20 +501,43 @@ const toRuntimeOptions = function toRuntimeOptions(
 
 /**
  * Whether the visitor has a stored choice, read the way the runtime's
- * persistence will read it on `start()`. The early `/init` leaves before
- * that, and its journey says whether a choice was stored.
+ * persistence will hydrate on `start()`: not at all with persistence off or
+ * `skipHydration`, otherwise from its storage at its clock. The early
+ * `/init` leaves before that, and its journey says whether a choice was
+ * stored. It is sent only without a `prefetch`, so no seed decides
+ * hydration here.
  */
 const hasStoredChoice = function hasStoredChoice(
 	options: ConsentProviderOptions
 ): boolean {
-	if (options.persistence === false || options.consentSource) {
+	const { persistence } = options;
+	if (persistence === false || options.consentSource) {
 		return false;
 	}
-	const storageConfig =
-		(typeof options.persistence === 'object'
-			? options.persistence.storageConfig
-			: undefined) ?? options.storageConfig;
-	return Boolean(readStoredRecords(storageConfig, Date.now()).records.choice);
+	const settings = typeof persistence === 'object' ? persistence : {};
+	if (settings.skipHydration) {
+		return false;
+	}
+	const now = settings.now ? settings.now() : Date.now();
+	return Boolean(
+		readStoredRecords(settings.storageConfig ?? options.storageConfig, now)
+			.records.choice
+	);
+};
+
+/**
+ * What makes two `/init` requests the same: the decision inputs, the user,
+ * and the journey the request carries (its id, scope and stored flag).
+ */
+const earlyInitKey = function earlyInitKey(
+	context: Pick<InitContext, 'journey' | 'overrides' | 'user'>
+): string {
+	const { journey } = context;
+	return JSON.stringify({
+		journey: journey ? [journey.id, journey.scope, journey.storedChoice] : null,
+		overrides: context.overrides,
+		user: context.user,
+	});
 };
 
 /**
@@ -636,14 +660,16 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 			snapshot.policyPending &&
 			!(initialOptions.prefetch || initialOptions.experiment)
 		) {
-			const context = { overrides: snapshot.overrides, user: snapshot.user };
-			const key = JSON.stringify(context);
 			// The journey this page's early requests share; the runtime
 			// continues it on `start()`, so the save carries the same id.
 			const journey = claimEarlyJourney({
 				option: initialOptions.journey,
 				storedChoice: hasStoredChoice(initialOptions),
 			});
+			const context = journey
+				? { journey, overrides: snapshot.overrides, user: snapshot.user }
+				: { overrides: snapshot.overrides, user: snapshot.user };
+			const key = earlyInitKey(context);
 			for (const other of sentEarly) {
 				if (other.key === key && sameHosted(other.options, hostedOptions)) {
 					early = other;
@@ -654,18 +680,16 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 				// takes it.
 				const carrier = buildTransport();
 				const init = carrier.init as NonNullable<KernelTransport['init']>;
-				const request = init(journey ? { ...context, journey } : context);
+				const request = init(context);
 				// Nobody reads it when the render that sent it never commits.
 				// oxlint-disable-next-line promise/prefer-await-to-then -- Only marks the rejection handled.
 				request.catch(() => undefined);
 				let used = false;
 				carrier.init = (next) => {
-					// The journey is created at mount, after this request left,
-					// so it is not part of what makes the request the same.
-					const reuse =
-						!used &&
-						JSON.stringify({ overrides: next.overrides, user: next.user }) ===
-							key;
+					// The kernel's init takes the response only for the request it
+					// would have sent itself, journey included: a runtime that
+					// starts another journey, or none, asks again.
+					const reuse = !used && earlyInitKey(next) === key;
 					used = true;
 					return reuse ? request : init(next);
 				};
