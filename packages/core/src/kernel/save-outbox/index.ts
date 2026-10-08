@@ -51,6 +51,7 @@
  */
 
 import type { OptionalConsentCategory } from '../../consent-record/types';
+import { isProductionBuild } from '../../libs/is-production';
 import {
 	isConsentSaveRejection,
 	isSubjectConflict,
@@ -120,6 +121,28 @@ export interface SaveOutboxOptions {
 		createQueueWorker: (options: QueueWorkerOptions) => QueueWorker;
 	}>;
 }
+
+/**
+ * Tell a developer that a save did not reach the backend. Otherwise the only
+ * signal is `onError`, and a queued save looks the same as a recorded one.
+ */
+const warnSaveFailed = function warnSaveFailed(
+	outcome: 'queued' | 'rejected',
+	error?: unknown
+): void {
+	if (isProductionBuild()) {
+		return;
+	}
+	const message =
+		outcome === 'queued'
+			? '[c15t] Consent save failed. The choice is kept in this browser and queued, and is resent on the next init or when the browser comes back online.'
+			: '[c15t] The backend refused the consent save, so it will not be resent. The choice is kept in this browser only.';
+	if (error === undefined) {
+		console.warn(message);
+	} else {
+		console.warn(message, error);
+	}
+};
 
 /**
  * Create the save outbox of one kernel.
@@ -227,10 +250,12 @@ export const createSaveOutbox = function createSaveOutbox({
 		error: unknown
 	): Promise<void> {
 		if (isConsentSaveRejection(error)) {
+			warnSaveFailed('rejected', error);
 			await discard(remaining);
 			return;
 		}
 		await enqueue(current);
+		warnSaveFailed('queued', error);
 		retryWhenOnline();
 	};
 
@@ -314,6 +339,7 @@ export const createSaveOutbox = function createSaveOutbox({
 				await discard(remaining);
 			} else {
 				await enqueue(currentPayload);
+				warnSaveFailed('queued');
 				retryWhenOnline();
 			}
 			if (result.ok && currentPayload()) {

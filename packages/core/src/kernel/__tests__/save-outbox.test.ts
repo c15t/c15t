@@ -1563,3 +1563,88 @@ describe('save outbox: partially superseded confirmations', () => {
 		}
 	);
 });
+
+describe('save outbox: development warnings', () => {
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
+	const silencedWarn = () =>
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+	test('a save the transport threw on warns that it was queued', async () => {
+		const warn = silencedWarn();
+		const offline = new Error('save offline');
+		const kernel = kernelOn({
+			transport: { save: vi.fn().mockRejectedValue(offline) },
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toHaveLength(1);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('queued'),
+			offline
+		);
+		kernel.dispose();
+	});
+
+	test('a save the transport answered as failed warns that it was queued', async () => {
+		const warn = silencedWarn();
+		const kernel = kernelOn({
+			transport: { save: vi.fn().mockResolvedValue({ ok: false }) },
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toHaveLength(1);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('queued'));
+		kernel.dispose();
+	});
+
+	test('a save the backend refuses for good warns that it will not be resent', async () => {
+		const warn = silencedWarn();
+		const refusal = refused('POLICY_SNAPSHOT_INVALID');
+		const kernel = kernelOn({
+			transport: { save: vi.fn().mockRejectedValue(refusal) },
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toEqual([]);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('will not be resent'),
+			refusal
+		);
+		kernel.dispose();
+	});
+
+	test('a successful save does not warn', async () => {
+		const warn = silencedWarn();
+		const kernel = kernelOn({ transport: { save: accepted } });
+
+		await kernel.commands.save('all');
+
+		expect(warn).not.toHaveBeenCalled();
+		kernel.dispose();
+	});
+
+	test('a failed save does not warn in production', async () => {
+		vi.stubEnv('NODE_ENV', 'production');
+		const warn = silencedWarn();
+		const kernel = kernelOn({
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toHaveLength(1);
+		expect(warn).not.toHaveBeenCalled();
+		kernel.dispose();
+	});
+});
