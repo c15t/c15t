@@ -4,6 +4,7 @@ import { resolveTranslations } from '@c15t/ui/utils';
 import { useContext, useMemo, useSyncExternalStore } from 'react';
 
 import { KernelContext } from '~/context';
+import { useServerSnapshot } from '~/kernel-selector';
 import { useUIConfig, V3UIConfigContext } from '~/ui-config-context';
 import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
@@ -21,10 +22,11 @@ const useLegalLinkTranslations = function useLegalLinkTranslations():
 	| Record<string, string>
 	| undefined {
 	const kernel = useContext(KernelContext);
+	const serverSnapshot = useServerSnapshot(kernel);
 	const kernelTranslations = useSyncExternalStore(
 		kernel ? (listener) => kernel.subscribe(listener) : noopSubscribe,
 		() => kernel?.getSnapshot().translations ?? null,
-		() => kernel?.getServerSnapshot().translations ?? null
+		() => serverSnapshot()?.translations ?? null
 	);
 
 	return useMemo(() => {

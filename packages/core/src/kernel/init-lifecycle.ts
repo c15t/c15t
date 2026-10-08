@@ -364,6 +364,8 @@ export interface InitLifecycleOptions {
 
 export interface InitLifecycle {
 	init: () => Promise<InitResult>;
+	/** See `InternalKernel.adoptInit`. */
+	adopt: (response: InitResponse, afterStart: boolean) => void;
 	/**
 	 * Mark the lifecycle started and arm the deadline timer. The first call
 	 * reads the browser's GPC signal. Re-arms the timer after `dispose()`.
@@ -404,6 +406,9 @@ export const createInitLifecycle = function createInitLifecycle({
 	// alone so an in-flight init still lands when React StrictMode disposes
 	// and reuses the same kernel without calling init again.
 	let initGeneration = 0;
+	// The generation an adopted answer fenced: an attempt it superseded
+	// completes as the adopted answer did.
+	let adoptedGeneration = -1;
 	let deadlineTimer: ReturnType<typeof setTimeout> | null = null;
 	let pendingRetryAttempt: number | null = null;
 	let retryInFlight = false;
@@ -510,6 +515,16 @@ export const createInitLifecycle = function createInitLifecycle({
 		return result;
 	};
 
+	/**
+	 * The result of an attempt a newer one fenced: the adopted answer's
+	 * success when an adoption fenced it, otherwise a failure.
+	 */
+	const superseded = function superseded(error: unknown): InitResult {
+		return initGeneration === adoptedGeneration
+			? { ok: true }
+			: { error, ok: false };
+	};
+
 	const runInitAttempt = async function runInitAttempt(
 		attempt: number
 	): Promise<InitResult> {
@@ -549,10 +564,11 @@ export const createInitLifecycle = function createInitLifecycle({
 			}
 			const response = await transport.init(ctx);
 			if (generation !== initGeneration) {
-				return complete({
-					error: new Error('c15t: init attempt superseded by a newer init()'),
-					ok: false,
-				});
+				return complete(
+					superseded(
+						new Error('c15t: init attempt superseded by a newer init()')
+					)
+				);
 			}
 			const current = getSnapshot();
 			const recordsAreCurrent =
@@ -583,7 +599,7 @@ export const createInitLifecycle = function createInitLifecycle({
 			return result;
 		} catch (error) {
 			if (generation !== initGeneration) {
-				return complete({ error, ok: false });
+				return complete(superseded(error));
 			}
 			emit({ command: 'init', error, type: 'command:error' });
 			commit(failedResolutionPatch(getSnapshot(), runtime.now()));
@@ -697,6 +713,35 @@ export const createInitLifecycle = function createInitLifecycle({
 		return runInitAttempt(1);
 	};
 
+	/**
+	 * Apply an init response now, in place of the attempt that would have
+	 * fetched it, and fence any attempt already in flight. Before the
+	 * runtime starts it only commits, as construction would have, and
+	 * `start()` then treats the kernel as built from that answer; once
+	 * started it announces `init:applied` as a completed attempt does.
+	 */
+	const adopt = function adopt(
+		response: InitResponse,
+		afterStart: boolean
+	): void {
+		initGeneration += 1;
+		adoptedGeneration = initGeneration;
+		clearRetry();
+		const current = getSnapshot();
+		const folded = foldInitResponse(
+			current,
+			response,
+			runtime.now(),
+			translationOverrides
+		);
+		if (afterStart) {
+			runtime.announce(folded.patch, 'init:applied', current.policyPending);
+			replaySaves();
+			return;
+		}
+		commit(folded.patch);
+	};
+
 	const dispose = function dispose(): void {
 		if (disposed) {
 			return;
@@ -716,5 +761,13 @@ export const createInitLifecycle = function createInitLifecycle({
 		onlineInstalled = false;
 	};
 
-	return { armDeadline, dispose, init, refresh, retryWhenOnline, start };
+	return {
+		adopt,
+		armDeadline,
+		dispose,
+		init,
+		refresh,
+		retryWhenOnline,
+		start,
+	};
 };

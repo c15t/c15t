@@ -88,10 +88,15 @@ awaiting it, and pass the pending result to the `Consent` wrapper:
 
 `resolveConsent` reads the visitor's cookies and location headers and resolves
 the policy from the bundled manifest. Next.js renders the page without waiting
-and sends the result later in the same response. Until the browser applies it
-after hydration, the banner and dialog stay hidden, optional categories stay
+and sends the result later in the same response. When the resolved policy
+shows a banner, `ConsentBanner` renders on the server and arrives in that later
+chunk, so it is visible before the page hydrates. Until the browser applies the
+result after hydration, the dialog stays hidden, optional categories stay
 denied, `ConsentGate` shows its placeholder and gated scripts do not load. The
 browser makes no `/init` request.
+
+To mount the banner after hydration instead, pass `streamBanner: false` in
+`ConsentRoot`'s `options`.
 
 A new visitor then sees the banner. A returning visitor with a valid stored
 choice sees none, and the scripts that choice allows load. A choice that has

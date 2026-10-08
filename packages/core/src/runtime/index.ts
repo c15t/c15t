@@ -80,6 +80,7 @@ export type {
 	RuntimeNetworkBlockerOptions,
 	RuntimePersistenceOptions,
 	RuntimePrefetch,
+	StreamedPrefetch,
 	RuntimeScriptLoaderOptions,
 } from './types';
 export type { WireRuntimeCallbacksOptions } from './callbacks';

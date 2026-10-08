@@ -61,7 +61,7 @@ Inth project that is still provisioning, because it has no backend URL yet.
 | `--backend-url <url>` | Use this HTTP or HTTPS backend URL. |
 | `--project <id, name or organization/name>` | Use the backend URL of a signed-in Inth project. |
 | `--proxy` | Add a Next.js rewrite to the hosted backend. Hosted Next.js only. |
-| `--ssr` | Start consent resolution on the server in a hosted Next.js App Router app. The wrapper passes the pending result to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
+| `--ssr` | Start consent resolution on the server in a hosted Next.js App Router app. The wrapper passes the pending result to the provider, so pages render without waiting for the backend and the banner follows in a later chunk, before hydration. |
 | `--devtools` | Include c15t DevTools. |
 | `--ui-style prebuilt` or `expanded` | Use the stock components or their compound parts. React and Next.js only. |
 | `--theme none`, `minimal`, `dark` or `tailwind` | Apply a theme preset. React and Next.js only. |

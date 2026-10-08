@@ -16,7 +16,7 @@ import type {
 import { evaluateConsent } from '@c15t/core';
 import { useContext, useSyncExternalStore } from 'react';
 
-import { KernelContext } from './context';
+import { HydrationSnapshotContext, KernelContext } from './context';
 import { defaultTranslationConfig } from './utils/default-translation-config';
 
 /**
@@ -37,6 +37,22 @@ export const useKernel = function useKernel(): ConsentKernel {
 };
 
 /**
+ * Reads the snapshot hydration renders: the kernel's server snapshot, or,
+ * inside a streamed consent surface, the snapshot the server rendered that
+ * surface from.
+ *
+ * @param kernel - The provider's kernel.
+ * @returns A `getServerSnapshot` for `useSyncExternalStore`.
+ * @internal
+ */
+export const useServerSnapshot = function useServerSnapshot(
+	kernel: ConsentKernel | null
+): () => ConsentSnapshot | undefined {
+	const streamed = useContext(HydrationSnapshotContext);
+	return () => streamed ?? kernel?.getServerSnapshot();
+};
+
+/**
  * Subscribes to one slice of the kernel snapshot. React re-renders the
  * caller only when the selected value `Object.is`-differs, so a selector
  * must return a primitive or a reference the snapshot already holds.
@@ -49,6 +65,7 @@ export const useKernelSelector = function useKernelSelector<SliceType>(
 	selector: (snap: ConsentSnapshot) => SliceType
 ): SliceType {
 	const kernel = useKernel();
+	const serverSnapshot = useServerSnapshot(kernel);
 	return useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => selector(kernel.getSnapshot()),
@@ -57,7 +74,7 @@ export const useKernelSelector = function useKernelSelector<SliceType>(
 		// snapshot before hydration completes — rendering the mutated state
 		// here mismatches the server HTML and strands SSR'd consent UI as
 		// unowned DOM (a banner React never removes).
-		() => selector(kernel.getServerSnapshot())
+		() => selector(serverSnapshot() as ConsentSnapshot)
 	);
 };
 
@@ -77,11 +94,12 @@ export const useGateSelector = function useGateSelector<SliceType>(
 	selector: (snap: ConsentSnapshot, now: number) => SliceType
 ): SliceType {
 	const kernel = useKernel();
+	const serverSnapshot = useServerSnapshot(kernel);
 	return useSyncExternalStore(
 		(listener) => kernel.subscribe(listener),
 		() => selector(kernel.getSnapshot(), Date.now()),
 		() => {
-			const snap = kernel.getServerSnapshot();
+			const snap = serverSnapshot() as ConsentSnapshot;
 			return selector(snap, snap.evaluatedAt);
 		}
 	);

@@ -23,6 +23,7 @@ import { useUIConfig } from '~/ui-config-context';
 import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { StreamedSurface } from '../../shared/streamed-surface';
 import {
 	ConsentBannerSurfaceContext,
 	mirrorDefaultPosition,
@@ -315,7 +316,7 @@ const ConsentBannerRootChildren = createForwardRef<
 		) : null;
 	}
 );
-const ConsentBannerRoot: FC<ConsentBannerRootProps> = ({
+const ConsentBannerRootContent: FC<ConsentBannerRootProps> = ({
 	children,
 	className,
 	noStyle,
@@ -412,6 +413,16 @@ interface ConsentBannerRootChildrenProps extends HTMLAttributes<HTMLDivElement> 
 }
 
 ConsentBannerRootChildren.displayName = 'ConsentBannerRootChildren';
+
+/**
+ * The banner, rendered where the server can stream it: see
+ * `StreamedSurface`.
+ */
+const ConsentBannerRoot: FC<ConsentBannerRootProps> = (props) => (
+	<StreamedSurface>
+		<ConsentBannerRootContent {...props} />
+	</StreamedSurface>
+);
 
 const Root = ConsentBannerRoot;
 

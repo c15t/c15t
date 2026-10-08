@@ -12,6 +12,7 @@ import type {
 	ConsentKernel,
 	HydrationRecords,
 	HydrationResult,
+	InitResponse,
 	KernelEvent,
 } from '../types';
 
@@ -25,6 +26,16 @@ export interface InternalKernel extends ConsentKernel {
 	 * through `set.privacySignals` afterward.
 	 */
 	hydrate: (records: HydrationRecords) => HydrationResult;
+	/**
+	 * Apply an init response synchronously, in place of the attempt that
+	 * would have fetched it; an attempt in flight then applies nothing. The
+	 * provider runtime adopts a streamed prefetch this way, so the kernel
+	 * holds the policy a server-rendered surface shows by the time it
+	 * hydrates. Before the runtime started (`afterStart` false) it only
+	 * commits, as construction would; after, it announces `init:applied` as
+	 * a completed attempt does.
+	 */
+	adoptInit: (response: InitResponse, afterStart: boolean) => void;
 	/**
 	 * Mark the kernel live in a visitor's browser. `init()` does this on its
 	 * own; a runtime that renders from a server-resolved prefetch and never

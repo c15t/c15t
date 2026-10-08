@@ -46,12 +46,12 @@ import ConsentManagerClient from './provider';
  *
  * Starts resolving this request's consent state and passes the pending result
  * to the client provider without awaiting it, so the page renders without
- * waiting for the consent backend. The banner mounts after hydration, once
- * the state arrives.
+ * waiting for the consent backend. The banner follows the page in a later
+ * chunk of the same response, before hydration, once the state arrives.
  *
- * To render the banner in the server HTML instead, make this component async,
- * await \`resolveConsent\`, and wrap <ConsentManager> in <Suspense> in your
- * layout. The page then waits for consent before it is shown.
+ * To send the page and the banner together instead, make this component
+ * async, await \`resolveConsent\`, and wrap <ConsentManager> in <Suspense> in
+ * your layout. The page then waits for consent before it is shown.
  * @see https://c15t.com/docs/frameworks/${framework.docsSlug}/app-router
  */
 export function ConsentManager({ children }: { children: ReactNode }) {

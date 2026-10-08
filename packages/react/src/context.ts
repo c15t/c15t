@@ -2,7 +2,9 @@ import type {
 	AllConsentNames,
 	ConsentKernel,
 	ConsentPresentation,
+	ConsentSnapshot,
 } from '@c15t/core';
+import type { StreamedPrefetch } from '@c15t/core/runtime';
 import { createContext } from 'react';
 
 /**
@@ -29,5 +31,26 @@ export interface ProviderServices {
 	setLanguage: (code: string) => void;
 }
 export const ProviderServicesContext = createContext<ProviderServices | null>(
+	null
+);
+
+/**
+ * The provider runtime's streamed `prefetch`, while `prefetch` is a promise.
+ * Consent surfaces render inside a boundary that waits for it.
+ *
+ * @internal
+ */
+export const StreamedPrefetchContext = createContext<
+	StreamedPrefetch | undefined
+>(undefined);
+
+/**
+ * The snapshot a streamed consent surface was server-rendered from, which
+ * its hydration must read in place of the kernel's own server snapshot.
+ * `null` everywhere else.
+ *
+ * @internal
+ */
+export const HydrationSnapshotContext = createContext<ConsentSnapshot | null>(
 	null
 );

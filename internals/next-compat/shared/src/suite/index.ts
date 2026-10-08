@@ -247,6 +247,53 @@ export const defineCompatSuite = function defineCompatSuite({
 					);
 				});
 
+				if (scenario.initPath === 'ssr-stream') {
+					it('streams the banner before hydration and hydrates it in place', async () => {
+						// Hold the app's JavaScript: what shows now came from the
+						// HTML stream and React's inline scripts alone.
+						let release: () => void = () => undefined;
+						const released = new Promise<void>((resolve) => {
+							release = resolve;
+						});
+						// Scripts only: the stylesheet shares the chunks directory
+						// and blocks rendering.
+						await page.route('**/_next/static/chunks/**', async (route) => {
+							if (route.request().resourceType() === 'script') {
+								await released;
+							}
+							await route.continue();
+						});
+						await page.goto(`${baseURL}${scenario.path}`, {
+							waitUntil: 'commit',
+						});
+						const banner = page.locator(`[data-testid="${BANNER_MARKER}"]`);
+						await banner.waitFor({ state: 'visible', timeout: 30_000 });
+						expect(await readProbe(page)).toBeUndefined();
+						// A node React adopts keeps this mark; one it re-creates
+						// does not.
+						await banner.evaluate((element) => {
+							(element as HTMLElement & { __streamed?: true }).__streamed =
+								true;
+						});
+
+						release();
+						const state = await waitForInit(page);
+						expect(state.activeUI).toBe('banner');
+						await page
+							.locator('[data-testid="consent-banner-accept-button"]')
+							.waitFor({ state: 'visible', timeout: 30_000 });
+						expect(
+							await banner.evaluate(
+								(element) =>
+									(element as HTMLElement & { __streamed?: true })
+										.__streamed === true
+							)
+						).toBe(true);
+						expect(consoleErrors).toEqual([]);
+						expect(pageErrors).toEqual([]);
+					});
+				}
+
 				it('shows the banner and reports the expected init path', async () => {
 					const initialHTML = await fetchHTML(baseURL, scenario.path);
 					await clearInitRequests(stubURL);
@@ -294,14 +341,14 @@ export const defineCompatSuite = function defineCompatSuite({
 						case 'ssr-stream': {
 							// The layout handed the root the pending promise. The
 							// server still called /init with the forwarded country, the
-							// browser did not, and the banner is not in the first HTML:
-							// it appears once the promise resolves.
+							// browser did not, and the banner followed the shell in a
+							// later chunk of the same response.
 							expect(serverSide.length).toBeGreaterThanOrEqual(1);
 							expect(serverSide[0]?.headers['x-c15t-country']).toBe(
 								TEST_COUNTRY
 							);
 							expect(browserSide).toHaveLength(0);
-							expect(initialHTML).not.toContain(BANNER_MARKER);
+							expect(initialHTML).toContain(BANNER_MARKER);
 							break;
 						}
 						case 'manifest-geo': {

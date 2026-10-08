@@ -18,10 +18,11 @@ Keep the banner and `ConsentRoot` in that client file. Do not mount
 key, and React cannot pass it from a Server Component to a Client Component.
 
 The banner renders what the resolved policy rule requires. With the default
-streamed layout, it mounts after hydration. With the
+streamed layout, it arrives in a later chunk of the server response, before
+hydration, unless `options.streamBanner` is `false`. With the
 [awaited layout](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html)
-or Pages Router `getServerSideProps`, it is part of the server HTML. The server
-and the browser use the same state:
+or Pages Router `getServerSideProps`, it is part of the server HTML with the
+page. The server and the browser use the same state:
 
 - A `choice` prompt shows the actions the rule allows: reject and accept at
   equal prominence, plus customize when the rule offers it.

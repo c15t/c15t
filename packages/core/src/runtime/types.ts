@@ -55,6 +55,7 @@ import type { User } from '../options/user';
 import type { ProviderTransportFactory } from '../transports/mode';
 import type {
 	ConsentKernel,
+	ConsentSnapshot,
 	ConsentState,
 	GlobalVendorList,
 	KernelConfig,
@@ -720,6 +721,47 @@ export interface ConsentRuntime {
  * streaming. Hosts that configure once use `createConsentRuntime` and do
  * not load this code.
  */
+/**
+ * A `prefetch` promise the provider runtime streams into its first init,
+ * as a host renders it before hydration.
+ *
+ * A server render cannot wait for the promise without holding the page
+ * back, so a host renders its consent surfaces in their own suspended
+ * part of the page that waits for {@link StreamedPrefetch.settled}. That
+ * part renders {@link StreamedPrefetch.snapshotFor} where the rest of the
+ * page renders the kernel's server snapshot, and the browser hydrates it
+ * from the same snapshot.
+ *
+ * @internal
+ */
+export interface StreamedPrefetch {
+	/**
+	 * Settles with the resolved config, or `undefined` when the promise
+	 * rejected. Never rejects.
+	 */
+	readonly settled: PromiseLike<RuntimePrefetch | undefined>;
+	/**
+	 * The snapshot a kernel built from `config` starts with: what a
+	 * consent surface renders on the server and hydrates from once the
+	 * prefetch has settled. Without a resolved policy, or with an
+	 * experiment the runtime cannot run before the browser picks its arm,
+	 * it is the kernel's own server snapshot, so nothing shows before the
+	 * policy does. Built from the options the runtime was created with, as
+	 * the server rendered; the same config returns the same snapshot.
+	 */
+	snapshotFor: (config: RuntimePrefetch | undefined) => ConsentSnapshot;
+	/**
+	 * Apply `config` to the kernel now, in the browser, when it is one
+	 * {@link StreamedPrefetch.snapshotFor} renders from: a surface that
+	 * hydrated from that snapshot then finds the kernel agreeing with it,
+	 * and a choice made on it records against its policy. Before `start()`
+	 * the runtime then starts as from a ready prefetch; after, the streamed
+	 * init still in flight applies nothing. Does nothing on the server, once
+	 * the kernel holds an init answer, or while disabled.
+	 */
+	adopt: (config: RuntimePrefetch | undefined) => void;
+}
+
 export interface ConsentProviderRuntime extends ConsentRuntime {
 	/**
 	 * The consent kernel. Adapters subscribe to it for reactivity.
@@ -774,4 +816,10 @@ export interface ConsentProviderRuntime extends ConsentRuntime {
 	 * arrive through `kernel.subscribe`, not here.
 	 */
 	subscribe: (listener: () => void) => Unsubscribe;
+	/**
+	 * Present while `prefetch` is a promise the runtime streams into its
+	 * first init. See {@link StreamedPrefetch}.
+	 * @internal
+	 */
+	readonly streamed?: StreamedPrefetch;
 }

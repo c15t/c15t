@@ -954,6 +954,223 @@ describe('a streamed prefetch', () => {
 	});
 });
 
+describe('a streamed prefetch a host renders from', () => {
+	const streaming = { ...defaultRuntimeModules, streamPrefetch };
+	/** A stream still pending when the test ends. */
+	const never = () =>
+		new Promise<RuntimePrefetch>(() => {
+			// Never settles.
+		});
+
+	/** Counts `init:applied` from construction on. */
+	const countApplied = (runtime: ConsentProviderRuntime) => {
+		const count = { applied: 0 };
+		runtime.kernel.events.on('init:applied', () => {
+			count.applied += 1;
+		});
+		return count;
+	};
+
+	test('renders a policy that shows the banner, and the kernel snapshot for anything else', () => {
+		const runtime = create({ prefetch: never() }, streaming);
+		const { streamed } = runtime;
+		if (!streamed) {
+			throw new Error('expected a streamed prefetch');
+		}
+
+		const snapshot = streamed.snapshotFor(RESOLVED_PREFETCH);
+		expect(snapshot.activeUI).toBe('banner');
+		expect(snapshot.policyRule.id).toBe('policy_1');
+		expect(streamed.snapshotFor(RESOLVED_PREFETCH)).toBe(snapshot);
+
+		const provisional = runtime.kernel.getServerSnapshot();
+		expect(streamed.snapshotFor(undefined)).toBe(provisional);
+		expect(streamed.snapshotFor({ now: NOW })).toBe(provisional);
+		expect(
+			streamed.snapshotFor({
+				...RESOLVED_PREFETCH,
+				experiment: {
+					arm: 'bar',
+					arms: { bar: { prompt: { variant: 'bar' } } },
+					id: 'banner-shape',
+				},
+			})
+		).toBe(provisional);
+	});
+
+	test('is offered only for a promise the runtime streams', () => {
+		const pending = never();
+		expect(create({ prefetch: RESOLVED_PREFETCH }, streaming).streamed).toBe(
+			undefined
+		);
+		expect(create({ prefetch: pending }).streamed).toBe(undefined);
+		expect(
+			create({ enabled: false, prefetch: pending }, streaming).streamed
+		).toBe(undefined);
+		expect(create({ prefetch: pending }, streaming).streamed).toBeDefined();
+	});
+
+	test('settles with undefined when the promise rejects, and records its result', async () => {
+		const rejected = Promise.reject(new Error('stream failed'));
+		rejected.catch(() => undefined);
+		const runtime = create({ prefetch: rejected }, streaming);
+		await expect(runtime.streamed?.settled).resolves.toBeUndefined();
+
+		const resolved = create(
+			{ prefetch: Promise.resolve(RESOLVED_PREFETCH) },
+			streaming
+		);
+		await resolved.streamed?.settled;
+		expect(resolved.streamed?.settled).toMatchObject({
+			status: 'fulfilled',
+			value: RESOLVED_PREFETCH,
+		});
+	});
+
+	test('adopted before start, the kernel holds the policy at once and start asks no one', async () => {
+		const transport = createTransport();
+		const runtime = create(
+			{
+				mode: custom(transport),
+				persistence: false,
+				prefetch: never(),
+			},
+			streaming
+		);
+		const count = countApplied(runtime);
+
+		runtime.streamed?.adopt(RESOLVED_PREFETCH);
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		expect(runtime.kernel.getSnapshot().policyRule.id).toBe('policy_1');
+
+		runtime.start();
+		await Promise.resolve();
+		expect(transport.init).not.toHaveBeenCalled();
+		// `start()` replays the event the applied answer would have raised.
+		expect(count.applied).toBe(1);
+	});
+
+	test('adopted after start, the streamed init still in flight applies nothing', async () => {
+		const transport = createTransport();
+		const stream = Promise.withResolvers<RuntimePrefetch>();
+		const runtime = create(
+			{
+				mode: custom(transport),
+				persistence: false,
+				prefetch: stream.promise,
+			},
+			streaming
+		);
+		const count = countApplied(runtime);
+		const errors = vi.fn();
+		runtime.kernel.events.on('command:error', errors);
+		const results: unknown[] = [];
+		runtime.kernel.events.on('command:init:completed', ({ result }) => {
+			results.push(result);
+		});
+		runtime.start();
+
+		runtime.streamed?.adopt(RESOLVED_PREFETCH);
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		expect(count.applied).toBe(1);
+
+		stream.resolve(RESOLVED_PREFETCH);
+		await runtime.streamed?.settled;
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(count.applied).toBe(1);
+		expect(errors).not.toHaveBeenCalled();
+		// The fenced attempt reports the adopted answer, not a failure.
+		expect(results).toEqual([{ ok: true }]);
+		expect(transport.init).not.toHaveBeenCalled();
+	});
+
+	test('adopts once, and never over an init that already applied', async () => {
+		const transport = createTransport();
+		const runtime = create(
+			{
+				mode: custom(transport),
+				persistence: false,
+				prefetch: Promise.resolve(RESOLVED_PREFETCH),
+			},
+			streaming
+		);
+		const count = countApplied(runtime);
+		runtime.start();
+		await vi.waitFor(() => expect(count.applied).toBe(1));
+
+		runtime.streamed?.adopt(RESOLVED_PREFETCH);
+		runtime.streamed?.adopt(RESOLVED_PREFETCH);
+		expect(count.applied).toBe(1);
+	});
+
+	test('does not adopt a config it would not render from', () => {
+		const runtime = create(
+			{
+				persistence: false,
+				prefetch: never(),
+			},
+			streaming
+		);
+		runtime.streamed?.adopt({ now: NOW });
+		runtime.streamed?.adopt(undefined);
+		expect(runtime.kernel.getSnapshot().policyPending).toBe(true);
+	});
+
+	test('records cleared after start are not brought back by an adopted config', () => {
+		const runtime = create(
+			{
+				persistence: false,
+				prefetch: never(),
+			},
+			streaming
+		);
+		runtime.start();
+		runtime.clearRecords();
+
+		runtime.streamed?.adopt({
+			...RESOLVED_PREFETCH,
+			initialRecords: { subject: { subjectId: 'sub_server' } },
+		});
+		expect(runtime.kernel.getSnapshot().policyPending).toBe(false);
+		expect(runtime.kernel.getSnapshot().subject?.subjectId).not.toBe(
+			'sub_server'
+		);
+	});
+
+	test('an adopted config brings its records when nothing cleared them', () => {
+		const runtime = create(
+			{
+				persistence: false,
+				prefetch: never(),
+			},
+			streaming
+		);
+		runtime.streamed?.adopt({
+			...RESOLVED_PREFETCH,
+			initialRecords: { subject: { subjectId: 'sub_server' } },
+		});
+		expect(runtime.kernel.getSnapshot().subject?.subjectId).toBe('sub_server');
+	});
+
+	test("runtime overrides win over the adopted config's", () => {
+		const runtime = create(
+			{
+				overrides: { country: 'US' },
+				persistence: false,
+				prefetch: never(),
+			},
+			streaming
+		);
+		runtime.streamed?.adopt({
+			...RESOLVED_PREFETCH,
+			initialOverrides: { country: 'DE' },
+		});
+		expect(runtime.kernel.getSnapshot().overrides.country).toBe('US');
+	});
+});
+
 describe('lazyRuntimeModule', () => {
 	test('data clearing waits for a lazy script loader, so revocation callbacks run before data is removed', async () => {
 		const loaderGate = Promise.withResolvers<undefined>();

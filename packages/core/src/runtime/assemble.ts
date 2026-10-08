@@ -326,8 +326,13 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 				if (hasResolvedPrefetch(options.prefetch)) {
 					// What the server rendered is the visitor's first impression,
 					// so evaluate at its clock; a restart evaluates now.
+					// A streamed config adopted after construction carries its
+					// clock; the server snapshot predates it.
 					kernel.hydrate({
-						now: adopted ? Date.now() : kernel.getServerSnapshot().evaluatedAt,
+						now: adopted
+							? Date.now()
+							: (options.prefetch?.now ??
+								kernel.getServerSnapshot().evaluatedAt),
 					});
 					adopted = true;
 					// No init call marks this kernel live, so do it here.

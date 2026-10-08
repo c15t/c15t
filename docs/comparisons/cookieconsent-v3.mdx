@@ -42,7 +42,7 @@ See the [consent state guide](/docs/concepts/consent-state) for those conditions
 
 Your c15t preference controls and gated content can use the same framework state. Use the supplied interface or build one with [headless APIs](/docs/frameworks/react/headless).
 
-In Next.js, you can [choose how consent resolves](/docs/frameworks/next/rendering). The App Router's default streamed path shows the page first. An awaited path can include the banner in server HTML.
+In Next.js, you can [choose how consent resolves](/docs/frameworks/next/rendering). The App Router's default streamed path shows the page first and sends the banner in a later chunk, before hydration. An awaited path sends the page and the banner together.
 
 CookieConsent supports service switches, cookie cleanup and framework integration. c15t's stronger case is the integrated framework and backend workflow.
 

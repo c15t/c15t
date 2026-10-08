@@ -42,7 +42,7 @@ With c15t, a server can cache a public consent manifest, the document that conta
 
 Backend refreshes and consent saves still need a connection. See [data fetching](/docs/concepts/data-fetching).
 
-In the Next.js App Router, the default streamed path lets the page appear first. Await consent when the banner must arrive in server HTML. That choice adds a wait.
+In the Next.js App Router, the default streamed path lets the page appear first and sends the banner in a later chunk, before hydration. Await consent when the page and the banner must arrive together. That choice adds a wait.
 
 These [rendering options](/docs/frameworks/next/rendering) let your team choose the tradeoff. Neither an API nor server rendering proves a speed advantage without a comparable test.
 
