@@ -302,7 +302,8 @@ await identify({ externalId: user.id, identityToken });
 
 The token expires after `ttlSeconds`, one hour by default, so mint one per page
 load. If you pass `identityProvider`, the browser must send the same one. A
-token that fails returns `IDENTITY_TOKEN_INVALID` and links nothing. See
+failed token makes `identify()` return `IDENTITY_TOKEN_INVALID`, but never
+blocks the first consent save; that link just stays unverified. See
 [verify identity links](/docs/self-host/api/endpoints#verify-identity-links)
 for the full rules.
 
