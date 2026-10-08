@@ -269,6 +269,7 @@ export const ConsentRoot = ({
 				// hydration would hold the banner back by a round trip.
 				__resolveStreamedInit: resolveStreamedInit,
 				clearOnRevocation,
+				journey: options?.journey ?? config?.journey,
 				mode,
 				networkBlocker,
 				persistence,

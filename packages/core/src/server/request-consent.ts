@@ -69,6 +69,7 @@ import type {
 	ManifestCache,
 	ManifestFetch,
 } from '../libs/manifest-cache-runtime';
+import { resolveSessionReportBackendURL } from '../libs/session-report';
 import { readStoredRecordsFromCookieHeader } from '../modules/persistence/hydrate';
 import { resolveStorageKeys } from '../modules/persistence/record-storage';
 import { deferInitGvl, deferInitGvlToRoute } from '../transports/gvl-reference';
@@ -318,8 +319,11 @@ export interface ResolveRequestConsentOptions {
 	 * `/init` (as query parameters) or the session report carries, handed
 	 * to the browser in the state so its save carries the same id. The
 	 * value is the scope the report records; pass the provider's `journey`
-	 * option. `false`, `reportSessions: false`, a shared render, offline
-	 * mode and a prefetch or prerender request start none.
+	 * option. `false`, `reportSessions: false`, a manifest render with no
+	 * absolute backend to report to, and a prefetch or prerender request
+	 * start none and set the state's `journey` to `null`, so the browser
+	 * sends none either. A shared render and offline mode leave it unset:
+	 * the browser resolves those pages itself.
 	 *
 	 * @default 'page'
 	 */
@@ -518,28 +522,34 @@ const resolveMode = function resolveMode(
  * @param mode - How the policy is resolved.
  * @param base - The request-only state, for the stored choice.
  * @param read - The request facts, read only when a journey may start.
- * @returns The journey, with the site's hostname when known.
+ * @returns The journey, with the site's hostname when known; `null` when
+ *   this render resolves the page without one, so the browser must send
+ *   none; `undefined` when the browser resolves the page itself and starts
+ *   its own.
  */
 const startServerJourney = function startServerJourney(
 	options: ResolveRequestConsentOptions,
 	mode: RequestConsentMode | undefined,
 	base: RequestConsentState,
 	read: () => { domain: string | undefined; speculative: boolean }
-): SessionJourney | undefined {
-	const scope = options.journey ?? 'page';
-	if (
-		scope === false ||
-		options.reportSessions === false ||
-		options.shared ||
-		!mode ||
-		mode === 'offline'
-	) {
+): SessionJourney | null | undefined {
+	if (options.shared || !mode || mode === 'offline') {
 		return undefined;
 	}
+	const scope = options.journey ?? 'page';
+	// A manifest render reports only to an absolute backend; without one no
+	// report would carry the id, and a save carrying it would link to nothing.
+	const unreported =
+		mode === 'manifest' &&
+		!resolveSessionReportBackendURL({ backendURL: options.backendURL });
+	if (scope === false || options.reportSessions === false || unreported) {
+		return null;
+	}
 	const { domain, speculative } = read();
+	// A prefetch or prerender is not reported either.
 	const id = speculative ? undefined : createJourneyId();
 	if (!id) {
-		return undefined;
+		return null;
 	}
 	const journey: SessionJourney = {
 		id,
@@ -663,8 +673,12 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 				? { ...state, experiment: options.experiment }
 				: state;
 		// The browser adopts this id, even when the render fell back to the
-		// request-only state: its own init then carries it.
-		return journey ? { ...carried, journey: { id: journey.id } } : carried;
+		// request-only state: its own init then carries it. `null` tells it
+		// this page has no journey.
+		if (journey === undefined) {
+			return carried;
+		}
+		return { ...carried, journey: journey && { id: journey.id } };
 	};
 	if (!mode || (options.shared && mode !== 'offline')) {
 		return carry(base);
@@ -922,7 +936,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 								experiment: arm,
 								fetch: options.fetch,
 								headers: readVisitorHeaders(),
-								journey,
+								journey: journey ?? undefined,
 								source: 'render',
 								waitUntil: options.waitUntil,
 							},

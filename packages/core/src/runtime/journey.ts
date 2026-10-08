@@ -61,10 +61,12 @@ export interface JourneyController {
 	start: (kernel: ConsentKernel) => () => void;
 	/**
 	 * Continue the journey a server state started, when that state arrives
-	 * after construction (a streamed prefetch). Ignored once a save carried
-	 * the current id, and for a `'tab'` journey an earlier page started.
+	 * after construction (a streamed prefetch), or end it when the state
+	 * says the page has none (`null`). Ignored once a save carried the
+	 * current id; an id is also ignored for a `'tab'` journey an earlier
+	 * page started.
 	 */
-	adopt: (id: string | undefined) => void;
+	adopt: (id: string | null | undefined) => void;
 	/** The journey an `init` carries, or `undefined` for none. */
 	forInit: () => KernelJourney | undefined;
 	/** The journey a save carries, or `undefined` for none. */
@@ -91,6 +93,8 @@ export const createJourneyController = function createJourneyController(
 	let sent = false;
 	// The id is in `sessionStorage` as far as this runtime knows.
 	let stored = false;
+	// A server state said this page has no journey.
+	let off = false;
 
 	const asPage = function asPage(): void {
 		if (journey && journey.scope !== 'page') {
@@ -192,6 +196,13 @@ export const createJourneyController = function createJourneyController(
 
 	return {
 		adopt(id) {
+			if (id === null) {
+				if (!sent) {
+					off = true;
+					journey = undefined;
+				}
+				return;
+			}
 			const parsed = parseJourneyId(id);
 			if (!parsed || continued || sent) {
 				return;
@@ -218,7 +229,7 @@ export const createJourneyController = function createJourneyController(
 			return { id: journey.id, scope: journey.scope };
 		},
 		start(kernel) {
-			if (!journey) {
+			if (!(journey || off)) {
 				create(kernel);
 			}
 			return journey?.scope === 'tab' ? watch(kernel) : () => undefined;

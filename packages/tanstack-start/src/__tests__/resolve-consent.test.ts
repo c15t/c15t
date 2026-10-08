@@ -81,6 +81,37 @@ describe('resolveConsent wiring', () => {
 		expect(state).not.toHaveProperty('transport');
 	});
 
+	test('reports the configured journey scope, and false or no reports turn it off', async () => {
+		const sessions = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(new Response(null, { status: 204 }))
+		);
+		const tab = await resolveConsent({
+			backendURL: 'https://consent.example.com',
+			fetch: sessions,
+			journey: 'tab',
+			manifest: MANIFEST_FIXTURE,
+			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+		});
+		await vi.waitFor(() => expect(sessions).toHaveBeenCalled());
+		const report = JSON.parse(String(sessions.mock.calls[0]?.[1]?.body));
+		expect(report.journey).toMatchObject({ id: tab.journey?.id, scope: 'tab' });
+
+		for (const off of [
+			{ journey: false as const },
+			{ reportSessions: false },
+		]) {
+			// oxlint-disable-next-line no-await-in-loop -- One render at a time.
+			const state = await resolveConsent({
+				backendURL: 'https://consent.example.com',
+				manifest: MANIFEST_FIXTURE,
+				request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+				...off,
+			});
+			// The state tells ConsentRoot this page has no journey.
+			expect(state.journey).toBeNull();
+		}
+	});
+
 	test('uses what consentRequestMiddleware remembered for the request', async () => {
 		const request = requestOf({ 'x-vercel-ip-country': 'US' });
 		rememberConsentInputs(request, { country: 'DE' });

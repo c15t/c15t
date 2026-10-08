@@ -53,7 +53,7 @@ export interface AssembledRuntime {
 	 * Continue the consent journey a streamed prefetch started. See
 	 * `JourneyController.adopt`.
 	 */
-	adoptJourney: (id: string | undefined) => void;
+	adoptJourney: (id: string | null | undefined) => void;
 	runtime: ConsentRuntime;
 	/**
 	 * Unmount every module and `window.c15t` and detach callbacks, keeping
@@ -111,7 +111,8 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 	const enabled = options.enabled ?? true;
 	const experiment = hostExperiment(options.experiment, options.prefetch);
 	const journey = createJourneyController({
-		option: options.journey,
+		// A server state that says the page has no journey wins.
+		option: options.prefetch?.journey === null ? false : options.journey,
 		serverId: options.prefetch?.journey?.id,
 	});
 	const kernel = createRuntimeKernel(options, (transport) =>

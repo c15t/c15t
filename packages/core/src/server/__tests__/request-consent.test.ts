@@ -992,19 +992,39 @@ describe('consent journey', () => {
 		['journey: false', { journey: false }, {}],
 		['reportSessions: false', { reportSessions: false }, {}],
 		['a prefetch', {}, { 'sec-purpose': 'prefetch' }],
-		['a shared render', { shared: true }, {}],
-	] as const)('%s starts none', async (_label, options, headers) => {
-		const fetch = upstream();
-		const state = await render({
-			backendURL: BACKEND,
-			fetch,
-			headers,
-			...options,
-		});
-		expect(state.journey).toBeUndefined();
-		for (const [input] of fetch.mock.calls) {
-			expect(String(input)).not.toContain('c15tJourney');
+		[
+			'a manifest render with no absolute backend to report to',
+			{ backendURL: '/api/self-host', mode: 'manifest' },
+			{},
+		],
+	] as const)(
+		'%s starts none and tells the browser to send none',
+		async (_label, options, headers) => {
+			const fetch = upstream();
+			const state = await render({
+				backendURL: BACKEND,
+				fetch,
+				headers,
+				...options,
+			});
+			expect(state.journey).toBeNull();
+			for (const [input] of fetch.mock.calls) {
+				expect(String(input)).not.toContain('c15tJourney');
+			}
 		}
+	);
+
+	test('a shared render leaves the journey to the browser', async () => {
+		const fetch = upstream();
+		const state = await render({ backendURL: BACKEND, fetch, shared: true });
+		expect(state).not.toHaveProperty('journey');
+	});
+
+	test('the configured scope goes on the hosted /init', async () => {
+		const fetch = upstream();
+		await render({ backendURL: BACKEND, fetch, journey: 'tab' });
+		const sent = new URL(String(callsTo(fetch, '/init')[0]?.[0]));
+		expect(sent.searchParams.get('c15tJourneyScope')).toBe('tab');
 	});
 
 	test('offline mode starts none', async () => {

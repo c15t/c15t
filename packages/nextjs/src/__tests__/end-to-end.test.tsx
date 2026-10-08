@@ -442,6 +442,85 @@ describe('ConsentRoot: config picks the transport', () => {
 		}
 	});
 
+	test('config journey false: neither the init nor the save carries one', async () => {
+		const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
+			Promise.resolve(
+				pathOf(url).endsWith('/subjects')
+					? jsonResponse({ ok: true, subjectId: 'sub_saved' })
+					: jsonResponse({
+							branding: 'c15t',
+							location: { countryCode: 'DE', regionCode: null },
+							policyResolution: writePolicyResolutionWire(
+								policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+							),
+							translations: { language: 'en', translations: { common: {} } },
+						})
+			)
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{}}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						journey: false,
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('gdpr|DE|false');
+			await getByTestId('save').click();
+			await vi.waitFor(() =>
+				expect(
+					fetchSpy.mock.calls.some(([url]) => pathOf(url).endsWith('/subjects'))
+				).toBe(true)
+			);
+			for (const [url] of fetchSpy.mock.calls) {
+				expect(String(url)).not.toContain('c15tJourney');
+			}
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('a server state with no journey: the save carries none', async () => {
+		const fetchSpy = vi.fn((_url: string, _init?: RequestInit) =>
+			Promise.resolve(jsonResponse({ ok: true, subjectId: 'sub_saved' }))
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{
+						...policyFixture({}, { id: 'gdpr' }),
+						journey: null,
+					}}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+			await getByTestId('save').click();
+			await vi.waitFor(() => expect(fetchSpy).toHaveBeenCalled());
+			expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
+				'https://consent.example.com/subjects'
+			);
+			expect(String(fetchSpy.mock.calls[0]?.[0])).not.toContain('c15tJourney');
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
 	test('options.mode still wins over the config', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(new Response());
 		const originalFetch = globalThis.fetch;

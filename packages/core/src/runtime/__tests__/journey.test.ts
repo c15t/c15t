@@ -298,6 +298,52 @@ describe('a journey a server render started', () => {
 		expect(saves()[0]?.journey).toEqual({ id: SERVER_ID, scope: 'page' });
 	});
 
+	test('a server state that says the page has no journey turns it off', async () => {
+		const runtime = createConsentRuntime({
+			consentCategories: ['necessary', 'measurement'],
+			journey: 'tab',
+			mode: backend(),
+			prefetch: {
+				initialPolicyResolution: matchedResolution(optInRule()),
+				journey: null,
+			},
+		});
+		runtimes.push(runtime);
+		runtime.start();
+		await runtime.kernel.commands.save('all');
+		expect(saves()[0]?.journey).toBeNull();
+		expect(sessionStorage.length).toBe(0);
+	});
+
+	test('a streamed state that says the page has no journey turns it off', async () => {
+		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
+			Promise.resolve({ ok: true })
+		);
+		const stream = Promise.withResolvers<{
+			initialPolicyResolution: ReturnType<typeof matchedResolution>;
+			journey: null;
+		}>();
+		const runtime = createConsentProviderRuntime(
+			{
+				consentCategories: ['necessary', 'measurement'],
+				mode: custom({ init: () => Promise.resolve({}), save }),
+				prefetch: stream.promise,
+			},
+			{ ...defaultRuntimeModules, streamPrefetch }
+		);
+		runtimes.push(runtime);
+		runtime.start();
+		stream.resolve({
+			initialPolicyResolution: matchedResolution(optInRule()),
+			journey: null,
+		});
+		await vi.waitFor(() =>
+			expect(runtime.kernel.getSnapshot().activeUI).toBe('banner')
+		);
+		await runtime.kernel.commands.save('all');
+		expect(save.mock.calls[0]?.[0].journey).toBeUndefined();
+	});
+
 	test('a streamed prefetch hands over its id before the first save', async () => {
 		const save = vi.fn<NonNullable<KernelTransport['save']>>(() =>
 			Promise.resolve({ ok: true })

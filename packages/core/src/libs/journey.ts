@@ -34,9 +34,12 @@ export interface JourneyState {
 	/**
 	 * The journey the server created for this render. The browser runtime
 	 * uses this id instead of creating its own, so the save it sends links to
-	 * the report the server made.
+	 * the report the server made. `null` when the server resolved the page
+	 * without a journey (`journey: false`, `reportSessions: false`, nothing
+	 * to report to, a prefetch): the browser then sends none, since no
+	 * `/init` or report would carry its id.
 	 */
-	journey?: { id: string };
+	journey?: { id: string } | null;
 }
 
 const toHex = (byte: number): string => byte.toString(16).padStart(2, '0');

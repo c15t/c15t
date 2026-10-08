@@ -302,7 +302,9 @@ export const createConsentProviderRuntime =
 					const streamed = await (initial.prefetch as PromiseLike<
 						RuntimePrefetch | undefined
 					>);
-					main.adoptJourney(streamed?.journey?.id);
+					main.adoptJourney(
+						streamed?.journey === null ? null : streamed?.journey?.id
+					);
 				} catch {
 					// The stream failed; the runtime keeps its own journey.
 				}

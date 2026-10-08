@@ -95,6 +95,58 @@ describe('resolveConsent wiring', () => {
 		});
 	});
 
+	test('the config journey sets the scope the render reports, and false turns it off', async () => {
+		const tab = backend();
+		const started = await resolveConsent({
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				journey: 'tab',
+			}),
+			fetch: tab,
+			request: requestOf({}),
+		});
+		const sent = new URL(String(tab.mock.calls[0]?.[0]));
+		expect(sent.searchParams.get('c15tJourneyScope')).toBe('tab');
+		expect(sent.searchParams.get('c15tJourney')).toBe(started.journey?.id);
+
+		for (const options of [
+			{
+				config: defineConsentConfig({
+					backendURL: 'https://consent.example.com',
+					journey: false,
+				}),
+			},
+			{
+				config: defineConsentConfig({
+					backendURL: 'https://consent.example.com',
+				}),
+				reportSessions: false,
+			},
+		]) {
+			const off = backend();
+			// oxlint-disable-next-line no-await-in-loop -- One render at a time keeps the calls apart.
+			const state = await resolveConsent({
+				...options,
+				fetch: off,
+				request: requestOf({}),
+			});
+			// The state tells ConsentRoot this page has no journey.
+			expect(state.journey).toBeNull();
+			expect(String(off.mock.calls[0]?.[0])).toBe(
+				'https://consent.example.com/init'
+			);
+		}
+	});
+
+	test('defineConsentConfig rejects an unknown journey', () => {
+		expect(() =>
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				journey: 'session' as never,
+			})
+		).toThrow(TypeError);
+	});
+
 	test('a config without manifestURL asks the backend /init with the request inputs', async () => {
 		const fetch = backend();
 		const state = await resolveConsent({
