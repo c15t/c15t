@@ -39,6 +39,7 @@ export {
 	parseJourneyId,
 	parseJourneyScope,
 	readJourneyParams,
+	readSessionJourney,
 	type SessionExperiment,
 	type SessionJourney,
 	type SessionReportInputs,

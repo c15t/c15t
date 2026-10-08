@@ -9,6 +9,7 @@ import {
 	deriveJourneyPrompt,
 	journeyDomainFrom,
 	readJourneyParams,
+	readSessionJourney,
 } from './session-report';
 
 const ID = '3b241101-e2bb-4255-8caf-4136c566a962';
@@ -119,6 +120,25 @@ describe('journeyDomainFrom', () => {
 		expect(journeyDomainFrom('null')).toBeUndefined();
 		expect(journeyDomainFrom('chrome-extension://abc')).toBeUndefined();
 		expect(journeyDomainFrom(undefined)).toBeUndefined();
+	});
+});
+
+describe('readSessionJourney', () => {
+	it('needs the stored flag and takes the domain from the site', () => {
+		expect(
+			readSessionJourney(
+				`/init?c15tJourney=${ID}&c15tJourneyScope=page&c15tStored=0`,
+				'https://shop.example.com'
+			)
+		).toEqual({
+			domain: 'shop.example.com',
+			id: ID,
+			scope: 'page',
+			storedChoice: false,
+		});
+		expect(
+			readSessionJourney(`/init?c15tJourney=${ID}&c15tJourneyScope=page`)
+		).toBeNull();
 	});
 });
 

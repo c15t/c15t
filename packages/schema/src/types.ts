@@ -123,6 +123,7 @@ export {
 	parseJourneyId,
 	parseJourneyScope,
 	readJourneyParams,
+	readSessionJourney,
 	CONSENT_REQUEST_HEADER_NAMES,
 	COUNTRY_HEADERS,
 	consentInputsToOverrides,

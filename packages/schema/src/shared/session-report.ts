@@ -289,6 +289,37 @@ export const journeyDomainFrom = function journeyDomainFrom(
 	}
 };
 
+/**
+ * The journey a browser's `GET /init` carries, as a report records it.
+ *
+ * The stored flag is required here: without it a report cannot say
+ * whether the prompt was owed, so a journey without it is none.
+ *
+ * @param url - The `/init` request URL.
+ * @param site - Where the domain comes from: the request's `Origin`, or the
+ *   URL of the page or route the browser asked.
+ * @returns The journey, or `null`.
+ */
+export const readSessionJourney = function readSessionJourney(
+	url: string | URL | null | undefined,
+	site?: string | URL | null
+): SessionJourney | null {
+	const params = readJourneyParams(url);
+	if (!params || params.storedChoice === undefined) {
+		return null;
+	}
+	const journey: SessionJourney = {
+		id: params.id,
+		scope: params.scope,
+		storedChoice: params.storedChoice,
+	};
+	const domain = journeyDomainFrom(site);
+	if (domain) {
+		journey.domain = domain;
+	}
+	return journey;
+};
+
 /** The resolver inputs a report records alongside the decision. */
 export interface SessionReportInputs {
 	country?: string | null;

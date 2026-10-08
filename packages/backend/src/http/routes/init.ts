@@ -10,12 +10,10 @@
 import {
 	buildConsentSessionReport,
 	CONSENT_EXPERIMENT_HEADER,
-	journeyDomainFrom,
 	parseExperimentHeader,
 	isSpeculativeRequest,
-	readJourneyParams,
+	readSessionJourney,
 } from '@c15t/schema/types';
-import type { SessionJourney } from '@c15t/schema/types';
 import { describeRoute } from 'hono-openapi';
 
 import type { RouteContext } from '../context';
@@ -25,30 +23,6 @@ import {
 	emitConsentSession,
 	instanceTenant,
 } from '../session';
-
-/**
- * The consent journey the browser sent on `/init`, if it sent a whole one.
- * The stored flag is part of it here: without it the report cannot say
- * whether the prompt was owed. The domain is the page's, from `Origin`.
- */
-const readInitJourney = function readInitJourney(
-	request: Request
-): SessionJourney | null {
-	const params = readJourneyParams(request.url);
-	if (!params || params.storedChoice === undefined) {
-		return null;
-	}
-	const journey: SessionJourney = {
-		id: params.id,
-		scope: params.scope,
-		storedChoice: params.storedChoice,
-	};
-	const domain = journeyDomainFrom(request.headers.get('origin'));
-	if (domain) {
-		journey.domain = domain;
-	}
-	return journey;
-};
 
 export const register = function register({
 	app,
@@ -93,8 +67,9 @@ export const register = function register({
 								init: body,
 								inputs: signals,
 								// The journey id links this resolution to the save that
-								// follows; the browser sends it as query parameters.
-								journey: readInitJourney(c.req.raw),
+								// follows; the browser sends it as query parameters. The
+								// page's domain comes from `Origin`.
+								journey: readSessionJourney(c.req.url, c.req.header('origin')),
 								manifest,
 								source: 'init',
 							}),
