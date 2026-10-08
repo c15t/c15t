@@ -8,7 +8,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { resolveNuxtConsent } from '../runtime/server-consent';
 
 const backend = () =>
-	vi.fn<typeof globalThis.fetch>(() =>
+	vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
 		Promise.resolve(
 			Response.json(
 				{ translations: { language: 'en', translations: {} } },
