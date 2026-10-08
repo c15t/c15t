@@ -315,15 +315,9 @@ export interface ResolveRequestConsentOptions {
 	 */
 	reportSessions?: boolean;
 	/**
-	 * Start a consent journey for this render: a random id the hosted
-	 * `/init` (as query parameters) or the session report carries, handed
-	 * to the browser in the state so its save carries the same id. The
-	 * value is the scope the report records; pass the provider's `journey`
-	 * option. `false`, `reportSessions: false`, a manifest render with no
-	 * absolute backend to report to, and a prefetch or prerender request
-	 * start none and set the state's `journey` to `null`, so the browser
-	 * sends none either. A shared render and offline mode leave it unset:
-	 * the browser resolves those pages itself.
+	 * The journey scope this render reports; pass the provider's `journey`.
+	 * When the render starts none, the state's `journey` is `null` so the
+	 * browser sends none either.
 	 *
 	 * @default 'page'
 	 */

@@ -281,11 +281,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	reportSessions?: boolean;
 
 	/**
-	 * The consent journey this render starts: `'page'` (default), `'tab'` or
-	 * `false`. The render's session report carries it with this scope, and
-	 * the returned state hands its id to `ConsentRoot`. With `false` or
-	 * `reportSessions: false` the state says the page has no journey, and
-	 * the browser sends none. Give `ConsentRoot` the same `journey` option.
+	 * The consent journey scope this render reports. Pass `ConsentRoot` the
+	 * same `journey`.
 	 */
 	journey?: ConsentJourneyOption;
 

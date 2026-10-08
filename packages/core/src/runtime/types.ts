@@ -424,21 +424,9 @@ export interface ConsentRuntimeOptions {
 	 */
 	experiment?: ConsentExperiment;
 	/**
-	 * Link each page load's `/init` to the save that follows with a random
-	 * journey id, sent as query parameters on requests the runtime already
-	 * makes (`c15tJourney`, `c15tJourneyScope`, and `c15tStored` on
-	 * `/init`). The id is created on `start()`, is not the subject id, and
-	 * is never written to a cookie. A server-rendered page continues the
-	 * journey the server started.
-	 *
-	 * - `'page'`: one id per page load, kept in memory.
-	 * - `'tab'`: the id is kept in `sessionStorage` while a prompt is due, so
-	 *   a visitor who navigates before choosing keeps it, and removed once a
-	 *   choice is recorded. Unusable storage falls back to `'page'`.
-	 * - `false`: no journey.
-	 *
-	 * Initial-only. Turn session reports off on the server
-	 * (`reportSessions: false`) and the server starts no journey either.
+	 * Random journey id that links each page load's `/init` to the save that
+	 * follows: `'page'` (memory), `'tab'` (`sessionStorage` while a prompt is
+	 * due) or `false`. Initial-only.
 	 *
 	 * @default 'page'
 	 */

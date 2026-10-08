@@ -1,22 +1,7 @@
 /**
- * The browser runtime's consent journey: which id this page load's requests
- * carry, and, for `journey: 'tab'`, when it lives in `sessionStorage`.
- *
- * The journey is created on the runtime's first `start()`, after stored
- * consent is hydrated, so it knows whether the visitor already had a
- * choice. It continues a journey a server render started (its id arrives in
- * the prefetch), one a request sent before the runtime started (React's
- * early `/init`, the inline prefetch script) recorded for this page, or,
- * with `'tab'`, one an earlier page in the same tab left in
- * `sessionStorage`. It reaches the backend through the transport the
- * runtime builds: {@link withJourney} adds it to every `init` context and to
- * every save this page sends live. A queued save is never stored with it,
- * and a replay carries none.
- *
- * `'tab'` writes the id only while a prompt is due (no stored choice and a
- * first layer showing) and removes it once a choice or a notice dismissal
- * is recorded, or once the resolved state owes no prompt (a failed
- * resolution, or a policy that prompts for nothing). Any storage error makes the journey a `'page'` one.
+ * The browser runtime's consent journey. Created on the first `start()`,
+ * after hydration; continues a server, early-request or tab id when there is
+ * one. `'tab'` keeps the id in `sessionStorage` only while a prompt is due.
  */
 
 import { parseJourneyId } from '@c15t/schema/types';

@@ -253,12 +253,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 */
 	reportSessions?: boolean;
 	/**
-	 * The consent journey this render starts: `'page'` (default), `'tab'` or
-	 * `false`. The server's `/init` or session report carries it with this
-	 * scope, and the returned state hands its id to `ConsentRoot`. With
-	 * `false` or `reportSessions: false` the state says the page has no
-	 * journey, and the browser sends none. Defaults to `config.journey`;
-	 * give `ConsentRoot` the same value (a shared `config` does that).
+	 * The consent journey scope this render reports. Defaults to
+	 * `config.journey`; `ConsentRoot` must use the same value.
 	 */
 	journey?: ConsentJourneyOption;
 	/**

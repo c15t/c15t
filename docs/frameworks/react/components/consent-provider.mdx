@@ -52,7 +52,7 @@ the provider to change them. `scripts`, `vendors`, `networkBlocker`,
 | `components` | Slot attributes per component part |
 | `presentation` | Banner and dialog shape, position and blocking |
 | `experiment` | A/B test of `presentation`, read once at mount. See [banner experiments](/docs/guides/banner-experiments) |
-| `journey` | `'page'` (default), `'tab'` or `false`. Links each page load's `/init` to the save that follows with a random id. Read once at mount. See [session reports](/docs/concepts/data-fetching#link-an-init-to-the-save-that-follows) |
+| `journey` | Random id that links each `/init` to the save that follows. See [session reports](/docs/concepts/data-fetching#link-an-init-to-the-save-that-follows) |
 | `colorScheme` | `'light'`, `'dark'`, `'system'`, or `null` to leave the `c15t-dark` class alone |
 | `noStyle`, `disableAnimation` | Drop the built-in styles, or turn off animations |
 | `preloadDialog` | When the deferred `ConsentDialog` starts loading: `'idle'` (default) or `'intent'`; see [ConsentDialog](/docs/frameworks/react/components/consent-dialog#behavior) |

@@ -129,12 +129,8 @@ export interface ConsentProviderOptions
 	 */
 	experiment?: ConsentExperiment;
 	/**
-	 * Link each page load's `/init` to the save that follows with a random
-	 * journey id, sent as query parameters on requests the provider already
-	 * makes. `'page'` keeps it in memory for one page load; `'tab'` keeps it
-	 * in `sessionStorage` while a prompt is due; `false` sends none. A
-	 * server-rendered page continues the journey the server started.
-	 * Initial-only.
+	 * Random journey id that links each `/init` to the save that follows:
+	 * `'page'`, `'tab'` or `false`. Initial-only.
 	 *
 	 * @default 'page'
 	 */

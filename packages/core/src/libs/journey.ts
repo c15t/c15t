@@ -1,12 +1,6 @@
 /**
- * Consent journey ids: what a server render hands the browser, and how
- * either side creates one.
- *
- * A journey id is a random UUID that rides on requests c15t already makes
- * (`GET /init`, `POST /subjects`, session reports) so a backend can link the
- * init a visitor was served to the save that followed. It is not the subject
- * id, it is never written to a cookie, and it is not derived from anything
- * about the visitor.
+ * Consent journey ids: a random UUID on requests c15t already makes, so a
+ * backend can link an init to the save that follows. Never the subject id.
  */
 
 import { parseJourneyId, parseJourneyScope } from '@c15t/schema/types';
@@ -32,12 +26,8 @@ export type ConsentJourneyOption = ConsentJourneyScope | false;
 /** The journey a server render hands the browser in its state. */
 export interface JourneyState {
 	/**
-	 * The journey the server created for this render. The browser runtime
-	 * uses this id instead of creating its own, so the save it sends links to
-	 * the report the server made. `null` when the server resolved the page
-	 * without a journey (`journey: false`, `reportSessions: false`, nothing
-	 * to report to, a prefetch): the browser then sends none, since no
-	 * `/init` or report would carry its id.
+	 * The journey the server started, which the browser continues. `null`
+	 * when the server resolved the page without one: the browser sends none.
 	 */
 	journey?: { id: string } | null;
 }
@@ -86,15 +76,11 @@ export interface OpenedJourney {
 }
 
 /**
- * Open a journey under one rule set, shared by the runtime and by the
- * requests sent before it starts: a `'tab'` journey continues the id an
- * earlier page left in `sessionStorage`; otherwise the `adopted` id is used
- * (a server render's or an early request's); otherwise a new one is made.
- * Unusable storage makes the journey a `'page'` one. A `'page'` journey
- * never touches storage.
+ * Open a journey: a `'tab'` journey continues the id in `sessionStorage`,
+ * otherwise `adopted`, otherwise a new id. Unusable storage makes it a
+ * `'page'` journey; a `'page'` journey never touches storage.
  *
- * @param options - The `journey` option, whether a choice is stored, the
- *   storage and an id to adopt.
+ * @param options - The option, the stored flag, storage and an id to adopt.
  * @returns The journey, or `undefined` when it is off or no id can be made.
  * @internal
  */
@@ -132,10 +118,8 @@ export const openJourney = function openJourney(options: {
 };
 
 /**
- * Window property holding the journey of a request sent before the runtime
- * started: React's early `/init`, or the inline prefetch script. One per
- * page load, so every early request of a page shares it, and the runtime
- * continues it when it starts. Memory only.
+ * Window property holding the journey an early request (React's early
+ * `/init`, the inline prefetch script) sent, for the runtime to continue.
  */
 export const JOURNEY_WINDOW_KEY = '__c15tJourney';
 
@@ -193,11 +177,8 @@ export const claimEarlyJourney = function claimEarlyJourney(options: {
 };
 
 /**
- * Whether storage holds a consent record under `storageKey`, without
- * decoding it: the consent cookie, or its localStorage mirror (and the
- * legacy key). Used where the record code is not loaded yet, such as the
- * inline prefetch script, which runs the same check. A record that does
- * not decode still counts, so it can differ from the runtime's own read.
+ * Whether a consent record is stored under `storageKey`, without decoding
+ * it. The inline prefetch script runs the same check.
  *
  * @param storageKey - The consent storage key. Defaults to `c15t`.
  * @returns `true` when a record is present.
@@ -235,10 +216,8 @@ export const hasStoredConsentRecord = function hasStoredConsentRecord(
 };
 
 /**
- * Journeys an init resolved in the browser with no request that carried
- * them: a manifest transport resolving init locally, with no `/init` and no
- * session report. A save of such a journey must not send its id either, or
- * a backend would get an id no init or report ever named.
+ * Journeys an init resolved locally with no request that carried them; a
+ * save of one sends no journey, so it never names an unreported id.
  *
  * @returns What a transport records and checks.
  * @internal

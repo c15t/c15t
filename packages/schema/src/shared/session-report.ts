@@ -84,14 +84,9 @@ export const parseExperimentHeader = function parseExperimentHeader(
 };
 
 /**
- * Query parameter that carries the consent journey id: a random UUID a
- * client creates per page load (or per tab, see
- * {@link CONSENT_JOURNEY_SCOPE_PARAM}) and sends on `GET /init` and
- * `POST /subjects`. It links the init a visitor was served to the save that
- * followed. It is not the subject id and never goes into a cookie.
- *
- * Query parameters rather than a header: a new request header would fail
- * the CORS preflight of a backend that does not list it.
+ * Query parameter carrying the consent journey id on `GET /init` and
+ * `POST /subjects`. A query parameter, not a header, so older backends need
+ * no CORS change.
  */
 export const CONSENT_JOURNEY_PARAM = 'c15tJourney';
 

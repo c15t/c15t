@@ -35,10 +35,8 @@ export interface ConsentConfig {
 	initURL?: string;
 
 	/**
-	 * The consent journey: `'page'` (default), `'tab'` or `false`. Declared
-	 * here, `resolveConsent` reports the journey with this scope and
-	 * `ConsentRoot` keeps it the same way, so the two never disagree. See
-	 * the provider's `journey` option.
+	 * The consent journey scope, read by both `resolveConsent` and
+	 * `ConsentRoot` so they agree.
 	 */
 	journey?: ConsentJourneyOption;
 }

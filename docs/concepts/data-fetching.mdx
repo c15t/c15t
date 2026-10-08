@@ -62,79 +62,36 @@ no report. Set `reportSessions: false` on an adapter to turn it off.
 
 ## Link an init to the save that follows
 
-Each page load gets a journey id: a random UUID that rides on requests c15t
-already makes. The browser sends it as query parameters, so a backend needs no
-CORS change to accept it.
+Each page load gets a journey id, a random UUID sent on requests c15t already
+makes:
 
-| Request | Parameters |
+| Request | Query parameters |
 | --- | --- |
-| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` when the browser had a stored choice) |
+| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` if a choice was stored) |
 | `POST /subjects` | `c15tJourney`, `c15tJourneyScope` |
 
-The backend's `/init` and every adapter's init route copy the journey into
-their session report as `journey: { id, scope, storedChoice, prompt, domain }`.
-`domain` is the page's hostname, from the request's `Origin` or host.
-`prompt` is `due` when the policy prompts and no choice was stored, `stored`
-when a stored choice was used, and `not-required` when the policy shows no
-prompt or the resolution failed. A resolution that matched no policy, or ran
-with none configured, still shows the fallback opt-in banner, so it counts as
-`due` or `stored`. A report and the save with the same `journey.id` belong to
-one visitor's page load.
+Session reports carry it as `journey: { id, scope, storedChoice, prompt, domain }`.
+A report and a save with the same `id` belong to one page load. `prompt` is
+`due`, `stored` or `not-required`; a page that falls back to the default opt-in
+banner counts as `due` or `stored`.
 
-Where the journey starts:
+The id is random, is never the subject id and is never written to a cookie.
+Every save that carries one follows an `/init` or report with the same id.
+Saves replayed after going offline carry none.
 
-- A server render starts it, puts it on its `/init` (with the page's `Origin`)
-  or its session report, and hands the id to the browser in the state. When
-  the render resolves the page without one (`journey: false`,
-  `reportSessions: false`, a manifest render with no absolute backend to report
-  to, or a prefetch), the state says `journey: null` and the browser sends
-  none.
-- A request sent before the runtime starts, React's early `/init` or the
-  inline prefetch script, starts it and records it on the page.
-- Otherwise the runtime starts it when it starts.
-
-The runtime continues the first of these that exists, so a save carries the id
-of an `/init` or report that came before it. Manifest mode that resolves init in the
-browser makes no request at all, so a page resolved that way has no journey:
-its saves carry none. A save queued while offline and
-sent again later, on this page or another, carries no journey. When an init
-route has to ask the backend's own `/init`, it forwards the journey with the
-page's `Origin`; the backend falls back to the request's host when a browser
-sends no `Origin`.
-
-The id is not the subject id, is never written to a cookie, and is not derived
-from anything about the visitor. Choose how long it lives with the provider's
-`journey` option:
-
-| Value | Behavior |
+| `journey` | Behavior |
 | --- | --- |
-| `'page'` (default) | One id per page load, kept in memory. |
-| `'tab'` | The id is kept in `sessionStorage` while a prompt is due, so a visitor who moves to another page before choosing keeps it. It is removed once a choice is recorded, or once a page resolves to no prompt. Unusable storage falls back to `'page'`. |
-| `false` | No journey parameters. |
+| `'page'` (default) | One id per page load, in memory. |
+| `'tab'` | Kept in `sessionStorage` while a prompt is due, and removed once the visitor chooses or no prompt is due. Best when the browser resolves init: a server render can't read `sessionStorage`. |
+| `false` | No journey. |
 
-`'tab'` works best when the browser resolves init itself. A server render
-cannot read `sessionStorage`, so it starts a new id on every page. When the tab
-already has an id, the browser keeps it over the server's: an earlier page's
-`/init` or report carried it, so the save still links to a report, while this
-page's render report carries an id no save uses.
+Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;
+in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
+the inline prefetch script, pass it to `buildPrefetchScript`. Vue, Svelte, Astro
+and the script tag use `'page'`. Browser-only manifest mode reports no init, so
+it sends no journey.
 
-Where to set it:
-
-| Package | Browser | Server render |
-| --- | --- | --- |
-| `@c15t/core` | runtime `journey` | `resolveRequestConsent({ journey })` |
-| `@c15t/react` | provider `journey` | none |
-| `@c15t/nextjs` | `defineConsentConfig({ journey })`, read by `ConsentRoot` | the same config, or `resolveConsent({ journey })` |
-| `@c15t/tanstack-start` | `ConsentRoot` `options.journey` | `resolveConsent({ journey })`; pass both the same value |
-| Vue, Svelte, Astro, script tag | `'page'` only for now | `'page'` only for now |
-
-The Vue, Svelte and Astro server renders start a `'page'` journey, which is
-what their browsers keep, so the two agree. Their `reportSessions: false` turns
-it off on both sides. Pass the same value to `buildPrefetchScript({ journey })`
-when you use the inline prefetch script.
-
-A `fetch` you pass to `hosted()` sees the query string, so match on the path
-rather than the full URL.
+If you pass `hosted()` a `fetch`, match on the path: URLs now carry a query string.
 
 ## What does regular `/init` do?
 

@@ -21,10 +21,7 @@ export interface PrefetchOptions {
 	credentials?: RequestCredentials;
 
 	/**
-	 * The consent journey the early `/init` starts, with the same values as
-	 * the provider's `journey` option: pass the provider's setting. The id is
-	 * kept on the page for the runtime to continue, so the save it sends
-	 * carries the same id.
+	 * The provider's `journey` setting, for the journey this `/init` starts.
 	 *
 	 * @default 'page'
 	 */
