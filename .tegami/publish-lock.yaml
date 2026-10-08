@@ -1,215 +1,165 @@
 c15t:release:
   - branch: v3
-    id: npm:@c15t/dev-tools
+    id: npm:c15t
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/nextjs
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/schema
     version: 3.0.0-alpha.7
   - branch: v3
-    id: npm:@c15t/integrations
+    id: npm:@c15t/react
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/cli
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/tanstack-start
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/core
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/translations
     version: 3.0.0-alpha.6
   - branch: v3
-    id: npm:@c15t/vue
+    id: npm:@c15t/scripts
     version: 3.0.0-alpha.7
+  - branch: v3
+    id: npm:@c15t/svelte
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/node-sdk
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/astro
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/ui
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/browser
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/iab
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/vue
+    version: 3.0.0-alpha.8
   - branch: v3
     id: npm:@c15t/logger
     version: 3.0.0-alpha.1
   - branch: v3
-    id: npm:@c15t/iab
-    version: 3.0.0-alpha.7
-  - branch: v3
     id: npm:@c15t/backend
+    version: 3.0.0-alpha.8
+  - branch: v3
+    id: npm:@c15t/integrations
     version: 3.0.0-alpha.7
   - branch: v3
-    id: npm:@c15t/browser
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/translations
-    version: 3.0.0-alpha.6
-  - branch: v3
-    id: npm:@c15t/core
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/react
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/scripts
-    version: 3.0.0-alpha.6
-  - branch: v3
-    id: npm:@c15t/cli
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/schema
-    version: 3.0.0-alpha.6
-  - branch: v3
-    id: npm:@c15t/svelte
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/node-sdk
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/astro
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:c15t
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/ui
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/tanstack-start
-    version: 3.0.0-alpha.7
-  - branch: v3
-    id: npm:@c15t/nextjs
-    version: 3.0.0-alpha.7
+    id: npm:@c15t/dev-tools
+    version: 3.0.0-alpha.8
 core:changelogs:
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: minor\n  \"@c15t/cli\":\n    type: patch\n  \"@c15t/scripts\":\n    type: minor\n  \"@c15t/core\":\n    type: minor\n---\n\n### Add a Sentry integration\n\nAdd `sentry()` from `@c15t/integrations/sentry`, with CDN and app-managed SDK modes,\nCLI setup and the `@c15t/scripts/sentry` compatibility export. Errors run before\nconsent by default; Replay and SDK data collection wait for measurement.\n`loadMode: 'after-consent'` gates errors too.\n\nApply consent at initialization and before sending data. Withdrawal stops Replay\nwithout flushing pending recordings. Shared configurations coordinate consent and\nreuse the SDK bundle and recorder across renders.\n\nAdd core `Script.observeConsentBeforeLoad` and `Script.resourceKey`. Shared\nresources retain each registration's callbacks, consent and ownership, including\nregistrations that join after loading completes.\n"
-    filename: 2026-10-05-sentry.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/integrations\":\n    type: patch\n  \"@c15t/core\":\n    type: patch\n---\n\n### Stop the first vendor helper call from loading the ICU collator\n\nIntegration helpers such as `googleTagManager()` and `metaPixel()` built their\nmanifest cache key by sorting config keys with `localeCompare`. The first\n`localeCompare` call in a page makes the browser set up its collator, so a page\nthat had not compared strings yet paid for it on the first helper call. The\ncache key now sorts keys with a plain comparison.\n\nThe preference draft's vendor list sort had the same problem. It now uses\n`compareCanonical` like the rest of core, so mounting a preference center no\nlonger loads the collator either.\n\nIn headless Chromium with 4x CPU throttling, a page that calls the GTM, GA4 and\nMeta Pixel helpers spends about 30 ms less on the main thread during load.\n"
-    filename: 2026-10-08-integrations-cache-key-collator.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Keep a Nuxt `manifestSnapshot` intact\n\nA `manifestSnapshot` set under the `c15t` key in `nuxt.config.ts` passed\nthrough public runtime config. Nitro replaces every `null` there with an empty\nstring during the build, so each policy failed validation and no banner\nshowed. The snapshot was also sent in every page's payload.\n\nThe module now keeps it out of runtime config. The app bundles it unchanged,\nand the server's `/api/c15t/manifest` route serves it wherever the module\nregisters that route: in server manifest mode, and in client mode without a\n`manifestURL`.\n"
-    filename: 2026-10-08-nuxt-manifest-snapshot-option.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Show the Nuxt banner with `buildManifest: true`\n\nWith `buildManifest: true`, Nuxt showed no banner to any visitor. The module\nstored the build-time manifest in runtime config, where Nitro replaces every\n`null` with an empty string during the build. Each policy's `copyRevision: null`\nbecame `''`, so every policy failed with `invalid-configuration`.\n\nThe snapshot now ships in the server bundle unchanged, and the\n`/api/c15t/init` and `/api/c15t/manifest` routes read it from there.\n"
-    filename: 2026-10-08-nuxt-build-manifest-nulls.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/vue\":\n    type: patch\n---\n\n### Respect `colorScheme: null` in built Nuxt apps\n\n`colorScheme: null` under the `c15t` key in `nuxt.config.ts` leaves\n`c15t-dark` to your site. That held in tests but not in built apps: Nitro\nreplaces every `null` in runtime config with an empty string during the build,\nand c15t read the empty string as unset. It then copied the site's `dark` class\ninto `c15t-dark`, removing a `c15t-dark` the site had set itself. The module\nnow reads the empty string as `null`.\n"
-    filename: 2026-10-08-nuxt-color-scheme-null.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/ui\":\n    type: minor\n  \"@c15t/schema\":\n    type: minor\n  \"@c15t/react\":\n    type: patch\n  \"@c15t/svelte\":\n    type: patch\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/astro\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n---\n\n### Show the consent banner at once, and fade it in only when it arrives late\n\nThe banner and the IAB banner no longer slide or scale in on a spring curve.\nA banner that shows with the page is part of the first paint, where the\novershoot read as layout shift, so it now appears on its first frame. The\nbackdrop of a blocking banner appears with it.\n\nA banner that arrives more than 100ms after the page first painted, such as\nafter a slow script or a client-side init, fades in instead of popping into a\npage someone is already reading. It fades over `--c15t-duration-normal` on\n`--c15t-easing-out` and never moves. Its root and backdrop carry\n`data-entry=\"late\"`, and `--consent-banner-entry-duration` and\n`--consent-banner-entry-timing` (`--iab-consent-banner-entry-*` for the IAB\nbanner) set the fade. A banner rendered on the server always shows at once.\n`@c15t/ui/utils/late-entry` exports the check as `isLateEntry`.\n\nHiding still fades the banner out where it did before, now without the slide\nor scale, and on an ease-in curve so it speeds up as it leaves.\n`disableAnimation` turns both fades off.\n\nAdd the `--c15t-easing-in` theme token, set with `motion.easingIn`. It defaults\nto `cubic-bezier(0.55, 0.055, 0.675, 0.19)` and sets the banner's exit curve.\n"
-    filename: 2026-10-08-banner-entry-motion.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/node-sdk\":\n    type: minor\n  \"@c15t/schema\":\n    type: minor\n  \"@c15t/core\":\n    type: minor\n---\n\n### Verified identity links\n\n`GET /subjects?externalId=` and `GET /consents/check` now count only verified links between a subject and your user ID. A link is verified by an API key, or by an `identityToken` from `createIdentityToken` in `@c15t/node-sdk`, passed to `identify({ externalId, identityToken })` and checked against the new `identityToken.signingKey` option.\n\n- `GET /consents/check` requires an API key, so `consents.check` moves to the node-sdk client created with `apiKey`.\n- Existing links, including those made by v2, stay unverified until relinked.\n- Migration 8 adds `subject.verifiedExternalId`.\n"
-    filename: 2026-10-08-verified-identity-links.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/core\":\n    type: patch\n---\n\n### Report failed and dropped consent saves\n\nDevelopment builds log a `[c15t]` warning when a save is queued for retry, a\nreplay fails, or a save is dropped. A queued save dropped after 10 attempts,\n7 days or a refusal now reaches `onError`.\n"
-    filename: 2026-10-08-warn-failed-consent-saves.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/nextjs\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Share Next.js consent options with `ConsentManifestOptions`\n\nPass one options object to `resolveConsent` and the consent route handlers, so\nboth use the same build-time snapshot:\n\n```ts\nexport const consentOptions = {\n\tconfig: consentConfig,\n\tmanifest: consentManifest,\n} satisfies ConsentManifestOptions;\n```\n\n`createNextConsentRouteHandlers` and `createPagesApiHandlers` now accept\n`config`.\n"
-    filename: 2026-10-07-next-consent-manifest-options.md
-    v: 0.0.0
-  - content: "---\npackages:\n  \"@c15t/tanstack-start\":\n    type: minor\n  c15t:\n    type: minor\n---\n\n### Share TanStack Start consent options with `ConsentManifestOptions`\n\nPass one options object to `createConsentStateHandler` and\n`createConsentServerRoute`, so both use the same build-time snapshot:\n\n```ts\nexport const consentOptions = {\n\tbackendURL: 'https://your-project.inth.app',\n\tmanifest: consentManifest,\n} satisfies ConsentManifestOptions;\n```\n"
-    filename: 2026-10-07-tanstack-consent-manifest-options.md
+  - content: "---\npackages:\n  \"@c15t/schema\":\n    type: minor\n  \"@c15t/core\":\n    type: minor\n  \"@c15t/backend\":\n    type: minor\n  \"@c15t/react\":\n    type: minor\n  \"@c15t/nextjs\":\n    type: minor\n  \"@c15t/tanstack-start\":\n    type: minor\n  \"@c15t/vue\":\n    type: patch\n  \"@c15t/browser\":\n    type: patch\n  c15t:\n    type: minor\n---\n\n### Link a page's `/init` to the save that follows\n\nc15t now sends a random journey id on `GET /init` and `POST /subjects` as query\nparameters (`c15tJourney`, `c15tJourneyScope`, plus `c15tStored` on `/init`).\nSession reports gain `journey: { id, scope, storedChoice, prompt, domain }`, so\na backend can link a page load to the choice that follows without\nfingerprinting or extra requests.\n\nSet `journey` to choose how long the id lives: `'page'` (default, in memory),\n`'tab'` (in `sessionStorage` while a prompt is due, on pages the browser\nresolves) or `false`. In Next.js set it in `defineConsentConfig`; in TanStack\nStart pass it to both `resolveConsent` and `ConsentRoot`. Vue, Svelte, Astro and\nthe script tag use `'page'` for now.\n\nRequest URLs now carry a query string. If you pass `hosted()` a `fetch` that\nroutes on the exact URL, match the path instead.\n"
+    filename: 2026-10-08-consent-journey.md
     v: 0.0.0
 core:packages:
-  - id: npm:@c15t/dev-tools
+  - changelogIds:
+      - 2026-10-08-consent-journey.md
+    id: npm:c15t
     updated: true
   - changelogIds:
-      - 2026-10-05-sentry.md
-      - 2026-10-08-integrations-cache-key-collator.md
-    id: npm:@c15t/integrations
+      - 2026-10-08-consent-journey.md
+    id: npm:@c15t/nextjs
     updated: true
   - changelogIds:
-      - 2026-10-08-nuxt-manifest-snapshot-option.md
-      - 2026-10-08-nuxt-build-manifest-nulls.md
-      - 2026-10-08-nuxt-color-scheme-null.md
-      - 2026-10-08-banner-entry-motion.md
+      - 2026-10-08-consent-journey.md
+    id: npm:@c15t/schema
+    updated: true
+  - changelogIds:
+      - 2026-10-08-consent-journey.md
+    id: npm:@c15t/react
+    updated: true
+  - id: npm:@c15t/cli
+    updated: true
+  - changelogIds:
+      - 2026-10-08-consent-journey.md
+    id: npm:@c15t/tanstack-start
+    updated: true
+  - changelogIds:
+      - 2026-10-08-consent-journey.md
+    id: npm:@c15t/core
+    updated: true
+  - id: npm:@c15t/translations
+    updated: false
+  - id: npm:@c15t/scripts
+    updated: true
+  - id: npm:@c15t/svelte
+    updated: true
+  - id: npm:@c15t/node-sdk
+    updated: true
+  - id: npm:@c15t/astro
+    updated: true
+  - id: npm:@c15t/ui
+    updated: true
+  - changelogIds:
+      - 2026-10-08-consent-journey.md
+    id: npm:@c15t/browser
+    updated: true
+  - id: npm:@c15t/iab
+    updated: true
+  - changelogIds:
+      - 2026-10-08-consent-journey.md
     id: npm:@c15t/vue
     updated: true
   - id: npm:@c15t/logger
     updated: false
-  - id: npm:@c15t/iab
-    updated: true
   - changelogIds:
-      - 2026-10-08-verified-identity-links.md
+      - 2026-10-08-consent-journey.md
     id: npm:@c15t/backend
     updated: true
-  - changelogIds:
-      - 2026-10-08-banner-entry-motion.md
-    id: npm:@c15t/browser
+  - id: npm:@c15t/integrations
     updated: true
-  - id: npm:@c15t/translations
-    updated: false
-  - changelogIds:
-      - 2026-10-08-warn-failed-consent-saves.md
-      - 2026-10-05-sentry.md
-      - 2026-10-08-integrations-cache-key-collator.md
-      - 2026-10-08-verified-identity-links.md
-    id: npm:@c15t/core
-    updated: true
-  - changelogIds:
-      - 2026-10-08-banner-entry-motion.md
-    id: npm:@c15t/react
-    updated: true
-  - changelogIds:
-      - 2026-10-05-sentry.md
-    id: npm:@c15t/scripts
-    updated: true
-  - changelogIds:
-      - 2026-10-05-sentry.md
-    id: npm:@c15t/cli
-    updated: true
-  - changelogIds:
-      - 2026-10-08-banner-entry-motion.md
-      - 2026-10-08-verified-identity-links.md
-    id: npm:@c15t/schema
-    updated: true
-  - changelogIds:
-      - 2026-10-08-banner-entry-motion.md
-    id: npm:@c15t/svelte
-    updated: true
-  - changelogIds:
-      - 2026-10-08-verified-identity-links.md
-    id: npm:@c15t/node-sdk
-    updated: true
-  - changelogIds:
-      - 2026-10-08-banner-entry-motion.md
-    id: npm:@c15t/astro
-    updated: true
-  - changelogIds:
-      - 2026-10-07-next-consent-manifest-options.md
-      - 2026-10-07-tanstack-consent-manifest-options.md
-    id: npm:c15t
-    updated: true
-  - changelogIds:
-      - 2026-10-08-banner-entry-motion.md
-    id: npm:@c15t/ui
-    updated: true
-  - changelogIds:
-      - 2026-10-07-tanstack-consent-manifest-options.md
-    id: npm:@c15t/tanstack-start
-    updated: true
-  - changelogIds:
-      - 2026-10-07-next-consent-manifest-options.md
-    id: npm:@c15t/nextjs
+  - id: npm:@c15t/dev-tools
     updated: true
 npm:packages:
   - distTag: alpha
-    id: npm:@c15t/dev-tools
+    id: npm:c15t
+  - distTag: alpha
+    id: npm:@c15t/nextjs
+  - distTag: alpha
+    id: npm:@c15t/react
+  - distTag: alpha
+    id: npm:@c15t/cli
+  - distTag: alpha
+    id: npm:@c15t/tanstack-start
+  - distTag: alpha
+    id: npm:@c15t/core
+  - distTag: alpha
+    id: npm:@c15t/translations
+  - distTag: alpha
+    id: npm:@c15t/node-sdk
   - distTag: alpha
     id: npm:@c15t/iab
   - distTag: alpha
     id: npm:@c15t/backend
   - distTag: alpha
-    id: npm:@c15t/translations
+    id: npm:@c15t/dev-tools
   - distTag: alpha
-    id: npm:@c15t/core
+    id: npm:@c15t/schema
   - distTag: alpha
-    id: npm:@c15t/react
+    id: npm:@c15t/scripts
   - distTag: alpha
-    id: npm:@c15t/cli
+    id: npm:@c15t/svelte
   - distTag: alpha
-    id: npm:@c15t/node-sdk
+    id: npm:@c15t/astro
   - distTag: alpha
-    id: npm:c15t
+    id: npm:@c15t/ui
   - distTag: alpha
-    id: npm:@c15t/tanstack-start
-  - distTag: alpha
-    id: npm:@c15t/nextjs
-  - distTag: alpha
-    id: npm:@c15t/integrations
+    id: npm:@c15t/browser
   - distTag: alpha
     id: npm:@c15t/vue
   - distTag: alpha
     id: npm:@c15t/logger
   - distTag: alpha
-    id: npm:@c15t/browser
-  - distTag: alpha
-    id: npm:@c15t/scripts
-  - distTag: alpha
-    id: npm:@c15t/schema
-  - distTag: alpha
-    id: npm:@c15t/svelte
-  - distTag: alpha
-    id: npm:@c15t/astro
-  - distTag: alpha
-    id: npm:@c15t/ui
+    id: npm:@c15t/integrations

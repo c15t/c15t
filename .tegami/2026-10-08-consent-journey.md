@@ -1,14 +1,32 @@
 ---
 packages:
-  '@c15t/schema': minor
-  '@c15t/core': minor
-  '@c15t/backend': minor
-  '@c15t/react': minor
-  '@c15t/nextjs': minor
-  '@c15t/tanstack-start': minor
-  '@c15t/vue': patch
-  '@c15t/browser': patch
-  c15t: minor
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Link a page's `/init` to the save that follows
