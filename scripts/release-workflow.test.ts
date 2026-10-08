@@ -76,14 +76,15 @@ describe('release validation', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			// Canary keeps whole runs queued so every commit's snapshot publishes.
 			concurrency: {
-				'cancel-in-progress': false,
 				group: `release-run-\${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}`,
+				// Without it, a third canary push cancels the second's waiting run.
+				queue: 'max',
 			},
 			jobs: {
 				publish: {
 					concurrency: {
-						'cancel-in-progress': false,
 						group: `release-\${{ github.ref }}`,
+						queue: 'max',
 					},
 					// Superseded runs stop before joining the release group, so
 					// they cannot take the tip's pending slot.

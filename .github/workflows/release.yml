@@ -9,10 +9,11 @@ permissions: {}
 
 # Canary publishes a snapshot for every commit, in push order, so its runs stay
 # queued whole. Every other branch gets a group per run: checks for consecutive
-# pushes overlap, and only the publish job below waits its turn.
+# pushes overlap, and only the publish job below waits its turn. `queue: max`
+# keeps every waiting run; by default a new one cancels the one already waiting.
 concurrency:
   group: release-run-${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}
-  cancel-in-progress: false
+  queue: max
 
 jobs:
   # npm trusted publishing binds the OIDC identity to the *top-level* workflow
@@ -75,7 +76,7 @@ jobs:
     # Only one release per branch publishes at a time.
     concurrency:
       group: release-${{ github.ref }}
-      cancel-in-progress: false
+      queue: max
     # npm trusted publishing requires a GitHub-hosted runner.
     runs-on: ubuntu-latest
     permissions:

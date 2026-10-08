@@ -492,6 +492,9 @@ export const runReleaseCli = async function runReleaseCli(
 	) {
 		await createCli(release).parseAsync(['publish', ...args.slice(1)]);
 		if ((await release.getPublishStatus()).status === 'pending') {
+			console.warn(
+				'The release is still pending after publishing, so new notes wait for the next run.'
+			);
 			return;
 		}
 	}
