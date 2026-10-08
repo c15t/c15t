@@ -15,6 +15,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import {
 	matchedResolution,
 	noneRule,
+	noticeRule,
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
 import { buildPrefetchScript } from '../../libs/prefetch/prefetch';
@@ -268,6 +269,22 @@ describe("journey: 'tab'", () => {
 			expect(init()[2]?.journey?.id).not.toBe(id);
 		}
 	);
+
+	test('a dismissed notice answers the journey: reopening preferences does not keep it', async () => {
+		initPolicy = matchedResolution(noticeRule());
+		const runtime = await load({ journey: 'tab' });
+		expect(runtime.kernel.getSnapshot().activeUI).toBe('banner');
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBe(
+			init()[0]?.journey?.id
+		);
+
+		await runtime.kernel.commands.dismissNotice();
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
+		// No choice is stored, and the visitor opens preferences again.
+		expect(runtime.kernel.getSnapshot().explicitChoice).toBeNull();
+		runtime.kernel.set.activeUI('dialog');
+		expect(sessionStorage.getItem(JOURNEY_STORAGE_KEY)).toBeNull();
+	});
 
 	test('blocked sessionStorage makes it a page journey', async () => {
 		vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {

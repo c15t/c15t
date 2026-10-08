@@ -95,6 +95,9 @@ export const createJourneyController = function createJourneyController(
 	let stored = false;
 	// A server state said this page has no journey.
 	let off = false;
+	// A choice or a notice dismissal answered the prompt on this page; the
+	// id is never written again here, even when preferences reopen.
+	let answered = false;
 
 	const asPage = function asPage(): void {
 		if (journey && journey.scope !== 'page') {
@@ -119,7 +122,7 @@ export const createJourneyController = function createJourneyController(
 	};
 
 	const write = function write(): void {
-		if (!journey || stored) {
+		if (!journey || stored || answered) {
 			return;
 		}
 		try {
@@ -181,10 +184,14 @@ export const createJourneyController = function createJourneyController(
 				write();
 			}
 		};
+		const answer = function answer(): void {
+			answered = true;
+			remove();
+		};
 		const unsubscribers = [
 			kernel.subscribe(sync),
-			kernel.events.on('choice:recorded', remove),
-			kernel.events.on('notice:dismissed', remove),
+			kernel.events.on('choice:recorded', answer),
+			kernel.events.on('notice:dismissed', answer),
 		];
 		sync();
 		return function stopWatching() {
