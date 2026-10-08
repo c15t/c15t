@@ -20,9 +20,9 @@ public configuration, not a secret. A
 [self-hosted backend](/docs/self-host/quickstart) uses the same files with its
 own URL.
 
-Build-time manifests are the recommended production setup. Complete the
-[build-time manifest step](#bundle-the-manifest-during-builds) before
-deploying, and rebuild after changing policies, translations or vendors.
+The setup bundles your policy into the server at build time, the
+recommended production setup. Rebuild after changing policies, translations
+or vendors.
 
 ## Install c15t
 
@@ -46,25 +46,31 @@ Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
 
 <include src="../../shared/examples/nextjs/config.mdx" />
 
-`NEXT_PUBLIC_C15T_BACKEND_URL` holds your project's backend URL, including
-any path prefix. Set it in `.env.local` and in your host's build settings, or
-replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables at
-build time, so the server and the browser use the same URL. `manifestURL` points at the route you add next.
+`https://benchmarks-inth.inth.app` is a demo project, so the snippets run as
+they are. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL,
+including any path prefix, in `.env.local` and in your host's build settings,
+or replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables
+at build time, so the server and the browser use the same URL, and changing
+the variable on a built app has no effect until you rebuild. `manifestURL`
+points at the route you add below.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next.mdx" />
 
 ## Serve the manifest route
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-The base route fetches and caches the public policy manifest. The build-time
-manifest step below gives this route a snapshot, so a fresh server can serve
-it without a policy request to Inth.
+The route serves the bundled snapshot, so a fresh server answers without a
+policy request to Inth.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
 ## Resolve consent in the root layout
 
-Call `resolveConsent` in the root layout without awaiting it, and pass the
-pending result to the `Consent` wrapper:
+Call `resolveConsent` with `consentOptions` in the root layout without
+awaiting it, and pass the pending result to the `Consent` wrapper:
 
 <include src="../../shared/examples/nextjs/app-router-layout.mdx" />
 
@@ -73,10 +79,6 @@ later in the same response. Until the browser applies it, the banner stays
 hidden and optional categories stay denied. To send the banner in the first
 HTML instead, see
 [render the banner in the server HTML](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html).
-
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/next.mdx" />
 
 ## Check it works
 

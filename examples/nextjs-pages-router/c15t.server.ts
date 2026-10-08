@@ -1,6 +1,4 @@
-{/* Generated from internals/doc-snippets/nextjs/pages-router/c15t.server.ts (docs:pages-consent-options) by scripts/sync-example-docs.ts. Edit the source file. */}
-
-```ts title="c15t.server.ts"
+// #region docs:pages-consent-options
 import type { ConsentManifestOptions } from 'c15t/next/pages';
 
 import { consentManifest } from '@/c15t-manifest';
@@ -10,4 +8,4 @@ export const consentOptions = {
 	config: consentConfig,
 	manifest: consentManifest,
 } satisfies ConsentManifestOptions;
-```
+// #endregion docs:pages-consent-options

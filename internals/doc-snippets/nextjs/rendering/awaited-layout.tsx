@@ -3,13 +3,13 @@ import { resolveConsent } from 'c15t/next/server';
 import { Suspense } from 'react';
 import type { ReactNode } from 'react';
 
-import { consentConfig } from '@/c15t.config';
+import { consentOptions } from '@/c15t.server';
 import { Consent } from '@/components/consent';
 
 import '@/styles/globals.css';
 
 const ResolvedConsent = async ({ children }: { children: ReactNode }) => {
-	const state = await resolveConsent({ config: consentConfig });
+	const state = await resolveConsent(consentOptions);
 
 	return <Consent state={state}>{children}</Consent>;
 };

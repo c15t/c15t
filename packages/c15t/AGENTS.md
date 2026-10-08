@@ -58,7 +58,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Scripts](./docs/frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
 - [Static export](./docs/frameworks/next/static-export.md): Add c15t to a Next.js site built with output export, where the browser resolves consent through Inth without request helpers or API routes.
 - [Translations](./docs/frameworks/next/translations.md): Where c15t banner and dialog copy comes from in Next.js, how the server and browser pick the visitor's language, and how to override copy and switch languages from a Client Component.
-- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Diagnose failed c15t consent prefetch in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
+- [Troubleshooting](./docs/frameworks/next/troubleshooting.md): Diagnose failed c15t consent prefetch and build-time manifest downloads in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
 - [Upgrade from v2](./docs/frameworks/next/upgrade-v3.md): Upgrade a Next.js app from c15t v2 (@c15t/nextjs) to v3. Covers packages, ConsentRoot or ConsentProvider, the useConsentManager codemod, callbacks, policies, styles, IAB and stored consent.
 - [Vendor consent](./docs/frameworks/next/vendor-consent.md): Let visitors allow a category such as marketing in a Next.js app and still turn off one vendor in it, with the vendors prop on ConsentRoot and useVendorAllowed.
 

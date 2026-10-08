@@ -57,32 +57,37 @@ resolution; a backend URL alone uses backend `/init`.
 
 <include src="../../shared/examples/nextjs/config.mdx" />
 
-`NEXT_PUBLIC_C15T_BACKEND_URL` holds your project's backend URL, including
-any path prefix. Set it in `.env.local` and in your host's build settings, or
-replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables at
-build time, so the server and the browser use the same URL.
+`https://benchmarks-inth.inth.app` is a demo project, so the snippets run as
+they are. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL,
+including any path prefix, in `.env.local` and in your host's build settings,
+or replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables
+at build time, so the server and the browser use the same URL, and changing
+the variable on a built app has no effect until you rebuild.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next.mdx" />
 
 ## Serve the manifest route
 
 <include src="../../shared/examples/nextjs/manifest-route.mdx" />
 
-With a [build-time snapshot](#bundle-the-manifest-during-builds), the route serves it directly
-without an upstream request. With runtime fetching, it
-reads `backendURL` from the config and fetches `${backendURL}/manifest`. The
-route caches that public policy, so fresh cache hits make no policy request
-to Inth.
+The route serves the build-time snapshot without an upstream request. With
+runtime fetching, it reads `backendURL` from the config and fetches
+`${backendURL}/manifest`. The route caches that public policy, so fresh cache
+hits make no policy request to Inth.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
 ## Start consent resolution in the root layout
 
-Call `resolveConsent` in the root layout without awaiting it, and pass the
-pending result to the `Consent` wrapper:
+Call `resolveConsent` with `consentOptions` in the root layout without
+awaiting it, and pass the pending result to the `Consent` wrapper:
 
 <include src="../../shared/examples/nextjs/app-router-layout.mdx" />
 
 `resolveConsent` reads the visitor's cookies and location headers and resolves
-the policy from the cached manifest. Next.js renders the page without waiting
+the policy from the bundled manifest. Next.js renders the page without waiting
 and sends the result later in the same response. Until the browser applies it
 after hydration, the banner and dialog stay hidden, optional categories stay
 denied, `ConsentGate` shows its placeholder and gated scripts do not load. The
@@ -103,10 +108,6 @@ The layout calls `next/headers`, so routes under it render per request. With
 `cacheComponents: true` the layout stays synchronous, and Next.js keeps the
 page in the prerendered static shell. See
 [Cache Components](/docs/frameworks/next/rendering#use-cache-components).
-
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/next.mdx" />
 
 ## Render the banner in the server HTML
 
@@ -147,8 +148,8 @@ server-rendered ones, see
 
 ## Use backend init instead of the manifest
 
-If you added the build integration, remove `withConsentManifest` and the
-`manifest` line in `c15t.server.ts`. Delete the `manifestURL` line from
+Remove `withConsentManifest` from `next.config.ts`, and the `consentManifest`
+import and `manifest` line from `c15t.server.ts`. Delete the `manifestURL` line from
 `c15t.config.ts` and delete `app/api/c15t/manifest/route.ts`. The layouts stay the same. `resolveConsent`
 and the browser now call `${backendURL}/init`, and consent choices still go to
 `${backendURL}/subjects`. Every visit makes a backend request, which the

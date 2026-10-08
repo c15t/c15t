@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Diagnose failed c15t consent prefetch in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
+description: Diagnose failed c15t consent prefetch and build-time manifest downloads in Next.js, verify manifest requests, and fix symbol serialization warnings, unknown server location and prerendering errors.
 group: frameworks
 ---
 
@@ -24,6 +24,42 @@ upstream URL.
 handler's upstream backend. See
 [Next.js optimization](/docs/frameworks/next/optimization) for the rewrite setup.
 
+## Why does `next build` or `next dev` fail to fetch the manifest?
+
+**Check.** `withConsentManifest` downloads `${backendURL}/manifest` when
+`next build`, `next dev` or `next typegen` loads `next.config.ts`, and stops
+on any failure. It never reuses an old `c15t-manifest.ts`. The error names
+the cause:
+
+- `@c15t/nextjs/build: build-time manifests require an absolute upstream URL.`
+  The `backendURL` passed to `withConsentManifest` is missing, empty or a
+  path such as `/api/c15t`. An empty `NEXT_PUBLIC_C15T_BACKEND_URL=` line
+  produces an empty string, which the `??` fallback does not replace.
+- `@c15t/nextjs/build: /manifest responded 404`, or another status.
+  The URL is not your project's backend. Check for the
+  `https://your-project.inth.app` placeholder and a missing path prefix.
+- `@c15t/nextjs/build: /manifest returned an invalid consent manifest.` The
+  URL answered, but not with a c15t manifest. It may be a different service,
+  or a backend that does not support this c15t version.
+
+**Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute backend URL from
+your Inth project, or your self-hosted origin with its path prefix, wherever
+`next build` runs, including CI. The build machine must reach the backend. To
+build without access to it, use
+[runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data)
+instead.
+
+## Why can't TypeScript find `@/c15t-manifest`?
+
+**Check.** `tsc` or your editor reports
+`Cannot find module '@/c15t-manifest' or its corresponding type declarations.`
+The file is generated and not committed, so a fresh clone does not have it
+until Next.js loads `next.config.ts` once.
+
+**Fix.** Run `next dev`, `next build` or `next typegen`. In CI, run
+`next typegen` before `tsc --noEmit`. It loads the config the same way
+`next build` does and writes the file.
+
 ## Verify manifest fetching
 
 Check the Next.js server and browser requests after following the
@@ -38,8 +74,9 @@ Check the Next.js server and browser requests after following the
 3. Test two locations with different configured policies. Confirm the resolved
    policy matches each location and that your host passes trusted geography
    headers to Next.js.
-4. Change a policy, then check it after the manifest caches refresh. Cache the
-   public manifest, never the visitor-specific init response.
+4. Change a policy, rebuild, then check it. With runtime fetching, check it
+   after the manifest caches refresh instead. Cache the public manifest, never
+   the visitor-specific init response.
 5. If you added a rewrite, confirm browser consent requests use `/api/c15t`,
    including submissions. Direct requests to the backend are expected when you
    have not configured a rewrite.

@@ -1,4 +1,3 @@
-// #region docs:consent-options title="c15t.server.ts"
 import type { ConsentManifestOptions } from 'c15t/next/server';
 
 import { consentManifest } from '@/c15t-manifest';
@@ -8,4 +7,3 @@ export const consentOptions = {
 	config: consentConfig,
 	manifest: consentManifest,
 } satisfies ConsentManifestOptions;
-// #endregion docs:consent-options

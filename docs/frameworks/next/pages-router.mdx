@@ -41,18 +41,24 @@ resolution; a backend URL alone uses backend `/init`.
 
 <include src="../../shared/examples/nextjs/config.mdx" />
 
-`NEXT_PUBLIC_C15T_BACKEND_URL` holds your project's backend URL, including
-any path prefix. Set it in `.env.local` and in your host's build settings, or
-replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables at
-build time, so the server and the browser use the same URL.
+`https://benchmarks-inth.inth.app` is a demo project, so the snippets run as
+they are. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL,
+including any path prefix, in `.env.local` and in your host's build settings,
+or replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables
+at build time, so the server and the browser use the same URL, and changing
+the variable on a built app has no effect until you rebuild.
+
+## Bundle the manifest during builds
+
+<include src="../../shared/build-manifests/next-pages.mdx" />
 
 ## Add the manifest API route
 
 <include src="../../shared/examples/nextjs-pages-router/pages-manifest-route.mdx" />
 
-With a [build-time snapshot](#bundle-the-manifest-during-builds), the route serves it directly
-without an upstream request. With runtime fetching, it reads `backendURL` from
-the config, fetches `${backendURL}/manifest` and caches the public policy. It
+The route serves the build-time snapshot without an upstream request. With
+runtime fetching, it reads `backendURL` from the config, fetches
+`${backendURL}/manifest` and caches the public policy. It
 answers methods other than `GET` and `HEAD` with `405`. An app that also has an `app/` directory can serve
 the App Router route from the [App Router guide](/docs/frameworks/next/app-router#serve-the-manifest-route)
 instead.
@@ -90,8 +96,8 @@ you add the
 
 ## Resolve consent in getServerSideProps
 
-Import `resolveConsent` from `c15t/next/pages` and pass it the `req` from
-`getServerSideProps`. The App Router helper in `c15t/next/server` reads
+Import `resolveConsent` from `c15t/next/pages` and pass it `consentOptions`
+with the `req` from `getServerSideProps`. The App Router helper in `c15t/next/server` reads
 `next/headers`, which the Pages Router does not have.
 
 <include src="../../shared/examples/nextjs-pages-router/pages-ssr.mdx" />
@@ -108,14 +114,10 @@ their cookies or location. With runtime fetching, if the manifest request fails 
 `timeoutMs`, 500 ms by default, the page renders without a policy and the
 browser retries after hydration.
 
-## Bundle the manifest during builds
-
-<include src="../../shared/build-manifests/next-pages.mdx" />
-
 ## Use backend init instead of the manifest
 
-If you added the build integration, remove `withConsentManifest` and the
-`manifest` line in `c15t.server.ts`. Delete the `manifestURL` line from
+Remove `withConsentManifest` from `next.config.ts`, and the `consentManifest`
+import and `manifest` line from `c15t.server.ts`. Delete the `manifestURL` line from
 `c15t.config.ts` and delete `pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
 `resolveConsent` and the browser now call `${backendURL}/init`, and consent
 choices still go to `${backendURL}/subjects`. For a browser-only setup with no
