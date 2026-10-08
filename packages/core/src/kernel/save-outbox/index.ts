@@ -51,7 +51,6 @@
  */
 
 import type { OptionalConsentCategory } from '../../consent-record/types';
-import { isProductionBuild } from '../../libs/is-production';
 import {
 	isConsentSaveRejection,
 	isSubjectConflict,
@@ -71,6 +70,7 @@ import {
 	withoutSuperseded,
 	withSubjectId,
 } from './supersession';
+import { warnInDevelopment } from './warn';
 
 export type { OutboxSlot, OutboxTransaction, SaveOutboxStore } from './store';
 export { createBrowserOutboxStore, createMemoryOutboxStore } from './store';
@@ -130,18 +130,12 @@ const warnSaveFailed = function warnSaveFailed(
 	outcome: 'queued' | 'rejected',
 	error?: unknown
 ): void {
-	if (isProductionBuild()) {
-		return;
-	}
-	const message =
+	warnInDevelopment(
 		outcome === 'queued'
 			? '[c15t] Consent save failed. The choice is kept in this browser and queued, and is resent on the next init or when the browser comes back online.'
-			: '[c15t] The backend refused the consent save, so it will not be resent. The choice is kept in this browser only.';
-	if (error === undefined) {
-		console.warn(message);
-	} else {
-		console.warn(message, error);
-	}
+			: '[c15t] The backend refused the consent save, so it will not be resent. The choice is kept in this browser only.',
+		error
+	);
 };
 
 /**

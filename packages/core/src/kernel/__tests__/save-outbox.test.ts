@@ -1648,3 +1648,143 @@ describe('save outbox: development warnings', () => {
 		kernel.dispose();
 	});
 });
+
+describe('save outbox: replay failures and dropped saves', () => {
+	const offline = new Error('save offline');
+
+	/** A kernel whose first save failed, and what it reports from then on. */
+	const withQueuedSave = async function withQueuedSave(
+		save: KernelTransport['save'] = vi.fn().mockRejectedValue(offline),
+		outboxStore: SaveOutboxStore = store
+	) {
+		const kernel = kernelOn(
+			{ transport: { init: vi.fn().mockResolvedValue({}), save } },
+			outboxStore
+		);
+		await kernel.commands.save('all');
+		expect(await queued()).toHaveLength(1);
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const errors: unknown[] = [];
+		const replayed: boolean[] = [];
+		kernel.events.on('command:error', ({ error }) => {
+			errors.push(error);
+		});
+		kernel.events.on('save:replayed', ({ ok }) => {
+			replayed.push(ok);
+		});
+		return { errors, kernel, replayed, warn };
+	};
+
+	test('a replay that fails again warns once and keeps the save out of onError', async () => {
+		const { errors, kernel, replayed, warn } = await withQueuedSave();
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([false]);
+		});
+
+		expect(await queued()).toHaveLength(1);
+		expect(errors).toEqual([]);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('Resending a queued consent save failed'),
+			offline
+		);
+		kernel.dispose();
+	});
+
+	test('a save that runs out of attempts is reported once', async () => {
+		const { errors, kernel, replayed, warn } = await withQueuedSave();
+		await editQueue((entries) =>
+			entries.map((entry) => ({ ...entry, attempts: 9 }))
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([false]);
+		});
+
+		expect(await queued()).toEqual([]);
+		expect(errors).toHaveLength(1);
+		expect(errors[0]).toBeInstanceOf(Error);
+		expect((errors[0] as Error).message).toContain('10 failed attempts');
+		expect((errors[0] as Error).cause).toBe(offline);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('dropped and will not be resent'),
+			errors[0]
+		);
+		kernel.dispose();
+	});
+
+	test('a replay the backend refuses for good is reported', async () => {
+		const refusal = refused('POLICY_SNAPSHOT_EXPIRED');
+		const { errors, kernel, replayed } = await withQueuedSave(
+			vi.fn().mockRejectedValueOnce(offline).mockRejectedValue(refusal)
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([false]);
+		});
+
+		expect(await queued()).toEqual([]);
+		expect(errors).toEqual([refusal]);
+		kernel.dispose();
+	});
+
+	test('saves older than seven days are reported once when dropped', async () => {
+		const { errors, kernel, warn } = await withQueuedSave();
+		await editQueue((entries) =>
+			entries.map((entry) => ({
+				...entry,
+				queuedAt: Date.now() - 7 * 24 * 60 * 60 * 1000 - 1,
+			}))
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(errors).toHaveLength(1);
+		});
+		expect((errors[0] as Error).message).toContain('more than 7 days');
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('dropped and will not be resent'),
+			errors[0]
+		);
+
+		// Later reads find nothing left to drop.
+		await kernel.commands.init();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(await queued()).toEqual([]);
+		expect(errors).toHaveLength(1);
+		kernel.dispose();
+	});
+
+	test('two tabs replaying the same last attempt report it once', async () => {
+		const save = vi.fn().mockRejectedValue(offline);
+		const first = await withQueuedSave(save);
+		const second = kernelOn({
+			transport: { init: vi.fn().mockResolvedValue({}), save },
+		});
+		const secondErrors: unknown[] = [];
+		second.events.on('command:error', ({ error }) => {
+			secondErrors.push(error);
+		});
+		await editQueue((entries) =>
+			entries.map((entry) => ({ ...entry, attempts: 9 }))
+		);
+
+		await Promise.all([first.kernel.commands.init(), second.commands.init()]);
+		await vi.waitFor(async () => {
+			expect(await queued()).toEqual([]);
+		});
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		expect([...first.errors, ...secondErrors]).toHaveLength(1);
+		first.kernel.dispose();
+		second.dispose();
+	});
+});
