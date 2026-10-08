@@ -12,6 +12,12 @@
  * may have written, so every read validates them and drops what it cannot
  * replay: malformed entries, entries older than a week, and entries that
  * used up their attempts.
+ *
+ * A save that leaves the queue without reaching the backend (out of
+ * attempts, older than a week, or refused for good) emits `command:error`
+ * once, from the transaction that removed it, so `onError` hears about
+ * every lost save. A replay that fails and keeps the entry only warns in
+ * development: the save already reported its first failure.
  */
 
 import type { OPTIONAL_CONSENT_CATEGORIES } from '../../consent-record/types';
@@ -34,6 +40,7 @@ import type {
 	withoutSuperseded,
 	withSubjectId,
 } from './supersession';
+import type { warnInDevelopment } from './warn';
 
 /**
  * The first-load functions the queue calls. The outbox passes them in
@@ -52,6 +59,7 @@ export interface QueueTools {
 	optionalCategories: typeof OPTIONAL_CONSENT_CATEGORIES;
 	supersededBy: typeof supersededBy;
 	validateExplicitChoice: typeof validateExplicitChoice;
+	warnInDevelopment: typeof warnInDevelopment;
 	withoutSuperseded: typeof withoutSuperseded;
 	withSubjectId: typeof withSubjectId;
 }
@@ -68,10 +76,15 @@ interface SubjectReassignment {
 
 /**
  * Validation and normalization of the stored lists, over the first-load
- * functions the outbox passed in.
+ * functions the outbox passed in. `onExpired` is called inside the
+ * transaction that removed saves for being older than a week, with how many
+ * it removed.
  */
 // oxlint-disable-next-line max-lines-per-function -- The stored-list readers share the validators.
-const createStoredLists = function createStoredLists(tools: QueueTools) {
+const createStoredLists = function createStoredLists(
+	tools: QueueTools,
+	onExpired: (count: number) => void
+) {
 	const {
 		isPlainRecord,
 		optionalCategories,
@@ -325,7 +338,23 @@ const createStoredLists = function createStoredLists(tools: QueueTools) {
 		}
 		const normalized = normalizePendingSaves(stored, now);
 		if (JSON.stringify(normalized) !== JSON.stringify(stored)) {
-			tx.write('saves', normalized);
+			// Storage that refused the write still holds the expired saves,
+			// so they are reported by the read that removes them.
+			if (!tx.write('saves', normalized)) {
+				return normalized;
+			}
+			const cutoff = now - MAX_PENDING_SAVE_AGE_MS;
+			const expired = Array.isArray(stored)
+				? stored.filter(
+						(entry) =>
+							isPendingSaveEntry(entry) &&
+							entry.queuedAt < cutoff &&
+							entry.attempts < MAX_REPLAY_ATTEMPTS
+					).length
+				: 0;
+			if (expired > 0) {
+				onExpired(expired);
+			}
 		}
 		return normalized;
 	};
@@ -370,8 +399,25 @@ const isSamePendingSave = function isSamePendingSave(
 	);
 };
 
+/**
+ * What queueing a failed save did: `superseded` when the records were
+ * cleared or replaced first, so there was nothing left to queue, and
+ * `unstored` when storage refused the write.
+ */
+export type EnqueueResult = 'queued' | 'superseded' | 'unstored';
+
 /** `retry` keeps the entry for another attempt; the others remove it. */
 type ReplayOutcome = 'saved' | 'retry' | 'rejected';
+
+/** What one replay did, for the run that called it. */
+interface ReplayResult {
+	/** The `save:replayed` event to emit. */
+	event: { ok: boolean; rejected?: string; subjectId: string };
+	/** The entry failed again and stays queued for another attempt. */
+	kept: boolean;
+	/** What the transport threw, when it threw. */
+	error: unknown;
+}
 
 export interface QueueWorkerOptions {
 	runtime: KernelRuntime;
@@ -382,7 +428,7 @@ export interface QueueWorkerOptions {
 /** The queue operations of one outbox. */
 export interface QueueWorker {
 	/** Queue what `current()` still holds, read inside the transaction. */
-	enqueue: (current: () => SavePayload | null) => Promise<void>;
+	enqueue: (current: () => SavePayload | null) => Promise<EnqueueResult>;
 	/** Drop the queued saves `payload` superseded. */
 	discard: (payload: SavePayload) => Promise<void>;
 	/** Move the visitor off a subject id the backend refused. */
@@ -406,11 +452,41 @@ export const createQueueWorker = function createQueueWorker({
 		isConsentSaveRejection,
 		isSubjectConflict,
 		supersededBy,
+		warnInDevelopment,
 		withoutSuperseded,
 		withSubjectId,
 	} = tools;
+
+	/**
+	 * Report a queued save that left the queue without the backend
+	 * recording it. Called once, by the kernel whose transaction removed it.
+	 */
+	const reportDropped = function reportDropped(error: unknown): void {
+		emit({ command: 'save', error, type: 'command:error' });
+		warnInDevelopment(
+			'[c15t] A queued consent save was dropped and will not be resent. The choice is kept in this browser only.',
+			error
+		);
+	};
+
+	/**
+	 * Report saves a read removed for being older than a week. The read runs
+	 * inside a transaction, so listeners run after it: one that starts
+	 * another transaction must not run inside this one.
+	 */
+	const reportExpired = function reportExpired(count: number): void {
+		const saves =
+			count === 1 ? 'a queued consent save' : `${count} queued consent saves`;
+		const error = new Error(
+			`c15t save outbox: dropped ${saves} that waited more than 7 days without reaching the backend`
+		);
+		queueMicrotask(() => {
+			reportDropped(error);
+		});
+	};
+
 	const { normalizePendingSaves, readPendingSaves, readReassignments } =
-		createStoredLists(tools);
+		createStoredLists(tools, reportExpired);
 	// Subject ids this kernel replaced after the backend refused them as
 	// another tenant's, old to the claim for the new one. A live save and a
 	// replay can both hit the same refusal; this sends both to one new id
@@ -428,16 +504,18 @@ export const createQueueWorker = function createQueueWorker({
 	/** Queue what `current()` still holds, read inside the transaction. */
 	const enqueue = function enqueue(
 		current: () => SavePayload | null
-	): Promise<void> {
+	): Promise<EnqueueResult> {
 		return store.transact((tx) => {
 			const payload = current();
 			if (!payload) {
-				return;
+				return 'superseded';
 			}
 			const now = Date.now();
 			const pending = readPendingSaves(tx, now);
 			pending.push({ attempts: 0, payload, queuedAt: now });
-			tx.write('saves', normalizePendingSaves(pending, now));
+			return tx.write('saves', normalizePendingSaves(pending, now))
+				? 'queued'
+				: 'unstored';
 		});
 	};
 
@@ -622,12 +700,17 @@ export const createQueueWorker = function createQueueWorker({
 	 * new id. The move is recorded in `moved` so the rest of this run replays
 	 * its other saves under the new id too. `moved` is `null` for the second
 	 * attempt, so a backend that refuses every id cannot keep the loop going.
+	 *
+	 * An entry this call removes without the backend taking it (refused, or
+	 * out of attempts) is reported through {@link reportDropped}. Another
+	 * kernel that replayed the same entry at the same time finds it changed
+	 * and reports nothing.
 	 */
 	const replayEntry = async function replayEntry(
 		save: NonNullable<KernelTransport['save']>,
 		entry: PendingSaveEntry,
 		moved: Map<string, string> | null
-	): Promise<{ ok: boolean; rejected?: string; subjectId: string } | null> {
+	): Promise<ReplayResult | null> {
 		const stillQueued = await store.transact((tx) =>
 			readPendingSaves(tx).some((candidate) =>
 				isSamePendingSave(candidate, entry)
@@ -639,10 +722,12 @@ export const createQueueWorker = function createQueueWorker({
 
 		let outcome: ReplayOutcome = 'retry';
 		let rejected: string | undefined;
+		let failure: unknown;
 		try {
 			const { ok } = await save(entry.payload);
 			outcome = ok ? 'saved' : 'retry';
 		} catch (error) {
+			failure = error;
 			if (moved && isSubjectConflict(error)) {
 				const subjectId = await reassignSubject(entry.payload.subjectId);
 				if (subjectId !== null) {
@@ -661,24 +746,51 @@ export const createQueueWorker = function createQueueWorker({
 				rejected = error.code;
 			}
 		}
-		await store.transact((tx) => {
+		// The entry's attempts after this one, or `null` when another kernel
+		// changed or removed it while the request was out; and whether
+		// storage took the updated list.
+		const { attempts, written } = await store.transact((tx) => {
+			let counted: number | null = null;
 			const next: PendingSaveEntry[] = [];
 			for (const candidate of readPendingSaves(tx)) {
 				if (!isSamePendingSave(candidate, entry)) {
 					next.push(candidate);
 					continue;
 				}
-				const attempts = candidate.attempts + 1;
-				if (outcome === 'retry' && attempts < MAX_REPLAY_ATTEMPTS) {
-					next.push({ ...candidate, attempts });
+				counted = candidate.attempts + 1;
+				if (outcome === 'retry' && counted < MAX_REPLAY_ATTEMPTS) {
+					next.push({ ...candidate, attempts: counted });
 				}
 			}
-			tx.write('saves', next);
+			return { attempts: counted, written: tx.write('saves', next) };
 		});
+		// A refused write leaves the entry stored as it was: it stays queued,
+		// and a drop is reported only by the write that removes it.
+		const removed =
+			attempts !== null &&
+			written &&
+			(outcome === 'rejected' ||
+				(outcome === 'retry' && attempts >= MAX_REPLAY_ATTEMPTS));
+		const kept = attempts !== null && outcome !== 'saved' && !removed;
+		if (removed && outcome === 'rejected') {
+			reportDropped(failure);
+		} else if (removed) {
+			reportDropped(
+				new Error(
+					`c15t save outbox: dropped a queued consent save after ${MAX_REPLAY_ATTEMPTS} failed attempts`,
+					{ cause: failure }
+				)
+			);
+		}
 		const { subjectId } = entry.payload;
-		return rejected === undefined
-			? { ok: outcome === 'saved', subjectId }
-			: { ok: false, rejected, subjectId };
+		return {
+			error: failure,
+			event:
+				rejected === undefined
+					? { ok: outcome === 'saved', subjectId }
+					: { ok: false, rejected, subjectId },
+			kept,
+		};
 	};
 
 	/** Replay every queued entry; resolves to whether any is left. */
@@ -686,6 +798,10 @@ export const createQueueWorker = function createQueueWorker({
 		save: NonNullable<KernelTransport['save']>
 	): Promise<boolean> {
 		const pending = await store.transact((tx) => readPendingSaves(tx));
+		// Entries that failed again and stay queued, and the last error, for
+		// one development warning per run rather than one per entry.
+		let kept = 0;
+		let lastError: unknown;
 		// Subjects reassigned during this run. The queue has already moved
 		// their saves, so the entries read above are looked up under the new
 		// id rather than skipped as gone.
@@ -703,8 +819,20 @@ export const createQueueWorker = function createQueueWorker({
 			if (result !== null) {
 				// The subject the save finally went out under, which differs from
 				// the queued one after a reassignment.
-				emit({ ...result, type: 'save:replayed' });
+				emit({ ...result.event, type: 'save:replayed' });
+				if (result.kept) {
+					kept += 1;
+					lastError = result.error ?? lastError;
+				}
 			}
+		}
+		if (kept > 0) {
+			warnInDevelopment(
+				kept === 1
+					? '[c15t] Resending a queued consent save failed. It stays queued and is resent on the next init or when the browser comes back online.'
+					: `[c15t] Resending ${kept} queued consent saves failed. They stay queued and are resent on the next init or when the browser comes back online.`,
+				lastError
+			);
 		}
 		return store.transact((tx) => readPendingSaves(tx).length > 0);
 	};

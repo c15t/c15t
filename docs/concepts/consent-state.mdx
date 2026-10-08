@@ -98,6 +98,12 @@ backend that signs policy snapshot tokens rejects a replay made after the
 token expires, which is 30 minutes by default for the self-hosted backend. A
 save still queued by then is recorded only in the browser.
 
+A replay that fails and stays queued emits `save:replayed` with `ok: false` but
+not `command:error`, since the save already reported its first failure. A save
+that leaves the queue without the backend recording it, because it ran out of
+attempts, waited more than 7 days or was refused, emits `command:error` once.
+Development builds also log a `[c15t]` console warning for each of these.
+
 IAB surfaces close in the click task too, but an IAB choice is recorded only
 after its TC string is encoded, which can wait for the TCF library to load.
 If that local step records nothing, for example because the vendor list

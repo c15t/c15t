@@ -20,6 +20,7 @@ import {
 } from '../../transports/save-rejection';
 import type { QueueTools } from './queue';
 import { supersededBy, withoutSuperseded, withSubjectId } from './supersession';
+import { warnInDevelopment } from './warn';
 
 /** @internal */
 export const queueTools: QueueTools = {
@@ -30,6 +31,7 @@ export const queueTools: QueueTools = {
 	optionalCategories: OPTIONAL_CONSENT_CATEGORIES,
 	supersededBy,
 	validateExplicitChoice,
+	warnInDevelopment,
 	withSubjectId,
 	withoutSuperseded,
 };

@@ -33,9 +33,9 @@ export interface OutboxTransaction {
 	/**
 	 * Store a list. An empty list removes the slot. A failed write is
 	 * swallowed: the choice is recorded locally whether or not the outbox
-	 * can keep it.
+	 * can keep it. Returns whether the write was stored.
 	 */
-	write: (slot: OutboxSlot, value: readonly unknown[]) => void;
+	write: (slot: OutboxSlot, value: readonly unknown[]) => boolean;
 }
 
 /**
@@ -153,8 +153,10 @@ export const createBrowserOutboxStore = function createBrowserOutboxStore(
 						} else {
 							storage.setItem(SLOT_KEYS[slot], JSON.stringify(value));
 						}
+						return true;
 					} catch {
 						// Blocked or full storage: the choice is still recorded locally.
+						return false;
 					}
 				},
 			};

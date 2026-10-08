@@ -27,7 +27,10 @@ import type {
 } from '../../types';
 import { createKernel } from '../index';
 import type { InternalKernel } from '../internals';
-import { createMemoryOutboxStore } from '../save-outbox';
+import {
+	createBrowserOutboxStore,
+	createMemoryOutboxStore,
+} from '../save-outbox';
 import type { SaveOutboxStore } from '../save-outbox';
 
 interface QueuedEntry {
@@ -1562,4 +1565,352 @@ describe('save outbox: partially superseded confirmations', () => {
 			kernel.dispose();
 		}
 	);
+});
+
+describe('save outbox: development warnings', () => {
+	afterEach(() => {
+		vi.unstubAllEnvs();
+	});
+
+	const silencedWarn = () =>
+		vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+	test('a save the transport threw on warns that it was queued', async () => {
+		const warn = silencedWarn();
+		const offline = new Error('save offline');
+		const kernel = kernelOn({
+			transport: { save: vi.fn().mockRejectedValue(offline) },
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toHaveLength(1);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('queued'),
+			offline
+		);
+		kernel.dispose();
+	});
+
+	test('a save the transport answered as failed warns that it was queued', async () => {
+		const warn = silencedWarn();
+		const kernel = kernelOn({
+			transport: { save: vi.fn().mockResolvedValue({ ok: false }) },
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toHaveLength(1);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(expect.stringContaining('queued'));
+		kernel.dispose();
+	});
+
+	test('a save the backend refuses for good warns that it will not be resent', async () => {
+		const warn = silencedWarn();
+		const refusal = refused('POLICY_SNAPSHOT_INVALID');
+		const kernel = kernelOn({
+			transport: { save: vi.fn().mockRejectedValue(refusal) },
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toEqual([]);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('will not be resent'),
+			refusal
+		);
+		kernel.dispose();
+	});
+
+	test('a successful save does not warn', async () => {
+		const warn = silencedWarn();
+		const kernel = kernelOn({ transport: { save: accepted } });
+
+		await kernel.commands.save('all');
+
+		expect(warn).not.toHaveBeenCalled();
+		kernel.dispose();
+	});
+
+	test.each([
+		['threw', () => Promise.reject(new Error('save offline'))],
+		['answered as failed', () => Promise.resolve({ ok: false })],
+	])(
+		'a save the transport %s does not warn when records are cleared before it is queued',
+		async (_label, save) => {
+			const warn = silencedWarn();
+			// Another tab holds the store while the save fails, and the visitor
+			// clears their records meanwhile, so the enqueue writes nothing.
+			let waiting = false;
+			let release: () => void = () => {};
+			const gated: SaveOutboxStore = {
+				clear: store.clear,
+				async transact(run) {
+					if (!waiting) {
+						waiting = true;
+						await new Promise<void>((resolve) => {
+							release = resolve;
+						});
+					}
+					return store.transact(run);
+				},
+			};
+			const kernel = kernelOn({ transport: { save } }, gated);
+
+			const pending = kernel.commands.save('all');
+			await vi.waitFor(() => expect(waiting).toBe(true));
+			clearRecords(kernel);
+			release();
+			await pending;
+
+			expect(await queued()).toEqual([]);
+			expect(warn).not.toHaveBeenCalled();
+			kernel.dispose();
+		}
+	);
+
+	test.each([
+		['threw', () => Promise.reject(new Error('save offline'))],
+		['answered as failed', () => Promise.resolve({ ok: false })],
+	])(
+		'a save the transport %s warns that it was not queued when storage is full',
+		async (_label, save) => {
+			const warn = silencedWarn();
+			const full = createBrowserOutboxStore({
+				localStorage: () =>
+					({
+						getItem: () => null,
+						removeItem: () => undefined,
+						setItem: () => {
+							throw new DOMException('full', 'QuotaExceededError');
+						},
+					}) as unknown as Storage,
+				locks: () => null,
+			});
+			const kernel = kernelOn({ transport: { save } }, full);
+
+			await kernel.commands.save('all');
+
+			expect(warn).toHaveBeenCalledOnce();
+			expect(warn.mock.calls[0]?.[0]).toContain('storage refused to queue it');
+			kernel.dispose();
+		}
+	);
+
+	test('a failed save does not warn in production', async () => {
+		vi.stubEnv('NODE_ENV', 'production');
+		const warn = silencedWarn();
+		const kernel = kernelOn({
+			transport: {
+				save: vi.fn().mockRejectedValue(new Error('save offline')),
+			},
+		});
+
+		await kernel.commands.save('all');
+
+		expect(await queued()).toHaveLength(1);
+		expect(warn).not.toHaveBeenCalled();
+		kernel.dispose();
+	});
+});
+
+describe('save outbox: replay failures and dropped saves', () => {
+	const offline = new Error('save offline');
+
+	/** A kernel whose first save failed, and what it reports from then on. */
+	const withQueuedSave = async function withQueuedSave(
+		save: KernelTransport['save'] = vi.fn().mockRejectedValue(offline),
+		outboxStore: SaveOutboxStore = store
+	) {
+		const kernel = kernelOn(
+			{ transport: { init: vi.fn().mockResolvedValue({}), save } },
+			outboxStore
+		);
+		await kernel.commands.save('all');
+		expect(await queued()).toHaveLength(1);
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		const errors: unknown[] = [];
+		const replayed: boolean[] = [];
+		kernel.events.on('command:error', ({ error }) => {
+			errors.push(error);
+		});
+		kernel.events.on('save:replayed', ({ ok }) => {
+			replayed.push(ok);
+		});
+		return { errors, kernel, replayed, warn };
+	};
+
+	test('a replay that fails again warns once and keeps the save out of onError', async () => {
+		const { errors, kernel, replayed, warn } = await withQueuedSave();
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([false]);
+		});
+
+		expect(await queued()).toHaveLength(1);
+		expect(errors).toEqual([]);
+		expect(warn).toHaveBeenCalledOnce();
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('Resending a queued consent save failed'),
+			offline
+		);
+		kernel.dispose();
+	});
+
+	test('a save that runs out of attempts is reported once', async () => {
+		const { errors, kernel, replayed, warn } = await withQueuedSave();
+		await editQueue((entries) =>
+			entries.map((entry) => ({ ...entry, attempts: 9 }))
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([false]);
+		});
+
+		expect(await queued()).toEqual([]);
+		expect(errors).toHaveLength(1);
+		expect(errors[0]).toBeInstanceOf(Error);
+		expect((errors[0] as Error).message).toContain('10 failed attempts');
+		expect((errors[0] as Error).cause).toBe(offline);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('dropped and will not be resent'),
+			errors[0]
+		);
+		kernel.dispose();
+	});
+
+	test('a replay the backend refuses for good is reported', async () => {
+		const refusal = refused('POLICY_SNAPSHOT_EXPIRED');
+		const { errors, kernel, replayed } = await withQueuedSave(
+			vi.fn().mockRejectedValueOnce(offline).mockRejectedValue(refusal)
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(replayed).toEqual([false]);
+		});
+
+		expect(await queued()).toEqual([]);
+		expect(errors).toEqual([refusal]);
+		kernel.dispose();
+	});
+
+	test('saves older than seven days are reported once when dropped', async () => {
+		const { errors, kernel, warn } = await withQueuedSave();
+		await editQueue((entries) =>
+			entries.map((entry) => ({
+				...entry,
+				queuedAt: Date.now() - 7 * 24 * 60 * 60 * 1000 - 1,
+			}))
+		);
+
+		await kernel.commands.init();
+		await vi.waitFor(() => {
+			expect(errors).toHaveLength(1);
+		});
+		expect((errors[0] as Error).message).toContain('more than 7 days');
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('dropped and will not be resent'),
+			errors[0]
+		);
+
+		// Later reads find nothing left to drop.
+		await kernel.commands.init();
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+		expect(await queued()).toEqual([]);
+		expect(errors).toHaveLength(1);
+		kernel.dispose();
+	});
+
+	test.each([
+		['runs out of attempts', { attempts: 9 }],
+		['waited more than seven days', { queuedAt: 0 }],
+	])(
+		'a save that %s is reported only once storage takes the removal',
+		async (_label, edit) => {
+			// Storage that refuses writes keeps the entry, so it is not dropped
+			// yet, and reporting it would report it again on the next replay.
+			let refuse = false;
+			let refusedWrites = 0;
+			const refusing: SaveOutboxStore = {
+				clear: store.clear,
+				transact: (run) =>
+					store.transact((tx) =>
+						run({
+							read: tx.read,
+							write: (slot, value) => {
+								if (refuse) {
+									refusedWrites += 1;
+									return false;
+								}
+								return tx.write(slot, value);
+							},
+						})
+					),
+			};
+			const { errors, kernel } = await withQueuedSave(
+				vi.fn().mockRejectedValue(offline),
+				refusing
+			);
+			await editQueue((entries) =>
+				entries.map((entry) => ({ ...entry, ...edit }))
+			);
+
+			refuse = true;
+			await kernel.commands.init();
+			await vi.waitFor(() => {
+				expect(refusedWrites).toBeGreaterThan(0);
+			});
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(errors).toEqual([]);
+			expect(await queued()).toHaveLength(1);
+
+			refuse = false;
+			await kernel.commands.init();
+			await vi.waitFor(async () => {
+				expect(await queued()).toEqual([]);
+			});
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(errors).toHaveLength(1);
+			kernel.dispose();
+		}
+	);
+
+	test('two tabs replaying the same last attempt report it once', async () => {
+		const save = vi.fn().mockRejectedValue(offline);
+		const first = await withQueuedSave(save);
+		const second = kernelOn({
+			transport: { init: vi.fn().mockResolvedValue({}), save },
+		});
+		const secondErrors: unknown[] = [];
+		second.events.on('command:error', ({ error }) => {
+			secondErrors.push(error);
+		});
+		await editQueue((entries) =>
+			entries.map((entry) => ({ ...entry, attempts: 9 }))
+		);
+
+		await Promise.all([first.kernel.commands.init(), second.commands.init()]);
+		await vi.waitFor(async () => {
+			expect(await queued()).toEqual([]);
+		});
+		await new Promise((resolve) => {
+			setTimeout(resolve, 0);
+		});
+
+		expect([...first.errors, ...secondErrors]).toHaveLength(1);
+		first.kernel.dispose();
+		second.dispose();
+	});
 });
