@@ -976,6 +976,25 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 		return headers;
 	};
 
+	/**
+	 * A network `/init` names the page's origin, as the browser's own would,
+	 * so the backend's session report gets the journey's domain. An Origin
+	 * the request already sets is kept, and an in-process route reads the
+	 * host from the request itself.
+	 */
+	const nameThePage = function nameThePage(
+		headers: Record<string, string>,
+		target: Target
+	): void {
+		if (!journey || target.inProcess || headers.origin !== undefined) {
+			return;
+		}
+		const origin = requestOrigin();
+		if (origin) {
+			headers.origin = origin;
+		}
+	};
+
 	const resolveFromHosted =
 		async function resolveFromHosted(): Promise<RequestConsentState> {
 			const initURL =
@@ -1008,6 +1027,7 @@ export const resolveRequestConsent = async function resolveRequestConsent(
 			if (arm) {
 				headers[CONSENT_EXPERIMENT_HEADER] = formatExperimentHeader(arm);
 			}
+			nameThePage(headers, target);
 			Object.assign(headers, c15tProtocolHeaders);
 			if (target.sameOrigin) {
 				headers[RENDER_REQUEST_HEADER] = '1';

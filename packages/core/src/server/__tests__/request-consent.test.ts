@@ -928,6 +928,36 @@ describe('consent journey', () => {
 		expect(state.initialIab?.gvlReference?.url).toBe(`${BACKEND}/init`);
 	});
 
+	test('a network /init names the page origin so the backend report gets a domain', async () => {
+		const fetch = upstream();
+		await render({ backendURL: BACKEND, fetch });
+		expect(sentHeaders(fetch, '/init').get('origin')).toBe(APP);
+	});
+
+	test('an Origin the request already sets is kept', async () => {
+		const fetch = upstream();
+		await render({
+			backendURL: BACKEND,
+			fetch,
+			forwardHeaders: ['origin'],
+			headers: { origin: 'https://shop.example.net' },
+		});
+		expect(sentHeaders(fetch, '/init').get('origin')).toBe(
+			'https://shop.example.net'
+		);
+	});
+
+	test('an in-process init route gets no Origin added', async () => {
+		const localFetch = upstream();
+		await render({
+			initURL: '/api/c15t/init',
+			localFetch: localFetch as unknown as ManifestFetch,
+			mode: 'hosted',
+		});
+		expect(callsTo(localFetch, '/init')).toHaveLength(1);
+		expect(sentHeaders(localFetch, '/init').has('origin')).toBe(false);
+	});
+
 	test('manifest mode reports the journey with the site domain', async () => {
 		const fetch = upstream();
 		// Germany matches the opt-in policy, so the prompt is owed.
