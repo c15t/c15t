@@ -612,6 +612,28 @@ describe('a journey a request before the runtime started', () => {
 		}
 	});
 
+	test('a script sent without a journey: the runtime asks again with its own', async () => {
+		vi.stubGlobal('fetch', fakeFetch);
+		try {
+			window.eval(
+				buildPrefetchScript({
+					backendURL: 'https://consent.example.com',
+					journey: false,
+				})
+			);
+			const runtime = await load();
+			// The script's /init carried none, so it cannot answer this runtime.
+			expect(init()).toHaveLength(2);
+			expect(init()[0]?.journey).toBeNull();
+			const own = init()[1]?.journey;
+			expect(own?.scope).toBe('page');
+			await runtime.kernel.commands.save('all');
+			expect(saves()[0]?.journey?.id).toBe(own?.id);
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
 	test('a server render id outranks an early request id', async () => {
 		(window as Window & { __c15tJourney?: unknown }).__c15tJourney = {
 			id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',

@@ -110,7 +110,8 @@ const buildPrefetchConfig = function buildPrefetchConfig(
 const toInitialData = function toInitialData(
 	config: Pick<PrefetchConfig, 'requestContext'>,
 	init: InitOutput | undefined,
-	producerPolicyContract?: string | null
+	producerPolicyContract: string | null,
+	journey: KernelJourney | undefined
 ): PrefetchedInitialData | undefined {
 	if (!init) {
 		return undefined;
@@ -120,6 +121,7 @@ const toInitialData = function toInitialData(
 		gvl: init.gvl,
 		init,
 		metadata: {
+			journey: journey ?? null,
 			requestContext: config.requestContext,
 		},
 		producerPolicyContract,
@@ -168,7 +170,8 @@ const createPrefetchEntry = function createPrefetchEntry(
 			return toInitialData(
 				config,
 				init,
-				response.headers.get('x-c15t-policy-contract')
+				response.headers.get('x-c15t-policy-contract'),
+				journey
 			);
 		} catch {
 			return undefined;
@@ -295,7 +298,7 @@ export const buildPrefetchScript = function buildPrefetchScript(
 	//
 	// The journey part mirrors `claimEarlyJourney`; it goes on the request
 	// only, never in the cache key.
-	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext;h["sec-gpc"]=g?"1":"0";var x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init",k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;var q="",R=/^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$/i,J=w["${JOURNEY_WINDOW_KEY}"],y=p.journey;if(y){if(!(J&&R.test(J.id)&&(J.scope==="page"||J.scope==="tab")&&typeof J.storedChoice==="boolean")){var S=y,o,D=false;if(S==="tab")try{o=w.sessionStorage.getItem("${JOURNEY_STORAGE_KEY}");if(!R.test(o))o=void 0}catch{S="page"}if(!o)try{o=w.crypto.randomUUID()}catch{try{var a=w.crypto.getRandomValues(new Uint8Array(16));a[6]=a[6]%16+64;a[8]=a[8]%64+128;o=Array.from(a,e=>e.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")}catch{}}try{D=w.document.cookie.split("; ").some(e=>p.stored.cookies.some(n=>e.startsWith(n+"=")&&e.length>n.length+1))}catch{}if(!D)try{D=p.stored.local.some(e=>w.localStorage.getItem(e)!==null)}catch{}J=o?w["${JOURNEY_WINDOW_KEY}"]={id:o,scope:S,storedChoice:D}:void 0}if(J)q="?c15tJourney="+J.id+"&c15tJourneyScope="+J.scope+"&c15tStored="+(J.storedChoice?1:0)}m[k]={promise:fetch(u+q,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x}}:void 0}).catch(()=>{}),requestContext:x}})();`;
+	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext;h["sec-gpc"]=g?"1":"0";var x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init",k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;var q="",R=/^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$/i,J=w["${JOURNEY_WINDOW_KEY}"],y=p.journey;if(y){if(!(J&&R.test(J.id)&&(J.scope==="page"||J.scope==="tab")&&typeof J.storedChoice==="boolean")){var S=y,o,D=false;if(S==="tab")try{o=w.sessionStorage.getItem("${JOURNEY_STORAGE_KEY}");if(!R.test(o))o=void 0}catch{S="page"}if(!o)try{o=w.crypto.randomUUID()}catch{try{var a=w.crypto.getRandomValues(new Uint8Array(16));a[6]=a[6]%16+64;a[8]=a[8]%64+128;o=Array.from(a,e=>e.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")}catch{}}try{D=w.document.cookie.split("; ").some(e=>p.stored.cookies.some(n=>e.startsWith(n+"=")&&e.length>n.length+1))}catch{}if(!D)try{D=p.stored.local.some(e=>w.localStorage.getItem(e)!==null)}catch{}J=o?w["${JOURNEY_WINDOW_KEY}"]={id:o,scope:S,storedChoice:D}:void 0}if(J)q="?c15tJourney="+J.id+"&c15tJourneyScope="+J.scope+"&c15tStored="+(J.storedChoice?1:0)}m[k]={promise:fetch(u+q,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x,journey:J||null}}:void 0}).catch(()=>{}),requestContext:x}})();`;
 };
 
 export const primePrefetchedInitialData = function primePrefetchedInitialData(
