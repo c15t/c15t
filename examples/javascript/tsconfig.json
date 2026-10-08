@@ -9,5 +9,5 @@
 		"skipLibCheck": true,
 		"types": ["vite/client"]
 	},
-	"include": ["src"]
+	"include": ["src", "vite.config.ts"]
 }

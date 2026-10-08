@@ -1,10 +1,14 @@
 // #region docs:init
-import { init } from '@c15t/browser/hosted';
+import { init } from '@c15t/browser';
 
+import { consentManifest } from './c15t-manifest';
 import { scripts } from './scripts';
 
 const consent = init({
-	backendURL: 'https://your-project.inth.app',
+	backendURL:
+		import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',
+	manifest: consentManifest,
+	mode: 'manifest',
 	scripts,
 });
 
