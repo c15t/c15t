@@ -11,13 +11,14 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
+			buildManifest: true,
 			clientEntrypoint: fileURLToPath(
 				new URL('./src/consent-client.ts', import.meta.url)
 			),
 			mode: manifest({
 				backendURL:
 					process.env.PUBLIC_C15T_BACKEND_URL ??
-					'https://your-project.inth.app',
+					'https://benchmarks-inth.inth.app',
 			}),
 			ui: 'svelte',
 		}),

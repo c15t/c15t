@@ -89,6 +89,8 @@ export const starterTargets: StarterTarget[] = [
 		start: vitePreview,
 	},
 	{
+		// PUBLIC_C15T_BACKEND_URL from the shared environment is where the
+		// build downloads the bundled manifest and where the browser saves.
 		// The Node adapter reads PORT and HOST.
 		directory: 'examples/astro',
 		id: 'astro',

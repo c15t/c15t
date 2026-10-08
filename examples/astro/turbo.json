@@ -1,0 +1,12 @@
+{
+	"$schema": "https://turborepo.dev/schema.v2.json",
+	"extends": ["//"],
+	"tasks": {
+		"build": {
+			"env": ["PUBLIC_C15T_BACKEND_URL"]
+		},
+		"check-types": {
+			"dependsOn": ["^build"]
+		}
+	}
+}

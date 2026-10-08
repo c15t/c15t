@@ -23,9 +23,10 @@ cached setups.
 | Static pages on any static host, no adapter | `output: 'static'` | `hosted()` |
 | Pages rendered on each request, with a server adapter | `output: 'server'` | `manifest()` |
 
-For server output, use the build-time manifest setup below as the production
-default. Rebuild after changing policies, translations or vendors. Static
-output keeps browser initialization through Inth.
+For server output, the setup below bundles your policy into the server at
+build time, the recommended production setup. Rebuild after changing policies,
+translations or vendors. With static output, the browser asks Inth for the
+policy on each visit.
 
 [`examples/astro-static`](https://github.com/c15t/c15t/tree/v3/examples/astro-static)
 and [`examples/astro`](https://github.com/c15t/c15t/tree/v3/examples/astro)
@@ -49,35 +50,47 @@ one for a single dialog. This guide uses Svelte, the default. For React, install
 ## Configure the integration
 
 Pick the file that matches your output. Register the framework integration
-before `c15t()`. Replace `https://your-project.inth.app` with your project's
-backend URL, including any path prefix.
+before `c15t()`.
 
 ### Static output
 
 <include src="../../shared/examples/astro-static/static-config.mdx" />
 
-`hosted()` sends the browser straight to your Inth backend, so no server is
-needed. A static page is the same for every visitor, which means the banner
-appears once the browser's `/init` request returns, not in the first HTML.
+Replace `https://your-project.inth.app` with your project's backend URL,
+including any path prefix. `hosted()` sends the browser straight to your Inth
+backend, so no server is needed. A static page is the same for every visitor,
+which means the banner appears once the browser's `/init` request returns, not
+in the first HTML.
 
 ### Server output
 
 <include src="../../shared/examples/astro/server-config.mdx" />
 
-The config reads the backend URL from `PUBLIC_C15T_BACKEND_URL` when it is
-set. Astro loads the config before it reads `.env` files, so set the variable
-in the environment that runs `astro dev` and `astro build`, or replace the
-fallback with your URL.
+`https://benchmarks-inth.inth.app` is a demo project, so the config runs as
+is. Replace it with your project's backend URL, including any path prefix, or
+set `PUBLIC_C15T_BACKEND_URL`. Astro loads the config before it reads `.env`
+files, so set the variable in the environment that runs `astro dev` and
+`astro build`. The URL must be absolute, because the build fetches from it.
 
-`manifest()` caches your project's public policy file on the server and
-resolves each request from it. The first HTML already contains the banner, or
-no banner at all for a visitor who has chosen. It adds `/api/c15t/init` and
-`/api/c15t/manifest` routes, so it needs a server adapter. Use the adapter for
-your host in place of `@astrojs/node`.
+`buildManifest: true` fetches your project's public policy once, when
+`astro build` or `astro dev` starts, and embeds it in the server build. The
+server resolves each visitor from that snapshot and the request's location and
+language headers, so the first HTML already contains the banner, or no banner
+at all for a visitor who has chosen. Consent saves still go to Inth.
+[Data fetching](/docs/concepts/data-fetching) compares this with calling the
+backend on every request.
 
-For server output, enable the recommended build-time snapshot:
+`manifest()` adds `/api/c15t/init` and `/api/c15t/manifest` routes, so it
+needs a server adapter. Use the adapter for your host in place of
+`@astrojs/node`.
 
-<include src="../../shared/build-manifests/astro.mdx" />
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+The built server keeps the backend URL from build time, so setting
+`PUBLIC_C15T_BACKEND_URL` when you start it changes nothing. Rebuild to point
+at another project. To apply policy edits without rebuilding, remove
+`buildManifest: true`. The server then fetches and caches the policy at
+runtime.
 
 The integration writes its options into the page as JSON. Keep callbacks,
 vendor helpers and secrets out of `c15t({ ... })`. They belong in the module

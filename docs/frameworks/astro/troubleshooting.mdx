@@ -40,7 +40,26 @@ in `astro.config.mjs`. It is still the placeholder
 
 **Fix.** Replace it with your Inth project's backend URL, including any path
 prefix. Astro reads the config when `astro dev` or `astro build` starts, so
-restart the dev server after you change it.
+restart the dev server after you change it. A built site keeps the URL from
+build time, even when the config reads it from an environment variable, so
+rebuild it.
+
+## `astro build` or `astro dev` fails to fetch the manifest
+
+**Check.** With `buildManifest: true`, the integration downloads
+`${backendURL}/manifest`, or your `manifestURL`, when `astro build` or
+`astro dev` starts, and stops if that fails. The error names the cause:
+
+- `build-time manifests require an absolute upstream URL`: the URL is relative,
+  such as `/api/c15t`, or empty.
+- `/manifest responded 404`, or another status: the URL is not your project's
+  backend. The placeholder `https://your-project.inth.app` returns 404.
+- `/manifest returned an invalid consent manifest`: the URL answers, but not
+  with a c15t manifest.
+
+**Fix.** Set `backendURL` to your Inth project's absolute backend URL, and make
+sure the machine that builds can reach it. To build without the backend, omit
+`buildManifest`, and the server fetches the policy at runtime instead.
 
 ## A component says `Astro.locals.c15t` is missing
 
@@ -91,12 +110,15 @@ your Inth project's trusted origins. Add each preview deployment's origin too.
 
 **Check.** The middleware waits up to 500 ms for the policy. When the backend is
 slower, for example on the first request after a deploy, the page renders
-without the banner and the browser shows it after its own request.
+without the banner and the browser shows it after its own request. This happens
+when the server fetches the policy at runtime, without `buildManifest: true`,
+or with `hosted()`.
 
-**Fix.** Raise the budget with `middleware: { timeoutMs }`. See
+**Fix.** Set `buildManifest: true` with `manifest()`, so the policy ships with
+the build, or raise the budget with `middleware: { timeoutMs }`. See
 [Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
 
-## The build fails with "manifest mode needs a `backendURL`"
+## The config fails with "pass backendURL to manifest()"
 
 **Check.** In manifest mode, the browser saves consent to the backend URL you
 give `manifest()`, so `astro.config` refuses to load without one.
