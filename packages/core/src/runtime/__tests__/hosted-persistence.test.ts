@@ -47,7 +47,8 @@ const createRuntime = (options: Partial<ConsentRuntimeOptions> = {}) => {
 				}
 				return Promise.resolve(
 					Response.json(
-						String(input).endsWith('/init')
+						// The path alone: the runtime adds its consent journey as a query.
+						String(input).split('?')[0]?.endsWith('/init')
 							? {
 									branding: 'c15t',
 									location: { countryCode: 'US', regionCode: 'CA' },

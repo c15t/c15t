@@ -17,6 +17,7 @@ import type {
 	ExperimentArmTheme,
 	ExperimentState,
 } from '../libs/experiment';
+import type { ConsentJourneyOption, JourneyState } from '../libs/journey';
 import type { ConsentPresentation } from '../libs/policy-actions';
 import type {
 	ClearOnRevocationConfig,
@@ -270,10 +271,12 @@ export interface ExternalConsentSource {
 
 /**
  * Server-prepared kernel configuration a runtime starts from. An
- * `experiment` the server resolved runs instead of the `experiment` option.
+ * `experiment` the server resolved runs instead of the `experiment` option,
+ * and a `journey` the server started is the one the runtime continues.
  */
 export type RuntimePrefetch = Omit<KernelConfig, 'transport' | 'initialDraft'> &
-	ExperimentState;
+	ExperimentState &
+	JourneyState;
 
 /**
  * The browser modules a runtime mounts, as factories.
@@ -420,6 +423,26 @@ export interface ConsentRuntimeOptions {
 	 * saved with every choice as `metadata.experiment`.
 	 */
 	experiment?: ConsentExperiment;
+	/**
+	 * Link each page load's `/init` to the save that follows with a random
+	 * journey id, sent as query parameters on requests the runtime already
+	 * makes (`c15tJourney`, `c15tJourneyScope`, and `c15tStored` on
+	 * `/init`). The id is created on `start()`, is not the subject id, and
+	 * is never written to a cookie. A server-rendered page continues the
+	 * journey the server started.
+	 *
+	 * - `'page'`: one id per page load, kept in memory.
+	 * - `'tab'`: the id is kept in `sessionStorage` while a prompt is due, so
+	 *   a visitor who navigates before choosing keeps it, and removed once a
+	 *   choice is recorded. Unusable storage falls back to `'page'`.
+	 * - `false`: no journey.
+	 *
+	 * Initial-only. Turn session reports off on the server
+	 * (`reportSessions: false`) and the server starts no journey either.
+	 *
+	 * @default 'page'
+	 */
+	journey?: ConsentJourneyOption;
 	/**
 	 * The host theme tokens. The runtime renders nothing with them; it only
 	 * merges each experiment arm's `theme` over them so arm validation sees
