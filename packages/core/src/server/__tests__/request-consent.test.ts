@@ -899,13 +899,33 @@ describe('consent journey', () => {
 	});
 
 	test('the vendor list reference the browser follows carries no journey', async () => {
+		// The browser fetches the deferred list from this `/init`; with the
+		// journey on it, the backend would count the visit twice.
 		const fetch = upstream(MANIFEST, {
 			...(INIT as object),
+			cmpId: 28,
 			gvl: GVL,
+			policyResolution: writePolicyResolutionWire(
+				resolvePolicyRules({
+					countryCode: 'DE',
+					regionCode: null,
+					rules: [
+						{
+							id: 'iab',
+							match: { isDefault: true },
+							model: 'iab',
+							prompt: 'choice',
+						},
+					],
+				})
+			),
 		});
-		const state = await render({ backendURL: BACKEND, fetch });
-		expect(state.journey?.id).toMatch(UUID);
-		expect(JSON.stringify(state)).not.toContain('c15tJourney');
+		vi.stubGlobal('fetch', fetch);
+		const state = await render({ backendURL: BACKEND });
+		expect(String(callsTo(fetch, '/init')[0]?.[0])).toContain(
+			`c15tJourney=${state.journey?.id}`
+		);
+		expect(state.initialIab?.gvlReference?.url).toBe(`${BACKEND}/init`);
 	});
 
 	test('manifest mode reports the journey with the site domain', async () => {
