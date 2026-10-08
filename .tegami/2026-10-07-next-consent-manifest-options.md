@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/nextjs': minor
-  c15t: minor
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Share Next.js consent options with `ConsentManifestOptions`

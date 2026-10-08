@@ -1,3 +1,59 @@
+## @c15t/vue@3.0.0-alpha.7 (alpha)
+
+### Keep a Nuxt `manifestSnapshot` intact
+
+A `manifestSnapshot` set under the `c15t` key in `nuxt.config.ts` passed
+through public runtime config. Nitro replaces every `null` there with an empty
+string during the build, so each policy failed validation and no banner
+showed. The snapshot was also sent in every page's payload.
+
+The module now keeps it out of runtime config. The app bundles it unchanged,
+and the server's `/api/c15t/manifest` route serves it wherever the module
+registers that route: in server manifest mode, and in client mode without a
+`manifestURL`.
+
+### Show the Nuxt banner with `buildManifest: true`
+
+With `buildManifest: true`, Nuxt showed no banner to any visitor. The module
+stored the build-time manifest in runtime config, where Nitro replaces every
+`null` with an empty string during the build. Each policy's `copyRevision: null`
+became `''`, so every policy failed with `invalid-configuration`.
+
+The snapshot now ships in the server bundle unchanged, and the
+`/api/c15t/init` and `/api/c15t/manifest` routes read it from there.
+
+### Respect `colorScheme: null` in built Nuxt apps
+
+`colorScheme: null` under the `c15t` key in `nuxt.config.ts` leaves
+`c15t-dark` to your site. That held in tests but not in built apps: Nitro
+replaces every `null` in runtime config with an empty string during the build,
+and c15t read the empty string as unset. It then copied the site's `dark` class
+into `c15t-dark`, removing a `c15t-dark` the site had set itself. The module
+now reads the empty string as `null`.
+
+### Show the consent banner at once, and fade it in only when it arrives late
+
+The banner and the IAB banner no longer slide or scale in on a spring curve.
+A banner that shows with the page is part of the first paint, where the
+overshoot read as layout shift, so it now appears on its first frame. The
+backdrop of a blocking banner appears with it.
+
+A banner that arrives more than 100ms after the page first painted, such as
+after a slow script or a client-side init, fades in instead of popping into a
+page someone is already reading. It fades over `--c15t-duration-normal` on
+`--c15t-easing-out` and never moves. Its root and backdrop carry
+`data-entry="late"`, and `--consent-banner-entry-duration` and
+`--consent-banner-entry-timing` (`--iab-consent-banner-entry-*` for the IAB
+banner) set the fade. A banner rendered on the server always shows at once.
+`@c15t/ui/utils/late-entry` exports the check as `isLateEntry`.
+
+Hiding still fades the banner out where it did before, now without the slide
+or scale, and on an ease-in curve so it speeds up as it leaves.
+`disableAnimation` turns both fades off.
+
+Add the `--c15t-easing-in` theme token, set with `motion.easingIn`. It defaults
+to `cubic-bezier(0.55, 0.055, 0.675, 0.19)` and sets the banner's exit curve.
+
 ## @c15t/vue@3.0.0-alpha.6 (alpha)
 
 ### Support Nuxt 4.6 and Vue Vapor

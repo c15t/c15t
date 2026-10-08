@@ -1,3 +1,13 @@
+## @c15t/backend@3.0.0-alpha.7 (alpha)
+
+### Verified identity links
+
+`GET /subjects?externalId=` and `GET /consents/check` now count only verified links between a subject and your user ID. A link is verified by an API key, or by an `identityToken` from `createIdentityToken` in `@c15t/node-sdk`, passed to `identify({ externalId, identityToken })` and checked against the new `identityToken.signingKey` option.
+
+- `GET /consents/check` requires an API key, so `consents.check` moves to the node-sdk client created with `apiKey`.
+- Existing links, including those made by v2, stay unverified until relinked.
+- Migration 8 adds `subject.verifiedExternalId`.
+
 ## @c15t/backend@3.0.0-alpha.6 (alpha)
 
 ### Report who runs the backend as `window.c15t.hosting`

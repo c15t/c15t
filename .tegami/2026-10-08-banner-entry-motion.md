@@ -1,12 +1,26 @@
 ---
 packages:
-  "@c15t/ui": minor
-  "@c15t/schema": minor
-  "@c15t/react": patch
-  "@c15t/svelte": patch
-  "@c15t/vue": patch
-  "@c15t/astro": patch
-  "@c15t/browser": patch
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Show the consent banner at once, and fade it in only when it arrives late
