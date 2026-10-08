@@ -9,7 +9,7 @@ The Markdown under `./docs` matches the installed version. Read it before writin
 
 ## Before writing code
 
-1. Find the framework, router, rendering mode (server, static or single-page) and host in the project.
+1. Find the framework, router, rendering mode (server, static, cached or single-page) and host in the project. Check the framework config and route files for settings that prerender or cache pages.
 2. Pick the matching row in [Choose your setup](./docs/concepts/choose-your-setup.md).
 3. Follow that guide from start to finish: [Next.js](./docs/frameworks/next/quickstart.md), [TanStack Start](./docs/frameworks/tanstack-start/quickstart.md), [React](./docs/frameworks/react/quickstart.md), [Nuxt](./docs/frameworks/nuxt/quickstart.md), [Vue](./docs/frameworks/vue/quickstart.md), [Astro](./docs/frameworks/astro/quickstart.md), [Svelte](./docs/frameworks/svelte/quickstart.md), [SvelteKit](./docs/frameworks/sveltekit/quickstart.md), [HTML script tag](./docs/frameworks/html/quickstart.md), [JavaScript](./docs/frameworks/javascript/quickstart.md).
 

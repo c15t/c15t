@@ -1,6 +1,6 @@
 ---
 title: Rendering and deployment
-description: Choose how Next.js resolves consent for your router, rendering mode and hosting, from streamed App Router layouts to static export, ISR and Cache Components.
+description: Choose how Next.js resolves consent for your router, rendering mode and hosting, from streamed App Router layouts to static export, ISR, Cache Components and ensureStatic.
 group: frameworks
 ---
 
@@ -20,6 +20,7 @@ policy changes require a rebuild.
 | App Router, the banner must be in the first HTML | Root layout awaits `resolveConsent` inside `Suspense` | Yes. The page waits for consent. | [Await consent](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html) |
 | App Router with `cacheComponents: true` | Either layout above. Never await in the layout itself. | With the streamed layout, no. With the awaited layout, yes. | [Cache Components](#use-cache-components) |
 | Static, ISR or `'use cache'` pages | Browser, with `state={{}}` | No | [Static, ISR and cached pages](#render-static-isr-and-cached-pages) |
+| Routes that set `ensureStatic` | `'shell'` or `'prefetch'`: either App Router layout. `'navigation'`: browser, with `state={{}}` | Same as the layout you use | [Keep pages static with `ensureStatic`](#keep-pages-static-with-ensurestatic) |
 | Pages Router with `getServerSideProps` | `resolveConsent` from `c15t/next/pages` | Yes | [Pages Router](/docs/frameworks/next/pages-router#resolve-consent-in-getserversideprops) |
 | Pages Router pages without `getServerSideProps` | Browser, through the same `_app.tsx` | No | [Pages Router](/docs/frameworks/next/pages-router#mount-one-root-for-every-page) |
 | `output: 'export'` | Browser, calling the backend directly | No | [Static export](/docs/frameworks/next/static-export) |
@@ -72,6 +73,18 @@ request-time parts per request. Both App Router layouts work:
   `blocking-prerender-dynamic` error. The page content moves into the
   per-request part.
 
+Next.js suggests `export const instant = false` to fix that error. Don't use it
+for consent. It only turns the check off. The layout still waits for consent
+before it sends anything, so every route under it renders per request with no
+static shell. Add the `Suspense` boundary instead.
+
+With `partialPrefetching: true`, prefetches never resolve consent.
+`resolveConsent` calls `connection()` before it reads the request, and
+`connection()` never finishes during a prefetch. A `<Link prefetch={true}>`
+that renders the layout on the server stops there. Consent resolves once, for
+the page load. Client navigation keeps the same root layout, so it does not
+resolve again.
+
 `ConsentGate` does not read the clock while rendering, so a page that renders
 it can stay in the static shell without its own `Suspense` boundary.
 
@@ -111,6 +124,36 @@ Browser resolution from the manifest has no location input, so the visitor's
 policy follows your unknown-location rule. To resolve location on the server
 for these pages, add the
 [optional local init route](/docs/frameworks/next/data-fetching-reference#do-i-need-the-local-init-route).
+
+## Keep pages static with `ensureStatic`
+
+Next.js 16.4 adds the
+[`ensureStatic`](https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config/ensureStatic)
+route segment config. It tells Next.js which parts of a route must stay
+static, so the server does no per-request work for them. Which level you can
+use depends on your consent layout:
+
+| `ensureStatic` | Streamed layout | Awaited layout | Browser layout |
+| --- | --- | --- | --- |
+| `'shell'` | Works | Works, but links show only the `Suspense` fallback before the click | Works |
+| `'prefetch'` | Works | Works, but links show only the `Suspense` fallback before the click | Works |
+| `'navigation'` | Build fails | Build fails | Works |
+
+Every level needs `cacheComponents: true`. `'shell'` and `'prefetch'` also
+need `partialPrefetching: true`. At both levels, prefetches never resolve
+consent, including a `<Link prefetch={true}>` under `'shell'`, as
+[Use Cache Components](#use-cache-components) explains. One visitor's consent
+never ends up in a prefetch or in static output. Use the streamed layout if
+prefetched pages should show their content before the click.
+
+`'navigation'` requires the whole route to be static, including the root layout
+above the page. A layout that calls `resolveConsent` reads the request, so the
+build fails. Give those pages the browser layout in their own route group, as
+[Static, ISR and cached pages](#render-static-isr-and-cached-pages) shows.
+
+Don't wrap `resolveConsent` in `'use cache'` to get past the error. It reads
+the visitor's cookies, and a cached result would show one visitor's consent to
+everyone.
 
 ## Choose how the server gets the policy
 

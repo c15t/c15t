@@ -91,6 +91,23 @@ your layout. If you still see the error on the current release, report your
 Next.js version and config on
 [c15t/c15t#1107](https://github.com/c15t/c15t/issues/1107).
 
+## Why does `next build` fail on a route with `ensureStatic = 'navigation'`?
+
+**Check.** The build fails with one of these errors, and the route sits under a
+root layout that calls `resolveConsent`:
+
+- `Next.js encountered data that is not available during a static prerender, but is unable to provide a location` (streamed layout)
+- `Next.js encountered uncached or runtime data on a route that must be fully static` (awaited layout)
+
+`'navigation'` requires the whole route to be static, including the root
+layout. `resolveConsent` reads the visitor's cookies and headers, so that
+layout can't be.
+
+**Fix.** Move those pages into their own route group with the browser layout,
+which renders `ConsentRoot` with `state={{}}`. See
+[Keep pages static with `ensureStatic`](/docs/frameworks/next/rendering#keep-pages-static-with-ensurestatic).
+`'shell'` and `'prefetch'` work with the server layouts.
+
 ## Inspect the active policy
 
 Place this diagnostic component inside your existing consent
