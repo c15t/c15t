@@ -12,7 +12,7 @@
  * Component or route handler. It is NOT marked `'use server'` because it
  * is a plain async function, not an action.
  */
-import type { ServerExperiment } from '@c15t/core';
+import type { ConsentJourneyOption, ServerExperiment } from '@c15t/core';
 import { resolveRequestConsent } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 import * as React from 'react';
@@ -253,6 +253,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 */
 	reportSessions?: boolean;
 	/**
+	 * The consent journey scope this render reports. Defaults to
+	 * `config.journey`; `ConsentRoot` must use the same value.
+	 */
+	journey?: ConsentJourneyOption;
+	/**
 	 * The banner experiment with the arm this request runs, from your
 	 * feature flag. While the visitor has no stored choice, the server's
 	 * `/init` carries the arm, or its session report does in manifest mode,
@@ -417,6 +422,7 @@ export const resolveConsent = async function resolveConsent(
 		experiment: options.experiment,
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
+		journey: options.journey ?? options.config?.journey,
 		manifest: options.manifest,
 		// The manifest route's Data Cache hint, so a render and the route
 		// share the Next.js Data Cache as well as the process cache.

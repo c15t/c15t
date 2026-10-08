@@ -22,6 +22,13 @@ import type {
 	ConsentUIOptions,
 } from '../types';
 
+/** A request URL without the consent journey query the runtime adds. */
+const pathOf = (url: unknown): string =>
+	String(url).replace(
+		/[?&]c15tJourney=[^&#]*&c15tJourneyScope=[^&#]*(?:&c15tStored=[01])?/u,
+		''
+	);
+
 const clients: ConsentClient[] = [];
 const backendURL = 'https://consent.example.test';
 const authoredRule: PolicyRule = {
@@ -116,7 +123,9 @@ describe.each(['hosted', 'offline'] as const)('%s browser entry', (mode) => {
 	it('keeps page actions, the preference draft and script gating working', async () => {
 		const fetchSpy = vi.fn<typeof fetch>((input) =>
 			Promise.resolve(
-				String(input).endsWith('/init') ? initResponse() : saveResponse()
+				String(input).split('?')[0]?.endsWith('/init')
+					? initResponse()
+					: saveResponse()
 			)
 		);
 		vi.stubGlobal('fetch', fetchSpy);
@@ -184,7 +193,7 @@ describe.each(['hosted', 'offline'] as const)('%s browser entry', (mode) => {
 				([input]) =>
 					mode === 'hosted' &&
 					[`${backendURL}/init`, `${backendURL}/subjects`].includes(
-						String(input)
+						pathOf(input)
 					)
 			)
 		).toBe(true);
@@ -211,7 +220,7 @@ describe('hosted browser entry', () => {
 		client.start();
 		const snapshot = await client.ready();
 
-		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
 			`${backendURL}/init`,
 		]);
 		expect(snapshot.resolution.status).toBe('matched');
@@ -226,7 +235,7 @@ describe('hosted browser entry', () => {
 		vi.stubGlobal('fetch', globalFetch);
 		const fetchSpy = vi.fn<typeof fetch>((input) =>
 			Promise.resolve(
-				String(input) === '/consent/init' ? initResponse() : saveResponse()
+				pathOf(input) === '/consent/init' ? initResponse() : saveResponse()
 			)
 		);
 		const client = track(
@@ -248,7 +257,7 @@ describe('hosted browser entry', () => {
 		await client.ready();
 		await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
 
-		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
 			'/consent/init',
 			`${backendURL}/api/subjects`,
 		]);
@@ -276,7 +285,7 @@ describe('hosted browser entry', () => {
 		expect((await client.ready()).policyRule.id).toBe(authoredRule.id);
 		expect(fetchSpy).not.toHaveBeenCalled();
 		await client.rejectAll();
-		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
 			`${backendURL}/subjects`,
 		]);
 	});
@@ -286,7 +295,7 @@ describe('hosted browser entry', () => {
 		async (action) => {
 			const request = Promise.withResolvers<Response>();
 			const fetchSpy = vi.fn<typeof fetch>((input) =>
-				String(input).endsWith('/init')
+				String(input).split('?')[0]?.endsWith('/init')
 					? Promise.resolve(initResponse())
 					: request.promise
 			);

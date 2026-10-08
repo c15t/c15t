@@ -156,6 +156,32 @@ export interface HostedKernelTransport extends HostedRecordTransport {
 
 const INIT_HEADER_ALLOWLIST = new Set<string>(CONSENT_REQUEST_HEADER_NAMES);
 
+/**
+ * Whether an early response answers this init: it has a payload and, when
+ * this init carries a journey, its request carried the same one. Otherwise
+ * the saves that follow would carry an id no report named.
+ */
+const usablePrefetch = function usablePrefetch(
+	prefetched: SSRInitialData | undefined,
+	journey: InitContext['journey']
+): prefetched is SSRInitialData & { init: InitOutput } {
+	if (!prefetched?.init) {
+		return false;
+	}
+	const sent = prefetched.metadata?.journey;
+	// Only an init that carries a journey needs the early request to have
+	// carried the same one; its saves will carry that id.
+	if (!journey || sent === undefined) {
+		return true;
+	}
+	return Boolean(
+		sent &&
+		sent.id === journey.id &&
+		sent.scope === journey.scope &&
+		sent.storedChoice === journey.storedChoice
+	);
+};
+
 const buildAllowedInitHeaders = function buildAllowedInitHeaders(
 	headers: Record<string, string> | undefined
 ): Record<string, string> {
@@ -232,6 +258,7 @@ export const createHostedTransport = function createHostedTransport(
 			experiment: ctx.experiment,
 			headers: initHeaders,
 			initURL,
+			journey: ctx.journey,
 			overrides: ctx.overrides,
 		});
 		const { requestHeaders } = request;
@@ -253,7 +280,7 @@ export const createHostedTransport = function createHostedTransport(
 		// provider's first render) gets the request out at that moment.
 		const prefetched: SSRInitialData | undefined =
 			supplied && (await supplied.catch(() => undefined));
-		if (prefetched?.init) {
+		if (usablePrefetch(prefetched, ctx.journey)) {
 			const headers = { ...requestHeaders };
 			const gpc = prefetched.metadata?.requestContext?.gpc;
 			if (gpc !== undefined) {

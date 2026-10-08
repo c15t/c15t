@@ -17,6 +17,7 @@ import type {
 	ExperimentArmTheme,
 	ExperimentState,
 } from '../libs/experiment';
+import type { ConsentJourneyOption, JourneyState } from '../libs/journey';
 import type { ConsentPresentation } from '../libs/policy-actions';
 import type {
 	ClearOnRevocationConfig,
@@ -270,10 +271,12 @@ export interface ExternalConsentSource {
 
 /**
  * Server-prepared kernel configuration a runtime starts from. An
- * `experiment` the server resolved runs instead of the `experiment` option.
+ * `experiment` the server resolved runs instead of the `experiment` option,
+ * and a `journey` the server started is the one the runtime continues.
  */
 export type RuntimePrefetch = Omit<KernelConfig, 'transport' | 'initialDraft'> &
-	ExperimentState;
+	ExperimentState &
+	JourneyState;
 
 /**
  * The browser modules a runtime mounts, as factories.
@@ -420,6 +423,14 @@ export interface ConsentRuntimeOptions {
 	 * saved with every choice as `metadata.experiment`.
 	 */
 	experiment?: ConsentExperiment;
+	/**
+	 * Random journey id that links each page load's `/init` to the save that
+	 * follows: `'page'` (memory), `'tab'` (`sessionStorage` while a prompt is
+	 * due) or `false`. Initial-only.
+	 *
+	 * @default 'page'
+	 */
+	journey?: ConsentJourneyOption;
 	/**
 	 * The host theme tokens. The runtime renders nothing with them; it only
 	 * merges each experiment arm's `theme` over them so arm validation sees

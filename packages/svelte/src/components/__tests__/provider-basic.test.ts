@@ -107,8 +107,9 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			});
 		});
 		await vi.waitFor(() => {
+			// The query carries the consent journey.
 			expect(mockFetch).toHaveBeenCalledWith(
-				'/api/c15t/init',
+				expect.stringMatching(/^\/api\/c15t\/init\?c15tJourney=/u),
 				expect.objectContaining({ method: 'GET' })
 			);
 		});

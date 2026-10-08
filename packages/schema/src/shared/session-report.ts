@@ -83,6 +83,238 @@ export const parseExperimentHeader = function parseExperimentHeader(
 	}
 };
 
+/**
+ * Query parameter carrying the consent journey id on `GET /init` and
+ * `POST /subjects`. A query parameter, not a header, so older backends need
+ * no CORS change.
+ */
+export const CONSENT_JOURNEY_PARAM = 'c15tJourney';
+
+/** Query parameter that carries the journey's scope: `page` or `tab`. */
+export const CONSENT_JOURNEY_SCOPE_PARAM = 'c15tJourneyScope';
+
+/**
+ * Query parameter on `GET /init`: `1` when the browser had a stored choice
+ * or notice dismissal when the journey started, else `0`.
+ */
+export const CONSENT_JOURNEY_STORED_PARAM = 'c15tStored';
+
+/**
+ * How long a journey id lives in the browser.
+ *
+ * - `page`: one page load, in memory only.
+ * - `tab`: carried across navigations in the same tab while a prompt is
+ *   due, through `sessionStorage`.
+ */
+export type ConsentJourneyScope = 'page' | 'tab';
+
+/** A journey as it travels on a request. */
+export interface ConsentJourneyParams {
+	id: string;
+	scope: ConsentJourneyScope;
+	/** Whether a choice or notice dismissal was stored at the start. `/init` only. */
+	storedChoice?: boolean;
+}
+
+/** What the visitor's first layer was at the start of a journey. */
+export type ConsentJourneyPrompt = 'due' | 'stored' | 'not-required';
+
+const JOURNEY_ID =
+	/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/iu;
+
+/**
+ * Read a journey id. Anything but a UUID reads as none: the parameter is
+ * analytics and never fails a request.
+ *
+ * @param value - The raw parameter value, if any.
+ * @returns The id in lower case, or `null`.
+ */
+export const parseJourneyId = function parseJourneyId(
+	value: string | null | undefined
+): string | null {
+	return typeof value === 'string' && JOURNEY_ID.test(value)
+		? value.toLowerCase()
+		: null;
+};
+
+/**
+ * Read a journey scope. Anything but `page` or `tab` reads as none.
+ *
+ * @param value - The raw parameter value, if any.
+ * @returns The scope, or `null`.
+ */
+export const parseJourneyScope = function parseJourneyScope(
+	value: string | null | undefined
+): ConsentJourneyScope | null {
+	return value === 'page' || value === 'tab' ? value : null;
+};
+
+const toSearchParams = function toSearchParams(
+	source: string | URL | URLSearchParams
+): URLSearchParams | null {
+	if (source instanceof URLSearchParams) {
+		return source;
+	}
+	if (source instanceof URL) {
+		return source.searchParams;
+	}
+	const query = source.indexOf('?');
+	if (query === -1) {
+		return null;
+	}
+	const hash = source.indexOf('#', query);
+	return new URLSearchParams(
+		source.slice(query + 1, hash === -1 ? undefined : hash)
+	);
+};
+
+/**
+ * Read the journey a request carries in its query string.
+ *
+ * Both the id and the scope must be well formed, or there is no journey.
+ * `storedChoice` is set only for `c15tStored=1` or `c15tStored=0`.
+ *
+ * @param source - The request URL, absolute or relative, or its query.
+ * @returns The journey, or `null`.
+ */
+export const readJourneyParams = function readJourneyParams(
+	source: string | URL | URLSearchParams | null | undefined
+): ConsentJourneyParams | null {
+	const params = source ? toSearchParams(source) : null;
+	if (!params) {
+		return null;
+	}
+	const id = parseJourneyId(params.get(CONSENT_JOURNEY_PARAM));
+	const scope = parseJourneyScope(params.get(CONSENT_JOURNEY_SCOPE_PARAM));
+	if (!(id && scope)) {
+		return null;
+	}
+	const stored = params.get(CONSENT_JOURNEY_STORED_PARAM);
+	return stored === '1' || stored === '0'
+		? { id, scope, storedChoice: stored === '1' }
+		: { id, scope };
+};
+
+/**
+ * Append a journey to a URL's query string. A relative URL stays relative.
+ *
+ * @param url - The request URL.
+ * @param journey - The journey. `storedChoice` is written when set.
+ * @returns The URL with the journey parameters.
+ */
+export const appendJourneyParams = function appendJourneyParams(
+	url: string,
+	journey: ConsentJourneyParams
+): string {
+	const params = new URLSearchParams({
+		[CONSENT_JOURNEY_PARAM]: journey.id,
+		[CONSENT_JOURNEY_SCOPE_PARAM]: journey.scope,
+	});
+	if (journey.storedChoice !== undefined) {
+		params.set(CONSENT_JOURNEY_STORED_PARAM, journey.storedChoice ? '1' : '0');
+	}
+	const hash = url.indexOf('#');
+	const base = hash === -1 ? url : url.slice(0, hash);
+	const fragment = hash === -1 ? '' : url.slice(hash);
+	let separator = '?';
+	if (base.includes('?')) {
+		separator = base.endsWith('?') || base.endsWith('&') ? '' : '&';
+	}
+	return `${base}${separator}${params.toString()}${fragment}`;
+};
+
+/**
+ * Whether the first layer was owed, already answered, or never part of
+ * this resolution.
+ *
+ * A failed resolution keeps the first layer hidden, and a matched policy
+ * whose prompt is `none` (every `none` model) shows none, so both are
+ * `not-required`. `no-match` and `unconfigured` still show the safe opt-in
+ * fallback, so they are owed like a matched prompt.
+ *
+ * @param init - The resolved init payload.
+ * @param storedChoice - Whether a choice or notice dismissal was stored.
+ * @returns The prompt state at the start of the journey.
+ */
+export const deriveJourneyPrompt = function deriveJourneyPrompt(
+	init: Pick<InitOutput, 'policyResolution'>,
+	storedChoice: boolean
+): ConsentJourneyPrompt {
+	const resolution = init.policyResolution;
+	if (
+		!resolution ||
+		resolution.status === 'failed' ||
+		(resolution.status === 'matched' && resolution.policy.prompt === 'none')
+	) {
+		return 'not-required';
+	}
+	return storedChoice ? 'stored' : 'due';
+};
+
+/** A journey as a report receives it. */
+export interface SessionJourney {
+	id: string;
+	scope: ConsentJourneyScope;
+	/** Whether a choice or notice dismissal was stored at the start. */
+	storedChoice: boolean;
+	/** Hostname of the site the visitor was on, when known. */
+	domain?: string;
+}
+
+/**
+ * The hostname of an `Origin` header or a request URL, or `undefined` for
+ * anything that is not an `http(s)` URL (including the opaque `null` origin).
+ *
+ * @param value - An origin or absolute URL.
+ * @returns The hostname, or `undefined`.
+ */
+export const journeyDomainFrom = function journeyDomainFrom(
+	value: string | URL | null | undefined
+): string | undefined {
+	if (!value) {
+		return undefined;
+	}
+	try {
+		const url = value instanceof URL ? value : new URL(value);
+		return url.protocol === 'http:' || url.protocol === 'https:'
+			? url.hostname || undefined
+			: undefined;
+	} catch {
+		return undefined;
+	}
+};
+
+/**
+ * The journey a browser's `GET /init` carries, as a report records it.
+ *
+ * The stored flag is required here: without it a report cannot say
+ * whether the prompt was owed, so a journey without it is none.
+ *
+ * @param url - The `/init` request URL.
+ * @param site - Where the domain comes from: the request's `Origin`, or the
+ *   URL of the page or route the browser asked.
+ * @returns The journey, or `null`.
+ */
+export const readSessionJourney = function readSessionJourney(
+	url: string | URL | null | undefined,
+	site?: string | URL | null
+): SessionJourney | null {
+	const params = readJourneyParams(url);
+	if (!params || params.storedChoice === undefined) {
+		return null;
+	}
+	const journey: SessionJourney = {
+		id: params.id,
+		scope: params.scope,
+		storedChoice: params.storedChoice,
+	};
+	const domain = journeyDomainFrom(site);
+	if (domain) {
+		journey.domain = domain;
+	}
+	return journey;
+};
+
 /** The resolver inputs a report records alongside the decision. */
 export interface SessionReportInputs {
 	country?: string | null;
@@ -105,6 +337,11 @@ export interface BuildConsentSessionReportOptions {
 	 * choice yet. See {@link CONSENT_EXPERIMENT_HEADER}.
 	 */
 	experiment?: SessionExperiment | null;
+	/**
+	 * The consent journey the resolution belongs to. The report adds the
+	 * `prompt` it derives from `init`. See {@link CONSENT_JOURNEY_PARAM}.
+	 */
+	journey?: SessionJourney | null;
 }
 
 /**
@@ -143,6 +380,18 @@ export const buildConsentSessionReport = function buildConsentSessionReport(
 			arm: options.experiment.arm,
 			id: options.experiment.id,
 		};
+	}
+	if (options.journey) {
+		const { domain, id, scope, storedChoice } = options.journey;
+		report.journey = {
+			id,
+			prompt: deriveJourneyPrompt(options.init, storedChoice),
+			scope,
+			storedChoice,
+		};
+		if (domain) {
+			report.journey.domain = domain;
+		}
 	}
 	if (options.manifest.tenantId !== undefined) {
 		report.tenantId = options.manifest.tenantId;

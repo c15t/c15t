@@ -11,11 +11,14 @@ import type {
 	Callbacks,
 	ClearOnRevocationConfig,
 	ConsentExperiment,
+	ConsentJourneyOption,
 	ConsentKernel,
 	ConsentPresentation,
 	ExperimentState,
+	JourneyState,
 	HostedModeOptions,
 	I18nConfig,
+	InitContext,
 	KernelConfig,
 	KernelOverrides,
 	KernelTransport,
@@ -26,11 +29,15 @@ import type {
 	User,
 	Vendor,
 } from '@c15t/core';
-import { createPersistence } from '@c15t/core/modules/persistence';
+import {
+	createPersistence,
+	readStoredRecords,
+} from '@c15t/core/modules/persistence';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
+	claimEarlyJourney,
 	createConsentProviderRuntime,
 	hostedModes,
 	lazyRuntimeModule,
@@ -90,13 +97,15 @@ export type ConsentProviderCallbacks = Pick<
 /**
  * Prepared policy and records; legacy consent projections are not provider
  * inputs. An `experiment` a server helper resolved runs instead of
- * `options.experiment`.
+ * `options.experiment`, and a `journey` it started is the one the provider
+ * continues.
  */
 export type ConsentProviderPrefetch = Omit<
 	KernelConfig,
 	'initialDraft' | 'transport'
 > &
-	ExperimentState;
+	ExperimentState &
+	JourneyState;
 
 export interface ConsentProviderOptions
 	extends
@@ -119,6 +128,13 @@ export interface ConsentProviderOptions
 	 * provider to change the experiment.
 	 */
 	experiment?: ConsentExperiment;
+	/**
+	 * Random journey id that links each `/init` to the save that follows:
+	 * `'page'`, `'tab'` or `false`. Initial-only.
+	 *
+	 * @default 'page'
+	 */
+	journey?: ConsentJourneyOption;
 	/**
 	 * Content Security Policy nonce applied to DOM nodes c15t injects.
 	 *
@@ -480,6 +496,49 @@ const toRuntimeOptions = function toRuntimeOptions(
 };
 
 /**
+ * Whether the visitor has a stored choice, read the way the runtime's
+ * persistence will hydrate on `start()`: not at all with persistence off or
+ * `skipHydration`, otherwise from its storage at its clock. The early
+ * `/init` leaves before that, and its journey says whether a choice was
+ * stored. It is sent only without a `prefetch`, so no seed decides
+ * hydration here.
+ */
+const hasStoredChoice = function hasStoredChoice(
+	options: ConsentProviderOptions
+): boolean {
+	const { persistence } = options;
+	if (persistence === false || options.consentSource) {
+		return false;
+	}
+	const settings = typeof persistence === 'object' ? persistence : {};
+	if (settings.skipHydration) {
+		return false;
+	}
+	const now = settings.now ? settings.now() : Date.now();
+	const { records } = readStoredRecords(
+		settings.storageConfig ?? options.storageConfig,
+		now
+	);
+	// A choice or a notice dismissal: either one answers the prompt.
+	return Boolean(records.choice || records.noticeDismissal);
+};
+
+/**
+ * What makes two `/init` requests the same: the decision inputs, the user,
+ * and the journey the request carries (its id, scope and stored flag).
+ */
+const earlyInitKey = function earlyInitKey(
+	context: Pick<InitContext, 'journey' | 'overrides' | 'user'>
+): string {
+	const { journey } = context;
+	return JSON.stringify({
+		journey: journey ? [journey.id, journey.scope, journey.storedChoice] : null,
+		overrides: context.overrides,
+		user: context.user,
+	});
+};
+
+/**
  * A runtime the provider built during a render, with what it needs to tell
  * whether React kept that render.
  */
@@ -599,8 +658,16 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 			snapshot.policyPending &&
 			!(initialOptions.prefetch || initialOptions.experiment)
 		) {
-			const context = { overrides: snapshot.overrides, user: snapshot.user };
-			const key = JSON.stringify(context);
+			// The journey this page's early requests share; the runtime
+			// continues it on `start()`, so the save carries the same id.
+			const journey = claimEarlyJourney({
+				option: initialOptions.journey,
+				storedChoice: hasStoredChoice(initialOptions),
+			});
+			const context = journey
+				? { journey, overrides: snapshot.overrides, user: snapshot.user }
+				: { overrides: snapshot.overrides, user: snapshot.user };
+			const key = earlyInitKey(context);
 			for (const other of sentEarly) {
 				if (other.key === key && sameHosted(other.options, hostedOptions)) {
 					early = other;
@@ -617,7 +684,10 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 				request.catch(() => undefined);
 				let used = false;
 				carrier.init = (next) => {
-					const reuse = !used && JSON.stringify(next) === key;
+					// The kernel's init takes the response only for the request it
+					// would have sent itself, journey included: a runtime that
+					// starts another journey, or none, asks again.
+					const reuse = !used && earlyInitKey(next) === key;
 					used = true;
 					return reuse ? request : init(next);
 				};

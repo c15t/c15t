@@ -43,7 +43,8 @@ const start = async (options: Partial<ConsentRuntimeOptions> = {}) => {
 	const runtime = createConsentRuntime({
 		mode: hosted({
 			fetch: (input, init) => {
-				const url = String(input);
+				// The path alone: the runtime adds its consent journey as a query.
+				const url = String(input).split('?')[0] ?? '';
 				if (url.endsWith('/subjects')) {
 					saves.push(JSON.parse(String(init?.body)));
 				}

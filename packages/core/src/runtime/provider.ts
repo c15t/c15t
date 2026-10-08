@@ -27,6 +27,7 @@
  * } from '@c15t/core/runtime/provider';
  * ```
  */
+export { claimEarlyJourney } from '../libs/journey';
 export { lazyRuntimeModule } from './lazy-module';
 export { createConsentProviderRuntime } from './provider-runtime';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';

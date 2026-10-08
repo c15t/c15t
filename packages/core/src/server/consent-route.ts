@@ -25,11 +25,13 @@
  */
 
 import {
+	appendJourneyParams,
 	CONSENT_REQUEST_HEADER_NAMES,
 	getIpAddress,
 	parsePolicyContractHeader,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
+	readJourneyParams,
 	readPolicyResolutionWire,
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
@@ -40,6 +42,7 @@ import type {
 	GlobalVendorList,
 	InitOutput,
 	ResolveInitFromManifestInputs,
+	SessionJourney,
 } from '@c15t/schema/types';
 
 import {
@@ -255,6 +258,14 @@ export interface ConsentInitReport {
 	abandoned?: () => boolean;
 	/** The experiment arm a server render ran, while there is no choice. */
 	experiment?: { id: string; arm: string };
+	/**
+	 * The consent journey a server render created. An init route leaves it
+	 * out and passes {@link ConsentInitReport.url}: the browser sends its
+	 * journey as query parameters.
+	 */
+	journey?: SessionJourney;
+	/** The browser's request URL, which may carry its consent journey. */
+	url?: string;
 }
 
 /** Input for {@link resolveConsentInit}. */
@@ -369,9 +380,11 @@ export const resolveConsentInit = async function resolveConsentInit(
 			headers: report.headers,
 			init: payload,
 			inputs,
+			journey: report.journey,
 			manifest,
 			method: report.method,
 			source: report.source,
+			url: report.url,
 			waitUntil: report.waitUntil,
 		});
 	}
@@ -797,7 +810,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 	/**
 	 * Older backends may not expose `/manifest`: ask the backend's own
 	 * `GET /init`, forwarding only the consent request headers (geo,
-	 * language, GPC), and rebuild the canonical output from its answer so
+	 * language, GPC) and the browser's consent journey, and rebuild the canonical output from its answer so
 	 * unknown upstream fields cannot carry stale policy evidence.
 	 */
 	const fallBackToBackendInit = async function fallBackToBackendInit(
@@ -824,6 +837,15 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 				forward[name] = value;
 			}
 		}
+		// The backend's own session report then carries the journey, with
+		// the page's origin: a server fetch sends no Origin of its own, and
+		// the backend's host is not the site's.
+		const journey = readJourneyParams(request.url);
+		if (journey) {
+			const origin = request.headers.get('origin');
+			forward.origin =
+				origin && origin !== 'null' ? origin : new URL(request.url).origin;
+		}
 		const init: RequestInit = { headers: forward };
 		const left = budget.remaining();
 		if (left !== undefined) {
@@ -834,7 +856,12 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 		const fetchImpl = backend.fetch ?? configuredFetch();
 		const { payload, response } = await budget.bound(
 			(async () => {
-				const upstream = await fetchImpl(`${backend.url}/init`, init);
+				const upstream = await fetchImpl(
+					journey
+						? appendJourneyParams(`${backend.url}/init`, journey)
+						: `${backend.url}/init`,
+					init
+				);
 				if (!upstream.ok) {
 					throw cause;
 				}
@@ -920,6 +947,7 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 							headers: request.headers,
 							method: request.method,
 							source: 'route',
+							url: request.url,
 							waitUntil: context.waitUntil,
 						},
 		});

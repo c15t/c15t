@@ -25,6 +25,7 @@ import {
 	CONSENT_SESSION_CLIENT_IP_HEADER,
 	getIpAddress,
 	isSpeculativeRequest as isSpeculativeHeaders,
+	readSessionJourney,
 } from '@c15t/schema/types';
 import type { BuildConsentSessionReportOptions } from '@c15t/schema/types';
 
@@ -198,6 +199,13 @@ export interface ReportConsentSessionOptions extends BuildConsentSessionReportOp
 	 */
 	method?: string;
 	/**
+	 * The URL of the browser's request the resolution answers, such as an
+	 * init route's `request.url`. The consent journey the browser sent as
+	 * query parameters goes on the report, with the request's host (or its
+	 * `Origin`, when it sent one) as the domain. An explicit `journey` wins.
+	 */
+	url?: string | URL;
+	/**
 	 * Receives the report's promise so a runtime that stops detached work
 	 * once the response is sent can keep it alive. The promise never
 	 * rejects.
@@ -248,13 +256,20 @@ export const reportConsentSession = function reportConsentSession(
 	const task = (async () => {
 		try {
 			// An init route answers the browser's own `/init`, which carries
-			// the arm as a header; a server render passes it explicitly.
+			// the arm as a header and the journey as query parameters; a
+			// server render passes both explicitly.
 			const body = buildConsentSessionReport({
 				...options,
 				experiment:
 					options.experiment ??
 					parseExperimentHeader(
 						readHeader(options.headers, CONSENT_EXPERIMENT_HEADER)
+					),
+				journey:
+					options.journey ??
+					readSessionJourney(
+						options.url,
+						readHeader(options.headers, 'origin') ?? options.url
 					),
 			});
 			const response = await fetchImpl(`${backendURL}/sessions`, {

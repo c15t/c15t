@@ -27,6 +27,7 @@ import { resolveWindowDebugMode } from '../modules/window-debug';
 import type { HydrationRecords } from '../types';
 import { stringifyRuntimeError, wireRuntimeCallbacks } from './callbacks';
 import { mountRuntimeGPP } from './gpp-mount';
+import { createJourneyController, withJourney } from './journey';
 import { afterModuleLoaded } from './lazy-module';
 import {
 	createRuntimeKernel,
@@ -48,6 +49,11 @@ export interface AssembledRuntime {
 	 * `start()` holds again until its blocker takes over.
 	 */
 	releaseHold: () => void;
+	/**
+	 * Continue the consent journey a streamed prefetch started. See
+	 * `JourneyController.adopt`.
+	 */
+	adoptJourney: (id: string | null | undefined) => void;
 	runtime: ConsentRuntime;
 	/**
 	 * Unmount every module and `window.c15t` and detach callbacks, keeping
@@ -104,7 +110,14 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 	const { consentSource } = options;
 	const enabled = options.enabled ?? true;
 	const experiment = hostExperiment(options.experiment, options.prefetch);
-	const kernel = createRuntimeKernel(options);
+	const journey = createJourneyController({
+		// A server state that says the page has no journey wins.
+		option: options.prefetch?.journey === null ? false : options.journey,
+		serverId: options.prefetch?.journey?.id,
+	});
+	const kernel = createRuntimeKernel(options, (transport) =>
+		withJourney(transport, journey)
+	);
 	// `start()` installs the blocker, often after the host rendered its
 	// children. Hold matching requests until then; the blocker takes over this
 	// runtime's hold and replays them. A runtime disposed before it started
@@ -281,6 +294,11 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 					persistenceHandle = null;
 				});
 			}
+			// After hydration, so the journey knows whether a choice was
+			// stored, and before init, which carries it.
+			if (enabled && !consentSource) {
+				disposers.push(journey.start(kernel));
+			}
 			if (enabled && consentSource) {
 				disposers.push(modules.connectConsentSource(kernel, consentSource));
 				kernel.events.emit({
@@ -445,5 +463,5 @@ export const assembleConsentRuntime = function assembleConsentRuntime(
 		hold = null;
 		held?.release()();
 	};
-	return { releaseHold, runtime, stop };
+	return { adoptJourney: journey.adopt, releaseHold, runtime, stop };
 };

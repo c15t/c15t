@@ -1,6 +1,6 @@
 import type { InitOutput } from '@c15t/schema/types';
 
-import type { GlobalVendorList } from '../types';
+import type { GlobalVendorList, KernelJourney } from '../types';
 
 /**
  * Request context captured alongside server-fetched init data so the
@@ -20,6 +20,12 @@ export interface SSRInitRequestContext {
  */
 export interface SSRInitRequestMetadata {
 	requestContext?: SSRInitRequestContext;
+	/**
+	 * The consent journey the early request carried, or `null` for none.
+	 * Absent when the producer does not say; a runtime whose journey differs
+	 * sends its own `/init` instead.
+	 */
+	journey?: KernelJourney | null;
 	requestDurationMs?: number;
 	cache?: {
 		isHit: boolean;

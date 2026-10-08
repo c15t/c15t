@@ -129,6 +129,7 @@ export type {
 	KernelEvent,
 	KernelIABAuthority,
 	KernelIABState,
+	KernelJourney,
 	KernelModel,
 	KernelOverrides,
 	KernelPrivacySignals,
@@ -146,6 +147,7 @@ export type {
 	ResolvedVendor,
 	PromptSurface,
 	SaveInput,
+	SaveContext,
 	SavePayload,
 	SaveUISource,
 	SaveResult,
@@ -308,7 +310,12 @@ export type {
 	ServerExperiment,
 	StartExperimentOptions,
 } from './libs/experiment';
-export { EXPERIMENT_STORAGE_KEY } from './libs/storage-keys';
+export type { ConsentJourneyOption, JourneyState } from './libs/journey';
+export { createUnreportedJourneys } from './libs/journey';
+export {
+	EXPERIMENT_STORAGE_KEY,
+	JOURNEY_STORAGE_KEY,
+} from './libs/storage-keys';
 export type {
 	ConsentPresentation,
 	PromptPresentation,

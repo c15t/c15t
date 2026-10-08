@@ -10,8 +10,8 @@ import * as v from 'valibot';
  *
  * A page load can produce a `render` report and, on a later client
  * re-init, a `route` one. The value says which path resolved; it does not
- * link the two, and a report carries no identifier that would. Consumers
- * sessionize on the forwarded address and user agent within a window.
+ * link the two. A report's `journey.id`, when present, does: every report
+ * and save of one journey carries the same id.
  */
 export const consentSessionSourceSchema = v.picklist([
 	'render',
@@ -29,6 +29,27 @@ export const consentSessionPolicySchema = v.object({
 	id: v.string(),
 	matchedBy: v.picklist(['region', 'country', 'default', 'fallback']),
 	model: v.picklist(['opt-in', 'opt-out', 'iab', 'none']),
+});
+
+/**
+ * The consent journey a resolution belongs to: a random id a client creates
+ * per page load or tab and also sends on its save, so a consumer can follow
+ * one visitor from the init they were served to the choice they made. Not a
+ * subject id; it identifies nothing beyond the journey.
+ */
+export const consentSessionJourneySchema = v.object({
+	/** Hostname of the site, from the request's `Origin` or host. */
+	domain: v.optional(v.pipe(v.string(), v.minLength(1), v.maxLength(253))),
+	id: v.pipe(v.string(), v.uuid()),
+	/**
+	 * The first layer at the start of the journey: `due` (no stored choice
+	 * and the policy prompts), `stored` (a stored choice was used), or
+	 * `not-required` (the policy shows no prompt, or the resolution failed).
+	 */
+	prompt: v.picklist(['due', 'stored', 'not-required']),
+	scope: v.picklist(['page', 'tab']),
+	/** Whether the browser had a stored choice or notice dismissal at the start. */
+	storedChoice: v.boolean(),
 });
 
 /**
@@ -57,6 +78,8 @@ export const consentSessionReportSchema = v.object({
 		})
 	),
 	gpc: v.boolean(),
+	/** The consent journey, when the client sent one. */
+	journey: v.optional(consentSessionJourneySchema),
 	/** The language the resolution served, not the raw `Accept-Language`. */
 	language: v.string(),
 	/** `null` unless a policy rule matched. */

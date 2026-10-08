@@ -20,14 +20,28 @@ export {
 	sliceConsentManifestLanguage,
 } from './consent-manifest';
 export {
+	appendJourneyParams,
 	type BuildConsentSessionReportOptions,
 	buildConsentSessionReport,
 	CONSENT_EXPERIMENT_HEADER,
+	CONSENT_JOURNEY_PARAM,
+	CONSENT_JOURNEY_SCOPE_PARAM,
+	CONSENT_JOURNEY_STORED_PARAM,
 	CONSENT_SESSION_CLIENT_IP_HEADER,
+	type ConsentJourneyParams,
+	type ConsentJourneyPrompt,
+	type ConsentJourneyScope,
+	deriveJourneyPrompt,
 	formatExperimentHeader,
 	isSpeculativeRequest,
+	journeyDomainFrom,
 	parseExperimentHeader,
+	parseJourneyId,
+	parseJourneyScope,
+	readJourneyParams,
+	readSessionJourney,
 	type SessionExperiment,
+	type SessionJourney,
 	type SessionReportInputs,
 } from './session-report';
 // Export constants separately for runtime-safe usage

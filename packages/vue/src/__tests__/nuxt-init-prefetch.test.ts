@@ -161,9 +161,13 @@ const bannerShown = () =>
 	);
 
 const initRequests = (fetch: ReturnType<typeof vi.fn>) =>
-	fetch.mock.calls.filter(([input]) => String(input).endsWith('/init'));
+	fetch.mock.calls.filter(([input]) =>
+		// The path alone: the runtime adds its consent journey as a query.
+		String(input).split('?')[0]?.endsWith('/init')
+	);
 
 beforeEach(() => {
+	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	nuxt.appConfig = { disableAnimation: true, iframeBlocker: false };
 	nuxt.serverAppConfig = true;
 	nuxt.ssr = true;
@@ -184,8 +188,14 @@ describe('an ssr: false page', () => {
 		runInlineScript(await renderHead());
 		// The request leaves while the HTML is parsed, before any app code.
 		expect(initRequests(fetch)).toHaveLength(1);
-		expect(String(initRequests(fetch)[0]?.[0])).toBe(
+		const sent = new URL(String(initRequests(fetch)[0]?.[0]));
+		expect(`${sent.origin}${sent.pathname}`).toBe(
 			`${window.location.origin}/api/c15t/init`
+		);
+		// It starts the page's consent journey, which the runtime continues.
+		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
+		expect(sent.searchParams.get('c15tJourney')).toBe(
+			(window as Window & { __c15tJourney?: { id: string } }).__c15tJourney?.id
 		);
 		const app = await startApp();
 		try {

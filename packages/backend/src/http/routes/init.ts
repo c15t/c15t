@@ -12,6 +12,7 @@ import {
 	CONSENT_EXPERIMENT_HEADER,
 	parseExperimentHeader,
 	isSpeculativeRequest,
+	readSessionJourney,
 } from '@c15t/schema/types';
 import { describeRoute } from 'hono-openapi';
 
@@ -65,6 +66,14 @@ export const register = function register({
 								),
 								init: body,
 								inputs: signals,
+								// The journey id links this resolution to the save that
+								// follows; the browser sends it as query parameters. The
+								// page's domain comes from `Origin`, or from the request's
+								// host when a same-origin GET sent none.
+								journey: readSessionJourney(
+									c.req.url,
+									c.req.header('origin') ?? c.req.url
+								),
 								manifest,
 								source: 'init',
 							}),

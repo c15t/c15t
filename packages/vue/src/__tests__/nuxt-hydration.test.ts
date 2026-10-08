@@ -406,7 +406,8 @@ test('an `ssr: false` route asks for the policy before the app mounts', async ()
 	vi.stubGlobal(
 		'fetch',
 		vi.fn((input: RequestInfo | URL) => {
-			requests.push(String(input));
+			// The path alone: the runtime adds its consent journey as a query.
+			requests.push(String(input).split('?')[0] ?? '');
 			return Promise.resolve(
 				new Response(JSON.stringify(response), {
 					headers: { [C15T_POLICY_CONTRACT_HEADER]: '1' },
@@ -456,7 +457,8 @@ test('an `ssr: false` route in client manifest mode starts once the app mounts',
 	vi.stubGlobal(
 		'fetch',
 		vi.fn((input: RequestInfo | URL) => {
-			requests.push(String(input));
+			// The path alone: the runtime adds its consent journey as a query.
+			requests.push(String(input).split('?')[0] ?? '');
 			return Promise.resolve(new Response('{}', { status: 503 }));
 		})
 	);

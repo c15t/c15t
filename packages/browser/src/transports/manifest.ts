@@ -1,6 +1,7 @@
 import {
 	c15tProtocolHeaders,
 	createHostedTransport,
+	createUnreportedJourneys,
 	mapInitOutputToInitResponse,
 } from '@c15t/core';
 import type {
@@ -203,10 +204,14 @@ export const manifest = function manifest(
 		}
 	};
 
+	// A local resolution makes no request, so nothing carries its journey;
+	// the saves that follow send none either.
+	const unreported = createUnreportedJourneys();
 	const transport: KernelTransport = {
 		identify: hosted.identify,
 		async init(ctx: InitContext): Promise<InitResponse> {
 			const resolved = await loadManifest();
+			const { journey } = ctx;
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
 			if (
 				manifestNeedsLocation(resolved) &&
@@ -216,15 +221,17 @@ export const manifest = function manifest(
 							(pack) => (pack.match.regions?.length ?? 0) > 0
 						)))
 			) {
+				unreported.reported(journey);
 				return hosted.init(ctx);
 			}
+			unreported.resolvedLocally(journey);
 			const output = resolveInitFromManifest(resolved, inputs, {
 				baseTranslations: browserBaseTranslations,
 			});
 			return mapInitOutputToInitResponse(output, {});
 		},
 		loadSubjectRecord: hosted.loadSubjectRecord,
-		save: hosted.save,
+		save: (payload) => hosted.save(unreported.strip(payload)),
 	};
 
 	return Object.assign(() => transport, { kind: 'custom' as const });

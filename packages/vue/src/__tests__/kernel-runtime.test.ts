@@ -118,7 +118,8 @@ const initFixture: InitOutput = {
 const createFetchMock = function createFetchMock() {
 	const subjectBodies: unknown[] = [];
 	const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-		const url = String(input);
+		// The path alone: the runtime adds its consent journey as a query.
+		const url = String(input).split('?')[0] ?? '';
 		if (url.endsWith('/init')) {
 			return new Response(JSON.stringify(initFixture), {
 				headers: { 'content-type': 'application/json' },

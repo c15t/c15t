@@ -8,12 +8,17 @@
  * repeated and discarded renders share one request, and that nothing
  * reads it for a runtime that never runs.
  */
+import { createConsentKernel } from '@c15t/core';
 import type {
 	ConsentKernel,
 	KernelTransport,
 	ProviderTransportContext,
 } from '@c15t/core';
-import { writePolicyResolutionWire } from '@c15t/schema/types';
+import { createPersistence } from '@c15t/core/modules/persistence';
+import {
+	readJourneyParams,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { StrictMode, Suspense, act, useContext, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
@@ -50,6 +55,9 @@ let backendFetch: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
 	localStorage.clear();
+	sessionStorage.clear();
+	// The page's early journey; each test is a fresh page load.
+	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	requests = [];
 	backendFetch = vi.fn(
 		(_url: string, init: RequestInit & { headers: Record<string, string> }) =>
@@ -73,8 +81,11 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
+/** `/init` requests, by path: a mounted runtime adds its journey as a query. */
 const initCalls = () =>
-	backendFetch.mock.calls.filter(([url]) => String(url).endsWith('/init'));
+	backendFetch.mock.calls.filter(([url]) =>
+		String(url).split('?')[0]?.endsWith('/init')
+	);
 
 /** Records, while it renders, how many `/init` requests were already out. */
 const SeenAtRender = ({ seen }: { seen: number[] }) => {
@@ -115,6 +126,71 @@ test('sends /init once, before its children render, under StrictMode', async () 
 	requests[0]?.respond('early');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
 	expect(initCalls()).toHaveLength(1);
+	await view.unmount();
+});
+
+test('the early /init and the save it leads to carry one journey', async () => {
+	let kernel: ConsentKernel | null = null;
+	const Capture = () => {
+		const current = useContext(KernelContext);
+		useEffect(() => {
+			kernel = current;
+		}, [current]);
+		return null;
+	};
+	const options = { mode: mode(), persistence: false as const };
+	const view = await render(
+		<StrictMode>
+			<ConsentProvider options={options}>
+				<Capture />
+				<PolicyProbe />
+			</ConsentProvider>
+		</StrictMode>
+	);
+
+	// Sent during the render, before the runtime started.
+	expect(initCalls()).toHaveLength(1);
+	const early = readJourneyParams(String(initCalls()[0]?.[0]));
+	expect(early).toEqual({
+		id: expect.stringMatching(/^[\da-f-]{36}$/u),
+		scope: 'page',
+		storedChoice: false,
+	});
+
+	requests[0]?.respond('early');
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
+	// The mounted kernel took the early response instead of asking again.
+	expect(initCalls()).toHaveLength(1);
+
+	const saving = (kernel as ConsentKernel | null)?.commands.save('all');
+	await vi.waitFor(() => expect(requests).toHaveLength(2));
+	requests[1]?.respond('early');
+	await saving;
+	const save = backendFetch.mock.calls.find(([url]) =>
+		String(url).split('?')[0]?.endsWith('/subjects')
+	);
+	expect(readJourneyParams(String(save?.[0]))).toEqual({
+		id: early?.id,
+		scope: 'page',
+	});
+	await view.unmount();
+});
+
+test('a tab journey on the early /init continues the id an earlier page kept', async () => {
+	const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+	sessionStorage.setItem('c15t-journey-v1', id);
+	const view = await render(
+		<ConsentProvider
+			options={{ journey: 'tab', mode: mode(), persistence: false }}
+		>
+			<PolicyProbe />
+		</ConsentProvider>
+	);
+	expect(readJourneyParams(String(initCalls()[0]?.[0]))).toEqual({
+		id,
+		scope: 'tab',
+		storedChoice: false,
+	});
 	await view.unmount();
 });
 
@@ -318,7 +394,8 @@ test('a retry after the global fetch changed sends its own request through the n
 	const calls: string[] = [];
 	const globalFetch = (tag: string) =>
 		((url: string, init: RequestInit) => {
-			calls.push(`${tag} ${String(url).slice(BACKEND.length)}`);
+			// The path: the query carries the page's consent journey.
+			calls.push(`${tag} ${String(url).slice(BACKEND.length).split('?')[0]}`);
 			return backendFetch(url, init);
 		}) as typeof fetch;
 	vi.stubGlobal('fetch', globalFetch('old'));
@@ -640,7 +717,7 @@ test('providers whose hosted() modes differ never share a request', async () => 
 		</>
 	);
 
-	expect(initCalls().map(([url]) => String(url))).toEqual([
+	expect(initCalls().map(([url]) => String(url).split('?')[0])).toEqual([
 		`${BACKEND}/init`,
 		`${BACKEND}/other/init`,
 		`${BACKEND}/init`,
@@ -693,6 +770,120 @@ test('a retry with other overrides asks again rather than use the first answer',
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('pending');
 	requests[1]?.respond('for-fr');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('for-fr');
+});
+
+test('a retry that turns the journey on asks again, and its save matches that request', async () => {
+	let resume: () => void = () => undefined;
+	let suspended: Promise<void> | null = new Promise<void>((resolve) => {
+		resume = () => {
+			suspended = null;
+			resolve();
+		};
+	});
+	const SuspendsOnce = () => {
+		if (suspended) {
+			throw suspended;
+		}
+		return null;
+	};
+	let kernel: ConsentKernel | null = null;
+	const Capture = () => {
+		const current = useContext(KernelContext);
+		useEffect(() => {
+			kernel = current;
+		}, [current]);
+		return null;
+	};
+	const shared = mode();
+	const app = (journey: false | 'page') => (
+		<Suspense fallback={null}>
+			<ConsentProvider options={{ journey, mode: shared, persistence: false }}>
+				<SuspendsOnce />
+				<Capture />
+				<PolicyProbe />
+			</ConsentProvider>
+		</Suspense>
+	);
+
+	const view = await render(app(false));
+	expect(initCalls()).toHaveLength(1);
+	expect(readJourneyParams(String(initCalls()[0]?.[0]))).toBeNull();
+
+	await view.rerender(app('page'));
+	resume();
+	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
+	const asked = readJourneyParams(String(initCalls()[1]?.[0]));
+	expect(asked?.scope).toBe('page');
+	requests[0]?.respond('without');
+	requests[1]?.respond('with');
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('with');
+
+	const saving = (kernel as ConsentKernel | null)?.commands.save('all');
+	await vi.waitFor(() => expect(requests).toHaveLength(3));
+	requests[2]?.respond('with');
+	await saving;
+	const save = backendFetch.mock.calls.find(([url]) =>
+		String(url).split('?')[0]?.endsWith('/subjects')
+	);
+	expect(readJourneyParams(String(save?.[0]))?.id).toBe(asked?.id);
+});
+
+test('skipHydration: the early /init says no choice is stored, as the runtime will', async () => {
+	// A visitor who chose on an earlier page.
+	const earlier = createConsentKernel({
+		...policyFixture({}, { id: 'earlier' }),
+		consentCategories: ['measurement'],
+	});
+	const persistence = createPersistence({ kernel: earlier });
+	await earlier.commands.save('all');
+	await vi.waitFor(() => expect(document.cookie).toMatch(/(?:^|; )c15t=/u));
+
+	const loads = async (options: { skipHydration?: boolean }) => {
+		delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+		const before = initCalls().length;
+		const view = await render(
+			<ConsentProvider options={{ mode: mode(), persistence: options }}>
+				<PolicyProbe />
+			</ConsentProvider>
+		);
+		const sent = readJourneyParams(String(initCalls()[before]?.[0]));
+		await view.unmount();
+		return sent?.storedChoice;
+	};
+	try {
+		// The runtime would hydrate the stored choice…
+		expect(await loads({})).toBe(true);
+		// …but not with skipHydration, so the early request says none is stored.
+		expect(await loads({ skipHydration: true })).toBe(false);
+	} finally {
+		persistence.clear();
+		persistence.dispose();
+		earlier.dispose();
+	}
+});
+
+test('a dismissed notice: the early /init says an answer is stored', async () => {
+	const earlier = createConsentKernel(
+		policyFixture({}, { id: 'notice', model: 'opt-out', prompt: 'notice' })
+	);
+	const persistence = createPersistence({ kernel: earlier });
+	await earlier.commands.dismissNotice();
+	await vi.waitFor(() => expect(document.cookie).toContain('c15t-notice='));
+	try {
+		const view = await render(
+			<ConsentProvider options={{ mode: mode() }}>
+				<PolicyProbe />
+			</ConsentProvider>
+		);
+		expect(readJourneyParams(String(initCalls()[0]?.[0]))?.storedChoice).toBe(
+			true
+		);
+		await view.unmount();
+	} finally {
+		persistence.clear();
+		persistence.dispose();
+		earlier.dispose();
+	}
 });
 
 test('a runtime whose render never commits sends one request and reads nothing from it', async () => {

@@ -161,6 +161,57 @@ describe('forwardSessionReportHeaders', () => {
 });
 
 describe('reportConsentSession', () => {
+	const JOURNEY_ID = '3b241101-e2bb-4255-8caf-4136c566a962';
+	const journeyURL = `https://shop.example.com/api/c15t/init?c15tJourney=${JOURNEY_ID}&c15tJourneyScope=page&c15tStored=1`;
+
+	test('reads the journey from the request URL, with the Origin as domain', async () => {
+		const init = await resolveInit();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		await reportConsentSession({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			headers: new Headers({ origin: 'https://www.example.org' }),
+			init: init as never,
+			manifest,
+			source: 'route',
+			url: journeyURL,
+		});
+		expect(readBody(fetchSpy.mock.calls[0]).journey).toEqual({
+			domain: 'www.example.org',
+			id: JOURNEY_ID,
+			prompt: 'stored',
+			scope: 'page',
+			storedChoice: true,
+		});
+	});
+
+	test('an explicit journey wins over the request URL', async () => {
+		const init = await resolveInit();
+		const fetchSpy = vi
+			.fn()
+			.mockResolvedValue(new Response(null, { status: 204 }));
+		const explicit = {
+			id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+			scope: 'tab',
+			storedChoice: false,
+		} as const;
+		await reportConsentSession({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+			init: init as never,
+			journey: explicit,
+			manifest,
+			source: 'render',
+			url: journeyURL,
+		});
+		expect(readBody(fetchSpy.mock.calls[0]).journey).toEqual({
+			...explicit,
+			prompt: 'due',
+		});
+	});
+
 	test('posts the report with the visitor headers and the protocol headers', async () => {
 		const init = await resolveInit();
 		const fetchSpy = vi

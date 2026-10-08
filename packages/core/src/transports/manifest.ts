@@ -21,7 +21,11 @@ import type {
 import { baseTranslations } from '@c15t/translations/all';
 import type { BaseTranslations } from '@c15t/translations/all';
 
-import { reportConsentSession } from '../libs/session-report';
+import { createUnreportedJourneys } from '../libs/journey';
+import {
+	reportConsentSession,
+	resolveSessionReportBackendURL,
+} from '../libs/session-report';
 import type { SessionReportHeaders } from '../libs/session-report';
 import type {
 	InitContext,
@@ -40,7 +44,7 @@ import { deferInitGvl, deferInitGvlToRoute } from './gvl-reference';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
 import { saveFailure } from './save-rejection';
-import { buildSubjectPostBody } from './subject-body';
+import { buildSubjectPostBody, subjectsURL } from './subject-body';
 import type { SubjectSavePayload } from './subject-body';
 import {
 	mapSubjectRecordToHydrationRecords,
@@ -356,6 +360,25 @@ export const createManifestTransport = function createManifestTransport(
 	const subjectURL = (subjectId: string): string =>
 		`${requireBackendURL('read a subject')}/subjects/${encodeURIComponent(subjectId)}`;
 	let manifestPromise: Promise<ConsentManifest> | undefined;
+	const unreported = createUnreportedJourneys();
+	/**
+	 * Without a report nothing carries an init's journey, so the saves that
+	 * follow send none either.
+	 */
+	const noteJourney = function noteJourney(
+		journey: InitContext['journey']
+	): void {
+		const reportsTo =
+			options.report &&
+			resolveSessionReportBackendURL({
+				backendURL: options.report.backendURL ?? options.backendURL,
+			});
+		if (reportsTo) {
+			unreported.reported(journey);
+		} else {
+			unreported.resolvedLocally(journey);
+		}
+	};
 	let lastDecisionInputs: RememberedDecisionInputs | undefined =
 		options.initialInit
 			? rememberDecisionInputs(options.initialInit, options.inputs?.gpc)
@@ -424,6 +447,8 @@ export const createManifestTransport = function createManifestTransport(
 		async init(ctx: InitContext): Promise<TransportInitResponse> {
 			const manifest = await getManifest();
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
+			// Read once: the request this init would have made is the report.
+			const { journey } = ctx;
 			let payload: InitOutput = resolveInitFromManifest(manifest, inputs, {
 				baseTranslations: options.baseTranslations ?? baseTranslations,
 			});
@@ -448,6 +473,7 @@ export const createManifestTransport = function createManifestTransport(
 					: deferInitGvl(payload, manifest.iab.gvl.url);
 			}
 			lastDecisionInputs = rememberDecisionInputs(payload, inputs.gpc);
+			noteJourney(journey);
 			if (options.report) {
 				// Detached: the report is telemetry and the decision is already
 				// made. It never rejects, so nothing here can fail the init.
@@ -462,6 +488,7 @@ export const createManifestTransport = function createManifestTransport(
 					headers: options.report.headers ?? options.headers,
 					init: payload,
 					inputs,
+					journey,
 					manifest,
 					method: options.report.method,
 					source: options.report.source,
@@ -500,9 +527,10 @@ export const createManifestTransport = function createManifestTransport(
 			return mapSubjectRecordToHydrationRecords(record, { now: now() });
 		},
 
-		async save(payload): Promise<SaveResult> {
+		async save(saved): Promise<SaveResult> {
+			const payload = unreported.strip(saved);
 			const response = await fetchImpl(
-				`${requireBackendURL('save')}/subjects`,
+				subjectsURL(requireBackendURL('save'), payload.journey),
 				{
 					body: JSON.stringify({
 						...buildSubjectPostBody(payload, { domain }),

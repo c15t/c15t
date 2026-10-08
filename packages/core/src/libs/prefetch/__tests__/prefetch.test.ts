@@ -2,6 +2,7 @@
  * @vitest-environment jsdom
  */
 
+import { readJourneyParams } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -15,6 +16,9 @@ describe('prefetch utilities', () => {
 		vi.restoreAllMocks();
 		delete (window as Window & { __c15tInitialDataPromises?: unknown })
 			.__c15tInitialDataPromises;
+		delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+		sessionStorage.clear();
+		localStorage.clear();
 	});
 
 	afterEach(() => {
@@ -262,5 +266,102 @@ describe('prefetch utilities', () => {
 				backendURL: '/api/c15t',
 			})
 		).toBeUndefined();
+	});
+
+	describe('consent journey', () => {
+		const sent = (fetch: ReturnType<typeof vi.fn>) =>
+			readJourneyParams(String(fetch.mock.calls[0]?.[0]));
+		const respond = () =>
+			vi.fn((_input: RequestInfo | URL, _init?: RequestInit) =>
+				Promise.resolve(new Response('{}'))
+			);
+
+		it('the inline script starts a page journey and records it for the runtime', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			const journey = sent(fetch);
+			expect(journey).toEqual({
+				id: expect.stringMatching(/^[\da-f-]{36}$/u),
+				scope: 'page',
+				storedChoice: false,
+			});
+			expect(
+				(window as Window & { __c15tJourney?: unknown }).__c15tJourney
+			).toEqual(journey);
+			// A page journey touches no storage.
+			expect(sessionStorage.length).toBe(0);
+		});
+
+		it('says a choice is stored when the consent cookie exists', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			document.cookie = 'shop=c.necessary:1,c.marketing:0; path=/';
+			try {
+				window.eval(
+					buildPrefetchScript({ backendURL: '/api/c15t', storageKey: 'shop' })
+				);
+				expect(sent(fetch)?.storedChoice).toBe(true);
+			} finally {
+				document.cookie = 'shop=; max-age=0; path=/';
+			}
+		});
+
+		it('says an answer is stored when a notice dismissal exists', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			document.cookie = 'c15t-notice=v=1&t=1&f=abc; path=/';
+			try {
+				window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+				expect(sent(fetch)?.storedChoice).toBe(true);
+				// The script's twin reads the same keys.
+				delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+				void primePrefetchedInitialData({ backendURL: '/api/other' });
+				expect(
+					readJourneyParams(String(fetch.mock.calls[1]?.[0]))?.storedChoice
+				).toBe(true);
+			} finally {
+				document.cookie = 'c15t-notice=; max-age=0; path=/';
+			}
+		});
+
+		it('a tab journey continues the id in sessionStorage', () => {
+			const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+			sessionStorage.setItem('c15t-journey-v1', id);
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(
+				buildPrefetchScript({ backendURL: '/api/c15t', journey: 'tab' })
+			);
+			expect(sent(fetch)).toEqual({ id, scope: 'tab', storedChoice: false });
+		});
+
+		it('a second script on the page shares the journey, and false sends none', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			window.eval(buildPrefetchScript({ backendURL: '/api/other' }));
+			expect(readJourneyParams(String(fetch.mock.calls[1]?.[0]))?.id).toBe(
+				sent(fetch)?.id
+			);
+
+			delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+			window.eval(
+				buildPrefetchScript({ backendURL: '/api/third', journey: false })
+			);
+			expect(String(fetch.mock.calls[2]?.[0])).toBe(
+				'http://localhost:3000/api/third/init'
+			);
+		});
+
+		it('primePrefetchedInitialData sends the same journey as the script', () => {
+			const fetch = respond();
+			vi.stubGlobal('fetch', fetch);
+			window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
+			void primePrefetchedInitialData({ backendURL: '/api/other' });
+			expect(readJourneyParams(String(fetch.mock.calls[1]?.[0]))?.id).toBe(
+				sent(fetch)?.id
+			);
+		});
 	});
 });

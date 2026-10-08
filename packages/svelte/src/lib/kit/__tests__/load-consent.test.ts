@@ -173,7 +173,8 @@ describe('loadConsent', () => {
 			},
 		});
 		const config = await loadConsent(event, { initRoute: '/api/c15t' });
-		expect(fetch.mock.calls[0]?.[0]).toBe('/api/c15t');
+		// The query carries the consent journey the render started.
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe('/api/c15t');
 		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
 		expect(headers.get('x-c15t-country')).toBe('DE');
 		expect(headers.get('accept-language')).toBe('de');
@@ -223,7 +224,9 @@ describe('loadConsent', () => {
 			url: 'http://localhost:5173/',
 		});
 		await loadConsent(event, { backendURL: '/api/self-host' });
-		expect(fetch.mock.calls[0]?.[0]).toBe('/api/self-host/init');
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
+			'/api/self-host/init'
+		);
 	});
 
 	test('a cross-origin backend uses the configured fetch', async () => {
@@ -234,7 +237,7 @@ describe('loadConsent', () => {
 			fetch,
 		});
 		expect(eventFetch).not.toHaveBeenCalled();
-		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
 			'https://api.example.com/init'
 		);
 	});

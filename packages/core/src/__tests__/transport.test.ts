@@ -2472,3 +2472,175 @@ describe('hosted transport: removing an override', () => {
 		).toBe(false);
 	});
 });
+
+describe('consent journey query parameters', () => {
+	const JOURNEY_ID = '3b241101-e2bb-4255-8caf-4136c566a962';
+	const savePayload = {
+		choice: { categories: {}, version: 3 },
+		confirmed: { actionAt: 1_700_000_000_000, categories: {} },
+		consentAction: 'all',
+		consents: {
+			experience: false,
+			functionality: false,
+			marketing: false,
+			measurement: false,
+			necessary: true,
+		},
+		model: 'opt-in',
+		overrides: {},
+		policySnapshotToken: null,
+		subject: { subjectId: 'sub_test' },
+		subjectId: 'sub_test',
+		uiSource: 'banner',
+		user: null,
+	} as const;
+	const respond = () =>
+		vi.fn(
+			// oxlint-disable-next-line require-await -- Match the asynchronous fetch contract.
+			async (url: RequestInfo | URL, _init?: RequestInit) =>
+				new Response(
+					JSON.stringify(
+						String(url).includes('/init?') || String(url).endsWith('/init')
+							? REALISTIC_INIT_OUTPUT
+							: { subjectId: 'sub_test' }
+					),
+					{ status: 200 }
+				)
+		);
+
+	test('hosted init carries the journey, its scope and the stored flag', async () => {
+		const fetchSpy = respond();
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+		});
+		await transport.init({
+			journey: { id: JOURNEY_ID, scope: 'tab', storedChoice: true },
+			overrides: {},
+			user: null,
+		});
+		const url = new URL(String(fetchSpy.mock.calls[0]?.[0]));
+		expect(url.pathname).toBe('/c15t/init');
+		expect(Object.fromEntries(url.searchParams)).toEqual({
+			c15tJourney: JOURNEY_ID,
+			c15tJourneyScope: 'tab',
+			c15tStored: '1',
+		});
+		// Query parameters only: no header a backend would have to allow.
+		const headers = fetchSpy.mock.calls[0]?.[1]?.headers as Record<
+			string,
+			string
+		>;
+		expect(Object.keys(headers).some((name) => /journey/iu.test(name))).toBe(
+			false
+		);
+	});
+
+	test('hosted init without a journey sends the plain URL', async () => {
+		const fetchSpy = respond();
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+		});
+		await transport.init({ overrides: {}, user: null });
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			'https://api.example.com/c15t/init'
+		);
+	});
+
+	test('a relative init route keeps its own query', async () => {
+		const fetchSpy = respond();
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+			initURL: '/api/consent/init?site=shop',
+		});
+		await transport.init({
+			journey: { id: JOURNEY_ID, scope: 'page', storedChoice: false },
+			overrides: {},
+			user: null,
+		});
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			`/api/consent/init?site=shop&c15tJourney=${JOURNEY_ID}&c15tJourneyScope=page&c15tStored=0`
+		);
+	});
+
+	test('hosted save carries the journey on the URL, not in the body', async () => {
+		const fetchSpy = respond();
+		const transport = createHostedTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+		});
+		await transport.save({
+			...savePayload,
+			journey: { id: JOURNEY_ID, scope: 'page' },
+		});
+		const [url, init] = fetchSpy.mock.calls[0] ?? [];
+		expect(url).toBe(
+			`https://api.example.com/c15t/subjects?c15tJourney=${JOURNEY_ID}&c15tJourneyScope=page`
+		);
+		expect(String(init?.body)).not.toContain(JOURNEY_ID);
+
+		await transport.save(savePayload);
+		expect(fetchSpy.mock.calls[1]?.[0]).toBe(
+			'https://api.example.com/c15t/subjects'
+		);
+	});
+
+	test('a manifest init resolved in the browser leaves its journey off the save', async () => {
+		const fetchSpy = respond();
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+			manifest: MANIFEST_FIXTURE,
+		});
+		const journey = { id: JOURNEY_ID, scope: 'page' as const };
+		await transport.init?.({
+			journey: { ...journey, storedChoice: false },
+			overrides: {},
+			user: null,
+		});
+		// No /init and no report named the id, so the save sends none.
+		await transport.save?.({ ...savePayload, journey });
+		expect(fetchSpy.mock.calls.at(-1)?.[0]).toBe(
+			'https://api.example.com/c15t/subjects'
+		);
+	});
+
+	test('a manifest init that reports keeps the journey on the save', async () => {
+		const fetchSpy = respond();
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+			manifest: MANIFEST_FIXTURE,
+			report: { adapter: '@c15t/test', source: 'route' },
+		});
+		const journey = { id: JOURNEY_ID, scope: 'page' as const };
+		await transport.init?.({
+			journey: { ...journey, storedChoice: false },
+			overrides: {},
+			user: null,
+		});
+		await transport.save?.({ ...savePayload, journey });
+		const saved = fetchSpy.mock.calls.find(([url]) =>
+			String(url).includes('/subjects')
+		);
+		expect(String(saved?.[0])).toContain(`c15tJourney=${JOURNEY_ID}`);
+	});
+
+	test('manifest save carries the journey on the URL', async () => {
+		const fetchSpy = respond();
+		const transport = createManifestTransport({
+			backendURL: 'https://api.example.com/c15t',
+			fetch: fetchSpy as unknown as typeof fetch,
+			manifest: MANIFEST_FIXTURE,
+		});
+		await transport.save?.({
+			...savePayload,
+			journey: { id: JOURNEY_ID, scope: 'tab' },
+		});
+		expect(fetchSpy.mock.calls[0]?.[0]).toBe(
+			`https://api.example.com/c15t/subjects?c15tJourney=${JOURNEY_ID}&c15tJourneyScope=tab`
+		);
+	});
+});

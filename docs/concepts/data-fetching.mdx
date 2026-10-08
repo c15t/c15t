@@ -60,6 +60,40 @@ no identity; the visitor's IP address and user agent are forwarded under the
 backend's usual IP handling. Static output resolves in the browser and sends
 no report. Set `reportSessions: false` on an adapter to turn it off.
 
+## Link an init to the save that follows
+
+Each page load gets a journey id, a random UUID sent on requests c15t already
+makes:
+
+| Request | Query parameters |
+| --- | --- |
+| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` if a choice or notice dismissal was stored) |
+| `POST /subjects` | `c15tJourney`, `c15tJourneyScope` |
+
+Session reports carry it as `journey: { id, scope, storedChoice, prompt, domain }`.
+A report and a save with the same `id` belong to one page load. `prompt` is
+`due`, `stored` or `not-required`; a page that falls back to the default opt-in
+banner counts as `due` or `stored`. A stored answer counts as `stored` even if a
+policy change makes c15t ask again.
+
+The id is random, is never the subject id and is never written to a cookie.
+Every save that carries one follows an `/init` or report with the same id.
+Saves replayed after going offline carry none.
+
+| `journey` | Behavior |
+| --- | --- |
+| `'page'` (default) | One id per page load, in memory. |
+| `'tab'` | Kept in `sessionStorage` while a prompt is due, and removed once the visitor chooses or no prompt is due. Only when the browser resolves init; server-rendered pages use `'page'`. |
+| `false` | No journey. |
+
+Set it on the runtime or provider. In Next.js use `defineConsentConfig({ journey })`;
+in TanStack Start pass the same value to `resolveConsent` and `ConsentRoot`; with
+the inline prefetch script, pass it to `buildPrefetchScript`. Vue, Svelte, Astro
+and the script tag use `'page'`. A manifest that resolves locally in the
+browser reports no init, so it sends no journey.
+
+If you pass `hosted()` a `fetch`, match on the path: URLs now carry a query string.
+
 ## What does regular `/init` do?
 
 `hosted({ url })` uses `${url}/init` for initialization and `${url}/subjects` for

@@ -158,7 +158,8 @@ describe('ConsentRoot: transport selection', () => {
 			await vi.waitFor(() => {
 				expect(fetchSpy).toHaveBeenCalled();
 			});
-			expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			// The query carries the consent journey.
+			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
 				'https://consent.example.com/init'
 			);
 		} finally {

@@ -237,7 +237,11 @@ export const createSaveOutbox = function createSaveOutbox({
 		if (!save || !(await hasQueued())) {
 			return;
 		}
-		if (await (await loadWorker())?.replay(save)) {
+		// A replay is no longer the page that made the save: it carries no
+		// consent journey, so a backend never links it to this page load.
+		const resend: NonNullable<KernelTransport['save']> = (payload) =>
+			save(payload, { replay: true });
+		if (await (await loadWorker())?.replay(resend)) {
 			retryWhenOnline();
 		}
 	};

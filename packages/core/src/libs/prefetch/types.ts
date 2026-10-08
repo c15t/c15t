@@ -1,4 +1,5 @@
 import type { Overrides } from '../../options/overrides';
+import type { ConsentJourneyOption } from '../journey';
 
 export interface PrefetchOptions {
 	/**
@@ -18,4 +19,18 @@ export interface PrefetchOptions {
 	 * @default 'include'
 	 */
 	credentials?: RequestCredentials;
+
+	/**
+	 * The provider's `journey` setting, for the journey this `/init` starts.
+	 *
+	 * @default 'page'
+	 */
+	journey?: ConsentJourneyOption;
+
+	/**
+	 * The consent storage key, used to tell whether a choice is stored.
+	 *
+	 * @default 'c15t'
+	 */
+	storageKey?: string;
 }

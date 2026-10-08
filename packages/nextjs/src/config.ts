@@ -7,6 +7,8 @@
  * from a route file, a Server Component, and a `'use client'` file.
  */
 
+import type { ConsentJourneyOption } from '@c15t/core';
+
 const CONSENT_CONFIG_BRAND = Symbol.for('@c15t/nextjs/consent-config');
 
 /**
@@ -31,6 +33,12 @@ export interface ConsentConfig {
 	 * a backend `/init` call.
 	 */
 	initURL?: string;
+
+	/**
+	 * The consent journey scope, read by both `resolveConsent` and
+	 * `ConsentRoot` so they agree.
+	 */
+	journey?: ConsentJourneyOption;
 }
 
 type BrandedConsentConfig = ConsentConfig & {
@@ -179,6 +187,16 @@ export const defineConsentConfig = function defineConsentConfig(
 	assertConsentURL('backendURL', config.backendURL, true);
 	assertConsentURL('manifestURL', config.manifestURL, false);
 	assertConsentURL('initURL', config.initURL, false);
+	if (
+		config.journey !== undefined &&
+		config.journey !== false &&
+		config.journey !== 'page' &&
+		config.journey !== 'tab'
+	) {
+		throw new TypeError(
+			"@c15t/nextjs: defineConsentConfig `journey` must be 'page', 'tab' or false."
+		);
+	}
 
 	if (config.initURL && !config.manifestURL && !isProduction()) {
 		console.warn(
@@ -192,6 +210,9 @@ export const defineConsentConfig = function defineConsentConfig(
 		initURL: config.initURL,
 		manifestURL: config.manifestURL,
 	};
+	if (config.journey !== undefined) {
+		defined.journey = config.journey;
+	}
 	return Object.freeze(defined);
 };
 

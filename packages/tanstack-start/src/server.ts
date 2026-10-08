@@ -55,7 +55,9 @@
 
 import { mergeInitOutputIntoKernelConfig } from '@c15t/core';
 import type {
+	ConsentJourneyOption,
 	ExperimentState,
+	JourneyState,
 	KernelConfig,
 	ServerExperiment,
 } from '@c15t/core';
@@ -166,7 +168,9 @@ export type { KernelConfig } from '@c15t/core';
  * narrower type is what lets `createServerFn().handler(...)` accept the
  * helpers directly. `ConsentRoot` accepts it as-is.
  */
-export type ConsentState = Omit<KernelConfig, 'transport'> & ExperimentState;
+export type ConsentState = Omit<KernelConfig, 'transport'> &
+	ExperimentState &
+	JourneyState;
 
 // -- Resolving the visitor's state ------------------------------------------
 
@@ -277,6 +281,12 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	reportSessions?: boolean;
 
 	/**
+	 * The consent journey scope this render reports. Pass `ConsentRoot` the
+	 * same `journey`.
+	 */
+	journey?: ConsentJourneyOption;
+
+	/**
 	 * The banner experiment with the arm this request runs, from your
 	 * feature flag. While the visitor has no stored choice, the render's
 	 * session report carries the arm, so the backend counts the visitors
@@ -362,6 +372,7 @@ const resolveConsentState = async function resolveConsentState(
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
 		gvlRoute: options.routePrefix ? `${routePrefix}/init` : undefined,
+		journey: options.journey,
 		manifest: backendURL ? options.manifest : undefined,
 		manifestURL: options.manifestURL,
 		// TanStack Start resolves from the manifest only; without a backend

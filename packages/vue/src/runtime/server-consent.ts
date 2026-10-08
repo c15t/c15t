@@ -61,6 +61,9 @@ export const resolveNuxtConsent = async function resolveNuxtConsent(
 			: undefined,
 		localFetch,
 		mode: 'hosted',
+		// Off here means the page has no journey: the state says so and the
+		// browser sends none.
+		reportSessions: config.reportSessions,
 		request: { headers: request.headers, url: request.url },
 		storage: config.storageConfig,
 		timeoutMs: config.timeoutMs,

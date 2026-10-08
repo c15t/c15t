@@ -27,6 +27,7 @@ import type { ProviderTransportContext } from '../transports/mode';
 import type {
 	KernelConfig,
 	KernelTranslations,
+	KernelTransport,
 	KernelUser,
 	ResolvedVendor,
 	TranslationsResponse,
@@ -177,16 +178,24 @@ export const inferConsentCategories = function inferConsentCategories(
  * would and serialize its snapshot.
  *
  * @param options - The runtime options.
+ * @param wrapTransport - Wraps the transport `mode` builds before the kernel
+ *   gets it. The browser runtime adds its consent journey this way.
  * @returns A fresh, unstarted consent kernel.
  * @throws {Error} When `mode` is not a transport factory.
  */
 // oxlint-disable-next-line complexity -- Preserve established branch order and control flow.
 export const createRuntimeKernel = function createRuntimeKernel(
-	options: ConsentRuntimeOptions
+	options: ConsentRuntimeOptions,
+	wrapTransport?: (transport: KernelTransport) => KernelTransport
 ): InternalKernel {
 	const enabled = options.enabled ?? true;
-	// The server's experiment is a runtime input, not kernel configuration.
-	const { experiment: serverExperiment, ...prefetch } = options.prefetch ?? {};
+	// The server's experiment and journey are runtime inputs, not kernel
+	// configuration.
+	const {
+		experiment: serverExperiment,
+		journey: _serverJourney,
+		...prefetch
+	} = options.prefetch ?? {};
 	const i18nTranslations =
 		resolveRuntimeTranslations(options.i18n) ?? DEFAULT_TRANSLATIONS;
 
@@ -199,7 +208,8 @@ export const createRuntimeKernel = function createRuntimeKernel(
 		translationsFor: (language) =>
 			resolveLocalTranslations(language, options.i18n?.messages),
 	};
-	const transport = requireTransportFactory(options)(transportContext);
+	const built = requireTransportFactory(options)(transportContext);
+	const transport = wrapTransport ? wrapTransport(built) : built;
 
 	const integrations = [
 		...(options.scripts ?? []),

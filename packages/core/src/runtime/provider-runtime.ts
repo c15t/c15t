@@ -287,6 +287,29 @@ export const createConsentProviderRuntime =
 
 		const main = build(true);
 		main.runtime.subscribe(notify);
+		// Only a prefetch the runtime streams into its first init: without
+		// `streamPrefetch` the promise is ignored, the runtime's own init
+		// carries its own journey, and the save must carry that one too.
+		if (
+			modules.streamPrefetch &&
+			initial.prefetch &&
+			initial.prefetch !== knownPrefetch
+		) {
+			// A streamed state carries the journey the server started. It
+			// lands before the first save: no prompt shows until it does.
+			void (async () => {
+				try {
+					const streamed = await (initial.prefetch as PromiseLike<
+						RuntimePrefetch | undefined
+					>);
+					main.adoptJourney(
+						streamed?.journey === null ? null : streamed?.journey?.id
+					);
+				} catch {
+					// The stream failed; the runtime keeps its own journey.
+				}
+			})();
+		}
 		let permissive: Built | null = null;
 		if (!enabled) {
 			// The main runtime stays detached until it runs, and holds nothing

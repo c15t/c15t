@@ -1,4 +1,5 @@
 import type {
+	ConsentJourneyScope,
 	InitOutput,
 	GlobalVendorList,
 	LocationResponse,
@@ -545,6 +546,27 @@ export interface InitContext {
 	 * each arm's banner was owed to.
 	 */
 	experiment?: { id: string; arm: string };
+	/**
+	 * The consent journey this page load belongs to, set by the browser
+	 * runtime. The hosted transport sends it as query parameters on
+	 * `GET /init` (`c15tJourney`, `c15tJourneyScope`, `c15tStored`) so the
+	 * backend's session report can be linked to the save that follows.
+	 */
+	journey?: KernelJourney;
+}
+
+/**
+ * A consent journey: a random id the browser runtime creates per page load
+ * (or per tab), which links an init to the save that follows. Not the
+ * subject id, and never written to a cookie.
+ */
+export interface KernelJourney {
+	/** A random UUID. */
+	readonly id: string;
+	/** `page` lives for one page load; `tab` for the tab while a prompt is due. */
+	readonly scope: ConsentJourneyScope;
+	/** Whether a choice or notice dismissal was stored when the journey started. */
+	readonly storedChoice: boolean;
 }
 
 /**
@@ -638,6 +660,13 @@ export interface SavePayload {
 		language: string;
 		gpc: boolean;
 	};
+	/**
+	 * The consent journey of the page that made this save, added by the
+	 * browser runtime when that page sends it. The hosted transport sends it
+	 * as query parameters on `POST /subjects`. Never stored with a queued
+	 * save, and a replay carries none.
+	 */
+	journey?: Pick<KernelJourney, 'id' | 'scope'>;
 	/** TC string emitted by the IAB module; absent in non-IAB flows. */
 	tcString?: string | null;
 	/** Equals `confirmed.actionAt`. Kept for backends that read one time. */
@@ -657,9 +686,18 @@ export interface SavePayload {
  * Pluggable transport. Each method is optional — a partial transport is
  * valid. Missing methods make the corresponding command a no-op.
  */
+/** How the kernel is sending a save. */
+export interface SaveContext {
+	/**
+	 * `true` when the save was queued and is being sent again, possibly by a
+	 * later page than the one that made it.
+	 */
+	replay?: boolean;
+}
+
 export interface KernelTransport {
 	init?: (ctx: InitContext) => Promise<InitResponse>;
-	save?: (payload: SavePayload) => Promise<SaveResult>;
+	save?: (payload: SavePayload, context?: SaveContext) => Promise<SaveResult>;
 	identify?: (user: KernelUser, subjectId: string | null) => Promise<void>;
 	/**
 	 * Load the server-side record of a subject as validated receipts. The

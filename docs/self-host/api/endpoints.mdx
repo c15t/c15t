@@ -101,8 +101,11 @@ reserved for the backend's own `/init`, which emits the same report. Prefetches,
 prerenders and `HEAD` requests send no report.
 
 A report is one resolution, not one visitor. A page view can produce a `render`
-and a `route` report, and nothing links them. To count visitors, group reports
-by address and user agent within a time window; the count is approximate.
+and a `route` report. When the client sends a journey, the reports and the
+save's `POST /subjects` carry the same `journey.id`
+([details](/docs/concepts/data-fetching#link-an-init-to-the-save-that-follows)).
+Without one, group reports by address and user agent within a time window; that
+count is approximate.
 
 ## Serve the script tag
 

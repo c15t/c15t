@@ -143,7 +143,8 @@ describe('@c15t/svelte/server resolveConsent', () => {
 			}),
 			requestURL: 'https://app.example.com/page',
 		});
-		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		// The query carries the consent journey the render started.
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
 			'https://app.example.com/consent/init'
 		);
 		const sent = new Headers(fetch.mock.calls[0]?.[1]?.headers);
@@ -162,7 +163,9 @@ describe('@c15t/svelte/server resolveConsent', () => {
 			requestURL: 'https://app.example.com/',
 		});
 		expect(fetch).not.toHaveBeenCalled();
-		expect(frameworkFetch.mock.calls[0]?.[0]).toBe('/api/self-host/init');
+		expect(String(frameworkFetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
+			'/api/self-host/init'
+		);
 	});
 
 	test('a failed backend leaves the request-only state', async () => {

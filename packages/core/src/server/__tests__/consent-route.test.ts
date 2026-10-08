@@ -776,6 +776,42 @@ describe('session reports', () => {
 		});
 	});
 
+	test('puts the journey from the browser request on the report', async () => {
+		const fetch = upstream();
+		const registered: Promise<void>[] = [];
+		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+		await route({ fetch })(
+			request(
+				`/api/c15t/init?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`,
+				{ headers: { 'x-vercel-ip-country': 'DE' } }
+			),
+			{ waitUntil: (task) => registered.push(task) }
+		);
+		await registered[0];
+		expect(JSON.parse(reportCall(fetch)?.[1]?.body as string).journey).toEqual({
+			domain: 'app.example.com',
+			id,
+			prompt: 'due',
+			scope: 'page',
+			storedChoice: false,
+		});
+	});
+
+	test('reports no journey for malformed parameters', async () => {
+		const fetch = upstream();
+		const registered: Promise<void>[] = [];
+		await route({ fetch })(
+			request(
+				'/api/c15t/init?c15tJourney=visitor-42&c15tJourneyScope=page&c15tStored=0'
+			),
+			{ waitUntil: (task) => registered.push(task) }
+		);
+		await registered[0];
+		expect(
+			JSON.parse(reportCall(fetch)?.[1]?.body as string)
+		).not.toHaveProperty('journey');
+	});
+
 	test.each([
 		['a HEAD probe', {}, { method: 'HEAD' }],
 		['reportSessions: false', { reportSessions: false }, {}],
@@ -978,6 +1014,52 @@ describe('/init fallback for a backend without /manifest', () => {
 		expect(headers.get('cookie')).toBeNull();
 		expect(headers.get('user-agent')).toBeNull();
 		expect(headers.get('x-forwarded-for')).toBeNull();
+	});
+
+	test('forwards the browser journey to backend /init and nothing else from the query', async () => {
+		const localFetch = backendInit({
+			location: { countryCode: null, regionCode: null },
+			translations: { language: 'en', translations: {} },
+		});
+		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+		await route({ backendURL: '/api/self-host' })(
+			request(
+				`/api/c15t/init?utm_source=mail&c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`
+			),
+			{ localFetch }
+		);
+		expect(localFetch).toHaveBeenLastCalledWith(
+			`/api/self-host/init?c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`,
+			expect.anything()
+		);
+	});
+
+	test('names the page origin on the backend /init it forwards a journey to', async () => {
+		const fetch = backendInit({
+			location: { countryCode: null, regionCode: null },
+			translations: { language: 'en', translations: {} },
+		});
+		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+		const handle = route({ backendURL: BACKEND, fetch });
+		const query = `?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`;
+		const lastInitOrigin = () =>
+			new Headers(
+				fetch.mock.calls.findLast(([url]) => String(url).includes('/init'))?.[1]
+					?.headers
+			).get('origin');
+		// A same-origin GET carries no Origin: the request URL is the page's.
+		await handle(request(`/api/c15t/init${query}`));
+		expect(lastInitOrigin()).toBe(APP);
+		// One the browser sent wins.
+		await handle(
+			request(`/api/c15t/init${query}`, {
+				headers: { origin: 'https://www.example.org' },
+			})
+		);
+		expect(lastInitOrigin()).toBe('https://www.example.org');
+		// Without a journey nothing is added.
+		await handle(request('/api/c15t/init'));
+		expect(lastInitOrigin()).toBeNull();
 	});
 
 	test('forwards vendors and privacy signals from backend /init', async () => {

@@ -95,6 +95,59 @@ describe('resolveConsent wiring', () => {
 		});
 	});
 
+	test('a tab config reports a page journey, and false turns it off', async () => {
+		const tab = backend();
+		const started = await resolveConsent({
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				journey: 'tab',
+			}),
+			fetch: tab,
+			request: requestOf({}),
+		});
+		const sent = new URL(String(tab.mock.calls[0]?.[0]));
+		// A server-rendered page is a page journey, even under 'tab'.
+		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
+		expect(sent.searchParams.get('c15tJourney')).toBe(started.journey?.id);
+
+		for (const options of [
+			{
+				config: defineConsentConfig({
+					backendURL: 'https://consent.example.com',
+					journey: false,
+				}),
+			},
+			{
+				config: defineConsentConfig({
+					backendURL: 'https://consent.example.com',
+				}),
+				reportSessions: false,
+			},
+		]) {
+			const off = backend();
+			// oxlint-disable-next-line no-await-in-loop -- One render at a time keeps the calls apart.
+			const state = await resolveConsent({
+				...options,
+				fetch: off,
+				request: requestOf({}),
+			});
+			// The state tells ConsentRoot this page has no journey.
+			expect(state.journey).toBeNull();
+			expect(String(off.mock.calls[0]?.[0])).toBe(
+				'https://consent.example.com/init'
+			);
+		}
+	});
+
+	test('defineConsentConfig rejects an unknown journey', () => {
+		expect(() =>
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				journey: 'session' as never,
+			})
+		).toThrow(TypeError);
+	});
+
 	test('a config without manifestURL asks the backend /init with the request inputs', async () => {
 		const fetch = backend();
 		const state = await resolveConsent({
@@ -105,7 +158,8 @@ describe('resolveConsent wiring', () => {
 			fetch,
 			request: requestOf({ 'accept-language': 'de-DE' }, 'c15t=x; session=y'),
 		});
-		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		// The query carries the consent journey the render started.
+		expect(String(fetch.mock.calls[0]?.[0]).split('?')[0]).toBe(
 			'https://consent.example.com/init'
 		);
 		expect(fetch.mock.calls[0]?.[1]?.cache).toBe('no-store');
@@ -125,9 +179,9 @@ describe('resolveConsent wiring', () => {
 			fetch,
 			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
 		});
-		expect(fetch.mock.calls.map(([input]) => String(input))).toEqual([
-			'https://app.example.com/api/c15t/init',
-		]);
+		expect(
+			fetch.mock.calls.map(([input]) => String(input).split('?')[0])
+		).toEqual(['https://app.example.com/api/c15t/init']);
 		const headers = new Headers(fetch.mock.calls[0]?.[1]?.headers);
 		expect(headers.get('x-c15t-country')).toBe('DE');
 		expect(state.initialPolicyResolution?.status).toBe('matched');

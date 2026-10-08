@@ -115,7 +115,8 @@ describe('ConsentRoot: streamed state', () => {
 				expect(fetchSpy).toHaveBeenCalledTimes(1);
 			});
 			const [url, init] = fetchSpy.mock.calls[0] ?? [];
-			expect(String(url)).toBe('/api/c15t/subjects');
+			// The query carries the consent journey.
+			expect(String(url).split('?')[0]).toBe('/api/c15t/subjects');
 			const body = JSON.parse(String(init?.body)) as Record<string, unknown>;
 			expect(body.policyId).toBe('react-test');
 		} finally {

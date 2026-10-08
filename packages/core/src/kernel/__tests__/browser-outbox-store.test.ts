@@ -169,7 +169,7 @@ describe('browser outbox store', () => {
 		await vi.waitFor(() => {
 			expect(storage.getItem(SAVES_KEY)).toBeNull();
 		});
-		expect(save).toHaveBeenCalledWith(legacyEntry.payload);
+		expect(save).toHaveBeenCalledWith(legacyEntry.payload, { replay: true });
 		kernel.dispose();
 	});
 
@@ -383,7 +383,7 @@ describe('browser outbox store', () => {
 			await vi.waitFor(() => {
 				expect(window.localStorage.getItem(SAVES_KEY)).toBeNull();
 			});
-			expect(save).toHaveBeenCalledWith(legacyEntry.payload);
+			expect(save).toHaveBeenCalledWith(legacyEntry.payload, { replay: true });
 		} finally {
 			kernel.dispose();
 			window.localStorage.removeItem(SAVES_KEY);
