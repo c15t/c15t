@@ -16,7 +16,7 @@ policy changes require a rebuild.
 
 | Your app | Where consent resolves | Banner in the server HTML | Recipe |
 | --- | --- | --- | --- |
-| App Router with a Next.js server | Root layout starts `resolveConsent` and streams the result | Yes, in a later chunk of the same response, before hydration. The page renders without waiting. | [Stream consent](/docs/frameworks/next/app-router#start-consent-resolution-in-the-root-layout) |
+| App Router with a Next.js server | Root layout starts `resolveConsent` and streams the result | Yes, in a later chunk, before hydration. The page renders without waiting. | [Stream consent](/docs/frameworks/next/app-router#start-consent-resolution-in-the-root-layout) |
 | App Router, the page must arrive with its banner | Root layout awaits `resolveConsent` inside `Suspense` | Yes. The page waits for consent. | [Await consent](/docs/frameworks/next/app-router#render-the-banner-in-the-server-html) |
 | App Router with `cacheComponents: true` | Either layout above. Never await in the layout itself. | Yes, with either layout | [Cache Components](#use-cache-components) |
 | Static, ISR or `'use cache'` pages | Browser, with `state={{}}` | No | [Static, ISR and cached pages](#render-static-isr-and-cached-pages) |
@@ -46,9 +46,7 @@ root layout. They differ in what waits for it.
 | Awaited inside `Suspense` | The banner is in the server HTML and does not change after hydration. | The page content streams after consent resolves, in a later chunk of the same response. |
 
 The streamed layout passes the pending promise to `ConsentRoot`, so a slow or
-failed manifest request never holds the page. `ConsentBanner` waits for the
-promise in its own `Suspense` boundary and renders only when the resolved
-policy shows a banner to this visitor. Start with this layout.
+failed manifest request never holds the page. Start with it.
 
 The awaited layout moves the page inside the consent boundary. With runtime
 fetching, a slow manifest response keeps the page blank for up to `timeoutMs`,

@@ -96,8 +96,7 @@ denied, `ConsentGate` shows its placeholder and gated scripts do not load. The
 browser makes no `/init` request.
 
 To mount the banner after hydration instead, pass `streamBanner: false` in
-`ConsentRoot`'s `options`. Use the same value on the server and in the
-browser.
+`ConsentRoot`'s `options`.
 
 A new visitor then sees the banner. A returning visitor with a valid stored
 choice sees none, and the scripts that choice allows load. A choice that has
