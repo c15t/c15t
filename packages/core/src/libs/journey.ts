@@ -9,7 +9,15 @@
  * about the visitor.
  */
 
+import { parseJourneyId, parseJourneyScope } from '@c15t/schema/types';
 import type { ConsentJourneyScope } from '@c15t/schema/types';
+
+import type { KernelJourney } from '../types';
+import {
+	JOURNEY_STORAGE_KEY,
+	STORAGE_KEY,
+	STORAGE_KEY_V2,
+} from './storage-keys';
 
 /**
  * Whether and how long a runtime keeps a consent journey id.
@@ -55,4 +63,170 @@ export const createJourneyId = function createJourneyId(): string | undefined {
 	bytes[8] = ((bytes[8] ?? 0) % 64) + 0x80;
 	const hex = Array.from(bytes, toHex).join('');
 	return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+};
+
+/** The part of Web Storage a `'tab'` journey uses. */
+export type JourneyStorage = Pick<
+	Storage,
+	'getItem' | 'removeItem' | 'setItem'
+>;
+
+/** `window.sessionStorage`, or `null` outside a browser. May throw. */
+export const sessionStorageOf = (): JourneyStorage | null =>
+	typeof window === 'undefined' ? null : window.sessionStorage;
+
+/** A journey that was opened, and whether an earlier page started it. */
+export interface OpenedJourney {
+	journey: KernelJourney;
+	/** The id came from `sessionStorage`: an earlier page of this tab. */
+	continued: boolean;
+}
+
+/**
+ * Open a journey under one rule set, shared by the runtime and by the
+ * requests sent before it starts: a `'tab'` journey continues the id an
+ * earlier page left in `sessionStorage`; otherwise the `adopted` id is used
+ * (a server render's or an early request's); otherwise a new one is made.
+ * Unusable storage makes the journey a `'page'` one. A `'page'` journey
+ * never touches storage.
+ *
+ * @param options - The `journey` option, whether a choice is stored, the
+ *   storage and an id to adopt.
+ * @returns The journey, or `undefined` when it is off or no id can be made.
+ * @internal
+ */
+export const openJourney = function openJourney(options: {
+	option: ConsentJourneyOption | undefined;
+	storedChoice: boolean;
+	storage?: () => JourneyStorage | null;
+	adopted?: string | null;
+}): OpenedJourney | undefined {
+	if (options.option === false) {
+		return undefined;
+	}
+	let scope: ConsentJourneyScope = options.option ?? 'page';
+	let previous: string | null = null;
+	if (scope === 'tab') {
+		try {
+			const store = (options.storage ?? sessionStorageOf)();
+			if (store) {
+				previous = parseJourneyId(store.getItem(JOURNEY_STORAGE_KEY));
+			} else {
+				scope = 'page';
+			}
+		} catch {
+			scope = 'page';
+		}
+	}
+	const id = previous ?? parseJourneyId(options.adopted) ?? createJourneyId();
+	if (!id) {
+		return undefined;
+	}
+	return {
+		continued: previous !== null,
+		journey: Object.freeze({ id, scope, storedChoice: options.storedChoice }),
+	};
+};
+
+/**
+ * Window property holding the journey of a request sent before the runtime
+ * started: React's early `/init`, or the inline prefetch script. One per
+ * page load, so every early request of a page shares it, and the runtime
+ * continues it when it starts. Memory only.
+ */
+export const JOURNEY_WINDOW_KEY = '__c15tJourney';
+
+type JourneyWindow = Window & { [JOURNEY_WINDOW_KEY]?: unknown };
+
+/**
+ * The journey an early request of this page started, if it is well formed.
+ *
+ * @returns The journey, or `undefined`.
+ * @internal
+ */
+export const readEarlyJourney = function readEarlyJourney():
+	| KernelJourney
+	| undefined {
+	if (typeof window === 'undefined') {
+		return undefined;
+	}
+	const value = (window as JourneyWindow)[JOURNEY_WINDOW_KEY] as
+		| Partial<KernelJourney>
+		| null
+		| undefined;
+	const id = parseJourneyId(value?.id);
+	const scope = parseJourneyScope(value?.scope);
+	return id && scope && typeof value?.storedChoice === 'boolean'
+		? { id, scope, storedChoice: value.storedChoice }
+		: undefined;
+};
+
+/**
+ * The journey a request sent before the runtime starts carries: this page's
+ * early journey when one exists, otherwise a new one under the
+ * {@link openJourney} rules, recorded for the runtime to continue.
+ *
+ * @param options - The `journey` option and whether a choice is stored.
+ * @returns The journey, or `undefined` when it is off or outside a browser.
+ * @internal
+ */
+export const claimEarlyJourney = function claimEarlyJourney(options: {
+	option: ConsentJourneyOption | undefined;
+	storedChoice: boolean;
+	storage?: () => JourneyStorage | null;
+}): KernelJourney | undefined {
+	if (options.option === false || typeof window === 'undefined') {
+		return undefined;
+	}
+	const existing = readEarlyJourney();
+	if (existing) {
+		return existing;
+	}
+	const opened = openJourney(options);
+	if (opened) {
+		(window as JourneyWindow)[JOURNEY_WINDOW_KEY] = opened.journey;
+	}
+	return opened?.journey;
+};
+
+/**
+ * Whether storage holds a consent record under `storageKey`, without
+ * decoding it: the consent cookie, or its localStorage mirror (and the
+ * legacy key). Used where the record code is not loaded yet, such as the
+ * inline prefetch script, which runs the same check. A record that does
+ * not decode still counts, so it can differ from the runtime's own read.
+ *
+ * @param storageKey - The consent storage key. Defaults to `c15t`.
+ * @returns `true` when a record is present.
+ * @internal
+ */
+export const hasStoredConsentRecord = function hasStoredConsentRecord(
+	storageKey: string = STORAGE_KEY_V2
+): boolean {
+	if (typeof document === 'undefined') {
+		return false;
+	}
+	try {
+		if (
+			document.cookie
+				.split('; ')
+				.some(
+					(pair) =>
+						pair.startsWith(`${storageKey}=`) &&
+						pair.length > storageKey.length + 1
+				)
+		) {
+			return true;
+		}
+	} catch {
+		// Cookies blocked; localStorage may still answer.
+	}
+	try {
+		return [
+			storageKey,
+			...(storageKey === STORAGE_KEY ? [] : [STORAGE_KEY]),
+		].some((key) => window.localStorage.getItem(key) !== null);
+	} catch {
+		return false;
+	}
 };

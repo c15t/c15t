@@ -13,7 +13,10 @@ import type {
 	KernelTransport,
 	ProviderTransportContext,
 } from '@c15t/core';
-import { writePolicyResolutionWire } from '@c15t/schema/types';
+import {
+	readJourneyParams,
+	writePolicyResolutionWire,
+} from '@c15t/schema/types';
 import { StrictMode, Suspense, act, useContext, useEffect } from 'react';
 import { hydrateRoot } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
@@ -50,6 +53,9 @@ let backendFetch: ReturnType<typeof vi.fn>;
 
 beforeEach(() => {
 	localStorage.clear();
+	sessionStorage.clear();
+	// The page's early journey; each test is a fresh page load.
+	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	requests = [];
 	backendFetch = vi.fn(
 		(_url: string, init: RequestInit & { headers: Record<string, string> }) =>
@@ -118,6 +124,71 @@ test('sends /init once, before its children render, under StrictMode', async () 
 	requests[0]?.respond('early');
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
 	expect(initCalls()).toHaveLength(1);
+	await view.unmount();
+});
+
+test('the early /init and the save it leads to carry one journey', async () => {
+	let kernel: ConsentKernel | null = null;
+	const Capture = () => {
+		const current = useContext(KernelContext);
+		useEffect(() => {
+			kernel = current;
+		}, [current]);
+		return null;
+	};
+	const options = { mode: mode(), persistence: false as const };
+	const view = await render(
+		<StrictMode>
+			<ConsentProvider options={options}>
+				<Capture />
+				<PolicyProbe />
+			</ConsentProvider>
+		</StrictMode>
+	);
+
+	// Sent during the render, before the runtime started.
+	expect(initCalls()).toHaveLength(1);
+	const early = readJourneyParams(String(initCalls()[0]?.[0]));
+	expect(early).toEqual({
+		id: expect.stringMatching(/^[\da-f-]{36}$/u),
+		scope: 'page',
+		storedChoice: false,
+	});
+
+	requests[0]?.respond('early');
+	await expect.element(view.getByTestId('policy')).toHaveTextContent('early');
+	// The mounted kernel took the early response instead of asking again.
+	expect(initCalls()).toHaveLength(1);
+
+	const saving = (kernel as ConsentKernel | null)?.commands.save('all');
+	await vi.waitFor(() => expect(requests).toHaveLength(2));
+	requests[1]?.respond('early');
+	await saving;
+	const save = backendFetch.mock.calls.find(([url]) =>
+		String(url).split('?')[0]?.endsWith('/subjects')
+	);
+	expect(readJourneyParams(String(save?.[0]))).toEqual({
+		id: early?.id,
+		scope: 'page',
+	});
+	await view.unmount();
+});
+
+test('a tab journey on the early /init continues the id an earlier page kept', async () => {
+	const id = '3b241101-e2bb-4255-8caf-4136c566a962';
+	sessionStorage.setItem('c15t-journey-v1', id);
+	const view = await render(
+		<ConsentProvider
+			options={{ journey: 'tab', mode: mode(), persistence: false }}
+		>
+			<PolicyProbe />
+		</ConsentProvider>
+	);
+	expect(readJourneyParams(String(initCalls()[0]?.[0]))).toEqual({
+		id,
+		scope: 'tab',
+		storedChoice: false,
+	});
 	await view.unmount();
 });
 
@@ -321,7 +392,8 @@ test('a retry after the global fetch changed sends its own request through the n
 	const calls: string[] = [];
 	const globalFetch = (tag: string) =>
 		((url: string, init: RequestInit) => {
-			calls.push(`${tag} ${String(url).slice(BACKEND.length)}`);
+			// The path: the query carries the page's consent journey.
+			calls.push(`${tag} ${String(url).slice(BACKEND.length).split('?')[0]}`);
 			return backendFetch(url, init);
 		}) as typeof fetch;
 	vi.stubGlobal('fetch', globalFetch('old'));
@@ -643,7 +715,7 @@ test('providers whose hosted() modes differ never share a request', async () => 
 		</>
 	);
 
-	expect(initCalls().map(([url]) => String(url))).toEqual([
+	expect(initCalls().map(([url]) => String(url).split('?')[0])).toEqual([
 		`${BACKEND}/init`,
 		`${BACKEND}/other/init`,
 		`${BACKEND}/init`,

@@ -28,11 +28,15 @@ import type {
 	User,
 	Vendor,
 } from '@c15t/core';
-import { createPersistence } from '@c15t/core/modules/persistence';
+import {
+	createPersistence,
+	readStoredRecords,
+} from '@c15t/core/modules/persistence';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
 import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
+	claimEarlyJourney,
 	createConsentProviderRuntime,
 	hostedModes,
 	lazyRuntimeModule,
@@ -495,6 +499,24 @@ const toRuntimeOptions = function toRuntimeOptions(
 };
 
 /**
+ * Whether the visitor has a stored choice, read the way the runtime's
+ * persistence will read it on `start()`. The early `/init` leaves before
+ * that, and its journey says whether a choice was stored.
+ */
+const hasStoredChoice = function hasStoredChoice(
+	options: ConsentProviderOptions
+): boolean {
+	if (options.persistence === false || options.consentSource) {
+		return false;
+	}
+	const storageConfig =
+		(typeof options.persistence === 'object'
+			? options.persistence.storageConfig
+			: undefined) ?? options.storageConfig;
+	return Boolean(readStoredRecords(storageConfig, Date.now()).records.choice);
+};
+
+/**
  * A runtime the provider built during a render, with what it needs to tell
  * whether React kept that render.
  */
@@ -616,6 +638,12 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		) {
 			const context = { overrides: snapshot.overrides, user: snapshot.user };
 			const key = JSON.stringify(context);
+			// The journey this page's early requests share; the runtime
+			// continues it on `start()`, so the save carries the same id.
+			const journey = claimEarlyJourney({
+				option: initialOptions.journey,
+				storedChoice: hasStoredChoice(initialOptions),
+			});
 			for (const other of sentEarly) {
 				if (other.key === key && sameHosted(other.options, hostedOptions)) {
 					early = other;
@@ -626,7 +654,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 				// takes it.
 				const carrier = buildTransport();
 				const init = carrier.init as NonNullable<KernelTransport['init']>;
-				const request = init(context);
+				const request = init(journey ? { ...context, journey } : context);
 				// Nobody reads it when the render that sent it never commits.
 				// oxlint-disable-next-line promise/prefer-await-to-then -- Only marks the rejection handled.
 				request.catch(() => undefined);

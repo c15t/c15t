@@ -16,6 +16,7 @@ import {
 	matchedResolution,
 	optInRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
+import { buildPrefetchScript } from '../../libs/prefetch/prefetch';
 import { JOURNEY_STORAGE_KEY } from '../../libs/storage-keys';
 import { clearStoredConsentRecords } from '../../modules/persistence/__tests__/record-writes';
 import { custom, hosted } from '../../transports/mode';
@@ -43,36 +44,35 @@ let requests: SentRequest[] = [];
 let saveStatus = 200;
 const runtimes: ConsentRuntime[] = [];
 
-const backend = () =>
-	hosted({
-		fetch: (input, init) => {
-			const url = new URL(String(input), 'https://shop.example.com');
-			requests.push({
-				journey: readJourneyParams(url),
-				method: init?.method ?? 'GET',
-				path: url.pathname,
-			});
-			if (url.pathname.endsWith('/subjects') && saveStatus !== 200) {
-				return Promise.resolve(new Response(null, { status: saveStatus }));
-			}
-			return Promise.resolve(
-				Response.json(
-					url.pathname.endsWith('/init')
-						? {
-								branding: 'c15t',
-								location: { countryCode: 'DE', regionCode: null },
-								policyResolution: writePolicyResolutionWire(
-									matchedResolution(optInRule())
-								),
-								translations: { language: 'en', translations },
-							}
-						: { subjectId: 'sub_1' },
-					{ headers: c15tProtocolHeaders }
-				)
-			);
-		},
-		url: 'https://consent.example.com',
+const fakeFetch: typeof globalThis.fetch = (input, init) => {
+	const url = new URL(String(input), 'https://shop.example.com');
+	requests.push({
+		journey: readJourneyParams(url),
+		method: init?.method ?? 'GET',
+		path: url.pathname,
 	});
+	if (url.pathname.endsWith('/subjects') && saveStatus !== 200) {
+		return Promise.resolve(new Response(null, { status: saveStatus }));
+	}
+	return Promise.resolve(
+		Response.json(
+			url.pathname.endsWith('/init')
+				? {
+						branding: 'c15t',
+						location: { countryCode: 'DE', regionCode: null },
+						policyResolution: writePolicyResolutionWire(
+							matchedResolution(optInRule())
+						),
+						translations: { language: 'en', translations },
+					}
+				: { subjectId: 'sub_1' },
+			{ headers: c15tProtocolHeaders }
+		)
+	);
+};
+
+const backend = () =>
+	hosted({ fetch: fakeFetch, url: 'https://consent.example.com' });
 
 const init = () => requests.filter((request) => request.path === '/init');
 const saves = () => requests.filter((request) => request.path === '/subjects');
@@ -114,6 +114,10 @@ beforeEach(() => {
 	localStorage.clear();
 	sessionStorage.clear();
 	clearStoredConsentRecords();
+	// Each test is a fresh page load.
+	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
+	delete (window as Window & { __c15tInitialDataPromises?: unknown })
+		.__c15tInitialDataPromises;
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 });
 
@@ -282,6 +286,50 @@ describe('a journey a server render started', () => {
 			id: SERVER_ID,
 			scope: 'page',
 		});
+	});
+});
+
+describe('a journey a request before the runtime started', () => {
+	test('the inline prefetch script sends it and the save carries it', async () => {
+		vi.stubGlobal('fetch', fakeFetch);
+		try {
+			window.eval(
+				buildPrefetchScript({ backendURL: 'https://consent.example.com' })
+			);
+			const runtime = await load();
+			// The runtime took the script's response: one /init in all.
+			expect(init()).toHaveLength(1);
+			const early = init()[0]?.journey;
+			expect(early).toEqual({
+				id: expect.stringMatching(/^[\da-f-]{36}$/u),
+				scope: 'page',
+				storedChoice: false,
+			});
+			await runtime.kernel.commands.save('all');
+			expect(saves()[0]?.journey).toEqual({ id: early?.id, scope: 'page' });
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
+
+	test('a server render id outranks an early request id', async () => {
+		(window as Window & { __c15tJourney?: unknown }).__c15tJourney = {
+			id: 'f47ac10b-58cc-4372-a567-0e02b2c3d479',
+			scope: 'page',
+			storedChoice: false,
+		};
+		const runtime = createConsentRuntime({
+			consentCategories: ['necessary', 'measurement'],
+			mode: backend(),
+			prefetch: {
+				initialPolicyResolution: matchedResolution(optInRule()),
+				journey: { id: SERVER_ID },
+			},
+		});
+		runtimes.push(runtime);
+		runtime.start();
+		await runtime.kernel.commands.save('all');
+		expect(saves()[0]?.journey?.id).toBe(SERVER_ID);
 	});
 });
 

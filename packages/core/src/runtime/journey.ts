@@ -5,8 +5,10 @@
  * The journey is created on the runtime's first `start()`, after stored
  * consent is hydrated, so it knows whether the visitor already had a
  * choice. It continues a journey a server render started (its id arrives in
- * the prefetch) or, with `'tab'`, one an earlier page in the same tab left
- * in `sessionStorage`. It reaches the backend through the transport the
+ * the prefetch), one a request sent before the runtime started (React's
+ * early `/init`, the inline prefetch script) recorded for this page, or,
+ * with `'tab'`, one an earlier page in the same tab left in
+ * `sessionStorage`. It reaches the backend through the transport the
  * runtime builds: {@link withJourney} adds it to every `init` context and to
  * every save this page sends live. A queued save is never stored with it,
  * and a replay carries none.
@@ -18,8 +20,12 @@
 
 import { parseJourneyId } from '@c15t/schema/types';
 
-import { createJourneyId } from '../libs/journey';
-import type { ConsentJourneyOption } from '../libs/journey';
+import {
+	openJourney,
+	readEarlyJourney,
+	sessionStorageOf,
+} from '../libs/journey';
+import type { ConsentJourneyOption, JourneyStorage } from '../libs/journey';
 import { JOURNEY_STORAGE_KEY } from '../libs/storage-keys';
 import type {
 	ConsentKernel,
@@ -28,11 +34,7 @@ import type {
 	SavePayload,
 } from '../types';
 
-/** The part of Web Storage the journey uses. */
-export type JourneyStorage = Pick<
-	Storage,
-	'getItem' | 'removeItem' | 'setItem'
->;
+export type { JourneyStorage } from '../libs/journey';
 
 /** Options for {@link createJourneyController}. */
 export interface JourneyControllerOptions {
@@ -67,9 +69,6 @@ export interface JourneyController {
 	forSave: () => SavePayload['journey'];
 }
 
-const sessionStorageOf = (): JourneyStorage | null =>
-	typeof window === 'undefined' ? null : window.sessionStorage;
-
 /**
  * Create the journey controller of one runtime. Pure: nothing is read or
  * written before `start()`.
@@ -98,34 +97,19 @@ export const createJourneyController = function createJourneyController(
 	};
 
 	const create = function create(kernel: ConsentKernel): void {
-		if (options.option === false) {
-			return;
-		}
-		let scope = options.option ?? 'page';
-		let previous: string | null = null;
-		if (scope === 'tab') {
-			try {
-				const store = storage();
-				if (store) {
-					previous = parseJourneyId(store.getItem(JOURNEY_STORAGE_KEY));
-				} else {
-					scope = 'page';
-				}
-			} catch {
-				scope = 'page';
-			}
-		}
-		const id = previous ?? serverId ?? createJourneyId();
-		if (!id) {
-			return;
-		}
-		continued = previous !== null;
-		stored = continued;
-		journey = Object.freeze({
-			id,
-			scope,
+		// A server render's id first, then one an early request of this page
+		// already sent (React's early `/init`, the inline prefetch script).
+		const opened = openJourney({
+			adopted: serverId ?? readEarlyJourney()?.id,
+			option: options.option,
+			storage,
 			storedChoice: kernel.getSnapshot().explicitChoice !== null,
 		});
+		if (!opened) {
+			return;
+		}
+		({ journey, continued } = opened);
+		stored = continued;
 	};
 
 	const write = function write(): void {
@@ -246,11 +230,12 @@ export const withJourney = function withJourney(
 	if (transport.save) {
 		wrapped.save = (payload, context) => {
 			// Only the page that made a save sends it with its journey.
-			const current = context?.replay ? undefined : journey.forSave();
-			return (transport.save as NonNullable<KernelTransport['save']>)(
-				current ? { ...payload, journey: current } : payload,
-				context
-			);
+			const save = transport.save as NonNullable<KernelTransport['save']>;
+			if (context?.replay) {
+				return save(payload, context);
+			}
+			const current = journey.forSave();
+			return save(current ? { ...payload, journey: current } : payload);
 		};
 	}
 	if (transport.identify) {
