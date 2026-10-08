@@ -585,12 +585,15 @@ const ALL_DENIED: ConsentState = {
 /**
  * The consent state a vendor's consent-mode signal should carry. A vendor
  * the subject turned off gets every optional category denied, whatever the
- * category state, so its own consent API cannot re-enable tracking.
+ * category state, so its own consent API cannot re-enable tracking. A
+ * category the policy exempts from consent is signalled as denied.
  */
 const signalConsents = function signalConsents(
 	info: ScriptCallbackInfo
 ): ConsentState {
-	return info.vendor?.granted === false ? ALL_DENIED : info.consents;
+	return info.vendor?.granted === false
+		? ALL_DENIED
+		: (info.consentSignals ?? info.consents);
 };
 
 const getConsentSignalSteps = function getConsentSignalSteps(

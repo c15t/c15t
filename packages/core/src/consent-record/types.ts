@@ -135,6 +135,11 @@ export interface EvaluationPolicy {
 	 * scope. Empty means a choice prompt only asks for an acknowledgement.
 	 */
 	choiceScope?: readonly OptionalConsentCategory[];
+	/**
+	 * In-scope categories an opt-in policy permits until the visitor objects,
+	 * because a consent exemption covers them. Absent when there are none.
+	 */
+	exemptCategories?: readonly OptionalConsentCategory[];
 	choice: RecordValidity;
 	notice: RecordValidity;
 	/**

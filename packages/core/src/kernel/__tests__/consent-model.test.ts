@@ -845,6 +845,68 @@ describe('server snapshot and reference stability', () => {
 	});
 });
 
+describe('exempt categories', () => {
+	const ukKernel = (consentCategories?: ('marketing' | 'measurement')[]) =>
+		createConsentKernel({
+			consentCategories,
+			initialPolicyResolution: resolvePolicyRules({
+				countryCode: 'GB',
+				regionCode: null,
+				rules: [policyRulePresets.ukOptInWithStatistics()],
+			}),
+			now: POLICY_NOW,
+		});
+
+	test('run before a choice, accept an objection and never grant advertising', async () => {
+		// The site declares only marketing; measurement still runs, so the
+		// visitor is still asked about it and can object.
+		const kernel = ukKernel(['marketing']);
+		try {
+			expect(kernel.getSnapshot().evaluationPolicy.choiceScope).toEqual([
+				'marketing',
+				'measurement',
+			]);
+			expect(kernel.getSnapshot().promptRequirement).toEqual({
+				kind: 'choice',
+				reason: 'missing',
+			});
+			expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+				marketing: false,
+				measurement: true,
+			});
+			expect(kernel.getSnapshot().explicitChoice).toBeNull();
+			await kernel.commands.save('none');
+			expect(kernel.getSnapshot().effectivePermissions.measurement).toBe(false);
+			expect(kernel.getSnapshot().restrictions.measurement).toEqual([
+				'explicit-denial',
+			]);
+			expect(kernel.getSnapshot().promptRequirement.kind).toBe('none');
+			await kernel.commands.save({ measurement: true });
+			expect(kernel.getSnapshot().effectivePermissions).toMatchObject({
+				marketing: false,
+				measurement: true,
+			});
+		} finally {
+			kernel.dispose();
+		}
+	});
+
+	test('are asked about when the site declares no categories', () => {
+		const kernel = ukKernel();
+		try {
+			expect(kernel.getSnapshot().evaluationPolicy.choiceScope).toEqual([
+				'measurement',
+			]);
+			expect(kernel.getSnapshot().promptRequirement).toEqual({
+				kind: 'choice',
+				reason: 'missing',
+			});
+		} finally {
+			kernel.dispose();
+		}
+	});
+});
+
 describe('statistics-only presets', () => {
 	test.each([
 		['ukStatistics', 'GB'],

@@ -191,7 +191,10 @@ const syncClarityConsent = function syncClarityConsent(
 		'consentv2',
 		info.vendor?.granted === false
 			? { ad_Storage: 'denied', analytics_Storage: 'denied' }
-			: getClarityConsentPayload(info.consents, defaultConsent)
+			: getClarityConsentPayload(
+					info.consentSignals ?? info.consents,
+					defaultConsent
+				)
 	);
 };
 

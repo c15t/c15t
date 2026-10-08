@@ -344,6 +344,8 @@ export interface PolicyRulePresets {
 	canadaOptOut: () => PolicyRule;
 	/** UK: service statistics only, with information and free objection. Advertising stays denied. */
 	ukStatistics: () => PolicyRule;
+	/** UK: opt-in choice, with service statistics running before it under the PECR exception. */
+	ukOptInWithStatistics: () => PolicyRule;
 	/** Malaysia: solely statistics/research, nonidentifying output and no secondary uses. */
 	malaysiaStatistics: () => PolicyRule;
 
@@ -720,6 +722,23 @@ export const policyRulePresets: PolicyRulePresets = {
 				'Executive-regulation issuance and the resulting compliance transition were not established in this source review. Verify current federal applicability before deployment.',
 			]
 		),
+	ukOptInWithStatistics: () => ({
+		exemptCategories: ['measurement'],
+		id: 'uk_opt_in_with_statistics',
+		match: policyMatchers.countries(['GB']),
+		model: 'opt-in',
+		prompt: 'choice',
+		proof: fullProof,
+		review: sourceReview(
+			[PECR_SOURCE, ICO_SOURCE],
+			[
+				'Measurement runs before a choice under PECR Schedule A1 paragraph 5, with clear information and a free, simple objection. Every other optional category, advertising included, stays denied until consent.',
+				'Every measurement script must qualify: statistics to improve the service as the sole purpose, aggregate output, any provider acting only as a processor, and no advertising, retained individual histories, cross-site tracking or vendor reuse. Analytics that fails any of these belongs in a consent category.',
+				'Vendor consent signals for measurement stay denied, so Google Consent Mode and similar APIs never read the exemption as consent.',
+			]
+		),
+		validity: { choiceDays: 365 },
+	}),
 	ukStatistics: () => ({
 		...countryOptOut(
 			'uk_statistics',

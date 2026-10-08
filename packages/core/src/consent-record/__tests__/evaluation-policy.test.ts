@@ -83,3 +83,23 @@ it('validates and canonicalizes the displayed choice scope independently of perm
 		makePolicy({ choiceScope: ['marketing'], scope: ['measurement'] })
 	).toThrow(/inside the policy scope/u);
 });
+
+it('keeps exempt categories only for an opt-in scope that contains them', () => {
+	expect(
+		makePolicy({ exemptCategories: ['measurement', 'measurement'] })
+			.exemptCategories
+	).toEqual(['measurement']);
+	expect(makePolicy({ exemptCategories: [] })).not.toHaveProperty(
+		'exemptCategories'
+	);
+	expect(() =>
+		makePolicy({
+			exemptCategories: ['measurement'],
+			model: 'opt-out',
+			prompt: 'none',
+		})
+	).toThrow(/cannot exempt categories/u);
+	expect(() =>
+		makePolicy({ exemptCategories: ['measurement'], scope: ['marketing'] })
+	).toThrow(/inside the policy scope/u);
+});

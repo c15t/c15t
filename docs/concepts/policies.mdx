@@ -19,6 +19,7 @@ permissions. It should not choose a different rule just to hide a banner.
 | `prompt: 'notice'` | Dismissing the notice records an acknowledgement, not a consent grant. |
 | `prompt: 'none'` | No automatic prompt. The rule can still require a way to open preferences. |
 | `scopeMode: 'strict'` | Optional categories outside the rule's scope stay denied. |
+| `exemptCategories` | On an opt-in rule, these categories run before a choice. A saved refusal stops them, and vendor consent signals report them as denied. |
 
 Keep a persistent preferences entry point wherever the policy provides that
 right. A visitor who dismissed a notice or rejected tracking still needs a way

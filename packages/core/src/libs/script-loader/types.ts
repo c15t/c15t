@@ -28,6 +28,14 @@ export interface ScriptCallbackInfo {
 	consents: ConsentState;
 
 	/**
+	 * What a vendor's own consent API should receive, when that differs from
+	 * `consents`. Categories the policy exempts from consent may run, but
+	 * they are reported as denied: the exemption is not consent. Absent when
+	 * the policy exempts nothing.
+	 */
+	consentSignals?: ConsentState;
+
+	/**
 	 * Vendor-level consent for the script's `vendor` slug, when set. Absent
 	 * in IAB mode and for scripts without a vendor. `granted` is `false`
 	 * while the subject has the vendor turned off, even when the category

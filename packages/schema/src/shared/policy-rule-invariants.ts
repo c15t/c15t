@@ -193,6 +193,34 @@ const hasDuplicates = function hasDuplicates(
 	return new Set(values).size !== values.length;
 };
 
+const collectExemptInvariantIssues = function collectExemptInvariantIssues(
+	rule: ResolvedPolicyRule
+): string[] {
+	const exempt = rule.exemptCategories;
+	if (exempt === undefined) {
+		return [];
+	}
+	const issues: string[] = [];
+	if (exempt.length === 0) {
+		issues.push('exemptCategories must be omitted when empty');
+	}
+	if (hasDuplicates(exempt)) {
+		issues.push('exemptCategories must not repeat a category');
+	}
+	if (rule.model !== 'opt-in') {
+		issues.push(`${rule.model} rules cannot exempt categories`);
+	}
+	if (exempt.includes('marketing')) {
+		issues.push('marketing cannot be exempt');
+	}
+	if (
+		!exempt.every((category) => rule.preselectedCategories.includes(category))
+	) {
+		issues.push('exemptCategories must be inside scope and preselected');
+	}
+	return issues;
+};
+
 const collectActionInvariantIssues = function collectActionInvariantIssues(
 	rule: ResolvedPolicyRule
 ): string[] {
@@ -279,6 +307,7 @@ export const collectResolvedPolicyRuleIssues =
 		) {
 			issues.push('preselectedCategories must be inside scope');
 		}
+		issues.push(...collectExemptInvariantIssues(rule));
 		issues.push(...collectActionInvariantIssues(rule));
 		if (hasDuplicates(rule.rights)) {
 			issues.push('rights must not repeat a right');

@@ -90,13 +90,19 @@ const decisionAuthority = function decisionAuthority(
 
 const defaultPermission = function defaultPermission(
 	policy: EvaluationPolicy,
+	category: OptionalConsentCategory,
 	inScope: boolean
 ): boolean {
 	if (!inScope) {
 		return policy.scopeMode === 'permissive';
 	}
-	// Opt-out and none both permit processing until something restricts it.
-	return policy.model === 'opt-out' || policy.model === 'none';
+	// Opt-out and none both permit processing until something restricts it,
+	// and so does a category an opt-in policy exempts from consent.
+	return (
+		policy.model === 'opt-out' ||
+		policy.model === 'none' ||
+		policy.exemptCategories?.includes(category) === true
+	);
 };
 
 const collectRestrictions = function collectRestrictions(
@@ -132,7 +138,7 @@ const evaluateCategory = function evaluateCategory(
 	);
 	const restrictions = collectRestrictions(category, decision, inScope, input);
 
-	let permitted = defaultPermission(policy, inScope);
+	let permitted = defaultPermission(policy, category, inScope);
 	let source: CategoryEvaluation['source'] = 'default';
 	if (inScope && decision?.value === true && authority === 'valid') {
 		permitted = true;
@@ -371,7 +377,8 @@ const deriveNextDeadline = function deriveNextDeadline(
 		const evaluation = categories[category];
 		const decision = input.choice?.categories[category];
 		const permissionCanChange =
-			!defaultPermission(policy, true) && evaluation.restrictions.length === 0;
+			!defaultPermission(policy, category, true) &&
+			evaluation.restrictions.length === 0;
 		if (
 			decision?.value === true &&
 			evaluation.authority === 'valid' &&
