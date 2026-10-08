@@ -4,7 +4,8 @@ packages:
   '@c15t/core': minor
   '@c15t/backend': minor
   '@c15t/react': minor
-  '@c15t/nextjs': patch
+  '@c15t/nextjs': minor
+  '@c15t/tanstack-start': minor
   c15t: minor
 ---
 
@@ -43,9 +44,16 @@ after going offline carries no journey. Backends that do not read the
 parameters ignore them.
 
 `'tab'` suits pages that resolve init in the browser: a server render cannot
-read `sessionStorage`, so it reports a new id on every page. The option is on
-the core runtime and the React provider (and so Next.js and TanStack Start) for
-now; Vue, Svelte, Astro and the script tag use `'page'`.
+read `sessionStorage`, so it reports a new id on every page, and the browser
+keeps the tab's id, which an earlier page reported. A kept id is dropped once a
+page resolves to no prompt.
+
+In Next.js, set `journey` in `defineConsentConfig`; `resolveConsent` and
+`ConsentRoot` both read it. In TanStack Start, pass the same `journey` to
+`resolveConsent` and `ConsentRoot`. A render that starts no journey
+(`journey: false`, `reportSessions: false`, nothing to report to, a prefetch)
+returns `journey: null`, and the browser sends none. Vue, Svelte, Astro and the
+script tag use `'page'` for now.
 
 Request URLs now carry a query string. If you pass `hosted()` a `fetch` that
 routes on the exact URL, match the path instead.

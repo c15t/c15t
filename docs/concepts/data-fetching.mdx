@@ -84,15 +84,21 @@ one visitor's page load.
 Where the journey starts:
 
 - A server render starts it, puts it on its `/init` (with the page's `Origin`)
-  or its session report, and hands the id to the browser in the state.
-  `reportSessions: false` starts none.
+  or its session report, and hands the id to the browser in the state. When
+  the render resolves the page without one (`journey: false`,
+  `reportSessions: false`, a manifest render with no absolute backend to report
+  to, or a prefetch), the state says `journey: null` and the browser sends
+  none.
 - A request sent before the runtime starts, React's early `/init` or the
   inline prefetch script, starts it and records it on the page.
 - Otherwise the runtime starts it when it starts.
 
 The runtime continues the first of these that exists, so a save carries the id
 of an `/init` or report that came before it. A save queued while offline and
-sent again later, on this page or another, carries no journey.
+sent again later, on this page or another, carries no journey. When an init
+route has to ask the backend's own `/init`, it forwards the journey with the
+page's `Origin`; the backend falls back to the request's host when a browser
+sends no `Origin`.
 
 The id is not the subject id, is never written to a cookie, and is not derived
 from anything about the visitor. Choose how long it lives with the provider's
@@ -101,19 +107,27 @@ from anything about the visitor. Choose how long it lives with the provider's
 | Value | Behavior |
 | --- | --- |
 | `'page'` (default) | One id per page load, kept in memory. |
-| `'tab'` | The id is kept in `sessionStorage` while a prompt is due, so a visitor who moves to another page before choosing keeps it. It is removed once a choice is recorded. Unusable storage falls back to `'page'`. |
+| `'tab'` | The id is kept in `sessionStorage` while a prompt is due, so a visitor who moves to another page before choosing keeps it. It is removed once a choice is recorded, or once a page resolves to no prompt. Unusable storage falls back to `'page'`. |
 | `false` | No journey parameters. |
 
 `'tab'` works best when the browser resolves init itself. A server render
-cannot read `sessionStorage`, so it starts a new id on every page: the save
-still carries the tab's id, which an earlier page's `/init` reported, while
-later pages' render reports carry their own ids.
+cannot read `sessionStorage`, so it starts a new id on every page. When the tab
+already has an id, the browser keeps it over the server's: an earlier page's
+`/init` or report carried it, so the save still links to a report, while this
+page's render report carries an id no save uses.
 
-The `journey` option is available on `@c15t/core`'s runtime and on the React
-provider, so on `@c15t/nextjs` and `@c15t/tanstack-start` too. The Vue,
-Svelte, Astro and script-tag adapters use the `'page'` default for now. Pass
-the same value to `buildPrefetchScript({ journey })` when you use the inline
-prefetch script.
+Where to set it:
+
+| Package | Browser | Server render |
+| --- | --- | --- |
+| `@c15t/core` | runtime `journey` | `resolveRequestConsent({ journey })` |
+| `@c15t/react` | provider `journey` | none |
+| `@c15t/nextjs` | `defineConsentConfig({ journey })`, read by `ConsentRoot` | the same config, or `resolveConsent({ journey })` |
+| `@c15t/tanstack-start` | `ConsentRoot` `options.journey` | `resolveConsent({ journey })`; pass both the same value |
+| Vue, Svelte, Astro, script tag | `'page'` only for now | `'page'` only for now |
+
+Pass the same value to `buildPrefetchScript({ journey })` when you use the
+inline prefetch script.
 
 A `fetch` you pass to `hosted()` sees the query string, so match on the path
 rather than the full URL.
