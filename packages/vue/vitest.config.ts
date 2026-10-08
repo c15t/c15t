@@ -29,6 +29,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'#c15t/manifest-snapshot': resolve(
+						__dirname,
+						'./src/__tests__/manifest-snapshot.ts'
+					),
+				},
+				{
 					'@c15t/core/modules/clear-on-revocation': resolve(
 						__dirname,
 						'../core/src/modules/clear-on-revocation/index.ts'

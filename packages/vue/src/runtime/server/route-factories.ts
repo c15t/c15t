@@ -36,6 +36,8 @@ interface RouteDependencies {
 	 * resolves without a host.
 	 */
 	fetch: ManifestFetch;
+	/** The manifest fetched during the build, when `buildManifest` is on. */
+	manifest?: ConsentManifest;
 	useRuntimeConfig: RuntimeConfigReader;
 	/**
 	 * Receives the promise of detached work started by a request (a
@@ -72,7 +74,7 @@ export const waitUntilFromEvent = function waitUntilFromEvent(
  */
 const readConsentConfig = function readConsentConfig(
 	runtimeConfig: unknown
-): ConsentConfig & { manifestSnapshot?: ConsentManifest } {
+): ConsentConfig {
 	const config =
 		typeof runtimeConfig === 'object' && runtimeConfig !== null
 			? (runtimeConfig as C15TNitroRuntimeConfig)
@@ -85,7 +87,7 @@ const readConsentConfig = function readConsentConfig(
 	return {
 		...(config.public?.c15t ?? {}),
 		...serverOnly,
-	} as ConsentConfig & { manifestSnapshot?: ConsentManifest };
+	} as ConsentConfig;
 };
 
 /**
@@ -111,7 +113,7 @@ const createRoute = function createRoute(
 			adapter: '@c15t/vue',
 			backendURL: config.backendURL,
 			fetch: dependencies.fetch,
-			manifest: config.manifestSnapshot,
+			manifest: dependencies.manifest,
 			manifestURL: config.manifestURL,
 			reportSessions: config.reportSessions,
 		});

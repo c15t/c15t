@@ -155,13 +155,19 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 				// exist so `NUXT_C15T_BACKEND_URL` and `NUXT_C15T_MANIFEST_URL`
 				// can give the server routes an address of their own.
 				backendURL: '',
-				manifestSnapshot,
 				manifestURL: '',
 				// The `/init` script reads it: with `ssr: false` for the whole
 				// app, every page is a shell.
 				ssr: nuxt.options.ssr !== false,
 			}
 		);
+
+		// The server routes import the build snapshot from this virtual. In
+		// runtime config, Nitro would replace every `null` in it with `''`
+		// during the build, and the routes would reject each policy pack.
+		nuxt.options.nitro.virtual ||= {};
+		nuxt.options.nitro.virtual['#c15t/manifest-snapshot'] = () =>
+			`export default ${manifestSnapshot ? JSON.stringify(manifestSnapshot) : 'undefined'};`;
 
 		nuxt.options.runtimeConfig.public.c15t = defu(
 			nuxt.options.runtimeConfig.public.c15t ?? {},
@@ -249,6 +255,24 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 							'}',
 							'',
 							'export {};',
+							'',
+						].join('\n'),
+				},
+				{ nitro: true, nuxt: true }
+			);
+			// Nitro's typed routes import the server handlers, and with them
+			// the build snapshot virtual.
+			addTypeTemplate(
+				{
+					filename: 'types/c15t-manifest-snapshot.d.ts',
+					getContents: () =>
+						[
+							"declare module '#c15t/manifest-snapshot' {",
+							`\timport type { C15tNuxtConfig } from ${JSON.stringify(specifier)};`,
+							'',
+							"\tconst manifest: C15tNuxtConfig['manifestSnapshot'];",
+							'\texport default manifest;',
+							'}',
 							'',
 						].join('\n'),
 				},
