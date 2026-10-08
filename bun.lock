@@ -968,6 +968,7 @@
     "examples/svelte": {
       "name": "@c15t/example-svelte",
       "dependencies": {
+        "@c15t/browser": "workspace:*",
         "@c15t/integrations": "workspace:*",
         "@c15t/svelte": "workspace:*",
         "c15t": "workspace:*",

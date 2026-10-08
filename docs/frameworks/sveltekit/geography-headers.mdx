@@ -29,11 +29,16 @@ Vercel adds its country and region headers on every request. Cloudflare adds
 headers. On another host, or a Node server without a CDN, set `x-c15t-country`
 and `x-c15t-region` at your proxy from whatever location data it has.
 
-In hosted mode, `loadConsent` forwards these headers to the backend's `/init`,
-along with `user-agent` and `x-forwarded-for`. It sends `x-forwarded-host`,
-`x-forwarded-proto` and `forwarded` only with `trustForwardedHeaders: true`. In manifest
-mode, it passes the resolved inputs to your route as `x-c15t-*` headers,
-because `event.fetch` forwards only cookies and authorization by itself.
+With a build-time snapshot, as in the quickstart, `loadConsent` resolves the
+policy in the server process from these inputs and makes no policy request.
+In hosted mode, it sends the resolved inputs to the backend's `/init` as
+`x-c15t-country`, `x-c15t-region`, `accept-language` and `sec-gpc`, along
+with `user-agent`. It adds the visitor IP as `x-forwarded-for` only with
+`trustForwardedHeaders: true`. It never forwards `forwarded`,
+`x-forwarded-host` or `x-forwarded-proto`; with that option it reads them to
+resolve a relative `backendURL`. With `initRoute`, it passes the same headers
+to your route, because `event.fetch` forwards only cookies and authorization
+by itself.
 
 ## Resolve the inputs once per request
 

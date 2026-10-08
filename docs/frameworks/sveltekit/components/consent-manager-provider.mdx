@@ -15,8 +15,9 @@ provider as `prefetch` in the root layout:
 
 Pass `data.prefetch` through unchanged. The provider starts from it on the
 server and in the browser, so both render the same banner, and the browser
-makes no second `/init` request. The [quickstart](../quickstart) explains
-`loadConsent` and the prerender check.
+makes no second policy request. The [quickstart](../quickstart) explains
+`loadConsent`, the bundled policy in `consentOptions`, the `/api/c15t` route
+and `shared: building` for prerendered pages.
 
 Keep the provider in the root `+layout.svelte`. A layout stays mounted across
 client-side navigation, so the runtime, the loaded scripts and the dialog

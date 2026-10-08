@@ -2,18 +2,26 @@
 
 ```svelte title="src/App.svelte"
 <script lang="ts">
+	import { manifest } from '@c15t/browser/headless';
 	import {
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
 		ConsentManagerProvider,
-		hosted,
 	} from '@c15t/svelte';
 
 	import '@c15t/svelte/styles.css';
+	// Written by the consentManifest plugin in vite.config.ts.
+	import { consentManifest } from './c15t-manifest';
 	import { scripts } from './scripts';
 
-	const mode = hosted({ url: 'https://your-project.inth.app' });
+	const mode = manifest({
+		// Consent choices still go to the backend.
+		backendURL:
+			import.meta.env.VITE_C15T_BACKEND_URL ||
+			'https://benchmarks-inth.inth.app',
+		manifest: consentManifest,
+	});
 </script>
 
 <ConsentManagerProvider {mode} {scripts}>

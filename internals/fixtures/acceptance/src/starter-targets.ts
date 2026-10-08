@@ -116,6 +116,8 @@ export const starterTargets: StarterTarget[] = [
 		],
 	},
 	{
+		// PUBLIC_C15T_BACKEND_URL from the shared environment is where the
+		// build downloads the bundled manifest and where the browser saves.
 		directory: 'examples/sveltekit',
 		id: 'sveltekit',
 		routes: ['/'],
@@ -132,21 +134,13 @@ export const starterTargets: StarterTarget[] = [
 	},
 	// VITE_C15T_BACKEND_URL from the shared environment is where the build
 	// downloads the bundled manifest and where the browser sends saves.
-	...['react', 'vue', 'javascript'].map((id) => ({
+	...['react', 'vue', 'svelte', 'javascript'].map((id) => ({
 		directory: `examples/${id}`,
 		id,
 		routes: ['/'],
 		serverRendered: false,
 		start: vitePreview,
 	})),
-	{
-		directory: 'examples/svelte',
-		id: 'svelte',
-		placeholderBackend: true,
-		routes: ['/'],
-		serverRendered: false,
-		start: vitePreview,
-	},
 	{
 		// Loads the hosted `c15t.js`, which the test serves from this
 		// checkout's build. `serve.ts` reads PORT.

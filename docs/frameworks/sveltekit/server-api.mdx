@@ -18,6 +18,7 @@ the browser bundle.
 | `c15tHandle(options)` | `@c15t/svelte/kit` | `hooks.server.ts` | [Rendering](./rendering#resolve-request-context-once-with-c15thandle) |
 | `createSvelteKitConsentRouteHandlers(options)` | `@c15t/svelte/kit` | `+server.ts` | [Rendering](./rendering#serve-the-manifest-route) |
 | `resolveConsent(options)` | `@c15t/svelte/server` | Any server code | [Rendering](./rendering#resolve-consent-in-other-server-code) |
+| `consentManifest(options)` | `@c15t/svelte/vite` | `vite.config.ts` | [consentManifest](#consentmanifest) |
 | `c15tPreload()` | `@c15t/svelte/vite` | `vite.config.ts` | [Scripts](./scripts#preload-the-script-loader) |
 
 Both entry points also re-export `hosted`, `offline` and `custom`, and the
@@ -180,8 +181,11 @@ relative `backendURL` the same way. Do not point it at the route the handlers
 serve, such as `/api/c15t`, or the route requests itself. A relative
 `backendURL` also turns off session reports, which need an absolute backend.
 
-With runtime fetching, the manifest is cached in memory per server process for as long as its
-`s-maxage` allows, then served stale while it refreshes in the background.
+With runtime fetching, the manifest is cached in memory per server process
+for as long as its `s-maxage` allows. After that, within the backend's
+`stale-while-revalidate` window, the handlers serve the stale copy while it
+refreshes in the background. Past that window, the next request waits for a
+fresh copy.
 The `manifest` handler passes upstream only a `language` query parameter that
 looks like a language tag; the visitor's other parameters never reach the
 backend. When the manifest cannot be read and `backendURL` is set, `init` asks
@@ -219,6 +223,27 @@ with each visitor's request inputs.
 
 It never throws; a failed or slow call returns the stored choice without a
 policy.
+
+## consentManifest
+
+`consentManifest(options)` from `@c15t/svelte/vite` returns a Vite plugin that
+downloads `<backendURL>/manifest` and writes it to a TypeScript module that
+exports the snapshot. Pass that export as `manifest` to `loadConsent`,
+`createSvelteKitConsentRouteHandlers` or `resolveConsent`.
+
+| Option | Type | Default | Behavior |
+| --- | --- | --- | --- |
+| `backendURL` | `string` | required | Absolute `http` or `https` backend URL. The plugin appends `/manifest`. |
+| `outputFile` | `string` | `src/c15t-manifest.ts` | The generated module, relative to `rootDir`. The quickstart uses `src/lib/server/c15t-manifest.ts` to keep it out of browser code. |
+| `rootDir` | `string` | Vite's `root` | Where `outputFile` resolves from. |
+| `exportName` | `string` | `consentManifest` | The name of the generated export. |
+| `importSource` | `string` | `@c15t/svelte/vite` | Where the generated file imports the `ConsentManifest` type from. |
+| `fetch` | `typeof fetch` | global `fetch` | The fetch for the manifest request. |
+
+The plugin fetches once Vite has resolved its config: for `vite build`,
+`vite dev` and, on SvelteKit 3, `svelte-kit sync`. `vite preview` does not
+run it. It rewrites the file only when the snapshot changed. A failed fetch
+stops the command, even when an older generated file exists.
 
 ## ConsentState
 

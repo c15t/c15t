@@ -1,7 +1,8 @@
 {/* Generated from internals/doc-snippets/sveltekit/src/routes/about/+page.ts (docs:prerender) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```ts title="src/routes/about/+page.ts"
-// Build this page once as static HTML. The root layout's load skips
-// `loadConsent` while building, so the browser resolves consent here.
+// Build this page once as static HTML. The root layout's load passes
+// `shared: building`, so the page carries no visitor's consent and the
+// browser resolves it here.
 export const prerender = true;
 ```
