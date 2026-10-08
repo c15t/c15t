@@ -53,9 +53,10 @@ PostHog only after the visitor allows measurement.
 Replace `https://your-project.inth.app` with the backend URL from your Inth
 project, including any path prefix, and add the example's origin to the
 project's trusted origins. Server-rendered starters also read the URL from the
-framework's public environment variable; the README names it. The Nuxt
-starter downloads the policy when it builds, so it falls back to the
-`https://benchmarks-inth.inth.app` demo project instead. Replace the
+framework's public environment variable; the README names it. Starters that
+download the policy when they build fall back to the
+`https://benchmarks-inth.inth.app` demo project instead, so they build on a
+fresh clone. Replace the
 placeholder PostHog key with your own, or remove the script.
 
 `examples/self-host` is a Next.js App Router app with `@c15t/backend` mounted

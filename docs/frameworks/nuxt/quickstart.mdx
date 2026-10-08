@@ -13,8 +13,8 @@ and routes cached with `swr`, `isr` or `cache` rules work with the same setup;
 the browser resolves the visitor on those routes after hydration. For
 `nuxt generate` on a static host, or `ssr: false`, follow
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting)
-instead. [Choose your setup](/docs/concepts/choose-your-setup) compares every
-option.
+instead, without `buildManifest`.
+[Choose your setup](/docs/concepts/choose-your-setup) compares every option.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
 Create a project, set its policy rules, add your site's origin to its trusted
@@ -41,7 +41,9 @@ Register the module in `nuxt.config.ts`:
 
 `https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
 is. Replace it with your project's backend URL, including any path prefix, or
-set `NUXT_PUBLIC_C15T_BACKEND_URL` when you build.
+set `NUXT_PUBLIC_C15T_BACKEND_URL` when you build. The policy is fixed at
+build time: setting `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves
+consent saves, not the policy, so build again to switch projects.
 
 `buildManifest: true` fetches your project's public policy once, during
 `nuxt build` and when `nuxt dev` starts, and embeds it in the server bundle.

@@ -31,10 +31,10 @@ server.
 It also renders [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger)
 when the `showTrigger` option is `true`.
 
-The banner is part of the server render. With `manifest: 'server'`, a visitor
-whose policy asks for consent gets the banner in the first HTML, with no
-layout shift after hydration. On prerendered and cached routes the banner
-appears after the browser resolves the policy. See
+The banner is part of the server render. With `buildManifest: true` or
+`manifest: 'server'`, a visitor whose policy asks for consent gets the banner
+in the first HTML, with no layout shift after hydration. On prerendered and
+cached routes the banner appears after the browser resolves the policy. See
 [rendering](/docs/frameworks/nuxt/rendering).
 
 The dialog and the IAB surfaces load as separate chunks. `ConsentRoot`
