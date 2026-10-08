@@ -40,7 +40,7 @@ That gives you a defined route beyond local browser preferences. A visitor's loc
 
 For Next.js, c15t supports [streamed, awaited and browser paths](/docs/frameworks/next/rendering). In the App Router, use the default streamed path to let the page appear before consent resolves.
 
-If the banner must arrive in App Router server HTML, use an awaited path. That adds a wait, so measure the effect on your application.
+The banner follows in a later chunk of the same response, before hydration. To send the page and the banner together, use an awaited path. That adds a wait, so measure the effect on your application.
 
 Silktide's published setup runs in the browser. c15t's advantage here is its documented framework and server workflow, not a measured speed claim.
 
