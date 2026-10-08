@@ -935,6 +935,17 @@
         "typescript": "6.0.3",
       },
     },
+    "examples/showcase-nuxt-theme": {
+      "name": "@c15t/example-showcase-nuxt-theme",
+      "dependencies": {
+        "c15t": "workspace:*",
+        "nuxt": "^4.5.1",
+      },
+      "devDependencies": {
+        "typescript": "6.0.3",
+        "vue-tsc": "^3.3.6",
+      },
+    },
     "examples/showcase-preference-center": {
       "name": "@c15t/example-showcase-preference-center",
       "dependencies": {
@@ -2626,6 +2637,8 @@
     "@c15t/example-showcase-iab": ["@c15t/example-showcase-iab@workspace:examples/showcase-iab"],
 
     "@c15t/example-showcase-multilingual": ["@c15t/example-showcase-multilingual@workspace:examples/showcase-multilingual"],
+
+    "@c15t/example-showcase-nuxt-theme": ["@c15t/example-showcase-nuxt-theme@workspace:examples/showcase-nuxt-theme"],
 
     "@c15t/example-showcase-preference-center": ["@c15t/example-showcase-preference-center@workspace:examples/showcase-preference-center"],
 

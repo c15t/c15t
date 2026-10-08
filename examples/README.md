@@ -25,7 +25,9 @@ Test apps live in `internals/fixtures`, and type-checked docs snippets live in
    environment switches that change what gets built. A server-rendered example
    may read its backend URL from the framework's usual public environment
    variable, with `https://your-project.inth.app` as the fallback, because a
-   real app does the same.
+   real app does the same. An example that downloads the policy at build time
+   falls back to the `https://benchmarks-inth.inth.app` demo project instead,
+   so it still builds and runs on clone.
 4. **Runs on clone.** `bun install`, build the workspace packages, then
    `bun run --cwd examples/<name> dev`.
 5. **Real app code.** No `?design=` switches, debug readouts or links to other

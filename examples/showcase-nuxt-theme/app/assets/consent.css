@@ -1,0 +1,18 @@
+/*
+ * Rules for the classes `components` puts on the banner and dialog in
+ * nuxt.config.ts. c15t's own rules sit in the `components` cascade layer,
+ * so these unlayered rules win without extra specificity. They read c15t's
+ * theme variables, so they follow the dark palette too.
+ */
+
+.nw-consent-card {
+	border-top: 3px solid var(--c15t-primary);
+	box-shadow: 0 16px 40px rgb(31 35 40 / 0.18);
+}
+
+.nw-consent-title {
+	font-family: var(--nw-font-serif);
+	font-size: 1.25rem;
+	font-weight: 400;
+	letter-spacing: -0.01em;
+}
