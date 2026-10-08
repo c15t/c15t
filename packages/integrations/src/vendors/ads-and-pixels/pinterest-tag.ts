@@ -341,6 +341,11 @@ export const pinterestTagManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'pinterest-tag',
+	vendorDetails: {
+		homepageUrl: 'https://business.pinterest.com/',
+		name: 'Pinterest Tag',
+		privacyPolicyUrl: 'https://policy.pinterest.com/en/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface PinterestTagOptions {

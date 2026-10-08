@@ -36,6 +36,12 @@ export const cloudflareWebAnalyticsManifest = {
 		},
 	],
 	vendor: 'cloudflare-web-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://www.cloudflare.com/web-analytics/',
+		legalName: 'Cloudflare, Inc.',
+		name: 'Cloudflare Web Analytics',
+		privacyPolicyUrl: 'https://www.cloudflare.com/privacypolicy/',
+	},
 } as const satisfies VendorManifest;
 
 export interface CloudflareWebAnalyticsOptions {

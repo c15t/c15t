@@ -248,6 +248,12 @@ const createMatomoAnalyticsManifest = function createMatomoAnalyticsManifest(
 		onConsentGranted,
 		persistAfterConsentRevoked,
 		vendor: 'matomo-analytics',
+		vendorDetails: {
+			homepageUrl: 'https://matomo.org/',
+			legalName: 'InnoCraft Limited',
+			name: 'Matomo',
+			privacyPolicyUrl: 'https://matomo.org/privacy-policy/',
+		},
 	};
 };
 

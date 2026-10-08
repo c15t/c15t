@@ -209,7 +209,11 @@ const redeclareVendors = function redeclareVendors(
 				if (manifest?.source !== 'manifest') {
 					return [];
 				}
-				const { ownerCategory: _stale, ...rest } = manifest;
+				const {
+					ownerCategory: _stale,
+					ownerDetails: _staleDetails,
+					...rest
+				} = manifest;
 				return [rest];
 			}
 		),

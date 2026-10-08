@@ -120,6 +120,12 @@ export const intercomManifest = {
 		},
 	],
 	vendor: 'intercom',
+	vendorDetails: {
+		homepageUrl: 'https://www.intercom.com/',
+		legalName: 'Intercom R&D Unlimited Company',
+		name: 'Intercom',
+		privacyPolicyUrl: 'https://www.intercom.com/legal/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface IntercomOptions {

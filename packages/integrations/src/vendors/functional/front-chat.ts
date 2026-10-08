@@ -33,6 +33,13 @@ export const frontChatManifest = {
 		},
 	],
 	vendor: 'front-chat',
+	vendorDetails: {
+		homepageUrl: 'https://front.com/',
+		legalName: 'FrontApp, Inc.',
+		name: 'Front Chat',
+		privacyPolicyUrl:
+			'https://front.com/legal/front-products-and-services-privacy-notice',
+	},
 } as const satisfies VendorManifest;
 
 export interface FrontChatOptions {

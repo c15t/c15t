@@ -146,6 +146,11 @@ export const xPixelManifest = {
 		},
 	],
 	vendor: 'x-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://business.x.com/',
+		name: 'X Pixel',
+		privacyPolicyUrl: 'https://x.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface XPixelOptions {

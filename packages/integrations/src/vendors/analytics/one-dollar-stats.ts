@@ -20,6 +20,11 @@ export const oneDollarStatsManifest = {
 		},
 	],
 	vendor: 'one-dollar-stats',
+	vendorDetails: {
+		homepageUrl: 'https://onedollarstats.com/',
+		name: 'OneDollarStats',
+		privacyPolicyUrl: 'https://onedollarstats.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 /** Lowercase names that are valid in a `data-*` attribute. */

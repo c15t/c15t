@@ -54,6 +54,12 @@ export const pirschManifest = {
 		},
 	],
 	vendor: 'pirsch',
+	vendorDetails: {
+		homepageUrl: 'https://pirsch.io/',
+		legalName: 'Emvi Software GmbH',
+		name: 'Pirsch Analytics',
+		privacyPolicyUrl: 'https://pirsch.io/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface PirschOptions {

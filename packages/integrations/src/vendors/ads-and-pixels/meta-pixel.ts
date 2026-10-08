@@ -287,6 +287,11 @@ export const metaPixelManifest = {
 	],
 	persistAfterConsentRevoked: true,
 	vendor: 'meta-pixel',
+	vendorDetails: {
+		homepageUrl: 'https://www.facebook.com/business/tools/meta-pixel',
+		name: 'Meta Pixel',
+		privacyPolicyUrl: 'https://www.facebook.com/privacy/policy/',
+	},
 } as const satisfies VendorManifest;
 
 export interface MetaPixelOptions {

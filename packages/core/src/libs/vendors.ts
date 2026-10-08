@@ -4,9 +4,10 @@
  * Vendors reach the kernel from three places: the runtime's `vendors`
  * option, the `vendor` slug on scripts and network rules, and the backend's
  * `/init` response. Existence is the union of all three. Presentation
- * (name, privacy policy, description) follows config over manifest and
- * ignores scripts, which only carry the slug. The category follows config,
- * then manifest, then an `or` of every owning script's or rule's category.
+ * (name, privacy policy, description) follows config, then manifest, then
+ * the `vendorDetails` a script carries with its slug. The category follows
+ * config, then manifest, then an `or` of every owning script's or rule's
+ * category.
  *
  * Pure. No DOM, no kernel access.
  */
@@ -18,11 +19,14 @@ import type { AllConsentNames } from '../consent/consent-types';
 import type { ConsentKernel, ResolvedVendor, VendorSource } from '../types';
 import type { HasCondition } from './has';
 import { extractConsentNamesFromCondition } from './has';
+import type { VendorDetails } from './script-loader/types';
 
 /** A script or network rule that names the vendor it belongs to. */
 export interface VendorOwner {
 	vendor?: string;
 	category: HasCondition<AllConsentNames>;
+	/** What the owner knows about the vendor, listed when nothing declares it. */
+	vendorDetails?: VendorDetails;
 }
 
 export interface ResolveVendorsInput {
@@ -93,6 +97,50 @@ const copyCategory = function copyCategory(
 		: (JSON.parse(JSON.stringify(category)) as HasCondition<AllConsentNames>);
 };
 
+/**
+ * Own copy of an owner's details, limited to the presentation fields, so
+ * freezing the snapshot never freezes the caller's script and a stray key
+ * on it never reaches the preference surface.
+ */
+const copyDetails = function copyDetails(
+	details: VendorDetails
+): VendorDetails {
+	const copy: VendorDetails = {
+		name: details.name,
+		privacyPolicyUrl: details.privacyPolicyUrl,
+	};
+	if (details.description !== undefined) {
+		copy.description = details.description;
+	}
+	if (details.homepageUrl !== undefined) {
+		copy.homepageUrl = details.homepageUrl;
+	}
+	if (details.legalName !== undefined) {
+		copy.legalName = details.legalName;
+	}
+	return copy;
+};
+
+/** The details a script-sourced entry was built from, if it is listable. */
+const detailsOf = function detailsOf(
+	vendor: ResolvedVendor
+): VendorDetails | undefined {
+	if (
+		!vendor.presentable ||
+		vendor.name === undefined ||
+		vendor.privacyPolicyUrl === undefined
+	) {
+		return undefined;
+	}
+	return copyDetails({
+		description: vendor.description,
+		homepageUrl: vendor.homepageUrl,
+		legalName: vendor.legalName,
+		name: vendor.name,
+		privacyPolicyUrl: vendor.privacyPolicyUrl,
+	});
+};
+
 const toResolved = function toResolved(
 	vendor: Vendor,
 	source: VendorSource
@@ -123,22 +171,32 @@ const sameVendor = function sameVendor(
 		JSON.stringify(left.category) === JSON.stringify(right.category) &&
 		JSON.stringify(left.ownerCategory) ===
 			JSON.stringify(right.ownerCategory) &&
+		JSON.stringify(left.ownerDetails) === JSON.stringify(right.ownerDetails) &&
 		JSON.stringify(left.shadowed) === JSON.stringify(right.shadowed)
 	);
 };
 
-/** The script-sourced entry a set of owner categories would produce. */
+/**
+ * The script-sourced entry a set of owners would produce: their condition as
+ * the category, listed by name when one of them carries details.
+ */
 const scriptEntry = function scriptEntry(
 	id: string,
-	category: HasCondition<AllConsentNames>
+	category: HasCondition<AllConsentNames>,
+	details?: VendorDetails
 ): ResolvedVendor {
-	return {
+	const entry: ResolvedVendor = {
 		category,
 		disabled: onlyNecessary(category) || undefined,
 		id,
 		presentable: false,
 		source: 'script',
 	};
+	if (details) {
+		Object.assign(entry, copyDetails(details));
+		entry.presentable = isPresentable(details);
+	}
+	return entry;
 };
 
 /**
@@ -151,14 +209,19 @@ const scriptEntry = function scriptEntry(
  */
 const withOwners = function withOwners(
 	vendor: ResolvedVendor,
-	ownerCategory: HasCondition<AllConsentNames>
+	ownerCategory: HasCondition<AllConsentNames>,
+	ownerDetails?: VendorDetails
 ): ResolvedVendor {
 	if (vendor.source === 'script') {
-		return scriptEntry(vendor.id, ownerCategory);
+		return scriptEntry(vendor.id, ownerCategory, ownerDetails);
 	}
-	const next: ResolvedVendor = { ...vendor, ownerCategory };
+	const { ownerDetails: _previous, ...rest } = vendor;
+	const next: ResolvedVendor = { ...rest, ownerCategory };
+	if (ownerDetails) {
+		next.ownerDetails = copyDetails(ownerDetails);
+	}
 	if (next.shadowed) {
-		next.shadowed = withOwners(next.shadowed, ownerCategory);
+		next.shadowed = withOwners(next.shadowed, ownerCategory, ownerDetails);
 	}
 	return next;
 };
@@ -202,7 +265,7 @@ export const ownerFallback = function ownerFallback(
 	if (!vendor.ownerCategory) {
 		return null;
 	}
-	return scriptEntry(vendor.id, vendor.ownerCategory);
+	return scriptEntry(vendor.id, vendor.ownerCategory, vendor.ownerDetails);
 };
 
 /** The entry without its shadow, keeping the owners the shadow knew. */
@@ -213,6 +276,9 @@ const withoutShadow = function withoutShadow(
 	const next: ResolvedVendor = rest;
 	if (!next.ownerCategory && shadowed?.ownerCategory) {
 		next.ownerCategory = shadowed.ownerCategory;
+		if (shadowed.ownerDetails) {
+			next.ownerDetails = shadowed.ownerDetails;
+		}
 	}
 	return next;
 };
@@ -256,7 +322,13 @@ const mergeEntry = function mergeEntry(
 		// so an incoming copy without owners means nothing names the slug now.
 		next.shadowed ??= existing.shadowed;
 	} else if (existing.source === 'script') {
-		next.ownerCategory ??= existing.category;
+		if (next.ownerCategory === undefined) {
+			next.ownerCategory = existing.category;
+			const details = detailsOf(existing);
+			if (details) {
+				next.ownerDetails = details;
+			}
+		}
 	} else {
 		next.shadowed ??= existing;
 	}
@@ -368,10 +440,12 @@ export const resolveVendors = function resolveVendors(
 		declare(vendor, 'manifest');
 	}
 
-	// Scripts and rules only know the slug and their own category. Collect
-	// every owner's category so a slug-only vendor still lands under the
-	// categories that gate it.
+	// Scripts and rules know the slug, their own category and, from an
+	// integration helper, the vendor's details. Collect every owner's
+	// category so an undeclared vendor still lands under the categories that
+	// gate it, and the first owner's details so it is listed by name.
 	const ownerCategories = new Map<string, HasCondition<AllConsentNames>[]>();
+	const ownerDetails = new Map<string, VendorDetails>();
 	for (const owner of input.owners ?? []) {
 		if (!owner.vendor) {
 			continue;
@@ -385,18 +459,30 @@ export const resolveVendors = function resolveVendors(
 		// script or rule configuration must stay theirs to mutate.
 		list.push(copyCategory(owner.category));
 		ownerCategories.set(owner.vendor, list);
+		if (
+			owner.vendorDetails &&
+			isPresentable(owner.vendorDetails) &&
+			!ownerDetails.has(owner.vendor)
+		) {
+			ownerDetails.set(owner.vendor, owner.vendorDetails);
+		}
 	}
 	for (const [id, categories] of ownerCategories) {
 		const existing = byId.get(id);
-		// A declared vendor keeps its own presentation, but its owners' categories
-		// are remembered so that dropping the declaration later leaves a
-		// script-sourced fallback rather than nothing.
+		const details = ownerDetails.get(id);
+		// A declared vendor keeps its own presentation, but its owners'
+		// categories and details are remembered so that dropping the
+		// declaration later leaves a script-sourced fallback rather than
+		// nothing.
 		if (existing) {
-			byId.set(id, withOwners(existing, ownerCondition(categories)));
+			byId.set(id, withOwners(existing, ownerCondition(categories), details));
 			continue;
 		}
 		const category = ownerCondition(categories);
-		byId.set(id, scriptEntry(id, category));
+		byId.set(id, scriptEntry(id, category, details));
+		if (details) {
+			continue;
+		}
 		input.onWarn?.(
 			`[c15t] Vendor "${id}" is referenced by a script or rule but has no declaration with a name and privacy policy URL. It gates loading but is hidden from the preference surface until declared in \`vendors\`.`
 		);
@@ -478,10 +564,14 @@ const withoutOwnerConditions = function withoutOwnerConditions(
 	if (vendor.source === 'script') {
 		return null;
 	}
-	const { ownerCategory: _own, ...rest } = vendor;
+	const { ownerCategory: _own, ownerDetails: _ownDetails, ...rest } = vendor;
 	const next: ResolvedVendor = rest;
 	if (next.shadowed) {
-		const { ownerCategory: _shadowOwn, ...shadow } = next.shadowed;
+		const {
+			ownerCategory: _shadowOwn,
+			ownerDetails: _shadowDetails,
+			...shadow
+		} = next.shadowed;
 		next.shadowed = shadow;
 	}
 	return next;
@@ -526,7 +616,7 @@ export const declareOwnedVendors = function declareOwnedVendors(
 	const seen = new Set<string>();
 	const union: VendorOwner[] = [];
 	for (const owner of [...[...registry.values()].flat(), ...own]) {
-		const key = `${owner.vendor}\u0000${JSON.stringify(owner.category)}`;
+		const key = `${owner.vendor}\u0000${JSON.stringify(owner.category)}\u0000${JSON.stringify(owner.vendorDetails ?? null)}`;
 		if (!seen.has(key)) {
 			seen.add(key);
 			union.push(owner);

@@ -46,6 +46,12 @@ export const umamiAnalyticsManifest = {
 		},
 	],
 	vendor: 'umami-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://umami.is/',
+		legalName: 'Umami Software, Inc.',
+		name: 'Umami',
+		privacyPolicyUrl: 'https://umami.is/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface UmamiAnalyticsOptions {

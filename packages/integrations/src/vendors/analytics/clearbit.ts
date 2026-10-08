@@ -34,6 +34,12 @@ export const clearbitManifest = {
 		},
 	],
 	vendor: 'clearbit',
+	vendorDetails: {
+		homepageUrl: 'https://clearbit.com/',
+		legalName: 'HubSpot, Inc.',
+		name: 'Clearbit',
+		privacyPolicyUrl: 'https://clearbit.com/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface ClearbitOptions {

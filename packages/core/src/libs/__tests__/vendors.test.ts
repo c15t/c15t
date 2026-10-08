@@ -161,6 +161,130 @@ describe('resolveVendors', () => {
 	});
 });
 
+describe('script vendor details', () => {
+	const hotjarDetails = {
+		description: 'Records how visitors use the site.',
+		name: 'Hotjar',
+		privacyPolicyUrl: 'https://www.hotjar.com/legal/policies/privacy/',
+	};
+	const hotjar = {
+		category: 'measurement' as const,
+		vendor: 'hotjar',
+		vendorDetails: hotjarDetails,
+	};
+
+	test('a script that carries details lists its vendor without a warning', () => {
+		const onWarn = vi.fn();
+		const resolved = resolveVendors({ onWarn, owners: [hotjar] });
+		expect(resolved).toEqual([
+			{
+				...hotjarDetails,
+				category: 'measurement',
+				disabled: undefined,
+				id: 'hotjar',
+				presentable: true,
+				source: 'script',
+			},
+		]);
+		expect(vendorsListedUnder(resolved, 'measurement')).toHaveLength(1);
+		expect(onWarn).not.toHaveBeenCalled();
+	});
+
+	test('details are copied so freezing the snapshot leaves the script alone', () => {
+		const vendorDetails = { ...hotjarDetails, extra: 'ignored' };
+		const resolved = resolveVendors({
+			owners: [{ ...hotjar, vendorDetails }],
+		});
+		expect(resolved[0]).not.toHaveProperty('extra');
+		Object.freeze(resolved[0]);
+		expect(Object.isFrozen(vendorDetails)).toBe(false);
+	});
+
+	test('details without a privacy policy URL stay slug-only', () => {
+		const onWarn = vi.fn();
+		const resolved = resolveVendors({
+			onWarn,
+			owners: [
+				{
+					...hotjar,
+					vendorDetails: { name: 'Hotjar', privacyPolicyUrl: '' },
+				},
+			],
+		});
+		expect(resolved[0]?.presentable).toBe(false);
+		expect(onWarn).toHaveBeenCalledOnce();
+	});
+
+	test('a configured vendor replaces script details as a whole', () => {
+		const resolved = resolveVendors({
+			config: [
+				{
+					category: 'measurement',
+					id: 'hotjar',
+					name: 'Session recordings',
+					privacyPolicyUrl: 'https://example.com/privacy',
+				},
+			],
+			owners: [hotjar],
+		});
+		expect(resolved[0]?.source).toBe('config');
+		expect(resolved[0]?.name).toBe('Session recordings');
+		expect(resolved[0]?.description).toBeUndefined();
+	});
+
+	test('removing the configured vendor brings back the script details', () => {
+		const declared = resolveVendors({
+			config: [
+				{
+					category: 'measurement',
+					id: 'hotjar',
+					name: 'Session recordings',
+					privacyPolicyUrl: 'https://example.com/privacy',
+				},
+			],
+			owners: [hotjar],
+		});
+		const [fallback] = withoutSourceVendors(declared, 'config');
+		expect(fallback?.source).toBe('script');
+		expect(fallback?.name).toBe('Hotjar');
+		expect(fallback?.presentable).toBe(true);
+	});
+
+	test('a configured vendor arriving over a script entry keeps its details for later', () => {
+		const first = resolveVendors({ owners: [hotjar] });
+		const declared = resolveVendors({
+			config: [
+				{
+					category: 'measurement',
+					id: 'hotjar',
+					name: 'Session recordings',
+					privacyPolicyUrl: 'https://example.com/privacy',
+				},
+			],
+			existing: first,
+		});
+		const [fallback] = withoutSourceVendors(declared, 'config');
+		expect(fallback?.name).toBe('Hotjar');
+		expect(fallback?.presentable).toBe(true);
+	});
+
+	test('declared owners keep details across module updates', () => {
+		const kernel = createConsentKernel({
+			initialRecords: choiceRecords({ measurement: true }),
+			now: NOW,
+		});
+		const source = Symbol('script');
+		declareOwnedVendors(kernel, [hotjar], source);
+		declareOwnedVendors(kernel, [hotjar], source);
+		const [vendor] = kernel.getSnapshot().vendors?.declared ?? [];
+		expect(vendor?.name).toBe('Hotjar');
+		expect(vendor?.presentable).toBe(true);
+		forgetOwnedVendors(kernel, source);
+		expect(kernel.getSnapshot().vendors?.declared ?? []).toEqual([]);
+		kernel.dispose();
+	});
+});
+
 describe('owner fallback across manifest replacement', () => {
 	test('a backend vendor that scripts also name falls back to a script entry when the backend drops it', () => {
 		const first = resolveVendors({

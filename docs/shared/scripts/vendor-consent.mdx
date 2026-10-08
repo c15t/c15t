@@ -39,11 +39,19 @@ group: reference
   is `gtag` and `cloudflareZaraz()` is `cloudflare-zaraz`. Each
   [vendor guide](/docs/integrations/overview) names its slug.
 
-  Declaring a helper's vendor is optional. Without a declaration the script
-  still loads with its category, but the dialog has no switch for it. In
-  development, c15t logs a console warning that names the slug, so you can
-  declare it if visitors should be able to turn it off. Production builds
-  skip the warning.
+  You don't need to declare a helper's vendor. Each helper also sets
+  `vendorDetails` on its script: the vendor's name, privacy policy, homepage
+  and legal entity. The dialog lists the vendor with its own switch from
+  those. Declare the vendor in `vendors` to replace them, for example to link
+  your own data processing notice, or when you self-host a tool such as
+  Matomo, Umami, Plausible or PostHog and the vendor's privacy policy doesn't
+  cover your install. A declaration replaces `vendorDetails` as a whole and
+  doesn't merge with it.
+
+  Your own scripts can set `vendorDetails` too. A script with a `vendor` slug
+  and no `name` and `privacyPolicyUrl` from any source still loads with its
+  category, but the dialog has no switch for it. In development, c15t logs a
+  console warning that names the slug. Production builds skip the warning.
 
   A self-hosted backend can declare vendors too. `/init` returns them and c15t
   merges them with the vendors in code. When both declare the same `id`, the
@@ -114,8 +122,8 @@ group: reference
   Test the production build in a private window with DevTools Network open and
   filtered to `ads-twitter.com`:
 
-  1. Declare `x-pixel` and register `xPixel()`. Open Privacy settings. The
-     marketing row lists X Pixel with a switch.
+  1. Register `xPixel()`. Open Privacy settings. The marketing row lists X
+     Pixel with a switch.
   2. Allow marketing and save. `uwt.js` loads.
   3. Open Privacy settings, switch X Pixel off and save. c15t reloads the
      page. After the reload there is no `uwt.js` request, and other marketing

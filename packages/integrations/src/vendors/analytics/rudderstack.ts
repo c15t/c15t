@@ -289,6 +289,12 @@ export const rudderstackManifest = {
 		},
 	],
 	vendor: 'rudderstack',
+	vendorDetails: {
+		homepageUrl: 'https://www.rudderstack.com/',
+		legalName: 'RudderStack, Inc.',
+		name: 'RudderStack',
+		privacyPolicyUrl: 'https://www.rudderstack.com/privacy-policy/',
+	},
 } as const satisfies VendorManifest;
 
 /**

@@ -217,5 +217,6 @@ export const compileManifest = function compileManifest(
 		schemaVersion: manifest.schemaVersion,
 		setupSteps,
 		vendor: manifest.vendor,
+		vendorDetails: manifest.vendorDetails,
 	};
 };

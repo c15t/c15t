@@ -119,6 +119,12 @@ export const databuddyManifest = {
 		},
 	],
 	vendor: 'databuddy',
+	vendorDetails: {
+		homepageUrl: 'https://www.databuddy.cc/',
+		legalName: 'Databuddy Analytics, Inc.',
+		name: 'Databuddy',
+		privacyPolicyUrl: 'https://www.databuddy.cc/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface DatabuddyConsentOptions {

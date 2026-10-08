@@ -195,6 +195,7 @@ export type {
 	ScriptDebugSource,
 	ScriptLifecycleCallback,
 	ScriptUpdateResult,
+	VendorDetails,
 } from './libs/script-loader/types';
 export {
 	emitScriptDebugEvent,

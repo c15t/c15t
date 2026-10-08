@@ -30,6 +30,13 @@ export const klaviyoManifest = {
 		},
 	],
 	vendor: 'klaviyo',
+	vendorDetails: {
+		homepageUrl: 'https://www.klaviyo.com/',
+		legalName: 'Klaviyo, Inc.',
+		name: 'Klaviyo',
+		privacyPolicyUrl:
+			'https://privacy.klaviyo.com/policies/?name=klaviyo-privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 /**

@@ -129,6 +129,12 @@ export const plausibleAnalyticsManifest = {
 		},
 	],
 	vendor: 'plausible-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://plausible.io/',
+		legalName: 'Plausible Insights OÜ',
+		name: 'Plausible Analytics',
+		privacyPolicyUrl: 'https://plausible.io/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface PlausibleAnalyticsOptions {

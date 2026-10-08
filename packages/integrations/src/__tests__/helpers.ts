@@ -26,6 +26,14 @@ export interface HelperScriptSnapshot {
 	persistAfterConsentRevoked?: boolean;
 	/** Remote script URL emitted by the helper, when applicable. */
 	src?: string;
+	/** Vendor slug the helper gates the script on. */
+	vendor?: string;
+	/** Vendor name and privacy policy the preference dialog lists. */
+	vendorDetails?: {
+		name: string;
+		privacyPolicyUrl: string;
+		homepageUrl?: string;
+	};
 }
 
 /**
@@ -266,6 +274,14 @@ export const expectScriptMatchesIntegration =
 			expected.persistAfterConsentRevoked
 		);
 		expect(script.src, key).toBe(expected.src);
+		expect(script.vendor, key).toBe(matchedIntegration.vendor);
+		// Every built-in helper names its vendor, so the dialog lists it with
+		// its own switch instead of gating it on the category alone.
+		expect(script.vendorDetails?.name, key).toBeTruthy();
+		expect(script.vendorDetails?.privacyPolicyUrl, key).toMatch(/^https:\/\//u);
+		if (script.vendorDetails?.homepageUrl !== undefined) {
+			expect(script.vendorDetails.homepageUrl, key).toMatch(/^https:\/\//u);
+		}
 	};
 
 /**

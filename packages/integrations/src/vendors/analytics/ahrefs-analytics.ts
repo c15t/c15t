@@ -41,6 +41,12 @@ export const ahrefsAnalyticsManifest = {
 		},
 	],
 	vendor: 'ahrefs-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://ahrefs.com/web-analytics',
+		legalName: 'Ahrefs Pte. Ltd.',
+		name: 'Ahrefs Web Analytics',
+		privacyPolicyUrl: 'https://ahrefs.com/legal/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface AhrefsAnalyticsOptions {

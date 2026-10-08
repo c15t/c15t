@@ -77,6 +77,11 @@ export const linkedinInsightsManifest = {
 		},
 	],
 	vendor: 'linkedin-insights',
+	vendorDetails: {
+		homepageUrl: 'https://business.linkedin.com/advertise/ads/insight-tag',
+		name: 'LinkedIn Insight Tag',
+		privacyPolicyUrl: 'https://www.linkedin.com/legal/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface LinkedInInsightsOptions {

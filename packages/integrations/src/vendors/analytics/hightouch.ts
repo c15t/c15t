@@ -326,6 +326,12 @@ export const hightouchManifest = {
 		},
 	],
 	vendor: 'hightouch',
+	vendorDetails: {
+		homepageUrl: 'https://hightouch.com/',
+		legalName: 'Carry Technologies, Inc.',
+		name: 'Hightouch',
+		privacyPolicyUrl: 'https://hightouch.com/privacy-policy',
+	},
 } as const satisfies VendorManifest;
 
 export interface HightouchOptions {

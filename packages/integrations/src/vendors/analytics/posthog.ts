@@ -281,6 +281,12 @@ export const posthogManifest = {
 		},
 	],
 	vendor: 'posthog',
+	vendorDetails: {
+		homepageUrl: 'https://posthog.com/',
+		legalName: 'PostHog Inc.',
+		name: 'PostHog',
+		privacyPolicyUrl: 'https://posthog.com/privacy',
+	},
 } as const satisfies VendorManifest;
 
 export interface PosthogConsentOptions {

@@ -67,6 +67,9 @@ const copyDeclaredVendor = function copyDeclaredVendor(
 	if (vendor.ownerCategory !== undefined) {
 		copy.ownerCategory = structuredClone(vendor.ownerCategory);
 	}
+	if (vendor.ownerDetails !== undefined) {
+		copy.ownerDetails = { ...vendor.ownerDetails };
+	}
 	if (vendor.shadowed) {
 		copy.shadowed = copyDeclaredVendor(vendor.shadowed);
 	}

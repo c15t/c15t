@@ -58,6 +58,12 @@ export const vercelAnalyticsManifest = {
 		},
 	],
 	vendor: 'vercel-analytics',
+	vendorDetails: {
+		homepageUrl: 'https://vercel.com/products/web-analytics',
+		legalName: 'Vercel Inc.',
+		name: 'Vercel Web Analytics',
+		privacyPolicyUrl: 'https://vercel.com/legal/privacy-notice',
+	},
 } as const satisfies VendorManifest;
 
 export interface VercelAnalyticsOptions {

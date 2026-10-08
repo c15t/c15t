@@ -314,6 +314,11 @@ export const heapManifest = {
 		},
 	],
 	vendor: 'heap',
+	vendorDetails: {
+		homepageUrl: 'https://www.heap.io/',
+		name: 'Heap',
+		privacyPolicyUrl: 'https://contentsquare.com/privacy-policy/',
+	},
 } as const satisfies VendorManifest;
 
 export interface HeapOptions {

@@ -68,6 +68,11 @@ const createAdobeAnalyticsManifest = function createAdobeAnalyticsManifest(
 		category: 'measurement',
 		install,
 		vendor: 'adobe-analytics',
+		vendorDetails: {
+			legalName: 'Adobe Inc.',
+			name: 'Adobe Analytics',
+			privacyPolicyUrl: 'https://www.adobe.com/privacy/policy.html',
+		},
 	};
 };
 
