@@ -35,9 +35,9 @@ runs:
         github.repository == 'c15t/c15t' && contains(fromJSON('["push", "schedule", "workflow_dispatch"]'), github.event_name) && contains(fromJSON('["refs/heads/main", "refs/heads/canary", "refs/heads/2.0.0", "refs/heads/v3"]'), github.ref)
       uses: vercel/setup-turborepo-remote-cache-action@49d7b1b46ba4c9251e1977986bfe18336feabc8f # v1.1.0
       with:
-        team: ${{ vars.TURBO_TEAM }}
+        team: ${{ env.TURBO_TEAM }}
         audience: https://vercel.com/inth
-        policy: ${{ vars.TURBO_CACHE_POLICY }}
+        policy: ${{ env.TURBO_CACHE_POLICY }}
         revoke: true
     - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830
       with:

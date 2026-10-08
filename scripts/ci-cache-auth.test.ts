@@ -51,24 +51,54 @@ describe('CI remote cache authentication', () => {
 		expect(authentication.uses).toMatch(/@[a-f\d]{40}$/u);
 		expect(authentication.with).toMatchObject({
 			audience: 'https://vercel.com/inth',
-			policy: `\${{ vars.TURBO_CACHE_POLICY }}`,
+			policy: `\${{ env.TURBO_CACHE_POLICY }}`,
 			revoke: true,
-			team: `\${{ vars.TURBO_TEAM }}`,
+			team: `\${{ env.TURBO_TEAM }}`,
 		});
 	});
 
-	it('grants OIDC permissions through every reusable workflow caller', () => {
+	it('reads repository variables in workflows, where GitHub supports that context', () => {
+		expect(JSON.stringify(action)).not.toMatch(
+			/\$\{\{[^}]*\b(?:vars|secrets)\s*\./u
+		);
 		for (const name of [
 			'ci',
+			'release',
+			'mobile-device',
+			'bundle-analysis',
+			'benchmark-regression',
+		]) {
+			expect(read(`.github/workflows/${name}.yml`).env).toMatchObject({
+				TURBO_CACHE_POLICY: `\${{ vars.TURBO_CACHE_POLICY }}`,
+				TURBO_TEAM: `\${{ vars.TURBO_TEAM }}`,
+			});
+		}
+	});
+
+	it('grants OIDC only to jobs that authenticate or call authenticated workflows', () => {
+		interface WorkflowJob {
+			permissions?: Record<string, string>;
+			steps?: { uses?: string }[];
+			uses?: string;
+		}
+		for (const name of [
+			'ci',
+			'release',
 			'mobile-device',
 			'validation',
 			'bundle-analysis',
 			'benchmark-regression',
 		]) {
-			expect(read(`.github/workflows/${name}.yml`).permissions).toHaveProperty(
-				'id-token',
-				'write'
-			);
+			const workflow = read(`.github/workflows/${name}.yml`);
+			expect(workflow.permissions, name).not.toHaveProperty('id-token');
+			for (const [id, job] of Object.entries<WorkflowJob>(workflow.jobs)) {
+				const usesOidc =
+					job.steps?.some((step) => step.uses === './.github/actions/setup') ||
+					job.uses?.startsWith('./.github/workflows/');
+				expect(job.permissions?.['id-token'], `${name}.${id}`).toBe(
+					usesOidc ? 'write' : undefined
+				);
+			}
 		}
 		const release = read('.github/workflows/release.yml');
 		for (const job of ['checks', 'publish']) {

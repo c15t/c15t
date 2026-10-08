@@ -7,6 +7,10 @@ on:
 
 permissions: {}
 
+env:
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
+
 # Canary publishes a snapshot for every commit, so its runs stay queued whole,
 # in the order they start. Every other branch gets a group per run: checks for consecutive
 # pushes overlap, and only the publish job below waits its turn. `queue: max`

@@ -17,13 +17,17 @@ on:
 
 permissions:
   contents: read
-  id-token: write
 
 env:
   NODE_OPTIONS: --max-old-space-size=6144
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
 
 jobs:
   bundle:
+    permissions:
+      contents: read
+      id-token: write
     name: Consumer bundle budgets
     runs-on: blacksmith-4vcpu-ubuntu-2404
     timeout-minutes: 35

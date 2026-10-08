@@ -26,7 +26,6 @@ on:
 permissions:
   contents: read
   actions: read
-  id-token: write
 
 # A new push to a pull request replaces its running checks. Every other run
 # gets a group of its own: release checks for consecutive pushes run side by
@@ -38,10 +37,16 @@ concurrency:
 env:
   NODE_OPTIONS: --max-old-space-size=6144
   CI_DIFF_BASE: ${{ github.event_name == 'pull_request' && format('origin/{0}', github.base_ref) || '' }}
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
 
 jobs:
   repository:
     name: Repository and docs
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
     runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       build: ${{ steps.plan.outputs.build }}
@@ -96,6 +101,9 @@ jobs:
 
   build:
     name: Build packages once
+    permissions:
+      contents: read
+      id-token: write
     needs: repository
     if: needs.repository.outputs.build == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -123,6 +131,9 @@ jobs:
 
   packages:
     name: Package behavior and types
+    permissions:
+      contents: read
+      id-token: write
     needs: [repository, build]
     if: ${{ !cancelled() && needs.repository.result == 'success' && (needs.build.result == 'success' || needs.build.result == 'skipped') && needs.repository.outputs.packageChecks == 'true' }}
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -171,6 +182,9 @@ jobs:
 
   backend:
     name: Database behavior and migrations
+    permissions:
+      contents: read
+      id-token: write
     needs: [repository, build]
     if: needs.repository.outputs.backend == 'true'
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -221,6 +235,9 @@ jobs:
           scope: backend
 
   browser:
+    permissions:
+      contents: read
+      id-token: write
     name: Browser integration (${{ matrix.kind }})
     needs: [repository, build]
     if: needs.repository.outputs.integrations != '[]'
@@ -278,6 +295,9 @@ jobs:
   # Native sources, protocol/spec changes, mobile benchmark inputs and full
   # validation select this job. Affected JavaScript tests run in `packages`.
   mobile:
+    permissions:
+      contents: read
+      id-token: write
     name: Mobile SDK (${{ matrix.kind }})
     needs: [repository, build]
     if: needs.repository.outputs.mobile == 'true'
@@ -473,6 +493,10 @@ jobs:
   # Native app builds remain visible on PRs and full validation. Release pushes
   # run the advisory workflow independently so publishing cannot wait for it.
   mobileBrowserOrDevice:
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
     needs: [repository, build]
     if: needs.repository.outputs.mobileBrowserOrDevice == 'true' && !inputs.skip_mobile_device
     uses: ./.github/workflows/mobile-device.yml
@@ -480,14 +504,20 @@ jobs:
       built: true
 
   bundle:
+    permissions:
+      contents: read
+      id-token: write
     needs: [repository, build]
     if: needs.repository.outputs.bundle == 'true'
     uses: ./.github/workflows/bundle-analysis.yml
     with:
-      base_ref: ${{ needs.repository.outputs.baseRef || github.event.pull_request.base.sha || 'HEAD^' }}
+      base_ref: ${{ github.event.pull_request.base.sha || needs.repository.outputs.baseRef || 'HEAD^' }}
       built: true
 
   performance:
+    permissions:
+      contents: read
+      id-token: write
     needs: [repository, build]
     if: needs.repository.outputs.performance == 'true' && !inputs.skip_performance
     uses: ./.github/workflows/benchmark-regression.yml

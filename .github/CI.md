@@ -272,12 +272,14 @@ Vercel Turborepo CLI policy checks the repository
 name and immutable repository/owner IDs, restricts refs to `main`, `canary`,
 `2.0.0`, and `v3`, and allows only push, scheduled, and manual runs of the CI,
 release, validation, mobile-device, bundle-analysis, and benchmark workflows.
-The audience is `https://vercel.com/inth`. Repository variables `TURBO_TEAM` and
-`TURBO_CACHE_POLICY` select the team and policy. CI does not use a stored
-`TURBO_TOKEN` secret. PRs and other branches skip the exchange, and Vercel rejects
-their identities even if a modified workflow requests a token. Reusable workflow
-callers must grant `id-token: write`, since called workflows cannot increase the
-caller's permissions.
+The audience is `https://vercel.com/inth`. Calling workflows map repository
+variables `TURBO_TEAM` and `TURBO_CACHE_POLICY` into environment variables for the
+composite setup action, which cannot read the `vars` context directly. CI does
+not use a stored `TURBO_TOKEN` secret. PRs and other branches skip the exchange,
+and Vercel rejects their identities even if a modified workflow requests a token.
+Reusable workflow callers must grant `id-token: write` on the calling job, since
+called workflows cannot increase the caller's permissions. Other jobs keep
+read-only permissions.
 
 Coverage is evidence, not a percentage target. The summary lists changed
 instrumented statement-start lines and branches plus uncovered lines; full

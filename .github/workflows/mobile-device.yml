@@ -14,14 +14,21 @@ on:
 permissions:
   contents: read
   actions: read
-  id-token: write
 
 concurrency:
   group: mobile-device-${{ github.event.pull_request.number || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
+env:
+  TURBO_TEAM: ${{ vars.TURBO_TEAM }}
+  TURBO_CACHE_POLICY: ${{ vars.TURBO_CACHE_POLICY }}
+
 jobs:
   plan:
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
     name: Select native app builds
     if: ${{ !inputs.built }}
     runs-on: blacksmith-4vcpu-ubuntu-2404
@@ -48,6 +55,9 @@ jobs:
         run: bun scripts/ci-plan.ts
 
   device:
+    permissions:
+      contents: read
+      id-token: write
     name: Mobile device builds (${{ matrix.kind }})
     needs: plan
     if: ${{ !cancelled() && (inputs.built || (needs.plan.result == 'success' && needs.plan.outputs.selected == 'true')) }}
