@@ -260,7 +260,8 @@ describe('consent middleware', () => {
 		});
 		expect(fetchImpl).toHaveBeenCalledOnce();
 		const [url, init] = fetchImpl.mock.calls[0] as [string, RequestInit];
-		expect(url).toBe('https://consent.example.com/init');
+		// The query carries the consent journey the render started.
+		expect(url.split('?')[0]).toBe('https://consent.example.com/init');
 		expect((init.headers as Record<string, string>)['x-c15t-country']).toBe(
 			'DE'
 		);
@@ -422,7 +423,7 @@ describe('consent middleware', () => {
 			options: { mode: hostedMode({ url: '/api/consent' }) },
 		});
 		const [url] = fetchImpl.mock.calls[0] as [string, RequestInit];
-		expect(url).toBe('https://example.com/api/consent/init');
+		expect(url.split('?')[0]).toBe('https://example.com/api/consent/init');
 	});
 
 	it('never fetches its own injected init route', async () => {

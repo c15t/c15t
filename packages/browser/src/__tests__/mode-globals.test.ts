@@ -16,6 +16,13 @@ import { createHostedGlobal } from '../hosted-global';
 import { createOfflineGlobal } from '../offline-global';
 import type { ConsentClientOptions } from '../types';
 
+/** A request URL without the consent journey query the runtime adds. */
+const pathOf = (url: unknown): string =>
+	String(url).replace(
+		/[?&]c15tJourney=[^&#]*&c15tJourneyScope=[^&#]*(?:&c15tStored=[01])?/u,
+		''
+	);
+
 const testWindow = window as Window & { c15t?: unknown };
 const policy = {
 	...policyRulePresets.europeOptIn(),
@@ -207,7 +214,7 @@ describe.each(entries)('$mode browser global', ({ create, mode }) => {
 		expect(
 			fetchSpy.mock.calls.map(([url, request]) => ({
 				method: request?.method,
-				url: String(url),
+				url: pathOf(url),
 			}))
 		).toEqual(
 			mode === 'hosted'

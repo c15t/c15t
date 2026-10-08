@@ -218,7 +218,8 @@ test('the browser resolves a prerendered page itself and keeps a stored rejectio
 	vi.stubGlobal(
 		'fetch',
 		vi.fn((input: RequestInfo | URL) => {
-			initRequests.push(String(input));
+			// The path alone: the runtime adds its consent journey as a query.
+			initRequests.push(String(input).split('?')[0] ?? '');
 			return Promise.resolve(
 				new Response(JSON.stringify(visitorInit), {
 					headers: {

@@ -10,6 +10,13 @@ import { createConsentClient } from '../client';
 import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 
+/** A request URL without the consent journey query the runtime adds. */
+const pathOf = (url: unknown): string =>
+	String(url).replace(
+		/[?&]c15tJourney=[^&#]*&c15tJourneyScope=[^&#]*(?:&c15tStored=[01])?/u,
+		''
+	);
+
 const clients: ConsentClient[] = [];
 
 const clearCookies = function clearCookies(): void {
@@ -95,7 +102,7 @@ describe('manifest()', () => {
 		await client.ready();
 		await client.acceptAll();
 		expect(fetchSpy).toHaveBeenCalledOnce();
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
 			'https://example.test/subjects'
 		);
 		const body = JSON.parse(String(fetchSpy.mock.calls[0]?.[1]?.body));
@@ -124,7 +131,7 @@ describe('manifest()', () => {
 		clients.push(client);
 		client.start();
 		await client.ready();
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
 	});
 	it('throws without a manifest source', () => {
 		expect(() => manifest({})).toThrow(/manifest/u);
@@ -171,7 +178,7 @@ describe('manifest()', () => {
 				if (url === manifestURL) {
 					return Promise.resolve(new Response(JSON.stringify(geoManifest)));
 				}
-				if (url.endsWith('/init')) {
+				if (url.split('?')[0]?.endsWith('/init')) {
 					return Promise.resolve(initResponse());
 				}
 				return Promise.resolve(
@@ -185,7 +192,7 @@ describe('manifest()', () => {
 			client.start();
 			await client.ready();
 			await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
-			expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+			expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
 				manifestURL,
 				`${expectedBackend}/init`,
 				`${expectedBackend}/subjects`,
@@ -211,7 +218,7 @@ describe('manifest()', () => {
 		await client.ready();
 		expect(fetchSpy).not.toHaveBeenCalled();
 		await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
-		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
 			'/subjects',
 		]);
 	});
@@ -260,7 +267,7 @@ describe('manifest()', () => {
 		const snapshot = await client.ready();
 
 		expect(fetchSpy).toHaveBeenCalledOnce();
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
 		expect(snapshot.location?.countryCode).toBe('DE');
 	});
 
@@ -300,7 +307,7 @@ describe('manifest()', () => {
 			if (String(input) === manifestURL) {
 				return Promise.resolve(new Response(JSON.stringify(geoManifest)));
 			}
-			if (String(input).endsWith('/init')) {
+			if (String(input).split('?')[0]?.endsWith('/init')) {
 				return Promise.resolve(initResponse());
 			}
 			return Promise.resolve(
@@ -314,7 +321,7 @@ describe('manifest()', () => {
 		client.start();
 		const snapshot = await client.ready();
 		await expect(client.acceptAll()).resolves.toMatchObject({ ok: true });
-		expect(fetchSpy.mock.calls.map(([input]) => String(input))).toEqual([
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
 			manifestURL,
 			`${backendURL}/init`,
 			`${backendURL}/subjects`,
@@ -351,7 +358,7 @@ describe('manifest()', () => {
 		});
 
 		expect(fetchSpy).toHaveBeenCalledOnce();
-		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe(
 			'https://x.c15t.dev/manifest'
 		);
 	});

@@ -161,7 +161,10 @@ const bannerShown = () =>
 	);
 
 const initRequests = (fetch: ReturnType<typeof vi.fn>) =>
-	fetch.mock.calls.filter(([input]) => String(input).endsWith('/init'));
+	fetch.mock.calls.filter(([input]) =>
+		// The path alone: the runtime adds its consent journey as a query.
+		String(input).split('?')[0]?.endsWith('/init')
+	);
 
 beforeEach(() => {
 	nuxt.appConfig = { disableAnimation: true, iframeBlocker: false };

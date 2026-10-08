@@ -112,7 +112,7 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 		test(`the manager closes on ${action} before a ${outcome} save settles`, async () => {
 			let storedAtSave: string | null = null;
 			const fetch = vi.fn((input: RequestInfo | URL) => {
-				if (!String(input).endsWith('/subjects')) {
+				if (!String(input).split('?')[0]?.endsWith('/subjects')) {
 					return Promise.resolve(Response.json({}));
 				}
 				storedAtSave = localStorage.getItem('c15t');
@@ -180,7 +180,7 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 				await vi.waitFor(() =>
 					expect(
 						fetch.mock.calls.some(([input]) =>
-							String(input).endsWith('/subjects')
+							String(input).split('?')[0]?.endsWith('/subjects')
 						)
 					).toBe(true)
 				);
@@ -215,7 +215,7 @@ for (const action of ['accept', 'reject', 'save'] as const) {
 	test(`with nothing declared, ${action} in the necessary-only manager acknowledges and closes before the save settles`, async () => {
 		const bodies: unknown[] = [];
 		const fetch = vi.fn((input: RequestInfo | URL, request?: RequestInit) => {
-			if (!String(input).endsWith('/subjects')) {
+			if (!String(input).split('?')[0]?.endsWith('/subjects')) {
 				return Promise.resolve(Response.json({}));
 			}
 			bodies.push(JSON.parse(String(request?.body)));
