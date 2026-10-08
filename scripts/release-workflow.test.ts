@@ -45,7 +45,7 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "github.ref != 'refs/heads/canary'",
+							if: "github.ref != 'refs/heads/canary' && steps.tip.outputs.current == 'true'",
 							run: 'bun run tegami ci',
 						}),
 						expect.objectContaining({
@@ -68,6 +68,43 @@ describe('release validation', () => {
 					permissions: { 'id-token': 'write' },
 					'runs-on': 'ubuntu-latest',
 				},
+			},
+		});
+	});
+
+	it('queues only publishing outside canary, so release checks overlap', () => {
+		expect(readWorkflow('release')).toMatchObject({
+			// Canary keeps whole runs queued so every commit's snapshot publishes.
+			concurrency: {
+				group: `release-run-\${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}`,
+				// Without it, a third canary push cancels the second's waiting run.
+				queue: 'max',
+			},
+			jobs: {
+				publish: {
+					concurrency: {
+						group: `release-\${{ github.ref }}`,
+						queue: 'max',
+					},
+					if: "github.repository == 'c15t/c15t'",
+					needs: 'checks',
+					// The tip check runs inside the release group, right before
+					// Tegami, so a newer push that lands while this job waits stops it.
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							id: 'tip',
+							if: "github.ref != 'refs/heads/canary'",
+							name: 'Skip superseded commits',
+						}),
+					]),
+				},
+			},
+		});
+		// A per-ref group here would queue release checks again from inside
+		// the reusable workflow.
+		expect(readWorkflow('ci')).toMatchObject({
+			concurrency: {
+				group: `ci-\${{ github.event.pull_request.number || github.run_id }}`,
 			},
 		});
 	});

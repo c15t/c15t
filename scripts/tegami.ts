@@ -475,19 +475,30 @@ export const createRelease = function createRelease({
 	});
 };
 
-/** Finish an existing release before CI can replace its publish lock. */
+/**
+ * Finish an existing release before CI can replace its publish lock.
+ *
+ * Once that release is out, CI continues as normal, so notes that arrived
+ * after the version PR was merged get their own version PR. Release checks
+ * for consecutive pushes overlap, so no later run is guaranteed to do it.
+ */
 export const runReleaseCli = async function runReleaseCli(
 	release: Tegami,
 	args = process.argv.slice(2)
 ) {
-	const command = [...args];
 	if (
-		command[0] === 'ci' &&
+		args[0] === 'ci' &&
 		(await release.getPublishStatus()).status === 'pending'
 	) {
-		command[0] = 'publish';
+		await createCli(release).parseAsync(['publish', ...args.slice(1)]);
+		if ((await release.getPublishStatus()).status === 'pending') {
+			console.warn(
+				'The release is still pending after publishing, so new notes wait for the next run.'
+			);
+			return;
+		}
 	}
-	await createCli(release).parseAsync(command);
+	await createCli(release).parseAsync(args);
 };
 
 if (import.meta.main) {

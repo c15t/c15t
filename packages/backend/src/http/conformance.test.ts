@@ -26,7 +26,7 @@ import { createApp } from './app';
 
 const API_KEY = 'sk_conformance';
 
-for (const engine of ENGINES) {
+describe.each(ENGINES)('conformance ($name)', (engine) => {
 	let runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>;
 	let backend: Backend;
 
@@ -171,4 +171,4 @@ for (const engine of ENGINES) {
 			);
 		}
 	});
-}
+});

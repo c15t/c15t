@@ -43,7 +43,7 @@ const tokenFor = (
 		.setExpirationTime(claims.exp ?? Math.floor(Date.now() / 1000) + 600)
 		.sign(new TextEncoder().encode(claims.key ?? SIGNING_KEY));
 
-for (const engine of ENGINES) {
+describe.each(ENGINES)('HTTP app ($name)', (engine) => {
 	let runtime: ManagedRuntime.ManagedRuntime<SqlClient.SqlClient, never>;
 	let app: ReturnType<typeof createApp>;
 
@@ -1812,4 +1812,4 @@ for (const engine of ENGINES) {
 			assert.strictEqual((await bare.request('/spec.json')).status, 200);
 		});
 	});
-}
+});

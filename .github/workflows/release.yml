@@ -7,10 +7,13 @@ on:
 
 permissions: {}
 
-# Keep checks and publishing in the same branch-level concurrency group.
+# Canary publishes a snapshot for every commit, so its runs stay queued whole,
+# in the order they start. Every other branch gets a group per run: checks for consecutive
+# pushes overlap, and only the publish job below waits its turn. `queue: max`
+# keeps every waiting run; by default a new one cancels the one already waiting.
 concurrency:
-  group: release-${{ github.ref }}
-  cancel-in-progress: false
+  group: release-run-${{ github.ref == 'refs/heads/canary' && github.ref || github.run_id }}
+  queue: max
 
 jobs:
   # npm trusted publishing binds the OIDC identity to the *top-level* workflow
@@ -33,6 +36,10 @@ jobs:
   publish:
     name: Release ${{ github.ref == 'refs/heads/v3' && 'Alpha' || github.ref == 'refs/heads/canary' && 'Canary' || github.ref == 'refs/heads/2.0.0' && 'RC' || '' }}
     needs: checks
+    # Only one release per branch publishes at a time.
+    concurrency:
+      group: release-${{ github.ref }}
+      queue: max
     # npm trusted publishing requires a GitHub-hosted runner.
     runs-on: ubuntu-latest
     permissions:
@@ -67,8 +74,32 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile # Use frozen lockfile for reliability in CI
 
-      - name: Version or publish packages
+      # Outside canary, checks overlap, so an older push can reach this job after
+      # a newer one. Releasing it would run Tegami on a stale tree, for example
+      # reopening a version PR the newer commit already merged, so a superseded
+      # run does not release. The check runs here, after this job holds the
+      # release group, so the tip it reads is as recent as possible.
+      - name: Skip superseded commits
+        id: tip
         if: github.ref != 'refs/heads/canary'
+        shell: bash
+        env:
+          REPOSITORY_URL: ${{ github.server_url }}/${{ github.repository }}
+        run: |
+          tip=$(git ls-remote --exit-code "$REPOSITORY_URL" "$GITHUB_REF" | cut -f1)
+          if [ -z "$tip" ]; then
+            echo "::error::Could not read $GITHUB_REF from $REPOSITORY_URL."
+            exit 1
+          fi
+          if [ "$tip" = "$GITHUB_SHA" ]; then
+            echo "current=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::Not releasing $GITHUB_SHA: $GITHUB_REF is now at $tip, and that run releases this commit if its checks pass."
+            echo "current=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Version or publish packages
+        if: github.ref != 'refs/heads/canary' && steps.tip.outputs.current == 'true'
         run: bun run tegami ci
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

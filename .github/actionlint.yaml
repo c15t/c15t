@@ -1,3 +1,8 @@
+paths:
+  .github/workflows/release.yml:
+    ignore:
+      # GitHub supports `concurrency.queue`; actionlint does not know it yet.
+      - 'unexpected key "queue" for "concurrency" section'
 self-hosted-runner:
   labels:
     - blacksmith-4vcpu-ubuntu-2404

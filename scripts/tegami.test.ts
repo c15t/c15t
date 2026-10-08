@@ -375,6 +375,37 @@ describe('CI release retries', () => {
 			);
 		}
 	);
+
+	it('versions new notes once the pending release is published', async () => {
+		const root = fixture([{ name: '@c15t/core', version: '3.0.0-alpha.1' }]);
+		change(root, { '@c15t/core': 'patch' }, 'original');
+		await (await release(root).draft()).apply();
+		const pendingVersion = readManifest(root, 'core').version;
+		change(root, { '@c15t/core': 'patch' }, 'later');
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response(null, { status: 404 })))
+		);
+		const instance = release(root);
+		// Publishing puts the pending version on the registry; nothing uploads.
+		const publish = vi.spyOn(instance, 'publish').mockImplementation(() => {
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(() =>
+					Promise.resolve(
+						Response.json({ versions: { [pendingVersion ?? '']: {} } })
+					)
+				)
+			);
+			return Promise.resolve('skipped');
+		});
+		await runReleaseCli(instance, ['ci']);
+		expect(publish).toHaveBeenCalledOnce();
+		expect(readManifest(root, 'core').version).not.toBe(pendingVersion);
+		expect(
+			readFileSync(join(root, 'packages/core/CHANGELOG.md'), 'utf8')
+		).toContain('Release notes for later.');
+	});
 });
 
 describe('publishing through npm', () => {
