@@ -140,13 +140,14 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		const resolver = createResolver(import.meta.url);
 		// A `manifestSnapshot` under the `c15t` key stays out of runtime config,
 		// like the build snapshot below.
+		const configuredSnapshot = options.manifestSnapshot;
+		delete options.manifestSnapshot;
 		const manifestSnapshot =
 			(await loadNuxtBuildManifest(
 				buildManifest,
 				options,
 				nuxt.options._prepare
-			)) ?? options.manifestSnapshot;
-		delete options.manifestSnapshot;
+			)) ?? configuredSnapshot;
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);
@@ -178,14 +179,12 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		nuxt.options.nitro.virtual ||= {};
 		nuxt.options.nitro.virtual['#c15t/manifest-snapshot'] = () =>
 			renderSnapshotModule(manifestSnapshot);
-		// Client manifest mode resolves the policy in the browser, so the app
-		// bundles the snapshot. Other modes ask the server routes for it.
+		// The app bundles a `c15t` key snapshot in every mode, because app
+		// config can switch to client manifest mode after this setup. The
+		// build snapshot stays on the server: `buildManifest` needs server mode.
 		nuxt.options.alias['#c15t/client-manifest-snapshot'] = addTemplate({
 			filename: 'c15t-client-manifest-snapshot.mjs',
-			getContents: () =>
-				renderSnapshotModule(
-					manifestMode === 'client' ? manifestSnapshot : undefined
-				),
+			getContents: () => renderSnapshotModule(configuredSnapshot),
 		}).dst;
 
 		nuxt.options.runtimeConfig.public.c15t = defu(

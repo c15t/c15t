@@ -230,12 +230,10 @@ describe('buildManifest', () => {
 });
 
 describe('manifestSnapshot under the c15t key', () => {
-	test.each([
-		{ inBundle: true, manifest: 'client' },
-		{ inBundle: false, manifest: 'server' },
-	])(
-		'stays out of runtime config in $manifest mode',
-		async ({ inBundle, manifest }) => {
+	// App config can switch the manifest mode, so the app gets it in each.
+	test.each([false, 'client', 'server'])(
+		'stays out of runtime config with manifest: %s',
+		async (manifest) => {
 			const snapshot = createSnapshot();
 			const nuxt = createNuxt({
 				backendURL: 'https://consent.example.com',
@@ -249,11 +247,28 @@ describe('manifestSnapshot under the c15t key', () => {
 				'manifestSnapshot'
 			);
 			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
-			expect(await importClientManifestSnapshot(nuxt)).toEqual(
-				inBundle ? snapshot : undefined
-			);
+			expect(await importClientManifestSnapshot(nuxt)).toEqual(snapshot);
 		}
 	);
+
+	test('leaves the build snapshot out of the app bundle', async () => {
+		const snapshot = createSnapshot();
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(Response.json(snapshot)))
+		);
+		try {
+			const nuxt = createNuxt({
+				backendURL: 'https://consent.example.com',
+				buildManifest: true,
+			});
+			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
+			expect(await importClientManifestSnapshot(nuxt)).toBeUndefined();
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	});
 });
 
 describe('the early /init script for ssr: false pages', () => {
