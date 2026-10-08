@@ -18,17 +18,21 @@ import {
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
 
+import { consentOptions } from '../consent-options.server';
 import { scripts } from '../scripts';
 
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
+// Where the browser saves consent: the project the build read the manifest
+// from.
 const backendURL =
-	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://your-project.inth.app';
+	import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app';
 
 // Declare the server function in your own module. Start's compiler splits
-// the server code out of the browser bundle at this call site.
+// the server code, and the bundled manifest, out of the browser bundle at
+// this call site.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler({ backendURL })
+	createConsentStateHandler(consentOptions)
 );
 
 const RootComponent = () => {
