@@ -378,6 +378,23 @@ for (const engine of ENGINES) {
 			});
 		});
 
+		it('takes the journey domain from the request host when no Origin is sent', async () => {
+			// A backend on the site's own origin: a same-origin GET carries no
+			// Origin header.
+			const onReport = vi.fn();
+			const reporting = createApp(runtime, { sessions: { onReport } });
+			const response = await reporting.request(
+				'https://shop.example.com/init?c15tJourney=3b241101-e2bb-4255-8caf-4136c566a962&c15tJourneyScope=page&c15tStored=0',
+				{ headers: { 'x-c15t-version': '3.0.0' } }
+			);
+			assert.strictEqual(response.status, 200);
+			await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
+			assert.strictEqual(
+				onReport.mock.calls[0]?.[0].journey?.domain,
+				'shop.example.com'
+			);
+		});
+
 		it('leaves a malformed or partial journey off the /init report', async () => {
 			const onReport = vi.fn();
 			const reporting = createApp(runtime, { sessions: { onReport } });

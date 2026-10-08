@@ -68,8 +68,12 @@ export const register = function register({
 								inputs: signals,
 								// The journey id links this resolution to the save that
 								// follows; the browser sends it as query parameters. The
-								// page's domain comes from `Origin`.
-								journey: readSessionJourney(c.req.url, c.req.header('origin')),
+								// page's domain comes from `Origin`, or from the request's
+								// host when a same-origin GET sent none.
+								journey: readSessionJourney(
+									c.req.url,
+									c.req.header('origin') ?? c.req.url
+								),
 								manifest,
 								source: 'init',
 							}),
