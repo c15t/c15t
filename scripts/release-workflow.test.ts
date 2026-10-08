@@ -45,7 +45,7 @@ describe('release validation', () => {
 								GITHUB_TOKEN: `\${{ secrets.GITHUB_TOKEN }}`,
 								NPM_CONFIG_PROVENANCE: 'true',
 							},
-							if: "github.ref != 'refs/heads/canary'",
+							if: "github.ref != 'refs/heads/canary' && steps.tip.outputs.current == 'true'",
 							run: 'bun run tegami ci',
 						}),
 						expect.objectContaining({
@@ -86,12 +86,18 @@ describe('release validation', () => {
 						group: `release-\${{ github.ref }}`,
 						queue: 'max',
 					},
-					// Superseded runs stop before joining the release group, so
-					// they cannot take the tip's pending slot.
-					if: "github.repository == 'c15t/c15t' && needs.tip.outputs.current == 'true'",
-					needs: ['checks', 'tip'],
+					if: "github.repository == 'c15t/c15t'",
+					needs: 'checks',
+					// The tip check runs inside the release group, right before
+					// Tegami, so a newer push that lands while this job waits stops it.
+					steps: expect.arrayContaining([
+						expect.objectContaining({
+							id: 'tip',
+							if: "github.ref != 'refs/heads/canary'",
+							name: 'Skip superseded commits',
+						}),
+					]),
 				},
-				tip: { needs: 'checks' },
 			},
 		});
 		// A per-ref group here would queue release checks again from inside
@@ -107,7 +113,7 @@ describe('release validation', () => {
 		expect(readWorkflow('release')).toMatchObject({
 			jobs: {
 				checks: { with: { skip_performance: true } },
-				publish: { needs: ['checks', 'tip'] },
+				publish: { needs: 'checks' },
 			},
 		});
 		expect(readWorkflow('validation')).not.toHaveProperty(

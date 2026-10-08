@@ -53,10 +53,10 @@ channel tags, and rejection of a publish lock from another branch.
   uses `canary`. Stable, alpha, and RC each have their own version PR branch.
 - Canary snapshots use the source commit SHA and publish directly. Their generated
   versions and lock are temporary; never commit a canary version draft.
-- Retry failed releases from the same commit. Tegami skips published versions and
-  finishes pending tasks. Outside canary, once a newer commit lands on the
+- Retry failed releases from the same commit. Tegami skips published versions
+  and finishes pending tasks. Outside canary, once a newer commit lands on the
   branch, an older run does not release. The newer run releases both if its
-  checks pass; if they fail, nothing releases until a later push passes. Do not discard an unfinished stable/alpha/RC publish lock
-  to force a new version PR.
+  checks pass; if they fail, nothing releases until a later push passes. Do not
+  discard an unfinished stable/alpha/RC publish lock to force a new version PR.
 - New npm package names need trusted publishing configured for `c15t/c15t` and
   workflow `release.yml`. Existing packages keep their current configuration.
