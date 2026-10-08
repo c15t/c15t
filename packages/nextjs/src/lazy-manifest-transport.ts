@@ -181,9 +181,12 @@ const startEarlyInit = function startEarlyInit(
 	) {
 		return undefined;
 	}
+	// Carries the journey as the loaded transport does, so that transport's
+	// first request still matches this one and takes its response.
 	const request = createHostedInitRequest({
 		backendURL: options.url,
 		initURL: options.initURL,
+		journey: ctx.journey,
 		overrides: ctx.overrides,
 	});
 	const response = fetch(request.url, request.init);

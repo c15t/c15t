@@ -11,9 +11,11 @@ import type {
 	Callbacks,
 	ClearOnRevocationConfig,
 	ConsentExperiment,
+	ConsentJourneyOption,
 	ConsentKernel,
 	ConsentPresentation,
 	ExperimentState,
+	JourneyState,
 	HostedModeOptions,
 	I18nConfig,
 	KernelConfig,
@@ -90,13 +92,15 @@ export type ConsentProviderCallbacks = Pick<
 /**
  * Prepared policy and records; legacy consent projections are not provider
  * inputs. An `experiment` a server helper resolved runs instead of
- * `options.experiment`.
+ * `options.experiment`, and a `journey` it started is the one the provider
+ * continues.
  */
 export type ConsentProviderPrefetch = Omit<
 	KernelConfig,
 	'initialDraft' | 'transport'
 > &
-	ExperimentState;
+	ExperimentState &
+	JourneyState;
 
 export interface ConsentProviderOptions
 	extends
@@ -119,6 +123,17 @@ export interface ConsentProviderOptions
 	 * provider to change the experiment.
 	 */
 	experiment?: ConsentExperiment;
+	/**
+	 * Link each page load's `/init` to the save that follows with a random
+	 * journey id, sent as query parameters on requests the provider already
+	 * makes. `'page'` keeps it in memory for one page load; `'tab'` keeps it
+	 * in `sessionStorage` while a prompt is due; `false` sends none. A
+	 * server-rendered page continues the journey the server started.
+	 * Initial-only.
+	 *
+	 * @default 'page'
+	 */
+	journey?: ConsentJourneyOption;
 	/**
 	 * Content Security Policy nonce applied to DOM nodes c15t injects.
 	 *
@@ -617,7 +632,12 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 				request.catch(() => undefined);
 				let used = false;
 				carrier.init = (next) => {
-					const reuse = !used && JSON.stringify(next) === key;
+					// The journey is created at mount, after this request left,
+					// so it is not part of what makes the request the same.
+					const reuse =
+						!used &&
+						JSON.stringify({ overrides: next.overrides, user: next.user }) ===
+							key;
 					used = true;
 					return reuse ? request : init(next);
 				};
