@@ -318,15 +318,33 @@ describe('the Nuxt plugin applies colorScheme', () => {
 		expect(isDark()).toBe(false);
 	});
 
-	test('null in the module options survives the app config merge', async () => {
-		stubSystemScheme(false);
-		root().classList.add('dark');
+	// A build delivers the module option `colorScheme: null` as `''`: Nitro
+	// replaces every `null` in runtime config.
+	test.each([
+		{ colorScheme: null, label: 'null' },
+		{ colorScheme: '', label: 'an empty string from a build' },
+	])(
+		'$label in the module options leaves the class to the site',
+		async ({ colorScheme }) => {
+			stubSystemScheme(false);
+			root().classList.add('c15t-dark');
+			nuxt.runtimeConfig = { colorScheme };
+			failingFetch();
+			const app = createSSRApp(
+				defineComponent({ setup: () => () => h('main') })
+			);
+			apps.add(app);
+			await plugin({ hook: () => undefined, payload: {}, vueApp: app });
+			expect(isDark()).toBe(true);
+		}
+	);
+
+	test('an empty string from a build renders the head of null', async () => {
 		nuxt.runtimeConfig = { colorScheme: null };
-		failingFetch();
-		const app = createSSRApp(defineComponent({ setup: () => () => h('main') }));
-		apps.add(app);
-		await plugin({ hook: () => undefined, payload: {}, vueApp: app });
-		expect(isDark()).toBe(false);
+		const expected = await renderNuxtHead();
+		nuxt.head.length = 0;
+		nuxt.runtimeConfig = { colorScheme: '' };
+		expect(await renderNuxtHead()).toEqual(expected);
 	});
 
 	test('applies the class in the browser', async () => {
