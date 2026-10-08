@@ -23,6 +23,13 @@ and `region`, or every visitor gets the policy for an unknown location. See
 When no location header is present, the location stays unknown and your
 policy's rule for unknown locations applies.
 
+A country can also arrive without a region, for example from Cloudflare
+without its visitor location headers setting. If your policy has rules for
+regions of that country, such as California, c15t can't tell which one
+applies. It uses the rule that lists the country in `regionFallbacks`, and
+otherwise the rule for unknown locations. c15t's recommended rules send a US
+visitor without a state to the US opt-out rule this way.
+
 ## Which headers are read?
 
 Within each row, the first header with a value wins:

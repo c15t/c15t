@@ -29,7 +29,7 @@ The module adds `/api/c15t/manifest` and `/api/c15t/init` to your Nuxt
 server. The browser uses the init route when it needs to resolve the policy
 itself, for example on a prerendered route or after a failed server render.
 The manifest route serves the deployment's snapshot without fetching upstream.
-To apply policy updates without rebuilding, omit `buildManifest` and keep
+To apply policy updates without rebuilding, replace `buildManifest: true` with
 `manifest: 'server'`. That path fetches and caches the public manifest at
 runtime and refreshes it in the background.
 
@@ -38,13 +38,15 @@ the policy. With runtime fetching, when the backend is slower or down, the page 
 consent UI in the HTML, optional categories stay denied, gated scripts and
 iframes stay blocked, and the browser resolves the policy after hydration.
 
-With `manifest: 'server'`, the render resolves through the module's own
+With `buildManifest: true` or `manifest: 'server'`, the render resolves through
+the module's own
 `/api/c15t/init` route in-process, through Nitro's local fetch, so it never
 leaves the server. With `manifest` unset, the server calls the backend's
 `/init` on every render instead of using a cached manifest. That request
 carries the resolved location, language and GPC and the `user-agent`, and,
 over `https` or to a loopback host, the consent cookie alone, never the rest
-of the cookie jar. Prefer `manifest: 'server'`.
+of the cookie jar. Prefer `buildManifest: true`, or `manifest: 'server'` when
+you need policy updates without a rebuild.
 
 ## Bundle the manifest during builds
 
@@ -88,8 +90,9 @@ resolve the policy without them:
   and resolves the policy itself, without an init request.
 - **`manifest` unset.** The browser calls your backend's `/init` directly.
 
-`manifest: 'server'`, or `true`, does not work on a static host, because the
-browser would call the missing `/api/c15t/init` route.
+`buildManifest: true`, `manifest: 'server'` and `manifest: true` don't work on
+a static host, because the browser would call the missing `/api/c15t/init`
+route. Remove `buildManifest` when you switch to `nuxt generate`.
 
 {/* example: fragment */}
 
@@ -150,8 +153,9 @@ the server cannot see that change and the early request would go unused.
 The [Nuxt module](/docs/frameworks/nuxt/module#backend-and-rendering) page
 lists `manifest`, `manifestURL`, `geoURL`, `timeoutMs`, `reportSessions` and
 the route options with their defaults. `manifest` defaults to `false`, and
-setting `manifestURL` does not change that: set `manifest: 'server'` for the
-server routes, or `manifest: 'client'` for static output.
+setting `manifestURL` does not change that: set `buildManifest: true` or
+`manifest: 'server'` for the server routes, or `manifest: 'client'` for static
+output.
 
 The server reads the visitor's location from request headers. See
 [geography headers](/docs/frameworks/nuxt/geography-headers) for the list and

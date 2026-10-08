@@ -19,12 +19,12 @@ from it.
 
 ## During server rendering
 
-With `manifest: 'server'`, the server reads the visitor's consent cookie and
-evaluates the category before it renders. A visitor who allowed the category
-gets the iframe in the first HTML, and a visitor who has not gets the
-placeholder. On prerendered and cached routes, and with `ssr: false`, every
-visitor gets the placeholder first, and the iframe replaces it once the
-browser resolves the policy.
+With `buildManifest: true` or `manifest: 'server'`, the server reads the
+visitor's consent cookie and evaluates the category before it renders. A
+visitor who allowed the category gets the iframe in the first HTML, and a
+visitor who has not gets the placeholder. On prerendered and cached routes,
+and with `ssr: false`, every visitor gets the placeholder first, and the
+iframe replaces it once the browser resolves the policy.
 
 <import src="../../../shared/vue/components/consent-gate.mdx#props" />
 
