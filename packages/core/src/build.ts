@@ -6,6 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import type { ConsentManifest } from '@c15t/schema/types';
 
 import { loadStaticManifest } from './server/static-manifest';
+import { manifestNeedsLocation } from './transports/manifest-browser';
 
 export type { ConsentManifest } from '@c15t/schema/types';
 
@@ -626,6 +627,14 @@ export interface ConsentManifestPlugin {
 	resolveId: (id: string) => string | undefined;
 }
 
+/**
+ * Logged when a single-page app bundles a policy that depends on where the
+ * visitor is. The browser doesn't know that, so `manifest()` asks the
+ * backend's `/init` anyway unless the page supplies a location.
+ */
+const LOCATION_ADVICE =
+	"the consent policy depends on the visitor's location, which the browser doesn't know. Unless you pass `inputs` or `geoURL` to `manifest()`, every first visit still calls the backend's /init, so the bundled policy adds bytes without saving a request. Consider `mode: hosted()` instead.";
+
 /** The resolved id of the virtual `@c15t/core/generated` module. */
 const VIRTUAL_GENERATED_ID = '\0@c15t/core/generated';
 
@@ -673,6 +682,11 @@ export const createConsentManifestPlugin = (
 		envNames: readonly string[];
 		label: string;
 		serverRendered?: boolean | ((config: ManifestPluginConfig) => boolean);
+		/**
+		 * Warn when the snapshot's policy depends on the visitor's location,
+		 * which a single-page app's `manifest()` can't resolve on its own.
+		 */
+		adviseHostedForLocation?: boolean;
 	}
 ): ConsentManifestPlugin => {
 	let generation: Promise<GeneratedManifestModule> | undefined;
@@ -698,6 +712,7 @@ export const createConsentManifestPlugin = (
 		) {
 			config.env[exposed] = backendURL;
 		}
+		const logger = labelledBuildLogger(defaults.label, config.logger);
 		try {
 			const snapshot = await loadManifestForBuild(
 				{ backendURL, fetch: options.fetch },
@@ -705,10 +720,18 @@ export const createConsentManifestPlugin = (
 					command: config.command === 'serve' ? 'dev' : 'build',
 					envNames: defaults.envNames,
 					label: defaults.label,
-					logger: labelledBuildLogger(defaults.label, config.logger),
+					logger,
 					onBuildError: options.onBuildError,
 				}
 			);
+			if (
+				defaults.adviseHostedForLocation &&
+				!serverRendered &&
+				snapshot &&
+				manifestNeedsLocation(snapshot)
+			) {
+				logger.warn(LOCATION_ADVICE);
+			}
 			return { backendURL, snapshot };
 		} catch (error) {
 			generation = undefined;
@@ -768,7 +791,9 @@ export const createConsentManifestPlugin = (
  *
  * A failed fetch stops `vite build` and warns in `vite dev`, where
  * `snapshot` is `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to
- * change that.
+ * change that. When the policy depends on the visitor's location, it warns
+ * and suggests `hosted()`, since the browser's `manifest()` then still asks
+ * the backend's `/init` unless the page passes `inputs` or `geoURL`.
  *
  * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
  * `VITE_C15T_BACKEND_URL`.
@@ -785,6 +810,7 @@ export const consentManifest = (
 	options: ManifestBuildOptions = {}
 ): ConsentManifestPlugin =>
 	createConsentManifestPlugin(options, {
+		adviseHostedForLocation: true,
 		envNames: ['VITE_C15T_BACKEND_URL'],
 		label: '@c15t/core/build',
 	});

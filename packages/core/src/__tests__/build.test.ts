@@ -269,6 +269,42 @@ describe('@c15t/core/generated in Vite', () => {
 		).toContain('export const backendURL = "https://env.example.com/api";');
 	});
 
+	test('suggests hosted() when the policy depends on location', async () => {
+		const root = await createRoot();
+		const regional = {
+			...MANIFEST_FIXTURE,
+			policyPacks: [
+				createConsentManifestPolicyPack({
+					id: 'regional',
+					match: { countries: ['DE'] },
+					model: 'opt-in',
+					prompt: 'choice',
+				}),
+			],
+		};
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockImplementation(() => Promise.resolve(Response.json(regional)));
+		const logger = createLogger();
+		await consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch,
+		}).configResolved({ command: 'build', logger, root });
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.stringMatching(
+				/^@c15t\/core\/build: the consent policy depends on the visitor's location.*hosted\(\)/u
+			)
+		);
+
+		const everywhere = createLogger();
+		await consentManifest(optionsFor(root)).configResolved({
+			command: 'build',
+			logger: everywhere,
+			root,
+		});
+		expect(everywhere.warn).not.toHaveBeenCalled();
+	});
+
 	test('shares one snapshot across Vite configuration resolution', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
