@@ -91,6 +91,9 @@ if (baselineBuild) {
 				'marketing',
 			],
 			disableAnimation: true,
+			// The fixture backend is this app, which isn't running during the
+			// build, so the build script sets C15T_ON_BUILD_ERROR=runtime and the
+			// server fetches the manifest at runtime.
 			manifest: true,
 			manifestURL: getBenchManifestURL(),
 			trapFocus: false,
