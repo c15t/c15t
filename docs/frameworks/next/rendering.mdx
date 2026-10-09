@@ -255,7 +255,9 @@ allows; Customize opens the dialog.
 
 A tap made on a banner for one model or prompt is dropped when the browser
 resolves another, and the banner shows again. A banner you build from hooks
-has no inline script, so a tap before hydration does nothing there. Under a
+has no inline script, so a tap before hydration does nothing there. Neither
+does a button in a composed `ConsentBanner` that has its own `onClick` or
+`performDefaultAction={false}`, so your handler still decides that tap. Under a
 Content Security Policy the script needs `options.nonce`; see
 [Content Security Policy](/docs/frameworks/next/content-security-policy).
 

@@ -172,6 +172,33 @@ describe('composed ConsentBanner', () => {
 
 		expect(query('consent-banner-accept-button')?.dataset.action).toBe('agree');
 	});
+
+	test('a button with its own click handler opts out of early tap replay', async () => {
+		await renderComposed(
+			<ConsentBanner.Root>
+				<ConsentBanner.Card>
+					<ConsentBanner.Footer>
+						<ConsentBanner.RejectButton />
+						<ConsentBanner.AcceptButton
+							onClick={(event) => event.preventDefault()}
+						/>
+						<ConsentBanner.CustomizeButton performDefaultAction={false} />
+					</ConsentBanner.Footer>
+				</ConsentBanner.Card>
+			</ConsentBanner.Root>
+		);
+		await waitForTestId('consent-banner-accept-button');
+
+		// The pre-hydration script would replay accept with no veto.
+		expect(query('consent-banner-accept-button')?.dataset.earlyTap).toBe('off');
+		// Customize opens the dialog whatever the default action says.
+		expect(
+			query('consent-banner-customize-button')?.dataset.earlyTap
+		).toBeUndefined();
+		expect(
+			query('consent-banner-reject-button')?.dataset.earlyTap
+		).toBeUndefined();
+	});
 });
 
 describe('composed ConsentDialog', () => {

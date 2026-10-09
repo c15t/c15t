@@ -1,4 +1,5 @@
 import type { AllConsentNames } from '@c15t/core';
+import { EARLY_TAP_OPT_OUT } from '@c15t/core/surface-actions';
 import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
@@ -38,6 +39,40 @@ type ConsentActionThemeKey =
 	| 'customize'
 	| 'dismiss'
 	| 'save';
+
+/**
+ * The `data-action` the banner's pre-hydration script replays for each
+ * button action. It records the choice from that attribute alone.
+ */
+const EARLY_TAP_ACTIONS: Partial<Record<string, string>> = {
+	'accept-consent': 'accept',
+	'dismiss-notice': 'dismiss',
+	'open-consent-dialog': 'customize',
+	'reject-consent': 'reject',
+};
+
+/**
+ * Whether the pre-hydration script must leave this button's taps alone.
+ * It replays from `data-action` alone, so a button whose own click handler
+ * can veto the action, that skips the default action, or whose action does
+ * not match its `data-action` opts out. The replay then never records a
+ * choice the hydrated button would not.
+ */
+const skipsEarlyTap = function skipsEarlyTap(params: {
+	action: string;
+	dataAction: unknown;
+	hasClickHandler: boolean;
+	performDefaultAction: boolean;
+}): boolean {
+	const { action, dataAction, hasClickHandler, performDefaultAction } = params;
+	const replays =
+		!hasClickHandler &&
+		(performDefaultAction || action === 'open-consent-dialog') &&
+		EARLY_TAP_ACTIONS[action] === dataAction;
+	return (
+		!replays && Object.values(EARLY_TAP_ACTIONS).includes(String(dataAction))
+	);
+};
 
 /**
  * Resolves the final variant and mode for a consent button.
@@ -303,6 +338,15 @@ export const ConsentButton = createForwardRef<
 
 		const isStyled = !(contextNoStyle || noStyle);
 
+		const earlyTapOptOut = skipsEarlyTap({
+			action,
+			dataAction: domProps['data-action'] ?? consentAction,
+			hasClickHandler: forwardedOnClick !== undefined,
+			performDefaultAction,
+		})
+			? { [EARLY_TAP_OPT_OUT]: 'off' }
+			: undefined;
+
 		return (
 			<Comp
 				ref={ref}
@@ -311,6 +355,7 @@ export const ConsentButton = createForwardRef<
 				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
 				data-size={isStyled ? size : undefined}
 				data-action={consentAction}
+				{...earlyTapOptOut}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				onFocus={buttonFocus}

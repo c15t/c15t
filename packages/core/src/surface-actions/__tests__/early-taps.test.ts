@@ -19,6 +19,7 @@ import { hosted } from '../../transports/mode';
 import { c15tProtocolHeaders } from '../../transports/version-header';
 import {
 	EARLY_CONSENT_TAP_SCRIPT,
+	EARLY_TAP_OPT_OUT,
 	EARLY_TAP_STYLE_ID,
 	EARLY_TAPS_WINDOW_KEY,
 } from '../early-tap-script';
@@ -160,6 +161,20 @@ describe('the inline script', () => {
 		renderBanner();
 		tap('customize');
 		expect(queue()?.taps?.map((entry) => entry.action)).toEqual(['customize']);
+		expect(hidden()).toBe(false);
+	});
+
+	test('leaves a button that opted out to its own handler', () => {
+		runScript();
+		renderBanner();
+		document
+			.querySelector('[data-action="accept"]')
+			?.setAttribute(EARLY_TAP_OPT_OUT, 'off');
+		const handler = vi.fn();
+		document.addEventListener('click', handler);
+		tap('accept');
+		expect(handler).toHaveBeenCalledOnce();
+		expect(queue()?.taps).toEqual([]);
 		expect(hidden()).toBe(false);
 	});
 
