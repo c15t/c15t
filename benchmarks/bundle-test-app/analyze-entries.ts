@@ -127,12 +127,7 @@ const measureEntry = async function measureEntry(
 	return {
 		...sizes,
 		boundaries,
-		gzipBytes: sizes.initialGzip + sizes.lazyGzip,
 		name: basename(entryPath, extname(entryPath)),
-		rawBytes: buildResult.outputFiles.reduce(
-			(sum, file) => sum + file.contents.byteLength,
-			0
-		),
 		topInputs,
 	};
 };
@@ -197,6 +192,7 @@ const toBenchmarkResult = function toBenchmarkResult(
 		notes: [
 			'Synthetic esbuild entry with React externals and empty CSS loaders.',
 			'lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().',
+			'gzipSize and rawSize count only JavaScript chunks reachable from the entry.',
 		],
 		package: '@c15t/next-bundle-bench',
 		runtime: 'esbuild',

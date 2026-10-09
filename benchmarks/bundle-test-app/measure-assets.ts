@@ -66,7 +66,8 @@ export const classifyEntryChunks = function classifyEntryChunks(
 /**
  * Count the entry's static dependency closure separately from deferred
  * JavaScript. `lazy*` counts every other emitted chunk; `reachableLazy*`
- * counts only the deferred chunks the entry can actually load.
+ * counts only the deferred chunks the entry can actually load. Total gzip
+ * and raw bytes count the reachable chunks, including static dependencies.
  */
 export const measureEntryOutputs = function measureEntryOutputs(
 	result: BuildResult,
@@ -96,12 +97,16 @@ export const measureEntryOutputs = function measureEntryOutputs(
 		reachableLazyBrotli: 0,
 		reachableLazyGzip: 0,
 	};
+	let rawBytes = 0;
 	for (const file of result.outputFiles) {
 		if (!file.path.endsWith('.js')) {
 			continue;
 		}
 		const size = compressedSize(file.contents);
 		const path = resolve(file.path);
+		if (reachable.has(path)) {
+			rawBytes += size.raw;
+		}
 		if (initial.has(path)) {
 			sizes.initialGzip += size.gzip;
 			sizes.initialBrotli += size.brotli;
@@ -117,5 +122,9 @@ export const measureEntryOutputs = function measureEntryOutputs(
 	if (!sizes.initialGzip) {
 		throw new Error('No initial JavaScript measured.');
 	}
-	return sizes;
+	return {
+		...sizes,
+		gzipBytes: sizes.initialGzip + sizes.reachableLazyGzip,
+		rawBytes,
+	};
 };

@@ -1207,10 +1207,11 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 				initial: SURFACE_STYLES_INITIAL_GZIP_BYTES,
 			}
 		: { deferred: 0, initial: 0 };
-	// These budgets count every emitted chunk, including chunks from imports
-	// esbuild later removes. The root provider entry emits the ordinary style
-	// chunks without being able to request them, so their allowance is wholly
-	// deferred. reachableLazy* reports the actual loadable deferred payload.
+	// The deferred budget counts every emitted chunk, including chunks from
+	// imports esbuild later removes. The root provider entry emits the ordinary
+	// style chunks without being able to request them. The total gzip budget
+	// counts only reachable chunks; retain its existing allowance until the
+	// style change reaches the validated release base.
 	const emittedProviderStyles =
 		scenario === 'provider'
 			? SURFACE_STYLES_INITIAL_GZIP_BYTES + SURFACE_STYLES_DEFERRED_GZIP_BYTES
@@ -1240,7 +1241,7 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Initial plus deferred emitted JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB styles emitted by this entry.',
+				'Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.',
 			metric: 'gzipSize',
 			threshold:
 				3072 +

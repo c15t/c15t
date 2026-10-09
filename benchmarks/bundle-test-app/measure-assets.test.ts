@@ -124,6 +124,7 @@ it('measures a shared lazy chunk once and skips chunks no import() reaches', asy
 			write: false,
 		});
 		const lazyBySource = new Map<string, number>();
+		let unreachableRawBytes = 0;
 		for (const [path, output] of Object.entries(result.metafile.outputs)) {
 			const file = result.outputFiles.find(
 				(candidate) => basename(candidate.path) === basename(path)
@@ -133,6 +134,9 @@ it('measures a shared lazy chunk once and skips chunks no import() reaches', asy
 					basename(input)
 				);
 				lazyBySource.set(sources.join(','), compressedSize(file.contents).gzip);
+				if (sources.includes('never.ts')) {
+					unreachableRawBytes += file.contents.byteLength;
+				}
 			}
 		}
 		// a, b, c, shared and never each land in a chunk of their own.
@@ -157,6 +161,15 @@ it('measures a shared lazy chunk once and skips chunks no import() reaches', asy
 		);
 		expect(sizes.reachableLazyBrotli).toBeGreaterThan(0);
 		expect(sizes.reachableLazyBrotli).toBeLessThan(sizes.lazyBrotli);
+		expect(sizes.gzipBytes).toBe(
+			sizes.initialGzip + sum(['a.ts', 'b.ts', 'c.ts', 'shared.ts'])
+		);
+		expect(sizes.rawBytes).toBe(
+			result.outputFiles.reduce(
+				(total, file) => total + file.contents.byteLength,
+				0
+			) - unreachableRawBytes
+		);
 	} finally {
 		await rm(directory, { force: true, recursive: true });
 	}
@@ -170,11 +183,16 @@ it('emits every budgeted metric for real consumer entries', () => {
 		})
 	) as {
 		budgetDefinitions: { metric: string }[];
-		metrics: { name: string }[];
+		metrics: { name: string; median: number }[];
 		scenario: string;
 	}[];
 	expect(results.some((result) => result.scenario === 'iab-lazy')).toBe(true);
 	for (const result of results) {
+		const median = (name: string) =>
+			result.metrics.find((candidate) => candidate.name === name)?.median;
+		expect(median('gzipSize'), result.scenario).toBe(
+			(median('initialGzip') ?? 0) + (median('reachableLazyGzip') ?? 0)
+		);
 		for (const budget of result.budgetDefinitions) {
 			expect(
 				result.metrics.map((metric) => metric.name),
