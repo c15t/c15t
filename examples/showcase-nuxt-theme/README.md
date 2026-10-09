@@ -42,8 +42,8 @@ bun run --cwd examples/showcase-nuxt-theme dev
 ```
 
 The app talks to the `https://benchmarks-inth.inth.app` Inth project.
-`buildManifest: true` downloads that project's policy when `nuxt dev` or
-`nuxt build` starts. To use your own project, set
+The module downloads that project's policy when `nuxt dev` or `nuxt build`
+starts. To use your own project, set
 `NUXT_PUBLIC_C15T_BACKEND_URL` to its backend URL and add the app's origin to
 its trusted origins.
 

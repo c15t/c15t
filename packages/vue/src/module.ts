@@ -1,6 +1,10 @@
 import { existsSync, realpathSync } from 'node:fs';
 
-import { loadBuildManifest } from '@c15t/core/build';
+import {
+	hasBuildManifestSource,
+	loadBuildManifest,
+	loadDefaultBuildManifest,
+} from '@c15t/core/build';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -13,6 +17,7 @@ import {
 	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
+	useLogger,
 } from '@nuxt/kit';
 import type { Nuxt, NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
@@ -95,21 +100,61 @@ const addDevToolsTab = (
 const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
 	`export default ${snapshot ? JSON.stringify(snapshot) : 'undefined'};`;
 
+/**
+ * Whether `buildManifest` left unset fetches a snapshot. It needs a Nuxt
+ * server that renders pages and an absolute upstream URL, and stays out of
+ * the way of an explicit `manifest: false` or `'client'` and of a
+ * `manifestSnapshot` the app supplies.
+ */
+const buildsManifestByDefault = (
+	options: ModuleOptions,
+	nuxt: Nuxt,
+	hasSnapshot: boolean
+): boolean => {
+	const { manifest } = options;
+	if (manifest === false || manifest === 'client' || hasSnapshot) {
+		return false;
+	}
+	// `nuxt generate` deploys static files with no server routes to serve
+	// the snapshot, and an `ssr: false` app renders nothing on the server.
+	const { _generate: generate } = nuxt.options as { _generate?: boolean };
+	if (generate || nuxt.options.nitro.static || nuxt.options.ssr === false) {
+		return false;
+	}
+	return hasBuildManifestSource(options);
+};
+
 const loadNuxtBuildManifest = (
 	enabled: boolean | undefined,
 	options: ModuleOptions,
-	prepare: boolean
+	nuxt: Nuxt,
+	hasSnapshot: boolean
 ) => {
-	if (!enabled) {
+	if (enabled === false) {
 		return undefined;
 	}
-	if (options.manifest === 'client') {
+	if (enabled === true && options.manifest === 'client') {
 		throw new Error('@c15t/vue: buildManifest requires server manifest mode.');
+	}
+	if (
+		enabled === undefined &&
+		!buildsManifestByDefault(options, nuxt, hasSnapshot)
+	) {
+		return undefined;
 	}
 	options.manifest = 'server';
 	// `nuxt prepare` writes types during dependency installation. The
 	// build loads its own snapshot, so preparation needs no backend request.
-	return prepare ? undefined : loadBuildManifest(options, '@c15t/vue');
+	if (nuxt.options._prepare) {
+		return undefined;
+	}
+	// Only an explicit `true` stops the build when the fetch fails. Otherwise
+	// the server routes fetch and cache the manifest at runtime.
+	return enabled
+		? loadBuildManifest(options, '@c15t/vue')
+		: loadDefaultBuildManifest(options, '@c15t/vue', (message) =>
+				useLogger('@c15t/vue').warn(message)
+			);
 };
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
@@ -120,7 +165,6 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		devtools: true,
 		initPrefetch: true,
 		initRoute: resolveNuxtInitRoute({}),
-		manifest: false,
 		manifestRoute: resolveNuxtManifestRoute({}),
 	}),
 	meta: {
@@ -146,8 +190,12 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			(await loadNuxtBuildManifest(
 				buildManifest,
 				options,
-				nuxt.options._prepare
+				nuxt,
+				configuredSnapshot !== undefined
 			)) ?? configuredSnapshot;
+		// Left unset so the build manifest could tell it from an explicit
+		// `false`. Without one, a `manifestURL` alone still calls `/init`.
+		options.manifest ??= false;
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);

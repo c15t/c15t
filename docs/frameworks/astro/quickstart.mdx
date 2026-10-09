@@ -72,8 +72,8 @@ set `PUBLIC_C15T_BACKEND_URL`. Astro loads the config before it reads `.env`
 files, so set the variable in the environment that runs `astro dev` and
 `astro build`. The URL must be absolute, because the build fetches from it.
 
-`buildManifest: true` fetches your project's public policy once, when
-`astro build` or `astro dev` starts, and embeds it in the server build. The
+`manifest()` fetches your project's public policy once, when `astro build`
+or `astro dev` starts, and embeds it in the server build. The
 server resolves each visitor from that snapshot and the request's location and
 language headers, so the first HTML already contains the banner, or no banner
 at all for a visitor who has chosen. Consent saves still go to Inth.
@@ -88,8 +88,8 @@ needs a server adapter. Use the adapter for your host in place of
 
 The built server keeps the backend URL from build time, so setting
 `PUBLIC_C15T_BACKEND_URL` when you start it changes nothing. Rebuild to point
-at another project. To apply policy edits without rebuilding, remove
-`buildManifest: true`. The server then fetches and caches the policy at
+at another project. To apply policy edits without rebuilding, set
+`buildManifest: false`. The server then fetches and caches the policy at
 runtime.
 
 The integration writes its options into the page as JSON. Keep callbacks,

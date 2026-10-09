@@ -11,7 +11,6 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
-			buildManifest: true,
 			clientEntrypoint: fileURLToPath(
 				new URL('./src/consent-client.ts', import.meta.url)
 			),

@@ -1,7 +1,7 @@
 # Astro starter
 
 An Astro site with server output, the Node adapter and the `c15t/astro`
-integration in `manifest()` mode with `buildManifest: true`. The build bundles
+integration in `manifest()` mode. The build bundles
 your project's policy into the server, and the server resolves each visitor
 from it, so the banner is in the first HTML. PostHog loads once the visitor
 allows measurement.

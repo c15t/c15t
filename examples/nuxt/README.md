@@ -5,7 +5,8 @@ project's policy into the server, and the server resolves each visitor from
 it, so the banner is part of the first HTML. PostHog loads once the visitor
 allows measurement.
 
-- `nuxt.config.ts` registers the `c15t/vue` module with `buildManifest: true`.
+- `nuxt.config.ts` registers the `c15t/vue` module with the backend URL. The
+  build bundles the project's policy into the server.
 - `app/app.vue` mounts `ConsentRoot` and a Privacy settings link.
 - `app/consent-scripts.ts` declares PostHog, and `app/app.config.ts` registers
   it.
