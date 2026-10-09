@@ -94,6 +94,9 @@ packages/vue/playground/.output
 .env*
 !.env.example
 !.env.*.example
+# Public demo backend URL, so the example runs as checked out. Next.js
+# loads `.env` as defaults; `.env.local` and real env vars override it.
+!/examples/nextjs/.env
 
 # Agent worktrees
 .claude/worktrees/

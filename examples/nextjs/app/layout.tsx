@@ -1,15 +1,15 @@
-// #region docs:app-router-layout title="app/layout.tsx"
+// #region docs:quickstart-layout title="app/layout.tsx"
 import { resolveConsent } from 'c15t/next/server';
 import type { ReactNode } from 'react';
 
-import { consentOptions } from '@/c15t.server';
+import { consentConfig } from '@/c15t.config';
 import { Consent } from '@/components/consent';
 
 import '@/styles/globals.css';
 
 const RootLayout = ({ children }: { children: ReactNode }) => {
 	// Not awaited: the page renders while consent resolves.
-	const state = resolveConsent(consentOptions);
+	const state = resolveConsent(consentConfig);
 
 	return (
 		<html lang="en">
@@ -21,6 +21,6 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
 };
 
 export default RootLayout;
-// #endregion docs:app-router-layout
+// #endregion docs:quickstart-layout
 
 export const metadata = { title: 'c15t with the Next.js App Router' };

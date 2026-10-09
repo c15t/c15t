@@ -1,6 +1,6 @@
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -46,7 +46,7 @@ describe('Next.js build-time manifest', () => {
 			const options = optionsFor(root);
 			const config = { basePath: '/app', reactStrictMode: true };
 			const wrapped = withConsentManifest(config, options);
-			expect(await wrapped(phase, { defaultConfig: {} })).toBe(config);
+			expect(await wrapped(phase, { defaultConfig: {} })).toMatchObject(config);
 			const source = await readFile(join(root, 'c15t-manifest.ts'), 'utf8');
 			expect(source).toContain("from 'c15t/next/static'");
 			expect(source).toContain('export const consentManifest =');
@@ -68,6 +68,43 @@ describe('Next.js build-time manifest', () => {
 		expect(await wrapped('phase-production-server', context)).toBe(config);
 		expect(factory).toHaveBeenCalledWith('phase-production-server', context);
 		expect(options.fetch).not.toHaveBeenCalled();
+	});
+
+	test('aliases the generated-manifest specifier to the snapshot in both bundlers', async () => {
+		const root = await createRoot();
+		const userWebpack = vi.fn((config: { resolve?: object }) => ({
+			...config,
+			resolve: { alias: { existing: '/existing.js' } },
+		}));
+		const wrapped = withConsentManifest(
+			{
+				turbopack: { resolveAlias: { existing: './existing.js' } },
+				webpack: userWebpack,
+			},
+			optionsFor(root)
+		);
+		const config = await wrapped('phase-production-build', {
+			defaultConfig: {},
+		});
+		const outputFile = join(root, 'c15t-manifest.ts');
+
+		const turbopackAlias = config.turbopack?.resolveAlias ?? {};
+		expect(turbopackAlias.existing).toBe('./existing.js');
+		expect(
+			resolve(
+				process.cwd(),
+				String(turbopackAlias['@c15t/nextjs/generated-manifest'])
+			)
+		).toBe(outputFile);
+
+		const webpackConfig = config.webpack?.({}, {} as never) as {
+			resolve: { alias: Record<string, string> };
+		};
+		expect(userWebpack).toHaveBeenCalledTimes(1);
+		expect(webpackConfig.resolve.alias).toEqual({
+			'@c15t/nextjs/generated-manifest$': outputFile,
+			existing: '/existing.js',
+		});
 	});
 
 	test('next build stops when the fetch fails and keeps the old file out', async () => {
@@ -92,7 +129,7 @@ describe('Next.js build-time manifest', () => {
 		const wrapped = withConsentManifest(config, options);
 		expect(
 			await wrapped('phase-development-server', { defaultConfig: {} })
-		).toBe(config);
+		).toMatchObject(config);
 		const source = await readFile(join(root, 'c15t-manifest.ts'), 'utf8');
 		expect(source).toContain("from 'c15t/next/static'");
 		expect(source).toContain(

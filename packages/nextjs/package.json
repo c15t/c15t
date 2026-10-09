@@ -130,6 +130,11 @@
 			"types": "./dist-types/build.d.ts",
 			"import": "./dist/build.js",
 			"default": "./dist/build.js"
+		},
+		"./generated-manifest": {
+			"types": "./dist-types/generated-manifest.d.ts",
+			"import": "./dist/generated-manifest.js",
+			"default": "./dist/generated-manifest.js"
 		}
 	},
 	"publishConfig": {

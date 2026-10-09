@@ -10,7 +10,11 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { defineConsentConfig } from '../config';
 import { toWebHeaders, toWebRequest } from '../node-bridge';
 import type { NodeApiResponseLike } from '../node-bridge';
-import { createPagesApiHandlers, resolveConsent } from '../pages';
+import {
+	createPagesApiHandlers,
+	createPagesConsentRoute,
+	resolveConsent,
+} from '../pages';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 import { policyFixture } from './policy-fixture';
 
@@ -508,5 +512,32 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 		).toEqual(['https://consent.example.com/api/c15t/manifest']);
 		expect(sink.res.statusCode).toBe(200);
 		expect(config.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+	});
+
+	test('one catch-all API route serves manifest and init and 404s the rest', async () => {
+		const route = createPagesConsentRoute({
+			backendURL: 'https://consent.example.com',
+			manifest: MANIFEST_FIXTURE,
+			reportSessions: false,
+		});
+		const call = async (segments: string[]) => {
+			const sink = createResponseSink();
+			await route(
+				{
+					headers: { host: 'app.example.com', 'x-vercel-ip-country': 'DE' },
+					method: 'GET',
+					query: { c15t: segments, language: 'de' },
+					url: `/api/c15t/${segments.join('/')}?language=de`,
+				},
+				sink.res
+			);
+			return sink;
+		};
+
+		const manifest = await call(['manifest']);
+		expect(JSON.parse(manifest.text())).toEqual(MANIFEST_FIXTURE);
+		const init = await call(['init']);
+		expect(JSON.parse(init.text()).location.countryCode).toBe('DE');
+		expect((await call(['subjects'])).res.statusCode).toBe(404);
 	});
 });

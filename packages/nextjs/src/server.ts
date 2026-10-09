@@ -14,12 +14,14 @@
  */
 import type { ConsentJourneyOption, ServerExperiment } from '@c15t/core';
 import { resolveRequestConsent } from '@c15t/core/server';
+import { consentManifest as generatedManifest } from '@c15t/nextjs/generated-manifest';
 import type { ConsentManifest } from '@c15t/schema/types';
 import * as React from 'react';
 
 import { createManifestFetchInit } from './api';
 import type { NextConsentManifestHandlersOptions } from './api';
 import type { ConsentConfig } from './config';
+import { isConsentConfig } from './config';
 import type { ConsentState } from './types';
 
 type Awaitable<Value> = Promise<Value> | Value;
@@ -187,9 +189,11 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 
 	/**
 	 * Inline manifest for hosts that already loaded it. Takes precedence over
-	 * `manifestURL` and keeps the request path backend-free.
-	 * `undefined`, which a build that could not fetch the manifest generates,
-	 * makes the server fetch the policy at runtime.
+	 * `manifestURL` and keeps the request path backend-free. When
+	 * `config.manifestURL` names this app's manifest route and no
+	 * `manifestURL` is set, defaults to the snapshot `withConsentManifest`
+	 * generated. `undefined`, which a build that could not fetch the
+	 * manifest generates, makes the server fetch the policy at runtime.
 	 */
 	manifest?: ConsentManifest | undefined;
 
@@ -348,6 +352,28 @@ const reportPrefetchError = function reportPrefetchError(
  * backend prefix, reached through a rewrite or a mounted backend, so it is
  * fetched like any other backend URL.
  */
+/**
+ * The options as given, or `{ config }` for a bare `defineConsentConfig`
+ * result, with the generated snapshot as the manifest when the config
+ * names this app's manifest route and nothing more specific is set.
+ */
+const normalizeOptions = function normalizeOptions(
+	optionsOrConfig: ResolveConsentOptions | ConsentConfig
+): ResolveConsentOptions {
+	const options: ResolveConsentOptions = isConsentConfig(optionsOrConfig)
+		? { config: optionsOrConfig }
+		: optionsOrConfig;
+	if (
+		options.manifest === undefined &&
+		options.manifestURL === undefined &&
+		isPath(options.config?.manifestURL) &&
+		generatedManifest !== undefined
+	) {
+		return { ...options, manifest: generatedManifest };
+	}
+	return options;
+};
+
 const resolveSource = function resolveSource(options: ResolveConsentOptions) {
 	const { config } = options;
 	const backendURL = options.backendURL ?? config?.backendURL;
@@ -401,20 +427,22 @@ const resolveSource = function resolveSource(options: ResolveConsentOptions) {
  * Each call reads fresh headers and never caches across requests, so
  * concurrent requests stay isolated.
  *
- * @param options - Backend URL or a `defineConsentConfig` result, the
- * manifest source, fetch overrides, and how to read the request
+ * @param optionsOrConfig - A `defineConsentConfig` result, or options with
+ * a backend URL or config, the manifest source, fetch overrides, and how to
+ * read the request
  * @returns The visitor's JSON-serializable state for `ConsentRoot`
  * @example
  * ```ts
  * import { resolveConsent } from '@c15t/nextjs/server';
- * import { consentConfig } from '@/consent.config';
+ * import { consentConfig } from '@/c15t.config';
  *
- * const state = await resolveConsent({ config: consentConfig });
+ * const state = await resolveConsent(consentConfig);
  * ```
  */
 export const resolveConsent = async function resolveConsent(
-	options: ResolveConsentOptions = {}
+	optionsOrConfig: ResolveConsentOptions | ConsentConfig = {}
 ): Promise<ConsentState> {
+	const options = normalizeOptions(optionsOrConfig);
 	const facts = options.request
 		? await readRequestContext(options.request)
 		: await readAppRouterRequest();

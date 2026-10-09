@@ -22,7 +22,7 @@
  */
 
 import type { NextConsentManifestHandlersOptions } from './api';
-import { createNextConsentRouteHandlers } from './api';
+import { createConsentRoute, createNextConsentRouteHandlers } from './api';
 import type { ConsentConfig } from './config';
 import type {
 	NodeApiRequestLike,
@@ -124,7 +124,7 @@ export type PagesApiHandler = (
 ) => Promise<void>;
 
 const toPagesApiHandler = function toPagesApiHandler(
-	handler: (request: Request) => Promise<Response>,
+	handler: (request: Request, req: NodeApiRequestLike) => Promise<Response>,
 	trustForwardedHeaders: boolean
 ): PagesApiHandler {
 	return async (req, res) => {
@@ -139,7 +139,8 @@ const toPagesApiHandler = function toPagesApiHandler(
 			return;
 		}
 		const response = await handler(
-			await toWebRequest(req, trustForwardedHeaders)
+			await toWebRequest(req, trustForwardedHeaders),
+			req
 		);
 		await writeWebResponse(response, res);
 	};
@@ -173,4 +174,44 @@ export const createPagesApiHandlers = function createPagesApiHandlers(
 		init: toPagesApiHandler(handlers.GET, trustForwardedHeaders),
 		manifest: toPagesApiHandler(handlers.manifestGET, trustForwardedHeaders),
 	};
+};
+
+/**
+ * One Pages Router API route for every consent path,
+ * `pages/api/c15t/[...c15t].ts`: `GET /manifest` and `GET /init`, and 404
+ * for anything else. The Pages Router counterpart of `createConsentRoute`.
+ *
+ * @param options - A `defineConsentConfig` result, or handler options.
+ * @param param - The catch-all parameter's name, from the file name.
+ * @returns The API route's default export.
+ * @example
+ * ```ts
+ * // pages/api/c15t/[...c15t].ts
+ * import { createPagesConsentRoute } from '@c15t/nextjs/pages';
+ * import { consentConfig } from '../../../c15t.config';
+ *
+ * export default createPagesConsentRoute(consentConfig);
+ * ```
+ */
+export const createPagesConsentRoute = function createPagesConsentRoute(
+	options: NextConsentManifestHandlersOptions | ConsentConfig,
+	param = 'c15t'
+): PagesApiHandler {
+	const { GET } = createConsentRoute(options);
+	const trustForwardedHeaders =
+		(options as NextConsentManifestHandlersOptions).trustForwardedHeaders ===
+		true;
+	return toPagesApiHandler((request, req) => {
+		// `req.query` mixes the route parameter with the query string, so
+		// only the named parameter goes on.
+		const segments = req.query?.[param];
+		if (!Array.isArray(segments)) {
+			throw new TypeError(
+				`@c15t/nextjs: createPagesConsentRoute found no \`${param}\` catch-all parameter. Name the file [...${param}].ts or pass its parameter name.`
+			);
+		}
+		return GET(request, {
+			params: Promise.resolve({ [param]: segments }),
+		});
+	}, trustForwardedHeaders);
 };

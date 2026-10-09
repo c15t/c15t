@@ -36,38 +36,63 @@ shows.
 
 ## Add the consent config
 
+Set your project's backend URL, including any path prefix, in `.env.local` and
+in your host's build settings:
+
+```sh title=".env.local"
+NEXT_PUBLIC_C15T_BACKEND_URL=https://benchmarks-inth.inth.app
+```
+
+`https://benchmarks-inth.inth.app` is a demo project you can use to try the
+setup. Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build,
+the server and the browser use the same URL, and changing the variable on a
+built app has no effect until you rebuild.
+
 Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
 `src` directory:
 
-<include src="../../shared/examples/nextjs/config.mdx" />
+<include src="../../shared/examples/nextjs/quickstart-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippets run as
-they are. Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL,
-including any path prefix, in `.env.local` and in your host's build settings,
-or replace the fallback with the URL. Next.js inlines `NEXT_PUBLIC_` variables
-at build time, so the server and the browser use the same URL, and changing
-the variable on a built app has no effect until you rebuild. `manifestURL`
-points at the route you add below.
+`routePrefix` is where you mount the consent route below. The browser and the
+server read the policy from `/api/c15t/manifest` and `/api/c15t/init` under
+it.
 
 ## Bundle the manifest during builds
 
-<include src="../../shared/build-manifests/next.mdx" />
+<include src="../../shared/build-time-manifest.mdx" />
 
-## Serve the manifest route
+Wrap your Next.js config in `withConsentManifest`. An existing config object
+or function goes in as the first argument, unchanged:
 
-<include src="../../shared/examples/nextjs/manifest-route.mdx" />
+<include src="../../shared/examples/nextjs/quickstart-next-config.mdx" />
 
-The route serves the bundled snapshot, so a fresh server answers without a
-policy request to Inth.
+`next build` and `next dev` fetch `${NEXT_PUBLIC_C15T_BACKEND_URL}/manifest`
+and write the policy to `c15t-manifest.ts` in the directory you run them from.
+The consent route and `resolveConsent` read that file on their own, so you
+don't import it. `next start` serves the built snapshot and fetches no policy.
+Keep `c15t-manifest.ts` out of Git.
+
+<include src="../../shared/build-time-manifest-notes.mdx" />
+
+## Add the consent route
+
+Create one catch-all route under `routePrefix`:
+
+<include src="../../shared/examples/nextjs/consent-route.mdx" />
+
+It answers `GET /api/c15t/manifest` and `GET /api/c15t/init` from the bundled
+snapshot, so a fresh server answers without a policy request to Inth. Any
+other path under `/api/c15t` returns 404, so a `fallback` rewrite of
+`/api/c15t/:path*` to your backend no longer reaches those paths.
 
 <include src="../../shared/next-consent-wrapper.mdx" />
 
 ## Resolve consent in the root layout
 
-Call `resolveConsent` with `consentOptions` in the root layout without
+Call `resolveConsent` with `consentConfig` in the root layout without
 awaiting it, and pass the pending result to the `Consent` wrapper:
 
-<include src="../../shared/examples/nextjs/app-router-layout.mdx" />
+<include src="../../shared/examples/nextjs/quickstart-layout.mdx" />
 
 Next.js renders the page without waiting for consent and sends the result
 later in the same response. Until the browser applies it, the banner stays

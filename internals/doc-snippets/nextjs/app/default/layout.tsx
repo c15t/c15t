@@ -1,6 +1,4 @@
-{/* Generated from internals/doc-snippets/nextjs/app/default/layout.tsx (docs:app-router-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
-
-```tsx title="app/layout.tsx"
+// #region docs:app-router-layout title="app/layout.tsx"
 import { resolveConsent } from 'c15t/next/server';
 import type { ReactNode } from 'react';
 
@@ -23,4 +21,4 @@ const RootLayout = ({ children }: { children: ReactNode }) => {
 };
 
 export default RootLayout;
-```
+// #endregion docs:app-router-layout
