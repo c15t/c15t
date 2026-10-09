@@ -16,9 +16,9 @@ Network tab, find the init request.
    shows no banner, which is common in opt-out regions. See
    [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
 2. **`ConsentRoot` is inside a page that unmounts.** Put it in `app.vue`.
-3. **The backend did not answer.** `/api/c15t/init` must return 200 in
-   server manifest mode, or your `manifestURL` must
-   with `manifest: 'client'`. While resolution fails, c15t shows no UI and keeps
+3. **The backend did not answer.** In server manifest mode,
+   `/api/c15t/init` must return 200. With `manifest: 'client'`, your
+   `manifestURL` must return 200. While resolution fails, c15t shows no UI and keeps
    every optional category denied.
 4. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
