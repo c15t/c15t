@@ -6,7 +6,6 @@ export default defineNuxtConfig({
 		// The banner and dialog link to the shop's privacy policy. The label
 		// comes from the project's translations.
 		bannerLegalLinks: ['privacyPolicy'],
-		buildManifest: true,
 		// `theme.dark` applies while the visitor's system is in dark mode.
 		colorScheme: 'system',
 		// Classes on single parts of the stock banner and dialog. The rules

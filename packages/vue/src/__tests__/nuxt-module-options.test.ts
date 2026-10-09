@@ -3,8 +3,15 @@
  * runtime config.
  */
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
-import { runWithNuxtContext } from '@nuxt/kit';
+import { logger, runWithNuxtContext } from '@nuxt/kit';
 import { beforeAll, describe, expect, test, vi } from 'vitest';
+
+// `useLogger` creates its loggers from Nuxt Kit's, which hands them these
+// mocked types.
+const warn = vi.fn();
+logger.mockTypes((type) =>
+	type === 'warn' ? warn : logger[type].bind(logger)
+);
 
 type Nuxt = Parameters<typeof runWithNuxtContext>[0];
 type NuxtModule = (
@@ -25,7 +32,7 @@ beforeAll(async () => {
 const createNuxt = function createNuxt(
 	c15t: Record<string, unknown>,
 	ssr = true,
-	lifecycle: { _prepare?: boolean; dev?: boolean } = {}
+	lifecycle: { _generate?: boolean; _prepare?: boolean; dev?: boolean } = {}
 ): Nuxt {
 	return {
 		hook: () => () => undefined,
@@ -227,6 +234,123 @@ describe('buildManifest', () => {
 			vi.unstubAllGlobals();
 		}
 	});
+});
+
+describe('buildManifest unset', () => {
+	const setUp = async function setUp(
+		c15t: Record<string, unknown>,
+		fetch: typeof globalThis.fetch,
+		ssr = true,
+		lifecycle: { _generate?: boolean } = {}
+	) {
+		warn.mockClear();
+		vi.stubGlobal('fetch', fetch);
+		try {
+			const nuxt = createNuxt(c15t, ssr, lifecycle);
+			await runWithNuxtContext(nuxt, () => module({}, nuxt));
+			return {
+				manifest: (
+					nuxt.options.runtimeConfig.public.c15t as Record<string, unknown>
+				).manifest,
+				snapshot: await importManifestSnapshot(nuxt),
+			};
+		} finally {
+			vi.unstubAllGlobals();
+		}
+	};
+
+	test('bundles a snapshot in server mode', async () => {
+		const snapshot = createSnapshot();
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(Response.json(snapshot));
+		const result = await setUp(
+			{ backendURL: 'https://consent.example.com' },
+			fetch
+		);
+		expect(fetch).toHaveBeenCalledWith(
+			'https://consent.example.com/manifest',
+			expect.anything()
+		);
+		expect(result).toEqual({ manifest: 'server', snapshot });
+		expect(warn).not.toHaveBeenCalled();
+	});
+
+	test('warns and fetches at runtime when the build fetch fails', async () => {
+		const result = await setUp(
+			{ backendURL: 'https://consent.example.com' },
+			vi
+				.fn<typeof globalThis.fetch>()
+				.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'))
+		);
+		expect(result).toEqual({ manifest: 'server', snapshot: undefined });
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining('getaddrinfo ENOTFOUND')
+		);
+	});
+
+	test.each([
+		['a relative backendURL', { backendURL: '/api/c15t' }, true, {}, false],
+		[
+			'manifest: false',
+			{ backendURL: 'https://consent.example.com', manifest: false },
+			true,
+			{},
+			false,
+		],
+		[
+			"manifest: 'client'",
+			{ backendURL: 'https://consent.example.com', manifest: 'client' },
+			true,
+			{},
+			'client',
+		],
+		[
+			'ssr: false',
+			{ backendURL: 'https://consent.example.com' },
+			false,
+			{},
+			false,
+		],
+		[
+			'nuxt generate',
+			{ backendURL: 'https://consent.example.com' },
+			true,
+			{ _generate: true },
+			false,
+		],
+		[
+			'buildManifest: false and a manifestURL',
+			{
+				backendURL: 'https://consent.example.com',
+				buildManifest: false,
+				manifestURL: 'https://cdn.example.com/manifest.json',
+			},
+			true,
+			{},
+			false,
+		],
+		[
+			'buildManifest: false',
+			{
+				backendURL: 'https://consent.example.com',
+				buildManifest: false,
+				manifest: 'server',
+			},
+			true,
+			{},
+			'server',
+		],
+	] as const)(
+		'fetches nothing with %s',
+		async (_name, c15t, ssr, lifecycle, manifest) => {
+			const fetch = vi.fn<typeof globalThis.fetch>();
+			const result = await setUp(c15t, fetch, ssr, lifecycle);
+			expect(fetch).not.toHaveBeenCalled();
+			expect(result).toEqual({ manifest, snapshot: undefined });
+			expect(warn).not.toHaveBeenCalled();
+		}
+	);
 });
 
 describe('manifestSnapshot under the c15t key', () => {

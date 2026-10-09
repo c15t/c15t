@@ -46,9 +46,11 @@ rebuild it.
 
 ## `astro build` or `astro dev` fails to fetch the manifest
 
-**Check.** With `buildManifest: true`, the integration downloads
+**Check.** In `manifest()` mode the integration downloads
 `${backendURL}/manifest`, or your `manifestURL`, when `astro build` or
-`astro dev` starts, and stops if that fails. The error names the cause:
+`astro dev` starts. By default a failure logs a warning and the server
+fetches the policy at runtime. With `buildManifest: true` the build stops
+instead. The message names the cause:
 
 - `build-time manifests require an absolute upstream URL`: the URL is relative,
   such as `/api/c15t`, or empty.
@@ -58,8 +60,8 @@ rebuild it.
   with a c15t manifest.
 
 **Fix.** Set `backendURL` to your Inth project's absolute backend URL, and make
-sure the machine that builds can reach it. To build without the backend, omit
-`buildManifest`, and the server fetches the policy at runtime instead.
+sure the machine that builds can reach it. To build without the backend, set
+`buildManifest: false`, and the server fetches the policy at runtime.
 
 ## A component says `Astro.locals.c15t` is missing
 
@@ -111,11 +113,14 @@ your Inth project's trusted origins. Add each preview deployment's origin too.
 **Check.** The middleware waits up to 500 ms for the policy. When the backend is
 slower, for example on the first request after a deploy, the page renders
 without the banner and the browser shows it after its own request. This happens
-when the server fetches the policy at runtime, without `buildManifest: true`,
-or with `hosted()`.
+when the server fetches the policy at runtime, with `hosted()`, with
+`buildManifest: false`, or after the build logged that it could not fetch the
+manifest.
 
-**Fix.** Set `buildManifest: true` with `manifest()`, so the policy ships with
-the build, or raise the budget with `middleware: { timeoutMs }`. See
+**Fix.** Use `manifest()` with an absolute `backendURL` and let the build
+reach it, so the policy ships with the build. Set `buildManifest: true` to
+stop the build when it can't. Or raise the budget with
+`middleware: { timeoutMs }`. See
 [Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
 
 ## The config fails with "pass backendURL to manifest()"

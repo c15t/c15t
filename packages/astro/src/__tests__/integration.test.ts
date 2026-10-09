@@ -6,7 +6,7 @@ import {
 	buildConsentManifestFromConfig,
 	policyRulePresets,
 } from '@c15t/schema/types';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildInlineCodeHashes } from '../csp';
 import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
@@ -17,8 +17,21 @@ interface SetupCalls {
 	addMiddleware: ReturnType<typeof vi.fn>;
 	injectRoute: ReturnType<typeof vi.fn>;
 	injectScript: ReturnType<typeof vi.fn>;
+	logger: { warn: ReturnType<typeof vi.fn> };
 	updateConfig: ReturnType<typeof vi.fn>;
 }
+
+// `manifest()` mode fetches a build snapshot by default. Keep tests that
+// don't stub `fetch` themselves off the network.
+beforeEach(() => {
+	vi.stubGlobal(
+		'fetch',
+		vi.fn(() => Promise.reject(new Error('offline in tests')))
+	);
+});
+afterEach(() => {
+	vi.unstubAllGlobals();
+});
 
 const resolveOwnEntry = await createOwnEntryResolver();
 
@@ -34,13 +47,14 @@ const specifier = (entry: string): string =>
 const runSetup = async function runSetup(
 	options: C15tAstroOptions,
 	config: Record<string, unknown> = {},
-	command: 'build' | 'dev' | 'preview' = 'build'
+	command: 'build' | 'dev' | 'preview' | 'sync' = 'build'
 ) {
 	const integration = c15t(options);
 	const calls: SetupCalls = {
 		addMiddleware: vi.fn(),
 		injectRoute: vi.fn(),
 		injectScript: vi.fn(),
+		logger: { warn: vi.fn() },
 		updateConfig: vi.fn(),
 	};
 	await integration.hooks['astro:config:setup']?.({
@@ -171,6 +185,96 @@ describe('resolveOptions', () => {
 		} finally {
 			vi.unstubAllGlobals();
 		}
+	});
+
+	/** The server options `virtual:c15t/options` exports after setup. */
+	const serverOptionsSource = (calls: SetupCalls): string => {
+		const [update] = calls.updateConfig.mock.calls[0] ?? [];
+		const [plugin] = update.vite.plugins;
+		return plugin.load('\0virtual:c15t/options', { ssr: true });
+	};
+
+	it('manifest() bundles a build snapshot by default', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(Response.json(INLINE_MANIFEST))
+		);
+		vi.stubGlobal('fetch', fetch);
+		const { calls } = await runSetup({
+			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+		});
+		expect(fetch).toHaveBeenCalledWith(
+			'https://consent.example.com/manifest',
+			expect.anything()
+		);
+		expect(serverOptionsSource(calls)).toContain(
+			JSON.stringify(INLINE_MANIFEST.revision)
+		);
+		expect(calls.logger.warn).not.toHaveBeenCalled();
+	});
+
+	it('warns and keeps building when the default fetch fails', async () => {
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
+		);
+		const { calls } = await runSetup({
+			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+		});
+		expect(calls.logger.warn).toHaveBeenCalledWith(
+			expect.stringContaining('/manifest responded 503')
+		);
+		expect(calls.logger.warn.mock.calls[0]?.[0]).not.toContain('@c15t/astro');
+		expect(serverOptionsSource(calls)).not.toContain('"schemaVersion"');
+	});
+
+	it.each([
+		['hosted()', { mode: hostedMode({ url: 'https://consent.example.com' }) }],
+		['offline()', { mode: offlineMode() }],
+		[
+			'a relative manifest URL',
+			{ mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }) },
+		],
+		[
+			'buildManifest: false',
+			{
+				buildManifest: false,
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			},
+		],
+	] satisfies [string, C15tAstroOptions][])(
+		'fetches no build snapshot with %s',
+		async (_name, options) => {
+			const fetch = vi.fn<typeof globalThis.fetch>();
+			vi.stubGlobal('fetch', fetch);
+			const { calls } = await runSetup(options);
+			expect(fetch).not.toHaveBeenCalled();
+			expect(calls.logger.warn).not.toHaveBeenCalled();
+		}
+	);
+
+	it.each(['preview', 'sync'] as const)(
+		'buildManifest: true with hosted() leaves %s alone',
+		async (command) => {
+			await expect(
+				runSetup(
+					{
+						buildManifest: true,
+						mode: hostedMode({ url: 'https://consent.example.com' }),
+					},
+					{},
+					command
+				)
+			).resolves.toBeDefined();
+		}
+	);
+
+	it('buildManifest: true still needs an absolute upstream URL', async () => {
+		await expect(
+			runSetup({
+				buildManifest: true,
+				mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }),
+			})
+		).rejects.toThrow('absolute upstream URL');
 	});
 
 	it('defaults the ui adapter to svelte', () => {
@@ -781,6 +885,7 @@ describe('astro:config:done', () => {
 			command,
 			injectRoute: vi.fn(),
 			injectScript: vi.fn(),
+			logger: { warn: vi.fn() },
 			updateConfig: vi.fn(),
 		} as unknown as Parameters<
 			NonNullable<(typeof integration)['hooks']['astro:config:setup']>
