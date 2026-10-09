@@ -1,10 +1,10 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
+import { majorOf, readPackageJson, tailwindMajor } from './manifest';
 import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import { lineIndent, propertyKey, unwrapExpression } from './source-edits';
@@ -17,53 +17,6 @@ const CONFIG_FILES = [
 ];
 
 const PLUGIN_SUFFIX = '/postcss-tailwind3';
-
-interface PackageJson {
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-}
-
-const readPackageJson = async function readPackageJson(
-	projectRoot: string
-): Promise<PackageJson | null> {
-	try {
-		return JSON.parse(
-			await readFile(join(projectRoot, 'package.json'), 'utf-8')
-		) as PackageJson;
-	} catch {
-		return null;
-	}
-};
-
-const majorOf = function majorOf(specifier: string | undefined): number | null {
-	const major = /(?<major>\d+)/u.exec(specifier ?? '')?.groups?.major;
-	return major ? Number(major) : null;
-};
-
-/**
- * The Tailwind CSS major version. A specifier without a version, such as
- * `latest`, `workspace:*` or `catalog:`, falls back to the installed package.
- */
-const tailwindMajor = async function tailwindMajor(
-	projectRoot: string,
-	specifier: string
-): Promise<number | null> {
-	const declared = majorOf(specifier);
-	if (declared !== null) {
-		return declared;
-	}
-	try {
-		const installed = JSON.parse(
-			await readFile(
-				join(projectRoot, 'node_modules', 'tailwindcss', 'package.json'),
-				'utf-8'
-			)
-		) as { version?: string };
-		return majorOf(installed.version);
-	} catch {
-		return null;
-	}
-};
 
 /**
  * The plugin entry for the c15t package the app installs: the umbrella

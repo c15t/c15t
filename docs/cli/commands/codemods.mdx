@@ -1,6 +1,6 @@
 ---
 title: Codemods
-description: Migrate source from c15t v2 to v3 with the c15t CLI codemods command, covering the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the Node.js SDK and backend config, and run the v1 to v2 source transforms.
+description: Migrate source from c15t v2 to v3 with the c15t CLI codemods command, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the Node.js SDK and backend config, and run the v1 to v2 source transforms.
 group: cli
 ---
 
@@ -10,7 +10,7 @@ The v3 codemods run only when you name them; `--all` never selects them.
 Preview every change first, then run the same command without `--dry-run`:
 
 ```bash
-npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
+npx @c15t/cli@alpha codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
 Name several codemods in one command and they run in a fixed order, whatever
@@ -21,6 +21,7 @@ place, so type-checking fails at each one until you resolve it.
 
 | ID | Rewrites | Leaves a `TODO(c15t v3)` for |
 | --- | --- | --- |
+| `packages-to-c15t` | `@c15t/react` and `@c15t/nextjs` imports to `c15t/react`, `c15t/next` and their subpaths, and removes `styles.css` imports | Stylesheet imports Tailwind CSS 3 or a cascade layer needs, and `components/integrations` imports |
 | `consent-provider-options` | `ConsentManagerProvider`, `ConsentManagerOptions` and `ConsentManagerProviderProps` to the `ConsentProvider` names; `mode: 'hosted'` with `backendURL`, `headers` and `customFetch` to `mode: hosted({ url, headers, fetch })`; `mode: 'offline'` with `offlinePolicy.policyPacks` to `mode: offline({ policyRules })`; `iframeBlockerConfig` to `iframeBlocker` | `mode: 'custom'` with `endpointHandlers`, a `mode` set from a variable, `retryConfig`, other `offlinePolicy` keys and hand-written policy packs |
 | `root-exports-to-subpaths` | Imports of names that left the `c15t/react`, `c15t/next`, `@c15t/react` and `@c15t/nextjs` roots, moved to `/headless`, `/consent-dialog-trigger`, `/types` or `/components/consent-banner` | Removed names such as `useConsentScript`, `YouTubeEmbed` and `ConsentButton` |
 | `use-consent-manager-to-hooks` | `useConsentManager()` fields to one hook each | Fields with no one-call replacement |
@@ -40,9 +41,32 @@ The v1 to v2 transform `translations-to-i18n` moves it to `i18n`; name it to
 run it on a v2 app.
 
 The codemods edit `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs` and
-`.cjs` files. `css-variables-to-v3` also edits `.css`, `.scss`, `.sass` and
-`.less` files. None of them edit `package.json`, lockfiles, or `.vue`,
-`.svelte` and `.astro` files.
+`.cjs` files. `packages-to-c15t` and `css-variables-to-v3` also edit `.css`,
+`.scss`, `.sass` and `.less` files. None of them edit `package.json`,
+lockfiles, or `.vue`, `.svelte` and `.astro` files.
+
+### Package imports
+
+`packages-to-c15t` runs first, so the other codemods see the `c15t` entries.
+It moves `@c15t/react` to `c15t/react` and `@c15t/nextjs` to `c15t/next`,
+keeping the subpath: `@c15t/react/headless` becomes `c15t/react/headless`.
+When `package.json` lists `next` or `@c15t/nextjs`, the `@c15t/react` root
+moves to `c15t/next`, which re-exports the React components and hooks. The
+v2 `@c15t/react/cookie-banner` alias becomes
+`c15t/react/components/consent-banner`. It rewrites imports, re-exports,
+`import()` calls and import types, and leaves `c15t/react`,
+`@c15t/integrations` and other packages alone.
+
+It removes `@c15t/react/styles.css` and `@c15t/nextjs/styles.css` imports,
+including the `iab/` and `.tw3.css` variants, because v3 components add their
+own styles. When `package.json` lists `tailwindcss` 3, or a stylesheet
+`@import` has a `layer()`, `supports()` or media condition, it keeps the
+import, points it at `styles.css` from the `c15t` entry, and leaves a
+`TODO(c15t v3)` comment to set `styles: false`.
+
+If `package.json` lists `@c15t/react` or `@c15t/nextjs` but not `c15t` v3, it
+leaves the scoped imports, still removes the stylesheet imports, and prints a
+warning. Replace the packages with `c15t@alpha` and run it again.
 
 ### Provider, transports and options
 

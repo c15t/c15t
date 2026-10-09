@@ -114,6 +114,40 @@ export const App = ({ children }) => (
 		expect(updated).toContain('</ConsentProvider>');
 	}, 30_000);
 
+	it('moves scoped imports to c15t before the other v3 transforms read them', async () => {
+		const { cwd, filePath } = await fixture('3.0.0-alpha.9');
+		await writeFile(
+			join(cwd, 'src/index.css'),
+			'@import "@c15t/react/styles.css";\n'
+		);
+		await writeFile(
+			filePath,
+			`import { ConsentManagerProvider, useHeadlessConsentUI } from '@c15t/react';
+export const App = ({ children }) => (
+	<ConsentManagerProvider options={{ mode: 'hosted', backendURL: '/api/c15t' }}>
+		{children}
+	</ConsentManagerProvider>
+);
+`
+		);
+
+		const applied = await runCli(
+			[
+				'codemods',
+				'root-exports-to-subpaths',
+				'consent-provider-options',
+				'packages-to-c15t',
+				'--json',
+			],
+			{ cwd }
+		);
+		expect(applied.success, JSON.stringify(applied)).toBe(true);
+		expect(await readFile(filePath, 'utf8')).toContain(
+			"import { ConsentProvider, hosted } from 'c15t/react';\nimport { useHeadlessConsentUI } from 'c15t/react/headless';"
+		);
+		expect(await readFile(join(cwd, 'src/index.css'), 'utf8')).toBe('');
+	}, 30_000);
+
 	it.each(['2.0.0-rc.4', '2.0.0-canary-20260731105620', '2.0.0-alpha.1'])(
 		'does not automatically apply legacy transforms to %s',
 		async (declaredVersion) => {
