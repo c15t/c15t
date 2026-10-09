@@ -60,16 +60,38 @@ export const createApp = function createApp(
 		app.use('*', gradeLevel);
 	}
 
+	// `GET /init` reads public policy data: no cookie, no subject, nothing a
+	// direct request could not fetch. Its CORS is open to every origin, so a
+	// cross-origin client's credential-less init is a simple request with no
+	// preflight. Marked here, before the CORS middleware, so the check holds
+	// however the app is mounted. Every other route keeps the allowlist:
+	// consent saves and record reads stay limited to trusted origins.
+	const publicInitRequests = new WeakSet<Request>();
+	app.use('/init', async (c, runNext) => {
+		publicInitRequests.add(c.req.raw);
+		await runNext();
+	});
+
 	app.use('*', async (c, runNext) => {
 		const origin = c.req.header('Origin');
-		const allowed =
+		const trusted =
 			origin !== undefined &&
 			isOriginTrusted(origin, [...(options.trustedOrigins ?? [])]);
+		const publicInit = publicInitRequests.has(c.req.raw);
+		const allowed = origin !== undefined && (trusted || publicInit);
 
-		if (allowed && origin) {
+		if (trusted && origin) {
+			// A trusted origin keeps credentialed access everywhere, `/init`
+			// included: older clients send their init with
+			// `credentials: 'include'`, which `*` cannot answer.
 			c.header('Access-Control-Allow-Origin', origin);
 			c.header('Vary', 'Origin');
 			c.header('Access-Control-Allow-Credentials', 'true');
+		} else if (allowed) {
+			// `*` never allows credentials, so a cookie-carrying request from an
+			// untrusted origin stays unreadable.
+			c.header('Access-Control-Allow-Origin', '*');
+			c.header('Vary', 'Origin');
 		}
 
 		if (c.req.method === 'OPTIONS') {
@@ -80,8 +102,13 @@ export const createApp = function createApp(
 			}
 			c.header(
 				'Access-Control-Allow-Methods',
-				'GET, POST, PUT, DELETE, PATCH, OPTIONS'
+				publicInit
+					? 'GET, HEAD, OPTIONS'
+					: 'GET, POST, PUT, DELETE, PATCH, OPTIONS'
 			);
+			// Current clients preflight `/init` only when a caller adds its own
+			// headers. Older clients sent the version, contract, overrides and
+			// experiment arm as headers, so those stay allowed.
 			c.header(
 				'Access-Control-Allow-Headers',
 				`Content-Type, Authorization, x-request-id, x-c15t-version, ${POLICY_CONTRACT_HEADER}, x-c15t-country, x-c15t-region, x-c15t-gpc, x-c15t-experiment, sec-gpc, accept-language`
@@ -94,7 +121,7 @@ export const createApp = function createApp(
 		// exposed to browsers, so a client can tell a negotiated producer from
 		// one that predates the contract without guessing from a version.
 		c.header(POLICY_CONTRACT_HEADER, String(POLICY_CONTRACT_VERSION));
-		if (allowed && origin) {
+		if (allowed) {
 			c.header('Access-Control-Expose-Headers', POLICY_CONTRACT_HEADER);
 		}
 

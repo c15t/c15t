@@ -165,6 +165,12 @@ export interface EmitConsentSessionOptions {
 	/** Whether the route waits for the sink. */
 	readonly delivery: SessionDelivery;
 	/**
+	 * The request headers to report, when the route derived them (`/init`
+	 * folds its query parameters onto their header names). Defaults to the
+	 * request's own.
+	 */
+	readonly headers?: Headers;
+	/**
 	 * Where a detached sink's failure is logged. Defaults to evlog's base
 	 * logger, which writes regardless of any request's lifecycle. Injected so
 	 * a test can observe the failure without mocking the module.
@@ -195,7 +201,7 @@ export const emitConsentSession = function emitConsentSession(
 	emit: EmitConsentSessionOptions
 ): Promise<void> {
 	const log = toRequestLog(c.get('log'));
-	const { headers } = c.req.raw;
+	const headers = emit.headers ?? c.req.raw.headers;
 	const context: SessionReportContext = {
 		headers: sinkHeaders(headers),
 		ip: sessionIp(headers, emit.ip, options.ipAddress),
