@@ -44,12 +44,12 @@ describe('resolveConsent wiring', () => {
 			backendURL: 'https://consent.example.com',
 			fetch,
 			reportSessions: false,
-			snapshot: manifest,
 			request: requestOf({
 				'accept-language': 'de-DE',
 				'sec-gpc': '1',
 				'x-vercel-ip-country': 'DE',
 			}),
+			snapshot: manifest,
 		});
 		const state = await handler();
 		expect(state.initialPolicyResolution).toMatchObject({
@@ -89,8 +89,8 @@ describe('resolveConsent wiring', () => {
 			backendURL: 'https://consent.example.com',
 			fetch: sessions,
 			journey: 'tab',
-			snapshot: MANIFEST_FIXTURE,
 			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+			snapshot: MANIFEST_FIXTURE,
 		});
 		await vi.waitFor(() => expect(sessions).toHaveBeenCalled());
 		const report = JSON.parse(String(sessions.mock.calls[0]?.[1]?.body));
@@ -107,8 +107,8 @@ describe('resolveConsent wiring', () => {
 			// oxlint-disable-next-line no-await-in-loop -- One render at a time.
 			const state = await resolveConsent({
 				backendURL: 'https://consent.example.com',
-				snapshot: MANIFEST_FIXTURE,
 				request: requestOf({ 'x-vercel-ip-country': 'DE' }),
+				snapshot: MANIFEST_FIXTURE,
 				...off,
 			});
 			// The state tells ConsentRoot this page has no journey.
@@ -121,9 +121,9 @@ describe('resolveConsent wiring', () => {
 		rememberConsentInputs(request, { country: 'DE' });
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
-			snapshot: MANIFEST_FIXTURE,
 			reportSessions: false,
 			request,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		expect(state.initialOverrides?.country).toBe('DE');
 		expect(state.initialPolicyResolution).toMatchObject({
@@ -200,6 +200,9 @@ describe('resolveConsent wiring', () => {
 		);
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
+			reportSessions: false,
+			request: requestOf(),
+			routePrefix: '/api/consent',
 			snapshot: {
 				...MANIFEST_FIXTURE,
 				cmpId: 28,
@@ -216,9 +219,6 @@ describe('resolveConsent wiring', () => {
 					}),
 				],
 			} as unknown as typeof MANIFEST_FIXTURE,
-			reportSessions: false,
-			request: requestOf(),
-			routePrefix: '/api/consent',
 		});
 		vi.unstubAllGlobals();
 		expect(fetch).not.toHaveBeenCalled();

@@ -270,10 +270,11 @@ export const ConsentRoot = ({
 	options,
 	children,
 }: ConsentRootProps) => {
-	// Initial-only, like the provider's own `mode`.
-	const [mode] = useState(() =>
+	const [mode, setMode] = useState(() =>
 		resolveMode(state, options?.mode, options?.overrides)
 	);
+	// Initial-only, like the provider's own `mode`.
+	void setMode;
 
 	return (
 		<ConsentProvider
