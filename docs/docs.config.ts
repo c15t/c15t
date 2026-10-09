@@ -62,7 +62,20 @@ export default defineDocsConfig({
 						urlPath: '/docs/guides/verify-consent',
 					},
 					{
-						urlPath: '/docs/upgrade-v3',
+						title: 'Upgrade a Next.js app from v2',
+						urlPath: '/docs/frameworks/next/upgrade-v3',
+					},
+					{
+						title: 'Upgrade a React app from v2',
+						urlPath: '/docs/frameworks/react/upgrade-v3',
+					},
+					{
+						title: 'Upgrade a JavaScript app from v2',
+						urlPath: '/docs/frameworks/javascript/upgrade-v3',
+					},
+					{
+						title: 'Upgrade a self-hosted backend from v2',
+						urlPath: '/docs/self-host/upgrade-v3',
 					},
 				],
 				type: 'links',
@@ -76,7 +89,7 @@ export default defineDocsConfig({
 	},
 	navigation: [
 		{
-			pages: ['index', 'concepts/choose-your-setup', 'examples', 'upgrade-v3'],
+			pages: ['index', 'concepts/choose-your-setup', 'examples'],
 			title: 'Getting started',
 		},
 		{
@@ -912,7 +925,7 @@ export default defineDocsConfig({
 					title: 'Reference',
 				},
 			],
-			pages: ['overview', 'quickstart'],
+			pages: ['overview', 'quickstart', 'upgrade-v3'],
 			slug: 'self-host',
 			title: 'Backend',
 		},

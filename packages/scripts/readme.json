@@ -1,7 +1,7 @@
 {
 	"title": "@c15t/scripts: v3 compatibility package",
 	"description": "Deprecated compatibility package for @c15t/integrations. Existing imports keep working throughout v3. Compatibility ends in v4.",
-	"docsLink": "https://c15t.com/docs/upgrade-v3#rename-the-integrations-dependency",
+	"docsLink": "https://c15t.com/docs/cli/commands/codemods#rename-c15tscripts-imports",
 	"showCLIGeneration": false,
 	"customSections": {
 		"Migration": "Install `@c15t/integrations` and replace `@c15t/scripts` in your imports. Vendor helper names and the `scripts` configuration option stay the same.\n\n```ts\nimport { posthog } from '@c15t/integrations/posthog';\n```\n\nThis package re-exports the same implementation and types. It has no separate vendor runtime. Use the v3 CLI's `scripts-to-integrations` codemod to update JavaScript and TypeScript imports. Previously published versions will remain available on npm."

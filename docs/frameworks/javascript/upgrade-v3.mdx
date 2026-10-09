@@ -4,8 +4,6 @@ description: Upgrade a JavaScript app from the c15t v2 store and getOrCreateCons
 group: frameworks
 ---
 
-## Hand the upgrade to a coding agent
-
 <Prompt title="Upgrade this JavaScript app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
   Upgrade this JavaScript app from the c15t v2 store to c15t v3.
 
@@ -17,7 +15,7 @@ group: frameworks
   4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations consent-provider-options policy-packs-to-policy-rules callbacks-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   5. If you picked `createConsentRuntime`, call `runtime.start()` after creating it. Replace each store call with its v3 equivalent from the guide's mapping table.
   6. Update callbacks and policy presets as the guide describes.
-  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
+  7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release with https://c15t.com/docs/self-host/upgrade-v3.md.
   8. Run the typecheck and build, and resolve every `TODO(c15t v3)` comment.
 
   When you finish, list the files you changed, anything you could not migrate, and how you checked that vendor requests still wait for consent.
@@ -27,7 +25,7 @@ group: frameworks
 
 If you run your own c15t backend, upgrade it in the same release. A v3 client
 can't read a v2 backend. See
-[Upgrade a self-hosted backend](/docs/upgrade-v3#upgrade-a-self-hosted-backend).
+[Upgrade a self-hosted backend](/docs/self-host/upgrade-v3).
 Inth-hosted backends need no change.
 
 Every v3 package ships ESM only. If a CommonJS file in your app calls

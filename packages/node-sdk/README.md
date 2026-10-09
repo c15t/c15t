@@ -92,7 +92,7 @@ Every method takes `{ signal, timeoutMs, headers, retry, requestId }` as its las
 
 ## Upgrading from v2
 
-`c15tClient()` and the `C15TClient` class are replaced by `createC15tClient()`. Results replace `ResponseContext`, `C15TError` is now `C15tError`, and `subjects.patch` is now `subjects.identify`. See the [migration guide](https://c15t.com/docs/upgrade-v3#update-the-nodejs-sdk).
+`c15tClient()` and the `C15TClient` class are replaced by `createC15tClient()`. Results replace `ResponseContext`, `C15TError` is now `C15tError`, and `subjects.patch` is now `subjects.identify`. See the [migration guide](https://c15t.com/docs/self-host/upgrade-v3#update-the-nodejs-sdk).
 
 ## Support
 

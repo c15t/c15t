@@ -2,7 +2,7 @@
 	"name": "@c15t/scripts",
 	"version": "3.0.0-alpha.8",
 	"description": "Deprecated v3 compatibility package for @c15t/integrations. Migrate before v4.",
-	"homepage": "https://c15t.com/docs/upgrade-v3#rename-the-integrations-dependency",
+	"homepage": "https://c15t.com/docs/cli/commands/codemods#rename-c15tscripts-imports",
 	"bugs": {
 		"url": "https://github.com/c15t/c15t/issues"
 	},
