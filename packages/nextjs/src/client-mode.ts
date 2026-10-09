@@ -2,21 +2,21 @@
  * The transport `ConsentRoot` runs for a config's mode, built from
  * `@c15t/core/runtime/client-mode`.
  *
- * Each mode's code loads with `import()` through this package's own
- * modules (`./hosted-mode`, `./offline-mode`). Core's default loaders
- * import its transport files directly, which makes Turbopack split the
- * first-load chunk that the record transport shares with them, adding
- * about 600 B gzip to every page.
+ * Each mode's code loads with `import()` from core's self-contained
+ * chunks (`@c15t/core/runtime/lazy-*`), which share no module with the
+ * page. A loader that imports a transport module the page also uses
+ * makes Turbopack split the page's first-load chunk by which lazy chunk
+ * shares each module, costing several hundred bytes gzip per page.
  *
  * @internal
  */
 import type { ConsentMode } from '@c15t/core/modes';
 import {
-	createLazyInitTransport,
+	lazyBrowserManifest,
 	lazyHosted,
 	lazyOffline,
 } from '@c15t/core/runtime/client-mode';
-import type { BrowserManifestOptions } from '@c15t/core/transports/manifest-browser';
+import type { LazyBrowserManifestOptions } from '@c15t/core/runtime/client-mode';
 import type { ProviderTransportFactory } from '@c15t/react';
 
 /**
@@ -26,33 +26,6 @@ import type { ProviderTransportFactory } from '@c15t/react';
 declare const process: { env: { NODE_ENV?: string } };
 
 let warnedImplementation = false;
-
-const loadHostedModule = () => import('./hosted-mode');
-const loadOfflineModule = () => import('./offline-mode');
-
-/**
- * Browser resolution, with the resolver loaded on first init. Until then,
- * saves go out through the hosted record transport, which the hosted mode
- * shares.
- */
-const lazyBrowserManifest = function lazyBrowserManifest(
-	options: BrowserManifestOptions & { backendURL: string }
-): ProviderTransportFactory {
-	const records = lazyHosted(
-		{ backendURL: options.backendURL },
-		loadHostedModule
-	);
-	return Object.assign(
-		(context: Parameters<ProviderTransportFactory>[0]) =>
-			// `records` never runs init, so it answers from its record half.
-			createLazyInitTransport(records(context), async () => {
-				const { createBrowserManifestTransport } =
-					await import('@c15t/core/transports/manifest-browser');
-				return createBrowserManifestTransport(options);
-			}),
-		{ kind: 'manifest' as const }
-	);
-};
 
 /** Where the transport sends requests. */
 export interface NextClientModeOptions {
@@ -110,13 +83,13 @@ export const createClientMode = function createClientMode(
 		const offline =
 			data.type === 'offline' ? data : { type: 'offline' as const };
 		return Object.assign(
-			lazyOffline({ policyRules: offline.policyRules }, loadOfflineModule),
+			lazyOffline({ policyRules: offline.policyRules }),
 			offline
 		);
 	}
 	if (data.type === 'hosted') {
 		return Object.assign(
-			lazyHosted({ backendURL, headers: data.headers }, loadHostedModule),
+			lazyHosted({ backendURL, headers: data.headers }),
 			data
 		);
 	}
@@ -134,19 +107,16 @@ export const createClientMode = function createClientMode(
 				manifestURL:
 					data.manifestURL ??
 					(routePrefix === undefined ? undefined : `${routePrefix}/manifest`),
-			} as BrowserManifestOptions & { backendURL: string }),
+			} as LazyBrowserManifestOptions),
 			data
 		);
 	}
 	return Object.assign(
-		lazyHosted(
-			{
-				backendURL,
-				initURL: routePrefix === undefined ? undefined : `${routePrefix}/init`,
-				kind: 'manifest',
-			},
-			loadHostedModule
-		),
+		lazyHosted({
+			backendURL,
+			initURL: routePrefix === undefined ? undefined : `${routePrefix}/init`,
+			kind: 'manifest',
+		}),
 		data
 	);
 };

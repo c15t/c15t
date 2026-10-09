@@ -18,7 +18,7 @@ import { policyFixture } from './policy-fixture';
 const offlineModule = vi.hoisted(() => ({ loads: 0 }));
 
 // oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is whether ConsentRoot evaluates this module at all. The factory only counts loads and returns the real module.
-vi.mock('../offline-mode', async (importOriginal) => {
+vi.mock('../../../core/src/runtime/lazy-offline', async (importOriginal) => {
 	offlineModule.loads += 1;
 	return await importOriginal();
 });
