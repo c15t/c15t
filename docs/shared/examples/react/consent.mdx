@@ -1,26 +1,30 @@
 {/* Generated from examples/react/src/consent.tsx (docs:consent) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```tsx title="src/consent.tsx"
-import { manifest } from '@c15t/browser/headless';
-import { snapshot } from 'c15t/generated';
+import { posthog } from '@c15t/integrations/posthog';
 import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentDialogLink,
 	ConsentProvider,
+	manifest,
 } from 'c15t/react';
 import type { ReactNode } from 'react';
 
-import { scripts } from './scripts';
-
-const mode = manifest({
-	backendURL: import.meta.env.VITE_C15T_BACKEND_URL,
-	// The policy consentManifest() in vite.config.ts downloaded.
-	snapshot,
-});
+const options = {
+	// The policy the build downloaded from VITE_C15T_BACKEND_URL.
+	mode: manifest(),
+	scripts: [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	],
+};
 
 export const Consent = ({ children }: { children: ReactNode }) => (
-	<ConsentProvider options={{ mode, scripts }}>
+	<ConsentProvider options={options}>
 		{children}
 		<ConsentBanner />
 		<ConsentDialog />

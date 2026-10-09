@@ -7,9 +7,8 @@ policy, and the browser resolves each visitor from it.
 
 - `vite.config.ts` adds `consentManifest`, which downloads the policy and
   serves it as `c15t/generated`.
-- `src/consent.tsx` mounts `ConsentProvider` with the bundled policy, the
-  banner and the dialog.
-- `src/scripts.ts` registers PostHog.
+- `src/consent.tsx` mounts `ConsentProvider` with the bundled policy,
+  PostHog, the banner and the dialog.
 - `src/main.tsx` wraps the app in `Consent`.
 
 ## Run it
@@ -31,7 +30,7 @@ app's origin to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project.
 
-Replace `phc_your_project_key` in `src/scripts.ts` with your PostHog project
+Replace `phc_your_project_key` in `src/consent.tsx` with your PostHog project
 key.
 
 The [React quickstart](https://c15t.com/docs/frameworks/react/quickstart)

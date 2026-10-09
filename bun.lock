@@ -813,7 +813,6 @@
     "examples/react": {
       "name": "@c15t/example-react",
       "dependencies": {
-        "@c15t/browser": "workspace:*",
         "@c15t/integrations": "workspace:*",
         "c15t": "workspace:*",
         "react": "19.2.7",

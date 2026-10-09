@@ -17,20 +17,16 @@ export default {
 
 Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. When
 `vite build` or `vite dev` starts, the plugin fetches the policy and serves it
-as `snapshot` from `c15t/generated`. Install `@c15t/browser@alpha`
-for its browser manifest transport. In `src/consent.tsx`, create the provider's
-mode with `manifest()` instead of `hosted()`:
+as `snapshot` from `c15t/generated`. In `src/consent.tsx`, create the
+provider's mode with `manifest()` from `c15t/react` instead of `hosted()`. It
+reads the snapshot and the backend URL from `c15t/generated`:
 
 {/* example: fragment */}
 
 ```tsx title="src/consent.tsx"
-import { manifest } from '@c15t/browser/headless';
-import { snapshot } from 'c15t/generated';
+import { manifest } from 'c15t/react';
 
-const mode = manifest({
-	backendURL: 'https://your-project.inth.app',
-	snapshot,
-});
+const mode = manifest();
 ```
 
 Keep passing `mode` to `ConsentProvider`. The browser resolves the snapshot

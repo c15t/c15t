@@ -30,9 +30,12 @@ on its own, so `manifest()` still asks the backend's `/init` on the first
 visit unless the page passes `inputs` or `geoURL`. The warning suggests
 `hosted()`.
 
-The browser manifest resolver loads each language's base copy and the IAB
-vendor list on demand, so a single-page app's first-load JavaScript names one
-language chunk instead of one per language, and carries no IAB code.
+The browser manifest resolver loads on demand. When the policy depends on a
+location the page doesn't know, the browser asks `/init` and never downloads
+the resolver. Otherwise the resolver starts loading as soon as `manifest()`
+runs. Each language's base copy and the IAB vendor list load only when a
+visitor needs them. The React quickstart's first-load JavaScript is about
+3.8 KB gzip smaller.
 
 `Frame`, `FrameRoot`, `FrameTitle` and `FrameButton`, the v2 names for
 `ConsentGate` and its parts, now log a one-time warning outside production.

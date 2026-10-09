@@ -15,9 +15,9 @@ each case, built from `@c15t/integrations` helpers or your own script objects:
 | `c15t/runtime` | `createConsentRuntime({ mode, scripts })`, as in [headless](/docs/frameworks/javascript/headless#create-the-runtime). |
 | Your own kernel | `createScriptLoader({ kernel, scripts })`. See [script loader](/docs/frameworks/javascript/modules/script-loader#attach-the-loader-to-your-own-kernel). |
 
-The quickstart's `src/scripts.ts` shows PostHog:
+The quickstart's `src/main.ts` shows PostHog:
 
-<include src="../../shared/examples/javascript/scripts.mdx" />
+<include src="../../shared/examples/javascript/init.mdx" />
 
 Each [integration guide](/docs/integrations/overview) gives the helper and
 options for one vendor. For a vendor without a helper, write the object
