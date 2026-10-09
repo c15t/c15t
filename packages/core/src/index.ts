@@ -109,6 +109,7 @@ export {
 	C15T_POLICY_CONTRACT_HEADER,
 	C15T_VERSION_HEADER,
 	c15tProtocolHeaders,
+	c15tProtocolParams,
 	c15tVersionHeaders,
 } from './transports/version-header';
 export type {

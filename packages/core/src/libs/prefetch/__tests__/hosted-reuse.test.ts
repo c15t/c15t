@@ -1,6 +1,7 @@
 /** @vitest-environment jsdom */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { corsPreflightReasons } from '../../../__tests__/fixtures/cors-safelist';
 import { createHostedTransport } from '../../../transports/hosted';
 import { buildPrefetchScript, primePrefetchedInitialData } from '../prefetch';
 
@@ -59,9 +60,10 @@ describe('hosted browser prefetch consumption', () => {
 		const first = await transport.init?.(context);
 		expect(first?.policyResolution).toEqual(payload.policyResolution);
 		expect(fetch).toHaveBeenCalledTimes(1);
-		expect(fetch.mock.calls[0]?.[1].headers).toMatchObject({
-			'x-c15t-policy-contract': '1',
-		});
+		const [url, init] = fetch.mock.calls[0] ?? [];
+		expect(new URL(url).searchParams.get('c15tPolicyContract')).toBe('1');
+		// A cross-origin backend answers this without a CORS preflight.
+		expect(corsPreflightReasons(init)).toEqual([]);
 		await transport.init?.(context);
 		expect(fetch).toHaveBeenCalledTimes(2);
 	});
@@ -153,7 +155,19 @@ describe('hosted browser prefetch consumption', () => {
 		const fetch = vi.fn().mockResolvedValue(response());
 		vi.stubGlobal('fetch', fetch);
 		window.eval(buildPrefetchScript({ backendURL: '/api/c15t' }));
-		expect(fetch.mock.calls[0]?.[1].headers['sec-gpc']).toBe('0');
+		const entries = Object.values(
+			(
+				window as Window & {
+					__c15tInitialDataPromises?: Record<
+						string,
+						{ requestContext: { gpc: boolean } }
+					>;
+				}
+			).__c15tInitialDataPromises ?? {}
+		);
+		expect(entries.map((entry) => entry.requestContext.gpc)).toEqual([false]);
+		// Detected GPC is never sent: browsers drop a script's `Sec-GPC`.
+		expect(fetch.mock.calls[0]?.[1].headers).toEqual({});
 		await Promise.resolve();
 	});
 });

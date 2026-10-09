@@ -210,9 +210,9 @@ describe('lazyHosted', () => {
 		} as unknown as InitContext);
 
 		expect(load).toHaveBeenCalledTimes(1);
-		expect(fetchSpy.mock.calls.map(([url]) => url)).toEqual([
-			'/api/consent/init',
-		]);
+		expect(
+			fetchSpy.mock.calls.map(([url]) => String(url).split('?')[0])
+		).toEqual(['/api/consent/init']);
 		release({ init: () => Promise.resolve({}) });
 		await pending;
 	});
@@ -246,11 +246,17 @@ describe('lazyHosted', () => {
 
 		expect(fetchSpy).toHaveBeenCalledTimes(1);
 		const [url, init] = fetchSpy.mock.calls[0] ?? [];
-		expect(url).toBe('https://consent.example.com/init');
-		expect(init?.headers).toMatchObject({
+		const sent = new URL(String(url));
+		expect(`${sent.origin}${sent.pathname}`).toBe(
+			'https://consent.example.com/init'
+		);
+		expect(sent.searchParams.get('c15tCountry')).toBe('DE');
+		// Only `Accept` and `Accept-Language`: no CORS preflight.
+		expect(init?.headers).toEqual({
+			accept: 'application/json',
 			'accept-language': 'de',
-			'x-c15t-country': 'DE',
 		});
+		expect(init?.credentials).toBe('same-origin');
 	});
 
 	test('an inline prefetch is left to the loaded transport', async () => {

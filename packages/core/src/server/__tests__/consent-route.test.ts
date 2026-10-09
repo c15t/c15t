@@ -584,6 +584,41 @@ describe('init route', () => {
 		});
 	});
 
+	test('reads the inputs a browser sends as query parameters', async () => {
+		const response = await route({ fetch: upstream() })(
+			request(
+				'/api/c15t/init?c15tVersion=3.1.0&c15tPolicyContract=1&c15tCountry=DE&c15tGpc=1',
+				{ headers: { 'x-c15t-country': 'US' } }
+			)
+		);
+		expect(await response.json()).toMatchObject({
+			location: { countryCode: 'DE' },
+			policyResolution: { policyId: 'eu-opt-in', status: 'matched' },
+			resolvedPrivacySignals: { gpc: true },
+		});
+	});
+
+	test('fails a client that declares an unknown contract in the query', async () => {
+		const response = await route({ fetch: upstream() })(
+			request('/api/c15t/init?c15tPolicyContract=99&c15tCountry=DE')
+		);
+		expect((await response.json()).policyResolution).toMatchObject({
+			reason: 'unsupported-contract',
+			status: 'failed',
+		});
+	});
+
+	test('query overrides win over adapter-supplied inputs, as override headers did', async () => {
+		const response = await route({ fetch: upstream() })(
+			request('/api/c15t/init?c15tCountry=DE'),
+			{ inputs: { country: 'US', language: 'de' } }
+		);
+		expect(await response.json()).toMatchObject({
+			location: { countryCode: 'DE' },
+			translations: { language: 'de' },
+		});
+	});
+
 	test.each([undefined, '1', ' 1 '])(
 		'serves a client that declares contract %j',
 		async (contract) => {
@@ -1032,6 +1067,26 @@ describe('/init fallback for a backend without /manifest', () => {
 			`/api/self-host/init?c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`,
 			expect.anything()
 		);
+	});
+
+	test('forwards the browser query overrides to backend /init as headers', async () => {
+		// Server to server there is no CORS, and every backend version reads
+		// the headers.
+		const localFetch = backendInit({
+			location: { countryCode: null, regionCode: null },
+			translations: { language: 'en', translations: {} },
+		});
+		await route({ backendURL: '/api/self-host' })(
+			request('/api/c15t/init?c15tCountry=DE&c15tGpc=0&c15tPolicyContract=1'),
+			{ localFetch }
+		);
+		expect(localFetch).toHaveBeenLastCalledWith(
+			'/api/self-host/init',
+			expect.anything()
+		);
+		const headers = callHeaders(localFetch, 1);
+		expect(headers.get('x-c15t-country')).toBe('DE');
+		expect(headers.get('x-c15t-gpc')).toBe('0');
 	});
 
 	test('names the page origin on the backend /init it forwards a journey to', async () => {

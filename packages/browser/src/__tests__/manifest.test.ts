@@ -11,11 +11,19 @@ import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 
 /** A request URL without the consent journey query the runtime adds. */
-const pathOf = (url: unknown): string =>
-	String(url).replace(
-		/[?&]c15tJourney=[^&#]*&c15tJourneyScope=[^&#]*(?:&c15tStored=[01])?/u,
-		''
-	);
+/** A request URL without the `c15t*` parameters a client adds to `/init`. */
+const pathOf = (url: unknown): string => {
+	const text = String(url);
+	const [base = '', query] = text.split('?');
+	if (query === undefined || !/(?:^|&)c15t[A-Z]/u.test(query)) {
+		return text;
+	}
+	const kept = query
+		.split('&')
+		.filter((pair) => !/^c15t[A-Z]/u.test(pair))
+		.join('&');
+	return kept ? `${base}?${kept}` : base;
+};
 
 const clients: ConsentClient[] = [];
 

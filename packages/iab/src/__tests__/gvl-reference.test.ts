@@ -483,12 +483,15 @@ test('hosted fetching reproduces the server geo and privacy inputs', async () =>
 		{ 'sec-gpc': '1' }
 	);
 	kernel.set.iab({ gvlReference: deferred.gvlReference });
-	const fetch = vi.fn((_url: RequestInfo | URL, init?: RequestInit) => {
-		const headers = new Headers(init?.headers);
+	const fetch = vi.fn((url: RequestInfo | URL, _init?: RequestInit) => {
+		// In the query string, as the hosted transport sends them, so a
+		// cross-origin `/init` stays a CORS simple request.
+		const query = new URL(String(url)).searchParams;
 		const matched =
-			headers.get('x-c15t-country') === 'DE' &&
-			headers.get('x-c15t-region') === 'BE' &&
-			headers.get('x-c15t-gpc') === '1';
+			query.get('c15tCountry') === 'DE' &&
+			query.get('c15tRegion') === 'BE' &&
+			query.get('c15tGpc') === '1' &&
+			query.get('c15tPolicyContract') === '1';
 		return Promise.resolve(
 			Response.json({ gvl: matched ? completeGVL : null })
 		);
@@ -498,6 +501,9 @@ test('hosted fetching reproduces the server geo and privacy inputs', async () =>
 	disposers.push(handle.dispose);
 	await handle.whenReady();
 	expect(kernel.getSnapshot().iab?.gvl).toEqual(completeGVL);
+	expect(
+		new Headers(fetch.mock.calls[0]?.[1]?.headers).get('x-c15t-country')
+	).toBeNull();
 });
 
 test('inline list replacement preserves retained consent in the CMP API', async () => {

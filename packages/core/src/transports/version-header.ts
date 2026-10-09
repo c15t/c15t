@@ -19,15 +19,19 @@
  * requires CMPs to self-host the GVL rather than hotlink IAB's), so the
  * headers are safe and version-gated manifest serving stays possible.
  *
- * CORS note: the backend allowlists both headers (`createApp` in
- * `@c15t/backend`). On cross-origin hosted mode the otherwise-simple `/init`
- * GET was already preflighted by `x-c15t-version`; the contract header adds
- * no further roundtrip. Same-origin and manifest modes are unaffected.
+ * `GET /init` is the exception. A browser on another origin sends it as a
+ * CORS simple request, so the version and the contract travel as the
+ * `c15tVersion` and `c15tPolicyContract` query parameters instead
+ * ({@link c15tProtocolParams}); a header would add an `OPTIONS` preflight
+ * to every first visit. Other requests keep the headers: `/subjects` is a
+ * JSON `POST` and is preflighted anyway, and server-side requests have no
+ * CORS. The backend reads the parameter first and the header second.
  */
 import {
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
 } from '@c15t/schema/types';
+import type { InitRequestParams } from '@c15t/schema/types';
 
 import { version } from '../version';
 
@@ -48,6 +52,18 @@ export const c15tVersionHeaders: Readonly<Record<string, string>> = {
 export const c15tProtocolHeaders: Readonly<Record<string, string>> = {
 	...c15tVersionHeaders,
 	[C15T_POLICY_CONTRACT_HEADER]: String(POLICY_CONTRACT_VERSION),
+};
+
+/**
+ * Version telemetry plus the policy contract declaration, as the query
+ * parameters a browser's `GET /init` carries in place of
+ * {@link c15tProtocolHeaders}.
+ */
+export const c15tProtocolParams: Readonly<
+	Pick<InitRequestParams, 'version' | 'policyContract'>
+> = {
+	policyContract: POLICY_CONTRACT_VERSION,
+	version,
 };
 
 /**

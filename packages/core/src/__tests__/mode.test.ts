@@ -86,7 +86,9 @@ describe('hosted()', () => {
 				Promise.resolve(
 					new Response(
 						JSON.stringify(
-							String(input) === '/api/consent/init' ? init : { ok: true }
+							String(input).startsWith('/api/consent/init?')
+								? init
+								: { ok: true }
 						)
 					)
 				)
@@ -102,10 +104,9 @@ describe('hosted()', () => {
 		await transport.init?.({ overrides: {}, user: null });
 		await transport.save?.(payload);
 
-		expect(fetchSpy.mock.calls.map(([url]) => String(url))).toEqual([
-			'/api/consent/init',
-			'https://backend.example/subjects',
-		]);
+		expect(
+			fetchSpy.mock.calls.map(([url]) => String(url).split('?')[0])
+		).toEqual(['/api/consent/init', 'https://backend.example/subjects']);
 		const body = JSON.parse(String(fetchSpy.mock.calls[1]?.[1]?.body));
 		expect(body).toMatchObject({
 			country: 'DE',
@@ -164,7 +165,7 @@ describe('hosted()', () => {
 			string,
 			RequestInit & { headers: Record<string, string> },
 		][]) {
-			expect(url).toBe('https://old.example/init');
+			expect(url.split('?')[0]).toBe('https://old.example/init');
 			expect(init.headers['accept-language']).toBe('de');
 		}
 	});

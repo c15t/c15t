@@ -5,6 +5,7 @@
 import { readJourneyParams } from '@c15t/schema/types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { corsPreflightReasons } from '../../../__tests__/fixtures/cors-safelist';
 import {
 	buildPrefetchScript,
 	getMatchingPrefetchedInitialData,
@@ -100,23 +101,54 @@ describe('prefetch utilities', () => {
 				},
 			},
 		});
-		expect(fetchMock).toHaveBeenCalledWith(
-			expect.any(String),
-			expect.objectContaining({
-				headers: expect.objectContaining({
-					'x-c15t-version': expect.any(String),
-				}),
-			})
+		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(new URL(url).searchParams.get('c15tVersion')).toEqual(
+			expect.any(String)
 		);
+		// A cross-origin backend answers this without a CORS preflight.
+		expect(corsPreflightReasons(init)).toEqual([]);
+		expect(init.headers).toEqual({ 'accept-language': 'de' });
 	});
 
-	it('includes the c15t version header in generated prefetch scripts', () => {
-		const script = buildPrefetchScript({
-			backendURL: '/api/c15t',
-			overrides: { country: 'DE' },
-		});
+	it('sends the generated script as a CORS simple request', () => {
+		const fetch = vi.fn(() => Promise.resolve(new Response('{}')));
+		vi.stubGlobal('fetch', fetch);
+		window.eval(
+			buildPrefetchScript({
+				backendURL: 'https://consent.example.com',
+				overrides: { country: 'DE', gpc: false, language: 'de', region: 'BE' },
+			})
+		);
+		const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
+		expect(corsPreflightReasons(init)).toEqual([]);
+		const query = new URL(url).searchParams;
+		expect(query.get('c15tVersion')).toEqual(expect.any(String));
+		expect(query.get('c15tPolicyContract')).toBe('1');
+		expect(query.get('c15tCountry')).toBe('DE');
+		expect(query.get('c15tRegion')).toBe('BE');
+		expect(query.get('c15tGpc')).toBe('0');
+	});
 
-		expect(script).toContain('"x-c15t-version"');
+	it('builds the same request as the runtime prefetch', () => {
+		const fetch = vi.fn(() => Promise.resolve(new Response('{}')));
+		vi.stubGlobal('fetch', fetch);
+		const options = {
+			backendURL: 'https://consent.example.com',
+			journey: false as const,
+			overrides: { country: 'DE', gpc: true, region: 'BE' },
+		};
+		window.eval(buildPrefetchScript(options));
+		delete (window as Window & { __c15tInitialDataPromises?: unknown })
+			.__c15tInitialDataPromises;
+		void primePrefetchedInitialData(options);
+		const [script, runtime] = fetch.mock.calls as unknown as [
+			string,
+			RequestInit,
+		][];
+		expect(script?.[0]).toBe(runtime?.[0]);
+		expect(script?.[1].headers).toEqual(runtime?.[1].headers);
+		expect(script?.[1].credentials).toBe('same-origin');
+		expect(runtime?.[1].credentials).toBe('same-origin');
 	});
 
 	it('still starts the request after a server bundle rewrites `typeof window`', () => {
@@ -207,14 +239,14 @@ describe('prefetch utilities', () => {
 
 		expect(
 			buildPrefetchScript({ backendURL: '/api/c15t', overrides: { gpc: true } })
-		).toContain('"x-c15t-gpc":"1"');
+		).toContain('c15tGpc=1');
 
 		const primed = primePrefetchedInitialData({
 			backendURL: '/api/c15t',
 			overrides: { gpc: true },
 		});
 		const call = fetchSpy.mock.calls[0] as [string, RequestInit];
-		expect(new Headers(call[1].headers).get('x-c15t-gpc')).toBe('1');
+		expect(new URL(call[0]).searchParams.get('c15tGpc')).toBe('1');
 		expect(
 			getMatchingPrefetchedInitialData({
 				backendURL: '/api/c15t',
@@ -349,9 +381,15 @@ describe('prefetch utilities', () => {
 			window.eval(
 				buildPrefetchScript({ backendURL: '/api/third', journey: false })
 			);
-			expect(String(fetch.mock.calls[2]?.[0])).toBe(
+			const third = new URL(String(fetch.mock.calls[2]?.[0]));
+			expect(`${third.origin}${third.pathname}`).toBe(
 				'http://localhost:3000/api/third/init'
 			);
+			expect(readJourneyParams(third)).toBeNull();
+			expect([...third.searchParams.keys()]).toEqual([
+				'c15tVersion',
+				'c15tPolicyContract',
+			]);
 		});
 
 		it('primePrefetchedInitialData sends the same journey as the script', () => {

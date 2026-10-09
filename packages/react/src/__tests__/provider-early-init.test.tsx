@@ -45,6 +45,8 @@ const initBody = (id: string) =>
 	});
 
 interface InitRequest {
+	/** The country override, which travels as the `c15tCountry` parameter. */
+	country: string | null;
 	headers: Record<string, string>;
 	respond: (policyId: string) => void;
 	fail: () => void;
@@ -60,9 +62,12 @@ beforeEach(() => {
 	delete (window as Window & { __c15tJourney?: unknown }).__c15tJourney;
 	requests = [];
 	backendFetch = vi.fn(
-		(_url: string, init: RequestInit & { headers: Record<string, string> }) =>
+		(url: string, init: RequestInit & { headers: Record<string, string> }) =>
 			new Promise<Response>((resolve, reject) => {
 				requests.push({
+					country: new URL(url, window.location.href).searchParams.get(
+						'c15tCountry'
+					),
 					fail: () => reject(new TypeError('Failed to fetch')),
 					headers: init.headers,
 					respond: (policyId) =>
@@ -475,10 +480,7 @@ test('sibling providers given one mode object each get a transport and an /init'
 	);
 
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
-	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
-		'DE',
-		'FR',
-	]);
+	expect(requests.map(({ country }) => country)).toEqual(['DE', 'FR']);
 	requests[0]?.respond('for-de');
 	requests[1]?.respond('for-fr');
 	await vi.waitFor(() => {
@@ -525,10 +527,7 @@ test('sibling providers given one hosted() mode each get their own /init', async
 	// another country, so it sends its own rather than taking the first's.
 	expect(seen[0]).toBe(1);
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
-	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
-		'DE',
-		'FR',
-	]);
+	expect(requests.map(({ country }) => country)).toEqual(['DE', 'FR']);
 	requests[0]?.respond('for-de');
 	requests[1]?.respond('for-fr');
 	await vi.waitFor(() => {
@@ -663,10 +662,7 @@ test('a provider asking for another context leaves an early request to the provi
 	// DE's render sent its request and suspended; FR committed first.
 	await vi.waitFor(() => expect(kernels.get('FR')).toBeDefined());
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
-	expect(requests.map(({ headers }) => headers['x-c15t-country'])).toEqual([
-		'DE',
-		'FR',
-	]);
+	expect(requests.map(({ country }) => country)).toEqual(['DE', 'FR']);
 
 	resume();
 	await vi.waitFor(() => expect(kernels.get('DE')).toBeDefined());
@@ -755,12 +751,12 @@ test('a retry with other overrides asks again rather than use the first answer',
 
 	const view = await render(app('DE'));
 	expect(initCalls()).toHaveLength(1);
-	expect(requests[0]?.headers['x-c15t-country']).toBe('DE');
+	expect(requests[0]?.country).toBe('DE');
 
 	await view.rerender(app('FR'));
 	resume();
 	await vi.waitFor(() => expect(initCalls()).toHaveLength(2));
-	expect(requests[1]?.headers['x-c15t-country']).toBe('FR');
+	expect(requests[1]?.country).toBe('FR');
 
 	// The answer for DE arrives first and is not applied.
 	requests[0]?.respond('for-de');

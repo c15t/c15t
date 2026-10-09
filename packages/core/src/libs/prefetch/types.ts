@@ -14,9 +14,11 @@ export interface PrefetchOptions {
 	overrides?: Pick<Overrides, 'country' | 'region' | 'language' | 'gpc'>;
 
 	/**
-	 * Fetch credentials mode.
+	 * Fetch credentials mode. `/init` reads no cookie, so the default sends
+	 * cookies only to a same-origin init route, and a cross-origin backend
+	 * can answer with `Access-Control-Allow-Origin: *`.
 	 *
-	 * @default 'include'
+	 * @default 'same-origin'
 	 */
 	credentials?: RequestCredentials;
 

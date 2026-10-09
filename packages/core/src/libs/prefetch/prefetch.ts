@@ -1,8 +1,8 @@
-import { appendJourneyParams } from '@c15t/schema/types';
+import { appendInitParams, appendJourneyParams } from '@c15t/schema/types';
 import type { InitOutput } from '@c15t/schema/types';
 
 import type { SSRInitialData } from '../../options/ssr';
-import { c15tProtocolHeaders } from '../../transports/version-header';
+import { c15tProtocolParams } from '../../transports/version-header';
 import type { KernelJourney } from '../../types';
 import {
 	claimEarlyJourney,
@@ -11,11 +11,13 @@ import {
 	storedAnswerKeys,
 } from '../journey';
 import {
-	buildRequestContextHeaders,
+	buildRequestContextParams,
+	buildRequestContextSentHeaders,
 	createBrowserRequestContext,
 	createRuntimeRequestContextMatcher,
 	matchesStoredRequestContext,
 } from '../request-context';
+import { DEFAULT_INIT_CREDENTIALS } from '../request-context-headers';
 import { JOURNEY_STORAGE_KEY, STORAGE_KEY_V2 } from '../storage-keys';
 import type { PrefetchOptions } from './types';
 import { PREFETCH_WINDOW_KEY } from './window-key';
@@ -36,8 +38,19 @@ type BrowserWindow = Window & {
 	[WINDOW_PROMISES_KEY]?: Record<string, PrefetchEntry>;
 };
 
-const buildInitURL = function buildInitURL(backendURL: string): string {
-	return `${backendURL}/init`;
+/**
+ * The init query string, without the journey: the version, the policy
+ * contract and the country, region and GPC overrides. Query parameters
+ * rather than headers, so a cross-origin `/init` stays a CORS simple
+ * request with no preflight. The inline script appends it as text.
+ */
+const buildInitQuery = function buildInitQuery(
+	overrides: PrefetchOptions['overrides']
+): string {
+	return appendInitParams('', {
+		...c15tProtocolParams,
+		...buildRequestContextParams(overrides),
+	});
 };
 
 interface PrefetchConfig {
@@ -85,13 +98,12 @@ const buildPrefetchConfig = function buildPrefetchConfig(
 		throw new Error(`Invalid backend URL: ${options.backendURL}`);
 	}
 
-	const url = buildInitURL(requestContext.backendURL);
-	const credentials = requestContext.credentials ?? 'include';
-	const headers = {
-		...c15tProtocolHeaders,
-		...buildRequestContextHeaders(options.overrides),
-		'sec-gpc': requestContext.gpc ? '1' : '0',
-	};
+	const url = `${requestContext.backendURL}/init${buildInitQuery(options.overrides)}`;
+	const credentials = requestContext.credentials ?? DEFAULT_INIT_CREDENTIALS;
+	// CORS-safelisted only. A detected GPC signal is not sent: browsers
+	// refuse `Sec-GPC` from scripts and send their own; it stays in the
+	// cache key and the request context.
+	const headers = buildRequestContextSentHeaders(options.overrides);
 
 	return {
 		cacheKey: buildPrefetchCacheKey({
@@ -269,15 +281,13 @@ export const buildPrefetchScript = function buildPrefetchScript(
 ): string {
 	const payload = {
 		backendURL: options.backendURL,
-		credentials: options.credentials ?? 'include',
-		// An explicit override wins over the browser signal, and travels on
-		// `x-c15t-gpc` inside `headers`; `null` means detect at runtime.
+		credentials: options.credentials ?? DEFAULT_INIT_CREDENTIALS,
+		// An explicit override wins over the browser signal, and travels as
+		// `c15tGpc` inside `query`; `null` means detect at runtime.
 		gpc: options.overrides?.gpc ?? null,
-		headers: {
-			...c15tProtocolHeaders,
-			...buildRequestContextHeaders(options.overrides),
-		},
+		headers: buildRequestContextSentHeaders(options.overrides),
 		journey: options.journey === false ? null : (options.journey ?? 'page'),
+		query: buildInitQuery(options.overrides),
 		requestContext: {
 			country: options.overrides?.country ?? null,
 			language: options.overrides?.language ?? null,
@@ -297,8 +307,9 @@ export const buildPrefetchScript = function buildPrefetchScript(
 	// this script return at once. It reads `globalThis.window` instead.
 	//
 	// The journey part mirrors `claimEarlyJourney`; it goes on the request
-	// only, never in the cache key.
-	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext;h["sec-gpc"]=g?"1":"0";var x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init",k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;var q="",R=/^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$/i,J=w["${JOURNEY_WINDOW_KEY}"],y=p.journey;if(y){if(!(J&&R.test(J.id)&&(J.scope==="page"||J.scope==="tab")&&typeof J.storedChoice==="boolean")){var S=y,o,D=false;if(S==="tab")try{o=w.sessionStorage.getItem("${JOURNEY_STORAGE_KEY}");if(!R.test(o))o=void 0}catch{S="page"}if(!o)try{o=w.crypto.randomUUID()}catch{try{var a=w.crypto.getRandomValues(new Uint8Array(16));a[6]=a[6]%16+64;a[8]=a[8]%64+128;o=Array.from(a,e=>e.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")}catch{}}try{D=w.document.cookie.split("; ").some(e=>p.stored.cookies.some(n=>e.startsWith(n+"=")&&e.length>n.length+1))}catch{}if(!D)try{D=p.stored.local.some(e=>w.localStorage.getItem(e)!==null)}catch{}J=o?w["${JOURNEY_WINDOW_KEY}"]={id:o,scope:S,storedChoice:D}:void 0}if(J)q="?c15tJourney="+J.id+"&c15tJourneyScope="+J.scope+"&c15tStored="+(J.storedChoice?1:0)}m[k]={promise:fetch(u+q,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x,journey:J||null}}:void 0}).catch(()=>{}),requestContext:x}})();`;
+	// only, never in the cache key. Everything but `Accept-Language` is in
+	// the query string, so a cross-origin `/init` needs no preflight.
+	return `(()=>{var w=globalThis.window;if(w===void 0)return;var p=${json},t=v=>v!=="/"&&v.endsWith("/")?v.slice(0,-1):v,b;try{b=t(p.backendURL);b=/^https?:\\/\\//.test(b)?t(new URL(b)+""):b.startsWith("/")?t(new URL(b,w.location.origin)+""):void 0}catch{}if(!b)return;var g=p.gpc;if(g===null)try{g=w.navigator.globalPrivacyControl===true}catch{g=false}var h=p.headers,c=p.credentials,r=p.requestContext,x={backendURL:b,country:r.country,region:r.region,language:r.language,gpc:g,credentials:c},u=b+"/init"+p.query,k=u+"|"+c+"|gpc:"+g+"|"+Object.entries(h).sort(([l],[n])=>l<n?-1:l>n?1:0).map(([l,v])=>l+":"+v).join("|"),m=w["${WINDOW_PROMISES_KEY}"]=w["${WINDOW_PROMISES_KEY}"]||{};if(m[k])return;var q="",R=/^[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$/i,J=w["${JOURNEY_WINDOW_KEY}"],y=p.journey;if(y){if(!(J&&R.test(J.id)&&(J.scope==="page"||J.scope==="tab")&&typeof J.storedChoice==="boolean")){var S=y,o,D=false;if(S==="tab")try{o=w.sessionStorage.getItem("${JOURNEY_STORAGE_KEY}");if(!R.test(o))o=void 0}catch{S="page"}if(!o)try{o=w.crypto.randomUUID()}catch{try{var a=w.crypto.getRandomValues(new Uint8Array(16));a[6]=a[6]%16+64;a[8]=a[8]%64+128;o=Array.from(a,e=>e.toString(16).padStart(2,"0")).join("").replace(/^(.{8})(.{4})(.{4})(.{4})/,"$1-$2-$3-$4-")}catch{}}try{D=w.document.cookie.split("; ").some(e=>p.stored.cookies.some(n=>e.startsWith(n+"=")&&e.length>n.length+1))}catch{}if(!D)try{D=p.stored.local.some(e=>w.localStorage.getItem(e)!==null)}catch{}J=o?w["${JOURNEY_WINDOW_KEY}"]={id:o,scope:S,storedChoice:D}:void 0}if(J)q=(p.query?"&":"?")+"c15tJourney="+J.id+"&c15tJourneyScope="+J.scope+"&c15tStored="+(J.storedChoice?1:0)}m[k]={promise:fetch(u+q,{method:"GET",credentials:c,headers:h}).then(async s=>{if(!s.ok)return;var i=await s.json();return i?{init:i,gvl:i.gvl,producerPolicyContract:s.headers.get("x-c15t-policy-contract"),metadata:{requestContext:x,journey:J||null}}:void 0}).catch(()=>{}),requestContext:x}})();`;
 };
 
 export const primePrefetchedInitialData = function primePrefetchedInitialData(
