@@ -298,6 +298,48 @@ import 'c15t/react/styles.css';
 `);
 	});
 
+	it('reads stylesheet imports that span lines', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/index.css': `@import url('@c15t/react/styles.css')
+	layer(c15t);
+body {}
+`,
+				'src/main.scss': `@import
+	'@c15t/react/styles.css'; // legacy
+body {}
+`,
+			}
+		);
+
+		expect(await read('src/index.css')).toBe(`/* ${TODO} */
+@import url('c15t/react/styles.css')
+	layer(c15t);
+body {}
+`);
+		expect(await read('src/main.scss')).toBe('body {}\n');
+	});
+
+	it('reads Less import options', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/theme.less': `// @import (css) '@c15t/react/styles.css';
+@import (css) '@c15t/react/styles.css';
+@import (reference, optional) url("@c15t/react/iab/styles.css"); // legacy
+@import (css) '@c15t/react/styles.css' screen;
+`,
+			}
+		);
+
+		expect(await read('src/theme.less'))
+			.toBe(`// @import (css) '@c15t/react/styles.css';
+/* ${TODO} */
+@import (css) 'c15t/react/styles.css' screen;
+`);
+	});
+
 	it('points object-form and required PostCSS plugins at c15t/postcss-tailwind3', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0', next: '^15.0.0', tailwindcss: '^3.4.17' },

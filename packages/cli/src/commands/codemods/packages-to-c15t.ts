@@ -19,6 +19,7 @@ import {
 	UNCHANGED,
 } from './source-edits';
 import type { TextEdit, TransformResult } from './source-edits';
+import { findStylesheetImports } from './stylesheet-imports';
 
 const STYLESHEET_EXTENSIONS = new Set(['.css', '.scss', '.sass', '.less']);
 
@@ -90,12 +91,6 @@ const POSTCSS_PLUGIN_SPECIFIER =
 	/^@c15t\/(?:react|nextjs)\/postcss-tailwind3$/u;
 const STYLESHEET_SPECIFIER =
 	/^@c15t\/(?<pkg>react|nextjs)\/(?<iab>iab\/)?styles(?<tw3>\.tw3)?\.css$/u;
-const CSS_IMPORT =
-	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*?);?(?:\s*\/\*.*?\*\/)*\s*$/u;
-/** The same `@import` in Sass or Less, which also allow a trailing `//` comment. */
-const PREPROCESSOR_IMPORT =
-	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*?);?(?:\s*\/\*.*?\*\/)*(?:\s*\/\/.*)?\s*$/u;
-
 const KEPT_SUMMARY = ', kept with a TODO';
 
 const STYLES_TODO =
@@ -304,44 +299,93 @@ const transformWith = (
 		return { changed: true, operations, summaries: [...summaries] };
 	};
 
-/** Removes or keeps stylesheet `@import`s, one line at a time. */
+/** The start of the line that holds `index`. */
+const lineStartOf = function lineStartOf(text: string, index: number): number {
+	return text.lastIndexOf('\n', index - 1) + 1;
+};
+
+/**
+ * Removes or keeps c15t stylesheet `@import` directives. Each directive is
+ * read whole, so one that spans lines or takes Less options is handled like
+ * any other. A directive followed on its line by more than a comment is left
+ * alone, as the codemod can't tell what that text belongs to.
+ */
 const transformStylesheet = function transformStylesheet(
 	text: string,
 	filePath: string,
 	plan: ImportPlan
 ): { text: string; operations: number; summaries: string[] } {
-	// Plain CSS has no `//` comments, and `//` there can sit inside a URL.
-	const pattern =
-		extname(filePath) === '.css' ? CSS_IMPORT : PREPROCESSOR_IMPORT;
-	const lines: string[] = [];
+	const edits: TextEdit[] = [];
 	const summaries = new Set<string>();
 	let operations = 0;
-	for (const line of text.split('\n')) {
-		const groups = pattern.exec(line)?.groups;
-		if (!groups) {
-			lines.push(line);
+	for (const directive of findStylesheetImports(text, extname(filePath))) {
+		const { specifier } = directive;
+		if (!STYLESHEET_SPECIFIER.test(specifier) || directive.followed) {
 			continue;
 		}
-		const specifier = groups.specifier ?? '';
+		const lineStart = lineStartOf(text, directive.start);
+		const before = text.slice(lineStart, directive.start);
+		const startsLine = before.trim() === '';
 		// A layer(), supports() or media query places the import on purpose.
-		const placed = (groups.conditions ?? '').trim() !== '';
-		if (!(placed || keepsStylesheet(specifier, plan))) {
+		if (!(directive.placed || keepsStylesheet(specifier, plan))) {
+			const newline = /^\r?\n/u.exec(text.slice(directive.trailingEnd));
+			edits.push(
+				startsLine
+					? {
+							end: directive.trailingEnd + (newline?.[0].length ?? 0),
+							start: lineStart,
+							text: '',
+						}
+					: {
+							end: directive.trailingEnd,
+							start:
+								directive.start - (/[\t ]*$/u.exec(before)?.[0].length ?? 0),
+							text: '',
+						}
+			);
 			summaries.add(`removed ${specifier}`);
 			operations += 1;
 			continue;
 		}
 		const kept = keptStylesheet(specifier, plan.umbrella);
-		const todo = !lines.at(-1)?.includes(TODO_MARKER);
+		const comment = `/* ${TODO_MARKER} ${STYLES_TODO} */`;
+		const previousLine = text.slice(
+			lineStartOf(text, Math.max(0, lineStart - 1)),
+			lineStart
+		);
+		const todo = startsLine
+			? !(lineStart > 0 && previousLine.includes(TODO_MARKER))
+			: !before.includes(TODO_MARKER);
 		if (todo) {
-			lines.push(`${groups.indent ?? ''}/* ${TODO_MARKER} ${STYLES_TODO} */`);
+			edits.push(
+				startsLine
+					? { end: lineStart, start: lineStart, text: `${before}${comment}\n` }
+					: {
+							end: directive.start,
+							start: directive.start,
+							text: `${comment} `,
+						}
+			);
 		}
-		lines.push(line.replace(specifier, kept));
+		if (kept !== specifier) {
+			edits.push({
+				end: directive.specifierEnd,
+				start: directive.specifierStart,
+				text: kept,
+			});
+		}
 		if (todo || kept !== specifier) {
 			summaries.add(`${specifier} -> ${kept}${KEPT_SUMMARY}`);
 			operations += 1;
 		}
 	}
-	return { operations, summaries: [...summaries], text: lines.join('\n') };
+	let output = text;
+	// Edits never overlap, so applying them from the end keeps offsets valid.
+	const ordered = [...edits].sort((left, right) => right.start - left.start);
+	for (const edit of ordered) {
+		output = output.slice(0, edit.start) + edit.text + output.slice(edit.end);
+	}
+	return { operations, summaries: [...summaries], text: output };
 };
 
 /**

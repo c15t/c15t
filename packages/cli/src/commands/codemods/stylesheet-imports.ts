@@ -1,0 +1,291 @@
+/** How a stylesheet language writes comments and ends an `@import`. */
+interface StylesheetSyntax {
+	/** `//` starts a comment: Sass, SCSS and Less, but not CSS. */
+	lineComments: boolean;
+	/** A directive ends at the end of its line: indented Sass. */
+	indented: boolean;
+	/** `@import (css) '…'` options: Less. */
+	importOptions: boolean;
+}
+
+/** One `@import` directive, with offsets into the stylesheet's text. */
+export interface StylesheetImport {
+	/** The `@` of `@import`. */
+	start: number;
+	/** After the directive's `;`, or its last character when it has none. */
+	end: number;
+	/** After the comments that follow the directive on its last line. */
+	trailingEnd: number;
+	/** The imported URL, without quotes or `url()`. */
+	specifier: string;
+	specifierStart: number;
+	specifierEnd: number;
+	/**
+	 * Text after the URL, such as `layer(c15t)`, a media query or
+	 * `supports()`, which places the import on purpose.
+	 */
+	placed: boolean;
+	/** Something other than a comment follows the directive on its line. */
+	followed: boolean;
+}
+
+const BLOCK_COMMENTS_ONLY: StylesheetSyntax = {
+	importOptions: false,
+	indented: false,
+	lineComments: false,
+};
+
+const IMPORT_KEYWORD = /@import(?![\w-])/iuy;
+const UNQUOTED_URL = /url\(\s*(?!['"\s])[^)]*\)/iuy;
+const URL_FUNCTION = /url\(/iuy;
+
+const syntaxOf = function syntaxOf(extension: string): StylesheetSyntax {
+	return {
+		importOptions: extension === '.less',
+		indented: extension === '.sass',
+		lineComments: extension !== '.css',
+	};
+};
+
+const matchesAt = function matchesAt(
+	pattern: RegExp,
+	text: string,
+	index: number
+): RegExpExecArray | null {
+	pattern.lastIndex = index;
+	return pattern.exec(text);
+};
+
+/** The index after the comment at `index`, or `index` when none starts there. */
+const skipComment = function skipComment(
+	text: string,
+	index: number,
+	syntax: StylesheetSyntax
+): number {
+	if (text.startsWith('/*', index)) {
+		const close = text.indexOf('*/', index + 2);
+		return close === -1 ? text.length : close + 2;
+	}
+	if (syntax.lineComments && text.startsWith('//', index)) {
+		const newline = text.indexOf('\n', index);
+		return newline === -1 ? text.length : newline;
+	}
+	return index;
+};
+
+/**
+ * The index after the quoted string at `index`. An unclosed string ends at
+ * the end of its line, as it does in CSS.
+ */
+const skipString = function skipString(text: string, index: number): number {
+	const quote = text[index];
+	let cursor = index + 1;
+	while (cursor < text.length && text[cursor] !== quote) {
+		if (text[cursor] === '\n') {
+			return cursor;
+		}
+		cursor += text[cursor] === '\\' ? 2 : 1;
+	}
+	return Math.min(cursor + 1, text.length);
+};
+
+/** The index after the whitespace and comments at `index`. */
+const skipTrivia = function skipTrivia(
+	text: string,
+	index: number,
+	syntax: StylesheetSyntax,
+	acrossLines = true
+): number {
+	let cursor = index;
+	while (cursor < text.length) {
+		const char = text[cursor] ?? '';
+		if (
+			char === ' ' ||
+			char === '\t' ||
+			char === '\r' ||
+			(acrossLines && (char === '\n' || char === '\f'))
+		) {
+			cursor += 1;
+			continue;
+		}
+		const after = skipComment(text, cursor, syntax);
+		if (after === cursor) {
+			return cursor;
+		}
+		cursor = after;
+	}
+	return cursor;
+};
+
+/**
+ * Where the directive whose prelude starts at `index` ends: after its `;`,
+ * or at the end of its line in indented Sass. Without a `;`, a line break
+ * ends it when the next line starts another at-rule or closes a block, and
+ * the first line break does when a block follows.
+ */
+const directiveEnd = function directiveEnd(
+	text: string,
+	index: number,
+	syntax: StylesheetSyntax
+): number {
+	let depth = 0;
+	let firstBreak: number | undefined;
+	let cursor = index;
+	while (cursor < text.length) {
+		const char = text[cursor];
+		if (char === '"' || char === "'") {
+			cursor = skipString(text, cursor);
+			continue;
+		}
+		// `//` inside parentheses is part of a URL, not a comment.
+		const after = skipComment(
+			text,
+			cursor,
+			depth === 0 ? syntax : BLOCK_COMMENTS_ONLY
+		);
+		if (after !== cursor) {
+			cursor = after;
+			continue;
+		}
+		if (char === '(') {
+			depth += 1;
+		} else if (char === ')') {
+			depth = Math.max(0, depth - 1);
+		} else if (depth === 0) {
+			if (char === ';') {
+				return cursor + 1;
+			}
+			if (char === '{' || char === '}') {
+				return firstBreak ?? cursor;
+			}
+			if (char === '\n') {
+				if (syntax.indented) {
+					return cursor;
+				}
+				firstBreak ??= cursor;
+				const next = skipTrivia(text, cursor, syntax);
+				if (next >= text.length || text[next] === '@' || text[next] === '}') {
+					return cursor;
+				}
+			}
+		}
+		cursor += 1;
+	}
+	return text.length;
+};
+
+/** The URL a directive imports, from the prelude between `index` and `end`. */
+const urlOf = function urlOf(
+	text: string,
+	index: number,
+	end: number,
+	syntax: StylesheetSyntax
+): { start: number; end: number; after: number } | undefined {
+	let cursor = skipTrivia(text, index, syntax);
+	if (syntax.importOptions && text[cursor] === '(') {
+		const close = text.indexOf(')', cursor);
+		if (close === -1 || close >= end) {
+			return undefined;
+		}
+		cursor = skipTrivia(text, close + 1, syntax);
+	}
+	const isUrl = matchesAt(URL_FUNCTION, text, cursor) !== null;
+	if (isUrl) {
+		cursor = skipTrivia(text, cursor + 4, syntax);
+	}
+	let url: { start: number; end: number; after: number };
+	const quote = text[cursor];
+	if (quote === '"' || quote === "'") {
+		const after = skipString(text, cursor);
+		if (text[after - 1] !== quote || after - 1 === cursor) {
+			return undefined;
+		}
+		url = { after, end: after - 1, start: cursor + 1 };
+	} else if (isUrl) {
+		const value = /[^\s)]*/uy;
+		value.lastIndex = cursor;
+		const length = value.exec(text)?.[0].length ?? 0;
+		url = { after: cursor + length, end: cursor + length, start: cursor };
+	} else {
+		return undefined;
+	}
+	if (isUrl) {
+		const close = skipTrivia(text, url.after, syntax);
+		if (text[close] !== ')') {
+			return undefined;
+		}
+		url.after = close + 1;
+	}
+	return url.after <= end ? url : undefined;
+};
+
+/**
+ * Finds the `@import` directives in a stylesheet, skipping strings and
+ * comments. A directive can span lines, take Less options, and name its URL
+ * as a string or with `url()`.
+ *
+ * @param text - The stylesheet's text.
+ * @param extension - The file extension, which picks the syntax: `.css`,
+ * `.scss`, `.sass` or `.less`.
+ * @returns The directives in source order.
+ */
+export const findStylesheetImports = function findStylesheetImports(
+	text: string,
+	extension: string
+): StylesheetImport[] {
+	const syntax = syntaxOf(extension.toLowerCase());
+	const imports: StylesheetImport[] = [];
+	let cursor = 0;
+	while (cursor < text.length) {
+		const char = text[cursor];
+		if (char === '"' || char === "'") {
+			cursor = skipString(text, cursor);
+			continue;
+		}
+		const afterComment = skipComment(text, cursor, syntax);
+		if (afterComment !== cursor) {
+			cursor = afterComment;
+			continue;
+		}
+		const unquotedUrl = matchesAt(UNQUOTED_URL, text, cursor);
+		if (unquotedUrl) {
+			cursor += unquotedUrl[0].length;
+			continue;
+		}
+		if (char !== '@' || matchesAt(IMPORT_KEYWORD, text, cursor) === null) {
+			cursor += 1;
+			continue;
+		}
+		const start = cursor;
+		const prelude = start + '@import'.length;
+		let end = directiveEnd(text, prelude, syntax);
+		if (text[end - 1] !== ';') {
+			while (end > prelude && /\s/u.test(text[end - 1] ?? '')) {
+				end -= 1;
+			}
+		}
+		cursor = Math.max(end, prelude);
+		const url = urlOf(text, prelude, end, syntax);
+		if (!url) {
+			continue;
+		}
+		const conditions = skipTrivia(text, url.after, syntax);
+		const trailingEnd = skipTrivia(text, end, syntax, false);
+		const lineEnd = text.indexOf('\n', trailingEnd);
+		const rest = text.slice(
+			trailingEnd,
+			lineEnd === -1 ? text.length : lineEnd
+		);
+		imports.push({
+			end,
+			followed: rest.trim() !== '',
+			placed: conditions < end && text[conditions] !== ';',
+			specifier: text.slice(url.start, url.end),
+			specifierEnd: url.end,
+			specifierStart: url.start,
+			start,
+			trailingEnd,
+		});
+	}
+	return imports;
+};
