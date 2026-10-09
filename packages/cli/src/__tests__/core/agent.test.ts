@@ -246,7 +246,7 @@ describe('agent setup', () => {
 		const plan = createAgentSetupPlan(options);
 		expect(plan.prompt).toContain('"mode": "hosted"');
 		expect(plan.prompt).toContain(
-			`view c15t@${c15tDistTag(packageInfo.version)} version`
+			`npm view <package>@${c15tDistTag(packageInfo.version)} version`
 		);
 		expect(plan.prompt).toContain(
 			`${c15tDocsOrigin(packageInfo.version)}/docs/`
@@ -457,8 +457,7 @@ describe('c15t setup instructions', () => {
 		});
 		expect(instructions).toContain(`uses ${origin}, which documents`);
 		expect(instructions).toContain('`beta` npm dist-tag');
-		expect(instructions).toContain('view c15t@beta version');
-		expect(instructions).toContain('view @c15t/integrations@beta version');
+		expect(instructions).toContain('npm view <package>@beta version');
 		expect(instructions).toContain(
 			`${origin}/docs/frameworks/<next|react|javascript>/upgrade-v3.md`
 		);
@@ -494,7 +493,7 @@ describe('c15t setup instructions', () => {
 			`${c15tDocsOrigin(packageInfo.version)}/docs/guides/verify-consent.md`
 		);
 		expect(instructions).toContain(
-			`view c15t@${c15tDistTag(packageInfo.version)} version`
+			`npm view <package>@${c15tDistTag(packageInfo.version)} version`
 		);
 	});
 
@@ -564,13 +563,65 @@ describe('c15t setup instructions', () => {
 			'Use hosted mode',
 			'written to the backend (a successful POST);',
 		],
-		['custom', 'Use `custom(transport)`', 'wait for the backend response.'],
+		[
+			'custom',
+			'Use `custom(transport)`',
+			"wait for the transport's `save` to finish.",
+		],
 	] as const)('describes %s mode without asking for it', (mode, ...texts) => {
 		const instructions = createC15tSetupInstructions({ mode });
 		for (const text of texts) {
 			expect(instructions).toContain(text);
 		}
 		expect(instructions).not.toContain('ask the user to choose');
+	});
+
+	it.each(['offline', 'custom'] as const)(
+		'gives %s mode no hosted-only backend instructions',
+		(mode) => {
+			for (const text of [
+				createC15tSetupInstructions({ mode }),
+				createAgentSetupPlan({ mode }).prompt,
+			]) {
+				for (const hosted of [
+					'Put the backend URL',
+					'origin the consent backend trusts',
+					'a successful POST',
+					'wait for the backend response',
+					'the storage mode and the backend URL',
+					"Keep the app's backend URL",
+				]) {
+					expect(text).not.toContain(hosted);
+				}
+			}
+		}
+	);
+
+	it('limits backend steps to hosted mode when the mode is not chosen yet', () => {
+		const instructions = createC15tSetupInstructions();
+		expect(instructions).toContain(
+			"In hosted mode, put the backend URL in the app's existing environment conventions"
+		);
+		expect(instructions).not.toContain('Put a backend URL');
+		expect(instructions).toContain(
+			"reaches the app's transport in custom mode"
+		);
+	});
+
+	it('gives a valid version lookup for each package manager', () => {
+		const instructions = createC15tSetupInstructions({ distTag: 'beta' });
+		for (const command of [
+			'npm view <package>@beta version',
+			'pnpm view <package>@beta version',
+			'yarn info <package> dist-tags.beta',
+			'yarn npm info <package>@beta --fields version',
+			'bun info <package>@beta version',
+		]) {
+			expect(instructions).toContain(`\`${command}\``);
+		}
+		// Bun has no `view` command and Yarn 2+ has no `yarn view`.
+		expect(instructions).not.toMatch(/\b(?:bun|yarn) view\b/u);
+		expect(instructions).not.toContain('<package manager> view');
 	});
 
 	it.each([

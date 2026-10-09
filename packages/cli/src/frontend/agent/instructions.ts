@@ -70,15 +70,28 @@ const readDistTag = (input: string): string => {
 	return input;
 };
 
+/**
+ * Pick the text for the storage mode. Only hosted mode has a consent
+ * backend; a custom transport may persist choices some other way, so it
+ * never gets the hosted text.
+ */
 const byMode = (
 	mode: C15tStorageMode | undefined,
-	text: { backend: string; offline: string; unknown: string }
-): string => {
-	if (mode === 'offline') {
-		return text.offline;
-	}
-	return mode ? text.backend : text.unknown;
-};
+	text: Record<C15tStorageMode | 'unknown', string>
+): string => text[mode ?? 'unknown'];
+
+/**
+ * Exact-version lookups per package manager. Package managers do not share
+ * a `view` subcommand: Bun has no `bun view`, Yarn 2+ queries the registry
+ * through `yarn npm info`, and Yarn 1 reads a tag through `dist-tags`.
+ */
+const versionLookup = (
+	distTag: string
+) => `- npm: \`npm view <package>@${distTag} version\`
+- pnpm: \`pnpm view <package>@${distTag} version\`
+- Yarn 1: \`yarn info <package> dist-tags.${distTag}\`
+- Yarn 2+: \`yarn npm info <package>@${distTag} --fields version\`
+- Bun: \`bun info <package>@${distTag} version\``;
 
 const storageMode = (mode: C15tStorageMode | undefined, origin: string) => {
 	const transport = `the v3 \`init\` and \`save\` contract in \`${origin}/docs/concepts/data-fetching.md\``;
@@ -227,7 +240,11 @@ Show the inventory as a short checklist and continue.${askTogether}
 
 ## ${install}. Install or upgrade c15t
 
-Resolve exact versions first: \`<package manager> view c15t@${distTag} version\`, and \`<package manager> view @c15t/integrations@${distTag} version\` when any vendor helper is used. Do the same for any other \`@c15t/*\` package the framework guide installs, such as \`@c15t/svelte\`. The packages are numbered separately, so their versions can differ. Install each at its exact resolved version with the project's package manager. Never install by tag or without a version. An untagged install resolves npm's default tag, which can be a different major version. A tagged install can resolve to an older release per package when the package manager delays new releases (pnpm's \`minimumReleaseAge\`), and mixing releases installs two copies of the consent engine. After installing, check that exactly one version of \`@c15t/core\` is installed (\`pnpm why @c15t/core\`, \`npm ls @c15t/core\`, or the lockfile). Two copies keep two separate consent states. Do not add overrides or resolutions to force it; install the versions the dist-tag resolves instead.
+Resolve exact versions first. Look up \`c15t\`, \`@c15t/integrations\` when any vendor helper is used, and any other \`@c15t/*\` package the framework guide installs, such as \`@c15t/svelte\`. Use the command for the project's package manager; \`npm view\` also works anywhere npm is installed:
+
+${versionLookup(distTag)}
+
+The packages are numbered separately, so their versions can differ. Install each at its exact resolved version with the project's package manager. Never install by tag or without a version. An untagged install resolves npm's default tag, which can be a different major version. A tagged install can resolve to an older release per package when the package manager delays new releases (pnpm's \`minimumReleaseAge\`), and mixing releases installs two copies of the consent engine. After installing, check that exactly one version of \`@c15t/core\` is installed (\`pnpm why @c15t/core\`, \`npm ls @c15t/core\`, \`yarn why @c15t/core\`, \`bun why @c15t/core\`, or the lockfile). Two copies keep two separate consent states. Do not add overrides or resolutions to force it; install the versions the dist-tag resolves instead.
 
 After installing, read \`node_modules/c15t/SKILL.md\` and \`node_modules/c15t/AGENTS.md\` (for Svelte, the same files in \`node_modules/@c15t/svelte\`). They index the bundled docs for the installed version. Read the bundled choose-your-setup page and the full quickstart for this framework before writing code. If the bundled docs are missing, use \`${origin}/docs/concepts/choose-your-setup.md\` and \`${origin}/docs/frameworks/<framework>/quickstart.md\`. Check each API you use against the installed package's exports and types.
 
@@ -239,20 +256,26 @@ ${storageMode(mode, origin)}
 
 Upgrade before any other change. v3 renamed most v2 APIs, and editing v2 code by hand produces a mix of both. Read \`${origin}/docs/frameworks/<next|react|javascript>/upgrade-v3.md\`, or \`${origin}/docs/upgrade-v3.md\` for other frameworks, and follow it in order. Always run its codemod command exactly as the guide writes it, with every listed transform, first with \`--dry-run\`, then for real, before editing c15t code by hand. The transforms depend on each other (one renames components, another rewrites import paths), so a subset leaves broken imports. They also cover every file, including ones you have not read; hand edits miss them. Then resolve every \`TODO(c15t v3)\` the codemods leave. A hosted backend such as an Inth project needs no change. If the app runs its own \`@c15t/backend\`, stop and tell the user: a v3 client cannot read a v2 backend, so both must ship together.
 
-Keep the app's backend URL unless the setup inputs or earlier steps supply another one.
-
-### Replace path
+${byMode(mode, {
+	custom: '',
+	hosted:
+		"Keep the app's backend URL unless the setup inputs or earlier steps supply another one.\n\n",
+	offline: '',
+	unknown:
+		"In hosted mode, keep the app's backend URL unless the setup inputs or earlier steps supply another one.\n\n",
+})}### Replace path
 
 Record the old consent manager's categories, storage key, callbacks and every caller that reads its state. Map each old category to a c15t category by purpose, not by name. Then follow the install path and, while moving tools behind consent, move every caller to c15t and delete the old banner, its storage reads and its callbacks. Old stored choices do not carry over unless the c15t docs describe an import; visitors choose again.
 
 ### Install path
 
 Configure the storage mode (Storage mode above).${byMode(mode, {
-		backend:
+		custom: '',
+		hosted:
 			" Put the backend URL in the app's existing environment conventions as a public variable.",
 		offline: '',
 		unknown:
-			" Put a backend URL in the app's existing environment conventions as a public variable.",
+			" In hosted mode, put the backend URL in the app's existing environment conventions as a public variable.",
 	})} Mount one consent provider at the app root, outside route components; two providers keep two separate choices. Render the banner and the preferences dialog. Add a persistent control that reopens preferences, such as a footer link. If the app already has one (from the old banner), rewire it instead of adding a second. Match the app's design, languages, keyboard access, narrow screens, color schemes and reduced motion.
 
 ## ${tools}. Move every tool behind consent
@@ -264,7 +287,8 @@ ${integrationGuidance(origin)}
 Run the project's typecheck, tests and production build. Serve the production build${byMode(
 		mode,
 		{
-			backend: ' from an origin the consent backend trusts',
+			custom: '',
+			hosted: ' from an origin the consent backend trusts',
 			offline: '',
 			unknown: ' (in hosted mode, from an origin the consent backend trusts)',
 		}
@@ -272,26 +296,33 @@ Run the project's typecheck, tests and production build. Serve the production bu
 
 1. First visit: the banner shows and no optional tool sends a request that the site's requirement forbids.
 2. Reject all: nothing optional loads; ${byMode(mode, {
-		backend: 'the choice is written to the backend (a successful POST)',
+		custom: "the choice reaches the app's transport (its `save` succeeds)",
+		hosted: 'the choice is written to the backend (a successful POST)',
 		offline: 'the choice is written to browser storage',
 		unknown:
-			'the choice is written to the backend (a successful POST), or to browser storage in offline mode',
+			"the choice is written to the backend in hosted mode (a successful POST), reaches the app's transport in custom mode, or is written to browser storage in offline mode",
 	})}; it survives a reload and a client-side navigation.
 3. Accept all: each tool loads once, its app events fire once per action, and the choice survives a reload.
 4. Withdraw: reopen preferences, reject, reload; the tools stop.
 5. Granular choices, keyboard use and a narrow viewport.
 
 A closing banner does not prove a saved choice; ${byMode(mode, {
-		backend: 'wait for the backend response',
+		custom: "wait for the transport's `save` to finish",
+		hosted: 'wait for the backend response',
 		offline: 'check browser storage',
 		unknown:
-			'wait for the backend response, or check browser storage in offline mode',
+			"wait for the backend response in hosted mode or the transport's `save` in custom mode, or check browser storage in offline mode",
 	})}. Reconcile what you observed with the inventory and investigate any request you did not expect. Fix failures within this task and mark anything you could not access as unverified.
 
 ## ${handoff}. Hand back
 
 Report:
-- changed files, the storage mode and the backend URL
+- changed files, ${byMode(mode, {
+		custom: 'the storage mode and how the transport persists choices',
+		hosted: 'the storage mode and the backend URL',
+		offline: 'the storage mode',
+		unknown: 'the storage mode and, in hosted mode, the backend URL',
+	})}
 - the c15t version installed and which path you took (install, upgrade or replace)
 - the inventory, with each tool's helper or documented exception, removed loading paths, kept event callers and the checks you ran
 - what is integrated, browser-verified, unverified or blocked, and who owns each remaining external change
