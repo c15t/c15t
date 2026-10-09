@@ -971,6 +971,7 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 					experiment,
 					kernel.getSnapshot().experiment
 				),
+			isStarted: () => runtime.started,
 			setLanguage: (code: string) => runtime.setLanguage(code),
 		}),
 		[experiment, kernel, presentation, runtime]
