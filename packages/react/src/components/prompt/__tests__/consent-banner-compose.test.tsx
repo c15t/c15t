@@ -199,6 +199,28 @@ describe('composed ConsentBanner', () => {
 			query('consent-banner-reject-button')?.dataset.earlyTap
 		).toBeUndefined();
 	});
+
+	test('an asChild button whose child has a click handler opts out of early tap replay', async () => {
+		await renderComposed(
+			<ConsentBanner.Root>
+				<ConsentBanner.Card>
+					<ConsentBanner.Footer>
+						<ConsentBanner.AcceptButton asChild>
+							<a
+								href="#accept"
+								onClick={(event) => event.preventDefault()}
+							>
+								Accept
+							</a>
+						</ConsentBanner.AcceptButton>
+					</ConsentBanner.Footer>
+				</ConsentBanner.Card>
+			</ConsentBanner.Root>
+		);
+		await waitForTestId('consent-banner-accept-button');
+
+		expect(query('consent-banner-accept-button')?.dataset.earlyTap).toBe('off');
+	});
 });
 
 describe('composed ConsentDialog', () => {

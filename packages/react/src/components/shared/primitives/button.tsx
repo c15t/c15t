@@ -1,6 +1,10 @@
 import type { AllConsentNames } from '@c15t/core';
 import { EARLY_TAP_OPT_OUT } from '@c15t/core/surface-actions';
-import { forwardRef as createForwardRef, useCallback } from 'react';
+import {
+	forwardRef as createForwardRef,
+	isValidElement,
+	useCallback,
+} from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
 import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
@@ -71,6 +75,23 @@ const skipsEarlyTap = function skipsEarlyTap(params: {
 		EARLY_TAP_ACTIONS[action] === dataAction;
 	return (
 		!replays && Object.values(EARLY_TAP_ACTIONS).includes(String(dataAction))
+	);
+};
+
+/**
+ * Whether a click handler runs before the consent action. With `asChild`
+ * the child's own `onClick` runs first and can veto it.
+ */
+const hasClickHandler = function hasClickHandler(
+	onClick: unknown,
+	asChild: boolean | undefined,
+	children: unknown
+): boolean {
+	return (
+		onClick !== undefined ||
+		(asChild === true &&
+			isValidElement<{ onClick?: unknown }>(children) &&
+			children.props.onClick !== undefined)
 	);
 };
 
@@ -341,7 +362,11 @@ export const ConsentButton = createForwardRef<
 		const earlyTapOptOut = skipsEarlyTap({
 			action,
 			dataAction: domProps['data-action'] ?? consentAction,
-			hasClickHandler: forwardedOnClick !== undefined,
+			hasClickHandler: hasClickHandler(
+				forwardedOnClick,
+				asChild,
+				props.children
+			),
 			performDefaultAction,
 		})
 			? { [EARLY_TAP_OPT_OUT]: 'off' }
