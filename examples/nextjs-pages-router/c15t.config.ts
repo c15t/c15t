@@ -1,8 +1,6 @@
 import { defineConsentConfig } from 'c15t/next';
 
+// The backend URL comes from NEXT_PUBLIC_C15T_BACKEND_URL.
 export const consentConfig = defineConsentConfig({
-	backendURL:
-		process.env.NEXT_PUBLIC_C15T_BACKEND_URL ??
-		'https://benchmarks-inth.inth.app',
 	manifestURL: '/api/c15t/manifest',
 });

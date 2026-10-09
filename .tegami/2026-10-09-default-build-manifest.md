@@ -18,8 +18,9 @@ in Astro; a relative `backendURL` or `manifestURL`; and, in Nuxt,
 uses server manifest mode instead of calling the backend's `/init` on every
 render.
 
-If the fetch fails or takes longer than 10 seconds, the build logs a warning
-and the server fetches the policy at runtime. Set `buildManifest: true` to
-stop the build instead, as before. Set `buildManifest: false` to always fetch
-at runtime, so policy edits apply without a rebuild. In Nuxt, pair it with
+If the fetch fails or takes longer than 10 seconds, `astro build` and
+`nuxt build` stop with an error, and dev logs a warning and fetches the
+policy at runtime. `onBuildError` changes that; see the note on failed
+build-time manifest fetches. Set `buildManifest: false` to always fetch at
+runtime, so policy edits apply without a rebuild. In Nuxt, pair it with
 `manifest: 'server'` to keep the server routes.

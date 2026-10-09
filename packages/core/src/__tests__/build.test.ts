@@ -335,16 +335,9 @@ describe('build-time manifest policy', () => {
 		expect(options.fetch).not.toHaveBeenCalled();
 	});
 
-	test.each([
-		['/api/c15t', 'not an absolute http(s) URL'],
-		['file:///backend', 'not an absolute http(s) URL'],
-		[
-			undefined,
-			'no backend URL is set. Pass backendURL or set VITE_C15T_BACKEND_URL.',
-		],
-	])(
+	test.each(['/api/c15t', 'file:///backend'])(
 		'skips the fetch in a production build for backendURL %j',
-		async (backendURL, notice) => {
+		async (backendURL) => {
 			const options = optionsFor(await createRoot());
 			const logger = createLogger();
 			const file = await writeManifestModuleWithFallback(
@@ -354,9 +347,57 @@ describe('build-time manifest policy', () => {
 			);
 			expect(options.fetch).not.toHaveBeenCalled();
 			expect(await readFile(file, 'utf8')).toContain(STUB);
-			expect(logger.info).toHaveBeenCalledWith(expect.stringContaining(notice));
+			expect(logger.info).toHaveBeenCalledWith(
+				expect.stringContaining('not an absolute http(s) URL')
+			);
 		}
 	);
+
+	test.each([undefined, ''])(
+		'a production build fails without a backend URL (%j)',
+		async (backendURL) => {
+			const options = optionsFor(await createRoot());
+			await expect(
+				writeManifestModuleWithFallback(
+					{ ...options, backendURL },
+					defaults,
+					createLogger()
+				)
+			).rejects.toThrow(
+				"test/build: no backend URL is set, so the build cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL. Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to build without a snapshot."
+			);
+			expect(options.fetch).not.toHaveBeenCalled();
+		}
+	);
+
+	test('dev warns without a backend URL', async () => {
+		const options = optionsFor(await createRoot());
+		const logger = createLogger();
+		const file = await writeManifestModuleWithFallback(
+			{ ...options, backendURL: undefined },
+			dev,
+			logger
+		);
+		expect(await readFile(file, 'utf8')).toContain(STUB);
+		expect(logger.warn).toHaveBeenCalledWith(
+			'no backend URL is set, so dev cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL. A production build stops on this error.'
+		);
+	});
+
+	test("onBuildError: 'runtime' skips a build without a backend URL with a notice", async () => {
+		const options = optionsFor(await createRoot());
+		const logger = createLogger();
+		const file = await writeManifestModuleWithFallback(
+			{ ...options, backendURL: undefined, onBuildError: 'runtime' },
+			defaults,
+			logger
+		);
+		expect(await readFile(file, 'utf8')).toContain(STUB);
+		expect(logger.warn).not.toHaveBeenCalled();
+		expect(logger.info).toHaveBeenCalledWith(
+			'skipped the consent manifest fetch because no backend URL is set. Pass backendURL or set VITE_C15T_BACKEND_URL.'
+		);
+	});
 
 	test("rejects a relative backendURL with onBuildError: 'fail'", async () => {
 		const options = optionsFor(await createRoot());

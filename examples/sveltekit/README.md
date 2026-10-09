@@ -28,16 +28,12 @@ bun run build:libs
 bun run --cwd examples/sveltekit dev
 ```
 
-The app talks to the `https://benchmarks-inth.inth.app` demo Inth project.
-`vite dev`, `vite build` and `svelte-kit sync` download its policy when they
-start, and stop if they can't. To use your own project, set
-`PUBLIC_C15T_BACKEND_URL` to its backend URL and add `http://localhost:5173` to
-its trusted origins:
-
-```sh
-PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app \
-	bun run --cwd examples/sveltekit dev
-```
+The app's `.env` points it at the `https://benchmarks-inth.inth.app` demo Inth
+project. `vite dev`, `vite build` and `svelte-kit sync` download its policy
+when they start. If the download fails, `vite build` stops with an error, and
+`vite dev` logs a warning and the server fetches the policy at runtime. To use
+your own project, set `PUBLIC_C15T_BACKEND_URL` in `.env.local` to its backend
+URL and add `http://localhost:5173` to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project,
 or the backend URL. Replace `phc_your_project_key` in `src/lib/scripts.ts` with

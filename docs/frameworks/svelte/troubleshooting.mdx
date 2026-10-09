@@ -15,7 +15,8 @@ the cause:
 | Error | Cause |
 | --- | --- |
 | `/manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
-| `skipped the consent manifest fetch` (a notice) | The backend URL is missing, empty or relative. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
+| `no backend URL is set` | Neither the `backendURL` option nor `VITE_C15T_BACKEND_URL` is set, or it is empty. `vite build` stops; `vite dev` warns. |
+| `skipped the consent manifest fetch` (a notice) | The backend URL is relative. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
 | `/manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
 | `fetch failed` or `no response within 10 seconds` | The machine running the command cannot reach the backend. |
 
@@ -34,8 +35,9 @@ run Vite plugins.
 
 ## Consent requests go to the wrong backend
 
-**Check.** Look at the backend URL in `vite.config.ts` and `src/App.svelte`.
-One still has the demo project, the placeholder
+**Check.** Look at `VITE_C15T_BACKEND_URL` in `.env`, `.env.local` and the
+build environment, and at any `backendURL` in `vite.config.ts` or
+`src/App.svelte`. One still has the demo project, the placeholder
 `https://your-project.inth.app`, or a URL from another project. Vite writes
 `VITE_C15T_BACKEND_URL` into the bundle at build time, so changing it later
 does nothing until you rebuild.

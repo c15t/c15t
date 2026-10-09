@@ -70,10 +70,9 @@ Render `ConsentManagerProvider` around your app in `src/App.svelte`:
 <include src="../../shared/examples/svelte/app.mdx" />
 
 The `<main>` element stands in for your app's content. `manifest()` resolves
-the policy from the bundled snapshot and saves choices to `backendURL`. Keep
-its fallback the same as the one in `vite.config.ts`. Vite writes
-`VITE_C15T_BACKEND_URL` into the bundle at build time, so changing it means a
-rebuild.
+the policy from the bundled snapshot and saves choices to `backendURL`, the
+same `VITE_C15T_BACKEND_URL` the plugin reads. Vite writes the variable into
+the bundle at build time, so changing it means a rebuild.
 
 The browser resolves the snapshot without a request when the policy does not
 depend on geography, or when it knows the country and region the policy needs.

@@ -20,7 +20,8 @@ integration.
 
 - The fetch waits at most 10 seconds.
 - A production build (`next build`, `vite build`, `nuxt build`,
-  `astro build`) stops with an error that names the URL and the cause.
+  `astro build`) stops with an error that names the URL and the cause. A
+  missing backend URL stops it too.
 - Dev (`next dev`, `vite dev`, `nuxt dev`, `astro dev`) logs a warning and
   keeps going. The server fetches the policy at runtime. The generated
   `c15t-manifest.ts` exports `consentManifest` as `undefined`, so imports
@@ -43,17 +44,19 @@ In Astro and Nuxt, `buildManifest: true` still works and now means
 unchanged.
 
 The build reads the backend URL from the framework's public variable when
-you don't pass one: `NEXT_PUBLIC_C15T_BACKEND_URL`,
-`NUXT_PUBLIC_C15T_BACKEND_URL`, `PUBLIC_C15T_BACKEND_URL` (Astro and
-SvelteKit) or `VITE_C15T_BACKEND_URL`. You can drop the
-`process.env.… ??` line from your config. The Vite plugins also set an unset
-`VITE_C15T_BACKEND_URL` to the URL they used, so `import.meta.env` in app
-code reads the same value.
+you don't pass one, from the environment or a `.env` file:
+`NEXT_PUBLIC_C15T_BACKEND_URL`, `NUXT_PUBLIC_C15T_BACKEND_URL`,
+`PUBLIC_C15T_BACKEND_URL` (Astro and SvelteKit) or `VITE_C15T_BACKEND_URL`
+(TanStack Start, `c15t/build`, `@c15t/vue/vite` and `@c15t/svelte/vite`). You
+can drop the `process.env.… ??` line from your config. The Vite plugins also
+set an unset `VITE_C15T_BACKEND_URL` to the URL they used, so
+`import.meta.env` in app code reads the same value.
 
 The build still skips the fetch, without an error, when it can't use a
-snapshot: a missing or relative backend URL, Next.js `output: 'export'`,
+snapshot: a relative backend URL, Next.js `output: 'export'`,
 `nuxt generate`, `ssr: false`, and `hosted()` or `offline()` in Astro. With
-`onBuildError: 'fail'`, a missing or relative URL stops the build.
+`onBuildError: 'fail'`, a relative URL stops the build. With
+`onBuildError: 'runtime'`, a missing URL skips the fetch with a notice.
 
 When the snapshot is `undefined`, the browser falls back too:
 `manifest({ backendURL, manifest: undefined })` in `@c15t/browser` fetches

@@ -21,15 +21,12 @@ bun run build:libs
 bun run --cwd examples/nuxt dev
 ```
 
-The app talks to the `https://benchmarks-inth.inth.app` demo Inth project.
-`nuxt dev` and `nuxt build` download its policy when they start. If they
-can't, they log a warning and the server routes fetch the policy at runtime. To use your own project, set `NUXT_PUBLIC_C15T_BACKEND_URL` to its
-backend URL and add the app's origin to its trusted origins:
-
-```sh
-NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app \
-	bun run --cwd examples/nuxt dev
-```
+The app's `.env` points it at the `https://benchmarks-inth.inth.app` demo Inth
+project. `nuxt dev` and `nuxt build` download its policy when they start. If
+the download fails, `nuxt build` stops with an error, and `nuxt dev` logs a
+warning and the server routes fetch the policy at runtime. To use your own
+project, set `NUXT_PUBLIC_C15T_BACKEND_URL` in `.env.local` to its backend URL
+and add the app's origin to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project.
 

@@ -4,11 +4,6 @@ import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
-// #hide docs
-// The demo project, which `src/env.ts` also falls back to.
-process.env.PUBLIC_C15T_BACKEND_URL ||= 'https://benchmarks-inth.inth.app';
-// #endhide docs
-
 export default defineConfig({
 	plugins: [
 		// Downloads the policy from PUBLIC_C15T_BACKEND_URL when Vite starts

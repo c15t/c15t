@@ -45,11 +45,12 @@ parentheses names the cause:
   with a c15t manifest. It may be a different service, or a backend that does
   not support this c15t version.
 
-A notice that the build `skipped the consent manifest fetch` means the backend
-URL is missing, empty or a path such as `/api/c15t`. An empty
-`NEXT_PUBLIC_C15T_BACKEND_URL=` line counts as set, so it is not replaced by
-a fallback. With `onBuildError: 'fail'`, this stops the build with
-`build-time manifests require an absolute upstream URL.`
+`no backend URL is set` means the build found no `backendURL` option and no
+`NEXT_PUBLIC_C15T_BACKEND_URL`, or an empty one. `next build` stops on it and
+`next dev` warns. A notice that the build `skipped the consent manifest fetch`
+means the backend URL is a path such as `/api/c15t`. With
+`onBuildError: 'fail'`, that stops the build with `build-time manifests
+require an absolute upstream URL.`
 
 **Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute backend URL from
 your Inth project, or your self-hosted origin with its path prefix, wherever

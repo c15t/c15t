@@ -6,11 +6,6 @@ import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
 import c15t, { manifest } from 'c15t/astro';
 
-// #hide docs
-// The demo project, so the example runs without setting the variable.
-process.env.PUBLIC_C15T_BACKEND_URL ??= 'https://benchmarks-inth.inth.app';
-// #endhide docs
-
 export default defineConfig({
 	adapter: node({ mode: 'standalone' }),
 	integrations: [

@@ -1,7 +1,3 @@
-// The demo project, so the example runs without a .env file. The module
-// reads NUXT_PUBLIC_C15T_BACKEND_URL.
-process.env.NUXT_PUBLIC_C15T_BACKEND_URL ??= 'https://benchmarks-inth.inth.app';
-
 export default defineNuxtConfig({
 	c15t: {
 		// The banner and dialog link to the shop's privacy policy. The label

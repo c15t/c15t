@@ -16,8 +16,9 @@ export const { GET } = createConsentRoute(consentConfig);
 ```
 
 `defineConsentConfig({ routePrefix: '/api/c15t' })` points `manifestURL` and
-`initURL` at that route. `backendURL` and `withConsentManifest` now default to
-`NEXT_PUBLIC_C15T_BACKEND_URL`.
+`initURL` at that route. Without `routePrefix`, the browser calls
+`${backendURL}/init` as before. `defineConsentConfig`'s `backendURL` now
+defaults to `NEXT_PUBLIC_C15T_BACKEND_URL`.
 
 `withConsentManifest` hands the generated snapshot to `resolveConsent` and the
 route handlers, so apps no longer import `c15t-manifest.ts` or keep a

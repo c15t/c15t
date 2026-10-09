@@ -3,6 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import {
 	hasBuildManifestSource,
 	loadManifestForBuild,
+	readBuildEnv,
 	resolveManifestBuildErrorMode,
 } from '@c15t/core/build';
 import { isIABConfigured } from '@c15t/core/runtime';
@@ -115,11 +116,16 @@ const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
 const BACKEND_URL_ENV = 'NUXT_PUBLIC_C15T_BACKEND_URL';
 
 /**
- * Nuxt loads `.env` before the config, so the variable the app reads at
- * runtime also gives the build its backend when the config sets none.
+ * The variable the app reads at runtime also gives the build its backend
+ * when the config sets none. Read like every other framework integration:
+ * the environment first (Nuxt loads `.env` into it before the config), then
+ * the `.env` files in the root.
  */
-const fillBackendURLFromEnv = (options: ModuleOptions): void => {
-	const fromEnv = process.env[BACKEND_URL_ENV];
+const fillBackendURLFromEnv = (options: ModuleOptions, nuxt: Nuxt): void => {
+	const fromEnv = readBuildEnv([BACKEND_URL_ENV], {
+		mode: nuxt.options.dev ? 'development' : 'production',
+		root: nuxt.options.rootDir,
+	});
 	if (options.backendURL === undefined && !options.manifestURL && fromEnv) {
 		options.backendURL = fromEnv;
 	}
@@ -220,7 +226,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		{ buildManifest, devtools, initPrefetch, onBuildError, ...options },
 		nuxt
 	) {
-		fillBackendURLFromEnv(options);
+		fillBackendURLFromEnv(options, nuxt);
 		// Nuxt merges module options with `defu`, which skips `null`, so a
 		// `colorScheme: null` under the `c15t` key would arrive unset and
 		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to

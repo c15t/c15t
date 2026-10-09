@@ -15,7 +15,8 @@ in parentheses names the cause:
 | Error | Cause |
 | --- | --- |
 | `/manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
-| `skipped the consent manifest fetch` (a notice) | The backend URL is missing, empty or relative, such as `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
+| `no backend URL is set` | Neither the `backendURL` option nor `PUBLIC_C15T_BACKEND_URL` is set, or it is empty. `vite build` stops; `vite dev` warns. |
+| `skipped the consent manifest fetch` (a notice) | The backend URL is relative, such as `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
 | `/manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
 | `fetch failed` or `no response within 10 seconds` | The machine running the command cannot reach the backend. |
 
@@ -91,13 +92,13 @@ in-process; if it points at `/api/c15t`, the route requests itself.
 
 ## Consent requests go to the wrong backend
 
-**Check.** Look at the backend URL in `vite.config.ts`, `src/env.ts`,
+**Check.** Look at `PUBLIC_C15T_BACKEND_URL` in `.env`, `.env.local` and the
+build environment, and at any `backendURL` in `vite.config.ts`,
 `src/lib/server/c15t.ts` and the `hosted()` call in
 `src/routes/+layout.svelte`. One still has the demo project, the placeholder
-`https://your-project.inth.app`, or a URL from another project. The policy
-comes from the URL `vite.config.ts` had at build time, so a
-`PUBLIC_C15T_BACKEND_URL` set only when the built app starts moves saves but
-not the policy.
+`https://your-project.inth.app`, or a URL from another project. `src/env.ts`
+marks the variable `static`, so the build fixes the URL for the policy and
+for saves, and setting it when the built app starts changes nothing.
 
 **Fix.** Set `PUBLIC_C15T_BACKEND_URL` to your Inth project's backend URL,
 including any path prefix, for the build and for the running app, then

@@ -16,7 +16,8 @@ fetches the policy at runtime.
 
 | Message | Fix |
 | --- | --- |
-| `skipped the consent manifest fetch because no backend URL is set`, or `... is not an absolute http(s) URL` | Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL` |
+| `no backend URL is set` | Set `VITE_C15T_BACKEND_URL` in `.env` or the build environment, or pass `backendURL`. `vite build` stops on this; `vite dev` warns |
+| `skipped the consent manifest fetch because ... is not an absolute http(s) URL` | Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL` |
 | `/manifest responded 404` | The URL is not a c15t backend, or it is missing a path prefix. Copy the backend URL from Inth exactly |
 | `/manifest responded` with another status | The backend refused or failed the request. Check that the project exists and that the build machine can reach it |
 | `/manifest returned an invalid consent manifest` | The URL answered with something other than a c15t manifest, such as an HTML page. Check the URL |

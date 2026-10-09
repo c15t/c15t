@@ -23,7 +23,8 @@ with `C15T_ON_BUILD_ERROR=runtime`:
 export default withConsentManifest(nextConfig, { onBuildError: 'runtime' });
 ```
 
-The build skips the fetch and writes the same file when the backend URL is
-missing or relative, or when the config sets `output: 'export'`, which has no
-server to use the snapshot. With `onBuildError: 'fail'`, a missing or
-relative URL stops the build. A static export always skips the fetch.
+A missing backend URL counts as a failed fetch. The build skips the fetch and
+writes the same file when the backend URL is relative, or when the config sets
+`output: 'export'`, which has no server to use the snapshot. With
+`onBuildError: 'fail'`, a relative URL stops the build. A static export always
+skips the fetch.

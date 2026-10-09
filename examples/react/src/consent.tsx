@@ -12,8 +12,7 @@ import { consentManifest } from './c15t-manifest';
 import { scripts } from './scripts';
 
 const mode = manifest({
-	backendURL:
-		import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',
+	backendURL: import.meta.env.VITE_C15T_BACKEND_URL,
 	manifest: consentManifest,
 });
 

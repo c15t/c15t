@@ -62,8 +62,9 @@ the server and the browser read the same value:
 <include src="../../shared/examples/sveltekit/env.mdx" />
 
 Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any path
-prefix, in `.env` or your host's environment. Without it, the app uses
-`https://benchmarks-inth.inth.app`, a demo project, so the code runs as is.
+prefix, in `.env` or your host's build environment. The example app's `.env`
+points at `https://benchmarks-inth.inth.app`, a demo project. `static: true`
+inlines the value at build time, the same value the policy below comes from.
 
 ## Bundle the policy at build time
 
@@ -89,9 +90,8 @@ Declare the consent options once, in `src/lib/server/c15t.ts`. Modules under
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
-The policy comes from the backend URL at build time. Changing
-`PUBLIC_C15T_BACKEND_URL` on a built app moves consent saves and visit
-reports, not the policy, so rebuild after you change it.
+The policy and the backend URL are both fixed at build time, so rebuild after
+you change `PUBLIC_C15T_BACKEND_URL`.
 
 To apply policy edits without a rebuild, fetch the policy at runtime instead;
 see [serve the manifest route](/docs/frameworks/sveltekit/rendering#serve-the-manifest-route).

@@ -292,8 +292,11 @@ const describeFailure = (error: unknown, label: string): string => {
  *   warns and returns `undefined` so the server fetches the policy at
  *   runtime. `C15T_ON_BUILD_ERROR` overrides the option. Without either, a
  *   production build fails and dev warns.
- * - A framework `skipReason` skips the fetch. So does a missing or relative
- *   URL, unless `onBuildError` is explicitly `'fail'`, which then throws.
+ * - A missing backend URL counts as a failed fetch: a production build
+ *   fails, dev warns, and an explicit `'runtime'` skips with a notice.
+ * - A framework `skipReason` skips the fetch. So does a relative or
+ *   non-http(s) URL, unless `onBuildError` is explicitly `'fail'`, which
+ *   then throws.
  *
  * @param source - Manifest URL, or backend URL whose `/manifest` is read.
  * @param policy - Command, label, logger, `onBuildError` and skip reason.
@@ -325,8 +328,24 @@ export const loadManifestForBuild = async (
 	const envHint = policy.envNames?.length
 		? ` Pass backendURL or set ${policy.envNames.join(' or ')}.`
 		: '';
+	const configured = source.manifestURL ?? source.backendURL;
+	if (!configured) {
+		const missing = `no backend URL is set, so ${command === 'build' ? 'the build' : 'dev'} cannot fetch the consent manifest.${envHint}`;
+		if (mode === 'fail') {
+			throw new Error(
+				`${label}: ${missing} Set \`${MANIFEST_BUILD_ERROR_ENV}=runtime\` (or \`onBuildError: 'runtime'\`) to ${command === 'build' ? 'build' : 'run dev'} without a snapshot.`
+			);
+		}
+		if (explicit) {
+			logger.info(
+				`skipped the consent manifest fetch because no backend URL is set.${envHint}`
+			);
+		} else {
+			logger.warn(`${missing} A production build stops on this error.`);
+		}
+		return undefined;
+	}
 	if (!hasBuildManifestSource(source)) {
-		const configured = source.manifestURL ?? source.backendURL;
 		if (explicit && mode === 'fail') {
 			try {
 				resolveBuildManifestURL(source, label);
@@ -337,9 +356,7 @@ export const loadManifestForBuild = async (
 			}
 		}
 		logger.info(
-			configured
-				? `skipped the consent manifest fetch because ${JSON.stringify(configured)} is not an absolute http(s) URL, so the server fetches the policy at runtime.`
-				: `skipped the consent manifest fetch because no backend URL is set.${envHint}`
+			`skipped the consent manifest fetch because ${JSON.stringify(configured)} is not an absolute http(s) URL, so the server fetches the policy at runtime.`
 		);
 		return undefined;
 	}

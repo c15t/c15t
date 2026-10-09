@@ -26,7 +26,10 @@ export type {
  * Generates a manifest before Svelte or SvelteKit compilation.
  *
  * `backendURL` defaults to `PUBLIC_C15T_BACKEND_URL` (SvelteKit), then
- * `VITE_C15T_BACKEND_URL`, including `.env` files. A failed fetch stops
+ * `VITE_C15T_BACKEND_URL`, including `.env` files. When
+ * `VITE_C15T_BACKEND_URL` is unset, the plugin sets
+ * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
+ * reads the same value. A missing URL or a failed fetch stops
  * `vite build` and warns in `vite dev`, where the generated module exports
  * `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that.
  *

@@ -94,9 +94,20 @@ packages/vue/playground/.output
 .env*
 !.env.example
 !.env.*.example
-# Public demo backend URL, so the example runs as checked out. Next.js
-# loads `.env` as defaults; `.env.local` and real env vars override it.
+# Each example's `.env` holds only the public demo backend URL, so the
+# example runs as checked out. `.env.local` and real environment variables
+# override it. Never add secrets to these files.
+!/examples/astro/.env
+!/examples/javascript/.env
 !/examples/nextjs/.env
+!/examples/nextjs-pages-router/.env
+!/examples/nuxt/.env
+!/examples/react/.env
+!/examples/showcase-nuxt-theme/.env
+!/examples/svelte/.env
+!/examples/sveltekit/.env
+!/examples/tanstack-start/.env
+!/examples/vue/.env
 
 # Agent worktrees
 .claude/worktrees/

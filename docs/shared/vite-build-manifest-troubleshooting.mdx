@@ -17,10 +17,14 @@ A failed download never reuses an old snapshot. To deploy while the backend
 is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. The browser then
 fetches the policy from the backend at runtime.
 
+An error or warning that says `no backend URL is set` means the plugin found
+no `backendURL` option and no variable. Set `VITE_C15T_BACKEND_URL` in `.env`
+or the build environment, or pass the absolute backend URL from your Inth
+project.
+
 A notice that the build `skipped the consent manifest fetch` means the backend
-URL is missing or relative, such as `/api/c15t`. Set `VITE_C15T_BACKEND_URL`
-or pass the absolute backend URL from your Inth project. With
-`onBuildError: 'fail'`, this stops the build with `build-time manifests
+URL is relative, such as `/api/c15t`. Pass the absolute backend URL instead.
+With `onBuildError: 'fail'`, this stops the build with `build-time manifests
 require an absolute upstream URL`.
 
 ## Why can't TypeScript find ./c15t-manifest?
