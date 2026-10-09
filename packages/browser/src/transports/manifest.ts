@@ -13,9 +13,14 @@ import type {
 } from '@c15t/core';
 import type {
 	ConsentManifest,
+	InitOutput,
+	PolicyResolution,
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
-import { resolveInitFromManifest } from '@c15t/schema/types';
+import {
+	resolveInitFromManifest,
+	resolvePolicyResolutionFromManifest,
+} from '@c15t/schema/types';
 import { enTranslations } from '@c15t/translations';
 import type { BaseTranslations } from '@c15t/translations/all';
 
@@ -79,19 +84,8 @@ const deriveBackendURL = function deriveBackendURL(
 	return trimmed.slice(0, -'/manifest'.length);
 };
 
-/**
- * Whether resolving this manifest needs to know where the visitor is.
- *
- * A manifest whose packs all match by default or fallback — "one banner
- * for everyone" — resolves the same everywhere, so the browser can do it
- * without a round trip. So does a manifest without packs, which resolves
- * to `unconfigured` or `no-match` wherever the visitor is. Anything keyed by
- * country or region needs a location.
- *
- * @param manifest - The manifest.
- * @returns `true` when a country is required for a faithful answer.
- */
-export const manifestNeedsLocation = function manifestNeedsLocation(
+/** Whether any pack is keyed by country or region. */
+const hasLocationMatchers = function hasLocationMatchers(
 	manifest: ConsentManifest
 ): boolean {
 	return (manifest.policyPacks ?? []).some(
@@ -99,6 +93,149 @@ export const manifestNeedsLocation = function manifestNeedsLocation(
 			(pack.match.countries?.length ?? 0) > 0 ||
 			(pack.match.regions?.length ?? 0) > 0
 	);
+};
+
+/** Stands in for a region no pack lists. Never a real subdivision code. */
+const UNLISTED_REGION = '?';
+
+/**
+ * One location for every way the matcher can treat a visitor: unknown,
+ * an unlisted country, and each listed country with its listed regions,
+ * an unlisted region and no region. Any location resolves the same way as
+ * one of these, so their outcomes are every outcome the manifest has.
+ */
+const representativeLocations = function representativeLocations(
+	manifest: ConsentManifest
+): { countryCode: string | null; regionCode: string | null }[] {
+	const countries = new Set<string>();
+	const locations: { countryCode: string | null; regionCode: string | null }[] =
+		[{ countryCode: null, regionCode: null }];
+	for (const { match } of manifest.policyPacks ?? []) {
+		for (const country of [
+			...(match.countries ?? []),
+			...(match.regionFallbacks ?? []),
+		]) {
+			countries.add(country.trim().toUpperCase());
+		}
+		for (const { country, region } of match.regions ?? []) {
+			countries.add(country.trim().toUpperCase());
+			locations.push({ countryCode: country, regionCode: region });
+		}
+	}
+	for (const country of countries) {
+		locations.push(
+			{ countryCode: country, regionCode: null },
+			{ countryCode: country, regionCode: UNLISTED_REGION }
+		);
+	}
+	// User-assigned ISO codes: no real visitor has one, so one of them is
+	// a country the manifest does not list.
+	const unlisted = ['ZZ', 'XX', 'QZ', 'XZ'].find(
+		(code) => !countries.has(code)
+	);
+	if (unlisted) {
+		locations.push({ countryCode: unlisted, regionCode: null });
+	}
+	return locations;
+};
+
+type MatchedResolution = Extract<PolicyResolution, { status: 'matched' }>;
+
+/**
+ * What a visitor experiences under a resolution: the behavior the
+ * fingerprints hash (model, prompt, scope, defaults, validity, GPC
+ * handling, copy revision) plus the message profile, which changes the
+ * banner's copy. The policy id is left out on purpose: two packs with the
+ * same behavior show the same banner.
+ */
+const experienceKey = function experienceKey(
+	resolution: MatchedResolution
+): string {
+	const { fingerprints, policy } = resolution;
+	return JSON.stringify([
+		fingerprints.policy,
+		fingerprints.choice,
+		fingerprints.notice,
+		fingerprints.legacyMaterial ?? null,
+		policy.i18n ?? null,
+	]);
+};
+
+const locationFreeOutcomes = new WeakMap<
+	ConsentManifest,
+	MatchedResolution | null
+>();
+
+/**
+ * The resolution every location gives this manifest, when they all give
+ * the same experience; `null` when any two differ or any location fails
+ * to match. Computed once per manifest object.
+ */
+const locationFreeOutcome = function locationFreeOutcome(
+	manifest: ConsentManifest
+): MatchedResolution | null {
+	if (locationFreeOutcomes.has(manifest)) {
+		return locationFreeOutcomes.get(manifest) ?? null;
+	}
+	let outcome: MatchedResolution | null = null;
+	let key: string | undefined;
+	let locations: ReturnType<typeof representativeLocations> = [];
+	try {
+		locations = representativeLocations(manifest);
+	} catch {
+		// Malformed matchers: the resolver fails them too, so ask `/init`.
+	}
+	for (const location of locations) {
+		const resolution = resolvePolicyResolutionFromManifest(manifest, location);
+		if (resolution.status !== 'matched') {
+			outcome = null;
+			break;
+		}
+		const next = experienceKey(resolution);
+		if (key !== undefined && next !== key) {
+			outcome = null;
+			break;
+		}
+		key = next;
+		outcome = resolution;
+	}
+	locationFreeOutcomes.set(manifest, outcome);
+	return outcome;
+};
+
+/**
+ * Whether resolving this manifest needs to know where the visitor is.
+ *
+ * A manifest without country or region packs resolves the same everywhere,
+ * so the browser can do it without a round trip. So does one whose packs
+ * are keyed by location but all give the same experience, for example
+ * opt-in with the same categories and copy in Europe, Quebec and everywhere
+ * else: only the policy id differs. A manifest where some location gets a
+ * different banner, or none, or matches no pack, needs a location.
+ *
+ * @param manifest - The manifest.
+ * @returns `true` when a country is required for a faithful answer.
+ */
+export const manifestNeedsLocation = function manifestNeedsLocation(
+	manifest: ConsentManifest
+): boolean {
+	return (
+		hasLocationMatchers(manifest) && locationFreeOutcome(manifest) === null
+	);
+};
+
+/**
+ * Whether a local resolution answered in the language asked for. The
+ * browser bundle carries English only, and a manifest may lack the rest,
+ * while `/init` translates into every language the backend has.
+ */
+const servesLanguage = function servesLanguage(
+	output: InitOutput,
+	requested: string | null | undefined
+): boolean {
+	const primary = (language: string): string =>
+		language.toLowerCase().split(/[-_]/u)[0] ?? '';
+	return primary(output.translations.language) === primary(requested ?? 'en');
 };
 
 const readGlobalPrivacyControl = function readGlobalPrivacyControl():
@@ -142,8 +279,10 @@ const browserBaseTranslations = {
  * fetching it once, cached at the CDN) lets the banner render without a
  * per-visitor `/init` round trip. Saves still go to the backend.
  *
- * When the policy depends on location and no country is known, the
- * transport falls back to `GET /init` so the answer stays faithful.
+ * When some locations get a different banner than others and no country
+ * is known, the transport falls back to `GET /init` so the answer stays
+ * faithful. Packs keyed by location that all give the same banner resolve
+ * in the browser (see {@link manifestNeedsLocation}).
  *
  * @param options - Manifest source and backend.
  * @returns A transport factory for `mode`.
@@ -213,22 +352,37 @@ export const manifest = function manifest(
 			const resolved = await loadManifest();
 			const { journey } = ctx;
 			const inputs = mergeInputs(options.inputs, ctx.overrides);
+			const resolveLocally = () =>
+				resolveInitFromManifest(resolved, inputs, {
+					baseTranslations: browserBaseTranslations,
+				});
+			let output: InitOutput | undefined;
 			if (
-				manifestNeedsLocation(resolved) &&
+				hasLocationMatchers(resolved) &&
 				(!inputs.country ||
 					(!inputs.region &&
 						resolved.policyPacks?.some(
 							(pack) => (pack.match.regions?.length ?? 0) > 0
 						)))
 			) {
-				unreported.reported(journey);
-				return hosted.init(ctx);
+				// The location is unknown. When every location gives the same
+				// banner, the bundle already holds the answer and the banner need
+				// not wait for a round trip. IAB needs the vendor list, and a
+				// visitor whose language the bundle lacks would get English, so
+				// both still ask `/init`.
+				const outcome = locationFreeOutcome(resolved);
+				const local =
+					outcome && outcome.policy.model !== 'iab'
+						? resolveLocally()
+						: undefined;
+				if (!(local && servesLanguage(local, inputs.language))) {
+					unreported.reported(journey);
+					return hosted.init(ctx);
+				}
+				output = local;
 			}
 			unreported.resolvedLocally(journey);
-			const output = resolveInitFromManifest(resolved, inputs, {
-				baseTranslations: browserBaseTranslations,
-			});
-			return mapInitOutputToInitResponse(output, {});
+			return mapInitOutputToInitResponse(output ?? resolveLocally(), {});
 		},
 		loadSubjectRecord: hosted.loadSubjectRecord,
 		save: (payload) => hosted.save(unreported.strip(payload)),
