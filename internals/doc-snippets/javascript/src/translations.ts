@@ -1,5 +1,6 @@
 // #region docs:translations title="src/main.ts"
-import { init } from '@c15t/browser';
+import { init, offline } from '@c15t/browser';
+import { policyRulePresets } from 'c15t';
 
 import { scripts } from './scripts';
 
@@ -25,7 +26,7 @@ export const consent = init({
 			},
 		},
 	},
-	policyRules: ['europeOptIn'],
+	mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }),
 	scripts,
 });
 // #endregion docs:translations

@@ -1,106 +1,52 @@
-import { hosted } from '@c15t/core';
-
 import { createConsentClientWith } from './client-base';
 import type { CreateConsentClientContext, ResolvedMode } from './client-base';
-import { resolveRules } from './policy-rules';
-import { manifest } from './transports/manifest';
-import { offline } from './transports/offline';
-import type {
-	ConsentClient,
-	ConsentClientOptions,
-	ConsentModeName,
-} from './types';
+import type { ConsentClient, ConsentClientOptions } from './types';
 
-export { custom, hosted } from '@c15t/core';
 export { ACTION_ATTRIBUTE, PREFERENCES_HASH } from './client-base';
 export type { CreateConsentClientContext, PageAction } from './client-base';
-export { resolveRules } from './policy-rules';
 
-const defaultModeName = function defaultModeName(
-	options: ConsentClientOptions
-): ConsentModeName {
-	if (options.manifest || options.manifestURL) {
-		return 'manifest';
-	}
-	return options.backendURL ? 'hosted' : 'offline';
-};
-
+/**
+ * Read the transport from a factory. Mode names are a script-tag feature,
+ * so this module imports no transport: a bundle keeps only the factory the
+ * page passes.
+ */
 const resolveMode = function resolveMode(
-	options: ConsentClientOptions
+	options: ConsentClientOptions,
+	pkg: string
 ): ResolvedMode {
-	if (typeof options.mode === 'function') {
-		const { kind } = options.mode;
-		return {
-			factory: options.mode,
-			name:
-				kind === 'hosted' || kind === 'offline' || kind === 'manifest'
-					? kind
-					: 'custom',
-		};
+	const { mode } = options as { mode?: unknown };
+	if (typeof mode !== 'function') {
+		throw new Error(
+			`${pkg}: \`mode\` must be a factory, such as manifest(), hosted() or offline() from ${pkg}. Mode names like ${JSON.stringify(mode ?? 'hosted')} work only in the script-tag builds.`
+		);
 	}
-	const name = options.mode ?? defaultModeName(options);
-	if (name === 'hosted') {
-		if (!options.backendURL) {
-			throw new Error(
-				'@c15t/browser: hosted mode needs `backendURL` (or data-backend-url on the script tag).'
-			);
-		}
-		return { factory: hosted({ backendURL: options.backendURL }), name };
-	}
-	if (name === 'manifest') {
-		return {
-			factory: manifest({
-				backendURL: options.backendURL,
-				inputs: {
-					country: options.overrides?.country,
-					region: options.overrides?.region,
-				},
-				manifestURL: options.manifestURL,
-				snapshot: options.manifest,
-			}),
-			name,
-		};
-	}
+	const factory = mode as ConsentClientOptions['mode'];
+	const { kind } = factory;
 	return {
-		factory: offline({ policyRules: resolveRules(options.policyRules) }),
-		name,
+		factory,
+		name:
+			kind === 'hosted' || kind === 'offline' || kind === 'manifest'
+				? kind
+				: 'custom',
 	};
 };
 
 /**
  * Create the page's consent client without starting it.
  *
- * @param options - Client options.
+ * @param options - Client options, with a `mode` factory.
  * @param context - Entry-point wiring.
  * @returns The client. Call `start()` to resolve the policy and mount.
- * @throws {Error} When the selected mode or policy presets are invalid.
+ * @throws {Error} When `mode` is not a transport factory.
  */
 export const createConsentClient = function createConsentClient(
-	options: ConsentClientOptions = {},
+	options: ConsentClientOptions,
 	context: CreateConsentClientContext = {}
 ): ConsentClient {
 	return createConsentClientWith(
 		options,
-		resolveMode(options),
-		resolveRules(options.policyRules),
+		resolveMode(options, context.pkg ?? '@c15t/browser'),
+		undefined,
 		context
 	);
 };
-
-/**
- * Create and start a client in one call.
- *
- * @param options - Client options.
- * @param context - Entry-point wiring.
- * @returns The started client.
- */
-export const initConsentClient = function initConsentClient(
-	options: ConsentClientOptions = {},
-	context: CreateConsentClientContext = {}
-): ConsentClient {
-	const client = createConsentClient(options, context);
-	client.start();
-	return client;
-};
-
-export type { Unsubscribe } from '@c15t/core';

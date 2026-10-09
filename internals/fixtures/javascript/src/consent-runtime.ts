@@ -9,7 +9,7 @@ import { testBackend } from './test-backend';
 export const runtime = createConsentRuntime({
 	mode: hosted({
 		backendURL: 'https://your-project.inth.app',
-		...testBackend('url'),
+		...testBackend('backendURL'),
 	}),
 	scripts,
 });

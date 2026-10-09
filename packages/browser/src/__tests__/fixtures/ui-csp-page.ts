@@ -4,7 +4,7 @@
  * `?nonce=off` drops the nonce so the test can see the policy block it.
  */
 import { readScriptOptions } from '../../auto-init';
-import { createConsentClient } from '../../client';
+import { createScriptTagConsentClient as createConsentClient } from '../../script-tag-client';
 import type { ConsentClient } from '../../types';
 import { mountConsentUI } from '../../ui/mount';
 

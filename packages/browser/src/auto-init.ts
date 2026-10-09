@@ -1,7 +1,7 @@
 import type { AllConsentNames, KernelOverrides, LegalLinks } from '@c15t/core';
 
 import type {
-	ConsentClientOptions,
+	ScriptTagClientOptions,
 	ConsentDialogOptions,
 	ConsentModeName,
 	ConsentUIOptions,
@@ -106,11 +106,11 @@ const readNonce = function readNonce(element: Element): string | undefined {
 // oxlint-disable-next-line complexity -- One attribute per branch; a table would hide the shape.
 export const readScriptOptions = function readScriptOptions(
 	element: Element | null
-): ConsentClientOptions {
+): ScriptTagClientOptions {
 	if (!element) {
 		return {};
 	}
-	const options: ConsentClientOptions = {};
+	const options: ScriptTagClientOptions = {};
 	const backendURL =
 		element.getAttribute('data-backend-url') ??
 		element.getAttribute('data-backend');
@@ -127,7 +127,7 @@ export const readScriptOptions = function readScriptOptions(
 	}
 	const policies = readList(element.getAttribute('data-policy-rules'));
 	if (policies) {
-		options.policyRules = policies as ConsentClientOptions['policyRules'];
+		options.policyRules = policies as ScriptTagClientOptions['policyRules'];
 	}
 	const categories = readList(element.getAttribute('data-categories'));
 	if (categories) {
@@ -184,9 +184,9 @@ export const readScriptOptions = function readScriptOptions(
 };
 
 const mergeUI = function mergeUI(
-	base: ConsentClientOptions['ui'],
-	override: ConsentClientOptions['ui']
-): ConsentClientOptions['ui'] {
+	base: ScriptTagClientOptions['ui'],
+	override: ScriptTagClientOptions['ui']
+): ScriptTagClientOptions['ui'] {
 	if (override === false || base === false) {
 		return override ?? base;
 	}
@@ -214,10 +214,10 @@ const mergeUI = function mergeUI(
  * @returns The merged options.
  */
 export const mergeClientOptions = function mergeClientOptions(
-	base: ConsentClientOptions,
-	override: ConsentClientOptions
-): ConsentClientOptions {
-	const merged: ConsentClientOptions = {
+	base: ScriptTagClientOptions,
+	override: ScriptTagClientOptions
+): ScriptTagClientOptions {
+	const merged: ScriptTagClientOptions = {
 		...base,
 		...override,
 		ui: mergeUI(base.ui, override.ui),
@@ -238,8 +238,8 @@ export const mergeClientOptions = function mergeClientOptions(
  */
 export const readPageOptions = function readPageOptions(
 	script: Element | null,
-	configs: ConsentClientOptions[] = []
-): { options: ConsentClientOptions; manual: boolean } {
+	configs: ScriptTagClientOptions[] = []
+): { options: ScriptTagClientOptions; manual: boolean } {
 	const options = configs.reduce(
 		(merged, config) => mergeClientOptions(merged, config),
 		readScriptOptions(script)

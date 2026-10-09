@@ -2,9 +2,9 @@ import { policyRulePresets } from '@c15t/core';
 import { resolvePolicyRules } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { createGlobal, installGlobal } from '../global';
 import type { C15tGlobal } from '../global';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type { ConsentClient, ConsentClientOptions } from '../types';
 
 const testWindow = window as Window & { c15t?: unknown };

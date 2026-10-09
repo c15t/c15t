@@ -42,7 +42,7 @@ import { hasDecided } from './has-decided';
 import type {
 	ConsentClient,
 	ConsentClientEventMap,
-	ConsentClientOptions,
+	ScriptTagClientOptions,
 	ConsentModeName,
 	ConsentSaveInput,
 	ConsentUIHandle,
@@ -77,7 +77,7 @@ const PAGE_ACTIONS: ReadonlySet<string> = new Set<PageAction>([
 /** Extra wiring the entry points hand to the client. */
 export interface CreateConsentClientContext {
 	/** Install entry-specific globals before runtime initialization. */
-	onStart?: (options: ConsentClientOptions) => () => void;
+	onStart?: (options: ScriptTagClientOptions) => () => void;
 	/** Optional CMP factory supplied exclusively by the IAB entry. */
 	createIAB?: ConsentRuntimeIABFactory;
 	/** Loads `@c15t/iab/gpp`. Only the script-tag global supplies it. */
@@ -164,7 +164,7 @@ const resolvePageAction = function resolvePageAction(
  */
 // oxlint-disable-next-line max-lines-per-function -- One cohesive lifecycle: construct, start, dispose.
 export const createConsentClientWith = function createConsentClientWith(
-	options: ConsentClientOptions,
+	options: ScriptTagClientOptions,
 	mode: ResolvedMode,
 	policyRules: PolicyRule[] | undefined,
 	context: CreateConsentClientContext = {}

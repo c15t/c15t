@@ -2,7 +2,7 @@ import { createConsentClientWith } from './client-base';
 import type { CreateConsentClientContext } from './client-base';
 import { resolveRules } from './policy-rules';
 import { offline } from './transports/offline';
-import type { ConsentClient, ConsentClientOptions } from './types';
+import type { ConsentClient, ScriptTagClientOptions } from './types';
 
 /**
  * Create an offline client with no hosted or manifest mode selection.
@@ -14,7 +14,7 @@ import type { ConsentClient, ConsentClientOptions } from './types';
  * @internal
  */
 export const createOfflineConsentClient = function createOfflineConsentClient(
-	options: ConsentClientOptions = {},
+	options: ScriptTagClientOptions = {},
 	context: CreateConsentClientContext = {}
 ): ConsentClient {
 	if (
@@ -23,7 +23,7 @@ export const createOfflineConsentClient = function createOfflineConsentClient(
 		options.manifestURL !== undefined
 	) {
 		throw new Error(
-			'@c15t/browser/offline: backend and manifest inputs require the hosted or generic entry.'
+			'@c15t/browser/offline: backend and manifest inputs need hosted or manifest mode.'
 		);
 	}
 	const { mode } = options;

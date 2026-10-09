@@ -1,10 +1,9 @@
 // #region docs:callbacks title="src/main.ts"
-import { init } from '@c15t/browser';
+import { hosted, init } from '@c15t/browser';
 
 import { scripts } from './scripts';
 
 export const consent = init({
-	backendURL: 'https://your-project.inth.app',
 	callbacks: {
 		// Only a visitor's own accept, reject or save.
 		onChoiceRecorded: ({ confirmed, snapshot }) => {
@@ -18,6 +17,7 @@ export const consent = init({
 			console.info('Permissions', previous, snapshot.effectivePermissions);
 		},
 	},
+	mode: hosted({ backendURL: 'https://your-project.inth.app' }),
 	scripts,
 });
 

@@ -1,8 +1,10 @@
-import { init } from '@c15t/browser';
+import { hosted, init } from '@c15t/browser';
 
 import { runtime } from './consent-runtime';
 
-const consent = init({ backendURL: 'https://your-project.inth.app' });
+const consent = init({
+	mode: hosted({ backendURL: 'https://your-project.inth.app' }),
+});
 
 // #region docs:devtools title="src/main.ts"
 if (import.meta.env.DEV) {

@@ -10,8 +10,8 @@ import { clearBrowserConsentStorage } from '@c15t/conformance/suite';
 import { css as emotionCss, flush } from '@emotion/css';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { init } from '../index';
 import type { ConsentClient, ConsentUIOptions } from '../types';
+import { init } from './fixtures/factory-init';
 
 /** A colour the stock card never uses. */
 const BRAND = 'rgb(10, 102, 255)';

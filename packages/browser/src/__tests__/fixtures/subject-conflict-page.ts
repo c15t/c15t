@@ -11,7 +11,7 @@
 import { ConsentSaveRejectedError } from '@c15t/core';
 import type { ProviderTransportFactory, SavePayload } from '@c15t/core';
 
-import { createConsentClient } from '../../client';
+import { createScriptTagConsentClient as createConsentClient } from '../../script-tag-client';
 import { offline } from '../../transports/offline';
 import type { ConsentClient } from '../../types';
 

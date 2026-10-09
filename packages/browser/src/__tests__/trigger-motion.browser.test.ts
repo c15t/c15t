@@ -6,8 +6,8 @@ import { clearBrowserConsentStorage } from '@c15t/conformance/suite';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { classes } from '../generated/styles';
-import { init } from '../index';
 import type { ConsentClient } from '../types';
+import { init } from './fixtures/factory-init';
 
 let client: ConsentClient | undefined;
 
