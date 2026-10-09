@@ -4,6 +4,7 @@ import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
 import {
+	declaresTailwind3,
 	dependenciesOf,
 	readPackageJson,
 	tailwindMajor,
@@ -107,8 +108,9 @@ interface ImportPlan {
 	/** The app runs on Next.js, so `@c15t/react` maps to `c15t/next`. */
 	next: boolean;
 	/**
-	 * The app may use Tailwind CSS 3, which needs the stylesheet import: it
-	 * declares Tailwind CSS 3, or a version the codemod can't resolve.
+	 * The app may use Tailwind CSS 3, which needs the stylesheet import: a
+	 * dependency group declares Tailwind CSS 3 (a peer range that allows it
+	 * counts), or the codemod can't resolve the version.
 	 */
 	tailwind3: boolean;
 }
@@ -569,9 +571,8 @@ const transformStylesheet = function transformStylesheet(
 export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
-	const dependencies = dependenciesOf(
-		await readPackageJson(options.projectRoot)
-	);
+	const manifest = await readPackageJson(options.projectRoot);
+	const dependencies = dependenciesOf(manifest);
 	const tailwind = dependencies.tailwindcss;
 	const major =
 		tailwind === undefined
@@ -583,7 +584,7 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 			dependencies['@c15t/nextjs'] !== undefined,
 		// Keeping an import the app doesn't need costs a TODO; removing one
 		// Tailwind CSS 3 needs breaks the styling.
-		tailwind3: major === 3 || major === null,
+		tailwind3: major === 3 || major === null || declaresTailwind3(manifest),
 		umbrella: usesUmbrella(dependencies),
 	};
 	let skippedScopedImports = false;

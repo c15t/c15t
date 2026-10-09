@@ -744,6 +744,42 @@ import 'c15t/react/styles.css';
 		);
 	});
 
+	it('keeps stylesheet imports when a peer range allows Tailwind CSS 3 but devDependencies use 4', async () => {
+		const files = {
+			'node_modules/tailwindcss/package.json': JSON.stringify({
+				version: '4.1.0',
+			}),
+			'src/consent.tsx': `import '@c15t/react/styles.css';
+`,
+		};
+		const library = await createProject({
+			...files,
+			'package.json': JSON.stringify({
+				dependencies: { c15t: '^3.0.0' },
+				devDependencies: { tailwindcss: '^4.1.0' },
+				name: 'shared-ui',
+				peerDependencies: { tailwindcss: '^3 || ^4' },
+			}),
+		});
+		const app = await createProject({
+			...files,
+			'package.json': JSON.stringify({
+				dependencies: { c15t: '^3.0.0', tailwindcss: '^4.1.0' },
+				name: 'app',
+				peerDependencies: { tailwindcss: '^4.0.0' },
+			}),
+		});
+		const result = await codemod({ dryRun: false, projectRoot: library });
+		await codemod({ dryRun: false, projectRoot: app });
+
+		expect(await readFile(join(library, 'src/consent.tsx'), 'utf-8'))
+			.toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+		expect(result.warnings).toEqual([]);
+		expect(await readFile(join(app, 'src/consent.tsx'), 'utf-8')).toBe('');
+	});
+
 	it('keeps scoped imports when the app installs @c15t/react v3 without c15t, but drops the stylesheet', async () => {
 		const source = `import { ConsentProvider } from '@c15t/react';
 `;

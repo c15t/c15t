@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { minVersion, subset, validRange } from 'semver';
+import { intersects, minVersion, subset, validRange } from 'semver';
 
 /** The dependency fields of an app's `package.json` the codemods read. */
 export interface PackageJson {
@@ -95,6 +95,49 @@ const declaredMajorOf = function declaredMajorOf(
 	})
 		? major
 		: null;
+};
+
+/** Whether a semver specifier allows some version with this major. */
+const admitsMajor = function admitsMajor(
+	specifier: string,
+	major: number
+): boolean {
+	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
+	return (
+		range !== null &&
+		intersects(range, `>=${major}.0.0-0 <${major + 1}.0.0`, {
+			includePrerelease: true,
+		})
+	);
+};
+
+/**
+ * Whether any dependency group declares Tailwind CSS 3, so that
+ * `devDependencies` can't hide a peer range from `dependenciesOf`. A peer or
+ * optional range speaks for the apps that install the package, so one that
+ * allows 3, such as `^3 || ^4`, counts even when the package builds with 4.
+ * A `dependencies` or `devDependencies` range counts only when 3 is the one
+ * major it allows.
+ */
+export const declaresTailwind3 = function declaresTailwind3(
+	manifest: PackageJson | null
+): boolean {
+	const consumer = [
+		manifest?.peerDependencies?.tailwindcss,
+		manifest?.optionalDependencies?.tailwindcss,
+	];
+	const own = [
+		manifest?.dependencies?.tailwindcss,
+		manifest?.devDependencies?.tailwindcss,
+	];
+	return (
+		consumer.some(
+			(specifier) => specifier !== undefined && admitsMajor(specifier, 3)
+		) ||
+		own.some(
+			(specifier) => specifier !== undefined && declaredMajorOf(specifier) === 3
+		)
+	);
 };
 
 /**
