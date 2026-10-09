@@ -406,6 +406,52 @@ import Legacy = require('@c15t/react/legacy');
 `);
 	});
 
+	it('points vi.mock() and jest.mock() calls at the new entries', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/consent.test.ts': `import { useConsent } from '@c15t/react';
+vi.mock('@c15t/react', () => ({ useConsent: vi.fn() }));
+jest.mock("@c15t/nextjs/headless");
+const actual = await vi.importActual('@c15t/react/legacy');
+vi.mock('@c15t/react/styles.css', () => ({}));
+vi.mock(\`@c15t/react\`);
+`,
+			}
+		);
+
+		expect(await read('src/consent.test.ts'))
+			.toBe(`import { useConsent } from 'c15t/react';
+vi.mock('c15t/react', () => ({ useConsent: vi.fn() }));
+jest.mock("c15t/next/headless");
+// TODO(c15t v3): @c15t/react/legacy is not a c15t v3 entry. Import from c15t/react or one of its subpaths.
+const actual = await vi.importActual('@c15t/react/legacy');
+vi.mock('@c15t/react/styles.css', () => ({}));
+vi.mock(\`@c15t/react\`);
+`);
+	});
+
+	it('puts the TODO for a JSDoc import type above the comment', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/options.js': `/** @type {import('@c15t/react/legacy').Options} */
+const options = {};
+/** @param {import('@c15t/react').Theme} theme */
+export function apply(theme) {}
+`,
+			}
+		);
+
+		expect(await read('src/options.js'))
+			.toBe(`// TODO(c15t v3): @c15t/react/legacy is not a c15t v3 entry. Import from c15t/react or one of its subpaths.
+/** @type {import('@c15t/react/legacy').Options} */
+const options = {};
+/** @param {import('c15t/react').Theme} theme */
+export function apply(theme) {}
+`);
+	});
+
 	it('points object-form and required PostCSS plugins at c15t/postcss-tailwind3', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0', next: '^15.0.0', tailwindcss: '^3.4.17' },

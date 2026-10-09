@@ -56,9 +56,10 @@ keeping the subpath: `@c15t/react/headless` becomes `c15t/react/headless`.
 When `package.json` lists `next` or `@c15t/nextjs`, the `@c15t/react` root
 moves to `c15t/next`, which re-exports the React components and hooks. The
 v2 `@c15t/react/cookie-banner` alias becomes
-`c15t/react/components/consent-banner`. It rewrites imports, re-exports,
-`import()` and `require()` calls with a string literal, and import types, and
-leaves `c15t/react`, `@c15t/integrations` and other packages alone. In a
+`c15t/react/components/consent-banner`. It rewrites imports, including
+`import x = require()`, re-exports, import types, and `import()`, `require()`,
+`vi.mock()` and `jest.mock()` calls with a string literal. It leaves
+`c15t/react`, `@c15t/integrations` and other packages alone. In a
 PostCSS config, it points the `@c15t/react/postcss-tailwind3` and
 `@c15t/nextjs/postcss-tailwind3` plugins at `c15t/postcss-tailwind3`, whether
 the config names them as an object key or in `require()`.

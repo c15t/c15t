@@ -199,10 +199,49 @@ const isRequireCall = function isRequireCall(
 };
 
 /**
+ * Test-runner and `require` helpers whose first argument names a module, so
+ * a mock of `@c15t/react` follows the import it replaces.
+ */
+const MODULE_HELPERS = new Set([
+	'jest.createMockFromModule',
+	'jest.doMock',
+	'jest.dontMock',
+	'jest.mock',
+	'jest.requireActual',
+	'jest.requireMock',
+	'jest.setMock',
+	'jest.unmock',
+	'require.resolve',
+	'vi.doMock',
+	'vi.doUnmock',
+	'vi.importActual',
+	'vi.importMock',
+	'vi.mock',
+	'vi.unmock',
+]);
+
+/** Whether a call's first argument is a module specifier. */
+const takesModuleSpecifier = function takesModuleSpecifier(
+	call: TsMorphTypes.CallExpression,
+	specifier: string
+): boolean {
+	const callee = call.getExpression();
+	if (callee.getKind() === SyntaxKind.ImportKeyword || isRequireCall(call)) {
+		return true;
+	}
+	// A mock of a stylesheet has no import to follow once it's removed.
+	return (
+		Node.isPropertyAccessExpression(callee) &&
+		MODULE_HELPERS.has(callee.getText()) &&
+		!STYLESHEET_SPECIFIER.test(specifier)
+	);
+};
+
+/**
  * The string literals that name a module: imports, re-exports,
- * `import x = require()`, `import()` and `require()` calls, import types,
- * and PostCSS plugin keys. A template literal or computed argument is left
- * alone.
+ * `import x = require()`, `import()` and `require()` calls, `vi.mock()` and
+ * `jest.mock()` calls, import types (JSDoc ones too), and PostCSS plugin
+ * keys. A template literal or computed argument is left alone.
  */
 const moduleSpecifiersOf = function moduleSpecifiersOf(
 	sourceFile: TsMorphTypes.SourceFile
@@ -225,9 +264,8 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 			}
 			if (Node.isCallExpression(parent)) {
 				return (
-					(parent.getExpression().getKind() === SyntaxKind.ImportKeyword ||
-						isRequireCall(parent)) &&
-					parent.getArguments()[0] === literal
+					parent.getArguments()[0] === literal &&
+					takesModuleSpecifier(parent, literal.getLiteralValue())
 				);
 			}
 			return (
@@ -238,15 +276,21 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 };
 
 /**
- * Where a TODO about a module specifier goes: above the statement that holds
- * it when that statement starts on the same line, so `const x = require(…)`
- * gets its TODO on the line above rather than inside the expression.
+ * Where a TODO about a module specifier goes: above a JSDoc comment that
+ * holds it, since a block comment can't go inside one, or above the
+ * statement that holds it when that statement starts on the same line, so
+ * `const x = require(…)` gets its TODO on the line above rather than inside
+ * the expression.
  */
 const todoAnchor = function todoAnchor(
 	parent: TsMorphTypes.Node
 ): TsMorphTypes.Node {
 	if (Node.isImportDeclaration(parent) || Node.isExportDeclaration(parent)) {
 		return parent;
+	}
+	const jsDoc = parent.getFirstAncestor(Node.isJSDoc);
+	if (jsDoc) {
+		return jsDoc;
 	}
 	const statement = parent.getFirstAncestor(Node.isStatement);
 	return statement &&
