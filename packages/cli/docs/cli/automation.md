@@ -348,7 +348,9 @@ default to the CLI's release line. Invalid values throw.
 `createC15tIntegrationGuidance({ origin })` returns only the rules for moving
 analytics, pixels, tag managers and embeds behind consent, including the
 replacements for framework vendor packages such as `@next/third-parties` and
-`@nuxt/scripts`. Use it to embed those rules in another prompt or skill. A missing executable produces an installation hint;
+`@nuxt/scripts`. Use it to embed those rules in another prompt or skill.
+
+A missing executable produces an installation hint;
 `launchAgentSetup` returns the agent's exit code and rejects on caller
 cancellation or launch failure. `isAgentNotStartedError` identifies rejections
 raised before Codex ran.
