@@ -633,7 +633,9 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				updateConfig,
 			}) {
 				command = setupCommand;
+				const fetchesSnapshot = command === 'build' || command === 'dev';
 				if (
+					fetchesSnapshot &&
 					options.buildManifest === true &&
 					resolved.mode.type !== 'manifest'
 				) {
@@ -642,8 +644,8 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				// `hosted()` and `offline()` have no manifest to fetch, and an
 				// inline `manifest` is already the snapshot.
 				if (
+					fetchesSnapshot &&
 					options.buildManifest !== false &&
-					(command === 'build' || command === 'dev') &&
 					resolved.mode.type === 'manifest' &&
 					!resolved.mode.manifest
 				) {

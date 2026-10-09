@@ -47,7 +47,7 @@ const specifier = (entry: string): string =>
 const runSetup = async function runSetup(
 	options: C15tAstroOptions,
 	config: Record<string, unknown> = {},
-	command: 'build' | 'dev' | 'preview' = 'build'
+	command: 'build' | 'dev' | 'preview' | 'sync' = 'build'
 ) {
 	const integration = c15t(options);
 	const calls: SetupCalls = {
@@ -249,6 +249,22 @@ describe('resolveOptions', () => {
 			const { calls } = await runSetup(options);
 			expect(fetch).not.toHaveBeenCalled();
 			expect(calls.logger.warn).not.toHaveBeenCalled();
+		}
+	);
+
+	it.each(['preview', 'sync'] as const)(
+		'buildManifest: true with hosted() leaves %s alone',
+		async (command) => {
+			await expect(
+				runSetup(
+					{
+						buildManifest: true,
+						mode: hostedMode({ url: 'https://consent.example.com' }),
+					},
+					{},
+					command
+				)
+			).resolves.toBeDefined();
 		}
 	);
 
