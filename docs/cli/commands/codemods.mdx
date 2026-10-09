@@ -61,6 +61,12 @@ PostCSS config, it points the `@c15t/react/postcss-tailwind3` and
 `@c15t/nextjs/postcss-tailwind3` plugins at `c15t/postcss-tailwind3`, whether
 the config names them as an object key or in `require()`.
 
+c15t ships ESM only from v3, so `require()` can't load it. Each `require()`
+call and `import x = require()` the codemod rewrites gets a TODO, and the run
+lists every such file with its count. Convert those files to `import`, or a
+PostCSS config to `postcss.config.mjs`. The codemod doesn't convert CommonJS
+for you.
+
 It removes `@c15t/react/styles.css` and `@c15t/nextjs/styles.css` imports,
 including the `iab/` variants, because v3 components add their own styles. It
 reads each stylesheet `@import` whole, so one that spans lines or takes Less

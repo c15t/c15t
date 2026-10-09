@@ -5,9 +5,13 @@ import { afterEach, describe, expect, it } from 'vitest';
 
 import { cleanupProjects, createProject } from './__tests__/helpers';
 import { runPackagesToC15tCodemod as codemod } from './packages-to-c15t';
+import { runPostcssTailwind3Codemod as postcssTailwind3 } from './postcss-tailwind3';
 
 const TODO =
 	'TODO(c15t v3): c15t components add their own styles. Keep this import only with Tailwind CSS 3 or a named cascade layer, and set styles: false in the provider options.';
+
+const ESM_TODO =
+	'TODO(c15t v3): c15t ships ESM only from v3, so require() cannot load it. Convert this file to import, or to an .mjs or ESM config.';
 
 const run = async function run(
 	dependencies: Record<string, string>,
@@ -376,9 +380,11 @@ require('@c15t/react/styles.css');
 		);
 
 		expect(result.errors).toEqual([]);
-		expect(await read('src/consent.cjs'))
-			.toBe(`const { ConsentManagerProvider } = require('c15t/react');
+		expect(await read('src/consent.cjs')).toBe(`// ${ESM_TODO}
+const { ConsentManagerProvider } = require('c15t/react');
+// ${ESM_TODO}
 const headless = require("c15t/react/headless");
+// ${ESM_TODO}
 const { c15tMiddleware } = require('c15t/next/middleware');
 // TODO(c15t v3): @c15t/react/legacy is not a c15t v3 entry. Import from c15t/react or one of its subpaths.
 const legacy = require('@c15t/react/legacy');
@@ -388,7 +394,7 @@ const fixed = require(\`@c15t/react\`);
 	});
 
 	it('rewrites TypeScript import-equals declarations', async () => {
-		const { read } = await run(
+		const { read, result } = await run(
 			{ c15t: '^3.0.0' },
 			{
 				'src/consent.ts': `import C15t = require('@c15t/react');
@@ -398,12 +404,69 @@ import Legacy = require('@c15t/react/legacy');
 			}
 		);
 
-		expect(await read('src/consent.ts'))
-			.toBe(`import C15t = require('c15t/react');
+		expect(await read('src/consent.ts')).toBe(`// ${ESM_TODO}
+import C15t = require('c15t/react');
+// ${ESM_TODO}
 import Headless = require("c15t/react/headless");
 // TODO(c15t v3): @c15t/react/legacy is not a c15t v3 entry. Import from c15t/react or one of its subpaths.
 import Legacy = require('@c15t/react/legacy');
 `);
+		expect(result.warnings).toEqual([
+			{
+				filePath: expect.stringMatching(/src\/consent\.ts$/u),
+				message:
+					'2 require() calls name c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+			},
+		]);
+	});
+
+	it('flags each file whose require() calls now name c15t', async () => {
+		const { result } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/a.cjs': `const { useConsent } = require('@c15t/react');
+`,
+				'src/b.cjs': `const c15t = require('@c15t/react');
+const headless = require('@c15t/react/headless');
+`,
+				'src/c.mjs': `import { useConsent } from '@c15t/react';
+`,
+			}
+		);
+
+		expect(result.warnings).toEqual([
+			{
+				filePath: expect.stringMatching(/src\/a\.cjs$/u),
+				message:
+					'1 require() call names c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+			},
+			{
+				filePath: expect.stringMatching(/src\/b\.cjs$/u),
+				message:
+					'2 require() calls name c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+			},
+		]);
+	});
+
+	it('adds no ESM TODO to require.resolve(), import() or mocks', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/consent.test.ts': `const path = require.resolve('@c15t/react');
+const lazy = await import('@c15t/react/headless');
+vi.mock('@c15t/react');
+const actual = jest.requireActual('@c15t/react');
+`,
+			}
+		);
+
+		expect(await read('src/consent.test.ts'))
+			.toBe(`const path = require.resolve('c15t/react');
+const lazy = await import('c15t/react/headless');
+vi.mock('c15t/react');
+const actual = jest.requireActual('c15t/react');
+`);
+		expect(result.warnings).toEqual([]);
 	});
 
 	it('points vi.mock() and jest.mock() calls at the new entries', async () => {
@@ -499,7 +562,43 @@ export function apply(theme) {}
 };
 `);
 		expect(await read('apps/docs/postcss.config.cjs')).toBe(`module.exports = {
-	plugins: [require("c15t/postcss-tailwind3"), require('tailwindcss')],
+	plugins: [/* ${ESM_TODO} */ require("c15t/postcss-tailwind3"), require('tailwindcss')],
+};
+`);
+		expect(result.warnings).toEqual([
+			{
+				filePath: expect.stringMatching(/apps\/docs\/postcss\.config\.cjs$/u),
+				message:
+					'1 require() call names c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+			},
+		]);
+	});
+
+	it('adds one ESM TODO to a required PostCSS plugin across codemod runs', async () => {
+		const config = `module.exports = {
+	plugins: [
+		require('@c15t/react/postcss-tailwind3'),
+		require('tailwindcss'),
+	],
+};
+`;
+		const { read, rootDir } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.17' },
+			{ 'postcss.config.cjs': config }
+		);
+		const tailwind3 = await postcssTailwind3({
+			dryRun: false,
+			projectRoot: rootDir,
+		});
+		await codemod({ dryRun: false, projectRoot: rootDir });
+
+		expect(tailwind3.changedFiles).toEqual([]);
+		expect(await read('postcss.config.cjs')).toBe(`module.exports = {
+	plugins: [
+		// ${ESM_TODO}
+		require('c15t/postcss-tailwind3'),
+		require('tailwindcss'),
+	],
 };
 `);
 	});

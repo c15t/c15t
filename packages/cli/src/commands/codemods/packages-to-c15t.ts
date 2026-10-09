@@ -94,6 +94,9 @@ const STYLESHEET_SPECIFIER =
 	/^@c15t\/(?<pkg>react|nextjs)\/(?<iab>iab\/)?styles(?<tw3>\.tw3)?\.css$/u;
 const KEPT_SUMMARY = ', kept with a TODO';
 
+const ESM_TODO =
+	'c15t ships ESM only from v3, so require() cannot load it. Convert this file to import, or to an .mjs or ESM config.';
+
 const STYLES_TODO =
 	'c15t components add their own styles. Keep this import only with Tailwind CSS 3 or a named cascade layer, and set styles: false in the provider options.';
 
@@ -298,6 +301,20 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 };
 
 /**
+ * Whether a specifier is loaded through `require()` at runtime: a
+ * `require()` call or a TypeScript `import x = require()`. `require.resolve`,
+ * `import()` and the test-runner helpers are left out.
+ */
+const loadsWithRequire = function loadsWithRequire(
+	parent: TsMorphTypes.Node
+): boolean {
+	return (
+		Node.isExternalModuleReference(parent) ||
+		(Node.isCallExpression(parent) && isRequireCall(parent))
+	);
+};
+
+/**
  * Where a TODO about a module specifier goes: above a JSDoc comment that
  * holds it, since a block comment can't go inside one, or above the
  * statement that holds it when that statement starts on the same line, so
@@ -347,14 +364,23 @@ const rewriteLiteral = function rewriteLiteral(
 	return { end: literal.getEnd() - 1, start: literal.getStart() + 1, text };
 };
 
+/** What the source transform reports beyond its edits. */
+interface TransformHooks {
+	/** An import was left alone because the app doesn't install c15t 3. */
+	onScopedImport: () => void;
+	/** A file has `require()` calls that now name an ESM-only c15t entry. */
+	onRequires: (filePath: string, count: number) => void;
+}
+
 const transformWith = (
 	plan: ImportPlan,
-	onScopedImport: () => void
+	hooks: TransformHooks
 ): ((sourceFile: TsMorphTypes.SourceFile) => TransformResult) =>
 	function transform(sourceFile) {
 		const edits: TextEdit[] = [];
 		const summaries = new Set<string>();
 		let operations = 0;
+		let requires = 0;
 
 		for (const literal of moduleSpecifiersOf(sourceFile)) {
 			const specifier = literal.getLiteralValue();
@@ -392,7 +418,7 @@ const transformWith = (
 				continue;
 			}
 			if (!plan.umbrella) {
-				onScopedImport();
+				hooks.onScopedImport();
 				continue;
 			}
 			if ('todo' in target) {
@@ -405,8 +431,15 @@ const transformWith = (
 			edits.push(rewriteLiteral(literal, target.specifier));
 			summaries.add(`${specifier} -> ${target.specifier}`);
 			operations += 1;
+			if (loadsWithRequire(parent)) {
+				addTodo(todoAnchor(parent), ESM_TODO, edits);
+				requires += 1;
+			}
 		}
 
+		if (requires > 0) {
+			hooks.onRequires(sourceFile.getFilePath(), requires);
+		}
 		if (edits.length === 0) {
 			return UNCHANGED;
 		}
@@ -554,10 +587,19 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		umbrella: usesUmbrella(dependencies),
 	};
 	let skippedScopedImports = false;
+	const requireWarnings: { filePath: string; message: string }[] = [];
 	const sources = await runTransform(
 		options,
-		transformWith(plan, () => {
-			skippedScopedImports = true;
+		transformWith(plan, {
+			onRequires: (filePath, count) => {
+				requireWarnings.push({
+					filePath,
+					message: `${count} require() ${count === 1 ? 'call names' : 'calls name'} c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.`,
+				});
+			},
+			onScopedImport: () => {
+				skippedScopedImports = true;
+			},
 		})
 	);
 	const stylesheets = await runTextTransform(
@@ -566,6 +608,9 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		(text, filePath) => transformStylesheet(text, filePath, plan)
 	);
 	const result = mergeResults(sources, stylesheets);
+	if (requireWarnings.length > 0) {
+		result.warnings = [...(result.warnings ?? []), ...requireWarnings];
+	}
 	const keptStylesheets = result.changedFiles.some((file) =>
 		file.summaries.some((summary) => summary.endsWith(KEPT_SUMMARY))
 	);
