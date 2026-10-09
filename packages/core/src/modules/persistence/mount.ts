@@ -21,21 +21,28 @@ import type {
 	WriteKind,
 } from './writer/types';
 
-// Safari has no requestIdleCallback; a short delay after load stands in.
+// Safari has no requestIdleCallback; a short delay stands in.
 const IDLE_FALLBACK_DELAY_MS = 200;
+// How long after the load event the write code waits before loading in idle
+// time. The page's own requests finish first, so the write code stays out of
+// first-load JavaScript. A save before then loads it at once.
+const PRELOAD_DELAY_MS = 3000;
 // A write waits for the write code: after a failed load, try again after
 // 1, 4 and 16 seconds. Later events, focus and visibility changes try too.
 const RETRY_BASE_MS = 1000;
 const RETRIES = 3;
 
-/** Run `task` in idle time after the page's load event. */
+/** Run `task` in idle time, a few seconds after the page's load event. */
 const afterLoadWhenIdle = function afterLoadWhenIdle(task: () => void): void {
-	const idle = () => {
+	const inIdleTime = () => {
 		if (typeof requestIdleCallback === 'function') {
 			requestIdleCallback(task);
 		} else {
 			setTimeout(task, IDLE_FALLBACK_DELAY_MS);
 		}
+	};
+	const idle = () => {
+		setTimeout(inIdleTime, PRELOAD_DELAY_MS);
 	};
 	if (
 		document.readyState === 'loading' ||
