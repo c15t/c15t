@@ -12,6 +12,7 @@ import type {
 	ConsentSessionSource,
 } from '../api/session';
 import type { ConsentManifest } from './consent-manifest';
+import { appendSearchParams } from './search-params';
 
 /**
  * Request header a host puts the visitor's IP on when it reports a session.
@@ -29,7 +30,9 @@ export const CONSENT_SESSION_CLIENT_IP_HEADER = 'x-c15t-client-ip';
  * Request header that carries the banner-experiment arm a visitor runs, as
  * `<id>=<arm>` with both parts URI-encoded. A client sends it on `/init`
  * only while the visitor has no stored choice, so a session that carries it
- * is one where the banner was owed under that arm.
+ * is one where the banner was owed under that arm. A browser sends the same
+ * value as the `c15tExperiment` query parameter instead, so a cross-origin
+ * `/init` needs no CORS preflight.
  */
 export const CONSENT_EXPERIMENT_HEADER = 'x-c15t-experiment';
 
@@ -213,14 +216,7 @@ export const appendJourneyParams = function appendJourneyParams(
 	if (journey.storedChoice !== undefined) {
 		params.set(CONSENT_JOURNEY_STORED_PARAM, journey.storedChoice ? '1' : '0');
 	}
-	const hash = url.indexOf('#');
-	const base = hash === -1 ? url : url.slice(0, hash);
-	const fragment = hash === -1 ? '' : url.slice(hash);
-	let separator = '?';
-	if (base.includes('?')) {
-		separator = base.endsWith('?') || base.endsWith('&') ? '' : '&';
-	}
-	return `${base}${separator}${params.toString()}${fragment}`;
+	return appendSearchParams(url, params);
 };
 
 /**
