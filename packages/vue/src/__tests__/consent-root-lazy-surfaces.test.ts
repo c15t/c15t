@@ -76,8 +76,11 @@ const banner = () =>
 	document.querySelector('[data-testid="consent-banner-root"]');
 
 const waitFor = async function waitFor(check: () => unknown) {
-	for (let attempt = 0; attempt < 50 && !check(); attempt += 1) {
-		// The surfaces arrive through dynamic imports.
+	// The surfaces arrive through dynamic imports, which Vite compiles on
+	// first request. Give that 2 seconds: a parallel run across packages can
+	// take far longer than the half second a quiet machine needs.
+	const deadline = Date.now() + 2000;
+	while (Date.now() < deadline && !check()) {
 		// oxlint-disable-next-line no-await-in-loop -- Polling in order.
 		await flushPromises();
 		// oxlint-disable-next-line no-await-in-loop -- Polling in order.
