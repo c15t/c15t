@@ -744,6 +744,25 @@ import 'c15t/react/styles.css';
 		);
 	});
 
+	it('removes several stylesheet imports that share a line', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/main.ts': `import '@c15t/react/styles.css'; import '@c15t/react/iab/styles.css';
+import './app.css'; import '@c15t/react/styles.css'; import './theme.css'; import '@c15t/nextjs/styles.css';
+require('@c15t/react/styles.css'); require('@c15t/react/iab/styles.css');
+import { ConsentBanner } from '@c15t/react';
+`,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(await read('src/main.ts'))
+			.toBe(`import './app.css'; import './theme.css';
+import { ConsentBanner } from 'c15t/react';
+`);
+	});
+
 	it('keeps stylesheet imports when a peer range allows Tailwind CSS 3 but devDependencies use 4', async () => {
 		const files = {
 			'node_modules/tailwindcss/package.json': JSON.stringify({

@@ -15,7 +15,7 @@ import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import {
 	addTodo,
 	applyEdits,
-	propertyRemoval,
+	elementRemovals,
 	TODO_MARKER,
 	UNCHANGED,
 } from './source-edits';
@@ -380,6 +380,9 @@ const transformWith = (
 ): ((sourceFile: TsMorphTypes.SourceFile) => TransformResult) =>
 	function transform(sourceFile) {
 		const edits: TextEdit[] = [];
+		// Removed together, so two on one line don't both claim the space
+		// between them.
+		const removed: TsMorphTypes.Node[] = [];
 		const summaries = new Set<string>();
 		let operations = 0;
 		let requires = 0;
@@ -399,7 +402,7 @@ const transformWith = (
 			if (STYLESHEET_SPECIFIER.test(specifier)) {
 				const sideEffect = sideEffectStatement(parent);
 				if (sideEffect && !keepsStylesheet(specifier, plan)) {
-					edits.push(propertyRemoval(sideEffect));
+					removed.push(sideEffect);
 					summaries.add(`removed ${specifier}`);
 					operations += 1;
 					continue;
@@ -439,6 +442,7 @@ const transformWith = (
 			}
 		}
 
+		edits.push(...elementRemovals(removed));
 		if (requires > 0) {
 			hooks.onRequires(sourceFile.getFilePath(), requires);
 		}
