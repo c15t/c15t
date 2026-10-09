@@ -1,4 +1,4 @@
-import { defineConsentConfig } from '@c15t/nextjs';
+import { defineConsentConfig, manifest } from '@c15t/nextjs';
 
 /**
  * The `typical-install` arm's consent config, shaped like the Next.js
@@ -8,7 +8,9 @@ import { defineConsentConfig } from '@c15t/nextjs';
  */
 export const typicalInstallConfig = defineConsentConfig({
 	backendURL: '/api/bench-consent',
-	manifestURL: '/api/c15t/manifest',
+	// The server reads the backend's manifest; a browser re-init resolves
+	// from the app's cached manifest route.
+	mode: manifest({ manifestURL: '/api/c15t/manifest', resolve: 'browser' }),
 });
 
 /** Where the stand-in vendor scripts are served from (`public/`). */

@@ -6,14 +6,17 @@ import {
 	ConsentDialog,
 	ConsentRoot,
 	custom,
+	defineConsentConfig,
+	hosted,
 } from '@c15t/nextjs';
-import type { ConsentRootProps } from '@c15t/nextjs';
+import type { ConsentConfig, ConsentRootProps } from '@c15t/nextjs';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
 import {
 	COMPAT_BACKEND_URL,
 	COMPAT_CONSENT_CONFIG,
+	COMPAT_HOSTED_CONFIG,
 	COMPAT_MANIFEST_URL,
 } from './config';
 import { CompatProbe, getCompatCounters } from './probe';
@@ -51,7 +54,7 @@ const createMode = function createMode({
 	Pick<ConsentShellProps, 'manifest'>) {
 	switch (transport) {
 		case 'manifest-geo': {
-			// Selection comes from the `config` prop on the root.
+			// Selection comes from the root's `config`.
 			return undefined;
 		}
 		case 'manifest': {
@@ -75,13 +78,32 @@ const createMode = function createMode({
 };
 
 /**
+ * The root's config. `manifest-geo` uses the manifest config with the app's
+ * consent route; the other transports use hosted mode against `backendURL`,
+ * which `options.mode` replaces for `manifest` and `static`.
+ */
+const createConfig = function createConfig(
+	backendURL: string,
+	transport: NonNullable<ConsentShellProps['transport']>
+): ConsentConfig {
+	if (transport === 'manifest-geo') {
+		return COMPAT_CONSENT_CONFIG;
+	}
+	if (backendURL === COMPAT_BACKEND_URL) {
+		return COMPAT_HOSTED_CONFIG;
+	}
+	return defineConsentConfig({ backendURL, mode: hosted() });
+};
+
+/**
  * The client-side provider tree every fixture route mounts.
  *
  * @remarks
  * Kept identical across routers and Next.js versions so a failing cell
  * points at the framework combination, not at fixture drift. Mirrors the
- * v3 pattern: one `ConsentRoot`, hosted mode via `backendURL`, and the
- * server state (when any) passed as a plain prop.
+ * v3 pattern: one `ConsentRoot`, hosted mode against `backendURL` by
+ * default, and the server state (when any) passed as a plain prop. No cell
+ * has a `c15t.config.ts`, so the shell passes `config` itself.
  */
 export const ConsentShell = ({
 	children,
@@ -97,11 +119,14 @@ export const ConsentShell = ({
 		() => createMode({ backendURL, manifest, transport }),
 		[backendURL, manifest, transport]
 	);
+	const config = useMemo(
+		() => createConfig(backendURL, transport),
+		[backendURL, transport]
+	);
 
 	return (
 		<ConsentRoot
-			backendURL={transport === 'hosted' ? backendURL : undefined}
-			config={transport === 'manifest-geo' ? COMPAT_CONSENT_CONFIG : undefined}
+			config={config}
 			networkBlocker={networkBlocker}
 			state={state ?? {}}
 			options={{

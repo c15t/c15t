@@ -1,6 +1,5 @@
-import { createNextConsentRouteHandlers } from 'c15t/next/api';
+import { createConsentRoute } from 'c15t/next/api';
 
-import { consentConfig } from '@/c15t.config';
+import consentConfig from '@/c15t.config';
 
-export const { manifestGET: GET } =
-	createNextConsentRouteHandlers(consentConfig);
+export const { GET } = createConsentRoute({ config: consentConfig });

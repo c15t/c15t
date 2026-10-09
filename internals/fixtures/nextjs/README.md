@@ -34,10 +34,14 @@ To send events to your own PostHog and X projects, replace
 
 ## Follow the setup files
 
-- `c15t.config.ts` shares the backend and explicit manifest URL.
+- `c15t.config.ts` default-exports the backend, the consent route prefix
+  `/api/c15t`, and `manifest({ resolve: 'browser' })` for pages that resolve
+  consent in the browser. `next.config.ts` has no `withConsentManifest`, so
+  the server reads the manifest at runtime and each file that needs the
+  config imports it.
 - `app/api/c15t/manifest/route.ts` passes that config to
-  `createNextConsentRouteHandlers` and serves the cached public manifest for
-  both routers.
+  `createConsentRoute` and serves the cached public manifest for both
+  routers.
 - `components/consent.tsx` is the client wrapper: `ConsentRoot`, scripts,
   banner, dialog and the Privacy settings link. Layouts pass it only `state`.
 - Each App Router route group has its own root layout:
@@ -48,8 +52,8 @@ To send events to your own PostHog and X projects, replace
     `/awaited`. The banner is part of the server HTML.
   - `app/(browser)/layout.tsx` passes `state={{}}`, for `/client-init`. The
     page is static and the browser resolves the manifest.
-- `pages/pages-router.tsx` resolves consent in `getServerSideProps`, and
-  `pages/_app.tsx` passes `initialConsent` to the same wrapper.
+- `pages/pages-router.tsx` resolves consent with `withConsentProps`, and
+  `pages/_app.tsx` passes the `consent` prop to the same wrapper.
 - `app/(streamed)/branded/layout.tsx` renders `ConsentTheme` with the theme in
   `lib/theme.ts`.
 - `components/demo.tsx` is demo-only: the gallery, gated iframe, permission

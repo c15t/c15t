@@ -1,4 +1,4 @@
-import { createNextConsentRouteHandlers } from 'c15t/next/api';
+import { createConsentRoute } from 'c15t/next/api';
 import { after } from 'next/server';
 
 /**
@@ -11,8 +11,8 @@ export const GET = (request: Request) => {
 	const upstream = token
 		? `/api/bench-consent/manifest?cold=${encodeURIComponent(token)}`
 		: '/api/bench-consent/manifest';
-	return createNextConsentRouteHandlers({
+	return createConsentRoute({
 		manifestURL: upstream,
 		onBackgroundRevalidate: (refresh) => after(() => refresh),
-	}).manifestGET(request);
+	}).GET(request, { params: Promise.resolve({}) });
 };
