@@ -16,9 +16,10 @@ export default {
 };
 ```
 
-Vite writes `src/c15t-manifest.ts` before compilation or development startup.
-Keep the generated file out of Git. Import it in `src/main.ts` and add these
-options to the existing Vue plugin setup:
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. Vite writes
+`src/c15t-manifest.ts` before compilation or development startup. Keep the
+generated file out of Git. Import it in `src/main.ts` and add these options to
+the existing Vue plugin setup:
 
 {/* example: fragment */}
 
@@ -36,6 +37,10 @@ The browser resolves policy from the bundled snapshot without fetching
 `/manifest` or `/init`. Without `geoURL` or explicit location overrides it
 uses the unknown-location policy, so configure a fallback rule. The bundle
 includes the policy and resolver. Keep your scripts and other plugin options.
+
+When the build has no snapshot, as in `vite dev` after a failed fetch,
+`consentManifest` is `undefined`, and the plugin fetches
+`${backendURL}/manifest` instead.
 
 <include src="../build-time-manifest-notes.mdx" />
 

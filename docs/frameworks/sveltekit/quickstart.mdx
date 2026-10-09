@@ -75,9 +75,9 @@ Add `consentManifest` and `c15tPreload` to the plugins in `vite.config.ts`:
 `<backendURL>/manifest` when Vite starts, for `vite build` and `vite dev`. On
 SvelteKit 3, `svelte-kit sync` runs it too. It writes the policy to
 `src/lib/server/c15t-manifest.ts`, which the server bundle imports. Keep that
-file out of Git. `vite.config.ts` runs before the app exists, so it reads
-`PUBLIC_C15T_BACKEND_URL` with Vite's `loadEnv` instead of `$app/env/public`.
-Keep its fallback the same as the one in `src/env.ts`.
+file out of Git. Without a `backendURL` option, the plugin reads
+`PUBLIC_C15T_BACKEND_URL` from the environment or `.env`, the same variable
+`src/env.ts` declares.
 
 `c15tPreload` lets `c15tHandle`, added below, preload the script loader on
 pages that register scripts.

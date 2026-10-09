@@ -12,9 +12,9 @@ these files:
 | `src/routes/+layout.svelte` | `hosted({ url, initURL: '/api/c15t', assertDecisionInputs: true })`. |
 
 The plugin's position in `plugins` does not matter. It writes the file once
-Vite has resolved its config, before anything compiles. `vite.config.ts`
-cannot import `$app/env/public`, so read `PUBLIC_C15T_BACKEND_URL` with Vite's
-`loadEnv`, as the quickstart does. Keep the generated file out of Git.
+Vite has resolved its config, before anything compiles. Without a
+`backendURL` option, it reads `PUBLIC_C15T_BACKEND_URL` from the environment
+or `.env`. Keep the generated file out of Git.
 
 Static hosts follow [build a static site](/docs/frameworks/sveltekit/rendering#build-a-static-site)
 instead.
@@ -25,8 +25,9 @@ instead.
 
 On SvelteKit 3, `svelte-kit sync` resolves the Vite config, so it runs the
 plugin too. A `svelte-kit sync && svelte-check` script writes the file itself,
-and stops if the fetch fails. SvelteKit 2.68 also runs the plugin during
-`svelte-kit sync`, but logs a failed fetch and continues without the file.
+and follows the same rules when the fetch fails. SvelteKit 2.68 also runs the
+plugin during `svelte-kit sync`, but logs a failed fetch and continues without
+the file.
 
 To apply policy edits without a rebuild, remove the plugin, and remove the
 `c15t-manifest` import and the `manifest` line from `src/lib/server/c15t.ts`.

@@ -7,18 +7,22 @@ group: frameworks
 ## The build or dev server fails fetching the manifest
 
 **Check.** `vite build` and `vite dev` download the policy through the
-`consentManifest` plugin in `vite.config.ts`. The error names the cause:
+`consentManifest` plugin in `vite.config.ts`. `vite build` stops with an
+error that starts with `@c15t/svelte/vite: could not fetch the consent
+manifest`, and `vite dev` logs it as a warning. The part in parentheses names
+the cause:
 
 | Error | Cause |
 | --- | --- |
-| `@c15t/core/build: /manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
-| `@c15t/core/build: build-time manifests require an absolute upstream URL.` | The backend URL is empty or relative. |
-| `@c15t/core/build: /manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
-| `fetch failed` | The machine running the command cannot reach the backend. |
+| `/manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
+| `skipped the consent manifest fetch` (a notice) | The backend URL is missing, empty or relative. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
+| `/manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
+| `fetch failed` or `no response within 10 seconds` | The machine running the command cannot reach the backend. |
 
 **Fix.** Set `VITE_C15T_BACKEND_URL` to your project's absolute backend URL
 where the command runs, in `.env` or the CI environment, and make sure that
-machine can reach the backend.
+machine can reach the backend. To deploy while it is down, build with
+`C15T_ON_BUILD_ERROR=runtime`.
 
 ## Cannot find module './c15t-manifest'
 

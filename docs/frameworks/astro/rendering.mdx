@@ -56,11 +56,11 @@ visitor's decision, so keep it out of shared caches. See
 `manifest()` resolves each request on the server from your project's public
 policy file. By default the build downloads that file and bundles it, so a
 render never waits on the backend for the policy. With `buildManifest: false`,
-or when the build can't fetch it, the server downloads and caches the file at
-runtime. The browser asks the
+in `astro dev` when the fetch fails, or with `onBuildError: 'runtime'`, the
+server downloads and caches the file at runtime. The browser asks the
 injected `/api/c15t/init` route when it needs a decision, and saves consent to
-the `backendURL`. `manifest()` needs that URL as `backendURL`; without it, the
-config fails to load.
+the backend URL. `manifest()` needs that URL as `backendURL` or
+`PUBLIC_C15T_BACKEND_URL`; without it, the config fails to load.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling
 `/init` for every render.
 

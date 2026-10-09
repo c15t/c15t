@@ -1,4 +1,5 @@
 /** Node-only manifest generation for framework build integrations. */
+import { readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
 
@@ -66,11 +67,11 @@ export const loadBuildManifest = (
 	);
 
 /**
- * Longest a default build waits for the manifest, in milliseconds. A runner
- * without network access then falls back to runtime fetching instead of
- * holding the build.
+ * Longest a build or dev server waits for the manifest, in milliseconds.
+ * A backend that never answers then counts as a failed fetch instead of
+ * holding the command.
  */
-const DEFAULT_BUILD_MANIFEST_TIMEOUT_MS = 10_000;
+const BUILD_MANIFEST_TIMEOUT_MS = 10_000;
 
 /**
  * Whether a build can fetch the manifest: the upstream URL is absolute
@@ -92,59 +93,285 @@ export const hasBuildManifestSource = (options: {
 };
 
 /**
- * Loads the snapshot a framework integration fetches by default. Unlike
- * {@link loadBuildManifest}, it never stops the build: without an absolute
- * upstream URL it skips the fetch, and when the fetch fails or times out it
- * warns. Either way the caller falls back to fetching at runtime.
- * @param options - Manifest URL, or backend URL whose `/manifest` is read.
- * @param label - Framework name for messages.
- * @param warn - Receives the failure, without the label.
- * @param strictOption - The option the warning suggests to make a failed
- * fetch stop the build.
- * @returns The deployment's manifest, or `undefined` to fetch at runtime.
+ * What happens when the build-time manifest fetch fails. `'fail'` stops the
+ * command with an error. `'runtime'` logs a warning, and the server fetches
+ * the policy at runtime.
+ */
+export type ManifestBuildErrorMode = 'runtime' | 'fail';
+
+/** Whether the framework is building for production or running dev. */
+export type ManifestBuildCommand = 'build' | 'dev';
+
+/** Environment variable that overrides `onBuildError` in every framework. */
+export const MANIFEST_BUILD_ERROR_ENV = 'C15T_ON_BUILD_ERROR';
+
+const isBuildErrorMode = (value: unknown): value is ManifestBuildErrorMode =>
+	value === 'runtime' || value === 'fail';
+
+/**
+ * Decides what a failed manifest fetch does. `C15T_ON_BUILD_ERROR` wins over
+ * `onBuildError`. Without either, a production build fails and dev falls
+ * back to runtime fetching.
+ * @param onBuildError - The configured option, if any.
+ * @param command - Whether this is a production build or dev.
+ * @param label - Framework name for errors.
+ * @param env - Environment to read the override from.
+ * @returns The mode, and whether the user chose it.
+ * @throws {Error} When the option or the variable has another value.
  * @internal
  */
-export const loadDefaultBuildManifest = async (
+export const resolveManifestBuildErrorMode = (
+	onBuildError: unknown,
+	command: ManifestBuildCommand,
+	label: string,
+	env: Record<string, string | undefined> = process.env
+): { explicit: boolean; mode: ManifestBuildErrorMode } => {
+	const fromEnv = env[MANIFEST_BUILD_ERROR_ENV];
+	if (fromEnv) {
+		if (!isBuildErrorMode(fromEnv)) {
+			throw new Error(
+				`${label}: ${MANIFEST_BUILD_ERROR_ENV} must be 'runtime' or 'fail', received ${JSON.stringify(fromEnv)}.`
+			);
+		}
+		return { explicit: true, mode: fromEnv };
+	}
+	if (onBuildError !== undefined) {
+		if (!isBuildErrorMode(onBuildError)) {
+			throw new Error(
+				`${label}: onBuildError must be 'runtime' or 'fail', received ${JSON.stringify(onBuildError)}.`
+			);
+		}
+		return { explicit: true, mode: onBuildError };
+	}
+	return { explicit: false, mode: command === 'build' ? 'fail' : 'runtime' };
+};
+
+/** Values in a `.env` file. Handles `export`, quotes and comments. */
+const parseEnvFile = (source: string): Record<string, string> => {
+	const values: Record<string, string> = {};
+	for (const raw of source.split(/\r?\n/u)) {
+		const line = raw.trim().replace(/^export\s+/u, '');
+		const equals = line.indexOf('=');
+		if (line.startsWith('#') || equals < 1) {
+			continue;
+		}
+		const key = line.slice(0, equals).trim();
+		let value = line.slice(equals + 1).trim();
+		const [quote] = value;
+		if ((quote === '"' || quote === "'") && value.endsWith(quote)) {
+			value = value.slice(1, -1);
+		} else {
+			value = value.replace(/\s+#.*$/u, '');
+		}
+		values[key] = value;
+	}
+	return values;
+};
+
+/**
+ * Reads the first of `names` that is set, the way Vite resolves variables:
+ * values the framework already loaded, then the process environment, then
+ * `.env.[mode].local`, `.env.[mode]`, `.env.local` and `.env` in `root`.
+ * @param names - Variable names in order of preference.
+ * @param options - Variables the framework loaded, the directory with the
+ * `.env` files and the mode, such as `production`.
+ * @returns The value, or `undefined` when none of the names is set.
+ * @internal
+ */
+export const readBuildEnv = (
+	names: readonly string[],
 	options: {
+		env?: Record<string, unknown>;
+		mode?: string;
+		root?: string;
+	} = {}
+): string | undefined => {
+	for (const name of names) {
+		const loaded = options.env?.[name];
+		if (typeof loaded === 'string') {
+			return loaded;
+		}
+		const fromProcess = process.env[name];
+		if (fromProcess !== undefined) {
+			return fromProcess;
+		}
+	}
+	if (!options.root) {
+		return undefined;
+	}
+	const files = [
+		...(options.mode
+			? [`.env.${options.mode}.local`, `.env.${options.mode}`]
+			: []),
+		'.env.local',
+		'.env',
+	];
+	const parsed = files.map((file) => {
+		try {
+			return parseEnvFile(
+				readFileSync(resolve(options.root ?? '', file), 'utf8')
+			);
+		} catch {
+			return {};
+		}
+	});
+	for (const name of names) {
+		for (const values of parsed) {
+			if (values[name] !== undefined) {
+				return values[name];
+			}
+		}
+	}
+	return undefined;
+};
+
+/** Where a build reports a skipped or failed manifest fetch. */
+export interface ManifestBuildLogger {
+	info: (message: string) => void;
+	warn: (message: string) => void;
+}
+
+/**
+ * Prefixes every message with the framework label, for loggers that do not
+ * add one themselves.
+ * @param label - Framework name.
+ * @param logger - Where messages go. Defaults to the console.
+ * @returns The labelled logger.
+ * @internal
+ */
+export const labelledBuildLogger = (
+	label: string,
+	logger: ManifestBuildLogger = console
+): ManifestBuildLogger => ({
+	info: (message) => logger.info(`${label}: ${message}`),
+	warn: (message) => logger.warn(`${label}: ${message}`),
+});
+
+/** How a framework integration loads the build-time manifest. */
+export interface ManifestBuildPolicy {
+	/** Production build or dev. Decides the default for `onBuildError`. */
+	command: ManifestBuildCommand;
+	/** Variables that can carry the backend URL, named in messages. */
+	envNames?: readonly string[];
+	/** Framework name for errors. */
+	label: string;
+	/** Receives skip notices and warnings, without the label. */
+	logger: ManifestBuildLogger;
+	/** The configured `onBuildError`. */
+	onBuildError?: unknown;
+	/**
+	 * Why the framework cannot use a snapshot, such as a static export. The
+	 * fetch is skipped and never fails.
+	 */
+	skipReason?: string;
+}
+
+const describeFailure = (error: unknown, label: string): string => {
+	if (error instanceof Error && error.name === 'TimeoutError') {
+		return `no response within ${BUILD_MANIFEST_TIMEOUT_MS / 1000} seconds`;
+	}
+	let reason = error instanceof Error ? error.message : String(error);
+	const prefix = `${label}: `;
+	if (reason.startsWith(prefix)) {
+		reason = reason.slice(prefix.length);
+	}
+	// A network error is a bare `fetch failed`; the useful part, such as
+	// ECONNREFUSED, is in its cause.
+	if (error instanceof TypeError && error.cause instanceof Error) {
+		reason = `${reason}: ${error.cause.message}`;
+	}
+	return reason;
+};
+
+/**
+ * Loads the snapshot a framework integration bundles, following one policy
+ * in every framework:
+ *
+ * - The fetch waits at most 10 seconds.
+ * - When it fails, `onBuildError` decides: `'fail'` throws, `'runtime'`
+ *   warns and returns `undefined` so the server fetches the policy at
+ *   runtime. `C15T_ON_BUILD_ERROR` overrides the option. Without either, a
+ *   production build fails and dev warns.
+ * - A framework `skipReason` skips the fetch. So does a missing or relative
+ *   URL, unless `onBuildError` is explicitly `'fail'`, which then throws.
+ *
+ * @param source - Manifest URL, or backend URL whose `/manifest` is read.
+ * @param policy - Command, label, logger, `onBuildError` and skip reason.
+ * @returns The deployment's manifest, or `undefined` to fetch at runtime.
+ * @throws {Error} When the fetch fails in `'fail'` mode, or `onBuildError`
+ * or `C15T_ON_BUILD_ERROR` has an unknown value.
+ * @internal
+ */
+export const loadManifestForBuild = async (
+	source: {
 		backendURL?: string;
 		manifestURL?: string;
 		fetch?: typeof globalThis.fetch;
 	},
-	label: string,
-	warn: (message: string) => void,
-	strictOption = '`buildManifest: true`'
+	policy: ManifestBuildPolicy
 ): Promise<ConsentManifest | undefined> => {
-	if (!hasBuildManifestSource(options)) {
+	const { command, label, logger } = policy;
+	const { explicit, mode } = resolveManifestBuildErrorMode(
+		policy.onBuildError,
+		command,
+		label
+	);
+	if (policy.skipReason) {
+		logger.info(
+			`skipped the consent manifest fetch because ${policy.skipReason}.`
+		);
 		return undefined;
 	}
-	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+	const envHint = policy.envNames?.length
+		? ` Pass backendURL or set ${policy.envNames.join(' or ')}.`
+		: '';
+	if (!hasBuildManifestSource(source)) {
+		const configured = source.manifestURL ?? source.backendURL;
+		if (explicit && mode === 'fail') {
+			try {
+				resolveBuildManifestURL(source, label);
+			} catch (error) {
+				throw new Error(`${(error as Error).message}${envHint}`, {
+					cause: error,
+				});
+			}
+		}
+		logger.info(
+			configured
+				? `skipped the consent manifest fetch because ${JSON.stringify(configured)} is not an absolute http(s) URL, so the server fetches the policy at runtime.`
+				: `skipped the consent manifest fetch because no backend URL is set.${envHint}`
+		);
+		return undefined;
+	}
+	const fetchImpl = source.fetch ?? globalThis.fetch?.bind(globalThis);
+	const url = resolveBuildManifestURL(source, label);
+	const phase = command === 'build' ? 'the build' : 'dev';
 	try {
 		return await loadBuildManifest(
 			{
-				...options,
+				...source,
 				fetch:
 					fetchImpl &&
 					((input, init) =>
 						fetchImpl(input, {
 							...init,
-							signal: AbortSignal.timeout(DEFAULT_BUILD_MANIFEST_TIMEOUT_MS),
+							signal: AbortSignal.timeout(BUILD_MANIFEST_TIMEOUT_MS),
 						})),
 			},
 			label
 		);
 	} catch (error) {
-		const prefix = `${label}: `;
-		let reason = error instanceof Error ? error.message : String(error);
-		if (reason.startsWith(prefix)) {
-			reason = reason.slice(prefix.length);
+		const failure = `could not fetch the consent manifest from ${url} during ${phase} (${describeFailure(error, label)}).`;
+		if (mode === 'fail') {
+			throw new Error(
+				`${label}: ${failure} Set \`${MANIFEST_BUILD_ERROR_ENV}=runtime\` (or \`onBuildError: 'runtime'\`) to ${command === 'build' ? 'deploy' : 'run dev'} with runtime fetching.`,
+				{ cause: error }
+			);
 		}
-		// A network error is a bare `fetch failed`; the useful part, such as
-		// ECONNREFUSED, is in its cause.
-		if (error instanceof TypeError && error.cause instanceof Error) {
-			reason = `${reason}: ${error.cause.message}`;
-		}
-		warn(
-			`could not fetch the consent manifest during the build (${reason}). The server fetches it at runtime instead. Set ${strictOption} to stop the build when this fetch fails.`
+		logger.warn(
+			`${failure} The server fetches it at runtime instead.${
+				explicit ? '' : ' A production build stops on this error.'
+			}`
 		);
 		return undefined;
 	}
@@ -155,8 +382,18 @@ export interface ManifestBuildOptions extends Omit<
 	StaticManifestModuleOptions,
 	'manifestURL'
 > {
-	/** Absolute backend base URL. The build appends `/manifest`. */
-	backendURL: string;
+	/**
+	 * Absolute backend base URL. The build appends `/manifest`. Framework
+	 * integrations read their public backend URL variable when it is unset.
+	 */
+	backendURL?: string;
+	/**
+	 * What a failed manifest fetch does. `'fail'` stops the command.
+	 * `'runtime'` logs a warning, and the server fetches the policy at
+	 * runtime. Unset, a production build fails and dev warns. The
+	 * `C15T_ON_BUILD_ERROR` environment variable overrides this option.
+	 */
+	onBuildError?: ManifestBuildErrorMode;
 	/** Generated TypeScript file, relative to the application root. */
 	outputFile?: string;
 	/** Application root. Defaults to the framework root or current directory. */
@@ -227,124 +464,113 @@ export const writeManifestModule = async (
 };
 
 /**
- * What a build does when it cannot fetch the manifest. `'runtime'` logs a
- * warning, writes a module that exports `undefined` and lets the server fetch
- * the manifest at runtime. `'fail'` stops the build.
- */
-export type ManifestBuildErrorMode = 'runtime' | 'fail';
-
-/** Build options for integrations that can fall back to runtime fetching. */
-export interface ManifestBuildFallbackOptions extends ManifestBuildOptions {
-	/**
-	 * What to do when the build cannot fetch the manifest. `'runtime'` logs a
-	 * warning, and the server fetches the policy at runtime. `'fail'` stops
-	 * the build, and also rejects a `backendURL` that is not absolute http(s).
-	 *
-	 * @default 'runtime'
-	 */
-	onBuildError?: ManifestBuildErrorMode;
-}
-
-/** Where a build reports a skipped or failed manifest fetch. */
-export interface ManifestBuildLogger {
-	info: (message: string) => void;
-	warn: (message: string) => void;
-}
-
-const consoleLogger: ManifestBuildLogger = {
-	info: (message) => console.info(message),
-	warn: (message) => console.warn(message),
-};
-
-/**
- * Writes the generated manifest module as `onBuildError` asks.
- *
- * `'runtime'` (the default) skips the fetch when `backendURL` is not
- * absolute http(s), waits at most 10 seconds for it, and turns a failure
- * into a warning. When it has no snapshot it writes a module whose export is
+ * Writes the generated manifest module under the policy of
+ * {@link loadManifestForBuild}. Without a snapshot, the module's export is
  * `undefined`, so imports still compile and the server fetches the manifest
- * at runtime. `'fail'` behaves like {@link writeManifestModule}. A
- * `skipReason` from the framework, such as a static export, skips the fetch
- * in both modes.
+ * at runtime. A failure in `'fail'` mode leaves the file untouched.
  *
  * @param options - Backend URL, module settings and `onBuildError`.
- * @param defaults - Framework label, type import, output location, and why
- * the framework cannot use a snapshot, if it can't.
- * @param logger - Receives skip notices and fetch warnings.
+ * @param defaults - Framework label, type import, output location, command,
+ * backend URL variables, and why the framework cannot use a snapshot.
+ * @param logger - Receives skip notices and warnings, without the label.
  * @returns The absolute path of the generated module.
- * @throws {Error} With `'fail'`, when generation fails. In both modes, when
- * `onBuildError`, the export name or the import source is invalid, or the
- * file cannot be written.
+ * @throws {Error} When the fetch fails in `'fail'` mode, the export name or
+ * import source is invalid, or the file cannot be written.
  * @internal
  */
 export const writeManifestModuleWithFallback = async (
-	options: ManifestBuildFallbackOptions,
+	options: ManifestBuildOptions,
 	defaults: {
+		command: ManifestBuildCommand;
+		envNames?: readonly string[];
 		importSource: string;
 		label: string;
 		outputFile: string;
 		rootDir?: string;
 		skipReason?: string;
 	},
-	logger: ManifestBuildLogger = consoleLogger
+	logger: ManifestBuildLogger = labelledBuildLogger(defaults.label)
 ): Promise<string> => {
-	const { label } = defaults;
-	const mode = options.onBuildError ?? 'runtime';
-	if (mode !== 'runtime' && mode !== 'fail') {
-		throw new Error(
-			`${label}: onBuildError must be 'runtime' or 'fail', received ${JSON.stringify(mode)}.`
-		);
-	}
 	const names = resolveStaticManifestModuleNames(options, defaults);
-	let { skipReason } = defaults;
-	if (!skipReason && mode === 'fail') {
-		return await writeManifestModule(options, defaults);
-	}
-	if (!(skipReason || hasBuildManifestSource(options))) {
-		skipReason = `backendURL ${JSON.stringify(options.backendURL)} is not an absolute http(s) URL, so the server fetches the policy at runtime`;
-	}
-	let manifest: ConsentManifest | undefined;
-	if (skipReason) {
-		logger.info(
-			`${label}: skipped the consent manifest fetch because ${skipReason}.`
-		);
-	} else {
-		manifest = await loadDefaultBuildManifest(
-			{ backendURL: options.backendURL, fetch: options.fetch },
-			label,
-			(message) => logger.warn(`${label}: ${message}`),
-			"`onBuildError: 'fail'`"
-		);
-	}
+	const manifest = await loadManifestForBuild(
+		{ backendURL: options.backendURL, fetch: options.fetch },
+		{
+			command: defaults.command,
+			envNames: defaults.envNames,
+			label: defaults.label,
+			logger,
+			onBuildError: options.onBuildError,
+			skipReason: defaults.skipReason,
+		}
+	);
 	return await writeModuleFile(
 		resolveOutputFile(options, defaults),
 		renderStaticManifestModule(names, manifest)
 	);
 };
 
+/** The slice of Vite's resolved config the manifest plugin reads. */
+export interface ManifestPluginConfig {
+	command?: 'build' | 'serve';
+	env?: Record<string, unknown>;
+	envDir?: string | false;
+	logger?: ManifestBuildLogger;
+	mode?: string;
+	root: string;
+}
+
 /**
  * Builds the Vite plugin behind each `consentManifest` export. One
  * generation is shared across configuration resolution, and a failed one can
- * be retried. Preview uses the existing build.
+ * be retried. Preview uses the existing build. `vite build` follows the
+ * build policy, `vite dev` the dev policy. Without `backendURL`, the first of
+ * `envNames` that is set supplies it; a `VITE_` variable left unset is then
+ * set to the URL used, so app code reads the same value.
  * @param options - Backend URL, module settings and `onBuildError`.
- * @param defaults - Framework label and type import.
+ * @param defaults - Framework label, type import and backend URL variables.
  * @returns The Vite plugin.
  * @internal
  */
 export const createConsentManifestPlugin = (
-	options: ManifestBuildFallbackOptions,
-	defaults: { importSource: string; label: string }
+	options: ManifestBuildOptions,
+	defaults: {
+		envNames: readonly string[];
+		importSource: string;
+		label: string;
+	}
 ) => {
 	let generation: Promise<string> | undefined;
 	const generateManifest = async (
-		rootDir: string,
-		logger: ManifestBuildLogger | undefined
+		config: ManifestPluginConfig
 	): Promise<string> => {
+		const envRoot =
+			typeof config.envDir === 'string' ? config.envDir : config.root;
+		const backendURL =
+			options.backendURL ??
+			readBuildEnv(defaults.envNames, {
+				env: config.env,
+				mode: config.mode,
+				root: envRoot,
+			});
+		const exposed = defaults.envNames.find((name) => name.startsWith('VITE_'));
+		if (
+			backendURL &&
+			exposed &&
+			config.env &&
+			config.env[exposed] === undefined
+		) {
+			config.env[exposed] = backendURL;
+		}
 		try {
 			return await writeManifestModuleWithFallback(
-				options,
-				{ ...defaults, outputFile: 'src/c15t-manifest.ts', rootDir },
-				logger
+				{ ...options, backendURL },
+				{
+					...defaults,
+					command: config.command === 'serve' ? 'dev' : 'build',
+					outputFile: 'src/c15t-manifest.ts',
+					rootDir: config.root,
+				},
+				labelledBuildLogger(defaults.label, config.logger)
 			);
 		} catch (error) {
 			generation = undefined;
@@ -354,11 +580,8 @@ export const createConsentManifestPlugin = (
 	return {
 		apply: (_config: unknown, environment: { isPreview?: boolean }) =>
 			!environment.isPreview,
-		configResolved: async (config: {
-			logger?: ManifestBuildLogger;
-			root: string;
-		}) => {
-			generation ??= generateManifest(config.root, config.logger);
+		configResolved: async (config: ManifestPluginConfig) => {
+			generation ??= generateManifest(config);
 			await generation;
 		},
 		enforce: 'pre' as const,
@@ -372,20 +595,25 @@ export const createConsentManifestPlugin = (
  * Failed generation can be retried. Preview uses the existing build.
  * Import the generated `consentManifest` into the app's consent setup.
  *
- * @param options - Backend URL and output settings. Defaults to
- * `src/c15t-manifest.ts`, with its type imported from `c15t/build`.
+ * A failed fetch stops `vite build` and warns in `vite dev`, where the
+ * generated module exports `undefined`. Set `onBuildError` or
+ * `C15T_ON_BUILD_ERROR` to change that.
+ *
+ * @param options - Backend URL and output settings. `backendURL` defaults to
+ * `VITE_C15T_BACKEND_URL`. The file defaults to `src/c15t-manifest.ts`,
+ * with its type imported from `c15t/build`.
  * @returns A Vite plugin, compatible with React, Vue, Svelte and Solid builds.
- * @throws {Error} When generation fails, stopping the build.
+ * @throws {Error} When generation fails in `'fail'` mode, stopping Vite.
  * @example
  * ```ts
  * import { consentManifest } from 'c15t/build';
- * export default { plugins: [consentManifest({
- *   backendURL: 'https://your-project.inth.app',
- * })] };
+ * // Reads VITE_C15T_BACKEND_URL, for example from `.env`.
+ * export default { plugins: [consentManifest()] };
  * ```
  */
-export const consentManifest = (options: ManifestBuildOptions) =>
-	createConsentManifestPlugin(
-		{ ...options, onBuildError: 'fail' },
-		{ importSource: 'c15t/build', label: '@c15t/core/build' }
-	);
+export const consentManifest = (options: ManifestBuildOptions = {}) =>
+	createConsentManifestPlugin(options, {
+		envNames: ['VITE_C15T_BACKEND_URL'],
+		importSource: 'c15t/build',
+		label: '@c15t/core/build',
+	});

@@ -10,26 +10,26 @@ completed build and never fetches a new snapshot.
 
 The build fetches only from an absolute upstream `backendURL` or
 `manifestURL`, because it cannot fetch a route in the app it is still
-compiling. With a relative URL, `hosted()` or `offline()`, the integration
-skips the fetch. If the fetch fails, the integration logs a warning, and the
-server fetches and caches the policy at runtime. The config is read once at
-build time, so the built server keeps the backend URL and the snapshot it was
-built with.
+compiling. `manifest()` without a `backendURL` reads
+`PUBLIC_C15T_BACKEND_URL`. With a relative URL, `hosted()` or `offline()`,
+the integration skips the fetch. If the fetch fails, `astro build` stops.
+`astro dev` logs a warning instead, and the server fetches and caches the
+policy at runtime. The config is read once at build time, so the built server
+keeps the backend URL and the snapshot it was built with.
 
-To stop the build when the snapshot can't be fetched, set
-`buildManifest: true`:
+To let a build continue when the snapshot can't be fetched, set
+`onBuildError: 'runtime'`, or build with `C15T_ON_BUILD_ERROR=runtime`:
 
 {/* example: fragment */}
 
 ```js title="astro.config.mjs"
-c15t({
-	buildManifest: true,
-	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-});
+c15t({ mode: manifest(), onBuildError: 'runtime' });
 ```
 
-`buildManifest: true` with `hosted()`, `offline()` or a relative URL stops
-`astro build` and `astro dev` too.
+`onBuildError: 'fail'` stops `astro dev` too, and stops the build on a
+relative URL. `buildManifest: true` is a deprecated spelling of
+`onBuildError: 'fail'`, and with `hosted()` or `offline()` it stops
+`astro build` and `astro dev`.
 
 <include src="../build-time-manifest-notes.mdx" />
 

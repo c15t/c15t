@@ -2,7 +2,7 @@ import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { consentManifest as createManifestPlugin } from '@c15t/core/build';
+import { createConsentManifestPlugin } from '@c15t/core/build';
 import type { ManifestBuildOptions } from '@c15t/core/build';
 import type { Plugin } from 'vite';
 
@@ -68,16 +68,28 @@ export const c15tVue = function c15tVue(): Plugin {
 };
 
 export default c15tVue;
-export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
+export type {
+	ConsentManifest,
+	ManifestBuildErrorMode,
+	ManifestBuildOptions,
+} from '@c15t/core/build';
 
 /**
  * Generates a manifest before plain Vue compilation.
+ *
+ * `backendURL` defaults to `VITE_C15T_BACKEND_URL`, including `.env` files.
+ * A failed fetch stops `vite build` and warns in `vite dev`, where the
+ * generated module exports `undefined`. Set `onBuildError` or
+ * `C15T_ON_BUILD_ERROR` to change that.
+ *
  * @param options - Backend URL and generated module settings. Appends `/manifest`.
  * @returns A Vite plugin using `@c15t/vue/vite` for its type import.
- * @throws {Error} When the manifest cannot be fetched or written.
+ * @throws {Error} When the fetch fails in `'fail'` mode, the default for
+ * `vite build`, or the file cannot be written.
  */
-export const consentManifest = (options: ManifestBuildOptions) =>
-	createManifestPlugin({
-		...options,
-		importSource: options.importSource ?? '@c15t/vue/vite',
+export const consentManifest = (options: ManifestBuildOptions = {}) =>
+	createConsentManifestPlugin(options, {
+		envNames: ['VITE_C15T_BACKEND_URL'],
+		importSource: '@c15t/vue/vite',
+		label: '@c15t/vue/vite',
 	});

@@ -72,6 +72,30 @@ test.each([false, true])(
 	}
 );
 
+test("client mode without a snapshot reads the backend's /manifest", async () => {
+	const fetch = vi.fn((_input: RequestInfo | URL) =>
+		Promise.resolve(new Response('{}', { status: 503 }))
+	);
+	vi.stubGlobal('fetch', fetch);
+	const container = document.createElement('div');
+	document.body.append(container);
+	const app = createApp(defineComponent({ setup: () => () => h('main') }));
+	app.use(c15tVue, {
+		backendURL: 'https://consent.example.test/api/',
+		manifest: 'client',
+		manifestSnapshot: undefined,
+	});
+	app.mount(container);
+	cleanups.push(() => {
+		app.unmount();
+		container.remove();
+	});
+	await expect.poll(() => fetch.mock.calls.length).toBeGreaterThan(0);
+	expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		'https://consent.example.test/api/manifest'
+	);
+});
+
 test('holds tracker requests from child mount hooks until the blocker decides them', async () => {
 	vi.spyOn(console, 'warn').mockImplementation(() => {});
 	const network = vi.fn((_input: RequestInfo | URL) =>

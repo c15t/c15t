@@ -1,32 +1,62 @@
 ---
 packages:
   c15t: minor
+  '@c15t/astro': minor
+  '@c15t/browser': minor
   '@c15t/core': minor
   '@c15t/nextjs': minor
+  '@c15t/svelte': minor
   '@c15t/tanstack-start': minor
+  '@c15t/vue': minor
 ---
 
-### Next.js and TanStack Start builds no longer stop when the manifest fetch fails
+### One rule for failed build-time manifest fetches, and `onBuildError`
 
-`withConsentManifest` in Next.js and the `consentManifest` Vite plugin in
-TanStack Start now fall back to runtime fetching, as Astro and Nuxt already
-do. If the manifest fetch fails or takes longer than 10 seconds, the build
-logs a warning and keeps going. The generated `c15t-manifest.ts` then exports
-`consentManifest` as `undefined`, so your imports still compile and the server
-fetches and caches the policy at runtime. A backend outage or a CI runner
-without network access no longer breaks the build.
+Every integration that bundles the manifest at build time now handles a
+failed fetch the same way: `withConsentManifest` in Next.js, the
+`consentManifest` Vite plugin in TanStack Start, `c15t/build`,
+`@c15t/vue/vite` and `@c15t/svelte/vite`, the Nuxt module, and the Astro
+integration.
 
-Set `onBuildError: 'fail'` to stop the build when the fetch fails, as before:
+- The fetch waits at most 10 seconds.
+- A production build (`next build`, `vite build`, `nuxt build`,
+  `astro build`) stops with an error that names the URL and the cause.
+- Dev (`next dev`, `vite dev`, `nuxt dev`, `astro dev`) logs a warning and
+  keeps going. The server fetches the policy at runtime. The generated
+  `c15t-manifest.ts` exports `consentManifest` as `undefined`, so imports
+  still compile.
 
-```ts
-withConsentManifest(nextConfig, { backendURL, onBuildError: 'fail' });
-consentManifest({ backendURL, onBuildError: 'fail' });
+Astro and Nuxt builds used to warn and continue by default. They now stop,
+like the other frameworks.
+
+The new `onBuildError` option picks one behaviour for both commands:
+`'fail'` stops dev too, and `'runtime'` lets a production build continue and
+fetch at runtime. The `C15T_ON_BUILD_ERROR` environment variable overrides
+the option, so you can deploy during a backend outage without a code change:
+
+```sh
+C15T_ON_BUILD_ERROR=runtime npm run build
 ```
 
-The build skips the fetch, logs why and writes the same `undefined` export
-when it can't use a snapshot: a `backendURL` that is not an absolute http(s)
-URL, and in Next.js, `output: 'export'`. With `onBuildError: 'fail'`, a
-relative `backendURL` still stops the build.
+In Astro and Nuxt, `buildManifest: true` still works and now means
+`onBuildError: 'fail'`. It is deprecated. `buildManifest: false` is
+unchanged.
 
-The plain Vite plugins in `c15t/build`, `@c15t/vue/vite` and
-`@c15t/svelte/vite` are unchanged and still stop the build on a failed fetch.
+The build reads the backend URL from the framework's public variable when
+you don't pass one: `NEXT_PUBLIC_C15T_BACKEND_URL`,
+`NUXT_PUBLIC_C15T_BACKEND_URL`, `PUBLIC_C15T_BACKEND_URL` (Astro and
+SvelteKit) or `VITE_C15T_BACKEND_URL`. You can drop the
+`process.env.… ??` line from your config. The Vite plugins also set an unset
+`VITE_C15T_BACKEND_URL` to the URL they used, so `import.meta.env` in app
+code reads the same value.
+
+The build still skips the fetch, without an error, when it can't use a
+snapshot: a missing or relative backend URL, Next.js `output: 'export'`,
+`nuxt generate`, `ssr: false`, and `hosted()` or `offline()` in Astro. With
+`onBuildError: 'fail'`, a missing or relative URL stops the build.
+
+When the snapshot is `undefined`, the browser falls back too:
+`manifest({ backendURL, manifest: undefined })` in `@c15t/browser` fetches
+`${backendURL}/manifest`, and the plain Vue plugin in client manifest mode
+does the same instead of requesting `/api/c15t/manifest` on the site's own
+origin.

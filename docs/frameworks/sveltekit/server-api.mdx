@@ -233,7 +233,8 @@ exports the snapshot. Pass that export as `manifest` to `loadConsent`,
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `backendURL` | `string` | required | Absolute `http` or `https` backend URL. The plugin appends `/manifest`. |
+| `backendURL` | `string` | `PUBLIC_C15T_BACKEND_URL`, then `VITE_C15T_BACKEND_URL` | Absolute `http` or `https` backend URL. The plugin appends `/manifest`. |
+| `onBuildError` | `'fail' \| 'runtime'` | Unset | What a failed fetch does. Unset, `vite build` stops and `vite dev` logs a warning. The `C15T_ON_BUILD_ERROR` environment variable overrides it. |
 | `outputFile` | `string` | `src/c15t-manifest.ts` | The generated module, relative to `rootDir`. The quickstart uses `src/lib/server/c15t-manifest.ts` to keep it out of browser code. |
 | `rootDir` | `string` | Vite's `root` | Where `outputFile` resolves from. |
 | `exportName` | `string` | `consentManifest` | The name of the generated export. |
@@ -242,8 +243,11 @@ exports the snapshot. Pass that export as `manifest` to `loadConsent`,
 
 The plugin fetches once Vite has resolved its config: for `vite build`,
 `vite dev` and, on SvelteKit 3, `svelte-kit sync`. `vite preview` does not
-run it. It rewrites the file only when the snapshot changed. A failed fetch
-stops the command, even when an older generated file exists.
+run it. It rewrites the file only when the snapshot changed. The fetch waits
+at most 10 seconds. When it fails, `vite build` stops, even when an older
+generated file exists. `vite dev` logs a warning instead and writes a module
+that exports `undefined`; pass it as `manifest` and the server fetches the
+policy at runtime.
 
 ## ConsentState
 

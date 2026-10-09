@@ -44,24 +44,33 @@ restart the dev server after you change it. A built site keeps the URL from
 build time, even when the config reads it from an environment variable, so
 rebuild it.
 
-## `astro build` or `astro dev` fails to fetch the manifest
+## `astro build` or `astro dev` can't fetch the manifest
 
 **Check.** In `manifest()` mode the integration downloads
 `${backendURL}/manifest`, or your `manifestURL`, when `astro build` or
-`astro dev` starts. By default a failure logs a warning and the server
-fetches the policy at runtime. With `buildManifest: true` the build stops
-instead. The message names the cause:
+`astro dev` starts, and waits at most 10 seconds. When the download fails,
+`astro build` stops with an error that starts with `@c15t/astro: could not
+fetch the consent manifest from <url> during the build`. `astro dev` logs the
+same message as a warning, and the server fetches the policy at runtime. The
+part in parentheses names the cause:
 
-- `build-time manifests require an absolute upstream URL`: the URL is relative,
-  such as `/api/c15t`, or empty.
+- `fetch failed` with a network error, or `no response within 10 seconds`:
+  the build machine can't reach the backend.
 - `/manifest responded 404`, or another status: the URL is not your project's
   backend. The placeholder `https://your-project.inth.app` returns 404.
 - `/manifest returned an invalid consent manifest`: the URL answers, but not
   with a c15t manifest.
 
-**Fix.** Set `backendURL` to your Inth project's absolute backend URL, and make
-sure the machine that builds can reach it. To build without the backend, set
-`buildManifest: false`, and the server fetches the policy at runtime.
+A relative or empty URL, such as `/api/c15t`, skips the fetch. With
+`onBuildError: 'fail'`, it stops the build with `build-time manifests require
+an absolute upstream URL`.
+
+**Fix.** Set `PUBLIC_C15T_BACKEND_URL`, or `backendURL` in `manifest()`, to
+your Inth project's absolute backend URL, and make sure the machine that
+builds can reach it. To deploy while the backend is down, build with
+`C15T_ON_BUILD_ERROR=runtime`, or set `onBuildError: 'runtime'`. To never
+fetch at build time, set `buildManifest: false`. Either way, the server
+fetches the policy at runtime.
 
 ## A component says `Astro.locals.c15t` is missing
 
@@ -114,12 +123,11 @@ your Inth project's trusted origins. Add each preview deployment's origin too.
 slower, for example on the first request after a deploy, the page renders
 without the banner and the browser shows it after its own request. This happens
 when the server fetches the policy at runtime, with `hosted()`, with
-`buildManifest: false`, or after the build logged that it could not fetch the
-manifest.
+`buildManifest: false`, or after a build with `onBuildError: 'runtime'`
+could not fetch the manifest.
 
-**Fix.** Use `manifest()` with an absolute `backendURL` and let the build
-reach it, so the policy ships with the build. Set `buildManifest: true` to
-stop the build when it can't. Or raise the budget with
+**Fix.** Use `manifest()` with an absolute backend URL and let the build
+reach it, so the policy ships with the build. Or raise the budget with
 `middleware: { timeoutMs }`. See
 [Rendering and deployment](/docs/frameworks/astro/rendering#set-how-long-a-render-waits-for-the-backend).
 

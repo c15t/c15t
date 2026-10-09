@@ -55,11 +55,9 @@ Add `consentManifest` to the plugins in `vite.config.ts`:
 
 `consentManifest` downloads your project's public policy from
 `<backendURL>/manifest` when `vite build` or `vite dev` starts, and writes it
-to `src/c15t-manifest.ts`. Keep that file out of Git. `vite.config.ts` reads
-`VITE_C15T_BACKEND_URL` with Vite's `loadEnv`. Without it, the config uses
-`https://benchmarks-inth.inth.app`, a demo project, so the code runs as is.
-Set it to your project's backend URL, including any path prefix, in `.env` or
-your build environment.
+to `src/c15t-manifest.ts`. Keep that file out of Git. Without a `backendURL`
+option, the plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's
+backend URL, including any path prefix, in `.env` or your build environment.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 

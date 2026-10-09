@@ -91,7 +91,7 @@ resolve the policy without them:
 - **`manifest` unset.** The browser calls your backend's `/init` directly.
 
 `nuxt generate` skips the default build manifest. `buildManifest: true`,
-`manifest: 'server'` and `manifest: true` don't work on a static host,
+which still fetches one, `manifest: 'server'` and `manifest: true` don't work on a static host,
 because the browser would call the missing `/api/c15t/init` route.
 
 {/* example: fragment */}

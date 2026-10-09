@@ -15,10 +15,11 @@ export default {
 };
 ```
 
-Vite writes `src/c15t-manifest.ts` before compiling, including at development
-startup. Keep the generated file out of Git. Install `@c15t/browser@alpha` for
-its browser manifest transport. In `src/consent.tsx`, create the provider's
-mode with `manifest()` instead of `hosted()`:
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. Vite writes
+`src/c15t-manifest.ts` before compiling, including at development startup. Keep
+the generated file out of Git. Install `@c15t/browser@alpha` for its browser
+manifest transport. In `src/consent.tsx`, create the provider's mode with
+`manifest()` instead of `hosted()`:
 
 {/* example: fragment */}
 
@@ -37,6 +38,10 @@ Keep passing `mode` to `ConsentProvider`. The browser resolves the snapshot
 without `/manifest` when it has the geography the policy needs, or the policy
 does not depend on geography. Supply known country and region through `inputs`
 or overrides to keep regional resolution on the snapshot.
+
+When the build has no snapshot, as in `vite dev` after a failed fetch,
+`consentManifest` is `undefined`, and the browser fetches
+`${backendURL}/manifest` instead.
 
 When the required country or region is missing, the transport calls backend
 `/init` and uses its resolved policy and translations. That response can use

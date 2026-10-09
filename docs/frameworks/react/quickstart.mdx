@@ -44,9 +44,13 @@ Add `consentManifest` to `vite.config.ts`:
 
 <include src="../../shared/examples/react/vite-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
-is. Replace it with your project's backend URL, exactly as Inth shows it,
-including any path prefix, or set `VITE_C15T_BACKEND_URL` when you build.
+The plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's backend URL,
+exactly as Inth shows it, including any path prefix, in `.env` or wherever you
+build:
+
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
 
 `consentManifest` downloads your project's public policy from `/manifest` when
 `vite build` or `vite dev` starts, and writes it to `src/c15t-manifest.ts`.

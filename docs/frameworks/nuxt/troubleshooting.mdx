@@ -97,27 +97,38 @@ functions.
 
 **Fix.** Remove it, or the vendor loads without consent.
 
-## `nuxt build` or `nuxt dev` fails fetching the manifest
+## `nuxt build` or `nuxt dev` can't fetch the manifest
 
 **Check.** The module downloads the manifest when `nuxt build` runs and when
-`nuxt dev` starts. By default a failure logs a warning and the server routes
-fetch the policy at runtime. With `buildManifest: true` the build stops
-instead. The message names the cause:
+`nuxt dev` starts, and waits at most 10 seconds. When the download fails,
+`nuxt build` stops with an error that starts with `could not fetch the
+consent manifest from <url> during the build`. `nuxt dev` logs the same
+message as a warning, and the server routes fetch the policy at runtime. The
+part in parentheses names the cause:
 
-- `build-time manifests require an absolute upstream URL`: `backendURL` or
-  `manifestURL` is a relative path, such as the default `/api/c15t`.
+- `fetch failed` with a network error, or `no response within 10 seconds`:
+  the build machine can't reach the backend.
 - `/manifest responded 404 Not Found`, or another status: the URL doesn't
   point at your project's backend, or the backend is down.
 - `returned an invalid consent manifest`: the URL answers, but not with a c15t
   manifest.
+
+With `onBuildError: 'fail'` or `buildManifest: true`, these errors also
+appear:
+
+- `build-time manifests require an absolute upstream URL`: `backendURL` or
+  `manifestURL` is a relative path, such as the default `/api/c15t`. Without
+  `onBuildError: 'fail'`, the module skips the fetch instead.
 - `buildManifest requires server manifest mode`: `manifest: 'client'` is also
   set.
 
-**Fix.** Set `backendURL` to your project's absolute backend URL, including
-any path prefix; the module adds `/manifest`. To download from another
-address, set `manifestURL` to the full manifest URL, which is used as written.
-Make sure the build machine can reach the backend, or set
-`buildManifest: false` to build without it. `nuxt prepare` doesn't
+**Fix.** Set `NUXT_PUBLIC_C15T_BACKEND_URL`, or `backendURL` under the `c15t`
+key, to your project's absolute backend URL, including any path prefix; the
+module adds `/manifest`. To download from another address, set `manifestURL`
+to the full manifest URL, which is used as written. Make sure the build
+machine can reach the backend. To deploy while it is down, build with
+`C15T_ON_BUILD_ERROR=runtime`, or set `onBuildError: 'runtime'`. To never
+fetch at build time, set `buildManifest: false`. `nuxt prepare` doesn't
 download the manifest, so installing dependencies works offline.
 
 ## Policy edits don't show up

@@ -66,6 +66,24 @@ const resolvePlainVueOptions = function resolvePlainVueOptions(
 	if (options?.manifestURL && options.manifest === undefined) {
 		return { ...options, manifest: 'client' };
 	}
+	// Client mode without a snapshot, as a dev build that could not fetch
+	// one generates, reads the backend's own `/manifest`. The same-origin
+	// default route only exists in Nuxt.
+	if (
+		options?.manifest === 'client' &&
+		!options.manifestSnapshot &&
+		!options.manifestURL
+	) {
+		if (options.backendURL) {
+			return {
+				...options,
+				manifestURL: `${options.backendURL.replace(/\/+$/u, '')}/manifest`,
+			};
+		}
+		console.warn(
+			"[c15t] c15tVue: `manifest: 'client'` has no `manifestSnapshot`, `manifestURL` or `backendURL`, so it requests /api/c15t/manifest on this origin. Pass `backendURL`, for example from import.meta.env.VITE_C15T_BACKEND_URL."
+		);
+	}
 	return options;
 };
 

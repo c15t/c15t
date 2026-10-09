@@ -33,13 +33,22 @@ export interface ConsentModuleOptions {
 	 * Unset, the module does this when the app renders on a Nuxt server and
 	 * has an absolute upstream URL, unless `manifest` is `false` or
 	 * `'client'` or a `manifestSnapshot` is set. It skips `nuxt generate` and
-	 * `ssr: false`. A failed fetch logs a warning and the server routes fetch
-	 * the policy at runtime instead. `true` always fetches and stops the
-	 * build when the fetch fails. `false` never fetches, so policy edits
-	 * apply without a rebuild: pair it with `manifest: 'server'` to keep the
-	 * server routes.
+	 * `ssr: false`. `onBuildError` decides what a failed fetch does. `false`
+	 * never fetches, so policy edits apply without a rebuild: pair it with
+	 * `manifest: 'server'` to keep the server routes.
+	 *
+	 * `true` is deprecated. It means `onBuildError: 'fail'`, and also fetches
+	 * for `nuxt generate` and `ssr: false`. Use `onBuildError` instead.
 	 */
 	buildManifest?: boolean;
+	/**
+	 * What a failed build-time manifest fetch does. `'fail'` stops
+	 * `nuxt build` and `nuxt dev`. `'runtime'` logs a warning, and the
+	 * server routes fetch the policy at runtime. Unset, `nuxt build` fails
+	 * and `nuxt dev` warns. The `C15T_ON_BUILD_ERROR` environment variable
+	 * overrides this option. The fetch waits at most 10 seconds.
+	 */
+	onBuildError?: 'fail' | 'runtime';
 	/**
 	 * Add a c15t tab to Nuxt DevTools in development. The tab embeds c15t
 	 * DevTools for the app's consent kernel. @default true

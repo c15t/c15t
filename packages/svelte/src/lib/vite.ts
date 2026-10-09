@@ -9,25 +9,37 @@
 import { readdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
-import { consentManifest as createManifestPlugin } from '@c15t/core/build';
+import { createConsentManifestPlugin } from '@c15t/core/build';
 import type { ManifestBuildOptions } from '@c15t/core/build';
 
 // With its extension: Node loads this file straight from `dist`, unbundled.
 import { MODULE_PRELOAD_PLACEHOLDERS } from './kit/module-preload.js';
 import type { PreloadChunkName } from './kit/module-preload.js';
 
-export type { ConsentManifest, ManifestBuildOptions } from '@c15t/core/build';
+export type {
+	ConsentManifest,
+	ManifestBuildErrorMode,
+	ManifestBuildOptions,
+} from '@c15t/core/build';
 
 /**
  * Generates a manifest before Svelte or SvelteKit compilation.
+ *
+ * `backendURL` defaults to `PUBLIC_C15T_BACKEND_URL` (SvelteKit), then
+ * `VITE_C15T_BACKEND_URL`, including `.env` files. A failed fetch stops
+ * `vite build` and warns in `vite dev`, where the generated module exports
+ * `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that.
+ *
  * @param options - Backend URL and generated module settings. Appends `/manifest`.
  * @returns A Vite plugin using `@c15t/svelte/vite` for its type import.
- * @throws {Error} When the manifest cannot be fetched or written.
+ * @throws {Error} When the fetch fails in `'fail'` mode, the default for
+ * `vite build`, or the file cannot be written.
  */
-export const consentManifest = (options: ManifestBuildOptions) =>
-	createManifestPlugin({
-		...options,
-		importSource: options.importSource ?? '@c15t/svelte/vite',
+export const consentManifest = (options: ManifestBuildOptions = {}) =>
+	createConsentManifestPlugin(options, {
+		envNames: ['PUBLIC_C15T_BACKEND_URL', 'VITE_C15T_BACKEND_URL'],
+		importSource: '@c15t/svelte/vite',
+		label: '@c15t/svelte/vite',
 	});
 
 /** The `@c15t/core` module each on-demand chunk starts from. */

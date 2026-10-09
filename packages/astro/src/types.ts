@@ -168,13 +168,21 @@ export interface C15tAstroOptions {
 	 * it for this deployment. Policy edits then need a rebuild.
 	 *
 	 * Unset, `manifest()` mode fetches it whenever its upstream URL is
-	 * absolute; a failed fetch logs a warning and the server fetches the
-	 * policy at runtime instead. `true` requires manifest mode with an
-	 * absolute upstream URL and stops the build when the fetch fails.
-	 * `false` always fetches at runtime, so policy edits apply without a
-	 * rebuild.
+	 * absolute, and `onBuildError` decides what a failed fetch does. `false`
+	 * always fetches at runtime, so policy edits apply without a rebuild.
+	 *
+	 * `true` is deprecated. It means `onBuildError: 'fail'`, and requires
+	 * manifest mode. Use `onBuildError` instead.
 	 */
 	buildManifest?: boolean;
+	/**
+	 * What a failed build-time manifest fetch does. `'fail'` stops
+	 * `astro build` and `astro dev`. `'runtime'` logs a warning, and the
+	 * server fetches the policy at runtime. Unset, `astro build` fails and
+	 * `astro dev` warns. The `C15T_ON_BUILD_ERROR` environment variable
+	 * overrides this option. The fetch waits at most 10 seconds.
+	 */
+	onBuildError?: 'fail' | 'runtime';
 	/** Host layout and styling constrained by the active policy. */
 	presentation?: ConsentPresentation;
 	/**

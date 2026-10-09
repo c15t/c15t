@@ -70,17 +70,29 @@ describe('Next.js build-time manifest', () => {
 		expect(options.fetch).not.toHaveBeenCalled();
 	});
 
-	test('keeps building with a runtime fallback when the fetch fails', async () => {
+	test('next build stops when the fetch fails and keeps the old file out', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
+		const wrapped = withConsentManifest({}, options);
+		await wrapped('phase-production-build', { defaultConfig: {} });
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		await expect(
+			wrapped('phase-production-build', { defaultConfig: {} })
+		).rejects.toThrow(
+			"@c15t/nextjs/build: could not fetch the consent manifest from https://consent.example.com/manifest during the build (backend unavailable). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
+		);
+	});
+
+	test('next dev warns and writes an undefined export when the fetch fails', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
 		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
 		const config = { basePath: '/app' };
 		const wrapped = withConsentManifest(config, options);
-		await wrapped('phase-production-build', { defaultConfig: {} });
-		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		expect(await wrapped('phase-production-build', { defaultConfig: {} })).toBe(
-			config
-		);
+		expect(
+			await wrapped('phase-development-server', { defaultConfig: {} })
+		).toBe(config);
 		const source = await readFile(join(root, 'c15t-manifest.ts'), 'utf8');
 		expect(source).toContain("from 'c15t/next/static'");
 		expect(source).toContain(
@@ -88,21 +100,47 @@ describe('Next.js build-time manifest', () => {
 		);
 		expect(warn).toHaveBeenCalledWith(
 			expect.stringContaining(
-				'@c15t/nextjs/build: could not fetch the consent manifest during the build (backend unavailable)'
+				'@c15t/nextjs/build: could not fetch the consent manifest from https://consent.example.com/manifest during dev (backend unavailable)'
 			)
 		);
 		warn.mockRestore();
 	});
 
-	test("fails the build with onBuildError: 'fail' instead of accepting an old snapshot", async () => {
+	test.each([
+		['onBuildError', { onBuildError: 'runtime' as const }, {}],
+		['C15T_ON_BUILD_ERROR', {}, { C15T_ON_BUILD_ERROR: 'runtime' }],
+	])('%s runtime lets next build continue', async (_name, setting, env) => {
+		for (const [key, value] of Object.entries(env)) {
+			vi.stubEnv(key, value);
+		}
 		const root = await createRoot();
-		const options = { ...optionsFor(root), onBuildError: 'fail' as const };
-		const wrapped = withConsentManifest({}, options);
-		await wrapped('phase-production-build', { defaultConfig: {} });
+		const options = { ...optionsFor(root), ...setting };
 		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		await expect(
-			wrapped('phase-production-build', { defaultConfig: {} })
-		).rejects.toThrow('backend unavailable');
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		await withConsentManifest({}, options)('phase-production-build', {
+			defaultConfig: {},
+		});
+		expect(warn).toHaveBeenCalledTimes(1);
+		expect(await readFile(join(root, 'c15t-manifest.ts'), 'utf8')).toContain(
+			'= undefined;'
+		);
+		warn.mockRestore();
+		vi.unstubAllEnvs();
+	});
+
+	test('reads NEXT_PUBLIC_C15T_BACKEND_URL when backendURL is left out', async () => {
+		vi.stubEnv('NEXT_PUBLIC_C15T_BACKEND_URL', 'https://env.example.com/api');
+		const root = await createRoot();
+		const { fetch, rootDir } = optionsFor(root);
+		await withConsentManifest({}, { fetch, rootDir })(
+			'phase-production-build',
+			{ defaultConfig: {} }
+		);
+		expect(fetch).toHaveBeenCalledWith(
+			'https://env.example.com/api/manifest',
+			expect.any(Object)
+		);
+		vi.unstubAllEnvs();
 	});
 
 	test.each(['runtime', 'fail'] as const)(

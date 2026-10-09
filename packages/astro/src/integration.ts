@@ -15,6 +15,7 @@
  * 5. The component stylesheet, on every page.
  */
 
+import { readBuildEnv } from '@c15t/core/build';
 import { isIABConfigured } from '@c15t/core/runtime';
 import type { AstroIntegration } from 'astro';
 
@@ -28,6 +29,41 @@ import type {
 } from './types';
 
 const VIRTUAL_ID = 'virtual:c15t/options';
+
+/** Variable a `manifest()` mode without `backendURL` reads it from. */
+const BACKEND_URL_ENV = 'PUBLIC_C15T_BACKEND_URL';
+
+/**
+ * Fill a `manifest()` mode's missing `backendURL` from
+ * `PUBLIC_C15T_BACKEND_URL`, in the environment or a `.env` file in the
+ * working directory, so `astro.config.mjs` needs no `process.env` line.
+ *
+ * @param options - The options passed to `c15t()`.
+ * @returns The options, with the backend URL when the variable has one.
+ */
+const withBackendURLFromEnv = function withBackendURLFromEnv(
+	options: C15tAstroOptions
+): C15tAstroOptions {
+	const mode = options?.mode;
+	if (
+		mode?.type !== 'manifest' ||
+		mode.manifest ||
+		mode.backendURL !== undefined
+	) {
+		return options;
+	}
+	const nodeEnv = process.env.NODE_ENV;
+	const backendURL = readBuildEnv([BACKEND_URL_ENV], {
+		mode:
+			nodeEnv === 'production' || nodeEnv === 'development'
+				? nodeEnv
+				: undefined,
+		root: process.cwd(),
+	});
+	return backendURL === undefined
+		? options
+		: { ...options, mode: { ...mode, backendURL } };
+};
 const RESOLVED_VIRTUAL_ID = `\0${VIRTUAL_ID}`;
 
 const DEFAULT_INIT_PATH = '/api/c15t/init';
@@ -192,7 +228,7 @@ const resolveManifestMode = function resolveManifestMode(
 	if (mode.type === 'manifest' && !mode.manifest) {
 		if (mode.backendURL === undefined) {
 			throw new Error(
-				'@c15t/astro: pass backendURL to manifest(), for example manifest({ backendURL: "https://your-project.inth.app" }). The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
+				'@c15t/astro: pass backendURL to manifest(), for example manifest({ backendURL: "https://your-project.inth.app" }), or set PUBLIC_C15T_BACKEND_URL. The browser saves consent there with POST /subjects; the injected routes only serve init and manifest.'
 			);
 		}
 		if (mode.backendURL === '' && !mode.manifestURL) {
@@ -619,6 +655,47 @@ const missingAdapterMessage = function missingAdapterMessage(
 };
 
 /**
+ * Fetch the manifest for `astro build` or `astro dev` and put it in the
+ * resolved mode. `hosted()` and `offline()` have no manifest to fetch, an
+ * inline `manifest` is already the snapshot, and `buildManifest: false`
+ * always fetches at runtime.
+ *
+ * @param resolved - The resolved options; its mode gains the snapshot.
+ * @param options - The options passed to `c15t()`.
+ * @param command - `build` or `dev`.
+ * @param logger - Astro's integration logger.
+ * @throws {Error} When the fetch fails in `'fail'` mode.
+ */
+const bundleBuildManifest = async function bundleBuildManifest(
+	resolved: C15tResolvedOptions,
+	options: C15tAstroOptions,
+	command: string | undefined,
+	logger: { info: (message: string) => void; warn: (message: string) => void }
+): Promise<void> {
+	const { mode } = resolved;
+	if (
+		options.buildManifest === false ||
+		mode.type !== 'manifest' ||
+		mode.manifest
+	) {
+		return;
+	}
+	const { loadManifestForBuild } = await import('@c15t/core/build');
+	const manifest = await loadManifestForBuild(mode, {
+		command: command === 'build' ? 'build' : 'dev',
+		envNames: [BACKEND_URL_ENV],
+		label: '@c15t/astro',
+		logger,
+		// `buildManifest: true` is the older spelling of `onBuildError: 'fail'`.
+		onBuildError:
+			options.buildManifest === true ? 'fail' : options.onBuildError,
+	});
+	if (manifest) {
+		resolved.mode = { ...mode, manifest };
+	}
+};
+
+/**
  * Create the c15t Astro integration.
  *
  * @param options - Consent configuration for the site.
@@ -645,7 +722,10 @@ const missingAdapterMessage = function missingAdapterMessage(
  * });
  * ```
  */
-export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
+export const c15t = function c15t(
+	configured: C15tAstroOptions
+): AstroIntegration {
+	const options = withBackendURLFromEnv(configured);
 	const resolved = resolveOptions(options);
 	// Recorded at `astro:config:setup`, which runs before `astro:config:done`.
 	let command: string | undefined;
@@ -703,28 +783,8 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				) {
 					throw new Error('@c15t/astro: buildManifest requires manifest mode.');
 				}
-				// `hosted()` and `offline()` have no manifest to fetch, and an
-				// inline `manifest` is already the snapshot.
-				if (
-					fetchesSnapshot &&
-					options.buildManifest !== false &&
-					resolved.mode.type === 'manifest' &&
-					!resolved.mode.manifest
-				) {
-					const { loadBuildManifest, loadDefaultBuildManifest } =
-						await import('@c15t/core/build');
-					// Only an explicit `true` stops the build when the fetch fails.
-					const manifest =
-						options.buildManifest === true
-							? await loadBuildManifest(resolved.mode, '@c15t/astro')
-							: await loadDefaultBuildManifest(
-									resolved.mode,
-									'@c15t/astro',
-									(message) => logger.warn(message)
-								);
-					if (manifest) {
-						resolved.mode = { ...resolved.mode, manifest };
-					}
+				if (fetchesSnapshot) {
+					await bundleBuildManifest(resolved, options, command, logger);
 				}
 				const resolveEntry = await createOwnEntryResolver();
 				// Tailwind 3 unwraps c15t's cascade layer in the stylesheets it

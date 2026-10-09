@@ -39,13 +39,17 @@ Register the module in `nuxt.config.ts`:
 
 <include src="../../shared/examples/nuxt/nuxt-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the snippet runs as
-is. Replace it with your project's backend URL, including any path prefix, or
-set `NUXT_PUBLIC_C15T_BACKEND_URL` when you build. The policy is fixed at
-build time: setting `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves
-consent saves, not the policy, so build again to switch projects.
+Set `NUXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
+any path prefix, in `.env` or wherever you build. The module reads it, so the
+config needs no `backendURL`. The policy is fixed at build time: setting
+`NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves consent saves, not
+the policy, so build again to switch projects.
 
-With an absolute `backendURL`, the module fetches your project's public policy
+```sh title=".env"
+NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+With an absolute backend URL, the module fetches your project's public policy
 once, during `nuxt build` and when `nuxt dev` starts, and embeds it in the
 server bundle.
 It also adds two routes to your Nuxt server, `/api/c15t/manifest` and

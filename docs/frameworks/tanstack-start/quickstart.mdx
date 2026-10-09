@@ -43,11 +43,12 @@ When `vite build` or `vite dev` starts, the plugin downloads your project's
 public policy from `${backendURL}/manifest` and writes it to
 `src/c15t-manifest.ts`. Keep that file out of Git.
 
-`https://benchmarks-inth.inth.app` is a demo project, so the config runs as
-is. Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
-shows it, including any path prefix, or replace the fallback. The app code
-below reads the same variable. Vite writes its value into the server and
-browser builds, so setting it when you start a built app has no effect.
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
+shows it, including any path prefix, in `.env` or wherever you build. The
+plugin reads it, and so does the app code below, which falls back to
+`https://benchmarks-inth.inth.app`, a demo project. Vite writes the value into
+the server and browser builds, so setting it when you start a built app has
+no effect.
 
 Declare the server's consent options in `src/consent-options.server.ts`:
 

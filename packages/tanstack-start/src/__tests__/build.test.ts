@@ -62,13 +62,13 @@ describe('TanStack Start manifest generation', () => {
 			.fn<typeof globalThis.fetch>()
 			.mockRejectedValue(new Error('backend unavailable'));
 
-	test('warns through Vite and writes an undefined export when the fetch fails', async () => {
+	test('vite dev warns and writes an undefined export when the fetch fails', async () => {
 		const root = await createRoot();
 		const logger = { info: vi.fn(), warn: vi.fn() };
 		await consentManifest({
 			backendURL: 'https://consent.example.com',
 			fetch: failingFetch(),
-		}).configResolved({ logger, root });
+		}).configResolved({ command: 'serve', logger, root });
 		const source = await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8');
 		expect(source).toContain("from 'c15t/tanstack-start/static'");
 		expect(source).toContain(
@@ -76,20 +76,43 @@ describe('TanStack Start manifest generation', () => {
 		);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringContaining(
-				"@c15t/tanstack-start/build: could not fetch the consent manifest during the build (backend unavailable). The server fetches it at runtime instead. Set `onBuildError: 'fail'`"
+				'@c15t/tanstack-start/build: could not fetch the consent manifest from https://consent.example.com/manifest during dev (backend unavailable). The server fetches it at runtime instead.'
 			)
 		);
 	});
 
-	test("stops the build with onBuildError: 'fail'", async () => {
+	test('vite build stops when the fetch fails', async () => {
 		const root = await createRoot();
 		await expect(
 			consentManifest({
 				backendURL: 'https://consent.example.com',
 				fetch: failingFetch(),
-				onBuildError: 'fail',
-			}).configResolved({ root })
-		).rejects.toThrow('backend unavailable');
+			}).configResolved({ command: 'build', root })
+		).rejects.toThrow(
+			"during the build (backend unavailable). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
+		);
+	});
+
+	test('reads VITE_C15T_BACKEND_URL when backendURL is left out', async () => {
+		const root = await createRoot();
+		const fetchSpy = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(
+				Response.json({
+					branding: 'c15t',
+					revision: 'tanstack-build',
+					schemaVersion: 2,
+				})
+			)
+		);
+		await consentManifest({ fetch: fetchSpy }).configResolved({
+			command: 'build',
+			env: { VITE_C15T_BACKEND_URL: 'https://env.example.com' },
+			root,
+		});
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://env.example.com/manifest',
+			expect.any(Object)
+		);
 	});
 
 	test('skips the fetch for a relative backendURL', async () => {
@@ -99,7 +122,7 @@ describe('TanStack Start manifest generation', () => {
 		await consentManifest({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy,
-		}).configResolved({ logger, root });
+		}).configResolved({ command: 'build', logger, root });
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(logger.warn).not.toHaveBeenCalled();
 		expect(

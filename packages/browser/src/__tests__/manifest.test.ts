@@ -139,6 +139,29 @@ describe('manifest()', () => {
 		expect(() => manifest({})).toThrow(/manifest/u);
 	});
 
+	it("reads the backend's /manifest when the build had no snapshot", async () => {
+		const fetchSpy = vi.fn<typeof fetch>((input) =>
+			Promise.resolve(
+				String(input) === 'https://example.test/api/manifest'
+					? new Response(JSON.stringify(everywhereManifest))
+					: new Response(JSON.stringify({ subjectId: 'sub_browser1' }))
+			)
+		);
+		const client = createConsentClient({
+			mode: manifest({
+				backendURL: 'https://example.test/api/',
+				fetch: fetchSpy,
+				manifest: undefined,
+			}),
+		});
+		clients.push(client);
+		client.start();
+		await client.ready();
+		expect(fetchSpy.mock.calls.map(([input]) => pathOf(input))).toEqual([
+			'https://example.test/api/manifest',
+		]);
+	});
+
 	it.each([
 		'https://cdn.example.test/consent.json',
 		'/consent.json',

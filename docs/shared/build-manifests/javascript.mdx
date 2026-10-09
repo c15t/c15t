@@ -16,10 +16,11 @@ export default {
 };
 ```
 
-Vite generates `src/c15t-manifest.ts` before compilation and development
-startup. Keep the generated file out of Git. In your browser entry point,
-switch the `init` import to `@c15t/browser`, which supports manifest mode,
-and add these options to the existing `init()` call:
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. Vite generates
+`src/c15t-manifest.ts` before compilation and development startup. Keep the
+generated file out of Git. In your browser entry point, switch the `init`
+import to `@c15t/browser`, which supports manifest mode, and add these options
+to the existing `init()` call:
 
 {/* example: fragment */}
 
@@ -41,6 +42,10 @@ country and region are known through `overrides`. When required
 geography is missing, it calls backend `/init` and uses the backend's resolved
 policy and translations. Those visitors still wait for a backend round trip
 and can receive newer policy than the build snapshot.
+
+When the build has no snapshot, as in `vite dev` after a failed fetch,
+`consentManifest` is `undefined`, and the browser fetches
+`${backendURL}/manifest` instead.
 
 A script-tag site without a build step cannot run this hook.
 

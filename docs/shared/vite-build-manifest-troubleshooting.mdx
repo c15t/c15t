@@ -1,15 +1,27 @@
 ## Why does the build fail to download the manifest?
 
-**Check.** `vite build` or `vite dev` stops before compiling, with an error
-from `consentManifest` that starts with `@c15t/core/build:`.
+**Check.** `vite build` stops before compiling, with an error from
+`consentManifest` that starts with `@c15t/core/build: could not fetch the
+consent manifest from <url> during the build`. `vite dev` logs the same
+message as a warning and keeps going. The part in parentheses names the
+cause:
 
-| Error | Cause | Fix |
+| Message | Cause | Fix |
 | --- | --- | --- |
-| `build-time manifests require an absolute upstream URL.` | `backendURL` is empty or relative, such as `/api/c15t` | Pass the absolute backend URL from your Inth project |
-| `build-time manifests require an http(s) upstream URL.` | `backendURL` uses another protocol | Use the `https://` URL Inth shows |
+| `fetch failed`, with `ENOTFOUND`, `ECONNREFUSED` or another network error | The build cannot reach the backend | Build where the backend is reachable |
+| `no response within 10 seconds` | The backend did not answer in time | Check the backend, or build where it is reachable |
 | `/manifest responded 404` | The URL is not your project's backend, such as the `https://your-project.inth.app` placeholder or a URL missing its path prefix | Copy the backend URL exactly as Inth shows it, or set `VITE_C15T_BACKEND_URL` |
 | `/manifest returned an invalid consent manifest.` | The URL answered with something other than a consent manifest, such as an HTML page | Point `backendURL` at the backend itself, not your site or a dashboard page |
-| `fetch failed` | The build cannot reach the backend | Build where the backend is reachable. A failed download never reuses an old snapshot |
+
+A failed download never reuses an old snapshot. To deploy while the backend
+is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. The browser then
+fetches the policy from the backend at runtime.
+
+A notice that the build `skipped the consent manifest fetch` means the backend
+URL is missing or relative, such as `/api/c15t`. Set `VITE_C15T_BACKEND_URL`
+or pass the absolute backend URL from your Inth project. With
+`onBuildError: 'fail'`, this stops the build with `build-time manifests
+require an absolute upstream URL`.
 
 ## Why can't TypeScript find ./c15t-manifest?
 

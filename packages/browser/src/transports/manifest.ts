@@ -26,7 +26,10 @@ export interface ManifestModeOptions {
 	 * request at all for a policy that does not depend on location.
 	 */
 	manifest?: ConsentManifest;
-	/** Where to fetch the manifest when it is not inlined. */
+	/**
+	 * Where to fetch the manifest when it is not inlined. Defaults to
+	 * `${backendURL}/manifest`.
+	 */
 	manifestURL?: string;
 	/**
 	 * Backend origin for `POST /subjects`, and for `GET /init` when the
@@ -147,8 +150,8 @@ const browserBaseTranslations = {
  *
  * @param options - Manifest source and backend.
  * @returns A transport factory for `mode`.
- * @throws {Error} When neither `manifest` nor `manifestURL` is given,
- * or a backend cannot be derived and `backendURL` is omitted.
+ * @throws {Error} When none of `manifest`, `manifestURL` and `backendURL`
+ * is given, or a backend cannot be derived and `backendURL` is omitted.
  *
  * @example
  * ```ts
@@ -160,12 +163,20 @@ const browserBaseTranslations = {
 export const manifest = function manifest(
 	options: ManifestModeOptions
 ): ProviderTransportFactory {
-	if (!(options.manifest || options.manifestURL)) {
+	const backendURL = deriveBackendURL(options);
+	// Without an inline manifest or a `manifestURL`, read the backend's own
+	// `/manifest`. A build that could not fetch the snapshot passes
+	// `manifest: undefined`, and the page still gets its policy.
+	const manifestURL =
+		options.manifestURL ??
+		(options.manifest || backendURL === undefined
+			? undefined
+			: `${backendURL}/manifest`);
+	if (!(options.manifest || manifestURL)) {
 		throw new Error(
-			'@c15t/browser: manifest() needs `manifest` or `manifestURL`.'
+			'@c15t/browser: manifest() needs `manifest`, `manifestURL` or `backendURL`.'
 		);
 	}
-	const backendURL = deriveBackendURL(options);
 	if (backendURL === undefined) {
 		throw new Error(
 			'@c15t/browser: manifest() needs `backendURL` unless `manifestURL` ends in `/manifest`. Pass the consent API URL, or an empty string for this origin.'
@@ -179,7 +190,7 @@ export const manifest = function manifest(
 	const fetchManifest =
 		async function fetchManifest(): Promise<ConsentManifest> {
 			const fetchImpl = options.fetch ?? globalThis.fetch;
-			const response = await fetchImpl(options.manifestURL as string, {
+			const response = await fetchImpl(manifestURL as string, {
 				headers: { ...c15tProtocolHeaders },
 			});
 			if (!response.ok) {

@@ -25,20 +25,23 @@ interface SetupCalls {
 	addMiddleware: ReturnType<typeof vi.fn>;
 	injectRoute: ReturnType<typeof vi.fn>;
 	injectScript: ReturnType<typeof vi.fn>;
-	logger: { warn: ReturnType<typeof vi.fn> };
+	logger: { info: ReturnType<typeof vi.fn>; warn: ReturnType<typeof vi.fn> };
 	updateConfig: ReturnType<typeof vi.fn>;
 }
 
 // `manifest()` mode fetches a build snapshot by default. Keep tests that
-// don't stub `fetch` themselves off the network.
+// don't stub `fetch` themselves off the network, and let their builds fall
+// back to runtime fetching. Tests of the failure policy clear the variable.
 beforeEach(() => {
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(() => Promise.reject(new Error('offline in tests')))
 	);
+	vi.stubEnv('C15T_ON_BUILD_ERROR', 'runtime');
 });
 afterEach(() => {
 	vi.unstubAllGlobals();
+	vi.unstubAllEnvs();
 });
 
 const resolveOwnEntry = await createOwnEntryResolver();
@@ -62,7 +65,7 @@ const runSetup = async function runSetup(
 		addMiddleware: vi.fn(),
 		injectRoute: vi.fn(),
 		injectScript: vi.fn(),
-		logger: { warn: vi.fn() },
+		logger: { info: vi.fn(), warn: vi.fn() },
 		updateConfig: vi.fn(),
 	};
 	await integration.hooks['astro:config:setup']?.({
@@ -161,6 +164,7 @@ describe('resolveOptions', () => {
 			response: () => Response.json({ error: 'not a manifest' }),
 		},
 	])('buildManifest stops the build on $error', async ({ response, error }) => {
+		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(() => Promise.resolve(response()))
@@ -220,19 +224,79 @@ describe('resolveOptions', () => {
 		expect(calls.logger.warn).not.toHaveBeenCalled();
 	});
 
-	it('warns and keeps building when the default fetch fails', async () => {
+	it('astro dev warns and keeps going when the default fetch fails', async () => {
+		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
 		vi.stubGlobal(
 			'fetch',
 			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
 		);
-		const { calls } = await runSetup({
-			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
-		});
+		const { calls } = await runSetup(
+			{ mode: manifestMode({ backendURL: 'https://consent.example.com' }) },
+			{},
+			'dev'
+		);
 		expect(calls.logger.warn).toHaveBeenCalledWith(
-			expect.stringContaining('/manifest responded 503')
+			expect.stringContaining('during dev (/manifest responded 503')
 		);
 		expect(calls.logger.warn.mock.calls[0]?.[0]).not.toContain('@c15t/astro');
 		expect(serverOptionsSource(calls)).not.toContain('"schemaVersion"');
+	});
+
+	it('astro build stops when the default fetch fails', async () => {
+		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
+		);
+		await expect(
+			runSetup({
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			})
+		).rejects.toThrow(
+			"@c15t/astro: could not fetch the consent manifest from https://consent.example.com/manifest during the build (/manifest responded 503 ). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
+		);
+	});
+
+	it.each([
+		['onBuildError', { onBuildError: 'runtime' }, ''],
+		['C15T_ON_BUILD_ERROR', { buildManifest: true }, 'runtime'],
+	] as const)(
+		'%s runtime lets astro build continue',
+		async (_name, settings, fromEnv) => {
+			vi.stubEnv('C15T_ON_BUILD_ERROR', fromEnv);
+			const { calls } = await runSetup({
+				...settings,
+				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			});
+			expect(calls.logger.warn).toHaveBeenCalledTimes(1);
+		}
+	);
+
+	it("onBuildError: 'fail' stops astro dev", async () => {
+		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
+		await expect(
+			runSetup(
+				{
+					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+					onBuildError: 'fail',
+				},
+				{},
+				'dev'
+			)
+		).rejects.toThrow('during dev (offline in tests)');
+	});
+
+	it('reads PUBLIC_C15T_BACKEND_URL when manifest() has no backendURL', async () => {
+		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
+		const fetch = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(Response.json(INLINE_MANIFEST))
+		);
+		vi.stubGlobal('fetch', fetch);
+		await runSetup({ mode: manifestMode() });
+		expect(fetch).toHaveBeenCalledWith(
+			'https://env.example.com/manifest',
+			expect.anything()
+		);
 	});
 
 	it.each([
@@ -277,6 +341,7 @@ describe('resolveOptions', () => {
 	);
 
 	it('buildManifest: true still needs an absolute upstream URL', async () => {
+		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
 		await expect(
 			runSetup({
 				buildManifest: true,

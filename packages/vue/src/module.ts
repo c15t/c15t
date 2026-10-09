@@ -2,8 +2,8 @@ import { existsSync, realpathSync } from 'node:fs';
 
 import {
 	hasBuildManifestSource,
-	loadBuildManifest,
-	loadDefaultBuildManifest,
+	loadManifestForBuild,
+	resolveManifestBuildErrorMode,
 } from '@c15t/core/build';
 import { isIABConfigured } from '@c15t/core/runtime';
 import { defaultConsentConfig } from '@c15t/schema/config';
@@ -111,16 +111,32 @@ const addDevToolsTab = (
 const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
 	`export default ${snapshot ? JSON.stringify(snapshot) : 'undefined'};`;
 
+/** Variable the module reads the backend URL from when none is set. */
+const BACKEND_URL_ENV = 'NUXT_PUBLIC_C15T_BACKEND_URL';
+
+/**
+ * Nuxt loads `.env` before the config, so the variable the app reads at
+ * runtime also gives the build its backend when the config sets none.
+ */
+const fillBackendURLFromEnv = (options: ModuleOptions): void => {
+	const fromEnv = process.env[BACKEND_URL_ENV];
+	if (options.backendURL === undefined && !options.manifestURL && fromEnv) {
+		options.backendURL = fromEnv;
+	}
+};
+
 /**
  * Whether `buildManifest` left unset fetches a snapshot. It needs a Nuxt
  * server that renders pages and an absolute upstream URL, and stays out of
  * the way of an explicit `manifest: false` or `'client'` and of a
- * `manifestSnapshot` the app supplies.
+ * `manifestSnapshot` the app supplies. An explicit `onBuildError: 'fail'`
+ * with a relative URL still fetches, so the build reports the URL.
  */
 const buildsManifestByDefault = (
 	options: ModuleOptions,
 	nuxt: Nuxt,
-	hasSnapshot: boolean
+	hasSnapshot: boolean,
+	strict: boolean
 ): boolean => {
 	const { manifest } = options;
 	if (manifest === false || manifest === 'client' || hasSnapshot) {
@@ -132,24 +148,38 @@ const buildsManifestByDefault = (
 	if (generate || nuxt.options.nitro.static || nuxt.options.ssr === false) {
 		return false;
 	}
-	return hasBuildManifestSource(options);
+	return strict || hasBuildManifestSource(options);
 };
 
 const loadNuxtBuildManifest = (
-	enabled: boolean | undefined,
+	buildManifest: boolean | undefined,
+	onBuildError: ModuleOptions['onBuildError'],
 	options: ModuleOptions,
 	nuxt: Nuxt,
 	hasSnapshot: boolean
 ) => {
-	if (enabled === false) {
+	if (buildManifest === false) {
 		return undefined;
 	}
-	if (enabled === true && options.manifest === 'client') {
+	if (buildManifest === true && options.manifest === 'client') {
 		throw new Error('@c15t/vue: buildManifest requires server manifest mode.');
 	}
+	const command = nuxt.options.dev ? 'dev' : 'build';
+	// `buildManifest: true` is the older spelling of `onBuildError: 'fail'`.
+	const configured = buildManifest === true ? 'fail' : onBuildError;
+	const { explicit, mode } = resolveManifestBuildErrorMode(
+		configured,
+		command,
+		'@c15t/vue'
+	);
 	if (
-		enabled === undefined &&
-		!buildsManifestByDefault(options, nuxt, hasSnapshot)
+		buildManifest === undefined &&
+		!buildsManifestByDefault(
+			options,
+			nuxt,
+			hasSnapshot,
+			explicit && mode === 'fail'
+		)
 	) {
 		return undefined;
 	}
@@ -159,13 +189,17 @@ const loadNuxtBuildManifest = (
 	if (nuxt.options._prepare) {
 		return undefined;
 	}
-	// Only an explicit `true` stops the build when the fetch fails. Otherwise
-	// the server routes fetch and cache the manifest at runtime.
-	return enabled
-		? loadBuildManifest(options, '@c15t/vue')
-		: loadDefaultBuildManifest(options, '@c15t/vue', (message) =>
-				useLogger('@c15t/vue').warn(message)
-			);
+	const logger = useLogger('@c15t/vue');
+	return loadManifestForBuild(options, {
+		command,
+		envNames: [BACKEND_URL_ENV],
+		label: '@c15t/vue',
+		logger: {
+			info: (message) => logger.info(message),
+			warn: (message) => logger.warn(message),
+		},
+		onBuildError: configured,
+	});
 };
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
@@ -182,7 +216,11 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		configKey: 'c15t',
 		name: '@c15t/vue',
 	},
-	async setup({ buildManifest, devtools, initPrefetch, ...options }, nuxt) {
+	async setup(
+		{ buildManifest, devtools, initPrefetch, onBuildError, ...options },
+		nuxt
+	) {
+		fillBackendURLFromEnv(options);
 		// Nuxt merges module options with `defu`, which skips `null`, so a
 		// `colorScheme: null` under the `c15t` key would arrive unset and
 		// mirror a `dark` class. Read it back: `null` leaves `c15t-dark` to
@@ -200,6 +238,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		const manifestSnapshot =
 			(await loadNuxtBuildManifest(
 				buildManifest,
+				onBuildError,
 				options,
 				nuxt,
 				configuredSnapshot !== undefined

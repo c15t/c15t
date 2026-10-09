@@ -241,7 +241,7 @@ describe('buildManifest unset', () => {
 		c15t: Record<string, unknown>,
 		fetch: typeof globalThis.fetch,
 		ssr = true,
-		lifecycle: { _generate?: boolean } = {}
+		lifecycle: { _generate?: boolean; dev?: boolean } = {}
 	) {
 		warn.mockClear();
 		vi.stubGlobal('fetch', fetch);
@@ -276,17 +276,86 @@ describe('buildManifest unset', () => {
 		expect(warn).not.toHaveBeenCalled();
 	});
 
-	test('warns and fetches at runtime when the build fetch fails', async () => {
+	const unreachable = () =>
+		vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'));
+
+	test('nuxt dev warns and fetches at runtime when the fetch fails', async () => {
 		const result = await setUp(
 			{ backendURL: 'https://consent.example.com' },
-			vi
-				.fn<typeof globalThis.fetch>()
-				.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'))
+			unreachable(),
+			true,
+			{ dev: true }
 		);
 		expect(result).toEqual({ manifest: 'server', snapshot: undefined });
 		expect(warn).toHaveBeenCalledWith(
-			expect.stringContaining('getaddrinfo ENOTFOUND')
+			expect.stringContaining('during dev (getaddrinfo ENOTFOUND)')
 		);
+	});
+
+	test('nuxt build stops when the fetch fails', async () => {
+		await expect(
+			setUp({ backendURL: 'https://consent.example.com' }, unreachable())
+		).rejects.toThrow(
+			"@c15t/vue: could not fetch the consent manifest from https://consent.example.com/manifest during the build (getaddrinfo ENOTFOUND). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
+		);
+	});
+
+	test.each([
+		['onBuildError', { onBuildError: 'runtime' }, undefined],
+		['C15T_ON_BUILD_ERROR', {}, 'runtime'],
+		[
+			'C15T_ON_BUILD_ERROR over buildManifest: true',
+			{ buildManifest: true },
+			'runtime',
+		],
+	])(
+		'%s runtime lets nuxt build continue',
+		async (_name, settings, fromEnv) => {
+			if (fromEnv) {
+				vi.stubEnv('C15T_ON_BUILD_ERROR', fromEnv);
+			}
+			try {
+				const result = await setUp(
+					{ backendURL: 'https://consent.example.com', ...settings },
+					unreachable()
+				);
+				expect(result).toEqual({ manifest: 'server', snapshot: undefined });
+				expect(warn).toHaveBeenCalledTimes(1);
+			} finally {
+				vi.unstubAllEnvs();
+			}
+		}
+	);
+
+	test("onBuildError: 'fail' stops nuxt dev", async () => {
+		await expect(
+			setUp(
+				{ backendURL: 'https://consent.example.com', onBuildError: 'fail' },
+				unreachable(),
+				true,
+				{ dev: true }
+			)
+		).rejects.toThrow('during dev (getaddrinfo ENOTFOUND)');
+	});
+
+	test('reads NUXT_PUBLIC_C15T_BACKEND_URL when backendURL is left out', async () => {
+		vi.stubEnv('NUXT_PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
+		try {
+			const snapshot = createSnapshot();
+			const fetch = vi
+				.fn<typeof globalThis.fetch>()
+				.mockResolvedValue(Response.json(snapshot));
+			const result = await setUp({}, fetch);
+			expect(fetch).toHaveBeenCalledWith(
+				'https://env.example.com/manifest',
+				expect.anything()
+			);
+			expect(result).toEqual({ manifest: 'server', snapshot });
+		} finally {
+			vi.unstubAllEnvs();
+		}
 	});
 
 	test.each([

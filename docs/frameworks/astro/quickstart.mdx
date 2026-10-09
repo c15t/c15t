@@ -66,11 +66,14 @@ in the first HTML.
 
 <include src="../../shared/examples/astro/server-config.mdx" />
 
-`https://benchmarks-inth.inth.app` is a demo project, so the config runs as
-is. Replace it with your project's backend URL, including any path prefix, or
-set `PUBLIC_C15T_BACKEND_URL`. Astro loads the config before it reads `.env`
-files, so set the variable in the environment that runs `astro dev` and
-`astro build`. The URL must be absolute, because the build fetches from it.
+`manifest()` without a `backendURL` reads `PUBLIC_C15T_BACKEND_URL` from the
+environment, or from `.env` or `.env.local` in the directory you run Astro
+from. Set it to your project's backend URL, including any path prefix. The URL
+must be absolute, because the build fetches from it.
+
+```sh title=".env"
+PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
 
 `manifest()` fetches your project's public policy once, when `astro build`
 or `astro dev` starts, and embeds it in the server build. The

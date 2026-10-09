@@ -82,7 +82,8 @@ mode fits which Astro output.
 
 | Option | Type | Default | Effect |
 | --- | --- | --- | --- |
-| `buildManifest` | `boolean` | Unset | Unset, `manifest()` mode with an absolute upstream URL fetches the policy when `astro build` or `astro dev` starts and embeds it in generated options; a failed fetch logs a warning and the server fetches at runtime. `true` stops the build when it can't fetch. `false` always fetches at runtime, so policy edits apply without a rebuild. See [build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds). |
+| `buildManifest` | `boolean` | Unset | Unset, `manifest()` mode with an absolute upstream URL fetches the policy when `astro build` or `astro dev` starts and embeds it in generated options; `onBuildError` decides what a failed fetch does. `false` always fetches at runtime, so policy edits apply without a rebuild. `true` is deprecated: it means `onBuildError: 'fail'` and requires manifest mode. See [build-time manifests](/docs/frameworks/astro/rendering#bundle-the-manifest-during-builds). |
+| `onBuildError` | `'fail' \| 'runtime'` | Unset | What a failed build-time manifest fetch does. Unset, `astro build` stops and `astro dev` logs a warning, and the server fetches the policy at runtime. `'fail'` stops both. `'runtime'` lets both continue. The `C15T_ON_BUILD_ERROR` environment variable overrides it. |
 | `consentCategories` | `AllConsentNames[]` | Inferred from scripts and the policy | Categories the banner and dialog offer |
 | `scripts` | `Script[]` | None | Scripts without callbacks, loaded when their category is allowed. See [Scripts](/docs/frameworks/astro/scripts) |
 | `vendors` | `Vendor[]` | None | Vendors the dialog lists with their own switch inside a category. Merged with vendors from the backend manifest. See [Vendor consent](/docs/frameworks/astro/vendor-consent) |
@@ -186,14 +187,14 @@ one copy. Keep it small, because it loads on every page.
 | Message contains | Cause |
 | --- | --- |
 | `` `mode` is required `` | `c15t()` has no `mode`, or `mode` is not built with a helper |
-| `pass backendURL to manifest()` | `manifest()` has no `backendURL` and no inline `manifest` |
+| `pass backendURL to manifest()` | `manifest()` has no `backendURL`, `PUBLIC_C15T_BACKEND_URL` is unset, and there is no inline `manifest` |
 | `gives the server no manifest to fetch` | `manifest({ backendURL: '' })` has no `manifestURL` or inline `manifest` |
 | `unknown ui` | `ui` is not `'svelte'`, `'react'` or `'vue'` |
 | `ui: "svelte" needs @astrojs/svelte` | The `ui` framework's Astro integration is missing |
 | `manifest mode injects on-demand routes` | `astro build` runs with the routes on and no server adapter |
 | `buildManifest requires manifest mode` | `buildManifest: true` with `hosted()` or `offline()` |
-| `build-time manifests require an absolute upstream URL` | `buildManifest: true` with a relative or empty `backendURL` or `manifestURL` |
-| `/manifest responded` or `/manifest returned an invalid consent manifest` | `buildManifest: true` could not download a manifest when `astro build` or `astro dev` started. Without `buildManifest: true`, the same message is a warning |
+| `build-time manifests require an absolute upstream URL` | `onBuildError: 'fail'` or `buildManifest: true` with a relative or empty `backendURL` or `manifestURL` |
+| `could not fetch the consent manifest` | `astro build` could not download a manifest. In `astro dev`, or with `onBuildError: 'runtime'`, the same message is a warning |
 
 [Troubleshooting](/docs/frameworks/astro/troubleshooting) has the fix for
 each.
