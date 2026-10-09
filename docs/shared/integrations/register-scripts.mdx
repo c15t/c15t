@@ -73,7 +73,7 @@ provider.
     <ConsentProvider options={{ mode, scripts }}>
     ```
 
-    `mode` is the `hosted({ url: 'https://your-project.inth.app' })` value
+    `mode` is the `hosted({ backendURL: 'https://your-project.inth.app' })` value
     from the [React quickstart](/docs/frameworks/react/quickstart). Keep the banner,
     dialog and preferences link inside the provider. See
     [React scripts and embeds](/docs/frameworks/react/scripts).
@@ -149,7 +149,7 @@ provider.
       import { ConsentManagerProvider, hosted } from '@c15t/svelte';
       import { scripts } from './consent-scripts';
 
-      const mode = hosted({ url: 'https://your-project.inth.app' });
+      const mode = hosted({ backendURL: 'https://your-project.inth.app' });
     </script>
 
     <ConsentManagerProvider {mode} {scripts}>
@@ -171,7 +171,7 @@ provider.
       import { scripts } from '../consent-scripts';
 
       let { children, data } = $props();
-      const mode = hosted({ url: 'https://your-project.inth.app' });
+      const mode = hosted({ backendURL: 'https://your-project.inth.app' });
     </script>
 
     <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>

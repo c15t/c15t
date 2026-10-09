@@ -857,7 +857,7 @@ describe('hosted transport: save refusals', () => {
 				backendURL: 'https://backend.test',
 				domain: 'example.com',
 				fetch: respond(status, { code }),
-				manifest: MANIFEST_FIXTURE,
+				snapshot: MANIFEST_FIXTURE,
 			});
 			const error = await transport
 				.save(payload)
@@ -872,7 +872,7 @@ describe('hosted transport: save refusals', () => {
 			backendURL: 'https://backend.test',
 			domain: 'example.com',
 			fetch: respond(500, { code: 'DATABASE_ERROR' }),
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		const error = await transport
 			.save(payload)
@@ -1501,7 +1501,7 @@ describe('createManifestTransport: local init resolution', () => {
 				deferGvl,
 				fetchGvl,
 				inputs: { country: 'DE', region: 'BE' },
-				manifest: MANIFEST_FIXTURE,
+				snapshot: MANIFEST_FIXTURE,
 			});
 			const response = await transport.init?.({ overrides: {}, user: null });
 			expect(response?.gvl).toBe(list);
@@ -1523,7 +1523,7 @@ describe('createManifestTransport: local init resolution', () => {
 				language: 'de-DE,de;q=0.9',
 				region: 'BE',
 			},
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 		});
 
 		const response = await transport.init?.({ overrides: {}, user: null });
@@ -1656,7 +1656,7 @@ describe('createManifestTransport: local init resolution', () => {
 				language: 'de',
 				region: 'BE',
 			},
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 		});
 
 		await transport.save?.({
@@ -1713,7 +1713,7 @@ describe('createManifestTransport: local init resolution', () => {
 				language: 'en',
 				region: null,
 			},
-			manifest: packlessManifest as never,
+			snapshot: packlessManifest as never,
 		});
 
 		await transport.init?.({ overrides: {}, user: null });
@@ -2592,7 +2592,7 @@ describe('consent journey query parameters', () => {
 		const transport = createManifestTransport({
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof fetch,
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		const journey = { id: JOURNEY_ID, scope: 'page' as const };
 		await transport.init?.({
@@ -2612,8 +2612,8 @@ describe('consent journey query parameters', () => {
 		const transport = createManifestTransport({
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof fetch,
-			manifest: MANIFEST_FIXTURE,
 			report: { adapter: '@c15t/test', source: 'route' },
+			snapshot: MANIFEST_FIXTURE,
 		});
 		const journey = { id: JOURNEY_ID, scope: 'page' as const };
 		await transport.init?.({
@@ -2633,7 +2633,7 @@ describe('consent journey query parameters', () => {
 		const transport = createManifestTransport({
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof fetch,
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		await transport.save?.({
 			...savePayload,

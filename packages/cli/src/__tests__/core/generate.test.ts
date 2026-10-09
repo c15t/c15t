@@ -88,7 +88,7 @@ describe('reusable generation', () => {
 			scripts: ['google-tag'],
 		});
 		expect(plan.files['src/privacy/consent-manager.tsx']).toContain(
-			'hosted({ url: "https://consent.example.com" })'
+			'hosted({ backendURL: "https://consent.example.com" })'
 		);
 		expect(plan.files['src/privacy/consent-manager.tsx']).toContain('gtag(');
 		expect(plan.files['src/privacy/README.md']).toContain(

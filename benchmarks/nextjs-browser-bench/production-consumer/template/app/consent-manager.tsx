@@ -65,7 +65,7 @@ export const ConsentManager = ({
 				},
 			},
 			consentCategories,
-			mode: hosted({ url: '/api/bench-consent' }),
+			mode: hosted({ backendURL: '/api/bench-consent' }),
 			prefetch: state,
 			theme,
 		}}

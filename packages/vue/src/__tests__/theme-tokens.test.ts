@@ -149,7 +149,7 @@ describe('the Vue plugin applies tokens', () => {
 
 	test('leaves styling to the host that owns a borrowed runtime', () => {
 		const runtime = createConsentRuntime({
-			mode: hosted({ url: 'https://consent.example.test' }),
+			mode: hosted({ backendURL: 'https://consent.example.test' }),
 			pkg: '@c15t/vue-test',
 		});
 		const app = createApp(defineComponent({ setup: () => () => h('main') }));

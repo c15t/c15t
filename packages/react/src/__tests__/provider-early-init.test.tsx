@@ -102,7 +102,7 @@ const PolicyProbe = () => {
 	);
 };
 
-const mode = () => hosted({ fetch: backendFetch, url: BACKEND });
+const mode = () => hosted({ backendURL: BACKEND, fetch: backendFetch });
 
 test('sends /init once, before its children render, under StrictMode', async () => {
 	const seen: number[] = [];
@@ -291,7 +291,7 @@ test('a hosted() mode created inline shares one request across StrictMode and a 
 	const App = () => (
 		<ConsentProvider
 			options={{
-				mode: hosted({ fetch: backendFetch, url: BACKEND }),
+				mode: hosted({ backendURL: BACKEND, fetch: backendFetch }),
 				persistence: false,
 			}}
 		>
@@ -333,9 +333,9 @@ test('a retry after the shared hosted() options changed sends its own request', 
 		return null;
 	};
 	const shared = {
+		backendURL: BACKEND,
 		fetch: backendFetch,
 		headers: { 'accept-language': 'de' },
-		url: BACKEND,
 	};
 	const App = () => (
 		<ConsentProvider options={{ mode: hosted(shared), persistence: false }}>
@@ -352,7 +352,7 @@ test('a retry after the shared hosted() options changed sends its own request', 
 	expect(initCalls()).toHaveLength(1);
 
 	// The same object, edited before React retries.
-	shared.url = 'https://other.example/api/c15t';
+	shared.backendURL = 'https://other.example/api/c15t';
 	shared.headers['accept-language'] = 'fr';
 	resume();
 	await expect.element(view.getByTestId('policy')).toHaveTextContent('pending');
@@ -402,7 +402,7 @@ test('a retry after the global fetch changed sends its own request through the n
 	// No `fetch`: the transport takes the global one when it is built.
 	const App = () => (
 		<ConsentProvider
-			options={{ mode: hosted({ url: BACKEND }), persistence: false }}
+			options={{ mode: hosted({ backendURL: BACKEND }), persistence: false }}
 		>
 			<SuspendsOnce />
 			<Capture />
@@ -448,7 +448,7 @@ test('sibling providers given one mode object each get a transport and an /init'
 	};
 	// Tags each save with the transport that sends it.
 	const savedBy: KernelTransport[] = [];
-	const base = hosted({ fetch: backendFetch, url: BACKEND });
+	const base = hosted({ backendURL: BACKEND, fetch: backendFetch });
 	const shared = Object.assign(
 		(context: ProviderTransportContext) => {
 			const transport = base(context);
@@ -688,29 +688,29 @@ test('providers whose hosted() modes differ never share a request', async () => 
 		<>
 			<ConsentProvider
 				options={{
-					mode: hosted({ fetch: backendFetch, url: BACKEND }),
+					mode: hosted({ backendURL: BACKEND, fetch: backendFetch }),
 					persistence: false,
 				}}
 			/>
 			<ConsentProvider
 				options={{
-					mode: hosted({ fetch: backendFetch, url: `${BACKEND}/other` }),
+					mode: hosted({ backendURL: `${BACKEND}/other`, fetch: backendFetch }),
 					persistence: false,
 				}}
 			/>
 			<ConsentProvider
 				options={{
 					mode: hosted({
+						backendURL: BACKEND,
 						fetch: backendFetch,
 						headers: { 'accept-language': 'fr' },
-						url: BACKEND,
 					}),
 					persistence: false,
 				}}
 			/>
 			<ConsentProvider
 				options={{
-					mode: hosted({ fetch: otherFetch, url: BACKEND }),
+					mode: hosted({ backendURL: BACKEND, fetch: otherFetch }),
 					persistence: false,
 				}}
 			/>

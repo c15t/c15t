@@ -11,7 +11,7 @@
  *
  *   function App({ children }) {
  *     return (
- *       <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+ *       <ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>
  *         {children}
  *       </ConsentProvider>
  *     );

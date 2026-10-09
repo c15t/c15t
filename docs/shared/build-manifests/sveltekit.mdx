@@ -9,7 +9,7 @@ these files:
 | `src/lib/server/c15t.ts` | The consent options: `backendURL` and the bundled `manifest`. |
 | `src/routes/+layout.server.ts` | Passes the options to `loadConsent`, with `shared: building`. |
 | `src/routes/api/c15t/[...path]/+server.ts` | Passes the options to `createSvelteKitConsentRouteHandlers`, for the browser's own policy requests. |
-| `src/routes/+layout.svelte` | `hosted({ url, initURL: '/api/c15t', assertDecisionInputs: true })`. |
+| `src/routes/+layout.svelte` | `hosted({ backendURL, initURL: '/api/c15t', assertDecisionInputs: true })`. |
 
 The plugin's position in `plugins` does not matter. It writes the file once
 Vite has resolved its config, before anything compiles. Without a

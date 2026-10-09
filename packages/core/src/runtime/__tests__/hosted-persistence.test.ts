@@ -41,6 +41,7 @@ const createRuntime = (options: Partial<ConsentRuntimeOptions> = {}) => {
 	const runtime = createConsentRuntime({
 		consentCategories: ['necessary', 'measurement'],
 		mode: hosted({
+			backendURL: '/api/c15t',
 			fetch: (input) => {
 				if (unavailable) {
 					return Promise.resolve(new Response(null, { status: 503 }));
@@ -60,7 +61,6 @@ const createRuntime = (options: Partial<ConsentRuntimeOptions> = {}) => {
 					)
 				);
 			},
-			url: '/api/c15t',
 		}),
 		prefetch: { initRetry: false },
 		...options,

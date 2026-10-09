@@ -54,7 +54,7 @@ describe('consent component template', () => {
 			docsSlug: 'next',
 			enableDevTools: true,
 			importSource: 'c15t/next',
-			optionsText: "mode: hosted({ url: '/api/c15t' }),",
+			optionsText: "mode: hosted({ backendURL: '/api/c15t' }),",
 			selectedScripts: ['google-tag-manager'],
 			ssrDataOption: true,
 			useClientDirective: true,

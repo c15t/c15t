@@ -1,9 +1,23 @@
+import { readdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 
 import { baseConfig } from '@c15t/vitest-config/base';
 import react from '@vitejs/plugin-react';
 import { playwright } from '@vitest/browser-playwright';
 import { defineConfig, mergeConfig } from 'vitest/config';
+
+/**
+ * `@c15t/translations/<lang>` for every language module, ahead of the
+ * package-root alias, which would otherwise swallow them.
+ */
+const translationLanguages = Object.fromEntries(
+	readdirSync(resolve(__dirname, '../translations/src/languages'))
+		.filter((file) => file.endsWith('.ts') && !file.endsWith('.test.ts'))
+		.map((file) => [
+			`@c15t/translations/${file.slice(0, -'.ts'.length)}`,
+			resolve(__dirname, '../translations/src/languages', file),
+		])
+);
 
 export default mergeConfig(
 	baseConfig,
@@ -59,6 +73,10 @@ export default mergeConfig(
 				'@c15t/core/transports/manifest-cache': resolve(
 					__dirname,
 					'../core/src/transports/manifest-cache.ts'
+				),
+				'@c15t/core/transports/manifest-browser': resolve(
+					__dirname,
+					'../core/src/transports/manifest-browser.ts'
 				),
 				'@c15t/core/transports/manifest': resolve(
 					__dirname,
@@ -131,6 +149,7 @@ export default mergeConfig(
 					__dirname,
 					'../translations/src/translations/en.ts'
 				),
+				...translationLanguages,
 				'@c15t/translations': resolve(
 					__dirname,
 					'../translations/src/index.ts'

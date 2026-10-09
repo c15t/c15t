@@ -109,7 +109,7 @@ export const App = ({ children }) => (
 		expect(updated).toContain(
 			"import { ConsentProvider, hosted } from '@c15t/react';\nimport { useHeadlessConsentUI } from '@c15t/react/headless';"
 		);
-		expect(updated).toContain("mode: hosted({ url: '/api/c15t' }),");
+		expect(updated).toContain("mode: hosted({ backendURL: '/api/c15t' }),");
 		expect(updated).toContain('onChoiceRecorded: () => {}');
 		expect(updated).toContain('</ConsentProvider>');
 	}, 30_000);

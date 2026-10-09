@@ -27,7 +27,7 @@ group: reference
   the same subpaths and helper names.
 - `ConsentManagerProvider` becomes `ConsentProvider` in React. Next.js apps
   that resolve consent on the server use `ConsentRoot`.
-- `mode` and `backendURL` become one transport, `hosted({ url })` or
+- `mode` and `backendURL` become one transport, `hosted({ backendURL })` or
   `offline()`.
 - Policy packs become policy rules. You set them in your Inth project, in a
   self-hosted backend's `manifest.policyRules`, or in `offline({ policyRules })`.

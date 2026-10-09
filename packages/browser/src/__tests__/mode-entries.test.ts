@@ -241,6 +241,7 @@ describe('hosted browser entry', () => {
 		const client = track(
 			createHostedClient({
 				mode: hosted({
+					backendURL: `${backendURL}/api/`,
 					fetch: fetchSpy,
 					headers: {
 						'Accept-Language': 'de',
@@ -248,7 +249,6 @@ describe('hosted browser entry', () => {
 						'CF-IPCountry': 'DE',
 					},
 					initURL: '/consent/init',
-					url: `${backendURL}/api/`,
 				}),
 				ui: false,
 			})
@@ -450,7 +450,7 @@ const offlineInvalidCases: [string, ConsentClientOptions][] = [
 	['manifest URL', { manifestURL: '/manifest' }],
 	['hosted mode', { mode: 'hosted' }],
 	['manifest mode', { mode: 'manifest' }],
-	['hosted factory', { mode: hosted({ url: backendURL }) }],
+	['hosted factory', { mode: hosted({ backendURL }) }],
 	['custom factory', { mode: custom({}) }],
 ];
 

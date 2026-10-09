@@ -10,7 +10,7 @@ const runtimeSource = function runtimeSource(
 	}
 	const mode =
 		options.mode === 'hosted'
-			? `const mode = hosted({ url: ${JSON.stringify(options.backendURL)} });`
+			? `const mode = hosted({ backendURL: ${JSON.stringify(options.backendURL)} });`
 			: `// Review this starting policy for your site before deployment.
 const mode = offline({ policyRules: ${DEFAULT_OFFLINE_RULES} });`;
 	return `${options.mode === 'hosted' ? "import { hosted } from '@c15t/core';" : "import { offline } from '@c15t/core';"}

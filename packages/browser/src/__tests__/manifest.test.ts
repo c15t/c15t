@@ -94,7 +94,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: 'https://example.test',
 				fetch: fetchSpy,
-				manifest: everywhereManifest,
+				snapshot: everywhereManifest,
 			}),
 		});
 		clients.push(client);
@@ -119,7 +119,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: 'https://example.test',
 				fetch: fetchSpy,
-				manifest: {
+				snapshot: {
 					...geoManifest,
 					policyPacks: [
 						createConsentManifestPolicyPack(
@@ -151,7 +151,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: 'https://example.test/api/',
 				fetch: fetchSpy,
-				manifest: undefined,
+				snapshot: undefined,
 			}),
 		});
 		clients.push(client);
@@ -179,7 +179,7 @@ describe('manifest()', () => {
 	it.each([everywhereManifest, geoManifest])(
 		'requires a backend for an inline-only manifest',
 		(inlineManifest) => {
-			expect(() => manifest({ manifest: inlineManifest })).toThrow(
+			expect(() => manifest({ snapshot: inlineManifest })).toThrow(
 				/backendURL/u
 			);
 		}
@@ -235,7 +235,7 @@ describe('manifest()', () => {
 			mode: manifest({
 				backendURL: '',
 				fetch: fetchSpy,
-				manifest: everywhereManifest,
+				snapshot: everywhereManifest,
 			}),
 		});
 		clients.push(client);
@@ -256,7 +256,7 @@ describe('manifest()', () => {
 				mode: manifest({
 					backendURL: 'https://x.c15t.dev',
 					fetch: fetchSpy,
-					manifest: everywhereManifest,
+					snapshot: everywhereManifest,
 				}),
 			},
 			{ pkg: 'test' }
@@ -281,7 +281,7 @@ describe('manifest()', () => {
 				mode: manifest({
 					backendURL: 'https://x.c15t.dev',
 					fetch: fetchSpy,
-					manifest: geoManifest,
+					snapshot: geoManifest,
 				}),
 			},
 			{ pkg: 'test' }
@@ -303,7 +303,7 @@ describe('manifest()', () => {
 				mode: manifest({
 					backendURL: 'https://x.c15t.dev',
 					fetch: fetchSpy,
-					manifest: geoManifest,
+					snapshot: geoManifest,
 				}),
 				overrides: { country: 'FR' },
 			},

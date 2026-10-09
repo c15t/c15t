@@ -49,7 +49,7 @@ import {
 export default function ConsentManagerClient({ children }) {
 	return (
 		<ConsentProvider
-			options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
+			options={{ mode: hosted({ backendURL: 'https://your-project.c15t.dev' }) }}
 		>
 			<ConsentBanner />
 			<ConsentDialog />
@@ -94,7 +94,7 @@ import type { ConsentProviderOptions } from 'c15t/react';
 // Shared consent options.
 const options: ConsentProviderOptions = {
 	// Same-origin backend
-	mode: hosted({ url: '/api/consent', headers: { 'x-tenant': 'acme' }, fetch: customFetch }),
+	mode: hosted({ backendURL: '/api/consent', headers: { 'x-tenant': 'acme' }, fetch: customFetch }),
 	iframeBlocker: { disableAutomaticBlocking: true },
 	consentCategories: ['necessary', 'marketing'],
 };
@@ -124,7 +124,7 @@ export const App = ({ children }) => (
 			"export { ConsentProvider as ConsentManagerProvider, type ConsentProviderOptions as Options } from '@c15t/react';"
 		);
 		expect(updated).toContain(
-			"<Provider options={{ mode: hosted({ url: '/api/c15t' }) }}>"
+			"<Provider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>"
 		);
 	});
 
@@ -297,7 +297,7 @@ export const App = ({ children }) => (
 `
 		);
 
-		expect(updated).toContain("mode: hosted({ url: '/api/c15t' })");
+		expect(updated).toContain("mode: hosted({ backendURL: '/api/c15t' })");
 		expect(updated).toContain(
 			'/* TODO(c15t v3): retryConfig was removed. Delete it. */ retryConfig'
 		);
@@ -317,8 +317,12 @@ export const B = ({ children }) => (
 `
 		);
 
-		expect(updated).toContain("options={{ mode: hosted({ url: '/a' }) }}");
-		expect(updated).toContain("options={{ mode: hosted({ url: '/b' }) }}");
+		expect(updated).toContain(
+			"options={{ mode: hosted({ backendURL: '/a' }) }}"
+		);
+		expect(updated).toContain(
+			"options={{ mode: hosted({ backendURL: '/b' }) }}"
+		);
 		expect(updated.match(/<ConsentProvider /gu)).toHaveLength(2);
 		expect(result.changedFiles[0]?.operations).toBe(3);
 	});
@@ -341,7 +345,7 @@ const runtime = getOrCreateConsentRuntime({
 			.toBe(`import { getOrCreateConsentRuntime, hosted } from 'c15t';
 
 const runtime = getOrCreateConsentRuntime({
-	mode: hosted({ url: '/api/c15t' }),
+	mode: hosted({ backendURL: '/api/c15t' }),
 	iframeBlocker: iframeBlockerConfig,
 });
 `);
@@ -362,7 +366,7 @@ export const App = () => <Provider options={{ mode: 'hosted', backendURL: '/x' }
 			`import { ConsentProvider, hosted } from 'c15t/react';
 
 export const App = ({ children }) => (
-	<ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }), iframeBlocker: false }}>
+	<ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }), iframeBlocker: false }}>
 		{children}
 	</ConsentProvider>
 );
@@ -396,7 +400,7 @@ export const App = ({ children, headers, customFetch }) => (
 		);
 		expect(result.errors).toEqual([]);
 		expect(updated).toContain(
-			"<ConsentProvider options={{ mode: hosted({ url: '/api/c15t', headers, fetch: customFetch }) }}>{children}</ConsentProvider>"
+			"<ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t', headers, fetch: customFetch }) }}>{children}</ConsentProvider>"
 		);
 
 		const multiLine = await transformFile(
@@ -415,7 +419,7 @@ export const options: ConsentManagerOptions = {
 		expect(multiLine.result.errors).toEqual([]);
 		expect(multiLine.updated)
 			.toContain(`export const options: ConsentProviderOptions = {
-	mode: hosted({ url: '/api/c15t', headers: { 'x-a': '1' }, fetch: customFetch }),
+	mode: hosted({ backendURL: '/api/c15t', headers: { 'x-a': '1' }, fetch: customFetch }),
 	consentCategories: ['necessary'],
 };`);
 	});
@@ -442,7 +446,7 @@ export const fromHelper: ConsentManagerOptions = {
 		);
 
 		const todo =
-			'TODO(c15t v3): mode now takes a transport such as hosted({ url }) or offline().';
+			'TODO(c15t v3): mode now takes a transport such as hosted({ backendURL }) or offline().';
 		expect(first).toContain(
 			`export const options: ConsentProviderOptions = { /* ${todo} Replace this value and remove backendURL, offlinePolicy and endpointHandlers. */ mode };`
 		);
@@ -463,12 +467,12 @@ export const fromHelper: ConsentManagerOptions = {
 
 declare const useOffline: boolean;
 const mode = offline();
-const transport = useOffline ? offline() : hosted({ url: '/api/c15t' });
+const transport = useOffline ? offline() : hosted({ backendURL: '/api/c15t' });
 
 export const a: ConsentProviderOptions = { mode };
 export const b: ConsentProviderOptions = { mode: transport };
 export const c: ConsentProviderOptions = {
-	mode: useOffline ? offline() : hosted({ url: '/api/c15t' }),
+	mode: useOffline ? offline() : hosted({ backendURL: '/api/c15t' }),
 };
 export const d: ConsentProviderOptions = { mode: remote({ url: '/api/c15t' }) };
 `
@@ -502,7 +506,7 @@ export const App = () => <ConsentManagerProvider options={{ backendURL: '/x' }} 
 		});
 		expect(updated).toBe(source);
 		expect(result.changedFiles[0]?.after).toContain(
-			"<ConsentProvider options={{ mode: hosted({ url: '/x' }) }} />"
+			"<ConsentProvider options={{ mode: hosted({ backendURL: '/x' }) }} />"
 		);
 	});
 });

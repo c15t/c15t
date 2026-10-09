@@ -34,9 +34,11 @@ describe('formatDocsCode', () => {
 		expect(
 			await formatDocsCode(
 				'ts',
-				"const mode = hosted({\n\turl: 'https://your-project.inth.app',\n});"
+				"const mode = hosted({\n\tbackendURL: 'https://your-project.inth.app',\n});"
 			)
-		).toBe("const mode = hosted({ url: 'https://your-project.inth.app' });");
+		).toBe(
+			"const mode = hosted({ backendURL: 'https://your-project.inth.app' });"
+		);
 	});
 
 	test('returns null for fragments and unhandled languages', async () => {

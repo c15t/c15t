@@ -55,7 +55,7 @@ describe('Svelte v3 boilerplate', () => {
 			scripts: [],
 		});
 		expect(result.files['consent-options.ts']).toContain(
-			`hosted({ url: ${JSON.stringify(backendURL)} })`
+			`hosted({ backendURL: ${JSON.stringify(backendURL)} })`
 		);
 		expect(result.files['consent-options.ts']).toContain('scripts: []');
 	});

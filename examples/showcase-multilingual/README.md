@@ -44,7 +44,7 @@ browser.
 ## Going to production
 
 In `components/consent.tsx`, replace `offline()` with
-`hosted({ url: 'https://your-project.inth.app' })`. The backend reads the
+`hosted({ backendURL: 'https://your-project.inth.app' })`. The backend reads the
 visitor's location from the request and returns the policy for it, so the
 preview bar can go. Its copy for the visitor's language, including edits made
 in your project, becomes the base, and the messages in `lib/consent-i18n.ts`

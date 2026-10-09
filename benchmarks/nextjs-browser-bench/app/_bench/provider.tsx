@@ -46,7 +46,7 @@ const createOptions = function createOptions(
 			},
 		},
 		consentCategories,
-		mode: hosted({ url: '/api/bench-consent' }),
+		mode: hosted({ backendURL: '/api/bench-consent' }),
 		theme: {
 			motion: {
 				duration: {

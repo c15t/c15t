@@ -59,10 +59,7 @@ import type {
 } from '@c15t/core/runtime/provider';
 import { showConsentSurface } from '@c15t/core/surface-actions';
 import type { ConsentActiveUI } from '@c15t/schema/config';
-import {
-	CONSENT_REQUEST_HEADER_NAMES,
-	extractConsentRequestInputs,
-} from '@c15t/schema/types';
+import { CONSENT_REQUEST_HEADER_NAMES } from '@c15t/schema/types';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 import { computed, shallowRef } from 'vue';
 import type { App, Ref } from 'vue';
@@ -317,55 +314,6 @@ export const getNuxtInitFetchTarget = function getNuxtInitFetchTarget(
 	};
 };
 
-const getBrowserLanguage = function getBrowserLanguage(): string | undefined {
-	if (typeof navigator === 'undefined') {
-		return undefined;
-	}
-	return navigator.language || navigator.languages?.[0];
-};
-
-const getBrowserGpc = function getBrowserGpc(): boolean | undefined {
-	if (typeof navigator === 'undefined') {
-		return undefined;
-	}
-	try {
-		const value = (navigator as Navigator & { globalPrivacyControl?: unknown })
-			.globalPrivacyControl;
-		return typeof value === 'boolean' ? value : undefined;
-	} catch {
-		return undefined;
-	}
-};
-
-const getManifestInputs = function getManifestInputs(
-	config: RuntimeConsentConfig,
-	headers: Record<string, string>
-) {
-	if (isClientManifestModeEnabled(config)) {
-		const contextualHeaders = { ...headers };
-		const browserLanguage = getBrowserLanguage();
-		if (browserLanguage) {
-			contextualHeaders['accept-language'] = browserLanguage;
-		}
-
-		const inputs = extractConsentRequestInputs(contextualHeaders);
-		return {
-			country: null,
-			gpc: getBrowserGpc() ?? inputs.gpc,
-			language: inputs.language ?? 'en',
-			region: null,
-		};
-	}
-
-	const inputs = extractConsentRequestInputs(headers);
-	return {
-		country: inputs.country ?? null,
-		gpc: inputs.gpc,
-		language: inputs.language ?? 'en',
-		region: inputs.region ?? null,
-	};
-};
-
 /**
  * Hosted transport for Nuxt. `initURL` selects server manifest mode: init
  * goes through the same-origin Nuxt route, which resolves the manifest on
@@ -466,8 +414,7 @@ export const registerClientManifest = function registerClientManifest(
 
 const createVueManifestTransport = function createVueManifestTransport(
 	config: RuntimeConsentConfig,
-	headers: Record<string, string>,
-	prefetch: InitOutput | undefined
+	headers: Record<string, string>
 ): KernelTransport {
 	const backendURL = config.backendURL ?? '/api/c15t';
 	const manifestURL = resolveClientManifestURL(config);
@@ -540,18 +487,18 @@ const createVueManifestTransport = function createVueManifestTransport(
 				clientResources = undefined;
 				throw loaded.error;
 			}
-			const [{ baseTranslations, createManifestTransport }, manifest] =
-				loaded.value;
-			manifestTransport ??= createManifestTransport({
+			const [{ createBrowserManifestTransport }, manifest] = loaded.value;
+			// The location stays unknown here: `geoURL` refreshes it after the
+			// first init, so the resolver must not fall back to `/init`.
+			manifestTransport ??= createBrowserManifestTransport({
 				backendURL,
-				baseTranslations,
+				credentials: 'include',
 				domain: config.domain,
 				fetch: config.customFetch,
 				headers,
-				initialInit: prefetch,
-				inputs: getManifestInputs(config, headers),
-				manifest,
+				initFallback: false,
 				manifestURL,
+				snapshot: manifest,
 			});
 			return manifestTransport.init?.(ctx) ?? {};
 		},
@@ -568,7 +515,6 @@ const createVueManifestTransport = function createVueManifestTransport(
 const createVueTransportFactory = function createVueTransportFactory(
 	config: RuntimeConsentConfig,
 	headers: Record<string, string>,
-	prefetch: InitOutput | undefined,
 	transport: KernelTransport | undefined
 ): ProviderTransportFactory {
 	const create = (): KernelTransport => {
@@ -576,7 +522,7 @@ const createVueTransportFactory = function createVueTransportFactory(
 			return transport;
 		}
 		if (isClientManifestModeEnabled(config)) {
-			return createVueManifestTransport(config, headers, prefetch);
+			return createVueManifestTransport(config, headers);
 		}
 		return createVueHostedTransport(
 			config,
@@ -943,12 +889,7 @@ export const createVueConsentKernelContext =
 				{
 					...runtimeOptions,
 					createIAB,
-					mode: createVueTransportFactory(
-						config,
-						headers,
-						initOutput,
-						transport
-					),
+					mode: createVueTransportFactory(config, headers, transport),
 					prefetch,
 				},
 				createVueRuntimeModules(

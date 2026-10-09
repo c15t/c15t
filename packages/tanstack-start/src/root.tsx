@@ -192,10 +192,11 @@ const resolveMode = function resolveMode(
 	}
 	const initURL = initURLFor(routePrefix);
 	if (!initURL) {
-		return hosted({ initialData, url: backendURL });
+		return hosted({ backendURL, initialData });
 	}
 	return hosted({
 		assertDecisionInputs: true,
+		backendURL,
 		// The server-rendered banner is interactive before the client init
 		// resolves; the prefetched decision binds any save made in between.
 		// A streamed state renders no banner before it resolves, and the
@@ -203,7 +204,6 @@ const resolveMode = function resolveMode(
 		decisionInputs: decisionInputsFromConfig(state, overrides),
 		initURL,
 		initialData,
-		url: backendURL,
 	});
 };
 

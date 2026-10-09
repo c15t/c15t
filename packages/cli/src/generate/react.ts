@@ -10,7 +10,7 @@ export const generateReactBoilerplate = (
 	const packageName = next ? '@c15t/nextjs' : '@c15t/react';
 	const mode =
 		options.mode === 'hosted'
-			? `hosted({ url: ${JSON.stringify(options.backendURL)} })`
+			? `hosted({ backendURL: ${JSON.stringify(options.backendURL)} })`
 			: `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`;
 	const source = `${next ? "'use client';\n\n" : ''}import type { ReactNode } from 'react';
 import { ConsentBanner, ConsentDialog, ConsentDialogLink, ConsentProvider, ${options.mode} } from '${packageName}';

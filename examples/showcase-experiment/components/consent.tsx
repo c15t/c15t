@@ -10,7 +10,7 @@ import { bannerArmFromFlag, bannerExperiment } from '@/lib/experiment';
 // Runs without a backend: the policy ships with c15t and choices stay in
 // this browser. In production, swap this line for your project's backend,
 // which also counts impressions and choices per arm for you:
-// const mode = hosted({ url: 'https://your-project.inth.app' });
+// const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline();
 
 export const Consent = ({ children }: { children: ReactNode }) => (

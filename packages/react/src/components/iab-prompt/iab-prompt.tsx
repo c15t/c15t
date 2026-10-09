@@ -87,7 +87,7 @@ export interface IABConsentBannerProps {
  * ```tsx
  * <ConsentProvider
  *   options={{
- *     mode: hosted({ url: '/api/c15t' }),
+ *     mode: hosted({ backendURL: '/api/c15t' }),
  *     iab: { cmpId: 123, vendors: [1, 2, 10] },
  *   }}
  * >

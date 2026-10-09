@@ -78,7 +78,7 @@ const fakeFetch: typeof globalThis.fetch = (input, init) => {
 };
 
 const backend = () =>
-	hosted({ fetch: fakeFetch, url: 'https://consent.example.com' });
+	hosted({ backendURL: 'https://consent.example.com', fetch: fakeFetch });
 
 const init = () => requests.filter((request) => request.path === '/init');
 const saves = () => requests.filter((request) => request.path === '/subjects');

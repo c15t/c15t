@@ -88,7 +88,7 @@
 					},
 				],
 			})
-		: hosted({ url: '/api/showcase' })}
+		: hosted({ backendURL: '/api/showcase' })}
 	options={{
 		persistence: isIabPlayground ? false : undefined,
 		consentCategories: ['necessary', 'marketing', 'measurement'],

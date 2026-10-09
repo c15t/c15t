@@ -23,7 +23,7 @@ directive.
 
 ## Allow the consent backend
 
-With `hosted({ url })`, the browser calls `GET {url}/init` on every page load
+With `hosted({ backendURL })`, the browser calls `GET {url}/init` on every page load
 and `POST {url}/subjects` when the visitor accepts, rejects or saves. Add the
 backend's origin to `connect-src`:
 

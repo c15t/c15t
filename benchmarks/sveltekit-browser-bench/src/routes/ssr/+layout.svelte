@@ -8,7 +8,7 @@
 
 <ConsentManagerProvider
 	options={{
-		mode: hosted({ url: '/api/bench-consent' }),
+		mode: hosted({ backendURL: '/api/bench-consent' }),
 		consentCategories: [...benchConsentCategories],
 		prefetch: data.consentPrefetch,
 		disableAnimation: true,

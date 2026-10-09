@@ -39,9 +39,9 @@ import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
 	claimEarlyJourney,
 	createConsentProviderRuntime,
-	hostedModes,
 	lazyRuntimeModule,
 	lazyStreamPrefetch,
+	readHostedMode,
 	streamPrefetchWith,
 } from '@c15t/core/runtime/provider';
 import type {
@@ -180,7 +180,7 @@ export interface ConsentProviderOptions
 	 * ```tsx
 	 * import { ConsentProvider, hosted, offline } from '@c15t/react';
 	 *
-	 * <ConsentProvider options={{ mode: hosted({ url: '/api/c15t' }) }}>
+	 * <ConsentProvider options={{ mode: hosted({ backendURL: '/api/c15t' }) }}>
 	 *   {children}
 	 * </ConsentProvider>
 	 *
@@ -224,7 +224,7 @@ export interface ConsentProviderOptions
 	 * // app/layout.tsx — stays synchronous, so the shell prerenders.
 	 * const config = resolveConsent({ backendURL });
 	 * return (
-	 *   <ConsentProvider options={{ mode: hosted({ url }), prefetch: config }}>
+	 *   <ConsentProvider options={{ mode: hosted({ backendURL }), prefetch: config }}>
 	 *     {children}
 	 *   </ConsentProvider>
 	 * );
@@ -683,7 +683,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
 		// `policyPending`: enabled, no `consentSource`, no policy yet.
 		const snapshot = runtime.kernel.getSnapshot();
-		const hostedMode = hostedModes.get(mode);
+		const hostedMode = readHostedMode(mode);
 		const hostedOptions = hostedMode && {
 			...hostedMode,
 			fetch: hostedMode.fetch ?? globalThis.fetch,
@@ -908,7 +908,7 @@ const isPromiseLike = function isPromiseLike(
  * ```tsx
  * import { createConsentRuntime } from '@c15t/core/runtime';
  *
- * const runtime = createConsentRuntime({ mode: hosted({ url: '/api/c15t' }) });
+ * const runtime = createConsentRuntime({ mode: hosted({ backendURL: '/api/c15t' }) });
  * runtime.start();
  *
  * <ConsentProvider runtime={runtime} options={{ theme }}>

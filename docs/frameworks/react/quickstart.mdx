@@ -94,7 +94,7 @@ be newer than the snapshot. Vite reads `VITE_C15T_BACKEND_URL` at build time
 for both files, so set it before you build, not when you serve the files.
 
 To apply policy edits without rebuilding, remove `consentManifest` and use
-`hosted({ url })` from `c15t/react` as the mode. The browser then requests the
+`hosted({ backendURL })` from `c15t/react` as the mode. The browser then requests the
 policy from `/init` on every page load.
 
 Wrap your app with it in `src/main.tsx`:

@@ -5,7 +5,6 @@ import {
 } from '@c15t/core';
 import type {
 	HostedInitRequest,
-	HostedModeOptions,
 	InitContext,
 	KernelTransport,
 	ProviderTransportFactory,
@@ -37,15 +36,15 @@ export type LoadManifestTransport = (
 export type LoadInitTransport = (ctx: InitContext) => Promise<KernelTransport>;
 
 /**
- * Loads `@c15t/core/transports/manifest` on first use. The resolver pulls in
- * every translation language, so a static import would land in the client
- * bundle of every app that renders the root, manifest mode or not.
+ * Loads `@c15t/core/transports/manifest-browser` on first use. The resolver
+ * would otherwise land in the client bundle of every app that renders the
+ * root, manifest mode or not.
  */
 const loadManifestTransport: LoadManifestTransport =
 	async function loadManifestTransport(options) {
-		const { createManifestTransport } =
-			await import('@c15t/core/transports/manifest');
-		return createManifestTransport(options);
+		const { createBrowserManifestTransport } =
+			await import('@c15t/core/transports/manifest-browser');
+		return createBrowserManifestTransport(options);
 	};
 
 /**
@@ -133,13 +132,22 @@ export const createLazyManifestTransport = function createLazyManifestTransport(
 	);
 };
 
+interface LazyHostedOptions {
+	/** Backend URL for saves, and for `GET /init` without `initURL`. */
+	url: string;
+	/** Same-origin route that resolves init. */
+	initURL?: string;
+	/** Assert the resolved decision on saves. */
+	assertDecisionInputs?: boolean;
+}
+
 /**
  * Loads the full hosted transport, whose init path (request-context headers,
  * the inline-prefetch reader and the init-response mapper) a server-resolved
  * root never runs.
  */
 const loadHostedTransport = async function loadHostedTransport(
-	options: HostedModeOptions
+	options: LazyHostedOptions & { fetch?: typeof globalThis.fetch }
 ): Promise<KernelTransport> {
 	const { createHostedTransport } = await import('./hosted-mode');
 	return createHostedTransport({
@@ -149,11 +157,6 @@ const loadHostedTransport = async function loadHostedTransport(
 		initURL: options.initURL,
 	});
 };
-
-type LazyHostedOptions = Pick<
-	HostedModeOptions,
-	'assertDecisionInputs' | 'initURL' | 'url'
->;
 
 /** A first `/init` request sent before the hosted transport loaded. */
 interface EarlyInit {
@@ -259,7 +262,7 @@ const withEarlyInit = function withEarlyInit(
 export const lazyHosted = function lazyHosted(
 	options: LazyHostedOptions,
 	load: (
-		options: HostedModeOptions
+		options: LazyHostedOptions & { fetch?: typeof globalThis.fetch }
 	) => Promise<KernelTransport> = loadHostedTransport
 ): ProviderTransportFactory {
 	return Object.assign(

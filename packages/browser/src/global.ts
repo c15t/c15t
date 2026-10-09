@@ -12,7 +12,7 @@ export type { C15tGlobalBase, QueuedCall } from './global-base';
 
 /** The global API installed by the browser bundle with every transport. */
 export interface C15tGlobal extends C15tGlobalBase {
-	/** Transport factories, for `init({ mode: c15t.hosted({ url }) })`. */
+	/** Transport factories, for `init({ mode: c15t.hosted({ backendURL }) })`. */
 	hosted: typeof hosted;
 	offline: typeof offline;
 	custom: typeof custom;

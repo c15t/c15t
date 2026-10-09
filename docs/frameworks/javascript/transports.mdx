@@ -27,7 +27,7 @@ Each setup takes the transport in a slightly different form:
 | Setup | Where it goes |
 | --- | --- |
 | `@c15t/browser` | `init({ backendURL })` picks hosted mode. `init({ mode: manifest({ … }) })` takes any factory. `mode: 'hosted'`, `'manifest'` or `'offline'` also works as a name. |
-| `createConsentRuntime` | `mode`, a factory such as `hosted({ url })`. Required. |
+| `createConsentRuntime` | `mode`, a factory such as `hosted({ backendURL })`. Required. |
 | `createConsentKernel` | `transport`, the transport object itself, such as `createHostedTransport({ backendURL })`. |
 
 A factory is created once. To switch transports, dispose the client or
@@ -35,20 +35,20 @@ runtime and create a new one.
 
 ## Hosted
 
-`hosted({ url })` from `c15t` talks to your Inth or self-hosted backend:
+`hosted({ backendURL })` from `c15t` talks to your Inth or self-hosted backend:
 
 <include src="../../shared/examples/javascript/runtime.mdx" />
 
 | Option | What it does |
 | --- | --- |
-| `url` | The backend URL. Relative URLs such as `/api/c15t` work behind a proxy. |
+| `backendURL` | The backend URL. Relative URLs such as `/api/c15t` work behind a proxy. |
 | `headers` | Extra headers for the `/init` request. |
 | `fetch` | A `fetch` implementation, for tests or unusual runtimes. |
 | `domain` | The domain recorded with each save. Defaults to the page's host. |
-| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `url`. Set `assertDecisionInputs: true` with it. |
-| `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. |
+| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `backendURL`. Saves then assert the policy they were made against. |
+| `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. Defaults to `true` when `initURL` is set. |
 
-With `@c15t/browser`, `init({ backendURL })` builds `hosted({ url: backendURL })`
+With `@c15t/browser`, `init({ backendURL })` builds `hosted({ backendURL })`
 for you. Add your app's origin to the Inth project's trusted origins, or the
 browser blocks `/init` with a CORS error.
 
@@ -63,19 +63,22 @@ and resolves the policy in the browser. It works with `init()` and with
 | Option | What it does |
 | --- | --- |
 | `manifestURL` | Where to fetch the manifest. A URL that ends in `/manifest` also gives the backend URL. |
-| `manifest` | The manifest object itself, inlined into the page. No manifest request at all. |
+| `snapshot` | The manifest object itself, inlined into the page. No manifest request at all. |
 | `backendURL` | Where saves go. Required unless `manifestURL` ends in `/manifest`. `''` means this origin. |
-| `inputs` | `{ country, region, language, gpc }` known ahead of time, such as a country your edge injected into the page. |
+| `inputs` | `{ country, region }` known ahead of time, such as a country your edge injected into the page. |
+| `geoURL` | A same-origin route that answers `{ country, region }`, asked when the policy needs a location the page doesn't have. |
 | `fetch` | A `fetch` implementation. |
 
-When the manifest's policies depend on the visitor's country and the page
-does not supply one, the transport asks the backend's `/init` instead, so the
-answer stays correct. `manifestNeedsLocation(manifest)` from `@c15t/browser`
-tells you in advance. The browser bundle carries English copy; other languages
-come from the manifest's own translations.
+When the manifest's policies depend on the visitor's country and neither the
+page nor `geoURL` supplies one, the transport asks the backend's `/init`
+instead, so the answer stays correct. `manifestNeedsLocation(manifest)` from
+`@c15t/browser` tells you in advance. The browser bundle carries English base
+copy. Another language's base copy loads the first time a visitor needs it,
+and the manifest's own translations apply on top.
 
-`createManifestTransport` from `c15t/transports/manifest` is the server
-version. It bundles every language, so keep it out of browser code.
+`createManifestTransport` from `c15t/transports/manifest` is for server code
+only. It bundles every language. Browser code uses `manifest()`, or
+`createBrowserManifestTransport` from `c15t/transports/manifest-browser`.
 
 ### Bundle the manifest during Vite builds
 

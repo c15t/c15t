@@ -15,7 +15,7 @@ export const generateSvelteBoilerplate = function generateSvelteBoilerplate(
 	}
 	const mode =
 		options.mode === 'hosted'
-			? `hosted({ url: ${JSON.stringify(options.backendURL)} })`
+			? `hosted({ backendURL: ${JSON.stringify(options.backendURL)} })`
 			: `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`;
 	return {
 		dependencies: [

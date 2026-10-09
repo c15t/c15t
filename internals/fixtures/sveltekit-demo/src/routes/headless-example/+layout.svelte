@@ -16,7 +16,7 @@
 	let { children } = $props();
 
 	const mode = hosted({
-		url: 'https://your-project.inth.app',
+		backendURL: 'https://your-project.inth.app',
 		...testBackend('url'),
 	});
 </script>

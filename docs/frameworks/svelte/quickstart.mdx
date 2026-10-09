@@ -97,7 +97,7 @@ There is no stylesheet to import. Each component adds the rules it uses to
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
 To apply policy edits without a rebuild, remove the plugin and the
-`c15t-manifest` import, and use `hosted({ url })` from `@c15t/svelte` as the
+`c15t-manifest` import, and use `hosted({ backendURL })` from `@c15t/svelte` as the
 mode. The browser then resolves consent through the backend's `/init`.
 
 ## Verify consent

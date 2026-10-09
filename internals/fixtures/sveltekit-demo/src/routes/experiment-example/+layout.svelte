@@ -26,7 +26,7 @@
 	let { children, data } = $props();
 
 	const mode = hosted({
-		url: 'https://your-project.inth.app',
+		backendURL: 'https://your-project.inth.app',
 		...testBackend('url'),
 	});
 	// Read once: the provider takes its experiment at mount.

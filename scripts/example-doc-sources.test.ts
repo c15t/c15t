@@ -209,7 +209,7 @@ describe('region extraction', () => {
 		const hidden = [
 			'// #region docs:config',
 			'c15t({',
-			'\tmode: hosted({ url }),',
+			'\tmode: hosted({ backendURL }),',
 			'\tdebug: true, // docs:hide',
 			'});',
 			'<Banner />',
@@ -219,7 +219,7 @@ describe('region extraction', () => {
 			'// #endregion docs:config',
 		].join('\n');
 		expect(extractRegion(hidden, 'config', 'x.tsx')).toBe(
-			'c15t({\n\tmode: hosted({ url }),\n});\n<Banner />'
+			'c15t({\n\tmode: hosted({ backendURL }),\n});\n<Banner />'
 		);
 	});
 

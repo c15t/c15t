@@ -13,7 +13,7 @@ import { testBackend } from './test-backend';
 import 'c15t/react/styles.css';
 
 const mode = hosted({
-	url: 'https://your-project.inth.app',
+	backendURL: 'https://your-project.inth.app',
 	...testBackend('url'),
 });
 

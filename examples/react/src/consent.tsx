@@ -13,7 +13,7 @@ import { scripts } from './scripts';
 
 const mode = manifest({
 	backendURL: import.meta.env.VITE_C15T_BACKEND_URL,
-	manifest: consentManifest,
+	snapshot: consentManifest,
 });
 
 export const Consent = ({ children }: { children: ReactNode }) => (

@@ -11,7 +11,7 @@ import { ConsentDialog } from './consent-dialog';
 // Offline mode keeps the policy in this bundle and choices in the browser,
 // so the demo runs without an account. In production, point it at your
 // backend instead:
-// const mode = hosted({ url: 'https://your-project.inth.app' });
+// const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline();
 
 // A wall blocks the page until the visitor answers. c15t reports it as

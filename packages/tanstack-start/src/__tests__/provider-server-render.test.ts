@@ -17,7 +17,10 @@ test('a server render of a hosted provider sends no /init', () => {
 			ConsentProvider,
 			{
 				options: {
-					mode: hosted({ fetch, url: 'https://consent.example/api/c15t' }),
+					mode: hosted({
+						backendURL: 'https://consent.example/api/c15t',
+						fetch,
+					}),
 				},
 			},
 			createElement('main', null, 'Shell')

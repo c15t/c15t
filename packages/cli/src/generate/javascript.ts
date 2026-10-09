@@ -18,7 +18,7 @@ ${generateScriptsImport(options.scripts)}
 // Call once from your browser entry point. Dispose when the application unmounts.
 export function startConsent() {
 	const runtime = createConsentRuntime({
-		mode: ${options.mode === 'hosted' ? `hosted({ url: ${JSON.stringify(options.backendURL)} })` : `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`},
+		mode: ${options.mode === 'hosted' ? `hosted({ backendURL: ${JSON.stringify(options.backendURL)} })` : `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`},
 		pkg: '@c15t/core',
 		${options.scripts.length ? `scripts: ${generateScriptsArrayValue(options.scripts, '\t\t')},` : ''}
 	});

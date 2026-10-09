@@ -85,8 +85,8 @@ export const createBrowserManifestTransport =
 				manifestTransport ??= createManifestTransport({
 					backendURL: BACKEND_URL,
 					baseTranslations,
-					manifest,
 					manifestURL: MANIFEST_URL,
+					snapshot: manifest,
 				});
 				return (await manifestTransport.init?.(context)) ?? {};
 			},

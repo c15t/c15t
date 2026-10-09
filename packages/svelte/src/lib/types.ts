@@ -89,7 +89,7 @@ export interface ConsentManagerOptions
 	 *   let { children } = $props();
 	 * </script>
 	 *
-	 * <ConsentManagerProvider mode={hosted({ url: '/api/c15t' })}>
+	 * <ConsentManagerProvider mode={hosted({ backendURL: '/api/c15t' })}>
 	 *   {@render children()}
 	 * </ConsentManagerProvider>
 	 * ```
@@ -114,7 +114,7 @@ export interface ConsentManagerOptions
 	 * @example
 	 * ```svelte
 	 * <ConsentManagerProvider
-	 *   mode={hosted({ url: '/api/c15t' })}
+	 *   mode={hosted({ backendURL: '/api/c15t' })}
 	 *   gpp={{ usApproach: 'national' }}
 	 * >
 	 *   {@render children()}

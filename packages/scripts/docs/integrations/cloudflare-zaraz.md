@@ -132,7 +132,7 @@ import { scripts } from './consent-scripts';
 <ConsentProvider options={{ mode, scripts }}>
 ```
 
-`mode` is the `hosted({ url: 'https://your-project.inth.app' })` value
+`mode` is the `hosted({ backendURL: 'https://your-project.inth.app' })` value
 from the [React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
 dialog and preferences link inside the provider. See
 [React scripts and embeds](../frameworks/react/scripts.md).
@@ -206,7 +206,7 @@ pass them as a top-level prop:
   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
   import { scripts } from './consent-scripts';
 
-  const mode = hosted({ url: 'https://your-project.inth.app' });
+  const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 </script>
 
 <ConsentManagerProvider {mode} {scripts}>
@@ -228,7 +228,7 @@ and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();
-  const mode = hosted({ url: 'https://your-project.inth.app' });
+  const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 </script>
 
 <ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
