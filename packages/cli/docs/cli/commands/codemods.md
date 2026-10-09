@@ -64,16 +64,16 @@ PostCSS config, it points the `@c15t/react/postcss-tailwind3` and
 the config names them as an object key or in `require()`.
 
 It removes `@c15t/react/styles.css` and `@c15t/nextjs/styles.css` imports,
-including the `iab/` and `.tw3.css` variants, because v3 components add their
-own styles. It reads each stylesheet `@import` whole, so one that spans lines
-or takes Less options such as `(css)` is handled too. When `package.json` lists
-`tailwindcss` 3 in any dependency field, or a stylesheet `@import` has a
-`layer()`, `supports()` or media condition, it keeps the import, points it at
-`styles.css` from the `c15t` entry, and leaves a `TODO(c15t v3)` comment to set
-`styles: false`. For a `tailwindcss` version such as `workspace:*`,
-`catalog:` or `latest`, or a range over several majors such as `^3 || ^4`, it
-reads the installed `tailwindcss`. If it still can't tell the version, it
-keeps the import the same way and prints a warning.
+including the `iab/` variants, because v3 components add their own styles. It
+reads each stylesheet `@import` whole, so one that spans lines or takes Less
+options such as `(css)` is handled too. When `package.json` lists `tailwindcss`
+3 in any dependency field, the import is a `.tw3.css` variant, or a stylesheet
+`@import` has a `layer()`, `supports()` or media condition, it keeps the
+import, points it at `styles.css` from the `c15t` entry, and leaves a
+`TODO(c15t v3)` comment to set `styles: false`. For a `tailwindcss` version
+such as `workspace:*`, `catalog:` or `latest`, or a range over several majors
+such as `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't
+tell the version, it keeps the import the same way and prints a warning.
 
 If `package.json` lists `@c15t/react` or `@c15t/nextjs` but not `c15t` v3, it
 leaves the scoped imports, still removes the stylesheet imports, and prints a
