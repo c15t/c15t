@@ -99,6 +99,35 @@ describe('consent banner SSR', () => {
 		expect(tag?.[0]).not.toMatch(/bannerHidden/u);
 	});
 
+	test('names its stylesheets in <head> for c15tHandle to inline', () => {
+		const { head } = render(BannerFixture, {
+			props: {
+				options: {
+					...buildOptions({ initialPolicyResolution: BANNER_POLICY }),
+					nonce: 'page-nonce',
+				},
+			},
+		});
+
+		expect(head).toContain(
+			'<meta name="c15t-styles" content="c15t-first-paint nonce=page-nonce"'
+		);
+	});
+
+	test('names no stylesheet with `styles: false`', () => {
+		const { head, body } = render(BannerFixture, {
+			props: {
+				options: {
+					...buildOptions({ initialPolicyResolution: BANNER_POLICY }),
+					styles: false,
+				},
+			},
+		});
+
+		expect(body).toContain('data-testid="consent-banner-root"');
+		expect(head).not.toContain('c15t-styles');
+	});
+
 	test('renders nothing for a returning visitor', () => {
 		const html = renderBanner({
 			initialPolicyResolution: BANNER_POLICY,

@@ -171,6 +171,29 @@ const VENDOR_CONSENT_GZIP_BYTES = 3584;
  */
 const VENDOR_CONSENT_TARBALL_BYTES = 8192;
 
+/**
+ * The stock surfaces render their own styles: the first-paint rules moved
+ * from the stylesheet the app imported into the banner's JavaScript
+ * (`@c15t/ui/styles/sheets/first-paint`, about 8.8 kB gzip), and the
+ * dialog's rules into the dialog's lazy chunk (about 5.3 kB gzip). A route
+ * that drops its `styles.css` import loses about 13.5 kB gzip of
+ * render-blocking CSS in exchange. Measured on the PR that moved them; the
+ * budgets below carry it once, like the vendor consent allowance.
+ */
+const SURFACE_STYLES_INITIAL_GZIP_BYTES = 9216;
+const SURFACE_STYLES_DEFERRED_GZIP_BYTES = 5632;
+
+/**
+ * The lazy IAB entry also carries its banner and dialog sheets. Its total
+ * grew by 6,895 bytes more than the ordinary entry in the consumer bundle
+ * comparison. Both IAB sheets load after the ordinary banner, so this
+ * one-time 7 KiB allowance applies only to deferred and total JavaScript.
+ */
+const IAB_STYLES_DEFERRED_GZIP_BYTES = 7168;
+
+/** Bundle entries that render a stock surface. */
+const SURFACE_ENTRIES = new Set(['iab-lazy', 'ordinary-react']);
+
 export const bundleBudgets: MetricBudget[] = [
 	{
 		comparator: 'delta-bytes-lte',
@@ -190,19 +213,22 @@ export const bundleBudgets: MetricBudget[] = [
 		comparator: 'delta-bytes-lte',
 		description: 'React banner bundle delta budget.',
 		metric: 'react-banner-only',
-		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
+		threshold:
+			3072 + VENDOR_CONSENT_GZIP_BYTES + SURFACE_STYLES_INITIAL_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'React full bundle delta budget.',
 		metric: 'react-full',
-		threshold: 4096 + VENDOR_CONSENT_GZIP_BYTES,
+		threshold:
+			4096 + VENDOR_CONSENT_GZIP_BYTES + SURFACE_STYLES_INITIAL_GZIP_BYTES,
 	},
 	{
 		comparator: 'delta-bytes-lte',
 		description: 'Next.js package bundle delta budget.',
 		metric: 'nextjs-basic',
-		threshold: 3072 + VENDOR_CONSENT_GZIP_BYTES,
+		threshold:
+			3072 + VENDOR_CONSENT_GZIP_BYTES + SURFACE_STYLES_INITIAL_GZIP_BYTES,
 	},
 ];
 
@@ -1175,13 +1201,30 @@ export const tanstackBrowserBudgetsForScenario =
 export const bundleEntryBudgets = function bundleEntryBudgets(
 	scenario: string
 ): MetricBudget[] {
+	const surfaceStyles = SURFACE_ENTRIES.has(scenario)
+		? {
+				deferred: SURFACE_STYLES_DEFERRED_GZIP_BYTES,
+				initial: SURFACE_STYLES_INITIAL_GZIP_BYTES,
+			}
+		: { deferred: 0, initial: 0 };
+	// These budgets count every emitted chunk, including chunks from imports
+	// esbuild later removes. The root provider entry emits the ordinary style
+	// chunks without being able to request them, so their allowance is wholly
+	// deferred. reachableLazy* reports the actual loadable deferred payload.
+	const emittedProviderStyles =
+		scenario === 'provider'
+			? SURFACE_STYLES_INITIAL_GZIP_BYTES + SURFACE_STYLES_DEFERRED_GZIP_BYTES
+			: 0;
+	const additionalDeferredStyles =
+		emittedProviderStyles +
+		(scenario === 'iab-lazy' ? IAB_STYLES_DEFERRED_GZIP_BYTES : 0);
 	return [
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance.',
+				'Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.',
 			metric: 'initialGzip',
-			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES,
+			threshold: 2048 + VENDOR_CONSENT_GZIP_BYTES + surfaceStyles.initial,
 		},
 		{
 			// Moving code out of first load grows the deferred chunks by as much
@@ -1190,16 +1233,20 @@ export const bundleEntryBudgets = function bundleEntryBudgets(
 			// growth that is not offset by a smaller first load.
 			comparator: 'delta-bytes-lte',
 			description:
-				'Deferred consumer JavaScript may grow by at most 12 KiB gzip.',
+				'Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.',
 			metric: 'lazyGzip',
-			threshold: 12_288,
+			threshold: 12_288 + surfaceStyles.deferred + additionalDeferredStyles,
 		},
 		{
 			comparator: 'delta-bytes-lte',
 			description:
-				'Initial plus deferred consumer JavaScript may grow by at most 3 KiB gzip.',
+				'Initial plus deferred emitted JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB styles emitted by this entry.',
 			metric: 'gzipSize',
-			threshold: 3072,
+			threshold:
+				3072 +
+				surfaceStyles.initial +
+				surfaceStyles.deferred +
+				additionalDeferredStyles,
 		},
 		...(scenario === 'ordinary-react' ? importBoundaryBudgets : []),
 	];

@@ -1,6 +1,6 @@
 ---
 title: Tailwind CSS
-description: Load c15t's styles next to Tailwind CSS 4 or 3 in every framework, put utilities on c15t component parts, and use Tailwind's dark variant with c15t.
+description: Use c15t's styles with Tailwind CSS 4 or 3 in every framework, put utilities on c15t component parts, and use Tailwind's dark variant with c15t.
 group: customization
 ---
 
@@ -19,7 +19,10 @@ directive and fails the build on a stylesheet that uses it without a matching
 `@tailwind components`. c15t's Tailwind 3 PostCSS plugin removes the layer
 wrappers from c15t's stylesheets before Tailwind 3 runs. c15t's rules then
 win by specificity, as they did in c15t v2, so a utility on a c15t part needs
-Tailwind's important modifier, such as `!p-2`.
+Tailwind's important modifier, such as `!p-2`. The plugin cannot reach the
+`<style>` elements c15t renders itself, so on Tailwind 3 you turn those off
+with `styles: false` and import the stylesheet instead. The Astro integration
+does this for you when it finds Tailwind 3.
 
 The setups below come from fixtures that CI builds for each framework and
 checks in Chromium. The Next.js snippets come from the Next.js 16 Turbopack
@@ -32,9 +35,11 @@ without a backend, so they use `offline()` mode or a local `backendURL`. Keep th
 
 ## Set up Tailwind CSS 4
 
-Install Tailwind's plugin for your build tool, add it to the build, and load
-c15t's stylesheet in the same CSS entry as Tailwind. Vue, Nuxt and Astro load
-c15t's styles for you, so their CSS entry holds only Tailwind.
+Install Tailwind's plugin for your build tool and add it to the build. c15t
+loads its own styles in every framework, so your CSS entry holds only
+Tailwind. Do not import c15t's stylesheet next to Tailwind 4: the stock
+components already render the same rules, and the import would hold back the
+first paint.
 
 <Tabs items={['Next.js', 'TanStack Start', 'React', 'Nuxt', 'Vue', 'Astro', 'Svelte', 'SvelteKit', 'HTML', 'JavaScript']}>
   <Tab value="Next.js">
@@ -42,19 +47,18 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
 
     <include src="../shared/examples/tailwind-v4/next-16-turbopack/postcss-config.mdx" />
 
-    Import c15t after Tailwind in the global stylesheet that `app/layout.tsx`
-    or `pages/_app.tsx` loads:
+    Import Tailwind in the global stylesheet that `app/layout.tsx` or
+    `pages/_app.tsx` loads:
 
     <include src="../shared/examples/tailwind-v4/next-16-turbopack/tailwind-css.mdx" />
   </Tab>
 
   <Tab value="TanStack Start">
-    Add `@tailwindcss/vite` before the TanStack Start plugin, then import
-    Tailwind and c15t from the stylesheet your root route links:
+    Add `@tailwindcss/vite` before the TanStack Start plugin:
 
     <include src="../shared/examples/tailwind-v4/tanstack-start/vite-config.mdx" />
 
-    Import Tailwind and c15t from the stylesheet your root route links:
+    Import Tailwind from the stylesheet your root route links:
 
     <include src="../shared/examples/tailwind-v4/tanstack-start/tailwind-css.mdx" />
   </Tab>
@@ -62,8 +66,7 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
   <Tab value="React">
     <include src="../shared/examples/tailwind-v4/react/vite-config.mdx" />
 
-    Import this stylesheet from your entry module in place of a separate
-    `c15t/react/styles.css` import:
+    Import this stylesheet from your entry module:
 
     <include src="../shared/examples/tailwind-v4/react/tailwind-css.mdx" />
   </Tab>
@@ -91,8 +94,9 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
   </Tab>
 
   <Tab value="Astro">
-    The integration adds `c15t/astro/styles.css` to every page, so the CSS
-    entry holds only Tailwind. Add `@tailwindcss/vite` under `vite.plugins`:
+    c15t inlines the banner's rules into each page and links the dialog's
+    when it opens, so the CSS entry holds only Tailwind. Add
+    `@tailwindcss/vite` under `vite.plugins`:
 
     <include src="../shared/examples/tailwind-v4/astro/astro-config.mdx" />
 
@@ -104,8 +108,7 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
   <Tab value="Svelte">
     <include src="../shared/examples/tailwind-v4/svelte/vite-config.mdx" />
 
-    Import this stylesheet from `src/main.ts` in place of a separate
-    `@c15t/svelte/styles.css` import:
+    Import this stylesheet from `src/main.ts`:
 
     <include src="../shared/examples/tailwind-v4/svelte/tailwind-css.mdx" />
   </Tab>
@@ -140,8 +143,12 @@ c15t's styles for you, so their CSS entry holds only Tailwind.
 
 ## Set up Tailwind CSS 3
 
-Tailwind 3 loads the same `styles.css` as Tailwind 4 and needs one PostCSS
-plugin. Every c15t package that ships a stylesheet exports it as
+Tailwind 3's preflight is unlayered, so it beats the layered rules c15t
+renders itself and strips the banner's padding and borders. On Tailwind 3,
+turn those rules off with `styles: false` and import c15t's `styles.css`
+through a PostCSS plugin. The Astro integration needs only the plugin: it
+detects Tailwind 3 and links `c15t/astro/styles.css` itself. Every c15t
+package that ships a stylesheet exports the plugin as
 `<package>/postcss-tailwind3`, so use the one from the package you installed:
 
 | You installed | Plugin name |
@@ -153,21 +160,26 @@ plugin. Every c15t package that ships a stylesheet exports it as
 They are the same plugin. A config that already lists
 `@c15t/ui/postcss-tailwind3` keeps working.
 
-Make three changes:
+Make four changes:
 
-1. Add the plugin to your PostCSS plugins, before `tailwindcss`. Write the plugins as an object, as the examples below do.
+1. Set `styles: false` where you configure c15t: `options` on `ConsentRoot`
+   in Next.js and TanStack Start, `options` on `ConsentProvider` in React,
+   and `styles={false}` on `ConsentManagerProvider` in Svelte and SvelteKit.
+   Vue, Nuxt and Astro need no change.
+2. Add the plugin to your PostCSS plugins, before `tailwindcss`. Write the plugins as an object, as the examples below do.
    PostCSS runs them in the order of the keys. Next.js also accepts an array
    of plugin names, but Vite's PostCSS loader rejects that form.
-2. Where you import c15t's stylesheet yourself, put the import above the
-   `@tailwind` directives, whatever your build tool. Vite drops an `@import`
+3. Import c15t's stylesheet above the `@tailwind` directives, whatever your
+   build tool. Vue, Nuxt and Astro skip this step. Vite drops an `@import`
    that follows another rule, with the warning
    `@import must precede all other statements`, and the banner renders
    unstyled. Next.js 16 with Turbopack fails the build.
-3. Set `darkMode: 'class'` so Tailwind's `dark:` variant follows the same
+4. Set `darkMode: 'class'` so Tailwind's `dark:` variant follows the same
    `dark` class c15t reads.
 
-The plugin also processes the stylesheets c15t loads for you, such as Astro's
-injected one. Without it, Tailwind 3 stops
+The plugin also processes the stylesheets the Vue and Nuxt components import,
+and the one the Astro integration adds on a Tailwind 3 site. Without it,
+Tailwind 3 stops
 the build with "`@layer components` is used but no matching
 `@tailwind components` directive is present", or purges c15t's rules, because
 c15t's class names never appear in your source.
@@ -177,8 +189,9 @@ class. Add the important modifier to utilities you pass to c15t parts:
 `!bg-red-500`, `hover:!bg-red-500`. A bare `bg-red-500` has no effect. Theme
 tokens work the same on Tailwind 3 and 4.
 
-In React and Next.js apps, `c15t setup` makes the first two changes when it
-finds Tailwind 3. It replaces an existing
+In React and Next.js apps, `c15t setup` adds the plugin and the stylesheet
+import when it finds Tailwind 3, but does not set `styles: false`. Add that
+yourself. It replaces an existing
 `styles.tw3.css` import from an earlier setup with `styles.css`. When it
 cannot edit your PostCSS config, it prints the step to do by hand. See
 [setup](/docs/cli/commands/setup#set-up-styles-and-tailwind-css).
@@ -200,7 +213,7 @@ the app to Vite.
 
     Import `c15t/next/styles.css` above the directives. Turbopack fails the
     build when the import sits below them. The same order works with
-    webpack:
+    webpack. Set `styles: false` in `ConsentRoot`'s `options` as well:
 
     <include src="../shared/examples/tailwind-v3/next-16-turbopack/tailwind-css.mdx" />
   </Tab>
@@ -213,7 +226,8 @@ the app to Vite.
     <include src="../shared/examples/tailwind-v3/tanstack-start/tailwind-config.mdx" />
 
     Import `c15t/tanstack-start/styles.css` above the directives, in the
-    stylesheet your root route links:
+    stylesheet your root route links, and set `styles: false` in
+    `ConsentRoot`'s `options`:
 
     <include src="../shared/examples/tailwind-v3/tanstack-start/tailwind-css.mdx" />
   </Tab>
@@ -225,8 +239,9 @@ the app to Vite.
 
     <include src="../shared/examples/tailwind-v3/react/tailwind-config.mdx" />
 
-    Import `c15t/react/styles.css` above the directives, and import this
-    stylesheet from your entry module:
+    Import `c15t/react/styles.css` above the directives, import this
+    stylesheet from your entry module, and set `styles: false` in the
+    `ConsentProvider` options:
 
     <include src="../shared/examples/tailwind-v3/react/tailwind-css.mdx" />
   </Tab>
@@ -267,8 +282,12 @@ the app to Vite.
 
     <include src="../shared/examples/tailwind-v3/astro/tailwind-config.mdx" />
 
-    The plugin processes the stylesheet the integration injects, so the CSS
-    entry holds only the directives:
+    When the integration finds Tailwind 3 in the project, it adds
+    `c15t/astro/styles.css` to every page through Astro's CSS pipeline
+    instead of inlining the banner's rules, so the plugin processes it. You
+    do not set `styles: false` or import c15t's stylesheet, and the CSS
+    entry holds only the directives. The first paint still waits for that
+    stylesheet:
 
     <include src="../shared/examples/tailwind-v3/astro/tailwind-css.mdx" />
   </Tab>
@@ -280,8 +299,9 @@ the app to Vite.
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-config.mdx" />
 
-    Import `@c15t/svelte/styles.css` above the directives, and import this
-    stylesheet from `src/main.ts`:
+    Import `@c15t/svelte/styles.css` above the directives, import this
+    stylesheet from `src/main.ts`, and pass `styles={false}` to
+    `ConsentManagerProvider`:
 
     <include src="../shared/examples/tailwind-v3/svelte/tailwind-css.mdx" />
   </Tab>
@@ -293,8 +313,9 @@ the app to Vite.
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-config.mdx" />
 
-    Import `@c15t/svelte/styles.css` above the directives, and import this
-    stylesheet from your root `+layout.svelte`:
+    Import `@c15t/svelte/styles.css` above the directives, import this
+    stylesheet from your root `+layout.svelte`, and pass `styles={false}` to
+    `ConsentManagerProvider`:
 
     <include src="../shared/examples/tailwind-v3/sveltekit/tailwind-css.mdx" />
   </Tab>

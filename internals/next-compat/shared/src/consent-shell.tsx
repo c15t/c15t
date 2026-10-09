@@ -39,6 +39,8 @@ export interface ConsentShellProps {
 	/** Required with `transport="static"`. */
 	manifest?: CompatManifest;
 	networkBlocker?: ConsentRootProps['networkBlocker'];
+	/** CSP nonce for automatic component styles in the nonce test routes. */
+	nonce?: string;
 }
 
 const createMode = function createMode({
@@ -89,6 +91,7 @@ export const ConsentShell = ({
 	transport = 'hosted',
 	manifest,
 	networkBlocker,
+	nonce,
 }: ConsentShellProps) => {
 	const mode = useMemo(
 		() => createMode({ backendURL, manifest, transport }),
@@ -118,6 +121,7 @@ export const ConsentShell = ({
 				},
 				consentCategories: ['necessary', 'measurement', 'marketing'],
 				mode,
+				nonce,
 				theme: {
 					motion: {
 						duration: { fast: '1ms', normal: '1ms', slow: '1ms' },

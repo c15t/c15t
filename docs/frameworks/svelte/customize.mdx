@@ -23,16 +23,14 @@ from a bottom bar to a fully custom one, with tested code for this framework.
 
 ## Set brand colors and radius
 
-Write the `--c15t-*` variables in a stylesheet and import it after
-`@c15t/svelte/styles.css`. The stock stylesheet sets the defaults on `:root`,
-so a later rule on `:root` replaces them before the banner first paints:
+Write the `--c15t-*` variables on `:root` in a stylesheet. c15t's default
+tokens carry no specificity, so your rule replaces them wherever each loads:
 
 <include src="../../shared/examples/svelte/theme-css.mdx" />
 
 {/* example: fragment */}
 
 ```ts
-import '@c15t/svelte/styles.css';
 import './consent-theme.css';
 ```
 
@@ -49,8 +47,8 @@ If your tokens come from data at runtime, `generateThemeCSS(theme)` from
 `@c15t/ui/theme` turns a theme object into the same CSS. Install
 `@c15t/ui@alpha` to use it, put the result in a `<style id="c15t-theme">`
 element, and expect the generator to add to your bundle. Its selectors outrank
-the stock defaults, so the element works before or after the stylesheet. They
-also outrank a plain `:root` rule of your own, so if you mix both, write your
-overrides on `:root:root`.
+the stock defaults, so the element works wherever it sits. They also outrank
+a plain `:root` rule of your own, so if you mix both, write your overrides on
+`:root:root`.
 
 <include src="../../shared/svelte/customize.mdx" />

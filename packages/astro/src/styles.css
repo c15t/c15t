@@ -1,16 +1,17 @@
 /**
  * @c15t/astro — prebuilt component styles.
  *
- * The integration injects this into every page unless `styles: false` is
- * set. It covers the theme tokens, every c15t CSS variable, the
- * server-rendered banner and the preference dialog. The Svelte dialog also
- * needs `primitives.css`, which the integration links on the first open.
+ * For sites that set `styles: false` and load c15t's styles themselves.
+ * By default the integration inlines the first-paint rules and links the
+ * dialog's when it opens, and this file is not used. It covers the theme
+ * tokens, every c15t CSS variable, the server-rendered banner and the
+ * preference dialog. The Svelte dialog also needs `primitives.css`.
  *
  * Usage with `styles: false` (src/styles/global.css):
  *   @import "@c15t/astro/styles.css";
  *
- * The integration injects this ahead of a site's own CSS, so it declares
- * Tailwind 4's layer order before anything else. Layers rank by first
+ * A site may import this ahead of its own CSS, so it declares Tailwind 4's
+ * layer order before anything else. Layers rank by first
  * mention; without it `components` would rank below Tailwind's `base` and
  * preflight would strip the banner's padding and borders.
  */

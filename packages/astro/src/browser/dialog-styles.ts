@@ -1,9 +1,9 @@
 /**
- * Stylesheets the preference dialog needs beyond `styles.css`.
+ * Stylesheets the deferred dialogs need beyond the first-paint rules.
  *
- * `styles.css` carries the dialog's own rules. The Svelte dialog also renders
- * the `@c15t/ui/styles/primitives` class maps, whose rules ship separately
- * and are needed once someone opens it. The islands cannot bring them along
+ * The preference dialog and IAB panel have separate sheets. The Svelte
+ * dialog also renders the `@c15t/ui/styles/primitives` class maps, whose
+ * rules ship separately. The islands cannot bring them along
  * themselves: Astro's production build drops the CSS a page script reaches
  * through a dynamic import, so the Svelte and Vue islands arrive with none.
  * Where a chunk does keep its CSS, the `<link>` Vite adds for it lives in
@@ -24,6 +24,7 @@ interface LinkedStylesheet {
 }
 
 let registered: readonly string[] = [];
+let registeredIAB: readonly string[] = [];
 const linked = new Map<string, LinkedStylesheet>();
 
 /**
@@ -31,11 +32,18 @@ const linked = new Map<string, LinkedStylesheet>();
  * page script it injects.
  *
  * @param hrefs - Stylesheet URLs, as the app's build emitted them.
+ * @param kind - `'iab'` registers additional IAB-only rules. The default
+ * registers shared rules that both dialog kinds need.
  */
 export const registerDialogStyles = function registerDialogStyles(
-	hrefs: readonly string[]
+	hrefs: readonly string[],
+	kind?: 'iab'
 ): void {
-	registered = [...hrefs];
+	if (kind === 'iab') {
+		registeredIAB = [...hrefs];
+	} else {
+		registered = [...hrefs];
+	}
 };
 
 const linkStylesheet = function linkStylesheet(
@@ -80,12 +88,15 @@ const linkStylesheet = function linkStylesheet(
  * A link something removed is added again.
  *
  * @param nonce - The page's CSP nonce, put on every link this adds.
+ * @param kind - The dialog to style. IAB also loads its panel rules.
  * @returns Resolves once every stylesheet has loaded or failed.
  */
 export const loadDialogStyles = async function loadDialogStyles(
-	nonce?: string
+	nonce?: string,
+	kind: 'preferences' | 'iab' = 'preferences'
 ): Promise<void> {
-	await Promise.all(registered.map((href) => linkStylesheet(href, nonce)));
+	const hrefs = kind === 'iab' ? [...registered, ...registeredIAB] : registered;
+	await Promise.all(hrefs.map((href) => linkStylesheet(href, nonce)));
 };
 
 /**
@@ -125,5 +136,6 @@ export const keepDialogStylesOnSwap = function keepDialogStylesOnSwap(
 export const resetDialogStylesForTest =
 	function resetDialogStylesForTest(): void {
 		registered = [];
+		registeredIAB = [];
 		linked.clear();
 	};

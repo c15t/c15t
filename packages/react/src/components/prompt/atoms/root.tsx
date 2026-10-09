@@ -24,7 +24,9 @@ import { useUIConfig } from '~/ui-config-context';
 import { defaultTranslationConfig } from '~/utils/default-translation-config';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { FIRST_PAINT_SHEETS } from '../../shared/first-paint-sheets';
 import { StreamedSurface } from '../../shared/streamed-surface';
+import { SurfaceStyles } from '../../shared/surface-styles';
 import {
 	ConsentBannerSurfaceContext,
 	mirrorDefaultPosition,
@@ -298,6 +300,10 @@ const ConsentBannerRootChildren = createForwardRef<
 		// Only render when the banner should be shown
 		return shouldShowBanner ? (
 			<>
+				<SurfaceStyles
+					sheets={FIRST_PAINT_SHEETS}
+					noStyle={noStyle}
+				/>
 				<Overlay />
 				<div
 					ref={ref}

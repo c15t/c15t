@@ -36,7 +36,7 @@ For every scenario the suite (`shared/src/suite/index.ts`) checks:
 5. Accepting consent persists across a reload.
 6. No console errors or warnings and no page errors.
 
-Once per cell, the suite also opens the dialog and checks that it is styled while the page has loaded only the stylesheets in its first HTML, the app's import of `@c15t/nextjs/styles.css`.
+Once per cell, the suite opens the deferred dialog and checks that it is styled without fetching another stylesheet. The Next 16 App and Pages cells use automatic component styles with no CSS imports or explicit head components. They check the hydrated dialog under nonce CSP and the server banner with JavaScript disabled under nonce and hash CSP, with no stylesheet requests. The other cells keep `@c15t/nextjs/styles.css` imports to cover external stylesheets.
 
 The backend stub lives in `shared/src/fixture` and is mounted at `/api/c15t` in each app. `GET /api/c15t/__compat/requests` lists what `/init` received; the suite clears it before each test. The static export cell has no app server to mount it in, so its global setup runs the same handlers as a standalone Node server (`shared/src/fixture/standalone.ts`) and provides its origin as `compatBackendURL`; the suite reads the diagnostics from there when that value is present.
 

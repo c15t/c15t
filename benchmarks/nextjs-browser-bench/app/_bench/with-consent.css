@@ -1,3 +1,2 @@
-/* App stylesheet with c15t's styles imported, one file per page. */
-@import '@c15t/nextjs/styles.css';
+/* The app's stylesheet. c15t's surfaces render their own styles, so it imports none. */
 @import './app.css';

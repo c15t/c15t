@@ -46,6 +46,12 @@ export const DIALOG_COMPONENTS = [
 /** Prefix of the IAB TCF components, which go into `iab/styles.css`. */
 export const IAB_PREFIX = 'iab-';
 
+/** IAB banner rules, delivered with the first paint. */
+export const IAB_FIRST_PAINT_COMPONENTS = ['iab-prompt'] as const;
+
+/** IAB dialog rules, delivered when the dialog loads. */
+export const IAB_DIALOG_COMPONENTS = ['iab-panel'] as const;
+
 /**
  * Tailwind 4's layer order: it emits `@layer properties;` and then
  * `@layer theme, base, components, utilities;`. Layers rank by first

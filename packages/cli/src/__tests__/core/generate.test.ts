@@ -19,6 +19,24 @@ import { version as cliVersion } from '../../generate/version';
 import { packageInfo } from '../../package-info';
 
 describe('reusable generation', () => {
+	it.each([
+		'react',
+		'next-app',
+		'next-pages',
+		'tanstack-start',
+		'svelte',
+		'sveltekit',
+		'astro',
+	] as const)('uses automatic component styles for %s', (framework) => {
+		const plan = generate({ framework, mode: 'offline' });
+		const content = Object.values(plan.files).join('\n');
+		expect(content).not.toContain('/styles.css');
+		expect(content).not.toMatch(/styles:\s*false/u);
+	});
+	it('keeps the stylesheet required by the Vue setup', () => {
+		const plan = generate({ framework: 'vue', mode: 'offline' });
+		expect(Object.values(plan.files).join('\n')).toContain('/styles.css');
+	});
 	it.each([undefined, '', 'not-a-url'])(
 		'explains how to supply a hosted backend URL: %s',
 		(backendURL) => {

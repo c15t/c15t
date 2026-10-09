@@ -18,6 +18,8 @@ import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { IAB_DIALOG_SHEETS } from '../../shared/iab-dialog-sheets';
+import { SurfaceStyles } from '../../shared/surface-styles';
 import { IABConsentDialogOverlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
@@ -154,6 +156,10 @@ const IABConsentDialogRoot: FC<IABConsentDialogRootProps> = ({
 	const dialogContent = (
 		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={contextValue}>
+				<SurfaceStyles
+					sheets={IAB_DIALOG_SHEETS}
+					noStyle={noStyle}
+				/>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
 					{...themedStyle}

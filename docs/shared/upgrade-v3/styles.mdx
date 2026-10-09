@@ -20,16 +20,22 @@ A generated theme uses `:root:root`, so your own `--c15t-*` values on plain
 
 ### Stylesheets
 
-- Dialog and preference styles moved from `styles.css` to
-  `@c15t/ui/styles/dialog.css`. The React, Next.js and TanStack Start dialogs
-  import it themselves. Import it yourself only if you render `@c15t/ui`
-  class maps for those parts.
-- `iab/styles.css` no longer repeats the default tokens. Import it after
-  `styles.css`.
-- Tailwind CSS 3 builds now fail without a PostCSS plugin, even with
-  `styles.tw3.css`, because the dialog stylesheet is imported from JavaScript.
-  Add `'c15t/postcss-tailwind3': {}` before `tailwindcss` in
-  `postcss.config`. See [Tailwind CSS 3](/docs/customization/tailwind#set-up-tailwind-css-3).
+- Remove the c15t stylesheet import, such as `@c15t/react/styles.css` or
+  `@c15t/nextjs/styles.css`. The stock components in `c15t/react`,
+  `c15t/next` and `c15t/tanstack-start` render the rules they use as
+  `<style>` elements, so no stylesheet request holds back the first paint. An
+  import you keep still styles the components, but the rules ship twice and
+  the stylesheet still delays the first paint.
+- Keep an import of the v3 stylesheet, such as `c15t/react/styles.css`, only
+  with Tailwind CSS 3 or a named cascade layer, and set
+  `styles: false` in the provider options so the components add no second
+  copy. See
+  [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
+- With manual styles, `iab/styles.css` no longer repeats the default tokens.
+  Import it after `styles.css`. Automatic IAB styling needs neither import.
+- Tailwind CSS 3 needs a PostCSS plugin for c15t's `styles.css`. Add
+  `'c15t/postcss-tailwind3': {}` before `tailwindcss` in `postcss.config`,
+  and set `styles: false`. See [Tailwind CSS 3](/docs/customization/tailwind#set-up-tailwind-css-3).
   Create React App can't run the plugin. The `postcss-tailwind3` codemod adds
   it to an object-form `postcss.config` and warns about configs it can't
   edit.

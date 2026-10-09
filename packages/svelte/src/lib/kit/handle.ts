@@ -13,6 +13,7 @@ import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { injectModulePreloads } from './module-preload';
+import { injectSurfaceStyles } from './surface-styles';
 import type { C15tLocals, ConsentRequestOptions } from './types';
 
 /** Options for {@link c15tHandle}. */
@@ -156,10 +157,13 @@ export const c15tHandle = function c15tHandle(
 
 		// A page whose provider configures scripts or blocker rules names
 		// their on-demand chunks in its head; link them so the browser
-		// fetches them with the app's code. Prerendered pages too: the link
-		// is the same for every visitor.
+		// fetches them with the app's code. A server-rendered banner names
+		// its stylesheets the same way; they go into the HTML, so no
+		// stylesheet request holds back the first paint. Prerendered pages
+		// too: both are the same for every visitor.
 		return await resolve(event, {
-			transformPageChunk: ({ html }) => injectModulePreloads(html),
+			transformPageChunk: ({ html }) =>
+				injectModulePreloads(injectSurfaceStyles(html)),
 		});
 	};
 };

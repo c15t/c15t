@@ -26,6 +26,8 @@ export const Consent = ({ children }: { children: ReactNode }) => (
 				},
 			},
 			mode,
+			// Tailwind 3 builds c15t's stylesheet from globals.css.
+			styles: false,
 		}}
 		// #endregion docs:slot
 	>

@@ -12,31 +12,33 @@ Next.js uses the React IAB components. There is no `c15t/next/iab` JavaScript
 entry point, so import the components from `c15t/react/iab` and render this
 Client Component inside the `ConsentRoot` from your
 [App Router](/docs/frameworks/next/app-router) or
-[Pages Router](/docs/frameworks/next/pages-router) setup. Import
-`c15t/next/iab/styles.css` at your global stylesheet entry, after
-`c15t/next/styles.css`: the IAB stylesheet holds only the IAB rules and uses
-the tokens from the base stylesheet.
+[Pages Router](/docs/frameworks/next/pages-router) setup.
 
-```tsx title="components/iab-consent.tsx"
-'use client';
+The IAB banner and dialog render their own styles by default. Leave
+`ConsentRoot`'s `styles` option enabled. The banner's styles render in the
+server HTML, and the dialog loads its rules when opened.
 
-import {
-	IABProvider,
-	IABConsentBanner,
-	IABConsentDialog,
-} from 'c15t/react/iab';
-
-export function IABConsent({ cmpId }: { cmpId: number }) {
-	return (
-		<IABProvider cmpId={cmpId}>
-			<IABConsentBanner />
-			<IABConsentDialog />
-		</IABProvider>
-	);
-}
-```
+<include src="../../shared/examples/nextjs/iab-consent.mdx" />
 
 <import src="../../shared/react/iab/overview.mdx#configure" />
+
+## Load an external stylesheet
+
+With Tailwind CSS 3, or when you want to put c15t in a named cascade layer,
+import `c15t/next/styles.css` and then `c15t/next/iab/styles.css` at your global
+stylesheet entry. The IAB stylesheet holds the IAB rules and uses the base
+stylesheet's tokens. Set `styles: false` in `ConsentRoot`'s `options` so the
+components use those stylesheets:
+
+{/* example: fragment */}
+
+```css title="styles/globals.css"
+@import 'c15t/next/styles.css';
+@import 'c15t/next/iab/styles.css';
+```
+
+Tailwind CSS 3 also needs the
+[PostCSS plugin](/docs/customization/tailwind#set-up-tailwind-css-3).
 
 ## Restrict how vendors use a purpose
 
@@ -45,31 +47,7 @@ them to `IABProvider` as `publisherRestrictions`. The vendor IDs below are
 placeholders; use vendors from your list whose declarations allow each
 restriction.
 
-```tsx title="components/iab-consent.tsx"
-'use client';
-
-import {
-	IABProvider,
-	IABConsentBanner,
-	IABConsentDialog,
-} from 'c15t/react/iab';
-
-const publisherRestrictions = [
-	// Vendors 10 and 755 may not use purpose 4.
-	{ purposeId: 4, restrictionType: 0 as const, vendorIds: [10, 755] },
-	// Vendor 755 must use legitimate interest for purpose 7.
-	{ purposeId: 7, restrictionType: 2 as const, vendorIds: [755] },
-];
-
-export function IABConsent({ cmpId }: { cmpId: number }) {
-	return (
-		<IABProvider cmpId={cmpId} publisherRestrictions={publisherRestrictions}>
-			<IABConsentBanner />
-			<IABConsentDialog />
-		</IABProvider>
-	);
-}
-```
+<include src="../../shared/examples/nextjs/iab-publisher-restrictions.mdx" />
 
 <include src="../../shared/iab-publisher-restrictions.mdx" />
 

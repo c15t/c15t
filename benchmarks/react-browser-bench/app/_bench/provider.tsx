@@ -13,6 +13,9 @@ import { ReactBenchmarkProbe } from './probe';
 import { getBenchState } from './state';
 import type { ReactBenchScenario } from './state';
 
+// Keep this fixture compatible with revisions before automatic styles.
+type BenchmarkProviderOptions = ConsentProviderOptions & { styles?: boolean };
+
 const consentCategories = [
 	'necessary',
 	'functionality',
@@ -34,14 +37,17 @@ const benchTheme: NonNullable<ConsentProviderOptions['theme']> = {
 export const ReactBenchmarkProvider = ({
 	children,
 	scenario,
+	styles,
 	theme = benchTheme,
 }: {
 	children: ReactNode;
 	scenario: ReactBenchScenario;
+	/** Set false for experiments that import their CSS explicitly. */
+	styles?: BenchmarkProviderOptions['styles'];
 	/** Defaults to the 1ms motion override only. */
 	theme?: ConsentProviderOptions['theme'];
 }) => {
-	const options: ConsentProviderOptions = {
+	const options: BenchmarkProviderOptions = {
 		callbacks: {
 			onChoiceRecorded() {
 				const state = getBenchState(scenario);
@@ -58,6 +64,7 @@ export const ReactBenchmarkProvider = ({
 		},
 		consentCategories,
 		mode: hosted({ url: '/api/bench-consent' }),
+		styles,
 		theme,
 	};
 

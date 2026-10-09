@@ -22,9 +22,11 @@
 	});
 </script>
 
+<!-- Tailwind 3 builds c15t's stylesheet from app.css. -->
 <ConsentManagerProvider
 	{mode}
 	persistence={false}
+	styles={false}
 >
 	{@render children()}
 	<!-- #region docs:slot -->

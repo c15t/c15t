@@ -15,6 +15,7 @@
  * ```
  */
 import type { LegalLinks } from '@c15t/core';
+import ComponentStyles from './component-styles.astro';
 
 interface Props {
 	/**
@@ -44,6 +45,8 @@ interface Props {
 
 const { preload = false, legalLinks, disableAnimation } = Astro.props;
 ---
+
+<ComponentStyles />
 
 <div
 	data-c15t-dialog-host="preferences"

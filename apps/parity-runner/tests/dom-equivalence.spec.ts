@@ -3,6 +3,32 @@ import { expect, test } from '@playwright/test';
 import { captureComputedStyleMap } from '../src/diff-computed-style';
 import { captureDomSnapshot } from '../src/diff-dom';
 
+test('empty hidden stream markers normalize while visible or substantive content remains', async ({
+	page,
+}) => {
+	const fixture = (marker = '', attributes = '') =>
+		`<div data-testid="iab-consent-banner-root" ${attributes}><button>Accept</button>${marker}</div>`;
+	await page.setContent(fixture());
+	const complete = await captureDomSnapshot(page, 'body');
+	await page.setContent(
+		fixture(
+			'<span data-c15t-stream-end="" hidden></span>',
+			'data-c15t-streamed=""'
+		)
+	);
+	expect(await captureDomSnapshot(page, 'body')).toBe(complete);
+	for (const marker of [
+		'<span data-c15t-stream-end=""></span>',
+		'<span data-c15t-stream-end="" hidden>Important content</span>',
+		'<span data-c15t-stream-end="" hidden role="status"></span>',
+	]) {
+		// oxlint-disable-next-line no-await-in-loop -- Each replacement uses the same page.
+		await page.setContent(fixture(marker, 'data-c15t-streamed=""'));
+		// oxlint-disable-next-line no-await-in-loop -- Compare before replacing the fixture again.
+		expect(await captureDomSnapshot(page, 'body')).not.toBe(complete);
+	}
+});
+
 test('native headings and explicit heading roles agree while wrong levels fail', async ({
 	page,
 }) => {

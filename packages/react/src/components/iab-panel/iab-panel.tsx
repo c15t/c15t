@@ -38,6 +38,8 @@ import { useTextDirection } from '~/hooks/use-text-direction';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { IAB_DIALOG_SHEETS } from '../shared/iab-dialog-sheets';
+import { SurfaceStyles } from '../shared/surface-styles';
 import { FeatureItem } from './atoms/feature-item';
 import { IABConsentDialogOverlay } from './atoms/overlay';
 import { PurposeItem } from './atoms/purpose-item';
@@ -569,6 +571,10 @@ export const IABConsentDialog: FC<IABConsentDialogProps> = ({
 	const dialogContent = (
 		<ConsentTrackingContext.Provider value={trackingContextValue}>
 			<LocalThemeContext.Provider value={config}>
+				<SurfaceStyles
+					sheets={IAB_DIALOG_SHEETS}
+					noStyle={config.noStyle}
+				/>
 				<IABConsentDialogOverlay isOpen={isOpen} />
 				<div
 					{...rootProps}

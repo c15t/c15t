@@ -7,17 +7,18 @@ group: reference
 {/* This file is NOT rendered directly. Sections are imported by framework pages. */}
 
 <section id="tailwind-layers">
-  c15t's rules live in the cascade layer `components`, and the stylesheet
-  opens with Tailwind CSS 4's layer order,
+  c15t's rules live in the cascade layer `components`, and each `<style>`
+  element the components render opens with Tailwind CSS 4's layer order,
   `@layer properties, theme, base, components, utilities;`. Unlayered CSS,
   Tailwind 4 utilities and StyleX's atomic classes override c15t's rules
   without specificity tricks, whichever stylesheet loads first.
   [Stylesheets and CSS layers](/docs/customization/stylesheets) explains the
   order and which file holds the dialog's rules.
 
-  Tailwind CSS 3 has no cascade layers. Import the same `styles.css` above
-  the `@tailwind` directives, and add the `c15t/postcss-tailwind3` PostCSS
-  plugin before `tailwindcss`. Utilities
+  Tailwind CSS 3 has no cascade layers, and its unlayered preflight beats
+  c15t's layered rules. Set `styles: false` in the provider options, import
+  `styles.css` above the `@tailwind` directives, and add the
+  `c15t/postcss-tailwind3` PostCSS plugin before `tailwindcss`. Utilities
   you pass to c15t parts then need the important modifier, such as
   `!bg-red-500`. [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3)
   shows the tested setup for each framework.
@@ -25,7 +26,8 @@ group: reference
 
 <section id="tokens-intro">
   Colors, radii, shadows, typography, and motion come from `--c15t-*` custom
-  properties. The package stylesheet sets the default values. To change them,
+  properties. The rules the components render set the default values, as
+  does `styles.css` when you import it with `styles: false`. To change them,
   render `ConsentTheme` with your theme where your app renders on the server,
   or override the variables directly in your CSS.
 
@@ -72,8 +74,9 @@ group: reference
      `nonce` if you set them on the provider.
   3. Keep passing `theme` to the provider only for `consentActions` and slot
      styles. A theme with tokens only can be removed from the provider.
-  4. Keep the package stylesheet import. It carries the default tokens the
-     provider used to inject.
+  4. The default tokens the provider used to inject now come with the rules
+     the components render. If you import `styles.css` with `styles: false`,
+     keep that import.
 </section>
 
 <section id="token-roles">

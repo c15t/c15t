@@ -15,7 +15,7 @@ import {
 import fs, { createFile } from './file-plan';
 import { REACT_CONFIG } from './framework-config';
 import type { FrameworkConfig } from './framework-config';
-import { generateOptionsText } from './options';
+import { generateProjectOptionsText } from './options';
 import { generateSimpleWrapperComponent } from './server-components';
 
 interface ComponentFilePaths {
@@ -48,7 +48,11 @@ export const createConsentManagerComponent =
 		);
 
 		// Generate component file content
-		const optionsText = generateOptionsText(mode, backendURL, undefined, true);
+		const optionsText = await generateProjectOptionsText(
+			projectRoot,
+			mode,
+			backendURL
+		);
 		const providerContent =
 			uiStyle === 'expanded'
 				? generateExpandedProviderTemplate({

@@ -9,7 +9,9 @@ import styles from '@c15t/ui/styles/components/consent-manager';
 import { useMemo } from 'react';
 import type { FC, ReactNode } from 'react';
 
+import { DIALOG_SHEETS } from '~/components/shared/dialog-sheets';
 import { Box } from '~/components/shared/primitives/box';
+import { SurfaceStyles } from '~/components/shared/surface-styles';
 import {
 	ConsentTrackingContext,
 	useConsentTracking,
@@ -139,14 +141,20 @@ const ConsentWidgetRoot: FC<ConsentWidgetRootProps> = ({
 	}
 
 	const content = (
-		<Box
-			baseClassName={styles.manager}
-			data-testid="consent-widget-root"
-			slotKey="manager.root"
-			dir={textDirection}
-		>
-			{children}
-		</Box>
+		<>
+			<SurfaceStyles
+				sheets={DIALOG_SHEETS}
+				noStyle={noStyle}
+			/>
+			<Box
+				baseClassName={styles.manager}
+				data-testid="consent-widget-root"
+				slotKey="manager.root"
+				dir={textDirection}
+			>
+				{children}
+			</Box>
+		</>
 	);
 
 	if (useProvider) {

@@ -89,12 +89,14 @@ flight waits for the answer.
 
 ## Stylesheets
 
-The dialog's rules are in `c15t/astro/styles.css`, which the integration adds
-to every page. The Svelte dialog also needs the primitives stylesheet: the
-integration links it the first time the dialog opens and waits for it to load
-before the dialog paints. With `styles: false`, import
-`c15t/astro/styles.css` yourself, and `c15t/astro/primitives.css` for the
-Svelte dialog. See
+The page carries only the banner's rules. The first time a visitor reaches
+for the dialog, c15t links the dialog's rules from
+`@c15t/ui/styles/sheets/dialog.css`, plus the primitives stylesheet for the
+Svelte dialog, and waits for them to load before the dialog paints. On a
+Tailwind CSS 3 site, the dialog's rules come with `c15t/astro/styles.css` on
+every page, and c15t links only the primitives stylesheet. With
+`styles: false`, import `c15t/astro/styles.css` yourself, which holds the
+dialog's rules too, and `c15t/astro/primitives.css` for the Svelte dialog. See
 [load the stylesheet yourself](/docs/frameworks/astro/customize#load-the-stylesheet-yourself).
 
 ## Across `ClientRouter` navigation

@@ -21,6 +21,10 @@ export interface V3UIConfigValue {
 	theme?: Theme;
 	legalLinks?: LegalLinks;
 	preloadDialog?: DialogPreload;
+	/** CSP nonce for the `<style>` elements the surfaces render. */
+	nonce?: string;
+	/** `false` when the app loads `styles.css` itself. */
+	styles?: boolean;
 }
 
 export const V3UIConfigContext = createContext<V3UIConfigValue>({});

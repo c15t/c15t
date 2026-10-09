@@ -21,7 +21,10 @@ import {
 import fs, { createFile } from '../../shared/file-plan';
 import { NEXTJS_CONFIG } from '../../shared/framework-config';
 import { runLayoutUpdatePipeline } from '../../shared/layout-pipeline';
-import { generateOptionsText, getBackendURLValue } from '../../shared/options';
+import {
+	generateProjectOptionsText,
+	getBackendURLValue,
+} from '../../shared/options';
 import { generateServerComponent } from '../../shared/server-components';
 
 const HTML_TAG_REGEX = /<html[^>]*>(?<content>[\s\S]*)<\/html>/u;
@@ -170,7 +173,12 @@ async function createExpandedConsentManagerComponents(
 	const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
 
 	// Generate options text for the provider component
-	const optionsText = generateOptionsText(mode, backendURL, proxyNextjs);
+	const optionsText = await generateProjectOptionsText(
+		projectRoot,
+		mode,
+		backendURL,
+		proxyNextjs
+	);
 
 	// Generate all component file contents
 	const serverComponentContent = generateServerComponent({
@@ -278,7 +286,12 @@ async function createPrebuiltConsentManagerComponents(
 	const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
 
 	// Generate options text for the client component
-	const optionsText = generateOptionsText(mode, backendURL, proxyNextjs);
+	const optionsText = await generateProjectOptionsText(
+		projectRoot,
+		mode,
+		backendURL,
+		proxyNextjs
+	);
 
 	// Generate component file contents
 	const consentManagerContent = generateServerComponent({

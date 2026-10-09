@@ -1,6 +1,5 @@
 'use client';
 
-import '@c15t/react/styles.css';
 /**
  * Interactive test harness for the current stack.
  *

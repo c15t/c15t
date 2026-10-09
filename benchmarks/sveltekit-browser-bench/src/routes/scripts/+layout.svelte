@@ -6,8 +6,6 @@
 		benchScripts,
 	} from '$lib/fixture';
 	import ScriptProbe from '$lib/script-probe.svelte';
-
-	import '@c15t/svelte/styles.css';
 	import { ConsentManagerProvider, hosted } from '@c15t/svelte';
 
 	let { children, data } = $props();

@@ -337,12 +337,19 @@ export interface C15tAstroOptions {
 	ui?: C15tUIAdapterName;
 
 	/**
-	 * Add `@c15t/astro/styles.css` to every page, and
-	 * `@c15t/astro/iab/styles.css` when {@link C15tAstroOptions.iab} is set.
+	 * Deliver c15t's styles. `<ConsentScript />`, or the banner on a layout
+	 * without it, inlines the first-paint rules into the HTML, so no
+	 * stylesheet link holds back the page's first paint. The client links
+	 * the dialog's rules before mounting it. With
+	 * {@link C15tAstroOptions.iab} set, IAB banner rules are also inlined,
+	 * and its panel rules load only when the IAB dialog opens.
 	 *
-	 * Set to `false` to import them yourself, for example from a global
-	 * stylesheet with your own cascade layers, or to style the surfaces from
-	 * scratch.
+	 * A Tailwind CSS 3 site links the full base and IAB stylesheets through
+	 * the host's CSS pipeline instead of inlining the rules.
+	 *
+	 * Set to `false` to import `@c15t/astro/styles.css` (and the IAB
+	 * stylesheet) yourself, for example from a global stylesheet with your
+	 * own cascade layers, or to style the surfaces from scratch.
 	 *
 	 * @default true
 	 */
@@ -503,6 +510,13 @@ export interface C15tResolvedOptions extends Omit<
 	};
 	middleware: Required<Omit<C15tMiddlewareOptions, 'timeoutMs'>> &
 		Pick<C15tMiddlewareOptions, 'timeoutMs'>;
+	/**
+	 * Whether the components inline the first-paint rules and the client
+	 * links the dialog's when it opens. `false` with `styles: false`, and on
+	 * a Tailwind CSS 3 site, whose PostCSS build has to process c15t's rules:
+	 * the integration then adds `@c15t/astro/styles.css` to every page.
+	 */
+	inlineStyles: boolean;
 	/**
 	 * Set when the site turned on Astro's CSP and has a `clientEntrypoint`.
 	 * The browser checks the inline scripts that module adds against it.

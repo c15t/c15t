@@ -68,6 +68,10 @@ export const createOwnEntryResolver =
 		}
 	};
 
+/** The dialog and preference-widget rules, which no first paint needs. */
+const DIALOG_STYLESHEET = '@c15t/ui/styles/sheets/dialog.css';
+const IAB_DIALOG_STYLESHEET = '@c15t/ui/styles/sheets/iab-dialog.css';
+
 /**
  * What each `ui` adapter needs from the app, keyed by adapter name.
  *
@@ -84,9 +88,9 @@ const UI_ADAPTERS: Record<
 		adapterExport: string;
 		surfaceModule: string;
 		/**
-		 * The stylesheets the island's dialog needs beyond `styles.css`, which
-		 * already holds the dialog's rules. The client links them when the
-		 * dialog opens.
+		 * The stylesheets the island's dialog needs beyond the first-paint
+		 * rules the page inlines. The client links them when the dialog
+		 * opens.
 		 */
 		dialogStyles: string[];
 	}
@@ -95,7 +99,7 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'reactDialogAdapter',
 		adapterModule: '@c15t/astro/ui/react',
 		astroIntegration: '@astrojs/react',
-		dialogStyles: [],
+		dialogStyles: [DIALOG_STYLESHEET],
 		packages: ['@astrojs/react', '@c15t/react', 'react', 'react-dom'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.tsx',
 	},
@@ -103,9 +107,9 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'svelteDialogAdapter',
 		adapterModule: '@c15t/astro/ui/svelte',
 		astroIntegration: '@astrojs/svelte',
-		// The Svelte components read the `@c15t/ui/styles/primitives` class
-		// maps, whose rules live in their own stylesheet.
-		dialogStyles: ['@c15t/ui/styles/primitives.css'],
+		// The Svelte components also read the `@c15t/ui/styles/primitives`
+		// class maps, whose rules live in their own stylesheet.
+		dialogStyles: [DIALOG_STYLESHEET, '@c15t/ui/styles/primitives.css'],
 		packages: ['@astrojs/svelte', 'svelte'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.svelte',
 	},
@@ -113,7 +117,7 @@ const UI_ADAPTERS: Record<
 		adapterExport: 'vueDialogAdapter',
 		adapterModule: '@c15t/astro/ui/vue',
 		astroIntegration: '@astrojs/vue',
-		dialogStyles: [],
+		dialogStyles: [DIALOG_STYLESHEET],
 		packages: ['@astrojs/vue', '@c15t/vue', 'vue'],
 		surfaceModule: '@c15t/astro/islands/panel-surface.vue',
 	},
@@ -259,10 +263,39 @@ export const resolveOptions = function resolveOptions(
 		colorScheme:
 			options.colorScheme === null ? 'none' : (options.colorScheme ?? 'system'),
 		endpoints: resolveEndpoints(options),
+		inlineStyles: options.styles !== false,
 		middleware: resolveMiddleware(options),
 		mode,
 		ui: options.ui ?? 'svelte',
 	};
+};
+
+/**
+ * Whether the site at `root` builds its CSS with Tailwind CSS 3.
+ *
+ * @param root - The Astro project root.
+ * @returns Resolves `true` when `tailwindcss` resolves from the root at
+ * major 3.
+ * @internal
+ */
+export const usesTailwind3 = async function usesTailwind3(
+	root: URL | undefined
+): Promise<boolean> {
+	if (!root) {
+		return false;
+	}
+	try {
+		// Dynamic, like `createOwnEntryResolver`: browser code may import the
+		// package root, and `node:module` has no browser build.
+		const { createRequire } = await import('node:module');
+		const require = createRequire(new URL('package.json', root));
+		const { version } = require('tailwindcss/package.json') as {
+			version?: string;
+		};
+		return version?.startsWith('3.') === true;
+	} catch {
+		return false;
+	}
 };
 
 /** The one field every plugin this integration adds has in common. */
@@ -418,15 +451,27 @@ const buildBootScript = function buildBootScript(
 		);
 	}
 	// `?url` makes each stylesheet an emitted file and the import a string,
-	// so none of its rules reach the page until the client links it.
-	if (resolved.styles !== false && adapter.dialogStyles.length > 0) {
-		const names = adapter.dialogStyles.map((_, index) => `dialogStyle${index}`);
-		adapter.dialogStyles.forEach((specifier, index) => {
+	// so none of its rules reach the page until the client links it. Pages
+	// that link `styles.css` already have the dialog's rules.
+	const dialogStyles = resolved.inlineStyles
+		? adapter.dialogStyles
+		: adapter.dialogStyles.filter(
+				(specifier) => specifier !== DIALOG_STYLESHEET
+			);
+	if (resolved.styles !== false && dialogStyles.length > 0) {
+		const names = dialogStyles.map((_, index) => `dialogStyle${index}`);
+		dialogStyles.forEach((specifier, index) => {
 			lines.push(
 				`import ${names[index]} from ${JSON.stringify(`${resolveEntry(specifier)}?url`)};`
 			);
 		});
 		lines.push(`registerDialogStyles([${names.join(', ')}]);`);
+	}
+	if (resolved.inlineStyles && isIABConfigured(resolved.iab)) {
+		lines.push(
+			`import iabDialogStyle from ${JSON.stringify(`${resolveEntry(IAB_DIALOG_STYLESHEET)}?url`)};`,
+			"registerDialogStyles([iabDialogStyle], 'iab');"
+		);
 	}
 	if (options.clientEntrypoint) {
 		lines.push(
@@ -440,11 +485,13 @@ const buildBootScript = function buildBootScript(
 };
 
 /**
- * Build the stylesheet imports the integration injects into every page.
+ * Build the stylesheet imports for a Tailwind 3 site, where the host must
+ * process the base and optional IAB rules instead of inlining them.
  *
  * @param resolved - The resolved integration options.
  * @param resolveEntry - Maps this package's specifiers to what Astro loads.
- * @returns The module source, or an empty string with `styles: false`.
+ * @returns The module source, or an empty string when there is nothing to
+ * add or with `styles: false`.
  */
 export const buildStylesImport = function buildStylesImport(
 	resolved: C15tResolvedOptions,
@@ -455,11 +502,17 @@ export const buildStylesImport = function buildStylesImport(
 	if (resolved.styles === false) {
 		return '';
 	}
-	// `styles.css` holds the dialog's rules too. The primitive rules the
-	// Svelte dialog also needs are not here: the boot script registers them
-	// and the client links them on the first open.
-	const lines = [`import ${quote('@c15t/astro/styles.css')};`];
-	if (isIABConfigured(resolved.iab)) {
+	// The banner's rules are inlined into the HTML with its config (see
+	// `<ConsentScript />`), so no stylesheet link holds back the first
+	// paint. The dialog's rules are not here either: the boot script
+	// registers them and the client links them on the first open. A
+	// Tailwind 3 build has to process the rules itself, so it gets the
+	// whole stylesheet, linked as before.
+	const lines: string[] = [];
+	if (!resolved.inlineStyles) {
+		lines.push(`import ${quote('@c15t/astro/styles.css')};`);
+	}
+	if (!resolved.inlineStyles && isIABConfigured(resolved.iab)) {
 		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
 	}
 	return lines.join('\n');
@@ -674,6 +727,12 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 					}
 				}
 				const resolveEntry = await createOwnEntryResolver();
+				// Tailwind 3 unwraps c15t's cascade layer in the stylesheets it
+				// builds (`c15t/postcss-tailwind3`). Inlined rules skip that
+				// build and would lose to its preflight.
+				if (resolved.inlineStyles && (await usesTailwind3(config?.root))) {
+					resolved.inlineStyles = false;
+				}
 
 				// With Astro's own CSP on, allow the inline code the components
 				// render, and hand the browser the policy's script hashes so it

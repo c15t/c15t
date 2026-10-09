@@ -1,6 +1,5 @@
 'use client';
 
-import '@c15t/react/styles.css';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 import {

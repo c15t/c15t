@@ -18,9 +18,11 @@
 	});
 </script>
 
+<!-- Tailwind 3 builds c15t's stylesheet from app.css. -->
 <ConsentManagerProvider
 	{mode}
 	persistence={false}
+	styles={false}
 >
 	<p
 		class="bg-emerald-600 text-white"

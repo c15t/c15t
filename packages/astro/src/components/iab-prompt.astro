@@ -43,6 +43,7 @@ import {
 } from '@c15t/astro/server';
 import type { IABPromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
+import ComponentStyles from './component-styles.astro';
 
 interface Props extends IABPromptProps {
 	/**
@@ -110,6 +111,8 @@ const hidden = c15t.prerendered && !force;
 		/>
 	)
 }
+
+<ComponentStyles />
 
 {
 	themeCSS && (

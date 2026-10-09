@@ -73,7 +73,7 @@ const LoadedSurface = ({
 		return (
 			<AstroDialog
 				runtime={runtime}
-				options={{ colorScheme: null }}
+				options={{ colorScheme: null, styles: false }}
 				kind="iab"
 			/>
 		);

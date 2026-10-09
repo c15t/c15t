@@ -13,3 +13,12 @@ server-resolved IAB policy, the IAB banner can render in the server HTML, and
 the browser fetches the Global Vendor List from the route the server names.
 Pass `fetchGvl` to `createSvelteKitConsentRouteHandlers` to change how the
 manifest route fetches the vendor list.
+
+Keep [`c15tHandle`](./rendering#resolve-request-context-once-with-c15thandle) in your server hooks. It
+reads the rendered IAB components' stylesheet markers and writes the rules
+into `<head>`, so the server banner is styled before hydration without a
+stylesheet request. The injected styles use the provider's `nonce`, or the
+nonce SvelteKit put on its scripts. The browser reuses those styles and
+adds the dialog's rules with the same nonce when it opens. See
+[Content Security Policy](./content-security-policy#allow-c15ts-style-elements)
+for nonce and prerendered-page requirements.

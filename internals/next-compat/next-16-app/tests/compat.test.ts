@@ -46,5 +46,6 @@ defineCompatSuite({
 			rendering: { kind: 'dynamic' },
 		},
 	],
+	styles: 'automatic',
 	title: 'Next 16 / App Router / default caching',
 });

@@ -2,8 +2,6 @@
 	import BenchShell from '$lib/bench-shell.svelte';
 	import { createBrowserManifestTransport } from '$lib/client-manifest-transport';
 	import { benchConsentCategories } from '$lib/fixture';
-
-	import '@c15t/svelte/styles.css';
 	import { ConsentManagerProvider, custom } from '@c15t/svelte';
 
 	let { children } = $props();

@@ -3,16 +3,17 @@
  *
  * The islands read `@c15t/ui` class maps. In the browser build those modules
  * also import their component CSS, and Astro links every stylesheet a page
- * script can reach on every page. The integration already injects the full
- * stylesheet, so that CSS is a duplicate. `@c15t/ui` ships each class map
- * without its CSS import as `<name>.node.js` for runtimes that cannot load
- * CSS; this points the browser build at those instead.
+ * script can reach on every page. The page already inlines the first-paint
+ * rules, and the client links the dialog's, so that CSS is a duplicate.
+ * `@c15t/ui` ships each class map without its CSS import as `<name>.node.js`
+ * for runtimes that cannot load CSS; this points the browser build at those
+ * instead.
  *
  * The islands' stylesheet imports resolve to an empty module here: the
- * injected stylesheet already holds the component and dialog rules, and the
- * client links the Svelte primitives' rules when the dialog opens (see
- * `browser/dialog-styles.ts`). Left alone, a build either drops them or
- * ships the same rules a second time.
+ * inlined first-paint rules and the dialog and primitive rules the client
+ * links when the dialog opens (see `browser/dialog-styles.ts`) cover them.
+ * Left alone, a build either drops them or ships the same rules a second
+ * time.
  */
 
 /** `@c15t/ui/styles/components/<name>`, but not the `.css` subpaths. */
@@ -68,8 +69,8 @@ export interface ClassMapPlugin {
 }
 
 /**
- * Create the plugin. Only add it when the integration injects the full
- * stylesheet: with `styles: false` the islands' own CSS is all a site has.
+ * Create the plugin. Only add it when the integration delivers c15t's
+ * styles: with `styles: false` the islands' own CSS is all a site has.
  *
  * @param options - Which stylesheets the integration injects.
  * @returns A Vite plugin.

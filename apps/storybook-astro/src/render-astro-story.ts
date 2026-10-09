@@ -15,7 +15,10 @@ import {
 	getConsentClient,
 	registerDialogAdapter,
 	registerDialogSurface,
+	registerIAB,
 } from '@c15t/astro/client';
+import { createLazyIABFactory } from '@c15t/core/runtime';
+import { mountRuntimeIAB } from '@c15t/core/runtime/on-demand';
 import prerendered from 'virtual:c15t-astro-prerendered';
 
 import { requireStoryVariant } from './story-variants';
@@ -120,6 +123,12 @@ export const renderAstroStory = function renderAstroStory(
 
 	resetPage();
 	registerAdapters(variant.ui ?? 'svelte');
+	if (variant.options?.iab) {
+		registerIAB({
+			...createLazyIABFactory(() => import('../../../packages/iab/src/index')),
+			mount: mountRuntimeIAB,
+		});
+	}
 
 	const host = document.createElement('div');
 	host.setAttribute('data-c15t-story-host', variantId);

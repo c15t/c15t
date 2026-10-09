@@ -456,11 +456,17 @@
 		get noStyle() {
 			return options.noStyle;
 		},
+		get nonce() {
+			return options.nonce;
+		},
 		get preloadDialog() {
 			return options.preloadDialog;
 		},
 		get scrollLock() {
 			return options.scrollLock;
+		},
+		get styles() {
+			return options.styles;
 		},
 		get theme() {
 			return userTheme;

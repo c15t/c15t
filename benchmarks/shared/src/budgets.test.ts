@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 
 import {
 	astroBrowserBudgetsForScenario,
+	bundleEntryBudgets,
 	nextjsBrowserBudgetsForScenario,
 	nuxtBrowserBudgetsForScenario,
 	reactBrowserBudgetsForScenario,
@@ -14,6 +15,44 @@ import {
 } from './expected-results';
 import { evaluateBudget } from './reporting';
 import { summarizeMetric } from './utils';
+
+it.each([
+	{ limit: 5632, metric: 'initialGzip', scenario: 'provider' },
+	{ limit: 27_136, metric: 'lazyGzip', scenario: 'provider' },
+	{ limit: 17_920, metric: 'gzipSize', scenario: 'provider' },
+	{ limit: 14_848, metric: 'initialGzip', scenario: 'ordinary-react' },
+	{ limit: 17_920, metric: 'lazyGzip', scenario: 'ordinary-react' },
+	{ limit: 17_920, metric: 'gzipSize', scenario: 'ordinary-react' },
+	{ limit: 14_848, metric: 'initialGzip', scenario: 'iab-lazy' },
+	{ limit: 25_088, metric: 'lazyGzip', scenario: 'iab-lazy' },
+	{ limit: 25_088, metric: 'gzipSize', scenario: 'iab-lazy' },
+	{ limit: 5632, metric: 'initialGzip', scenario: 'kernel-hosted' },
+	{ limit: 12_288, metric: 'lazyGzip', scenario: 'kernel-hosted' },
+	{ limit: 3072, metric: 'gzipSize', scenario: 'kernel-hosted' },
+])(
+	'caps $scenario $metric growth at $limit bytes',
+	({ scenario, metric, limit }) => {
+		const budget = bundleEntryBudgets(scenario).find(
+			(entry) => entry.metric === metric
+		);
+		expect.assert(budget);
+		const base = summarizeMetric(metric, 'bytes', [100_000]);
+		expect(
+			evaluateBudget(
+				budget,
+				summarizeMetric(metric, 'bytes', [100_000 + limit]),
+				base
+			).pass
+		).toBe(true);
+		expect(
+			evaluateBudget(
+				budget,
+				summarizeMetric(metric, 'bytes', [100_001 + limit]),
+				base
+			).pass
+		).toBe(false);
+	}
+);
 
 it('requires zero init traffic on the consent-free TanStack baseline', () => {
 	expect(tanstackBrowserBudgetsForScenario('baseline')).toContainEqual({

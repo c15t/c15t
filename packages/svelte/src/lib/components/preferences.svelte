@@ -11,6 +11,7 @@
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { DIALOG_SHEETS } from '../dialog-sheets';
 	import { PreferenceItem, Switch } from '../primitives';
 	import {
 		resolveComponentStyles,
@@ -20,6 +21,7 @@
 	import ConsentButton from './action-button.svelte';
 	import Branding from './branding.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
+	import SurfaceStyles from './surface-styles.svelte';
 	import VendorList from './vendor-list.svelte';
 
 	let {
@@ -151,6 +153,7 @@
 </script>
 
 {#if consent.state.hasConsentUi}
+	<SurfaceStyles sheets={DIALOG_SHEETS} />
 	<div
 		class={widgetRootStyle.className || ''}
 		style={toStyleAttribute(widgetRootStyle.style)}

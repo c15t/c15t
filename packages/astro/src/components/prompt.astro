@@ -39,6 +39,7 @@ import {
 } from '@c15t/astro/server';
 import type { PromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
+import ComponentStyles from './component-styles.astro';
 
 interface Props extends PromptProps {
 	/**
@@ -53,9 +54,16 @@ interface Props extends PromptProps {
 	 * own, whose nonce the page's policy does not list.
 	 */
 	nonce?: string;
+	/** The deferred wrapper already renders the static CSS. @internal */
+	inlineStyles?: boolean;
 }
 
-const { force = false, nonce: nonceProp, ...props } = Astro.props;
+const {
+	force = false,
+	inlineStyles = true,
+	nonce: nonceProp,
+	...props
+} = Astro.props;
 
 const { c15t } = Astro.locals;
 
@@ -118,6 +126,8 @@ const model = resolvePromptModel({
 		/>
 	)
 }
+
+{inlineStyles && <ComponentStyles nonce={nonce} />}
 
 {
 	themeCSS && (

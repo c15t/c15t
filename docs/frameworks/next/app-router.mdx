@@ -32,22 +32,12 @@ site's origin to its trusted origins. Copy the project's backend URL.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Add the c15t stylesheet to your global CSS. With Tailwind CSS 4, put it after
-the Tailwind import so the c15t component layer follows Tailwind's:
-
-```css title="styles/globals.css"
-@import 'tailwindcss';
-@import 'c15t/next/styles.css';
-```
-
-Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
-same import above the `@tailwind` directives and add
-`c15t/postcss-tailwind3` to your PostCSS config, as
-[Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
-Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
-rules.
-Import the stylesheet from a global CSS file, not from a component. Next.js may
-load a component's CSS before Tailwind's and change the layer order.
+There is no c15t stylesheet to import. The components render their own rules
+as `<style>` elements, so no stylesheet request holds back the first paint.
+With Tailwind CSS 3, import `c15t/next/styles.css` yourself and set
+`styles: false` in `ConsentRoot`'s `options`, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
+shows.
 
 ## Share the consent URLs
 
@@ -134,9 +124,9 @@ request data in the root layout without it fails the build.
 [Stream or await consent](/docs/frameworks/next/rendering#stream-or-await-consent-in-the-app-router)
 compares the two layouts.
 
-`c15t/next/styles.css` holds the tokens and the rules for every stock
-surface, the preference dialog included. Opening the dialog loads no second
-stylesheet.
+The banner renders its rules into the server HTML. `ConsentDialog` adds the
+dialog's rules with its lazily loaded code, so they are not part of the first
+page load.
 
 ## Initialize in the browser
 

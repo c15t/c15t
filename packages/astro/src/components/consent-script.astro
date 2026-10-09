@@ -19,6 +19,7 @@ import {
 	buildConfigJSON,
 	markConfigEmitted,
 } from '@c15t/astro/server';
+import ComponentStyles from './component-styles.astro';
 
 const { c15t } = Astro.locals;
 const shouldEmit = c15t !== undefined && markConfigEmitted(Astro.locals);
@@ -47,6 +48,8 @@ const themeCSS = shouldEmit
 		/>
 	)
 }
+
+<ComponentStyles />
 
 {
 	themeCSS && (

@@ -31,14 +31,22 @@ const buildLocals = async function buildLocals(
 	});
 };
 
+/**
+ * The banner's markup. The first-paint stylesheet it inlines names every
+ * class, so it is left out (`inline-styles.test.ts` covers it).
+ */
 const render = async function render(
 	locals: C15tLocals,
 	props: Record<string, unknown> = {}
 ): Promise<string> {
-	return await container.renderToString(ConsentBanner, {
+	const html = await container.renderToString(ConsentBanner, {
 		locals: { c15t: locals },
 		props,
 	});
+	return html.replace(
+		/<style[^>]*data-c15t-styles[^>]*>[\s\S]*?<\/style>/gu,
+		''
+	);
 };
 
 describe('<ConsentBanner />', () => {

@@ -44,9 +44,9 @@ only. Colors, radius, typography and other tokens in `theme` are not turned
 into CSS in the browser, and in development the provider logs a warning about
 it.
 
-**Fix.** Set the `--c15t-*` variables in a stylesheet that loads after
-`@c15t/svelte/styles.css`, or render `generateThemeCSS()` output as
-`<style id="c15t-theme">`. The customize page shows both.
+**Fix.** Set the `--c15t-*` variables on `:root` in a stylesheet, or render
+`generateThemeCSS()` output as `<style id="c15t-theme">`. The customize page
+shows both.
 
 **Check.** If your values still lose, inspect the element. A generated theme
 uses `:root:root`, so it beats your own `:root` rule.
@@ -55,12 +55,25 @@ uses `:root:root`, so it beats your own `:root` rule.
 
 ## The dialog or banner has no styles
 
-**Check.** Look for an import of `@c15t/svelte/styles.css`. It contains the
-banner, dialog and primitive rules.
+**Check.** Look in `<head>` for `<style data-c15t-styles>` elements, and in
+the console for a Content Security Policy error. On a server-rendered
+SvelteKit page, check that `src/hooks.server.ts` exports `c15tHandle`.
 
-**Fix.** Import `@c15t/svelte/styles.css` once, in the component that renders
-the provider or in your global stylesheet. For IAB TCF, also import
-`@c15t/svelte/iab/styles.css`.
+**Fix.**
+
+- No c15t `<style>` element: the provider sets `styles={false}` or
+  `noStyle`. With `styles={false}`, import `@c15t/svelte/styles.css` once,
+  in the component that renders the provider or in your global stylesheet.
+- The SvelteKit banner is unstyled until hydration: add `c15tHandle` from
+  `@c15t/svelte/kit` to `src/hooks.server.ts`, or set `styles={false}` and
+  import `@c15t/svelte/styles.css`.
+- The console reports a blocked inline style: pass the provider a `nonce`, or
+  set `styles={false}` and import the stylesheet. The Content Security Policy
+  page covers both.
+- IAB TCF surfaces are unstyled with automatic styles disabled: import
+  `@c15t/svelte/styles.css` and `@c15t/svelte/iab/styles.css` together. With
+  automatic styles enabled, check the policy and IAB configuration, the
+  provider's `noStyle` option, and CSP errors.
 
 ## A vendor loads before consent, or twice
 

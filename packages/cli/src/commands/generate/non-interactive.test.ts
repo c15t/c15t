@@ -138,9 +138,13 @@ describe('noninteractive setup', () => {
 		const context = await fixture({ json: true, plan: true });
 		await writeFile(
 			join(context.projectRoot, 'package.json'),
-			'{"dependencies":{"react":"19.2.0"}}'
+			'{"dependencies":{"react":"19.2.0","tailwindcss":"3.4.17"}}'
 		);
 		context.framework = await detectFramework(context.projectRoot);
+		await writeFile(
+			join(context.projectRoot, 'postcss.config.mjs'),
+			'export default { plugins: { tailwindcss: {} } };'
+		);
 		await mkdir(join(context.projectRoot, 'src'));
 		await writeFile(
 			join(context.projectRoot, 'src/App.tsx'),

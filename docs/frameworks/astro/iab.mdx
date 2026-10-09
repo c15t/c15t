@@ -31,8 +31,11 @@ c15t({
 ```
 
 Replace `123` with your registered CMP ID. A hosted backend can supply the CMP
-ID through `/init`, so `cmpId` is optional when your Inth project has one. The integration adds `c15t/astro/iab/styles.css`
-to every page once `iab` is set.
+ID through `/init`, so `cmpId` is optional when your Inth project has one.
+The integration inlines the IAB banner's rules once per page. Its preference
+center rules load before the IAB dialog opens, so there is no IAB stylesheet
+request before the page's first paint. Tailwind CSS 3 sites use the full
+external IAB stylesheet so the host's CSS pipeline can process it.
 
 IAB stays off until you set `iab`. Without it, or with `iab: false` or
 `enabled: false`, the page script contains no CMP code and the browser never

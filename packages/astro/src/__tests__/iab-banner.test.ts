@@ -191,9 +191,13 @@ describe('<IABConsentBanner />', () => {
 			iabBannerStyles.bannerEntering,
 			iabBannerStyles.overlayEntering,
 		];
+		const classTokens = (html: string) =>
+			[...html.matchAll(/class="(?<classes>[^"]*)"/gu)].flatMap((match) =>
+				(match.groups?.classes ?? '').split(/\s+/u)
+			);
 		const animated = await render(await buildLocals(blocking));
 		for (const name of entering) {
-			expect(animated).toContain(name);
+			expect(classTokens(animated)).toContain(name);
 		}
 
 		const prop = await render(await buildLocals(blocking), {
@@ -206,7 +210,7 @@ describe('<IABConsentBanner />', () => {
 		for (const html of [prop, option]) {
 			expect(html).toContain('data-testid="iab-consent-banner-overlay"');
 			for (const name of entering) {
-				expect(html).not.toContain(name);
+				expect(classTokens(html)).not.toContain(name);
 			}
 		}
 	});

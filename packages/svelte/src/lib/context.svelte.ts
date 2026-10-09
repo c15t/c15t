@@ -214,6 +214,10 @@ export interface ThemeContextValue {
 	readonly colorScheme?: UIOptions['colorScheme'];
 	readonly legalLinks?: ConsentManagerOptions['legalLinks'];
 	readonly preloadDialog?: DialogPreload;
+	/** `false` when the app imports `styles.css` itself. */
+	readonly styles?: boolean;
+	/** CSP nonce for the `<style>` elements the surfaces add. */
+	readonly nonce?: string;
 }
 
 export interface ConsentControllerOptions {

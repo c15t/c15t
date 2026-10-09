@@ -21,4 +21,10 @@ In a Svelte app without server rendering, Svelte sets every `style` value
 through the DOM, which a policy does not block, so c15t needs no
 `'unsafe-inline'` for style attributes.
 
+c15t's components add their rules to `<head>` as `<style>` elements, and a
+`style-src` without `'unsafe-inline'` blocks those. A static host has no
+nonce to give the provider, so set `styles={false}` on
+`ConsentManagerProvider` and import `@c15t/svelte/styles.css` from your
+entry module. `'self'` covers that stylesheet.
+
 <include src="../../shared/svelte/content-security-policy.mdx" />

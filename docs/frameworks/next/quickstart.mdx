@@ -28,16 +28,11 @@ or vendors.
 
 <CommandTabs command="c15t@alpha @c15t/integrations@alpha" mode="install" />
 
-Add the c15t stylesheet to your global CSS. With Tailwind CSS 4, put it after
-the Tailwind import:
-
-```css title="styles/globals.css"
-@import 'tailwindcss';
-@import 'c15t/next/styles.css';
-```
-
-Without Tailwind, keep only the c15t import. Tailwind CSS 3 needs a PostCSS
-plugin; see [Customize](/docs/frameworks/next/customize#load-the-stylesheet).
+There is no stylesheet to import. c15t's components render their own rules
+as `<style>` elements. With Tailwind CSS 3, import the stylesheet
+yourself and set `styles: false`, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
+shows.
 
 ## Add the consent config
 

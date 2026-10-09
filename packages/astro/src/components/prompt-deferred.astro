@@ -26,6 +26,7 @@
  * on-demand-rendered page instead.
  */
 import type { PromptProps } from '@c15t/astro/server';
+import ComponentStyles from './component-styles.astro';
 import ConsentBanner from './prompt.astro';
 
 /** Every `<ConsentBanner />` prop, forwarded to the deferred island. */
@@ -38,6 +39,13 @@ interface Props extends PromptProps {
 }
 ---
 
-<ConsentBanner server:defer {...Astro.props} nonce={Astro.locals.c15t?.nonce}>
+<ComponentStyles />
+
+<ConsentBanner
+	server:defer
+	{...Astro.props}
+	inlineStyles={false}
+	nonce={Astro.locals.c15t?.nonce}
+>
 	<slot name="fallback" slot="fallback" />
 </ConsentBanner>

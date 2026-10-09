@@ -99,8 +99,8 @@ Wrap your app with it in `src/main.tsx`:
 
 Keep `Consent` mounted for the life of the app. If you use a client-side
 router, render the router inside `Consent` so navigation does not remount the
-provider. The stylesheet import in `src/consent.tsx` styles the banner and
-dialog; import it once.
+provider. There is no stylesheet to import: the banner and dialog render their
+own rules as `<style>` elements.
 
 ## Gate your own features
 

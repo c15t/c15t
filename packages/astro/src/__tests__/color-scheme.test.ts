@@ -150,10 +150,16 @@ describe('buildColorSchemeScript', () => {
 });
 
 describe('<ConsentScript />', () => {
+	// The inlined first-paint stylesheet styles `.c15t-dark` too; these
+	// tests read the scripts (`inline-styles.test.ts` covers the styles).
 	const render = async function render(locals: C15tLocals): Promise<string> {
-		return await container.renderToString(ConsentScript, {
+		const html = await container.renderToString(ConsentScript, {
 			locals: { c15t: locals },
 		});
+		return html.replace(
+			/<style[^>]*data-c15t-styles[^>]*>[\s\S]*?<\/style>/gu,
+			''
+		);
 	};
 
 	it('runs the colour-scheme script before the config script', async () => {

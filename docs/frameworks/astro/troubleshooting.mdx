@@ -170,8 +170,10 @@ never retries a tag it marked `untrusted`. See
 
 ## The preference dialog opens without styles
 
-**Check.** Look for `styles: false` in your c15t setup. With it, c15t adds no
-stylesheet to the page and links none when the dialog opens.
+**Check.** Look for `styles: false` in your c15t setup. With it, c15t inlines
+no rules and links no stylesheet when the dialog opens. Without it, check the
+Network panel for a failed request to the dialog's stylesheet, and the
+console for a Content Security Policy error.
 
 **Fix.** Import `c15t/astro/styles.css`, and `c15t/astro/primitives.css` for
 the Svelte dialog, from your global stylesheet. See
@@ -181,7 +183,7 @@ the Svelte dialog, from your global stylesheet. See
 
 **Check.** Tailwind's preflight in the `base` layer is overriding c15t's
 `components` layer. This happens when your own stylesheet names its layers
-before c15t's stylesheet does.
+before c15t's rules do.
 
 **Fix.** Put `components` after `base` in your first `@layer` statement, or set
 `styles: false` and import `c15t/astro/styles.css` after your layer order

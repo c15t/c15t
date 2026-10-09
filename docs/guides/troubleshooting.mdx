@@ -49,7 +49,7 @@ No banner is sometimes correct. Find out which case you have:
 | No backend request at all | No provider mounted, or the provider runs in offline mode | Check `window.c15t`. Confirm the provider receives `hosted()` with your backend URL, or the `backendURL` option your framework uses. |
 | The policy resolved and no prompt is needed | The visitor's location maps to a policy without a prompt, such as a US state without a privacy law in the recommended rules | Expected. Test from a location that needs a prompt. Server helpers such as Next.js `resolveConsent` accept a `country` override for testing; remove it before you deploy. |
 | The policy resolved and a choice is stored | A returning visitor | Expected. Clear site data or use a private window. |
-| The banner is in the DOM but invisible or unstyled | The stylesheet is missing, or loaded before Tailwind CSS 4 | Import your framework's c15t stylesheet from your global CSS. See [customization](/docs/customization/overview). |
+| The banner is in the DOM but invisible or unstyled | c15t's rules are missing: `styles: false` without an imported stylesheet, a Content Security Policy that blocks c15t's `<style>` elements, Tailwind CSS 3's preflight, or a SvelteKit app without `c15tHandle` | See [stylesheets and CSS layers](/docs/customization/stylesheets) for how your framework loads c15t's rules. |
 
 Do not "fix" a missing banner by granting every category or turning c15t off.
 While the policy is unresolved, every optional category stays denied. Turning
@@ -128,7 +128,7 @@ every optional category stays denied.
 
 ## Why does my theme do nothing?
 
-Check that the c15t stylesheet loads, that you set a token or slot the
+Check that c15t's rules load, that you set a token or slot the
 component actually reads, and that the state attribute you target is on the
 element you style. A `data-variant` on the banner root is not on its card.
 Check the Tailwind version and CSS layer order before adding specificity. See

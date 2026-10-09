@@ -1,6 +1,6 @@
 ---
 title: Content Security Policy
-description: Write a Content Security Policy for a SvelteKit app using c15t with SvelteKit's csp option, covering vendor hosts, the server-rendered theme style and style attributes.
+description: Write a Content Security Policy for a SvelteKit app using c15t with SvelteKit's csp option, covering vendor hosts, c15t's style elements, the server-rendered theme style and style attributes.
 group: frameworks
 ---
 
@@ -44,6 +44,23 @@ The `<link rel="modulepreload">` tag that `c15tHandle` adds for the script
 loader and network blocker chunk takes the nonce SvelteKit put on its own
 scripts, unless the provider has a `nonce` of its own. The chunk is on your
 own origin, so `'self'` covers it too.
+
+## Allow c15t's style elements
+
+c15t's components add their rules as `<style>` elements. On a server-rendered
+page, `c15tHandle` writes the banner's rules into the HTML `<head>` with the
+provider's `nonce`, or else the nonce SvelteKit put on its own scripts, so a
+nonce-based policy admits them. A prerendered page under `mode: 'auto'` gets
+hashes instead of nonces, so there is no nonce for `c15tHandle` to copy.
+
+The standard and IAB dialogs and other components that first render in the
+browser use the provider's `nonce`, or inherit the nonce from an existing
+c15t style or a page script. Your `style-src` must allow that nonce.
+
+For a prerendered page, or when your policy does not allow those nonces, set
+`styles={false}` on `ConsentManagerProvider` and import
+`@c15t/svelte/styles.css` in your root layout. With IAB TCF, also import
+`@c15t/svelte/iab/styles.css` after it. `'self'` covers those stylesheets.
 
 ## Allow the generated theme
 

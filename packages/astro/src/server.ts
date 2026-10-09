@@ -616,6 +616,24 @@ export interface ConfigEmissionScope {
 }
 
 const emitted = new WeakSet<ConfigEmissionScope>();
+const stylesEmitted = new WeakSet<ConfigEmissionScope>();
+
+/**
+ * Claim the one-per-request emission of the base and configured IAB styles.
+ *
+ * @param locals - The current `Astro.locals`, used as the request identity.
+ * @returns `true` for the first style emission on this request.
+ * @internal
+ */
+export const markStylesEmitted = function markStylesEmitted(
+	locals: ConfigEmissionScope
+): boolean {
+	if (stylesEmitted.has(locals)) {
+		return false;
+	}
+	stylesEmitted.add(locals);
+	return true;
+};
 
 /**
  * Claim the one-per-request emission of the inline config script.
@@ -636,3 +654,11 @@ export const markConfigEmitted = function markConfigEmitted(
 	emitted.add(locals);
 	return true;
 };
+
+// The first-paint rules the components inline (see `inline-styles.ts`).
+export {
+	INLINE_IAB_STYLES_CSS,
+	INLINE_IAB_STYLES_ID,
+	INLINE_STYLES_CSS,
+	INLINE_STYLES_ID,
+} from './inline-styles';

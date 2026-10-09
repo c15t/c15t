@@ -65,8 +65,8 @@ browser takes over after hydration:
 - The server render and the first browser render agree, so hydration does not
   warn or change a stored choice.
 
-One detail differs from the Vite setup: import `c15t/react/styles.css` where
-your framework loads global CSS, so the server HTML links it.
+The Vite setup needs no change. The banner renders in the browser and brings
+its own `<style>` element, so there is no stylesheet to import.
 
 ### Skip the browser's first init request
 

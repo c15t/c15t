@@ -43,6 +43,12 @@ export interface DialogPresentationOptions {
 	legalLinks?: C15tResolvedOptions['legalLinks'];
 	presentation?: C15tResolvedOptions['presentation'];
 	/**
+	 * Always `false`: the page inlines the first-paint rules and the client
+	 * links the dialog's before the island mounts, so the island's own
+	 * surfaces add no stylesheet of their own.
+	 */
+	styles: false;
+	/**
 	 * Tokens and `theme.slots`. Every island's provider applies the slots
 	 * itself: Svelte reads them directly, React and Vue through their
 	 * `components` parts.
@@ -83,6 +89,7 @@ export const buildProviderProps = function buildProviderProps(
 		experiment: options.experiment,
 		legalLinks: options.legalLinks,
 		presentation: options.presentation,
+		styles: false,
 		theme,
 	};
 	return { options: presentationOptions, runtime };

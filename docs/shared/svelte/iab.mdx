@@ -18,20 +18,37 @@ download.
 
 Turn IAB on with the provider's `iab` prop, keeping your existing `mode`,
 `scripts` and other props. `registeredCmpId` stands for the number IAB Europe
-assigned to your company:
+assigned to your company. The standard and IAB components add their styles
+automatically:
 
 {/* example: fragment */}
 
 ```svelte
-<ConsentManagerProvider {mode} {scripts} iab={{ cmpId: registeredCmpId }}>
+<ConsentManagerProvider
+	{mode}
+	{scripts}
+	iab={{ cmpId: registeredCmpId }}
+>
 ```
 
 Then render `IABConsentBanner` and `IABConsentDialog` next to the standard
-components, and import the IAB stylesheet after `@c15t/svelte/styles.css`.
+components.
 The standard components cover visitors whose policy is not IAB, such as those
 outside Europe:
 
 <include src="../examples/storybook-svelte/iab-surfaces.mdx" />
+
+The IAB banner adds its first-paint rules before its elements render. The
+IAB dialog adds its rules when it opens, including the base rules it needs
+when rendered without a banner. Each sheet appears once per page. On a
+server-rendered SvelteKit page, `c15tHandle` writes the rendered components'
+rules into `<head>` before hydration.
+
+To run the CSS through Tailwind CSS 3 or put it in a named cascade layer,
+set `styles={false}` on the provider and import
+`@c15t/svelte/styles.css` followed by `@c15t/svelte/iab/styles.css`.
+[Stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself)
+explains when to use that option.
 
 | `iab` option | Purpose |
 | --- | --- |

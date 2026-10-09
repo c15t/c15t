@@ -35,7 +35,6 @@ export const consentOptions = {
 			'consent-provider.svelte': `<script lang="ts">
 	import type { Snippet } from 'svelte';
 	import { ConsentManagerProvider, ConsentBanner, ConsentDialog, ConsentDialogTrigger } from '@c15t/svelte';
-	import '@c15t/svelte/styles.css';
 	import { consentOptions } from './consent-options';
 
 	let { children }: { children?: Snippet } = $props();

@@ -4,7 +4,10 @@
  * Used by both App Directory and Pages Directory implementations
  */
 
+import { detectFramework } from '~/context/framework-detection';
+
 import { DEFAULT_OFFLINE_RULES } from '../../../../generate/options';
+import { isTailwindV3 } from '../../../shared/postcss-config';
 
 export { DEFAULT_OFFLINE_RULES } from '../../../../generate/options';
 
@@ -99,3 +102,26 @@ export const generateOptionsText = function generateOptionsText(
 			return `mode: offline({ policyRules: ${DEFAULT_OFFLINE_RULES} }),`;
 	}
 };
+
+/**
+ * Generates provider options for an existing app. Tailwind 3 uses the external
+ * stylesheet so its PostCSS plugin can flatten c15t's named layers.
+ * @param projectRoot - App root containing package.json.
+ * @param mode - Consent transport mode.
+ * @param backendURL - Backend URL for hosted or custom transports.
+ * @param proxyNextjs - Whether browser requests use the Next.js proxy.
+ * @returns Options with automatic styles disabled only for Tailwind 3.
+ */
+export const generateProjectOptionsText =
+	async function generateProjectOptionsText(
+		projectRoot: string,
+		mode: string,
+		backendURL?: string,
+		proxyNextjs?: boolean
+	): Promise<string> {
+		const { tailwindVersion } = await detectFramework(projectRoot);
+		const options = generateOptionsText(mode, backendURL, proxyNextjs);
+		return isTailwindV3(tailwindVersion)
+			? `${options}\nstyles: false,`
+			: options;
+	};

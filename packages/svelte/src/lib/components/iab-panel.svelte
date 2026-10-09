@@ -17,6 +17,7 @@
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { IAB_DIALOG_SHEETS } from '../iab-dialog-sheets';
 	import { getIABTranslations } from '../iab-translations';
 	import { resolveIABDialogDisplayModel } from '../iab-types';
 	import type { VendorId } from '../iab-types';
@@ -32,6 +33,7 @@
 	import InfoIcon from './icons/info-icon.svelte';
 	import LockIcon from './icons/lock-icon.svelte';
 	import Overlay from './overlay.svelte';
+	import SurfaceStyles from './surface-styles.svelte';
 
 	let {
 		open: openProp,
@@ -294,6 +296,10 @@
 -->
 {#if isOpen}
 	<div use:portal>
+		<SurfaceStyles
+			sheets={IAB_DIALOG_SHEETS}
+			{noStyle}
+		/>
 		{#if preferences.blocking}
 			<Overlay
 				entering={!disableAnimation}

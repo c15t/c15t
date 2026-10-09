@@ -69,7 +69,8 @@ always a Client Component. See [hooks](/docs/frameworks/next/hooks).
 `c15t/next` does not re-export the IAB TCF components. Import
 `IABProvider`, `IABConsentBanner` and `IABConsentDialog` from `c15t/react/iab`,
 render them inside `ConsentRoot` next to
-`ConsentBanner` and `ConsentDialog`, and load `c15t/next/iab/styles.css`. All three are Client
+`ConsentBanner` and `ConsentDialog`, and load `c15t/next/styles.css` and
+`c15t/next/iab/styles.css` with `styles: false`. All three are Client
 Components. The stock banner and dialog stay closed
 under an IAB policy. See [IAB TCF](/docs/frameworks/next/iab).
 

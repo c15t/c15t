@@ -14,6 +14,7 @@ const SSRLayout = async ({ children }: { children: ReactNode }) => {
 
 	return (
 		<ConsentShell
+			nonce="compat-style-nonce"
 			state={state}
 			scenario="ssr"
 		>

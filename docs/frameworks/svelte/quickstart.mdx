@@ -94,8 +94,10 @@ page, before anyone opens it. `ConsentDialogLink` is the persistent way back to
 preferences. Put it where visitors look for privacy settings, such as the
 footer.
 
-`@c15t/svelte/styles.css` holds the stock styles for all three. Import it
-once.
+There is no stylesheet to import. Each component adds the rules it uses to
+`<head>` when it first renders. With Tailwind CSS 3, import
+`@c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
+see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
 To apply policy edits without a rebuild, remove the plugin and the
 `c15t-manifest` import, and use `hosted({ url })` from `@c15t/svelte` as the

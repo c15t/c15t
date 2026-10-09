@@ -136,6 +136,22 @@ export interface ConsentManagerOptions
 	 */
 	preloadDialog?: DialogPreload;
 	/**
+	 * Whether the stock surfaces add their own stylesheets.
+	 *
+	 * The standard and IAB banners and dialogs, dialog trigger, ConsentGate
+	 * and preference widget each insert their rules into `<head>` as
+	 * `<style>` elements, carrying `nonce`. On a server-rendered SvelteKit page,
+	 * `c15tHandle` writes the banner's rules into the HTML. No c15t
+	 * stylesheet `<link>` then holds back the page's first paint.
+	 *
+	 * Set `false` when the app imports `@c15t/svelte/styles.css` itself, for
+	 * example to run it through Tailwind CSS 3 or to put it in a named
+	 * cascade layer. IAB components also need `@c15t/svelte/iab/styles.css`.
+	 *
+	 * @default true
+	 */
+	styles?: boolean;
+	/**
 	 * Slot styles and consent-action variants. Design tokens (colors, dark,
 	 * typography, spacing, radius, shadows, motion) are not applied in the
 	 * browser: render `generateThemeCSS(theme)` from `@c15t/ui/theme` in a

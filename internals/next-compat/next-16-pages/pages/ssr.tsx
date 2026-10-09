@@ -24,6 +24,7 @@ export const getServerSideProps: GetServerSideProps<SSRPageProps> = async ({
 
 const SSRPage = ({ state }: SSRPageProps) => (
 	<ConsentShell
+		nonce="compat-style-nonce"
 		state={state}
 		scenario="ssr"
 	>

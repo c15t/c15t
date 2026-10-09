@@ -7,14 +7,14 @@ group: customization
 ## Where tokens come from
 
 c15t's components take their colors from `--c15t-*` CSS variables, and most
-of their fonts, radii, spacing, shadows and motion too. c15t's stylesheet sets
-the defaults. You change them with a theme object or with CSS, and every part
+of their fonts, radii, spacing, shadows and motion too. c15t's rules set the
+defaults. You change them with a theme object or with CSS, and every part
 that reads a token changes with it. Some values are still fixed for one
 component, such as button padding, the radius of the "Secured by" tag and
 several font sizes and weights, so a token change does not move them. Restyle
 those parts through [slots](/docs/customization/slots) or your own CSS.
 [Stylesheets and CSS layers](/docs/customization/stylesheets)
-covers which stylesheet to load, and [dark mode](/docs/customization/dark-mode)
+covers how c15t loads its rules, and [dark mode](/docs/customization/dark-mode)
 covers the dark set of tokens.
 
 ## Set semantic values together
@@ -58,9 +58,9 @@ setup.
 ## Combine a generated theme with your own CSS
 
 `generateThemeCSS` writes its variables on `:root:root` and
-`.c15t-theme-root.c15t-theme-root`, one step more specific than the defaults
-in `styles.css`. The theme therefore overrides the defaults whether its
-`<style>` element comes before or after the stylesheet. The same output backs
+`.c15t-theme-root.c15t-theme-root`, more specific than c15t's defaults. The
+theme therefore overrides the defaults whether its
+`<style>` element comes before or after c15t's rules. The same output backs
 `ConsentTheme` in React, Next.js and TanStack Start, Astro's `theme` option and
 the script tag's `ui.theme`.
 

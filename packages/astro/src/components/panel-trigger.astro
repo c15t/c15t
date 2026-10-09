@@ -11,6 +11,8 @@
  * <ConsentDialogTrigger kind="iab">Ad partners</ConsentDialogTrigger>
  * ```
  */
+import ComponentStyles from './component-styles.astro';
+
 interface Props {
 	/** Which dialog to open. */
 	kind?: 'preferences' | 'iab';
@@ -27,6 +29,8 @@ const Tag = as;
 // browser client toggles `hidden` as the snapshot changes.
 const hasConsentUi = Astro.locals.c15t?.hasConsentUi ?? true;
 ---
+
+<ComponentStyles />
 
 <Tag
 	class={className}

@@ -34,5 +34,6 @@ defineCompatSuite({
 			rendering: { kind: 'static' },
 		},
 	],
+	styles: 'automatic',
 	title: 'Next 16 / Pages Router',
 });

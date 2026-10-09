@@ -85,12 +85,12 @@ describe('generated project outcomes', () => {
 			);
 			await generateFiles({ ...options, expandedTheme: 'tailwind', uiStyle });
 			const root = options.context.projectRoot;
-			expect(
-				await readFile(
-					join(root, 'components/consent-manager/provider.tsx'),
-					'utf8'
-				)
-			).toContain('<ConsentTheme theme={theme} />');
+			const provider = await readFile(
+				join(root, 'components/consent-manager/provider.tsx'),
+				'utf8'
+			);
+			expect(provider).toContain('<ConsentTheme theme={theme} />');
+			expect(provider).toContain('styles: false');
 			expect(
 				await readFile(
 					join(root, 'components/consent-manager/theme.ts'),
@@ -196,6 +196,7 @@ describe('generated project outcomes', () => {
 			expect(provider).toContain('hosted({ url: "https://example.com" })');
 			expect(provider).not.toMatch(/process\.env|import\.meta\.env/u);
 			expect(provider).not.toContain("country: 'DE'");
+			expect(provider).not.toContain('styles: false');
 			await expect(
 				readFile(join(root, '.env.local'), 'utf8')
 			).rejects.toThrow();
@@ -204,7 +205,10 @@ describe('generated project outcomes', () => {
 			);
 			expect(
 				result.edits.some((edit) => edit.path.endsWith('src/index.css'))
-			).toBe(true);
+			).toBe(false);
+			expect(await readFile(join(root, 'src/index.css'), 'utf8')).toBe(
+				'body { color: red; }'
+			);
 			await rollbackFileEdits(result.edits);
 			expect(await readFile(join(root, fixture.file), 'utf8')).toBe(
 				fixture.source
@@ -217,6 +221,33 @@ describe('generated project outcomes', () => {
 			).rejects.toThrow();
 		},
 		30_000
+	);
+	it.each([undefined, '4.1.0'])(
+		'uses automatic styles without a CSS entrypoint with Tailwind %s',
+		async (tailwindVersion) => {
+			const dependencies: Record<string, string> = {
+				react: '19',
+				vite: '7',
+			};
+			if (tailwindVersion) {
+				dependencies.tailwindcss = tailwindVersion;
+			}
+			const options = await project(dependencies, {
+				'src/App.tsx': 'export default function App() { return <main />; }',
+			});
+			const result = await generateFiles(options);
+			expect(result.warnings).toEqual([]);
+			expect(result.tailwindCssUpdated).not.toBe(true);
+			expect(
+				await readFile(
+					join(
+						options.context.projectRoot,
+						'src/components/consent-manager/provider.tsx'
+					),
+					'utf8'
+				)
+			).not.toContain('styles: false');
+		}
 	);
 
 	it('leaves metadata helper returns untouched', async () => {

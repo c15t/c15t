@@ -9,7 +9,7 @@
  * - baseline: no consent library.
  * - v2: `@c15t/nextjs` 2.x, the v2 Next.js quickstart (client provider).
  * - v3: `c15t/next`, the v3 App Router guide (server `resolveConsent` in
- *   Suspense, `ConsentRoot`, aggregate `c15t/next/styles.css`).
+ *   Suspense, `ConsentRoot`, automatic component styles).
  * - v3-react: `c15t/react` umbrella `ConsentProvider`, as the c15t docs
  *   site uses it.
  * - v3-split: the same tree as v3-react through split `c15t/react/*` entries.

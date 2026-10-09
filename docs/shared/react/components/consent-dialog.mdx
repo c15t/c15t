@@ -71,7 +71,7 @@ group: reference
   cached: the next hover, focus or open tries the download again.
 
   The dialog's CSS travels in the same chunk and is applied before the dialog
-  renders, so your app's `styles.css` import stays small.
+  renders, so the first page load carries only the banner's rules.
 
   Without an `open` prop, Escape closes the dialog without saving. If the
   policy still owes a choice, the banner comes back. Save Settings, Accept All and

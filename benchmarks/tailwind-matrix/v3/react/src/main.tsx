@@ -28,6 +28,8 @@ const options = {
 		},
 	},
 	mode,
+	// Tailwind 3 builds c15t's stylesheet from app.css.
+	styles: false,
 };
 // #endregion docs:slot
 

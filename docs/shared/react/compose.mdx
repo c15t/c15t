@@ -205,9 +205,9 @@ group: reference
 <section id="theming">
   ## Keep theme tokens and slots working
 
-  The parts render the stock class names, so the c15t stylesheet and its
-  `--c15t-*` tokens style a composed banner the way they style the stock one.
-  Keep the stylesheet import.
+  The parts render the stock class names, and the banner's `Root` renders
+  c15t's rules, so c15t's styles and `--c15t-*` tokens style a composed
+  banner the way they style the stock one.
 
   Slots in the provider's `options.components` reach each part by key:
   `banner.root`, `banner.card`, `banner.header`, `banner.title`,

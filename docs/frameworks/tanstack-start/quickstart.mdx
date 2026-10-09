@@ -115,7 +115,8 @@ What each part does:
   options, and saves reach the project the snapshot came from.
 - **`scripts`** stays in this module. A server function can only return
   serializable data, and vendor loaders contain functions.
-- **The stylesheet** loads through `head()` with Vite's `?url` import.
+- **No stylesheet** is linked. `ConsentBanner` renders its rules into the
+  server HTML, and `ConsentDialog` adds its own when it opens.
 
 ## Gate your own features
 

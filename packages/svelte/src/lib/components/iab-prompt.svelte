@@ -14,11 +14,13 @@
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { IAB_FIRST_PAINT_SHEETS } from '../iab-first-paint-sheets';
 	import { getIABTranslations } from '../iab-translations';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
 	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import Branding from './branding.svelte';
 	import Overlay from './overlay.svelte';
+	import SurfaceStyles from './surface-styles.svelte';
 
 	let {
 		noStyle: localNoStyle,
@@ -211,6 +213,10 @@
 
 {#if visibility.isMounted && visibility.shouldRender && displayItems.isReady}
 	<div use:portal>
+		<SurfaceStyles
+			sheets={IAB_FIRST_PAINT_SHEETS}
+			{noStyle}
+		/>
 		{#if shouldScrollLock}
 			<Overlay
 				{styles}
