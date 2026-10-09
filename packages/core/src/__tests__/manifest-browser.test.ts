@@ -7,6 +7,7 @@ import {
 	policyRulePresets,
 } from '@c15t/schema/types';
 import type { ConsentManifest } from '@c15t/schema/types';
+import { baseTranslations } from '@c15t/translations/all';
 import { translations as germanCopy } from '@c15t/translations/de';
 import { describe, expect, test, vi } from 'vitest';
 
@@ -83,6 +84,58 @@ describe('createBrowserManifestTransport()', () => {
 			germanCopy.common.acceptAll
 		);
 		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	test('loads the base copy of every bundled language', async () => {
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			snapshot: everywhereManifest,
+		});
+
+		for (const [language, copy] of Object.entries(baseTranslations)) {
+			// oxlint-disable-next-line no-await-in-loop -- One language at a time.
+			const response = await transport.init?.(initContext({ language }));
+			expect(response?.translations?.language).toBe(language);
+			expect(response?.translations?.translations.common?.acceptAll).toBe(
+				copy.common.acceptAll
+			);
+		}
+	});
+
+	test('loads the vendor list for an IAB policy', async () => {
+		const vendorList = { vendorListVersion: 42, vendors: {} };
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(jsonResponse(vendorList))
+		);
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy,
+			snapshot: {
+				...everywhereManifest,
+				iab: {
+					enabled: true,
+					gvl: { url: 'https://gvl.example/vendor-list', version: 42 },
+				},
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						categories: ['*'],
+						id: 'everywhere-iab',
+						match: { isDefault: true },
+						model: 'iab',
+						prompt: 'choice',
+						scopeMode: 'strict',
+					}),
+				],
+			},
+		});
+
+		const response = await transport.init?.(initContext({ language: 'en' }));
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://gvl.example/vendor-list',
+			expect.objectContaining({ method: 'GET' })
+		);
+		expect(response?.gvl).toEqual(vendorList);
 	});
 
 	test('asks geoURL for a location the policy needs', async () => {

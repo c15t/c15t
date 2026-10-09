@@ -2,15 +2,15 @@
 
 The smallest c15t setup for a JavaScript app with a bundler and no UI
 framework: `init()` from `@c15t/browser` mounts the stock consent banner and
-dialog, a "Privacy settings" button reopens the dialog, and PostHog loads only
+dialog, a "Privacy settings" link reopens the dialog, and PostHog loads only
 after the visitor allows measurement. The build bundles your project's
 policy, and the browser resolves each visitor from it.
 
 - `vite.config.ts` adds `consentManifest` from `c15t/build`, which downloads
   the policy and serves it as `c15t/generated`.
-- `src/main.ts` calls `init()` with the bundled policy and wires the button.
-- `src/scripts.ts` registers PostHog.
-- `index.html` holds the button.
+- `src/main.ts` calls `init()` with the bundled policy and PostHog.
+- `index.html` holds the link. The client opens the dialog for any link to
+  `#c15t-preferences`.
 
 ## Run it
 
@@ -31,7 +31,7 @@ app's origin to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project.
 
-Replace `phc_your_project_key` in `src/scripts.ts` with your PostHog project
+Replace `phc_your_project_key` in `src/main.ts` with your PostHog project
 key.
 
 The [JavaScript quickstart](https://c15t.com/docs/frameworks/javascript/quickstart)

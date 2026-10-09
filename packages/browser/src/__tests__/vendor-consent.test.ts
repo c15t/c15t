@@ -2,9 +2,9 @@ import { policyRulePresets } from '@c15t/core';
 import type { Vendor } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { activateGatedScripts } from '../gated-scripts';
 import { createGlobal } from '../global';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type { ConsentClient, ConsentUIHandle } from '../types';
 import { mountConsentUI } from '../ui/mount';
 

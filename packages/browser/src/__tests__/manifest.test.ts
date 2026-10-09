@@ -6,7 +6,7 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 

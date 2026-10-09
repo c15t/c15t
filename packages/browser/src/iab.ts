@@ -11,7 +11,7 @@ import type { ConsentClient, ConsentClientOptions } from './types';
  * @returns The client, with one runtime shared by ordinary and IAB UI.
  */
 export const createConsentClient = (
-	options: ConsentClientOptions = {}
+	options: ConsentClientOptions
 ): ConsentClient =>
 	createClient(options, {
 		createIAB,
@@ -30,13 +30,14 @@ export const createConsentClient = (
  * @param options - Transport, CMP, and presentation settings.
  * @returns The started client. CMP controls are on `client.runtime.iab`.
  */
-export const init = (options: ConsentClientOptions = {}): ConsentClient => {
+export const init = (options: ConsentClientOptions): ConsentClient => {
 	const client = createConsentClient(options);
 	client.start();
 	return client;
 };
 
-export { custom, hosted } from './client';
+export { custom } from '@c15t/core';
+export { hosted } from './transports/hosted';
 export { offline } from './transports/offline';
 export { manifest } from './transports/manifest';
 export { mountIABConsentUI } from './iab/mount';

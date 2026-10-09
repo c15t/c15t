@@ -1,11 +1,13 @@
-import { init } from '@c15t/browser';
+import { hosted, init } from '@c15t/browser';
 
 import { scripts } from './scripts';
 import { testBackend } from './test-backend';
 
 const consent = init({
-	backendURL: 'https://your-project.inth.app',
-	...testBackend('backendURL'),
+	mode: hosted({
+		backendURL: 'https://your-project.inth.app',
+		...testBackend('backendURL'),
+	}),
 	scripts,
 });
 

@@ -15,17 +15,10 @@
  * Server code resolves with `@c15t/core/transports/manifest`, which bundles
  * every language. Never import that module in client code.
  */
-import {
-	POLICY_CONTRACT_VERSION,
-	resolveInitFromManifest,
-} from '@c15t/schema/types';
 import type {
 	ConsentManifest,
-	InitOutput,
 	ResolveInitFromManifestInputs,
 } from '@c15t/schema/types';
-import { enTranslations } from '@c15t/translations';
-import type { BaseTranslations, Translations } from '@c15t/translations';
 
 import { createUnreportedJourneys } from '../libs/journey';
 import type {
@@ -34,13 +27,11 @@ import type {
 	ManifestModeSourceOptions,
 } from '../modes';
 import type { InitContext, KernelOverrides, KernelTransport } from '../types';
-import { fetchCachedGvl } from './gvl-cache';
 import { createHostedTransport } from './hosted';
-import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
-import { createManifestRequestInit } from './manifest-request';
+import type * as RemoteModule from './manifest-browser-remote';
+import type * as ResolveModule from './manifest-browser-resolve';
 import type { ProviderTransportFactory } from './mode';
-import { c15tProtocolHeaders } from './version-header';
 
 /** Options for {@link manifest} and {@link createBrowserManifestTransport}. */
 export type BrowserManifestOptions = ManifestModeBaseOptions &
@@ -81,130 +72,7 @@ export type BrowserManifestModeFactory = ProviderTransportFactory &
 		readonly type: 'manifest';
 	};
 
-type OtherLanguage = Exclude<keyof BaseTranslations, 'en'>;
-type LanguageModule = Promise<{ translations: Translations }>;
-
-/**
- * One `import()` per language, each with a literal specifier, so a bundler
- * splits every language into a chunk of its own. The record type makes a
- * language added to `@c15t/translations` a type error here until it is
- * listed.
- */
-const languageModules: Record<OtherLanguage, () => LanguageModule> = {
-	bg: () => import('@c15t/translations/bg'),
-	cs: () => import('@c15t/translations/cs'),
-	cy: () => import('@c15t/translations/cy'),
-	da: () => import('@c15t/translations/da'),
-	de: () => import('@c15t/translations/de'),
-	el: () => import('@c15t/translations/el'),
-	es: () => import('@c15t/translations/es'),
-	et: () => import('@c15t/translations/et'),
-	fi: () => import('@c15t/translations/fi'),
-	fr: () => import('@c15t/translations/fr'),
-	ga: () => import('@c15t/translations/ga'),
-	gu: () => import('@c15t/translations/gu'),
-	he: () => import('@c15t/translations/he'),
-	hi: () => import('@c15t/translations/hi'),
-	hr: () => import('@c15t/translations/hr'),
-	hu: () => import('@c15t/translations/hu'),
-	id: () => import('@c15t/translations/id'),
-	is: () => import('@c15t/translations/is'),
-	it: () => import('@c15t/translations/it'),
-	lb: () => import('@c15t/translations/lb'),
-	lt: () => import('@c15t/translations/lt'),
-	lv: () => import('@c15t/translations/lv'),
-	mt: () => import('@c15t/translations/mt'),
-	nb: () => import('@c15t/translations/nb'),
-	nl: () => import('@c15t/translations/nl'),
-	nn: () => import('@c15t/translations/nn'),
-	pl: () => import('@c15t/translations/pl'),
-	pt: () => import('@c15t/translations/pt'),
-	rm: () => import('@c15t/translations/rm'),
-	ro: () => import('@c15t/translations/ro'),
-	sk: () => import('@c15t/translations/sk'),
-	sl: () => import('@c15t/translations/sl'),
-	sv: () => import('@c15t/translations/sv'),
-	zh: () => import('@c15t/translations/zh'),
-};
-
-const isOtherLanguage = (language: string): language is OtherLanguage =>
-	Object.hasOwn(languageModules, language);
-
-/** Base copy loaded so far, shared by every transport on the page. */
-const loadedLanguages = new Map<string, Translations>([['en', enTranslations]]);
-const loadingLanguages = new Map<string, Promise<Translations | undefined>>();
-
-/**
- * Load one language's base copy. Resolves to `undefined` when the chunk
- * fails to load; a later init tries again.
- */
-const loadLanguage = function loadLanguage(
-	language: OtherLanguage
-): Promise<Translations | undefined> {
-	let loading = loadingLanguages.get(language);
-	if (!loading) {
-		loading = (async () => {
-			try {
-				const { translations } = await languageModules[language]();
-				loadedLanguages.set(language, translations);
-				return translations;
-			} catch {
-				loadingLanguages.delete(language);
-				return undefined;
-			}
-		})();
-		loadingLanguages.set(language, loading);
-	}
-	return loading;
-};
-
-/**
- * Every language the resolver may pick, each with the copy loaded so far
- * and English standing in for the rest. Language selection only looks at
- * which languages exist, so a resolution against this picks the same
- * language as one against every language's real copy.
- */
-const selectableBaseTranslations = function selectableBaseTranslations(
-	withPlaceholders: boolean
-): BaseTranslations {
-	const base: Record<string, Translations> = {};
-	if (withPlaceholders) {
-		for (const language of Object.keys(languageModules)) {
-			base[language] = enTranslations;
-		}
-	}
-	for (const [language, copy] of loadedLanguages) {
-		base[language] = copy;
-	}
-	return base as unknown as BaseTranslations;
-};
-
-/**
- * Resolve init from a manifest, loading the base copy of the language it
- * resolves to first if that copy isn't loaded yet.
- *
- * @param resolved - The manifest.
- * @param inputs - The visitor's decision inputs.
- * @returns The init output, in the visitor's language when its copy loaded.
- */
-const resolveWithLanguage = async function resolveWithLanguage(
-	resolved: ConsentManifest,
-	inputs: ResolveInitFromManifestInputs
-): Promise<InitOutput> {
-	const output = resolveInitFromManifest(resolved, inputs, {
-		baseTranslations: selectableBaseTranslations(true),
-	});
-	const { language } = output.translations;
-	if (!isOtherLanguage(language) || loadedLanguages.has(language)) {
-		return output;
-	}
-	const copy = await loadLanguage(language);
-	return resolveInitFromManifest(resolved, inputs, {
-		// Without the copy, resolve against what is loaded, so the visitor
-		// gets English rather than English labelled as another language.
-		baseTranslations: selectableBaseTranslations(copy !== undefined),
-	});
-};
+export type { OtherLanguage } from './manifest-browser-resolve';
 
 const trimSlash = function trimSlash(url: string): string {
 	return url.endsWith('/') ? url.slice(0, -1) : url;
@@ -320,23 +188,6 @@ const mergeInputs = function mergeInputs(
 	};
 };
 
-const normalizeGeoValue = function normalizeGeoValue(
-	value: unknown
-): string | undefined {
-	return typeof value === 'string' && value.trim()
-		? value.trim().toUpperCase()
-		: undefined;
-};
-
-const withGpcHeader = function withGpcHeader(
-	inputs: ResolveInitFromManifestInputs
-): Record<string, string> {
-	if (inputs.gpc === undefined) {
-		return {};
-	}
-	return { 'sec-gpc': inputs.gpc ? '1' : '0' };
-};
-
 /**
  * Build a transport that resolves `/init` in the browser from a consent
  * manifest and saves to the backend.
@@ -386,34 +237,59 @@ export const createBrowserManifestTransport =
 		let cachedManifest: Promise<ConsentManifest> | undefined;
 		let cachedGeo: Promise<ManifestModeInputs | undefined> | undefined;
 
-		const fetchManifest =
-			async function fetchManifest(): Promise<ConsentManifest> {
-				const response = await getFetch()(
-					manifestURL as string,
-					createManifestRequestInit({
-						credentials: options.credentials,
-						headers: options.headers,
-					})
-				);
-				if (!response.ok) {
-					throw new Error(
-						`c15t manifest transport: /manifest responded ${response.status} ${response.statusText}`
-					);
-				}
-				return (await response.json()) as ConsentManifest;
-			};
+		// The network code loads on demand. Without a snapshot the transport
+		// needs it on every page, so start loading it now.
+		let remote: Promise<typeof RemoteModule> | undefined;
+		const loadRemote = () => {
+			remote ??= import('./manifest-browser-remote');
+			return remote;
+		};
+		// Start a load early; a failure surfaces when init awaits it.
+		const preload = async (load: () => Promise<unknown>) => {
+			try {
+				await load();
+			} catch {
+				// Retried by the call that needs the module.
+			}
+		};
+		if (!options.snapshot) {
+			preload(loadRemote);
+		}
+		let resolver: Promise<typeof ResolveModule> | undefined;
+		const loadResolver = () => {
+			resolver ??= import('./manifest-browser-resolve');
+			return resolver;
+		};
+		// A policy that needs a location the page can't supply goes to the
+		// backend's `/init`, so the resolver loads only when a local answer
+		// is likely, and then as soon as possible.
+		if (
+			!options.snapshot ||
+			!manifestNeedsLocation(options.snapshot) ||
+			options.inputs?.country ||
+			options.geoURL
+		) {
+			preload(loadResolver);
+		}
 
 		const loadManifest =
 			async function loadManifest(): Promise<ConsentManifest> {
 				if (options.snapshot) {
 					return options.snapshot;
 				}
-				cachedManifest ??= fetchManifest();
+				cachedManifest ??= (async () => {
+					const remoteModule = await loadRemote();
+					return remoteModule.fetchManifest(manifestURL as string, getFetch(), {
+						credentials: options.credentials,
+						headers: options.headers,
+					});
+				})();
 				try {
 					return await cachedManifest;
 				} catch (error) {
 					// A failed fetch must not poison every retry.
 					cachedManifest = undefined;
+					remote = undefined;
 					throw error;
 				}
 			};
@@ -422,26 +298,12 @@ export const createBrowserManifestTransport =
 		const loadGeo = function loadGeo(
 			geoURL: string
 		): Promise<ManifestModeInputs | undefined> {
+			// Without a location the `/init` fallback still answers.
 			cachedGeo ??= (async () => {
 				try {
-					const response = await getFetch()(geoURL, {
-						credentials: 'same-origin',
-						headers: { accept: 'application/json' },
-						method: 'GET',
-					});
-					if (!response.ok) {
-						return undefined;
-					}
-					const payload = (await response.json()) as {
-						country?: unknown;
-						region?: unknown;
-					};
-					return {
-						country: normalizeGeoValue(payload.country),
-						region: normalizeGeoValue(payload.region),
-					};
+					const remoteModule = await loadRemote();
+					return await remoteModule.fetchGeoInputs(geoURL, getFetch());
 				} catch {
-					// Without a location the `/init` fallback still answers.
 					return undefined;
 				}
 			})();
@@ -469,26 +331,13 @@ export const createBrowserManifestTransport =
 					return hosted.init(ctx);
 				}
 				unreported.resolvedLocally(journey);
-				const output = await resolveWithLanguage(resolved, inputs);
-				if (
-					resolved.iab?.enabled === true &&
-					resolved.iab.gvl &&
-					output.policyResolution?.status === 'matched' &&
-					output.policyResolution.policy.model === 'iab'
-				) {
-					output.gvl = await fetchCachedGvl({
-						fetch: getFetch(),
-						headers: c15tProtocolHeaders,
-						label: 'c15t manifest transport',
-						language: output.translations.language.split('-')[0] || 'en',
-						url: resolved.iab.gvl.url,
-					});
+				try {
+					const { resolveLocally } = await loadResolver();
+					return await resolveLocally(resolved, inputs, getFetch());
+				} catch (error) {
+					resolver = undefined;
+					throw error;
 				}
-				// Local resolution always produces the v3 wire; the manifest's
-				// own schema version decides matched, lifted, or failed inside it.
-				return mapInitOutputToInitResponse(output, withGpcHeader(inputs), {
-					producerContract: POLICY_CONTRACT_VERSION,
-				});
 			},
 			loadSubjectRecord: hosted.loadSubjectRecord,
 			save: (payload) => hosted.save(unreported.strip(payload)),

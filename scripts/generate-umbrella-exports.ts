@@ -144,6 +144,23 @@ export interface UmbrellaSource {
 	 * out are not claimed.
 	 */
 	include?: string[];
+	/**
+	 * Names a shim takes from another scoped subpath instead, keyed by the
+	 * subpath whose shim they join. A named re-export wins over the shim's
+	 * `export *`, so the umbrella can offer a different implementation under
+	 * the same name than the scoped entry does.
+	 */
+	overrides?: Record<string, ShimOverride>;
+}
+
+/** Names a shim re-exports from another subpath of the same package. */
+export interface ShimOverride {
+	/** The scoped subpath the names come from, such as `'./modes'`. */
+	from: string;
+	/** Value exports. */
+	values: string[];
+	/** Type-only exports, added to the declaration shim. */
+	types: string[];
 }
 
 /**
@@ -172,6 +189,21 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 	{
 		directory: 'react',
 		exclude: [TAILWIND3_PLUGIN],
+		// `c15t/react` offers the single-page app modes, which default to the
+		// build integration's `@c15t/core/generated`. `@c15t/react` keeps them
+		// out of its index, which the Next.js and TanStack Start entries
+		// re-export into browser bundles that must not import that module.
+		overrides: {
+			'.': {
+				from: './modes',
+				types: [
+					'BrowserManifestModeFactory',
+					'HostedOptions',
+					'ManifestModeOptions',
+				],
+				values: ['hosted', 'manifest', 'manifestNeedsLocation', 'offline'],
+			},
+		},
 		packageName: '@c15t/react',
 		prefix: 'react',
 	},
@@ -369,15 +401,36 @@ const renderTypesShim = function renderTypesShim(
 	return `${lines.join('\n')}\n`;
 };
 
+const renderOverrideLines = function renderOverrideLines(
+	condition: string,
+	specifier: string,
+	override: ShimOverride
+): string {
+	const lines = [
+		`export { ${override.values.join(', ')} } from '${specifier}';`,
+	];
+	if (condition === 'types' && override.types.length > 0) {
+		lines.push(
+			`export type { ${override.types.join(', ')} } from '${specifier}';`
+		);
+	}
+	return `${lines.join('\n')}\n`;
+};
+
 const renderShimCondition = function renderShimCondition(
 	condition: string,
 	specifier: string,
-	info: EntryModuleInfo
+	info: EntryModuleInfo,
+	override?: { specifier: string; names: ShimOverride }
 ): string {
-	if (condition === 'types') {
-		return renderTypesShim(specifier, info);
+	const shim =
+		condition === 'types'
+			? renderTypesShim(specifier, info)
+			: renderEsmShim(specifier, info);
+	if (!override) {
+		return shim;
 	}
-	return renderEsmShim(specifier, info);
+	return `${shim}${renderOverrideLines(condition, override.specifier, override.names)}`;
 };
 
 const buildConditionalEntry = function buildConditionalEntry(
@@ -391,6 +444,11 @@ const buildConditionalEntry = function buildConditionalEntry(
 	const specifier = toSpecifier(source.config.packageName, subpath);
 	const info = source.analyzeEntry(subpath, entry);
 	const mapped: ConditionalExport = {};
+	const names = source.config.overrides?.[subpath];
+	const override = names && {
+		names,
+		specifier: toSpecifier(source.config.packageName, names.from),
+	};
 
 	for (const condition of Object.keys(entry)) {
 		const extension = SHIM_EXTENSIONS[condition];
@@ -401,7 +459,12 @@ const buildConditionalEntry = function buildConditionalEntry(
 		}
 
 		const shimPath = `${shimBase}${extension}`;
-		shimFiles[shimPath] = renderShimCondition(condition, specifier, info);
+		shimFiles[shimPath] = renderShimCondition(
+			condition,
+			specifier,
+			info,
+			override
+		);
 		mapped[condition] = `./${shimPath}`;
 	}
 

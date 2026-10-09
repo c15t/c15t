@@ -1,8 +1,8 @@
 import { policyRulePresets } from '@c15t/core';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { createConsentClient } from '../client';
 import { classes } from '../generated/styles';
+import { createScriptTagConsentClient as createConsentClient } from '../script-tag-client';
 import type {
 	ConsentClient,
 	ConsentUIHandle,

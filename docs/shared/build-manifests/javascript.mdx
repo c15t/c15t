@@ -18,21 +18,16 @@ export default {
 
 Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. When
 `vite build` or `vite dev` starts, the plugin fetches the policy and serves it
-as `snapshot` from `c15t/generated`. In your browser entry point, switch the
-`init` import to `@c15t/browser`, which supports manifest mode, and add these
-options to the existing `init()` call:
+as `snapshot` from `c15t/generated`. In your browser entry point, pass
+`manifest()` as the mode of the existing `init()` call. It reads the snapshot
+and the backend URL from `c15t/generated`:
 
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
-import { init } from '@c15t/browser';
-import { snapshot } from 'c15t/generated';
+import { init, manifest } from '@c15t/browser';
 
-init({
-	backendURL: 'https://your-project.inth.app',
-	manifest: snapshot,
-	mode: 'manifest',
-});
+init({ mode: manifest() });
 ```
 
 Keep your scripts and UI options. The browser resolves the snapshot without

@@ -7,9 +7,9 @@
  *
  * @example
  * ```ts
- * import { init } from '@c15t/browser/headless';
+ * import { hosted, init } from '@c15t/browser/headless';
  *
- * const c15t = init({ backendURL: 'https://your-instance.c15t.dev' });
+ * const c15t = init({ mode: hosted({ backendURL: 'https://your-instance.c15t.dev' }) });
  * c15t.on('ui', (surface) => banner.hidden = surface !== 'banner');
  * ```
  */
@@ -26,7 +26,7 @@ const PKG = '@c15t/browser/headless';
  * @returns The client.
  */
 export const createConsentClient = function createConsentClient(
-	options: ConsentClientOptions = {}
+	options: ConsentClientOptions
 ): ConsentClient {
 	return createClient({ ...options, ui: false }, { pkg: PKG });
 };
@@ -38,30 +38,38 @@ export const createConsentClient = function createConsentClient(
  * @returns The started client.
  */
 export const init = function init(
-	options: ConsentClientOptions = {}
+	options: ConsentClientOptions
 ): ConsentClient {
 	const client = createConsentClient(options);
 	client.start();
 	return client;
 };
 
-export { ACTION_ATTRIBUTE, custom, hosted, PREFERENCES_HASH } from './client';
+export { custom } from '@c15t/core';
+export { ACTION_ATTRIBUTE, PREFERENCES_HASH } from './client';
 export type { PageAction } from './client';
-export { resolveRules } from './client';
+export { resolveRules } from './policy-rules';
+export { hosted } from './transports/hosted';
+export type { HostedOptions } from './transports/hosted';
 export {
 	ACTIVATED_ATTRIBUTE,
 	activateGatedScripts,
 	CATEGORY_ATTRIBUTE,
 } from './gated-scripts';
 export { manifest, manifestNeedsLocation } from './transports/manifest';
-export type { ManifestModeOptions } from './transports/manifest';
+export type {
+	BrowserManifestModeFactory,
+	ManifestModeOptions,
+} from './transports/manifest';
 export { offline } from './transports/offline';
 export type { OfflineModeOptions } from './transports/offline';
 export type {
 	ConsentClient,
 	ConsentClientEventMap,
+	ConsentClientBaseOptions,
 	ConsentClientOptions,
 	ConsentModeName,
+	ScriptTagClientOptions,
 	ConsentSaveInput,
 	PolicyPresetName,
 } from './types';

@@ -4,7 +4,7 @@
  */
 import type { GlobalVendorList } from '@c15t/schema/types';
 
-import { parseCacheDirectiveSeconds } from '../libs/manifest-cache-runtime';
+import { parseCacheDirectiveSeconds } from '../libs/cache-directive';
 
 export interface CachedGvl {
 	gvl: GlobalVendorList | null;

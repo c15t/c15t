@@ -1,7 +1,8 @@
 {/* Generated from internals/doc-snippets/javascript/src/translations.ts (docs:translations) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```ts title="src/main.ts"
-import { init } from '@c15t/browser';
+import { init, offline } from '@c15t/browser';
+import { policyRulePresets } from 'c15t';
 
 import { scripts } from './scripts';
 
@@ -27,7 +28,7 @@ export const consent = init({
 			},
 		},
 	},
-	policyRules: ['europeOptIn'],
+	mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }),
 	scripts,
 });
 ```

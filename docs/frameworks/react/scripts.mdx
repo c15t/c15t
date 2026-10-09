@@ -9,11 +9,7 @@ group: frameworks
 Pass vendor loaders to `ConsentProvider` through `options.scripts`. The
 provider loads each script when its category is allowed and removes it when
 the category is denied. The [quickstart](/docs/frameworks/react/quickstart)
-registers PostHog this way:
-
-<include src="../../shared/examples/react/scripts.mdx" />
-
-The provider in `src/consent.tsx` receives them:
+registers PostHog this way in `src/consent.tsx`:
 
 <include src="../../shared/examples/react/consent.mdx" />
 

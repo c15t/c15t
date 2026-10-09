@@ -91,6 +91,15 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	),
 ]);
 
+/**
+ * Names an umbrella entry adds on top of its scoped entry, from the
+ * generator's `overrides`. `c15t/react` takes the single-page app modes from
+ * `@c15t/react/modes`, which `@c15t/react` keeps out of its index.
+ */
+const EXTRA_UMBRELLA_KEYS: Record<string, string[]> = {
+	'./react': ['manifest', 'manifestNeedsLocation'],
+};
+
 const describeResult = function describeResult(result: LoadResult): string {
 	return result.ok
 		? `ok (${result.keys.length} keys)`
@@ -147,7 +156,14 @@ const assertParity = function assertParity(
 	if (!(pair.umbrella.ok && pair.scoped.ok)) {
 		return;
 	}
-	expect(pair.umbrella.keys, subpath).toEqual(pair.scoped.keys);
+	expect(pair.umbrella.keys, subpath).toEqual(
+		[
+			...new Set([
+				...pair.scoped.keys,
+				...(EXTRA_UMBRELLA_KEYS[subpath] ?? []),
+			]),
+		].sort()
+	);
 	if (
 		pair.umbrella.hasDefault !== undefined &&
 		pair.scoped.hasDefault !== undefined

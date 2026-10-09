@@ -3,12 +3,12 @@ import { clearGVLCache } from '@c15t/iab';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { init } from '../iab';
-import type { ConsentClient, ConsentClientOptions } from '../types';
+import type { ConsentClient, ScriptTagClientOptions } from '../types';
+import { initIAB as init } from './fixtures/factory-init';
 
 const clients: ConsentClient[] = [];
 const start = async (
-	iab: ConsentClientOptions['iab'] = {}
+	iab: ScriptTagClientOptions['iab'] = {}
 ): Promise<ConsentClient> => {
 	const client = init({
 		iab: { cmpId: 28, gvl: completeGVL, ...iab },

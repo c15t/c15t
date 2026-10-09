@@ -1,8 +1,10 @@
 // #region docs:gpp title="src/main.ts"
-import { init } from '@c15t/browser';
+import { hosted, init } from '@c15t/browser';
 import { mountGPP } from '@c15t/browser/gpp';
 
-const consent = init({ backendURL: 'https://your-project.inth.app' });
+const consent = init({
+	mode: hosted({ backendURL: 'https://your-project.inth.app' }),
+});
 
 // Installs `window.__gpp` and keeps it in step with the visitor's choices.
 const gpp = mountGPP(consent);
