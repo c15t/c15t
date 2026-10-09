@@ -113,6 +113,21 @@ Brotli sizes. Route reports also measure CSS. The ordinary React entry checks
 that IAB, devtools and all locales have not entered its module graph. Missing
 or empty assets fail the run.
 
+Consumer entry budgets count every emitted JavaScript chunk. esbuild can emit
+chunks for dynamic imports that tree shaking removes from the entry's code.
+Those chunks still occupy build output and count in `lazyGzip` and `gzipSize`.
+The `reachableLazy*` metrics count only deferred chunks the entry can request.
+Use those metrics and browser resource measurements when reporting network
+payload.
+
+The automatic stylesheet move has a one-time allowance of 9 KiB gzip for
+ordinary first-paint styles and 5.5 KiB for ordinary dialog styles. The root
+provider entry emits both sets as unreachable deferred chunks, so it receives
+their combined allowance only in deferred and total budgets. Its initial cap
+stays unchanged. The lazy IAB entry receives another 7 KiB in deferred and total
+budgets for its IAB banner and dialog sheets. The ordinary entry keeps its
+existing caps, and entries that emit no stock styles receive no allowance.
+
 The Next.js tarball normally allows at most 15 KiB and 10% growth. Restoring
 dialog rules in the app-imported stylesheet in #1378 added 4,487 packed bytes.
 The percentage check allows those bytes only when the measured baseline's

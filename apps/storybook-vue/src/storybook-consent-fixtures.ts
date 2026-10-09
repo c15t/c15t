@@ -214,6 +214,7 @@ export const useStorybookIABConsent = function useStorybookIABConsent(
 ) {
 	const config: ConsentConfig = {
 		...storybookConsentConfig,
+		iab: { cmpId: 160, gvl: mockGVL },
 		presentation: storybookIABPresentation,
 		...configOverrides,
 	};

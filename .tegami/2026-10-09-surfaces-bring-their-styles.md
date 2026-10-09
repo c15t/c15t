@@ -27,6 +27,8 @@ before the first paint.
   carry the nonce.
   `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
   way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
 - **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
   browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
   banner's rules into the HTML.

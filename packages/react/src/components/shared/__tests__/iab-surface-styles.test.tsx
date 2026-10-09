@@ -41,6 +41,60 @@ const renderBanner = (options: Partial<ComponentFixtureOptions> = {}) =>
 	);
 
 describe('IAB styles without CSS imports', () => {
+	test.each([false, true])(
+		'SSR puts the stream marker after every banner child, compound=%s',
+		(compound) => {
+			const html = renderToString(
+				<ComponentFixtureProvider options={fixture()}>
+					{compound ? (
+						<IABConsentBanner.Root>
+							<div>Custom banner content</div>
+						</IABConsentBanner.Root>
+					) : (
+						<IABConsentBanner />
+					)}
+				</ComponentFixtureProvider>
+			);
+			const parsed = new DOMParser().parseFromString(html, 'text/html');
+			const root = parsed.querySelector(
+				'[data-testid="iab-consent-banner-root"]'
+			);
+			const marker = root?.lastElementChild;
+			expect(root?.hasAttribute('data-c15t-streamed')).toBe(true);
+			expect(marker?.hasAttribute('data-c15t-stream-end')).toBe(true);
+			expect(marker?.hasAttribute('hidden')).toBe(true);
+			expect(root?.lastChild).toBe(marker);
+		}
+	);
+
+	test('streamed banner stays hidden until its direct end marker arrives', () => {
+		const container = document.createElement('div');
+		container.innerHTML = renderBanner();
+		const root = container.querySelector(
+			'[data-testid="iab-consent-banner-root"]'
+		);
+		const marker = root?.querySelector('[data-c15t-stream-end]');
+		if (!root || !marker) {
+			throw new Error('Expected the SSR banner and its end marker');
+		}
+		marker.remove();
+		document.body.append(container);
+		try {
+			expect(getComputedStyle(root).visibility).toBe('hidden');
+			// A descendant with the same attribute cannot complete the root.
+			root.firstElementChild?.append(marker);
+			expect(getComputedStyle(root).visibility).toBe('hidden');
+			root.append(marker);
+			expect(getComputedStyle(root).visibility).toBe('visible');
+			marker.remove();
+			// Other adapters use these classes without a React stream marker.
+			root.removeAttribute('data-c15t-streamed');
+			expect(getComputedStyle(root).visibility).toBe('visible');
+		} finally {
+			container.remove();
+		}
+	});
+
 	test('SSR includes banner rules and nonce without loading dialog rules', () => {
 		const html = renderBanner();
 		const parsed = new DOMParser().parseFromString(html, 'text/html');

@@ -48,7 +48,22 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		const isProviderArtifact = function isProviderArtifact(
 			element: Element
 		): boolean {
-			return element.tagName === 'STYLE' && element.id === 'c15t-theme';
+			if (element.tagName === 'STYLE' && element.id === 'c15t-theme') {
+				return true;
+			}
+			// React's empty parser marker has no rendered or accessible content.
+			// Keep visible markers, added attributes and substantive content.
+			const parent = element.parentElement;
+			return (
+				element.tagName === 'SPAN' &&
+				element.attributes.length === 2 &&
+				element.getAttribute('data-c15t-stream-end') === '' &&
+				element.hasAttribute('hidden') &&
+				element.childNodes.length === 0 &&
+				parent?.getAttribute('data-testid') === 'iab-consent-banner-root' &&
+				parent.hasAttribute('data-c15t-streamed') &&
+				parent.lastElementChild === element
+			);
 		};
 
 		const stripClasses = function stripClasses(value: string): string {
@@ -182,6 +197,13 @@ export const captureDomSnapshot = function captureDomSnapshot(
 		};
 		const isSurfaceMetadata = (element: Element, attribute: Attr): boolean => {
 			const id = element.getAttribute('data-testid') ?? '';
+			if (
+				id === 'iab-consent-banner-root' &&
+				attribute.name === 'data-c15t-streamed' &&
+				attribute.value === ''
+			) {
+				return true;
+			}
 			if (
 				id === 'consent-dialog-card' &&
 				attribute.name === 'tabindex' &&

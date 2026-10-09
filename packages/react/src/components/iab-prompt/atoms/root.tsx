@@ -102,10 +102,15 @@ const IABConsentBannerRootChildren = createForwardRef<
 					}
 					data-entry={lateEntry ? 'late' : undefined}
 					data-testid="iab-consent-banner-root"
+					data-c15t-streamed=""
 					dir={textDirection}
 					tabIndex={-1}
 				>
 					{children}
+					<span
+						data-c15t-stream-end=""
+						hidden
+					/>
 				</div>
 			</>
 		);

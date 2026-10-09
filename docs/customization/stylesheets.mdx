@@ -16,10 +16,16 @@ group: customization
 | HTML | Nothing | `c15t.js` carries its stylesheet into the UI's shadow root |
 | JavaScript | Nothing | `init()` carries its stylesheet into the UI's shadow root |
 
-No c15t stylesheet request holds back the page's first paint. A linked
-stylesheet in `<head>` used to delay the first paint by a round trip: on a
-mobile connection, a Next.js page first painted at about 370 ms instead of
-650 ms once the link was gone.
+Inline c15t styles avoid a stylesheet request before the page's first paint.
+A linked stylesheet in `<head>` used to delay it by a round trip. With 4x
+CPU throttling, 1.6 Mbps download and 150 ms RTT, a Next.js page first painted
+at about 370 ms instead of 650 ms once the link was gone.
+
+Inline rules add bytes to each server-rendered HTML response. Enable HTTP
+compression on the production host to reduce their transfer cost. On repeat
+document visits, a cached external stylesheet can paint sooner than sending
+the inline rules again. To use that cache, keep the stylesheet imports and
+set `styles: false` as described below.
 
 Load `styles.css` yourself with Tailwind CSS 3 or a named cascade layer.
 [Import the stylesheet yourself](#import-the-stylesheet-yourself)
@@ -42,6 +48,10 @@ the first page load. A server-rendered banner puts its rules in the HTML.
 `IABConsentDialog` adds the IAB dialog rules when it opens, including the
 shared rules it needs when rendered without a banner. IAB setups need no
 stylesheet imports with automatic styling enabled.
+
+Streamed React IAB banners become visible once their complete card markup
+arrives. This prevents the centered card from moving as the browser parses
+its remaining content, without waiting for hydration.
 
 - In React 19, React moves the elements into `<head>` and renders each sheet
   once per page, as `<style data-precedence="c15t" data-href="c15t-first-paint">`.
@@ -87,6 +97,9 @@ need control over the file:
   stylesheet itself.
 - **A named cascade layer.** Import the stylesheet into your own layer, as in
   [order c15t's layer against your CSS](#order-c15ts-layer-against-your-css).
+- **Cached styles across document visits.** Keep external CSS when its HTTP
+  cache performs better for your site's repeat visits. Compare cold and warm
+  visits on your production host before choosing this option.
 
 | Framework | Option | Files to import |
 | --- | --- | --- |

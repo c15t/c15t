@@ -70,6 +70,13 @@
 		tab-size: var(--iab-consent-banner-tab-size);
 	}
 
+	/* React marks the end of its streamed children. Painting the centered
+	   card before that marker arrives would move it as its content grows.
+	   The completed banner is visible without waiting for JavaScript. */
+	.root[data-c15t-streamed]:not(:has(> [data-c15t-stream-end])) {
+		visibility: hidden;
+	}
+
 	/*
 	 * The banner appears on its first frame when it shows with the page.
 	 * There it is part of the first paint, and motion reads as layout
