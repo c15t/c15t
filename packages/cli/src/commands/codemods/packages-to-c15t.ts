@@ -91,7 +91,7 @@ const POSTCSS_PLUGIN_SPECIFIER =
 const STYLESHEET_SPECIFIER =
 	/^@c15t\/(?<pkg>react|nextjs)\/(?<iab>iab\/)?styles(?<tw3>\.tw3)?\.css$/u;
 const CSS_IMPORT =
-	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*);?\s*$/u;
+	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*?);?(?:\s*\/\*.*?\*\/)*\s*$/u;
 
 const KEPT_SUMMARY = ', kept with a TODO';
 

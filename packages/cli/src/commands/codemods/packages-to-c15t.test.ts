@@ -200,6 +200,38 @@ import { YouTubeEmbed } from '@c15t/react/components/integrations';
 `);
 	});
 
+	it('handles stylesheet imports followed by a comment', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/index.css': `@import 'tailwindcss';
+@import '@c15t/react/styles.css'; /* legacy */
+@import "@c15t/react/iab/styles.css" /* no semicolon */
+@import url("@c15t/react/styles.css") layer(c15t); /* placed */ /* twice */
+`,
+			}
+		);
+
+		expect(await read('src/index.css')).toBe(`@import 'tailwindcss';
+/* ${TODO} */
+@import url("c15t/react/styles.css") layer(c15t); /* placed */ /* twice */
+`);
+	});
+
+	it('keeps the trailing comment when it rewrites a stylesheet import', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.0' },
+			{
+				'src/index.css': `@import '@c15t/react/styles.css'; /* legacy */
+`,
+			}
+		);
+
+		expect(await read('src/index.css')).toBe(`/* ${TODO} */
+@import 'c15t/react/styles.css'; /* legacy */
+`);
+	});
+
 	it('keeps a stylesheet imported into a named layer', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
