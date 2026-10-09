@@ -167,6 +167,7 @@ export default mergeConfig(
 		test: {
 			browser: {
 				enabled: true,
+				headless: true,
 				instances: [{ browser: 'chromium' }],
 				// Headless Chromium hides scrollbars by default. Showing them keeps
 				// classic scrollbar layout (as on Windows and Linux) testable.
