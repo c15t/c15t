@@ -1,31 +1,21 @@
-import { COMPAT_BACKEND_URL } from '@c15t/next-compat-shared/config';
+import { COMPAT_HOSTED_CONFIG } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
-import type { ConsentRootProps } from '@c15t/nextjs';
-import { resolveConsent } from '@c15t/nextjs/pages';
-import type { GetServerSideProps } from 'next';
-
-interface SSRPageProps {
-	state: ConsentRootProps['state'];
-}
+import type { ConsentPageProps } from '@c15t/nextjs/pages';
+import { withConsentProps } from '@c15t/nextjs/pages';
 
 /**
- * Pages Router SSR. `@c15t/nextjs/pages` reads the request from the
- * `getServerSideProps` `req` instead of `next/headers`.
+ * Pages Router SSR. `withConsentProps` reads the request from the
+ * `getServerSideProps` `req` instead of `next/headers` and adds the
+ * JSON-safe `consent` prop.
  */
-export const getServerSideProps: GetServerSideProps<SSRPageProps> = async ({
-	req,
-}) => {
-	const state = await resolveConsent({
-		backendURL: COMPAT_BACKEND_URL,
-		req,
-	});
-	return { props: { state } };
-};
+export const getServerSideProps = withConsentProps(undefined, {
+	config: COMPAT_HOSTED_CONFIG,
+});
 
-const SSRPage = ({ state }: SSRPageProps) => (
+const SSRPage = ({ consent }: ConsentPageProps) => (
 	<ConsentShell
 		nonce="compat-style-nonce"
-		state={state}
+		state={consent}
 		scenario="ssr"
 	>
 		<p>resolveConsent inside getServerSideProps.</p>

@@ -1,15 +1,18 @@
 /**
- * `defineConsentConfig` — the URLs a Next.js consent setup needs, declared
- * once and shared by the route handlers, `resolveConsent`, and the client
- * `ConsentRoot`.
+ * `defineConsentConfig` — the app's consent setup, declared once in
+ * `c15t.config.ts` at the project root.
  *
- * Plain data with no `next` imports, so the same module is safe to import
- * from a route file, a Server Component, and a `'use client'` file.
+ * `withConsentManifest` finds that file and hands it to `ConsentRoot`,
+ * `resolveConsent`, `createConsentRoute` and the Pages Router helpers, so
+ * the app never imports its own config. The module has no `next` or React
+ * runtime imports, so the same config is safe on the server and in the
+ * browser.
  */
 
 import type { ConsentJourneyOption } from '@c15t/core';
+import type { ConsentMode } from '@c15t/core/modes';
 
-const CONSENT_CONFIG_BRAND = Symbol.for('@c15t/nextjs/consent-config');
+import type { ConsentClientOptions } from './types';
 
 /**
  * Next.js replaces this exact expression with the variable's build-time
@@ -38,40 +41,44 @@ export const readBackendURLFromEnv = function readBackendURLFromEnv():
 };
 
 /**
- * URLs shared by every side of a Next.js consent setup.
+ * The consent setup of a Next.js app: where the backend is, how the
+ * visitor's policy is resolved, and the browser options `ConsentRoot`
+ * reads.
+ *
+ * `c15t.config.ts` is bundled into the browser as well as the server, so
+ * it must hold no secrets. Read server-only values (an API token for
+ * `forwardHeaders`, say) in server code instead.
  */
-export interface ConsentConfig {
+export interface ConsentConfig extends ConsentClientOptions {
 	/**
-	 * Backend base URL; `/subjects` writes and, without a manifest, `/init`
-	 * reads go here.
+	 * Backend base URL. Consent saves (`/subjects`) go here, and the server
+	 * reads `/manifest` or `/init` from it.
+	 *
+	 * @default process.env.NEXT_PUBLIC_C15T_BACKEND_URL
 	 */
-	backendURL: string;
+	backendURL?: string;
 
 	/**
-	 * Where the catch-all consent route from `createConsentRoute` is
-	 * mounted, such as `/api/c15t` for `app/api/c15t/[...c15t]/route.ts`.
-	 * Sets `manifestURL` to `${routePrefix}/manifest` and `initURL` to
-	 * `${routePrefix}/init` unless they are given, so the browser and
-	 * `resolveConsent` use the route and never fetch it from the server.
+	 * How the visitor's policy is resolved: `manifest()`, `hosted()` or
+	 * `offline()` from `c15t/next`. They are plain data, so the browser only
+	 * loads the code of the mode it runs.
 	 *
-	 * Same meaning and default (none) as TanStack Start's `routePrefix`:
-	 * setting it switches the browser from `${backendURL}/init` to the
-	 * route. Unset, `/api/c15t` may instead be a rewrite to the backend.
+	 * @default manifest()
+	 */
+	mode?: ConsentMode;
+
+	/**
+	 * Where the app's catch-all consent route from `createConsentRoute` or
+	 * `createPagesConsentRoute` is mounted, such as `/api/c15t` for
+	 * `pages/api/c15t/[...c15t].ts`. With it, a browser that resolves
+	 * consent itself asks `${routePrefix}/init`, which resolves the cached
+	 * manifest with the request's geo, instead of the backend's `/init`.
+	 * The server never fetches its own route.
+	 *
+	 * No default: without it there is no route to serve. Leave it unset
+	 * when every page resolves consent on the server.
 	 */
 	routePrefix?: string;
-
-	/**
-	 * Same-origin route that serves the cached manifest (from
-	 * `createNextConsentRouteHandlers`). Enables manifest mode.
-	 */
-	manifestURL?: string;
-
-	/**
-	 * Same-origin route that resolves init from the cached manifest with the
-	 * request's geo (the handlers' `GET`). Enables geo in the browser without
-	 * a backend `/init` call.
-	 */
-	initURL?: string;
 
 	/**
 	 * The consent journey scope, read by both `resolveConsent` and
@@ -79,29 +86,6 @@ export interface ConsentConfig {
 	 */
 	journey?: ConsentJourneyOption;
 }
-
-/**
- * What {@link defineConsentConfig} accepts: a {@link ConsentConfig} whose
- * `backendURL` may come from `NEXT_PUBLIC_C15T_BACKEND_URL` instead.
- */
-export type ConsentConfigInput = Omit<ConsentConfig, 'backendURL'> & {
-	/**
-	 * Backend base URL.
-	 *
-	 * @default process.env.NEXT_PUBLIC_C15T_BACKEND_URL
-	 */
-	backendURL?: string;
-};
-
-type BrandedConsentConfig = ConsentConfig & {
-	readonly [CONSENT_CONFIG_BRAND]: true;
-};
-
-const isProduction = function isProduction(): boolean {
-	const nodeEnv = (globalThis as { process?: { env?: { NODE_ENV?: string } } })
-		.process?.env?.NODE_ENV;
-	return nodeEnv === 'production';
-};
 
 /**
  * Accepts `/`-relative paths (`/api/consent`) and absolute `http(s)` URLs.
@@ -122,18 +106,10 @@ const isConsentURL = function isConsentURL(value: string): boolean {
 };
 
 const assertConsentURL = function assertConsentURL(
-	field: keyof ConsentConfig,
-	value: unknown,
-	required: boolean
+	field: string,
+	value: unknown
 ): void {
 	if (value === undefined) {
-		if (required) {
-			throw new TypeError(
-				field === 'backendURL'
-					? `@c15t/nextjs: defineConsentConfig needs \`backendURL\`, or ${BACKEND_URL_ENV} set at build time.`
-					: `@c15t/nextjs: defineConsentConfig needs \`${field}\`.`
-			);
-		}
 		return;
 	}
 	if (typeof value !== 'string' || !isConsentURL(value)) {
@@ -143,101 +119,72 @@ const assertConsentURL = function assertConsentURL(
 	}
 };
 
+const MODE_TYPES = new Set(['manifest', 'hosted', 'offline']);
+
 /**
- * Declare the consent URLs once and hand the result to every side of the
- * setup: `createConsentRoute` (route file), `resolveConsent` (Server
- * Component or `getServerSideProps`), and `ConsentRoot` (client). Each reads
- * the fields it needs, so the URLs are never repeated.
+ * Whether a mode can run without the config's backend URL: offline mode,
+ * or hosted mode with its own.
+ */
+const modeHasBackend = function modeHasBackend(mode: ConsentMode): boolean {
+	return (
+		mode.type === 'offline' ||
+		(mode.type === 'hosted' && mode.backendURL !== undefined)
+	);
+};
+
+/**
+ * Declare the app's consent setup in `c15t.config.ts` at the project root.
+ * `withConsentManifest` in `next.config.ts` finds the file, so
+ * `ConsentRoot`, `resolveConsent()`, `createConsentRoute()` and the Pages
+ * Router helpers read it without the app importing it.
  *
- * The returned object is frozen data with no `next` imports, safe to import
- * from a route file, a Server Component and a `'use client'` file. It is not
- * a Server Component prop: its symbol brand cannot cross the server/client
- * boundary, so import it in the client file that renders `ConsentRoot`.
+ * The file is bundled into the browser too, so it can hold functions (such
+ * as `scripts`) but must hold no secrets.
  *
- * @param input - Backend base URL (defaults to
- * `NEXT_PUBLIC_C15T_BACKEND_URL`) plus the optional same-origin routes.
+ * @param config - Backend URL (defaults to `NEXT_PUBLIC_C15T_BACKEND_URL`),
+ * mode, route prefix, journey and the browser options.
  * @returns The validated, frozen config.
- * @throws {TypeError} When no backend URL is set, or any URL is neither an
- * absolute `http(s)` URL nor a `/`-relative path.
+ * @throws {TypeError} When the mode needs a backend URL and none is set, a
+ * URL is neither an absolute `http(s)` URL nor a `/`-relative path, or
+ * `mode` or `journey` is not one this package knows.
  * @example
- * Manifest mode with browser geo: one catch-all route serves both
- * `/api/c15t/manifest` and `/api/c15t/init`.
- *
  * ```ts
- * // c15t.config.ts (backend URL from NEXT_PUBLIC_C15T_BACKEND_URL)
- * import { defineConsentConfig } from '@c15t/nextjs';
+ * // c15t.config.ts
+ * import { posthog } from '@c15t/integrations/posthog';
+ * import { defineConsentConfig } from 'c15t/next';
  *
- * export const consentConfig = defineConsentConfig({ routePrefix: '/api/c15t' });
+ * export default defineConsentConfig({
+ *   scripts: [posthog({ id: 'phc_your_project_key' })],
+ * });
  * ```
- *
- * ```ts
- * // app/api/c15t/[...c15t]/route.ts
- * import { createConsentRoute } from '@c15t/nextjs/api';
- * import { consentConfig } from '@/c15t.config';
- *
- * export const { GET } = createConsentRoute(consentConfig);
- * ```
- *
- * ```tsx
- * // components/consent.tsx
- * 'use client';
- * import { ConsentRoot } from '@c15t/nextjs';
- * import { consentConfig } from '@/c15t.config';
- *
- * export function Consent({ children, state }) {
- *   return (
- *     <ConsentRoot state={state} config={consentConfig}>
- *       {children}
- *     </ConsentRoot>
- *   );
- * }
- * ```
- *
- * ```tsx
- * // app/layout.tsx
- * import { resolveConsent } from '@c15t/nextjs/server';
- * import { consentConfig } from '@/c15t.config';
- * import { Consent } from '@/components/consent';
- *
- * export default function RootLayout({ children }) {
- *   return (
- *     <html>
- *       <body>
- *         <Consent state={resolveConsent(consentConfig)}>{children}</Consent>
- *       </body>
- *     </html>
- *   );
- * }
- * ```
- *
- * With `initURL` set, the browser fetches init from the same-origin
- * `GET` handler, which resolves the cached manifest with the request's
- * geo headers, so the visitor's country is known without a backend
- * `/init` call. Consent saves still post to `${backendURL}/subjects`.
- * Set only `manifestURL` to resolve init in the browser (no geo), or drop
- * the routes for hosted mode against `${backendURL}/init`.
  */
 export const defineConsentConfig = function defineConsentConfig(
-	input: ConsentConfigInput = {}
+	config: ConsentConfig = {}
 ): ConsentConfig {
-	if (typeof input !== 'object' || input === null) {
+	if (typeof config !== 'object' || config === null) {
+		throw new TypeError('@c15t/nextjs: defineConsentConfig expects an object.');
+	}
+	const mode = config.mode ?? { type: 'manifest' as const };
+	if (!MODE_TYPES.has(mode.type)) {
 		throw new TypeError(
-			'@c15t/nextjs: defineConsentConfig expects an object with `backendURL`.'
+			'@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or offline() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.'
 		);
 	}
-	assertConsentURL('routePrefix', input.routePrefix, false);
-	const routePrefix = input.routePrefix?.replace(/\/+$/u, '');
-	const config = {
-		...input,
-		backendURL: input.backendURL ?? readBackendURLFromEnv(),
-		initURL: input.initURL ?? (routePrefix ? `${routePrefix}/init` : undefined),
-		manifestURL:
-			input.manifestURL ??
-			(routePrefix ? `${routePrefix}/manifest` : undefined),
-	};
-	assertConsentURL('backendURL', config.backendURL, true);
-	assertConsentURL('manifestURL', config.manifestURL, false);
-	assertConsentURL('initURL', config.initURL, false);
+	const backendURL = config.backendURL ?? readBackendURLFromEnv();
+	if (backendURL === undefined && !modeHasBackend(mode)) {
+		throw new TypeError(
+			`@c15t/nextjs: defineConsentConfig needs \`backendURL\`, or ${BACKEND_URL_ENV} set at build time.`
+		);
+	}
+	assertConsentURL('backendURL', backendURL);
+	assertConsentURL('routePrefix', config.routePrefix);
+	if (mode.type === 'manifest') {
+		assertConsentURL('mode.manifestURL', mode.manifestURL);
+		assertConsentURL('mode.geoURL', mode.geoURL);
+	}
+	if (mode.type === 'hosted') {
+		assertConsentURL('mode.backendURL', mode.backendURL);
+	}
 	if (
 		config.journey !== undefined &&
 		config.journey !== false &&
@@ -249,39 +196,12 @@ export const defineConsentConfig = function defineConsentConfig(
 		);
 	}
 
-	if (config.initURL && !config.manifestURL && !isProduction()) {
-		console.warn(
-			'[c15t] defineConsentConfig: `initURL` without `manifestURL` sends browser init through `initURL`, but `resolveConsent` still calls the backend `/init` on every request. Set `manifestURL` to the same-origin manifest route so the server resolves init from the cached manifest too.'
-		);
+	const defined: ConsentConfig = { ...config };
+	if (backendURL !== undefined) {
+		defined.backendURL = backendURL;
 	}
-
-	const defined: BrandedConsentConfig = {
-		[CONSENT_CONFIG_BRAND]: true,
-		backendURL: config.backendURL as string,
-		initURL: config.initURL,
-		manifestURL: config.manifestURL,
-	};
-	if (routePrefix !== undefined) {
-		defined.routePrefix = routePrefix;
-	}
-	if (config.journey !== undefined) {
-		defined.journey = config.journey;
+	if (config.routePrefix !== undefined) {
+		defined.routePrefix = config.routePrefix.replace(/\/+$/u, '');
 	}
 	return Object.freeze(defined);
-};
-
-/**
- * Whether a value came from {@link defineConsentConfig}. The brand is an
- * enumerable symbol, so it survives object spread.
- *
- * @internal
- */
-export const isConsentConfig = function isConsentConfig(
-	value: unknown
-): value is ConsentConfig {
-	return (
-		typeof value === 'object' &&
-		value !== null &&
-		(value as Partial<BrandedConsentConfig>)[CONSENT_CONFIG_BRAND] === true
-	);
 };

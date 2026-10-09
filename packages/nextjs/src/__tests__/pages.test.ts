@@ -1,3 +1,4 @@
+import { hosted } from '@c15t/core/modes';
 /**
  * Tests for `@c15t/nextjs/pages`: the Node req/res bridge that lets
  * `getServerSideProps` and `pages/api` routes use the server helpers and
@@ -9,12 +10,13 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { defineConsentConfig } from '../config';
 import { toWebHeaders, toWebRequest } from '../node-bridge';
-import type { NodeApiResponseLike } from '../node-bridge';
+import type { NodeApiRequestLike, NodeApiResponseLike } from '../node-bridge';
 import {
-	createPagesApiHandlers,
 	createPagesConsentRoute,
 	resolveConsent,
+	withConsentProps,
 } from '../pages';
+import type { PagesApiHandler } from '../pages';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 import { policyFixture } from './policy-fixture';
 
@@ -75,6 +77,24 @@ const asyncChunks = function asyncChunks(
 	};
 };
 
+/** Calls a catch-all API route the way Next passes `[...c15t]`. */
+const callRoute = async function callRoute(
+	route: PagesApiHandler,
+	request: Omit<NodeApiRequestLike, 'method' | 'query'> & { url: string }
+) {
+	const sink = createResponseSink();
+	const path = new URL(request.url, 'https://app.example.com').pathname;
+	await route(
+		{
+			...request,
+			method: 'GET',
+			query: { c15t: path.split('/').slice(3) },
+		},
+		sink.res
+	);
+	return sink;
+};
+
 beforeEach(() => {
 	clearManifestCache();
 });
@@ -94,7 +114,6 @@ describe('Pages Router build-time manifest', () => {
 			const state = await resolveConsent({
 				backendURL: 'https://consent.example.com',
 				fetch,
-				manifest: MANIFEST_FIXTURE,
 				reportSessions: false,
 				req: {
 					headers: {
@@ -103,6 +122,7 @@ describe('Pages Router build-time manifest', () => {
 						'x-vercel-ip-country-region': region,
 					},
 				},
+				snapshot: MANIFEST_FIXTURE,
 			});
 			expect(state.initialPolicyResolution?.policy?.id).toBe(policyId);
 			expect(fetch).not.toHaveBeenCalled();
@@ -111,37 +131,27 @@ describe('Pages Router build-time manifest', () => {
 
 	test('API routes serve and resolve the snapshot without an upstream fetch', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const handlers = createPagesApiHandlers({
+		const route = createPagesConsentRoute({
 			backendURL: 'https://consent.example.com',
 			fetch,
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
-		const manifestSink = createResponseSink();
-		await handlers.manifest(
-			{
-				headers: { host: 'app.example.com' },
-				method: 'GET',
-				url: '/api/c15t/manifest',
-			},
-			manifestSink.res
-		);
+		const manifestSink = await callRoute(route, {
+			headers: { host: 'app.example.com' },
+			url: '/api/c15t/manifest',
+		});
 		expect(manifestSink.res.statusCode).toBe(200);
 		expect(JSON.parse(manifestSink.text())).toEqual(MANIFEST_FIXTURE);
 
-		const initSink = createResponseSink();
-		await handlers.init(
-			{
-				headers: {
-					host: 'app.example.com',
-					'x-vercel-ip-country': 'DE',
-					'x-vercel-ip-country-region': 'BE',
-				},
-				method: 'GET',
-				url: '/api/c15t/init',
+		const initSink = await callRoute(route, {
+			headers: {
+				host: 'app.example.com',
+				'x-vercel-ip-country': 'DE',
+				'x-vercel-ip-country-region': 'BE',
 			},
-			initSink.res
-		);
+			url: '/api/c15t/init',
+		});
 		expect(initSink.res.statusCode).toBe(200);
 		expect(JSON.parse(initSink.text()).location).toEqual({
 			countryCode: 'DE',
@@ -237,7 +247,10 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 		);
 
 		const config = await resolveConsent({
-			backendURL: '/api/self-host',
+			config: defineConsentConfig({
+				backendURL: '/api/self-host',
+				mode: hosted(),
+			}),
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 			req: {
 				headers: {
@@ -309,7 +322,7 @@ describe('@c15t/nextjs/pages: resolveConsent with a backend', () => {
 		);
 
 		const config = await resolveConsent({
-			backendURL: '/api/c15t',
+			config: defineConsentConfig({ backendURL: '/api/c15t', mode: hosted() }),
 			fetch: fetchSpy,
 			req: {
 				headers: {
@@ -335,24 +348,19 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 				status: 200,
 			})
 		);
-		const { manifest } = createPagesApiHandlers({
+		const route = createPagesConsentRoute({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
-		const sink = createResponseSink();
 
-		await manifest(
-			{
-				headers: {
-					host: 'app.example.com',
-					'x-forwarded-host': 'attacker.example',
-					'x-forwarded-proto': 'http',
-				},
-				method: 'GET',
-				url: '/api/consent/manifest',
+		await callRoute(route, {
+			headers: {
+				host: 'app.example.com',
+				'x-forwarded-host': 'attacker.example',
+				'x-forwarded-proto': 'http',
 			},
-			sink.res
-		);
+			url: '/api/consent/manifest',
+		});
 
 		const [url] = fetchSpy.mock.calls[0] ?? [];
 		expect(new URL(String(url)).origin).toBe('https://app.example.com');
@@ -401,20 +409,15 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 				status: 200,
 			})
 		);
-		const { manifest } = createPagesApiHandlers({
+		const route = createPagesConsentRoute({
 			backendURL: 'https://consent.example.com/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
-		const sink = createResponseSink();
 
-		await manifest(
-			{
-				headers: { host: 'app.example.com' },
-				method: 'GET',
-				url: '/api/consent/manifest?language=de',
-			},
-			sink.res
-		);
+		const sink = await callRoute(route, {
+			headers: { host: 'app.example.com' },
+			url: '/api/consent/manifest?language=de',
+		});
 
 		expect(fetchSpy).toHaveBeenCalledWith(
 			'https://consent.example.com/api/c15t/manifest?language=de',
@@ -436,25 +439,20 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			.mockResolvedValue(
 				new Response(JSON.stringify(MANIFEST_FIXTURE), { status: 200 })
 			);
-		const { init } = createPagesApiHandlers({
+		const route = createPagesConsentRoute({
 			backendURL: 'https://consent.example.com/api/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
-		const sink = createResponseSink();
 
-		await init(
-			{
-				headers: {
-					'accept-language': 'de-DE,de;q=0.9',
-					host: 'app.example.com',
-					'x-vercel-ip-country': 'DE',
-					'x-vercel-ip-country-region': 'BE',
-				},
-				method: 'GET',
-				url: '/api/c15t/init',
+		const sink = await callRoute(route, {
+			headers: {
+				'accept-language': 'de-DE,de;q=0.9',
+				host: 'app.example.com',
+				'x-vercel-ip-country': 'DE',
+				'x-vercel-ip-country-region': 'BE',
 			},
-			sink.res
-		);
+			url: '/api/c15t/init',
+		});
 
 		expect(sink.res.statusCode).toBe(200);
 		expect(sink.headers.get('cache-control')).toBe('private, no-store');
@@ -463,7 +461,7 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 		expect(body.translations.language).toBe('de');
 	});
 
-	test('handlers and resolveConsent accept a defineConsentConfig result', async () => {
+	test('the route and resolveConsent read one config', async () => {
 		const fetchSpy = vi
 			.fn()
 			.mockImplementation(() =>
@@ -473,23 +471,17 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 			);
 		const consentConfig = defineConsentConfig({
 			backendURL: 'https://consent.example.com/api/c15t',
-			initURL: '/api/consent/init',
-			manifestURL: '/api/consent/manifest',
+			routePrefix: '/api/consent',
 		});
-		const { manifest } = createPagesApiHandlers({
-			...consentConfig,
+		const route = createPagesConsentRoute({
+			config: consentConfig,
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
 		});
-		const sink = createResponseSink();
 
-		await manifest(
-			{
-				headers: { host: 'app.example.com' },
-				method: 'GET',
-				url: '/api/consent/manifest',
-			},
-			sink.res
-		);
+		const sink = await callRoute(route, {
+			headers: { host: 'app.example.com' },
+			url: '/api/consent/manifest',
+		});
 		const config = await resolveConsent({
 			config: consentConfig,
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
@@ -517,8 +509,8 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 	test('one catch-all API route serves manifest and init and 404s the rest', async () => {
 		const route = createPagesConsentRoute({
 			backendURL: 'https://consent.example.com',
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		const call = async (segments: string[]) => {
 			const sink = createResponseSink();
@@ -539,5 +531,63 @@ describe('@c15t/nextjs/pages: API bridge', () => {
 		const init = await call(['init']);
 		expect(JSON.parse(init.text()).location.countryCode).toBe('DE');
 		expect((await call(['subjects'])).res.statusCode).toBe(404);
+	});
+});
+
+describe('withConsentProps', () => {
+	const context = {
+		query: {},
+		req: {
+			headers: {
+				cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1',
+				host: 'app.example.com',
+				'x-vercel-ip-country': 'DE',
+			},
+		},
+		resolvedUrl: '/',
+	} as never;
+
+	test('adds the visitor state as a JSON-safe consent prop', async () => {
+		const result = await withConsentProps(undefined, {
+			backendURL: 'https://consent.example.com',
+			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
+		})(context);
+
+		if (!('props' in result)) {
+			throw new Error('expected props');
+		}
+		const { consent } = await result.props;
+		expect(consent?.initialPolicyResolution?.policy?.id).toBe('eu-opt-in');
+		expect(consent?.initialRecords?.choice?.categories.marketing?.value).toBe(
+			true
+		);
+		// Next.js rejects `undefined` anywhere in props.
+		expect(JSON.parse(JSON.stringify(consent))).toEqual(consent);
+	});
+
+	test("keeps the page's own props, awaiting promised ones", async () => {
+		const page = vi.fn(() =>
+			Promise.resolve({ props: Promise.resolve({ title: 'Home' }) })
+		);
+		const result = await withConsentProps(page)(context);
+
+		expect(page).toHaveBeenCalledWith(context);
+		expect(result).toMatchObject({
+			props: { consent: expect.any(Object), title: 'Home' },
+		});
+	});
+
+	test('passes redirects and notFound through', async () => {
+		const redirect = { redirect: { destination: '/login', permanent: false } };
+
+		await expect(
+			withConsentProps(() => Promise.resolve(redirect))(context)
+		).resolves.toBe(redirect);
+		await expect(
+			withConsentProps(() => Promise.resolve({ notFound: true as const }))(
+				context
+			)
+		).resolves.toEqual({ notFound: true });
 	});
 });

@@ -41,6 +41,37 @@ export default mergeConfig(
 					__dirname,
 					'./src/generated-manifest.ts'
 				),
+				'@c15t/nextjs/user-config': resolve(__dirname, './src/user-config.ts'),
+				'@c15t/core/modes': resolve(__dirname, '../core/src/modes.ts'),
+				'@c15t/core/runtime/client-mode': resolve(
+					__dirname,
+					'../core/src/runtime/client-mode.ts'
+				),
+				'@c15t/react/components/consent-banner': resolve(
+					__dirname,
+					'../react/dist/components/prompt/index.js'
+				),
+				'@c15t/react/consent-dialog': resolve(
+					__dirname,
+					'../react/dist/panel.js'
+				),
+				'@c15t/react/components/consent-dialog-trigger': resolve(
+					__dirname,
+					'../react/dist/components/panel-trigger/index.js'
+				),
+				'@c15t/react/components/consent-gate': resolve(
+					__dirname,
+					'../react/dist/components/consent-gate/index.js'
+				),
+				'@c15t/react/consent-widget': resolve(
+					__dirname,
+					'../react/dist/preferences.js'
+				),
+				'@c15t/react/draft': resolve(__dirname, '../react/dist/draft.js'),
+				'@c15t/react/theme': resolve(
+					__dirname,
+					'../react/dist/index-parts/theme.js'
+				),
 				'@c15t/react/devtools': resolve(__dirname, '../react/src/devtools.tsx'),
 				'@c15t/core/modules/clear-on-revocation': resolve(
 					__dirname,

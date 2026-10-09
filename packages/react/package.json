@@ -87,6 +87,11 @@
 			"import": "./dist/draft.js",
 			"default": "./dist/draft.js"
 		},
+		"./theme": {
+			"types": "./dist-types/index-parts/theme.d.ts",
+			"import": "./dist/index-parts/theme.js",
+			"default": "./dist/index-parts/theme.js"
+		},
 		"./module-hooks": {
 			"types": "./dist-types/module-hooks.d.ts",
 			"import": "./dist/module-hooks.js",

@@ -1,4 +1,4 @@
-import { COMPAT_BACKEND_URL } from '@c15t/next-compat-shared/config';
+import { COMPAT_HOSTED_CONFIG } from '@c15t/next-compat-shared/config';
 import { ConsentShell } from '@c15t/next-compat-shared/consent-shell';
 import { resolveConsent } from '@c15t/nextjs/server';
 import type { ReactNode } from 'react';
@@ -8,9 +8,7 @@ import type { ReactNode } from 'react';
  * and hand the resolved state to the client root as a plain prop.
  */
 const SSRLayout = async ({ children }: { children: ReactNode }) => {
-	const state = await resolveConsent({
-		backendURL: COMPAT_BACKEND_URL,
-	});
+	const state = await resolveConsent({ config: COMPAT_HOSTED_CONFIG });
 
 	return (
 		<ConsentShell

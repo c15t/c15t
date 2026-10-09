@@ -1,3 +1,4 @@
+import { manifest } from '@c15t/core/modes';
 /**
  * Wiring of `@c15t/nextjs/api` onto the core consent route handler. The
  * route behaviour itself is pinned once, in
@@ -6,12 +7,14 @@
 import { clearManifestCache } from '@c15t/core/server';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-	createManifestFetchInit,
-	createNextConsentRouteHandlers,
-} from '../api';
+import { createConsentRoute, createManifestFetchInit } from '../api';
+import type { NextRouteHandler } from '../api';
 import { defineConsentConfig } from '../config';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
+
+/** Calls a fixed-mount route handler, which reads the last URL segment. */
+const call = (handler: NextRouteHandler, url: string, init?: RequestInit) =>
+	handler(new Request(url, init), { params: Promise.resolve({}) });
 
 const manifestFetch = () =>
 	vi.fn<typeof globalThis.fetch>().mockImplementation(() =>
@@ -32,28 +35,28 @@ beforeEach(() => {
 describe('@c15t/nextjs/api', () => {
 	test('serves a deployment manifest and resolves each visitor without fetching policy', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const { GET, manifestGET } = createNextConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: 'https://consent.example.com',
 			fetch,
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
-		const manifest = await manifestGET(
-			new Request('https://app.example.com/api/c15t/manifest')
-		);
-		expect(await manifest.json()).toEqual(MANIFEST_FIXTURE);
+		const served = await call(GET, 'https://app.example.com/api/c15t/manifest');
+		expect(await served.json()).toEqual(MANIFEST_FIXTURE);
 		await Promise.all(
 			[
 				{ country: 'DE', policyId: 'eu-opt-in', region: '' },
 				{ country: 'US', policyId: 'us-ca-opt-out', region: 'CA' },
 			].map(async ({ country, policyId, region }) => {
-				const response = await GET(
-					new Request('https://app.example.com/api/c15t/init', {
+				const response = await call(
+					GET,
+					'https://app.example.com/api/c15t/init',
+					{
 						headers: {
 							'x-vercel-ip-country': country,
 							'x-vercel-ip-country-region': region,
 						},
-					})
+					}
 				);
 				expect(await response.json()).toMatchObject({
 					policyResolution: { policyId, status: 'matched' },
@@ -63,31 +66,29 @@ describe('@c15t/nextjs/api', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	test('GET answers init and manifestGET the manifest, with the Data Cache hint', async () => {
+	test('GET answers init and the manifest, with the Data Cache hint', async () => {
 		const fetch = manifestFetch();
-		const { GET, manifestGET } = createNextConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: 'https://consent.example.com',
 			fetch,
 			manifestRevalidateSeconds: 120,
 			reportSessions: false,
 		});
 
-		const init = await GET(
-			new Request('https://app.example.com/api/c15t/init', {
-				headers: { 'x-vercel-ip-country': 'DE' },
-			})
-		);
-		const manifest = await manifestGET(
-			new Request('https://app.example.com/api/c15t/manifest', {
-				headers: { 'if-none-match': '"manifest-revision"' },
-			})
+		const init = await call(GET, 'https://app.example.com/api/c15t/init', {
+			headers: { 'x-vercel-ip-country': 'DE' },
+		});
+		const served = await call(
+			GET,
+			'https://app.example.com/api/c15t/manifest',
+			{ headers: { 'if-none-match': '"manifest-revision"' } }
 		);
 
 		expect(init.headers.get('cache-control')).toBe('private, no-store');
 		expect(await init.json()).toMatchObject({
 			policyResolution: { policyId: 'eu-opt-in' },
 		});
-		expect(manifest.status).toBe(304);
+		expect(served.status).toBe(304);
 		expect(fetch).toHaveBeenCalledTimes(1);
 		expect(fetch).toHaveBeenCalledWith(
 			'https://consent.example.com/manifest',
@@ -98,14 +99,14 @@ describe('@c15t/nextjs/api', () => {
 	test('hands detached work to onBackgroundRevalidate', async () => {
 		const fetch = manifestFetch();
 		const registered: Promise<void>[] = [];
-		const { GET } = createNextConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: 'https://consent.example.com',
 			fetch,
 			onBackgroundRevalidate: (task) => {
 				registered.push(task);
 			},
 		});
-		await GET(new Request('https://app.example.com/api/c15t/init'));
+		await call(GET, 'https://app.example.com/api/c15t/init');
 		expect(registered).toHaveLength(1);
 		await registered[0];
 		expect(fetch).toHaveBeenLastCalledWith(
@@ -114,29 +115,37 @@ describe('@c15t/nextjs/api', () => {
 		);
 	});
 
-	test('a defineConsentConfig result supplies backendURL and ignores its same-origin routes', async () => {
+	test('a config supplies backendURL and never fetches its own route', async () => {
 		const fetch = manifestFetch();
 		const config = defineConsentConfig({
 			backendURL: 'https://consent.example.com/api/c15t',
-			initURL: '/api/consent/init',
-			manifestURL: '/api/consent/manifest',
+			mode: manifest({ resolve: 'browser', source: 'runtime' }),
+			routePrefix: '/api/consent',
 		});
-		const { manifestGET } = createNextConsentRouteHandlers({
-			...config,
-			fetch,
-		});
-		await manifestGET(
-			new Request('https://app.example.com/api/consent/manifest')
-		);
+		const { GET } = createConsentRoute({ config, fetch });
+		await call(GET, 'https://app.example.com/api/consent/manifest');
 		expect(fetch.mock.calls[0]?.[0]).toBe(
 			'https://consent.example.com/api/c15t/manifest'
 		);
 	});
 
+	test("a mode's absolute manifestURL is fetched instead of the backend's", async () => {
+		const fetch = manifestFetch();
+		const config = defineConsentConfig({
+			backendURL: 'https://consent.example.com',
+			mode: manifest({ manifestURL: 'https://cdn.example.com/policy.json' }),
+		});
+		const { GET } = createConsentRoute({ config, fetch });
+		await call(GET, 'https://app.example.com/api/c15t/manifest');
+		expect(fetch.mock.calls[0]?.[0]).toBe(
+			'https://cdn.example.com/policy.json'
+		);
+	});
+
 	test('names the package when no backend is configured', async () => {
-		const { GET } = createNextConsentRouteHandlers({});
+		const { GET } = createConsentRoute({});
 		await expect(
-			GET(new Request('https://app.example.com/api/c15t/init'))
+			call(GET, 'https://app.example.com/api/c15t/init')
 		).rejects.toThrow('@c15t/nextjs: pass backendURL or manifestURL.');
 	});
 

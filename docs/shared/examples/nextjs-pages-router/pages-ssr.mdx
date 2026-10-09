@@ -1,23 +1,7 @@
 {/* Generated from examples/nextjs-pages-router/pages/index.tsx (docs:pages-ssr) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```tsx title="pages/index.tsx (partial)"
-import type { ConsentRootProps } from 'c15t/next';
-import { resolveConsent } from 'c15t/next/pages';
-import type { GetServerSideProps } from 'next';
+import { withConsentProps } from 'c15t/next/pages';
 
-import { consentOptions } from '@/c15t.server';
-
-interface PageProps {
-	initialConsent: ConsentRootProps['state'];
-}
-
-export const getServerSideProps = (async ({ req }) => {
-	const state = await resolveConsent({ ...consentOptions, req });
-	// Next.js rejects undefined prop values, such as an absent GPC signal.
-	const initialConsent: PageProps['initialConsent'] = JSON.parse(
-		JSON.stringify(state)
-	);
-
-	return { props: { initialConsent } };
-}) satisfies GetServerSideProps<PageProps>;
+export const getServerSideProps = withConsentProps();
 ```

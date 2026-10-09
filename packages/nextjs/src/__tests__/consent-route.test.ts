@@ -1,8 +1,7 @@
 /**
- * The catch-all consent route and the single `routePrefix` that names it.
- * Route behaviour itself is pinned in core's consent-route suite; these
- * check the Next.js wiring: catch-all params, 404s, proxying, and the
- * config defaults.
+ * The catch-all consent route. Route behaviour itself is pinned in core's
+ * consent-route suite; these check the Next.js wiring: catch-all params,
+ * 404s, proxying, and the config.
  */
 import { clearManifestCache } from '@c15t/core/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -30,51 +29,6 @@ beforeEach(() => {
 
 afterEach(() => {
 	vi.unstubAllGlobals();
-});
-
-describe('defineConsentConfig routePrefix', () => {
-	test('derives the manifest and init routes from one base', () => {
-		const config = defineConsentConfig({
-			backendURL: 'https://consent.example.com',
-			routePrefix: '/api/c15t/',
-		});
-
-		expect(config).toMatchObject({
-			initURL: '/api/c15t/init',
-			manifestURL: '/api/c15t/manifest',
-			routePrefix: '/api/c15t',
-		});
-	});
-
-	test('keeps routes that are given explicitly', () => {
-		const config = defineConsentConfig({
-			backendURL: 'https://consent.example.com',
-			manifestURL: '/api/consent/manifest',
-			routePrefix: '/api/c15t',
-		});
-
-		expect(config.manifestURL).toBe('/api/consent/manifest');
-		expect(config.initURL).toBe('/api/c15t/init');
-	});
-
-	test('reads the backend URL from NEXT_PUBLIC_C15T_BACKEND_URL', () => {
-		// This suite runs in the browser, where Next.js would have inlined it.
-		vi.stubGlobal('process', {
-			env: { NEXT_PUBLIC_C15T_BACKEND_URL: 'https://env.example.com' },
-		});
-
-		expect(defineConsentConfig({ routePrefix: '/api/c15t' }).backendURL).toBe(
-			'https://env.example.com'
-		);
-	});
-
-	test('names the variable when no backend URL is set', () => {
-		vi.stubGlobal('process', { env: {} });
-
-		expect(() => defineConsentConfig({ routePrefix: '/api/c15t' })).toThrow(
-			'NEXT_PUBLIC_C15T_BACKEND_URL'
-		);
-	});
 });
 
 describe('createConsentRoute', () => {
@@ -127,12 +81,12 @@ describe('createConsentRoute', () => {
 	test('reads a config without fetching its own routes', async () => {
 		const fetch = upstream();
 		vi.stubGlobal('fetch', fetch);
-		const { GET } = createConsentRoute(
-			defineConsentConfig({
+		const { GET } = createConsentRoute({
+			config: defineConsentConfig({
 				backendURL: 'https://consent.example.com',
 				routePrefix: '/api/c15t',
-			})
-		);
+			}),
+		});
 
 		await GET(
 			new Request('https://app.example.com/api/c15t/manifest'),
