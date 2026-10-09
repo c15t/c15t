@@ -49,16 +49,24 @@ Render `<IABConsent cmpId={YOUR_CMP_ID} />` in the root route, next to
 `ConsentBanner`. Checking `useModel()` renders the IAB components only for
 visitors whose policy uses the IAB model.
 
-Link the IAB stylesheet after the base stylesheet in the root route's `head()`.
-It holds only the IAB rules and uses the base stylesheet's tokens:
+The IAB components do not render their own styles yet. Link the base
+stylesheet and then the IAB stylesheet in the root route's `head()`. The IAB
+stylesheet holds only the IAB rules and uses the base stylesheet's tokens.
+Set `styles: false` in `ConsentRoot`'s `options` so the stock components do
+not add a second copy of the base rules:
 
 {/* example: fragment */}
 
-```tsx title="src/routes/__root.tsx"
+```tsx title="src/routes/__root.tsx (partial)"
+import consentCss from 'c15t/tanstack-start/styles.css?url';
 import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
 
-// In head().links, after the base stylesheet:
-{ href: iabCss, rel: 'stylesheet' }
+// In head().links:
+{ href: consentCss, rel: 'stylesheet' },
+{ href: iabCss, rel: 'stylesheet' },
+
+// On ConsentRoot:
+options={{ styles: false }}
 ```
 
 <import src="../../shared/react/iab/overview.mdx#configure" />

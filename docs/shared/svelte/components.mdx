@@ -27,10 +27,18 @@ which comes from `@c15t/svelte/devtools`. Render them inside
 
 ## Styles
 
-Import `@c15t/svelte/styles.css` once for the stock appearance. It contains
-the banner, dialog, widget, trigger, gate placeholder and primitive rules, so
-you import no other c15t stylesheet unless you use IAB TCF, which adds
-`@c15t/svelte/iab/styles.css`.
+There is no stylesheet to import. Each stock component adds the rules it
+uses to `<head>` as a `<style>` element, once per page, before its own
+elements render. On a server-rendered SvelteKit page, `c15tHandle` writes the
+banner's rules into the HTML, so the banner is styled before hydration. The
+dialog's rules, including the primitives', load with the dialog's code.
+
+The IAB TCF components do not add their own styles yet. With IAB TCF, import
+`@c15t/svelte/styles.css` and then `@c15t/svelte/iab/styles.css`, and set
+`styles={false}` on the provider. Do the same to run the stylesheet through
+Tailwind CSS 3 or put it in a named cascade layer;
+[stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself)
+explains when.
 
 ## When components render nothing
 

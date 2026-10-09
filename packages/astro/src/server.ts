@@ -634,3 +634,6 @@ export const markConfigEmitted = function markConfigEmitted(
 	emitted.add(locals);
 	return true;
 };
+
+// The first-paint rules the components inline (see `inline-styles.ts`).
+export { INLINE_STYLES_CSS, INLINE_STYLES_ID } from './inline-styles';

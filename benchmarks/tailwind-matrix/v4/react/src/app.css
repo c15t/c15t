@@ -1,6 +1,5 @@
 /* #region docs:tailwind-css title="src/app.css" */
 @import 'tailwindcss';
-@import 'c15t/react/styles.css';
 
 @custom-variant dark (&:where(.dark, .dark *));
 /* #endregion docs:tailwind-css */

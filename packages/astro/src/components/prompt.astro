@@ -36,6 +36,8 @@ import {
 	PROMPT_SLOT_ATTRIBUTE,
 	promptClassNames,
 	resolvePromptModel,
+	INLINE_STYLES_CSS,
+	INLINE_STYLES_ID,
 } from '@c15t/astro/server';
 import type { PromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
@@ -88,6 +90,9 @@ const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
+// The first-paint rules, inlined like the theme below for layouts with no
+// <ConsentScript />.
+const inlineStyles = emitConfig && c15t.options.inlineStyles !== false;
 const themeCSS = emitConfig
 	? buildThemeCSS(theme)
 	: '';
@@ -115,6 +120,17 @@ const model = resolvePromptModel({
 			data-c15t-inline
 			nonce={nonce}
 			set:html={colorSchemeScript}
+		/>
+	)
+}
+
+{
+	inlineStyles && (
+		<style
+			is:inline
+			data-c15t-styles={INLINE_STYLES_ID}
+			nonce={nonce}
+			set:html={INLINE_STYLES_CSS}
 		/>
 	)
 }

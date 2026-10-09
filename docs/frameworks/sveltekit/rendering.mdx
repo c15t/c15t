@@ -153,6 +153,12 @@ own handles through `sequence(c15tHandle(), yourHandle)` from
 `@sveltejs/kit/hooks`. Pass `country`, `region` or `language` to force them,
 and `cookieName` if you changed `storageConfig.storageKey`.
 
+`c15tHandle` also writes a server-rendered banner's rules into the HTML
+`<head>` as `<style>` elements, so the banner is styled before hydration.
+Without it, a server-rendered banner shows unstyled until the page hydrates,
+unless the provider sets `styles={false}` and the app imports
+`@c15t/svelte/styles.css`.
+
 Type `event.locals.c15t` in `src/app.d.ts`:
 
 <include src="../../shared/examples/sveltekit/app-locals.mdx" />

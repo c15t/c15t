@@ -11,7 +11,8 @@ allow them:
 
 | What | Directive |
 | --- | --- |
-| The c15t stylesheet you link in the root route's `head()` | `style-src 'self'` |
+| The `<style>` elements the banner, dialog and other stock components render with c15t's rules | `style-src` with the request nonce |
+| The c15t stylesheet, only if you link it yourself with `styles: false` | `style-src 'self'` |
 | The `<style id="c15t-theme">` element, if you render `ConsentTheme` | `style-src` with the request nonce |
 | `<script>` elements the script loader creates for `scripts` entries, both `src` and inline | `script-src` with the request nonce, or each vendor's host |
 | The inline `consentPrefetchHead` script, on prerendered pages that use it | `script-src` with its hash |
@@ -27,8 +28,9 @@ not apply to them.
 ## Pass the request nonce to c15t
 
 TanStack Router stamps a nonce on the scripts, styles and links it renders when
-the router has `ssr.nonce`. Give c15t the same value, so the script loader and
-`ConsentTheme` use it too. This takes three steps.
+the router has `ssr.nonce`. Give c15t the same value, so the script loader,
+the `<style>` elements the stock components render, and `ConsentTheme` use it
+too. This takes three steps.
 
 **1. Create the nonce and the policy in request middleware.** Generate a new
 nonce for every request, send the policy header, and hand the nonce to the rest

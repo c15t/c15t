@@ -21,8 +21,6 @@ import {
 import { consentOptions } from '../consent-options.server';
 import { scripts } from '../scripts';
 
-import consentCss from 'c15t/tanstack-start/styles.css?url';
-
 // Where the browser saves consent: the project the build read the manifest
 // from.
 const backendURL =
@@ -66,7 +64,6 @@ export const Route = createRootRoute({
 	...consentLoaderOptions,
 	component: RootComponent,
 	head: () => ({
-		links: [{ href: consentCss, rel: 'stylesheet' }],
 		meta: [
 			{ charSet: 'utf-8' },
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },

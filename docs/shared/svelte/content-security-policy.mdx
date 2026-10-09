@@ -11,7 +11,7 @@ the page:
 | Adds a `<script>` element for each allowed entry in `scripts` | `script-src` | Each vendor's script host, or the provider's `nonce`. |
 | Lets vendor scripts load more scripts, pixels and requests | `script-src`, `img-src`, `connect-src` | The hosts each vendor documents. |
 | Sets `src` on gated iframes, or mounts `ConsentGate` children | `frame-src` | Each embed's host, such as `https://www.youtube-nocookie.com`. |
-| Styles its components from `@c15t/svelte/styles.css` | `style-src` | `'self'`, since your bundler serves the file. |
+| Adds its rules to `<head>` as `<style>` elements | `style-src` | The provider's `nonce`. With `styles={false}` and an imported `@c15t/svelte/styles.css`, `'self'`. |
 | Fetches the Global Vendor List under an IAB policy | `connect-src` | The vendor list host the policy names, when it is not your own origin. |
 
 The dev tools panel attaches a stylesheet to its shadow root. Keep the panel
@@ -32,7 +32,8 @@ the provider:
 
 The script loader then sets that nonce on every `<script>` it adds, for both
 `src` and inline `textContent` scripts. A `nonce` on one `scripts` entry wins
-for that script. The provider reads `nonce` once, when it is created.
+for that script. The components put it on the `<style>` elements they add.
+The provider reads `nonce` once, when it is created.
 
 The nonce covers only the elements c15t creates. A script that a vendor's
 script loads by itself does not get it; allow that host in `script-src`, or
@@ -46,7 +47,8 @@ Enforce the policy, not report-only, and open the console with site data
 cleared:
 
 1. The banner renders with its styles, and no `Refused to` message mentions a
-   c15t element or `@c15t/svelte/styles.css`.
+   c15t element, a `<style data-c15t-styles>` element or
+   `@c15t/svelte/styles.css`. Open the preference dialog and check again.
 2. Allow a category. Its vendor scripts load, and none are refused. A refused
    script from a vendor's own host means that host is missing from
    `script-src`.

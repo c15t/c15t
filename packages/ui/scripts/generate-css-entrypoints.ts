@@ -25,6 +25,9 @@
  * | `styles/primitives.css` | rules for the `@c15t/ui/styles/primitives` class maps | Svelte's `styles.css` and hosts that render those class maps |
  * | `iab/styles.css`, `iab/styles.tw3.css` | IAB variables and rules only | the app, next to `styles.css` |
  * | `styles/dialog.css`, `styles/dialog.js` | nothing; kept so existing imports resolve | — |
+ * | `styles/sheets/first-paint.js` | `styles.css` up to its dialog rules, as a string | React and Svelte surfaces, which render it as a `<style>` |
+ * | `styles/sheets/dialog.js`, `styles/sheets/dialog.css` | the dialog and preference-widget rules, as a string and as a file | the dialog and widget, with their lazy code; Astro links the file when the dialog opens |
+ * | `styles/sheets/primitives.js` | `styles/primitives.css`, as a string | the Svelte dialog |
  *
  * No JavaScript in the package imports a stylesheet. The Next.js Pages
  * Router refuses to build an app whose dependencies import global CSS, so
@@ -401,6 +404,56 @@ const writeDist = function writeDist(relativePath: string, css: string) {
 	writeFileSync(target, css);
 };
 
+/**
+ * Rank the default tokens and variables of a sheet a component renders
+ * below the app's own token rules, wherever the sheet lands.
+ *
+ * An app overrides a token with a `:root` rule, and a dark one with
+ * `:root.dark` or `:root.c15t-dark`. Against `styles.css` those win by
+ * coming later, since the app imports c15t's stylesheet first. A
+ * component's `<style>` can come after the app's stylesheets instead:
+ * React hoists it into `<head>` after them, and Svelte appends it. So the
+ * defaults rank by specificity here: a bare `:root` becomes `:where(:root)`
+ * (0,0,0), below an app's `:root` (0,1,0), and `:root.dark` becomes
+ * `html.dark` (0,1,1), above an app's plain `:root` but below its
+ * `:root.dark` (0,2,0). `:host` is left alone: these sheets never render
+ * into a shadow root.
+ */
+const yieldToAppRoot = function yieldToAppRoot(css: string): string {
+	return css
+		.replace(/:root(?=[.[:])/gu, 'html')
+		.replace(/:root(?![\w-])/gu, ':where(:root)');
+};
+
+/**
+ * Write `dist/styles/sheets/<name>.js`: a module exporting a stylesheet as
+ * a string, and the `id` a component dedupes it by.
+ *
+ * Comments are dropped: the string ships in JavaScript and in every
+ * server-rendered page, where nobody reads them.
+ */
+const writeSheet = function writeSheet(name: string, css: string): string {
+	const text = css
+		.replace(/\/\*[\s\S]*?\*\//gu, '')
+		.replace(/\n{2,}/gu, '\n')
+		.trim();
+	writeDist(
+		`styles/sheets/${name}.js`,
+		`export const id = ${JSON.stringify(`c15t-${name}`)};\nexport const css = ${JSON.stringify(text)};\n`
+	);
+	writeDist(
+		`styles/sheets/${name}.d.ts`,
+		[
+			'/** Identifies the stylesheet, so a page renders it once. */',
+			'export declare const id: string;',
+			'/** The stylesheet text. */',
+			'export declare const css: string;',
+			'',
+		].join('\n')
+	);
+	return text;
+};
+
 // ── Non-IAB entrypoints ─────────────────────────────────────────────
 const seenUnlayered = new Set<string>();
 const nonIab = collectCssParts(
@@ -455,13 +508,48 @@ writeDist('styles/dialog.d.ts', 'export {};\n');
 
 // dist/styles/primitives.css — rules for the primitive class maps, which
 // React never renders. Svelte's styles.css and custom hosts import it.
+const primitiveRules = rulesFor(
+	nonIab.ruleParts,
+	'primitives',
+	'styles/primitives.css'
+);
 writeDist(
 	'styles/primitives.css',
 	joinParts([
 		LAYER_ORDER,
 		'/* @c15t/ui primitive styles. Needs @c15t/ui/styles.css for tokens and variables. */',
-		layered(rulesFor(nonIab.ruleParts, 'primitives', 'styles/primitives.css')),
+		layered(primitiveRules),
 	])
+);
+
+// dist/styles/sheets/*.js — the same rules as `styles.css` and
+// `styles/primitives.css`, as strings, for components that render their own
+// `<style>` instead of asking the app to import a stylesheet. A stylesheet
+// the app imports is linked from `<head>` and holds the first paint until
+// it downloads; a `<style>` in the server-rendered HTML, or one the banner's
+// code inserts, does not.
+//
+// `first-paint` holds what `styles.css` holds up to its dialog rules, so a
+// banner, trigger or ConsentGate needs nothing else. `dialog` holds the
+// dialog and preference-widget rules, and `primitives` the primitive rules
+// the Svelte dialog renders. Concatenated in that order they apply exactly
+// what `styles.css` and `styles/primitives.css` apply.
+writeSheet(
+	'first-paint',
+	[
+		LAYER_ORDER,
+		yieldToAppRoot(DEFAULT_THEME_CSS),
+		yieldToAppRoot(rootCss),
+		`@layer components{${rulesFor(nonIab.ruleParts, 'first-paint', 'styles/sheets/first-paint.js').join('\n')}}`,
+	].join('\n')
+);
+const dialogSheet = `${LAYER_ORDER}\n@layer components{${rulesFor(nonIab.ruleParts, 'dialog', 'styles/sheets/dialog.js').join('\n')}}`;
+// The same rules as a file, for hosts that link the dialog's rules when it
+// opens instead of carrying them in its code (Astro).
+writeDist('styles/sheets/dialog.css', `${writeSheet('dialog', dialogSheet)}\n`);
+writeSheet(
+	'primitives',
+	`${LAYER_ORDER}\n@layer components{${primitiveRules.join('\n')}}`
 );
 
 // ── IAB entrypoints ─────────────────────────────────────────────────
@@ -495,5 +583,5 @@ if (IAB_COMPONENTS.length > 0) {
 }
 
 console.log(
-	'Generated dist/styles.css, dist/styles.tw3.css, dist/styles/dialog.css, dist/styles/dialog.js, dist/styles/primitives.css, dist/iab/styles.css, and dist/iab/styles.tw3.css'
+	'Generated dist/styles.css, dist/styles.tw3.css, dist/styles/dialog.css, dist/styles/dialog.js, dist/styles/primitives.css, dist/styles/sheets/*.js, dist/iab/styles.css, and dist/iab/styles.tw3.css'
 );

@@ -1,5 +1,13 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { isAbsolute } from 'node:path';
+import {
+	existsSync,
+	mkdirSync,
+	mkdtempSync,
+	readFileSync,
+	writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
+import { isAbsolute, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
 import { parse } from '@babel/parser';
 import {
@@ -376,14 +384,14 @@ describe('astro:config:setup', () => {
 	it("hands c15t's inline hashes to Astro's CSP when the site turned it on", async () => {
 		const options: C15tAstroOptions = { mode: offlineMode() };
 		const { calls } = await runSetup(options, { security: { csp: true } });
+		const hashes = await buildInlineCodeHashes(resolveOptions(options));
 		expect(calls.updateConfig).toHaveBeenCalledWith({
 			security: {
 				csp: {
 					algorithm: 'SHA-256',
-					scriptDirective: {
-						hashes: (await buildInlineCodeHashes(resolveOptions(options)))
-							.scripts,
-					},
+					scriptDirective: { hashes: hashes.scripts },
+					// The first-paint stylesheet the components inline.
+					styleDirective: { hashes: hashes.styles },
 				},
 			},
 		});
@@ -443,16 +451,6 @@ describe('astro:config:setup', () => {
 		expect(calls.addMiddleware).not.toHaveBeenCalled();
 	});
 
-	it('injects the component stylesheet into every page', async () => {
-		const { calls } = await runSetup({ mode: offlineMode() });
-		// The server build resolves the class maps through the `node`
-		// condition, which carries no CSS, so without this nothing is styled.
-		expect(calls.injectScript).toHaveBeenCalledWith(
-			'page-ssr',
-			`import ${specifier('@c15t/astro/styles.css')};`
-		);
-	});
-
 	it('injects a stylesheet that declares the Tailwind 4 layer order first', () => {
 		// It lands ahead of a site's Tailwind stylesheet, and layers rank by
 		// first mention. Declaring `components` alone would rank it below
@@ -479,27 +477,26 @@ describe('astro:config:setup', () => {
 	});
 
 	it.each(['react', 'svelte', 'vue'] as const)(
-		'injects no separate dialog stylesheet on %s pages',
+		'links no stylesheet from %s pages without IAB',
 		async (ui) => {
-			// `styles.css` already holds the dialog's rules.
+			// The components inline the first-paint rules, and the client
+			// links the dialog's when it opens: a stylesheet in `<head>`
+			// would hold back the first paint.
 			const { calls } = await runSetup({ mode: offlineMode(), ui });
-			const found = calls.injectScript.mock.calls.find(
-				([stage]) => stage === 'page-ssr'
-			) as [string, string];
-			expect(found[1]).not.toContain('dialog.css');
+			expect(
+				calls.injectScript.mock.calls.some(([stage]) => stage === 'page-ssr')
+			).toBe(false);
 		}
 	);
 
-	it.each(['react', 'vue'] as const)(
-		'leaves the %s dialog nothing to link beyond styles.css',
-		async (ui) => {
-			const { calls } = await runSetup({ mode: offlineMode(), ui });
-			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
-			expect(code).not.toContain('registerDialogStyles(');
-		}
-	);
-
-	it.each([['svelte', ['@c15t/ui/styles/primitives.css']]] as const)(
+	it.each([
+		['react', ['@c15t/ui/styles/sheets/dialog.css']],
+		['vue', ['@c15t/ui/styles/sheets/dialog.css']],
+		[
+			'svelte',
+			['@c15t/ui/styles/sheets/dialog.css', '@c15t/ui/styles/primitives.css'],
+		],
+	] as const)(
 		'registers the %s dialog stylesheets for the client to link',
 		async (ui, stylesheets) => {
 			const { calls } = await runSetup({ mode: offlineMode(), ui });
@@ -514,6 +511,50 @@ describe('astro:config:setup', () => {
 			expect(code).toContain(`registerDialogStyles([${names.join(', ')}]);`);
 		}
 	);
+
+	describe('on a Tailwind CSS 3 site', () => {
+		/** A project root whose `tailwindcss` resolves at `version`. */
+		const projectWithTailwind = function projectWithTailwind(
+			version: string
+		): URL {
+			const root = mkdtempSync(join(tmpdir(), 'c15t-astro-tw-'));
+			const tailwind = join(root, 'node_modules', 'tailwindcss');
+			mkdirSync(tailwind, { recursive: true });
+			writeFileSync(join(root, 'package.json'), '{"name":"site"}');
+			writeFileSync(
+				join(tailwind, 'package.json'),
+				JSON.stringify({ name: 'tailwindcss', version })
+			);
+			return pathToFileURL(`${root}/`);
+		};
+
+		it('links styles.css instead of inlining, so Tailwind builds it', async () => {
+			// Tailwind 3 unwraps c15t's layer in the stylesheets it builds;
+			// inlined rules would stay layered and lose to its preflight.
+			const { calls } = await runSetup(
+				{ mode: offlineMode(), ui: 'svelte' },
+				{ root: projectWithTailwind('3.4.17') }
+			);
+			const [, boot] = calls.injectScript.mock.calls[0] as [string, string];
+
+			expect(calls.injectScript).toHaveBeenCalledWith(
+				'page-ssr',
+				`import ${specifier('@c15t/astro/styles.css')};`
+			);
+			expect(boot).not.toContain('sheets/dialog.css');
+			expect(boot).toContain('primitives.css');
+		});
+
+		it('inlines on Tailwind CSS 4', async () => {
+			const { calls } = await runSetup(
+				{ mode: offlineMode() },
+				{ root: projectWithTailwind('4.1.0') }
+			);
+			expect(
+				calls.injectScript.mock.calls.some(([stage]) => stage === 'page-ssr')
+			).toBe(false);
+		});
+	});
 
 	it('registers no dialog stylesheets with `styles: false`', async () => {
 		const { calls } = await runSetup({ mode: offlineMode(), styles: false });

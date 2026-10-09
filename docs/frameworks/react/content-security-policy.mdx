@@ -10,7 +10,8 @@ A React app with c15t adds these to the page, and your policy must allow them:
 
 | What | Directive |
 | --- | --- |
-| `c15t/react/styles.css`, which your bundler emits with your own CSS | `style-src 'self'` |
+| The `<style>` elements the banner, dialog and other stock components render with c15t's rules | `style-src` with a nonce |
+| `c15t/react/styles.css`, only if you import it with `styles: false` | `style-src 'self'` |
 | The `<style id="c15t-theme">` element, if you render `ConsentTheme` | `style-src` with a nonce or its hash |
 | `<script>` elements the script loader creates for `scripts` entries, both `src` and inline | `script-src` with each vendor's host, or a nonce |
 | Browser requests to your backend's `/init` and `/subjects` | `connect-src` with the backend origin |
@@ -58,7 +59,8 @@ when a server renders or rewrites your `index.html` per request.
 
 Pass the nonce as `options.nonce` on `ConsentProvider`. The script loader
 stamps it on every `<script>` it creates. A `nonce` on a single `scripts`
-entry takes precedence for that element.
+entry takes precedence for that element. The stock components put it on the
+`<style>` elements that carry c15t's rules.
 
 With Vite, set `html.cspNonce` to a placeholder in `vite.config.ts`, and have
 your server replace it with a new nonce on every response. Vite then adds
@@ -82,6 +84,18 @@ If you render `ConsentTheme`, pass it the same value:
 The provider reads `options.nonce` once, when it mounts. A server-rendered
 React app, such as one built with React Router framework mode, reads the nonce
 from its own request and passes it the same way.
+
+## Allow c15t's style elements
+
+The banner, dialog and other stock components render c15t's rules as
+`<style>` elements. A `style-src` without `'unsafe-inline'` must admit them.
+Either:
+
+- Set `options.nonce` on `ConsentProvider`, as in [use a nonce](#use-a-nonce).
+  The elements then render next to each component with the nonce. React 19
+  would otherwise move them into `<head>` and drop the nonce.
+- Or set `styles: false` in the provider options and import
+  `c15t/react/styles.css` from your bundle. `style-src 'self'` admits it.
 
 ## Allow the theme style element
 

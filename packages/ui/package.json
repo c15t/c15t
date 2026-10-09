@@ -59,6 +59,12 @@
 			"default": "./dist/styles/dialog.js"
 		},
 		"./styles/primitives.css": "./dist/styles/primitives.css",
+		"./styles/sheets/*.css": "./dist/styles/sheets/*.css",
+		"./styles/sheets/*": {
+			"types": "./dist/styles/sheets/*.d.ts",
+			"import": "./dist/styles/sheets/*.js",
+			"default": "./dist/styles/sheets/*.js"
+		},
 		"./postcss-tailwind3": {
 			"types": "./dist-types/postcss-tailwind3.d.ts",
 			"import": "./dist/postcss-tailwind3.js",

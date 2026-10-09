@@ -1,7 +1,7 @@
 /*
  * The app's own stylesheet. The baseline arm loads only this file; the
- * consent arms load `with-consent.css`, which adds c15t's styles to it, as an
- * app does by importing them from its global stylesheet.
+ * consent arms load `with-consent.css`, which imports it. c15t's surfaces
+ * render their own styles.
  */
 main {
 	font-family: system-ui;

@@ -1,6 +1,6 @@
 ---
 title: Customize
-description: Load the c15t stylesheet in Next.js and change colors, radius, button roles, component parts, dark mode and banner shape with ConsentTheme and ConsentRoot options.
+description: Load the c15t stylesheet yourself in Next.js when you need to, and change colors, radius, button roles, component parts, dark mode and banner shape with ConsentTheme and ConsentRoot options.
 group: frameworks
 ---
 
@@ -10,9 +10,27 @@ See the [design gallery](/docs/customization/recipes) for five banner designs,
 from a bottom bar to a fully custom one. Its React code works in Next.js with
 the same components imported from `c15t/next`.
 
-## Load the stylesheet
+## Load the stylesheet yourself
 
-Import c15t once from the global stylesheet that `app/layout.tsx` or
+A Next.js app imports no c15t stylesheet. `ConsentBanner`, `ConsentDialog`
+and the other stock components render the rules they use as `<style>`
+elements, in the server HTML for a server-rendered banner.
+
+Import the stylesheet yourself with Tailwind CSS 3, to put c15t's rules in a
+named cascade layer, or with IAB TCF. Set `styles: false` in `ConsentRoot`'s
+`options`, so the components add no second copy:
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+<ConsentRoot
+	state={state}
+	config={consentConfig}
+	options={{ styles: false }}
+>
+```
+
+Then import c15t once from the global stylesheet that `app/layout.tsx` or
 `pages/_app.tsx` loads:
 
 {/* example: fragment */}
@@ -20,8 +38,6 @@ Import c15t once from the global stylesheet that `app/layout.tsx` or
 ```css title="styles/globals.css"
 @import 'c15t/next/styles.css';
 ```
-
-With Tailwind CSS 4, put it after `@import 'tailwindcss';`.
 
 <import src="../../shared/react/styling/overview.mdx#tailwind-layers" />
 

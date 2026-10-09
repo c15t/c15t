@@ -11,8 +11,6 @@ import type { ReactNode } from 'react';
 import { consentManifest } from './c15t-manifest';
 import { scripts } from './scripts';
 
-import 'c15t/react/styles.css';
-
 const mode = manifest({
 	backendURL:
 		import.meta.env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',

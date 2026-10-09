@@ -9,10 +9,25 @@ group: frameworks
 <import src="../../shared/react/iab/overview.mdx#prepare" />
 
 Import the components from `c15t/react/iab` and render them inside your
-existing `ConsentProvider` from `c15t/react`. Import `c15t/react/iab/styles.css`
-at your global stylesheet entry, after `c15t/react/styles.css`: the IAB
-stylesheet holds only the IAB rules and uses the tokens from the base
-stylesheet.
+existing `ConsentProvider` from `c15t/react`.
+
+The IAB components do not render their own styles yet. Import
+`c15t/react/styles.css` and then `c15t/react/iab/styles.css` at your global
+stylesheet entry. The IAB stylesheet holds only the IAB rules and uses the
+tokens from the base stylesheet. Set `styles: false` in the provider options
+so the stock components do not add a second copy of the base rules:
+
+{/* example: fragment */}
+
+```tsx title="src/consent.tsx (partial)"
+import 'c15t/react/styles.css';
+import 'c15t/react/iab/styles.css';
+
+// In the ConsentProvider options:
+styles: false,
+```
+
+Then render the IAB components:
 
 <include src="../../shared/examples/react/iab-consent.mdx" />
 

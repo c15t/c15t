@@ -44,9 +44,10 @@ Render it in `<svelte:head>` in the layout:
 
 <include src="../../shared/examples/sveltekit/theme-style.mdx" />
 
-SvelteKit writes `<svelte:head>` content before its stylesheet links. The
-`generateThemeCSS` selectors are more specific than the defaults in
-`@c15t/svelte/styles.css`, so the theme still wins. Keep the `c15t-theme` id. In development, the provider logs a warning when its
+SvelteKit writes `<svelte:head>` content before its stylesheet links, and
+`c15tHandle` adds c15t's default rules at the end of `<head>`. The
+`generateThemeCSS` selectors are more specific than those defaults, so the
+theme still wins. Keep the `c15t-theme` id. In development, the provider logs a warning when its
 `theme` prop has tokens and the page has no `<style id="c15t-theme">`. `generateThemeCSS` escapes `<`,
 so its output is safe inside a `<style>` element.
 
@@ -59,8 +60,7 @@ only. [Theme tokens](/docs/customization/tokens) lists every token.
 ### Use a stylesheet instead
 
 For fixed brand values you can skip the generator. Write the `--c15t-*`
-variables on `:root` in a stylesheet and import it right after
-`@c15t/svelte/styles.css` in the root layout:
+variables on `:root` in a stylesheet and import it in the root layout:
 
 <include src="../../shared/examples/svelte/theme-css.mdx" />
 

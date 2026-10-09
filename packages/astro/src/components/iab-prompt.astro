@@ -40,6 +40,8 @@ import {
 	iabPromptClassNames,
 	markConfigEmitted,
 	resolveIABPromptModel,
+	INLINE_STYLES_CSS,
+	INLINE_STYLES_ID,
 } from '@c15t/astro/server';
 import type { IABPromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
@@ -87,6 +89,9 @@ const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
+// The first-paint rules, inlined like the theme below for layouts with no
+// <ConsentScript />.
+const inlineStyles = emitConfig && c15t.options.inlineStyles !== false;
 const themeCSS = emitConfig
 	? buildThemeCSS(theme)
 	: '';
@@ -107,6 +112,17 @@ const hidden = c15t.prerendered && !force;
 			data-c15t-inline
 			nonce={c15t.nonce}
 			set:html={colorSchemeScript}
+		/>
+	)
+}
+
+{
+	inlineStyles && (
+		<style
+			is:inline
+			data-c15t-styles={INLINE_STYLES_ID}
+			nonce={c15t.nonce}
+			set:html={INLINE_STYLES_CSS}
 		/>
 	)
 }

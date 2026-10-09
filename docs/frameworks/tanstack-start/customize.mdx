@@ -1,6 +1,6 @@
 ---
 title: Customize
-description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with the stylesheet, theme tokens, ConsentRoot options and component parts.
+description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a TanStack Start app with theme tokens, ConsentRoot options and component parts, and load the stylesheet yourself when you need to.
 group: frameworks
 ---
 
@@ -23,26 +23,36 @@ to the React provider, so the React styling options apply unchanged.
 See the [design gallery](/docs/customization/recipes) for five banner designs,
 from a bottom bar to a fully custom one, with tested code for this framework.
 
-## Load the stylesheet
+## Load the stylesheet yourself
 
 The [quickstart](/docs/frameworks/tanstack-start/quickstart) root route links
-the stylesheet through `head()`:
+no c15t stylesheet. `ConsentBanner`, `ConsentDialog` and the other stock
+components render the rules they use as `<style>` elements, in the server
+HTML for the banner. The rules live in `@layer components`, so Tailwind 4
+utilities override them without extra specificity.
+
+Load the stylesheet yourself with Tailwind CSS 3, to put c15t's rules in a
+named cascade layer, or with IAB TCF. Set `styles: false` in `ConsentRoot`'s
+`options`, so the components add no second copy, and link the stylesheet
+through `head()`:
 
 {/* example: fragment */}
 
-```tsx title="src/routes/__root.tsx"
+```tsx title="src/routes/__root.tsx (partial)"
 import consentCss from 'c15t/tanstack-start/styles.css?url';
 
 // In createRootRoute({ head: () => ({ links: [...] }) }):
 { href: consentCss, rel: 'stylesheet' }
+
+// On ConsentRoot:
+options={{ styles: false }}
 ```
 
 If your app already has a global stylesheet, you can `@import` the c15t
-stylesheet from it instead. The rules live in `@layer components`, so
-Tailwind 4 utilities override them without extra specificity. Tailwind 3 needs
-a PostCSS plugin and the import above the `@tailwind` directives;
-[Tailwind CSS](/docs/customization/tailwind) shows both setups for TanStack
-Start, and [stylesheets and CSS layers](/docs/customization/stylesheets)
+stylesheet from it instead. Tailwind 3 needs a PostCSS plugin and the import
+above the `@tailwind` directives;
+[Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3) shows the
+setup, and [stylesheets and CSS layers](/docs/customization/stylesheets)
 explains the layer order.
 
 ## Change colors, fonts and radius
@@ -50,8 +60,7 @@ explains the layer order.
 Colors, radii, shadows, typography and motion come from `--c15t-*` CSS
 variables. Pick one of two ways to set them:
 
-- **Set the variables in your CSS.** Nothing extra ships to the browser. Load
-  this after the c15t stylesheet:
+- **Set the variables in your CSS.** Nothing extra ships to the browser:
 
   ```css title="src/styles.css"
   :root {

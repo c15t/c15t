@@ -51,6 +51,9 @@ const createOptions = function createOptions(
 		},
 		consentCategories,
 		mode: hosted({ url: BENCH_BACKEND_URL }),
+		// IAB builds link `with-consent-iab.css`, which carries c15t's
+		// stylesheet for the IAB surfaces, so the stock surfaces add none.
+		styles: import.meta.env.C15T_BENCH_IAB === '1' ? false : undefined,
 		theme: {
 			motion: {
 				duration: {

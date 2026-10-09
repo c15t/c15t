@@ -9,8 +9,10 @@ build your own preference dialog or settings page with the
 as the stock dialog. For the consent state itself, use `getConsentManager()`;
 the primitives know nothing about consent.
 
-Their rules are already in `@c15t/svelte/styles.css`. Each part accepts
-`class` and passes other HTML attributes to its element.
+Their rules load with the stock `ConsentDialog`. A page that renders the
+primitives without the stock dialog needs `@c15t/svelte/styles.css`: import it
+and set `styles={false}` on the provider. Each part accepts `class` and passes
+other HTML attributes to its element.
 
 ## Compound components
 

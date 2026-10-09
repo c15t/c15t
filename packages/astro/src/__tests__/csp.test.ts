@@ -228,8 +228,9 @@ describe("Astro's own CSP", () => {
 				expect(hashes.styles).toContain(sha256(style));
 			}
 		}
-		// The bold arm adds one stylesheet; the plain arm keeps the host theme.
-		expect(hashes.styles).toHaveLength(2);
+		// The first-paint rules and the host theme; the bold arm adds one
+		// stylesheet, and the plain arm keeps the host theme.
+		expect(hashes.styles).toHaveLength(3);
 	});
 
 	it('adds the hashes where the site turned CSP on', async () => {

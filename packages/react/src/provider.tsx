@@ -145,11 +145,29 @@ export interface ConsentProviderOptions
 	 * @remarks
 	 * Set this when your CSP uses a nonce-based policy instead of
 	 * `'unsafe-inline'`. The provider forwards it to every `<script>`
-	 * element created by the script loader. A per-script `nonce` still takes
+	 * element created by the script loader, and to the `<style>` elements
+	 * the stock surfaces render. A per-script `nonce` still takes
 	 * precedence. Pass the same nonce to `ConsentTheme`, which renders the
 	 * theme `<style>` element.
 	 */
 	nonce?: string;
+	/**
+	 * Whether the stock surfaces render their own stylesheets.
+	 *
+	 * @remarks
+	 * The banner, dialog trigger, ConsentGate, dialog and preference widget
+	 * each render the c15t rules they use as a `<style>` element: in the
+	 * server-rendered HTML, or with the surface's own code in the browser.
+	 * No c15t stylesheet `<link>` then holds back the page's first paint.
+	 * React 19 moves them into `<head>` and renders each once. They carry
+	 * {@link ConsentProviderOptions.nonce}.
+	 *
+	 * Set `false` when the app imports `styles.css` itself, for example to
+	 * run it through Tailwind CSS 3 or to put it in a named cascade layer.
+	 *
+	 * @default true
+	 */
+	styles?: boolean;
 	/**
 	 * Transport factory the provider builds its kernel with. Required.
 	 *
@@ -1039,8 +1057,10 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			),
 			experiment,
 			legalLinks: options.legalLinks,
+			nonce: options.nonce,
 			preloadDialog: options.preloadDialog,
 			presentation: options.presentation,
+			styles: options.styles,
 			theme: options.theme,
 		}),
 		[
@@ -1048,8 +1068,10 @@ export const ConsentProvider = (props: ConsentProviderProps) => {
 			options.components,
 			experiment,
 			options.legalLinks,
+			options.nonce,
 			options.preloadDialog,
 			options.presentation,
+			options.styles,
 			options.theme,
 		]
 	);

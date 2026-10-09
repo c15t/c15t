@@ -29,6 +29,8 @@ import { useUIConfig } from '~/ui-config-context';
 import { cnExt as cn } from '~/utils/cn';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { DIALOG_SHEETS } from '../../shared/dialog-sheets';
+import { SurfaceStyles } from '../../shared/surface-styles';
 import { Overlay } from './overlay';
 
 // `none` is included: it never owes a prompt, but a `none` rule that lists
@@ -286,6 +288,10 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 			<LocalThemeContext.Provider value={contextValue}>
 				{isOpen && (
 					<>
+						<SurfaceStyles
+							sheets={DIALOG_SHEETS}
+							noStyle={noStyle}
+						/>
 						{/* Backdrop (customisable) */}
 						{dialog.blocking && overlay !== false
 							? (overlay ?? <Overlay open={isOpen} />)

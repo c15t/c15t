@@ -40,20 +40,12 @@ point at your static host, which has nothing to answer it.
 
 ## Mount the wrapper
 
-Add the c15t stylesheet to your global CSS. With Tailwind CSS 4, put it after
-the Tailwind import:
-
-```css title="styles/globals.css"
-@import 'tailwindcss';
-@import 'c15t/next/styles.css';
-```
-
-Without Tailwind, keep only the c15t import. With Tailwind CSS 3, put the
-same import above the `@tailwind` directives and add
-`c15t/postcss-tailwind3` to your PostCSS config, as
-[Customize](/docs/frameworks/next/customize#load-the-stylesheet) shows.
-Without the plugin, Tailwind 3 fails the build on c15t's `@layer components`
-rules.
+There is no c15t stylesheet to import. The components render their own rules
+as `<style>` elements, so no stylesheet request holds back the first paint.
+With Tailwind CSS 3 or IAB TCF, import `c15t/next/styles.css` yourself and set
+`styles: false` in `ConsentRoot`'s `options`, as
+[Customize](/docs/frameworks/next/customize#load-the-stylesheet-yourself)
+shows.
 
 In the App Router, mount the wrapper with an empty state in the root layout:
 

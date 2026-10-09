@@ -18,6 +18,8 @@ import {
 	buildThemeCSS,
 	buildConfigJSON,
 	markConfigEmitted,
+	INLINE_STYLES_CSS,
+	INLINE_STYLES_ID,
 } from '@c15t/astro/server';
 
 const { c15t } = Astro.locals;
@@ -26,6 +28,9 @@ const colorSchemeScript = shouldEmit
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
 // An arm's theme overrides ride on the host theme, like its presentation.
+// The banner's and every first-paint surface's rules, in the HTML instead
+// of a stylesheet link that holds back the first paint.
+const inlineStyles = shouldEmit && c15t.options.inlineStyles !== false;
 const themeCSS = shouldEmit
 	? buildThemeCSS(
 			applyExperimentTheme(
@@ -44,6 +49,17 @@ const themeCSS = shouldEmit
 			data-c15t-inline
 			nonce={c15t?.nonce}
 			set:html={colorSchemeScript}
+		/>
+	)
+}
+
+{
+	inlineStyles && (
+		<style
+			is:inline
+			data-c15t-styles={INLINE_STYLES_ID}
+			nonce={c15t?.nonce}
+			set:html={INLINE_STYLES_CSS}
 		/>
 	)
 }

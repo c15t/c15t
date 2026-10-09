@@ -142,7 +142,8 @@ save instead.
 `ConsentDialog` is the preference dialog; it loads in its own chunk after the
 page, before anyone opens it. `ConsentDialogLink` is the persistent way back to
 preferences. Put it where visitors look for privacy settings, such as the
-footer. `@c15t/svelte/styles.css` holds the stock styles for all three.
+footer. There is no stylesheet to import: the components bring their own
+rules, and the server hook below writes the banner's into the HTML.
 
 Keep the provider in the root layout so it stays mounted across client-side
 navigation.
@@ -151,7 +152,9 @@ navigation.
 
 `c15tHandle` reads the consent cookie, location headers and Global Privacy
 Control once per request, for `loadConsent` and any other load or endpoint
-that needs them. Add it to `src/hooks.server.ts`:
+that needs them. It also writes a server-rendered banner's rules into the
+HTML `<head>` as `<style>` elements, so the banner is styled before hydration
+without a stylesheet request. Add it to `src/hooks.server.ts`:
 
 <include src="../../shared/examples/sveltekit/hooks.mdx" />
 
@@ -164,7 +167,8 @@ Build the app with `vite build` and serve the production build with
 `vite preview`, then open it in a private window with DevTools open:
 
 1. View the page source. It contains `data-testid="consent-banner-root"`, so
-   the banner is in the server HTML.
+   the banner is in the server HTML, and `<head>` holds a
+   `<style data-c15t-styles>` element with its rules.
 2. In the Network panel, no requests go to PostHog.
 3. Select **Reject All** and reload. The page source no longer contains the
    banner, and PostHog requests stay absent.

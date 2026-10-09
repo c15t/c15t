@@ -8,8 +8,9 @@ export const appStylesheetHead = () => ({
 });
 
 /**
- * Route `head` for the consent routes: the app's stylesheet with c15t's
- * styles in the same file. `C15T_BENCH_IAB=1` builds add the IAB styles.
+ * Route `head` for the consent routes. c15t's surfaces render their own
+ * styles, so this is the app's stylesheet alone. `C15T_BENCH_IAB=1` builds
+ * link c15t's stylesheet and the IAB styles with it.
  */
 export const consentStylesheetHead = () => ({
 	links: [

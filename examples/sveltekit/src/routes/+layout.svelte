@@ -11,8 +11,6 @@
 
 	import { scripts } from '#lib/scripts.js';
 
-	import '@c15t/svelte/styles.css';
-
 	let { children, data } = $props();
 
 	const mode = hosted({

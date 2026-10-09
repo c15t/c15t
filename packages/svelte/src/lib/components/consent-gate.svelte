@@ -7,8 +7,10 @@
 	import { onMount } from 'svelte';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { FIRST_PAINT_SHEETS } from '../surface-styles';
 	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import ConsentButton from './action-button.svelte';
+	import SurfaceStyles from './surface-styles.svelte';
 
 	let {
 		category,
@@ -117,6 +119,10 @@
 		{@render placeholder()}
 	{:else}
 		<!-- Default placeholder -->
+		<SurfaceStyles
+			sheets={FIRST_PAINT_SHEETS}
+			{noStyle}
+		/>
 		<div
 			class={placeholderStyle.className || ''}
 			style={toStyleAttribute(placeholderStyle.style)}

@@ -14,7 +14,9 @@ adds four things to your site:
   `Astro.locals.c15t`, which every component reads.
 - A page script that starts one consent runtime per page load. Every script
   and island on the page shares it.
-- The c15t stylesheet on every page.
+- c15t's styles: the banner's rules inline in each page, and the dialog's
+  rules linked when a dialog first opens. On a Tailwind CSS 3 site,
+  `c15t/astro/styles.css` on every page instead.
 - In `manifest()` mode, the `/api/c15t/init` and `/api/c15t/manifest` routes.
 
 <include src="../../shared/examples/astro-static/static-config.mdx" />
@@ -103,7 +105,7 @@ the browser.
 | `presentation` | `{ prompt?, preferences? }` | Floating banner | Banner variant, position, action layout and blocking, and the dialog's blocking and default selections |
 | `legalLinks` | `{ privacyPolicy?, cookiePolicy?, termsOfService? }` | None | Each an `{ href, label? }`. Without `label`, a link reads as the translated name for its type. `ConsentBanner` and `ConsentDialog` show the ones their `legalLinks` prop lists |
 | `i18n` | `{ locale?, messages?, detectLanguage? }` | Negotiated from `Accept-Language` | Language and wording. See [Translations](/docs/frameworks/astro/translations) |
-| `styles` | `boolean` | `true` | Adds `c15t/astro/styles.css` to every page, and the IAB stylesheet when `iab` is set |
+| `styles` | `boolean` | `true` | Inlines the banner's rules into each page, links the dialog's rules when a dialog first opens, and adds the IAB stylesheet to every page when `iab` is set. On a Tailwind CSS 3 site, adds `c15t/astro/styles.css` to every page instead of inlining. `false` delivers no styles, so you import `c15t/astro/styles.css` yourself |
 
 [Customize](/docs/frameworks/astro/customize) shows each of these in use.
 

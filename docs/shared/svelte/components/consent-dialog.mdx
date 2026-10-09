@@ -17,7 +17,9 @@ load only on hover, focus or open. Idle loading is also skipped when the
 browser asks to save data, on 2G connections and offline. Every
 `ConsentDialog` on the page shares one import. If the import fails, the
 surface the dialog replaced comes back, and the next hover, focus or open
-retries. The dialog's CSS is already in `@c15t/svelte/styles.css`.
+retries. The dialog's CSS travels with that chunk and goes into `<head>`
+before the dialog renders. With `styles={false}`, it comes from your imported
+`@c15t/svelte/styles.css`.
 
 ## Props
 

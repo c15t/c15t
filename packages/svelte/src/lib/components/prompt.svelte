@@ -23,6 +23,7 @@
 	import { portal } from '../actions/portal';
 	import { scrollLock } from '../actions/scroll-lock';
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { FIRST_PAINT_SHEETS } from '../surface-styles';
 	import { useBannerVisibility } from '../use-banner-visibility.svelte';
 	import {
 		resolveComponentStyles,
@@ -34,6 +35,7 @@
 	import InlineLegalLinks from './inline-legal-links.svelte';
 	import Overlay from './overlay.svelte';
 	import PolicyActionsRenderer from './policy-actions-renderer.svelte';
+	import SurfaceStyles from './surface-styles.svelte';
 
 	/**
 	 * Button identifiers for the consent banner layout.
@@ -358,6 +360,9 @@
 
 {#if visibility.isMounted && visibility.shouldRender}
 	<div use:portal>
+		<!-- Inside the portal: the block must stay one node, or removing it
+		     would walk from where it was to where the portal moved it. -->
+		<SurfaceStyles sheets={FIRST_PAINT_SHEETS} />
 		{#if shouldScrollLock}
 			<Overlay
 				{styles}

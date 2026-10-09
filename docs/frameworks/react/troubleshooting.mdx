@@ -71,13 +71,27 @@ covers the options.
 ## The banner has no styles
 
 **Check.** In DevTools Elements, the banner has classes but no rules apply.
+Look for c15t's `<style>` element: `<style data-href="c15t-first-paint">` in
+`<head>` on React 19, or `<style data-c15t-styles>` next to the banner on
+React 18 or with a `nonce`. Check the console for a Content Security Policy
+error.
 
-**Fix.** Import `c15t/react/styles.css` once in the module that renders the
-provider. With Tailwind 3, keep that import above the `@tailwind` directives
-and add `c15t/postcss-tailwind3` before `tailwindcss` in your PostCSS
-config. Without the plugin, Tailwind 3 drops c15t's rules or fails the build
-with `` `@layer components` is used but no matching `@tailwind components` directive is present ``.
-See [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3).
+**Fix.**
+
+- No c15t `<style>` element: the provider sets `styles: false` or `noStyle`.
+  With `styles: false`, import `c15t/react/styles.css` once in the module
+  that renders the provider.
+- The console reports a blocked inline style: set the provider's `nonce`, as
+  [Content Security Policy](/docs/frameworks/react/content-security-policy)
+  shows.
+- Under Tailwind 3, buttons lose their padding and cards their borders:
+  Tailwind 3's unlayered preflight beats c15t's layered rules. Set
+  `styles: false`, import `c15t/react/styles.css` above the `@tailwind`
+  directives and add `c15t/postcss-tailwind3` before `tailwindcss` in your
+  PostCSS config. Without the plugin, Tailwind 3 drops c15t's rules or fails
+  the build with
+  `` `@layer components` is used but no matching `@tailwind components` directive is present ``.
+  See [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3).
 
 ## The console warns that theme tokens are no longer turned into CSS
 

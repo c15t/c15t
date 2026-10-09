@@ -9,6 +9,7 @@
 	import { getTextDirection, resolveTranslations } from '@c15t/ui/utils';
 
 	import { getConsentContext, getThemeContext } from '../context.svelte';
+	import { DIALOG_SHEETS } from '../dialog-sheets';
 	import { Dialog, Portal } from '../primitives';
 	import { resolveComponentStyles, toStyleAttribute } from '../utils';
 	import Branding from './branding.svelte';
@@ -16,6 +17,7 @@
 	import type { ConsentDialogProps } from './panel-props';
 	import ConsentDialogTrigger from './panel-trigger.svelte';
 	import ConsentWidget from './preferences.svelte';
+	import SurfaceStyles from './surface-styles.svelte';
 
 	const {
 		open: openProp,
@@ -171,6 +173,9 @@
 		}
 	};
 </script>
+
+<!-- The dialog's code loads on demand, so its rules arrive with it. -->
+<SurfaceStyles sheets={DIALOG_SHEETS} />
 
 {#if triggerProps}
 	<ConsentDialogTrigger {...triggerProps} />

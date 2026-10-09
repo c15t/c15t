@@ -1,43 +1,128 @@
 ---
 title: Stylesheets and CSS layers
-description: Load the right c15t stylesheet for your framework, see which file holds the dialog's rules, order c15t's cascade layer against your own, and run c15t without its styles.
+description: See how c15t delivers its styles in each framework without a render-blocking stylesheet, when to import styles.css yourself with styles false, which file holds the dialog's rules, and how c15t's cascade layer meets your own.
 group: customization
 ---
 
-## Load one stylesheet for your framework
+## What each framework loads
 
-| Framework | What to load | Where |
+| Framework | What you import | How the styles arrive |
 | --- | --- | --- |
-| Next.js | `c15t/next/styles.css` | Your global stylesheet, or the layout that renders the consent root |
-| TanStack Start | `c15t/tanstack-start/styles.css` | A `<link>` from the root route's `head()`, or your global stylesheet |
-| React | `c15t/react/styles.css` | The module that renders `ConsentProvider`, or your global stylesheet |
+| Next.js, TanStack Start, React | Nothing | Each stock surface renders the rules it uses as `<style>` elements |
 | Nuxt, Vue | Nothing | Each Vue component imports its own stylesheet |
-| Astro | Nothing | The integration adds `c15t/astro/styles.css` to every page |
-| Svelte, SvelteKit | `@c15t/svelte/styles.css` | Your entry module or root layout |
+| Astro | Nothing | `<ConsentScript />` inlines the banner's rules into the HTML. The client links the dialog's rules when a dialog first opens. On a Tailwind CSS 3 site, the integration adds `c15t/astro/styles.css` to every page instead |
+| Svelte | Nothing | Each stock surface inserts the rules it uses into `<head>` |
+| SvelteKit | Nothing | `c15tHandle` writes a server-rendered banner's rules into the HTML. The other surfaces insert theirs in the browser |
 | HTML | Nothing | `c15t.js` carries its stylesheet into the UI's shadow root |
 | JavaScript | Nothing | `init()` carries its stylesheet into the UI's shadow root |
 
-Load it once. With IAB TCF in Next.js, TanStack Start, React, Svelte or
-SvelteKit, also load the adapter's `iab/styles.css`, such as
-`c15t/next/iab/styles.css`, after `styles.css`. Astro adds its IAB stylesheet
-when the integration sets `iab`. Tailwind 3 uses the same files and adds a
-PostCSS plugin; [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3)
-shows the setup.
+No c15t stylesheet request holds back the page's first paint. A linked
+stylesheet in `<head>` used to delay the first paint by a round trip: on a
+mobile connection, a Next.js page first painted at about 370 ms instead of
+650 ms once the link was gone.
+
+Load `styles.css` yourself only with Tailwind CSS 3, a named cascade layer or
+IAB TCF. [Import the stylesheet yourself](#import-the-stylesheet-yourself)
+covers those cases.
+
+## How the surfaces deliver their rules
+
+c15t splits its rules into two sheets. The first-paint sheet holds the
+default tokens, every c15t CSS variable, and the rules for the banner, the
+floating trigger and the `ConsentGate` placeholder. The dialog sheet holds the
+preference dialog's and the preference widget's rules.
+
+In React, Next.js and TanStack Start, `ConsentBanner`, `ConsentDialogTrigger`
+and the default `ConsentGate` placeholder render the first-paint sheet.
+`ConsentDialog` and `ConsentWidget` render it plus the dialog sheet. The
+dialog sheet ships with the dialog's lazily loaded code, so it is not part of
+the first page load. A server-rendered banner puts its rules in the HTML.
+
+- In React 19, React moves the elements into `<head>` and renders each sheet
+  once per page, as `<style data-precedence="c15t" data-href="c15t-first-paint">`.
+- In React 18, the elements render in place, next to the surface.
+- In React 19 with the provider's `nonce` option set, they also render in
+  place and carry the nonce. React drops the nonce of a style it moves to
+  `<head>` unless the app passed that nonce to React's server renderer.
+
+In Svelte, each stock surface inserts the sheets it uses into `<head>` as
+`<style data-c15t-styles="…">`, once per page, before its own elements
+render. The elements stay after the surface unmounts. The Svelte dialog's
+sheets, its rules and the primitives, load with the dialog's code.
+
+On a server-rendered SvelteKit page, the banner leaves a
+`<meta name="c15t-styles">` marker, and `c15tHandle` from `@c15t/svelte/kit`
+writes the sheets into the HTML `<head>` as `<style>` elements. The banner is
+styled before hydration with no stylesheet request. Without `c15tHandle` in
+`src/hooks.server.ts`, a server-rendered banner shows unstyled until
+hydration. The [SvelteKit quickstart](/docs/frameworks/sveltekit/quickstart)
+adds the handle.
+
+In Astro, `<ConsentScript />`, or the banner on a layout without it, inlines
+the first-paint sheet into the HTML as
+`<style data-c15t-styles="c15t-first-paint">` with the page nonce. When
+`tailwindcss` resolves to version 3 from the Astro root, the integration
+inlines nothing and adds `c15t/astro/styles.css` to every page through
+Astro's CSS pipeline, so the site's `c15t/postcss-tailwind3` plugin processes
+it. That stylesheet still holds back the first paint.
+
+The surfaces render no stylesheet with `noStyle`, or when the provider sets
+`styles: false`.
+
+## Import the stylesheet yourself
+
+Set `styles: false` in the provider options and import `styles.css` when you
+need control over the file:
+
+- **Tailwind CSS 3.** c15t's `<style>` rules sit in a native
+  `@layer components`, and Tailwind 3's unlayered preflight beats them. Import
+  `styles.css` through the `postcss-tailwind3` plugin instead, as
+  [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3) shows.
+  Astro sites skip this: the integration detects Tailwind 3 and links the
+  stylesheet itself.
+- **A named cascade layer.** Import the stylesheet into your own layer, as in
+  [order c15t's layer against your CSS](#order-c15ts-layer-against-your-css).
+- **IAB TCF.** `IABConsentBanner` and `IABConsentDialog` do not render their
+  own styles yet. Import `styles.css`, then the adapter's `iab/styles.css`.
+
+| Framework | Option | Files to import |
+| --- | --- | --- |
+| Next.js | `options.styles` on `ConsentRoot` | `c15t/next/styles.css`, and `c15t/next/iab/styles.css` for IAB TCF |
+| TanStack Start | `options.styles` on `ConsentRoot` | `c15t/tanstack-start/styles.css`, and `c15t/tanstack-start/iab/styles.css` for IAB TCF |
+| React | `options.styles` on `ConsentProvider` | `c15t/react/styles.css`, and `c15t/react/iab/styles.css` for IAB TCF |
+| Svelte, SvelteKit | `options.styles` on `ConsentManagerProvider` | `@c15t/svelte/styles.css`, and `@c15t/svelte/iab/styles.css` for IAB TCF |
+| Astro | `styles` in the `c15t()` integration options | See [load Astro's stylesheets yourself](#load-astros-stylesheets-yourself) |
+
+{/* example: fragment */}
+
+```tsx title="components/consent.tsx (partial)"
+<ConsentRoot
+	state={state}
+	config={consentConfig}
+	options={{ styles: false }}
+>
+```
+
+`styles: false` turns off only the stylesheets. Tokens from `ConsentTheme`
+and slot classes still apply.
+
+If you keep a `styles.css` import without `styles: false`, the surfaces still
+look right, but the rules ship twice and the stylesheet link still holds back
+the first paint. Remove the import, or add `styles: false` if you need it.
 
 ## Where the dialog's rules come from
 
-`styles.css` holds the default tokens, every c15t CSS variable and the rules
-for every stock surface: the banner, the floating trigger, the `ConsentGate`
-placeholder, the preference dialog and the preference widget. Only the IAB TCF
-surfaces need a second file, `iab/styles.css`.
-
 | Framework | The preference dialog's rules |
 | --- | --- |
-| Next.js, TanStack Start, React | In `styles.css`. No `@c15t/react` or `@c15t/ui` module imports CSS, so a Next.js app that uses only the Pages Router builds without `transpilePackages` |
+| Next.js, TanStack Start, React | In the dialog sheet that `ConsentDialog` and `ConsentWidget` render. It ships with the dialog's lazily loaded code. With `styles: false`, in `styles.css`. No `@c15t/react` or `@c15t/ui` module imports CSS, so a Next.js app that uses only the Pages Router builds without `transpilePackages` |
 | Nuxt, Vue | The dialog component imports its stylesheet, so the rules load with the dialog's code, not the banner's |
-| Astro | In `c15t/astro/styles.css`. The Svelte dialog, the default `ui`, also needs the primitives stylesheet, which c15t links when a visitor first points at, focuses or opens a control that opens the dialog, and keeps across `ClientRouter` navigation |
-| Svelte, SvelteKit | In `@c15t/svelte/styles.css` |
+| Astro | In `@c15t/ui/styles/sheets/dialog.css`. The Svelte dialog, the default `ui`, also needs the primitives stylesheet. c15t links both when a visitor first points at, focuses or opens a control that opens the dialog, waits for them before it shows the dialog, and keeps them across `ClientRouter` navigation. On a Tailwind CSS 3 site, the dialog's rules are in `c15t/astro/styles.css`, and c15t links only the primitives stylesheet |
+| Svelte, SvelteKit | In the dialog's sheets, which load with the dialog's code. With `styles: false`, in `@c15t/svelte/styles.css` |
 | HTML, JavaScript | Part of the stylesheet in the shadow root, which holds only the rules the stock surfaces use |
+
+`styles.css` still holds every stock surface's rules for apps that set
+`styles: false`. Only the IAB TCF surfaces need a second file,
+`iab/styles.css`.
 
 Earlier 3.0 alphas shipped the dialog's rules in `@c15t/ui/styles/dialog.css`,
 which the dialog's code imported. That file, the `@c15t/ui/styles/dialog`
@@ -47,8 +132,8 @@ imports keep resolving. Remove those imports.
 ## Order c15t's layer against your CSS
 
 c15t puts its component rules in the cascade layer `components`. Tokens,
-variables and keyframes stay unlayered. Each stylesheet opens with Tailwind
-CSS 4's layer order:
+variables and keyframes stay unlayered. Each stylesheet, and each `<style>`
+element the surfaces render, opens with Tailwind CSS 4's layer order:
 
 {/* example: fragment */}
 
@@ -71,18 +156,23 @@ What this means for your overrides:
   [theme tokens](/docs/customization/tokens).
 
 If your CSS declares its own layer order, load that statement before c15t's
-stylesheet. You can import c15t's stylesheet into a named layer, such as
+rules. To put c15t's rules in a named layer, set `styles: false` and import
+the stylesheet into that layer, such as
 `@import 'c15t/react/styles.css' layer(c15t)`. Its component rules then sit
 in `c15t.components`, so order `c15t` against your own layers.
 
 ## Load Astro's stylesheets yourself
 
-The Astro integration adds `c15t/astro/styles.css` to every page ahead of your
-own CSS. To control the order yourself, for example from a global stylesheet
-that names its own layers, set `styles: false` in the `c15t()` options and
-import the files after your layer order statement. With `styles: false`, c15t
-links no stylesheet when the dialog opens either. The Svelte dialog, the
-default `ui`, needs the primitives stylesheet next to `styles.css`:
+By default the Astro integration inlines the banner's rules into each page,
+links the dialog's rules when a dialog opens, and links
+`c15t/astro/iab/styles.css` on every page when it sets `iab`. On a Tailwind
+CSS 3 site it adds `c15t/astro/styles.css` to every page instead of inlining
+the banner's rules. To load the
+files yourself, for example from a global stylesheet that names its own
+layers, set `styles: false` in the `c15t()` options and import them after
+your layer order statement. With `styles: false`, c15t inlines no rules and
+links no stylesheet when the dialog opens. The Svelte dialog, the default
+`ui`, needs the primitives stylesheet next to `styles.css`:
 
 {/* example: fragment */}
 
@@ -94,9 +184,9 @@ default `ui`, needs the primitives stylesheet next to `styles.css`:
 @import 'c15t/astro/iab/styles.css';
 ```
 
-Keep c15t's stylesheet when you restyle the surfaces. The browser hides the
-Astro banner with the `hidden` attribute, and the stylesheet makes that
-attribute beat the banner's own `display` rule.
+Keep c15t's rules when you restyle the surfaces. The browser hides the Astro
+banner with the `hidden` attribute, and c15t's rules make that attribute beat
+the banner's own `display` rule.
 
 ## Style the script tag's shadow root
 
@@ -131,9 +221,17 @@ selector before you reach for `noStyle`.
 
 ## Check the result
 
-1. Open DevTools Network, clear site data and reload. Your framework's c15t
-   stylesheet loads once, and no second copy appears.
-2. Open the preference dialog. It is styled on its first frame, and in React,
-   Next.js and TanStack Start no new stylesheet request appears.
-3. Select a banner part and read the Styles panel. c15t's rules appear under
+1. Open DevTools Network, clear site data and reload. No c15t stylesheet
+   request appears before the first paint. In the HTML or the Elements panel,
+   `<head>` holds c15t's rules: `<style data-href="c15t-first-paint">` in
+   React 19, or a `<style data-c15t-styles>` element in Svelte, SvelteKit
+   and Astro. In React 18, or with a `nonce`, the `<style>` sits next to the
+   banner instead.
+2. Open the preference dialog. It is styled on its first frame. Opening it
+   adds the dialog's rules: a second `<style>` element in React, Next.js,
+   TanStack Start, Svelte and SvelteKit, or a linked
+   `@c15t/ui/styles/sheets/dialog.css` in Astro.
+3. With `styles: false`, your imported `styles.css` loads once, and no c15t
+   `<style>` element appears.
+4. Select a banner part and read the Styles panel. c15t's rules appear under
    `@layer components`, and your unlayered rules for the same property win.

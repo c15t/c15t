@@ -9,8 +9,9 @@
  *
  * What c15t inlines is either static for a given set of options, or data:
  *
- * - the colour-scheme script, the banner reveal scripts, the theme
- *   stylesheet (one per experiment arm) and the inline `scripts` entries
+ * - the colour-scheme script, the banner reveal scripts, the first-paint
+ *   stylesheet, the theme stylesheet (one per experiment arm) and the
+ *   inline `scripts` entries
  *   the loader injects depend only on the integration options, so their
  *   hashes are known at config time and handed to Astro's config here;
  * - the per-visitor boot payload is a `type="application/json"` data
@@ -25,6 +26,7 @@
 
 import { applyExperimentTheme } from '@c15t/core';
 
+import { INLINE_STYLES_CSS } from './inline-styles';
 import { hashSource } from './libs/csp-hash';
 import type { CspHashAlgorithm, CspHashSource } from './libs/csp-hash';
 import {
@@ -79,6 +81,9 @@ export const buildInlineCodeHashes = async function buildInlineCodeHashes(
 		: [];
 	const themes = [options.theme, ...armThemes];
 	const styles = [
+		// The first-paint rules the components inline, unless the page
+		// links c15t's stylesheet instead.
+		options.inlineStyles === false ? '' : INLINE_STYLES_CSS,
 		...new Set(themes.map((theme) => buildThemeCSS(theme))),
 	].filter(Boolean);
 	return {

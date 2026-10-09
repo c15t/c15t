@@ -1,6 +1,6 @@
 ---
 title: Customize
-description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a React app with the stylesheet, theme tokens, provider options and slots.
+description: Change the colors, fonts, layout, button styles and copy of the c15t banner and dialog in a React app with theme tokens, provider options and slots, and load the stylesheet yourself when you need to.
 group: frameworks
 ---
 
@@ -22,21 +22,29 @@ across frameworks.
 See the [design gallery](/docs/customization/recipes) for five banner designs,
 from a bottom bar to a fully custom one, with tested code for this framework.
 
-## Import the stylesheet
+## Import the stylesheet yourself
 
-Import the stylesheet once, in the module that renders `ConsentProvider`. The
-[quickstart](/docs/frameworks/react/quickstart) does this in `src/consent.tsx`:
+A React app imports no c15t stylesheet. `ConsentBanner`, `ConsentDialog` and
+the other stock components render the rules they use as `<style>` elements.
+
+Import the stylesheet yourself with Tailwind CSS 3, to put c15t's rules in a
+named cascade layer, or with IAB TCF. Set `styles: false` in the provider
+options, so the components add no second copy, and import the stylesheet once
+in the module that renders `ConsentProvider`:
 
 {/* example: fragment */}
 
-```tsx
+```tsx title="src/consent.tsx (partial)"
 import 'c15t/react/styles.css';
+
+// In the ConsentProvider options:
+styles: false,
 ```
 
-The import is the same with or without Tailwind. To import the stylesheet from
-CSS instead, put it at the top of your global stylesheet, above any
-`@tailwind` directives. `postcss-import`, which Vite uses, ignores an
-`@import` that follows other rules. Tailwind 3 also needs a PostCSS plugin;
+To import the stylesheet from CSS instead, put it at the top of your global
+stylesheet, above any `@tailwind` directives. `postcss-import`, which Vite
+uses, ignores an `@import` that follows other rules. Tailwind 3 also needs a
+PostCSS plugin;
 [Tailwind CSS](/docs/customization/tailwind#set-up-tailwind-css-3) shows the
 setup.
 
@@ -46,8 +54,7 @@ setup.
 
 A single-page app has no server render, so pick one of two ways:
 
-- **Set the variables in your CSS.** Nothing extra ships to the browser. Load
-  this after `c15t/react/styles.css`:
+- **Set the variables in your CSS.** Nothing extra ships to the browser:
 
   ```css title="src/index.css"
   :root {

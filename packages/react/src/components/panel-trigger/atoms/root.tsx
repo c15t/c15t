@@ -15,6 +15,8 @@ import { useConsentDialogTrigger } from '~/component-hooks/use-panel-trigger';
 import { useBranding } from '~/hooks';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 
+import { FIRST_PAINT_SHEETS } from '../../shared/first-paint-sheets';
+import { SurfaceStyles } from '../../shared/surface-styles';
 import type { CornerPosition, TriggerVisibility } from '../types';
 import { useDraggable } from '../use-draggable';
 import type { UseDraggableReturn } from '../use-draggable';
@@ -171,6 +173,7 @@ export const TriggerRoot = ({
 
 	return createPortal(
 		<TriggerContext.Provider value={contextValue}>
+			<SurfaceStyles sheets={FIRST_PAINT_SHEETS} />
 			{children}
 		</TriggerContext.Provider>,
 		document.body

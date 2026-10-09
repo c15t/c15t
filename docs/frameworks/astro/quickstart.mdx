@@ -127,8 +127,8 @@ Wrap every page in this layout. `ConsentScript` goes in `<head>`, where it
 hands the browser the server's decision and sets the color scheme before first
 paint. `ConsentBanner` renders the banner, `ConsentDialog` reserves a place for
 the preference dialog, and `ConsentDialogTrigger` is the link visitors use to
-change their mind later. The integration adds the stylesheet to every page, so
-you do not import one.
+change their mind later. `ConsentScript` inlines the banner's rules into the
+page, so you do not import a stylesheet.
 
 `ClientRouter` is optional. With it, the consent runtime survives page
 navigation. Without it, each page load starts the runtime again from the stored

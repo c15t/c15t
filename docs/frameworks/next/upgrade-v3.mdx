@@ -44,7 +44,7 @@ Drop `@c15t/integrations@alpha` if you don't use its vendor helpers.
 | --- | --- |
 | `@c15t/nextjs` | `c15t/next`. Server helpers are in `c15t/next/server`, `c15t/next/pages` and `c15t/next/api`. |
 | `@c15t/react` | `c15t/next`, which re-exports the React components and hooks |
-| `@c15t/nextjs/styles.css` | `c15t/next/styles.css` |
+| `@c15t/nextjs/styles.css` | Nothing: remove the import. Keep `c15t/next/styles.css` only with `styles: false` |
 | `DevTools` from `@c15t/dev-tools/react` | `DevTools` from `c15t/next/devtools` |
 | `@c15t/scripts/*` | `@c15t/integrations/*` |
 
@@ -126,8 +126,8 @@ Static exports use browser initialization too. See
 [static export](/docs/frameworks/next/static-export) and
 [client-side setup](/docs/frameworks/next/client-side).
 
-Either way, change the stylesheet import to `c15t/next/styles.css` and keep
-your backend URL. An existing hosted URL such as
+Either way, remove the `@c15t/nextjs/styles.css` import, as
+[stylesheets](#stylesheets) explains, and keep your backend URL. An existing hosted URL such as
 `https://your-project.c15t.dev` keeps working with v3 clients. New Inth
 projects use URLs such as `https://your-project.inth.app`.
 

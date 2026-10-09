@@ -41,6 +41,8 @@ const RootComponent = () => (
 						},
 					},
 					mode,
+					// Tailwind 3 builds c15t's stylesheet from styles.css.
+					styles: false,
 				}}
 				// #endregion docs:slot
 			>
