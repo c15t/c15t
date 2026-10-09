@@ -7,14 +7,20 @@
  *
  * - Intent: pointerenter or focus on any `ConsentButton` that opens the
  *   dialog, including the stock banner's Customize button.
- * - Idle: once the page has loaded and the browser is idle, while the banner
- *   is shown or a dialog trigger is mounted. This covers an immediate tap or
- *   focus-and-Enter, which leaves no lead time for intent warming.
+ * - Idle: once the page has loaded and gone quiet (see
+ *   `scheduleIdlePreload`), while the banner is shown or a dialog trigger is
+ *   mounted. This covers an immediate tap or focus-and-Enter, which leaves
+ *   no lead time for intent warming, without competing with the page's own
+ *   images for the connection.
  *
  * Module-level registry keeps banner components decoupled from the
  * aggregate exports (no context change, tree-shakes with the aggregate).
  */
 
+import {
+	isIdlePreloadAllowed,
+	scheduleIdlePreload,
+} from '@c15t/ui/utils/idle-preload';
 import { useEffect } from 'react';
 
 import { useUIConfig } from './ui-config-context';
@@ -24,9 +30,9 @@ type Warmer = () => void;
 /**
  * When the deferred consent dialog starts loading before it opens.
  *
- * - `'idle'`: after the page's load event, in browser idle time, while the
- *   banner is shown or a button that opens the dialog is mounted. Also on
- *   hover or focus of such a button.
+ * - `'idle'`: once the page has loaded and its network has gone quiet, in
+ *   browser idle time, while the banner is shown or a button that opens the
+ *   dialog is mounted. Also on hover or focus of such a button.
  * - `'intent'`: only on hover or focus of a button that opens the dialog.
  *
  * @public
@@ -60,66 +66,30 @@ export const warmDialogChunk = function warmDialogChunk(): void {
 	}
 };
 
-interface NetworkInformationLike {
-	effectiveType?: string;
-	saveData?: boolean;
-}
-
-const SLOW_CONNECTIONS = new Set(['slow-2g', '2g']);
-// Safari has no requestIdleCallback; a short delay after load stands in.
-const IDLE_FALLBACK_DELAY_MS = 200;
-
-/**
- * Idle warming spends bytes the visitor may never need, so it stays off when
- * they asked to save data, on 2G-class connections, and while offline.
- * Intent warming is unaffected.
- */
-const idleWarmingAllowed = function idleWarmingAllowed(): boolean {
-	if (typeof navigator === 'undefined' || navigator.onLine === false) {
-		return false;
-	}
-	const { connection } = navigator as Navigator & {
-		connection?: NetworkInformationLike;
-	};
-	if (connection?.saveData === true) {
-		return false;
-	}
-	return !SLOW_CONNECTIONS.has(connection?.effectiveType ?? '');
-};
+type IdleScheduler = typeof scheduleIdlePreload;
 
 let activeGates = 0;
-let idleScheduled = false;
+let cancelIdleWarm: (() => void) | undefined;
+let scheduleIdle: IdleScheduler = scheduleIdlePreload;
 
 const warmWhenIdle = function warmWhenIdle(): void {
-	idleScheduled = false;
+	cancelIdleWarm = undefined;
 	// The banner may have closed, or the trigger unmounted, before idle time.
-	if (activeGates > 0 && idleWarmingAllowed()) {
+	if (activeGates > 0 && isIdlePreloadAllowed()) {
 		warmDialogChunk();
 	}
 };
 
 const scheduleIdleWarm = function scheduleIdleWarm(): void {
-	if (idleScheduled || warmed || !idleWarmingAllowed()) {
+	if (cancelIdleWarm || warmed || !isIdlePreloadAllowed()) {
 		return;
 	}
-	idleScheduled = true;
-	const afterLoad = () => {
-		if (typeof window.requestIdleCallback === 'function') {
-			window.requestIdleCallback(warmWhenIdle);
-		} else {
-			window.setTimeout(warmWhenIdle, IDLE_FALLBACK_DELAY_MS);
-		}
-	};
-	if (document.readyState === 'complete') {
-		afterLoad();
-	} else {
-		window.addEventListener('load', afterLoad, { once: true });
-	}
+	cancelIdleWarm = scheduleIdle(warmWhenIdle);
 };
 
 /**
- * Hold an idle-warming gate open while `active`: the dialog loads in the next
- * idle period after the page's load event, if a gate is still open then.
+ * Hold an idle-warming gate open while `active`: the dialog loads once the
+ * page has loaded and gone quiet, if a gate is still open then.
  * Consumers opt out with `preloadDialog: 'intent'`.
  *
  * @param active - Whether the dialog can be opened soon from this component,
@@ -146,11 +116,17 @@ export const useIdleDialogWarming = function useIdleDialogWarming(
 /**
  * Reset module state between tests.
  *
+ * @param options - `scheduleIdle` replaces the idle scheduler, so a test can
+ * run idle work on demand instead of waiting for the page to go quiet.
  * @internal
  */
 export const resetDialogChunkWarmingForTests =
-	function resetDialogChunkWarmingForTests(): void {
+	function resetDialogChunkWarmingForTests(
+		options: { scheduleIdle?: IdleScheduler } = {}
+	): void {
 		warmed = false;
 		activeGates = 0;
-		idleScheduled = false;
+		cancelIdleWarm?.();
+		cancelIdleWarm = undefined;
+		scheduleIdle = options.scheduleIdle ?? scheduleIdlePreload;
 	};

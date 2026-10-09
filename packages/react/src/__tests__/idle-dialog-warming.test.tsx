@@ -14,6 +14,16 @@ import { offline } from '~/transports/offline';
 
 import { policyFixture } from './policy-fixture';
 
+// Idle preloads the page scheduled, run on demand instead of once the page
+// goes quiet. The scheduler has its own tests in @c15t/ui.
+const idle = { tasks: [] as (() => void)[] };
+const scheduleIdle = (task: () => void) => {
+	idle.tasks.push(task);
+	return () => {
+		idle.tasks = idle.tasks.filter((scheduled) => scheduled !== task);
+	};
+};
+
 const fresh = {
 	mode: offline(),
 	persistence: false,
@@ -29,20 +39,14 @@ interface ConnectionStub {
 	saveData?: boolean;
 }
 
-// Idle callbacks the page scheduled, run on demand instead of by the browser.
-let idleCallbacks: IdleRequestCallback[] = [];
 let warmer = vi.fn();
 let unregister = () => {};
 
-const idleDeadline: IdleDeadline = {
-	didTimeout: false,
-	timeRemaining: () => 50,
-};
 const runIdleCallbacks = () => {
-	const pending = idleCallbacks;
-	idleCallbacks = [];
-	for (const runIdle of pending) {
-		runIdle(idleDeadline);
+	const pending = idle.tasks;
+	idle.tasks = [];
+	for (const task of pending) {
+		task();
 	}
 };
 const button = (testId: string) =>
@@ -61,20 +65,15 @@ const stubConnection = (connection: ConnectionStub) => {
 
 beforeEach(() => {
 	expect(document.readyState).toBe('complete');
-	resetDialogChunkWarmingForTests();
-	idleCallbacks = [];
-	const requestIdle = (scheduled: IdleRequestCallback) => {
-		idleCallbacks.push(scheduled);
-		return idleCallbacks.length;
-	};
-	vi.stubGlobal('requestIdleCallback', requestIdle);
+	resetDialogChunkWarmingForTests({ scheduleIdle });
+	idle.tasks = [];
 	warmer = vi.fn();
 	unregister = registerDialogChunkWarmer(warmer);
 });
 
 afterEach(() => {
 	unregister();
-	vi.unstubAllGlobals();
+	resetDialogChunkWarmingForTests();
 	Reflect.deleteProperty(navigator, 'connection');
 });
 
@@ -84,7 +83,7 @@ test('loads the dialog in idle time while the banner is shown', async () => {
 			<ConsentDialog />
 		</ConsentProvider>
 	);
-	await vi.waitFor(() => expect(idleCallbacks).toHaveLength(1));
+	await vi.waitFor(() => expect(idle.tasks).toHaveLength(1));
 	expect(warmer).not.toHaveBeenCalled();
 
 	runIdleCallbacks();
@@ -101,7 +100,7 @@ test('loads the dialog in idle time for a mounted trigger after consent was save
 	);
 	await vi.waitFor(() => expect(button('consent-dialog-link')).not.toBeNull());
 	expect(button('consent-banner-customize-button')).toBeNull();
-	await vi.waitFor(() => expect(idleCallbacks).toHaveLength(1));
+	await vi.waitFor(() => expect(idle.tasks).toHaveLength(1));
 
 	runIdleCallbacks();
 	expect(warmer).toHaveBeenCalledOnce();
@@ -129,7 +128,7 @@ test('does not load the dialog when the banner closed before idle time', async (
 			<ConsentDialog />
 		</ConsentProvider>
 	);
-	await vi.waitFor(() => expect(idleCallbacks).toHaveLength(1));
+	await vi.waitFor(() => expect(idle.tasks).toHaveLength(1));
 	button('consent-banner-accept-button')?.click();
 	await vi.waitFor(() =>
 		expect(button('consent-banner-customize-button')).toBeNull()
@@ -161,7 +160,7 @@ test.each([
 		expect(button('consent-banner-customize-button')).not.toBeNull()
 	);
 	await settle();
-	expect(idleCallbacks).toHaveLength(0);
+	expect(idle.tasks).toHaveLength(0);
 	expect(warmer).not.toHaveBeenCalled();
 
 	button('consent-banner-customize-button')?.focus();

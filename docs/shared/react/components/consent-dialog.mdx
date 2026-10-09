@@ -47,13 +47,17 @@ group: reference
   first page load. It renders nothing until that chunk is ready, and the
   chunk downloads at the first of these:
 
-  - The browser's first idle period after the page's `load` event, while the
-    banner is shown or a `ConsentDialogLink`, `ConsentDialogTrigger`,
-    `ConsentGate` button or other button that opens the dialog is mounted.
-    This covers a visitor who taps or presses Enter with no hover or focus
-    first. Browsers without `requestIdleCallback`, such as Safari, wait
-    200 ms after `load` instead.
-  - Hover or focus on a button that opens the dialog.
+  - An idle period once the page has finished loading, while the banner is
+    shown or a `ConsentDialogLink`, `ConsentDialogTrigger`, `ConsentGate`
+    button or other button that opens the dialog is mounted. "Finished"
+    means after the `load` event, no resource has completed for one second,
+    and no visible image is still downloading. A single-page app often
+    starts its largest image after `load`, so the dialog no longer shares
+    the connection with it. A page that never goes quiet loads the dialog
+    10 seconds after `load`. Browsers without `requestIdleCallback`, such as
+    Safari, load it as soon as the page is quiet.
+  - Hover, focus or touch on a button that opens the dialog. This covers a
+    visitor who opens it before the idle load.
   - The dialog opening.
 
   Passing `open={true}` or `showTrigger` loads it on mount. A visit with
