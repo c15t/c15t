@@ -140,7 +140,7 @@ const upstreamManifestURL = (config: ConsentConfig | undefined) =>
  * Handler options from either the explicit options bag or a
  * `defineConsentConfig` result.
  *
- * A config's `routeURL`, `manifestURL` and `initURL` name the same-origin
+ * A config's `routePrefix`, `manifestURL` and `initURL` name the same-origin
  * routes these handlers serve, so only `backendURL` carries over;
  * forwarding `manifestURL` would make the manifest route fetch itself.
  */
@@ -151,11 +151,11 @@ const toHandlerOptions = function toHandlerOptions(
 		return options;
 	}
 	// A spread config keeps its brand, and may carry handler options too.
-	const { initURL, manifestURL, routeURL, ...rest } = options as ConsentConfig &
-		NextConsentManifestHandlersOptions;
+	const { initURL, manifestURL, routePrefix, ...rest } =
+		options as ConsentConfig & NextConsentManifestHandlersOptions;
 	void initURL;
 	void manifestURL;
-	void routeURL;
+	void routePrefix;
 	return rest;
 };
 
@@ -304,7 +304,7 @@ const readCatchAllPath = async function readCatchAllPath(
  * `app/api/c15t/[...c15t]/route.ts`. `GET` serves `/manifest` and `/init`;
  * every other path answers 404 unless `proxy` forwards it to the backend.
  *
- * Pair it with `defineConsentConfig({ routeURL: '/api/c15t' })`, which
+ * Pair it with `defineConsentConfig({ routePrefix: '/api/c15t' })`, which
  * points the browser and `resolveConsent` at the same two paths. The
  * manifest defaults to the snapshot `withConsentManifest` generated.
  *

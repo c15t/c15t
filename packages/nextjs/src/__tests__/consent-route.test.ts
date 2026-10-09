@@ -1,5 +1,5 @@
 /**
- * The catch-all consent route and the single `routeURL` that names it.
+ * The catch-all consent route and the single `routePrefix` that names it.
  * Route behaviour itself is pinned in core's consent-route suite; these
  * check the Next.js wiring: catch-all params, 404s, proxying, and the
  * config defaults.
@@ -32,17 +32,17 @@ afterEach(() => {
 	vi.unstubAllGlobals();
 });
 
-describe('defineConsentConfig routeURL', () => {
+describe('defineConsentConfig routePrefix', () => {
 	test('derives the manifest and init routes from one base', () => {
 		const config = defineConsentConfig({
 			backendURL: 'https://consent.example.com',
-			routeURL: '/api/c15t/',
+			routePrefix: '/api/c15t/',
 		});
 
 		expect(config).toMatchObject({
 			initURL: '/api/c15t/init',
 			manifestURL: '/api/c15t/manifest',
-			routeURL: '/api/c15t',
+			routePrefix: '/api/c15t',
 		});
 	});
 
@@ -50,7 +50,7 @@ describe('defineConsentConfig routeURL', () => {
 		const config = defineConsentConfig({
 			backendURL: 'https://consent.example.com',
 			manifestURL: '/api/consent/manifest',
-			routeURL: '/api/c15t',
+			routePrefix: '/api/c15t',
 		});
 
 		expect(config.manifestURL).toBe('/api/consent/manifest');
@@ -63,7 +63,7 @@ describe('defineConsentConfig routeURL', () => {
 			env: { NEXT_PUBLIC_C15T_BACKEND_URL: 'https://env.example.com' },
 		});
 
-		expect(defineConsentConfig({ routeURL: '/api/c15t' }).backendURL).toBe(
+		expect(defineConsentConfig({ routePrefix: '/api/c15t' }).backendURL).toBe(
 			'https://env.example.com'
 		);
 	});
@@ -71,7 +71,7 @@ describe('defineConsentConfig routeURL', () => {
 	test('names the variable when no backend URL is set', () => {
 		vi.stubGlobal('process', { env: {} });
 
-		expect(() => defineConsentConfig({ routeURL: '/api/c15t' })).toThrow(
+		expect(() => defineConsentConfig({ routePrefix: '/api/c15t' })).toThrow(
 			'NEXT_PUBLIC_C15T_BACKEND_URL'
 		);
 	});
@@ -130,7 +130,7 @@ describe('createConsentRoute', () => {
 		const { GET } = createConsentRoute(
 			defineConsentConfig({
 				backendURL: 'https://consent.example.com',
-				routeURL: '/api/c15t',
+				routePrefix: '/api/c15t',
 			})
 		);
 

@@ -50,10 +50,16 @@ export interface ConsentConfig {
 	/**
 	 * Where the catch-all consent route from `createConsentRoute` is
 	 * mounted, such as `/api/c15t` for `app/api/c15t/[...c15t]/route.ts`.
-	 * Sets `manifestURL` to `${routeURL}/manifest` and `initURL` to
-	 * `${routeURL}/init` unless they are given.
+	 * Sets `manifestURL` to `${routePrefix}/manifest` and `initURL` to
+	 * `${routePrefix}/init` unless they are given, so the browser and
+	 * `resolveConsent` use the route and never fetch it from the server.
+	 *
+	 * Same meaning as TanStack Start's `routePrefix`, without its
+	 * `/api/c15t` default: here setting it switches the browser from hosted
+	 * mode to the route, and `/api/c15t` may instead be a rewrite to the
+	 * backend.
 	 */
-	routeURL?: string;
+	routePrefix?: string;
 
 	/**
 	 * Same-origin route that serves the cached manifest (from
@@ -162,7 +168,7 @@ const assertConsentURL = function assertConsentURL(
  * // c15t.config.ts (backend URL from NEXT_PUBLIC_C15T_BACKEND_URL)
  * import { defineConsentConfig } from '@c15t/nextjs';
  *
- * export const consentConfig = defineConsentConfig({ routeURL: '/api/c15t' });
+ * export const consentConfig = defineConsentConfig({ routePrefix: '/api/c15t' });
  * ```
  *
  * ```ts
@@ -220,14 +226,15 @@ export const defineConsentConfig = function defineConsentConfig(
 			'@c15t/nextjs: defineConsentConfig expects an object with `backendURL`.'
 		);
 	}
-	assertConsentURL('routeURL', input.routeURL, false);
-	const routeURL = input.routeURL?.replace(/\/+$/u, '');
+	assertConsentURL('routePrefix', input.routePrefix, false);
+	const routePrefix = input.routePrefix?.replace(/\/+$/u, '');
 	const config = {
 		...input,
 		backendURL: input.backendURL ?? readBackendURLFromEnv(),
-		initURL: input.initURL ?? (routeURL ? `${routeURL}/init` : undefined),
+		initURL: input.initURL ?? (routePrefix ? `${routePrefix}/init` : undefined),
 		manifestURL:
-			input.manifestURL ?? (routeURL ? `${routeURL}/manifest` : undefined),
+			input.manifestURL ??
+			(routePrefix ? `${routePrefix}/manifest` : undefined),
 	};
 	assertConsentURL('backendURL', config.backendURL, true);
 	assertConsentURL('manifestURL', config.manifestURL, false);
@@ -255,8 +262,8 @@ export const defineConsentConfig = function defineConsentConfig(
 		initURL: config.initURL,
 		manifestURL: config.manifestURL,
 	};
-	if (routeURL !== undefined) {
-		defined.routeURL = routeURL;
+	if (routePrefix !== undefined) {
+		defined.routePrefix = routePrefix;
 	}
 	if (config.journey !== undefined) {
 		defined.journey = config.journey;

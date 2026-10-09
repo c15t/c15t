@@ -2,5 +2,5 @@
 import { defineConsentConfig } from 'c15t/next';
 
 // The backend URL comes from NEXT_PUBLIC_C15T_BACKEND_URL.
-export const consentConfig = defineConsentConfig({ routeURL: '/api/c15t' });
+export const consentConfig = defineConsentConfig({ routePrefix: '/api/c15t' });
 // #endregion docs:quickstart-config

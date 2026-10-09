@@ -7,8 +7,9 @@ after the visitor allows measurement.
 
 ## Files
 
-- `c15t.config.ts` names where the consent route is mounted. The backend URL
-  comes from `NEXT_PUBLIC_C15T_BACKEND_URL`.
+- `.env` sets `NEXT_PUBLIC_C15T_BACKEND_URL` to the demo project. The build,
+  the server and `c15t.config.ts` all read it.
+- `c15t.config.ts` names the prefix the consent route is mounted under.
 - `next.config.ts` wraps the config in `withConsentManifest`, which writes the
   policy to `c15t-manifest.ts` during `next build` and `next dev` and hands it
   to the server helpers.

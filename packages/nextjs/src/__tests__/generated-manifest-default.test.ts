@@ -18,7 +18,7 @@ vi.mock('@c15t/nextjs/generated-manifest', async () => ({
 
 const config = defineConsentConfig({
 	backendURL: 'https://consent.example.com',
-	routeURL: '/api/c15t',
+	routePrefix: '/api/c15t',
 });
 
 const fetch = vi.fn<typeof globalThis.fetch>(() =>

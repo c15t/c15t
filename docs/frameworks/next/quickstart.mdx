@@ -53,7 +53,7 @@ Create `c15t.config.ts` at the project root, or in `src/` if your app uses a
 
 <include src="../../shared/examples/nextjs/quickstart-config.mdx" />
 
-`routeURL` is where you mount the consent route below. The browser and the
+`routePrefix` is where you mount the consent route below. The browser and the
 server read the policy from `/api/c15t/manifest` and `/api/c15t/init` under
 it.
 
@@ -76,7 +76,7 @@ Keep `c15t-manifest.ts` out of Git.
 
 ## Add the consent route
 
-Create one catch-all route under `routeURL`:
+Create one catch-all route under `routePrefix`:
 
 <include src="../../shared/examples/nextjs/consent-route.mdx" />
 
