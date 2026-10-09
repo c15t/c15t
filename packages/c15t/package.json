@@ -230,6 +230,11 @@
 			"import": "./shims/react/draft.js",
 			"default": "./shims/react/draft.js"
 		},
+		"./react/theme": {
+			"types": "./shims/react/theme.d.ts",
+			"import": "./shims/react/theme.js",
+			"default": "./shims/react/theme.js"
+		},
 		"./react/module-hooks": {
 			"types": "./shims/react/module-hooks.d.ts",
 			"import": "./shims/react/module-hooks.js",
