@@ -63,7 +63,10 @@ describe('createVueConsentKernelContext with an external runtime', () => {
 	});
 
 	test('still owns the kernel when no runtime is passed', () => {
-		const context = createVueConsentKernelContext({ config: {} });
+		const context = createVueConsentKernelContext({
+			config: {},
+			mode: hosted({ backendURL: '/api/c15t' }),
+		});
 		const dispose = vi.spyOn(context.kernel, 'dispose');
 
 		expect(context.ownsKernel).toBe(true);

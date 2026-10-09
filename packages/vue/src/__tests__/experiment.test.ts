@@ -11,9 +11,9 @@ import { createApp, defineComponent, h, nextTick, shallowRef } from 'vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useConsentDraft } from '../runtime/composables/draft';
 import { useResolvedPresentation } from '../runtime/composables/experiment';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { RuntimeConsentConfig } from '../runtime/kernel';
 import { symbolKernelContext } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { RuntimeConsentConfig } from './test-kernel';
 
 const policy = normalizePolicyRule({
 	categories: ['measurement', 'marketing'],

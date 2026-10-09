@@ -1,7 +1,17 @@
 {/* Generated from examples/nuxt/app/app.config.ts (docs:app-config) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```ts title="app/app.config.ts"
-import { scripts } from './consent-scripts';
+import { posthog } from '@c15t/integrations/posthog';
 
-export default defineAppConfig({ c15t: { scripts } });
+export default defineAppConfig({
+	c15t: {
+		scripts: [
+			posthog({
+				id: 'phc_your_project_key',
+				initOptions: { cookieless_mode: 'never' },
+				loadMode: 'after-consent',
+			}),
+		],
+	},
+});
 ```

@@ -1,7 +1,7 @@
 /**
- * Wiring of the Nitro server routes onto the core consent route handler:
- * h3 to Web `Request` and back, runtime config, Nitro's in-process fetch,
- * and the preset's `waitUntil`. The route behaviour itself is pinned once,
+ * Wiring of the Nitro consent route onto the core consent route handler:
+ * one catch-all at `${routePrefix}/**`, h3 to Web `Request` and back,
+ * runtime config, Nitro's in-process fetch, and the preset's `waitUntil`. The route behaviour itself is pinned once,
  * in `packages/core/src/server/__tests__/consent-route.test.ts`.
  */
 import {
@@ -10,13 +10,10 @@ import {
 } from '@c15t/core/server';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
-import { createApp, toWebHandler } from 'h3';
+import { createApp, createRouter, toWebHandler } from 'h3';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
-import {
-	createInitRoute,
-	createManifestRoute,
-} from '../runtime/server/route-factories';
+import { createConsentRoute } from '../runtime/server/route-factories';
 import { createServerFetch } from '../runtime/server/server-fetch';
 
 const mocks = vi.hoisted(() => ({
@@ -63,20 +60,23 @@ const manifestResponse = function manifestResponse(
 };
 
 /**
- * Drives the real handler through h3 so we assert on a real Response.
+ * Drives the real handler through h3 so we assert on a real Response. The
+ * handler is mounted as the module mounts it in Nitro: at the default
+ * `/api/c15t/**`.
  *
- * The mounting call is cast because the workspace currently resolves h3 v1 at
- * runtime while type resolution picks up the h3 v2 pulled in transitively by
- * nitro, and their `app.use` overloads disagree. Runtime behaviour is
- * unaffected — this is the v1 `use(route, handler)` form the installed h3
- * actually implements.
+ * The mounting calls are cast because the workspace currently resolves h3 v1
+ * at runtime while type resolution picks up the h3 v2 pulled in transitively
+ * by nitro, and their overloads disagree. Runtime behaviour is unaffected —
+ * these are the v1 forms the installed h3 actually implements.
  */
 type MountRoute = (route: string, handler: unknown) => unknown;
 
 const callRoute = function callRoute(path: string, handler: unknown) {
 	return (requestHeaders: Record<string, string> = {}) => {
 		const app = createApp();
-		(app.use as unknown as MountRoute)(path, handler);
+		const router = createRouter();
+		(router.use as unknown as MountRoute)('/api/c15t/**', handler);
+		(app.use as unknown as (handler: unknown) => unknown)(router);
 		return toWebHandler(app)(
 			new Request(`http://localhost${path}`, { headers: requestHeaders })
 		);
@@ -89,11 +89,11 @@ const routeDependencies = {
 };
 const callManifestRoute = callRoute(
 	'/api/c15t/manifest',
-	createManifestRoute(routeDependencies)
+	createConsentRoute(routeDependencies)
 );
 const callInitRoute = callRoute(
 	'/api/c15t/init',
-	createInitRoute(routeDependencies)
+	createConsentRoute(routeDependencies)
 );
 
 beforeEach(() => {
@@ -121,11 +121,11 @@ describe('manifest route background revalidation', () => {
 		const dependencies = { ...routeDependencies, manifest: MANIFEST };
 		const callSnapshotManifestRoute = callRoute(
 			'/api/c15t/manifest',
-			createManifestRoute(dependencies)
+			createConsentRoute(dependencies)
 		);
 		const callSnapshotInitRoute = callRoute(
 			'/api/c15t/init',
-			createInitRoute(dependencies)
+			createConsentRoute(dependencies)
 		);
 		expect(await (await callSnapshotManifestRoute()).json()).toEqual(MANIFEST);
 		expect(
@@ -152,7 +152,7 @@ describe('manifest route background revalidation', () => {
 			const registered: { refresh: Promise<void>; method: string }[] = [];
 			const call = callRoute(
 				'/api/c15t/manifest',
-				createManifestRoute({
+				createConsentRoute({
 					...routeDependencies,
 					onBackgroundRevalidate: (refresh, event) => {
 						// The event is the one the handler ran for, so a host can bind
@@ -193,7 +193,7 @@ describe('manifest route default background registration', () => {
 			// The default handlers pass only fetch and runtime config, as the
 			// module's registered entrypoints do; Nitro's per-request
 			// `event.waitUntil` is what a request-scoped preset exposes.
-			const handler = createManifestRoute(routeDependencies);
+			const handler = createConsentRoute(routeDependencies);
 			const call = () => {
 				const app = createApp();
 				app.use('/api/c15t/manifest', (event) => {
@@ -343,7 +343,7 @@ describe('init route', () => {
 	test('an empty private URL leaves the public one', async () => {
 		// What Nitro hands over when only NUXT_PUBLIC_C15T_BACKEND_URL is set.
 		mocks.useRuntimeConfig.mockReturnValue({
-			c15t: { backendURL: '', manifestURL: '', ssr: true },
+			c15t: { backendURL: '', ssr: true },
 			public: { c15t: { backendURL: 'https://public.example' } },
 		});
 		mocks.serverFetch.mockResolvedValue(manifestResponse({}));
@@ -353,6 +353,38 @@ describe('init route', () => {
 		expect(mocks.serverFetch.mock.calls[0]?.[0]).toBe(
 			'https://public.example/manifest'
 		);
+	});
+
+	test("reads the manifest from the mode's manifestURL", async () => {
+		mocks.useRuntimeConfig.mockReturnValue({
+			public: {
+				c15t: {
+					backendURL: 'https://consent.example.com',
+					mode: {
+						manifestURL: 'https://cdn.example.com/manifest.json',
+						type: 'manifest',
+					},
+					reportSessions: false,
+				},
+			},
+		});
+		mocks.serverFetch.mockResolvedValue(manifestResponse({}));
+
+		await callInitRoute();
+
+		expect(mocks.serverFetch.mock.calls[0]?.[0]).toBe(
+			'https://cdn.example.com/manifest.json'
+		);
+	});
+
+	test('answers no path but init and manifest', async () => {
+		const response = await callRoute(
+			'/api/c15t/subjects',
+			createConsentRoute(routeDependencies)
+		)();
+
+		expect(response.status).toBe(404);
+		expect(mocks.serverFetch).not.toHaveBeenCalled();
 	});
 
 	test('honours the render budget the SSR plugin sends', async () => {

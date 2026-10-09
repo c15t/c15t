@@ -1,3 +1,4 @@
+import { manifest } from 'c15t/vue';
 import { defineNuxtConfig } from 'nuxt/config';
 
 export default defineNuxtConfig({
@@ -6,8 +7,7 @@ export default defineNuxtConfig({
 		// The acceptance suite tests runtime fetching here: a backend outage
 		// and a backend URL set at start. `examples/nuxt` covers the bundled
 		// default.
-		buildManifest: false,
-		manifest: 'server',
+		mode: manifest({ source: 'runtime' }),
 	},
 	modules: ['c15t/vue'],
 });

@@ -27,7 +27,7 @@ test('a render starts a page journey and sends it on the hosted /init', async ()
 	const fetch = backend();
 	vi.stubGlobal('fetch', fetch);
 	const state = await resolveNuxtConsent(
-		{ backendURL: 'https://consent.example.com' },
+		{ backendURL: 'https://consent.example.com', mode: { type: 'hosted' } },
 		request
 	);
 	const sent = new URL(String(fetch.mock.calls[0]?.[0]));
@@ -39,9 +39,25 @@ test('reportSessions: false tells the browser the page has no journey', async ()
 	const fetch = backend();
 	vi.stubGlobal('fetch', fetch);
 	const state = await resolveNuxtConsent(
-		{ backendURL: 'https://consent.example.com', reportSessions: false },
+		{
+			backendURL: 'https://consent.example.com',
+			mode: { type: 'hosted' },
+			reportSessions: false,
+		},
 		request
 	);
 	expect(state.journey).toBeNull();
 	expect(String(fetch.mock.calls[0]?.[0])).not.toContain('c15tJourney');
+});
+
+test('manifest() without a consent route reads the manifest itself', async () => {
+	const fetch = backend();
+	vi.stubGlobal('fetch', fetch);
+	await resolveNuxtConsent(
+		{ backendURL: 'https://consent.example.com', routePrefix: false },
+		request
+	);
+	expect(String(fetch.mock.calls[0]?.[0])).toBe(
+		'https://consent.example.com/manifest'
+	);
 });

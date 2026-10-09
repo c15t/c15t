@@ -13,8 +13,8 @@ import { createApp, defineComponent, h } from 'vue';
 import type { ComputedRef } from 'vue';
 
 import { useVendorAllowed } from '../runtime/composables/consent';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import { symbolKernelContext } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const resolution = (patch: Partial<PolicyRule> = {}): PolicyResolution => {
 	const policy = normalizePolicyRule({

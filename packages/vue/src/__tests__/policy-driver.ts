@@ -56,15 +56,13 @@ import { gpcFromHeaders } from '../../../core/src/transports/decision-inputs';
 import { createIAB } from '../../../iab/src/index';
 import type { IABHandle } from '../../../iab/src/index';
 import { gtag } from '../../../integrations/src/vendors/analytics/google-tag';
+import ConsentDialogLink from '../runtime/components/consent-dialog-link.vue';
 import ConsentGate from '../runtime/components/consent-gate.vue';
 import ConsentManager from '../runtime/components/manager.vue';
 import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
-import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
 import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolKernelContext,
 	symbolKernel,
@@ -74,6 +72,8 @@ import {
 	symbolConsent,
 } from '../runtime/utils/symbols';
 import { serializeWithoutComments } from './serialize-without-comments';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
 
 // oxlint-disable-next-line promise/avoid-new -- Browser effects must settle between scenario operations.
 const settle = () =>
@@ -466,7 +466,7 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					h(ConsentBanner),
 					context.activeUI.value === 'manager' ? h(ConsentManager) : null,
 					h(ConsentDialogTrigger),
-					h(ConsentPreferencesLink),
+					h(ConsentDialogLink),
 					setup.probeGates
 						? h(
 								ConsentGate,

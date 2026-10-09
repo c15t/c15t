@@ -4,14 +4,12 @@ The smallest c15t setup for a Vue 3 single-page app built with Vite. The build
 bundles your project's policy, and the browser resolves it without asking the
 backend, so the build runs on any static host.
 
-- `vite.config.ts` adds the c15t Vite plugin next to `@vitejs/plugin-vue`, and
-  `consentManifest`, which downloads the policy and serves it as
-  `c15t/generated`.
-- `src/main.ts` installs `c15tVue` with the backend URL, the bundled policy
-  and `scripts`.
-- `src/scripts.ts` loads PostHog once the visitor allows measurement.
-- `src/App.vue` mounts `ConsentRoot` for the banner and dialog, and a
-  Privacy settings link that reopens the dialog.
+- `vite.config.ts` adds `consentManifest()` next to `@vitejs/plugin-vue`. It
+  downloads the policy when Vite starts.
+- `src/main.ts` installs `c15tVue` with `manifest()`, which reads that policy,
+  and loads PostHog once the visitor allows measurement.
+- `src/App.vue` mounts `ConsentRoot` for the banner and dialog, and a Privacy
+  settings link that reopens the dialog.
 
 ## Run it
 
@@ -34,8 +32,7 @@ The browser does not know the visitor's location, so every visitor gets the
 policy your project uses when the location is unknown. Rebuild after you
 change the policy, translations or vendors in your project.
 
-Replace `phc_your_project_key` in `src/scripts.ts` with your PostHog project
-key.
+Replace `phc_your_project_key` in `src/main.ts` with your PostHog project key.
 
 The [Vue quickstart](https://c15t.com/docs/frameworks/vue/quickstart) walks
 through each file.

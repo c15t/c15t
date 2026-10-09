@@ -6,15 +6,13 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import type { ComponentPublicInstance } from 'vue';
 import { defineComponent, h } from 'vue';
 
+import ConsentDialogLink from '../runtime/components/consent-dialog-link.vue';
 import ConsentManager from '../runtime/components/manager.vue';
 import ConsentDialogTrigger from '../runtime/components/panel-trigger.vue';
-import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
 import ConsentWidget from '../runtime/components/preferences.vue';
 import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -23,6 +21,8 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
 
 /** A regime with no consent law: permitted by default, nothing owed. */
 const noneRule: PolicyRule = {
@@ -50,7 +50,7 @@ const AllSurfaces = defineComponent({
 		h(ConsentBanner),
 		h(ConsentManager),
 		h(ConsentDialogTrigger),
-		h(ConsentPreferencesLink),
+		h(ConsentDialogLink),
 		h(ConsentWidget),
 	],
 });

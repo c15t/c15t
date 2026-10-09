@@ -1,4 +1,5 @@
 import type { HydrationRecords, HydrationResult } from '@c15t/core';
+import { clientMode } from '@c15t/core/runtime/client-mode';
 import {
 	createPolicyRuleFingerprints,
 	normalizePolicyRule,
@@ -8,7 +9,8 @@ import { translations } from '@c15t/translations/en';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { RuntimeConsentConfig } from '../runtime/kernel';
+import { hosted, manifest } from '../runtime/modes';
+import type { ProviderTransportFactory } from '../runtime/modes';
 
 /**
  * `hydrate` applies stored records the way persistence does. It is a verb
@@ -54,10 +56,24 @@ const prefetch = {
 	subjectId,
 	translations: { language: 'en', translations },
 };
-const modes: RuntimeConsentConfig['manifest'][] = [
-	undefined,
-	'client',
-	'server',
+/** Each mode a Vue or Nuxt app can run, built around the test's fetch. */
+const modes: [
+	string,
+	(fetch: typeof globalThis.fetch) => ProviderTransportFactory,
+][] = [
+	['hosted()', (fetch) => hosted({ backendURL: '/api/review', fetch })],
+	['manifest()', (fetch) => manifest({ backendURL: '/api/review', fetch })],
+	[
+		'Nuxt manifest()',
+		(fetch) => {
+			// The Nuxt client mode uses the global fetch, as an app does.
+			vi.stubGlobal('fetch', fetch);
+			return clientMode(
+				{ type: 'manifest' },
+				{ backendURL: '/api/review', routePrefix: '/api/c15t' }
+			);
+		},
+	],
 ];
 const disposers: (() => void)[] = [];
 afterEach(() => {
@@ -65,6 +81,7 @@ afterEach(() => {
 		dispose();
 	}
 	vi.restoreAllMocks();
+	vi.unstubAllGlobals();
 });
 
 const receipt = {
@@ -77,7 +94,7 @@ const receipt = {
 // cannot detect methods lost by a framework wrapper.
 test.each(modes)(
 	'%s transport identifies and hydrates server records without writes',
-	async (manifest) => {
+	async (_name, createMode) => {
 		vi.spyOn(Date, 'now').mockReturnValue(now);
 		const fetchMock = vi.fn<FetchRequest>((url, init) =>
 			Promise.resolve(
@@ -97,12 +114,8 @@ test.each(modes)(
 		);
 		const onChoiceRecorded = vi.fn();
 		const context = createVueConsentKernelContext({
-			config: {
-				backendURL: '/api/review',
-				callbacks: { onChoiceRecorded },
-				customFetch: Object.assign(fetchMock, { preconnect: vi.fn() }),
-				manifest,
-			},
+			config: { callbacks: { onChoiceRecorded } },
+			mode: createMode(Object.assign(fetchMock, { preconnect: vi.fn() })),
 			now,
 			prefetch,
 			producerContract: 1,
@@ -110,9 +123,7 @@ test.each(modes)(
 		disposers.push(context.dispose);
 		hydrateRecords(context.kernel, {});
 		expect(
-			fetchMock.mock.calls.filter(
-				([url]) => String(url) !== '/api/c15t/manifest'
-			)
+			fetchMock.mock.calls.filter(([url]) => !String(url).endsWith('/manifest'))
 		).toEqual([]);
 		await context.kernel.commands.identify({ externalId: 'person' });
 		expect(
@@ -136,7 +147,7 @@ test.each(modes)(
 
 test.each(modes)(
 	'%s transport keeps detected GPC in the browser',
-	async (manifest) => {
+	async (_name, createMode) => {
 		vi.spyOn(Date, 'now').mockReturnValue(now);
 		const fetchMock = vi.fn<FetchRequest>((url, init) =>
 			Promise.resolve(
@@ -149,12 +160,8 @@ test.each(modes)(
 		);
 		const onChoiceRecorded = vi.fn();
 		const context = createVueConsentKernelContext({
-			config: {
-				backendURL: '/api/review',
-				callbacks: { onChoiceRecorded },
-				customFetch: Object.assign(fetchMock, { preconnect: vi.fn() }),
-				manifest,
-			},
+			config: { callbacks: { onChoiceRecorded } },
+			mode: createMode(Object.assign(fetchMock, { preconnect: vi.fn() })),
 			now,
 			prefetch,
 			producerContract: 1,

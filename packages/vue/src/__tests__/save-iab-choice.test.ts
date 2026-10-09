@@ -1,7 +1,7 @@
 import { saveIABConsentSurface } from '@c15t/core/surface-actions';
 import { expect, onTestFinished, test } from 'vitest';
 
-import { createVueConsentKernelContext } from '../runtime/kernel';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const createContext = () => {
 	const context = createVueConsentKernelContext({ config: {} });

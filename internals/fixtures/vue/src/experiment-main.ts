@@ -3,7 +3,7 @@
  * `entry.ts` for `?experiment=1`. `&arm=wall` sets the arm the way a flag
  * provider would. See `experiment.ts`.
  */
-import { c15tVue } from 'c15t/vue/vue-plugin';
+import { c15tVue, hosted } from 'c15t/vue/vue-plugin';
 import { createApp } from 'vue';
 
 import App from './App.vue';
@@ -13,10 +13,12 @@ import { testBackend } from './test-backend';
 
 createApp(App)
 	.use(c15tVue, {
-		backendURL: 'https://your-project.inth.app',
-		...testBackend('backendURL'),
 		callbacks: experimentCallbacks,
 		experiment: experimentFromSearch(location.search),
+		mode: hosted({
+			backendURL: 'https://your-project.inth.app',
+			...testBackend('backendURL'),
+		}),
 		scripts,
 	})
 	.mount('#app');

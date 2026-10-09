@@ -1,4 +1,6 @@
+import type { ConsentMode } from '@c15t/core/modes';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
+import { clientMode } from '@c15t/core/runtime/client-mode';
 import type { RequestConsentState } from '@c15t/core/server';
 import { defu } from 'defu';
 import { computed, markRaw, toRaw, watch } from 'vue';
@@ -25,12 +27,17 @@ import { consentConfigKey } from './composables/config';
 import type { ConsentConfig } from './config';
 import {
 	createVueConsentKernelContext,
-	getNuxtInitFetchTarget,
 	INIT_HEADER_NAMES,
 	pickAllowedInitHeaders,
 	provideVueConsentContext,
 } from './kernel';
 import type { RuntimeConsentConfig, VueConsentKernelContext } from './kernel';
+import {
+	readNuxtMode,
+	readNuxtRoutePrefix,
+	resolvesOnServer,
+} from './nuxt-mode';
+import type { NuxtConsentModeConfig } from './nuxt-mode';
 import { isSharedNuxtRender } from './shared-render';
 import { generateTokensCSS, TOKENS_STYLE_ID } from './theme-tokens';
 
@@ -57,6 +64,30 @@ const warnUnusedInitPrefetch = function warnUnusedInitPrefetch(
 	});
 };
 
+/**
+ * The mode the browser runs: browser resolution gets the snapshot the
+ * build bundled for it, and `hosted()` forwards the consent headers the
+ * server read from the request (a CDN's country, for example) to `/init`.
+ */
+const withClientData = function withClientData(
+	mode: ConsentMode,
+	headers: Record<string, string>
+): ConsentMode {
+	if (mode.type === 'manifest' && mode.resolve === 'browser') {
+		// As in a plain Vue app, a policy that depends on location resolves
+		// as for an unknown one unless `inputs` or `geoURL` give it a place:
+		// a page that resolves in the browser asks the backend nothing.
+		const browser = { ...mode, initFallback: false };
+		return clientManifestSnapshot && !mode.snapshot
+			? { ...browser, snapshot: clientManifestSnapshot, source: undefined }
+			: browser;
+	}
+	if (mode.type === 'hosted' && Object.keys(headers).length > 0) {
+		return { ...mode, headers: { ...headers, ...mode.headers } };
+	}
+	return mode;
+};
+
 export default defineNuxtPlugin(async (nuxtApp) => {
 	const appConfig = useAppConfig();
 	const runtimeConfig = useRuntimeConfig();
@@ -75,13 +106,14 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		) {
 			merged.colorScheme = null;
 		}
-		// The module bundles a `c15t` key snapshot here in client manifest
-		// mode. A snapshot in app config wins.
-		if (clientManifestSnapshot && !merged.manifestSnapshot) {
-			merged.manifestSnapshot = clientManifestSnapshot;
-		}
 		return merged;
 	});
+	// `mode` and `routePrefix` come from `nuxt.config.ts` only: the build
+	// decided from them what the client bundle and the server routes hold.
+	const modeConfig = runtimeConfig.public.c15t as NuxtConsentModeConfig;
+	const mode = readNuxtMode(modeConfig);
+	const routePrefix = readNuxtRoutePrefix(modeConfig);
+	const serverResolves = resolvesOnServer(mode);
 	// Tokens go in the head from the plugin, so the server HTML carries them
 	// for the first paint and composed surfaces without ConsentRoot get
 	// them too. The color scheme script sets `c15t-dark` in `<head>`, before
@@ -139,7 +171,6 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 				: pickAllowedInitHeaders(useRequestHeaders([...INIT_HEADER_NAMES]))
 	);
 	const headers = requestHeaders.value;
-	const initFetchTarget = getNuxtInitFetchTarget(config.value);
 	const initialRecords = useNuxtState('c15t:records', () =>
 		config.value.consentSource || shared
 			? undefined
@@ -164,7 +195,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		// drops this branch; elsewhere (unit tests) a missing `window` decides.
 		((import.meta as ImportMeta & { server?: boolean }).server ??
 			typeof window === 'undefined') &&
-		initFetchTarget &&
+		serverResolves &&
 		!config.value.consentSource &&
 		!shared
 	) {
@@ -175,7 +206,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 			url: useRequestURL(),
 		};
 		const { resolveNuxtConsent } = await import('./server-consent');
-		const state = await resolveNuxtConsent(config.value, request);
+		const state = await resolveNuxtConsent(
+			{ ...config.value, mode, routePrefix: routePrefix ?? false },
+			request
+		);
 		// Only a resolved policy is worth the payload bytes; without one the
 		// browser runs init, and the records travel in `c15t:records`.
 		if (state.initialPolicyResolution !== undefined) {
@@ -207,6 +241,10 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		initialRecords: initialRecords.value
 			? toRaw(initialRecords.value)
 			: undefined,
+		mode: clientMode(withClientData(mode, headers), {
+			backendURL: config.value.backendURL,
+			routePrefix,
+		}),
 		onIABUnavailable: (error) => {
 			// The error page alone writes nothing to the console.
 			console.error(error);
@@ -217,9 +255,9 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	provideVueConsentContext(nuxtApp.vueApp, context);
 
 	if (typeof window !== 'undefined') {
-		if (nuxtApp.payload.serverRendered || !initFetchTarget) {
+		if (nuxtApp.payload.serverRendered || !serverResolves) {
 			// Start after hydration, so the first client render matches the
-			// server's HTML. Client manifest mode also starts here: its
+			// server's HTML. Browser resolution also starts here: its
 			// manifest and resolver requests left when the runtime was built,
 			// so starting earlier would only put work in front of the mount.
 			nuxtApp.hook('app:mounted', () => context.start());

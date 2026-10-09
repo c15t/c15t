@@ -86,16 +86,12 @@ their own styles.
 Remove any existing PostHog snippet so the script loads once, and add
 measurement to your Inth policy.
 
-Create `app/consent-scripts.ts`. PostHog waits for measurement permission and
-uses its EU region; change `region` to `'us'` for a US project.
-
-<include src="../../shared/examples/nuxt/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key.
-
-Register the scripts in `app/app.config.ts`:
+Register PostHog in `app/app.config.ts`. It waits for measurement permission.
 
 <include src="../../shared/examples/nuxt/app-config.mdx" />
+
+Replace `phc_your_project_key` with your PostHog project key. PostHog
+defaults to its EU region; set `region: 'us'` for a US project.
 
 The module merges the `c15t` key of `app.config.ts` over its options in
 `nuxt.config.ts`, then starts one script loader in the browser after

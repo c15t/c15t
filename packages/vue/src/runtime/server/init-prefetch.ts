@@ -13,16 +13,17 @@
  *
  * - The page is a shell (`ssr: false` for the app or the route). A server
  *   rendered page already carries the visitor's policy.
- * - The app calls the backend's `/init` (`manifest` unset). Client manifest
- *   mode makes no `/init` request, and server manifest mode asks the Nuxt
- *   init route, which core's script does not address.
- * - Nothing replaces the request: no `consentSource`, `customFetch`,
- *   `experiment` (the arm travels with `/init`) or `prefetch`.
+ * - The app calls the backend's `/init`: `hosted()` mode, without init
+ *   `headers`. `manifest()` asks the Nuxt consent route, which core's
+ *   script does not address, or resolves in the browser; `offline()` makes
+ *   no request.
+ * - Nothing replaces the request: no `consentSource`, `experiment` (the
+ *   arm travels with `/init`) or `prefetch`.
  *
  * The config is what both sides read: module options through the public
  * runtime config, with `app.config.ts` merged over them. A page whose
  * config the browser changes before the plugin runs (for example a client
- * plugin that picks a manifest mode per route) turns the script off with
+ * plugin that changes the consent config per route) turns the script off with
  * the route rule `c15t: { initPrefetch: false }`; otherwise its early
  * request goes unused.
  *
@@ -32,7 +33,8 @@
 import { buildPrefetchScript } from '@c15t/core';
 
 import type { RuntimeConsentConfig } from '../kernel';
-import { resolveManifestMode } from '../manifest';
+import { readNuxtMode } from '../nuxt-mode';
+import type { NuxtConsentModeConfig } from '../nuxt-mode';
 
 /** The `c15t` key of a Nitro route rule. */
 export interface InitPrefetchRouteRule {
@@ -46,7 +48,7 @@ export interface InitPrefetchInput {
 	 * The c15t config the browser starts with: the public runtime config,
 	 * with the app config merged over it.
 	 */
-	config: Partial<RuntimeConsentConfig>;
+	config: Partial<RuntimeConsentConfig> & NuxtConsentModeConfig;
 	/** Whether the HTML is a shell the server did not render (`ssr: false`). */
 	shell: boolean;
 	/** The route's `c15t` route rule, if any. */
@@ -76,20 +78,21 @@ export const buildInitPrefetchTag = function buildInitPrefetchTag(
 	input: InitPrefetchInput
 ): string | undefined {
 	const { config } = input;
+	const mode = readNuxtMode(config);
 	if (
 		!input.shell ||
 		input.routeRule?.initPrefetch === false ||
-		resolveManifestMode(config) !== false ||
+		mode.type !== 'hosted' ||
+		Object.keys(mode.headers ?? {}).length > 0 ||
 		config.consentSource ||
-		config.customFetch ||
 		config.experiment ||
 		config.prefetch
 	) {
 		return undefined;
 	}
-	// The hosted transport's default, so both build the same URL.
-	const backendURL = config.backendURL ?? '/api/c15t';
-	if (!FETCHABLE_BACKEND_RE.test(backendURL)) {
+	// The URL the browser's hosted transport asks, so both match.
+	const backendURL = mode.backendURL ?? config.backendURL;
+	if (!(backendURL && FETCHABLE_BACKEND_RE.test(backendURL))) {
 		return undefined;
 	}
 	const nonce = input.nonce ?? config.nonce;

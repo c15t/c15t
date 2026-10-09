@@ -7,11 +7,9 @@ import type { Component, ComponentPublicInstance } from 'vue';
 import { h } from 'vue';
 
 import { translations as de } from '../../../translations/src/translations/de';
-import ConsentPreferencesLink from '../runtime/components/preferences-link.vue';
+import ConsentDialogLink from '../runtime/components/consent-dialog-link.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -20,6 +18,8 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
 
 const choiceRule: PolicyRule = {
 	id: 'vue_translated_surfaces',
@@ -88,15 +88,15 @@ afterEach(() => {
 });
 
 describe('default surface copy comes from translations', () => {
-	test('ConsentPreferencesLink labels itself with the dialog title', async () => {
-		const wrapper = await renderSurface(() => h(ConsentPreferencesLink), 'de');
+	test('ConsentDialogLink labels itself with the dialog title', async () => {
+		const wrapper = await renderSurface(() => h(ConsentDialogLink), 'de');
 		expect(wrapper.get('[data-testid="consent-dialog-link"]').text()).toBe(
 			de.consentManagerDialog.title
 		);
 	});
 
-	test('ConsentPreferencesLink falls back to English before copy arrives', async () => {
-		const wrapper = await renderSurface(() => h(ConsentPreferencesLink));
+	test('ConsentDialogLink falls back to English before copy arrives', async () => {
+		const wrapper = await renderSurface(() => h(ConsentDialogLink));
 		expect(wrapper.get('[data-testid="consent-dialog-link"]').text()).toBe(
 			'Privacy Settings'
 		);

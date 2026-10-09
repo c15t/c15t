@@ -16,12 +16,9 @@ import type { Component } from 'vue';
 import { createSSRApp } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-import { c15tVue } from '../index';
 import NuxtConsentRoot from '../runtime/components/nuxt-root.vue';
 import ConsentRoot from '../runtime/components/root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
-import type { RuntimeConsentConfig } from '../runtime/kernel';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -30,6 +27,9 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import type { RuntimeConsentConfig } from './test-kernel';
+import { createVueConsentKernelContext } from './test-kernel';
+import { c15tVue } from './test-plugin';
 
 const initFixture: InitOutput = {
 	branding: 'c15t',

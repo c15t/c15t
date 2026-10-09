@@ -12,6 +12,7 @@ import { consentConfigKey } from '../../../packages/vue/src/runtime/composables/
 import type { ConsentConfig } from '../../../packages/vue/src/runtime/config';
 import { createVueConsentKernelContext } from '../../../packages/vue/src/runtime/kernel';
 import type { VueConsentKernelContext } from '../../../packages/vue/src/runtime/kernel';
+import { hosted } from '../../../packages/vue/src/runtime/modes';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -110,8 +111,6 @@ export const storybookConsentConfig: ConsentConfig = {
 		'experience',
 		'marketing',
 	],
-	customFetch: storybookFetch(),
-	domain: 'consent.example',
 	hideBranding: false,
 	presentation: storybookPresentation,
 
@@ -122,6 +121,22 @@ export const storybookConsentConfig: ConsentConfig = {
 	// No global `trapFocus`: the default banner is non-blocking in every
 	// adapter, and stories that need a blocking banner opt in themselves.
 } as ConsentConfig;
+
+/**
+ * The stories' `hosted()` mode, answering from the story fixtures instead of
+ * a backend.
+ *
+ * @param fetch - Answers the transport's requests.
+ * @returns The mode a story's kernel context runs.
+ */
+export const storybookMode = (
+	fetch: typeof globalThis.fetch = storybookFetch()
+) =>
+	hosted({
+		backendURL: 'https://consent.example',
+		domain: 'consent.example',
+		fetch,
+	});
 
 export const provideStorybookConsentContext =
 	function provideStorybookConsentContext(
@@ -186,6 +201,7 @@ export const useStorybookConsent = function useStorybookConsent(
 	// prefetch would carry it.
 	const context = createVueConsentKernelContext({
 		config,
+		mode: storybookMode(),
 		prefetch,
 		producerContract: 1,
 		...(storedConsent && {
@@ -220,6 +236,7 @@ export const useStorybookIABConsent = function useStorybookIABConsent(
 	};
 	const context = createVueConsentKernelContext({
 		config,
+		mode: storybookMode(),
 		prefetch: storybookIABInit,
 	});
 	context.activeUI.value = activeUI;

@@ -102,6 +102,7 @@ packages/vue/playground/.output
 !/examples/nextjs/.env
 !/examples/nextjs-pages-router/.env
 !/examples/nuxt/.env
+!/examples/nuxt-static/.env
 !/examples/react/.env
 !/examples/showcase-nuxt-theme/.env
 !/examples/svelte/.env

@@ -10,11 +10,8 @@ A banner does not stop a script you load with a `<script>` tag, `useHead` or a
 vendor's Nuxt module. Remove those loaders and register the vendor with c15t
 instead, so c15t loads it only while its category is allowed.
 
-Create the script configuration with the helpers from `@c15t/integrations`:
-
-<include src="../../shared/examples/nuxt/scripts.mdx" />
-
-Register it under the `c15t` key in `app/app.config.ts`:
+Register the helpers from `@c15t/integrations` under the `c15t` key in
+`app/app.config.ts`:
 
 <include src="../../shared/examples/nuxt/app-config.mdx" />
 

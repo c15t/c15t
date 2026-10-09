@@ -13,16 +13,10 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 import { createSSRApp, defineComponent } from 'vue';
 import { renderToString } from 'vue/server-renderer';
 
-import { c15tVue } from '../index';
 import ConsentRoot from '../runtime/components/root.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import { useHasConsent as getConsentedCategories } from '../runtime/composables/consent';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type {
-	RuntimeConsentConfig,
-	VueConsentKernelContext,
-} from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -31,6 +25,12 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type {
+	RuntimeConsentConfig,
+	VueConsentKernelContext,
+} from './test-kernel';
+import { c15tVue } from './test-plugin';
 
 type WindowWithC15t = Window & {
 	c15t?: {

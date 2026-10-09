@@ -38,7 +38,9 @@ vi.mock('#imports', async () => {
 		useRequestEvent: () => nuxt.event,
 		useRequestHeaders: () => nuxt.headers,
 		useRequestURL: () => new URL('https://app.example/'),
-		useRuntimeConfig: () => ({ public: { c15t: {} } }),
+		useRuntimeConfig: () => ({
+			public: { c15t: { mode: { type: 'hosted' } } },
+		}),
 		useState: (key: string, init: () => unknown) => {
 			if (!nuxt.state.has(key)) {
 				nuxt.state.set(key, makeRef(init()));

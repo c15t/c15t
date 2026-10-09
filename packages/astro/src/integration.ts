@@ -557,10 +557,10 @@ export const buildStylesImport = function buildStylesImport(
 /**
  * The Vite plugins the app needs for the configured `ui`.
  *
- * `@c15t/vue`'s shared composables import `#imports`, which only Nuxt
- * defines; the package ships a Vite plugin that shims it for plain Vue
- * apps, and an Astro app is one. The import is dynamic so a site on any
- * other adapter never has to have `@c15t/vue` installed.
+ * `@c15t/vue` resolves its own runtime specifiers (`#imports`,
+ * `#c15t/composables`) through its package `imports`, but ships `.vue`
+ * files, which Vite's dependency pre-bundling cannot load, so the `vue`
+ * adapter keeps it out of pre-bundling.
  *
  * With the full stylesheet injected, the islands' own component CSS would
  * be a second copy, so their class maps resolve without it.
@@ -568,9 +568,9 @@ export const buildStylesImport = function buildStylesImport(
  * @param resolved - The resolved integration options.
  * @returns Vite plugins to merge into the app config.
  */
-export const buildVitePlugins = async function buildVitePlugins(
+export const buildVitePlugins = function buildVitePlugins(
 	resolved: C15tResolvedOptions
-): Promise<VitePluginLike[]> {
+): VitePluginLike[] {
 	const plugins: VitePluginLike[] = [createVirtualOptionsPlugin(resolved)];
 	if (resolved.styles !== false) {
 		plugins.push(
@@ -580,19 +580,12 @@ export const buildVitePlugins = async function buildVitePlugins(
 		);
 	}
 	if (resolved.ui === 'vue') {
-		try {
-			const { default: shimVueImports } = await import('@c15t/vue/vite');
-			plugins.push(shimVueImports() as unknown as VitePluginLike);
-		} catch (cause) {
-			// This runs at `astro:config:setup`, before `astro:config:done`
-			// where the peer check lives, so an unresolved import would
-			// otherwise surface as a module error naming a path the site
-			// owner never wrote.
-			throw new Error(
-				`@c15t/astro: \`ui: 'vue'\` needs ${UI_ADAPTERS.vue.packages.join(', ')} installed. Install them, or pick another \`ui\`.`,
-				{ cause }
-			);
-		}
+		plugins.push({
+			config: () => ({
+				optimizeDeps: { exclude: ['@c15t/vue', 'c15t'] },
+			}),
+			name: '@c15t/vue',
+		} as VitePluginLike);
 	}
 	return plugins;
 };
@@ -805,7 +798,7 @@ export const c15t = function c15t(
 					? { ...resolved, csp: csp.browser }
 					: resolved;
 				updateConfig({
-					vite: { plugins: await buildVitePlugins(serialized) },
+					vite: { plugins: buildVitePlugins(serialized) },
 				});
 				if (csp) {
 					updateConfig(csp.update);

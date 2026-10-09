@@ -1,5 +1,9 @@
 import vue from '@vitejs/plugin-vue';
-import c15tVue from 'c15t/vue/vite';
+import { consentManifest } from 'c15t/vue/vite';
 import { defineConfig } from 'vite';
 
-export default defineConfig({ plugins: [vue(), c15tVue()] });
+// The app runs in `hosted()` mode, so a build without a reachable backend
+// still succeeds: the policy comes from `/init` at runtime.
+export default defineConfig({
+	plugins: [vue(), consentManifest({ onBuildError: 'runtime' })],
+});

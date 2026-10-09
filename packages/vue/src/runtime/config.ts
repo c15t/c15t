@@ -11,60 +11,20 @@ import type {
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
 import type { ConsentConfig as BaseConsentConfig } from '@c15t/schema/config';
-import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
+import type { InitOutput } from '@c15t/schema/types';
 import type { Theme, UIOptions } from '@c15t/ui/theme';
 import type { HTMLAttributes } from 'vue';
 
-export interface ConsentManifestNuxtConfig {
-	/** Inline snapshot for client manifest mode. Policy edits need a rebuild. */
-	manifestSnapshot?: ConsentManifest;
-	/**
-	 * Enables Nuxt manifest mode. `server` registers same-origin init and
-	 * manifest routes; `client` resolves the manifest in the browser and never
-	 * fetches an init route. `true` is kept as an alias for `server`.
-	 */
-	manifest?: 'client' | 'server' | boolean;
-
-	/**
-	 * Backend or CDN manifest URL. Server mode fetches this from the Nuxt route;
-	 * client mode fetches it directly in the browser. Defaults to
-	 * `${backendURL}/manifest` for server routes and `manifestRoute` in client
-	 * mode. Unless the Nuxt module bundles a build manifest, which switches
-	 * to server mode, `manifest` unset calls the backend's `/init` and
-	 * ignores `manifestURL`, so set `manifest: 'server'` for the server
-	 * routes or `'client'` for the browser. The plain Vue
-	 * plugin, which has no server routes, treats a `manifestURL` without
-	 * `manifest` as client mode.
-	 */
-	manifestURL?: string;
-
-	/**
-	 * Optional browser-side geo microfetch used by client manifest mode. The
-	 * endpoint should return `{ country, region }`. Defaults to no geo fetch,
-	 * leaving the resolver on the manifest's unknown-location policy.
-	 */
-	geoURL?: string | false;
-
-	/**
-	 * Same-origin Nuxt init route used by the client. Defaults to
-	 * `/api/c15t/init`.
-	 */
-	initRoute?: string;
-
-	/**
-	 * Same-origin Nuxt manifest passthrough route. Defaults to
-	 * `/api/c15t/manifest`.
-	 */
-	manifestRoute?: string;
-
+/** Nuxt options for the server render and the consent route. */
+export interface ConsentServerConfig {
 	/**
 	 * Longest server rendering waits for the visitor's policy, in
 	 * milliseconds. Past it the page renders without a resolved policy: no
 	 * consent UI in the server HTML, optional categories denied, gated
 	 * scripts and embeds blocked, and the browser resolves the policy after
-	 * hydration. In server manifest mode the manifest request keeps running
-	 * and fills the cache for the next request. Applies to the render only;
-	 * the browser's own init requests wait for the manifest. `false` (or
+	 * hydration. With `manifest()` the manifest request keeps running and
+	 * fills the cache for the next request. Applies to the render only; the
+	 * browser's own init requests wait for the manifest. `false` (or
 	 * `Infinity`) removes the budget; any other value that is not a finite,
 	 * non-negative number uses the default.
 	 *
@@ -73,11 +33,10 @@ export interface ConsentManifestNuxtConfig {
 	timeoutMs?: number | false;
 
 	/**
-	 * Report each init the server init route resolves to the backend's
-	 * `POST /sessions`, server-to-server and detached from the response, so
-	 * the backend still counts visitors it never served `/init` to. Needs an
-	 * absolute `backendURL`; nothing is inferred from `manifestURL`. Set
-	 * `false` to send none.
+	 * Report each init the server resolves from the manifest to the
+	 * backend's `POST /sessions`, server-to-server and detached from the
+	 * response, so the backend still counts visitors it never served
+	 * `/init` to. Needs an absolute `backendURL`. Set `false` to send none.
 	 *
 	 * @default true
 	 */
@@ -87,7 +46,7 @@ export interface ConsentManifestNuxtConfig {
 export interface ConsentConfig
 	extends
 		BaseConsentConfig<HTMLAttributes>,
-		ConsentManifestNuxtConfig,
+		ConsentServerConfig,
 		ConsentControlOptions {
 	/**
 	 * Vendors the preference center lists under their category, each with

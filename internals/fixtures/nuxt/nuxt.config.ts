@@ -3,17 +3,19 @@
  *
  * The consent setup lives in a layer per output mode:
  *
- * - `config/server`: request-time server rendering with `manifest: 'server'`,
- *   fetching the manifest at runtime (`buildManifest: false`).
- * - `config/static`: prerendered or SPA output with `manifest: 'client'`.
- *   Selected with `C15T_NUXT_OUTPUT=static` and built with `nuxt generate`.
+ * - `config/server`: request-time server rendering with `manifest()`,
+ *   reading the manifest at runtime (`source: 'runtime'`).
+ * - `config/static`: prerendered or SPA output with
+ *   `manifest({ resolve: 'browser' })` and no consent route. Selected with
+ *   `C15T_NUXT_OUTPUT=static` and built with `nuxt generate`.
  *
  * Everything here is demo-only: the backend URL override, the system color
- * scheme with its dark primary, styles, the test switch for client manifest
- * mode, and two copies of `/consent-example` whose HTML every visitor shares
+ * scheme with its dark primary, styles, the test switch for browser
+ * resolution, and two copies of `/consent-example` whose HTML every visitor shares
  * (`routeRules`), one prerendered at build time and one cached by Nitro. c15t leaves visitor state out of that HTML
  * and resolves the visitor in the browser after hydration.
- * `C15T_NUXT_MANIFEST=client` builds the server output in client mode.
+ * `C15T_NUXT_MANIFEST=client` builds the server output with browser
+ * resolution.
  *
  * Module config is static, so the banner-shape experiment is switched on at
  * build time with `C15T_NUXT_EXPERIMENT=1`. `C15T_NUXT_EXPERIMENT_ARM` stands
@@ -22,6 +24,7 @@
  * are not `NUXT_PUBLIC_*` names because Nitro would apply those at runtime
  * over `runtimeConfig.public.c15t.experiment`.
  */
+import { manifest } from 'c15t/vue';
 import type { ModuleOptions } from 'c15t/vue';
 
 const staticOutput = process.env.C15T_NUXT_OUTPUT === 'static';
@@ -51,13 +54,9 @@ const c15t: ModuleOptions = {
 if (experiment) {
 	c15t.experiment = experiment;
 }
-// Left unset otherwise, so the layer's `manifest` applies.
+// Left unset otherwise, so the layer's `mode` applies.
 if (process.env.C15T_NUXT_MANIFEST === 'client') {
-	c15t.manifest = 'client';
-}
-// Static output downloads the manifest from the backend in the browser.
-if (staticOutput && testBackendURL) {
-	c15t.manifestURL = `${testBackendURL}/manifest`;
+	c15t.mode = manifest({ resolve: 'browser', source: 'runtime' });
 }
 
 export default defineNuxtConfig({

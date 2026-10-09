@@ -15,7 +15,6 @@ import { expect, test } from 'vitest';
 import ConsentWidget from '../runtime/components/preferences.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -24,6 +23,7 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const ITEM_PREFIX = 'consent-widget-accordion-item-';
 

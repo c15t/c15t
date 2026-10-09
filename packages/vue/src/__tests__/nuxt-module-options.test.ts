@@ -119,7 +119,7 @@ const evaluateModule = async function evaluateModule(
 	return snapshot;
 };
 
-/** The module's Nitro virtual for the server routes' snapshot, evaluated. */
+/** The module's Nitro virtual for the consent route's snapshot, evaluated. */
 const importManifestSnapshot = function importManifestSnapshot(
 	nuxt: Nuxt
 ): Promise<unknown> {
@@ -129,86 +129,105 @@ const importManifestSnapshot = function importManifestSnapshot(
 	return evaluateModule(virtual['#c15t/manifest-snapshot']?.());
 };
 
-/** The module's template for the app's snapshot, evaluated. */
-const importClientManifestSnapshot = function importClientManifestSnapshot(
-	nuxt: Nuxt
+/** A snapshot template the module registered, evaluated. */
+const importTemplate = function importTemplate(
+	nuxt: Nuxt,
+	id: string
 ): Promise<unknown> {
 	const { alias, build } = nuxt.options as unknown as {
 		alias: Record<string, string>;
 		build: { templates: { dst: string; getContents: () => string }[] };
 	};
-	const template = build.templates.find(
-		({ dst }) => dst === alias['#c15t/client-manifest-snapshot']
-	);
+	const template = build.templates.find(({ dst }) => dst === alias[id]);
 	return evaluateModule(template?.getContents());
 };
 
-describe('buildManifest', () => {
+/** The module's template for the server render's snapshot, evaluated. */
+const importServerManifestSnapshot = function importServerManifestSnapshot(
+	nuxt: Nuxt
+): Promise<unknown> {
+	return importTemplate(nuxt, '#c15t/server-manifest-snapshot');
+};
+
+/** The module's template for the browser's snapshot, evaluated. */
+const importClientManifestSnapshot = function importClientManifestSnapshot(
+	nuxt: Nuxt
+): Promise<unknown> {
+	return importTemplate(nuxt, '#c15t/client-manifest-snapshot');
+};
+
+const setUpModule = async function setUpModule(
+	c15t: Record<string, unknown>,
+	fetch: typeof globalThis.fetch = vi.fn<typeof globalThis.fetch>(),
+	ssr = true,
+	lifecycle: { _generate?: boolean; _prepare?: boolean; dev?: boolean } = {}
+) {
+	warn.mockClear();
+	vi.stubGlobal('fetch', fetch);
+	try {
+		const nuxt = createNuxt(c15t, ssr, lifecycle);
+		await runWithNuxtContext(nuxt, () => module({}, nuxt));
+		return nuxt;
+	} finally {
+		vi.unstubAllGlobals();
+	}
+};
+
+const snapshotResponse = (snapshot: unknown) =>
+	vi.fn<typeof globalThis.fetch>().mockResolvedValue(Response.json(snapshot));
+
+const unreachable = () =>
+	vi
+		.fn<typeof globalThis.fetch>()
+		.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'));
+
+describe('the build snapshot in manifest() mode', () => {
 	test.each([false, true])(
 		'embeds the manifest in the server bundle with dev: %s',
 		async (dev) => {
 			const snapshot = createSnapshot();
-			const fetch = vi
-				.fn<typeof globalThis.fetch>()
-				.mockResolvedValue(Response.json(snapshot));
-			vi.stubGlobal('fetch', fetch);
-			try {
-				const nuxt = createNuxt(
-					{
-						backendURL: 'https://consent.example.com',
-						buildManifest: true,
-					},
-					true,
-					{ dev }
-				);
-				await runWithNuxtContext(nuxt, () => module({}, nuxt));
-				expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
-				// Nitro replaces every `null` in runtime config with `''` during
-				// the build, so the snapshot must not travel through it.
-				expect(nuxt.options.runtimeConfig.c15t).not.toHaveProperty(
-					'manifestSnapshot'
-				);
-				expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
-					manifest: 'server',
-				});
-				expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
-					'manifestSnapshot'
-				);
-				expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
-					'buildManifest'
-				);
-				expect(fetch).toHaveBeenCalledTimes(1);
-			} finally {
-				vi.unstubAllGlobals();
-			}
+			const fetch = snapshotResponse(snapshot);
+			const nuxt = await setUpModule(
+				{ backendURL: 'https://consent.example.com' },
+				fetch,
+				true,
+				{ dev }
+			);
+			expect(fetch).toHaveBeenCalledWith(
+				'https://consent.example.com/manifest',
+				expect.anything()
+			);
+			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
+			expect(await importServerManifestSnapshot(nuxt)).toEqual(snapshot);
+			// Server resolution ships no snapshot to the browser.
+			expect(await importClientManifestSnapshot(nuxt)).toBeUndefined();
+			// Nitro replaces every `null` in runtime config with `''` during the
+			// build, so the snapshot must not travel through it.
+			expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
+				mode: { type: 'manifest' },
+				routePrefix: '/api/c15t',
+			});
+			expect(JSON.stringify(nuxt.options.runtimeConfig)).not.toContain(
+				'build-snapshot'
+			);
+			expect(warn).not.toHaveBeenCalled();
 		}
 	);
 
-	test('prepares server mode without fetching a manifest', async () => {
+	test('nuxt prepare fetches nothing', async () => {
 		const fetch = vi
 			.fn<typeof globalThis.fetch>()
 			.mockRejectedValue(
 				new Error('backend unavailable during dependency installation')
 			);
-		vi.stubGlobal('fetch', fetch);
-		try {
-			const nuxt = createNuxt(
-				{
-					backendURL: 'https://consent.example.com',
-					buildManifest: true,
-				},
-				true,
-				{ _prepare: true }
-			);
-			await runWithNuxtContext(nuxt, () => module({}, nuxt));
-			expect(fetch).not.toHaveBeenCalled();
-			expect(await importManifestSnapshot(nuxt)).toBeUndefined();
-			expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
-				manifest: 'server',
-			});
-		} finally {
-			vi.unstubAllGlobals();
-		}
+		const nuxt = await setUpModule(
+			{ backendURL: 'https://consent.example.com' },
+			fetch,
+			true,
+			{ _prepare: true }
+		);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(await importManifestSnapshot(nuxt)).toBeUndefined();
 	});
 
 	test.each([
@@ -218,77 +237,24 @@ describe('buildManifest', () => {
 			response: () => Response.json({ error: 'not a manifest' }),
 		},
 	])('stops the build on $error', async ({ response, error }) => {
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(() => Promise.resolve(response()))
-		);
-		try {
-			const nuxt = createNuxt({
-				backendURL: 'https://consent.example.com',
-				buildManifest: true,
-			});
-			await expect(
-				runWithNuxtContext(nuxt, () => module({}, nuxt))
-			).rejects.toThrow(error);
-		} finally {
-			vi.unstubAllGlobals();
-		}
-	});
-});
-
-describe('buildManifest unset', () => {
-	const setUp = async function setUp(
-		c15t: Record<string, unknown>,
-		fetch: typeof globalThis.fetch,
-		ssr = true,
-		lifecycle: { _generate?: boolean; dev?: boolean } = {}
-	) {
-		warn.mockClear();
-		vi.stubGlobal('fetch', fetch);
-		try {
-			const nuxt = createNuxt(c15t, ssr, lifecycle);
-			await runWithNuxtContext(nuxt, () => module({}, nuxt));
-			return {
-				manifest: (
-					nuxt.options.runtimeConfig.public.c15t as Record<string, unknown>
-				).manifest,
-				snapshot: await importManifestSnapshot(nuxt),
-			};
-		} finally {
-			vi.unstubAllGlobals();
-		}
-	};
-
-	test('bundles a snapshot in server mode', async () => {
-		const snapshot = createSnapshot();
-		const fetch = vi
-			.fn<typeof globalThis.fetch>()
-			.mockResolvedValue(Response.json(snapshot));
-		const result = await setUp(
-			{ backendURL: 'https://consent.example.com' },
-			fetch
-		);
-		expect(fetch).toHaveBeenCalledWith(
-			'https://consent.example.com/manifest',
-			expect.anything()
-		);
-		expect(result).toEqual({ manifest: 'server', snapshot });
-		expect(warn).not.toHaveBeenCalled();
+		await expect(
+			setUpModule(
+				{ backendURL: 'https://consent.example.com' },
+				vi
+					.fn<typeof globalThis.fetch>()
+					.mockImplementation(() => Promise.resolve(response()))
+			)
+		).rejects.toThrow(error);
 	});
 
-	const unreachable = () =>
-		vi
-			.fn<typeof globalThis.fetch>()
-			.mockRejectedValue(new Error('getaddrinfo ENOTFOUND'));
-
-	test('nuxt dev warns and fetches at runtime when the fetch fails', async () => {
-		const result = await setUp(
+	test('nuxt dev warns and reads the manifest at runtime when the fetch fails', async () => {
+		const nuxt = await setUpModule(
 			{ backendURL: 'https://consent.example.com' },
 			unreachable(),
 			true,
 			{ dev: true }
 		);
-		expect(result).toEqual({ manifest: 'server', snapshot: undefined });
+		expect(await importManifestSnapshot(nuxt)).toBeUndefined();
 		expect(warn).toHaveBeenCalledWith(
 			expect.stringContaining('during dev (getaddrinfo ENOTFOUND)')
 		);
@@ -296,20 +262,21 @@ describe('buildManifest unset', () => {
 
 	test('nuxt build stops when the fetch fails', async () => {
 		await expect(
-			setUp({ backendURL: 'https://consent.example.com' }, unreachable())
+			setUpModule({ backendURL: 'https://consent.example.com' }, unreachable())
 		).rejects.toThrow(
 			"@c15t/vue: could not fetch the consent manifest from https://consent.example.com/manifest during the build (getaddrinfo ENOTFOUND). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
+		);
+	});
+
+	test('nuxt build stops without a backend URL', async () => {
+		await expect(setUpModule({})).rejects.toThrow(
+			'NUXT_PUBLIC_C15T_BACKEND_URL'
 		);
 	});
 
 	test.each([
 		['onBuildError', { onBuildError: 'runtime' }, undefined],
 		['C15T_ON_BUILD_ERROR', {}, 'runtime'],
-		[
-			'C15T_ON_BUILD_ERROR over buildManifest: true',
-			{ buildManifest: true },
-			'runtime',
-		],
 	])(
 		'%s runtime lets nuxt build continue',
 		async (_name, settings, fromEnv) => {
@@ -317,11 +284,11 @@ describe('buildManifest unset', () => {
 				vi.stubEnv('C15T_ON_BUILD_ERROR', fromEnv);
 			}
 			try {
-				const result = await setUp(
+				const nuxt = await setUpModule(
 					{ backendURL: 'https://consent.example.com', ...settings },
 					unreachable()
 				);
-				expect(result).toEqual({ manifest: 'server', snapshot: undefined });
+				expect(await importManifestSnapshot(nuxt)).toBeUndefined();
 				expect(warn).toHaveBeenCalledTimes(1);
 			} finally {
 				vi.unstubAllEnvs();
@@ -331,7 +298,7 @@ describe('buildManifest unset', () => {
 
 	test("onBuildError: 'fail' stops nuxt dev", async () => {
 		await expect(
-			setUp(
+			setUpModule(
 				{ backendURL: 'https://consent.example.com', onBuildError: 'fail' },
 				unreachable(),
 				true,
@@ -344,123 +311,145 @@ describe('buildManifest unset', () => {
 		vi.stubEnv('NUXT_PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
 		try {
 			const snapshot = createSnapshot();
-			const fetch = vi
-				.fn<typeof globalThis.fetch>()
-				.mockResolvedValue(Response.json(snapshot));
-			const result = await setUp({}, fetch);
+			const fetch = snapshotResponse(snapshot);
+			const nuxt = await setUpModule({}, fetch);
 			expect(fetch).toHaveBeenCalledWith(
 				'https://env.example.com/manifest',
 				expect.anything()
 			);
-			expect(result).toEqual({ manifest: 'server', snapshot });
+			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
+			expect(nuxt.options.runtimeConfig.public.c15t).toHaveProperty(
+				'backendURL',
+				'https://env.example.com'
+			);
 		} finally {
 			vi.unstubAllEnvs();
 		}
 	});
 
 	test.each([
-		['a relative backendURL', { backendURL: '/api/c15t' }, true, {}, false],
+		['a relative backendURL', { backendURL: '/api/c15t' }],
 		[
-			'manifest: false',
-			{ backendURL: 'https://consent.example.com', manifest: false },
-			true,
-			{},
-			false,
+			'hosted()',
+			{ backendURL: 'https://consent.example.com', mode: { type: 'hosted' } },
 		],
 		[
-			"manifest: 'client'",
-			{ backendURL: 'https://consent.example.com', manifest: 'client' },
-			true,
-			{},
-			'client',
+			'offline()',
+			{ backendURL: 'https://consent.example.com', mode: { type: 'offline' } },
 		],
 		[
-			'ssr: false',
-			{ backendURL: 'https://consent.example.com' },
-			false,
-			{},
-			false,
-		],
-		[
-			'nuxt generate',
-			{ backendURL: 'https://consent.example.com' },
-			true,
-			{ _generate: true },
-			false,
-		],
-		[
-			'buildManifest: false and a manifestURL',
+			"source: 'runtime'",
 			{
 				backendURL: 'https://consent.example.com',
-				buildManifest: false,
-				manifestURL: 'https://cdn.example.com/manifest.json',
+				mode: { source: 'runtime', type: 'manifest' },
 			},
-			true,
-			{},
-			false,
 		],
-		[
-			'buildManifest: false',
-			{
-				backendURL: 'https://consent.example.com',
-				buildManifest: false,
-				manifest: 'server',
-			},
-			true,
-			{},
-			'server',
-		],
-	] as const)(
-		'fetches nothing with %s',
-		async (_name, c15t, ssr, lifecycle, manifest) => {
-			const fetch = vi.fn<typeof globalThis.fetch>();
-			const result = await setUp(c15t, fetch, ssr, lifecycle);
-			expect(fetch).not.toHaveBeenCalled();
-			expect(result).toEqual({ manifest, snapshot: undefined });
-			expect(warn).not.toHaveBeenCalled();
-		}
-	);
+	] as const)('fetches nothing with %s', async (_name, c15t) => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const nuxt = await setUpModule(c15t, fetch);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(await importManifestSnapshot(nuxt)).toBeUndefined();
+		expect(warn).not.toHaveBeenCalled();
+	});
 });
 
-describe('manifestSnapshot under the c15t key', () => {
-	// App config can switch the manifest mode, so the app gets it in each.
-	test.each([false, 'client', 'server'])(
-		'stays out of runtime config with manifest: %s',
-		async (manifest) => {
-			const snapshot = createSnapshot();
-			const nuxt = createNuxt({
-				backendURL: 'https://consent.example.com',
-				manifest,
-				manifestSnapshot: snapshot,
-			});
-			await runWithNuxtContext(nuxt, () => module({}, nuxt));
-			// Nitro replaces every `null` in runtime config with `''` during
-			// the build.
-			expect(nuxt.options.runtimeConfig.public.c15t).not.toHaveProperty(
-				'manifestSnapshot'
-			);
-			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
-			expect(await importClientManifestSnapshot(nuxt)).toEqual(snapshot);
-		}
-	);
-
-	test('leaves the build snapshot out of the app bundle', async () => {
+describe('where the snapshot goes', () => {
+	test('a snapshot the mode names stays out of runtime config', async () => {
 		const snapshot = createSnapshot();
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(() => Promise.resolve(Response.json(snapshot)))
-		);
-		try {
-			const nuxt = createNuxt({
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const nuxt = await setUpModule(
+			{
 				backendURL: 'https://consent.example.com',
-				buildManifest: true,
-			});
-			await runWithNuxtContext(nuxt, () => module({}, nuxt));
-			expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
-			expect(await importClientManifestSnapshot(nuxt)).toBeUndefined();
-		} finally {
-			vi.unstubAllGlobals();
-		}
+				mode: { snapshot, type: 'manifest' },
+			},
+			fetch
+		);
+		expect(fetch).not.toHaveBeenCalled();
+		expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
+			mode: { type: 'manifest' },
+		});
+		expect(JSON.stringify(nuxt.options.runtimeConfig)).not.toContain(
+			'build-snapshot'
+		);
+		expect(await importManifestSnapshot(nuxt)).toEqual(snapshot);
+		expect(await importClientManifestSnapshot(nuxt)).toBeUndefined();
+	});
+
+	test("resolve: 'browser' bundles the build snapshot for the browser", async () => {
+		const snapshot = createSnapshot();
+		const nuxt = await setUpModule(
+			{
+				backendURL: 'https://consent.example.com',
+				mode: { resolve: 'browser', type: 'manifest' },
+				routePrefix: false,
+			},
+			snapshotResponse(snapshot),
+			false,
+			{ _generate: true }
+		);
+		expect(await importClientManifestSnapshot(nuxt)).toEqual(snapshot);
+		expect(nuxt.options.runtimeConfig.public.c15t).toMatchObject({
+			mode: { resolve: 'browser', type: 'manifest' },
+			routePrefix: false,
+		});
+		expect(warn).not.toHaveBeenCalled();
+	});
+});
+
+describe('mode and routePrefix', () => {
+	// Nuxt Kit also mounts a `/**` route at its base for older Nitro routers.
+	const handlerRoutes = (nuxt: Nuxt) =>
+		(
+			nuxt.options as unknown as { serverHandlers: { route: string }[] }
+		).serverHandlers
+			.map(({ route }) => route)
+			.filter((route) => route.endsWith('/**'));
+
+	test('manifest() adds one catch-all consent route', async () => {
+		const nuxt = await setUpModule({ backendURL: '/api/self-host' });
+		expect(handlerRoutes(nuxt)).toEqual(['/api/c15t/**']);
+	});
+
+	test('routePrefix moves the route, and false removes it', async () => {
+		const moved = await setUpModule({
+			backendURL: '/api/self-host',
+			routePrefix: '/consent/',
+		});
+		expect(handlerRoutes(moved)).toEqual(['/consent/**']);
+		const removed = await setUpModule({
+			backendURL: '/api/self-host',
+			routePrefix: false,
+		});
+		expect(handlerRoutes(removed)).toEqual([]);
+	});
+
+	test('hosted() needs no consent route', async () => {
+		const nuxt = await setUpModule({
+			backendURL: 'https://consent.example.com',
+			mode: { type: 'hosted' },
+		});
+		expect(handlerRoutes(nuxt)).toEqual([]);
+	});
+
+	test('rejects a transport in place of mode data', async () => {
+		const transport = Object.assign(() => ({}), { kind: 'hosted' });
+		await expect(
+			setUpModule({ backendURL: '/api/self-host', mode: transport })
+		).rejects.toThrow(
+			"Import `manifest`, `hosted` or `offline` from 'c15t/vue'"
+		);
+	});
+
+	test('nuxt generate warns that the server cannot resolve the policy', async () => {
+		await setUpModule(
+			{ backendURL: '/api/self-host' },
+			vi.fn<typeof globalThis.fetch>(),
+			true,
+			{ _generate: true }
+		);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining("manifest({ resolve: 'browser' })")
+		);
 	});
 });
 
@@ -497,12 +486,15 @@ describe('the early /init script for ssr: false pages', () => {
 	});
 
 	test("tells the server plugin about the app's ssr option", async () => {
-		expect((await setUp({}, false)).ssr).toBe(false);
-		expect((await setUp({})).ssr).toBe(true);
+		expect((await setUp({ backendURL: '/api/c15t' }, false)).ssr).toBe(false);
+		expect((await setUp({ backendURL: '/api/c15t' })).ssr).toBe(true);
 	});
 
 	test('stays out of the runtime config the browser receives', async () => {
-		const config = await publicConfig({ initPrefetch: false });
+		const config = await publicConfig({
+			backendURL: '/api/c15t',
+			initPrefetch: false,
+		});
 		expect(config).not.toHaveProperty('initPrefetch');
 	});
 

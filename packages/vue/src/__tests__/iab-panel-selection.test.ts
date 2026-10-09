@@ -21,7 +21,6 @@ import { decodeTCString } from '../../../iab/src/tcf/tc-string';
 import IabPanel from '../runtime/components/iab-panel.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -30,6 +29,7 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const policy = normalizePolicyRule({
 	id: 'iab-live',

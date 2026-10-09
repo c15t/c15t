@@ -148,7 +148,7 @@ a {
 	list-style: none;
 }
 
-/* ConsentPreferencesLink renders a button. This makes it read as a link. */
+/* ConsentDialogLink renders a button. This makes it read as a link. */
 .footer-link {
 	padding: 0;
 	border: 0;

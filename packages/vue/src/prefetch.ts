@@ -19,9 +19,9 @@ export interface ClientManifestChunk {
 /**
  * c15t chunks a page may need before its first banner paints, so Nuxt keeps
  * prefetching them: the experiment controller. Matched against the end of
- * the source path, inside a c15t package. The IAB banner and the client
- * manifest resolver keep their hints only when the build uses them; see
- * {@link IAB_FIRST_BANNER_SOURCES} and {@link CLIENT_MANIFEST_SOURCE}.
+ * the source path, inside a c15t package. The IAB banner and the browser
+ * resolver keep their hints only when the build uses them; see
+ * {@link IAB_FIRST_BANNER_SOURCES} and {@link BROWSER_RESOLVER_SOURCE}.
  */
 const FIRST_BANNER_SOURCES = ['/dist/libs/experiment-assignment.js'];
 
@@ -37,21 +37,20 @@ const IAB_FIRST_BANNER_SOURCES = [
 ];
 
 /**
- * The client manifest resolver with English base copy. Other languages load
- * on demand. Only client manifest mode loads it while the page starts.
- * A build in another mode loads it only if app config switches to client
- * manifest mode, and then on demand, so a hint there downloads it on every
- * page for nothing.
+ * Core's browser resolver with English base copy. Other languages load on
+ * demand. Only `manifest({ resolve: 'browser' })` loads it while the page
+ * starts; no other mode loads it at all, so a hint there would download it
+ * on every page for nothing.
  */
-const CLIENT_MANIFEST_SOURCE = '/dist/runtime/client-manifest.js';
+const BROWSER_RESOLVER_SOURCE = '/dist/transports/manifest-browser.js';
 
 /** What the Nuxt module knows about the build when it edits the manifest. */
 export interface ConsentPrefetchOptions {
 	/**
-	 * Whether the module runs in client manifest mode, the only mode that
-	 * loads the client manifest resolver at startup. Defaults to `false`.
+	 * Whether the mode is `manifest({ resolve: 'browser' })`, the only mode
+	 * that loads the browser resolver at startup. Defaults to `false`.
 	 */
-	clientManifest?: boolean;
+	browserResolve?: boolean;
 	/**
 	 * Whether the module options turn IAB on. Only then do the IAB banner
 	 * and its CMP keep their hints. Defaults to `false`.
@@ -130,7 +129,7 @@ export const stopPrefetchingConsentChunks =
 			chunk.src !== undefined && isConsentFile(resolve(srcDir, chunk.src));
 		const kept = [
 			...FIRST_BANNER_SOURCES,
-			...(options.clientManifest ? [CLIENT_MANIFEST_SOURCE] : []),
+			...(options.browserResolve ? [BROWSER_RESOLVER_SOURCE] : []),
 			...(options.iab ? IAB_FIRST_BANNER_SOURCES : []),
 		];
 		const deferred = new Set<string>();
@@ -184,6 +183,29 @@ export const stopPrefetchingConsentChunks =
 		}
 	};
 
+/** List a c15t dynamic chunk among every entry's imports. */
+const preloadWithEntry = function preloadWithEntry(
+	manifest: Record<string, ClientManifestChunk>,
+	srcDir: string,
+	isConsentFile: (file: string) => boolean,
+	source: string
+): void {
+	const target = Object.entries(manifest).find(
+		([, chunk]) =>
+			chunk.isDynamicEntry &&
+			chunk.src?.endsWith(source) &&
+			isConsentFile(resolve(srcDir, chunk.src))
+	)?.[0];
+	if (!target) {
+		return;
+	}
+	for (const chunk of Object.values(manifest)) {
+		if (chunk.isEntry && !chunk.imports?.includes(target)) {
+			chunk.imports = [...(chunk.imports ?? []), target];
+		}
+	}
+};
+
 /** The banner the Nuxt root loads as its own chunk (see `nuxt-root.vue`). */
 const BANNER_SOURCE = '/dist/runtime/components/prompt.vue';
 
@@ -213,18 +235,25 @@ export const preloadConsentBanner = function preloadConsentBanner(
 	srcDir: string,
 	isConsentFile: (file: string) => boolean
 ): void {
-	const banner = Object.entries(manifest).find(
-		([, chunk]) =>
-			chunk.isDynamicEntry &&
-			chunk.src?.endsWith(BANNER_SOURCE) &&
-			isConsentFile(resolve(srcDir, chunk.src))
-	)?.[0];
-	if (!banner) {
-		return;
-	}
-	for (const chunk of Object.values(manifest)) {
-		if (chunk.isEntry && !chunk.imports?.includes(banner)) {
-			chunk.imports = [...(chunk.imports ?? []), banner];
-		}
-	}
+	preloadWithEntry(manifest, srcDir, isConsentFile, BANNER_SOURCE);
+};
+
+/**
+ * Preload the browser resolver with the entry, for
+ * `manifest({ resolve: 'browser' })`. The app imports it when the runtime is
+ * built, so a page that only learns of it from the entry would wait a round
+ * trip for it before the banner can resolve. Same mechanism as
+ * {@link preloadConsentBanner}.
+ *
+ * @param manifest - Nuxt's client manifest, edited in place.
+ * @param srcDir - The directory manifest sources are relative to.
+ * @param isConsentFile - Whether a file belongs to a c15t package.
+ * @internal
+ */
+export const preloadBrowserResolver = function preloadBrowserResolver(
+	manifest: Record<string, ClientManifestChunk>,
+	srcDir: string,
+	isConsentFile: (file: string) => boolean
+): void {
+	preloadWithEntry(manifest, srcDir, isConsentFile, BROWSER_RESOLVER_SOURCE);
 };

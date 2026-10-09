@@ -1,8 +1,10 @@
 {/* Generated from benchmarks/tailwind-matrix/v3/nuxt/nuxt.config.ts (docs:nuxt-config) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```ts title="nuxt.config.ts"
+import { hosted } from 'c15t/vue';
+
 export default defineNuxtConfig({
-	c15t: { backendURL: '/api/c15t' },
+	c15t: { backendURL: '/api/c15t', mode: hosted() },
 	compatibilityDate: '2026-07-04',
 	css: ['~/assets/css/main.css'],
 	modules: ['c15t/vue'],

@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { createApp, defineComponent, h, inject, onMounted } from 'vue';
 
-import { c15tVue } from '../index';
+import { c15tVue, hosted, manifest } from '../index';
 import type { RuntimeConsentConfig } from '../runtime/kernel';
 import { symbolKernel } from '../runtime/utils/symbols';
 
@@ -53,7 +53,9 @@ test.each([false, true])(
 		const container = document.createElement('div');
 		document.body.append(container);
 		const app = createApp(root);
-		app.use(c15tVue, { backendURL: 'https://consent.example.test' });
+		app.use(c15tVue, {
+			mode: hosted({ backendURL: 'https://consent.example.test' }),
+		});
 		let mounted = false;
 		cleanups.push(() => {
 			if (mounted) {
@@ -72,7 +74,7 @@ test.each([false, true])(
 	}
 );
 
-test("client mode without a snapshot reads the backend's /manifest", async () => {
+test("manifest() without a build snapshot reads the backend's /manifest", async () => {
 	const fetch = vi.fn((_input: RequestInfo | URL) =>
 		Promise.resolve(new Response('{}', { status: 503 }))
 	);
@@ -81,9 +83,7 @@ test("client mode without a snapshot reads the backend's /manifest", async () =>
 	document.body.append(container);
 	const app = createApp(defineComponent({ setup: () => () => h('main') }));
 	app.use(c15tVue, {
-		backendURL: 'https://consent.example.test/api/',
-		manifest: 'client',
-		manifestSnapshot: undefined,
+		mode: manifest({ backendURL: 'https://consent.example.test/api/' }),
 	});
 	app.mount(container);
 	cleanups.push(() => {
@@ -122,13 +122,15 @@ test('holds tracker requests from child mount hooks until the blocker decides th
 		defineComponent({ setup: () => () => h('main', [h(child)]) })
 	);
 	const config: RuntimeConsentConfig = {
-		backendURL: 'https://consent.example.test',
 		networkBlocker: {
 			logBlockedRequests: false,
 			rules: [{ category: 'measurement', domain: 'tracker.example' }],
 		},
 	};
-	app.use(c15tVue, config);
+	app.use(c15tVue, {
+		...config,
+		mode: hosted({ backendURL: 'https://consent.example.test' }),
+	});
 	cleanups.push(() => {
 		app.unmount();
 		container.remove();
@@ -143,7 +145,7 @@ test('holds tracker requests from child mount hooks until the blocker decides th
 	).toBe(false);
 });
 
-test('a manifestURL alone resolves the manifest in the browser, with no init route', async () => {
+test('manifest() with a manifestURL resolves in the browser, with no init route', async () => {
 	const requests: string[] = [];
 	const network = vi.fn((input: RequestInfo | URL) => {
 		requests.push(String(input));
@@ -154,7 +156,9 @@ test('a manifestURL alone resolves the manifest in the browser, with no init rou
 	document.body.append(container);
 	const app = createApp(defineComponent({ setup: () => () => h('main') }));
 	// Plain Vue has no Nuxt server, so there is no `/api/c15t/init` to call.
-	app.use(c15tVue, { manifestURL: 'https://cdn.example.test/manifest' });
+	app.use(c15tVue, {
+		mode: manifest({ manifestURL: 'https://cdn.example.test/manifest' }),
+	});
 	cleanups.push(() => {
 		app.unmount();
 		container.remove();

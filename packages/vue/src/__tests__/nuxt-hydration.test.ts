@@ -51,7 +51,6 @@ vi.mock('#imports', async () => {
 				experiment: nuxt.experiment,
 				hideBranding: true,
 				iframeBlocker: false,
-				manifest: nuxt.manifest,
 			},
 		}),
 		useHead: () => undefined,
@@ -72,7 +71,17 @@ vi.mock('#imports', async () => {
 		}),
 		useRequestHeaders: () => nuxt.headers,
 		useRequestURL: () => new URL('https://app.example/'),
-		useRuntimeConfig: () => ({ public: { c15t: {} } }),
+		// `mode` comes from nuxt.config.ts, through the public runtime config.
+		useRuntimeConfig: () => ({
+			public: {
+				c15t: {
+					mode:
+						nuxt.manifest === 'client'
+							? { resolve: 'browser', type: 'manifest' }
+							: { type: nuxt.manifest ? 'manifest' : 'hosted' },
+				},
+			},
+		}),
 		useState: (key: string, init: () => unknown) => {
 			if (!nuxt.state.has(key)) {
 				nuxt.state.set(key, makeRef(init()));
@@ -450,7 +459,7 @@ test('an `ssr: false` route asks for the policy before the app mounts', async ()
 	}
 });
 
-test('an `ssr: false` route in client manifest mode starts once the app mounts', async () => {
+test('an `ssr: false` route that resolves in the browser starts once the app mounts', async () => {
 	nuxt.manifest = 'client';
 	nuxt.headers = {};
 	const requests: string[] = [];

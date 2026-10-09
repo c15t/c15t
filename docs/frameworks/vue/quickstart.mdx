@@ -75,17 +75,13 @@ for `geoURL`.
 To apply policy edits without rebuilding, remove `consentManifest`, the
 `c15t/generated` import, `manifest` and `manifestSnapshot`. The plugin then
 requests the policy from the backend's `/init` on every page load, and the
-backend resolves the visitor's location. The next section creates
-`src/scripts.ts`.
+backend resolves the visitor's location.
 
 ## Register consent-gated scripts
 
 Remove any existing PostHog snippet so the script loads once, and add
-measurement to your Inth policy.
-
-Create `src/scripts.ts`. PostHog waits for measurement permission.
-
-<include src="../../shared/examples/vue/scripts.mdx" />
+measurement to your Inth policy. The `scripts` option in `src/main.ts` loads
+PostHog once the visitor allows measurement.
 
 Replace `phc_your_project_key` with your PostHog project key. PostHog
 defaults to its EU region; set `region: 'us'` for a US project.

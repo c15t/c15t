@@ -3,9 +3,9 @@ import { mount } from '@vue/test-utils';
 import { expect, test, vi } from 'vitest';
 import { defineComponent, h, inject, nextTick } from 'vue';
 
-import { c15tVue } from '../index';
 import PanelTrigger from '../runtime/components/panel-trigger.vue';
 import { symbolKernel, symbolActiveUI } from '../runtime/utils/symbols';
+import { c15tVue } from './test-plugin';
 
 test('Vue plugin options own one external authority and share script lifecycle', async () => {
 	let permissions: Partial<ConsentState> | null = null;
