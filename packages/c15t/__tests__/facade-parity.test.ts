@@ -73,8 +73,6 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 	// The vue plugin/runtime entries need a Nuxt/Vite context (`#imports`)
 	// or the `.vue` SFC pipeline.
 	'./vue/vue-plugin',
-	'./vue/consent-root',
-	'./vue/consent-widget',
 	// Compatibility entries also resolve to raw SFCs, which Node cannot load.
 	...Object.keys(manifest.exports).filter(
 		(subpath) =>
