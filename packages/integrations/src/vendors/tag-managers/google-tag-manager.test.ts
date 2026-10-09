@@ -29,6 +29,21 @@ describe('googleTagManager', () => {
 		expect(document.head.appendChild).not.toHaveBeenCalled();
 	});
 
+	it('keeps values seeded before it runs ahead of the container start', () => {
+		const globalRef = getTestGlobal();
+		const initialValues = { pageType: 'product' };
+		globalRef.dataLayer = [initialValues];
+
+		runOnBeforeLoad(googleTagManager({ id: 'GTM-SEEDED' }), {
+			consents: deniedConsentState,
+		});
+
+		const dataLayer = globalRef.dataLayer as unknown[];
+		expect(dataLayer[0]).toBe(initialValues);
+		expectGoogleConsentDefault(dataLayer[1]);
+		expect(dataLayer[2]).toMatchObject({ event: 'gtm.js' });
+	});
+
 	it.each(['customQueue', 'gtag', 'app.layer'])(
 		'sends denied defaults to %s before loading the container',
 		(dataLayer) => {

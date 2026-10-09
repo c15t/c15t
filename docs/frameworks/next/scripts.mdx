@@ -137,9 +137,49 @@ The component props map to helper options:
 | `dataLayerName` on `GoogleAnalytics` | No equivalent. `gtag` always queues on `window.dataLayer`. |
 | `gtmId` | `id` on `googleTagManager` |
 | `dataLayerName` on `GoogleTagManager` | `dataLayer` on `googleTagManager`. Keep the same name. |
-| `dataLayer` | No option. Push the object yourself, as in the event calls below. |
+| `dataLayer` | No option. Seed the data layer before the container loads. See [keep initial data layer values](#keep-initial-data-layer-values). |
 | `auth`, `preview`, `gtmScriptUrl` | No option. Use a [custom integration](/docs/integrations/building-integrations) for GTM environments or a server-side tagging URL. |
 | `nonce` | `options={{ nonce }}` on `ConsentRoot`. See [Content Security Policy](/docs/frameworks/next/content-security-policy). |
+
+### Keep initial data layer values
+
+`GoogleTagManager` pushes its `dataLayer` object before the `gtm.js` start
+event, so the container's startup triggers can read those values. Pushing the
+object later, like an event, can arrive after those triggers have run.
+
+Seed the queue in the initial HTML instead, before c15t loads the container.
+Add a `beforeInteractive` script to the root `app/layout.tsx`, or to
+`pages/_document.tsx` with the Pages Router. Keep `ConsentRoot` and the rest
+of your layout as they are:
+
+{/* example: fragment */}
+
+```tsx title="app/layout.tsx (partial)"
+import Script from 'next/script';
+import type { ReactNode } from 'react';
+
+const initialDataLayer = { pageType: 'product' };
+
+export default function RootLayout({ children }: { children: ReactNode }) {
+	return (
+		<html lang="en">
+			<body>
+				<Script id="gtm-initial-data-layer" strategy="beforeInteractive">
+					{`window.dataLayer = window.dataLayer || [];
+window.dataLayer.push(${JSON.stringify(initialDataLayer)});`}
+				</Script>
+				{children}
+			</body>
+		</html>
+	);
+}
+```
+
+`googleTagManager` keeps an array that already exists, so the queue holds your
+object, then Consent Mode `default`, then the `gtm.js` start event. The script
+sends nothing to Google, so it also works with `loadMode: 'after-consent'`.
+Use the name you pass as `dataLayer` on `googleTagManager`, and pass your
+Content Security Policy nonce to `Script` as `nonce`.
 
 <import src="../../shared/scripts/google-load-mode.mdx#choose" />
 
