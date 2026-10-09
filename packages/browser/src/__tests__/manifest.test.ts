@@ -9,6 +9,7 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { createConsentClient } from '../client';
+import { mountGPP } from '../gpp';
 import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 
@@ -393,6 +394,92 @@ describe('manifest() first paint without a known location', () => {
 		await client.ready();
 
 		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+	});
+});
+
+describe('manifest() with GPP and an unknown location', () => {
+	const isInit = (input: unknown): boolean =>
+		pathOf(input).split('?')[0]?.endsWith('/init') === true;
+	const californiaAnswer = () =>
+		Promise.resolve(
+			new Response(
+				JSON.stringify(
+					resolveInitFromManifest(sameBannerEverywhereManifest, {
+						country: 'US',
+						language: 'en',
+						region: 'CA',
+					})
+				)
+			)
+		);
+	const inline = (fetchSpy: typeof fetch) =>
+		manifest({
+			backendURL: 'https://example.test',
+			fetch: fetchSpy,
+			manifest: sameBannerEverywhereManifest,
+		});
+
+	afterEach(() => {
+		delete window.__gpp;
+	});
+
+	it('asks /init for GPP mounted right after start, so US visitors get their section', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(californiaAnswer);
+		const client = createConsentClient({
+			consentCategories: ['measurement'],
+			mode: inline(fetchSpy),
+			overrides: { language: 'en' },
+		});
+		clients.push(client);
+		client.start();
+		const gpp = mountGPP(client);
+
+		try {
+			const snapshot = await client.ready();
+
+			expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+			expect(snapshot.location).toMatchObject({
+				countryCode: 'US',
+				regionCode: 'CA',
+			});
+			expect(gpp.getPingData().applicableSections).toEqual([8]);
+		} finally {
+			gpp.dispose();
+		}
+	});
+
+	it('asks /init when the runtime mounts GPP', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(californiaAnswer);
+		const transport = inline(fetchSpy)({
+			gppEnabled: true,
+		} as ProviderTransportContext);
+
+		await transport.init?.({ overrides: { language: 'en' }, user: null });
+
+		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+	});
+
+	it('still answers locally without GPP, with no location', async () => {
+		const fetchSpy = vi.fn<typeof fetch>(californiaAnswer);
+		const transport = inline(fetchSpy)({} as ProviderTransportContext);
+
+		const response = await transport.init?.({
+			overrides: { language: 'en' },
+			user: null,
+		});
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(response?.location).toEqual({ countryCode: null, regionCode: null });
+		expect(response?.resolvedOverrides?.country).toBeUndefined();
+	});
+
+	it('tells a provider the first init asks /init when __gpp is installed', () => {
+		const early = earlyInitModes.get(inline(vi.fn<typeof fetch>()));
+		expect(early?.requestsInit({ language: 'en' })).toBe(false);
+
+		window.__gpp = () => undefined;
+
+		expect(early?.requestsInit({ language: 'en' })).toBe(true);
 	});
 });
 

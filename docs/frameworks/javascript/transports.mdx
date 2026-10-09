@@ -90,6 +90,16 @@ resolve in the browser. Other languages still go to `/init`, which fills the
 gaps from that language's full copy. When the location is unknown, an IAB
 policy behind country or region rules also goes to `/init`.
 
+A manifest resolved in the browser without a known location reports no
+location: `getSnapshot().location` and `useLocation()` have a `null` country
+and region. Code that reads the visitor's country should supply it through
+`inputs`, or use `/init`. IAB GPP needs it for its US state sections, so when
+GPP is on, through the runtime's `gpp` option, `<ConsentGPP>` or `mountGPP()`,
+an unknown location goes to `/init` even when every location gets the same
+banner. The script-tag build counts GPP as on, because `c15t.gpp.js` can load
+after `init()`; pass `gpp: false` to `c15t.init()` to resolve in the browser on
+pages that do not load it.
+
 `createManifestTransport` from `c15t/transports/manifest` is the server
 version. It bundles every language, so keep it out of browser code.
 

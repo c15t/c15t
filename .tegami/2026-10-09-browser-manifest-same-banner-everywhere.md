@@ -1,6 +1,7 @@
 ---
 packages:
   '@c15t/browser': patch
+  '@c15t/core': patch
 ---
 
 ### Show the banner from a bundled manifest when every location gets the same one
@@ -19,3 +20,11 @@ call `/init`, as do IAB policies behind country or region rules. So do
 visitors in any language but English when the location is unknown, because the
 browser bundle carries English copy only and `/init` returns their language in
 full.
+
+A manifest resolved this way reports no location: `getSnapshot().location`
+and `useLocation()` have a `null` country and region. Supply the country
+through `inputs` if your code reads it. When IAB GPP is on, through the
+runtime's `gpp` option, `<ConsentGPP>` or `mountGPP()`, an unknown location
+still calls `/init`, because the GPP US sections need the visitor's state. The
+script-tag build counts GPP as on unless `c15t.init()` gets `gpp: false`.
+Transport factories see this as `gppEnabled` on their context.

@@ -11,6 +11,7 @@ import type {
 	InitResponse,
 	KernelOverrides,
 	KernelTransport,
+	ProviderTransportContext,
 	ProviderTransportFactory,
 } from '@c15t/core';
 import type {
@@ -278,29 +279,63 @@ const browserBaseTranslations = {
 } as unknown as BaseTranslations;
 
 /**
+ * Whether these inputs place the visitor precisely enough for this
+ * manifest: it has no location packs, or the country is known and so is
+ * the region whenever some pack is keyed by region.
+ */
+const knowsLocation = function knowsLocation(
+	resolved: ConsentManifest,
+	inputs: ResolveInitFromManifestInputs
+): boolean {
+	return (
+		!hasLocationMatchers(resolved) ||
+		Boolean(
+			inputs.country &&
+			(inputs.region ||
+				!resolved.policyPacks?.some(
+					(pack) => (pack.match.regions?.length ?? 0) > 0
+				))
+		)
+	);
+};
+
+/**
+ * Whether IAB GPP is on the page: the `__gpp` stub or API is installed.
+ * Another CMP's `__gpp` counts too; it only costs a request.
+ */
+const gppOnPage = function gppOnPage(): boolean {
+	return (
+		typeof window !== 'undefined' &&
+		typeof (window as Window & { __gpp?: unknown }).__gpp === 'function'
+	);
+};
+
+/**
  * The init the browser can answer from this manifest for these inputs, or
  * `undefined` when it must ask `/init`. Synchronous, so a provider can ask
  * during render whether the first `init()` will send a request.
+ *
+ * @param needsLocation - Something reads the visitor's location after
+ * init, such as GPP's US sections. A manifest keyed by location then
+ * never answers for an unknown one, even when every location gets the
+ * same banner: that answer reports no location.
  */
 const localAnswer = function localAnswer(
 	resolved: ConsentManifest,
-	inputs: ResolveInitFromManifestInputs
+	inputs: ResolveInitFromManifestInputs,
+	needsLocation: boolean
 ): InitOutput | undefined {
 	const resolveLocally = () =>
 		resolveInitFromManifest(resolved, inputs, {
 			baseTranslations: browserBaseTranslations,
 		});
-	if (
-		!hasLocationMatchers(resolved) ||
-		(inputs.country &&
-			(inputs.region ||
-				!resolved.policyPacks?.some(
-					(pack) => (pack.match.regions?.length ?? 0) > 0
-				)))
-	) {
+	if (knowsLocation(resolved, inputs)) {
 		return resolveLocally();
 	}
-	// The location is unknown. When every location gives the same banner,
+	if (needsLocation) {
+		return undefined;
+	}
+	// The location is unknown. When every location gets the same banner,
 	// the bundle already holds the answer and the banner need not wait for
 	// a round trip. IAB needs the vendor list, and a visitor in any language
 	// but English would get copy with English gaps, so both still ask `/init`.
@@ -354,7 +389,9 @@ const sameManifest = function sameManifest(
  * When some locations get a different banner than others and no country
  * is known, the transport falls back to `GET /init` so the answer stays
  * faithful. Packs keyed by location that all give the same banner resolve
- * in the browser (see {@link manifestNeedsLocation}).
+ * in the browser (see {@link manifestNeedsLocation}), unless IAB GPP is on
+ * the page or the runtime: its US sections need the visitor's country, and
+ * a local answer for an unknown location reports none.
  *
  * @param options - Manifest source and backend.
  * @returns A transport factory for `mode`.
@@ -414,28 +451,45 @@ export const manifest = function manifest(
 	 * `/init` it sends during its first render, so their request state and
 	 * unreported journeys must not be shared.
 	 */
-	const createTransport = function createTransport(): KernelTransport {
+	const createTransport = function createTransport(
+		context?: ProviderTransportContext
+	): KernelTransport {
 		// `''` is a real answer: a root-relative `manifestURL` such as
 		// `/manifest` or an explicit empty backend means this origin.
 		const hosted = createHostedTransport({ backendURL, fetch: options.fetch });
 		// A local resolution makes no request, so nothing carries its
 		// journey; the saves that follow send none either.
 		const unreported = createUnreportedJourneys();
+		const gppNeedsLocation = () => context?.gppEnabled === true || gppOnPage();
+		const ask = function ask(ctx: InitContext): Promise<InitResponse> {
+			unreported.reported(ctx.journey);
+			return hosted.init(ctx);
+		};
+		const answer = function answer(
+			output: InitOutput,
+			ctx: InitContext
+		): InitResponse {
+			unreported.resolvedLocally(ctx.journey);
+			return mapInitOutputToInitResponse(output, {});
+		};
 		const initFrom = function initFrom(
 			resolved: ConsentManifest,
 			ctx: InitContext
 		): Promise<InitResponse> {
-			const { journey } = ctx;
-			const output = localAnswer(
-				resolved,
-				mergeInputs(options.inputs, ctx.overrides)
-			);
+			const inputs = mergeInputs(options.inputs, ctx.overrides);
+			const output = localAnswer(resolved, inputs, gppNeedsLocation());
 			if (!output) {
-				unreported.reported(journey);
-				return hosted.init(ctx);
+				return ask(ctx);
 			}
-			unreported.resolvedLocally(journey);
-			return Promise.resolve(mapInitOutputToInitResponse(output, {}));
+			if (knowsLocation(resolved, inputs)) {
+				return Promise.resolve(answer(output, ctx));
+			}
+			// This answer has no location. GPP mounted in the same task, such
+			// as React's <ConsentGPP> effect or `mountGPP()` right after
+			// `init()`, installs `__gpp` before a microtask runs.
+			return Promise.resolve().then(() =>
+				gppNeedsLocation() ? ask(ctx) : answer(output, ctx)
+			);
 		};
 		return {
 			identify: hosted.identify,
@@ -468,7 +522,8 @@ export const manifest = function manifest(
 			settings.manifest !== undefined &&
 			localAnswer(
 				settings.manifest,
-				mergeInputs(settings.inputs, overrides)
+				mergeInputs(settings.inputs, overrides),
+				gppOnPage()
 			) === undefined,
 		sameAs: (other) => {
 			const theirs = earlySettings.get(other);
