@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
 import { promptwatch } from './promptwatch';
@@ -42,13 +43,11 @@ describe('promptwatch', () => {
 		expect(script.src).toBe('https://ingest.promptwatch.com/js/client.min.js');
 	});
 
-	it('throws for an empty projectId', () => {
-		expect(() =>
-			promptwatch({
-				projectId: '   ',
-			})
-		).toThrowError(
-			'promptwatch: invalid projectId - must be a non-empty string'
+	it('logs and skips the script for an empty projectId', () => {
+		expectSkippedScript(
+			() => promptwatch({ projectId: '   ' }),
+			{ category: 'measurement', id: 'promptwatch' },
+			'promptwatch: missing or invalid projectId'
 		);
 	});
 });

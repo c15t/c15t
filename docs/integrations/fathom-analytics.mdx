@@ -25,7 +25,7 @@ export const scripts = [fathomAnalytics({ site: 'YOUR_SITE_ID', spa: 'auto' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `site` | Required | Site ID, set as `data-site`. The helper trims it. Empty or whitespace-only values throw. |
+| `site` | Required | Site ID, set as `data-site`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `spa` | None | `'auto'`, `'history'` or `'hash'`, set as `data-spa`. When omitted, the script has no `data-spa` attribute and SPA route tracking stays off. |
 | `auto` | None | Sets `data-auto` to `'true'` or `'false'` to control automatic page views. When omitted, Fathom's default applies. |
 | `canonical` | None | Sets `data-canonical` to control canonical URL tracking. When omitted, Fathom's default applies. |

@@ -24,7 +24,7 @@ export const scripts = [logRocket({ appId: 'your-org/your-app' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `appId` | Required | App ID passed to `LogRocket.init`. The helper trims it. Values that are not two non-empty segments separated by `/` throw. |
+| `appId` | Required | App ID passed to `LogRocket.init`. The helper trims it. Values that are not two non-empty segments separated by `/` log an error and the script does not load. |
 | `initOptions` | `{}` | Second argument to `LogRocket.init`. Use JSON-serializable values only, so functions such as request sanitizers cannot pass through. |
 | `scriptUrl` | `https://cdn.logrocket.io/LogRocket.min.js` | Loader URL override. A blank value falls back to the default. |
 | `asyncScriptUrl` | None | Proxied URL for LogRocket's logger bundle, set as `window._lrAsyncScript` before the loader runs. Set it only when you proxy LogRocket through your own domain. |

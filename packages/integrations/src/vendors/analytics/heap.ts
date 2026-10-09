@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import {
 	joinUrlPath,
 	resolveScriptUrl,
@@ -346,16 +347,6 @@ export interface HeapOptions {
 	scriptUrl?: string;
 }
 
-const validateEnvId = function validateEnvId(envId: unknown): string {
-	const normalized = typeof envId === 'string' ? envId.trim() : '';
-
-	if (normalized.length === 0) {
-		throw new Error('heap: missing or invalid envId');
-	}
-
-	return normalized;
-};
-
 const isPlainRecord = function isPlainRecord(
 	value: unknown
 ): value is Record<string, unknown> {
@@ -441,10 +432,13 @@ const resolveHeapScriptUrl = function resolveHeapScriptUrl(
  *
  * @param options - The options for the Heap script.
  * @returns The Heap script configuration.
- * @throws {Error} When `envId` is missing or only whitespace.
  * @throws {TypeError} When `clientConfig` contains non-JSON values.
  *
  * @remarks
+ * When `envId` is missing or blank, the helper logs
+ * `heap: missing or invalid envId` with `console.error` and returns a script
+ * that never loads.
+ *
  * Heap autocaptures interactions as soon as heap.js loads. c15t therefore
  * gates the config loader on `measurement` consent and unloads the script when
  * that consent is revoked.
@@ -466,7 +460,13 @@ export const heap = function heap({
 	clientConfig,
 	scriptUrl,
 }: HeapOptions): Script {
-	const normalizedEnvId = validateEnvId(envId);
+	const normalizedEnvId = readId(envId);
+	if (normalizedEnvId === undefined) {
+		return skipMissingId('heap', 'envId', {
+			category: 'measurement',
+			id: 'heap',
+		});
+	}
 
 	return resolveManifest(heapManifest, {
 		clientConfig: normalizeClientConfig(clientConfig),

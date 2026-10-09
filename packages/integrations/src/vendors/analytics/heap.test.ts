@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -162,8 +163,10 @@ describe('heap', () => {
 		).toBe(`${DEFAULT_HEAP_CONFIG_BASE_URL}/123456789/heap_config.js`);
 	});
 
-	it('throws for an empty env id', () => {
-		expect(() => heap({ envId: '   ' })).toThrowError(
+	it('logs and skips the script for an empty env id', () => {
+		expectSkippedScript(
+			() => heap({ envId: '   ' }),
+			{ category: 'measurement', id: 'heap' },
 			'heap: missing or invalid envId'
 		);
 	});

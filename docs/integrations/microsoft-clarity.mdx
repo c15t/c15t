@@ -24,7 +24,7 @@ export const scripts = [clarity({ id: 'YOUR_PROJECT_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `id` | Required | Clarity project ID. Surrounding whitespace is trimmed. An empty ID throws unless you set `scriptUrl`. |
+| `id` | Required | Clarity project ID. Surrounding whitespace is trimmed. Unless you set `scriptUrl`, an empty ID logs an error and the script does not load. |
 | `defaultConsent` | c15t state | Consent V2 value queued once, before the loader. `true` or `false` sets both channels. An object sets `ad_Storage` or `analytics_Storage`, also accepted as `marketing` and `measurement`; channels you leave out follow c15t. Later updates always follow c15t. `true` grants ad storage even while marketing is denied. |
 | `scriptUrl` | `https://www.clarity.ms/tag/<id>` | Loader URL override. |
 

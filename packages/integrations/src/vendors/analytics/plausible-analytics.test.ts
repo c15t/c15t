@@ -4,6 +4,7 @@ import {
 	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	setupScriptHelperTest,
 	toArgumentsArray,
@@ -56,13 +57,14 @@ describe('plausibleAnalytics', () => {
 		expect(script.attributes?.['data-api']).toBeUndefined();
 	});
 
-	it('throws when neither scriptId nor domain is provided', () => {
-		expect(() => plausibleAnalytics({})).toThrow(
-			'plausibleAnalytics: missing scriptId or domain'
-		);
-		expect(() =>
-			plausibleAnalytics({ domain: '   ', scriptId: '   ' })
-		).toThrow('plausibleAnalytics: missing scriptId or domain');
+	it('logs and skips the script when neither scriptId nor domain is provided', () => {
+		for (const options of [{}, { domain: '   ', scriptId: '   ' }]) {
+			expectSkippedScript(
+				() => plausibleAnalytics(options),
+				{ category: 'measurement', id: 'plausible-analytics' },
+				'plausibleAnalytics: missing scriptId or domain'
+			);
+		}
 	});
 
 	it('seeds the plausible queue stub and buffers calls before the script loads', () => {

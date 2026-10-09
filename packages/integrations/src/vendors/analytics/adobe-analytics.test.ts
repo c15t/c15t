@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	runOnBeforeLoad,
 	setupScriptHelperTest,
@@ -85,22 +86,21 @@ describe('adobeAnalytics', () => {
 		expect(globalRef.adobeDataLayer).toBeUndefined();
 	});
 
-	it('throws for an empty scriptUrl', () => {
-		expect(() =>
-			adobeAnalytics({
-				scriptUrl: '   ',
-			})
-		).toThrowError(
-			'adobeAnalytics: invalid scriptUrl - must be a non-empty https URL from your Adobe Data Collection embed code'
+	it('logs and skips the script for an empty scriptUrl', () => {
+		expectSkippedScript(
+			() => adobeAnalytics({ scriptUrl: '   ' }),
+			{ category: 'measurement', id: 'adobe-analytics' },
+			'adobeAnalytics: missing or invalid scriptUrl'
 		);
 	});
 
-	it('throws for a non-https scriptUrl', () => {
-		expect(() =>
-			adobeAnalytics({
-				scriptUrl: 'http://assets.adobedtm.com/c15tfake/launch.min.js',
-			})
-		).toThrowError(
+	it('logs and skips the script for a non-https scriptUrl', () => {
+		expectSkippedScript(
+			() =>
+				adobeAnalytics({
+					scriptUrl: 'http://assets.adobedtm.com/c15tfake/launch.min.js',
+				}),
+			{ category: 'measurement', id: 'adobe-analytics' },
 			'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code'
 		);
 	});

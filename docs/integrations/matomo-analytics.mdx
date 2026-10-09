@@ -30,7 +30,7 @@ export const scripts = [
 | `matomoUrl` | None | Self-hosted Matomo base URL. The helper loads `<matomoUrl>/matomo.js` and sends hits to `<matomoUrl>/matomo.php`. |
 | `cloudId` | None | Matomo Cloud ID, used when `matomoUrl` is not set. A value ending in `.matomo.cloud` becomes `https://<cloudId>`. Any other value becomes `https://cdn.matomo.cloud/<cloudId>`. |
 | `trackerUrl` | `matomo.php` on the Matomo origin | Tracker endpoint override. |
-| `scriptUrl` | `matomo.js` on the Matomo origin | Loader URL override. Without `matomoUrl` or `cloudId`, set both `trackerUrl` and `scriptUrl`, or the helper throws. |
+| `scriptUrl` | `matomo.js` on the Matomo origin | Loader URL override. Without `matomoUrl` or `cloudId`, set both `trackerUrl` and `scriptUrl`, or the helper logs an error and the script does not load. |
 | `siteId` | `1` | Site ID queued with `setSiteId`. |
 | `trackPageView` | `true` | Queues `trackPageView`. The table below shows when. |
 | `enableLinkTracking` | `false` | Queues `enableLinkTracking`. |

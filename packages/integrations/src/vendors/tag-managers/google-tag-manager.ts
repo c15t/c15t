@@ -7,7 +7,7 @@ import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,
 } from '../_shared/google-consent';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 
 // Extended Window interface to include GTM-specific properties
 declare global {
@@ -193,8 +193,9 @@ export interface GoogleTagManagerOptions {
  *
  * @param options - The options for the Google Tag Manager script.
  * @returns The Google Tag Manager script.
- * @throws {Error} `googleTagManager: missing or invalid id` when `id` is
- *   empty or only whitespace.
+ * @remarks When `id` is missing or blank, the
+ *   helper logs `googleTagManager: missing or invalid id` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -209,6 +210,14 @@ export const googleTagManager = function googleTagManager({
 	loadMode = 'always',
 	category,
 }: GoogleTagManagerOptions): Script {
+	const normalizedId = readId(id);
+	if (normalizedId === undefined) {
+		return skipMissingId('googleTagManager', 'id', {
+			category: 'necessary',
+			id: 'google-tag-manager',
+		});
+	}
+
 	let manifest: VendorManifest = withOptionalConsentMapping(
 		googleTagManagerManifest,
 		consentMapping
@@ -235,7 +244,7 @@ export const googleTagManager = function googleTagManager({
 		};
 	}
 	const resolved = resolveManifest(manifest, {
-		id: requireId('googleTagManager', 'id', id),
+		id: normalizedId,
 		updateEventName: updateEventName ?? 'consent-update',
 	});
 

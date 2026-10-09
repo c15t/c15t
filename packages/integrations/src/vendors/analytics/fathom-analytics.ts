@@ -4,7 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { booleanDataAttribute } from '../_shared/attributes';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -100,8 +100,9 @@ export interface FathomAnalyticsOptions {
  *
  * @param options - The options for the Fathom Analytics script.
  * @returns The Fathom Analytics script.
- * @throws {Error} `fathomAnalytics: missing or invalid site` when `site` is
- *   empty or only whitespace.
+ * @remarks When `site` is missing or blank, the
+ *   helper logs `fathomAnalytics: missing or invalid site` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -117,6 +118,14 @@ export interface FathomAnalyticsOptions {
 export const fathomAnalytics = function fathomAnalytics(
 	options: FathomAnalyticsOptions
 ): Script {
+	const site = readId(options.site);
+	if (site === undefined) {
+		return skipMissingId('fathomAnalytics', 'site', {
+			category: 'measurement',
+			id: 'fathom-analytics',
+		});
+	}
+
 	const resolved = resolveManifest(fathomAnalyticsManifest, {
 		autoAttribute: booleanDataAttribute(options.auto),
 		canonicalAttribute: booleanDataAttribute(options.canonical),
@@ -125,7 +134,7 @@ export const fathomAnalytics = function fathomAnalytics(
 			options.scriptUrl,
 			'https://cdn.usefathom.com/script.js'
 		),
-		site: requireId('fathomAnalytics', 'site', options.site),
+		site,
 		spa: options.spa,
 	});
 

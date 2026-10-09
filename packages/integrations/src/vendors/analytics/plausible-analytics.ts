@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipScript } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 export type PlausibleExtension =
@@ -202,6 +203,9 @@ export interface PlausibleAnalyticsOptions {
  *
  * @param options - The options for the Plausible Analytics script.
  * @returns The Plausible Analytics script.
+ * @remarks When neither `scriptId` nor `domain` is set, the helper logs
+ *   `plausibleAnalytics: missing scriptId or domain` with `console.error`
+ *   and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -216,18 +220,14 @@ export interface PlausibleAnalyticsOptions {
 export const plausibleAnalytics = function plausibleAnalytics(
 	options: PlausibleAnalyticsOptions
 ): Script {
-	let scriptId: string | undefined;
-	if (options.scriptId) {
-		scriptId = options.scriptId.trim();
-	}
-
-	let domain: string | undefined;
-	if (options.domain) {
-		domain = options.domain.trim();
-	}
+	const scriptId = readId(options.scriptId);
+	const domain = readId(options.domain);
 
 	if (!scriptId && !domain) {
-		throw new Error('plausibleAnalytics: missing scriptId or domain');
+		return skipScript('plausibleAnalytics: missing scriptId or domain', {
+			category: 'measurement',
+			id: 'plausible-analytics',
+		});
 	}
 
 	const normalizedOptions: PlausibleAnalyticsOptions = { ...options };

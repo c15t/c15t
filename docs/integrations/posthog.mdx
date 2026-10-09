@@ -36,7 +36,7 @@ framework plugin or array snippet that also does, or follow
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `id` | Required | Project token, starting with `phc_`. The helper trims it. Empty or whitespace-only values throw. |
+| `id` | Required | Project token, starting with `phc_`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `region` | `'eu'` | `'eu'` or `'us'`. Picks the API, UI and loader hosts when you do not set them. |
 | `apiHost` | `https://eu.i.posthog.com` | API host for a proxy or self-hosted PostHog. Without `scriptUrl`, the loader URL becomes `<apiHost>/static/array.js`. |
 | `uiHost` | The region's UI host | UI host, for example `https://eu.posthog.com`. A custom `apiHost` with no `region` uses the API host. |

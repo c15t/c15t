@@ -4,7 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 export type SnapchatPixelEventName =
@@ -205,8 +205,9 @@ export interface SnapchatPixelOptions {
  * @returns A resolved c15t `Script` configuration that defines the Snapchat
  *   queue stub, runs `init` (and optionally `PAGE_VIEW`), and then loads the
  *   Snapchat SDK script URL.
- * @throws {Error} `snapchatPixel: missing or invalid pixelId` when `pixelId`
- *   is missing, empty, or only whitespace.
+ * @remarks When `pixelId` is missing or blank, the
+ *   helper logs `snapchatPixel: missing or invalid pixelId` with
+ *   `console.error` and returns a script that never loads.
  *
  * Edge cases:
  * - Non-numeric or malformed `pixelId` values may initialize incorrectly in
@@ -230,6 +231,14 @@ export const snapchatPixel = function snapchatPixel({
 	trackPageView = true,
 	scriptUrl,
 }: SnapchatPixelOptions): Script {
+	const normalizedPixelId = readId(pixelId);
+	if (normalizedPixelId === undefined) {
+		return skipMissingId('snapchatPixel', 'pixelId', {
+			category: 'marketing',
+			id: 'snapchat-pixel',
+		});
+	}
+
 	const initArgs: unknown[] = ['init', '{{pixelId}}'];
 	if (initOptions !== undefined) {
 		initArgs.push('{{initOptions}}');
@@ -256,7 +265,7 @@ export const snapchatPixel = function snapchatPixel({
 
 	return resolveManifest(manifest, {
 		initOptions,
-		pixelId: requireId('snapchatPixel', 'pixelId', pixelId),
+		pixelId: normalizedPixelId,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://sc-static.net/scevent.min.js'

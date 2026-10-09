@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -22,22 +23,17 @@ declare global {
 const DEFAULT_LOGROCKET_SCRIPT_URL =
 	'https://cdn.logrocket.io/LogRocket.min.js';
 
-const validateLogRocketAppId = function validateLogRocketAppId(
-	appId: unknown
-): string {
-	const normalized = typeof appId === 'string' ? appId.trim() : '';
-	const segments = normalized.split('/');
+const skippedLogRocketScript = {
+	category: 'measurement',
+	id: 'logrocket',
+} as const;
 
-	if (
-		segments.length !== 2 ||
-		segments.some((segment) => segment.length === 0)
-	) {
-		throw new Error(
-			"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
-		);
-	}
+const isLogRocketAppId = function isLogRocketAppId(appId: string): boolean {
+	const segments = appId.split('/');
 
-	return normalized;
+	return (
+		segments.length === 2 && segments.every((segment) => segment.length > 0)
+	);
 };
 
 /**
@@ -120,10 +116,12 @@ export interface LogRocketOptions {
  *
  * @param options - The options for the LogRocket script.
  * @returns The LogRocket script.
- * @throws {Error} When `appId` is missing, empty, or not in `org/app` format.
- * Provide the app ID from LogRocket Project Setup to prevent this error.
  *
  * @remarks
+ * When `appId` is missing, blank, or not in `org/app` format, the helper
+ * logs the problem with `console.error` and returns a script that never
+ * loads. Use the app ID from LogRocket Project Setup.
+ *
  * LogRocket records session replay and monitoring data. Configure LogRocket's
  * privacy and sanitization options before deployment so sensitive DOM, input,
  * network, or application state data is excluded from recordings.
@@ -143,7 +141,16 @@ export interface LogRocketOptions {
  * ```
  */
 export const logRocket = function logRocket(options: LogRocketOptions): Script {
-	const appId = validateLogRocketAppId(options?.appId);
+	const appId = readId(options?.appId);
+	if (appId === undefined) {
+		return skipMissingId('logRocket', 'appId', skippedLogRocketScript);
+	}
+	if (!isLogRocketAppId(appId)) {
+		return skipScript(
+			"logRocket: invalid appId - must be in 'org/app' format",
+			skippedLogRocketScript
+		);
+	}
 	const asyncScriptUrl = trimToUndefined(options.asyncScriptUrl);
 
 	let manifest: VendorManifest = logRocketManifest;

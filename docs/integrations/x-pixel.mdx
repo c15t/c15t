@@ -24,7 +24,7 @@ export const scripts = [xPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID passed to `twq('config', ...)`. The helper trims it. Empty or whitespace-only values throw. |
+| `pixelId` | Required | Pixel ID passed to `twq('config', ...)`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `scriptSrc` | `https://static.ads-twitter.com/uwt.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation

@@ -30,7 +30,7 @@ export const scripts = [
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `scriptUrl` | Required | Full `https:` embed URL of the Tags property environment. Self-hosted embeds work. The helper trims the value. Empty, unparseable and non-`https:` URLs throw. |
+| `scriptUrl` | Required | Full `https:` embed URL of the Tags property environment. Self-hosted embeds work. The helper trims the value. Empty, unparseable and non-`https:` URLs log an error and the script does not load. |
 | `async` | `true` | Loads the Tags library asynchronously. Set `false` only for a legacy synchronous deployment. |
 | `seedAdobeDataLayer` | `true` | Sets `window.adobeDataLayer` to an empty array before the library loads, only when the global is undefined. |
 

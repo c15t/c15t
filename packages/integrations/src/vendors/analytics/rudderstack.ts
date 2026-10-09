@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 const DEFAULT_RUDDERSTACK_SCRIPT_URL =
@@ -384,18 +385,10 @@ export interface RudderStackOptions {
 	scriptUrl?: string;
 }
 
-const validateRequiredString = function validateRequiredString(
-	value: unknown,
-	label: string
-): string {
-	const normalized = typeof value === 'string' ? value.trim() : '';
-
-	if (normalized.length === 0) {
-		throw new Error(`rudderstack: missing or invalid ${label}`);
-	}
-
-	return normalized;
-};
+const skippedRudderstackScript = {
+	category: 'measurement',
+	id: 'rudderstack',
+} as const;
 
 const validateOptionalHttpsScriptUrl = function validateOptionalHttpsScriptUrl(
 	scriptUrlOverride: string | undefined
@@ -508,23 +501,12 @@ const buildPreConsentLoadOptions = function buildPreConsentLoadOptions(
 	};
 };
 
-const validateDataPlaneUrl = function validateDataPlaneUrl(
-	dataPlaneUrl: unknown
-): string {
-	const normalized = validateRequiredString(dataPlaneUrl, 'dataPlaneUrl');
-	let parsed: URL;
-
+const isHttpsUrl = function isHttpsUrl(value: string): boolean {
 	try {
-		parsed = new URL(normalized);
+		return new URL(value).protocol === 'https:';
 	} catch {
-		throw new Error('rudderstack: dataPlaneUrl must be a valid https URL');
+		return false;
 	}
-
-	if (parsed.protocol !== 'https:') {
-		throw new Error('rudderstack: dataPlaneUrl must be a valid https URL');
-	}
-
-	return normalized;
 };
 
 /**
@@ -534,10 +516,14 @@ const validateDataPlaneUrl = function validateDataPlaneUrl(
  *
  * @param options - The options for the RudderStack script.
  * @returns The RudderStack script configuration.
- * @throws {Error} When `writeKey` is missing or only whitespace.
- * @throws {Error} When `dataPlaneUrl` is missing, invalid, or not HTTPS.
+ * @throws {Error} When `scriptUrl` is not HTTPS or `consentManagement` is
+ *   invalid.
  *
  * @remarks
+ * When `writeKey` or `dataPlaneUrl` is missing or blank, or `dataPlaneUrl`
+ * is not an HTTPS URL, the helper logs the problem with `console.error` and
+ * returns a script that never loads.
+ *
  * RudderStack collects customer behavior and sends it to destinations through
  * your configured data plane. By default c15t gates the browser SDK on
  * `measurement` consent and unloads it when that consent is revoked.
@@ -571,8 +557,24 @@ export const rudderstack = function rudderstack({
 	trackPageView = true,
 	scriptUrl,
 }: RudderStackOptions): Script {
-	const normalizedWriteKey = validateRequiredString(writeKey, 'writeKey');
-	const normalizedDataPlaneUrl = validateDataPlaneUrl(dataPlaneUrl);
+	const normalizedWriteKey = readId(writeKey);
+	if (normalizedWriteKey === undefined) {
+		return skipMissingId('rudderstack', 'writeKey', skippedRudderstackScript);
+	}
+	const normalizedDataPlaneUrl = readId(dataPlaneUrl);
+	if (normalizedDataPlaneUrl === undefined) {
+		return skipMissingId(
+			'rudderstack',
+			'dataPlaneUrl',
+			skippedRudderstackScript
+		);
+	}
+	if (!isHttpsUrl(normalizedDataPlaneUrl)) {
+		return skipScript(
+			'rudderstack: dataPlaneUrl must be a valid https URL',
+			skippedRudderstackScript
+		);
+	}
 
 	let manifest: VendorManifest = rudderstackManifest;
 	let resolvedLoadOptions = loadOptions;

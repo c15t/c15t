@@ -4,7 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
@@ -396,8 +396,9 @@ const buildMetaPixelInstall = function buildMetaPixelInstall({
  *
  * @param options - The options for the Meta Pixel script
  * @returns The Meta Pixel script configuration
- * @throws {Error} `metaPixel: missing or invalid pixelId` when `pixelId` is
- *   empty or only whitespace.
+ * @remarks When `pixelId` is missing or blank, the
+ *   helper logs `metaPixel: missing or invalid pixelId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -415,7 +416,14 @@ export const metaPixel = function metaPixel({
 	dataProcessingOptions,
 	scriptSrc,
 }: MetaPixelOptions): Script {
-	const normalizedPixelId = requireId('metaPixel', 'pixelId', pixelId);
+	const normalizedPixelId = readId(pixelId);
+	if (normalizedPixelId === undefined) {
+		return skipMissingId('metaPixel', 'pixelId', {
+			category: 'marketing',
+			id: 'meta-pixel',
+		});
+	}
+
 	const install = buildMetaPixelInstall({
 		dataProcessingOptions,
 		hasInitOptions: initOptions !== undefined,

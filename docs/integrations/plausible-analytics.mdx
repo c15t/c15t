@@ -26,7 +26,7 @@ export const scripts = [plausibleAnalytics({ scriptId: 'YOUR_SCRIPT_ID' })];
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `scriptId` | None | Script ID for the `pa-<scriptId>.js` loader. Takes precedence over `domain` and `extension`. |
-| `domain` | None | Legacy site domain, set as `data-domain`. The helper throws when neither `scriptId` nor `domain` has a non-empty value. |
+| `domain` | None | Legacy site domain, set as `data-domain`. When neither `scriptId` nor `domain` has a non-empty value, the helper logs an error and the script does not load. |
 | `extension` | None | Legacy script extension or array of extensions, such as `['file-downloads', 'outbound-links']`. The helper joins them into `script.<extensions>.js`. Ignored with `scriptId`. |
 | `customProperties` | None | Properties sent with each page view. |
 | `endpoint` | None | Custom event endpoint. With `domain`, the helper also sets it as `data-api`. |

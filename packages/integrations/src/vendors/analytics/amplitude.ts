@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 /**
@@ -290,9 +291,12 @@ export interface AmplitudeOptions {
  *
  * @param options - The options for the Amplitude script.
  * @returns The Amplitude script configuration.
- * @throws {Error} When `apiKey` is missing or only whitespace.
  *
  * @remarks
+ * When `apiKey` is missing or blank, the helper logs
+ * `amplitude: missing or invalid apiKey` with `console.error` and returns a
+ * script that never loads.
+ *
  * The generated script is gated on `measurement` consent. It does not load the
  * Amplitude SDK until measurement consent is granted, and it clears any
  * opt-out Amplitude saved earlier when it loads. After the SDK is loaded,
@@ -316,10 +320,12 @@ export const amplitude = function amplitude({
 	initOptions = {},
 	scriptUrl,
 }: AmplitudeOptions): Script {
-	const normalizedApiKey = typeof apiKey === 'string' ? apiKey.trim() : '';
-
-	if (normalizedApiKey.length === 0) {
-		throw new Error('amplitude: missing or invalid apiKey');
+	const normalizedApiKey = readId(apiKey);
+	if (normalizedApiKey === undefined) {
+		return skipMissingId('amplitude', 'apiKey', {
+			category: 'measurement',
+			id: 'amplitude',
+		});
 	}
 
 	return resolveManifest(amplitudeManifest, {

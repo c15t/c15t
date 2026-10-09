@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -72,6 +73,9 @@ export interface AhrefsAnalyticsOptions {
  *
  * @param options - The options for the Ahrefs Analytics script.
  * @returns The Ahrefs Analytics script.
+ * @remarks When `key` is missing or blank, the
+ *   helper logs `ahrefsAnalytics: missing or invalid key` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -83,9 +87,12 @@ export interface AhrefsAnalyticsOptions {
 export const ahrefsAnalytics = function ahrefsAnalytics(
 	options: AhrefsAnalyticsOptions
 ): Script {
-	const key = typeof options.key === 'string' ? options.key.trim() : '';
-	if (key.length === 0) {
-		throw new Error('ahrefsAnalytics: missing or invalid key');
+	const key = readId(options.key);
+	if (key === undefined) {
+		return skipMissingId('ahrefsAnalytics', 'key', {
+			category: 'measurement',
+			id: 'ahrefs-analytics',
+		});
 	}
 
 	return resolveManifest(ahrefsAnalyticsManifest, {

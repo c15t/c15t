@@ -7,7 +7,7 @@ import {
 	GOOGLE_CONSENT_MODE_V2_DEFAULT_MAPPING,
 	withOptionalConsentMapping,
 } from '../_shared/google-consent';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 
 // Extended Window interface to include gtag specific properties
 declare global {
@@ -165,8 +165,9 @@ export interface GtagOptions {
  *
  * @param options - The options for the gtag script.
  * @returns The Google Tag script.
- * @throws {Error} `gtag: missing or invalid id` when `id` is
- *   empty or only whitespace.
+ * @remarks When `id` is missing or blank, the
+ *   helper logs `gtag: missing or invalid id` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -185,6 +186,14 @@ export const gtag = function gtag({
 	loadMode = 'always',
 	script,
 }: GtagOptions): Script {
+	const normalizedId = readId(id);
+	if (normalizedId === undefined) {
+		return skipMissingId('gtag', 'id', {
+			category,
+			id: 'gtag',
+		});
+	}
+
 	const base =
 		config === undefined
 			? gtagManifest
@@ -201,7 +210,7 @@ export const gtag = function gtag({
 	const resolved = resolveManifest(manifest, {
 		category,
 		config,
-		id: requireId('gtag', 'id', id),
+		id: normalizedId,
 	});
 
 	if (loadMode === 'after-consent') {

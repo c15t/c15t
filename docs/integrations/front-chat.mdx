@@ -24,7 +24,7 @@ export const scripts = [frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `chatId` | Required | Public chat ID passed to `FrontChat('init')`. Surrounding whitespace is trimmed; an empty value throws. |
+| `chatId` | Required | Public chat ID passed to `FrontChat('init')`. Surrounding whitespace is trimmed. An empty value logs an error and the script does not load. |
 | `useDefaultLauncher` | `true` | Shows Front's launcher. With `false`, open the widget from your own launcher through Front's [SDK](https://dev.frontapp.com/docs/chat-sdk-reference). |
 | `nonce` | None | CSP nonce for the loader and Front's generated scripts. A loader nonce from your consent provider is forwarded to `init` too. |
 | `scriptSrc` | `https://chat-assets.frontapp.com/v1/chat.bundle.js` | Loader URL override. A proxy here does not proxy the widget's other requests. |

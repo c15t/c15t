@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -73,22 +74,28 @@ describe('logRocket', () => {
 		expect(script.src).toBe('https://cdn.logrocket.io/LogRocket.min.js');
 	});
 
-	it('throws for an empty or malformed app ID', () => {
-		expect(() => logRocket({ appId: '   ' })).toThrowError(
-			"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
-		);
-		expect(() => logRocket({ appId: 'c15tfake' })).toThrowError(
-			"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
-		);
-		expect(() => logRocket({ appId: 'c15tfake/' })).toThrowError(
-			"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
+	it('logs and skips the script for an empty app ID', () => {
+		expectSkippedScript(
+			() => logRocket({ appId: '   ' }),
+			{ category: 'measurement', id: 'logrocket' },
+			'logRocket: missing or invalid appId'
 		);
 	});
 
-	it('rejects app ids with missing or extra path segments', () => {
-		for (const appId of ['org/app/extra', 'org//app', '/app', 'org/', 'org']) {
-			expect(() => logRocket({ appId })).toThrowError(
-				"logRocket: invalid appId - must be a non-empty string in 'org/app' format"
+	it('logs and skips the script for app ids with missing or extra path segments', () => {
+		for (const appId of [
+			'c15tfake',
+			'c15tfake/',
+			'org/app/extra',
+			'org//app',
+			'/app',
+			'org/',
+			'org',
+		]) {
+			expectSkippedScript(
+				() => logRocket({ appId }),
+				{ category: 'measurement', id: 'logrocket' },
+				"logRocket: invalid appId - must be in 'org/app' format"
 			);
 		}
 	});

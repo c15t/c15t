@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
@@ -107,13 +108,11 @@ describe('pirsch', () => {
 		expect(pirschInit).not.toHaveBeenCalled();
 	});
 
-	it('throws for an empty identificationCode', () => {
-		expect(() =>
-			pirsch({
-				identificationCode: '   ',
-			})
-		).toThrowError(
-			'pirsch: invalid identificationCode - must be a non-empty string'
+	it('logs and skips the script for an empty identificationCode', () => {
+		expectSkippedScript(
+			() => pirsch({ identificationCode: '   ' }),
+			{ category: 'measurement', id: 'pirsch' },
+			'pirsch: missing or invalid identificationCode'
 		);
 	});
 });

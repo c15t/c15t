@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { skipScript } from '../_shared/required-id';
 import {
 	joinUrlPath,
 	stripTrailingSlashes,
@@ -296,12 +297,11 @@ export interface MatomoAnalyticsOptions {
  *
  * @param options - The options for the Matomo Analytics script.
  * @returns The Matomo Analytics script configuration.
- * @throws {Error} Throws
- * `'matomoAnalytics requires \`matomoUrl\`, \`cloudId\`, or explicit \`trackerUrl\` and \`scriptUrl\` values.'`
- * when either resolved `trackerUrl` or `scriptUrl` is missing (for example,
- * when neither `matomoUrl` nor `cloudId` is provided and explicit
- * `trackerUrl`/`scriptUrl` values are not supplied). Provide `matomoUrl`, or
- * provide both explicit `trackerUrl` and `scriptUrl`.
+ * @remarks When the resolved `trackerUrl` or `scriptUrl` is missing, for
+ *   example because neither `matomoUrl` nor `cloudId` is set and explicit
+ *   `trackerUrl` and `scriptUrl` values are not supplied, the helper logs
+ *   the problem with `console.error` and returns a script that never loads.
+ *   Provide `matomoUrl` or `cloudId`, or both `trackerUrl` and `scriptUrl`.
  */
 export const matomoAnalytics = function matomoAnalytics(
 	options: MatomoAnalyticsOptions = {}
@@ -318,8 +318,9 @@ export const matomoAnalytics = function matomoAnalytics(
 	}
 
 	if (!trackerUrl || !scriptUrl) {
-		throw new Error(
-			'matomoAnalytics requires `matomoUrl`, `cloudId`, or explicit `trackerUrl` and `scriptUrl` values.'
+		return skipScript(
+			'matomoAnalytics: missing matomoUrl, cloudId, or explicit trackerUrl and scriptUrl',
+			{ category: 'measurement', id: 'matomo-analytics' }
 		);
 	}
 

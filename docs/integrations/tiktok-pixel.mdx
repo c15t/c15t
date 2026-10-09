@@ -23,7 +23,7 @@ export const scripts = [tiktokPixel({ pixelId: 'YOUR_PIXEL_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `pixelId` | Required | Pixel ID sent in the loader URL. The helper trims it. Empty or whitespace-only values throw. |
+| `pixelId` | Required | Pixel ID sent in the loader URL. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `scriptSrc` | `https://analytics.tiktok.com/i18n/pixel/events.js` | Loader base URL override. The helper appends `?sdkid=<pixelId>&lib=ttq`. A blank value falls back to the default. |
 
 ## Loading and revocation

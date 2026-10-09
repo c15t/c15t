@@ -2515,9 +2515,19 @@ describe('Sentry loaded from the CDN', () => {
 		expect(sending().enabled).toBe(true);
 	});
 
-	it('requires a DSN', () => {
-		expect(() => sentry({ dsn: ' ' })).toThrow(
-			'sentry: missing or invalid dsn'
+	it('logs and skips the script for a blank DSN', () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+
+		expect(sentry({ dsn: ' ' })).toEqual({
+			callbackOnly: true,
+			category: { or: ['necessary', 'measurement'] },
+			id: 'sentry',
+		});
+		expect(error).toHaveBeenCalledOnce();
+		expect(error).toHaveBeenCalledWith(
+			'sentry: missing or invalid dsn. The script will not load.'
 		);
 	});
 });

@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
@@ -198,6 +199,9 @@ export interface SegmentOptions {
  *
  * @param options - The options for the Segment script.
  * @returns The Segment script configuration.
+ * @remarks When `writeKey` is missing or blank, the helper logs
+ *   `segment: missing or invalid writeKey` with `console.error` and
+ *   returns a script that never loads.
  */
 export const segment = function segment({
 	writeKey,
@@ -205,12 +209,12 @@ export const segment = function segment({
 	trackPageView = true,
 	scriptUrl,
 }: SegmentOptions): Script {
-	let normalizedWriteKey = '';
-	if (typeof writeKey === 'string') {
-		normalizedWriteKey = writeKey.trim();
-	}
-	if (normalizedWriteKey.length === 0) {
-		throw new Error('segment: missing or invalid writeKey');
+	const normalizedWriteKey = readId(writeKey);
+	if (normalizedWriteKey === undefined) {
+		return skipMissingId('segment', 'writeKey', {
+			category: 'measurement',
+			id: 'segment',
+		});
 	}
 	const segmentCdnBase = 'https://cdn.segment.com/analytics.js/v1';
 	const defaultScriptUrl = `${segmentCdnBase}/${normalizedWriteKey}/analytics.min.js`;

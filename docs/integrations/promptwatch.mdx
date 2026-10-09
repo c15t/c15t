@@ -24,7 +24,7 @@ export const scripts = [promptwatch({ projectId: 'YOUR_PROJECT_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `projectId` | Required | Project ID from the Promptwatch dashboard. Empty or whitespace-only values throw. |
+| `projectId` | Required | Project ID from the Promptwatch dashboard. Empty or whitespace-only values log an error and the script does not load. |
 | `scriptUrl` | `https://ingest.promptwatch.com/js/client.min.js` | Loader URL override. Blank values fall back to the default. |
 
 ## Loading and revocation

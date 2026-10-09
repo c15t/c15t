@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
@@ -391,8 +391,9 @@ export interface PinterestTagOptions {
  * @returns A resolved c15t `Script` configuration that defines the `pintrk`
  *   queue stub, queues `load`, `setconsent`, and optionally `page`, then loads
  *   Pinterest's `core.js`.
- * @throws {Error} `pinterestTag: missing or invalid tagId` when `tagId` is
- *   empty or only whitespace.
+ * @remarks When `tagId` is missing or blank, the
+ *   helper logs `pinterestTag: missing or invalid tagId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -411,6 +412,14 @@ export const pinterestTag = function pinterestTag({
 	trackPageVisit = true,
 	scriptUrl,
 }: PinterestTagOptions): Script {
+	const normalizedTagId = readId(tagId);
+	if (normalizedTagId === undefined) {
+		return skipMissingId('pinterestTag', 'tagId', {
+			category: 'marketing',
+			id: 'pinterest-tag',
+		});
+	}
+
 	const loadArgs: unknown[] = ['load', '{{tagId}}'];
 	if (loadOptions !== undefined) {
 		loadArgs.push('{{loadOptions}}');
@@ -451,7 +460,7 @@ export const pinterestTag = function pinterestTag({
 	return resolveManifest(manifest, {
 		loadOptions,
 		scriptUrl: resolveScriptUrl(scriptUrl, 'https://s.pinimg.com/ct/core.js'),
-		tagId: requireId('pinterestTag', 'tagId', tagId),
+		tagId: normalizedTagId,
 	});
 };
 

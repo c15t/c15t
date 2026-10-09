@@ -4,6 +4,7 @@ import {
 	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -196,8 +197,10 @@ describe('amplitude', () => {
 		).toBe(DEFAULT_AMPLITUDE_SCRIPT_URL);
 	});
 
-	it('throws for an empty API key', () => {
-		expect(() => amplitude({ apiKey: '   ' })).toThrowError(
+	it('logs and skips the script for an empty API key', () => {
+		expectSkippedScript(
+			() => amplitude({ apiKey: '   ' }),
+			{ category: 'measurement', id: 'amplitude' },
 			'amplitude: missing or invalid apiKey'
 		);
 	});

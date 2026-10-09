@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	setupScriptHelperTest,
 	toArgumentsArray,
@@ -59,18 +60,13 @@ describe('hotjar', () => {
 		);
 	});
 
-	it('throws for missing, empty, or zero site IDs', () => {
-		expect(() => hotjar({ siteId: '' })).toThrow(
-			'hotjar: missing or invalid siteId'
-		);
-		expect(() => hotjar({ siteId: '  ' })).toThrow(
-			'hotjar: missing or invalid siteId'
-		);
-		expect(() => hotjar({ siteId: 0 })).toThrow(
-			'hotjar: missing or invalid siteId'
-		);
-		expect(() => hotjar({ siteId: '0' })).toThrow(
-			'hotjar: missing or invalid siteId'
-		);
+	it('logs and skips the script for missing, empty, or zero site IDs', () => {
+		for (const siteId of ['', '  ', 0, '0', undefined]) {
+			expectSkippedScript(
+				() => hotjar({ siteId: siteId as string }),
+				{ category: 'measurement', id: 'hotjar' },
+				'hotjar: missing or invalid siteId'
+			);
+		}
 	});
 });

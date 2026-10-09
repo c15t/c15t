@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { booleanDataAttribute, listDataAttribute } from '../_shared/attributes';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -103,8 +104,9 @@ export interface UmamiAnalyticsOptions {
  *
  * @param options - The options for the Umami Analytics script.
  * @returns The Umami Analytics script.
- * @throws {Error} When `websiteId` is missing, empty, or invalid. Provide a
- * valid non-empty `websiteId` string to prevent this error.
+ * @remarks When `websiteId` is missing or blank, the helper logs
+ *   `umamiAnalytics: missing or invalid websiteId` with `console.error` and
+ *   returns a script that never loads.
  *
  * @example
  * ```ts
@@ -119,11 +121,12 @@ export interface UmamiAnalyticsOptions {
 export const umamiAnalytics = function umamiAnalytics(
 	options: UmamiAnalyticsOptions
 ): Script {
-	const websiteId = options.websiteId.trim();
-	if (websiteId.length === 0) {
-		throw new Error(
-			'umamiAnalytics: invalid websiteId - must be a non-empty string'
-		);
+	const websiteId = readId(options.websiteId);
+	if (websiteId === undefined) {
+		return skipMissingId('umamiAnalytics', 'websiteId', {
+			category: 'measurement',
+			id: 'umami-analytics',
+		});
 	}
 
 	const resolved = resolveManifest(umamiAnalyticsManifest, {

@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { stripTrailingSlashes, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -455,8 +455,11 @@ const resolveFeatureInitOptions = function resolveFeatureInitOptions(
  *
  * Edge case: `loadMode: 'disabled'` skips consent-related flows entirely; use it
  * only when consumers manage PostHog loading and consent externally.
- * @throws {Error} `posthog: missing or invalid id` when `id` is empty or
- *   only whitespace, unless `loadMode` is `'disabled'`.
+ *
+ * When `id` is missing or blank, for example from an unset environment
+ * variable, the helper logs `posthog: missing or invalid id` with
+ * `console.error` and returns a script that never loads. The rest of the
+ * consent UI keeps working. `loadMode: 'disabled'` skips this check.
  *
  * @see https://posthog.com/docs/libraries/js#opt-in-capturing
  *
@@ -474,7 +477,14 @@ export const posthog = function posthog(
 		};
 	}
 
-	const id = requireId('posthog', 'id', options.id);
+	const id = readId(options.id);
+	if (id === undefined) {
+		return skipMissingId('posthog', 'id', {
+			category: 'measurement',
+			id: 'posthog',
+		});
+	}
+
 	const { apiHost, uiHost, scriptUrl } = resolvePosthogHosts(options);
 	const resolved = resolveManifest(posthogManifest, {
 		apiHost,

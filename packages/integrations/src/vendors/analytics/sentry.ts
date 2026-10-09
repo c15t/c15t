@@ -15,7 +15,7 @@ import {
 	waitForReplayLoad,
 	waitForReplayPaint,
 } from '../_shared/replay-scheduler';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import {
 	createScriptReuse,
 	getScriptRegistrations,
@@ -1427,7 +1427,8 @@ const createCdnScript = (
 	category: HasCondition<AllConsentNames>,
 	gateOptions: Omit<GateOptions, 'getClient' | 'setUser' | 'startsSentry'>
 ): Script => {
-	const dsn = requireId('sentry', 'dsn', options.dsn);
+	// `sentry()` skips a blank DSN before this runs.
+	const dsn = readId(options.dsn) ?? '';
 	const version = trimToUndefined(options.version) ?? defaultVersion;
 	const initOptions = options.initOptions ?? {};
 	const tracing =
@@ -1555,16 +1556,25 @@ const createCdnScript = (
 	};
 };
 
+/** Resolve the consent category of the script for these options. */
+const getScriptCategory = (
+	options: SentryOptions
+): HasCondition<AllConsentNames> =>
+	getCategory(
+		options,
+		hasReplayLoader(options)
+			? ((options.replay ? options.replay.category : undefined) ??
+					defaultCategory)
+			: undefined,
+		options.pii?.category ?? defaultCategory
+	);
+
 /** Build the SDK or CDN script and its consent gate. */
 const createSentryScript = (options: SentryOptions): Script => {
 	const replayCategory =
 		(options.replay ? options.replay.category : undefined) ?? defaultCategory;
 	const piiCategory = options.pii?.category ?? defaultCategory;
-	const category = getCategory(
-		options,
-		hasReplayLoader(options) ? replayCategory : undefined,
-		piiCategory
-	);
+	const category = getScriptCategory(options);
 	const errorsGated = options.loadMode === 'after-consent';
 	const gateOptions = {
 		errorsGated,
@@ -1648,8 +1658,11 @@ const reuseSentryScript = createScriptReuse<SentryOptions>();
  *
  * @param options - A DSN for c15t to load Sentry, or your Sentry SDK functions.
  * @returns A script for the c15t script loader.
- * @throws {Error} If `dsn` is empty, `pii.user` is set without `setUser`, or
+ * @throws {Error} If `pii.user` is set without `setUser`, or
  *   `loadMode: 'after-consent'` is set with `getClient` but without `init`.
+ * @remarks When `dsn` is blank, or neither `dsn` nor `getClient` is passed,
+ *   the helper logs `sentry: missing or invalid dsn` with `console.error`
+ *   and returns a script that never loads.
  * @example
  * ```ts
  * sentry({
@@ -1673,5 +1686,17 @@ const reuseSentryScript = createScriptReuse<SentryOptions>();
  * });
  * ```
  */
-export const sentry = (options: SentryOptions): Script =>
-	reuseSentryScript(options, createSentryScript);
+export const sentry = (options: SentryOptions): Script => {
+	// Without a DSN or `getClient` there is nothing to load or adapt to.
+	const missingDsn =
+		options.dsn === undefined
+			? typeof options.getClient !== 'function'
+			: readId(options.dsn) === undefined;
+	if (missingDsn) {
+		return skipMissingId('sentry', 'dsn', {
+			category: getScriptCategory(options),
+			id: scriptId,
+		});
+	}
+	return reuseSentryScript(options, createSentryScript);
+};

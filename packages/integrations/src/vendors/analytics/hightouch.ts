@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 const DEFAULT_HIGHTOUCH_SCRIPT_URL =
@@ -364,16 +365,6 @@ export interface HightouchOptions {
 	scriptUrl?: string;
 }
 
-const validateWriteKey = function validateWriteKey(writeKey: unknown): string {
-	const normalized = typeof writeKey === 'string' ? writeKey.trim() : '';
-
-	if (normalized.length === 0) {
-		throw new Error('hightouch: missing or invalid writeKey');
-	}
-
-	return normalized;
-};
-
 const normalizeApiHost = function normalizeApiHost(
 	apiHost: string | undefined
 ): string | undefined {
@@ -387,9 +378,12 @@ const normalizeApiHost = function normalizeApiHost(
  *
  * @param options - The options for the Hightouch script.
  * @returns The Hightouch script configuration.
- * @throws {Error} When `writeKey` is missing or only whitespace.
  *
  * @remarks
+ * When `writeKey` is missing or blank, the helper logs
+ * `hightouch: missing or invalid writeKey` with `console.error` and returns
+ * a script that never loads.
+ *
  * Hightouch Events collects customer behavior and sends it to the configured
  * Event Source. c15t gates the browser SDK on `measurement` consent and does
  * not allowlist collection endpoints in live probes beyond the CDN loader.
@@ -410,7 +404,13 @@ export const hightouch = function hightouch({
 	trackPageView = true,
 	scriptUrl,
 }: HightouchOptions): Script {
-	const normalizedWriteKey = validateWriteKey(writeKey);
+	const normalizedWriteKey = readId(writeKey);
+	if (normalizedWriteKey === undefined) {
+		return skipMissingId('hightouch', 'writeKey', {
+			category: 'measurement',
+			id: 'hightouch',
+		});
+	}
 	const loadOptions = {
 		apiHost: normalizeApiHost(apiHost),
 	};

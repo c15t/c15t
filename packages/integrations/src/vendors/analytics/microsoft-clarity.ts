@@ -3,6 +3,7 @@ import type { ConsentState, Script, ScriptCallbackInfo } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 /**
@@ -259,28 +260,28 @@ export interface ClarityOptions {
  *
  * @param options - The options for the Clarity script.
  * @returns The Clarity script configuration.
- * @throws {Error} When `options.id` is missing or invalid and no `scriptUrl`
- * override is provided. Provide a valid Clarity project id string to prevent
- * this error.
+ * @remarks When `id` is missing or blank and no `scriptUrl` override is set, the helper logs
+ *   `clarity: missing or invalid id` with `console.error` and
+ *   returns a script that never loads.
  */
 export const clarity = function clarity({
 	id,
 	defaultConsent,
 	scriptUrl,
 }: ClarityOptions): Script {
-	const normalizedId = id.trim();
 	const scriptUrlOverride = trimToUndefined(scriptUrl);
-
-	if (scriptUrlOverride === undefined && normalizedId.length === 0) {
-		throw new Error(
-			`Invalid Clarity id value "${id}". A non-empty id is required to construct the Clarity loader URL when scriptUrl is not provided.`
-		);
+	const normalizedId = readId(id);
+	if (scriptUrlOverride === undefined && normalizedId === undefined) {
+		return skipMissingId('clarity', 'id', {
+			category: 'measurement',
+			id: 'microsoft-clarity',
+		});
 	}
 
 	const resolved = resolveManifest(clarityManifest, {
 		scriptUrl: resolveScriptUrl(
 			scriptUrlOverride,
-			`https://www.clarity.ms/tag/${normalizedId}`
+			`https://www.clarity.ms/tag/${normalizedId ?? ''}`
 		),
 	});
 	const { onBeforeLoad } = resolved;

@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -161,8 +161,9 @@ export interface DatabuddyConsentOptions {
  *
  * @param options - Configuration for the Databuddy consent script
  * @returns The Databuddy script configuration object for c15t's script loader
- * @throws {Error} `databuddy: missing or invalid clientId` when `clientId` is
- *   empty or only whitespace.
+ * @remarks When `clientId` is missing or blank, the
+ *   helper logs `databuddy: missing or invalid clientId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -196,9 +197,17 @@ export interface DatabuddyConsentOptions {
 export const databuddy = function databuddy(
 	options: DatabuddyConsentOptions
 ): Script {
+	const clientId = readId(options.clientId);
+	if (clientId === undefined) {
+		return skipMissingId('databuddy', 'clientId', {
+			category: 'measurement',
+			id: 'databuddy',
+		});
+	}
+
 	const resolved = resolveManifest(databuddyManifest, {
 		apiUrl: options.apiUrl ?? 'https://basket.databuddy.cc',
-		clientId: requireId('databuddy', 'clientId', options.clientId),
+		clientId,
 		configWhenDenied: options.configWhenDenied,
 		configWhenGranted: options.configWhenGranted,
 		scriptUrl: resolveScriptUrl(

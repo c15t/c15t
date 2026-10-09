@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	runOnBeforeLoad,
 } from '../../__tests__/helpers';
 import { klaviyo } from './klaviyo';
@@ -39,27 +40,42 @@ describe('klaviyo', () => {
 		);
 	});
 
-	it.each(['', '   ', 'AbC12', 'AbC1234', 'AbC/12', '../x/y'])(
-		'rejects %j as a public API key',
+	it.each(['AbC12', 'AbC1234', 'AbC/12', '../x/y'])(
+		'logs and skips the script for %j as a public API key',
 		(publicApiKey) => {
-			expect(() => klaviyo({ publicApiKey })).toThrow(
-				'klaviyo: publicApiKey must be the six-character public API key'
+			expectSkippedScript(
+				() => klaviyo({ publicApiKey }),
+				{ category: { and: ['marketing', 'measurement'] }, id: 'klaviyo' },
+				'klaviyo: publicApiKey must be the six-character public API key from Settings > Account > API keys'
 			);
 		}
 	);
 
-	it('rejects a missing public API key', () => {
-		expect(() =>
-			klaviyo({ publicApiKey: undefined } as unknown as Parameters<
-				typeof klaviyo
-			>[0])
-		).toThrow('klaviyo: publicApiKey must be the six-character public API key');
+	it.each(['', '   ', undefined])(
+		'logs and skips the script for a missing public API key (%j)',
+		(publicApiKey) => {
+			expectSkippedScript(
+				() => klaviyo({ publicApiKey: publicApiKey as string }),
+				{ category: { and: ['marketing', 'measurement'] }, id: 'klaviyo' },
+				'klaviyo: missing or invalid publicApiKey'
+			);
+		}
+	);
+
+	it('keeps the forms-only category when skipping the script', () => {
+		expectSkippedScript(
+			() => klaviyo({ mode: 'forms-only', publicApiKey: '' }),
+			{ category: 'marketing', id: 'klaviyo' },
+			'klaviyo: missing or invalid publicApiKey'
+		);
 	});
 
-	it('names a private API key in the error', () => {
-		expect(() =>
-			klaviyo({ publicApiKey: 'pk_0123456789abcdef0123456789abcdef01' })
-		).toThrow('klaviyo: publicApiKey received a private API key');
+	it('names a private API key in the logged error', () => {
+		expectSkippedScript(
+			() => klaviyo({ publicApiKey: 'pk_0123456789abcdef0123456789abcdef01' }),
+			{ category: { and: ['marketing', 'measurement'] }, id: 'klaviyo' },
+			'klaviyo: publicApiKey received a private API key. Use the six-character public API key from Settings > Account > API keys, and revoke the exposed private key'
+		);
 	});
 
 	it('accepts an https script URL override', () => {

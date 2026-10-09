@@ -158,6 +158,7 @@ export default defineConfig({
 							'expectRejected',
 							'expectNonEmpty',
 							'expectScriptMatchesIntegration',
+							'expectSkippedScript',
 							'expectStubCommandQueue',
 							'expectUnique',
 							'waitForElement',
