@@ -18,7 +18,7 @@ import type { RuntimeConsentConfig } from '../runtime/kernel';
 // Each import of the manager's module, and the idle preloads the page
 // scheduled, run on demand instead of once the page goes quiet. The
 // scheduler has its own tests in @c15t/ui.
-const loads = { idle: [] as (() => void)[], manager: 0 };
+const loads = { iabDialog: 0, idle: [] as (() => void)[], manager: 0 };
 const scheduleIdle = (task: () => void) => {
 	loads.idle.push(task);
 	return () => {
@@ -32,6 +32,13 @@ const mockManager = () => {
 		default: defineComponent({
 			render: () => h('div', { 'data-testid': 'consent-manager-stub' }),
 		}),
+	};
+};
+const mockIabDialog = () => {
+	loads.iabDialog += 1;
+	return {
+		__esModule: true,
+		default: defineComponent({ render: () => h('div') }),
 	};
 };
 const initFixture: InitOutput = {
@@ -129,11 +136,14 @@ const mountRoot = async (name: keyof typeof roots) => {
 };
 
 beforeEach(() => {
+	loads.iabDialog = 0;
 	loads.idle = [];
 	loads.manager = 0;
 	vi.resetModules();
 	// oxlint-disable-next-line anti-slop/no-module-mocking -- The property under test is when the root loads this module. The factory counts loads and returns a stub, so the test needs no manager setup.
 	vi.doMock('../runtime/components/manager.vue', mockManager);
+	// oxlint-disable-next-line anti-slop/no-module-mocking -- Counts loads of the IAB dialog's chunk, as for the manager above.
+	vi.doMock('../runtime/components/iab-panel.vue', mockIabDialog);
 	vi.stubGlobal(
 		'fetch',
 		vi.fn(
@@ -232,4 +242,35 @@ describe.each(Object.keys(roots) as (keyof typeof roots)[])('%s', (Root) => {
 			wrapper.unmount();
 		}
 	});
+});
+
+test('preloads the dialog of every app that can open one', async () => {
+	// Two apps on one page, each with its own runtime: one resolved an IAB
+	// policy, the other a standard one.
+	const { resetIdleDialogPrefetchForTests, useIdleDialogPrefetch } =
+		await import('../runtime/components/lazy-surfaces');
+	resetIdleDialogPrefetchForTests({ scheduleIdle });
+	const gate = (iab: boolean) =>
+		defineComponent({
+			setup() {
+				useIdleDialogPrefetch(
+					() => true,
+					() => iab
+				);
+				return () => h('div');
+			},
+		});
+	const standard = mount(gate(false), { attachTo: document.body });
+	const iab = mount(gate(true), { attachTo: document.body });
+	try {
+		await settle();
+		expect(loads.idle).toHaveLength(1);
+		runIdle();
+		await settle();
+		expect(loads.manager).toBe(1);
+		expect(loads.iabDialog).toBe(1);
+	} finally {
+		standard.unmount();
+		iab.unmount();
+	}
 });

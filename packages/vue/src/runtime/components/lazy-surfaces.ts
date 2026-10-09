@@ -130,7 +130,9 @@ export const dialogIntentHandler = function dialogIntentHandler(
 };
 
 // Open idle-prefetch gates: the banner is shown, or a trigger, link or
-// placeholder button that opens the dialog is mounted. The chunk loads once
+// placeholder button that opens the dialog is mounted. Each gate keeps its
+// own IAB check, since two Vue apps on one page each get their own runtime
+// and can resolve different policies. The chunks load once
 // the page has gone quiet if a gate is still open then, so a visit with
 // saved consent and nothing that opens the dialog never downloads it.
 // `load` alone is too early on pages that render their main image after
@@ -139,15 +141,21 @@ export const dialogIntentHandler = function dialogIntentHandler(
 // `scheduleIdlePreload` in `@c15t/ui`.
 type IdleScheduler = typeof scheduleIdlePreload;
 
-let openGates = 0;
+const openGates = new Set<() => boolean>();
 let cancelScheduled: (() => void) | undefined;
 let scheduleIdle: IdleScheduler = scheduleIdlePreload;
-let dialogIsIAB: () => boolean = () => false;
 
 const prefetchOpenDialog = () => {
 	cancelScheduled = undefined;
-	if (openGates > 0 && isIdlePreloadAllowed()) {
-		warmConsentDialog(dialogIsIAB());
+	if (openGates.size === 0 || !isIdlePreloadAllowed()) {
+		return;
+	}
+	const kinds = new Set<boolean>();
+	for (const iab of openGates) {
+		kinds.add(iab());
+	}
+	for (const iab of kinds) {
+		warmConsentDialog(iab);
 	}
 };
 
@@ -164,11 +172,13 @@ export const useIdleDialogPrefetch = function useIdleDialogPrefetch(
 	active: () => boolean,
 	iab: () => boolean
 ): void {
+	// Each mount gets its own gate, even when two share an `iab` check.
+	const gate = () => iab();
 	let held = false;
 	const release = () => {
 		if (held) {
 			held = false;
-			openGates -= 1;
+			openGates.delete(gate);
 		}
 	};
 	onMounted(() => {
@@ -183,8 +193,7 @@ export const useIdleDialogPrefetch = function useIdleDialogPrefetch(
 					return;
 				}
 				held = true;
-				openGates += 1;
-				dialogIsIAB = iab;
+				openGates.add(gate);
 				if (!cancelScheduled && isIdlePreloadAllowed()) {
 					cancelScheduled = scheduleIdle(prefetchOpenDialog);
 				}
@@ -208,7 +217,6 @@ export const resetIdleDialogPrefetchForTests =
 	): void {
 		cancelScheduled?.();
 		cancelScheduled = undefined;
-		openGates = 0;
-		dialogIsIAB = () => false;
+		openGates.clear();
 		scheduleIdle = options.scheduleIdle ?? scheduleIdlePreload;
 	};
