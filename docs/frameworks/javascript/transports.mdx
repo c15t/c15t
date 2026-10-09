@@ -73,11 +73,20 @@ and resolves the policy in the browser. It works with `init()` and with
 | `inputs` | `{ country, region, language, gpc }` known ahead of time, such as a country your edge injected into the page. |
 | `fetch` | A `fetch` implementation. |
 
-When the manifest's policies depend on the visitor's country and the page
-does not supply one, the transport asks the backend's `/init` instead, so the
-answer stays correct. `manifestNeedsLocation(manifest)` from `@c15t/browser`
-tells you in advance. The browser bundle carries English copy; other languages
-come from the manifest's own translations.
+When some locations get a different banner than others, or no banner, and the
+page does not supply a country, the transport asks the backend's `/init`
+instead, so the answer stays correct. That visitor's banner waits for the round
+trip. Rules keyed by country or region that all give the same banner (same
+model, prompt, categories, copy and GPC handling, only the rule id differs)
+resolve in the browser, so the banner shows without a request. Such a manifest
+needs a default rule, plus a fallback rule when it has region rules, so that
+every location matches one. `manifestNeedsLocation(manifest)` from
+`@c15t/browser` tells you in advance.
+
+The browser bundle carries English copy; other languages come from the
+manifest's own translations. A visitor whose language neither has still goes
+to `/init` when the manifest has country or region rules, as does an IAB
+policy.
 
 `createManifestTransport` from `c15t/transports/manifest` is the server
 version. It bundles every language, so keep it out of browser code.

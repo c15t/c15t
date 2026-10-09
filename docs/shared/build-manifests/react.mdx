@@ -43,6 +43,14 @@ When the required country or region is missing, the transport calls backend
 newer backend policy than the build snapshot. This is a full consent resolution,
 so these visitors still wait for a backend round trip.
 
+The browser cannot guess the banner from the snapshot alone when locations
+differ. With a European opt-in rule and no banner elsewhere, a banner shown
+before `/init` answers would vanish for most of the world. The exception is a
+policy whose country and region rules all show the same banner, with a default
+rule that covers everywhere else: the browser resolves it at once. To skip the
+round trip for location-specific rules, pass the country your CDN or edge
+already knows through `inputs`.
+
 Policy and resolver code are part of the browser bundle.
 
 <include src="../build-time-manifest-notes.mdx" />
