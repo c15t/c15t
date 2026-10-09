@@ -321,6 +321,36 @@ describe('manifest() first paint without a known location', () => {
 		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
 	});
 
+	it('asks /init for a language the manifest only partly translates', async () => {
+		// French copy for the title only: a local answer would fill the rest
+		// with English, where /init has the full French base.
+		const partlyFrench: ConsentManifest = {
+			...sameBannerEverywhereManifest,
+			translations: {
+				customTranslations: {
+					fr: { cookieBanner: { title: 'Nous respectons votre vie privée' } },
+				},
+			} as ConsentManifest['translations'],
+		};
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(
+				new Response(
+					JSON.stringify(
+						resolveInitFromManifest(partlyFrench, {
+							country: 'FR',
+							language: 'fr',
+						})
+					)
+				)
+			)
+		);
+		const client = start(partlyFrench, fetchSpy, { language: 'fr' });
+		await client.ready();
+
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+	});
+
 	it('asks /init for an IAB policy', async () => {
 		const iabManifest: ConsentManifest = {
 			...everywhereManifest,

@@ -84,9 +84,10 @@ every location matches one. `manifestNeedsLocation(manifest)` from
 `@c15t/browser` tells you in advance.
 
 The browser bundle carries English copy; other languages come from the
-manifest's own translations. A visitor whose language neither has still goes
-to `/init` when the manifest has country or region rules, as does an IAB
-policy.
+manifest's own translations, with English filling any gaps. When the manifest
+has country or region rules and the location is unknown, only English visitors
+resolve in the browser. Other languages still go to `/init`, which fills the
+gaps from that language's full copy. An IAB policy always goes to `/init`.
 
 `createManifestTransport` from `c15t/transports/manifest` is the server
 version. It bundles every language, so keep it out of browser code.

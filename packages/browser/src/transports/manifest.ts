@@ -227,17 +227,22 @@ export const manifestNeedsLocation = function manifestNeedsLocation(
 };
 
 /**
- * Whether a local resolution answered in the language asked for. The
- * browser bundle carries English only, and a manifest may lack the rest,
- * while `/init` translates into every language the backend has.
+ * Whether a local resolution gives the copy `/init` would. The browser
+ * bundle carries English only. For any other language, `/init` lays the
+ * manifest's copy over that language's full base, while a local answer
+ * fills the gaps with English and still reports the other language. So
+ * only an English answer to an English visitor counts.
  */
-const servesLanguage = function servesLanguage(
+const servesSameCopy = function servesSameCopy(
 	output: InitOutput,
 	requested: string | null | undefined
 ): boolean {
 	const primary = (language: string): string =>
 		language.toLowerCase().split(/[-_]/u)[0] ?? '';
-	return primary(output.translations.language) === primary(requested ?? 'en');
+	return (
+		primary(output.translations.language) === 'en' &&
+		primary(requested ?? 'en') === 'en'
+	);
 };
 
 const readGlobalPrivacyControl = function readGlobalPrivacyControl():
@@ -298,14 +303,14 @@ const localAnswer = function localAnswer(
 	}
 	// The location is unknown. When every location gives the same banner,
 	// the bundle already holds the answer and the banner need not wait for
-	// a round trip. IAB needs the vendor list, and a visitor whose language
-	// the bundle lacks would get English, so both still ask `/init`.
+	// a round trip. IAB needs the vendor list, and a visitor in any language
+	// but English would get copy with English gaps, so both still ask `/init`.
 	const outcome = locationFreeOutcome(resolved);
 	if (!outcome || outcome.policy.model === 'iab') {
 		return undefined;
 	}
 	const local = resolveLocally();
-	return servesLanguage(local, inputs.language) ? local : undefined;
+	return servesSameCopy(local, inputs.language) ? local : undefined;
 };
 
 /** The options each `manifest()` early-init entry was registered with. */
