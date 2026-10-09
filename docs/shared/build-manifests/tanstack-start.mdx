@@ -5,18 +5,27 @@ Add the plugin before `tanstackStart()`. Keep the generated
 
 <include src="../examples/tanstack-start/vite-config.mdx" />
 
-Declare the options once:
+The plugin reads the backend URL from `backendURL`, or from
+`VITE_C15T_BACKEND_URL` when you leave `backendURL` out. If that variable is
+unset, the plugin sets it to the URL it used, so app code can read
+`import.meta.env.VITE_C15T_BACKEND_URL` instead of repeating the URL.
+
+Pass the generated `consentManifest` and the backend URL to
+`createConsentStateHandler`, as the
+[quickstart root route](/docs/frameworks/tanstack-start/quickstart#resolve-consent-in-the-root-route)
+does.
+
+If you also mount `createConsentServerRoute`, declare the options once so the
+route and the server function resolve from the same snapshot:
 
 <include src="../examples/tanstack-start/consent-options.mdx" />
 
 The `.server.ts` suffix makes the build fail if browser code imports the
-snapshot.
-
-Pass it to the server function in `__root.tsx`:
+snapshot. Pass the object to the server function in `__root.tsx`:
 
 <include src="../examples/tanstack-start/build-manifest-server-fn.mdx" />
 
-If you mount `createConsentServerRoute`, pass it the same object:
+And pass the same object to the route:
 
 {/* example: fragment */}
 
@@ -32,4 +41,4 @@ If you install `@c15t/tanstack-start` directly, set
 `importSource: '@c15t/tanstack-start/static'`.
 
 For policy updates without a rebuild, remove the plugin and the `manifest`
-line, and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
+option, set `VITE_C15T_BACKEND_URL` yourself, and use [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).

@@ -32,9 +32,11 @@ and `x-c15t-region` at your edge from whatever location data it has.
 
 ## Read the headers once per request
 
-Register `consentRequestMiddleware` in `src/start.ts`, as the
-[quickstart](/docs/frameworks/tanstack-start/quickstart#read-location-headers-on-every-request)
-does:
+The server function and the consent route read these headers from the request
+themselves, so the
+[quickstart](/docs/frameworks/tanstack-start/quickstart) needs no middleware.
+Register `consentRequestMiddleware` in `src/start.ts` when your own server
+code needs the location, or to force one location for every request:
 
 <include src="../../shared/examples/tanstack-start/start.mdx" />
 

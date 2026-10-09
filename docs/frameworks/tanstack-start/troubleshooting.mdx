@@ -37,7 +37,7 @@ the build.
 | The root loader streams the consent promise and sets `streamBanner: false` | Expected. The banner mounts after hydration. Remove the option, or await the server function; see [rendering](/docs/frameworks/tanstack-start/rendering) |
 | The page is prerendered or the app runs in SPA mode | Expected. The browser resolves consent after the page loads |
 | With runtime fetching, the backend took longer than 500 ms, often on the first request after a start | The server rendered without consent and the browser resolved it. Later requests use the cached manifest. Raise `timeoutMs` in `createConsentStateHandler` if needed |
-| No country header reaches the server | Check that `consentRequestMiddleware()` is in `src/start.ts` and that your host adds a geo header. Without one the visitor gets your fallback policy |
+| No country header reaches the server | Check that your host or CDN adds a geo header; [geography headers](/docs/frameworks/tanstack-start/geography-headers) lists the ones c15t reads. Without one the visitor gets your fallback policy |
 | The visitor has a stored choice | Expected. The server reads the `c15t` cookie and renders no banner |
 
 ## The server function fails to resolve at runtime

@@ -6,13 +6,15 @@ import { defineConfig, loadEnv } from 'vite';
 
 export default defineConfig(({ mode }) => {
 	const env = loadEnv(mode, process.cwd(), 'VITE_');
-	const backendURL =
-		env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app';
 
 	return {
 		plugins: [
-			// Writes src/c15t-manifest.ts before Start compiles the app.
-			consentManifest({ backendURL }),
+			// Writes src/c15t-manifest.ts before Start compiles the app, and
+			// passes the backend URL on to the app as VITE_C15T_BACKEND_URL.
+			consentManifest({
+				backendURL:
+					env.VITE_C15T_BACKEND_URL ?? 'https://benchmarks-inth.inth.app',
+			}),
 			tanstackStart(),
 			viteReact(),
 		],

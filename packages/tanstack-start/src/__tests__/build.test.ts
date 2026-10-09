@@ -52,3 +52,68 @@ describe('TanStack Start manifest generation', () => {
 		}
 	);
 });
+
+describe('TanStack Start manifest backend URL', () => {
+	const manifestResponse = () =>
+		vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(
+				Response.json({
+					branding: 'c15t',
+					revision: 'tanstack-build',
+					schemaVersion: 2,
+				})
+			)
+		);
+
+	const tempRoot = async () => {
+		const root = await mkdtemp(join(tmpdir(), 'c15t-tanstack-manifest-'));
+		directories.push(root);
+		return root;
+	};
+
+	test('reads VITE_C15T_BACKEND_URL when backendURL is omitted', async () => {
+		const fetchSpy = manifestResponse();
+		const env: Record<string, unknown> = {
+			VITE_C15T_BACKEND_URL: 'https://env.example.com',
+		};
+		await consentManifest({ fetch: fetchSpy }).configResolved({
+			env,
+			root: await tempRoot(),
+		});
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			'https://env.example.com/manifest'
+		);
+		expect(env.VITE_C15T_BACKEND_URL).toBe('https://env.example.com');
+	});
+
+	test('exposes an explicit backendURL to the app when the variable is unset', async () => {
+		const fetchSpy = manifestResponse();
+		const env: Record<string, unknown> = {};
+		await consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+		}).configResolved({ env, root: await tempRoot() });
+		expect(env.VITE_C15T_BACKEND_URL).toBe('https://consent.example.com');
+	});
+
+	test('keeps a variable the app already set', async () => {
+		const fetchSpy = manifestResponse();
+		const env: Record<string, unknown> = {
+			VITE_C15T_BACKEND_URL: '/api/c15t',
+		};
+		await consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+		}).configResolved({ env, root: await tempRoot() });
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			'https://consent.example.com/manifest'
+		);
+		expect(env.VITE_C15T_BACKEND_URL).toBe('/api/c15t');
+	});
+
+	test('throws without a backend URL', async () => {
+		await expect(
+			consentManifest().configResolved({ env: {}, root: await tempRoot() })
+		).rejects.toThrow(/VITE_C15T_BACKEND_URL/u);
+	});
+});

@@ -45,37 +45,23 @@ public policy from `${backendURL}/manifest` and writes it to
 
 `https://benchmarks-inth.inth.app` is a demo project, so the config runs as
 is. Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
-shows it, including any path prefix, or replace the fallback. The app code
-below reads the same variable. Vite writes its value into the server and
-browser builds, so setting it when you start a built app has no effect.
+shows it, including any path prefix, or replace the fallback. In your own app
+you can put the variable in `.env` and call `consentManifest()` with no
+options.
 
-Declare the server's consent options in `src/consent-options.server.ts`:
-
-<include src="../../shared/examples/tanstack-start/consent-options.mdx" />
-
-The `.server.ts` suffix makes the build fail if browser code imports the
-snapshot.
+The app code below reads `import.meta.env.VITE_C15T_BACKEND_URL`. When the
+variable is unset, the plugin sets it to the URL it downloaded from, so the URL
+appears in one place. Vite writes its value into the server and browser builds,
+so setting it when you start a built app has no effect.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
 <include src="../../shared/vite-build-manifest.mdx" />
 
 To apply policy edits without rebuilding, remove the plugin and the `manifest`
-line. The server function then fetches and caches the policy at runtime; see
+option in the root route, and set `VITE_C15T_BACKEND_URL` yourself. The server
+function then fetches and caches the policy at runtime; see
 [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
-
-## Read location headers on every request
-
-Register `consentRequestMiddleware` in `src/start.ts`. It reads the country and
-region headers your host or CDN adds, such as `cf-ipcountry` or
-`x-vercel-ip-country`, plus `accept-language` and the Global Privacy Control
-header. It writes them onto the request in one format that the server function
-reads.
-
-<include src="../../shared/examples/tanstack-start/start.mdx" />
-
-If `src/start.ts` already exists, add `consentRequestMiddleware()` to its
-`requestMiddleware` list.
 
 ## Register your vendor scripts
 
@@ -97,11 +83,13 @@ Replace or merge `src/routes/__root.tsx`:
 What each part does:
 
 - **`getConsentState`** runs on the server. `createConsentStateHandler` reads
-  the `c15t` cookie and the headers from the middleware, then resolves this
-  visitor's policy from the bundled snapshot, so the render never waits on
-  Inth. Declare the `createServerFn()` call in your own module, as shown.
-  Start's compiler finds server code by that call site and removes it, with
-  the `consent-options.server` import, from the browser build. A server
+  the `c15t` cookie and the location headers your host or CDN adds, such as
+  `cf-ipcountry` or `x-vercel-ip-country`, then resolves this visitor's policy
+  from the bundled snapshot, so the render never waits on Inth.
+  [Geography headers](/docs/frameworks/tanstack-start/geography-headers) lists
+  the headers it reads. Declare the `createServerFn()` call in your own module,
+  as shown. Start's compiler finds server code by that call site and removes
+  it, with the `c15t-manifest` import, from the browser build. A server
   function built inside a package does not work. In the browser build,
   `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
   helpers throw if browser code calls them.
@@ -110,9 +98,8 @@ What each part does:
   state does not change between routes.
 - **`ConsentRoot`** creates the consent runtime from that state, so the server
   HTML and the first browser render match. The browser sends its requests,
-  including consent saves, straight to `backendURL`. It reads
-  `VITE_C15T_BACKEND_URL` like the consent options, so saves reach the
-  project the snapshot came from.
+  including consent saves, straight to `backendURL`, the same URL the server
+  function uses, so saves reach the project the snapshot came from.
 - **`scripts`** stays in this module. A server function can only return
   serializable data, and vendor loaders contain functions.
 - **No stylesheet** is linked. `ConsentBanner` renders its rules into the
@@ -143,8 +130,8 @@ before you record or report choices. For iframes, use `ConsentGate`; see
 Build the app with `vite build`, start the production server, and open the site
 in a private window with DevTools open on the Network tab. Test under a policy
 that asks for a choice, such as an EU opt-in policy. Your host must send a
-country header; locally, add `consentRequestMiddleware({ country: 'DE' })` for
-the test only.
+country header; locally, add `country: 'DE'` to the `createConsentStateHandler`
+options for the test only.
 
 1. **Server HTML.** View the page source. It contains an element with
    `data-testid="consent-banner-root"`.

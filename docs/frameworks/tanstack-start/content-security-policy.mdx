@@ -57,10 +57,11 @@ export const cspMiddleware = createMiddleware().server(({ next }) => {
 });
 ```
 
-Add `cspMiddleware` to `requestMiddleware` in `src/start.ts`, before
-`consentRequestMiddleware()`. Replace `https://<your-backend-host>` with the
-origin of the backend URL from your Inth project or self-hosted backend, and
-add your vendors' hosts.
+Add `cspMiddleware` to `requestMiddleware` in `src/start.ts`, creating the file
+with `createStart` if your app has none. If the list also has
+`consentRequestMiddleware()`, put `cspMiddleware` first. Replace
+`https://<your-backend-host>` with the origin of the backend URL from your Inth
+project or self-hosted backend, and add your vendors' hosts.
 
 **2. Give the router the nonce.** `getRouter` runs on the server after the
 global request middleware, so it can read the nonce from the Start context. In
