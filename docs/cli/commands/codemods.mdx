@@ -81,8 +81,10 @@ such as `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't
 tell the version, it keeps the import the same way and prints a warning.
 
 If `package.json` lists `@c15t/react` or `@c15t/nextjs` but not `c15t` v3, it
-leaves the scoped imports, still removes the stylesheet imports, and prints a
-warning. Replace the packages with `c15t@alpha` and run it again.
+leaves the scoped imports and prints a warning. While those packages are v2, it
+leaves their stylesheet imports and mocks as they are too, since v2 components
+don't add their own styles. At v3, it still removes the stylesheet imports.
+Replace the packages with `c15t@alpha` and run it again.
 
 ### Provider, transports and options
 

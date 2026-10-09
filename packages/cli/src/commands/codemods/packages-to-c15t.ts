@@ -4,6 +4,7 @@ import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
 import {
+	admitsBelowMajor,
 	declaresTailwind3,
 	dependenciesOf,
 	readPackageJson,
@@ -114,6 +115,12 @@ interface ImportPlan {
 	 * counts), or the codemod can't resolve the version.
 	 */
 	tailwind3: boolean;
+	/**
+	 * Scoped packages, `react` or `nextjs`, still installed at v2 without the
+	 * `c15t` 3 umbrella. Their stylesheets stay as they are, since v2
+	 * components don't add their own styles.
+	 */
+	v2Stylesheets: ReadonlySet<string>;
 }
 
 /** Where a scoped import goes in v3, or a TODO when v3 has no such entry. */
@@ -171,6 +178,15 @@ const keptStylesheet = function keptStylesheet(
 		? `c15t/${pkg === 'nextjs' ? 'next' : 'react'}`
 		: `@c15t/${pkg}`;
 	return `${base}/${groups.iab ?? ''}styles.css`;
+};
+
+/** Whether a stylesheet belongs to a scoped package still installed at v2. */
+const isV2Stylesheet = function isV2Stylesheet(
+	specifier: string,
+	plan: ImportPlan
+): boolean {
+	const pkg = STYLESHEET_SPECIFIER.exec(specifier)?.groups?.pkg;
+	return pkg !== undefined && plan.v2Stylesheets.has(pkg);
 };
 
 /** Whether a stylesheet import must stay, with a TODO, rather than go. */
@@ -406,6 +422,9 @@ const transformWith = (
 		for (const literal of moduleSpecifiersOf(sourceFile)) {
 			const specifier = literal.getLiteralValue();
 			const parent = literal.getParentOrThrow();
+			if (isV2Stylesheet(specifier, plan)) {
+				continue;
+			}
 			if (STYLESHEET_SPECIFIER.test(specifier) && isModuleHelperCall(parent)) {
 				const target = stylesheetMockTarget(specifier, plan.umbrella);
 				if (target !== undefined) {
@@ -519,7 +538,10 @@ const transformStylesheet = function transformStylesheet(
 	let operations = 0;
 	for (const directive of findStylesheetImports(text, extname(filePath))) {
 		const { specifier } = directive;
-		if (!(STYLESHEET_SPECIFIER.test(specifier) && directive.bounded)) {
+		if (
+			!(STYLESHEET_SPECIFIER.test(specifier) && directive.bounded) ||
+			isV2Stylesheet(specifier, plan)
+		) {
 			continue;
 		}
 		const lineStart = lineStartOf(text, directive.start);
@@ -574,6 +596,28 @@ const transformStylesheet = function transformStylesheet(
 };
 
 /**
+ * The scoped packages whose stylesheets still come from v2. A package the
+ * manifest doesn't list follows the one it does, as `@c15t/nextjs` v2
+ * installs `@c15t/react` v2.
+ */
+const v2StylesheetsOf = function v2StylesheetsOf(
+	dependencies: Record<string, string>
+): Set<string> {
+	const react = dependencies['@c15t/react'];
+	const nextjs = dependencies['@c15t/nextjs'];
+	const packages = new Set<string>();
+	for (const [pkg, specifier] of [
+		['react', react ?? nextjs],
+		['nextjs', nextjs ?? react],
+	] as const) {
+		if (specifier !== undefined && admitsBelowMajor(specifier, 3)) {
+			packages.add(pkg);
+		}
+	}
+	return packages;
+};
+
+/**
  * Points `@c15t/react` and `@c15t/nextjs` imports at the `c15t` entries
  * that replace them in v3: `c15t/react` and its subpaths, or `c15t/next` in
  * a Next.js app, and the scoped `postcss-tailwind3` plugins at
@@ -581,7 +625,8 @@ const transformStylesheet = function transformStylesheet(
  * components add their own styles, and keeps them with a `TODO(c15t v3)`
  * comment where Tailwind CSS 3 or a cascade layer still needs them, or where
  * the Tailwind CSS version can't be resolved. An app whose package.json lists
- * the scoped packages without `c15t` 3 keeps its scoped imports.
+ * the scoped packages without `c15t` 3 keeps its scoped imports, and keeps
+ * their stylesheets as they are while those packages are v2.
  * package.json itself is left alone.
  *
  * @param options - Codemod execution options.
@@ -597,6 +642,7 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		tailwind === undefined
 			? undefined
 			: await tailwindMajor(options.projectRoot, tailwind);
+	const umbrella = usesUmbrella(dependencies);
 	const plan: ImportPlan = {
 		next:
 			dependencies.next !== undefined ||
@@ -604,7 +650,8 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		// Keeping an import the app doesn't need costs a TODO; removing one
 		// Tailwind CSS 3 needs breaks the styling.
 		tailwind3: major === 3 || major === null || declaresTailwind3(manifest),
-		umbrella: usesUmbrella(dependencies),
+		umbrella,
+		v2Stylesheets: umbrella ? new Set() : v2StylesheetsOf(dependencies),
 	};
 	const requireWarnings: { filePath: string; message: string }[] = [];
 	const sources = await runTransform(

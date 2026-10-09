@@ -112,6 +112,22 @@ const admitsMajor = function admitsMajor(
 };
 
 /**
+ * Whether a semver specifier allows a version below this major, such as
+ * `^2.3.0` or `^2 || ^3` below 3. A specifier that isn't a semver range,
+ * such as a dist-tag or a git URL, doesn't.
+ */
+export const admitsBelowMajor = function admitsBelowMajor(
+	specifier: string,
+	major: number
+): boolean {
+	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
+	return (
+		range !== null &&
+		intersects(range, `<${major}.0.0-0`, { includePrerelease: true })
+	);
+};
+
+/**
  * Whether any dependency group declares Tailwind CSS 3, so that
  * `devDependencies` can't hide a peer range from `dependenciesOf`. A peer or
  * optional range speaks for the apps that install the package, so one that

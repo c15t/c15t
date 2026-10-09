@@ -908,6 +908,39 @@ import 'c15t/react/styles.css';
 		]);
 	});
 
+	it('keeps stylesheet imports while @c15t/react v2 stays installed', async () => {
+		const css = `@import "@c15t/react/styles.css";
+@import "@c15t/react/iab/styles.tw3.css";
+`;
+		const source = `import '@c15t/react/styles.css';
+import { ConsentProvider } from '@c15t/react';
+`;
+		const test = `vi.mock('@c15t/react/styles.tw3.css', () => ({}));
+const path = require.resolve('@c15t/react/iab/styles.tw3.css');
+`;
+		const { read, result } = await run(
+			{ '@c15t/react': '^2.3.0' },
+			{
+				'src/consent.test.ts': test,
+				'src/consent.tsx': source,
+				'src/index.css': css,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(result.changedFiles).toEqual([]);
+		expect(await read('src/index.css')).toBe(css);
+		expect(await read('src/consent.tsx')).toBe(source);
+		expect(await read('src/consent.test.ts')).toBe(test);
+		expect(result.warnings).toEqual([
+			{
+				filePath: expect.stringMatching(/package\.json$/u),
+				message:
+					'package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with c15t@alpha and run packages-to-c15t again to point them at c15t/react or c15t/next.',
+			},
+		]);
+	});
+
 	it('leaves v3 entries and other packages alone', async () => {
 		const { result } = await run(
 			{ c15t: '^3.0.0' },
