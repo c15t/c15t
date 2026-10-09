@@ -57,7 +57,6 @@ const umbrellaFrameworks = [
 export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/javascript/**/*.mdx',
@@ -77,7 +76,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/react/**/*.mdx',
@@ -96,7 +94,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/next/**/*.mdx',
@@ -116,7 +113,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/vue/**/*.mdx',
@@ -136,7 +132,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/svelte/**/*.mdx',
@@ -155,7 +150,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/astro/**/*.mdx',
@@ -174,7 +168,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/tanstack-start/**/*.mdx',
@@ -193,7 +186,6 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/index.mdx',
@@ -213,12 +205,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 			'c15t v3 framework integration and consent management. Install c15t and use its framework subpaths; adapters and add-ons absent from its exports use separate packages.',
 	},
 	{
-		include: [
-			'upgrade-v3.mdx',
-			'concepts/**/*.mdx',
-			'guides/**/*.mdx',
-			'self-host/**/*.mdx',
-		],
+		include: ['concepts/**/*.mdx', 'guides/**/*.mdx', 'self-host/**/*.mdx'],
 		name: '@c15t/backend',
 		outDir: 'packages/backend',
 		skill: {
@@ -230,7 +217,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
+			'frameworks/*/upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/*/scripts.mdx',
@@ -251,7 +238,7 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
+			'frameworks/*/upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'frameworks/*/scripts.mdx',
@@ -294,7 +281,8 @@ export const PACKAGE_DOCS_CONFIGS: PackageDocsConfig[] = [
 	},
 	{
 		include: [
-			'upgrade-v3.mdx',
+			'frameworks/*/upgrade-v3.mdx',
+			'self-host/upgrade-v3.mdx',
 			'concepts/**/*.mdx',
 			'guides/**/*.mdx',
 			'cli/**/*.mdx',

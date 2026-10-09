@@ -154,8 +154,8 @@ and their `/headless` entries. For each `useConsentManager()` destructuring, it:
   `TODO(c15t v3)` comment that names the replacement. The import no longer
   exists, so the build fails at each place that needs manual work.
 
-The [Next.js](https://c15t.com/docs/frameworks/next/upgrade-v3#replace-useconsentmanager) and
-[React](https://c15t.com/docs/frameworks/react/upgrade-v3#replace-useconsentmanager) upgrade
+The [Next.js](../../frameworks/next/upgrade-v3.md#replace-useconsentmanager) and
+[React](../../frameworks/react/upgrade-v3.md#replace-useconsentmanager) upgrade
 guides map every field.
 
 ## Rename `@c15t/scripts` imports
@@ -172,9 +172,9 @@ npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
 
 It does not edit `package.json`, lockfiles, or imports inside `.vue`, `.svelte`
 or `.astro` files. Update those by hand, as the upgrade guides for
-[Next.js](https://c15t.com/docs/frameworks/next/upgrade-v3#rename-the-integrations-dependency),
-[React](https://c15t.com/docs/frameworks/react/upgrade-v3#rename-the-integrations-dependency)
-and [JavaScript](https://c15t.com/docs/frameworks/javascript/upgrade-v3#rename-the-integrations-dependency)
+[Next.js](../../frameworks/next/upgrade-v3.md#rename-the-integrations-dependency),
+[React](../../frameworks/react/upgrade-v3.md#rename-the-integrations-dependency)
+and [JavaScript](../../frameworks/javascript/upgrade-v3.md#rename-the-integrations-dependency)
 describe.
 
 ## Run the v1 to v2 transforms
