@@ -1004,8 +1004,17 @@ export interface ConsentKernel {
 				uiSource?: SaveUISource;
 			}
 		) => Promise<SaveResult>;
-		/** Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`. */
-		dismissNotice: () => Promise<NoticeDismissResult>;
+		/**
+		 * Dismiss the current notice. Only while `promptRequirement.kind === 'notice'`.
+		 *
+		 * @param context - Optional dismissal time captured before the call,
+		 * such as a tap made before hydration. A future or invalid time falls
+		 * back to now.
+		 */
+		dismissNotice: (context?: {
+			/** When the visitor dismissed the notice. Defaults to now. */
+			actionAt?: number;
+		}) => Promise<NoticeDismissResult>;
 		identify: (user: KernelUser) => Promise<void>;
 	};
 

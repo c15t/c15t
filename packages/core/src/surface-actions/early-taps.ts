@@ -102,7 +102,7 @@ const apply = (
 		return;
 	}
 	if (tap.action === 'dismiss') {
-		void kernel.commands.dismissNotice();
+		void kernel.commands.dismissNotice({ actionAt: tap.at });
 	} else {
 		void saveConsentSurface(kernel, () =>
 			kernel.commands.save(tap.action === 'accept' ? 'all' : 'none', {

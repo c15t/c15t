@@ -9,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	matchedResolution,
+	noticeRule,
 	optInRule,
 	optOutRule,
 } from '../../__tests__/fixtures/kernel-fixtures';
@@ -164,6 +165,18 @@ describe('the inline script', () => {
 		expect(hidden()).toBe(false);
 	});
 
+	test('gives the hiding style the nonce of its own script', () => {
+		vi.spyOn(document, 'currentScript', 'get').mockReturnValue(
+			Object.assign(document.createElement('script'), { nonce: 'page-nonce' })
+		);
+		runScript();
+		renderBanner();
+		tap('accept');
+		expect(document.getElementById(EARLY_TAP_STYLE_ID)?.nonce).toBe(
+			'page-nonce'
+		);
+	});
+
 	test('leaves a button that opted out to its own handler', () => {
 		runScript();
 		renderBanner();
@@ -252,6 +265,26 @@ describe('replayEarlyConsentTaps', () => {
 			stop();
 		}
 	);
+
+	test('records a notice dismissal at the time of the tap', async () => {
+		policy = matchedResolution(noticeRule());
+		runScript();
+		document.body.innerHTML =
+			'<div data-testid="consent-banner-root" data-model="opt-out" data-prompt="notice"><button data-action="dismiss">OK</button></div>';
+		tap('dismiss');
+		const tapAt = queue()?.taps?.[0]?.at ?? 0;
+		// Hydration ends well after the tap.
+		const { now } = Date;
+		vi.spyOn(Date, 'now').mockImplementation(() => now() + 5000);
+		const runtime = createRuntime();
+		replayEarlyConsentTaps(runtime.kernel, {
+			started: () => runtime.started,
+		});
+		await startAndInit(runtime);
+		expect(runtime.kernel.getSnapshot().noticeDismissal?.dismissedAt).toBe(
+			tapAt
+		);
+	});
 
 	test('drops a tap made on a banner for another model', async () => {
 		runScript();
