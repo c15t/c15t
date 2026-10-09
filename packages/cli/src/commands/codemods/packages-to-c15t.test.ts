@@ -889,6 +889,25 @@ import 'c15t/react/styles.css';
 		]);
 	});
 
+	it('warns about @c15t/react v2 without c15t 3 when only a stylesheet imports it', async () => {
+		const { result } = await run(
+			{ '@c15t/react': '^2.3.0' },
+			{
+				'src/index.css': `@import "@c15t/react/styles.css";
+`,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(result.warnings).toEqual([
+			{
+				filePath: expect.stringMatching(/package\.json$/u),
+				message:
+					'package.json lists @c15t/react without c15t 3, so their imports were left as they are. Replace them with c15t@alpha and run packages-to-c15t again to point them at c15t/react or c15t/next.',
+			},
+		]);
+	});
+
 	it('leaves v3 entries and other packages alone', async () => {
 		const { result } = await run(
 			{ c15t: '^3.0.0' },

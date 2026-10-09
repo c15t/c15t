@@ -386,8 +386,6 @@ const rewriteLiteral = function rewriteLiteral(
 
 /** What the source transform reports beyond its edits. */
 interface TransformHooks {
-	/** An import was left alone because the app doesn't install c15t 3. */
-	onScopedImport: () => void;
 	/** A file has `require()` calls that now name an ESM-only c15t entry. */
 	onRequires: (filePath: string, count: number) => void;
 }
@@ -441,7 +439,6 @@ const transformWith = (
 				continue;
 			}
 			if (!plan.umbrella) {
-				hooks.onScopedImport();
 				continue;
 			}
 			if ('todo' in target) {
@@ -609,7 +606,6 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		tailwind3: major === 3 || major === null || declaresTailwind3(manifest),
 		umbrella: usesUmbrella(dependencies),
 	};
-	let skippedScopedImports = false;
 	const requireWarnings: { filePath: string; message: string }[] = [];
 	const sources = await runTransform(
 		options,
@@ -619,9 +615,6 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 					filePath,
 					message: `${count} require() ${count === 1 ? 'call names' : 'calls name'} c15t, which ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert the file to import, or to an .mjs or ESM config, to support older runtimes.`,
 				});
-			},
-			onScopedImport: () => {
-				skippedScopedImports = true;
 			},
 		})
 	);
@@ -646,7 +639,9 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 			},
 		];
 	}
-	if (skippedScopedImports) {
+	if (!plan.umbrella) {
+		// The manifest decides this, not the files scanned: scoped imports can
+		// live in .mdx files or only in a stylesheet.
 		const listed = ['@c15t/react', '@c15t/nextjs']
 			.filter((name) => dependencies[name] !== undefined)
 			.join(' and ');
