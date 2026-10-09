@@ -1,4 +1,8 @@
-import { appendInitParams, appendJourneyParams } from '@c15t/schema/types';
+import {
+	appendInitParams,
+	appendJourneyParams,
+	applyInitParamsToHeaders,
+} from '@c15t/schema/types';
 
 import {
 	buildRequestContextHeaders,
@@ -16,8 +20,9 @@ export interface HostedInitRequest {
 	url: string;
 	/**
 	 * The request inputs in their header form: the allowed caller headers
-	 * plus the overrides. The overrides travel in the query string; this
-	 * record is what the response is read against.
+	 * plus the overrides and any init parameters `initURL` already carried.
+	 * The overrides travel in the query string; this record is what the
+	 * response is read against.
 	 */
 	requestHeaders: Record<string, string>;
 	/** Fetch options for the request. */
@@ -55,11 +60,29 @@ export const createHostedInitRequest =
 		journey?: InitContext['journey'];
 	}): HostedInitRequest {
 		const base = options.initURL ?? `${trimSlash(options.backendURL)}/init`;
-		const url = appendInitParams(base, {
+		const params = appendInitParams(base, {
 			...c15tProtocolParams,
 			...buildRequestContextParams(options.overrides),
 			experiment: options.experiment,
 		});
+		const url = options.journey
+			? appendJourneyParams(params, {
+					id: options.journey.id,
+					scope: options.journey.scope,
+					storedChoice: options.journey.storedChoice,
+				})
+			: params;
+		// An `initURL` parameter c15t does not replace, such as `?gpc=1`,
+		// reaches the backend, so the response is read against it too.
+		const requestHeaders = Object.fromEntries(
+			applyInitParamsToHeaders(
+				url,
+				new Headers({
+					...options.headers,
+					...buildRequestContextHeaders(options.overrides),
+				})
+			)
+		);
 		return {
 			init: {
 				credentials: options.credentials ?? DEFAULT_INIT_CREDENTIALS,
@@ -70,16 +93,7 @@ export const createHostedInitRequest =
 				},
 				method: 'GET',
 			},
-			requestHeaders: {
-				...options.headers,
-				...buildRequestContextHeaders(options.overrides),
-			},
-			url: options.journey
-				? appendJourneyParams(url, {
-						id: options.journey.id,
-						scope: options.journey.scope,
-						storedChoice: options.journey.storedChoice,
-					})
-				: url,
+			requestHeaders,
+			url,
 		};
 	};

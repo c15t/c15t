@@ -1064,6 +1064,20 @@ describe('hosted init: CORS simple request', () => {
 		expect(request.url.startsWith('/api/consent/init?site=shop&v=')).toBe(true);
 	});
 
+	test('reads the response against a parameter initURL keeps', () => {
+		// The backend resolves `?gpc=1` from the URL, so the response side must
+		// see it too. A value c15t sends still wins over the URL's.
+		const request = createHostedInitRequest({
+			backendURL: 'https://backend.example',
+			initURL: '/api/consent/init?gpc=1&country=US',
+			overrides: { country: 'GB' },
+		});
+		expect(request.requestHeaders).toMatchObject({
+			'x-c15t-country': 'GB',
+			'x-c15t-gpc': '1',
+		});
+	});
+
 	test('a caller header outside the safelist brings the preflight back', async () => {
 		const fetchSpy = respondWithInit();
 		const transport = createHostedTransport({

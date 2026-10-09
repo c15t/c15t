@@ -31,7 +31,7 @@ export const CONSENT_SESSION_CLIENT_IP_HEADER = 'x-c15t-client-ip';
  * `<id>=<arm>` with both parts URI-encoded. A client sends it on `/init`
  * only while the visitor has no stored choice, so a session that carries it
  * is one where the banner was owed under that arm. A browser sends the same
- * value as the `c15tExperiment` query parameter instead, so a cross-origin
+ * value as the `experiment` query parameter instead, so a cross-origin
  * `/init` needs no CORS preflight.
  */
 export const CONSENT_EXPERIMENT_HEADER = 'x-c15t-experiment';
