@@ -22,7 +22,7 @@ bun run build:libs
 bun run --cwd examples/astro dev
 ```
 
-The site's `.env` points it at the `https://benchmarks-inth.inth.app` demo Inth
+The site's `.env` points it at the `https://example-inth.inth.app` demo Inth
 project. `astro dev` and `astro build` download its policy when they start. If
 the download fails, `astro build` stops with an error, and `astro dev` logs a
 warning and the server fetches the policy at runtime. To use your own project,

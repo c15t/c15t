@@ -21,7 +21,7 @@ bun run build:libs
 bun run --cwd examples/nuxt dev
 ```
 
-The app's `.env` points it at the `https://benchmarks-inth.inth.app` demo Inth
+The app's `.env` points it at the `https://example-inth.inth.app` demo Inth
 project. `nuxt dev` and `nuxt build` download its policy when they start. If
 the download fails, `nuxt build` stops with an error, and `nuxt dev` logs a
 warning and the server routes fetch the policy at runtime. To use your own

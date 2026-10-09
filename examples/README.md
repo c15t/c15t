@@ -26,7 +26,7 @@ Test apps live in `internals/fixtures`, and type-checked docs snippets live in
    may read its backend URL from the framework's usual public environment
    variable, because a real app does the same. An example that downloads the
    policy at build time commits a `.env` that sets that variable to the
-   `https://benchmarks-inth.inth.app` demo project, so it still builds and runs
+   `https://example-inth.inth.app` demo project, so it still builds and runs
    on clone. That `.env` holds nothing else; list it in the root `.gitignore`
    exceptions.
 4. **Runs on clone.** `bun install`, build the workspace packages, then

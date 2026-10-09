@@ -27,7 +27,7 @@ bun run --cwd examples/nextjs-pages-router dev
 ```
 
 Open `http://localhost:3101`. The app's `.env` points it at the
-`https://benchmarks-inth.inth.app` demo Inth project. `next dev` and
+`https://example-inth.inth.app` demo Inth project. `next dev` and
 `next build` download its policy when they start. If the download fails,
 `next build` stops with an error, and `next dev` logs a warning and the server
 fetches the policy at runtime.

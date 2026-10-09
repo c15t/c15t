@@ -41,7 +41,7 @@ bun run build:libs
 bun run --cwd examples/showcase-nuxt-theme dev
 ```
 
-The app's `.env` points it at the `https://benchmarks-inth.inth.app` demo
+The app's `.env` points it at the `https://example-inth.inth.app` demo
 Inth project. The module downloads that project's policy when `nuxt dev` or
 `nuxt build` starts. To use your own project, set
 `NUXT_PUBLIC_C15T_BACKEND_URL` in `.env.local` to its backend URL and add the

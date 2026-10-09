@@ -28,7 +28,7 @@ bun run build:libs
 bun run --cwd examples/sveltekit dev
 ```
 
-The app's `.env` points it at the `https://benchmarks-inth.inth.app` demo Inth
+The app's `.env` points it at the `https://example-inth.inth.app` demo Inth
 project. `vite dev`, `vite build` and `svelte-kit sync` download its policy
 when they start. If the download fails, `vite build` stops with an error, and
 `vite dev` logs a warning and the server fetches the policy at runtime. To use
