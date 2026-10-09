@@ -10,19 +10,26 @@ group: reference
   ### Choose when Google loads
 
   The `gtag` and `googleTagManager` helpers take a `loadMode` option. It
-  decides whether the page contacts Google before the visitor chooses:
+  decides whether the page contacts Google before the helper's category is
+  allowed:
 
-  | `loadMode` | Before the visitor chooses | Use it when |
+  | `loadMode` | Until the category is allowed | Use it when |
   | --- | --- | --- |
-  | `'always'` (default) | c15t loads Google's script, sends Consent Mode `default` with the current permissions, then sends `update` as they change. Google receives requests with the optional consent types denied. | You want Consent Mode signals from visitors who have not chosen or who decline. |
-  | `'after-consent'` | c15t sends no request to Google. | Your site must make no request to Google before opt-in. You give up Consent Mode's cookieless pings and conversion modeling for visitors who haven't chosen or who decline. |
+  | `'always'` (default) | c15t loads Google's script, sends Consent Mode `default` with the current permissions, then sends `update` as they change. Google receives requests with the optional consent types denied. | You want Consent Mode signals from visitors who have not allowed the category. |
+  | `'after-consent'` | c15t sends no request to Google. | Your site must make no request to Google before opt-in. You give up Consent Mode's cookieless pings and conversion modeling for visitors who haven't allowed the category. |
 
   With `'after-consent'`, `gtag` waits for its `category`, and
   `googleTagManager` waits for `measurement` or `marketing` because a container
   usually holds both kinds of tag. Pass `category` to `googleTagManager` to
   change that, for example `category: 'measurement'` for an analytics-only
-  container. Until the helper loads, `window.gtag` and `window.dataLayer` don't
-  exist, so event calls written as `window.gtag?.(...)` do nothing.
+  container. Until the helper loads, `window.gtag` doesn't exist, and neither
+  does `window.dataLayer` unless you seeded it, so event calls written as
+  `window.gtag?.(...)` do nothing.
+
+  `'after-consent'` waits for the category to be allowed, not for a recorded
+  choice. Under an `opt-in` policy, that happens when the visitor allows it.
+  Under an `opt-out` or `none` policy, optional categories are allowed before a
+  choice, so the helper loads on the first page.
 
   Set it on each Google helper in your `scripts` array:
 
