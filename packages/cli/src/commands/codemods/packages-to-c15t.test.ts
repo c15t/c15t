@@ -489,9 +489,33 @@ vi.mock('c15t/react', () => ({ useConsent: vi.fn() }));
 jest.mock("c15t/next/headless");
 // TODO(c15t v3): @c15t/react/legacy is not a c15t v3 entry. Import from c15t/react or one of its subpaths.
 const actual = await vi.importActual('@c15t/react/legacy');
-vi.mock('@c15t/react/styles.css', () => ({}));
+vi.mock('c15t/react/styles.css', () => ({}));
 vi.mock(\`@c15t/react\`);
 `);
+	});
+
+	it('points mocks of a removed stylesheet import at c15t', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/consent.test.ts': `import '@c15t/react/styles.css';
+jest.mock('@c15t/react/styles.css', () => ({}));
+jest.mock("@c15t/nextjs/iab/styles.tw3.css", () => ({}));
+const css = await vi.importActual('@c15t/react/iab/styles.css');
+const actual = jest.requireActual('@c15t/react/styles.tw3.css');
+const path = require.resolve('@c15t/nextjs/styles.css');
+`,
+			}
+		);
+
+		expect(await read('src/consent.test.ts'))
+			.toBe(`jest.mock('c15t/react/styles.css', () => ({}));
+jest.mock("c15t/next/iab/styles.css", () => ({}));
+const css = await vi.importActual('c15t/react/iab/styles.css');
+const actual = jest.requireActual('c15t/react/styles.css');
+const path = require.resolve('c15t/next/styles.css');
+`);
+		expect(result.warnings).toEqual([]);
 	});
 
 	it('points a mock of a kept stylesheet import where the import goes', async () => {

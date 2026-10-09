@@ -251,17 +251,15 @@ const takesModuleSpecifier = function takesModuleSpecifier(
 };
 
 /**
- * Where a mock of a stylesheet points: the path its import is kept at, or
- * `undefined` when the import is removed and the mock has nothing to follow.
+ * Where a mock of a stylesheet points: the path a kept import goes to, or
+ * `undefined` when it already names it. A mock of a removed import moves
+ * too, since Jest resolves what it mocks and the scoped package is gone.
  */
 const stylesheetMockTarget = function stylesheetMockTarget(
 	specifier: string,
-	plan: ImportPlan
+	umbrella: boolean
 ): string | undefined {
-	if (!keepsStylesheet(specifier, plan)) {
-		return undefined;
-	}
-	const kept = keptStylesheet(specifier, plan.umbrella);
+	const kept = keptStylesheet(specifier, umbrella);
 	return kept === specifier ? undefined : kept;
 };
 
@@ -391,7 +389,7 @@ const transformWith = (
 			const specifier = literal.getLiteralValue();
 			const parent = literal.getParentOrThrow();
 			if (STYLESHEET_SPECIFIER.test(specifier) && isModuleHelperCall(parent)) {
-				const target = stylesheetMockTarget(specifier, plan);
+				const target = stylesheetMockTarget(specifier, plan.umbrella);
 				if (target !== undefined) {
 					edits.push(rewriteLiteral(literal, target));
 					summaries.add(`${specifier} -> ${target}`);
