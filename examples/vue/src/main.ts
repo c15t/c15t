@@ -1,18 +1,20 @@
 // #region docs:main title="src/main.ts"
-import { snapshot } from 'c15t/generated';
-import { c15tVue } from 'c15t/vue/vue-plugin';
+import { posthog } from '@c15t/integrations/posthog';
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
 import { createApp } from 'vue';
 
 import App from './App.vue';
-import { scripts } from './scripts';
 
 createApp(App)
 	.use(c15tVue, {
-		backendURL: import.meta.env.VITE_C15T_BACKEND_URL,
-		manifest: 'client',
-		// The policy consentManifest() in vite.config.ts downloaded.
-		manifestSnapshot: snapshot,
-		scripts,
+		mode: manifest(),
+		scripts: [
+			posthog({
+				id: 'phc_your_project_key',
+				initOptions: { cookieless_mode: 'never' },
+				loadMode: 'after-consent',
+			}),
+		],
 	})
 	.mount('#app');
 // #endregion docs:main

@@ -3,7 +3,7 @@
 	<ConsentRoot />
 	<NuxtPage />
 	<footer>
-		<ConsentPreferencesLink>Privacy settings</ConsentPreferencesLink>
+		<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 	</footer>
 </template>
 <!-- #endregion docs:root -->

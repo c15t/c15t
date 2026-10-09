@@ -26,7 +26,7 @@ dialog in the shop's brand. Nothing is rebuilt: the components are the ones
   specificity. They read `--c15t-primary`, so the rule follows the dark
   palette.
 - **`app/app.vue`** mounts `ConsentRoot`. The footer's Privacy settings link
-  is `ConsentPreferencesLink` with a class.
+  is `ConsentDialogLink` with a class.
 
 The rest is the shop: the product page, header, footer and
 `app/assets/site.css`.
