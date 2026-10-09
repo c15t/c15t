@@ -5,29 +5,20 @@ import {
 } from '@c15t/core';
 
 import type { ConsentPrefetchHead, ConsentPrefetchHeadOptions } from '../types';
-import { resolveInitRoute } from './init-route';
+import { trimTrailingSlashes } from './path';
 
 const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
 
 /**
- * Base URL the head prefetch script keyed its request on: the init route
- * without its trailing `/init`, or the backend itself when the root
- * calls the backend directly.
+ * Base URL the head prefetch script keyed its request on: the route prefix
+ * when the root sends init through the consent route, or the backend itself
+ * when it calls the backend directly. The script requests `${base}/init`.
  */
 const prefetchBaseFor = function prefetchBaseFor(
 	backendURL: string,
-	initRoute: string | false | undefined
-): string | undefined {
-	const route = resolveInitRoute(backendURL, initRoute);
-	if (!route) {
-		return backendURL;
-	}
-	// The prefetch script always requests `${base}/init`, so only a route of
-	// that shape can share a key with it; any other name gets no match and
-	// the provider issues its own init.
-	return /\/init\/?$/u.test(route)
-		? route.replace(/\/init\/?$/u, '')
-		: undefined;
+	routePrefix: string | undefined
+): string {
+	return routePrefix ? trimTrailingSlashes(routePrefix) : backendURL;
 };
 
 /**
@@ -36,24 +27,20 @@ const prefetchBaseFor = function prefetchBaseFor(
  * issuing a second `/init` request. Client only; `undefined` on the server
  * or when no matching prefetch exists.
  *
- * @param input - The root's backend URL, init route, and overrides.
+ * @param input - The root's backend URL, route prefix, and overrides.
  * @returns The prefetched initial data promise, if one matches.
  */
 export const readPrefetchedInitialData =
 	function readPrefetchedInitialData(input: {
 		backendURL: string | undefined;
-		initRoute: string | false | undefined;
 		overrides: KernelOverrides | undefined;
+		routePrefix: string | undefined;
 	}): ReturnType<typeof getMatchingPrefetchedInitialData> {
 		if (!input.backendURL || typeof window === 'undefined') {
 			return undefined;
 		}
-		const backendURL = prefetchBaseFor(input.backendURL, input.initRoute);
-		if (!backendURL) {
-			return undefined;
-		}
 		return getMatchingPrefetchedInitialData({
-			backendURL,
+			backendURL: prefetchBaseFor(input.backendURL, input.routePrefix),
 			overrides: input.overrides,
 		});
 	};
@@ -68,10 +55,9 @@ export const readPrefetchedInitialData =
  * Use it on prerendered or `ssr: false` routes where no loader runs on the
  * server, so the banner still resolves as early as possible. Point
  * `backendURL` at the base the root's init request goes to: the root's
- * `backendURL` when it calls the backend directly, or the init route
- * without its trailing `/init` (`/api/c15t` for
- * `initRoute="/api/c15t/init"`). `ConsentRoot` looks the response up by
- * that base and hands it to the provider as its first init.
+ * `routePrefix` when it sets one, such as `/api/c15t`, otherwise its
+ * `backendURL`. `ConsentRoot` looks the response up by that base and hands
+ * it to the provider as its first init.
  *
  * @param options - Prefetch options plus an optional script element id.
  * @returns A fragment with a `scripts` array to spread into `head()`.

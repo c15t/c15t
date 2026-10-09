@@ -54,10 +54,9 @@ export interface ConsentConfig {
 	 * `${routePrefix}/init` unless they are given, so the browser and
 	 * `resolveConsent` use the route and never fetch it from the server.
 	 *
-	 * Same meaning as TanStack Start's `routePrefix`, without its
-	 * `/api/c15t` default: here setting it switches the browser from hosted
-	 * mode to the route, and `/api/c15t` may instead be a rewrite to the
-	 * backend.
+	 * Same meaning and default (none) as TanStack Start's `routePrefix`:
+	 * setting it switches the browser from `${backendURL}/init` to the
+	 * route. Unset, `/api/c15t` may instead be a rewrite to the backend.
 	 */
 	routePrefix?: string;
 

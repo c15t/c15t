@@ -61,10 +61,7 @@ import type {
 	KernelConfig,
 	ServerExperiment,
 } from '@c15t/core';
-import {
-	DEFAULT_CONSENT_ROUTE_PREFIX,
-	resolveRequestConsent,
-} from '@c15t/core/server';
+import { resolveRequestConsent } from '@c15t/core/server';
 import type { ManifestCache } from '@c15t/core/server';
 import type { ConsentManifest, InitOutput } from '@c15t/schema/types';
 
@@ -188,7 +185,8 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * (`request.url`); set `trustForwardedHeaders` to use `x-forwarded-*`
 	 * behind a trusted proxy. Do not point this at the app's own `/api/c15t` route:
 	 * a server fetching itself during SSR deadlocks the dev server, so the
-	 * helper skips that case and returns the cookie-and-headers state instead.
+	 * helper never fetches under a relative `backendURL` or under
+	 * `routePrefix`, and returns the cookie-and-headers state instead.
 	 */
 	backendURL?: string;
 
@@ -304,11 +302,12 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	experiment?: ServerExperiment;
 
 	/**
-	 * Same-origin prefix where you mounted `createConsentServerRoute()`.
-	 * Set this explicitly to route deferred public vendor lists through it.
-	 * Without it, lists use the manifest URL directly. The render never
-	 * fetches a URL under this prefix (`/api/c15t` by default) on its own
-	 * origin.
+	 * Where you mounted `createConsentServerRoute()`, such as `/api/c15t`.
+	 * Pass the same value as `ConsentRoot`'s `routePrefix`. Deferred public
+	 * vendor lists then load through the route, and the render never
+	 * fetches a URL under the prefix on its own origin. Unset, lists use the
+	 * manifest URL directly. Same option and default (none) as Next.js
+	 * `defineConsentConfig({ routePrefix })`.
 	 */
 	routePrefix?: string;
 
@@ -362,9 +361,13 @@ const resolveConsentState = async function resolveConsentState(
 ): Promise<ConsentState> {
 	const request = await readCurrentRequest(options.request);
 	const { backendURL } = options;
-	const routePrefix = trimTrailingSlashes(
-		options.routePrefix ?? DEFAULT_CONSENT_ROUTE_PREFIX
-	);
+	const routePrefix = options.routePrefix
+		? trimTrailingSlashes(options.routePrefix)
+		: undefined;
+	const relativeBackend =
+		backendURL?.startsWith('/') && !backendURL.startsWith('//')
+			? trimTrailingSlashes(backendURL) || '/'
+			: undefined;
 	return await resolveRequestConsent({
 		adapter: '@c15t/tanstack-start',
 		backendURL,
@@ -373,7 +376,7 @@ const resolveConsentState = async function resolveConsentState(
 		experiment: options.experiment,
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
-		gvlRoute: options.routePrefix ? `${routePrefix}/init` : undefined,
+		gvlRoute: routePrefix === undefined ? undefined : `${routePrefix}/init`,
 		journey: options.journey,
 		manifest: backendURL ? options.manifest : undefined,
 		manifestURL: options.manifestURL,
@@ -382,7 +385,11 @@ const resolveConsentState = async function resolveConsentState(
 		mode: backendURL ? 'manifest' : undefined,
 		now: options.now,
 		overrides: { country: options.country, language: options.language },
-		ownRoutes: [routePrefix],
+		// A relative backend URL can only be this app; never fetch it, or
+		// the route prefix, during the render.
+		ownRoutes: [routePrefix, relativeBackend].filter(
+			(route): route is string => route !== undefined
+		),
 		reportSessions: options.reportSessions,
 		request: {
 			headers: request.headers,
@@ -415,7 +422,7 @@ const resolveConsentState = async function resolveConsentState(
  * 3. Folds the result into the state so first paint is correct without
  *    waiting for a client roundtrip.
  *
- * Never calls the app's own `/api/c15t` route. If anything fails, or the
+ * Never calls the app's own consent route. If anything fails, or the
  * manifest does not arrive within `timeoutMs` (500 ms by default), returns
  * the cookie-and-headers state: no consent UI in the server HTML, optional
  * categories denied, and the client root runs init on mount.

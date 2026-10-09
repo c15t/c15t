@@ -55,7 +55,7 @@ export { consentLoaderOptions };
 			"Keep consent state in loader data. Do not cache a consent runtime or a visitor's state at module scope. consentLoaderOptions keeps this root loader from re-running on client navigation. If your existing root loader must reload, move consent to a dedicated parent route instead of applying those options to unrelated data.",
 			...(hosted
 				? [
-						'This template sends browser initialization and saves directly to the supplied backend. Configure that backend to allow the application origin. It does not require an /api/c15t route.',
+						'This template sends browser initialization and saves directly to the supplied backend. Configure that backend to allow the application origin. It does not require an /api/c15t route. To resolve initialization on the application origin instead, mount createConsentServerRoute() at src/routes/api/c15t/$.ts and pass routePrefix="/api/c15t" to ConsentRoot and createConsentStateHandler.',
 					]
 				: []),
 			...(options.scripts.length

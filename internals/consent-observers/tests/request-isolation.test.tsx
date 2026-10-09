@@ -173,7 +173,6 @@ const VisitorRoot = ({
 		</NextConsentRoot>
 	) : (
 		<TanStackConsentRoot
-			initRoute={false}
 			persistence={false}
 			state={visitor.state}
 		>

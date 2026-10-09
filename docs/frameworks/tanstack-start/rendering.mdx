@@ -92,12 +92,15 @@ Keep these details right:
 - `createConsentStateHandler` still gets the absolute backend URL. Given
   `/api/c15t`, it would fetch its own route during the render, so it skips the
   fetch and returns only the cookie and header state.
-- `routePrefix` makes the page load IAB vendor lists through the route too.
-- Because `backendURL` is a path on your origin, `ConsentRoot` treats
-  `/api/c15t/init` as the route's init and binds each save to the policy it
-  resolved. To send only init through the route and keep saves going straight
-  to your backend, drop `proxy: true`, keep the absolute `backendURL`, and add
-  `initRoute="/api/c15t/init"`.
+- `routePrefix` on `ConsentRoot` sends the browser's init to
+  `/api/c15t/init` and binds each save to the policy it resolved. On
+  `createConsentStateHandler` it makes the page load IAB vendor lists through
+  the route too, and keeps the render from fetching its own route. It means
+  the same as Next.js `defineConsentConfig({ routePrefix })`, and like there
+  it has no default.
+- `backendURL="/api/c15t"` sends saves through the proxy. To send only init
+  through the route and keep saves going straight to your backend, drop
+  `proxy: true`, pass the absolute `backendURL`, and keep `routePrefix`.
 - The proxy forwards the visitor's user agent, language, origin and location
   headers so the backend's firewall sees a normal visitor. Set
   `trustForwardedHeaders: true` on `createConsentServerRoute` only when your

@@ -65,7 +65,7 @@ What happens next depends on your
 | `createConsentStateHandler` and `resolveConsent` | Resolve the visitor's policy in the Start server, from the bundled manifest or, with runtime fetching, a cached one. The manifest request to your backend carries no visitor location, only headers you name in `forwardHeaders` |
 | `/api/c15t/init` from `createConsentServerRoute` | Resolves the policy in the Start server from the same inputs, for the browser's init request |
 | `createConsentServerRoute({ proxy: true })` | Forwards the location headers, `accept-language`, `sec-gpc`, `user-agent`, `origin` and `referer` to your backend on proxied requests such as `POST /subjects` |
-| `ConsentRoot` with an absolute `backendURL` and no `initRoute` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
+| `ConsentRoot` with an absolute `backendURL` and no `routePrefix` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
 
 The server render in the quickstart always uses the Start server's headers,
 even though the browser's init request goes to your backend.

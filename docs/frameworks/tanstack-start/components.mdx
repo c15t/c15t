@@ -38,7 +38,7 @@ shows it in context.
 | --- | --- |
 | `state` | Required. The loader's consent state, a promise of it for a [streamed loader](/docs/frameworks/tanstack-start/rendering#stream-the-page-while-consent-resolves), or `{}` for [pages without a server render](/docs/frameworks/tanstack-start/rendering#spa-mode-prerendered-pages-and-static-hosts) |
 | `backendURL` | Your backend URL, or `/api/c15t` with the [same-origin route](/docs/frameworks/tanstack-start/rendering#keep-consent-requests-on-your-origin). Without it, `ConsentRoot` runs in offline mode. Not recommended for production environments. |
-| `initRoute` | A same-origin init route served by `createConsentServerRoute`, such as `/api/c15t/init`. Omit it and the browser requests `${backendURL}/init` |
+| `routePrefix` | Where `createConsentServerRoute` is mounted, such as `/api/c15t`. The browser then requests `${routePrefix}/init` on your origin. Omit it and the browser requests `${backendURL}/init`. Same option as Next.js `defineConsentConfig` |
 | `scripts` | Consent-gated vendor scripts. See [scripts and embeds](/docs/frameworks/tanstack-start/scripts) |
 | `vendors` | Vendors listed under their category with their own switch |
 | `networkBlocker` | Rules that hold `fetch` and `XMLHttpRequest` calls until their category is allowed |
@@ -48,13 +48,11 @@ shows it in context.
 | `options` | Any other `ConsentProvider` option, such as `theme`, `i18n`, `presentation`, `callbacks`, `consentCategories`, `reloadOnConsentRevoked` or `preloadDialog` |
 
 `ConsentRoot` creates the runtime once, when it mounts, and ignores later
-changes to `state`, `backendURL` and `initRoute`. Keep it in the root route so
+changes to `state`, `backendURL` and `routePrefix`. Keep it in the root route so
 client navigation never remounts it.
 
-The root entry also exports `DEFAULT_INIT_ROUTE` (`'/api/c15t/init'`), the
-init path of a consent server route mounted at `/api/c15t/$`;
-`consentPrefetchHead` for pages without a server render; and
-`buildPrefetchScript`, the script builder behind it.
+The root entry also exports `consentPrefetchHead` for pages without a server
+render, and `buildPrefetchScript`, the script builder behind it.
 
 ## Server and other entry points
 

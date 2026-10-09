@@ -89,12 +89,12 @@ host overwrites `x-forwarded-for`, set `trustForwardedHeaders: true` on
 ## The browser calls /api/c15t/init and gets a 404
 
 **Check.** `ConsentRoot` calls `/api/c15t/init` only when you pass
-`initRoute="/api/c15t/init"` or `backendURL="/api/c15t"`. Confirm that the app
+`routePrefix="/api/c15t"` or `backendURL="/api/c15t"`. Confirm that the app
 mounts the consent server route at `src/routes/api/c15t/$.ts`.
 
 **Fix.** Mount the
 [same-origin route](/docs/frameworks/tanstack-start/rendering#keep-consent-requests-on-your-origin),
-or remove `initRoute` and pass your absolute backend URL as `backendURL`, so
+or remove `routePrefix` and pass your absolute backend URL as `backendURL`, so
 the browser calls your backend directly.
 
 ## A vendor loads before the visitor chooses

@@ -19,7 +19,7 @@ const ManifestSSRProxyPage = () => {
 		<TanstackManifestBenchmarkProvider
 			backendURL="/api/c15t-proxy"
 			state={state}
-			initRoute="/api/c15t-proxy/init"
+			routePrefix="/api/c15t-proxy"
 			scenario="manifest-ssr-proxy"
 		>
 			<BenchmarkPageShell scenario="manifest-ssr-proxy" />

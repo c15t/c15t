@@ -20,7 +20,7 @@ import {
 import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
-import { ConsentRoot, DEFAULT_INIT_ROUTE } from '../root';
+import { ConsentRoot } from '../root';
 import type { ConsentState } from '../server';
 import { policyFixture } from './policy-fixture';
 
@@ -93,6 +93,7 @@ describe('ConsentRoot: streamed state', () => {
 				<ConsentRoot
 					backendURL="/api/c15t"
 					persistence={false}
+					routePrefix="/api/c15t"
 					state={promise}
 				>
 					<Status />
@@ -134,6 +135,7 @@ describe('ConsentRoot: streamed state', () => {
 				<ConsentRoot
 					backendURL="/api/c15t"
 					persistence={false}
+					routePrefix="/api/c15t"
 					state={promise}
 				>
 					<Status />
@@ -149,7 +151,7 @@ describe('ConsentRoot: streamed state', () => {
 			await vi.waitFor(() => {
 				expect(fetchSpy).toHaveBeenCalled();
 			});
-			expect(String(fetchSpy.mock.calls[0]?.[0])).toContain(DEFAULT_INIT_ROUTE);
+			expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/api/c15t/init');
 		} finally {
 			fetchSpy.mockRestore();
 		}

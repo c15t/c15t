@@ -138,8 +138,9 @@ export const TanstackManifestClientBenchmarkProvider = ({
 
 /**
  * `ssr` arm: the loader already carries the init response, so the root
- * renders the banner into the first HTML. `initRoute={false}` keeps
- * direct-init semantics for any client refresh, matching the Next arm.
+ * renders the banner into the first HTML. Without `routePrefix`, any
+ * client refresh calls the backend's `/init` directly, matching the Next
+ * arm.
  */
 export const TanstackPrefetchedBenchmarkProvider = ({
 	children,
@@ -153,7 +154,6 @@ export const TanstackPrefetchedBenchmarkProvider = ({
 	<ConsentRoot
 		backendURL={BENCH_BACKEND_URL}
 		state={state}
-		initRoute={false}
 		options={createRootOptions(scenario)}
 	>
 		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>
@@ -162,26 +162,27 @@ export const TanstackPrefetchedBenchmarkProvider = ({
 
 /**
  * `manifest-ssr` and `manifest-ssr-proxy` arms: manifest-resolved
- * state plus the same-origin init route. `backendURL` decides where the
- * accept click posts: the fixture directly, or the proxy mount.
+ * state plus the same-origin consent route under `routePrefix`.
+ * `backendURL` decides where the accept click posts: the fixture
+ * directly, or the proxy mount.
  */
 export const TanstackManifestBenchmarkProvider = ({
 	backendURL = BENCH_BACKEND_URL,
 	children,
 	state,
-	initRoute = '/api/c15t/init',
+	routePrefix = '/api/c15t',
 	scenario,
 }: {
 	backendURL?: string;
 	children: ReactNode;
 	state: ConsentRootProps['state'];
-	initRoute?: ConsentRootProps['initRoute'];
+	routePrefix?: ConsentRootProps['routePrefix'];
 	scenario: TanstackBenchScenario;
 }) => (
 	<ConsentRoot
 		backendURL={backendURL}
 		state={state}
-		initRoute={initRoute}
+		routePrefix={routePrefix}
 		options={createRootOptions(scenario)}
 	>
 		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>

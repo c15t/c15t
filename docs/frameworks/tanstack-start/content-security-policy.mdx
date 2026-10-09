@@ -134,8 +134,8 @@ Which consent requests the browser makes depends on your
 | Setup | Browser requests | Policy |
 | --- | --- | --- |
 | Quickstart | `/init` and `/subjects` on your backend URL | `connect-src` with the backend origin |
-| Consent server route with `initRoute="/api/c15t/init"` | `/api/c15t/init` on your origin, `/subjects` on your backend URL | `connect-src 'self'` plus the backend origin |
-| Consent server route with `proxy: true` and `backendURL="/api/c15t"` | Every consent request on your origin | `connect-src 'self'` |
+| Consent server route with `routePrefix="/api/c15t"` | `/api/c15t/init` on your origin, `/subjects` on your backend URL | `connect-src 'self'` plus the backend origin |
+| Consent server route with `proxy: true`, `backendURL="/api/c15t"` and `routePrefix="/api/c15t"` | Every consent request on your origin | `connect-src 'self'` |
 
 Under an IAB TCF policy the browser also loads the Global Vendor List. With the
 consent server route and `routePrefix`, it comes through `/api/c15t/init`, which

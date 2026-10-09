@@ -149,6 +149,18 @@ describe('resolveConsent wiring', () => {
 		warn.mockRestore();
 	});
 
+	test('never fetches a relative backendURL, with no routePrefix set', async () => {
+		const fetch = manifestFetch();
+		const state = await createConsentStateHandler({
+			backendURL: '/api/c15t',
+			cache: createManifestCache(),
+			fetch,
+			request: requestOf({ cookie: 'c15t=c.necessary:1,c.marketing:1,i.t:1' }),
+		})();
+		expect(fetch).not.toHaveBeenCalled();
+		expect(state.initialRecords?.choice).toBeTruthy();
+	});
+
 	test('a prerender is a shared render: no visitor state, no prefetch', async () => {
 		vi.stubEnv('TSS_PRERENDERING', 'true');
 		const fetch = manifestFetch();

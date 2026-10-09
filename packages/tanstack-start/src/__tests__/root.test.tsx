@@ -6,7 +6,7 @@
  * - State is respected (initial consents, initial overrides).
  * - Kernel is per-mount (two mounts produce two kernels).
  * - `backendURL` selects hosted mode. Init goes to the backend unless
- *   `initRoute` names the same-origin route.
+ *   `routePrefix` names the same-origin consent route.
  */
 import {
 	useConsent,
@@ -23,7 +23,7 @@ import { render } from 'vitest-browser-react';
 // while the file loads.
 import '@c15t/core/modules/clear-on-revocation';
 
-import { ConsentRoot, DEFAULT_INIT_ROUTE } from '../root';
+import { ConsentRoot } from '../root';
 import { policyFixture } from './policy-fixture';
 
 describe('ConsentRoot: state is honored', () => {
@@ -139,7 +139,7 @@ describe('ConsentRoot: transport selection', () => {
 		}
 	});
 
-	test('initRoute runs init through the same-origin route', async () => {
+	test('routePrefix runs init through the same-origin route', async () => {
 		const fetchSpy = vi
 			.spyOn(globalThis, 'fetch')
 			.mockImplementation(() => Promise.resolve(initResponse()));
@@ -148,7 +148,7 @@ describe('ConsentRoot: transport selection', () => {
 			await render(
 				<ConsentRoot
 					backendURL="https://consent.example.com"
-					initRoute={DEFAULT_INIT_ROUTE}
+					routePrefix="/api/c15t/"
 					state={{}}
 					persistence={false}
 				>
@@ -160,14 +160,14 @@ describe('ConsentRoot: transport selection', () => {
 				expect(fetchSpy).toHaveBeenCalled();
 			});
 			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
-				DEFAULT_INIT_ROUTE
+				'/api/c15t/init'
 			);
 		} finally {
 			fetchSpy.mockRestore();
 		}
 	});
 
-	test('initRoute={false} calls the backend init endpoint directly', async () => {
+	test('a same-origin backendURL without routePrefix calls its /init directly', async () => {
 		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
 			Response.json({
 				branding: 'c15t',
@@ -179,9 +179,8 @@ describe('ConsentRoot: transport selection', () => {
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="https://consent.example.com"
+					backendURL="/api/c15t"
 					state={{}}
-					initRoute={false}
 					persistence={false}
 				>
 					<span>ready</span>
@@ -193,7 +192,7 @@ describe('ConsentRoot: transport selection', () => {
 			});
 			// The query carries the consent journey.
 			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
-				'https://consent.example.com/init'
+				'/api/c15t/init'
 			);
 		} finally {
 			fetchSpy.mockRestore();

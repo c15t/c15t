@@ -30,11 +30,9 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import { decisionInputsFromConfig } from './libs/decision-seed';
-import { resolveInitRoute } from './libs/init-route';
 import { readPrefetchedInitialData } from './libs/prefetch-head';
+import { initURLFor } from './libs/route-prefix';
 import type { ConsentState } from './server';
-
-export { DEFAULT_INIT_ROUTE } from './libs/init-route';
 
 export interface ConsentRootProps {
 	/**
@@ -54,35 +52,35 @@ export interface ConsentRootProps {
 	/**
 	 * Backend base URL. When provided, the provider uses hosted mode and
 	 * auto-runs init. Consent saves go to `${backendURL}/subjects`, and init
-	 * to `${backendURL}/init` unless {@link ConsentRootProps.initRoute} names
-	 * a same-origin route.
+	 * to `${backendURL}/init` unless {@link ConsentRootProps.routePrefix} is
+	 * set.
 	 *
 	 * Without the proxy this is the c15t backend itself, for example
 	 * `https://consent.example.com`. With
 	 * `createConsentServerRoute({ backendURL: 'https://consent.example.com', proxy: true })`
 	 * mounted, pass the route prefix instead, `"/api/c15t"`, so saves stay
-	 * same-origin and reach the backend through the proxy. The route factory
-	 * still needs the absolute backend URL. The server-side `resolveConsent()`
-	 * (`createConsentStateHandler({ backendURL })`) must still receive the
-	 * absolute backend URL: its self-route guard skips a relative
-	 * `/api/c15t` and returns the cookie-only state.
+	 * same-origin and reach the backend through the proxy, and set
+	 * `routePrefix` to the same path. The route factory still needs the
+	 * absolute backend URL, and so does the server-side `resolveConsent()`
+	 * (`createConsentStateHandler({ backendURL })`): with `routePrefix` set,
+	 * it never fetches a URL under the prefix and returns the cookie-only
+	 * state instead.
 	 */
 	backendURL?: string;
 
 	/**
-	 * Same-origin init route served by `createConsentServerRoute()`, usually
-	 * `"/api/c15t/init"` (`DEFAULT_INIT_ROUTE`). The route resolves init
-	 * in-process from the cached manifest, and saves then assert the
-	 * resolved decision inputs, so the backend rejects a save made against
-	 * a stale policy instead of recording it.
+	 * Where `createConsentServerRoute()` is mounted, such as `"/api/c15t"`
+	 * for `src/routes/api/c15t/$.ts`. When set, the browser gets init from
+	 * `${routePrefix}/init`, which the route resolves in-process from the
+	 * cached manifest, and saves assert the resolved decision inputs, so the
+	 * backend rejects a save made against a stale policy instead of
+	 * recording it.
 	 *
-	 * Omit it when you don't mount the route: an absolute `backendURL`
-	 * then gets init from `${backendURL}/init`. A same-origin `backendURL`
-	 * such as `"/api/c15t"` (the route with `proxy: true`) is the route
-	 * itself, so `${backendURL}/init` is used as the init route. Pass
-	 * `false` to call `${backendURL}/init` without the decision assertion.
+	 * Unset, the browser gets init from `${backendURL}/init`. Same option
+	 * and default as Next.js `defineConsentConfig({ routePrefix })`. Pass the
+	 * same value to `createConsentStateHandler()` or `resolveConsent()`.
 	 */
-	initRoute?: string | false;
+	routePrefix?: string;
 
 	/**
 	 * Script tags to manage with the script-loader module.
@@ -184,7 +182,7 @@ const isPromiseLike = function isPromiseLike(
 
 const resolveMode = function resolveMode(
 	backendURL: string | undefined,
-	initRoute: string | false | undefined,
+	routePrefix: string | undefined,
 	initialData: ReturnType<typeof readPrefetchedInitialData>,
 	state: ConsentState | undefined,
 	overrides: KernelOverrides | undefined
@@ -192,7 +190,7 @@ const resolveMode = function resolveMode(
 	if (!backendURL) {
 		return lazyOffline();
 	}
-	const initURL = resolveInitRoute(backendURL, initRoute);
+	const initURL = initURLFor(routePrefix);
 	if (!initURL) {
 		return hosted({ initialData, url: backendURL });
 	}
@@ -252,7 +250,7 @@ const resolveMode = function resolveMode(
 export const ConsentRoot = ({
 	state,
 	backendURL,
-	initRoute,
+	routePrefix,
 	scripts,
 	vendors,
 	scriptLoader,
@@ -272,11 +270,11 @@ export const ConsentRoot = ({
 			options?.mode ??
 			resolveMode(
 				backendURL,
-				initRoute,
+				routePrefix,
 				readPrefetchedInitialData({
 					backendURL,
-					initRoute,
 					overrides: options?.overrides,
+					routePrefix,
 				}),
 				isPromiseLike(state) ? undefined : state,
 				options?.overrides

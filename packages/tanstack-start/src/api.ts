@@ -21,13 +21,14 @@
  *   with its cache headers, so browsers and CDNs can cache it.
  * - `GET /api/c15t/init` resolves init in-process from that manifest for
  *   the request's geo, language, and GPC signal. Pass
- *   `initRoute="/api/c15t/init"` to `ConsentRoot` to use it; a client
+ *   `routePrefix="/api/c15t"` to `ConsentRoot` to use it; a client
  *   language switch re-hits it.
  *
  * By default `POST /subjects` is not proxied: consent saves go straight to
  * `backendURL`, which mirrors the Next.js and Nuxt adapters. Pass
  * `proxy: true` to forward the remaining consent paths through the same
- * route so `ConsentRoot` can use `backendURL="/api/c15t"`; see
+ * route so `ConsentRoot` can use `backendURL="/api/c15t"` with
+ * `routePrefix="/api/c15t"`; see
  * {@link ConsentServerRouteOptions.proxy}.
  */
 import { createConsentRouteHandler } from '@c15t/core/server';

@@ -40,11 +40,12 @@
  *
  * `backendURL` is the c15t backend itself: the browser gets init from
  * `${backendURL}/init` and saves to `${backendURL}/subjects`. Apps that
- * mount `createConsentServerRoute()` at `/api/c15t/$` can pass
- * `initRoute="/api/c15t/init"` to resolve init on their own origin. With
+ * mount `createConsentServerRoute()` at `/api/c15t/$` pass
+ * `routePrefix="/api/c15t"` to resolve init on their own origin, the same
+ * option Next.js `defineConsentConfig` takes. With
  * `createConsentServerRoute({ backendURL, proxy: true })`, which still
- * takes the absolute backend URL, pass `backendURL="/api/c15t"` instead;
- * init and saves then both go through the route.
+ * takes the absolute backend URL, also pass `backendURL="/api/c15t"`; init
+ * and saves then both go through the route.
  *
  * Server helpers return serializable data and avoid module-level runtime
  * caches, so concurrent requests never share a kernel.
@@ -55,5 +56,5 @@ export { buildPrefetchScript, type PrefetchOptions } from '@c15t/core';
 export * from '@c15t/react';
 export { consentPrefetchHead } from './libs/prefetch-head';
 export type { ConsentRootProps } from './root';
-export { ConsentRoot, DEFAULT_INIT_ROUTE } from './root';
+export { ConsentRoot } from './root';
 export type { ConsentPrefetchHead, ConsentPrefetchHeadOptions } from './types';
