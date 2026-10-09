@@ -24,6 +24,7 @@ import { isProductionBuild } from '../libs/is-production';
  */
 import { hasPrefetchedInitialData } from '../libs/prefetch/window-key';
 import type { ConsentMode, OfflineModeOptions } from '../modes';
+import type { SSRInitialData } from '../options/ssr';
 import type * as HostedModule from '../transports/hosted';
 import { createHostedInitRequest } from '../transports/hosted-init-request';
 import type { HostedInitRequest } from '../transports/hosted-init-request';
@@ -53,6 +54,13 @@ export interface ClientModeOptions {
 	 * fetches `${routePrefix}/manifest`.
 	 */
 	routePrefix?: string;
+	/**
+	 * An init response already requested, such as by an inline prefetch
+	 * script that ran before hydration. A server-resolved `manifest()` or a
+	 * `hosted()` mode answers its first init with it instead of sending
+	 * `/init`.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
 }
 
 /**
@@ -224,6 +232,11 @@ export interface LazyHostedOptions {
 	headers?: Record<string, string>;
 	/** Kind reported through `window.c15t.mode`. Defaults to `'hosted'`. */
 	kind?: ProviderTransportKind;
+	/**
+	 * An init response already requested. The first init reads it and sends
+	 * no `/init` of its own.
+	 */
+	initialData?: Promise<SSRInitialData | undefined>;
 }
 
 /**
@@ -242,6 +255,7 @@ const startEarlyInit = function startEarlyInit(
 	if (
 		typeof window === 'undefined' ||
 		!fetch ||
+		options.initialData ||
 		(options.headers && Object.keys(options.headers).length > 0) ||
 		(!options.initURL && hasPrefetchedInitialData())
 	) {
@@ -303,6 +317,7 @@ export const lazyHosted = function lazyHosted(
 						fetch: early && fetch ? withEarlyRequest(fetch, early) : fetch,
 						headers: options.headers,
 						initURL: options.initURL,
+						initialData: options.initialData,
 					});
 				}
 			);
@@ -488,7 +503,11 @@ export const clientMode = function clientMode(
 			);
 		}
 		return Object.assign(
-			lazyHosted({ backendURL, headers: data.headers }),
+			lazyHosted({
+				backendURL,
+				headers: data.headers,
+				initialData: options.initialData,
+			}),
 			data
 		);
 	}
@@ -520,6 +539,7 @@ export const clientMode = function clientMode(
 		lazyHosted({
 			backendURL,
 			initURL: routePrefix === undefined ? undefined : `${routePrefix}/init`,
+			initialData: options.initialData,
 			kind: 'manifest',
 		}),
 		data

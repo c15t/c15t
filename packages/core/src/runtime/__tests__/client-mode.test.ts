@@ -252,6 +252,25 @@ describe('lazyHosted()', () => {
 		expect(init).toHaveBeenCalledTimes(1);
 	});
 
+	test('the first init reads initialData and sends no /init', async () => {
+		const transport = clientMode(manifest(), {
+			backendURL: 'https://backend.example',
+			initialData: Promise.resolve({
+				init: {
+					branding: 'c15t',
+					location: { countryCode: 'DE', regionCode: null },
+					translations: { language: 'en', translations: { common: {} } },
+				},
+			} as never),
+			routePrefix: '/api/c15t',
+		})(context);
+
+		const response = await transport.init?.(initContext());
+
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(JSON.stringify(response)).toContain('"countryCode":"DE"');
+	});
+
 	test('a failed chunk load is retried on the next init', async () => {
 		const init = vi.fn(() => Promise.resolve({}));
 		const load = vi
