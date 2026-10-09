@@ -290,18 +290,25 @@ export const offline = function offline(
 				() => context.prefetch.initialOverrides?.language
 			);
 			return {
-				init: ({ overrides }: InitContext) =>
-					Promise.resolve({
+				init: ({ overrides }: InitContext) => {
+					const countryCode = overrides.country ?? null;
+					const regionCode = overrides.region ?? null;
+					return Promise.resolve({
+						// The location it resolved for, as `/init` and
+						// `createOfflineTransport()` answer: surfaces that read
+						// the init's display data wait for one.
+						location: { countryCode, regionCode },
 						policyResolution: writePolicyResolutionWire(
 							resolvePolicyRules({
-								countryCode: overrides.country ?? null,
+								countryCode,
 								iabEnabled: context.iabEnabled,
-								regionCode: overrides.region ?? null,
+								regionCode,
 								rules,
 							})
 						),
 						translations: selectTranslations(overrides.language),
-					}),
+					});
+				},
 			};
 		},
 		settings,

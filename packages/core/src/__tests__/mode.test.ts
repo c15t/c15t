@@ -230,6 +230,17 @@ describe('offline()', () => {
 	});
 });
 
+describe('offline() transport', () => {
+	test('answers init with the location it resolved for, as /init does', async () => {
+		const transport = offline()(context);
+		const response = await transport.init?.({
+			overrides: { country: 'DE', region: 'BE' },
+		} as Parameters<NonNullable<KernelTransport['init']>>[0]);
+
+		expect(response?.location).toEqual({ countryCode: 'DE', regionCode: 'BE' });
+	});
+});
+
 describe('@c15t/core/modes', () => {
 	test('returns plain, serializable data', () => {
 		const snapshot = { revision: '1', schemaVersion: 2 } as never;
