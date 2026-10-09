@@ -21,8 +21,7 @@ import {
 import { consentManifest } from '../c15t-manifest';
 import { scripts } from '../scripts';
 
-// The project the build read the manifest from. The consentManifest plugin
-// sets this variable when your environment doesn't.
+// The project the build read the manifest from, set in `.env`.
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 
 // Declare the server function in your own module. Start's compiler splits
