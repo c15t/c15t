@@ -7,8 +7,9 @@ only after the visitor allows measurement, and a "Privacy settings" link
 reopens the dialog.
 
 - `vite.config.ts` adds the `consentManifest` plugin, which downloads the
-  policy into `src/c15t-manifest.ts` when `vite dev` or `vite build` starts,
-  and passes the backend URL to the app as `VITE_C15T_BACKEND_URL`.
+  policy when `vite dev` or `vite build` starts, serves it to server code as
+  `c15t/generated`, and passes the backend URL to the app as
+  `VITE_C15T_BACKEND_URL`.
 - `src/routes/__root.tsx` resolves consent in a server function from that
   manifest and the request's location, language and Global Privacy Control
   headers, then mounts `ConsentRoot` with the banner and dialog.

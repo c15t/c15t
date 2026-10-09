@@ -13,7 +13,8 @@ import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 // oxlint-disable-next-line anti-slop/no-module-mocking -- In an app build, the bundler alias `withConsentManifest` sets swaps this module for the generated snapshot. The mock is that alias; the helpers under test are real.
 vi.mock('@c15t/nextjs/generated-manifest', async () => ({
-	consentManifest: (await import('./manifest-fixture')).MANIFEST_FIXTURE,
+	backendURL: 'https://consent.example.com',
+	snapshot: (await import('./manifest-fixture')).MANIFEST_FIXTURE,
 }));
 
 const config = defineConsentConfig({

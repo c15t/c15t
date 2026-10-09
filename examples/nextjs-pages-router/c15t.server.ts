@@ -1,11 +1,13 @@
 // #region docs:pages-consent-options
+// The policy withConsentManifest in next.config.ts downloaded. Server code
+// only: importing it from a client component fails the build.
+import { snapshot } from 'c15t/generated';
 import type { ConsentManifestOptions } from 'c15t/next/pages';
 
-import { consentManifest } from '@/c15t-manifest';
 import { consentConfig } from '@/c15t.config';
 
 export const consentOptions = {
 	config: consentConfig,
-	manifest: consentManifest,
+	manifest: snapshot,
 } satisfies ConsentManifestOptions;
 // #endregion docs:pages-consent-options

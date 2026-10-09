@@ -203,6 +203,11 @@
 			"types": "./dist-types/build.d.ts",
 			"import": "./dist/build.js",
 			"default": "./dist/build.js"
+		},
+		"./generated": {
+			"types": "./dist-types/generated.d.ts",
+			"import": "./dist/generated.js",
+			"default": "./dist/generated.js"
 		}
 	},
 	"publishConfig": {

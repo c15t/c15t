@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fix a SvelteKit build that cannot fetch the c15t manifest, a missing generated manifest module, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
+description: Fix a SvelteKit build that cannot fetch the c15t manifest, a missing bundled policy, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
 group: frameworks
 ---
 
@@ -28,15 +28,21 @@ reach the backend. To deploy while it is down, build with
 A `check-types` script that starts with `svelte-kit sync` needs the backend
 too.
 
-## Cannot find module './c15t-manifest'
+## snapshot is undefined
 
-**Check.** `src/lib/server/c15t-manifest.ts` is generated and kept out of Git,
-so it does not exist on a fresh checkout until the plugin runs.
+**Check.** Log `snapshot` from `c15t/generated` in server code, such as
+`src/lib/server/c15t.ts`. In the browser bundle it is always `undefined`:
+the plugin keeps the policy on the server. On the server, it is `undefined`
+when Vite had no policy to serve: `consentManifest` is missing from `plugins`
+in `vite.config.ts`, the fetch failed in `vite dev` or in a build with
+`C15T_ON_BUILD_ERROR=runtime`, or the backend URL is relative.
 
-**Fix.** Run `vite dev` or `vite build` once. On SvelteKit 3,
-`svelte-kit sync` writes it too. If the file exists, check that
-`outputFile` in `vite.config.ts` matches the import in
-`src/lib/server/c15t.ts`.
+**Fix.** Read `snapshot` only in server code. On the server, add the plugin or
+fix the cause from the
+[fetch errors](#the-build-dev-server-or-type-check-fails-fetching-the-manifest),
+then restart `vite dev` or rebuild. The plugin fetches once when Vite starts.
+While `snapshot` is `undefined`, the server fetches and caches the policy at
+runtime.
 
 ## Why is the banner missing from the server HTML?
 

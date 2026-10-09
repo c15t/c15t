@@ -8,8 +8,8 @@ import { defineConfig } from 'vite';
 
 export default defineConfig({
 	plugins: [
-		// Reads VITE_C15T_BACKEND_URL, writes src/c15t-manifest.ts before Start
-		// compiles the app, and passes the URL on to the app.
+		// Downloads the policy from VITE_C15T_BACKEND_URL, serves it to server
+		// code as `c15t/generated`, and passes the URL on to the app.
 		consentManifest(),
 		tanstackStart(),
 		viteReact(),

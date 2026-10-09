@@ -31,8 +31,8 @@ handler's upstream backend. See
 download fails or takes longer than 10 seconds, `next build` stops with an
 error that starts with `@c15t/nextjs/build: could not fetch the consent
 manifest from <url> during the build`. `next dev` logs the same message as a
-warning, and `c15t-manifest.ts` exports `undefined`, so the server fetches
-the policy at runtime. It never reuses an old `c15t-manifest.ts`. The part in
+warning, and `snapshot` from `c15t/generated` is `undefined`, so the server
+fetches the policy at runtime. It never reuses an old snapshot. The part in
 parentheses names the cause:
 
 - `fetch failed`, with `ENOTFOUND`, `ECONNREFUSED` or another network error,
@@ -61,16 +61,36 @@ policy on its first request. To drop the build-time fetch, use
 [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data)
 instead.
 
-## Why can't TypeScript find `@/c15t-manifest`?
+## Why does importing `c15t/generated` from a client component fail the build?
 
-**Check.** `tsc` or your editor reports
-`Cannot find module '@/c15t-manifest' or its corresponding type declarations.`
-The file is generated and not committed, so a fresh clone does not have it
-until Next.js loads `next.config.ts` once.
+**Check.** `next build` or `next dev` reports that `server-only` cannot be
+imported from a Client Component, in a module that imports `c15t/generated`.
 
-**Fix.** Run `next dev`, `next build` or `next typegen`. In CI, run
-`next typegen` before `tsc --noEmit`. It loads the config the same way
-`next build` does and writes the file.
+**Fix.** `withConsentManifest` keeps the snapshot out of browser bundles, so
+`c15t/generated` only works in server code. Import it from a server-only
+module such as `c15t.server.ts`, and import that module only from Server
+Components, route handlers, `getServerSideProps` and API routes. Client
+components don't need the snapshot: `resolveConsent` resolves the policy on
+the server and passes the result to `ConsentRoot`.
+
+## Why is `snapshot` undefined?
+
+**Check.** `snapshot` from `c15t/generated` is `undefined` in server code.
+
+**Fix.** Check these causes:
+
+- `withConsentManifest` doesn't wrap the config in `next.config.ts`. Without
+  it, `c15t/generated` still resolves, but exports `undefined`.
+- The fetch failed in `next dev`, or in a build with
+  `C15T_ON_BUILD_ERROR=runtime`. The server then fetches the policy at
+  runtime.
+- The backend URL is relative, or the config sets `output: 'export'`, so the
+  build skipped the fetch.
+- The code runs in a package listed in `serverExternalPackages`, which stays
+  outside the bundle and doesn't see the alias.
+
+`c15t/generated` ships its own types, so `tsc --noEmit` passes on a fresh
+clone without running Next.js first.
 
 ## Verify manifest fetching
 

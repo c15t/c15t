@@ -14,7 +14,7 @@
  */
 import type { ConsentJourneyOption, ServerExperiment } from '@c15t/core';
 import { resolveRequestConsent } from '@c15t/core/server';
-import { consentManifest as generatedManifest } from '@c15t/nextjs/generated-manifest';
+import { snapshot as generatedManifest } from '@c15t/nextjs/generated-manifest';
 import type { ConsentManifest } from '@c15t/schema/types';
 import * as React from 'react';
 

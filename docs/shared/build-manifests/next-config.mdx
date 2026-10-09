@@ -4,15 +4,25 @@ or function goes in as the first argument, unchanged:
 <include src="../examples/nextjs/next-config.mdx" />
 
 `next build`, `next dev` and `next typegen` fetch `${backendURL}/manifest` and
-write the policy to `c15t-manifest.ts` in the directory you run them from.
-`next start` serves the built snapshot and fetches no policy. Without a
-`backendURL` option, the build reads `NEXT_PUBLIC_C15T_BACKEND_URL`, as
-`c15t.config.ts` does, so saves and the snapshot point at the same project.
-Keep `c15t-manifest.ts` out of Git.
+write the policy to `node_modules/.cache/c15t/`, outside your source tree, so
+there is nothing to keep out of Git. `next start` serves the built snapshot and
+fetches no policy. Without a `backendURL` option, the build reads
+`NEXT_PUBLIC_C15T_BACKEND_URL`, as `c15t.config.ts` does, so saves and the
+snapshot point at the same project.
+
+The wrapper points `c15t/generated` at that cache in Turbopack and webpack.
+`resolveConsent` and the consent route handlers read the snapshot from it by
+default. Server code that passes the snapshot itself imports `snapshot` from
+`c15t/generated`. Only server bundles get it: in a browser bundle,
+`c15t/generated` imports `server-only`, so importing it from a client
+component fails the build. The wrapper also adds `c15t`, `@c15t/core` and
+`@c15t/nextjs` to `transpilePackages`, so Pages Router server bundles see the
+alias. A package you list in `serverExternalPackages` stays external and reads
+the policy at runtime instead.
 
 If the fetch fails, `next build` stops. `next dev` logs a warning instead, and
-`c15t-manifest.ts` exports `undefined`, so the server fetches and caches the
-policy at runtime, as with
+`snapshot` is `undefined`, so the server fetches and caches the policy at
+runtime, as with
 [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
 To let a build continue the same way, set `onBuildError: 'runtime'`, or run it
 with `C15T_ON_BUILD_ERROR=runtime`:
@@ -24,7 +34,7 @@ export default withConsentManifest(nextConfig, { onBuildError: 'runtime' });
 ```
 
 A missing backend URL counts as a failed fetch. The build skips the fetch and
-writes the same file when the backend URL is relative, or when the config sets
-`output: 'export'`, which has no server to use the snapshot. With
+leaves `snapshot` `undefined` when the backend URL is relative, or when the
+config sets `output: 'export'`, which has no server to use the snapshot. With
 `onBuildError: 'fail'`, a relative URL stops the build. A static export always
 skips the fetch.

@@ -15,22 +15,21 @@ export default {
 };
 ```
 
-Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. Vite writes
-`src/c15t-manifest.ts` before compiling, including at development startup. Keep
-the generated file out of Git. Install `@c15t/browser@alpha` for its browser
-manifest transport. In `src/consent.tsx`, create the provider's mode with
-`manifest()` instead of `hosted()`:
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. When
+`vite build` or `vite dev` starts, the plugin fetches the policy and serves it
+as `snapshot` from `c15t/generated`. Install `@c15t/browser@alpha`
+for its browser manifest transport. In `src/consent.tsx`, create the provider's
+mode with `manifest()` instead of `hosted()`:
 
 {/* example: fragment */}
 
 ```tsx title="src/consent.tsx"
 import { manifest } from '@c15t/browser/headless';
-
-import { consentManifest } from './c15t-manifest';
+import { snapshot } from 'c15t/generated';
 
 const mode = manifest({
 	backendURL: 'https://your-project.inth.app',
-	snapshot: consentManifest,
+	snapshot,
 });
 ```
 
@@ -40,7 +39,7 @@ does not depend on geography. Supply known country and region through `inputs`
 or overrides to keep regional resolution on the snapshot.
 
 When the build has no snapshot, as in `vite dev` after a failed fetch,
-`consentManifest` is `undefined`, and the browser fetches
+`snapshot` is `undefined`, and the browser fetches
 `${backendURL}/manifest` instead.
 
 When the required country or region is missing, the transport calls backend

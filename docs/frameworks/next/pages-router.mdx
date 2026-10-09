@@ -108,7 +108,7 @@ browser retries after hydration.
 
 ## Use backend init instead of the manifest
 
-Remove `withConsentManifest` from `next.config.ts`, and the `consentManifest`
+Remove `withConsentManifest` from `next.config.ts`, and the `c15t/generated`
 import and `manifest` line from `c15t.server.ts`. Delete the `manifestURL` line from
 `c15t.config.ts` and delete `pages/api/c15t/manifest.ts`. `_app.tsx` and the pages stay the same.
 `resolveConsent` and the browser now call `${backendURL}/init`, and consent

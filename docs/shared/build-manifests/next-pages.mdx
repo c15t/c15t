@@ -13,9 +13,6 @@ only from `getServerSideProps` and API routes.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-If you install `@c15t/nextjs` directly, set `importSource: '@c15t/nextjs/static'`.
-In a monorepo, set `rootDir` to the app directory.
-
 To apply policy edits without a rebuild, remove `withConsentManifest`, and the
-`consentManifest` import and `manifest` line from `c15t.server.ts`. The server
+`c15t/generated` import and `manifest` line from `c15t.server.ts`. The server
 then uses [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).

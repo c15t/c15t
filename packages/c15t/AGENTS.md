@@ -242,7 +242,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Quickstart](./docs/frameworks/svelte/quickstart.md): Add a c15t cookie banner, preference dialog and consent-gated scripts to a Svelte 5 app built with Vite, with your Inth policy bundled at build time.
 - [Scripts](./docs/frameworks/svelte/scripts.md): Load vendor scripts, iframes and network requests in a Svelte app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Translations](./docs/frameworks/svelte/translations.md): Change c15t banner and dialog copy in a Svelte app with component text props or the provider's i18n option, and switch languages at runtime.
-- [Troubleshooting](./docs/frameworks/svelte/troubleshooting.md): Fix a Vite build that cannot fetch the c15t manifest, a missing generated manifest module, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+- [Troubleshooting](./docs/frameworks/svelte/troubleshooting.md): Fix a Vite build that cannot fetch the c15t manifest, a missing bundled policy, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
 - [Vendor consent](./docs/frameworks/svelte/vendor-consent.md): Let visitors allow a category such as marketing in a Svelte app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
 
 ### SvelteKit
@@ -276,7 +276,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Scripts](./docs/frameworks/sveltekit/scripts.md): Load vendor scripts, iframes and network requests in a SvelteKit app only after the visitor allows their consent category, and stop them when consent is withdrawn.
 - [Server API](./docs/frameworks/sveltekit/server-api.md): Reference for loadConsent, c15tHandle, createSvelteKitConsentRouteHandlers and resolveConsent from @c15t/svelte/kit and @c15t/svelte/server, with every option and default.
 - [Translations](./docs/frameworks/sveltekit/translations.md): Change c15t banner and dialog copy in a SvelteKit app, where the server prefetch carries the backend's translations for the request's language.
-- [Troubleshooting](./docs/frameworks/sveltekit/troubleshooting.md): Fix a SvelteKit build that cannot fetch the c15t manifest, a missing generated manifest module, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
+- [Troubleshooting](./docs/frameworks/sveltekit/troubleshooting.md): Fix a SvelteKit build that cannot fetch the c15t manifest, a missing bundled policy, a banner missing from server HTML, failed saves through the manifest route, a wrong backend URL and ignored theme colors.
 - [Vendor consent](./docs/frameworks/sveltekit/vendor-consent.md): Let visitors allow a category such as marketing in a SvelteKit app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
 
 ### HTML script tag

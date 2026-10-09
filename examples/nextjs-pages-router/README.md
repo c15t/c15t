@@ -9,7 +9,8 @@ no `/init` request. PostHog loads only after the visitor allows measurement.
 
 - `c15t.config.ts` holds the backend URL and the manifest route's path.
 - `next.config.ts` wraps the config in `withConsentManifest`, which writes the
-  policy to `c15t-manifest.ts` during `next build` and `next dev`.
+  policy to `node_modules/.cache/c15t/` during `next build` and `next dev`
+  and serves it to server code as `c15t/generated`.
 - `c15t.server.ts` pairs the config with that policy for server code.
 - `pages/api/c15t/manifest.ts` serves the bundled policy.
 - `pages/_app.tsx` mounts the client wrapper from `components/consent.tsx`

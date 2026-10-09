@@ -23,9 +23,8 @@ integration.
   `astro build`) stops with an error that names the URL and the cause. A
   missing backend URL stops it too.
 - Dev (`next dev`, `vite dev`, `nuxt dev`, `astro dev`) logs a warning and
-  keeps going. The server fetches the policy at runtime. The generated
-  `c15t-manifest.ts` exports `consentManifest` as `undefined`, so imports
-  still compile.
+  keeps going. The server fetches the policy at runtime. `c15t/generated`
+  then exports `snapshot` as `undefined`, so imports still compile.
 
 Astro and Nuxt builds used to warn and continue by default. They now stop,
 like the other frameworks.

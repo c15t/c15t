@@ -14,8 +14,8 @@ cause:
 | `/manifest returned an invalid consent manifest.` | The URL answered with something other than a consent manifest, such as an HTML page | Point `backendURL` at the backend itself, not your site or a dashboard page |
 
 A failed download never reuses an old snapshot. To deploy while the backend
-is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. The browser then
-fetches the policy from the backend at runtime.
+is down, run the build with `C15T_ON_BUILD_ERROR=runtime`. `snapshot` is then
+`undefined`, and the browser fetches the policy from the backend at runtime.
 
 An error or warning that says `no backend URL is set` means the plugin found
 no `backendURL` option and no variable. Set `VITE_C15T_BACKEND_URL` in `.env`
@@ -27,12 +27,19 @@ URL is relative, such as `/api/c15t`. Pass the absolute backend URL instead.
 With `onBuildError: 'fail'`, this stops the build with `build-time manifests
 require an absolute upstream URL`.
 
-## Why can't TypeScript find ./c15t-manifest?
+## Why is snapshot undefined?
 
-**Check.** `tsc`, `vue-tsc` or your editor reports that it cannot find the
-module `./c15t-manifest`, on a fresh checkout or in CI.
+**Check.** `snapshot` from `c15t/generated` is `undefined`, and the browser
+requests `${backendURL}/manifest` on page load.
 
-**Fix.** `consentManifest` writes `src/c15t-manifest.ts` when `vite build` or
-`vite dev` starts, and the file is not in Git. Run one of them before the type
-check. In CI, run the build first, or cache the generated file with the build
-output.
+**Fix.** `snapshot` is `undefined` when Vite has no policy to serve:
+
+- `consentManifest` is missing from `plugins` in `vite.config.ts`. Without the
+  plugin, `c15t/generated` still resolves, but exports `undefined`.
+- The fetch failed in `vite dev`, or in a build with
+  `C15T_ON_BUILD_ERROR=runtime`. The terminal shows a `could not fetch the
+  consent manifest` warning.
+- The backend URL is relative, so the plugin skipped the fetch.
+
+Fix the cause, then restart `vite dev` or rebuild. The plugin fetches once
+when Vite starts.

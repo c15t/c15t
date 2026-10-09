@@ -205,6 +205,11 @@
 			"import": "./shims/build.js",
 			"default": "./shims/build.js"
 		},
+		"./generated": {
+			"types": "./shims/generated.d.ts",
+			"import": "./shims/generated.js",
+			"default": "./shims/generated.js"
+		},
 		"./react": {
 			"types": "./shims/react.d.ts",
 			"import": "./shims/react.js",

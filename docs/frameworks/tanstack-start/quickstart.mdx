@@ -40,8 +40,10 @@ Add the `consentManifest` plugin to `vite.config.ts`, before `tanstackStart()`:
 <include src="../../shared/examples/tanstack-start/vite-config.mdx" />
 
 When `vite build` or `vite dev` starts, the plugin downloads your project's
-public policy from `${backendURL}/manifest` and writes it to
-`src/c15t-manifest.ts`. Keep that file out of Git.
+public policy from `${backendURL}/manifest` and serves it to server code as
+`snapshot` from `c15t/generated`. In the browser bundle, `snapshot` is
+`undefined`, so the policy stays on the server. No file is written into your
+project.
 
 Set `VITE_C15T_BACKEND_URL` to your project's backend URL, exactly as Inth
 shows it, including any path prefix, in `.env` or wherever you build. The
@@ -57,9 +59,10 @@ builds, so setting it when you start a built app has no effect.
 
 <include src="../../shared/vite-build-manifest.mdx" />
 
-To apply policy edits without rebuilding, remove the plugin and the `manifest`
-option in the root route, and set `VITE_C15T_BACKEND_URL` yourself. The server
-function then fetches and caches the policy at runtime; see
+To apply policy edits without rebuilding, remove the plugin, and the
+`c15t/generated` import and the `manifest` option in the root route, and set
+`VITE_C15T_BACKEND_URL` yourself. The server function then fetches and caches
+the policy at runtime; see
 [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader).
 
 ## Register your vendor scripts
@@ -88,7 +91,8 @@ What each part does:
   [Geography headers](/docs/frameworks/tanstack-start/geography-headers) lists
   the headers it reads. Declare the `createServerFn()` call in your own module,
   as shown. Start's compiler finds server code by that call site and removes
-  it, with the `c15t-manifest` import, from the browser build. A server
+  it from the browser build. The browser build's `c15t/generated` exports
+  `snapshot: undefined`, so the policy never ships to the browser. A server
   function built inside a package does not work. In the browser build,
   `@c15t/tanstack-start/server` carries only `consentLoaderOptions`; its other
   helpers throw if browser code calls them.

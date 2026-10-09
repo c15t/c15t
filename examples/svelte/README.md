@@ -6,8 +6,8 @@ the stock banner. A "Privacy settings" link in the footer reopens the
 preference dialog, and PostHog loads only after the visitor allows
 measurement.
 
-- `vite.config.ts` downloads the policy with `consentManifest` into
-  `src/c15t-manifest.ts`, which Git ignores.
+- `vite.config.ts` downloads the policy with `consentManifest` and serves it
+  as `c15t/generated`.
 - `src/App.svelte` mounts `ConsentManagerProvider` in `manifest()` mode with
   the banner, dialog and link.
 - `src/scripts.ts` registers PostHog.

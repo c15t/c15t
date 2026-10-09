@@ -22,27 +22,39 @@ export type {
 	ManifestBuildOptions,
 } from '@c15t/core/build';
 
+/** The plugin `sveltekit()` adds first, which marks a SvelteKit app. */
+const SVELTEKIT_PLUGIN = 'vite-plugin-sveltekit-setup';
+
 /**
- * Generates a manifest before Svelte or SvelteKit compilation.
+ * Fetches the deployment's consent manifest when Vite starts and serves it
+ * as the virtual module `@c15t/core/generated` (also `c15t/generated`).
+ * Import `snapshot` from it; no file is written into the app.
+ *
+ * In a SvelteKit app (the `sveltekit()` plugin is present), the snapshot
+ * stays on the server: in the client environment, `snapshot` is
+ * `undefined`. A Svelte single-page app receives it in the browser.
+ * `backendURL` is public and reaches both.
  *
  * `backendURL` defaults to `PUBLIC_C15T_BACKEND_URL` (SvelteKit), then
  * `VITE_C15T_BACKEND_URL`, including `.env` files. When
  * `VITE_C15T_BACKEND_URL` is unset, the plugin sets
  * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
  * reads the same value. A missing URL or a failed fetch stops
- * `vite build` and warns in `vite dev`, where the generated module exports
- * `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that.
+ * `vite build` and warns in `vite dev`, where `snapshot` is `undefined`.
+ * Set `onBuildError` or `C15T_ON_BUILD_ERROR` to change that.
  *
- * @param options - Backend URL and generated module settings. Appends `/manifest`.
- * @returns A Vite plugin using `@c15t/svelte/vite` for its type import.
+ * @param options - Backend URL and `onBuildError`. Appends `/manifest`.
+ * @returns A Vite plugin.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
- * `vite build`, or the file cannot be written.
+ * `vite build`.
  */
 export const consentManifest = (options: ManifestBuildOptions = {}) =>
 	createConsentManifestPlugin(options, {
 		envNames: ['PUBLIC_C15T_BACKEND_URL', 'VITE_C15T_BACKEND_URL'],
-		importSource: '@c15t/svelte/vite',
 		label: '@c15t/svelte/vite',
+		serverRendered: (config) =>
+			config.plugins?.some((plugin) => plugin.name === SVELTEKIT_PLUGIN) ??
+			false,
 	});
 
 /** The `@c15t/core` module each on-demand chunk starts from. */

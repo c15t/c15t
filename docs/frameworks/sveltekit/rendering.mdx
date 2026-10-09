@@ -35,7 +35,7 @@ directly or through the
 [consent proxy](#save-consent-through-your-own-origin).
 
 Starting from the quickstart, remove the `consentManifest` plugin from
-`vite.config.ts`, and the `c15t-manifest` import and the `manifest` line from
+`vite.config.ts`, and the `c15t/generated` import and the `manifest` line from
 `src/lib/server/c15t.ts`. The quickstart's `/api/c15t` route then fetches the
 manifest from `backendURL` at runtime. Without the quickstart's options file,
 add a catch-all route at `src/routes/api/c15t/[...path]/+server.ts`:

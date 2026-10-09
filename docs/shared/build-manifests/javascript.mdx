@@ -16,22 +16,21 @@ export default {
 };
 ```
 
-Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. Vite generates
-`src/c15t-manifest.ts` before compilation and development startup. Keep the
-generated file out of Git. In your browser entry point, switch the `init`
-import to `@c15t/browser`, which supports manifest mode, and add these options
-to the existing `init()` call:
+Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. When
+`vite build` or `vite dev` starts, the plugin fetches the policy and serves it
+as `snapshot` from `c15t/generated`. In your browser entry point, switch the
+`init` import to `@c15t/browser`, which supports manifest mode, and add these
+options to the existing `init()` call:
 
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
 import { init } from '@c15t/browser';
-
-import { consentManifest } from './c15t-manifest';
+import { snapshot } from 'c15t/generated';
 
 init({
 	backendURL: 'https://your-project.inth.app',
-	manifest: consentManifest,
+	manifest: snapshot,
 	mode: 'manifest',
 });
 ```
@@ -44,7 +43,7 @@ policy and translations. Those visitors still wait for a backend round trip
 and can receive newer policy than the build snapshot.
 
 When the build has no snapshot, as in `vite dev` after a failed fetch,
-`consentManifest` is `undefined`, and the browser fetches
+`snapshot` is `undefined`, and the browser fetches
 `${backendURL}/manifest` instead.
 
 A script-tag site without a build step cannot run this hook.
