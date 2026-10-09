@@ -6,13 +6,19 @@
  * content after its scripts run, so its largest image often starts loading
  * after `load` has fired, and a download started then shares the connection
  * with that image. This waits until the page has also gone quiet: no
- * resource has finished for a while and no image the visitor can see is
- * still loading.
+ * resource has finished and no largest-contentful-paint candidate has
+ * painted for a while, and no `<img>` the visitor can see is still loading.
+ *
+ * Browsers report a resource only once it has finished, so a request still
+ * in flight is visible only as an incomplete `<img>`. A CSS
+ * `background-image` or SVG `<image>` that is still downloading cannot be
+ * seen; it restarts the wait only when it finishes or paints, which may be
+ * after the task has started. The maximum wait bounds every case.
  */
 
 /**
- * How long no resource may finish, with no visible image loading, before the
- * page counts as quiet.
+ * How long no resource may finish and no LCP candidate may paint, with no
+ * visible image loading, before the page counts as quiet.
  */
 export const IDLE_PRELOAD_QUIET_MS = 1000;
 
@@ -72,23 +78,24 @@ export const isIdlePreloadAllowed = function isIdlePreloadAllowed(): boolean {
 };
 
 /**
- * Whether an image the visitor can see is still downloading. Lazy images
- * outside the viewport have not started and do not count.
+ * Whether an `<img>` the visitor can see is still downloading. Images outside
+ * the viewport, or not rendered, do not count: they are not the page's
+ * largest paint, and lazy ones among them have not started.
  */
 const isVisibleImageLoading = function isVisibleImageLoading(): boolean {
+	// `document.images` is live: every check sees images added since the last.
 	for (const image of Array.from(document.images)) {
-		if (image.complete) {
+		if (image.complete || image.getClientRects().length === 0) {
 			continue;
 		}
-		if (image.loading !== 'lazy') {
-			return true;
-		}
+		// Inclusive edges: an image without set dimensions is 0x0 until its
+		// size arrives, and a hero at the top of the page sits on edge 0.
 		const rect = image.getBoundingClientRect();
 		if (
-			rect.bottom > 0 &&
-			rect.right > 0 &&
-			rect.top < window.innerHeight &&
-			rect.left < window.innerWidth
+			rect.bottom >= 0 &&
+			rect.right >= 0 &&
+			rect.top <= window.innerHeight &&
+			rect.left <= window.innerWidth
 		) {
 			return true;
 		}
@@ -96,14 +103,29 @@ const isVisibleImageLoading = function isVisibleImageLoading(): boolean {
 	return false;
 };
 
+/** Entry types whose arrival restarts the quiet window. */
+const ACTIVITY_ENTRY_TYPES = ['resource', 'largest-contentful-paint'] as const;
+
+/** When an entry shows the page was last busy. */
+const activityTime = function activityTime(entry: PerformanceEntry): number {
+	// Resources count when they finish; LCP candidates when they paint.
+	return 'responseEnd' in entry
+		? (entry as PerformanceResourceTiming).responseEnd
+		: entry.startTime;
+};
+
 /**
  * Run `task` once the page has loaded and gone quiet, in an idle period.
  *
- * Waits for the window `load` event, then until no resource has finished for
- * `quietMs` and no visible image is still loading, then for an idle callback.
- * After `maxWaitMs` past `load` it stops waiting for quiet. Browsers without
- * `requestIdleCallback`, such as Safari, run the task shortly after the page
- * goes quiet.
+ * Waits for the window `load` event, then until no resource has finished and
+ * no LCP candidate has painted for `quietMs` and no visible image is still
+ * loading, then for an idle callback. If the page is busy again when the
+ * idle callback fires, it waits for quiet again. After `maxWaitMs` past
+ * `load` it stops waiting for quiet. Browsers without `requestIdleCallback`,
+ * such as Safari, run the task shortly after the page goes quiet.
+ *
+ * A CSS background or SVG image still downloading is not seen; see the
+ * module comment.
  *
  * Does nothing on the server. Callers decide whether the download is wanted;
  * see {@link isIdlePreloadAllowed}.
@@ -141,13 +163,15 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 	try {
 		observer = new PerformanceObserver((list) => {
 			for (const entry of list.getEntries()) {
-				lastActivity = Math.max(
-					lastActivity,
-					(entry as PerformanceResourceTiming).responseEnd
-				);
+				lastActivity = Math.max(lastActivity, activityTime(entry));
 			}
 		});
-		observer.observe({ buffered: true, type: 'resource' });
+		const supported = PerformanceObserver.supportedEntryTypes ?? ['resource'];
+		for (const type of ACTIVITY_ENTRY_TYPES) {
+			if (supported.includes(type)) {
+				observer.observe({ buffered: true, type });
+			}
+		}
 	} catch {
 		// No resource timing: quiet means no visible image loading.
 		observer = undefined;
@@ -158,45 +182,48 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 		observer = undefined;
 	};
 
-	const run = () => {
+	/** How much longer to wait for quiet, or 0 once the page is quiet. */
+	const remainingWait = (now: number): number => {
+		if (now - loadedAt >= maxWaitMs) {
+			return 0;
+		}
+		if (isVisibleImageLoading()) {
+			return IMAGE_POLL_MS;
+		}
+		const quietFor = now - Math.max(lastActivity, loadedAt);
+		return quietFor < quietMs ? quietMs - quietFor : 0;
+	};
+
+	/**
+	 * Check again in `wait` ms, or run once quiet. A check from an idle
+	 * callback runs the task; any other schedules one. The page may start an
+	 * image while the task waits for an idle period, such as a single-page
+	 * app rendering its content, so the idle check looks again first.
+	 */
+	const check = (idle: boolean) => {
+		timer = undefined;
+		idleHandle = undefined;
 		if (cancelled) {
+			return;
+		}
+		const wait = remainingWait(performance.now());
+		if (wait > 0) {
+			timer = setTimeout(() => check(false), wait);
+			return;
+		}
+		if (!idle) {
+			if (typeof window.requestIdleCallback === 'function') {
+				idleHandle = window.requestIdleCallback(() => check(true), {
+					timeout: IDLE_CALLBACK_TIMEOUT_MS,
+				});
+			} else {
+				timer = setTimeout(() => check(true), IDLE_FALLBACK_DELAY_MS);
+			}
 			return;
 		}
 		cancelled = true;
-		task();
-	};
-
-	const runWhenIdle = () => {
 		stopObserving();
-		if (typeof window.requestIdleCallback === 'function') {
-			idleHandle = window.requestIdleCallback(run, {
-				timeout: IDLE_CALLBACK_TIMEOUT_MS,
-			});
-		} else {
-			timer = setTimeout(run, IDLE_FALLBACK_DELAY_MS);
-		}
-	};
-
-	const check = () => {
-		timer = undefined;
-		if (cancelled) {
-			return;
-		}
-		const now = performance.now();
-		if (now - loadedAt >= maxWaitMs) {
-			runWhenIdle();
-			return;
-		}
-		if (isVisibleImageLoading()) {
-			timer = setTimeout(check, IMAGE_POLL_MS);
-			return;
-		}
-		const quietFor = now - Math.max(lastActivity, loadedAt);
-		if (quietFor < quietMs) {
-			timer = setTimeout(check, quietMs - quietFor);
-			return;
-		}
-		runWhenIdle();
+		task();
 	};
 
 	const afterLoad = () => {
@@ -204,7 +231,7 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 			return;
 		}
 		loadedAt = performance.now();
-		timer = setTimeout(check, quietMs);
+		timer = setTimeout(() => check(false), quietMs);
 	};
 
 	if (document.readyState === 'complete') {

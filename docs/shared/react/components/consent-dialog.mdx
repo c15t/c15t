@@ -50,12 +50,19 @@ group: reference
   - An idle period once the page has finished loading, while the banner is
     shown or a `ConsentDialogLink`, `ConsentDialogTrigger`, `ConsentGate`
     button or other button that opens the dialog is mounted. "Finished"
-    means after the `load` event, no resource has completed for one second,
-    and no visible image is still downloading. A single-page app often
+    means after the `load` event, no resource has completed and no
+    largest-contentful-paint candidate has painted for one second, and no
+    `<img>` in the viewport is still downloading. A single-page app often
     starts its largest image after `load`, so the dialog no longer shares
     the connection with it. A page that never goes quiet loads the dialog
     10 seconds after `load`. Browsers without `requestIdleCallback`, such as
     Safari, load it as soon as the page is quiet.
+
+    Browsers do not report a CSS `background-image` or SVG `<image>` until
+    it has finished downloading. If your largest image is one of those and
+    takes more than a second to arrive, the dialog can still download
+    alongside it. Use an `<img>` for the hero, or set
+    `preloadDialog: 'intent'`.
   - Hover, focus or touch on a button that opens the dialog. This covers a
     visitor who opens it before the idle load.
   - The dialog opening.

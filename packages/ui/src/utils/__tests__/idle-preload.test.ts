@@ -12,21 +12,31 @@ interface NetworkInformationStub {
 	saveData?: boolean;
 }
 
-// A PerformanceObserver whose resource entries the test reports by hand.
-let reportResource: (responseEnd: number) => void = () => undefined;
+// A PerformanceObserver whose entries the test reports by hand. It delivers
+// only the entry types the scheduler asked to observe.
+interface FakeEntry {
+	responseEnd?: number;
+	startTime?: number;
+}
+let reportEntry: (type: string, entry: FakeEntry) => void = () => undefined;
+const reportResource = (responseEnd: number) =>
+	reportEntry('resource', { responseEnd });
+const reportPaint = (startTime: number) =>
+	reportEntry('largest-contentful-paint', { startTime });
 class FakePerformanceObserver {
+	static readonly supportedEntryTypes = [
+		'largest-contentful-paint',
+		'resource',
+	];
 	private readonly report: PerformanceObserverCallback;
-	private observing = false;
+	private readonly types = new Set<string>();
 	constructor(report: PerformanceObserverCallback) {
 		this.report = report;
-	}
-	observe() {
-		this.observing = true;
-		reportResource = (responseEnd) => {
-			if (!this.observing) {
+		reportEntry = (type, entry) => {
+			if (!this.types.has(type)) {
 				return;
 			}
-			const entries = [{ responseEnd } as PerformanceResourceTiming];
+			const entries = [entry as PerformanceEntry];
 			this.report(
 				{
 					getEntries: () => entries,
@@ -35,8 +45,13 @@ class FakePerformanceObserver {
 			);
 		};
 	}
+	observe({ type }: PerformanceObserverInit) {
+		if (type) {
+			this.types.add(type);
+		}
+	}
 	disconnect() {
-		this.observing = false;
+		this.types.clear();
 	}
 }
 
@@ -47,7 +62,16 @@ const setReadyState = (state: DocumentReadyState) => {
 	});
 };
 
-const addImage = ({ lazy = false } = {}) => {
+/**
+ * An incomplete `<img>` laid out at `top` (jsdom has no layout). The
+ * viewport is jsdom's 1024x768. `rendered: false` stands for `display: none`.
+ */
+const addImage = ({
+	height = 300,
+	lazy = false,
+	rendered = true,
+	top = 0,
+} = {}) => {
 	const image = document.createElement('img');
 	if (lazy) {
 		image.loading = 'lazy';
@@ -57,6 +81,11 @@ const addImage = ({ lazy = false } = {}) => {
 		value: false,
 		writable: true,
 	});
+	const rect = new DOMRect(0, top, height === 0 ? 0 : 400, height);
+	image.getBoundingClientRect = () =>
+		rendered ? rect : new DOMRect(0, 0, 0, 0);
+	image.getClientRects = () =>
+		(rendered ? [rect] : []) as unknown as DOMRectList;
 	document.body.append(image);
 	return image as HTMLImageElement & { complete: boolean };
 };
@@ -124,11 +153,90 @@ describe('scheduleIdlePreload', () => {
 	});
 
 	test('ignores lazy images outside the viewport', () => {
-		addImage({ lazy: true });
+		addImage({ lazy: true, top: 2000 });
 		const task = vi.fn();
 		scheduleIdlePreload(task, { quietMs: 500 });
 
 		vi.advanceTimersByTime(600);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
+	test('ignores eager images below the viewport', () => {
+		addImage({ top: 2000 });
+		const task = vi.fn();
+		scheduleIdlePreload(task, { quietMs: 500 });
+
+		vi.advanceTimersByTime(600);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
+	test('ignores images that are not rendered', () => {
+		addImage({ rendered: false });
+		const task = vi.fn();
+		scheduleIdlePreload(task, { quietMs: 500 });
+
+		vi.advanceTimersByTime(600);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
+	test('waits for an image at the top of the page that has no size yet', () => {
+		addImage({ height: 0 });
+		const task = vi.fn();
+		scheduleIdlePreload(task, { quietMs: 500 });
+
+		vi.advanceTimersByTime(3000);
+		expect(task).not.toHaveBeenCalled();
+	});
+
+	test('notices an image added after the first check', () => {
+		const task = vi.fn();
+		scheduleIdlePreload(task, { quietMs: 500 });
+
+		vi.advanceTimersByTime(400);
+		reportResource(performance.now());
+		// The first check, at 500ms, finds the page busy and checks again.
+		vi.advanceTimersByTime(200);
+		const image = addImage();
+		vi.advanceTimersByTime(3000);
+		expect(task).not.toHaveBeenCalled();
+
+		image.complete = true;
+		vi.advanceTimersByTime(600);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
+	test('restarts the quiet window when a largest-contentful-paint candidate paints', () => {
+		const task = vi.fn();
+		scheduleIdlePreload(task, { quietMs: 500 });
+
+		vi.advanceTimersByTime(400);
+		reportPaint(performance.now());
+		vi.advanceTimersByTime(400);
+		expect(task).not.toHaveBeenCalled();
+
+		vi.advanceTimersByTime(200);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
+	test('waits again when an image starts loading before the idle callback', () => {
+		const requestIdleCallback = vi.fn<(callback: () => void) => number>(
+			() => 1
+		);
+		vi.stubGlobal('requestIdleCallback', requestIdleCallback);
+		const task = vi.fn();
+		scheduleIdlePreload(task, { quietMs: 500 });
+
+		vi.advanceTimersByTime(600);
+		expect(requestIdleCallback).toHaveBeenCalledOnce();
+		const image = addImage();
+		requestIdleCallback.mock.calls[0]?.[0]();
+		expect(task).not.toHaveBeenCalled();
+
+		image.complete = true;
+		reportResource(performance.now());
+		vi.advanceTimersByTime(600);
+		expect(requestIdleCallback).toHaveBeenCalledTimes(2);
+		requestIdleCallback.mock.calls[1]?.[0]();
 		expect(task).toHaveBeenCalledOnce();
 	});
 

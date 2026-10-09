@@ -14,9 +14,15 @@ The preferences dialog used to start downloading in the first idle moment
 after the `load` event. A single-page app often starts its largest image
 after `load`, so the dialog's code shared the connection with that image on
 slow networks. The dialog now waits until the page is quiet: no resource
-completing for one second and no visible image still downloading, or 10
-seconds after `load` at the latest. Hover, focus or touch on a button that
-opens the dialog still loads it at once.
+completing and no largest-contentful-paint candidate painting for one
+second, and no `<img>` in the viewport still downloading, or 10 seconds after
+`load` at the latest. Hover, focus or touch on a button that opens the dialog
+still loads it at once.
+
+Browsers report a CSS `background-image` or SVG `<image>` only once it has
+finished downloading, so a hero drawn that way that takes more than a second
+can still share the connection with the dialog. React, Next.js and TanStack
+Start apps can set `preloadDialog: 'intent'` to avoid it.
 
 In React, Next.js and TanStack Start this applies with the default
 `preloadDialog: 'idle'`. In Vue and Nuxt:

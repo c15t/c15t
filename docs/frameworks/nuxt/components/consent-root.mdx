@@ -41,8 +41,10 @@ The IAB surfaces replace the standard ones only when the module's `iab`
 option is set and the policy uses the `iab` model. The dialog and the IAB
 surfaces load as separate chunks. While the banner is shown, `ConsentRoot`
 prefetches the dialog chunk once the page has finished loading: after the
-`load` event, with no resource completing for one second and no visible
-image still downloading, or 10 seconds after `load` at the latest. Hover,
+`load` event, with no resource completing for one second and no `<img>` in
+the viewport still downloading, or 10 seconds after `load` at the latest. A
+CSS `background-image` still downloading does not count: browsers report it
+only once it has finished. Hover,
 focus or touch on Customize, `ConsentPreferencesLink`, `ConsentDialogTrigger` or
 a `ConsentGate` button loads it at once. The prefetch is skipped with
 Save-Data on, on 2G connections and offline, and on visits where nothing on
