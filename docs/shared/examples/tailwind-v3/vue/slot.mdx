@@ -2,11 +2,11 @@
 
 ```ts title="src/main.ts"
 .use(c15tVue, {
-	backendURL: '/api/c15t',
 	components: {
 		banner: {
 			root: { class: '!p-[7px] dark:!p-[11px]' },
 		},
 	},
+	mode: hosted(),
 })
 ```

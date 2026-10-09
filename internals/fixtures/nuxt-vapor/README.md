@@ -5,7 +5,7 @@ on. Every page and component in `app/` is a Vapor component
 (`<script setup vapor>`). The c15t components stay on the virtual DOM and
 render inside them through Nuxt's Vapor interop:
 
-- `app/app.vue` mounts `ConsentRoot` and `ConsentPreferencesLink`.
+- `app/app.vue` mounts `ConsentRoot` and `ConsentDialogLink`.
 - `app/components/VideoEmbed.vue` passes its default and `placeholder` slots
   to `ConsentGate`.
 - `app/components/ConsentPrompt.vue` is a headless banner built on the

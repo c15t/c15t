@@ -11,7 +11,7 @@
 		/>
 		<template #placeholder>
 			<p>Allow measurement to load this YouTube video.</p>
-			<ConsentPreferencesLink>Choose video permissions</ConsentPreferencesLink>
+			<ConsentDialogLink>Choose video permissions</ConsentDialogLink>
 		</template>
 	</ConsentGate>
 </template>

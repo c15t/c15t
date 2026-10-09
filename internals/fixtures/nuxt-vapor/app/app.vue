@@ -17,6 +17,6 @@ const activeUI = useConsentActiveUI();
 		>
 			Privacy settings
 		</button>
-		<ConsentPreferencesLink v-else>Privacy settings</ConsentPreferencesLink>
+		<ConsentDialogLink v-else>Privacy settings</ConsentDialogLink>
 	</footer>
 </template>

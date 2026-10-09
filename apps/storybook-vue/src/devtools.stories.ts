@@ -17,6 +17,7 @@ import {
 	provideStorybookConsentContext,
 	storybookConsentConfig,
 	storybookInit,
+	storybookMode,
 } from './storybook-consent-fixtures';
 
 /**
@@ -58,7 +59,13 @@ export const Default: Story = {
 			const config = {
 				...storybookConsentConfig,
 				consentCategories: [...getDevToolsCategories()],
-				customFetch: (input: RequestInfo | URL) =>
+				presentation: devToolsPresentation,
+				// The shared play verifies script cleanup after rejecting consent.
+				reloadOnConsentRevoked: false,
+			};
+			const context = createVueConsentKernelContext({
+				config,
+				mode: storybookMode(((input: RequestInfo | URL) =>
 					Promise.resolve(
 						new Response(
 							JSON.stringify(
@@ -71,13 +78,7 @@ export const Default: Story = {
 								},
 							}
 						)
-					),
-				presentation: devToolsPresentation,
-				// The shared play verifies script cleanup after rejecting consent.
-				reloadOnConsentRevoked: false,
-			};
-			const context = createVueConsentKernelContext({
-				config,
+					)) as typeof fetch),
 				prefetch: init,
 				producerContract: 1,
 			});
