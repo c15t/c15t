@@ -1,9 +1,16 @@
 ---
 title: Umami Analytics
 description: Load the Umami Analytics tracker only after measurement consent with the c15t umamiAnalytics helper, point it at a self-hosted instance, and check it in DevTools.
+seoTitle: Umami Analytics cookie consent with c15t
+seoDescription: Load the Umami tracker only with measurement consent. Set it up with the c15t umamiAnalytics helper and check it in DevTools.
 icon: umami-analytics
 group: integrations
 ---
+
+The c15t `umamiAnalytics` helper keeps the Umami tracker off the page until
+`measurement` has consent. The helper sends no consent signal to Umami. If the
+visitor withdraws consent, c15t removes the script element. By default, c15t
+also reloads the page.
 
 ## Configure Umami Analytics
 

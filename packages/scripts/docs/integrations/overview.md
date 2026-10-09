@@ -2,6 +2,10 @@
 title: Integrations
 description: Find all c15t integrations for analytics, tag managers,
   advertising, email and SMS, chat and embedded content.
+seoTitle: Cookie consent integrations for analytics and ads | c15t
+seoDescription: Connect analytics, ad pixels, chat widgets and embeds to your
+  cookie banner. c15t has helpers for Google Tag Manager, Meta Pixel, PostHog,
+  Segment and Hotjar.
 group: integrations
 ---
 

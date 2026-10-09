@@ -1,9 +1,19 @@
 ---
 title: Klaviyo
 description: Load Klaviyo signup forms and onsite tracking only after marketing and measurement consent with the c15t klaviyo helper, gate your own events, and check it in DevTools.
+seoTitle: Klaviyo cookie consent with c15t
+seoDescription: Load Klaviyo only after marketing and measurement consent, or show its signup forms with marketing consent only. Set it up with the c15t klaviyo helper.
 icon: klaviyo
 group: integrations
 ---
+
+The c15t `klaviyo` helper keeps Klaviyo.js off the page until both `marketing`
+and `measurement` have consent. Klaviyo.js shows signup forms and also tracks
+visitors on your site. Until then, c15t does not create the `klaviyo` object. If
+the visitor withdraws consent, c15t removes the loader and, by default, reloads
+the page. With `mode: 'forms-only'`, the helper needs only `marketing` and sets
+the Klaviyo `__kla_off` opt-out cookie before the bundle runs. The `category`
+option replaces the default consent condition.
 
 ## Configure Klaviyo
 

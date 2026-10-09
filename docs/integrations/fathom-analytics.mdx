@@ -1,9 +1,18 @@
 ---
 title: Fathom Analytics
 description: Load Fathom Analytics only after measurement consent with the c15t fathomAnalytics helper, set its SPA mode, and check it in DevTools.
+seoTitle: Fathom Analytics cookie consent with c15t
+seoDescription: Load Fathom Analytics only with measurement consent. The c15t fathomAnalytics helper keeps script.js off the page until then.
 icon: fathom-analytics
 group: integrations
 ---
+
+The c15t `fathomAnalytics` helper keeps Fathom Analytics off the page until
+`measurement` has consent. Fathom says that it sets no cookies, but c15t still
+does not load Fathom's `script.js` before consent. The helper sends no consent
+signal to Fathom, and it does not call `blockTrackingForMe`. If the visitor
+withdraws consent, c15t removes the script element. By default, c15t also
+reloads the page.
 
 ## Configure Fathom Analytics
 

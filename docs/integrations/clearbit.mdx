@@ -1,9 +1,17 @@
 ---
 title: Clearbit
 description: Load the Clearbit enrichment tag only after marketing consent with the c15t clearbit helper, and check it in DevTools.
+seoTitle: Clearbit cookie consent with c15t
+seoDescription: Load Clearbit only with marketing consent, because Clearbit identifies visitors and their companies. Set it up with the c15t clearbit helper.
 icon: clearbit
 group: integrations
 ---
+
+The c15t `clearbit` helper keeps the Clearbit tag, `tags.js`, off the page until
+`marketing` has consent. The category is `marketing`, not `measurement`, because
+Clearbit identifies visitors and their companies. The helper sends no consent
+signal to Clearbit. If the visitor withdraws consent, c15t removes the script
+element. By default, c15t also reloads the page.
 
 ## Configure Clearbit
 

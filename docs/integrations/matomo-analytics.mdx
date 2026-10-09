@@ -1,9 +1,19 @@
 ---
 title: Matomo Analytics
 description: Load Matomo after measurement consent with the c15t matomoAnalytics helper, or use Matomo's own consent mode, and check each mode in DevTools.
+seoTitle: Matomo cookie consent with c15t
+seoDescription: Load Matomo only after measurement consent, or load it on every page and use the Matomo consent API. Set it up with the c15t matomoAnalytics helper.
 icon: matomo
 group: integrations
 ---
+
+By default, the c15t `matomoAnalytics` helper keeps Matomo off the page until
+`measurement` has consent. In this mode, the helper sends no consent signal to
+Matomo. With `defaultConsent`, the helper loads `matomo.js` on every page,
+before the visitor chooses. The helper then uses the Matomo consent API. It
+calls `requireConsent` while `measurement` has no consent, `setConsentGiven`
+while it has consent, and `forgetConsentGiven` after the visitor withdraws
+consent.
 
 ## Configure Matomo Analytics
 

@@ -1,9 +1,17 @@
 ---
 title: Ahrefs Analytics
 description: Load Ahrefs Web Analytics only after measurement consent with the c15t ahrefsAnalytics helper, and check it in DevTools.
+seoTitle: Ahrefs Analytics cookie consent with c15t
+seoDescription: Load Ahrefs Web Analytics only with measurement consent. The c15t ahrefsAnalytics helper keeps analytics.js off the page until then.
 icon: ahrefs
 group: integrations
 ---
+
+The c15t `ahrefsAnalytics` helper keeps Ahrefs Web Analytics off the page until
+`measurement` has consent. Ahrefs says that its analytics sets no cookies, but
+c15t still does not load `analytics.js` before consent. The helper sends no
+consent signal to Ahrefs. If the visitor withdraws consent, c15t removes the
+script element. By default, c15t also reloads the page.
 
 ## Configure Ahrefs Analytics
 

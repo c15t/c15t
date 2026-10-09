@@ -1,9 +1,18 @@
 ---
 title: Segment
 description: Load Segment Analytics.js only after measurement consent with the c15t segment helper, guard your own track and identify calls, and check it in DevTools.
+seoTitle: Segment cookie consent with c15t
+seoDescription: Load Segment Analytics.js only with measurement consent. The c15t segment helper sends the first page call after consent.
 icon: segment
 group: integrations
 ---
+
+The c15t `segment` helper keeps Segment Analytics.js off the page until
+`measurement` has consent. Until then, c15t does not create `window.analytics`.
+When `measurement` has consent, the helper queues a `page()` call and loads
+Analytics.js. The helper sends no consent signal to Segment. If the visitor
+withdraws consent, c15t removes the script element. By default, c15t also
+reloads the page.
 
 ## Configure Segment
 

@@ -1,9 +1,16 @@
 ---
 title: X Pixel
 description: Load the X Pixel only after marketing consent with the c15t xPixel helper, guard twq conversion events, and check it in DevTools.
+seoTitle: X Pixel cookie consent with c15t
+seoDescription: Load the X Pixel only with marketing consent. The c15t xPixel helper keeps uwt.js off the page until then.
 icon: x
 group: integrations
 ---
+
+The c15t `xPixel` helper keeps the X Pixel off the page until `marketing` has
+consent. Until then, c15t does not define `twq`. X has no API to update consent,
+so the helper sends no consent signal to X. If the visitor withdraws consent,
+c15t removes the script element. By default, c15t also reloads the page.
 
 ## Configure the X Pixel
 

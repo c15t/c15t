@@ -1,9 +1,16 @@
 ---
 title: Promptwatch
 description: Load the Promptwatch attribution client only after measurement consent with the c15t promptwatch helper, and check it in DevTools.
+seoTitle: Promptwatch cookie consent with c15t
+seoDescription: Load the Promptwatch client only with measurement consent. Set it up with the c15t promptwatch helper and check it in DevTools.
 icon: promptwatch
 group: integrations
 ---
+
+The c15t `promptwatch` helper keeps the Promptwatch client script off the page
+until `measurement` has consent. The helper sends no consent signal to
+Promptwatch. If the visitor withdraws consent, c15t removes the script element.
+By default, c15t also reloads the page.
 
 ## Configure Promptwatch
 

@@ -1,9 +1,18 @@
 ---
 title: PostHog
 description: Load PostHog before or after measurement consent with the c15t posthog helper, choose its cookieless behavior, turn off PostHog modules you do not use, and sync consent with an SDK you already initialize.
+seoTitle: PostHog cookie consent with c15t
+seoDescription: Opt PostHog out without measurement consent, with cookieless capture or a full wait for consent. Set it up with the c15t posthog helper.
 icon: posthog
 group: integrations
 ---
+
+By default, the c15t `posthog` helper loads PostHog's `array.js` on every page,
+before the visitor chooses. While `measurement` has no consent, the helper calls
+`opt_out_capturing()`. This is also true before the visitor chooses. While
+`measurement` has consent, the helper calls `opt_in_capturing()`. The default
+`cookieless_mode: 'on_reject'` changes PostHog to cookieless capture after an
+opt-out. To wait for consent before the load, set `loadMode: 'after-consent'`.
 
 ## Configure PostHog
 

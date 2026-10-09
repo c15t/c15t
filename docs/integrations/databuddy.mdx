@@ -1,9 +1,20 @@
 ---
 title: Databuddy
 description: Load the Databuddy SDK on every page with the c15t databuddy helper, switch its disabled flag and config from measurement consent, and check both in DevTools.
+seoTitle: Databuddy cookie consent with c15t
+seoDescription: Keep Databuddy disabled without measurement consent, and turn it on with consent. Set it up with the c15t databuddy helper.
 icon: databuddy
 group: integrations
 ---
+
+The c15t `databuddy` helper loads `databuddy.js` on every page, before the
+visitor chooses. The helper uses `alwaysLoad`, but its category is
+`measurement`. While `measurement` has no consent, the helper sets
+`window.databuddy.options.disabled` to `true`. It also sets
+`window.databuddyConfig` to `configWhenDenied`, unless your page set
+`window.databuddyConfig` first. When `measurement` has consent, the helper
+changes to `configWhenGranted` and sets `disabled` to `false`. If the visitor
+withdraws consent, the helper changes both values back.
 
 ## Configure Databuddy
 
