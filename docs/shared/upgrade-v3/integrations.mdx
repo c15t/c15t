@@ -1,10 +1,9 @@
 ## Rename the integrations dependency
 
 v3 renames `@c15t/scripts` to `@c15t/integrations`. Remove `@c15t/scripts`
-from your dependencies and install `@c15t/integrations` from the `alpha`
-dist-tag:
+from your dependencies and install `@c15t/integrations`:
 
-<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/integrations" mode="install" />
 
 Replace the package name in each import. Vendor subpaths and helper names stay
 the same.
@@ -44,7 +43,7 @@ ends in v4; versions already published stay on npm.
 To preview the import changes in JavaScript and TypeScript files:
 
 ```bash
-npx @c15t/cli@alpha codemods scripts-to-integrations --dry-run --json
+npx @c15t/cli codemods scripts-to-integrations --dry-run --json
 ```
 
 Review the output, then run it again without `--dry-run`. The codemod runs

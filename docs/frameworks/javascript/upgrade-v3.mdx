@@ -13,8 +13,8 @@ group: frameworks
 
   1. Find every use of the `c15t` package and `@c15t/scripts`: `getOrCreateConsentRuntime`, `configureConsentManager`, `consentStore`, cookie helpers, script loader and iframe blocker functions.
   2. Decide which v3 entry fits. Use `@c15t/browser` if the app wants the stock banner, `createConsentRuntime` from `c15t/runtime` if it renders its own UI, and `createConsentKernel` only if it mounts each module itself. Tell me which one you picked and why.
-  3. Install `c15t@alpha`, or `@c15t/browser@alpha` for the stock banner, plus `@c15t/integrations@alpha` if the app uses vendor helpers and `@c15t/dev-tools@alpha` if it uses dev tools.
-  4. Run `npx @c15t/cli@alpha codemods scripts-to-integrations consent-provider-options policy-packs-to-policy-rules callbacks-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
+  3. Install `c15t`, or `@c15t/browser` for the stock banner, plus `@c15t/integrations` if the app uses vendor helpers and `@c15t/dev-tools` if it uses dev tools.
+  4. Run `npx @c15t/cli codemods scripts-to-integrations consent-provider-options policy-packs-to-policy-rules callbacks-to-v3 --dry-run --json`. Review the output, then run the same command without `--dry-run`. The codemods leave a `TODO(c15t v3)` comment wherever they need you to finish a change.
   5. If you picked `createConsentRuntime`, call `runtime.start()` after creating it. Replace each store call with its v3 equivalent from the guide's mapping table.
   6. Update callbacks and policy presets as the guide describes.
   7. Keep the existing backend URL. If the app runs its own c15t backend, stop and tell me, because it has to be upgraded in the same release.
@@ -47,7 +47,7 @@ to do.
 
 Install `c15t` for the runtime or the kernel:
 
-<CommandTabs command="c15t@alpha" mode="install" />
+<CommandTabs command="c15t" mode="install" />
 
 The runtime takes the same kind of options v2 did. `mode` and `backendURL`
 become one transport, such as `hosted({ url })` or `offline({ policyRules })`,
@@ -119,7 +119,7 @@ choice, so don't treat a `true` permission as a recorded grant. See
 ## Update dev tools
 
 Dev tools no longer depend on React. Upgrade `@c15t/dev-tools` to
-`@c15t/dev-tools@alpha` with the rest of c15t, then call
+`@c15t/dev-tools` with the rest of c15t, then call
 `createDevTools({ kernel })` with your runtime's kernel. See
 [dev tools](/docs/frameworks/javascript/dev-tools).
 

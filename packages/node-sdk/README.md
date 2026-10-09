@@ -37,7 +37,7 @@ Typed client for hosted and self-hosted c15t backends. Check consent before send
 ## Manual Installation
 
 ```bash
-pnpm add @c15t/node-sdk@alpha
+pnpm add @c15t/node-sdk
 ```
 
 ## Usage
