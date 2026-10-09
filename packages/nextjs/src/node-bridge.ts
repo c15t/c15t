@@ -30,6 +30,8 @@ export interface NodeApiRequestLike extends NodeRequestLike {
 	 */
 	body?: unknown;
 	method?: string;
+	/** Route parameters and query string, as `NextApiRequest` parses them. */
+	query?: Record<string, string | string[] | undefined>;
 	url?: string;
 	[Symbol.asyncIterator]?: () => AsyncIterator<Uint8Array | string>;
 }

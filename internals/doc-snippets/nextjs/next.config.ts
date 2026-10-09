@@ -1,6 +1,4 @@
-{/* Generated from internals/doc-snippets/nextjs/next.config.ts (docs:next-config) by scripts/sync-example-docs.ts. Edit the source file. */}
-
-```ts title="next.config.ts"
+// #region docs:next-config
 import { withConsentManifest } from 'c15t/next/build';
 import type { NextConfig } from 'next';
 
@@ -11,4 +9,4 @@ export default withConsentManifest(nextConfig, {
 		process.env.NEXT_PUBLIC_C15T_BACKEND_URL ??
 		'https://benchmarks-inth.inth.app',
 });
-```
+// #endregion docs:next-config

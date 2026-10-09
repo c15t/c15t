@@ -1,17 +1,17 @@
-{/* Generated from internals/doc-snippets/nextjs/app/default/layout.tsx (docs:app-router-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from examples/nextjs/app/layout.tsx (docs:quickstart-layout) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```tsx title="app/layout.tsx"
 import { resolveConsent } from 'c15t/next/server';
 import type { ReactNode } from 'react';
 
-import { consentOptions } from '@/c15t.server';
+import { consentConfig } from '@/c15t.config';
 import { Consent } from '@/components/consent';
 
 import '@/styles/globals.css';
 
 const RootLayout = ({ children }: { children: ReactNode }) => {
 	// Not awaited: the page renders while consent resolves.
-	const state = resolveConsent(consentOptions);
+	const state = resolveConsent(consentConfig);
 
 	return (
 		<html lang="en">

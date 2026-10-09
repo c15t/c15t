@@ -7,11 +7,13 @@ after the visitor allows measurement.
 
 ## Files
 
-- `c15t.config.ts` holds the backend URL and the manifest route's path.
+- `c15t.config.ts` names where the consent route is mounted. The backend URL
+  comes from `NEXT_PUBLIC_C15T_BACKEND_URL`.
 - `next.config.ts` wraps the config in `withConsentManifest`, which writes the
-  policy to `c15t-manifest.ts` during `next build` and `next dev`.
-- `c15t.server.ts` pairs the config with that policy for server code.
-- `app/api/c15t/manifest/route.ts` serves the bundled policy.
+  policy to `c15t-manifest.ts` during `next build` and `next dev` and hands it
+  to the server helpers.
+- `app/api/c15t/[...c15t]/route.ts` serves the bundled policy at
+  `/api/c15t/manifest` and resolves `/api/c15t/init` from it.
 - `components/consent.tsx` is the client wrapper: `ConsentRoot`, the banner,
   the dialog and a Privacy settings link.
 - `app/layout.tsx` starts `resolveConsent` without awaiting it and passes the

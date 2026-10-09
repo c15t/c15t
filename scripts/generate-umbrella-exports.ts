@@ -177,7 +177,9 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 	},
 	{
 		directory: 'nextjs',
-		exclude: [TAILWIND3_PLUGIN],
+		// The stand-in `withConsentManifest` aliases to the generated
+		// snapshot; the server helpers import it, apps never do.
+		exclude: ['./generated-manifest', TAILWIND3_PLUGIN],
 		packageName: '@c15t/nextjs',
 		prefix: 'next',
 	},
