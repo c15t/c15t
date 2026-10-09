@@ -39,7 +39,6 @@ import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
 import { createManifestRequestInit } from './manifest-request';
 import type { ProviderTransportFactory } from './mode';
-import { c15tProtocolHeaders } from './version-header';
 
 /** Options for {@link manifest} and {@link createBrowserManifestTransport}. */
 export type BrowserManifestOptions = ManifestModeBaseOptions &
@@ -99,32 +98,24 @@ const isOtherLanguage = (language: string): language is OtherLanguage =>
 
 /** Base copy loaded so far, shared by every transport on the page. */
 const loadedLanguages = new Map<string, Translations>([['en', enTranslations]]);
-const loadingLanguages = new Map<string, Promise<Translations | undefined>>();
 
 /**
  * Load one language's base copy. Resolves to `undefined` when the chunk
  * fails to load; a later init tries again.
  */
-const loadLanguage = function loadLanguage(
+const loadLanguage = async function loadLanguage(
 	language: OtherLanguage
 ): Promise<Translations | undefined> {
-	let loading = loadingLanguages.get(language);
-	if (!loading) {
-		loading = (async () => {
-			try {
-				const { loadLanguageCopy } =
-					await import('./manifest-browser-languages');
-				const translations = await loadLanguageCopy(language);
-				loadedLanguages.set(language, translations);
-				return translations;
-			} catch {
-				loadingLanguages.delete(language);
-				return undefined;
-			}
-		})();
-		loadingLanguages.set(language, loading);
+	try {
+		const { loadLanguageCopy } = await import('./manifest-browser-languages');
+		const copy = await loadLanguageCopy(language);
+		if (copy) {
+			loadedLanguages.set(language, copy);
+		}
+		return copy;
+	} catch {
+		return undefined;
 	}
-	return loading;
 };
 
 /**
@@ -439,21 +430,10 @@ export const createBrowserManifestTransport =
 				}
 				unreported.resolvedLocally(journey);
 				const output = await resolveWithLanguage(resolved, inputs);
-				if (
-					resolved.iab?.enabled === true &&
-					resolved.iab.gvl &&
-					output.policyResolution?.status === 'matched' &&
-					output.policyResolution.policy.model === 'iab'
-				) {
-					// IAB is opt-in, so its vendor list cache loads on demand.
-					const { fetchCachedGvl } = await import('./gvl-cache');
-					output.gvl = await fetchCachedGvl({
-						fetch: getFetch(),
-						headers: c15tProtocolHeaders,
-						label: 'c15t manifest transport',
-						language: output.translations.language.split('-')[0] || 'en',
-						url: resolved.iab.gvl.url,
-					});
+				if (resolved.iab?.enabled === true) {
+					// IAB is opt-in, so the vendor list code loads on demand.
+					const { attachVendorList } = await import('./manifest-browser-iab');
+					await attachVendorList(output, resolved, getFetch());
 				}
 				// Local resolution always produces the v3 wire; the manifest's
 				// own schema version decides matched, lifted, or failed inside it.

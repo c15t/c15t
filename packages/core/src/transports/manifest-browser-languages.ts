@@ -55,16 +55,31 @@ const languageModules: Record<OtherLanguage, () => LanguageModule> = {
 	zh: () => import('@c15t/translations/zh'),
 };
 
+const loading = new Map<string, Promise<Translations | undefined>>();
+
 /**
- * Load one language's base copy.
+ * Load one language's base copy, once per page.
  *
  * @param language - A language other than English.
- * @returns The language's copy. Rejects when its chunk fails to load.
+ * @returns The language's copy, or `undefined` when its chunk fails to
+ * load. A later call tries again.
  * @internal
  */
-export const loadLanguageCopy = async function loadLanguageCopy(
+export const loadLanguageCopy = function loadLanguageCopy(
 	language: OtherLanguage
-): Promise<Translations> {
-	const { translations } = await languageModules[language]();
-	return translations;
+): Promise<Translations | undefined> {
+	let pending = loading.get(language);
+	if (!pending) {
+		pending = (async () => {
+			try {
+				const { translations } = await languageModules[language]();
+				return translations;
+			} catch {
+				loading.delete(language);
+				return undefined;
+			}
+		})();
+		loading.set(language, pending);
+	}
+	return pending;
 };
