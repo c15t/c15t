@@ -104,7 +104,7 @@ export interface SvelteKitConsentRouteOptions extends ConsentManifestOptions {
 	fetchGvl?: ConsentRouteFetchGvl;
 	/**
 	 * Forward consent writes to `backendURL` through this route, so
-	 * `hosted({ url: '/api/c15t' })` can save through the app's own origin.
+	 * `hosted({ backendURL: '/api/c15t' })` can save through the app's own origin.
 	 * Without it the route answers `GET` only and a save gets `405`.
 	 *
 	 * When enabled the handlers gain `POST`, `PATCH`, `PUT`, `DELETE`, and
@@ -197,7 +197,7 @@ export type SvelteKitConsentRouteHandlersFor<
  * export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
  *   createSvelteKitConsentRouteHandlers({
  *     backendURL: 'https://your-project.inth.app',
- *     proxy: true, // then hosted({ url: '/api/c15t' })
+ *     proxy: true, // then hosted({ backendURL: '/api/c15t' })
  *   });
  * ```
  *

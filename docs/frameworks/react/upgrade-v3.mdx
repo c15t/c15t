@@ -65,7 +65,7 @@ a transport as `mode`:
 
 | v2 option | v3 option |
 | --- | --- |
-| `mode: 'hosted'` with `backendURL` | `mode: hosted({ url })` |
+| `mode: 'hosted'` with `backendURL` | `mode: hosted({ backendURL })` |
 | `mode: 'offline'` with `offlinePolicy` | `mode: offline({ policyRules })` |
 | `mode: 'custom'` with `endpointHandlers` | `mode: custom(transport)`, where `transport` implements the v3 transport interface. `endpointHandlers` throws. |
 
@@ -76,7 +76,7 @@ import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/reac
 
 // Replace ConsentManagerProvider:
 <ConsentProvider
-  options={{ mode: hosted({ url: 'https://your-project.c15t.dev' }) }}
+  options={{ mode: hosted({ backendURL: 'https://your-project.c15t.dev' }) }}
 >
 ```
 

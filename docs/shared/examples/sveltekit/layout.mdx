@@ -19,10 +19,10 @@
 		// The route resolves from the bundled policy, so each save asserts the
 		// decision it was made against.
 		assertDecisionInputs: true,
+		backendURL: PUBLIC_C15T_BACKEND_URL,
 		// Where the browser resolves consent when the server did not, such as
-		// on a prerendered page. Saves still go to `url`.
+		// on a prerendered page. Saves still go to `backendURL`.
 		initURL: '/api/c15t',
-		url: PUBLIC_C15T_BACKEND_URL,
 	});
 </script>
 

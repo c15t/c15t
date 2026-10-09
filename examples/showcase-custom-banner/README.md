@@ -56,7 +56,7 @@ Then open http://localhost:3110.
 The app runs c15t in offline mode, so you don't need an account. The policy
 ships in the bundle, and choices are stored in the browser with no consent
 records. For production, replace the `mode` line in `components/consent.tsx`
-with `hosted({ url: 'https://your-project.inth.app' })`.
+with `hosted({ backendURL: 'https://your-project.inth.app' })`.
 
 Set `NEXT_PUBLIC_POSTHOG_KEY` to send events to your own PostHog project.
 Without it the app uses a placeholder key. c15t still loads PostHog after you

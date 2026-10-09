@@ -1,13 +1,16 @@
 /**
- * Client manifest mode loads its resolver and translations as one chunk.
+ * Client manifest mode loads its resolver as one chunk.
  *
  * `kernel.ts` used to call `import('@c15t/core/transports/manifest')` and
  * `import('@c15t/translations/all')` separately. In a Nuxt 4 build (Vite 8,
  * Rolldown) the translations chunk then carried the shared `__export`
  * namespace helper, and the app entry imported it statically, so every page
  * downloaded all locales in its first load whatever the manifest mode. The
- * runtime now imports `./client-manifest`, which re-exports both, so its
- * chunk exports the bindings directly and needs no namespace helper.
+ * runtime now imports `./client-manifest`, which re-exports the browser
+ * resolver, so its chunk exports the bindings directly and needs no
+ * namespace helper. The resolver bundles English only; the server-only
+ * `@c15t/core/transports/manifest` and all-locale translations never load in
+ * the browser.
  */
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -40,35 +43,43 @@ afterEach(() => {
 });
 
 describe('client manifest chunk', () => {
-	test('no client module imports the resolver or all-locale translations on its own', () => {
-		const offenders = runtimeFiles
-			.filter((file) => !file.endsWith('client-manifest.ts'))
-			.flatMap((file) =>
-				dynamicImports(readFileSync(file, 'utf8'))
-					.filter(
-						(specifier) =>
-							specifier === '@c15t/translations/all' ||
-							specifier === '@c15t/core/transports/manifest'
-					)
-					.map((specifier) => `${file}: import('${specifier}')`)
-			);
+	test('no client module imports the server resolver or all-locale translations', () => {
+		const offenders = runtimeFiles.flatMap((file) => {
+			const source = readFileSync(file, 'utf8');
+			return [
+				...dynamicImports(source),
+				...[...source.matchAll(/\bfrom\s+['"](?<specifier>[^'"]+)['"]/gu)].map(
+					(match) => match.groups?.specifier
+				),
+			]
+				.filter(
+					(specifier) =>
+						specifier === '@c15t/translations/all' ||
+						specifier === '@c15t/core/transports/manifest'
+				)
+				.map((specifier) => `${file}: ${specifier}`);
+		});
 
 		expect(offenders).toEqual([]);
 	});
 
-	test('the kernel loads them through the client-manifest module', () => {
+	test('the kernel loads the browser resolver through the client-manifest module', () => {
 		const kernel = readFileSync(join(runtimeDir, 'kernel.ts'), 'utf8');
 
 		expect(dynamicImports(kernel)).toContain('./client-manifest');
-		expect(typeof clientManifest.createManifestTransport).toBe('function');
-		expect(clientManifest.baseTranslations.en).toBeDefined();
+		expect(typeof clientManifest.createBrowserManifestTransport).toBe(
+			'function'
+		);
 	});
 
 	test('client manifest mode uses resources registered with the entry', async () => {
-		const createManifestTransport = vi.fn(
-			clientManifest.createManifestTransport
+		const createBrowserManifestTransport = vi.fn(
+			clientManifest.createBrowserManifestTransport
 		);
-		registerClientManifest({ ...clientManifest, createManifestTransport });
+		registerClientManifest({
+			...clientManifest,
+			createBrowserManifestTransport,
+		});
 		const manifest: ConsentManifest = {
 			branding: 'c15t',
 			policyPacks: [
@@ -98,7 +109,7 @@ describe('client manifest chunk', () => {
 		try {
 			await context.kernel.commands.init();
 
-			expect(createManifestTransport).toHaveBeenCalledTimes(1);
+			expect(createBrowserManifestTransport).toHaveBeenCalledTimes(1);
 			expect(context.snapshot.value.policyRule.id).toBe('fallback');
 		} finally {
 			context.dispose();

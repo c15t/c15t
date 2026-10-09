@@ -78,7 +78,7 @@ export interface ConsentDialogCompoundComponent extends FC<ConsentDialogProps> {
  * ```tsx
  * <ConsentProvider
  *   options={{
- *     mode: hosted({ url: '/api/c15t' }),
+ *     mode: hosted({ backendURL: '/api/c15t' }),
  *     components: {
  *       dialog: {
  *         card: { className: 'rounded-3xl shadow-xl' },

@@ -13,7 +13,7 @@ const defaultHostedFactory = function defaultHostedFactory(
 			'@c15t/browser/hosted: provide backendURL, data-backend-url, or a hosted() factory.'
 		);
 	}
-	return hosted({ url: backendURL });
+	return hosted({ backendURL });
 };
 
 /**

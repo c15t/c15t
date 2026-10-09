@@ -31,7 +31,7 @@ export { claimEarlyJourney } from '../libs/journey';
 export { lazyRuntimeModule } from './lazy-module';
 export { createConsentProviderRuntime } from './provider-runtime';
 export { lazyStreamPrefetch, streamPrefetchWith } from './stream-mode';
-export { hostedModes } from '../transports/hosted-modes';
+export { readHostedMode } from '../transports/hosted-modes';
 export type { ResolveStreamedInit } from './stream-mode';
 export type {
 	ConsentProviderRuntime,

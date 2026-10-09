@@ -135,7 +135,7 @@ describe('expanded component templates', () => {
 			enableDevTools: true,
 			enableSSR: true,
 			framework: NEXTJS_CONFIG,
-			optionsText: "mode: hosted({ url: '/api/c15t' }),",
+			optionsText: "mode: hosted({ backendURL: '/api/c15t' }),",
 		});
 
 		expect(template).toContain("from 'c15t/next';");

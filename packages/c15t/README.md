@@ -82,7 +82,7 @@ import type { ReactNode } from 'react'
 
 import 'c15t/react/styles.css'
 
-const mode = hosted({ url: 'https://your-project.inth.app' })
+const mode = hosted({ backendURL: 'https://your-project.inth.app' })
 
 export const Consent = ({ children }: { children: ReactNode }) => (
   <ConsentProvider options={{ mode }}>

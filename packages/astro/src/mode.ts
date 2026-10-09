@@ -149,9 +149,9 @@ export const resolveTransportFactory = function resolveTransportFactory(
 ): ProviderTransportFactory {
 	if (descriptor.type === 'hosted') {
 		return hosted({
+			backendURL: descriptor.url,
 			domain: descriptor.domain,
 			headers: descriptor.headers,
-			url: descriptor.url,
 		});
 	}
 	if (descriptor.type === 'offline') {

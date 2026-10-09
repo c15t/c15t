@@ -738,7 +738,7 @@ describe('identity without a server subject', () => {
 				createManifestTransport({
 					backendURL: 'https://api.example.com/c15t',
 					fetch,
-					manifest,
+					snapshot: manifest,
 				}),
 			label: 'manifest',
 		},
@@ -820,7 +820,7 @@ describe('manifest transport', () => {
 		const transport = createManifestTransport({
 			backendURL: 'https://api.example.com/c15t',
 			fetch: fetchSpy as unknown as typeof globalThis.fetch,
-			manifest: {
+			snapshot: {
 				branding: 'c15t',
 				policyPacks: [],
 				revision: 'r',

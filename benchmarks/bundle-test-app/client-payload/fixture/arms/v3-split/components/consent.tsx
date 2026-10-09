@@ -23,7 +23,7 @@ export const Consent = ({
 }) => (
 	<ConsentProvider
 		options={{
-			mode: hosted({ url: '/mock-backend' }),
+			mode: hosted({ backendURL: '/mock-backend' }),
 			prefetch: state,
 			theme,
 		}}

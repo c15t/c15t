@@ -33,7 +33,7 @@ the c15t repository use this setup.
 The recommended [quickstart](/docs/frameworks/react/quickstart) bundles the
 manifest and resolves it in the browser. See [build-time manifests](#bundle-the-manifest-during-vite-builds).
 
-For policy updates without rebuilding, use `hosted({ url })` from
+For policy updates without rebuilding, use `hosted({ backendURL })` from
 `c15t/react` as the mode. That runtime path works as follows:
 
 1. The page loads with no consent state. Every optional category is denied.
@@ -73,7 +73,7 @@ its own `<style>` element, so there is no stylesheet to import.
 This is optional. `fetchSSRData` from `c15t/react/server` calls the backend's
 `/init` from your server loader, forwarding the visitor's location and
 language headers. Pass the result to the browser, wrap it in a promise and give
-it to `hosted({ url, initialData })`. The provider's first init then uses that
+it to `hosted({ backendURL, initialData })`. The provider's first init then uses that
 response instead of a network request.
 
 Know its limits before you add it:
@@ -120,7 +120,7 @@ cache.
 
 ## Where the browser sends requests
 
-With `hosted({ url })`, the browser calls two backend endpoints:
+With `hosted({ backendURL })`, the browser calls two backend endpoints:
 
 | Request | When |
 | --- | --- |

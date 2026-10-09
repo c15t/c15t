@@ -50,7 +50,7 @@ describe('Vue v3 boilerplate', () => {
 			scripts: [],
 		});
 		expect(result.files['consent-runtime.ts']).toContain(
-			`hosted({ url: ${JSON.stringify(backendURL)} })`
+			`hosted({ backendURL: ${JSON.stringify(backendURL)} })`
 		);
 		expect(result.files['consent-runtime.ts']).toContain('scripts: []');
 	});

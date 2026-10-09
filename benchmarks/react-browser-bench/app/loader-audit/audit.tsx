@@ -21,7 +21,7 @@ import AstroDialog from '../../../../packages/astro/src/components/islands/panel
 import { policyFixture } from '../../../../packages/react/src/__tests__/policy-fixture';
 import { mockGVL } from '../../../../packages/react/src/components/iab/__tests__/fixtures/mock-consent-state';
 
-const options = { mode: hosted({ url: '/api/bench-consent' }) };
+const options = { mode: hosted({ backendURL: '/api/bench-consent' }) };
 const Probe = () => {
 	useEffect(() => {
 		window.dispatchEvent(new CustomEvent('loader-probe-mounted'));

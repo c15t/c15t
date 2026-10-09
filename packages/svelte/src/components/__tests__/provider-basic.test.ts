@@ -96,7 +96,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 	test('hosted() reports hosted mode and calls the init URL', async () => {
 		const result = render(ProviderOnlyFixture, {
 			options: {
-				mode: hosted({ url: '/api/c15t' }),
+				mode: hosted({ backendURL: '/api/c15t' }),
 			},
 		});
 
@@ -144,7 +144,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			},
 			options: {
 				iab: { enabled: true, vendors: [755] },
-				mode: hosted({ url: '/api/c15t' }),
+				mode: hosted({ backendURL: '/api/c15t' }),
 			},
 		});
 
@@ -195,7 +195,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 		render(ConsentManagerProvider, {
 			mode: testOffline(),
 			options: {
-				mode: hosted({ url: 'https://example.invalid' }),
+				mode: hosted({ backendURL: 'https://example.invalid' }),
 			},
 		});
 

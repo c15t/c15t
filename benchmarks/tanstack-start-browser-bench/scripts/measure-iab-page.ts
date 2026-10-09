@@ -59,7 +59,7 @@ const manifest = {
 const init = await createManifestTransport({
 	fetchGvl: () => Promise.resolve(gvl),
 	inputs: { country: 'DE', language: 'en' },
-	manifest,
+	snapshot: manifest,
 }).init({ overrides: {}, user: null });
 // Both revisions receive the same full upstream response.
 const inline = {

@@ -62,5 +62,5 @@ export interface C15tWindowDebug {
  */
 export interface WindowDebugModeInput {
 	/** Transport kind declared by the factory. */
-	readonly kind: Exclude<WindowDebugMode, 'manifest'>;
+	readonly kind: WindowDebugMode;
 }

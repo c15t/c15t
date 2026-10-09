@@ -38,7 +38,7 @@ if (resolution.status !== 'matched') {
 const transport = createManifestTransport({
 	fetchGvl: () => Promise.resolve(gvl),
 	inputs: { country: 'DE', language: 'en' },
-	manifest: {
+	snapshot: {
 		branding: 'c15t',
 		cmpId: 28,
 		iab: { enabled: true, gvl: { url: 'https://gvl.test/list' } },

@@ -153,7 +153,7 @@ const backgroundWorkFor = (
  * Then pass it straight through:
  *
  * ```svelte
- * <ConsentManagerProvider prefetch={data.prefetch} mode={hosted({ url: '/api/c15t' })}>
+ * <ConsentManagerProvider prefetch={data.prefetch} mode={hosted({ backendURL: '/api/c15t' })}>
  * ```
  *
  * Modes:

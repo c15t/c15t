@@ -21,7 +21,7 @@
 	import { testBackend } from './test-backend';
 
 	const mode = hosted({
-		url: 'https://your-project.inth.app',
+		backendURL: 'https://your-project.inth.app',
 		...testBackend('url'),
 	});
 	// `&arm=wall` sets the arm the way a flag provider would; without it

@@ -27,6 +27,7 @@ import {
 	writePolicyResolutionWire,
 } from '@c15t/schema/types';
 
+import type { OfflineModeOptions as OfflineModeDataOptions } from '../modes';
 import type {
 	InitContext,
 	KernelBranding,
@@ -224,7 +225,7 @@ export const createOfflineTransport = function createOfflineTransport(
 };
 
 /** Options for {@link offline}. */
-export interface OfflineModeOptions {
+export interface OfflineModeOptions extends OfflineModeDataOptions {
 	/**
 	 * Rules to resolve locally. Omit them to use `recommendedPolicyRules()`:
 	 * strict opt-in for Europe, the UK, Quebec and unknown locations, opt-out
@@ -233,6 +234,17 @@ export interface OfflineModeOptions {
 	 */
 	policyRules?: PolicyRule[];
 }
+
+/**
+ * What `offline()` returns: a transport factory that also carries its
+ * options as enumerable data, so it satisfies `OfflineMode` from
+ * `@c15t/core/modes`.
+ */
+export type OfflineModeFactory = ProviderTransportFactory &
+	Readonly<OfflineModeOptions> & {
+		readonly kind: 'offline';
+		readonly type: 'offline';
+	};
 
 /**
  * Selects a transport that resolves policy rules locally, with no network.
@@ -260,11 +272,15 @@ export interface OfflineModeOptions {
  */
 export const offline = function offline(
 	options: OfflineModeOptions = {}
-): ProviderTransportFactory {
+): OfflineModeFactory {
+	const settings: OfflineModeOptions =
+		options.policyRules === undefined
+			? {}
+			: { policyRules: options.policyRules };
 	return Object.assign(
 		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
 			const rules =
-				options.policyRules ??
+				settings.policyRules ??
 				recommendedPolicyRules({ iab: context.iabEnabled });
 			// Read at each init: a pending prefetch fills `context.prefetch`
 			// after this transport is built.
@@ -288,6 +304,7 @@ export const offline = function offline(
 					}),
 			};
 		},
-		{ kind: 'offline' as const }
+		settings,
+		{ kind: 'offline' as const, type: 'offline' as const }
 	);
 };

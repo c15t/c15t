@@ -25,7 +25,7 @@
 		"Use the headless engine from `c15t`, or the framework entrypoints from `c15t/react` and `c15t/next`",
 		"Every export matches its scoped package: `c15t/react/hooks` is `@c15t/react/hooks`, `c15t/next` is `@c15t/nextjs`",
 		"For full implementation details, see the [quickstart docs](https://c15t.com/docs)",
-		"```tsx\n// React: src/consent.tsx\nimport {\n  ConsentBanner,\n  ConsentDialog,\n  ConsentDialogLink,\n  ConsentProvider,\n  hosted,\n} from 'c15t/react'\nimport type { ReactNode } from 'react'\n\nimport 'c15t/react/styles.css'\n\nconst mode = hosted({ url: 'https://your-project.inth.app' })\n\nexport const Consent = ({ children }: { children: ReactNode }) => (\n  <ConsentProvider options={{ mode }}>\n    {children}\n    <ConsentBanner />\n    <ConsentDialog />\n    <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n  </ConsentProvider>\n)\n```"
+		"```tsx\n// React: src/consent.tsx\nimport {\n  ConsentBanner,\n  ConsentDialog,\n  ConsentDialogLink,\n  ConsentProvider,\n  hosted,\n} from 'c15t/react'\nimport type { ReactNode } from 'react'\n\nimport 'c15t/react/styles.css'\n\nconst mode = hosted({ backendURL: 'https://your-project.inth.app' })\n\nexport const Consent = ({ children }: { children: ReactNode }) => (\n  <ConsentProvider options={{ mode }}>\n    {children}\n    <ConsentBanner />\n    <ConsentDialog />\n    <ConsentDialogLink>Privacy settings</ConsentDialogLink>\n  </ConsentProvider>\n)\n```"
 	],
 	"docsLink": "https://c15t.com/docs",
 	"quickStartLink": "https://c15t.com/docs",

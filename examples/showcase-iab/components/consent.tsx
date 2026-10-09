@@ -16,7 +16,7 @@ import { brandTheme } from '@/lib/consent-theme';
 // for an unknown location, which is every visitor in offline mode. Choices
 // stay in this browser. In production, swap this line for your backend,
 // which resolves the visitor's region and sends the vendor list with it:
-// const mode = hosted({ url: 'https://your-project.inth.app' });
+// const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline({ policyRules: [policyRulePresets.europeIab()] });
 
 // A demonstration CMP ID, the same one c15t's own IAB demos use. Every TC

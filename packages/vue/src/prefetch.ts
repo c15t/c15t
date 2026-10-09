@@ -37,11 +37,11 @@ const IAB_FIRST_BANNER_SOURCES = [
 ];
 
 /**
- * The client manifest resolver and every locale's translations (about
- * 66 KB gzip). Only client manifest mode loads them while the page starts.
- * A build in another mode loads them only if app config switches to client
- * manifest mode, and then on demand, so a hint there downloads them on
- * every page for nothing.
+ * The client manifest resolver with English base copy. Other languages load
+ * on demand. Only client manifest mode loads it while the page starts.
+ * A build in another mode loads it only if app config switches to client
+ * manifest mode, and then on demand, so a hint there downloads it on every
+ * page for nothing.
  */
 const CLIENT_MANIFEST_SOURCE = '/dist/runtime/client-manifest.js';
 

@@ -193,7 +193,9 @@ describe('generated project outcomes', () => {
 			const provider = await readFile(join(root, fixture.provider), 'utf8');
 			expect(provider).toContain("from './consent-banner'");
 			expect(provider).toContain('googleTagManager({');
-			expect(provider).toContain('hosted({ url: "https://example.com" })');
+			expect(provider).toContain(
+				'hosted({ backendURL: "https://example.com" })'
+			);
 			expect(provider).not.toMatch(/process\.env|import\.meta\.env/u);
 			expect(provider).not.toContain("country: 'DE'");
 			expect(provider).not.toContain('styles: false');

@@ -14,7 +14,7 @@ import { symbolKernel } from '../runtime/utils/symbols';
 
 const createRuntime = function createRuntime(): ConsentRuntime {
 	return createConsentRuntime({
-		mode: hosted({ url: 'https://consent.example.test' }),
+		mode: hosted({ backendURL: 'https://consent.example.test' }),
 		pkg: '@c15t/vue-test',
 		prefetch: {
 			initialPolicyResolution: resolvePolicyRules({

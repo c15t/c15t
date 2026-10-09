@@ -18,7 +18,7 @@ import type { Locale } from '@/lib/locales';
 // whatever location the app gives it, so the demo needs no account. A
 // backend reads the visitor's real location from the request instead. In
 // production, swap this line for your project's backend:
-// const mode = hosted({ url: 'https://your-project.inth.app' });
+// const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline();
 
 /**

@@ -20,7 +20,7 @@
  * const runtime = createConsentRuntime({
  *   createIAB: iab.create,
  *   iab: { cmpId: 123 },
- *   mode: hosted({ url: '/api/c15t' }),
+ *   mode: hosted({ backendURL: '/api/c15t' }),
  * });
  * runtime.start();
  * await iab.whenReady();

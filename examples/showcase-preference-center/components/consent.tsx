@@ -11,7 +11,7 @@ import { CookieBanner } from './cookie-banner';
 // Offline mode resolves the policy in the browser and keeps choices in this
 // browser only, so the demo runs without an account. In production, point
 // it at your backend instead:
-//   const mode = hosted({ url: 'https://your-project.inth.app' });
+//   const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 const mode = offline();
 
 export const Consent = ({ children }: { children: ReactNode }) => (

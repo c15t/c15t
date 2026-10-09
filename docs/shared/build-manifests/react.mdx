@@ -30,7 +30,7 @@ import { consentManifest } from './c15t-manifest';
 
 const mode = manifest({
 	backendURL: 'https://your-project.inth.app',
-	manifest: consentManifest,
+	snapshot: consentManifest,
 });
 ```
 
@@ -54,6 +54,6 @@ Policy and resolver code are part of the browser bundle.
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, use `hosted({ url })` from `c15t/react`
+For policy updates without a rebuild, use `hosted({ backendURL })` from `c15t/react`
 as the mode and omit the build plugin. That setup resolves policy through the
 backend `/init` on each page load.

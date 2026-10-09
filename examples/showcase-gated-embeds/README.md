@@ -49,7 +49,7 @@ Open <http://localhost:3112>.
 The app runs in offline mode, so it needs no backend: c15t's bundled policy
 rules ask for opt-in consent and choices stay in the browser. For production,
 replace `offline()` in `components/consent.tsx` with
-`hosted({ url: 'https://your-project.inth.app' })` and add your site's origin
+`hosted({ backendURL: 'https://your-project.inth.app' })` and add your site's origin
 to the project's trusted origins.
 
 The chat loads Crisp with a placeholder website ID, so no chat window appears

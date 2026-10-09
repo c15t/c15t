@@ -60,7 +60,7 @@ with the visitor's location, language and GPC. Keep the root
 points at the route, and its saves still go to the backend URL.
 
 This route file exports `GET` only, so a `POST` or `PATCH` to `/api/c15t`
-gets a `405`. Keep `hosted({ url })` on the backend URL, as the quickstart
+gets a `405`. Keep `hosted({ backendURL })` on the backend URL, as the quickstart
 layout does, or turn on the proxy described in
 [save consent through your own origin](#save-consent-through-your-own-origin).
 
@@ -92,7 +92,7 @@ export const { GET, POST, PATCH, PUT, DELETE, OPTIONS } =
 	});
 ```
 
-Then point the provider at the route with `hosted({ url: '/api/c15t' })`.
+Then point the provider at the route with `hosted({ backendURL: '/api/c15t' })`.
 With the proxy on, `GET` still resolves `init` and `manifest` in the process,
 and the handlers forward other requests to `backendURL`. They forward only
 `subjects`, `subjects/:id`, `init`, `manifest`, `health`, `status` and any

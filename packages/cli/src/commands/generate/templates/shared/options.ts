@@ -57,7 +57,7 @@ export const getBackendURLValue = function getBackendURLValue(
  * @example
  * ```ts
  * const options = generateOptionsText('hosted', 'https://api.example.com', true);
- * // Returns: "mode: hosted({ url: '/api/c15t' }),"
+ * // Returns: "mode: hosted({ backendURL: '/api/c15t' }),"
  * ```
  */
 export const generateOptionsText = function generateOptionsText(
@@ -71,7 +71,7 @@ export const generateOptionsText = function generateOptionsText(
 		case 'c15t':
 		case 'self-hosted': {
 			const backendURLValue = getBackendURLValue(backendURL, proxyNextjs);
-			return `mode: hosted({ url: ${backendURLValue} }),`;
+			return `mode: hosted({ backendURL: ${backendURLValue} }),`;
 		}
 		case 'custom': {
 			const url = JSON.stringify(backendURL || '/api/consent');

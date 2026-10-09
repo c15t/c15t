@@ -45,7 +45,7 @@ const resolveInit = async (
 ) => {
 	const transport = createManifestTransport({
 		backendURL: 'https://consent.example.com',
-		manifest,
+		snapshot: manifest,
 	});
 	const response = await transport.init({
 		overrides: { country: 'DE', language: 'de', ...overrides },
@@ -349,13 +349,13 @@ describe('reportConsentSession never blocks the resolution', () => {
 		const transport = createManifestTransport({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
-			manifest,
 			report: {
 				source: 'render',
 				waitUntil: (task) => {
 					registered.push(task);
 				},
 			},
+			snapshot: manifest,
 		});
 
 		const response = await transport.init({
@@ -493,8 +493,8 @@ describe('createManifestTransport report option', () => {
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
 			headers: { cookie: 'c15t=secret', 'x-forwarded-for': '203.0.113.42' },
-			manifest,
 			report: { adapter: '@c15t/nextjs', source: 'render' },
+			snapshot: manifest,
 		});
 
 		await transport.init({
@@ -530,7 +530,7 @@ describe('createManifestTransport report option', () => {
 		const transport = createManifestTransport({
 			backendURL: 'https://consent.example.com',
 			fetch: fetchSpy,
-			manifest,
+			snapshot: manifest,
 		});
 		await transport.init({ overrides: { country: 'DE' }, user: null });
 		expect(fetchSpy).not.toHaveBeenCalled();

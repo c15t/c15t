@@ -80,6 +80,11 @@
 			"import": "./shims/experiment.js",
 			"default": "./shims/experiment.js"
 		},
+		"./modes": {
+			"types": "./shims/modes.d.ts",
+			"import": "./shims/modes.js",
+			"default": "./shims/modes.js"
+		},
 		"./surface-actions": {
 			"types": "./shims/surface-actions.d.ts",
 			"import": "./shims/surface-actions.js",
@@ -99,6 +104,11 @@
 			"types": "./shims/transports/manifest.d.ts",
 			"import": "./shims/transports/manifest.js",
 			"default": "./shims/transports/manifest.js"
+		},
+		"./transports/manifest-browser": {
+			"types": "./shims/transports/manifest-browser.d.ts",
+			"import": "./shims/transports/manifest-browser.js",
+			"default": "./shims/transports/manifest-browser.js"
 		},
 		"./transports/manifest-cache": {
 			"types": "./shims/transports/manifest-cache.d.ts",
@@ -164,6 +174,11 @@
 			"types": "./shims/runtime.d.ts",
 			"import": "./shims/runtime.js",
 			"default": "./shims/runtime.js"
+		},
+		"./runtime/client-mode": {
+			"types": "./shims/runtime/client-mode.d.ts",
+			"import": "./shims/runtime/client-mode.js",
+			"default": "./shims/runtime/client-mode.js"
 		},
 		"./runtime/controls": {
 			"types": "./shims/runtime/controls.d.ts",

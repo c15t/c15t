@@ -14,7 +14,7 @@ provider" below.
 | Scenario | Route | What it measures |
 | --- | --- | --- |
 | `baseline` | `/baseline` | Page floor: identical shell, no consent code. |
-| `client` | `/client` | `ConsentProvider` with `hosted({ url: '/api/bench-consent' })`, `ssr: false`, so the provider mounts and runs init in the browser. |
+| `client` | `/client` | `ConsentProvider` with `hosted({ backendURL: '/api/bench-consent' })`, `ssr: false`, so the provider mounts and runs init in the browser. |
 | `manifest-client` | `/manifest-client` | `custom(createManifestTransport(...))` reading the same-origin `/api/c15t/manifest` route, `ssr: false`. |
 | `ssr` | `/ssr` | Loader fetches `/api/bench-consent/init` server-side on every request and folds it in with `mergeInitIntoConsentState`; `ConsentRoot` without `routePrefix`. Direct-init semantics, matching the Next `ssr` arm. |
 | `ssr-stream` | `/ssr-stream` | The streamed setup `ConsentRoot` documents: the same direct-init loader, returned unawaited (`loader: () => ({ consent: getDirectInitConsentState() })`), so the router streams the state in after the shell. The server HTML has no banner; it shows once the state reaches the hydrated root. Start only. |

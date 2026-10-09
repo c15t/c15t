@@ -32,7 +32,10 @@ const resolveMode = function resolveMode(
 		const { kind } = options.mode;
 		return {
 			factory: options.mode,
-			name: kind === 'hosted' || kind === 'offline' ? kind : 'custom',
+			name:
+				kind === 'hosted' || kind === 'offline' || kind === 'manifest'
+					? kind
+					: 'custom',
 		};
 	}
 	const name = options.mode ?? defaultModeName(options);
@@ -42,15 +45,18 @@ const resolveMode = function resolveMode(
 				'@c15t/browser: hosted mode needs `backendURL` (or data-backend-url on the script tag).'
 			);
 		}
-		return { factory: hosted({ url: options.backendURL }), name };
+		return { factory: hosted({ backendURL: options.backendURL }), name };
 	}
 	if (name === 'manifest') {
 		return {
 			factory: manifest({
 				backendURL: options.backendURL,
-				inputs: options.overrides,
-				manifest: options.manifest,
+				inputs: {
+					country: options.overrides?.country,
+					region: options.overrides?.region,
+				},
 				manifestURL: options.manifestURL,
+				snapshot: options.manifest,
 			}),
 			name,
 		};
