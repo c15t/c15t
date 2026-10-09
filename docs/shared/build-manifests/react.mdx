@@ -41,7 +41,9 @@ or overrides to keep regional resolution on the snapshot.
 When the required country or region is missing, the transport calls backend
 `/init` and uses its resolved policy and translations. That response can use
 newer backend policy than the build snapshot. This is a full consent resolution,
-so these visitors still wait for a backend round trip.
+so these visitors still wait for a backend round trip. `ConsentProvider` sends
+that request while it first renders, before the page mounts, unless the visitor
+has a stored choice.
 
 The browser cannot guess the banner from the snapshot alone when locations
 differ. With a European opt-in rule and no banner elsewhere, a banner shown

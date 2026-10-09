@@ -2,9 +2,11 @@ import {
 	c15tProtocolHeaders,
 	createHostedTransport,
 	createUnreportedJourneys,
+	earlyInitModes,
 	mapInitOutputToInitResponse,
 } from '@c15t/core';
 import type {
+	EarlyInitMode,
 	InitContext,
 	InitResponse,
 	KernelOverrides,
@@ -272,6 +274,44 @@ const browserBaseTranslations = {
 } as unknown as BaseTranslations;
 
 /**
+ * The init the browser can answer from this manifest for these inputs, or
+ * `undefined` when it must ask `/init`. Synchronous, so a provider can ask
+ * during render whether the first `init()` will send a request.
+ */
+const localAnswer = function localAnswer(
+	resolved: ConsentManifest,
+	inputs: ResolveInitFromManifestInputs
+): InitOutput | undefined {
+	const resolveLocally = () =>
+		resolveInitFromManifest(resolved, inputs, {
+			baseTranslations: browserBaseTranslations,
+		});
+	if (
+		!hasLocationMatchers(resolved) ||
+		(inputs.country &&
+			(inputs.region ||
+				!resolved.policyPacks?.some(
+					(pack) => (pack.match.regions?.length ?? 0) > 0
+				)))
+	) {
+		return resolveLocally();
+	}
+	// The location is unknown. When every location gives the same banner,
+	// the bundle already holds the answer and the banner need not wait for
+	// a round trip. IAB needs the vendor list, and a visitor whose language
+	// the bundle lacks would get English, so both still ask `/init`.
+	const outcome = locationFreeOutcome(resolved);
+	if (!outcome || outcome.policy.model === 'iab') {
+		return undefined;
+	}
+	const local = resolveLocally();
+	return servesLanguage(local, inputs.language) ? local : undefined;
+};
+
+/** The options each `manifest()` early-init entry was registered with. */
+const earlySettings = new WeakMap<EarlyInitMode, ManifestModeOptions>();
+
+/**
  * Resolve `/init` in the browser from the backend's consent manifest.
  *
  * The manifest is the geo-independent half of the backend's decision:
@@ -310,9 +350,6 @@ export const manifest = function manifest(
 			'@c15t/browser: manifest() needs `backendURL` unless `manifestURL` ends in `/manifest`. Pass the consent API URL, or an empty string for this origin.'
 		);
 	}
-	// `''` is a real answer: a root-relative `manifestURL` such as
-	// `/manifest` or an explicit empty backend means this origin.
-	const hosted = createHostedTransport({ backendURL, fetch: options.fetch });
 	let cached: Promise<ConsentManifest> | undefined;
 
 	const fetchManifest =
@@ -330,9 +367,6 @@ export const manifest = function manifest(
 		};
 
 	const loadManifest = async function loadManifest(): Promise<ConsentManifest> {
-		if (options.manifest) {
-			return options.manifest;
-		}
 		cached ??= fetchManifest();
 		try {
 			return await cached;
@@ -343,50 +377,80 @@ export const manifest = function manifest(
 		}
 	};
 
-	// A local resolution makes no request, so nothing carries its journey;
-	// the saves that follow send none either.
-	const unreported = createUnreportedJourneys();
-	const transport: KernelTransport = {
-		identify: hosted.identify,
-		async init(ctx: InitContext): Promise<InitResponse> {
-			const resolved = await loadManifest();
+	/**
+	 * One transport per call: a provider builds a second one to carry an
+	 * `/init` it sends during its first render, so their request state and
+	 * unreported journeys must not be shared.
+	 */
+	const createTransport = function createTransport(): KernelTransport {
+		// `''` is a real answer: a root-relative `manifestURL` such as
+		// `/manifest` or an explicit empty backend means this origin.
+		const hosted = createHostedTransport({ backendURL, fetch: options.fetch });
+		// A local resolution makes no request, so nothing carries its
+		// journey; the saves that follow send none either.
+		const unreported = createUnreportedJourneys();
+		const initFrom = function initFrom(
+			resolved: ConsentManifest,
+			ctx: InitContext
+		): Promise<InitResponse> {
 			const { journey } = ctx;
-			const inputs = mergeInputs(options.inputs, ctx.overrides);
-			const resolveLocally = () =>
-				resolveInitFromManifest(resolved, inputs, {
-					baseTranslations: browserBaseTranslations,
-				});
-			let output: InitOutput | undefined;
-			if (
-				hasLocationMatchers(resolved) &&
-				(!inputs.country ||
-					(!inputs.region &&
-						resolved.policyPacks?.some(
-							(pack) => (pack.match.regions?.length ?? 0) > 0
-						)))
-			) {
-				// The location is unknown. When every location gives the same
-				// banner, the bundle already holds the answer and the banner need
-				// not wait for a round trip. IAB needs the vendor list, and a
-				// visitor whose language the bundle lacks would get English, so
-				// both still ask `/init`.
-				const outcome = locationFreeOutcome(resolved);
-				const local =
-					outcome && outcome.policy.model !== 'iab'
-						? resolveLocally()
-						: undefined;
-				if (!(local && servesLanguage(local, inputs.language))) {
-					unreported.reported(journey);
-					return hosted.init(ctx);
-				}
-				output = local;
+			const output = localAnswer(
+				resolved,
+				mergeInputs(options.inputs, ctx.overrides)
+			);
+			if (!output) {
+				unreported.reported(journey);
+				return hosted.init(ctx);
 			}
 			unreported.resolvedLocally(journey);
-			return mapInitOutputToInitResponse(output ?? resolveLocally(), {});
-		},
-		loadSubjectRecord: hosted.loadSubjectRecord,
-		save: (payload) => hosted.save(unreported.strip(payload)),
+			return Promise.resolve(mapInitOutputToInitResponse(output, {}));
+		};
+		return {
+			identify: hosted.identify,
+			init(ctx: InitContext): Promise<InitResponse> {
+				// An inlined manifest decides synchronously, so an `/init` it
+				// needs leaves within this call: a provider that calls it
+				// during render gets the request out at that moment.
+				if (options.manifest) {
+					try {
+						return initFrom(options.manifest, ctx);
+					} catch (error) {
+						return Promise.reject(error);
+					}
+				}
+				return loadManifest().then((resolved) => initFrom(resolved, ctx));
+			},
+			loadSubjectRecord: hosted.loadSubjectRecord,
+			save: (payload) => hosted.save(unreported.strip(payload)),
+		};
 	};
 
-	return Object.assign(() => transport, { kind: 'custom' as const });
+	const mode = Object.assign(createTransport, { kind: 'custom' as const });
+	const settings: ManifestModeOptions = {
+		...options,
+		inputs: options.inputs && { ...options.inputs },
+	};
+	const early: EarlyInitMode = {
+		// Only an inlined manifest can tell without a request.
+		requestsInit: (overrides) =>
+			settings.manifest !== undefined &&
+			localAnswer(
+				settings.manifest,
+				mergeInputs(settings.inputs, overrides)
+			) === undefined,
+		sameAs: (other) => {
+			const theirs = earlySettings.get(other);
+			return (
+				theirs !== undefined &&
+				theirs.manifest === settings.manifest &&
+				theirs.fetch === settings.fetch &&
+				theirs.manifestURL === settings.manifestURL &&
+				theirs.backendURL === settings.backendURL &&
+				JSON.stringify(theirs.inputs) === JSON.stringify(settings.inputs)
+			);
+		},
+	};
+	earlySettings.set(early, settings);
+	earlyInitModes.set(mode, early);
+	return mode;
 };

@@ -1,3 +1,5 @@
+import { earlyInitModes } from '@c15t/core';
+import type { ProviderTransportContext } from '@c15t/core';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
 	createConsentManifestPolicyPack,
@@ -338,6 +340,76 @@ describe('manifest() first paint without a known location', () => {
 		await client.ready();
 
 		expect(isInit(fetchSpy.mock.calls[0]?.[0])).toBe(true);
+	});
+});
+
+describe('manifest() early init for a provider', () => {
+	const context = {} as ProviderTransportContext;
+	const options = (
+		inlineManifest: ConsentManifest,
+		fetchSpy: typeof fetch
+	) => ({
+		backendURL: 'https://example.test',
+		fetch: fetchSpy,
+		manifest: inlineManifest,
+	});
+
+	it('says the first init asks the backend only when the bundle cannot answer', () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const geo = earlyInitModes.get(
+			manifest(options(bannerSomewhereManifest, fetchSpy))
+		);
+		const same = earlyInitModes.get(
+			manifest(options(sameBannerEverywhereManifest, fetchSpy))
+		);
+		const runtime = earlyInitModes.get(
+			manifest({ fetch: fetchSpy, manifestURL: 'https://x.test/manifest' })
+		);
+
+		expect(geo?.requestsInit({ language: 'en' })).toBe(true);
+		expect(
+			geo?.requestsInit({ country: 'US', language: 'en', region: 'NY' })
+		).toBe(false);
+		expect(same?.requestsInit({ language: 'en' })).toBe(false);
+		expect(same?.requestsInit({ language: 'de' })).toBe(true);
+		// A fetched manifest cannot tell before its request.
+		expect(runtime?.requestsInit({ language: 'en' })).toBe(false);
+		expect(fetchSpy).not.toHaveBeenCalled();
+	});
+
+	it('starts the /init request within the init() call', () => {
+		const fetchSpy = vi.fn<typeof fetch>(
+			() =>
+				new Promise<Response>(() => {
+					/* never settles */
+				})
+		);
+		const transport = manifest(options(bannerSomewhereManifest, fetchSpy))(
+			context
+		);
+		void transport.init?.({ overrides: { language: 'en' }, user: null });
+		expect(fetchSpy).toHaveBeenCalledOnce();
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toContain('/init');
+	});
+
+	it('builds a transport of its own for every call', () => {
+		const mode = manifest(options(bannerSomewhereManifest, vi.fn()));
+		expect(mode(context)).not.toBe(mode(context));
+	});
+
+	it('recognizes a mode built again with the same settings', () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const first = earlyInitModes.get(
+			manifest(options(bannerSomewhereManifest, fetchSpy))
+		);
+		const again = earlyInitModes.get(
+			manifest(options(bannerSomewhereManifest, fetchSpy))
+		);
+		const other = earlyInitModes.get(
+			manifest(options(sameBannerEverywhereManifest, fetchSpy))
+		);
+		expect(first && again && first.sameAs(again)).toBe(true);
+		expect(first && other && first.sameAs(other)).toBe(false);
 	});
 });
 

@@ -14,6 +14,7 @@ import type {
 	ConsentJourneyOption,
 	ConsentKernel,
 	ConsentPresentation,
+	ConsentSnapshot,
 	ExperimentState,
 	JourneyState,
 	HostedModeOptions,
@@ -39,6 +40,7 @@ import type { ConsentControlOptions } from '@c15t/core/runtime';
 import {
 	claimEarlyJourney,
 	createConsentProviderRuntime,
+	earlyInitModes,
 	hostedModes,
 	lazyRuntimeModule,
 	lazyStreamPrefetch,
@@ -49,6 +51,7 @@ import type {
 	ConsentProviderRuntimeOptions,
 	ConsentRuntime,
 	ConsentRuntimeModules,
+	EarlyInitMode,
 	ResolveStreamedInit,
 } from '@c15t/core/runtime/provider';
 import { applyThemeSlots } from '@c15t/ui/utils';
@@ -467,11 +470,19 @@ const treeIABModes = new WeakMap<
 	ProviderTransportFactory
 >();
 /**
- * An `/init` request a render sent, the `hosted()` options and the
- * serialized init context it was sent for, and the transport that sent it.
+ * The mode an early `/init` was sent for: the `hosted()` options, or a
+ * mode that registered in `earlyInitModes` (such as `manifest()` from
+ * `@c15t/browser`) and the global `fetch` its transport would use.
+ */
+type EarlySource =
+	| { readonly hosted: HostedModeOptions }
+	| { readonly mode: EarlyInitMode; readonly fetch: typeof globalThis.fetch };
+/**
+ * An `/init` request a render sent, the mode and the serialized init
+ * context it was sent for, and the transport that sent it.
  */
 interface EarlyInit {
-	readonly options: HostedModeOptions;
+	readonly source: EarlySource;
 	readonly key: string;
 	readonly transport: KernelTransport;
 }
@@ -500,6 +511,17 @@ const sameHosted = (a: HostedModeOptions, b: HostedModeOptions): boolean =>
 	a.fetch === b.fetch &&
 	a.initialData === b.initialData &&
 	JSON.stringify(a) === JSON.stringify(b);
+/** Whether two early requests were sent for the same backend, the same way. */
+const sameSource = (a: EarlySource, b: EarlySource): boolean => {
+	if ('hosted' in a) {
+		return 'hosted' in b && sameHosted(a.hosted, b.hosted);
+	}
+	return (
+		'mode' in b &&
+		a.fetch === b.fetch &&
+		(a.mode === b.mode || a.mode.sameAs(b.mode))
+	);
+};
 const withTreeIAB = function withTreeIAB(
 	mode: ProviderTransportFactory
 ): ProviderTransportFactory {
@@ -575,6 +597,50 @@ const earlyInitKey = function earlyInitKey(
 };
 
 /**
+ * Whether a client render sends the runtime's first `/init` now, and for
+ * which mode. `undefined` for a server render, a runtime that already has
+ * or is getting its policy another way, and a mode that may not be asked
+ * before mount.
+ */
+const earlySend = function earlySend(
+	options: ConsentProviderOptions,
+	snapshot: Pick<ConsentSnapshot, 'overrides' | 'policyPending'>,
+	clientRender: boolean
+): { source: EarlySource; storedChoice: boolean } | undefined {
+	if (
+		!(clientRender && snapshot.policyPending) ||
+		options.prefetch ||
+		options.experiment
+	) {
+		return undefined;
+	}
+	const hostedMode = hostedModes.get(options.mode);
+	if (hostedMode) {
+		return {
+			source: {
+				hosted: { ...hostedMode, fetch: hostedMode.fetch ?? globalThis.fetch },
+			},
+			storedChoice: hasStoredChoice(options),
+		};
+	}
+	const earlyMode = earlyInitModes.get(options.mode);
+	// A registered mode sends only when its first `init()` would ask the
+	// backend, and not for a returning visitor: their stored choice keeps
+	// the banner hidden, so nothing waits on it.
+	if (
+		!earlyMode ||
+		hasStoredChoice(options) ||
+		!earlyMode.requestsInit(snapshot.overrides)
+	) {
+		return undefined;
+	}
+	return {
+		source: { fetch: globalThis.fetch, mode: earlyMode },
+		storedChoice: false,
+	};
+};
+
+/**
  * A runtime the provider built during a render, with what it needs to tell
  * whether React kept that render.
  */
@@ -638,12 +704,16 @@ let entrySequence = 0;
  * picked after mount, travels with the request), or any mode `hosted()`
  * did not return itself: a custom transport's `init()` may expect a
  * mounted page, and a wrapper's transport may not be swapped for another.
+ * The exception is a mode registered in `earlyInitModes`, such as
+ * `manifest()` from `@c15t/browser`. It sends early only when it says its
+ * first `init()` would request the backend (its bundled manifest cannot
+ * answer for an unknown location) and the visitor has no stored choice.
  */
 const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 	initialOptions: ConsentProviderOptions,
 	clientRender: boolean
 ): OwnedRuntimeEntry {
-	const { mode, networkBlocker } = initialOptions;
+	const { networkBlocker } = initialOptions;
 	const runtime = createConsentProviderRuntime(
 		toRuntimeOptions(initialOptions),
 		reactRuntimeModules(initialOptions)
@@ -683,29 +753,21 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 		timer = setTimeout(pending.expire, UNCOMMITTED_HOLD_MS);
 		// `policyPending`: enabled, no `consentSource`, no policy yet.
 		const snapshot = runtime.kernel.getSnapshot();
-		const hostedMode = hostedModes.get(mode);
-		const hostedOptions = hostedMode && {
-			...hostedMode,
-			fetch: hostedMode.fetch ?? globalThis.fetch,
-		};
-		if (
-			clientRender &&
-			hostedOptions &&
-			snapshot.policyPending &&
-			!(initialOptions.prefetch || initialOptions.experiment)
-		) {
+		const sending = earlySend(initialOptions, snapshot, clientRender);
+		if (sending) {
+			const { source, storedChoice } = sending;
 			// The journey this page's early requests share; the runtime
 			// continues it on `start()`, so the save carries the same id.
 			const journey = claimEarlyJourney({
 				option: initialOptions.journey,
-				storedChoice: hasStoredChoice(initialOptions),
+				storedChoice,
 			});
 			const context = journey
 				? { journey, overrides: snapshot.overrides, user: snapshot.user }
 				: { overrides: snapshot.overrides, user: snapshot.user };
 			const key = earlyInitKey(context);
 			for (const other of sentEarly) {
-				if (other.key === key && sameHosted(other.options, hostedOptions)) {
+				if (other.key === key && sameSource(other.source, source)) {
 					early = other;
 				}
 			}
@@ -727,7 +789,7 @@ const createOwnedRuntimeEntry = function createOwnedRuntimeEntry(
 					used = true;
 					return reuse ? request : init(next);
 				};
-				sent = { key, options: hostedOptions, transport: carrier };
+				sent = { key, source, transport: carrier };
 				early = sent;
 				sentEarly.add(sent);
 			}
