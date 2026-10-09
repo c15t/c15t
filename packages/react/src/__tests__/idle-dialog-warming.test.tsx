@@ -115,9 +115,12 @@ test('loads the dialog in idle time for a mounted trigger after consent was save
 	await vi.waitFor(() => expect(button('consent-dialog-link')).not.toBeNull());
 	expect(button('consent-banner-customize-button')).toBeNull();
 	await vi.waitFor(() => expect(idleCallbacks).toHaveLength(1));
+	// The link can render under the pointer an earlier test left behind,
+	// which warms the dialog on intent. Count only the idle callback's call.
+	const warmedBefore = warmer.mock.calls.length;
 
 	runIdleCallbacks();
-	expect(warmer).toHaveBeenCalledOnce();
+	expect(warmer).toHaveBeenCalledTimes(warmedBefore + 1);
 });
 
 test('does not load the dialog after consent was saved when nothing can open it', async () => {
