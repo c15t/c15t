@@ -1,0 +1,11 @@
+{/* Generated from internals/doc-snippets/nuxt/app/gtag-scripts.ts (docs:nuxt-gtag-scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+
+```ts title="app/consent-scripts.ts"
+import { gtag } from '@c15t/integrations/google-tag';
+
+export const scripts = [
+	// Was gtag: { id: 'G-XXXXXXXXXX' } in nuxt.config.ts. Move a `gtag.config`
+	// object to the `config` option unchanged.
+	gtag({ category: 'measurement', id: 'G-XXXXXXXXXX' }),
+];
+```

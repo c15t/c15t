@@ -1,0 +1,36 @@
+---
+title: "Google load mode"
+description: "Shared explanation of the loadMode option on the gtag and googleTagManager helpers, for the framework migration sections."
+group: reference
+---
+
+{/* This file is NOT rendered directly. Sections are imported by docs/frameworks/<framework>/scripts.mdx. */}
+
+<section id="choose">
+  ### Choose when Google loads
+
+  The `gtag` and `googleTagManager` helpers take a `loadMode` option. It
+  decides whether the page contacts Google before the visitor chooses:
+
+  | `loadMode` | Before the visitor chooses | Use it when |
+  | --- | --- | --- |
+  | `'always'` (default) | c15t loads Google's script, sends Consent Mode `default` with the current permissions, then sends `update` as they change. Google receives requests with the optional consent types denied. | You want Consent Mode signals from visitors who have not chosen or who decline. |
+  | `'after-consent'` | c15t sends no request to Google. | Your site must make no request to Google before opt-in. |
+
+  Set it on each Google helper in your `scripts` array:
+
+  {/* example: fragment */}
+
+  ```ts
+  gtag({
+  	id: 'G-XXXXXXXXXX',
+  	category: 'measurement',
+  	loadMode: 'after-consent',
+  }),
+  googleTagManager({ id: 'GTM-XXXXXXX', loadMode: 'after-consent' }),
+  ```
+
+  The [Google Tag](/docs/integrations/google-tag) and
+  [Google Tag Manager](/docs/integrations/google-tag-manager) guides list what
+  each mode sends and how to check it in DevTools.
+</section>

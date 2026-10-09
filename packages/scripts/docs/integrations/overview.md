@@ -111,6 +111,13 @@ manager entry before adding its helper. c15t cannot gate a copy it did not
 load. Tag managers and data pipelines such as Segment can load further
 destinations, which need consent settings of their own.
 
+Framework packages are loaders too. To move their vendors to c15t, see
+[migrate from `@next/third-parties`](../frameworks/next/scripts.md#migrate-from-nextthird-parties)
+for Next.js, and
+[migrate from `@nuxt/scripts`](../frameworks/nuxt/scripts.md#migrate-from-nuxtscripts)
+or [migrate from `nuxt-gtag`](../frameworks/nuxt/scripts.md#migrate-from-nuxt-gtag)
+for Nuxt.
+
 When a visitor turns off a category they had allowed, c15t reloads the page so
 that code which already ran stops. Each vendor guide lists what its helper does
 on revocation and how to check it.
