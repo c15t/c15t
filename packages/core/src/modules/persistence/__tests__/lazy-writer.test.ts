@@ -413,7 +413,7 @@ describe('before the write code lands', () => {
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
 	});
 
-	test('once a banner is shown, the write code loads in idle time after the load event', async () => {
+	test('once a banner is shown, the write code loads in idle time well after the load event', async () => {
 		const { land, loader, loads } = heldBackLoader();
 		const kernel = createConsentKernel({
 			consentCategories: ['marketing'],
@@ -428,8 +428,9 @@ describe('before the write code lands', () => {
 		expect(loads()).toBe(0);
 
 		kernel.markLive();
-		// jsdom has no requestIdleCallback; the fallback delay stands in.
-		await vi.advanceTimersByTimeAsync(199);
+		// Three seconds after load, then idle time. jsdom has no
+		// requestIdleCallback; the fallback delay stands in.
+		await vi.advanceTimersByTimeAsync(3199);
 		expect(loads()).toBe(0);
 		await vi.advanceTimersByTimeAsync(1);
 		expect(loads()).toBe(1);
