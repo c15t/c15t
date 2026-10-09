@@ -6,7 +6,7 @@ only after the visitor allows measurement. The build bundles your project's
 policy, and the browser resolves each visitor from it.
 
 - `vite.config.ts` adds `consentManifest`, which downloads the policy and
-  writes `src/c15t-manifest.ts`.
+  serves it as `c15t/generated`.
 - `src/consent.tsx` mounts `ConsentProvider` with the bundled policy, the
   banner and the dialog.
 - `src/scripts.ts` registers PostHog.

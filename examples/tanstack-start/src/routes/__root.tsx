@@ -7,6 +7,9 @@ import {
 	Scripts,
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
+// The policy consentManifest() in vite.config.ts downloaded. The browser
+// bundle gets `snapshot: undefined`.
+import { snapshot } from 'c15t/generated';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -18,17 +21,15 @@ import {
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
 
-import { consentManifest } from '../c15t-manifest';
 import { scripts } from '../scripts';
 
 // The project the build read the manifest from, set in `.env`.
 const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
 
 // Declare the server function in your own module. Start's compiler splits
-// the server code, and the bundled manifest, out of the browser bundle at
-// this call site.
+// the server code out of the browser bundle at this call site.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler({ backendURL, manifest: consentManifest })
+	createConsentStateHandler({ backendURL, manifest: snapshot })
 );
 
 const RootComponent = () => {

@@ -7,8 +7,8 @@ visitor's choice applies from the first paint. A "Privacy settings" link in the
 footer reopens the preference dialog, and PostHog loads only after the visitor
 allows measurement.
 
-- `vite.config.ts` downloads the policy with `consentManifest` into
-  `src/lib/server/c15t-manifest.ts`, which Git ignores.
+- `vite.config.ts` downloads the policy with `consentManifest` and serves it
+  to server code as `c15t/generated`. The browser bundle never gets it.
 - `src/lib/server/c15t.ts` holds the consent options with that policy.
 - `src/routes/+layout.server.ts` resolves consent with `loadConsent`.
 - `src/routes/api/c15t/[...path]/+server.ts` resolves consent for the browser

@@ -8,8 +8,8 @@ export default defineConfig({
 	plugins: [
 		vue(),
 		c15tVue(),
-		// Downloads the policy from VITE_C15T_BACKEND_URL and writes
-		// src/c15t-manifest.ts.
+		// Downloads the policy from VITE_C15T_BACKEND_URL and serves it as
+		// `c15t/generated`.
 		consentManifest(),
 	],
 });

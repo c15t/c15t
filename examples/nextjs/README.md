@@ -11,8 +11,8 @@ after the visitor allows measurement.
   the server and `c15t.config.ts` all read it.
 - `c15t.config.ts` names the prefix the consent route is mounted under.
 - `next.config.ts` wraps the config in `withConsentManifest`, which writes the
-  policy to `c15t-manifest.ts` during `next build` and `next dev` and hands it
-  to the server helpers.
+  policy to `node_modules/.cache/c15t/` during `next build` and `next dev`
+  and hands it to the server helpers.
 - `app/api/c15t/[...c15t]/route.ts` serves the bundled policy at
   `/api/c15t/manifest` and resolves `/api/c15t/init` from it.
 - `components/consent.tsx` is the client wrapper: `ConsentRoot`, the banner,

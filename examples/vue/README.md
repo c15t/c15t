@@ -5,8 +5,8 @@ bundles your project's policy, and the browser resolves it without asking the
 backend, so the build runs on any static host.
 
 - `vite.config.ts` adds the c15t Vite plugin next to `@vitejs/plugin-vue`, and
-  `consentManifest`, which downloads the policy and writes
-  `src/c15t-manifest.ts`.
+  `consentManifest`, which downloads the policy and serves it as
+  `c15t/generated`.
 - `src/main.ts` installs `c15tVue` with the backend URL, the bundled policy
   and `scripts`.
 - `src/scripts.ts` loads PostHog once the visitor allows measurement.

@@ -6,7 +6,7 @@ import { defineConfig } from 'vite';
 export default defineConfig({
 	plugins: [
 		// Downloads the policy from VITE_C15T_BACKEND_URL when Vite starts and
-		// writes it to `src/c15t-manifest.ts`.
+		// serves it as `c15t/generated`.
 		consentManifest(),
 		svelte(),
 	],
