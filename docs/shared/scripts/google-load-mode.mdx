@@ -15,7 +15,14 @@ group: reference
   | `loadMode` | Before the visitor chooses | Use it when |
   | --- | --- | --- |
   | `'always'` (default) | c15t loads Google's script, sends Consent Mode `default` with the current permissions, then sends `update` as they change. Google receives requests with the optional consent types denied. | You want Consent Mode signals from visitors who have not chosen or who decline. |
-  | `'after-consent'` | c15t sends no request to Google. | Your site must make no request to Google before opt-in. |
+  | `'after-consent'` | c15t sends no request to Google. | Your site must make no request to Google before opt-in. You give up Consent Mode's cookieless pings and conversion modeling for visitors who haven't chosen or who decline. |
+
+  With `'after-consent'`, `gtag` waits for its `category`, and
+  `googleTagManager` waits for `measurement` or `marketing` because a container
+  usually holds both kinds of tag. Pass `category` to `googleTagManager` to
+  change that, for example `category: 'measurement'` for an analytics-only
+  container. Until the helper loads, `window.gtag` and `window.dataLayer` don't
+  exist, so event calls written as `window.gtag?.(...)` do nothing.
 
   Set it on each Google helper in your `scripts` array:
 
