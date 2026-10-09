@@ -16,7 +16,7 @@ import 'c15t/react/styles.css';
 
 const mode = hosted({
 	backendURL: 'https://your-project.inth.app',
-	...testBackend('url'),
+	...testBackend('backendURL'),
 });
 
 // `control` is the stock banner. `wall` blocks the page until the visitor

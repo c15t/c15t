@@ -22,7 +22,7 @@
 
 	const mode = hosted({
 		backendURL: 'https://your-project.inth.app',
-		...testBackend('url'),
+		...testBackend('backendURL'),
 	});
 	// `&arm=wall` sets the arm the way a flag provider would; without it
 	// c15t picks one.

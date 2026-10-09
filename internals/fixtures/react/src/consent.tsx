@@ -14,7 +14,7 @@ import 'c15t/react/styles.css';
 
 const mode = hosted({
 	backendURL: 'https://your-project.inth.app',
-	...testBackend('url'),
+	...testBackend('backendURL'),
 });
 
 export const Consent = ({ children }: { children: ReactNode }) => (

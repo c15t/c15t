@@ -17,7 +17,7 @@
 
 	const mode = hosted({
 		backendURL: 'https://your-project.inth.app',
-		...testBackend('url'),
+		...testBackend('backendURL'),
 	});
 </script>
 
