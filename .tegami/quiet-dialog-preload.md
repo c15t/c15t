@@ -1,23 +1,11 @@
 ---
 packages:
-  "@c15t/ui":
-    replay:
-      - exit-prerelease(npm:@c15t/ui)
-  "@c15t/react":
-    replay:
-      - exit-prerelease(npm:@c15t/react)
-  "@c15t/nextjs":
-    replay:
-      - exit-prerelease(npm:@c15t/nextjs)
-  "@c15t/tanstack-start":
-    replay:
-      - exit-prerelease(npm:@c15t/tanstack-start)
-  "@c15t/vue":
-    replay:
-      - exit-prerelease(npm:@c15t/vue)
-  c15t:
-    replay:
-      - exit-prerelease(npm:c15t)
+  '@c15t/ui': patch
+  '@c15t/react': patch
+  '@c15t/nextjs': patch
+  '@c15t/tanstack-start': patch
+  '@c15t/vue': patch
+  c15t: patch
 ---
 
 ### Load the preferences dialog after the page's images
