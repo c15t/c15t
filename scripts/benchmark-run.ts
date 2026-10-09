@@ -58,8 +58,9 @@ mkdirSync(report, { recursive: true });
 // Measuring all of base and then all of head let a runner that slowed down
 // or sped up mid-job fail the gate on a docs-only change. Alternating rounds
 // spread that drift over both arms, and their samples are pooled before the
-// comparison. Bundle sizes do not drift, so one pass is enough.
-const rounds = mode === 'bundle' ? 1 : 3;
+// comparison. Bundle and example payload sizes do not drift, so one pass
+// is enough.
+const rounds = mode === 'bundle' || mode === 'examples' ? 1 : 3;
 const iterations = iterationsPerRound(mode === 'quick' ? 15 : 30, rounds);
 const env = {
 	...process.env,
@@ -89,18 +90,37 @@ const measure = async function measure(
 		`Measuring ${arm} ${sha} (round ${round + 1} of ${rounds}) with the ${mode} suite at ${backendLatencyMs} ms backend latency.\n`
 	);
 	rmSync(join(cwd, '.benchmarks/head'), { force: true, recursive: true });
-	await runCommand(
-		[
-			'bun',
-			'turbo',
-			'run',
-			'bench:ci',
-			'--concurrency=1',
-			'--env-mode=loose',
-			...packages.map((name) => `--filter=${name}`),
-		],
-		{ cwd, env: { ...env, GITHUB_SHA: sha } }
-	);
+	if (mode === 'examples') {
+		// The examples themselves are product code at each revision, so the
+		// head's harness measures each checkout's own examples through
+		// `--root`. That also works on a base that predates the harness.
+		await runCommand(['bun', 'run', 'build:libs'], { cwd, env });
+		await runCommand(
+			[
+				'bunx',
+				'tsx',
+				'benchmarks/examples-payload/run.ts',
+				'--root',
+				cwd,
+				'--out',
+				join(cwd, '.benchmarks/head/examples-payload'),
+			],
+			{ cwd: root, env: { ...env, GITHUB_SHA: sha } }
+		);
+	} else {
+		await runCommand(
+			[
+				'bun',
+				'turbo',
+				'run',
+				'bench:ci',
+				'--concurrency=1',
+				'--env-mode=loose',
+				...packages.map((name) => `--filter=${name}`),
+			],
+			{ cwd, env: { ...env, GITHUB_SHA: sha } }
+		);
+	}
 	cpSync(join(cwd, '.benchmarks/head'), roundDirectory(round, arm), {
 		recursive: true,
 	});

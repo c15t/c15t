@@ -36,6 +36,8 @@ This directory contains the internal benchmark platform for `c15t`, `@c15t/react
   Adds a persisted repeat visitor over the SSR route plus `consoleErrorCount`, `hydrationWarningCount`, `promptTransitionCount`, and `promptShownCount` for every scenario, so matching server and client inputs must settle on the same prompt without a flash or a hydration warning.
 - `bundle-test-app/client-payload`
   Builds one Next.js consumer with no consent library, v2, and several v3 setups, installed from npm or packed tarballs, and attributes initial, dialog-open and first-accept JS/CSS to packages and modules through production source maps. Run by hand; see `benchmarks/reports/client-payload-2026-09-25/`.
+- `examples-payload`
+  Builds and starts every starter in `examples/` against a fixture backend (`/manifest`, `/init`, `/subjects`, `/c15t.js`), with all four `*_C15T_BACKEND_URL` variables pointed at it and `*.inth.app` routed to it. Records first-load JS, CSS and HTML bytes, the extra JS that opening the dialog and accepting load, emitted client JS, banner time, init/manifest/cross-origin requests, and the gzip bytes of first-load assets that carry a boundary marker (snapshot, manifest resolver, offline policy, non-English copy, IAB, devtools). `--root <checkout>` measures another worktree's own examples, so base and head never share example code: `bunx tsx benchmarks/examples-payload/run.ts --root ../c15t-base --out .benchmarks/base/examples-payload`. The `examples` profile runs it for both revisions.
 - `bundle-test-app` (`bench:entries`, `ordinary-react` entry)
   Builds a synthetic esbuild entry for the ordinary non-IAB React path and reports `iabInputBytes`, `devtoolsInputBytes`, and `allLocalesInputBytes` from the metafile so the import boundary is measured, not assumed.
 - `shared`
@@ -69,6 +71,7 @@ did it.
 BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts bundle
 BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts quick
 BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts full
+BENCHMARK_BASE_REF=origin/canary bun scripts/benchmark-run.ts examples
 ```
 
 The runner creates an isolated checkout at the exact base revision and installs

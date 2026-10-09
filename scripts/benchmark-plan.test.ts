@@ -29,9 +29,18 @@ describe('benchmark package selection', () => {
 		}
 	);
 
+	it('measures the examples payload as its own profile', () => {
+		expect(createBenchmarkPlan('examples')).toEqual({
+			expectedPackages: ['@c15t/examples-payload-bench'],
+			packages: ['@c15t/examples-payload-bench'],
+			suites: ['examples-payload'],
+		});
+	});
+
 	it.each([
 		['quick', 2],
 		['full', 8],
+		['examples', 1],
 	])('emits %s matrix jobs with unique artifact names', (mode, count) => {
 		const output = execFileSync(
 			'bun',

@@ -3,6 +3,7 @@ export * from './browser';
 export * from './budgets';
 export * from './css-layer-runtime';
 export * from './css-layer-types';
+export * from './examples-payload';
 export * from './expected-results';
 export * from './fixtures';
 export * from './policy-fixtures';
