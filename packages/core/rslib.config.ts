@@ -19,6 +19,7 @@ import { getRsdoctorPlugins } from '../shared/rslib-utils';
 const selfContainedEntries = {
 	'runtime/lazy-hosted': './src/runtime/lazy-hosted.ts',
 	'runtime/lazy-manifest-browser': './src/runtime/lazy-manifest-browser.ts',
+	'runtime/lazy-offline': './src/runtime/lazy-offline.ts',
 };
 
 // `tsconfig.json` maps these packages to their type declarations for the
