@@ -38,9 +38,8 @@ the option, so you can deploy during a backend outage without a code change:
 C15T_ON_BUILD_ERROR=runtime npm run build
 ```
 
-In Astro and Nuxt, `buildManifest: true` still works and now means
-`onBuildError: 'fail'`. It is deprecated. `buildManifest: false` is
-unchanged.
+To always fetch at runtime and skip the build-time fetch, use
+`manifest({ source: 'runtime' })`.
 
 The build reads the backend URL from the framework's public variable when
 you don't pass one, from the environment or a `.env` file:
@@ -57,8 +56,6 @@ snapshot: a relative backend URL, Next.js `output: 'export'`,
 `onBuildError: 'fail'`, a relative URL stops the build. With
 `onBuildError: 'runtime'`, a missing URL skips the fetch with a notice.
 
-When the snapshot is `undefined`, the browser falls back too:
-`manifest({ backendURL, manifest: undefined })` in `@c15t/browser` fetches
-`${backendURL}/manifest`, and the plain Vue plugin in client manifest mode
-does the same instead of requesting `/api/c15t/manifest` on the site's own
-origin.
+When the snapshot is `undefined`, a single-page app falls back too: the
+browser `manifest()` mode fetches `${backendURL}/manifest` instead of
+requesting `/api/c15t/manifest` on the site's own origin.

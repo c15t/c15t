@@ -51,6 +51,15 @@ such as `custom(transport)`; a `hosted()` or `offline()` transport from
 `c15t/react` still works but warns in development, because its code is then in
 the first-load bundle.
 
+`createConsentRoute()` serves `/manifest` and `/init` from one catch-all
+route, such as `app/api/c15t/[...c15t]/route.ts`. Other paths under the
+prefix return 404, or reach the backend with `proxy: true`. Set `routePrefix`
+in the config to send the browser's init there; without it the browser calls
+`${backendURL}/init`. The route and `resolveConsent()` read the snapshot
+`withConsentManifest()` generated, so apps no longer import
+`c15t-manifest.ts` or keep a `c15t.server.ts`. `backendURL` and
+`withConsentManifest()` default to `NEXT_PUBLIC_C15T_BACKEND_URL`.
+
 The Pages Router gets `withConsentProps()`, a `getServerSideProps` that adds a
 JSON-safe `consent` prop, and `ConsentPageProps` for `AppProps`:
 
@@ -73,8 +82,8 @@ alias):
   `createConsentRoute()`.
 - `createPagesApiHandlers()`: use `createPagesConsentRoute()` in a catch-all
   API route.
-- `resolveConsent(config)` and `createConsentRoute(config)`: pass nothing, or
-  `{ config }` to override `c15t.config.ts`.
+- `resolveConsent({ config })` and the route helpers' `config` option still
+  override `c15t.config.ts`; most apps pass nothing.
 - The `manifest` option of `resolveConsent()` and `createConsentRoute()`: use
   `snapshot`.
 - `ConsentManifestOptions` and the `c15t.server.ts` pattern: use

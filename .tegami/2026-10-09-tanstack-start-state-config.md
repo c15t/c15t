@@ -2,6 +2,7 @@
 packages:
   '@c15t/tanstack-start': minor
   '@c15t/core': minor
+  '@c15t/cli': patch
   c15t: minor
 ---
 
@@ -33,6 +34,11 @@ JavaScript holds the record transport only, and the code for init loads
 when the browser runs init. The TanStack Start quickstart's first load is
 about 500 B (gzip) smaller.
 
+The browser gets init from `${backendURL}/init` unless the state names a
+`routePrefix`, the same option, meaning and default (none) as Next.js. Before,
+`ConsentRoot` sent init to `/api/c15t/init` by default, so an app that didn't
+mount the consent route got a 404 on every page load.
+
 The consent route is `createConsentRoute()` and needs no options either:
 
 ```ts
@@ -58,6 +64,11 @@ Breaking for earlier v3 alphas:
   `resolveConsent` and `createConsentRoute`. `manifestURL` on the state
   handler moves to `manifest({ manifestURL })`.
 - `ConsentManifestOptions` and `resolveStrictestDefaultInit` are removed.
+- `ConsentRoot`'s `initRoute` prop and the `DEFAULT_INIT_ROUTE` export are
+  removed. Replace `initRoute="/api/c15t/init"` with
+  `createConsentStateHandler({ routePrefix: '/api/c15t' })`, and drop
+  `initRoute={false}`, which is now the default. The server helpers'
+  `routePrefix` has no `/api/c15t` default either.
 - A root whose state names no backend URL, and no `consentManifest()`,
   throws instead of falling back to offline mode. Pass `mode: offline()` to
   resolve without a backend.
