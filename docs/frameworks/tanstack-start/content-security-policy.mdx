@@ -57,10 +57,11 @@ export const cspMiddleware = createMiddleware().server(({ next }) => {
 });
 ```
 
-Add `cspMiddleware` to `requestMiddleware` in `src/start.ts`, before
-`consentRequestMiddleware()`. Replace `https://<your-backend-host>` with the
-origin of the backend URL from your Inth project or self-hosted backend, and
-add your vendors' hosts.
+Add `cspMiddleware` to `requestMiddleware` in `src/start.ts`, creating the file
+with `createStart` if your app has none. If the list also has
+`consentRequestMiddleware()`, put `cspMiddleware` first. Replace
+`https://<your-backend-host>` with the origin of the backend URL from your Inth
+project or self-hosted backend, and add your vendors' hosts.
 
 **2. Give the router the nonce.** `getRouter` runs on the server after the
 global request middleware, so it can read the nonce from the Start context. In
@@ -94,7 +95,6 @@ const nonce = useRouter().options.ssr?.nonce;
 <ConsentRoot
   state={consent}
   backendURL={backendURL}
-  initRoute={false}
   options={{ nonce }}
   scripts={scripts}
 >
@@ -133,8 +133,8 @@ Which consent requests the browser makes depends on your
 
 | Setup | Browser requests | Policy |
 | --- | --- | --- |
-| Quickstart, `initRoute={false}` | `/init` and `/subjects` on your backend URL | `connect-src` with the backend origin |
-| Default `initRoute` with the consent server route | `/api/c15t/init` on your origin, `/subjects` on your backend URL | `connect-src 'self'` plus the backend origin |
+| Quickstart | `/init` and `/subjects` on your backend URL | `connect-src` with the backend origin |
+| Consent server route with `initRoute="/api/c15t/init"` | `/api/c15t/init` on your origin, `/subjects` on your backend URL | `connect-src 'self'` plus the backend origin |
 | Consent server route with `proxy: true` and `backendURL="/api/c15t"` | Every consent request on your origin | `connect-src 'self'` |
 
 Under an IAB TCF policy the browser also loads the Global Vendor List. With the

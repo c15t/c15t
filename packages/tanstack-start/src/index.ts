@@ -38,12 +38,13 @@
  *   import { useConsent } from '@c15t/tanstack-start';
  *   const allowed = useConsent('marketing');
  *
- * `backendURL` is the c15t backend itself, not the app's `/api/c15t` route:
- * init goes to the same-origin route by default, saves go to
- * `${backendURL}/subjects`, which the route does not proxy unless you opt
- * in with `createConsentServerRoute({ backendURL, proxy: true })`, giving
- * the route the absolute backend URL; then `backendURL="/api/c15t"` on
- * `ConsentRoot` is the intended value.
+ * `backendURL` is the c15t backend itself: the browser gets init from
+ * `${backendURL}/init` and saves to `${backendURL}/subjects`. Apps that
+ * mount `createConsentServerRoute()` at `/api/c15t/$` can pass
+ * `initRoute="/api/c15t/init"` to resolve init on their own origin. With
+ * `createConsentServerRoute({ backendURL, proxy: true })`, which still
+ * takes the absolute backend URL, pass `backendURL="/api/c15t"` instead;
+ * init and saves then both go through the route.
  *
  * Server helpers return serializable data and avoid module-level runtime
  * caches, so concurrent requests never share a kernel.

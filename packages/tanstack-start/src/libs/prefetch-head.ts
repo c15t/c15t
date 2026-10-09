@@ -5,39 +5,10 @@ import {
 } from '@c15t/core';
 
 import type { ConsentPrefetchHead, ConsentPrefetchHeadOptions } from '../types';
-
-/** Same-origin init route `ConsentRoot` defaults to; mirrored from `root.tsx`. */
-const DEFAULT_INIT_ROUTE = '/api/c15t/init';
+import { resolveInitRoute } from './init-route';
 
 const DEFAULT_SCRIPT_ID = 'c15t-initial-data-prefetch';
 
-/**
- * Builds a route `head()` fragment that starts the `/init` prefetch before
- * hydration. This is the TanStack Start equivalent of the Next.js
- * `C15tPrefetch` script: the inline script issues the same-origin init
- * request as early as the browser parses `<head>`, and the client runtime
- * consumes the matching response during its first store initialization.
- *
- * Use it on prerendered or `ssr: false` routes where no loader runs on the
- * server, so the banner still resolves as early as possible. Point
- * `backendURL` at the same base the root's init route lives under
- * (`/api/c15t` for the default route); `ConsentRoot` looks the
- * response up by that base and hands it to the provider as its first init.
- *
- * @param options - Prefetch options plus an optional script element id.
- * @returns A fragment with a `scripts` array to spread into `head()`.
- * @example
- * ```tsx
- * import { consentPrefetchHead } from '@c15t/tanstack-start';
- *
- * export const Route = createRootRoute({
- *   head: () => ({
- *     meta: [{ title: 'My app' }],
- *     ...consentPrefetchHead({ backendURL: '/api/c15t' }),
- *   }),
- * });
- * ```
- */
 /**
  * Base URL the head prefetch script keyed its request on: the init route
  * without its trailing `/init`, or the backend itself when the root
@@ -47,10 +18,10 @@ const prefetchBaseFor = function prefetchBaseFor(
 	backendURL: string,
 	initRoute: string | false | undefined
 ): string | undefined {
-	if (initRoute === false) {
+	const route = resolveInitRoute(backendURL, initRoute);
+	if (!route) {
 		return backendURL;
 	}
-	const route = initRoute ?? DEFAULT_INIT_ROUTE;
 	// The prefetch script always requests `${base}/init`, so only a route of
 	// that shape can share a key with it; any other name gets no match and
 	// the provider issues its own init.
@@ -87,6 +58,35 @@ export const readPrefetchedInitialData =
 		});
 	};
 
+/**
+ * Builds a route `head()` fragment that starts the `/init` prefetch before
+ * hydration. This is the TanStack Start equivalent of the Next.js
+ * `C15tPrefetch` script: the inline script issues the init request as
+ * early as the browser parses `<head>`, and the client runtime consumes
+ * the matching response during its first store initialization.
+ *
+ * Use it on prerendered or `ssr: false` routes where no loader runs on the
+ * server, so the banner still resolves as early as possible. Point
+ * `backendURL` at the base the root's init request goes to: the root's
+ * `backendURL` when it calls the backend directly, or the init route
+ * without its trailing `/init` (`/api/c15t` for
+ * `initRoute="/api/c15t/init"`). `ConsentRoot` looks the response up by
+ * that base and hands it to the provider as its first init.
+ *
+ * @param options - Prefetch options plus an optional script element id.
+ * @returns A fragment with a `scripts` array to spread into `head()`.
+ * @example
+ * ```tsx
+ * import { consentPrefetchHead } from '@c15t/tanstack-start';
+ *
+ * export const Route = createRootRoute({
+ *   head: () => ({
+ *     meta: [{ title: 'My app' }],
+ *     ...consentPrefetchHead({ backendURL: 'https://consent.example.com' }),
+ *   }),
+ * });
+ * ```
+ */
 export const consentPrefetchHead = function consentPrefetchHead({
 	id = DEFAULT_SCRIPT_ID,
 	...options

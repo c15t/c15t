@@ -70,7 +70,12 @@ describe('TanStack Start boilerplate', () => {
 			mode: 'hosted',
 			scripts: [],
 		});
-		expect(template.files['Consent.tsx']).toContain('initRoute={false}');
+		// ConsentRoot calls the backend's /init unless initRoute opts in to
+		// the same-origin route.
+		expect(template.files['Consent.tsx']).toContain(
+			'backendURL={"https://consent.example.com"}'
+		);
+		expect(template.files['Consent.tsx']).not.toContain('initRoute');
 		expect(template.files['consent-server.ts']).toContain(
 			'createServerFn({ method:'
 		);

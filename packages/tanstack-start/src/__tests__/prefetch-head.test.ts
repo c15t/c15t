@@ -93,6 +93,26 @@ describe('readPrefetchedInitialData', () => {
 	});
 });
 
+describe('readPrefetchedInitialData: default init target', () => {
+	test('an absolute backendURL matches a head prefetch keyed on the backend', () => {
+		vi.stubGlobal('window', {
+			location: { hostname: 'app.example.com', origin: ORIGIN },
+		});
+		vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('{}')));
+
+		const primed = primePrefetchedInitialData({
+			backendURL: 'https://consent.example.com',
+		});
+		expect(
+			readPrefetchedInitialData({
+				backendURL: 'https://consent.example.com',
+				initRoute: undefined,
+				overrides: undefined,
+			})
+		).toBe(primed);
+	});
+});
+
 describe('readPrefetchedInitialData: route shape', () => {
 	test('never matches a head prefetch for an initRoute that does not end in /init', () => {
 		vi.stubGlobal('window', {

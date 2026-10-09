@@ -27,7 +27,7 @@ export function Consent(props: { state: ConsentRootProps['state']; children: Rea
 	return (
 		<ConsentRoot
 			state={props.state}
-			${hosted ? `backendURL={${JSON.stringify(options.backendURL)}}\n\t\t\tinitRoute={false}` : `options={{ mode: offline({ policyRules: ${DEFAULT_OFFLINE_RULES} }) }}`}
+			${hosted ? `backendURL={${JSON.stringify(options.backendURL)}}` : `options={{ mode: offline({ policyRules: ${DEFAULT_OFFLINE_RULES} }) }}`}
 			scripts={${generateScriptsArrayValue(options.scripts)}}
 		>
 			{props.children}
@@ -55,7 +55,7 @@ export { consentLoaderOptions };
 			"Keep consent state in loader data. Do not cache a consent runtime or a visitor's state at module scope. consentLoaderOptions keeps this root loader from re-running on client navigation. If your existing root loader must reload, move consent to a dedicated parent route instead of applying those options to unrelated data.",
 			...(hosted
 				? [
-						'This template sends browser initialization and saves directly to the supplied backend using initRoute={false}. Configure that backend to allow the application origin. It does not require an /api/c15t route.',
+						'This template sends browser initialization and saves directly to the supplied backend. Configure that backend to allow the application origin. It does not require an /api/c15t route.',
 					]
 				: []),
 			...(options.scripts.length

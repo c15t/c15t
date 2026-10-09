@@ -66,8 +66,8 @@ because a Server Component cannot pass script callbacks to it. See
 **TanStack Start**
 
 Import the configuration into your root route and pass it to the existing
-`ConsentRoot` as a top-level prop. Keep the loader, `backendURL` and
-`initRoute` from the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
+`ConsentRoot` as a top-level prop. Keep the loader and `backendURL` from
+the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
 
 ```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
@@ -75,7 +75,6 @@ import { scripts } from '../consent-scripts';
 <ConsentRoot
   state={consent}
   backendURL={backendURL}
-  initRoute={false}
   scripts={scripts}
 >
 ```

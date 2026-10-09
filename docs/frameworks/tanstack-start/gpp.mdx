@@ -19,12 +19,7 @@ Render `ConsentGPP` inside `ConsentRoot` in `src/routes/__root.tsx`:
 ```tsx title="src/routes/__root.tsx"
 import { ConsentGPP } from 'c15t/react/gpp';
 
-<ConsentRoot
-	state={consent}
-	backendURL={backendURL}
-	initRoute={false}
-	scripts={scripts}
->
+<ConsentRoot state={consent} backendURL={backendURL} scripts={scripts}>
 	<ConsentGPP />
 	<Outlet />
 </ConsentRoot>;

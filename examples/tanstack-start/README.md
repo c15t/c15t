@@ -7,12 +7,11 @@ only after the visitor allows measurement, and a "Privacy settings" link
 reopens the dialog.
 
 - `vite.config.ts` adds the `consentManifest` plugin, which downloads the
-  policy into `src/c15t-manifest.ts` when `vite dev` or `vite build` starts.
-- `src/consent-options.server.ts` pairs the backend URL with that manifest.
-- `src/start.ts` registers `consentRequestMiddleware()`, which reads the
-  location, language and Global Privacy Control headers on every request.
-- `src/routes/__root.tsx` resolves consent in a server function, mounts
-  `ConsentRoot` with the banner and dialog, and loads the stylesheet.
+  policy into `src/c15t-manifest.ts` when `vite dev` or `vite build` starts,
+  and passes the backend URL to the app as `VITE_C15T_BACKEND_URL`.
+- `src/routes/__root.tsx` resolves consent in a server function from that
+  manifest and the request's location, language and Global Privacy Control
+  headers, then mounts `ConsentRoot` with the banner and dialog.
 - `src/scripts.ts` registers PostHog.
 
 ## Run it

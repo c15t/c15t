@@ -169,7 +169,7 @@ export const TanstackManifestBenchmarkProvider = ({
 	backendURL = BENCH_BACKEND_URL,
 	children,
 	state,
-	initRoute,
+	initRoute = '/api/c15t/init',
 	scenario,
 }: {
 	backendURL?: string;

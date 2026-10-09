@@ -130,3 +130,74 @@ describe('TanStack Start manifest generation', () => {
 		).toContain('= undefined;');
 	});
 });
+
+describe('TanStack Start manifest backend URL', () => {
+	const manifestResponse = () =>
+		vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(
+				Response.json({
+					branding: 'c15t',
+					revision: 'tanstack-build',
+					schemaVersion: 2,
+				})
+			)
+		);
+
+	const tempRoot = async () => {
+		const root = await mkdtemp(join(tmpdir(), 'c15t-tanstack-manifest-'));
+		directories.push(root);
+		return root;
+	};
+
+	test('exposes an explicit backendURL to the app when the variable is unset', async () => {
+		const fetchSpy = manifestResponse();
+		const env: Record<string, unknown> = {};
+		await consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+		}).configResolved({ env, root: await tempRoot() });
+		expect(env.VITE_C15T_BACKEND_URL).toBe('https://consent.example.com');
+	});
+
+	test('keeps a variable the app already set', async () => {
+		const fetchSpy = manifestResponse();
+		const env: Record<string, unknown> = {
+			VITE_C15T_BACKEND_URL: '/api/c15t',
+		};
+		await consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+		}).configResolved({ env, root: await tempRoot() });
+		expect(String(fetchSpy.mock.calls[0]?.[0])).toBe(
+			'https://consent.example.com/manifest'
+		);
+		expect(env.VITE_C15T_BACKEND_URL).toBe('/api/c15t');
+	});
+
+	test('vite build fails without a backend URL', async () => {
+		await expect(
+			consentManifest().configResolved({
+				command: 'build',
+				env: {},
+				root: await tempRoot(),
+			})
+		).rejects.toThrow(/VITE_C15T_BACKEND_URL/u);
+	});
+
+	test('vite dev warns without a backend URL', async () => {
+		const root = await tempRoot();
+		const logger = { info: vi.fn(), warn: vi.fn() };
+		await consentManifest().configResolved({
+			command: 'serve',
+			env: {},
+			logger,
+			root,
+		});
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.stringContaining('VITE_C15T_BACKEND_URL')
+		);
+		expect(
+			await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8')
+		).toContain('= undefined;');
+	});
+});

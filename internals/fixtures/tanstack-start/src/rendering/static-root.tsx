@@ -31,7 +31,6 @@ const RootComponent = () => (
 				state={{}}
 				backendURL={backendURL}
 				{...testBackend('backendURL')}
-				initRoute={false}
 				scripts={scripts}
 			>
 				<Outlet />

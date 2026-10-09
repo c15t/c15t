@@ -32,9 +32,11 @@ and `x-c15t-region` at your edge from whatever location data it has.
 
 ## Read the headers once per request
 
-Register `consentRequestMiddleware` in `src/start.ts`, as the
-[quickstart](/docs/frameworks/tanstack-start/quickstart#read-location-headers-on-every-request)
-does:
+The server function and the consent route read these headers from the request
+themselves, so the
+[quickstart](/docs/frameworks/tanstack-start/quickstart) needs no middleware.
+Register `consentRequestMiddleware` in `src/start.ts` when your own server
+code needs the location, or to force one location for every request:
 
 <include src="../../shared/examples/tanstack-start/start.mdx" />
 
@@ -63,10 +65,10 @@ What happens next depends on your
 | `createConsentStateHandler` and `resolveConsent` | Resolve the visitor's policy in the Start server, from the bundled manifest or, with runtime fetching, a cached one. The manifest request to your backend carries no visitor location, only headers you name in `forwardHeaders` |
 | `/api/c15t/init` from `createConsentServerRoute` | Resolves the policy in the Start server from the same inputs, for the browser's init request |
 | `createConsentServerRoute({ proxy: true })` | Forwards the location headers, `accept-language`, `sec-gpc`, `user-agent`, `origin` and `referer` to your backend on proxied requests such as `POST /subjects` |
-| `ConsentRoot` with `initRoute={false}` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
+| `ConsentRoot` with an absolute `backendURL` and no `initRoute` | The browser calls your backend's `/init` directly, and the backend reads the location its own host adds |
 
 The server render in the quickstart always uses the Start server's headers,
-even when `initRoute={false}` sends the browser to your backend.
+even though the browser's init request goes to your backend.
 
 ## Forwarding headers are ignored by default
 
