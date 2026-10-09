@@ -13,7 +13,7 @@ and routes cached with `swr`, `isr` or `cache` rules work with the same setup;
 the browser resolves the visitor on those routes after hydration. For
 `nuxt generate` on a static host, or `ssr: false`, follow
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting)
-instead, without `buildManifest`.
+instead.
 [Choose your setup](/docs/concepts/choose-your-setup) compares every option.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
@@ -45,8 +45,9 @@ set `NUXT_PUBLIC_C15T_BACKEND_URL` when you build. The policy is fixed at
 build time: setting `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves
 consent saves, not the policy, so build again to switch projects.
 
-`buildManifest: true` fetches your project's public policy once, during
-`nuxt build` and when `nuxt dev` starts, and embeds it in the server bundle.
+With an absolute `backendURL`, the module fetches your project's public policy
+once, during `nuxt build` and when `nuxt dev` starts, and embeds it in the
+server bundle.
 It also adds two routes to your Nuxt server, `/api/c15t/manifest` and
 `/api/c15t/init`. The server resolves each visitor from the bundled policy
 and the request's location and language headers, so rendering a page never
@@ -56,7 +57,7 @@ backend on every request.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
-To apply policy edits without rebuilding, replace `buildManifest: true` with
+To apply policy edits without rebuilding, set `buildManifest: false` and
 `manifest: 'server'`. The routes then fetch and cache the policy at runtime.
 
 ## Mount the consent UI

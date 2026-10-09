@@ -629,24 +629,39 @@ export const c15t = function c15t(options: C15tAstroOptions): AstroIntegration {
 				config,
 				injectRoute,
 				injectScript,
+				logger,
 				updateConfig,
 			}) {
 				command = setupCommand;
+				const fetchesSnapshot = command === 'build' || command === 'dev';
 				if (
-					options.buildManifest &&
-					(command === 'build' || command === 'dev')
+					fetchesSnapshot &&
+					options.buildManifest === true &&
+					resolved.mode.type !== 'manifest'
 				) {
-					if (resolved.mode.type !== 'manifest') {
-						throw new Error(
-							'@c15t/astro: buildManifest requires manifest mode.'
-						);
-					}
-					if (!resolved.mode.manifest) {
-						const { loadBuildManifest } = await import('@c15t/core/build');
-						resolved.mode = {
-							...resolved.mode,
-							manifest: await loadBuildManifest(resolved.mode, '@c15t/astro'),
-						};
+					throw new Error('@c15t/astro: buildManifest requires manifest mode.');
+				}
+				// `hosted()` and `offline()` have no manifest to fetch, and an
+				// inline `manifest` is already the snapshot.
+				if (
+					fetchesSnapshot &&
+					options.buildManifest !== false &&
+					resolved.mode.type === 'manifest' &&
+					!resolved.mode.manifest
+				) {
+					const { loadBuildManifest, loadDefaultBuildManifest } =
+						await import('@c15t/core/build');
+					// Only an explicit `true` stops the build when the fetch fails.
+					const manifest =
+						options.buildManifest === true
+							? await loadBuildManifest(resolved.mode, '@c15t/astro')
+							: await loadDefaultBuildManifest(
+									resolved.mode,
+									'@c15t/astro',
+									(message) => logger.warn(message)
+								);
+					if (manifest) {
+						resolved.mode = { ...resolved.mode, manifest };
 					}
 				}
 				const resolveEntry = await createOwnEntryResolver();

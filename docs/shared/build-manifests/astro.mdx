@@ -1,6 +1,23 @@
 <include src="../build-time-manifest.mdx" />
 
-Set `buildManifest: true` on the `c15t()` integration, next to `manifest()`:
+`manifest()` mode bundles the manifest by default. The integration fetches
+it when `astro build` or `astro dev` starts, then embeds it in its generated
+server options. Middleware, init routes and manifest routes use that same
+snapshot automatically. The browser options omit the full manifest. No
+generated file or extra import is needed. `astro check` and `astro sync` do
+not fetch, so type checks work without the backend. `astro preview` serves the
+completed build and never fetches a new snapshot.
+
+The build fetches only from an absolute upstream `backendURL` or
+`manifestURL`, because it cannot fetch a route in the app it is still
+compiling. With a relative URL, `hosted()` or `offline()`, the integration
+skips the fetch. If the fetch fails, the integration logs a warning, and the
+server fetches and caches the policy at runtime. The config is read once at
+build time, so the built server keeps the backend URL and the snapshot it was
+built with.
+
+To stop the build when the snapshot can't be fetched, set
+`buildManifest: true`:
 
 {/* example: fragment */}
 
@@ -11,21 +28,10 @@ c15t({
 });
 ```
 
-The integration fetches the manifest when `astro build` or `astro dev` starts,
-then embeds it in its generated server options. Middleware, init routes and
-manifest routes use that same snapshot automatically. The browser options
-omit the full manifest. No generated file or extra import is needed.
-`astro check` and `astro sync` do not fetch, so type checks work without the
-backend. `astro preview` serves the completed build and never fetches a new
-snapshot.
-
-Use an absolute upstream `backendURL` or `manifestURL`; a build cannot fetch a
-route in the app it is still compiling. `buildManifest` with `hosted()` or
-`offline()` stops `astro build` and `astro dev`. The config is read once at
-build time, so the built server keeps the backend URL and the snapshot it was
-built with.
+`buildManifest: true` with `hosted()`, `offline()` or a relative URL stops
+`astro build` and `astro dev` too.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-For policy updates without a rebuild, omit `buildManifest` and keep
-`manifest()` to fetch and cache the policy at runtime.
+For policy updates without a rebuild, set `buildManifest: false` and keep
+`manifest()`. The server then fetches and caches the policy at runtime.

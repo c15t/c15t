@@ -12,6 +12,10 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
+			// The acceptance suite tests a backend outage during server
+			// rendering, so the server fetches the policy at runtime.
+			// `examples/astro` covers the bundled default.
+			buildManifest: false,
 			clientEntrypoint: fileURLToPath(
 				new URL('./src/consent-client.ts', import.meta.url)
 			),

@@ -19,6 +19,9 @@ export default defineNuxtConfig({
 	c15t: {
 		// The self-hosted backend, or the suite's mock backend.
 		backendURL: process.env.NUXT_PUBLIC_C15T_BACKEND_URL ?? '/api/self-host',
+		// Fetched at runtime, so the acceptance suite's backend outage reaches
+		// the server render.
+		buildManifest: false,
 		manifest: 'server',
 	},
 	compatibilityDate: '2026-10-05',

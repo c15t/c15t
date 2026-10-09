@@ -63,6 +63,83 @@ export const loadBuildManifest = (
 		label
 	);
 
+/**
+ * Longest a default build waits for the manifest, in milliseconds. A runner
+ * without network access then falls back to runtime fetching instead of
+ * holding the build.
+ */
+const DEFAULT_BUILD_MANIFEST_TIMEOUT_MS = 10_000;
+
+/**
+ * Whether a build can fetch the manifest: the upstream URL is absolute
+ * http(s). A relative URL points at the app being built.
+ * @param options - Manifest URL, or backend URL whose `/manifest` is read.
+ * @returns `true` when {@link loadBuildManifest} has a URL to fetch.
+ * @internal
+ */
+export const hasBuildManifestSource = (options: {
+	backendURL?: string;
+	manifestURL?: string;
+}): boolean => {
+	try {
+		resolveBuildManifestURL(options, '');
+		return true;
+	} catch {
+		return false;
+	}
+};
+
+/**
+ * Loads the snapshot a framework integration fetches by default. Unlike
+ * {@link loadBuildManifest}, it never stops the build: without an absolute
+ * upstream URL it skips the fetch, and when the fetch fails or times out it
+ * warns. Either way the caller falls back to fetching at runtime.
+ * @param options - Manifest URL, or backend URL whose `/manifest` is read.
+ * @param label - Framework name for messages.
+ * @param warn - Receives the failure, without the label.
+ * @returns The deployment's manifest, or `undefined` to fetch at runtime.
+ * @internal
+ */
+export const loadDefaultBuildManifest = async (
+	options: {
+		backendURL?: string;
+		manifestURL?: string;
+		fetch?: typeof globalThis.fetch;
+	},
+	label: string,
+	warn: (message: string) => void
+): Promise<ConsentManifest | undefined> => {
+	if (!hasBuildManifestSource(options)) {
+		return undefined;
+	}
+	const fetchImpl = options.fetch ?? globalThis.fetch?.bind(globalThis);
+	try {
+		return await loadBuildManifest(
+			{
+				...options,
+				fetch:
+					fetchImpl &&
+					((input, init) =>
+						fetchImpl(input, {
+							...init,
+							signal: AbortSignal.timeout(DEFAULT_BUILD_MANIFEST_TIMEOUT_MS),
+						})),
+			},
+			label
+		);
+	} catch (error) {
+		const prefix = `${label}: `;
+		let reason = error instanceof Error ? error.message : String(error);
+		if (reason.startsWith(prefix)) {
+			reason = reason.slice(prefix.length);
+		}
+		warn(
+			`could not fetch the consent manifest during the build (${reason}). The server fetches it at runtime instead. Set \`buildManifest: true\` to stop the build when this fetch fails.`
+		);
+		return undefined;
+	}
+};
+
 /** Options for generating a deployment's manifest before compilation. */
 export interface ManifestBuildOptions extends Omit<
 	StaticManifestModuleOptions,

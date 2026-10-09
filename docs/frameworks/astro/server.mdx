@@ -106,10 +106,10 @@ next visitor.
   Both keep visitor state out of the cached HTML.
 - The injected `/api/c15t/init` route answers with `Cache-Control: private,
   no-store`. Keep it out of shared caches too.
-- Without `buildManifest`, the injected `/api/c15t/manifest` route passes the
-  backend's `Cache-Control` and `ETag` through and answers `If-None-Match`
-  with `304`, so a CDN can cache it. With `buildManifest: true`, it returns
-  the build's snapshot with no cache headers.
+- Without a bundled manifest, the injected `/api/c15t/manifest` route passes
+  the backend's `Cache-Control` and `ETag` through and answers
+  `If-None-Match` with `304`, so a CDN can cache it. With one, it returns the
+  build's snapshot with no cache headers.
 
 ## The injected routes
 
@@ -118,7 +118,7 @@ In `manifest()` mode the integration adds two on-demand routes:
 | Route | Returns |
 | --- | --- |
 | `GET /api/c15t/init` | The policy for this request, resolved from the bundled or cached manifest. The browser calls it on prerendered pages and after a failed server resolution |
-| `GET /api/c15t/manifest` | Your project's public policy file: the build's snapshot with `buildManifest: true`, otherwise proxied from the backend with its cache headers |
+| `GET /api/c15t/manifest` | Your project's public policy file: the build's snapshot when the build bundled one, otherwise proxied from the backend with its cache headers |
 
 The routes are the consent route handler from `@c15t/core/server`, shared
 with the Next.js, TanStack Start, SvelteKit and Nuxt adapters. A vendor list that cannot be loaded
@@ -126,8 +126,8 @@ fails the init request rather than answering `gvl: null`, which the browser
 would read as "IAB is off". The manifest route passes upstream only a
 `language` query parameter that looks like a language tag.
 
-With `buildManifest: true`, the routes use the build's snapshot and never
-fetch the manifest. Without it, the server keeps the manifest in memory and
+With a bundled manifest, the routes use the build's snapshot and never fetch
+the manifest. Without one, the server keeps the manifest in memory and
 refreshes it in the background.
 On Cloudflare, c15t hands that refresh to the adapter's `waitUntil`, so the
 request context stays alive until it finishes. The browser saves consent to

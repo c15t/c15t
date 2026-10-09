@@ -4,10 +4,7 @@ import { defineNuxtConfig } from 'nuxt/config';
 
 // #region docs:vapor-nuxt-config title="nuxt.config.ts"
 export default defineNuxtConfig({
-	c15t: {
-		backendURL: 'https://your-project.inth.app',
-		buildManifest: true,
-	},
+	c15t: { backendURL: 'https://your-project.inth.app' },
 	modules: ['c15t/vue'],
 	// Vapor needs Vue 3.6. Opt components in with `<script setup vapor>`.
 	vue: { vapor: true },

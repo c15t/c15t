@@ -2,5 +2,7 @@ The snapshot is fixed at build time:
 
 - Rebuild after changing policies, translations or vendors. If your CI caches
   build output, force a fresh build.
-- The build must reach the backend. A failed fetch fails the build.
+- The build must reach the backend. A failed fetch stops Next.js, TanStack
+  Start, SvelteKit and Vite builds. By default, Astro and Nuxt log a warning
+  instead and fetch the policy at runtime.
 - Consent choices still go to the backend.
