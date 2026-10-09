@@ -1,4 +1,4 @@
-import type { Script } from '@c15t/core';
+import type { AllConsentNames, HasCondition, Script } from '@c15t/core';
 
 import { resolveManifest } from '../../resolve';
 import { runtimeTimestampValue, vendorManifestContract } from '../../types';
@@ -81,6 +81,29 @@ export const googleTagManagerManifest = {
 	},
 } as const satisfies VendorManifest;
 
+/**
+ * When the `googleTagManager` helper requests `gtm.js` from Google.
+ *
+ * - `always`: on every page, before a choice. Consent Mode signals tell
+ *   Google what the visitor allowed.
+ * - `after-consent`: only once the helper's `category` is allowed.
+ */
+export type GoogleTagManagerLoadMode = 'always' | 'after-consent';
+
+/**
+ * Category condition for a container that waits for consent.
+ *
+ * A container usually holds measurement tags, such as Google Analytics, and
+ * marketing tags, such as Google Ads. Loading it once either is allowed lets
+ * each tag run for a visitor who allowed only its purpose, while Consent Mode
+ * keeps Google tags from using the purpose that is still denied. A new object
+ * per call keeps one script's category from leaking into another.
+ */
+const afterConsentCategory =
+	function afterConsentCategory(): HasCondition<AllConsentNames> {
+		return { or: ['measurement', 'marketing'] };
+	};
+
 export interface GoogleTagManagerOptions {
 	/** Container queue name. Defaults to dataLayer. */
 	dataLayer?: string;
@@ -114,6 +137,44 @@ export interface GoogleTagManagerOptions {
 	 * ```
 	 */
 	consentMapping?: Record<string, string[]>;
+
+	/**
+	 * When c15t loads `gtm.js`.
+	 *
+	 * - `always`: load on every page, before the visitor chooses. The helper
+	 *   sends `gtag('consent', 'default', ...)` with the current permissions
+	 *   before the container starts, then `gtag('consent', 'update', ...)` and
+	 *   the `updateEventName` event on every change.
+	 * - `after-consent`: make no request to Google and create no `dataLayer`
+	 *   until `category` is allowed. The container then loads once, with a
+	 *   `consent` `default` command that reflects the current permissions sent
+	 *   before the `gtm.js` start event. Later changes send `update` and the
+	 *   `updateEventName` event. Google gets no cookieless pings from visitors who have not
+	 *   chosen or who refused, so Consent Mode cannot model their conversions.
+	 *
+	 * After a withdrawal c15t reloads the page by default. With
+	 * `reloadOnConsentRevoked: false`, the loaded container stays on the page
+	 * and receives an `update` that denies the withdrawn types.
+	 *
+	 * @default 'always'
+	 */
+	loadMode?: GoogleTagManagerLoadMode;
+
+	/**
+	 * Consent condition for the container script.
+	 *
+	 * With `loadMode: 'always'` it sets the permission that callbacks receive
+	 * and does not delay loading. With `loadMode: 'after-consent'` the container
+	 * loads once it holds. The default for that mode loads the container when
+	 * the visitor allows measurement or marketing, because a container usually
+	 * holds tags for both. Google tags inside it still follow the Consent Mode
+	 * signals for each type; other tags need consent checks in the container.
+	 * Use `'measurement'` for a container that holds only analytics tags.
+	 *
+	 * @default `'necessary'` with `loadMode: 'always'`, and
+	 * `{ or: ['measurement', 'marketing'] }` with `loadMode: 'after-consent'`
+	 */
+	category?: HasCondition<AllConsentNames>;
 }
 
 /**
@@ -121,16 +182,27 @@ export interface GoogleTagManagerOptions {
  * GTM can be used for managing the consent of other scripts via Google Tag Manager consent mode.
  * We recommend using c15t's script loader instead so your script logic is centralised.
  *
+ * By default the container loads before a choice and passes Google Consent
+ * Mode v2 signals. Set `loadMode: 'after-consent'` to keep every request to
+ * Google waiting until `category` is allowed.
+ *
  * @param options - The options for the Google Tag Manager script.
  * @returns The Google Tag Manager script.
  * @throws {Error} `googleTagManager: missing or invalid id` when `id` is
  *   empty or only whitespace.
+ *
+ * @example
+ * ```ts
+ * googleTagManager({ id: 'GTM-XXXXXXX', loadMode: 'after-consent' });
+ * ```
  */
 export const googleTagManager = function googleTagManager({
 	id,
 	dataLayer = 'dataLayer',
 	updateEventName,
 	consentMapping,
+	loadMode = 'always',
+	category,
 }: GoogleTagManagerOptions): Script {
 	let manifest: VendorManifest = withOptionalConsentMapping(
 		googleTagManagerManifest,
@@ -162,8 +234,20 @@ export const googleTagManager = function googleTagManager({
 		updateEventName: updateEventName ?? 'consent-update',
 	});
 
-	return {
+	const gtmScript: Script = {
 		...resolved,
 		attributes: { ...resolved.attributes, 'data-c15t-layer': dataLayer },
 	};
+
+	if (loadMode === 'after-consent') {
+		gtmScript.alwaysLoad = undefined;
+		gtmScript.category = category ?? afterConsentCategory();
+		// Removing gtm.js does not stop a running container. Keeping the element
+		// lets a later grant reuse it instead of starting a second container.
+		gtmScript.persistAfterConsentRevoked = true;
+	} else if (category !== undefined) {
+		gtmScript.category = category;
+	}
+
+	return gtmScript;
 };

@@ -75,6 +75,15 @@ export const gtagManifest = {
 	},
 } as const satisfies VendorManifest;
 
+/**
+ * When the `gtag` helper requests `gtag/js` from Google.
+ *
+ * - `always`: on every page, before a choice. Consent Mode signals tell
+ *   Google what the visitor allowed.
+ * - `after-consent`: only once the helper's `category` is allowed.
+ */
+export type GtagLoadMode = 'always' | 'after-consent';
+
 export interface GtagOptions {
 	/** Parameters forwarded to gtag config. */
 	config?: Record<string, unknown>;
@@ -86,6 +95,8 @@ export interface GtagOptions {
 
 	/**
 	 * The consent category to use for the gtag script. This is typically marketing (Ads & Floodlight) or measurement (Analytics)
+	 *
+	 * With `loadMode: 'after-consent'`, `gtag/js` waits for this category.
 	 * @example 'marketing'
 	 */
 	category: AllConsentNames;
@@ -108,6 +119,28 @@ export interface GtagOptions {
 	consentMapping?: Record<string, string[]>;
 
 	/**
+	 * When c15t loads `gtag/js`.
+	 *
+	 * - `always`: load on every page, before the visitor chooses. The helper
+	 *   sends `gtag('consent', 'default', ...)` with the current permissions
+	 *   before `config`, then `gtag('consent', 'update', ...)` on every change.
+	 *   `category` does not delay loading.
+	 * - `after-consent`: make no request to Google and create no `dataLayer`
+	 *   until `category` is allowed. The script then loads once, with a
+	 *   `consent` `default` command that reflects the current permissions sent
+	 *   before `config`, and `update` commands on later changes. Google gets no
+	 *   cookieless pings from visitors who have not chosen or who refused, so
+	 *   Consent Mode cannot model their conversions.
+	 *
+	 * After a withdrawal c15t reloads the page by default. With
+	 * `reloadOnConsentRevoked: false`, the loaded tag stays on the page and
+	 * receives an `update` that denies the withdrawn types.
+	 *
+	 * @default 'always'
+	 */
+	loadMode?: GtagLoadMode;
+
+	/**
 	 * Deprecated script-level overrides preserved for backwards compatibility.
 	 *
 	 * Prefer manifest-backed options instead of this generic override bag.
@@ -120,16 +153,30 @@ export interface GtagOptions {
  * Creates a Google Tag (gtag.js) script.
  * Allows you to send data website to linked Google products like Analytics, Ads & Floodlight.
  *
+ * By default the script loads before a choice and passes Google Consent Mode
+ * v2 signals. Set `loadMode: 'after-consent'` to keep every request to Google
+ * waiting until `category` is allowed.
+ *
  * @param options - The options for the gtag script.
- * @returns The Google Tag Manager script.
+ * @returns The Google Tag script.
  * @throws {Error} `gtag: missing or invalid id` when `id` is
  *   empty or only whitespace.
+ *
+ * @example
+ * ```ts
+ * gtag({
+ * 	id: 'G-XXXXXXXXXX',
+ * 	category: 'measurement',
+ * 	loadMode: 'after-consent',
+ * });
+ * ```
  */
 export const gtag = function gtag({
 	id,
 	config,
 	category,
 	consentMapping,
+	loadMode = 'always',
 	script,
 }: GtagOptions): Script {
 	const base =
@@ -150,6 +197,10 @@ export const gtag = function gtag({
 		config,
 		id: requireId('gtag', 'id', id),
 	});
+
+	if (loadMode === 'after-consent') {
+		resolved.alwaysLoad = undefined;
+	}
 
 	if (!script) {
 		return resolved;
