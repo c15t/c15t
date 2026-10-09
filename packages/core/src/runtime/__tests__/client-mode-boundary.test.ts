@@ -153,14 +153,19 @@ describe('clientMode() first-load JavaScript', () => {
 });
 
 describe('manifest-browser first-load JavaScript', () => {
-	test('bundles the resolver with English only; other languages are lazy', async () => {
+	test('loads the resolver, copy and IAB code on demand', async () => {
 		const { firstLoad, lazy } = await bundleWithLazy(`
 import { manifest } from './transports/manifest-browser';
 
 export const mode = manifest({ backendURL: '' });
 `);
 
-		expect(markersIn(firstLoad)).toEqual(['englishCopy', 'resolver']);
-		expect(markersIn(lazy)).toContain('germanCopy');
+		// The transport resolves locally only when it knows the location the
+		// policy needs, and loads the resolver with English copy then. Every
+		// other language is a chunk of its own.
+		expect(markersIn(firstLoad)).toEqual([]);
+		expect(markersIn(lazy)).toEqual(
+			expect.arrayContaining(['englishCopy', 'germanCopy', 'resolver'])
+		);
 	}, 60_000);
 });

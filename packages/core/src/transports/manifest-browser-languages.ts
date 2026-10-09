@@ -8,7 +8,7 @@
  */
 import type { Translations } from '@c15t/translations';
 
-import type { OtherLanguage } from './manifest-browser';
+import type { OtherLanguage } from './manifest-browser-resolve';
 
 type LanguageModule = Promise<{ translations: Translations }>;
 
