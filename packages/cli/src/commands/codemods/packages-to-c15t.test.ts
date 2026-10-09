@@ -206,6 +206,39 @@ import 'c15t/react/styles.css';
 `);
 	});
 
+	it('reads Tailwind CSS 3 from peer and optional dependencies', async () => {
+		const files = {
+			'src/consent.tsx': `import '@c15t/react/styles.css';
+`,
+		};
+		const peer = await createProject({
+			...files,
+			'package.json': JSON.stringify({
+				dependencies: { c15t: '^3.0.0' },
+				name: 'shared-ui',
+				peerDependencies: { tailwindcss: '^3.4.0' },
+			}),
+		});
+		const optional = await createProject({
+			...files,
+			'package.json': JSON.stringify({
+				dependencies: { c15t: '^3.0.0' },
+				name: 'shared-ui',
+				optionalDependencies: { tailwindcss: '^3.4.0' },
+			}),
+		});
+		await codemod({ dryRun: false, projectRoot: peer });
+		await codemod({ dryRun: false, projectRoot: optional });
+
+		const kept = `// ${TODO}
+import 'c15t/react/styles.css';
+`;
+		expect(await readFile(join(peer, 'src/consent.tsx'), 'utf-8')).toBe(kept);
+		expect(await readFile(join(optional, 'src/consent.tsx'), 'utf-8')).toBe(
+			kept
+		);
+	});
+
 	it('keeps scoped imports when the app installs @c15t/react v3 without c15t, but drops the stylesheet', async () => {
 		const source = `import { ConsentProvider } from '@c15t/react';
 `;

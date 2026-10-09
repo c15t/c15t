@@ -4,7 +4,12 @@ import { join } from 'node:path';
 import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
-import { majorOf, readPackageJson, tailwindMajor } from './manifest';
+import {
+	dependenciesOf,
+	majorOf,
+	readPackageJson,
+	tailwindMajor,
+} from './manifest';
 import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import { lineIndent, propertyKey, unwrapExpression } from './source-edits';
@@ -119,11 +124,9 @@ export const runPostcssTailwind3Codemod =
 			totalFiles: 0,
 			warnings: [],
 		};
-		const manifest = await readPackageJson(options.projectRoot);
-		const dependencies = {
-			...manifest?.devDependencies,
-			...manifest?.dependencies,
-		};
+		const dependencies = dependenciesOf(
+			await readPackageJson(options.projectRoot)
+		);
 		const plugin = pluginFor(dependencies);
 		const specifier = dependencies.tailwindcss;
 		if (!plugin || specifier === undefined) {

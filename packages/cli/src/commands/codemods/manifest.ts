@@ -5,6 +5,8 @@ import { join } from 'node:path';
 export interface PackageJson {
 	dependencies?: Record<string, string>;
 	devDependencies?: Record<string, string>;
+	peerDependencies?: Record<string, string>;
+	optionalDependencies?: Record<string, string>;
 }
 
 /** The app's `package.json`, or null when it is missing or not JSON. */
@@ -20,11 +22,21 @@ export const readPackageJson = async function readPackageJson(
 	}
 };
 
-/** Runtime and development dependencies in one map. */
+/**
+ * Every dependency group in one map. A shared package may declare Tailwind
+ * CSS or c15t only as a peer or optional dependency. Where a package appears
+ * in several groups, `dependencies` wins, then `devDependencies`, then
+ * `peerDependencies`.
+ */
 export const dependenciesOf = function dependenciesOf(
 	manifest: PackageJson | null
 ): Record<string, string> {
-	return { ...manifest?.devDependencies, ...manifest?.dependencies };
+	return {
+		...manifest?.optionalDependencies,
+		...manifest?.peerDependencies,
+		...manifest?.devDependencies,
+		...manifest?.dependencies,
+	};
 };
 
 /** The first number in a version specifier, or null for `latest` and the like. */
