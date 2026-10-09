@@ -1,21 +1,24 @@
 ---
 title: Google Consent Mode in c15t helpers
-description: Why the Google helpers load before consent, and how c15t categories map to Google consent types.
+description: When the Google helpers load, what they send before a choice, and how c15t categories map to Google consent types.
 group: integrations
 ---
 
-## Google loads before a choice
+## Google loads before a choice by default
 
-The `googleTagManager` and `gtag` helpers set `alwaysLoad: true`. Before the
-visitor chooses, the helper creates the `dataLayer` queue, sends
-`gtag('consent', 'default', ...)` with the current permissions and loads
-Google's script. After each permission change it sends
+With the default `loadMode: 'always'`, the `googleTagManager` and `gtag`
+helpers set `alwaysLoad: true`. Before the visitor chooses, the helper creates
+the `dataLayer` queue, sends `gtag('consent', 'default', ...)` with the current
+permissions and loads Google's script. After each permission change it sends
 `gtag('consent', 'update', ...)`. Google's tags then adjust what they store and
 send; see Google's
 [Consent Mode overview](https://developers.google.com/tag-platform/security/concepts/consent-mode).
 
-So the browser does contact Google before consent. If your policy requires no
-Google request until the visitor allows it, do not use these helpers unchanged.
+So the browser contacts Google before consent. If your policy requires no
+Google request until the visitor allows it, set `loadMode: 'after-consent'`.
+The helper then creates nothing and requests nothing until its category is
+allowed. When it loads, it still sends the `default` command first, with the
+permissions at that moment, and `update` commands after later changes.
 
 ## How categories map to Google consent types
 

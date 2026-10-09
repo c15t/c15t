@@ -37,13 +37,13 @@ kernel to control its DOM lifecycle. Embeds do not require `@c15t/integrations`.
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
 | [Cloudflare Zaraz](/docs/integrations/cloudflare-zaraz) | `cloudflareZaraz` | `necessary` | Always runs; syncs purposes, Zaraz runs the tools |
-| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary` | Always loads; signals Google consent |
+| [Google Tag Manager](/docs/integrations/google-tag-manager) | `googleTagManager` | `necessary`; `measurement` or `marketing` when gated | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 
 ## Analytics
 
 | Integration | Helper | Category | Loading behavior |
 | --- | --- | --- | --- |
-| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads; signals Google consent |
+| [Google Tag](/docs/integrations/google-tag) | `gtag` | `measurement` or `marketing` | Always loads and signals Google consent by default; `loadMode: 'after-consent'` waits for permission |
 | [Ahrefs Analytics](/docs/integrations/ahrefs-analytics) | `ahrefsAnalytics` | `measurement` | Waits for effective permission |
 | [Adobe Analytics](/docs/integrations/adobe-analytics) | `adobeAnalytics` | `measurement` | Waits for effective permission |
 | [Amplitude](/docs/integrations/amplitude) | `amplitude` | `measurement` | Waits for effective permission; opts the SDK out on revocation |

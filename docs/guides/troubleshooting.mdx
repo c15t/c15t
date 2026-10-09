@@ -73,10 +73,11 @@ its category.
 Also check the policy. Under an opt-out policy, optional categories are allowed
 before a choice, so the request is expected.
 
-Google Tag and Google Tag Manager are an exception by design. Their helpers
-load before a choice and send Google Consent Mode signals, so a request to
-Google before consent is expected. If you need no request at all before
-consent, read [Google Tag Manager](/docs/integrations/google-tag-manager) first.
+Google Tag and Google Tag Manager are an exception by design. By default
+their helpers load before a choice and send Google Consent Mode signals, so a
+request to Google before consent is expected. If you need no request at all
+before consent, set `loadMode: 'after-consent'`; see
+[Google Tag Manager](/docs/integrations/google-tag-manager#choose-when-the-container-loads).
 
 ## Why does the choice disappear on reload?
 
