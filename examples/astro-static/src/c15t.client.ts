@@ -1,6 +1,3 @@
-{/* Generated from examples/astro/src/c15t.client.ts (docs:client-entrypoint) by scripts/sync-example-docs.ts. Edit the source file. */}
-
-```ts title="src/c15t.client.ts"
 import { posthog } from '@c15t/integrations/posthog';
 import type { C15tClientOptionsExtension } from 'c15t/astro';
 
@@ -13,4 +10,3 @@ export default {
 		}),
 	],
 } satisfies C15tClientOptionsExtension;
-```

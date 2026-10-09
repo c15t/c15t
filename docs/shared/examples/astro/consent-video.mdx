@@ -2,14 +2,14 @@
 
 ```astro title="src/components/consent-video.astro"
 ---
-import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
+import { ConsentDialogLink } from 'c15t/astro/components';
 ---
 
 <consent-video>
 	<div data-video>
 		<p>Allow measurement to load this YouTube video.</p>
 	</div>
-	<ConsentDialogTrigger>Open privacy settings</ConsentDialogTrigger>
+	<ConsentDialogLink>Open privacy settings</ConsentDialogLink>
 </consent-video>
 
 <script>
