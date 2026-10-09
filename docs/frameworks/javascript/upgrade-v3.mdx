@@ -9,7 +9,7 @@ group: frameworks
 <Prompt title="Upgrade this JavaScript app to c15t v3" description="Paste into Claude Code, Codex, Cursor or another coding agent at the root of your app.">
   Upgrade this JavaScript app from the c15t v2 store to c15t v3.
 
-  Read /docs/frameworks/javascript/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
+  Read https://v3.c15t.com/docs/frameworks/javascript/upgrade-v3.md first and follow it in order. Do not guess v3 APIs from memory.
 
   1. Find every use of the `c15t` package and `@c15t/scripts`: `getOrCreateConsentRuntime`, `configureConsentManager`, `consentStore`, cookie helpers, script loader and iframe blocker functions.
   2. Decide which v3 entry fits. Use `@c15t/browser` if the app wants the stock banner, `createConsentRuntime` from `c15t/runtime` if it renders its own UI, and `createConsentKernel` only if it mounts each module itself. Tell me which one you picked and why.

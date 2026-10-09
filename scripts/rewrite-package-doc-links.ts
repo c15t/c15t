@@ -55,27 +55,52 @@ export const packageDocLink = (
 };
 
 /**
- * Root-relative docs paths in prompt text. A path starts after whitespace,
- * an opening bracket or a quote, and stops before closing punctuation, so
- * "/docs/upgrade-v3.md." keeps its sentence's full stop.
+ * Docs site the copyable prompts name. The prompt component copies its text
+ * verbatim, so prompts carry absolute URLs that still work once pasted into
+ * an agent outside the site.
  */
-const promptDocPath =
-	/(?<=^|[\s([<'"`])\/docs(?:[/?#][^\s)\]>'"`]*?)?(?=[.,;:!?]*(?:[\s)\]>'"`]|$))/gu;
+export const PROMPT_DOCS_ORIGIN = 'https://v3.c15t.com';
+
+const escapeRegExp = (text: string): string =>
+	text.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 
 /**
- * Rewrite root-relative docs paths inside a copyable prompt, such as
- * `/docs/frameworks/next/upgrade-v3.md`. The docs site resolves them against
- * its own origin. In a package bundle they become the bundled file, relative
- * to the page holding the prompt, because those docs match the installed
- * version. Pages outside the bundle point at the website.
+ * Docs paths in prompt text, either root-relative or on
+ * {@link PROMPT_DOCS_ORIGIN}. A path starts after whitespace, an opening
+ * bracket or a quote, and stops before closing punctuation, so
+ * "/docs/upgrade-v3.md." keeps its sentence's full stop. The Markdown
+ * converter wraps absolute URLs in angle brackets; the optional groups
+ * capture them so a bundled path loses them.
+ */
+const promptDocPath = new RegExp(
+	`(?<=^|[\\s([<'"\`])(<?)((?:${escapeRegExp(PROMPT_DOCS_ORIGIN)})?\\/docs(?:[/?#][^\\s)\\]>'"\`]*?)?)(?=[.,;:!?]*(?:[\\s)\\]>'"\`]|$))(>?)`,
+	'gu'
+);
+
+/**
+ * Rewrite docs paths inside a copyable prompt, such as
+ * `https://v3.c15t.com/docs/frameworks/next/upgrade-v3.md`. In a package
+ * bundle they become the bundled file, relative to the page holding the
+ * prompt, because those docs match the installed version. Absolute URLs to
+ * pages outside the bundle stay as written; root-relative paths point at the
+ * website.
  */
 export const packagePromptLinks = (
 	text: string,
 	fromFile: string,
 	bundledFiles: ReadonlySet<string>
 ): string =>
-	text.replace(promptDocPath, (path) =>
-		packageDocLink(path, fromFile, bundledFiles)
+	text.replace(
+		promptDocPath,
+		(match, open: string, url: string, close: string) => {
+			const absolute = url.startsWith(PROMPT_DOCS_ORIGIN);
+			const path = absolute ? url.slice(PROMPT_DOCS_ORIGIN.length) : url;
+			const link = packageDocLink(path, fromFile, bundledFiles);
+			if (absolute && !link.startsWith('.')) {
+				return match;
+			}
+			return open && close ? link : `${open}${link}${close}`;
+		}
 	);
 
 /**

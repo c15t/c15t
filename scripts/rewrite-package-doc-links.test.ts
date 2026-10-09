@@ -87,28 +87,52 @@ const promptFiles = new Set([
 	'frameworks/react/upgrade-v3.md',
 ]);
 
-test('prompt docs paths become bundled files relative to the page', () => {
+test('prompt docs URLs become bundled files relative to the page', () => {
 	expect(
 		packagePromptLinks(
-			'Read /docs/frameworks/next/upgrade-v3.md first and follow it in order.',
+			'Read https://v3.c15t.com/docs/frameworks/next/upgrade-v3.md first and follow it in order.',
 			'frameworks/next/upgrade-v3.md',
 			promptFiles
 		)
 	).toBe('Read ./upgrade-v3.md first and follow it in order.');
 	expect(
 		packagePromptLinks(
-			'Read the guide: /docs/frameworks/next/upgrade-v3.md, /docs/frameworks/react/upgrade-v3.md or /docs/frameworks/javascript/upgrade-v3.md. Then read /docs/upgrade-v3.md.',
+			'Read the guide: https://v3.c15t.com/docs/frameworks/next/upgrade-v3.md, https://v3.c15t.com/docs/frameworks/react/upgrade-v3.md or https://v3.c15t.com/docs/frameworks/javascript/upgrade-v3.md. Then read https://v3.c15t.com/docs/upgrade-v3.md.',
 			'upgrade-v3.md',
 			promptFiles
 		)
 	).toBe(
-		'Read the guide: ./frameworks/next/upgrade-v3.md, ./frameworks/react/upgrade-v3.md or https://c15t.com/docs/frameworks/javascript/upgrade-v3.md. Then read ./upgrade-v3.md.'
+		'Read the guide: ./frameworks/next/upgrade-v3.md, ./frameworks/react/upgrade-v3.md or https://v3.c15t.com/docs/frameworks/javascript/upgrade-v3.md. Then read ./upgrade-v3.md.'
+	);
+});
+
+test('bundled prompt paths drop autolink brackets', () => {
+	expect(
+		packagePromptLinks(
+			'Read <https://v3.c15t.com/docs/upgrade-v3.md> and <https://v3.c15t.com/docs/frameworks/javascript/upgrade-v3.md>.',
+			'frameworks/next/upgrade-v3.md',
+			promptFiles
+		)
+	).toBe(
+		'Read ../../upgrade-v3.md and <https://v3.c15t.com/docs/frameworks/javascript/upgrade-v3.md>.'
+	);
+});
+
+test('root-relative prompt paths resolve like links', () => {
+	expect(
+		packagePromptLinks(
+			'Read /docs/upgrade-v3.md or /docs/frameworks/javascript/upgrade-v3.md.',
+			'frameworks/next/upgrade-v3.md',
+			promptFiles
+		)
+	).toBe(
+		'Read ../../upgrade-v3.md or https://c15t.com/docs/frameworks/javascript/upgrade-v3.md.'
 	);
 });
 
 test('prompt text keeps paths that are not site docs', () => {
 	const text =
-		'Proxy /api/c15t, keep `src/docs/notes.md`, and read /docsets/x or https://inth.com/docs/a.md.';
+		'Proxy /api/c15t, keep `src/docs/notes.md`, and read /docsets/x, https://v3.c15t.com/docsets/x or https://inth.com/docs/a.md.';
 	expect(packagePromptLinks(text, 'upgrade-v3.md', promptFiles)).toBe(text);
 	expect(
 		packagePromptLinks(
