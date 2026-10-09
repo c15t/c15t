@@ -10,8 +10,8 @@ import {
 } from '@c15t/schema/types';
 import { flushPromises, mount } from '@vue/test-utils';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
-import type { Component } from 'vue';
-import { defineComponent, h } from 'vue';
+import type { Component, VNode } from 'vue';
+import { defineComponent, h, ref } from 'vue';
 
 import type { RuntimeConsentConfig } from '../runtime/kernel';
 
@@ -274,3 +274,152 @@ test('preloads the dialog of every app that can open one', async () => {
 		iab.unmount();
 	}
 });
+
+test('preloads again when a gate needs the other dialog', async () => {
+	// A later init can switch the policy between IAB and standard.
+	const { resetIdleDialogPrefetchForTests, useIdleDialogPrefetch } =
+		await import('../runtime/components/lazy-surfaces');
+	resetIdleDialogPrefetchForTests({ scheduleIdle });
+	const iab = ref(false);
+	const gate = mount(
+		defineComponent({
+			setup() {
+				useIdleDialogPrefetch(
+					() => true,
+					() => iab.value
+				);
+				return () => h('div');
+			},
+		}),
+		{ attachTo: document.body }
+	);
+	try {
+		await settle();
+		runIdle();
+		await settle();
+		expect(loads.manager).toBe(1);
+
+		iab.value = true;
+		await settle();
+		expect(loads.idle).toHaveLength(1);
+		runIdle();
+		await settle();
+		expect(loads.iabDialog).toBe(1);
+	} finally {
+		gate.unmount();
+	}
+});
+
+/** Mount `render` in a c15t app, as `mountRoot` mounts a root. */
+const mountInApp = async (
+	render: (components: {
+		ConsentDevTools: Component;
+		ConsentDialogTrigger: Component;
+		ConsentGate: Component;
+	}) => VNode | VNode[],
+	appConfig: Partial<RuntimeConsentConfig> = {}
+) => {
+	const { c15tVue } = await import('../index');
+	const { resetIdleDialogPrefetchForTests } =
+		await import('../runtime/components/lazy-surfaces');
+	resetIdleDialogPrefetchForTests({ scheduleIdle });
+	const components = {
+		ConsentDevTools: (await import('../devtools')).ConsentDevTools as Component,
+		ConsentDialogTrigger: (
+			await import('../runtime/components/panel-trigger.vue')
+		).default as Component,
+		ConsentGate: (await import('../runtime/components/consent-gate.vue'))
+			.default as Component,
+	};
+	return mount(defineComponent({ setup: () => () => render(components) }), {
+		attachTo: document.body,
+		global: { plugins: [[c15tVue, { ...config, ...appConfig }]] },
+	});
+};
+
+describe('ConsentGate', () => {
+	test('waits for /init before preloading the dialog', async () => {
+		// Until the policy resolves, the gate can't tell which dialog it opens.
+		let answer: () => void = () => undefined;
+		vi.stubGlobal(
+			'fetch',
+			vi.fn(
+				() =>
+					new Promise<Response>((resolve) => {
+						answer = () =>
+							resolve(
+								new Response(JSON.stringify(initFixture), {
+									headers: { 'content-type': 'application/json' },
+									status: 200,
+								})
+							);
+					})
+			)
+		);
+		const wrapper = await mountInApp(({ ConsentGate }) =>
+			h(ConsentGate, { category: 'measurement' })
+		);
+		try {
+			expect(await waitFor(() => byTestId('consent-gate-button'))).toBeTruthy();
+			await settle();
+			expect(loads.idle).toHaveLength(0);
+
+			answer();
+			expect(await waitFor(() => loads.idle.length > 0)).toBe(true);
+			runIdle();
+			await settle();
+			expect(loads.manager).toBe(1);
+		} finally {
+			wrapper.unmount();
+		}
+	});
+
+	test('skips the idle load for a placeholder without the button', async () => {
+		const wrapper = await mountInApp(({ ConsentGate }) =>
+			h(
+				ConsentGate,
+				{ category: 'measurement' },
+				{ placeholder: () => h('p', { 'data-testid': 'custom' }) }
+			)
+		);
+		try {
+			expect(await waitFor(() => byTestId('custom'))).toBeTruthy();
+			await settle();
+			expect(loads.idle).toHaveLength(0);
+		} finally {
+			wrapper.unmount();
+		}
+	});
+});
+
+test.each([
+	// jsdom has no PointerEvent; Vue's listener reads only the type.
+	['hovered', () => new MouseEvent('pointerenter')],
+	['focused', () => new FocusEvent('focus')],
+])(
+	'loads the manager when the toolbar preferences item is %s',
+	async (_, createEvent) => {
+		const wrapper = await mountInApp(
+			({ ConsentDevTools, ConsentDialogTrigger }) => [
+				h(ConsentDevTools),
+				h(ConsentDialogTrigger),
+			],
+			{ triggerShowWhen: 'always' }
+		);
+		const item = () =>
+			document.querySelector<HTMLButtonElement>(
+				'[data-c15t-trigger-toolbar] [data-c15t-trigger-action="preferences"]'
+			);
+		try {
+			expect(await waitFor(item)).toBeTruthy();
+			await settle();
+			expect(loads.manager).toBe(0);
+
+			item()?.dispatchEvent(createEvent());
+			await settle();
+			expect(loads.manager).toBe(1);
+		} finally {
+			wrapper.unmount();
+		}
+	}
+);

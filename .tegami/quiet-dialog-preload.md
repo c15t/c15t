@@ -30,9 +30,12 @@ In React, Next.js and TanStack Start this applies with the default
 - `ConsentRoot` prefetches the dialog only while the banner is shown, so a
   returning visitor no longer downloads it on every page.
   `ConsentDialogTrigger`, `ConsentPreferencesLink` and the `ConsentGate`
-  button keep it prefetched while they are mounted.
+  button keep it prefetched while they are mounted. A gate whose
+  `placeholder` slot replaces the button doesn't. The prefetch waits for
+  `/init`, so it loads the dialog the resolved policy opens, IAB or standard.
 - Hover, focus or touch on Customize, the notice's rights buttons, the IAB
-  banner's Customize and partners link, the trigger, the link and the gate
-  button loads the dialog at once.
+  banner's Customize and partners link, the trigger and its preferences item
+  in the `ConsentDevTools` toolbar, the link and the gate button loads the
+  dialog at once.
 - The prefetch is skipped with Save-Data on, on 2G connections and offline,
   as in React.

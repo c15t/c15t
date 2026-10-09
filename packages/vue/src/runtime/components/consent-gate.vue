@@ -4,7 +4,7 @@ import type { AllConsentNames } from '@c15t/core';
 import gateStyles from '@c15t/ui/styles/components/consent-gate';
 
 import '@c15t/ui/styles/components/consent-gate.css';
-import { computed, watch } from 'vue';
+import { computed, useTemplateRef, watch } from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -87,13 +87,12 @@ const actionLabel = computed(() => {
 });
 
 // The placeholder button opens the dialog, so while it shows the dialog
-// loads in idle time, and at once on hover, focus or touch.
+// loads in idle time, and at once on hover, focus or touch. A `placeholder`
+// slot replaces the button, and with it the idle load.
 const init = useConsentInit();
 const isIABPolicy = () => Boolean(init.value?.gvl || init.value?.gvlReference);
-useIdleDialogPrefetch(
-	() => !allowed.value && !policyBlocked.value,
-	isIABPolicy
-);
+const placeholderButton = useTemplateRef('placeholder-button');
+useIdleDialogPrefetch(() => placeholderButton.value !== null, isIABPolicy);
 const warmDialog = () => warmConsentDialog(isIABPolicy());
 
 const openPreferences = function openPreferences() {
@@ -129,6 +128,7 @@ const openPreferences = function openPreferences() {
 			</div>
 			<ConsentButton
 				v-if="!policyBlocked"
+				ref="placeholder-button"
 				v-bind="config.components?.['consent-gate']?.button"
 				variant="primary"
 				mode="stroke"

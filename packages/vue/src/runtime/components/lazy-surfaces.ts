@@ -21,7 +21,15 @@ import {
 	isIdlePreloadAllowed,
 	scheduleIdlePreload,
 } from '@c15t/ui/utils/idle-preload';
-import { defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
+import {
+	defineAsyncComponent,
+	inject,
+	onBeforeUnmount,
+	onMounted,
+	watch,
+} from 'vue';
+
+import { symbolSnapshot } from '../utils/symbols';
 
 export const LazyConsentManager = defineAsyncComponent(
 	() => import('./manager.vue')
@@ -159,10 +167,18 @@ const prefetchOpenDialog = () => {
 	}
 };
 
+const scheduleOpenDialogPrefetch = () => {
+	if (!cancelScheduled && isIdlePreloadAllowed()) {
+		cancelScheduled = scheduleIdle(prefetchOpenDialog);
+	}
+};
+
 /**
  * Hold an idle-prefetch gate open while `active` is true, from mount until
- * unmount. The IAB check runs when the prefetch starts, by which time
- * `/init` has usually answered.
+ * unmount. The gate opens once `/init` has resolved the policy, so the
+ * prefetch loads the dialog that policy opens. Should a later init switch
+ * between the IAB dialog and the consent manager, the prefetch runs again
+ * for the new one.
  *
  * @param active - Whether the dialog can be opened soon from this component.
  * @param iab - Whether the resolved policy is IAB (`init.gvl`).
@@ -172,6 +188,8 @@ export const useIdleDialogPrefetch = function useIdleDialogPrefetch(
 	active: () => boolean,
 	iab: () => boolean
 ): void {
+	// Outside a c15t app (tests of this module alone), no policy is pending.
+	const snapshot = inject(symbolSnapshot, undefined);
 	// Each mount gets its own gate, even when two share an `iab` check.
 	const gate = () => iab();
 	let held = false;
@@ -183,20 +201,20 @@ export const useIdleDialogPrefetch = function useIdleDialogPrefetch(
 	};
 	onMounted(() => {
 		watch(
-			active,
-			(isActive) => {
-				if (!isActive) {
+			// The dialog this gate needs, or `undefined` while it needs none.
+			() => (active() && !snapshot?.value.policyPending ? iab() : undefined),
+			(needed) => {
+				if (needed === undefined) {
 					release();
 					return;
 				}
-				if (held) {
-					return;
+				if (!held) {
+					held = true;
+					openGates.add(gate);
 				}
-				held = true;
-				openGates.add(gate);
-				if (!cancelScheduled && isIdlePreloadAllowed()) {
-					cancelScheduled = scheduleIdle(prefetchOpenDialog);
-				}
+				// Also on a change of dialog: an earlier prefetch loaded the
+				// other one.
+				scheduleOpenDialogPrefetch();
 			},
 			{ immediate: true }
 		);

@@ -325,6 +325,18 @@ const handleToolbarKeyDown = function handleToolbarKeyDown(
 	itemElements.get(next)?.focus();
 };
 
+// The preferences item opens the dialog, so hover, focus or touch warms it
+// as on the single button.
+const warmItem = function warmItem(kind: ToolbarItemKind) {
+	if (kind === 'preferences') {
+		warmDialog();
+	}
+};
+const focusItem = function focusItem(kind: ToolbarItemKind) {
+	activeItem.value = kind;
+	warmItem(kind);
+};
+
 const selectItem = function selectItem(kind: ToolbarItemKind) {
 	if (kind === 'devtools') {
 		devTools.instance.value?.toggle();
@@ -384,7 +396,8 @@ const selectItem = function selectItem(kind: ToolbarItemKind) {
 				:data-right="kind === 'preferences' ? preferencesRight : undefined"
 				:tabindex="kind === focusedItem ? 0 : -1"
 				@click="selectItem(kind)"
-				@focus="activeItem = kind"
+				@pointerenter="warmItem(kind)"
+				@focus="focusItem(kind)"
 			>
 				<span
 					v-bind="
