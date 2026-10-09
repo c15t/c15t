@@ -34,7 +34,6 @@ import type {
 	ManifestModeSourceOptions,
 } from '../modes';
 import type { InitContext, KernelOverrides, KernelTransport } from '../types';
-import { fetchCachedGvl } from './gvl-cache';
 import { createHostedTransport } from './hosted';
 import { mapInitOutputToInitResponse } from './init-output';
 import type { TransportInitResponse } from './init-output';
@@ -81,54 +80,22 @@ export type BrowserManifestModeFactory = ProviderTransportFactory &
 		readonly type: 'manifest';
 	};
 
-type OtherLanguage = Exclude<keyof BaseTranslations, 'en'>;
-type LanguageModule = Promise<{ translations: Translations }>;
+/** A language whose base copy loads on demand. */
+export type OtherLanguage = Exclude<keyof BaseTranslations, 'en'>;
 
 /**
- * One `import()` per language, each with a literal specifier, so a bundler
- * splits every language into a chunk of its own. The record type makes a
- * language added to `@c15t/translations` a type error here until it is
- * listed.
+ * Every language the resolver may pick besides English. Their loaders live
+ * in `./manifest-browser-languages`, loaded on first use, so first-load
+ * JavaScript names one chunk rather than one per language.
  */
-const languageModules: Record<OtherLanguage, () => LanguageModule> = {
-	bg: () => import('@c15t/translations/bg'),
-	cs: () => import('@c15t/translations/cs'),
-	cy: () => import('@c15t/translations/cy'),
-	da: () => import('@c15t/translations/da'),
-	de: () => import('@c15t/translations/de'),
-	el: () => import('@c15t/translations/el'),
-	es: () => import('@c15t/translations/es'),
-	et: () => import('@c15t/translations/et'),
-	fi: () => import('@c15t/translations/fi'),
-	fr: () => import('@c15t/translations/fr'),
-	ga: () => import('@c15t/translations/ga'),
-	gu: () => import('@c15t/translations/gu'),
-	he: () => import('@c15t/translations/he'),
-	hi: () => import('@c15t/translations/hi'),
-	hr: () => import('@c15t/translations/hr'),
-	hu: () => import('@c15t/translations/hu'),
-	id: () => import('@c15t/translations/id'),
-	is: () => import('@c15t/translations/is'),
-	it: () => import('@c15t/translations/it'),
-	lb: () => import('@c15t/translations/lb'),
-	lt: () => import('@c15t/translations/lt'),
-	lv: () => import('@c15t/translations/lv'),
-	mt: () => import('@c15t/translations/mt'),
-	nb: () => import('@c15t/translations/nb'),
-	nl: () => import('@c15t/translations/nl'),
-	nn: () => import('@c15t/translations/nn'),
-	pl: () => import('@c15t/translations/pl'),
-	pt: () => import('@c15t/translations/pt'),
-	rm: () => import('@c15t/translations/rm'),
-	ro: () => import('@c15t/translations/ro'),
-	sk: () => import('@c15t/translations/sk'),
-	sl: () => import('@c15t/translations/sl'),
-	sv: () => import('@c15t/translations/sv'),
-	zh: () => import('@c15t/translations/zh'),
-};
+const otherLanguages = new Set<string>(
+	'bg cs cy da de el es et fi fr ga gu he hi hr hu id is it lb lt lv mt nb nl nn pl pt rm ro sk sl sv zh'.split(
+		' '
+	)
+);
 
 const isOtherLanguage = (language: string): language is OtherLanguage =>
-	Object.hasOwn(languageModules, language);
+	otherLanguages.has(language);
 
 /** Base copy loaded so far, shared by every transport on the page. */
 const loadedLanguages = new Map<string, Translations>([['en', enTranslations]]);
@@ -145,7 +112,9 @@ const loadLanguage = function loadLanguage(
 	if (!loading) {
 		loading = (async () => {
 			try {
-				const { translations } = await languageModules[language]();
+				const { loadLanguageCopy } =
+					await import('./manifest-browser-languages');
+				const translations = await loadLanguageCopy(language);
 				loadedLanguages.set(language, translations);
 				return translations;
 			} catch {
@@ -169,7 +138,7 @@ const selectableBaseTranslations = function selectableBaseTranslations(
 ): BaseTranslations {
 	const base: Record<string, Translations> = {};
 	if (withPlaceholders) {
-		for (const language of Object.keys(languageModules)) {
+		for (const language of otherLanguages) {
 			base[language] = enTranslations;
 		}
 	}
@@ -476,6 +445,8 @@ export const createBrowserManifestTransport =
 					output.policyResolution?.status === 'matched' &&
 					output.policyResolution.policy.model === 'iab'
 				) {
+					// IAB is opt-in, so its vendor list cache loads on demand.
+					const { fetchCachedGvl } = await import('./gvl-cache');
 					output.gvl = await fetchCachedGvl({
 						fetch: getFetch(),
 						headers: c15tProtocolHeaders,
