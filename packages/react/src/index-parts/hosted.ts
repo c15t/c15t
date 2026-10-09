@@ -4,4 +4,4 @@
  * (esbuild) does not treat every module the index names as part of an app
  * that imports one hook: only the groups it uses are live.
  */
-export { createConsentKernel, custom } from '@c15t/core';
+export { hosted } from '@c15t/core';

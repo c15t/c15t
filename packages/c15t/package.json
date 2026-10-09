@@ -215,6 +215,11 @@
 			"import": "./shims/react.js",
 			"default": "./shims/react.js"
 		},
+		"./react/modes": {
+			"types": "./shims/react/modes.d.ts",
+			"import": "./shims/react/modes.js",
+			"default": "./shims/react/modes.js"
+		},
 		"./react/provider": {
 			"types": "./shims/react/provider.d.ts",
 			"import": "./shims/react/provider.js",
