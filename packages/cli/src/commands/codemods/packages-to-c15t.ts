@@ -16,6 +16,7 @@ import {
 	addTodo,
 	applyEdits,
 	elementRemovals,
+	propertyKey,
 	TODO_MARKER,
 	UNCHANGED,
 } from './source-edits';
@@ -183,6 +184,24 @@ const keepsStylesheet = function keepsStylesheet(
 	);
 };
 
+/** Whether an object literal is the value of a `plugins` property. */
+const isPluginsObject = function isPluginsObject(
+	object: TsMorphTypes.Node | undefined
+): boolean {
+	if (!Node.isObjectLiteralExpression(object)) {
+		return false;
+	}
+	let holder = object.getParent();
+	while (
+		Node.isParenthesizedExpression(holder) ||
+		Node.isAsExpression(holder) ||
+		Node.isSatisfiesExpression(holder)
+	) {
+		holder = holder.getParent();
+	}
+	return Node.isPropertyAssignment(holder) && propertyKey(holder) === 'plugins';
+};
+
 /** Whether a literal names the scoped PostCSS plugin as an object-form `plugins` key. */
 const isPostcssPluginKey = function isPostcssPluginKey(
 	literal: TsMorphTypes.StringLiteral,
@@ -191,7 +210,8 @@ const isPostcssPluginKey = function isPostcssPluginKey(
 	return (
 		POSTCSS_PLUGIN_SPECIFIER.test(literal.getLiteralValue()) &&
 		Node.isPropertyAssignment(parent) &&
-		parent.getNameNode() === literal
+		parent.getNameNode() === literal &&
+		isPluginsObject(parent.getParent())
 	);
 };
 

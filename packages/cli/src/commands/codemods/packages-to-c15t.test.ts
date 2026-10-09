@@ -598,6 +598,49 @@ export function apply(theme) {}
 		]);
 	});
 
+	it('rewrites PostCSS plugin keys only inside a plugins object', async () => {
+		const compatibility = `export const compatibility = {
+	'@c15t/react/postcss-tailwind3': false,
+};
+`;
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.17' },
+			{
+				'postcss.config.cjs': `module.exports = {
+	plugins: { '@c15t/nextjs/postcss-tailwind3': {} },
+};
+`,
+				'postcss.config.ts': `import { defineConfig } from 'postcss-load-config';
+
+export default defineConfig({
+	plugins: ({
+		'@c15t/react/postcss-tailwind3': {},
+	} satisfies Record<string, object>),
+	options: { '@c15t/react/postcss-tailwind3': {} },
+});
+`,
+				'src/compatibility.ts': compatibility,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(await read('src/compatibility.ts')).toBe(compatibility);
+		expect(await read('postcss.config.ts'))
+			.toBe(`import { defineConfig } from 'postcss-load-config';
+
+export default defineConfig({
+	plugins: ({
+		'c15t/postcss-tailwind3': {},
+	} satisfies Record<string, object>),
+	options: { '@c15t/react/postcss-tailwind3': {} },
+});
+`);
+		expect(await read('postcss.config.cjs')).toBe(`module.exports = {
+	plugins: { 'c15t/postcss-tailwind3': {} },
+};
+`);
+	});
+
 	it('adds one ESM TODO to a required PostCSS plugin across codemod runs', async () => {
 		const config = `module.exports = {
 	plugins: [
