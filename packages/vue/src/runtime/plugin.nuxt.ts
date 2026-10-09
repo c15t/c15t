@@ -74,9 +74,13 @@ const withClientData = function withClientData(
 	headers: Record<string, string>
 ): ConsentMode {
 	if (mode.type === 'manifest' && mode.resolve === 'browser') {
+		// As in a plain Vue app, a policy that depends on location resolves
+		// as for an unknown one unless `inputs` or `geoURL` give it a place:
+		// a page that resolves in the browser asks the backend nothing.
+		const browser = { ...mode, initFallback: false };
 		return clientManifestSnapshot && !mode.snapshot
-			? { ...mode, snapshot: clientManifestSnapshot, source: undefined }
-			: mode;
+			? { ...browser, snapshot: clientManifestSnapshot, source: undefined }
+			: browser;
 	}
 	if (mode.type === 'hosted' && Object.keys(headers).length > 0) {
 		return { ...mode, headers: { ...headers, ...mode.headers } };

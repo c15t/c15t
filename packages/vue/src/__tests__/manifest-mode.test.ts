@@ -151,6 +151,28 @@ describe('plain Vue modes', () => {
 		}
 	});
 
+	test('manifest() without a location resolves the unknown-location policy, asking the backend nothing', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>();
+		const context = createVueConsentKernelContext({
+			config: {},
+			mode: manifest({
+				backendURL: 'https://consent.example.com',
+				fetch,
+				snapshot: createManifestFixture(),
+			}),
+		});
+		try {
+			await context.kernel.commands.init();
+			expect(context.snapshot.value.resolution).toMatchObject({
+				matchedBy: 'fallback',
+				policy: { id: 'eu-opt-in' },
+			});
+			expect(fetch).not.toHaveBeenCalled();
+		} finally {
+			context.dispose();
+		}
+	});
+
 	test('manifest() reads the manifest from the backend without a build snapshot', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>().mockResolvedValue(
 			new Response(JSON.stringify(createManifestFixture()), {
