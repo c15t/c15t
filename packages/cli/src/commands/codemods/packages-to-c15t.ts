@@ -93,6 +93,8 @@ const STYLESHEET_SPECIFIER =
 const CSS_IMPORT =
 	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*);?\s*$/u;
 
+const KEPT_SUMMARY = ', kept with a TODO';
+
 const STYLES_TODO =
 	'c15t components add their own styles. Keep this import only with Tailwind CSS 3 or a named cascade layer, and set styles: false in the provider options.';
 
@@ -102,7 +104,10 @@ interface ImportPlan {
 	umbrella: boolean;
 	/** The app runs on Next.js, so `@c15t/react` maps to `c15t/next`. */
 	next: boolean;
-	/** The app uses Tailwind CSS 3, which needs the stylesheet import. */
+	/**
+	 * The app may use Tailwind CSS 3, which needs the stylesheet import: it
+	 * declares Tailwind CSS 3, or a version the codemod can't resolve.
+	 */
 	tailwind3: boolean;
 }
 
@@ -264,7 +269,7 @@ const transformWith = (
 					edits.push(rewriteLiteral(literal, kept));
 				}
 				if (todo || kept !== specifier) {
-					summaries.add(`${specifier} -> ${kept}, kept with a TODO`);
+					summaries.add(`${specifier} -> ${kept}${KEPT_SUMMARY}`);
 					operations += 1;
 				}
 				continue;
@@ -325,7 +330,7 @@ const transformStylesheet = function transformStylesheet(
 		}
 		lines.push(line.replace(specifier, kept));
 		if (todo || kept !== specifier) {
-			summaries.add(`${specifier} -> ${kept}, kept with a TODO`);
+			summaries.add(`${specifier} -> ${kept}${KEPT_SUMMARY}`);
 			operations += 1;
 		}
 	}
@@ -338,9 +343,10 @@ const transformStylesheet = function transformStylesheet(
  * a Next.js app, and the scoped `postcss-tailwind3` plugins at
  * `c15t/postcss-tailwind3`. Removes `styles.css` imports, because v3
  * components add their own styles, and keeps them with a `TODO(c15t v3)`
- * comment where Tailwind CSS 3 or a cascade layer still needs them. An app whose
- * package.json lists the scoped packages without `c15t` 3 keeps its scoped
- * imports. package.json itself is left alone.
+ * comment where Tailwind CSS 3 or a cascade layer still needs them, or where
+ * the Tailwind CSS version can't be resolved. An app whose package.json lists
+ * the scoped packages without `c15t` 3 keeps its scoped imports.
+ * package.json itself is left alone.
  *
  * @param options - Codemod execution options.
  * @returns Changed files, non-fatal per-file errors and skipped imports.
@@ -351,14 +357,18 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 	const dependencies = dependenciesOf(
 		await readPackageJson(options.projectRoot)
 	);
+	const tailwind = dependencies.tailwindcss;
+	const major =
+		tailwind === undefined
+			? undefined
+			: await tailwindMajor(options.projectRoot, tailwind);
 	const plan: ImportPlan = {
 		next:
 			dependencies.next !== undefined ||
 			dependencies['@c15t/nextjs'] !== undefined,
-		tailwind3:
-			dependencies.tailwindcss !== undefined &&
-			(await tailwindMajor(options.projectRoot, dependencies.tailwindcss)) ===
-				3,
+		// Keeping an import the app doesn't need costs a TODO; removing one
+		// Tailwind CSS 3 needs breaks the styling.
+		tailwind3: major === 3 || major === null,
 		umbrella: usesUmbrella(dependencies),
 	};
 	let skippedScopedImports = false;
@@ -374,6 +384,18 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 		(text) => transformStylesheet(text, plan)
 	);
 	const result = mergeResults(sources, stylesheets);
+	const keptStylesheets = result.changedFiles.some((file) =>
+		file.summaries.some((summary) => summary.endsWith(KEPT_SUMMARY))
+	);
+	if (major === null && keptStylesheets) {
+		result.warnings = [
+			...(result.warnings ?? []),
+			{
+				filePath: join(options.projectRoot, 'package.json'),
+				message: `Could not tell the Tailwind CSS version from '${tailwind}', so c15t stylesheet imports were kept with a TODO. Remove them if the app uses Tailwind CSS 4 or none.`,
+			},
+		];
+	}
 	if (skippedScopedImports) {
 		const listed = ['@c15t/react', '@c15t/nextjs']
 			.filter((name) => dependencies[name] !== undefined)

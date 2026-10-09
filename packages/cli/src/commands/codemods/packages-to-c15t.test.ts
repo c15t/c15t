@@ -255,6 +255,51 @@ import 'c15t/react/styles.css';
 `);
 	});
 
+	it.each(['workspace:*', 'catalog:', 'latest', '*', 'file:../tailwindcss'])(
+		'keeps stylesheet imports and warns when Tailwind CSS %s does not resolve',
+		async (specifier) => {
+			const { read, result } = await run(
+				{ c15t: '^3.0.0', tailwindcss: specifier },
+				{
+					'src/index.css': `@import "@c15t/react/styles.css";
+`,
+					'src/main.ts': `import '@c15t/react/styles.css';
+`,
+				}
+			);
+
+			expect(await read('src/index.css')).toBe(`/* ${TODO} */
+@import "c15t/react/styles.css";
+`);
+			expect(await read('src/main.ts')).toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+			expect(result.warnings).toEqual([
+				expect.objectContaining({
+					message: expect.stringContaining(
+						`Could not tell the Tailwind CSS version from '${specifier}'`
+					),
+				}),
+			]);
+		}
+	);
+
+	it('removes stylesheet imports when the installed Tailwind CSS is 4', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: 'catalog:' },
+			{
+				'node_modules/tailwindcss/package.json': JSON.stringify({
+					version: '4.1.0',
+				}),
+				'src/main.ts': `import '@c15t/react/styles.css';
+`,
+			}
+		);
+
+		expect(await read('src/main.ts')).toBe('');
+		expect(result.warnings).toEqual([]);
+	});
+
 	it('reads Tailwind CSS 3 from peer and optional dependencies', async () => {
 		const files = {
 			'src/consent.tsx': `import '@c15t/react/styles.css';

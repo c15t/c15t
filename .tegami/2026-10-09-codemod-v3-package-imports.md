@@ -17,7 +17,8 @@ names. It points the `@c15t/react/postcss-tailwind3` and
 `@c15t/nextjs/postcss-tailwind3` PostCSS plugins at `c15t/postcss-tailwind3`.
 It removes `styles.css` imports, because v3 components add their own
 styles. With Tailwind CSS 3 or a cascade layer it keeps the import, points it
-at `c15t`, and leaves a `TODO(c15t v3)` comment to set `styles: false`.
+at `c15t`, and leaves a `TODO(c15t v3)` comment to set `styles: false`. It
+does the same, with a warning, when it can't tell the Tailwind CSS version.
 
 ```bash
 npx @c15t/cli@alpha codemods packages-to-c15t --dry-run --json
