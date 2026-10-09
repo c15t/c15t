@@ -4,5 +4,6 @@
 declare module '@c15t/nextjs/generated-manifest' {
 	import type { ConsentManifest } from '@c15t/schema/types';
 
-	export const consentManifest: ConsentManifest | undefined;
+	export const backendURL: string | undefined;
+	export const snapshot: ConsentManifest | undefined;
 }

@@ -1,4 +1,6 @@
+import { readFileSync } from 'node:fs';
 import {
+	mkdir,
 	mkdtemp,
 	readFile,
 	rm,
@@ -7,17 +9,20 @@ import {
 	writeFile,
 } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 
 import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { build, resolveConfig } from 'vite';
+import type { Rollup } from 'vite';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import {
 	consentManifest,
+	createConsentManifestPlugin,
+	GENERATED_MODULE_IDS,
 	loadBuildManifest,
-	writeManifestModule,
-	writeManifestModuleWithFallback,
+	MANIFEST_CACHE_DIR,
+	writeManifestCacheModule,
 } from '../build';
 
 const MANIFEST_FIXTURE = {
@@ -41,7 +46,10 @@ const optionsFor = (rootDir: string) => ({
 	rootDir,
 });
 
+const createLogger = () => ({ info: vi.fn(), warn: vi.fn() });
+
 afterEach(async () => {
+	vi.unstubAllEnvs();
 	await Promise.all(
 		directories.splice(0).map((path) =>
 			rm(path, {
@@ -52,20 +60,149 @@ afterEach(async () => {
 	);
 });
 
-describe('Vite build-time manifest', () => {
-	test('preview uses the built snapshot while the backend is unavailable', async () => {
+/** Builds `source` as the app entry with the plugin and returns the code. */
+const buildEntry = async (
+	root: string,
+	plugin: ReturnType<typeof consentManifest>,
+	source: string,
+	options: { ssr?: boolean } = {}
+): Promise<string> => {
+	await mkdir(join(root, 'src'), { recursive: true });
+	const entry = join(root, 'src/entry.js');
+	await writeFile(entry, source);
+	const output = (await build({
+		build: {
+			minify: false,
+			rollupOptions: { input: entry, preserveEntrySignatures: 'strict' },
+			ssr: options.ssr,
+			write: false,
+		},
+		configFile: false,
+		logLevel: 'silent',
+		plugins: [plugin],
+		root,
+	})) as Rollup.RollupOutput | Rollup.RollupOutput[];
+	const [first] = Array.isArray(output) ? output : [output];
+	return (first?.output ?? [])
+		.map((chunk) => (chunk.type === 'chunk' ? chunk.code : ''))
+		.join('\n');
+};
+
+const GENERATED_ENTRY =
+	"export { backendURL, snapshot } from '@c15t/core/generated';\nexport { snapshot as umbrella } from 'c15t/generated';\n";
+
+describe('@c15t/core/generated in Vite', () => {
+	test('a single-page app build bundles the snapshot and writes no file', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
-		const file = await writeManifestModule(options, {
-			importSource: 'c15t/build',
-			label: 'test/build',
-			outputFile: 'src/c15t-manifest.ts',
+		const code = await buildEntry(
+			root,
+			consentManifest(options),
+			GENERATED_ENTRY
+		);
+		expect(code).toContain('build-test');
+		expect(code).toContain('https://consent.example.com');
+		expect(options.fetch).toHaveBeenCalledTimes(1);
+		await expect(stat(join(root, 'src/c15t-manifest.ts'))).rejects.toThrow();
+	});
+
+	test('a server-rendered framework keeps the snapshot out of the client build', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		const plugin = () =>
+			createConsentManifestPlugin(options, {
+				envNames: ['VITE_C15T_BACKEND_URL'],
+				label: 'test/build',
+				serverRendered: true,
+			});
+		const client = await buildEntry(root, plugin(), GENERATED_ENTRY);
+		expect(client).not.toContain('build-test');
+		// The backend URL is public, so the browser still gets it.
+		expect(client).toContain('https://consent.example.com');
+		const server = await buildEntry(root, plugin(), GENERATED_ENTRY, {
+			ssr: true,
 		});
-		const source = await readFile(file, 'utf8');
-		const previousTime = new Date('2000-01-01T00:00:00.000Z');
-		await utimes(file, previousTime, previousTime);
-		const original = await stat(file);
-		options.fetch.mockClear();
+		expect(server).toContain('build-test');
+	});
+
+	test.each([
+		['client', true, false],
+		['server', true, true],
+		['client', false, true],
+	] as const)(
+		'the %s environment of a server-rendered (%s) app gets the snapshot: %s',
+		async (consumer, serverRendered, included) => {
+			const root = await createRoot();
+			const plugin = createConsentManifestPlugin(optionsFor(root), {
+				envNames: [],
+				label: 'test/build',
+				serverRendered,
+			});
+			await plugin.configResolved({ root });
+			const id = plugin.resolveId(GENERATED_MODULE_IDS[0]);
+			expect(id).toBeDefined();
+			expect(plugin.resolveId('c15t/generated')).toBe(id);
+			const source = await plugin.load.call(
+				{ environment: { config: { consumer } } },
+				id as string
+			);
+			expect(source?.includes('build-test')).toBe(included);
+			expect(source).toContain(
+				'export const backendURL = "https://consent.example.com";'
+			);
+		}
+	);
+
+	test('reads the ssr flag where Vite has no environments', async () => {
+		const root = await createRoot();
+		const plugin = createConsentManifestPlugin(optionsFor(root), {
+			envNames: [],
+			label: 'test/build',
+			serverRendered: true,
+		});
+		await plugin.configResolved({ root });
+		const id = plugin.resolveId(GENERATED_MODULE_IDS[0]) as string;
+		expect(await plugin.load.call(undefined, id, { ssr: true })).toContain(
+			'build-test'
+		);
+		expect(await plugin.load.call(undefined, id)).not.toContain('build-test');
+	});
+
+	test('a framework can decide from the resolved config', async () => {
+		const root = await createRoot();
+		const plugin = createConsentManifestPlugin(optionsFor(root), {
+			envNames: [],
+			label: 'test/build',
+			serverRendered: (config) =>
+				config.plugins?.some((entry) => entry.name === 'framework') ?? false,
+		});
+		await plugin.configResolved({ plugins: [{ name: 'framework' }], root });
+		const id = plugin.resolveId(GENERATED_MODULE_IDS[0]) as string;
+		expect(
+			await plugin.load.call(
+				{ environment: { config: { consumer: 'client' } } },
+				id
+			)
+		).not.toContain('build-test');
+	});
+
+	test('keeps the module out of pre-bundling and bundles c15t packages on the server', () => {
+		const { optimizeDeps, ssr } = consentManifest().config();
+		expect(optimizeDeps.exclude).toEqual([...GENERATED_MODULE_IDS]);
+		expect(ssr.noExternal).toEqual(
+			expect.arrayContaining(['c15t', '@c15t/core', '@c15t/react'])
+		);
+	});
+
+	test('leaves other modules alone', async () => {
+		const plugin = consentManifest();
+		expect(plugin.resolveId('@c15t/core')).toBeUndefined();
+		expect(await plugin.load.call(undefined, '/src/app.ts')).toBeUndefined();
+	});
+
+	test('preview does not fetch the manifest', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
 		options.fetch.mockRejectedValue(new Error('backend unavailable'));
 		await resolveConfig(
 			{
@@ -80,53 +217,215 @@ describe('Vite build-time manifest', () => {
 			true
 		);
 		expect(options.fetch).not.toHaveBeenCalled();
-		expect(await readFile(file, 'utf8')).toBe(source);
-		expect((await stat(file)).mtimeMs).toBe(original.mtimeMs);
 	});
 
-	test('a real Vite build generates the imported module before compiling', async () => {
+	test('dev serves an undefined snapshot when the fetch fails', async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
-		await build({
-			build: {
-				lib: {
-					entry: join(root, 'src/c15t-manifest.ts'),
-					formats: ['es'],
-				},
-				write: false,
-			},
-			configFile: false,
-			logLevel: 'silent',
-			plugins: [consentManifest(options)],
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		const logger = createLogger();
+		const plugin = consentManifest(options);
+		await plugin.configResolved({ command: 'serve', logger, root });
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.stringMatching(
+				/^@c15t\/core\/build: could not fetch .* during dev/u
+			)
+		);
+		const source = await plugin.load.call(
+			undefined,
+			plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+		);
+		expect(source).toContain('export const snapshot = undefined;');
+		await expect(
+			consentManifest(options).configResolved({ command: 'build', root })
+		).rejects.toThrow('during the build (backend unavailable)');
+	});
+
+	test('reads VITE_C15T_BACKEND_URL from .env and exposes it', async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, '.env.production'),
+			'VITE_C15T_BACKEND_URL="https://env.example.com/api"\n'
+		);
+		const { fetch } = optionsFor(root);
+		const env: Record<string, unknown> = {};
+		const plugin = consentManifest({ fetch });
+		await plugin.configResolved({
+			command: 'build',
+			env,
+			mode: 'production',
 			root,
 		});
-		const source = await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8');
-		expect(source).toContain("from 'c15t/build'");
+		expect(fetch).toHaveBeenCalledWith(
+			'https://env.example.com/api/manifest',
+			expect.any(Object)
+		);
+		expect(env.VITE_C15T_BACKEND_URL).toBe('https://env.example.com/api');
+		expect(
+			await plugin.load.call(
+				undefined,
+				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+			)
+		).toContain('export const backendURL = "https://env.example.com/api";');
+	});
+
+	test('shares one snapshot across Vite configuration resolution', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		const plugin = consentManifest(options);
+		await Promise.all([
+			plugin.configResolved({ root }),
+			plugin.configResolved({ root }),
+		]);
 		expect(options.fetch).toHaveBeenCalledTimes(1);
 	});
 
-	test('uses Vite root and supports custom module settings', async () => {
+	test('retries a failed fetch and shares the recovered snapshot', async () => {
 		const root = await createRoot();
-		const { fetch, backendURL } = optionsFor(root);
-		await consentManifest({
-			backendURL,
-			exportName: 'deploymentManifest',
-			fetch,
-			importSource: '@c15t/core/build',
-			outputFile: 'generated/manifest.ts',
-		}).configResolved({ root });
-		const source = await readFile(join(root, 'generated/manifest.ts'), 'utf8');
-		expect(source).toContain("from '@c15t/core/build'");
-		expect(source).toContain('export const deploymentManifest =');
+		const options = optionsFor(root);
+		options.fetch.mockResolvedValueOnce(
+			new Response('unavailable', { status: 503 })
+		);
+		const plugin = consentManifest(options);
+		const results = await Promise.allSettled([
+			plugin.configResolved({ root }),
+			plugin.configResolved({ root }),
+		]);
+		expect(results.map((result) => result.status)).toEqual([
+			'rejected',
+			'rejected',
+		]);
+		expect(options.fetch).toHaveBeenCalledTimes(1);
+		await Promise.all([
+			plugin.configResolved({ root }),
+			plugin.configResolved({ root }),
+		]);
+		await plugin.configResolved({ root });
+		expect(options.fetch).toHaveBeenCalledTimes(2);
+		expect(
+			await plugin.load.call(
+				undefined,
+				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+			)
+		).toContain('build-test');
 	});
 });
 
-describe('manifest output', () => {
-	const defaults = {
-		importSource: 'c15t/build',
+describe('@c15t/core/generated typings', () => {
+	const packageRoot = resolve(__dirname, '../..');
+	const readJSON = (path: string) =>
+		JSON.parse(readFileSync(path, 'utf8')) as {
+			exports: Record<string, { types: string }>;
+		};
+
+	test('the package exports declarations, so type checks pass before any build', () => {
+		const { exports } = readJSON(join(packageRoot, 'package.json'));
+		expect(exports['./generated']?.types).toBe('./dist-types/generated.d.ts');
+		const declarations = readFileSync(
+			join(packageRoot, 'dist-types/generated.d.ts'),
+			'utf8'
+		);
+		expect(declarations).toContain(
+			'export declare const backendURL: string | undefined;'
+		);
+		expect(declarations).toContain(
+			'export declare const snapshot: ConsentManifest | undefined;'
+		);
+	});
+
+	test('c15t/generated re-exports them', () => {
+		const umbrella = resolve(packageRoot, '../c15t');
+		const { exports } = readJSON(join(umbrella, 'package.json'));
+		const types = exports['./generated']?.types;
+		expect(types).toBeDefined();
+		expect(readFileSync(join(umbrella, types as string), 'utf8')).toContain(
+			"export * from '@c15t/core/generated';"
+		);
+	});
+
+	test('the stand-in module exports undefined without a build integration', async () => {
+		expect({ ...(await import('../generated')) }).toEqual({
+			backendURL: undefined,
+			snapshot: undefined,
+		});
+	});
+});
+
+describe('node_modules/.cache/c15t output', () => {
+	const defaultsFor = (rootDir: string) => ({
+		command: 'build' as const,
+		envNames: ['NEXT_PUBLIC_C15T_BACKEND_URL'],
+		importSource: 'c15t/next/static',
 		label: 'test/build',
-		outputFile: 'generated/manifest.ts',
-	};
+		rootDir,
+	});
+
+	test('writes the snapshot for servers and a server-only stand-in for browsers', async () => {
+		const root = await createRoot();
+		const files = await writeManifestCacheModule(
+			optionsFor(root),
+			defaultsFor(root),
+			createLogger()
+		);
+		const directory = join(root, MANIFEST_CACHE_DIR);
+		expect(files).toEqual({
+			browser: join(directory, 'manifest.browser.js'),
+			server: join(directory, 'manifest.js'),
+		});
+		const server = await readFile(files.server, 'utf8');
+		expect(server).toContain('"revision": "build-test"');
+		expect(server).toContain(
+			'export const backendURL = "https://consent.example.com";'
+		);
+		expect(server).not.toContain('server-only');
+		const browser = await readFile(files.browser, 'utf8');
+		expect(browser).toContain("import 'server-only';");
+		expect(browser).toContain('export const snapshot = undefined;');
+		expect(browser).not.toContain('build-test');
+		expect(await readFile(join(directory, 'manifest.d.ts'), 'utf8')).toBe(
+			[
+				"import type { ConsentManifest } from 'c15t/next/static';",
+				'',
+				'export declare const backendURL: string | undefined;',
+				'export declare const snapshot: ConsentManifest | undefined;',
+				'',
+			].join('\n')
+		);
+	});
+
+	test('the server module is valid JavaScript with the fetched values', async () => {
+		const root = await createRoot();
+		const { server } = await writeManifestCacheModule(
+			optionsFor(root),
+			defaultsFor(root),
+			createLogger()
+		);
+		expect({ ...(await import(server)) }).toEqual({
+			backendURL: 'https://consent.example.com',
+			snapshot: MANIFEST_FIXTURE,
+		});
+	});
+
+	test('does not rewrite an unchanged snapshot but replaces a changed one', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		const { server } = await writeManifestCacheModule(
+			options,
+			defaultsFor(root),
+			createLogger()
+		);
+		// A rewrite must change this even on filesystems with coarse timestamps.
+		const previousTime = new Date('2000-01-01T00:00:00.000Z');
+		await utimes(server, previousTime, previousTime);
+		const original = await stat(server);
+		await writeManifestCacheModule(options, defaultsFor(root), createLogger());
+		expect((await stat(server)).mtimeMs).toBe(original.mtimeMs);
+		options.fetch.mockResolvedValue(
+			Response.json({ ...MANIFEST_FIXTURE, revision: 'new-revision' })
+		);
+		await writeManifestCacheModule(options, defaultsFor(root), createLogger());
+		expect(await readFile(server, 'utf8')).toContain('new-revision');
+	});
 
 	test.each([
 		['https://consent.example.com', 'https://consent.example.com/manifest'],
@@ -142,76 +441,51 @@ describe('manifest output', () => {
 	])(
 		'fetches /manifest under backendURL %s',
 		async (backendURL, manifestURL) => {
-			const options = optionsFor(await createRoot());
-			await writeManifestModule({ ...options, backendURL }, defaults);
+			const root = await createRoot();
+			const options = optionsFor(root);
+			await writeManifestCacheModule(
+				{ ...options, backendURL },
+				defaultsFor(root),
+				createLogger()
+			);
 			expect(options.fetch).toHaveBeenCalledWith(
 				manifestURL,
 				expect.any(Object)
 			);
 		}
 	);
-
-	test.each(['/api/c15t', 'file:///backend', ''])(
-		'rejects a backendURL the build cannot fetch: %s',
-		async (backendURL) => {
-			const options = optionsFor(await createRoot());
-			await expect(
-				writeManifestModule({ ...options, backendURL }, defaults)
-			).rejects.toThrow('upstream');
-			expect(options.fetch).not.toHaveBeenCalled();
-		}
-	);
-
-	test('does not rewrite an unchanged manifest but replaces a changed one', async () => {
-		const options = optionsFor(await createRoot());
-		const path = await writeManifestModule(options, defaults);
-		// A rewrite must change this even on filesystems with coarse timestamps.
-		const previousTime = new Date('2000-01-01T00:00:00.000Z');
-		await utimes(path, previousTime, previousTime);
-		const original = await stat(path);
-		await writeManifestModule(options, defaults);
-		expect((await stat(path)).mtimeMs).toBe(original.mtimeMs);
-		options.fetch.mockResolvedValue(
-			Response.json({
-				...MANIFEST_FIXTURE,
-				revision: 'new-revision',
-			})
-		);
-		await writeManifestModule(options, defaults);
-		expect(await readFile(path, 'utf8')).toContain('new-revision');
-	});
-
-	test.each([
-		() => new Response('unavailable', { status: 503 }),
-		() => new Response('invalid json', { status: 200 }),
-	])(
-		'rejects an unsuccessful or malformed response without writing a file',
-		async (response) => {
-			const root = await createRoot();
-			const options = optionsFor(root);
-			options.fetch.mockResolvedValue(response());
-			await expect(writeManifestModule(options, defaults)).rejects.toThrow();
-			await expect(stat(join(root, defaults.outputFile))).rejects.toMatchObject(
-				{
-					code: 'ENOENT',
-				}
-			);
-		}
-	);
 });
 
 describe('build-time manifest policy', () => {
-	const defaults = {
-		command: 'build' as const,
+	const STUB = 'export const snapshot = undefined;';
+	const defaultsFor = (rootDir: string, command: 'build' | 'dev') => ({
+		command,
 		envNames: ['VITE_C15T_BACKEND_URL'],
 		importSource: 'c15t/build',
 		label: 'test/build',
-		outputFile: 'generated/manifest.ts',
+		rootDir,
+	});
+	const write = async (
+		overrides: Record<string, unknown> = {},
+		command: 'build' | 'dev' = 'build',
+		extra: { skipReason?: string } = {}
+	) => {
+		const root = await createRoot();
+		const options = { ...optionsFor(root), ...overrides };
+		const logger = createLogger();
+		const result = await writeManifestCacheModule(
+			options,
+			{ ...defaultsFor(root, command), ...extra },
+			logger
+		).then(
+			async (files) => ({
+				error: undefined,
+				source: await readFile(files.server, 'utf8'),
+			}),
+			(error: unknown) => ({ error: error as Error, source: undefined })
+		);
+		return { ...result, logger, options, root };
 	};
-	const dev = { ...defaults, command: 'dev' as const };
-	const createLogger = () => ({ info: vi.fn(), warn: vi.fn() });
-	const STUB =
-		'export const consentManifest: ConsentManifest | undefined = undefined;';
 	const refused = () =>
 		new TypeError('fetch failed', {
 			cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'), {
@@ -219,49 +493,20 @@ describe('build-time manifest policy', () => {
 			}),
 		});
 
-	afterEach(() => {
-		vi.unstubAllEnvs();
-	});
-
-	test('writes the snapshot when the fetch succeeds', async () => {
-		const options = optionsFor(await createRoot());
-		const logger = createLogger();
-		const file = await writeManifestModuleWithFallback(
-			options,
-			defaults,
-			logger
-		);
-		expect(await readFile(file, 'utf8')).toContain('build-test');
-		expect(logger.warn).not.toHaveBeenCalled();
-	});
-
-	test('stops a production build by default and leaves the file alone', async () => {
-		const root = await createRoot();
-		const options = optionsFor(root);
-		options.fetch.mockRejectedValue(refused());
-		const error = await writeManifestModuleWithFallback(
-			options,
-			defaults,
-			createLogger()
-		).catch((caught: unknown) => caught);
-		expect(error).toBeInstanceOf(Error);
-		expect((error as Error).message).toBe(
+	test('stops a production build by default and leaves no file', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(refused());
+		const { error, root } = await write({ fetch });
+		expect(error?.message).toBe(
 			"test/build: could not fetch the consent manifest from https://consent.example.com/manifest during the build (fetch failed: connect ECONNREFUSED 127.0.0.1:9). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
 		);
-		await expect(stat(join(root, defaults.outputFile))).rejects.toMatchObject({
-			code: 'ENOENT',
-		});
+		await expect(
+			stat(join(root, MANIFEST_CACHE_DIR, 'manifest.js'))
+		).rejects.toMatchObject({ code: 'ENOENT' });
 	});
 
-	test('warns in dev by default and writes an undefined export', async () => {
-		const options = optionsFor(await createRoot());
-		options.fetch.mockRejectedValue(refused());
-		const logger = createLogger();
-		const file = await writeManifestModuleWithFallback(options, dev, logger);
-		const source = await readFile(file, 'utf8');
-		expect(source).toContain(
-			"import type { ConsentManifest } from 'c15t/build';"
-		);
+	test('warns in dev by default and writes an undefined snapshot', async () => {
+		const fetch = vi.fn<typeof globalThis.fetch>().mockRejectedValue(refused());
+		const { logger, source } = await write({ fetch }, 'dev');
 		expect(source).toContain(STUB);
 		expect(logger.warn).toHaveBeenCalledWith(
 			'could not fetch the consent manifest from https://consent.example.com/manifest during dev (fetch failed: connect ECONNREFUSED 127.0.0.1:9). The server fetches it at runtime instead. A production build stops on this error.'
@@ -269,84 +514,62 @@ describe('build-time manifest policy', () => {
 	});
 
 	test("onBuildError: 'runtime' falls back in a production build", async () => {
-		const options = optionsFor(await createRoot());
-		const file = await writeManifestModuleWithFallback(
-			options,
-			defaults,
-			createLogger()
-		);
-		options.fetch.mockResolvedValue(new Response(null, { status: 503 }));
-		const logger = createLogger();
-		await writeManifestModuleWithFallback(
-			{ ...options, onBuildError: 'runtime' },
-			defaults,
-			logger
-		);
-		// The earlier snapshot is replaced, never reused.
-		expect(await readFile(file, 'utf8')).toContain(STUB);
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockResolvedValue(new Response(null, { status: 503 }));
+		const { logger, source } = await write({ fetch, onBuildError: 'runtime' });
+		expect(source).toContain(STUB);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringContaining('(/manifest responded 503')
 		);
 	});
 
 	test("onBuildError: 'fail' stops dev", async () => {
-		const options = optionsFor(await createRoot());
-		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		await expect(
-			writeManifestModuleWithFallback(
-				{ ...options, onBuildError: 'fail' },
-				dev,
-				createLogger()
-			)
-		).rejects.toThrow('during dev (backend unavailable)');
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new Error('backend unavailable'));
+		const { error } = await write({ fetch, onBuildError: 'fail' }, 'dev');
+		expect(error?.message).toContain('during dev (backend unavailable)');
 	});
 
 	test("C15T_ON_BUILD_ERROR=runtime overrides onBuildError: 'fail'", async () => {
 		vi.stubEnv('C15T_ON_BUILD_ERROR', 'runtime');
-		const options = optionsFor(await createRoot());
-		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		const file = await writeManifestModuleWithFallback(
-			{ ...options, onBuildError: 'fail' },
-			defaults,
-			createLogger()
-		);
-		expect(await readFile(file, 'utf8')).toContain(STUB);
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new Error('backend unavailable'));
+		const { source } = await write({ fetch, onBuildError: 'fail' });
+		expect(source).toContain(STUB);
 	});
 
 	test("C15T_ON_BUILD_ERROR=fail overrides onBuildError: 'runtime'", async () => {
 		vi.stubEnv('C15T_ON_BUILD_ERROR', 'fail');
-		const options = optionsFor(await createRoot());
-		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		await expect(
-			writeManifestModuleWithFallback(
-				{ ...options, onBuildError: 'runtime' },
-				dev,
-				createLogger()
-			)
-		).rejects.toThrow('backend unavailable');
+		const fetch = vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new Error('backend unavailable'));
+		const { error } = await write({ fetch, onBuildError: 'runtime' }, 'dev');
+		expect(error?.message).toContain('backend unavailable');
 	});
 
-	test('rejects an unknown C15T_ON_BUILD_ERROR', async () => {
+	test('rejects an unknown C15T_ON_BUILD_ERROR or onBuildError', async () => {
 		vi.stubEnv('C15T_ON_BUILD_ERROR', 'warn');
-		const options = optionsFor(await createRoot());
-		await expect(
-			writeManifestModuleWithFallback(options, defaults, createLogger())
-		).rejects.toThrow("C15T_ON_BUILD_ERROR must be 'runtime' or 'fail'");
-		expect(options.fetch).not.toHaveBeenCalled();
+		const fromEnv = await write();
+		expect(fromEnv.error?.message).toContain(
+			"C15T_ON_BUILD_ERROR must be 'runtime' or 'fail'"
+		);
+		expect(fromEnv.options.fetch).not.toHaveBeenCalled();
+		vi.unstubAllEnvs();
+		const fromOption = await write({ onBuildError: 'warn' });
+		expect(fromOption.error?.message).toContain(
+			"onBuildError must be 'runtime' or 'fail'"
+		);
 	});
 
 	test.each(['/api/c15t', 'file:///backend'])(
 		'skips the fetch in a production build for backendURL %j',
 		async (backendURL) => {
-			const options = optionsFor(await createRoot());
-			const logger = createLogger();
-			const file = await writeManifestModuleWithFallback(
-				{ ...options, backendURL },
-				defaults,
-				logger
-			);
+			const { logger, options, source } = await write({ backendURL });
 			expect(options.fetch).not.toHaveBeenCalled();
-			expect(await readFile(file, 'utf8')).toContain(STUB);
+			expect(source).toContain(STUB);
 			expect(logger.info).toHaveBeenCalledWith(
 				expect.stringContaining('not an absolute http(s) URL')
 			);
@@ -356,14 +579,8 @@ describe('build-time manifest policy', () => {
 	test.each([undefined, ''])(
 		'a production build fails without a backend URL (%j)',
 		async (backendURL) => {
-			const options = optionsFor(await createRoot());
-			await expect(
-				writeManifestModuleWithFallback(
-					{ ...options, backendURL },
-					defaults,
-					createLogger()
-				)
-			).rejects.toThrow(
+			const { error, options } = await write({ backendURL });
+			expect(error?.message).toBe(
 				"test/build: no backend URL is set, so the build cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL. Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to build without a snapshot."
 			);
 			expect(options.fetch).not.toHaveBeenCalled();
@@ -371,28 +588,19 @@ describe('build-time manifest policy', () => {
 	);
 
 	test('dev warns without a backend URL', async () => {
-		const options = optionsFor(await createRoot());
-		const logger = createLogger();
-		const file = await writeManifestModuleWithFallback(
-			{ ...options, backendURL: undefined },
-			dev,
-			logger
-		);
-		expect(await readFile(file, 'utf8')).toContain(STUB);
+		const { logger, source } = await write({ backendURL: undefined }, 'dev');
+		expect(source).toContain(STUB);
 		expect(logger.warn).toHaveBeenCalledWith(
 			'no backend URL is set, so dev cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL. A production build stops on this error.'
 		);
 	});
 
 	test("onBuildError: 'runtime' skips a build without a backend URL with a notice", async () => {
-		const options = optionsFor(await createRoot());
-		const logger = createLogger();
-		const file = await writeManifestModuleWithFallback(
-			{ ...options, backendURL: undefined, onBuildError: 'runtime' },
-			defaults,
-			logger
-		);
-		expect(await readFile(file, 'utf8')).toContain(STUB);
+		const { logger, source } = await write({
+			backendURL: undefined,
+			onBuildError: 'runtime',
+		});
+		expect(source).toContain(STUB);
 		expect(logger.warn).not.toHaveBeenCalled();
 		expect(logger.info).toHaveBeenCalledWith(
 			'skipped the consent manifest fetch because no backend URL is set. Pass backendURL or set VITE_C15T_BACKEND_URL.'
@@ -400,14 +608,11 @@ describe('build-time manifest policy', () => {
 	});
 
 	test("rejects a relative backendURL with onBuildError: 'fail'", async () => {
-		const options = optionsFor(await createRoot());
-		await expect(
-			writeManifestModuleWithFallback(
-				{ ...options, backendURL: '/api/c15t', onBuildError: 'fail' },
-				defaults,
-				createLogger()
-			)
-		).rejects.toThrow(
+		const { error, options } = await write({
+			backendURL: '/api/c15t',
+			onBuildError: 'fail',
+		});
+		expect(error?.message).toContain(
 			'build-time manifests require an absolute upstream URL. Pass backendURL or set VITE_C15T_BACKEND_URL.'
 		);
 		expect(options.fetch).not.toHaveBeenCalled();
@@ -416,80 +621,18 @@ describe('build-time manifest policy', () => {
 	test.each(['runtime', 'fail'] as const)(
 		'a framework skip reason skips the fetch with onBuildError: %s',
 		async (onBuildError) => {
-			const options = optionsFor(await createRoot());
-			const logger = createLogger();
-			const file = await writeManifestModuleWithFallback(
-				{ ...options, onBuildError },
-				{ ...defaults, skipReason: 'the app has no server' },
-				logger
+			const { logger, options, source } = await write(
+				{ onBuildError },
+				'build',
+				{ skipReason: 'the app has no server' }
 			);
 			expect(options.fetch).not.toHaveBeenCalled();
-			expect(await readFile(file, 'utf8')).toContain(STUB);
+			expect(source).toContain(STUB);
 			expect(logger.info).toHaveBeenCalledWith(
 				'skipped the consent manifest fetch because the app has no server.'
 			);
 		}
 	);
-
-	test('still rejects an invalid onBuildError or export name', async () => {
-		const options = optionsFor(await createRoot());
-		await expect(
-			writeManifestModuleWithFallback(
-				// @ts-expect-error -- checks the runtime guard for JavaScript callers.
-				{ ...options, onBuildError: 'warn' },
-				defaults,
-				createLogger()
-			)
-		).rejects.toThrow("onBuildError must be 'runtime' or 'fail'");
-		await expect(
-			writeManifestModuleWithFallback(
-				{ ...options, exportName: 'default' },
-				dev,
-				createLogger()
-			)
-		).rejects.toThrow('exportName must be a valid identifier');
-	});
-
-	test('the Vite plugin reads VITE_C15T_BACKEND_URL from .env and exposes it', async () => {
-		const root = await createRoot();
-		await writeFile(
-			join(root, '.env.production'),
-			'VITE_C15T_BACKEND_URL="https://env.example.com/api"\n'
-		);
-		const { fetch } = optionsFor(root);
-		const env: Record<string, unknown> = {};
-		await consentManifest({ fetch }).configResolved({
-			command: 'build',
-			env,
-			mode: 'production',
-			root,
-		});
-		expect(fetch).toHaveBeenCalledWith(
-			'https://env.example.com/api/manifest',
-			expect.any(Object)
-		);
-		expect(env.VITE_C15T_BACKEND_URL).toBe('https://env.example.com/api');
-	});
-
-	test('the Vite plugin warns in vite dev and fails in vite build', async () => {
-		const root = await createRoot();
-		const options = optionsFor(root);
-		options.fetch.mockRejectedValue(new Error('backend unavailable'));
-		const logger = createLogger();
-		await consentManifest(options).configResolved({
-			command: 'serve',
-			logger,
-			root,
-		});
-		expect(logger.warn).toHaveBeenCalledWith(
-			expect.stringMatching(
-				/^@c15t\/core\/build: could not fetch .* during dev/u
-			)
-		);
-		await expect(
-			consentManifest(options).configResolved({ command: 'build', root })
-		).rejects.toThrow('during the build (backend unavailable)');
-	});
 });
 
 describe('framework build snapshot', () => {
@@ -525,49 +668,6 @@ describe('framework build snapshot', () => {
 			);
 		}
 	);
-
-	test('shares one snapshot across Vite configuration resolution', async () => {
-		const root = await createRoot();
-		const options = optionsFor(root);
-		const plugin = consentManifest(options);
-		await Promise.all([
-			plugin.configResolved({ root }),
-			plugin.configResolved({ root }),
-		]);
-		expect(options.fetch).toHaveBeenCalledTimes(1);
-	});
-
-	test('retries a failed generation and shares the recovered snapshot', async () => {
-		const root = await createRoot();
-		const options = optionsFor(root);
-		options.fetch.mockResolvedValueOnce(
-			new Response('unavailable', { status: 503 })
-		);
-		const plugin = consentManifest(options);
-		const results = await Promise.allSettled([
-			plugin.configResolved({ root }),
-			plugin.configResolved({ root }),
-		]);
-		expect(results.map((result) => result.status)).toEqual([
-			'rejected',
-			'rejected',
-		]);
-		expect(options.fetch).toHaveBeenCalledTimes(1);
-		await expect(
-			stat(join(root, 'src/c15t-manifest.ts'))
-		).rejects.toMatchObject({
-			code: 'ENOENT',
-		});
-		await Promise.all([
-			plugin.configResolved({ root }),
-			plugin.configResolved({ root }),
-		]);
-		expect(
-			await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8')
-		).toContain('build-test');
-		await plugin.configResolved({ root });
-		expect(options.fetch).toHaveBeenCalledTimes(2);
-	});
 });
 
 describe('build snapshot validation', () => {
@@ -620,16 +720,20 @@ describe('build snapshot validation', () => {
 			await expect(loadBuildManifest(options, 'test/build')).rejects.toThrow(
 				'test/build: /manifest returned an invalid consent manifest'
 			);
-			const defaults = {
-				importSource: 'c15t/build',
-				label: 'test/build',
-				outputFile: 'generated/manifest.ts',
-			};
-			await expect(writeManifestModule(options, defaults)).rejects.toThrow(
-				'invalid consent manifest'
-			);
 			await expect(
-				stat(join(options.rootDir, defaults.outputFile))
+				writeManifestCacheModule(
+					options,
+					{
+						command: 'build',
+						importSource: 'c15t/build',
+						label: 'test/build',
+						rootDir: options.rootDir,
+					},
+					createLogger()
+				)
+			).rejects.toThrow('invalid consent manifest');
+			await expect(
+				stat(join(options.rootDir, MANIFEST_CACHE_DIR, 'manifest.js'))
 			).rejects.toMatchObject({
 				code: 'ENOENT',
 			});
@@ -647,12 +751,19 @@ describe('build snapshot validation', () => {
 			await expect(loadBuildManifest(options, 'test/build')).resolves.toEqual(
 				body
 			);
-			const file = await writeManifestModule(options, {
-				importSource: 'c15t/build',
-				label: 'test/build',
-				outputFile: 'generated/manifest.ts',
-			});
-			expect(await readFile(file, 'utf8')).toContain(`"hosting": "${hosting}"`);
+			const { server } = await writeManifestCacheModule(
+				options,
+				{
+					command: 'build',
+					importSource: 'c15t/build',
+					label: 'test/build',
+					rootDir: options.rootDir,
+				},
+				createLogger()
+			);
+			expect(await readFile(server, 'utf8')).toContain(
+				`"hosting": "${hosting}"`
+			);
 		}
 	);
 

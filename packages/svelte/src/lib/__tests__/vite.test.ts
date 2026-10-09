@@ -44,24 +44,20 @@ afterEach(async () => {
 	);
 });
 
-describe('Svelte manifest generation', () => {
+describe('Svelte manifest module', () => {
 	test.each([
-		{ expectedImport: '@c15t/svelte/vite', settings: {} },
+		{ app: 'Svelte single-page app', plugins: [], snapshotInBrowser: true },
 		{
-			expectedImport: '@c15t/svelte/vite',
-			settings: { importSource: undefined },
-		},
-		{
-			expectedImport: '@c15t/core/build',
-			settings: { importSource: '@c15t/core/build' },
+			app: 'SvelteKit app',
+			plugins: [{ name: 'vite-plugin-sveltekit-setup' }],
+			snapshotInBrowser: false,
 		},
 	])(
-		'generates an available type import with settings $settings',
-		async ({ expectedImport, settings }) => {
+		'a $app gets the snapshot in the browser: $snapshotInBrowser',
+		async ({ plugins, snapshotInBrowser }) => {
 			const root = await mkdtemp(path.join(tmpdir(), 'c15t-svelte-manifest-'));
 			directories.push(root);
-			await consentManifest({
-				...settings,
+			const plugin = consentManifest({
 				backendURL: 'https://consent.example.com',
 				fetch: () =>
 					Promise.resolve(
@@ -71,13 +67,17 @@ describe('Svelte manifest generation', () => {
 							schemaVersion: 2,
 						})
 					),
-			}).configResolved({ root });
-			const source = await readFile(
-				path.join(root, 'src/c15t-manifest.ts'),
-				'utf8'
+			});
+			await plugin.configResolved({ plugins, root });
+			const load = (consumer: 'client' | 'server') =>
+				plugin.load.call(
+					{ environment: { config: { consumer } } },
+					plugin.resolveId('@c15t/core/generated') as string
+				);
+			expect((await load('client'))?.includes('svelte-build')).toBe(
+				snapshotInBrowser
 			);
-			expect(source).toContain(`from '${expectedImport}'`);
-			expect(source).toContain('satisfies ConsentManifest');
+			expect(await load('server')).toContain('svelte-build');
 		}
 	);
 });

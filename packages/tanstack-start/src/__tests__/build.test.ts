@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
+import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -7,6 +7,15 @@ import { afterEach, describe, expect, test, vi } from 'vitest';
 import { consentManifest } from '../build';
 
 const directories: string[] = [];
+
+type Plugin = ReturnType<typeof consentManifest>;
+
+/** What `@c15t/core/generated` holds in one Vite environment. */
+const loadGenerated = (plugin: Plugin, consumer: 'client' | 'server') =>
+	plugin.load.call(
+		{ environment: { config: { consumer } } },
+		plugin.resolveId('@c15t/core/generated') as string
+	);
 
 afterEach(async () => {
 	await Promise.all(
@@ -17,40 +26,31 @@ afterEach(async () => {
 });
 
 describe('TanStack Start manifest generation', () => {
-	test.each([
-		{ expectedImport: 'c15t/tanstack-start/static', settings: {} },
-		{
-			expectedImport: 'c15t/tanstack-start/static',
-			settings: { importSource: undefined },
-		},
-		{
-			expectedImport: '@c15t/tanstack-start/static',
-			settings: { importSource: '@c15t/tanstack-start/static' },
-		},
-	])(
-		'generates the configured type import with settings $settings',
-		async ({ expectedImport, settings }) => {
-			const root = await mkdtemp(join(tmpdir(), 'c15t-tanstack-manifest-'));
-			directories.push(root);
-			const fetchSpy = vi.fn<typeof globalThis.fetch>(() =>
-				Promise.resolve(
-					Response.json({
-						branding: 'c15t',
-						revision: 'tanstack-build',
-						schemaVersion: 2,
-					})
-				)
-			);
-			await consentManifest({
-				...settings,
-				backendURL: 'https://consent.example.com',
-				fetch: fetchSpy,
-			}).configResolved({ root });
-			const source = await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8');
-			expect(source).toContain(`from '${expectedImport}'`);
-			expect(source).toContain('satisfies ConsentManifest');
-		}
-	);
+	test('serves the snapshot to the server and keeps it out of the client', async () => {
+		const root = await mkdtemp(join(tmpdir(), 'c15t-tanstack-manifest-'));
+		directories.push(root);
+		const fetchSpy = vi.fn<typeof globalThis.fetch>(() =>
+			Promise.resolve(
+				Response.json({
+					branding: 'c15t',
+					revision: 'tanstack-build',
+					schemaVersion: 2,
+				})
+			)
+		);
+		const plugin = consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: fetchSpy,
+		});
+		await plugin.configResolved({ root });
+		expect(await loadGenerated(plugin, 'server')).toContain('tanstack-build');
+		const client = await loadGenerated(plugin, 'client');
+		expect(client).not.toContain('tanstack-build');
+		expect(client).toContain('export const snapshot = undefined;');
+		expect(client).toContain(
+			'export const backendURL = "https://consent.example.com";'
+		);
+	});
 
 	const createRoot = async () => {
 		const root = await mkdtemp(join(tmpdir(), 'c15t-tanstack-manifest-'));
@@ -62,17 +62,16 @@ describe('TanStack Start manifest generation', () => {
 			.fn<typeof globalThis.fetch>()
 			.mockRejectedValue(new Error('backend unavailable'));
 
-	test('vite dev warns and writes an undefined export when the fetch fails', async () => {
+	test('vite dev warns and serves an undefined snapshot when the fetch fails', async () => {
 		const root = await createRoot();
 		const logger = { info: vi.fn(), warn: vi.fn() };
-		await consentManifest({
+		const plugin = consentManifest({
 			backendURL: 'https://consent.example.com',
 			fetch: failingFetch(),
-		}).configResolved({ command: 'serve', logger, root });
-		const source = await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8');
-		expect(source).toContain("from 'c15t/tanstack-start/static'");
-		expect(source).toContain(
-			'export const consentManifest: ConsentManifest | undefined = undefined;'
+		});
+		await plugin.configResolved({ command: 'serve', logger, root });
+		expect(await loadGenerated(plugin, 'server')).toContain(
+			'export const snapshot = undefined;'
 		);
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringContaining(
@@ -119,15 +118,16 @@ describe('TanStack Start manifest generation', () => {
 		const root = await createRoot();
 		const fetchSpy = failingFetch();
 		const logger = { info: vi.fn(), warn: vi.fn() };
-		await consentManifest({
+		const plugin = consentManifest({
 			backendURL: '/api/c15t',
 			fetch: fetchSpy,
-		}).configResolved({ command: 'build', logger, root });
+		});
+		await plugin.configResolved({ command: 'build', logger, root });
 		expect(fetchSpy).not.toHaveBeenCalled();
 		expect(logger.warn).not.toHaveBeenCalled();
-		expect(
-			await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8')
-		).toContain('= undefined;');
+		expect(await loadGenerated(plugin, 'server')).toContain(
+			'export const snapshot = undefined;'
+		);
 	});
 });
 
@@ -187,7 +187,8 @@ describe('TanStack Start manifest backend URL', () => {
 	test('vite dev warns without a backend URL', async () => {
 		const root = await tempRoot();
 		const logger = { info: vi.fn(), warn: vi.fn() };
-		await consentManifest().configResolved({
+		const plugin = consentManifest();
+		await plugin.configResolved({
 			command: 'serve',
 			env: {},
 			logger,
@@ -196,8 +197,8 @@ describe('TanStack Start manifest backend URL', () => {
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringContaining('VITE_C15T_BACKEND_URL')
 		);
-		expect(
-			await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8')
-		).toContain('= undefined;');
+		expect(await loadGenerated(plugin, 'server')).toContain(
+			'export const snapshot = undefined;'
+		);
 	});
 });

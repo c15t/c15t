@@ -1,17 +1,11 @@
 /** Node-only manifest generation for framework build integrations. */
 import { readFileSync } from 'node:fs';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname, resolve } from 'node:path';
+import { dirname, join, resolve } from 'node:path';
 
 import type { ConsentManifest } from '@c15t/schema/types';
 
-import {
-	createStaticManifestModule,
-	loadStaticManifest,
-	renderStaticManifestModule,
-	resolveStaticManifestModuleNames,
-} from './server/static-manifest';
-import type { StaticManifestModuleOptions } from './server/static-manifest';
+import { loadStaticManifest } from './server/static-manifest';
 
 export type { ConsentManifest } from '@c15t/schema/types';
 
@@ -408,11 +402,8 @@ export const loadManifestForBuild = async (
 	}
 };
 
-/** Options for generating a deployment's manifest before compilation. */
-export interface ManifestBuildOptions extends Omit<
-	StaticManifestModuleOptions,
-	'manifestURL'
-> {
+/** Options every build integration takes. */
+export interface ManifestBuildOptions {
 	/**
 	 * Absolute backend base URL. The build appends `/manifest`. Framework
 	 * integrations read their public backend URL variable when it is unset.
@@ -425,20 +416,80 @@ export interface ManifestBuildOptions extends Omit<
 	 * `C15T_ON_BUILD_ERROR` environment variable overrides this option.
 	 */
 	onBuildError?: ManifestBuildErrorMode;
-	/** Generated TypeScript file, relative to the application root. */
-	outputFile?: string;
-	/** Application root. Defaults to the framework root or current directory. */
-	rootDir?: string;
+	/**
+	 * Fetch implementation for the manifest request.
+	 * @internal
+	 */
+	fetch?: typeof globalThis.fetch;
 }
 
-const resolveOutputFile = (
-	options: Pick<ManifestBuildOptions, 'outputFile' | 'rootDir'>,
-	defaults: { outputFile: string; rootDir?: string }
-): string =>
-	resolve(
-		options.rootDir ?? defaults.rootDir ?? process.cwd(),
-		options.outputFile ?? defaults.outputFile
-	);
+/** What `@c15t/core/generated` exports. */
+export interface GeneratedManifestModule {
+	/** The backend URL the build read the manifest from. */
+	backendURL: string | undefined;
+	/** The fetched manifest, or `undefined` to read it at runtime. */
+	snapshot: ConsentManifest | undefined;
+}
+
+/**
+ * Specifiers the build integrations answer with the fetched snapshot:
+ * `@c15t/core/generated` and its `c15t/generated` re-export.
+ * @internal
+ */
+export const GENERATED_MODULE_IDS = [
+	'@c15t/core/generated',
+	'c15t/generated',
+] as const;
+
+/** Where non-Vite builds write the snapshot, relative to the app root. */
+export const MANIFEST_CACHE_DIR = 'node_modules/.cache/c15t';
+
+/**
+ * Renders the module behind `@c15t/core/generated`. With `serverOnly`, it
+ * imports `server-only`, so a bundler that knows the marker (Next.js) fails
+ * the build when client code imports it. With `clientStub`, `snapshot` is
+ * `undefined` whatever the build fetched.
+ * @param module - Backend URL and snapshot.
+ * @param options - Whether to leave the snapshot out, and whether to add
+ * the `server-only` import.
+ * @returns JavaScript source.
+ * @internal
+ */
+export const renderGeneratedModule = (
+	module: GeneratedManifestModule,
+	options: { clientStub?: boolean; serverOnly?: boolean } = {}
+): string => {
+	let snapshot = `export const snapshot = ${JSON.stringify(module.snapshot, null, 2)};`;
+	if (options.clientStub) {
+		snapshot =
+			'// The snapshot stays on the server; the browser bundle never gets it.\nexport const snapshot = undefined;';
+	} else if (!module.snapshot) {
+		snapshot =
+			'// The build has no snapshot, so the policy is read at runtime.\nexport const snapshot = undefined;';
+	}
+	return [
+		'// Written by the c15t build integration. Do not edit.',
+		...(options.serverOnly ? ["import 'server-only';"] : []),
+		`export const backendURL = ${JSON.stringify(module.backendURL) ?? 'undefined'};`,
+		snapshot,
+		'',
+	].join('\n');
+};
+
+/**
+ * Renders declarations for a written `@c15t/core/generated` module.
+ * @param importSource - Module the `ConsentManifest` type is imported from.
+ * @returns TypeScript declarations.
+ * @internal
+ */
+export const renderGeneratedDeclarations = (importSource: string): string =>
+	[
+		`import type { ConsentManifest } from '${importSource}';`,
+		'',
+		'export declare const backendURL: string | undefined;',
+		'export declare const snapshot: ConsentManifest | undefined;',
+		'',
+	].join('\n');
 
 /** Writes `source` unless the file already holds it, so watchers stay quiet. */
 const writeModuleFile = async (
@@ -462,68 +513,50 @@ const writeModuleFile = async (
 	return outputFile;
 };
 
-/**
- * Fetches and writes a typed manifest module before the application builds.
- * An unchanged snapshot is not rewritten, so file watchers stay quiet.
- *
- * @param options - Backend URL and generated module options.
- * @param defaults - Framework label, type import and output location.
- * @returns The absolute path of the generated module.
- * @throws {Error} When generation or writing fails. Never reuses an old file.
- * @internal
- */
-export const writeManifestModule = async (
-	options: ManifestBuildOptions,
-	defaults: {
-		importSource: string;
-		label: string;
-		outputFile: string;
-		rootDir?: string;
-	}
-): Promise<string> => {
-	const source = await createStaticManifestModule(
-		{
-			...options,
-			manifestURL: resolveBuildManifestURL(
-				{ backendURL: options.backendURL },
-				defaults.label
-			),
-		},
-		defaults
-	);
-	return await writeModuleFile(resolveOutputFile(options, defaults), source);
-};
+/** The files {@link writeManifestCacheModule} writes. */
+export interface ManifestCacheFiles {
+	/** The module for browser bundles: `server-only`, and no snapshot. */
+	browser: string;
+	/** The module for server bundles, with the snapshot. */
+	server: string;
+}
 
 /**
- * Writes the generated manifest module under the policy of
- * {@link loadManifestForBuild}. Without a snapshot, the module's export is
- * `undefined`, so imports still compile and the server fetches the manifest
- * at runtime. A failure in `'fail'` mode leaves the file untouched.
+ * Fetches the snapshot under the policy of {@link loadManifestForBuild} and
+ * writes it under `node_modules/.cache/c15t/`, for bundlers without virtual
+ * modules. `manifest.js` holds the snapshot for server bundles.
+ * `manifest.browser.js` is for browser bundles: it imports `server-only`, so
+ * a bundler that knows the marker (Next.js) fails the build, and its
+ * `snapshot` is `undefined` in any case. `manifest.d.ts` types
+ * `manifest.js`.
  *
- * @param options - Backend URL, module settings and `onBuildError`.
- * @param defaults - Framework label, type import, output location, command,
+ * Without a snapshot, `manifest.js` exports `undefined`, so imports still
+ * compile and the server fetches the manifest at runtime. A failure in
+ * `'fail'` mode leaves the files untouched. An unchanged file is not
+ * rewritten.
+ *
+ * @param options - Backend URL and `onBuildError`.
+ * @param defaults - Framework label, type import, app root, command,
  * backend URL variables, and why the framework cannot use a snapshot.
  * @param logger - Receives skip notices and warnings, without the label.
- * @returns The absolute path of the generated module.
- * @throws {Error} When the fetch fails in `'fail'` mode, the export name or
- * import source is invalid, or the file cannot be written.
+ * @returns The absolute paths of the server and browser modules.
+ * @throws {Error} When the fetch fails in `'fail'` mode, or a file cannot be
+ * written.
  * @internal
  */
-export const writeManifestModuleWithFallback = async (
+export const writeManifestCacheModule = async (
 	options: ManifestBuildOptions,
 	defaults: {
 		command: ManifestBuildCommand;
 		envNames?: readonly string[];
 		importSource: string;
 		label: string;
-		outputFile: string;
 		rootDir?: string;
 		skipReason?: string;
 	},
 	logger: ManifestBuildLogger = labelledBuildLogger(defaults.label)
-): Promise<string> => {
-	const names = resolveStaticManifestModuleNames(options, defaults);
-	const manifest = await loadManifestForBuild(
+): Promise<ManifestCacheFiles> => {
+	const snapshot = await loadManifestForBuild(
 		{ backendURL: options.backendURL, fetch: options.fetch },
 		{
 			command: defaults.command,
@@ -534,10 +567,26 @@ export const writeManifestModuleWithFallback = async (
 			skipReason: defaults.skipReason,
 		}
 	);
-	return await writeModuleFile(
-		resolveOutputFile(options, defaults),
-		renderStaticManifestModule(names, manifest)
+	const directory = resolve(
+		defaults.rootDir ?? process.cwd(),
+		MANIFEST_CACHE_DIR
 	);
+	const module = { backendURL: options.backendURL, snapshot };
+	const [server, browser] = await Promise.all([
+		writeModuleFile(
+			join(directory, 'manifest.js'),
+			renderGeneratedModule(module)
+		),
+		writeModuleFile(
+			join(directory, 'manifest.browser.js'),
+			renderGeneratedModule(module, { clientStub: true, serverOnly: true })
+		),
+		writeModuleFile(
+			join(directory, 'manifest.d.ts'),
+			renderGeneratedDeclarations(defaults.importSource)
+		),
+	]);
+	return { browser, server };
 };
 
 /** The slice of Vite's resolved config the manifest plugin reads. */
@@ -547,18 +596,74 @@ export interface ManifestPluginConfig {
 	envDir?: string | false;
 	logger?: ManifestBuildLogger;
 	mode?: string;
+	plugins?: readonly { name: string }[];
 	root: string;
 }
 
+/** The slice of a Vite plugin context `load` reads. */
+export interface ManifestPluginContext {
+	environment?: { config?: { consumer?: 'client' | 'server' } };
+}
+
 /**
- * Builds the Vite plugin behind each `consentManifest` export. One
- * generation is shared across configuration resolution, and a failed one can
- * be retried. Preview uses the existing build. `vite build` follows the
- * build policy, `vite dev` the dev policy. Without `backendURL`, the first of
- * `envNames` that is set supplies it; a `VITE_` variable left unset is then
- * set to the URL used, so app code reads the same value.
- * @param options - Backend URL, module settings and `onBuildError`.
- * @param defaults - Framework label, type import and backend URL variables.
+ * The Vite plugin each `consentManifest()` returns, typed structurally so it
+ * fits the `plugins` array of every supported Vite version.
+ */
+export interface ConsentManifestPlugin {
+	apply: (config: unknown, environment: { isPreview?: boolean }) => boolean;
+	config: () => {
+		optimizeDeps: { exclude: string[] };
+		ssr: { noExternal: string[] };
+	};
+	configResolved: (config: ManifestPluginConfig) => Promise<void>;
+	enforce: 'pre';
+	load: (
+		this: ManifestPluginContext | undefined,
+		id: string,
+		options?: { ssr?: boolean }
+	) => Promise<string | undefined>;
+	name: string;
+	resolveId: (id: string) => string | undefined;
+}
+
+/** The resolved id of the virtual `@c15t/core/generated` module. */
+const VIRTUAL_GENERATED_ID = '\0@c15t/core/generated';
+
+/**
+ * Packages whose modules can import `@c15t/core/generated`. Server builds
+ * bundle them, so the import reaches the plugin instead of Node.
+ */
+const GENERATED_IMPORTERS = [
+	'c15t',
+	'@c15t/browser',
+	'@c15t/core',
+	'@c15t/react',
+	'@c15t/svelte',
+	'@c15t/tanstack-start',
+	'@c15t/vue',
+];
+
+/**
+ * Builds the Vite plugin behind each `consentManifest` export. It fetches
+ * the snapshot once when Vite resolves its configuration and serves it as
+ * the virtual `@c15t/core/generated` module, so no file is written into the
+ * app. A failed generation can be retried. Preview uses the existing build.
+ * `vite build` follows the build policy, `vite dev` the dev policy. Without
+ * `backendURL`, the first of `envNames` that is set supplies it; a `VITE_`
+ * variable left unset is then set to the URL used, so app code reads the
+ * same value.
+ *
+ * In a server-rendered framework, the client environment's module exports
+ * `snapshot: undefined`, so the snapshot never reaches the browser bundle.
+ * `backendURL` is public and reaches every environment.
+ *
+ * The plugin keeps the virtual module out of dependency pre-bundling and
+ * bundles the c15t packages in server builds, so a c15t package can import
+ * `@c15t/core/generated` as app code does.
+ *
+ * @param options - Backend URL and `onBuildError`.
+ * @param defaults - Framework label, backend URL variables, and whether the
+ * framework renders on the server (a function receives the resolved config).
  * @returns The Vite plugin.
  * @internal
  */
@@ -566,14 +671,15 @@ export const createConsentManifestPlugin = (
 	options: ManifestBuildOptions,
 	defaults: {
 		envNames: readonly string[];
-		importSource: string;
 		label: string;
+		serverRendered?: boolean | ((config: ManifestPluginConfig) => boolean);
 	}
-) => {
-	let generation: Promise<string> | undefined;
-	const generateManifest = async (
+): ConsentManifestPlugin => {
+	let generation: Promise<GeneratedManifestModule> | undefined;
+	let serverRendered = false;
+	const generate = async (
 		config: ManifestPluginConfig
-	): Promise<string> => {
+	): Promise<GeneratedManifestModule> => {
 		const envRoot =
 			typeof config.envDir === 'string' ? config.envDir : config.root;
 		const backendURL =
@@ -593,16 +699,17 @@ export const createConsentManifestPlugin = (
 			config.env[exposed] = backendURL;
 		}
 		try {
-			return await writeManifestModuleWithFallback(
-				{ ...options, backendURL },
+			const snapshot = await loadManifestForBuild(
+				{ backendURL, fetch: options.fetch },
 				{
-					...defaults,
 					command: config.command === 'serve' ? 'dev' : 'build',
-					outputFile: 'src/c15t-manifest.ts',
-					rootDir: config.root,
-				},
-				labelledBuildLogger(defaults.label, config.logger)
+					envNames: defaults.envNames,
+					label: defaults.label,
+					logger: labelledBuildLogger(defaults.label, config.logger),
+					onBuildError: options.onBuildError,
+				}
 			);
+			return { backendURL, snapshot };
 		} catch (error) {
 			generation = undefined;
 			throw error;
@@ -611,30 +718,62 @@ export const createConsentManifestPlugin = (
 	return {
 		apply: (_config: unknown, environment: { isPreview?: boolean }) =>
 			!environment.isPreview,
+		config: () => ({
+			optimizeDeps: { exclude: [...GENERATED_MODULE_IDS] },
+			ssr: { noExternal: [...GENERATED_IMPORTERS] },
+		}),
 		configResolved: async (config: ManifestPluginConfig) => {
-			generation ??= generateManifest(config);
+			const { serverRendered: rendered = false } = defaults;
+			serverRendered =
+				typeof rendered === 'function' ? rendered(config) : rendered;
+			generation ??= generate(config);
 			await generation;
 		},
 		enforce: 'pre' as const,
+		async load(
+			this: ManifestPluginContext | undefined,
+			id: string,
+			loadOptions?: { ssr?: boolean }
+		): Promise<string | undefined> {
+			if (id !== VIRTUAL_GENERATED_ID) {
+				return undefined;
+			}
+			if (!generation) {
+				throw new Error(
+					`${defaults.label}: the consent manifest was not loaded before ${GENERATED_MODULE_IDS[0]} was imported.`
+				);
+			}
+			const { backendURL, snapshot } = await generation;
+			const consumer =
+				this?.environment?.config?.consumer ??
+				(loadOptions?.ssr ? 'server' : 'client');
+			return renderGeneratedModule(
+				{ backendURL, snapshot },
+				{ clientStub: serverRendered && consumer === 'client' }
+			);
+		},
 		name: 'c15t:consent-manifest',
+		resolveId: (id: string): string | undefined =>
+			(GENERATED_MODULE_IDS as readonly string[]).includes(id)
+				? VIRTUAL_GENERATED_ID
+				: undefined,
 	};
 };
 
 /**
- * Generates a typed manifest before any Vite framework compiles its app.
- * Shares a successful snapshot across build or development configuration.
- * Failed generation can be retried. Preview uses the existing build.
- * Import the generated `consentManifest` into the app's consent setup.
+ * Fetches the deployment's consent manifest when Vite starts and serves it
+ * as `@c15t/core/generated`, for single-page apps (React, Solid, plain
+ * JavaScript). Import `snapshot` from there; no file is written into the
+ * app.
  *
- * A failed fetch stops `vite build` and warns in `vite dev`, where the
- * generated module exports `undefined`. Set `onBuildError` or
- * `C15T_ON_BUILD_ERROR` to change that.
+ * A failed fetch stops `vite build` and warns in `vite dev`, where
+ * `snapshot` is `undefined`. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to
+ * change that.
  *
- * @param options - Backend URL and output settings. `backendURL` defaults to
- * `VITE_C15T_BACKEND_URL`. The file defaults to `src/c15t-manifest.ts`,
- * with its type imported from `c15t/build`.
+ * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
+ * `VITE_C15T_BACKEND_URL`.
  * @returns A Vite plugin, compatible with React, Vue, Svelte and Solid builds.
- * @throws {Error} When generation fails in `'fail'` mode, stopping Vite.
+ * @throws {Error} When the fetch fails in `'fail'` mode, stopping Vite.
  * @example
  * ```ts
  * import { consentManifest } from 'c15t/build';
@@ -642,9 +781,10 @@ export const createConsentManifestPlugin = (
  * export default { plugins: [consentManifest()] };
  * ```
  */
-export const consentManifest = (options: ManifestBuildOptions = {}) =>
+export const consentManifest = (
+	options: ManifestBuildOptions = {}
+): ConsentManifestPlugin =>
 	createConsentManifestPlugin(options, {
 		envNames: ['VITE_C15T_BACKEND_URL'],
-		importSource: 'c15t/build',
 		label: '@c15t/core/build',
 	});
