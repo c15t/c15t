@@ -55,6 +55,23 @@ Network tab.
 5. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
 
+## The app throws IABUnavailableError
+
+**Check.** The error has the code `C15T_IAB_UNAVAILABLE` and reads
+"c15t: this visitor's policy uses IAB TCF, but `iab` is not set." The
+visitor's policy uses the `iab` model and the backend sent its vendor list,
+but the plugin has no `iab` option, or has `iab: false` or
+`iab: { enabled: false }`. The standard banner does not handle the IAB model,
+so c15t throws rather than leave the visitor with no consent UI.
+`app.use()` throws when the policy arrives with `prefetch`; otherwise the
+error is uncaught once `/init` answers, and `ConsentRoot` renders nothing.
+
+**Fix.** If the site uses IAB TCF, pass `iab` to the plugin, such as
+`app.use(c15tVue, { iab: {} })`. See [IAB TCF](/docs/frameworks/vue/iab).
+If it does not, remove the `iab` model from the policy for that region in
+your Inth project or policy pack. A backend that answers `gvl: null` turns
+IAB off for that request, and nothing throws.
+
 ## The browser requests /api/c15t/init
 
 **Check.** Look for `backendURL` and `manifest` in the plugin options. When

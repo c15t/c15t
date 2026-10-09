@@ -13,7 +13,7 @@ own styles; there is no stylesheet to add.
 
 | Component | Import from | What it renders |
 | --- | --- | --- |
-| [`ConsentRoot`](/docs/frameworks/vue/components/consent-root) | `c15t/vue/consent-root` | The banner and, once opened, the preference dialog. Switches to the IAB surfaces under an IAB policy. |
+| [`ConsentRoot`](/docs/frameworks/vue/components/consent-root) | `c15t/vue/consent-root` | The banner and, once opened, the preference dialog. Switches to the IAB surfaces under an IAB policy when `iab` is set. |
 | [`ConsentBanner`](/docs/frameworks/vue/components/consent-banner) | `c15t/vue/runtime/components/consent-banner.vue` | The first-layer banner on its own. |
 | [`ConsentManager`](/docs/frameworks/vue/components/consent-manager) | `c15t/vue/runtime/components/consent-manager.vue` | The preference dialog on its own. |
 | [`ConsentWidget`](/docs/frameworks/vue/components/consent-widget) | `c15t/vue/consent-widget` | Category switches and save actions inline, for a privacy page. |
@@ -39,7 +39,7 @@ be in `vite.config.ts` for these `.vue` files to compile.
 ## ConsentRoot or the parts
 
 `ConsentRoot` renders `ConsentBanner` and `ConsentManager`, or the IAB
-components, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
+components when `iab` is set, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
 never both, or the visitor sees two banners. Use the parts when you need a
 different variant per route or want to place the surfaces yourself.
 

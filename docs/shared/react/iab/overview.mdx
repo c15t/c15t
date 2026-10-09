@@ -36,10 +36,44 @@ group: reference
   scroll locking and a backdrop together. See [migration](/docs/upgrade-v3) for
   legacy option behavior.
 
+  ## Mount IABProvider for every IAB policy
+
+  IAB is opt-in. The standard `ConsentBanner` and `ConsentDialog` do not
+  handle the IAB model, so when a visitor's policy uses it, the backend
+  sends its vendor list and the app has no `IABProvider`, they throw an
+  `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`):
+  `c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted`.
+  The error happens during render, on the server and in the browser, so
+  your error boundary or the framework's error overlay shows it. Render `IABProvider` from
+  `c15t/react/iab` for those visitors, or remove the `iab` model from the
+  policy.
+
   ## Verify vendor and purpose choices
 
   Test category choices alongside vendor, purpose, legitimate-interest and special
   feature controls used by your integration. Confirm the TC String and `__tcfapi`
   reflect the saved state, and verify the vendor's actual requests. A category-only
   banner test does not establish that the IAB flow works.
+</section>
+
+<section id="missing-provider">
+  The visitor's policy uses the `iab` model and the backend sent its vendor
+  list, but no `IABProvider` is mounted. The standard banner and dialog do
+  not handle the IAB model, so they throw rather than leave the visitor
+  with no consent UI. Server and browser render the same error.
+
+  Fix it one of two ways:
+
+  - If the site uses IAB TCF, render `IABProvider` with `IABConsentBanner`
+    and `IABConsentDialog` from `c15t/react/iab` inside your consent
+    provider. They can sit next to the standard banner.
+  - If it does not, remove the `iab` model from the policy for that region
+    in your Inth project or policy pack.
+
+  A backend that answers `gvl: null` turns IAB off for that request. The
+  policy then runs as opt-in and nothing throws.
+
+  The check passes once `c15t/react/iab` has loaded. If you import the IAB
+  components with a dynamic `import()`, a render of the standard banner
+  that happens before the import finishes still throws.
 </section>

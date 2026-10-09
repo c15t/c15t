@@ -46,6 +46,7 @@ import { baseTranslations } from '@c15t/translations/all';
 import { generateThemeCSS } from '@c15t/ui/theme';
 import type { Theme } from '@c15t/ui/theme';
 
+import { assertIABAvailable } from './libs/iab-unavailable';
 import type { C15tColorScheme, C15tLocals, C15tResolvedOptions } from './types';
 
 /** Input for {@link resolveConsentContext}. */
@@ -408,6 +409,7 @@ export const resolveConsentContext = async function resolveConsentContext(
 			...(config.initialVendors?.declared ?? []),
 		]),
 	});
+	assertIABAvailable(snapshot, options.iab);
 	return {
 		// A prerendered config carries no stored records, clock or privacy
 		// signal: any `initialRecords` at all stop the browser reading the

@@ -12,7 +12,7 @@ you use them in templates without an import. Import the others by path.
 
 | Component | In Nuxt | What it renders |
 | --- | --- | --- |
-| [`ConsentRoot`](/docs/frameworks/nuxt/components/consent-root) | Global | The banner, rendered on the server, and the preference dialog once opened. Switches to the IAB surfaces under an IAB policy. |
+| [`ConsentRoot`](/docs/frameworks/nuxt/components/consent-root) | Global | The banner, rendered on the server, and the preference dialog once opened. Switches to the IAB surfaces under an IAB policy when `iab` is set. |
 | [`ConsentWidget`](/docs/frameworks/nuxt/components/consent-widget) | Global | Category switches and save actions inline, for a privacy page. |
 | [`ConsentPreferencesLink`](/docs/frameworks/nuxt/components/consent-preferences-link) | Global | A button that opens preferences. |
 | [`ConsentDialogTrigger`](/docs/frameworks/nuxt/components/consent-dialog-trigger) | Global | A floating, draggable button that opens preferences. |
@@ -34,7 +34,7 @@ import ConsentBanner from 'c15t/vue/runtime/components/consent-banner.vue';
 ## ConsentRoot or the parts
 
 `ConsentRoot` renders `ConsentBanner` and `ConsentManager`, or the IAB
-components, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
+components when `iab` is set, for the visitor's policy. Mount `ConsentRoot`, or mount the parts,
 never both, or the visitor sees two banners. Always use the global
 `ConsentRoot` in Nuxt, not `c15t/vue/consent-root`. The global one renders the
 banner on the server. The module writes theme tokens into the page head

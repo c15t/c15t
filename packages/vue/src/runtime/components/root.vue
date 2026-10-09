@@ -7,15 +7,16 @@ import {
 	useConsentKernelContext,
 } from '../composables';
 import { useConsentConfig } from '../composables/config';
+import { useMounted } from '../composables/use-mounted';
 import { applyRootOverrides } from '../root-overrides';
 import {
+	LazyConsentDialogTrigger,
 	LazyConsentManager,
 	LazyIabConsentBanner,
 	LazyIabConsentDialog,
 	prefetchConsentManager,
 	prefetchIabConsentDialog,
 } from './lazy-surfaces';
-import ConsentDialogTrigger from './panel-trigger.vue';
 import ConsentBanner from './prompt.vue';
 
 const props = defineProps<{
@@ -28,6 +29,11 @@ const activeUI = useConsentActiveUI();
 const init = useConsentInit();
 const config = useConsentConfig();
 const context = useConsentKernelContext();
+// An `iab` policy without `iab` has no surface to show; the context reports
+// the error instead.
+const { iabUnavailable } = context;
+// The trigger shows only after mount, so its chunk loads after mount too.
+const mounted = useMounted();
 
 onMounted(() => {
 	// Warm the dialog chunk during idle so the first open is instant.
@@ -50,17 +56,19 @@ watch(
 </script>
 
 <template>
-	<LazyIabConsentBanner
-		v-if="(init?.gvl || init?.gvlReference) && activeUI === 'banner'"
-	/>
-	<LazyIabConsentDialog
-		v-else-if="(init?.gvl || init?.gvlReference) && activeUI === 'manager'"
-	/>
-	<ConsentBanner
-		v-else-if="!(init?.gvl || init?.gvlReference) && activeUI === 'banner'"
-	/>
-	<LazyConsentManager
-		v-else-if="!(init?.gvl || init?.gvlReference) && activeUI === 'manager'"
-	/>
-	<ConsentDialogTrigger v-if="config.showTrigger" />
+	<template v-if="!iabUnavailable">
+		<LazyIabConsentBanner
+			v-if="(init?.gvl || init?.gvlReference) && activeUI === 'banner'"
+		/>
+		<LazyIabConsentDialog
+			v-else-if="(init?.gvl || init?.gvlReference) && activeUI === 'manager'"
+		/>
+		<ConsentBanner
+			v-else-if="!(init?.gvl || init?.gvlReference) && activeUI === 'banner'"
+		/>
+		<LazyConsentManager
+			v-else-if="!(init?.gvl || init?.gvlReference) && activeUI === 'manager'"
+		/>
+		<LazyConsentDialogTrigger v-if="config.showTrigger && mounted" />
+	</template>
 </template>

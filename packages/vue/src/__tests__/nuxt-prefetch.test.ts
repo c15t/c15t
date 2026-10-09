@@ -8,7 +8,10 @@ import { join } from 'node:path';
 
 import { describe, expect, test } from 'vitest';
 
-import { stopPrefetchingConsentChunks } from '../prefetch';
+import {
+	preloadConsentBanner,
+	stopPrefetchingConsentChunks,
+} from '../prefetch';
 import type { ClientManifestChunk } from '../prefetch';
 
 const c15t = (path: string) => `../node_modules/@c15t/${path}`;
@@ -86,8 +89,42 @@ describe('stopPrefetchingConsentChunks', () => {
 		stopPrefetchingConsentChunks(manifest, '/app', isConsentFile);
 
 		expect(prefetched(manifest)).toEqual([
+			'_shared-kernel.js',
+			'_vue.js',
+			'node_modules/nuxt/dist/app/components/error-404.vue',
+			'node_modules/nuxt/dist/app/entry.js',
+		]);
+	});
+
+	test('drops the IAB banner, its CMP and their styles unless the build turns IAB on', () => {
+		const manifest = createManifest();
+		const banner = manifest[c15t('vue/dist/runtime/components/iab-prompt.vue')];
+		if (banner) {
+			banner.css = ['iab-prompt.css'];
+			banner.imports = ['_iab-headless.js'];
+		}
+		manifest['iab-prompt.css'] = { prefetch: true };
+		manifest['_iab-headless.js'] = { prefetch: true };
+		stopPrefetchingConsentChunks(manifest, '/app', isConsentFile);
+
+		for (const key of [
+			c15t('iab/dist/index.js'),
+			c15t('vue/dist/runtime/components/iab-prompt.vue'),
+			'_iab-headless.js',
+			'iab-prompt.css',
+		]) {
+			expect(manifest[key]?.prefetch, key).toBe(false);
+		}
+	});
+
+	test('keeps the IAB banner and its CMP when the build turns IAB on', () => {
+		const manifest = createManifest();
+		stopPrefetchingConsentChunks(manifest, '/app', isConsentFile, {
+			iab: true,
+		});
+
+		expect(prefetched(manifest)).toEqual([
 			'@c15t/iab/dist/index.js',
-			'@c15t/vue/dist/runtime/client-manifest.js',
 			'@c15t/vue/dist/runtime/components/iab-prompt.vue',
 			'_shared-kernel.js',
 			'_vue.js',
@@ -109,6 +146,23 @@ describe('stopPrefetchingConsentChunks', () => {
 		]) {
 			expect(manifest[key]?.prefetch, key).toBe(false);
 		}
+	});
+
+	test('keeps the client manifest hint only in client manifest mode', () => {
+		// Server manifest and hosted mode never import the resolver and its
+		// translations at startup; a hint downloaded them on every page.
+		const hosted = createManifest();
+		stopPrefetchingConsentChunks(hosted, '/app', isConsentFile, {
+			clientManifest: false,
+		});
+		const client = createManifest();
+		stopPrefetchingConsentChunks(client, '/app', isConsentFile, {
+			clientManifest: true,
+		});
+		const key = c15t('vue/dist/runtime/client-manifest.js');
+
+		expect(hosted[key]?.prefetch).toBe(false);
+		expect(client[key]?.prefetch).toBe(true);
 	});
 
 	test('a chunk the app also reaches keeps its hint', () => {
@@ -135,5 +189,40 @@ describe('stopPrefetchingConsentChunks', () => {
 		expect(manifest['src/runtime/components/manager.vue']?.prefetch).toBe(
 			false
 		);
+	});
+});
+
+describe('preloadConsentBanner', () => {
+	const banner = c15t('vue/dist/runtime/components/prompt.vue');
+	const entry = 'node_modules/nuxt/dist/app/entry.js';
+	const createBannerManifest = (): Record<string, ClientManifestChunk> => ({
+		'_vue.js': {},
+		[banner]: {
+			imports: ['_vue.js'],
+			isDynamicEntry: true,
+			src: banner,
+		},
+		[entry]: {
+			dynamicImports: [banner],
+			imports: ['_vue.js'],
+			isEntry: true,
+			src: entry,
+		},
+	});
+
+	test('lists the banner chunk among the entry imports, so every page preloads it', () => {
+		const manifest = createBannerManifest();
+		preloadConsentBanner(manifest, '/app', isConsentFile);
+		preloadConsentBanner(manifest, '/app', isConsentFile);
+
+		expect(manifest[entry]?.imports).toEqual(['_vue.js', banner]);
+		expect(manifest[entry]?.dynamicImports).toEqual([banner]);
+	});
+
+	test('leaves a manifest without the c15t banner alone', () => {
+		const manifest = createBannerManifest();
+		preloadConsentBanner(manifest, '/app', () => false);
+
+		expect(manifest[entry]?.imports).toEqual(['_vue.js']);
 	});
 });

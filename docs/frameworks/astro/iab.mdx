@@ -34,6 +34,19 @@ Replace `123` with your registered CMP ID. A hosted backend can supply the CMP
 ID through `/init`, so `cmpId` is optional when your Inth project has one. The integration adds `c15t/astro/iab/styles.css`
 to every page once `iab` is set.
 
+IAB stays off until you set `iab`. Without it, or with `iab: false` or
+`enabled: false`, the page script contains no CMP code and the browser never
+downloads `@c15t/iab`.
+
+If a visitor's policy uses the `iab` model and the backend sends its vendor
+list while `iab` is unset, the server render throws an `IABUnavailableError`
+(code `C15T_IAB_UNAVAILABLE`). A page the browser resolves itself, such as a
+prerendered one, throws it there as an uncaught error. The standard banner
+does not handle the IAB model, so the visitor would otherwise get no working
+consent UI. Set `iab`, or remove the `iab` model from the policy. A backend
+that answers `gvl: null` turns IAB off for the request, and the policy runs
+as opt-in.
+
 | Option | Effect |
 | --- | --- |
 | `cmpId` | Your registered CMP ID |

@@ -60,6 +60,8 @@ const config = {
 		Promise.resolve(Response.json({ ok: true }))) as unknown as typeof fetch,
 	disableAnimation: true,
 	hideBranding: true,
+	// IAB is opt-in; these surfaces stand for an app that turned it on.
+	iab: {},
 	trapFocus: false,
 } as ConsentConfig;
 

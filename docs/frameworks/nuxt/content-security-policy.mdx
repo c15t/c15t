@@ -11,7 +11,7 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | What | Directive |
 | --- | --- |
 | The `<style id="c15t-css-vars">` tag with your theme tokens, in the page head | `style-src` |
-| The components' CSS, which Nuxt bundles with your app | `style-src` |
+| The components' CSS: inline `<style>` tags Nuxt writes for the server-rendered banner, and stylesheets Nuxt bundles with your app | `style-src` |
 | On `ssr: false` pages with `manifest` unset, an inline `<script>` in the page head that starts `/init` | `script-src` |
 | Browser requests to `/api/c15t/init` and `/api/c15t/manifest` in server mode | `connect-src 'self'` |
 | Consent saves to your backend's `/subjects`, and `manifestURL` in client mode | `connect-src` |
@@ -19,7 +19,11 @@ A Nuxt app with c15t adds these to the page, and your policy must allow them:
 | Scripts, frames, images and requests your vendors load | `script-src`, `frame-src`, `img-src`, `connect-src` for each vendor |
 
 Nuxt adds its own inline scripts and, by default, inline styles. Its
-documentation and modules such as `nuxt-security` cover those.
+documentation and modules such as `nuxt-security` cover those. The banner's
+first paint uses Nuxt's inline styles. If your policy cannot allow them, turn
+them off with `features: { inlineStyles: false }` in `nuxt.config.ts`: Nuxt
+then links the banner's CSS as stylesheets, and the module leaves those links
+in place.
 
 ## Allow the theme token style tag
 
@@ -62,7 +66,7 @@ To leave the script out, set `initPrefetch: false` in the module options.
 In server mode the browser calls your own origin for `/api/c15t/init`, which
 `'self'` covers, and sends consent saves to your backend. Add the backend's
 origin to `connect-src`. With `manifest: 'client'`, add the origin of
-`manifestURL` too. Under an IAB TCF policy, the browser loads the Global
+`manifestURL` too. With `iab` set and an IAB TCF policy, the browser loads the Global
 Vendor List through the module's init route in server mode, or from your
 backend otherwise.
 

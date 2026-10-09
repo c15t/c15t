@@ -6,6 +6,7 @@ import { computed, markRaw, toRaw, watch } from 'vue';
 import clientManifestSnapshot from '#c15t/client-manifest-snapshot';
 import {
 	defineNuxtPlugin,
+	showError,
 	useAppConfig,
 	useHead,
 	useRequestEvent,
@@ -195,13 +196,22 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 	nuxtApp.vueApp.provide(consentConfigKey, config);
 
 	// One runtime per app. Payload state is deep-reactive; the kernel gets
-	// the plain objects.
+	// the plain objects. An `iab` policy without `iab` throws from here when
+	// the server resolved it, and Nuxt renders its error page. A policy the
+	// browser resolves (`ssr: false`, a prerendered page) shows the same
+	// error page from the client.
 	const context = createVueConsentKernelContext({
 		config: config.value as ConsentConfig,
 		headers,
+		host: 'nuxt',
 		initialRecords: initialRecords.value
 			? toRaw(initialRecords.value)
 			: undefined,
+		onIABUnavailable: (error) => {
+			// The error page alone writes nothing to the console.
+			console.error(error);
+			void nuxtApp.runWithContext(() => showError(error));
+		},
 		prefetchState: hasPrefetch ? prefetch : undefined,
 	});
 	provideVueConsentContext(nuxtApp.vueApp, context);

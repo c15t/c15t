@@ -6,15 +6,17 @@ group: frameworks
 
 ## Import the IAB banner into `app.vue`
 
-`ConsentRoot` renders `IABConsentBanner` for you when the visitor's policy
-uses IAB TCF. Import it only when every policy on your site is IAB and you
+`ConsentRoot` renders `IABConsentBanner` for you when the module's `iab`
+option is set and the visitor's policy uses IAB TCF. Import it only when every policy on your site is IAB and you
 compose the surfaces yourself. The module does not register it globally, so
 import it from `c15t/vue/runtime/components/iab-consent-banner.vue`:
 
 <include src="../../../shared/examples/nuxt/iab-surfaces.mdx" />
 
-Render this in `app.vue` in place of `ConsentRoot`. A visitor whose policy is
-not IAB sees nothing from these components.
+Render this in `app.vue` in place of `ConsentRoot`, and set the module's `iab`
+option; see [IAB TCF](/docs/frameworks/nuxt/iab). A visitor whose policy is
+not IAB sees nothing from these components. Without `iab`, an IAB policy
+throws an `IABUnavailableError` instead.
 
 <import src="../../../shared/vue/components/iab-consent-banner.mdx#behavior" />
 

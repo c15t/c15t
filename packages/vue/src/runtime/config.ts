@@ -125,11 +125,16 @@ export interface ConsentConfig
 	/** Receives kernel events only when the corresponding change occurs. */
 	callbacks?: ConsentRuntimeOptions['callbacks'];
 	/**
-	 * IAB TCF publisher settings for the CMP c15t mounts under an `iab`
-	 * policy: `publisherRestrictions`, `publisherCountryCode`, `vendors`,
-	 * `customVendors`, `cmpVersion`, and `cmpId` or `gvl` when the backend
-	 * does not supply them. Fields left out come from `/init`. `false`
-	 * mounts no CMP.
+	 * Turn on IAB TCF. Set it, even to `{}`, and c15t mounts its CMP
+	 * (`__tcfapi`) and shows the IAB banner while the visitor's policy uses
+	 * the `iab` model. Left unset, `false`, or `{ enabled: false }`, IAB
+	 * stays off and the IAB code never loads; an `iab` policy whose vendor
+	 * list arrives then throws an `IABUnavailableError`.
+	 *
+	 * The object takes publisher settings: `publisherRestrictions`,
+	 * `publisherCountryCode`, `vendors`, `customVendors`, `cmpVersion`, and
+	 * `cmpId` or `gvl` when the backend does not supply them. Fields left
+	 * out come from `/init`. Read once, when the app starts.
 	 *
 	 * @example
 	 * ```ts

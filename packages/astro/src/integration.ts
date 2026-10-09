@@ -394,7 +394,7 @@ const buildBootScript = function buildBootScript(
 		JSON.stringify(resolveEntry(specifier));
 	const lines = [
 		`import options from '${VIRTUAL_ID}';`,
-		`import { boot, registerDialogAdapter, registerDialogStyles, registerDialogSurface, registerRuntimeModules } from ${quote('@c15t/astro/client')};`,
+		`import { boot, registerDialogAdapter, registerDialogStyles, registerDialogSurface, registerIAB, registerRuntimeModules } from ${quote('@c15t/astro/client')};`,
 		`registerDialogAdapter(${serializedUI}, async () => (await import(${quote(adapter.adapterModule)})).${adapter.adapterExport});`,
 		`registerDialogSurface(${serializedUI}, () => import(${quote(adapter.surfaceModule)}));`,
 	];
@@ -406,6 +406,15 @@ const buildBootScript = function buildBootScript(
 		}
 		lines.push(
 			`registerRuntimeModules({ ${runtimeModules.map(({ name }) => name).join(', ')} });`
+		);
+	}
+	// Only a site that sets `iab` ships the CMP mount and the lazy factory,
+	// and `@c15t/iab` itself stays behind the factory's `import()`.
+	if (isIABConfigured(resolved.iab)) {
+		lines.push(
+			`import { createLazyIABFactory } from ${quote('@c15t/core/runtime')};`,
+			`import { mountRuntimeIAB } from ${quote('@c15t/core/runtime/on-demand')};`,
+			`registerIAB({ ...createLazyIABFactory(() => import(${quote('@c15t/iab')})), mount: mountRuntimeIAB });`
 		);
 	}
 	// `?url` makes each stylesheet an emitted file and the import a string,

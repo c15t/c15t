@@ -34,15 +34,14 @@ import type {
 import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
 import { createPersistence } from '@c15t/core/modules/persistence';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
+import { isIABConfigured } from '@c15t/core/runtime';
 import type {
 	ConsentRuntime,
+	ConsentRuntimeIABFactory,
 	ConsentRuntimeOptions,
 	RuntimeIABOptions,
 } from '@c15t/core/runtime';
-import {
-	createConsentRuntimeWith,
-	mountRuntimeIAB,
-} from '@c15t/core/runtime/on-demand';
+import { createConsentRuntimeWith } from '@c15t/core/runtime/on-demand';
 import { clearOnRevocationOnDemand } from '@c15t/core/runtime/on-demand-factories';
 import type { ConsentRuntimeModules } from '@c15t/core/runtime/provider';
 import {
@@ -66,9 +65,9 @@ import {
 	keepDialogStylesOnSwap,
 	loadDialogStyles,
 } from './browser/dialog-styles';
-import { lazyCreateIAB, whenIABReady } from './browser/iab';
 import { activateGatedScripts } from './browser/inline-scripts';
 import type * as PromptRenderer from './browser/render-prompt';
+import { assertIABAvailable, isIABUnavailable } from './libs/iab-unavailable';
 import { resolveTransportFactory } from './mode';
 import type { C15tClientOptionsExtension, C15tResolvedOptions } from './types';
 import { loadDialogAdapter } from './ui/adapter';
@@ -688,9 +687,10 @@ const notRegistered = function notRegistered(option: string): never {
 
 /**
  * The runtime modules the page mounts. Data clearing loads on demand;
- * persistence, the iframe blocker and the IAB mount load with the page.
- * The boot script registers the script loader, the network blocker and a
- * `consentSource` connection for a site that can configure them.
+ * persistence and the iframe blocker load with the page. The boot script
+ * registers the script loader, the network blocker and a `consentSource`
+ * connection for a site that can configure them, and the IAB mount
+ * through {@link registerIAB} for a site that sets `iab`.
  */
 let pageRuntimeModules: ConsentRuntimeModules = {
 	connectConsentSource: () => notRegistered('consentSource'),
@@ -704,8 +704,39 @@ let pageRuntimeModules: ConsentRuntimeModules = {
 	createPersistence,
 	createScriptLoader: () => notRegistered('scripts'),
 	createWindowDebug,
-	mountIAB: mountRuntimeIAB,
 	watchRevocationReload,
+};
+
+/**
+ * What a page needs to run the IAB CMP: a lazy `createIAB` (from
+ * `createLazyIABFactory`), its readiness signal, and the runtime mount.
+ *
+ * @internal
+ */
+export interface PageIAB {
+	/** The `createIAB` the runtime calls synchronously. */
+	create: ConsentRuntimeIABFactory;
+	/** Resolves once every pending `@c15t/iab` load has settled. */
+	whenReady: () => Promise<void>;
+	/** `mountRuntimeIAB` from `@c15t/core/runtime`. */
+	mount: NonNullable<ConsentRuntimeModules['mountIAB']>;
+}
+
+/** Set by the boot script of a site that sets `iab`; `null` everywhere else. */
+let pageIAB: PageIAB | null = null;
+
+/**
+ * Wire the IAB CMP into the page runtime.
+ *
+ * The integration's boot script calls this only when the site sets `iab`,
+ * so a site without IAB ships neither the mount nor the lazy factory, and
+ * never fetches `@c15t/iab`. Call before {@link boot}.
+ *
+ * @param iab - The lazy factory and the mount.
+ * @internal
+ */
+export const registerIAB = function registerIAB(iab: PageIAB): void {
+	pageIAB = iab;
 };
 
 /**
@@ -745,6 +776,11 @@ const createClient = function createClient(
 		void reportUnhashedScripts(extension.scripts, options.csp);
 	}
 
+	// Only a site that sets `iab` gets the IAB wiring from its boot script.
+	const iab = isIABConfigured(options.iab)
+		? (pageIAB ?? notRegistered('iab'))
+		: null;
+
 	// The server already resolved translations into `prefetch`, which the
 	// runtime prefers over anything it would derive from `i18n`.
 	const runtime = createConsentRuntimeWith(
@@ -754,7 +790,7 @@ const createClient = function createClient(
 				extension.clearOnRevocation ?? options.clearOnRevocation,
 			consentCategories: options.consentCategories,
 			consentSource: extension.consentSource,
-			createIAB: lazyCreateIAB,
+			createIAB: iab?.create,
 			// The server resolved this request's arm into the prefetch. Without
 			// one, no experiment runs: browser assignment would hold a banner
 			// the server already rendered.
@@ -789,7 +825,7 @@ const createClient = function createClient(
 			theme: options.theme,
 			vendors: options.vendors,
 		},
-		pageRuntimeModules
+		iab ? { ...pageRuntimeModules, mountIAB: iab.mount } : pageRuntimeModules
 	);
 
 	let dialog: ConsentDialogHandle | null = null;
@@ -920,7 +956,7 @@ const createClient = function createClient(
 					if (kind === 'iab') {
 						// The IAB surface renders against `runtime.iab`, which is
 						// a lazy proxy until `@c15t/iab` lands.
-						await whenIABReady();
+						await iab?.whenReady();
 						if (disposed) {
 							return;
 						}
@@ -1323,12 +1359,25 @@ export const boot = function boot(
 	}
 
 	const client = createClient(options, extension);
+	// A server config for an `iab` policy on a site without `iab` fails the
+	// server render first; this covers a page the browser resolves itself.
+	assertIABAvailable(client.getConsent(), options.iab);
 	browserWindow[GLOBAL_KEY] = client;
 	client.runtime.start();
 	applyColorScheme(options.colorScheme);
 	attachBannerActions();
 
+	let iabReported = false;
 	client.subscribe((snapshot) => {
+		if (isIABUnavailable(snapshot, options.iab)) {
+			// Thrown outside the kernel's listener loop, so it reaches the
+			// console and the dev overlay as an uncaught error.
+			if (!iabReported) {
+				iabReported = true;
+				queueMicrotask(() => assertIABAvailable(snapshot, options.iab));
+			}
+			return;
+		}
 		ensurePromptRendered(client, snapshot);
 		syncBannerVisibility(snapshot);
 		syncSurfaceVisibility(snapshot);

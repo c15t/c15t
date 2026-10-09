@@ -3,6 +3,8 @@
 	import {
 		applyExperimentAssignment,
 		applyExperimentTheme,
+		IABUnavailableError,
+		policyNeedsIAB,
 		watchRevocationReload,
 	} from '@c15t/core';
 	import { createIframeBlocker } from '@c15t/core/modules/iframe-blocker';
@@ -348,6 +350,20 @@
 		snapshot = next;
 	});
 
+	// IAB is opt-in. Without `iab` no CMP answers for an `iab` policy, and
+	// the standard banner does not handle it, so the visitor would get no
+	// consent UI. Throw from the render instead, on the server and in the
+	// browser. A borrowed runtime's owner configures IAB, not this provider.
+	const iabUnavailable = $derived(
+		ownsRuntime && !isIABConfigured(options.iab) && policyNeedsIAB(snapshot)
+	);
+	const throwIABUnavailable = function throwIABUnavailable(): never {
+		throw new IABUnavailableError(
+			'`iab` is not set',
+			'Set `iab` on <ConsentManagerProvider> and render <IABConsentBanner>'
+		);
+	};
+
 	// The lazy handle queues calls until `@c15t/iab` lands and replays them,
 	// so the surfaces render against it as soon as it exists.
 	const unsubscribeIAB = runtime.subscribe(() => {
@@ -481,6 +497,8 @@
 	{/if}
 </svelte:head>
 
-{#if children}
+{#if iabUnavailable}
+	{throwIABUnavailable()}
+{:else if children}
 	{@render children()}
 {/if}

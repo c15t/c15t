@@ -232,7 +232,8 @@ it.each(['public', 'custom'] as const)(
 		vi.stubGlobal('fetch', fetch);
 		try {
 			const result = await render({
-				astroOptions: { mode: manifestMode({ manifest }) },
+				// IAB is opt-in: without `iab` an IAB policy throws.
+				astroOptions: { iab: { cmpId: 28 }, mode: manifestMode({ manifest }) },
 				fetch: loader === 'custom' ? fetch : undefined,
 				headers: { 'x-c15t-country': 'DE' },
 			});

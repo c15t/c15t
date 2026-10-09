@@ -18,6 +18,7 @@ import { Box } from '~/components/shared/primitives/box';
 import type { InlineLegalLinksProps } from '~/components/shared/primitives/legal-links';
 import { BrandingLink } from '~/components/shared/ui/branding';
 import { useComponentConfig } from '~/hooks/use-component-config';
+import { useIABPolicyGuard } from '~/hooks/use-iab-policy-guard';
 
 import { StreamedSurface } from '../shared/streamed-surface';
 import { ConsentBannerRoot } from './atoms/root';
@@ -248,6 +249,8 @@ const ConsentBannerContent: FC<ConsentBannerProps> = ({
 	position,
 	blocking,
 }) => {
+	// Outside the banner's own error boundary, which would swallow it.
+	useIABPolicyGuard();
 	const primaryActions =
 		typeof primaryButton === 'string' ? [primaryButton] : primaryButton;
 	const { banner } = useHeadlessConsentUI({

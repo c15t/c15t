@@ -376,6 +376,8 @@ export const createPolicySession: CreatePolicySession = async (setup) => {
 					'marketing',
 				],
 				disableAnimation: true,
+				// IAB is opt-in: without it an IAB policy throws.
+				iab: setup.policy.model === 'iab' ? {} : undefined,
 				mode: custom({
 					init: () => {
 						requests.push({ kind: 'init', payload: null });
