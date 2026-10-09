@@ -102,6 +102,42 @@ describe('createBrowserManifestTransport()', () => {
 		}
 	});
 
+	test('loads the vendor list for an IAB policy', async () => {
+		const vendorList = { vendorListVersion: 42, vendors: {} };
+		const fetchSpy = vi.fn<typeof fetch>(() =>
+			Promise.resolve(jsonResponse(vendorList))
+		);
+		const transport = createBrowserManifestTransport({
+			backendURL: 'https://backend.example',
+			fetch: fetchSpy,
+			snapshot: {
+				...everywhereManifest,
+				iab: {
+					enabled: true,
+					gvl: { url: 'https://gvl.example/vendor-list', version: 42 },
+				},
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						categories: ['*'],
+						id: 'everywhere-iab',
+						match: { isDefault: true },
+						model: 'iab',
+						prompt: 'choice',
+						scopeMode: 'strict',
+					}),
+				],
+			},
+		});
+
+		const response = await transport.init?.(initContext({ language: 'en' }));
+
+		expect(fetchSpy).toHaveBeenCalledWith(
+			'https://gvl.example/vendor-list',
+			expect.objectContaining({ method: 'GET' })
+		);
+		expect(response?.gvl).toEqual(vendorList);
+	});
+
 	test('asks geoURL for a location the policy needs', async () => {
 		const fetchSpy = vi.fn<typeof fetch>((input) =>
 			Promise.resolve(
