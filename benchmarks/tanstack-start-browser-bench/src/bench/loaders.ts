@@ -1,3 +1,4 @@
+import { manifest } from '@c15t/tanstack-start';
 import {
 	createConsentStateHandler,
 	mergeInitIntoConsentState,
@@ -57,7 +58,12 @@ export const getDirectInitConsentState = createServerFn({
 }).handler(async () => {
 	const { getRequest } = await import('@tanstack/react-start/server');
 	const request = getRequest();
-	const base = await resolveConsent({ request });
+	// Without a backend URL the helper reads cookies and headers only; the
+	// root gets the URL for its own requests from the state.
+	const base = {
+		...(await resolveConsent({ request })),
+		backendURL: BENCH_BACKEND_URL,
+	};
 	try {
 		const init = await fetchDirectInit(request, base);
 		return init ? mergeInitIntoConsentState(base, init) : base;
@@ -80,7 +86,7 @@ export const getManifestConsentState = createServerFn({
 }).handler(
 	createConsentStateHandler({
 		backendURL: BENCH_BACKEND_URL,
-		manifestURL: getBenchManifestURL(),
+		mode: manifest({ manifestURL: getBenchManifestURL() }),
 		routePrefix: '/api/c15t',
 	})
 );

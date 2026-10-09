@@ -4,9 +4,8 @@
 import { createServerFn } from '@tanstack/react-start';
 import { createConsentStateHandler } from 'c15t/tanstack-start/server';
 
-import { consentOptions } from '../consent-options.server';
-
+// Reads the backend URL and the policy consentManifest() downloaded.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler(consentOptions)
+	createConsentStateHandler()
 );
 ```

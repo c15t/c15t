@@ -1,4 +1,4 @@
-import { createConsentServerRoute } from '@c15t/tanstack-start/api';
+import { createConsentRoute } from '@c15t/tanstack-start/api';
 import { createFileRoute } from '@tanstack/react-router';
 
 import {
@@ -14,7 +14,7 @@ import {
  */
 export const Route = createFileRoute('/api/c15t-proxy/$')({
 	server: {
-		handlers: createConsentServerRoute({
+		handlers: createConsentRoute({
 			backendURL: BENCH_BACKEND_URL,
 			manifestURL: getBenchManifestURL(),
 			proxy: true,

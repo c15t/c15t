@@ -6,14 +6,14 @@ each visitor from it, so the banner is part of the first HTML. PostHog loads
 only after the visitor allows measurement, and a "Privacy settings" link
 reopens the dialog.
 
+- `.env` sets `VITE_C15T_BACKEND_URL`, the project the policy comes from.
 - `vite.config.ts` adds the `consentManifest` plugin, which downloads the
-  policy when `vite dev` or `vite build` starts, serves it to server code as
-  `c15t/generated`, and passes the backend URL to the app as
-  `VITE_C15T_BACKEND_URL`.
+  policy when `vite dev` or `vite build` starts and bundles it into the
+  server.
 - `src/routes/__root.tsx` resolves consent in a server function from that
-  manifest and the request's location, language and Global Privacy Control
-  headers, then mounts `ConsentRoot` with the banner and dialog.
-- `src/scripts.ts` registers PostHog.
+  policy and the request's location, language and Global Privacy Control
+  headers, then mounts `ConsentRoot` with the banner and dialog. It also
+  registers PostHog.
 
 ## Run it
 
@@ -34,8 +34,8 @@ app's origin to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project.
 
-Replace `phc_your_project_key` in `src/scripts.ts` with your PostHog project
-key.
+Replace `phc_your_project_key` in `src/routes/__root.tsx` with your PostHog
+project key.
 
 `bun run build` then `bun run start` serves the production build.
 

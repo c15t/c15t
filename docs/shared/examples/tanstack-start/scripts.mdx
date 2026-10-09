@@ -1,14 +1,11 @@
-{/* Generated from examples/tanstack-start/src/scripts.ts (docs:scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from examples/tanstack-start/src/routes/__root.tsx (docs:scripts) by scripts/sync-example-docs.ts. Edit the source file. */}
 
-```ts title="src/scripts.ts"
-import { posthog } from '@c15t/integrations/posthog';
-
-export const scripts = [
+```tsx title="src/routes/__root.tsx"
+const scripts = [
 	posthog({
 		id: 'phc_your_project_key',
 		initOptions: { cookieless_mode: 'never' },
 		loadMode: 'after-consent',
-		region: 'eu',
 	}),
 ];
 ```

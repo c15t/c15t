@@ -1,3 +1,4 @@
+import { hosted } from '@c15t/core';
 import { createManifestTransport } from '@c15t/core/transports/manifest';
 // Vite resolves this through the adapter's own React dependency, preserving
 // the dependency graph used by baseline comparisons.
@@ -8,12 +9,12 @@ import {
 	ConsentProvider,
 	ConsentRoot,
 	custom,
-	hosted,
 } from '@c15t/tanstack-start';
 import type {
 	ConsentProviderOptions,
 	ConsentRootProps,
 } from '@c15t/tanstack-start';
+import type { ConsentState } from '@c15t/tanstack-start/server';
 import { useMemo } from 'react';
 import type { ReactNode } from 'react';
 
@@ -137,10 +138,10 @@ export const TanstackManifestClientBenchmarkProvider = ({
 };
 
 /**
- * `ssr` arm: the loader already carries the init response, so the root
- * renders the banner into the first HTML. Without `routePrefix`, any
- * client refresh calls the backend's `/init` directly, matching the Next
- * arm.
+ * `ssr` arm: the loader already carries the init response and the backend
+ * URL, so the root renders the banner into the first HTML. Without
+ * `routePrefix`, any client refresh calls the backend's `/init` directly,
+ * matching the Next arm.
  */
 export const TanstackPrefetchedBenchmarkProvider = ({
 	children,
@@ -152,7 +153,6 @@ export const TanstackPrefetchedBenchmarkProvider = ({
 	scenario: TanstackBenchScenario;
 }) => (
 	<ConsentRoot
-		backendURL={BENCH_BACKEND_URL}
 		state={state}
 		options={createRootOptions(scenario)}
 	>
@@ -162,9 +162,9 @@ export const TanstackPrefetchedBenchmarkProvider = ({
 
 /**
  * `manifest-ssr` and `manifest-ssr-proxy` arms: manifest-resolved
- * state plus the same-origin consent route under `routePrefix`.
- * `backendURL` decides where the accept click posts: the fixture
- * directly, or the proxy mount.
+ * state plus the same-origin consent route under `routePrefix`, both
+ * carried by the state. `backendURL` decides where the accept click posts:
+ * the fixture directly, or the proxy mount.
  */
 export const TanstackManifestBenchmarkProvider = ({
 	backendURL = BENCH_BACKEND_URL,
@@ -175,14 +175,12 @@ export const TanstackManifestBenchmarkProvider = ({
 }: {
 	backendURL?: string;
 	children: ReactNode;
-	state: ConsentRootProps['state'];
-	routePrefix?: ConsentRootProps['routePrefix'];
+	state: ConsentState;
+	routePrefix?: string;
 	scenario: TanstackBenchScenario;
 }) => (
 	<ConsentRoot
-		backendURL={backendURL}
-		state={state}
-		routePrefix={routePrefix}
+		state={{ ...state, backendURL, routePrefix }}
 		options={createRootOptions(scenario)}
 	>
 		<BenchmarkContents scenario={scenario}>{children}</BenchmarkContents>

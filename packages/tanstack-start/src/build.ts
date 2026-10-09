@@ -9,8 +9,8 @@ export type {
 /**
  * Fetches the deployment's consent manifest when Vite starts and serves it
  * as the virtual module `@c15t/core/generated` (also `c15t/generated`).
- * Import `snapshot` from it in server code and pass it to
- * `createConsentStateHandler` or `createConsentServerRoute`. No file is
+ * `createConsentStateHandler()` and `createConsentRoute()` read the backend
+ * URL and the snapshot from it, so they need no options. No file is
  * written into the app.
  *
  * The snapshot stays on the server: in the client environment, `snapshot`

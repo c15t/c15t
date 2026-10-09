@@ -1,9 +1,5 @@
 'use client';
 
-import type { KernelOverrides, KernelTransport, Vendor } from '@c15t/core';
-import type { Script } from '@c15t/core/modules/script-loader';
-import { preloadScriptLoaderWith } from '@c15t/core/runtime/script-loader-preload';
-import { resolveStreamedInit } from '@c15t/core/runtime/streamed-init';
 /**
  * Client root for the TanStack Start adapter.
  *
@@ -12,13 +8,28 @@ import { resolveStreamedInit } from '@c15t/core/runtime/streamed-init';
  * provider as `options.prefetch`. Kernel creation, persistence, init, and
  * module wiring live in `@c15t/react`.
  *
+ * The state also carries the backend URL, the mode and the route prefix
+ * `createConsentStateHandler()` was given. `clientMode()` turns them into a
+ * transport whose init path loads only when the browser runs init, so
+ * first-load JavaScript holds the record transport and nothing else.
+ *
  * The state must travel through loader data (or a server function
  * result), never through module state: the server and the client each
  * create their own kernel from the same serialized value, which is what
  * keeps the first paint and the hydrated tree identical.
  */
-import { hosted } from '@c15t/react';
-import type { ProviderTransportFactory } from '@c15t/react';
+import type {
+	KernelOverrides,
+	KernelTransport,
+	ProviderTransportFactory,
+	Vendor,
+} from '@c15t/core';
+import { backendURL as generatedBackendURL } from '@c15t/core/generated';
+import type { ConsentMode } from '@c15t/core/modes';
+import type { Script } from '@c15t/core/modules/script-loader';
+import { clientMode } from '@c15t/core/runtime/client-mode';
+import { preloadScriptLoaderWith } from '@c15t/core/runtime/script-loader-preload';
+import { resolveStreamedInit } from '@c15t/core/runtime/streamed-init';
 import type {
 	UseNetworkBlockerOptions,
 	UsePersistenceOptions,
@@ -29,16 +40,16 @@ import type { ConsentProviderOptions } from '@c15t/react/provider';
 import type { ReactNode } from 'react';
 import { useState } from 'react';
 
-import { decisionInputsFromConfig } from './libs/decision-seed';
 import { readPrefetchedInitialData } from './libs/prefetch-head';
-import { initURLFor } from './libs/route-prefix';
 import type { ConsentState } from './server';
 
 export interface ConsentRootProps {
 	/**
 	 * The visitor's consent state produced server-side by `resolveConsent()`
 	 * (or `createConsentStateHandler()`) from `@c15t/tanstack-start/server`,
-	 * usually read back with `Route.useLoaderData()`. Serializable JSON.
+	 * usually read back with `Route.useLoaderData()`. Serializable JSON. It
+	 * carries the backend URL, mode and route prefix the server helper was
+	 * given, so the root needs no transport options of its own.
 	 *
 	 * A pending promise is fine too. Return it unawaited from the root
 	 * loader (`loader: () => ({ consent: getConsentState() })`) and TanStack
@@ -46,41 +57,11 @@ export interface ConsentRootProps {
 	 * backend, and the banner mounts once the promise resolves after
 	 * hydration instead of being in the server HTML. Until then no category
 	 * is granted, so gated scripts and embeds stay blocked.
+	 *
+	 * Pages with no loader, such as a static host, pass `{}`. The browser
+	 * then resolves consent from the backend URL `consentManifest()` read.
 	 */
 	state: ConsentState | Promise<ConsentState>;
-
-	/**
-	 * Backend base URL. When provided, the provider uses hosted mode and
-	 * auto-runs init. Consent saves go to `${backendURL}/subjects`, and init
-	 * to `${backendURL}/init` unless {@link ConsentRootProps.routePrefix} is
-	 * set.
-	 *
-	 * Without the proxy this is the c15t backend itself, for example
-	 * `https://consent.example.com`. With
-	 * `createConsentServerRoute({ backendURL: 'https://consent.example.com', proxy: true })`
-	 * mounted, pass the route prefix instead, `"/api/c15t"`, so saves stay
-	 * same-origin and reach the backend through the proxy, and set
-	 * `routePrefix` to the same path. The route factory still needs the
-	 * absolute backend URL, and so does the server-side `resolveConsent()`
-	 * (`createConsentStateHandler({ backendURL })`): with `routePrefix` set,
-	 * it never fetches a URL under the prefix and returns the cookie-only
-	 * state instead.
-	 */
-	backendURL?: string;
-
-	/**
-	 * Where `createConsentServerRoute()` is mounted, such as `"/api/c15t"`
-	 * for `src/routes/api/c15t/$.ts`. When set, the browser gets init from
-	 * `${routePrefix}/init`, which the route resolves in-process from the
-	 * cached manifest, and saves assert the resolved decision inputs, so the
-	 * backend rejects a save made against a stale policy instead of
-	 * recording it.
-	 *
-	 * Unset, the browser gets init from `${backendURL}/init`. Same option
-	 * and default as Next.js `defineConsentConfig({ routePrefix })`. Pass the
-	 * same value to `createConsentStateHandler()` or `resolveConsent()`.
-	 */
-	routePrefix?: string;
 
 	/**
 	 * Script tags to manage with the script-loader module.
@@ -135,76 +116,116 @@ export interface ConsentRootProps {
 		| '__preloadScriptLoader'
 		| '__resolveStreamedInit'
 	> & {
-		mode?: ProviderTransportFactory;
+		/**
+		 * Replaces the mode the state carries. Takes the data from
+		 * `@c15t/tanstack-start`, or a transport factory such as `custom()`.
+		 */
+		mode?: ConsentMode | ProviderTransportFactory;
 	};
 
 	children: ReactNode;
 }
 
+type RecordedState = PromiseLike<ConsentState> & {
+	status?: string;
+	value?: ConsentState;
+};
+
+const isPending = function isPending(
+	state: ConsentState | Promise<ConsentState>
+): state is Promise<ConsentState> {
+	return typeof (state as PromiseLike<ConsentState>).then === 'function';
+};
+
+const transportFor = function transportFor(
+	state: ConsentState | undefined,
+	mode: ConsentMode | ProviderTransportFactory | undefined,
+	overrides: KernelOverrides | undefined
+): ProviderTransportFactory {
+	const backendURL = state?.backendURL ?? generatedBackendURL;
+	const routePrefix = state?.routePrefix;
+	return clientMode(mode ?? state?.mode, {
+		backendURL,
+		// A `consentPrefetchHead()` script may have started the init request
+		// before hydration. The transport consumes that promise on its first
+		// init, so the first save stays bound to the decision it resolved.
+		initialData: readPrefetchedInitialData({
+			backendURL,
+			overrides,
+			routePrefix,
+		}),
+		routePrefix,
+	});
+};
+
 /**
- * Offline mode that loads `offline()` on first init. `offline()` carries
- * the recommended policy-rule pack, so a static import would ship that pack
- * to every app that renders the root with a backend URL, where it never runs.
+ * The transport for a state the server is still streaming. The backend URL,
+ * mode and route prefix arrive with it, so every request waits for the
+ * state; the streamed state answers the first init, so in practice only a
+ * save or a re-init reaches this transport, after the state arrived.
  */
-const lazyOffline = function lazyOffline(): ProviderTransportFactory {
+const deferredTransport = function deferredTransport(
+	state: PromiseLike<ConsentState>,
+	mode: ConsentMode | undefined,
+	overrides: KernelOverrides | undefined
+): ProviderTransportFactory {
 	return Object.assign(
 		(context: Parameters<ProviderTransportFactory>[0]): KernelTransport => {
-			let transportPromise: Promise<KernelTransport> | undefined;
+			let loading: Promise<KernelTransport> | undefined;
 			const load = function load(): Promise<KernelTransport> {
-				transportPromise ??= (async () => {
+				loading ??= (async () => {
+					let resolved: ConsentState | undefined;
 					try {
-						const { offline } = await import('./offline-mode');
-						return offline()(context);
-					} catch (error) {
-						// Let the kernel's retry make a fresh import attempt.
-						transportPromise = undefined;
-						throw error;
+						resolved = await state;
+					} catch {
+						// A rejected stream renders as though nothing was
+						// prefetched; the backend URL then comes from the build.
 					}
+					return transportFor(resolved, mode, overrides)(context);
 				})();
-				return transportPromise;
+				return loading;
 			};
 			return {
+				async identify(user, subjectId) {
+					await (await load()).identify?.(user, subjectId);
+				},
 				async init(ctx) {
+					return (await (await load()).init?.(ctx)) ?? {};
+				},
+				async loadSubjectRecord(subjectId) {
+					return (await (await load()).loadSubjectRecord?.(subjectId)) ?? null;
+				},
+				async save(payload, saveContext) {
 					const transport = await load();
-					return (await transport.init?.(ctx)) ?? {};
+					if (!transport.save) {
+						throw new Error('c15t: the init transport cannot save.');
+					}
+					return await transport.save(payload, saveContext);
 				},
 			};
 		},
-		{ kind: 'offline' as const }
+		{ kind: mode?.type ?? ('manifest' as const) }
 	);
 };
 
-const isPromiseLike = function isPromiseLike(
-	value: ConsentState | PromiseLike<ConsentState>
-): value is PromiseLike<ConsentState> {
-	return typeof (value as PromiseLike<ConsentState>).then === 'function';
-};
-
 const resolveMode = function resolveMode(
-	backendURL: string | undefined,
-	routePrefix: string | undefined,
-	initialData: ReturnType<typeof readPrefetchedInitialData>,
-	state: ConsentState | undefined,
+	state: ConsentState | Promise<ConsentState>,
+	mode: ConsentMode | ProviderTransportFactory | undefined,
 	overrides: KernelOverrides | undefined
 ): ProviderTransportFactory {
-	if (!backendURL) {
-		return lazyOffline();
+	if (typeof mode === 'function') {
+		return clientMode(mode);
 	}
-	const initURL = initURLFor(routePrefix);
-	if (!initURL) {
-		return hosted({ backendURL, initialData });
+	if (!isPending(state)) {
+		return transportFor(state, mode, overrides);
 	}
-	return hosted({
-		assertDecisionInputs: true,
-		backendURL,
-		// The server-rendered banner is interactive before the client init
-		// resolves; the prefetched decision binds any save made in between.
-		// A streamed state renders no banner before it resolves, and the
-		// saves made after that carry the decision the kernel applied.
-		decisionInputs: decisionInputsFromConfig(state, overrides),
-		initURL,
-		initialData,
-	});
+	// TanStack Router records a streamed promise's result on it once it
+	// settled, as React's `use()` expects.
+	const recorded: RecordedState = state;
+	if (recorded.status === 'fulfilled' && recorded.value) {
+		return transportFor(recorded.value, mode, overrides);
+	}
+	return deferredTransport(state, mode, overrides);
 };
 
 /**
@@ -216,12 +237,9 @@ const resolveMode = function resolveMode(
  * import { ConsentRoot } from '@c15t/tanstack-start';
  *
  * function RootComponent() {
- *   const state = Route.useLoaderData();
+ *   const { consent } = Route.useLoaderData();
  *   return (
- *     <ConsentRoot
- *       state={state}
- *       backendURL="https://consent.example.com"
- *     >
+ *     <ConsentRoot state={consent}>
  *       <Outlet />
  *     </ConsentRoot>
  *   );
@@ -236,21 +254,13 @@ const resolveMode = function resolveMode(
  *   loader: () => ({ consent: getConsentState() }),
  *   component: RootComponent,
  * });
- *
- * function RootComponent() {
- *   const { consent } = Route.useLoaderData();
- *   return (
- *     <ConsentRoot state={consent} backendURL="https://consent.example.com">
- *       <Outlet />
- *     </ConsentRoot>
- *   );
- * }
  * ```
+ *
+ * @throws {Error} When the mode needs a backend URL and neither the state
+ * nor `consentManifest()` provides one.
  */
 export const ConsentRoot = ({
 	state,
-	backendURL,
-	routePrefix,
 	scripts,
 	vendors,
 	scriptLoader,
@@ -260,25 +270,8 @@ export const ConsentRoot = ({
 	options,
 	children,
 }: ConsentRootProps) => {
-	// A `consentPrefetchHead()` script may have started the init request
-	// before hydration. The hosted transport consumes that promise on its
-	// first init, so the decision-input assertion still runs and the first
-	// save stays bound to the resolved policy. Read once, on the client only,
-	// so server and client render the same tree.
-	const [mode, setMode] = useState(
-		() =>
-			options?.mode ??
-			resolveMode(
-				backendURL,
-				routePrefix,
-				readPrefetchedInitialData({
-					backendURL,
-					overrides: options?.overrides,
-					routePrefix,
-				}),
-				isPromiseLike(state) ? undefined : state,
-				options?.overrides
-			)
+	const [mode, setMode] = useState(() =>
+		resolveMode(state, options?.mode, options?.overrides)
 	);
 	// Initial-only, like the provider's own `mode`.
 	void setMode;

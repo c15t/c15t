@@ -1,4 +1,4 @@
-import { createConsentServerRoute } from '@c15t/tanstack-start/api';
+import { createConsentRoute } from '@c15t/tanstack-start/api';
 import { createFileRoute } from '@tanstack/react-router';
 
 import { getBenchManifestURL } from '../../../bench/manifest-url';
@@ -10,7 +10,7 @@ import { getBenchManifestURL } from '../../../bench/manifest-url';
  */
 export const Route = createFileRoute('/api/c15t/$')({
 	server: {
-		handlers: createConsentServerRoute({
+		handlers: createConsentRoute({
 			manifestURL: getBenchManifestURL(),
 		}),
 	},

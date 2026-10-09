@@ -1,5 +1,6 @@
 // oxlint-disable no-use-before-define -- TanStack Router's file-route shape: the component reads its own route's loader data.
 // #region docs:root
+import { posthog } from '@c15t/integrations/posthog';
 import {
 	createRootRoute,
 	HeadContent,
@@ -7,9 +8,6 @@ import {
 	Scripts,
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
-// The policy consentManifest() in vite.config.ts downloaded. The browser
-// bundle gets `snapshot: undefined`.
-import { snapshot } from 'c15t/generated';
 import {
 	ConsentBanner,
 	ConsentDialog,
@@ -21,16 +19,20 @@ import {
 	createConsentStateHandler,
 } from 'c15t/tanstack-start/server';
 
-import { scripts } from '../scripts';
-
-// The project the build read the manifest from, set in `.env`.
-const backendURL = import.meta.env.VITE_C15T_BACKEND_URL;
-
-// Declare the server function in your own module. Start's compiler splits
-// the server code out of the browser bundle at this call site.
+// Start's compiler keeps the handler and the bundled policy on the server.
 const getConsentState = createServerFn({ method: 'GET' }).handler(
-	createConsentStateHandler({ backendURL, manifest: snapshot })
+	createConsentStateHandler()
 );
+
+// #region docs:scripts
+const scripts = [
+	posthog({
+		id: 'phc_your_project_key',
+		initOptions: { cookieless_mode: 'never' },
+		loadMode: 'after-consent',
+	}),
+];
+// #endregion docs:scripts
 
 const RootComponent = () => {
 	const { consent } = Route.useLoaderData();
@@ -42,7 +44,6 @@ const RootComponent = () => {
 			<body>
 				<ConsentRoot
 					state={consent}
-					backendURL={backendURL}
 					scripts={scripts}
 				>
 					<Outlet />

@@ -6,14 +6,10 @@
  * ```ts
  * // src/routes/api/c15t/$.ts
  * import { createFileRoute } from '@tanstack/react-router';
- * import { createConsentServerRoute } from '@c15t/tanstack-start/api';
+ * import { createConsentRoute } from '@c15t/tanstack-start/api';
  *
  * export const Route = createFileRoute('/api/c15t/$')({
- *   server: {
- *     handlers: createConsentServerRoute({
- *       backendURL: 'https://your-project.inth.app',
- *     }),
- *   },
+ *   server: { handlers: createConsentRoute() },
  * });
  * ```
  *
@@ -21,16 +17,21 @@
  *   with its cache headers, so browsers and CDNs can cache it.
  * - `GET /api/c15t/init` resolves init in-process from that manifest for
  *   the request's geo, language, and GPC signal. Pass
- *   `routePrefix="/api/c15t"` to `ConsentRoot` to use it; a client
- *   language switch re-hits it.
+ *   `routePrefix: '/api/c15t'` to `createConsentStateHandler()` to use it;
+ *   a client language switch re-hits it.
  *
- * By default `POST /subjects` is not proxied: consent saves go straight to
- * `backendURL`, which mirrors the Next.js and Nuxt adapters. Pass
- * `proxy: true` to forward the remaining consent paths through the same
- * route so `ConsentRoot` can use `backendURL="/api/c15t"` with
- * `routePrefix="/api/c15t"`; see
- * {@link ConsentServerRouteOptions.proxy}.
+ * The backend URL and the policy snapshot default to what
+ * `consentManifest()` provides. By default `POST /subjects` is not
+ * proxied: consent saves go straight to the backend, which mirrors the
+ * Next.js and Nuxt adapters. Pass `proxy: true` to forward the remaining
+ * consent paths through the same route, and `proxy: true` to
+ * `createConsentStateHandler()` as well; see
+ * {@link ConsentRouteOptions.proxy}.
  */
+import {
+	backendURL as generatedBackendURL,
+	snapshot as generatedSnapshot,
+} from '@c15t/core/generated';
 import { createConsentRouteHandler } from '@c15t/core/server';
 import type {
 	ConsentProxyOptions,
@@ -43,28 +44,28 @@ import type { ConsentManifest } from '@c15t/schema/types';
 import { readConsentInputs } from './libs/request-inputs';
 
 export type { ConsentProxyOptions } from '@c15t/core/server';
-export type { ConsentManifestOptions } from './server';
 
-/** Options for {@link createConsentServerRoute}. */
-export interface ConsentServerRouteOptions {
+/** Options for {@link createConsentRoute}. */
+export interface ConsentRouteOptions {
 	/**
 	 * Backend base URL that serves `/manifest`, for example
-	 * `https://your-project.inth.app`. Pass this or `manifestURL`; the
-	 * proxy needs this one.
+	 * `https://your-project.inth.app`. Defaults to the URL
+	 * `consentManifest()` read from `VITE_C15T_BACKEND_URL`. The proxy
+	 * forwards to it.
 	 */
 	backendURL?: string;
 
 	/**
-	 * Full manifest URL. Overrides `${backendURL}/manifest`. Pass this or
-	 * `backendURL`.
+	 * Full manifest URL. Overrides `${backendURL}/manifest`.
 	 */
 	manifestURL?: string;
 	/**
 	 * Deployment-bound manifest. Takes precedence over upstream URLs.
-	 * `undefined`, which a build that could not fetch the manifest generates,
+	 * Defaults to the snapshot `consentManifest()` fetched during the build.
+	 * `undefined`, which a build that could not fetch the manifest produces,
 	 * makes the server fetch the policy at runtime.
 	 */
-	manifest?: ConsentManifest | undefined;
+	snapshot?: ConsentManifest | undefined;
 
 	/**
 	 * Fetch implementation for manifest and GVL requests. Defaults to
@@ -118,9 +119,10 @@ export interface ConsentServerRouteOptions {
 
 	/**
 	 * Forward consent traffic to `backendURL` through this route, so the
-	 * browser only ever talks to the app's own origin and `ConsentRoot`
-	 * can take `backendURL="/api/c15t"`, the way a Next.js app uses a
-	 * `next.config` rewrite.
+	 * browser only ever talks to the app's own origin, the way a Next.js
+	 * app uses a `next.config` rewrite. Pass `proxy: true` to
+	 * `createConsentStateHandler()` too, so the browser sends its saves
+	 * here.
 	 *
 	 * When enabled the handlers gain `POST`, `PATCH`, `PUT`, `DELETE`, and
 	 * `OPTIONS`, and `GET` falls through to the proxy for every path other
@@ -147,9 +149,6 @@ export interface ConsentServerRouteOptions {
 	 * Fight Mode still block the proxied `POST /subjects` unless the consent
 	 * paths are exempted, because a server cannot solve a browser challenge.
 	 *
-	 * Server-side `resolveConsent` must still receive the absolute backend
-	 * URL: its self-route guard skips a relative `/api/c15t`.
-	 *
 	 * @defaultValue false
 	 */
 	proxy?: boolean | ConsentProxyOptions;
@@ -170,79 +169,74 @@ export type ConsentRouteHandler = (
 	context: ConsentRouteHandlerContext
 ) => Promise<Response>;
 
-/** Handlers returned by {@link createConsentServerRoute}. */
-export interface ConsentServerRouteHandlers {
+/** Handlers returned by {@link createConsentRoute}. */
+export interface ConsentRouteHandlers {
 	/**
 	 * Splat handler: serves `manifest` and `init` under one file route. With
 	 * `proxy` enabled, every other allowlisted path is forwarded upstream.
 	 */
 	GET: ConsentRouteHandler;
-	/** Manifest passthrough for a dedicated `/api/c15t/manifest` route. */
-	manifestGET: ConsentRouteHandler;
-	/** Init resolver for a dedicated `/api/c15t/init` route. */
-	initGET: ConsentRouteHandler;
 }
 
 /**
- * Handlers returned by {@link createConsentServerRoute} when `proxy` is
- * enabled: the in-process handlers plus one proxy handler per write method.
+ * Handlers returned by {@link createConsentRoute} when `proxy` is enabled:
+ * `GET` plus one proxy handler per write method.
  */
-export interface ConsentProxyRouteHandlers extends ConsentServerRouteHandlers {
+export interface ConsentProxyRouteHandlers extends ConsentRouteHandlers {
 	POST: ConsentRouteHandler;
 	PATCH: ConsentRouteHandler;
 	PUT: ConsentRouteHandler;
 	DELETE: ConsentRouteHandler;
 	OPTIONS: ConsentRouteHandler;
-	/**
-	 * The bare proxy handler, for apps that mount it under another file
-	 * route. Applies the same path allowlist and header shaping.
-	 */
-	proxyHandler: ConsentRouteHandler;
 }
 
 /**
  * Picks the handler shape from the options: the proxy handlers when
  * `proxy` is set to anything truthy, the plain handlers otherwise.
  */
-export type ConsentServerRouteHandlersFor<
-	Options extends ConsentServerRouteOptions,
-> = Options extends { proxy: true | ConsentProxyOptions }
-	? ConsentProxyRouteHandlers
-	: ConsentServerRouteHandlers;
+export type ConsentRouteHandlersFor<Options extends ConsentRouteOptions> =
+	Options extends { proxy: true | ConsentProxyOptions }
+		? ConsentProxyRouteHandlers
+		: ConsentRouteHandlers;
 
 /**
- * Creates the same-origin consent route handlers.
+ * Creates the handlers for the same-origin consent route,
+ * `src/routes/api/c15t/$.ts`. The splat names the consent path.
  *
- * @param options - Manifest snapshot or backend location (`backendURL` or
- * `manifestURL`), fetch, GVL, cache, and proxy options.
+ * @param options - Backend, snapshot, fetch, GVL, cache, and proxy
+ * options. The backend URL and snapshot default to what
+ * `consentManifest()` provides.
  * @returns Handlers for `createFileRoute('/api/c15t/$')({ server: { handlers } })`.
- * With `proxy` off the set is `GET`, `manifestGET`, and `initGET`; with it
- * on, `POST`, `PATCH`, `PUT`, `DELETE`, `OPTIONS`, and `proxyHandler` join.
- * Manifest and init handlers throw when none of `manifest`, `backendURL`, or
- * `manifestURL` is set. Proxy writes still require `backendURL`.
+ * With `proxy` off the set is `GET`; with it on, `POST`, `PATCH`, `PUT`,
+ * `DELETE` and `OPTIONS` join. Manifest and init requests fail when there
+ * is no snapshot, backend URL or `manifestURL`. Proxy writes need a
+ * backend URL.
  * @example
  * ```ts
  * export const Route = createFileRoute('/api/c15t/$')({
- *   server: {
- *     handlers: createConsentServerRoute({
- *       backendURL: 'https://consent.example.com',
- *       proxy: true, // then <ConsentRoot backendURL="/api/c15t" />
- *     }),
- *   },
+ *   server: { handlers: createConsentRoute() },
+ * });
+ * ```
+ * @example
+ * ```ts
+ * // Saves go through the route too. Pass `proxy: true` and the same
+ * // `routePrefix` to createConsentStateHandler().
+ * export const Route = createFileRoute('/api/c15t/$')({
+ *   server: { handlers: createConsentRoute({ proxy: true }) },
  * });
  * ```
  */
-export const createConsentServerRoute = function createConsentServerRoute<
-	Options extends ConsentServerRouteOptions = ConsentServerRouteOptions,
->(options: Options): ConsentServerRouteHandlersFor<Options> {
-	const resolved: ConsentServerRouteOptions = options;
+export const createConsentRoute = function createConsentRoute<
+	Options extends ConsentRouteOptions = ConsentRouteOptions,
+>(options?: Options): ConsentRouteHandlersFor<Options> {
+	const resolved: ConsentRouteOptions = options ?? {};
 	const handle = createConsentRouteHandler({
 		adapter: '@c15t/tanstack-start',
-		backendURL: resolved.backendURL,
+		backendURL: resolved.backendURL ?? generatedBackendURL,
 		cache: resolved.cache,
 		fetch: resolved.fetch,
 		fetchGvl: resolved.fetchGvl,
-		manifest: resolved.manifest,
+		manifest: 'snapshot' in resolved ? resolved.snapshot : generatedSnapshot,
 		manifestURL: resolved.manifestURL,
 		proxy: resolved.proxy,
 		reportSessions: resolved.reportSessions,
@@ -269,25 +263,19 @@ export const createConsentServerRoute = function createConsentServerRoute<
 
 	const GET: ConsentRouteHandler = (context) =>
 		handle(context.request, contextFor(context));
-	const manifestGET: ConsentRouteHandler = (context) =>
-		handle(context.request, contextFor(context, 'manifest'));
-	const initGET: ConsentRouteHandler = (context) =>
-		handle(context.request, contextFor(context, 'init'));
+	if (!resolved.proxy) {
+		const handlers: ConsentRouteHandlers = { GET };
+		return handlers as ConsentRouteHandlersFor<Options>;
+	}
 	const proxyHandler: ConsentRouteHandler = (context) =>
 		handle(context.request, contextFor(context, 'proxy'));
-
-	const handlers: ConsentServerRouteHandlers = { GET, initGET, manifestGET };
-	if (!resolved.proxy) {
-		return handlers as ConsentServerRouteHandlersFor<Options>;
-	}
 	const proxied: ConsentProxyRouteHandlers = {
-		...handlers,
 		DELETE: proxyHandler,
+		GET,
 		OPTIONS: proxyHandler,
 		PATCH: proxyHandler,
 		POST: proxyHandler,
 		PUT: proxyHandler,
-		proxyHandler,
 	};
-	return proxied as ConsentServerRouteHandlersFor<Options>;
+	return proxied as ConsentRouteHandlersFor<Options>;
 };

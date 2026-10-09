@@ -6,7 +6,7 @@
 import { createManifestCache } from '@c15t/core/server';
 import { describe, expect, test, vi } from 'vitest';
 
-import { createConsentServerRoute } from '../api';
+import { createConsentRoute } from '../api';
 import { rememberConsentInputs } from '../libs/request-inputs';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -26,21 +26,27 @@ const upstream = () =>
 const request = (path: string, init?: RequestInit) =>
 	new Request(`https://app.example.com/api/c15t/${path}`, init);
 
-describe('createConsentServerRoute', () => {
+describe('createConsentRoute', () => {
 	test('serves the deployment snapshot without fetching an upstream manifest', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const routes = createConsentServerRoute({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
 		expect(
-			await (await routes.manifestGET({ request: request('manifest') })).json()
+			await (
+				await GET({
+					params: { _splat: 'manifest' },
+					request: request('manifest'),
+				})
+			).json()
 		).toEqual(MANIFEST_FIXTURE);
 		expect(
 			await (
-				await routes.initGET({
+				await GET({
+					params: { _splat: 'init' },
 					request: request('init', {
 						headers: { 'x-vercel-ip-country': 'DE' },
 					}),
@@ -52,14 +58,10 @@ describe('createConsentServerRoute', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	test('returns the in-process handlers, and the proxy handlers with proxy on', () => {
-		const plain = createConsentServerRoute({ backendURL: BACKEND });
-		expect(Object.keys(plain).sort()).toEqual([
-			'GET',
-			'initGET',
-			'manifestGET',
-		]);
-		const proxied = createConsentServerRoute({
+	test('returns GET, and the write methods with proxy on', () => {
+		const plain = createConsentRoute({ backendURL: BACKEND });
+		expect(Object.keys(plain)).toEqual(['GET']);
+		const proxied = createConsentRoute({
 			backendURL: BACKEND,
 			proxy: true,
 		});
@@ -70,16 +72,12 @@ describe('createConsentServerRoute', () => {
 			'PATCH',
 			'POST',
 			'PUT',
-			'initGET',
-			'manifestGET',
-			'proxyHandler',
 		]);
-		expect(proxied.POST).toBe(proxied.proxyHandler);
 	});
 
 	test('GET dispatches on the router splat, or the path when there is none', async () => {
 		const fetch = upstream();
-		const { GET } = createConsentServerRoute({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			cache: createManifestCache(),
 			fetch,
@@ -101,7 +99,7 @@ describe('createConsentServerRoute', () => {
 	});
 
 	test('init resolves with the inputs the request middleware remembered', async () => {
-		const { initGET } = createConsentServerRoute({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			cache: createManifestCache(),
 			fetch: upstream(),
@@ -109,7 +107,7 @@ describe('createConsentServerRoute', () => {
 		});
 		const incoming = request('init', { headers: { 'x-c15t-country': 'US' } });
 		rememberConsentInputs(incoming, { country: 'DE', language: 'de' });
-		const body = await (await initGET({ request: incoming })).json();
+		const body = await (await GET({ request: incoming })).json();
 		expect(body).toMatchObject({
 			location: { countryCode: 'DE' },
 			policyResolution: { policyId: 'eu-opt-in' },
@@ -119,7 +117,7 @@ describe('createConsentServerRoute', () => {
 
 	test('the proxy names the adapter and trusts forwarding only when told to', async () => {
 		const fetch = upstream();
-		const { POST } = createConsentServerRoute({
+		const { POST } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
 			proxy: true,
@@ -143,7 +141,7 @@ describe('createConsentServerRoute', () => {
 	test('hands detached work to onBackgroundRevalidate', async () => {
 		const registered: Promise<void>[] = [];
 		const fetch = upstream();
-		const { initGET } = createConsentServerRoute({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			cache: createManifestCache(),
 			fetch,
@@ -151,7 +149,7 @@ describe('createConsentServerRoute', () => {
 				registered.push(task);
 			},
 		});
-		await initGET({ request: request('init') });
+		await GET({ request: request('init') });
 		expect(registered).toHaveLength(1);
 		await registered[0];
 		expect(fetch).toHaveBeenLastCalledWith(
