@@ -23,7 +23,7 @@ import {
 } from './source-edits';
 import type { TextEdit, TransformResult } from './source-edits';
 import { findStylesheetImports } from './stylesheet-imports';
-import type { StylesheetImport } from './stylesheet-imports';
+import type { StylesheetImport, StylesheetTarget } from './stylesheet-imports';
 
 const STYLESHEET_EXTENSIONS = new Set(['.css', '.scss', '.sass', '.less']);
 
@@ -522,11 +522,98 @@ const directiveRemoval = function directiveRemoval(
 	};
 };
 
+const REMOVED = Symbol('removed');
+
+/**
+ * What happens to one stylesheet target: removed, kept at a path, or left
+ * alone when it isn't a c15t stylesheet the codemod migrates.
+ */
+const targetFate = function targetFate(
+	specifier: string,
+	placed: boolean,
+	plan: ImportPlan
+): typeof REMOVED | string | undefined {
+	if (
+		!STYLESHEET_SPECIFIER.test(specifier) ||
+		isV2Stylesheet(specifier, plan)
+	) {
+		return undefined;
+	}
+	// A layer(), supports() or media query places the import on purpose.
+	if (!(placed || keepsStylesheet(specifier, plan))) {
+		return REMOVED;
+	}
+	return keptStylesheet(specifier, plan.umbrella);
+};
+
+/** The edit that adds the styles TODO above a directive, unless it has one. */
+const stylesheetTodo = function stylesheetTodo(
+	text: string,
+	directive: StylesheetImport,
+	lineStart: number
+): TextEdit | undefined {
+	const comment = `/* ${TODO_MARKER} ${STYLES_TODO} */`;
+	const before = text.slice(lineStart, directive.start);
+	if (before.trim() !== '') {
+		return before.includes(TODO_MARKER)
+			? undefined
+			: { end: directive.start, start: directive.start, text: `${comment} ` };
+	}
+	const previousLine = text.slice(
+		lineStartOf(text, Math.max(0, lineStart - 1)),
+		lineStart
+	);
+	return lineStart > 0 && previousLine.includes(TODO_MARKER)
+		? undefined
+		: { end: lineStart, start: lineStart, text: `${before}${comment}\n` };
+};
+
+/** A target's text with its specifier replaced. */
+const targetText = function targetText(
+	text: string,
+	target: StylesheetTarget,
+	specifier: string
+): string {
+	return `${text.slice(target.start, target.specifierStart)}${specifier}${text.slice(target.specifierEnd, target.end)}`;
+};
+
+/**
+ * The edit that rewrites a Sass import's target list without its removed
+ * targets. Each remaining target keeps the separator in front of it.
+ */
+const targetListEdit = function targetListEdit(
+	text: string,
+	targets: NonNullable<StylesheetImport['targets']>,
+	fates: (typeof REMOVED | string | undefined)[]
+): TextEdit {
+	let list = '';
+	let leading = true;
+	for (const [index, target] of targets.entries()) {
+		const fate = fates[index];
+		if (fate === REMOVED) {
+			continue;
+		}
+		const previous = targets[index - 1];
+		if (!leading && previous) {
+			list += text.slice(previous.end, target.start);
+		}
+		list += targetText(text, target, fate ?? target.specifier);
+		leading = false;
+	}
+	const [first] = targets;
+	return {
+		end: (targets.at(-1) ?? first).end,
+		start: first.start,
+		text: list,
+	};
+};
+
 /**
  * Removes or keeps c15t stylesheet `@import` directives. Each directive is
  * read whole, so one that spans lines or takes Less options is handled like
- * any other. A directive without a `;` that shares its line with more than a
- * comment is left alone, as the codemod can't tell where it ends.
+ * any other, and each target of a Sass import that lists several is handled
+ * on its own. A directive without a `;` that shares its line with more than
+ * a comment is left alone, as the codemod can't tell where it ends.
  */
 const transformStylesheet = function transformStylesheet(
 	text: string,
@@ -537,53 +624,42 @@ const transformStylesheet = function transformStylesheet(
 	const summaries = new Set<string>();
 	let operations = 0;
 	for (const directive of findStylesheetImports(text, extname(filePath))) {
-		const { specifier } = directive;
-		if (
-			!(STYLESHEET_SPECIFIER.test(specifier) && directive.bounded) ||
-			isV2Stylesheet(specifier, plan)
-		) {
+		const targets = directive.targets ?? [directive];
+		const fates = targets.map((target) =>
+			targetFate(target.specifier, directive.placed, plan)
+		);
+		if (!directive.bounded || fates.every((fate) => fate === undefined)) {
 			continue;
 		}
 		const lineStart = lineStartOf(text, directive.start);
-		const before = text.slice(lineStart, directive.start);
-		const startsLine = before.trim() === '';
-		// A layer(), supports() or media query places the import on purpose.
-		if (!(directive.placed || keepsStylesheet(specifier, plan))) {
+		if (fates.every((fate) => fate === REMOVED)) {
 			edits.push(directiveRemoval(text, directive, lineStart));
-			summaries.add(`removed ${specifier}`);
-			operations += 1;
-			continue;
+		} else if (directive.targets && fates.includes(REMOVED)) {
+			edits.push(targetListEdit(text, directive.targets, fates));
 		}
-		const kept = keptStylesheet(specifier, plan.umbrella);
-		const comment = `/* ${TODO_MARKER} ${STYLES_TODO} */`;
-		const previousLine = text.slice(
-			lineStartOf(text, Math.max(0, lineStart - 1)),
-			lineStart
-		);
-		const todo = startsLine
-			? !(lineStart > 0 && previousLine.includes(TODO_MARKER))
-			: !before.includes(TODO_MARKER);
+		const todo = fates.some((fate) => typeof fate === 'string')
+			? stylesheetTodo(text, directive, lineStart)
+			: undefined;
 		if (todo) {
-			edits.push(
-				startsLine
-					? { end: lineStart, start: lineStart, text: `${before}${comment}\n` }
-					: {
-							end: directive.start,
-							start: directive.start,
-							text: `${comment} `,
-						}
-			);
+			edits.push(todo);
 		}
-		if (kept !== specifier) {
-			edits.push({
-				end: directive.specifierEnd,
-				start: directive.specifierStart,
-				text: kept,
-			});
-		}
-		if (todo || kept !== specifier) {
-			summaries.add(`${specifier} -> ${kept}${KEPT_SUMMARY}`);
-			operations += 1;
+		for (const [index, target] of targets.entries()) {
+			const fate = fates[index];
+			const { specifier } = target;
+			if (fate === REMOVED) {
+				summaries.add(`removed ${specifier}`);
+				operations += 1;
+			} else if (fate !== undefined && (todo || fate !== specifier)) {
+				if (!fates.includes(REMOVED) && fate !== specifier) {
+					edits.push({
+						end: target.specifierEnd,
+						start: target.specifierStart,
+						text: fate,
+					});
+				}
+				summaries.add(`${specifier} -> ${fate}${KEPT_SUMMARY}`);
+				operations += 1;
+			}
 		}
 	}
 	let output = text;

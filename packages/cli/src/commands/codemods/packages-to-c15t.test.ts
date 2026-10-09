@@ -281,6 +281,71 @@ import { YouTubeEmbed } from '@c15t/react/components/integrations';
 `);
 	});
 
+	it('removes every c15t target from a comma-separated Sass import', async () => {
+		const css = `@import url(a.css) screen, print;
+@import url("@c15t/react/styles.css") screen, print;
+`;
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/first.scss': `@import '@c15t/react/styles.css', "./theme"; // legacy
+body {}
+`,
+				'src/index.css': css,
+				'src/main.scss': `@import './theme', '@c15t/react/styles.css';
+@import
+	'@c15t/react/styles.css',
+	'./reset',
+	"@c15t/react/iab/styles.css";
+@import '@c15t/react/styles.css', url(@c15t/react/iab/styles.css);
+body {}
+`,
+				'src/theme.sass': `@import './base', '@c15t/react/styles.css', 'url(x, y)'
+@import "@c15t/react/styles.css", '@c15t/nextjs/styles.css'
+body
+	color: red
+`,
+			}
+		);
+
+		expect(await read('src/main.scss')).toBe(`@import './theme';
+@import
+	'./reset';
+body {}
+`);
+		expect(await read('src/first.scss')).toBe(`@import "./theme"; // legacy
+body {}
+`);
+		expect(await read('src/theme.sass')).toBe(`@import './base', 'url(x, y)'
+body
+	color: red
+`);
+		// In CSS, the comma separates media queries, not targets.
+		expect(await read('src/index.css')).toBe(`@import url(a.css) screen, print;
+/* ${TODO} */
+@import url("c15t/react/styles.css") screen, print;
+`);
+	});
+
+	it('rewrites a c15t target in place in a comma-separated Sass import', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.0' },
+			{
+				'src/main.scss': `@import './theme', '@c15t/react/styles.tw3.css';
+`,
+				'src/theme.sass': `@import './base', "@c15t/react/iab/styles.tw3.css", '@c15t/react/styles.css'
+`,
+			}
+		);
+
+		expect(await read('src/main.scss')).toBe(`/* ${TODO} */
+@import './theme', 'c15t/react/styles.css';
+`);
+		expect(await read('src/theme.sass')).toBe(`/* ${TODO} */
+@import './base', "c15t/react/iab/styles.css", 'c15t/react/styles.css'
+`);
+	});
+
 	it('keeps a stylesheet imported into a named layer', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },

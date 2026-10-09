@@ -6,6 +6,20 @@ interface StylesheetSyntax {
 	indented: boolean;
 	/** `@import (css) '…'` options: Less. */
 	importOptions: boolean;
+	/** `@import 'a', 'b'` lists several targets: SCSS and indented Sass. */
+	importLists: boolean;
+}
+
+/** One stylesheet an `@import` names, with offsets into the text. */
+export interface StylesheetTarget {
+	/** The imported URL, without quotes or `url()`. */
+	specifier: string;
+	specifierStart: number;
+	specifierEnd: number;
+	/** The target's first character: its quote or `url(`. */
+	start: number;
+	/** After the target's closing quote or `)`. */
+	end: number;
 }
 
 /** One `@import` directive, with offsets into the stylesheet's text. */
@@ -16,10 +30,16 @@ export interface StylesheetImport {
 	end: number;
 	/** After the comments that follow the directive on its last line. */
 	trailingEnd: number;
-	/** The imported URL, without quotes or `url()`. */
+	/** The imported URL, without quotes or `url()`: the first target's. */
 	specifier: string;
 	specifierStart: number;
 	specifierEnd: number;
+	/**
+	 * Every target of a Sass import that lists more than one, such as
+	 * `@import 'theme', 'reset';`. In CSS and Less, a comma after the URL
+	 * separates media queries instead.
+	 */
+	targets?: [StylesheetTarget, StylesheetTarget, ...StylesheetTarget[]];
 	/**
 	 * Text after the URL, such as `layer(c15t)`, a media query or
 	 * `supports()`, which places the import on purpose.
@@ -37,6 +57,7 @@ export interface StylesheetImport {
 }
 
 const BLOCK_COMMENTS_ONLY: StylesheetSyntax = {
+	importLists: false,
 	importOptions: false,
 	indented: false,
 	lineComments: false,
@@ -48,6 +69,7 @@ const URL_FUNCTION = /url\(/iuy;
 
 const syntaxOf = function syntaxOf(extension: string): StylesheetSyntax {
 	return {
+		importLists: extension === '.scss' || extension === '.sass',
 		importOptions: extension === '.less',
 		indented: extension === '.sass',
 		lineComments: extension !== '.css',
@@ -227,6 +249,48 @@ const urlOf = function urlOf(
 };
 
 /**
+ * The targets of a Sass import that lists several, or `undefined` when it
+ * names one or anything but a URL follows a comma. Each target is read whole,
+ * so a comma inside quotes or `url()` doesn't split it.
+ */
+const targetsOf = function targetsOf(
+	text: string,
+	prelude: number,
+	end: number,
+	syntax: StylesheetSyntax
+): StylesheetImport['targets'] {
+	if (!syntax.importLists) {
+		return undefined;
+	}
+	const targets: StylesheetTarget[] = [];
+	let cursor = prelude;
+	for (;;) {
+		const start = skipTrivia(text, cursor, syntax);
+		const url = urlOf(text, start, end, syntax);
+		if (!url) {
+			return undefined;
+		}
+		targets.push({
+			end: url.after,
+			specifier: text.slice(url.start, url.end),
+			specifierEnd: url.end,
+			specifierStart: url.start,
+			start,
+		});
+		cursor = skipTrivia(text, url.after, syntax);
+		if (text[cursor] !== ',') {
+			break;
+		}
+		cursor += 1;
+	}
+	// Anything after the last target, such as a media query, makes this a
+	// plain CSS import that the codemod treats as placed.
+	const ended = cursor >= end || (text[cursor] === ';' && cursor + 1 === end);
+	const [first, second, ...rest] = targets;
+	return ended && first && second ? [first, second, ...rest] : undefined;
+};
+
+/**
  * Finds the `@import` directives in a stylesheet, skipping strings and
  * comments. A directive can span lines, take Less options, and name its URL
  * as a string or with `url()`.
@@ -277,6 +341,7 @@ export const findStylesheetImports = function findStylesheetImports(
 			continue;
 		}
 		const conditions = skipTrivia(text, url.after, syntax);
+		const targets = targetsOf(text, prelude, end, syntax);
 		const trailingEnd = skipTrivia(text, end, syntax, false);
 		const lineEnd = text.indexOf('\n', trailingEnd);
 		const rest = text.slice(
@@ -291,11 +356,13 @@ export const findStylesheetImports = function findStylesheetImports(
 					(syntax.lineComments || !followedBy.startsWith('//'))),
 			end,
 			followed: followedBy !== '',
-			placed: conditions < end && text[conditions] !== ';',
+			placed:
+				targets === undefined && conditions < end && text[conditions] !== ';',
 			specifier: text.slice(url.start, url.end),
 			specifierEnd: url.end,
 			specifierStart: url.start,
 			start,
+			targets,
 			trailingEnd,
 		});
 	}

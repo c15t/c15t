@@ -74,10 +74,12 @@ convert CommonJS for you.
 It removes `@c15t/react/styles.css` and `@c15t/nextjs/styles.css` imports,
 including the `iab/` variants, because v3 components add their own styles. It
 reads each stylesheet `@import` whole, so one that spans lines or takes Less
-options such as `(css)` is handled too. When `package.json` lists `tailwindcss`
-3 in any dependency field, the import is a `.tw3.css` variant, or a stylesheet
-`@import` has a `layer()`, `supports()` or media condition, it keeps the
-import, points it at `styles.css` from the `c15t` entry, and leaves a
+options such as `(css)` is handled too. In a Sass import that lists several
+targets, such as `@import 'theme', '@c15t/react/styles.css';`, it handles
+each target on its own and keeps the others. When `package.json` lists
+`tailwindcss` 3 in any dependency field, the import is a `.tw3.css` variant, or
+a stylesheet `@import` has a `layer()`, `supports()` or media condition, it
+keeps the import, points it at `styles.css` from the `c15t` entry, and leaves a
 `TODO(c15t v3)` comment to set `styles: false`. For a `tailwindcss` version
 such as `workspace:*`, `catalog:` or `latest`, or a range over several majors
 such as `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't
