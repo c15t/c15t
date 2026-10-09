@@ -31,10 +31,11 @@ or vendors.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte@alpha @c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/svelte@alpha c15t@alpha @c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
 
 Svelte uses its own package, `@c15t/svelte`. The `c15t` package has no Svelte
-entry point. `@c15t/browser` provides the browser manifest transport, and
+entry point; the app imports the bundled policy from its `c15t/generated`
+module. `@c15t/browser` provides the browser manifest transport, and
 `@c15t/integrations` holds the vendor helpers.
 
 ## Register vendor scripts
@@ -54,8 +55,8 @@ Add `consentManifest` to the plugins in `vite.config.ts`:
 <include src="../../shared/examples/svelte/vite-config.mdx" />
 
 `consentManifest` downloads your project's public policy from
-`<backendURL>/manifest` when `vite build` or `vite dev` starts, and writes it
-to `src/c15t-manifest.ts`. Keep that file out of Git. Without a `backendURL`
+`<backendURL>/manifest` when `vite build` or `vite dev` starts, and serves it
+to your app as `snapshot` from `c15t/generated`. Without a `backendURL`
 option, the plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's
 backend URL, including any path prefix, in `.env` or your build environment.
 
@@ -97,7 +98,7 @@ There is no stylesheet to import. Each component adds the rules it uses to
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
 To apply policy edits without a rebuild, remove the plugin and the
-`c15t-manifest` import, and use `hosted({ url })` from `@c15t/svelte` as the
+`c15t/generated` import, and use `hosted({ url })` from `@c15t/svelte` as the
 mode. The browser then resolves consent through the backend's `/init`.
 
 ## Verify consent

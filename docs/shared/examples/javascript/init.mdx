@@ -2,13 +2,14 @@
 
 ```ts title="src/main.ts"
 import { init } from '@c15t/browser';
+// The policy consentManifest() in vite.config.ts downloaded.
+import { snapshot } from 'c15t/generated';
 
-import { consentManifest } from './c15t-manifest';
 import { scripts } from './scripts';
 
 const consent = init({
 	backendURL: import.meta.env.VITE_C15T_BACKEND_URL,
-	manifest: consentManifest,
+	manifest: snapshot,
 	mode: 'manifest',
 	scripts,
 });

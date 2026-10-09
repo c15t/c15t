@@ -143,7 +143,7 @@ server-rendered ones, see
 
 ## Use backend init instead of the manifest
 
-Remove `withConsentManifest` from `next.config.ts`, and the `consentManifest`
+Remove `withConsentManifest` from `next.config.ts`, and the `c15t/generated`
 import and `manifest` line from `c15t.server.ts`. Delete the `manifestURL` line from
 `c15t.config.ts` and delete `app/api/c15t/manifest/route.ts`. The layouts stay the same. `resolveConsent`
 and the browser now call `${backendURL}/init`, and consent choices still go to

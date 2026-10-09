@@ -30,9 +30,10 @@ The [quickstart](/docs/frameworks/tanstack-start/quickstart) root loader awaits
 the consent server function. The server reads the visitor's cookie and location
 headers, resolves their policy from the build-time snapshot, and renders the
 banner into the HTML. To apply policy updates without rebuilding, remove the
-`consentManifest` plugin from `vite.config.ts` and the `manifest` option from
-the server function, and set `VITE_C15T_BACKEND_URL` yourself. The server then
-fetches the manifest and caches it in memory.
+`consentManifest` plugin from `vite.config.ts`, and the `c15t/generated` import
+and the `manifest` option from the server function, and set
+`VITE_C15T_BACKEND_URL` yourself. The server then fetches the manifest and
+caches it in memory.
 
 With runtime fetching, the first request after a server starts has no cached
 manifest and waits for

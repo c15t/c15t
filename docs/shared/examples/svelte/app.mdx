@@ -9,15 +9,15 @@
 		ConsentDialogLink,
 		ConsentManagerProvider,
 	} from '@c15t/svelte';
+	// The policy consentManifest() in vite.config.ts downloaded.
+	import { snapshot } from 'c15t/generated';
 
-	// Written by the consentManifest plugin in vite.config.ts.
-	import { consentManifest } from './c15t-manifest';
 	import { scripts } from './scripts';
 
 	const mode = manifest({
 		// Consent choices still go to the backend.
 		backendURL: import.meta.env.VITE_C15T_BACKEND_URL,
-		manifest: consentManifest,
+		manifest: snapshot,
 	});
 </script>
 

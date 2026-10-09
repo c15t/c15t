@@ -67,10 +67,10 @@ or function goes in as the first argument, unchanged:
 <include src="../../shared/examples/nextjs/quickstart-next-config.mdx" />
 
 `next build` and `next dev` fetch `${NEXT_PUBLIC_C15T_BACKEND_URL}/manifest`
-and write the policy to `c15t-manifest.ts` in the directory you run them from.
-The consent route and `resolveConsent` read that file on their own, so you
-don't import it. `next start` serves the built snapshot and fetches no policy.
-Keep `c15t-manifest.ts` out of Git.
+and write the policy to `node_modules/.cache/c15t/`, outside your source tree.
+The consent route and `resolveConsent` read it on their own, so you don't
+import it. `next start` serves the built snapshot and fetches no policy.
+There is nothing to keep out of Git.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 

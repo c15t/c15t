@@ -1,6 +1,6 @@
 ---
 title: Troubleshooting
-description: Fix a Vite build that cannot fetch the c15t manifest, a missing generated manifest module, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
+description: Fix a Vite build that cannot fetch the c15t manifest, a missing bundled policy, a missing banner, a wrong backend URL, ignored theme colors and vendors that load before consent in a Svelte app.
 group: frameworks
 ---
 
@@ -25,13 +25,18 @@ where the command runs, in `.env` or the CI environment, and make sure that
 machine can reach the backend. To deploy while it is down, build with
 `C15T_ON_BUILD_ERROR=runtime`.
 
-## Cannot find module './c15t-manifest'
+## snapshot is undefined
 
-**Check.** `src/c15t-manifest.ts` is generated and kept out of Git, so it does
-not exist on a fresh checkout until the plugin runs. `svelte-check` does not
-run Vite plugins.
+**Check.** `snapshot` from `c15t/generated` is `undefined`, and the browser
+requests `<backendURL>/manifest` on page load. Vite had no policy to serve:
+`consentManifest` is missing from `plugins` in `vite.config.ts`, the fetch
+failed in `vite dev` or in a build with `C15T_ON_BUILD_ERROR=runtime`, or the
+backend URL is relative. Without the plugin, `c15t/generated` still resolves
+but exports `undefined`.
 
-**Fix.** Run `vite dev` or `vite build` once before `svelte-check`.
+**Fix.** Add the plugin or fix the cause from the
+[fetch errors](#the-build-or-dev-server-fails-fetching-the-manifest), then
+restart `vite dev` or rebuild. The plugin fetches once when Vite starts.
 
 ## Consent requests go to the wrong backend
 

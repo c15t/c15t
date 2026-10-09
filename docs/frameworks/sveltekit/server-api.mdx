@@ -227,27 +227,32 @@ policy.
 ## consentManifest
 
 `consentManifest(options)` from `@c15t/svelte/vite` returns a Vite plugin that
-downloads `<backendURL>/manifest` and writes it to a TypeScript module that
-exports the snapshot. Pass that export as `manifest` to `loadConsent`,
-`createSvelteKitConsentRouteHandlers` or `resolveConsent`.
+downloads `<backendURL>/manifest` and serves it as the virtual module
+`c15t/generated` (also `@c15t/core/generated`). Import `snapshot` from it in
+server code and pass it as `manifest` to `loadConsent`,
+`createSvelteKitConsentRouteHandlers` or `resolveConsent`. The plugin writes no
+file into your project.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
 | `backendURL` | `string` | `PUBLIC_C15T_BACKEND_URL`, then `VITE_C15T_BACKEND_URL` | Absolute `http` or `https` backend URL. The plugin appends `/manifest`. |
 | `onBuildError` | `'fail' \| 'runtime'` | Unset | What a failed fetch does. Unset, `vite build` stops and `vite dev` logs a warning. The `C15T_ON_BUILD_ERROR` environment variable overrides it. |
-| `outputFile` | `string` | `src/c15t-manifest.ts` | The generated module, relative to `rootDir`. The quickstart uses `src/lib/server/c15t-manifest.ts` to keep it out of browser code. |
-| `rootDir` | `string` | Vite's `root` | Where `outputFile` resolves from. |
-| `exportName` | `string` | `consentManifest` | The name of the generated export. |
-| `importSource` | `string` | `@c15t/svelte/vite` | Where the generated file imports the `ConsentManifest` type from. |
-| `fetch` | `typeof fetch` | global `fetch` | The fetch for the manifest request. |
+
+`c15t/generated` exports two values:
+
+| Export | Type | Value |
+| --- | --- | --- |
+| `snapshot` | `ConsentManifest \| undefined` | The fetched manifest on the server. Always `undefined` in the browser bundle, because the plugin detects `sveltekit()` and keeps the policy on the server. A Svelte app without SvelteKit gets it in the browser. |
+| `backendURL` | `string \| undefined` | The backend URL the plugin fetched from. Public, in every bundle. |
 
 The plugin fetches once Vite has resolved its config: for `vite build`,
 `vite dev` and, on SvelteKit 3, `svelte-kit sync`. `vite preview` does not
-run it. It rewrites the file only when the snapshot changed. The fetch waits
-at most 10 seconds. When it fails, `vite build` stops, even when an older
-generated file exists. `vite dev` logs a warning instead and writes a module
-that exports `undefined`; pass it as `manifest` and the server fetches the
-policy at runtime.
+run it. The fetch waits at most 10 seconds. When it fails, `vite build` stops.
+`vite dev` logs a warning instead and `snapshot` is `undefined`; pass it as
+`manifest` and the server fetches the policy at runtime. Without the plugin,
+`c15t/generated` still resolves and exports `undefined` for both values.
+`c15t/generated` ships its own types, so `svelte-check` passes on a fresh
+checkout without running Vite first.
 
 ## ConsentState
 

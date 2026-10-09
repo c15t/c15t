@@ -11,7 +11,7 @@ manifest when Vite starts. When the download fails or takes longer than 10
 seconds, `vite build` stops with an error that starts with
 `@c15t/tanstack-start/build: could not fetch the consent manifest from <url>
 during the build`. `vite dev` logs the same message as a warning and keeps
-going. `src/c15t-manifest.ts` then exports `undefined`, so the server
+going. `snapshot` from `c15t/generated` is then `undefined`, so the server
 fetches the policy at runtime.
 
 | Message | Fix |
@@ -23,14 +23,21 @@ fetches the policy at runtime.
 | `/manifest returned an invalid consent manifest` | The URL answered with something other than a c15t manifest, such as an HTML page. Check the URL |
 | `fetch failed`, with `ENOTFOUND` or another network error, or `no response within 10 seconds` | The build machine cannot reach the backend. Allow the request. To deploy while the backend is down, build with `C15T_ON_BUILD_ERROR=runtime`, or switch to [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader) |
 
-## Cannot find module './c15t-manifest'
+## snapshot is undefined
 
-**Check.** Look for `src/c15t-manifest.ts`. The plugin writes it when
-`vite build` or `vite dev` starts. The file is not committed, so a fresh
-checkout does not have it.
+**Check.** Log `snapshot` from `c15t/generated` in the server function. In the
+browser bundle it is always `undefined`: the plugin keeps the policy on the
+server. On the server, it is `undefined` when Vite had no policy to serve:
+`consentManifest` is missing from `plugins` in `vite.config.ts`, the fetch
+failed in `vite dev` or in a build with `C15T_ON_BUILD_ERROR=runtime`, or the
+backend URL is relative.
 
-**Fix.** Run `vite build` or `vite dev` before `tsc`. In CI, type-check after
-the build.
+**Fix.** Pass `snapshot` only to server code, such as
+`createConsentStateHandler`. On the server, add the plugin or fix the
+[fetch error](#vite-build-or-vite-dev-cant-fetch-the-manifest), then restart
+`vite dev` or rebuild. The
+plugin fetches once when Vite starts. While `snapshot` is `undefined`, the
+server fetches and caches the policy at runtime.
 
 ## The banner is not in the server HTML
 
