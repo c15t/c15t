@@ -160,6 +160,29 @@ describe('manifestNeedsLocation', () => {
 		).toBe(true);
 	});
 
+	it('checks an unlisted country even when the manifest lists ZZ', () => {
+		// Unknown location and the listed codes get one banner; every other
+		// country gets the default's different copy.
+		expect(
+			manifestNeedsLocation({
+				...everywhereManifest,
+				policyPacks: [
+					createConsentManifestPolicyPack({
+						...policyRulePresets.europeOptIn(),
+						id: 'listed',
+						match: { countries: ['ZZ', 'XX', 'QZ', 'XZ'], fallback: true },
+					}),
+					createConsentManifestPolicyPack({
+						...policyRulePresets.europeOptIn(),
+						copyRevision: 'world-copy',
+						id: 'world_opt_in',
+						match: { isDefault: true },
+					}),
+				],
+			})
+		).toBe(true);
+	});
+
 	it('is true when a country with region packs and no region fails to match', () => {
 		// Default but no fallback: a Canadian visitor without a province is
 		// insufficient input, which shows no banner.

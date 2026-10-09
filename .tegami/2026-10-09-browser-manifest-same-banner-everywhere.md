@@ -15,6 +15,7 @@ recomputes from the same manifest.
 
 `manifestNeedsLocation()` follows the same rule and returns `false` for such a
 manifest. Manifests where some location gets a different banner, or none, still
-call `/init`, as do IAB policies. So do visitors in any language but English,
-because the browser bundle carries English copy only and `/init` returns their
-language in full.
+call `/init`, as do IAB policies behind country or region rules. So do
+visitors in any language but English when the location is unknown, because the
+browser bundle carries English copy only and `/init` returns their language in
+full.

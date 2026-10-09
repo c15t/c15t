@@ -130,14 +130,13 @@ const representativeLocations = function representativeLocations(
 			{ countryCode: country, regionCode: UNLISTED_REGION }
 		);
 	}
-	// User-assigned ISO codes: no real visitor has one, so one of them is
-	// a country the manifest does not list.
-	const unlisted = ['ZZ', 'XX', 'QZ', 'XZ'].find(
-		(code) => !countries.has(code)
-	);
-	if (unlisted) {
-		locations.push({ countryCode: unlisted, regionCode: null });
+	// `ZZ` is a user-assigned ISO code no real visitor has. The matcher
+	// takes any string, so lengthen it until the manifest does not list it.
+	let unlisted = 'ZZ';
+	while (countries.has(unlisted)) {
+		unlisted += 'Z';
 	}
+	locations.push({ countryCode: unlisted, regionCode: null });
 	return locations;
 };
 

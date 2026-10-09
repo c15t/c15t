@@ -87,7 +87,8 @@ The browser bundle carries English copy; other languages come from the
 manifest's own translations, with English filling any gaps. When the manifest
 has country or region rules and the location is unknown, only English visitors
 resolve in the browser. Other languages still go to `/init`, which fills the
-gaps from that language's full copy. An IAB policy always goes to `/init`.
+gaps from that language's full copy. When the location is unknown, an IAB
+policy behind country or region rules also goes to `/init`.
 
 `createManifestTransport` from `c15t/transports/manifest` is the server
 version. It bundles every language, so keep it out of browser code.
