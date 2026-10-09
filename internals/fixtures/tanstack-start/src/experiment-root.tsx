@@ -95,8 +95,6 @@ const RootComponent = () => {
 			<body>
 				<ConsentRoot
 					state={consent}
-					backendURL={backendURL}
-					{...testBackend('backendURL')}
 					options={options}
 					scripts={scripts}
 				>

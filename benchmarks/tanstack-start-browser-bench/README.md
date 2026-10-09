@@ -18,8 +18,8 @@ provider" below.
 | `manifest-client` | `/manifest-client` | `custom(createManifestTransport(...))` reading the same-origin `/api/c15t/manifest` route, `ssr: false`. |
 | `ssr` | `/ssr` | Loader fetches `/api/bench-consent/init` server-side on every request and folds it in with `mergeInitIntoConsentState`; `ConsentRoot` without `routePrefix`. Direct-init semantics, matching the Next `ssr` arm. |
 | `ssr-stream` | `/ssr-stream` | The streamed setup `ConsentRoot` documents: the same direct-init loader, returned unawaited (`loader: () => ({ consent: getDirectInitConsentState() })`), so the router streams the state in after the shell. The server HTML has no banner; it shows once the state reaches the hydrated root. Start only. |
-| `manifest-ssr` | `/manifest-ssr` | Loader runs `createConsentStateHandler({ backendURL, manifestURL })` through the in-process manifest cache; `ConsentRoot` with `routePrefix="/api/c15t"`. Saves post to the fixture directly. |
-| `manifest-ssr-proxy` | `/manifest-ssr-proxy` | Same prefetch, but `ConsentRoot backendURL="/api/c15t-proxy" routePrefix="/api/c15t-proxy"`, a second `createConsentServerRoute({ proxy: true })` mount, so the accept click's `POST /subjects` takes one hop through the Start server. Start only. |
+| `manifest-ssr` | `/manifest-ssr` | Loader runs `createConsentStateHandler({ backendURL, mode: manifest({ manifestURL }), routePrefix: '/api/c15t' })` through the in-process manifest cache; `ConsentRoot` reads the route prefix from the state. Saves post to the fixture directly. |
+| `manifest-ssr-proxy` | `/manifest-ssr-proxy` | Same prefetch, but the state points `ConsentRoot` at `/api/c15t-proxy` for init and saves, a second `createConsentRoute({ proxy: true })` mount, so the accept click's `POST /subjects` takes one hop through the Start server. Start only. |
 | `repeat-visitor` | derived | After each measured `client` iteration a second browser context loads `/client` and the runner measures the Open Preferences click, exactly as the Next runner does. Note that neither runner preseeds the consent cookie for this arm. |
 | `manifest-ssr-root` | `/manifest-ssr` in the `dist-root/` build | `--root-provider` only. Same route and metrics as `manifest-ssr`, but the provider and the manifest prefetch loader live in `__root.tsx` and the route renders only the page shell. Built with `C15T_BENCH_ROOT_PROVIDER=1` (`bun run build:root`). |
 
@@ -142,7 +142,7 @@ of that design on both sides (TTFB 221 ms) while every manifest arm stays
 under 20 ms, because the manifest is cached after the first fill.
 
 **Proxy hop.** `manifest-ssr-proxy` versus `manifest-ssr` prices
-`createConsentServerRoute({ proxy: true })` on the accept click: +6 ms on
+`createConsentRoute({ proxy: true })` on the accept click: +6 ms on
 desktop (71.1 vs 64.9 ms) and +2 ms under the mobile profile (108.0 vs
 105.7 ms). The browser makes the same single request either way; the extra
 work is a server-to-server fetch on the same host, so the throttled network

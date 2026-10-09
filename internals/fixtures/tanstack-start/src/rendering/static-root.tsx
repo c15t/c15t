@@ -28,9 +28,7 @@ const RootComponent = () => (
 		</head>
 		<body>
 			<ConsentRoot
-				state={{}}
-				backendURL={backendURL}
-				{...testBackend('backendURL')}
+				state={{ backendURL, ...testBackend('backendURL') }}
 				scripts={scripts}
 			>
 				<Outlet />
