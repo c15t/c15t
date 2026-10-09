@@ -1,0 +1,47 @@
+{
+	"baseArms": {},
+	"budgets": {
+		"definitionMismatches": [],
+		"evaluated": 86,
+		"expected": 86,
+		"failed": 20,
+		"missingBaseMetric": 0,
+		"missingDefinitions": [],
+		"missingHeadMetric": 0,
+		"passed": 66,
+		"unevaluatedArm": 0,
+		"unexpectedDefinitions": []
+	},
+	"enforce": false,
+	"failures": [
+		"budget failed @c15t/examples-payload-bench:astro-static:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 18.00 bytes",
+		"budget failed @c15t/examples-payload-bench:astro-static:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 17.00 bytes",
+		"budget failed @c15t/examples-payload-bench:astro:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 15.00 bytes",
+		"budget failed @c15t/examples-payload-bench:javascript:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 29.00 bytes",
+		"budget failed @c15t/examples-payload-bench:javascript:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 23.00 bytes",
+		"budget failed @c15t/examples-payload-bench:javascript:examples-payload#offlinePolicyBytes: offlinePolicyBytes is 101894, above the allowance of 0",
+		"budget failed @c15t/examples-payload-bench:nextjs-pages-router:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 188.00 bytes",
+		"budget failed @c15t/examples-payload-bench:nextjs-pages-router:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 61.00 bytes",
+		"budget failed @c15t/examples-payload-bench:nextjs:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 117.00 bytes",
+		"budget failed @c15t/examples-payload-bench:nextjs:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 62.00 bytes",
+		"budget failed @c15t/examples-payload-bench:nuxt-static:examples-payload#nonEnLocaleBytes: nonEnLocaleBytes is 149175, above the allowance of 0",
+		"budget failed @c15t/examples-payload-bench:nuxt:examples-payload#resolverBytes: resolverBytes is 82184, above the allowance of 0",
+		"budget failed @c15t/examples-payload-bench:react:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 16.00 bytes",
+		"budget failed @c15t/examples-payload-bench:svelte:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 32.00 bytes",
+		"budget failed @c15t/examples-payload-bench:svelte:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 83.00 bytes",
+		"budget failed @c15t/examples-payload-bench:sveltekit:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 3.00 bytes",
+		"budget failed @c15t/examples-payload-bench:sveltekit:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 71.00 bytes",
+		"budget failed @c15t/examples-payload-bench:vue:examples-payload#initialJsGzip: initialJsGzip exceeded byte budget by 156.00 bytes",
+		"budget failed @c15t/examples-payload-bench:vue:examples-payload#initialJsBrotli: initialJsBrotli exceeded byte budget by 92.00 bytes",
+		"budget failed @c15t/examples-payload-bench:vue:examples-payload#nonEnLocaleBytes: nonEnLocaleBytes is 68511, above the allowance of 0"
+	],
+	"ok": false,
+	"profile": "regression",
+	"results": {
+		"compared": 13,
+		"expected": 13,
+		"missingBase": [],
+		"missingHead": [],
+		"unexpected": []
+	}
+}

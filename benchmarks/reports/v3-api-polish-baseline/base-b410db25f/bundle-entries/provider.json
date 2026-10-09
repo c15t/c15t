@@ -1,0 +1,181 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Consumer entry initial JavaScript may grow by at most 2 KiB gzip, plus the vendor consent allowance and, for entries with a stock surface, its styles.",
+			"metric": "initialGzip",
+			"threshold": 5632
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Deferred emitted JavaScript may grow by at most 12 KiB gzip, plus the ordinary or IAB styles emitted by this entry.",
+			"metric": "lazyGzip",
+			"threshold": 27136
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "Initial plus reachable deferred JavaScript may grow by at most 3 KiB gzip, plus the ordinary or IAB style allowance for this entry.",
+			"metric": "gzipSize",
+			"threshold": 17920
+		}
+	],
+	"budgets": [],
+	"commitSha": "b410db25f81caade4fb15cb8ba2dfef52b7b1835",
+	"environment": {
+		"arch": "arm64",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 0,
+		"localeCount": 0,
+		"name": "provider",
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "react",
+	"metadata": {
+		"allLocalesInputs": [],
+		"devtoolsInputs": [],
+		"gitDirty": false,
+		"iabInputs": [],
+		"topInputsByBytesInOutput": [
+			"../../packages/ui/dist/styles/sheets/first-paint.js:68810",
+			"../../packages/ui/dist/styles/sheets/dialog.js:36093",
+			"../../packages/core/dist/kernel/choice.js:8794",
+			"../../packages/core/dist/modules/persistence/record-codec.js:7469",
+			"../../packages/core/dist/kernel/save-outbox/queue.js:7148",
+			"../../packages/core/dist/modules/script-loader/mount.js:6429",
+			"../../packages/schema/dist/shared/policy-resolution-wire.js:6371",
+			"../../packages/core/dist/kernel/init-lifecycle.js:6008",
+			"../../packages/core/dist/modules/persistence/record-storage.js:5438",
+			"../../packages/core/dist/libs/vendors.js:5343"
+		]
+	},
+	"metrics": [
+		{
+			"avg": 53045,
+			"median": 53045,
+			"name": "initialGzip",
+			"p95": 53045,
+			"samples": [53045],
+			"unit": "bytes"
+		},
+		{
+			"avg": 47239,
+			"median": 47239,
+			"name": "initialBrotli",
+			"p95": 47239,
+			"samples": [47239],
+			"unit": "bytes"
+		},
+		{
+			"avg": 61653,
+			"median": 61653,
+			"name": "lazyGzip",
+			"p95": 61653,
+			"samples": [61653],
+			"unit": "bytes"
+		},
+		{
+			"avg": 53755,
+			"median": 53755,
+			"name": "lazyBrotli",
+			"p95": 53755,
+			"samples": [53755],
+			"unit": "bytes"
+		},
+		{
+			"avg": 20401,
+			"median": 20401,
+			"name": "reachableLazyGzip",
+			"p95": 20401,
+			"samples": [20401],
+			"unit": "bytes"
+		},
+		{
+			"avg": 18331,
+			"median": 18331,
+			"name": "reachableLazyBrotli",
+			"p95": 18331,
+			"samples": [18331],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputModuleCount",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 73446,
+			"median": 73446,
+			"name": "gzipSize",
+			"p95": 73446,
+			"samples": [73446],
+			"unit": "bytes"
+		},
+		{
+			"avg": 199443,
+			"median": 199443,
+			"name": "rawSize",
+			"p95": 199443,
+			"samples": [199443],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "allLocalesInputBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Synthetic esbuild entry with React externals and empty CSS loaders.",
+		"lazy* counts every deferred chunk esbuild emits; reachableLazy* counts only the chunks the entry can load through import().",
+		"gzipSize and rawSize count only JavaScript chunks reachable from the entry."
+	],
+	"package": "@c15t/next-bundle-bench",
+	"runtime": "esbuild",
+	"scenario": "provider",
+	"schemaVersion": 1,
+	"suite": "bundle",
+	"timestamp": "2026-10-09T18:48:12.866Z"
+}

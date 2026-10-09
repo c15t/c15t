@@ -1,0 +1,223 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (gzip, 0 B tolerance).",
+			"metric": "initialJsGzip",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (brotli, 0 B tolerance).",
+			"metric": "initialJsBrotli",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "A first visit may not add cross-origin requests.",
+			"metric": "crossOriginRequests",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Offline fallback policy data stays out of first-load JavaScript.",
+			"metric": "offlinePolicyBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Languages other than English stay out of first-load JavaScript.",
+			"metric": "nonEnLocaleBytes",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "b410db25f81caade4fb15cb8ba2dfef52b7b1835",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "optin-choice-eu",
+		"notes": [
+			"Fixture backend serves buildBrowserBenchManifest() and its DE resolution."
+		],
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "vue",
+	"metadata": {
+		"backendLatencyMs": 0,
+		"bannerVisible": true,
+		"kind": "spa",
+		"url": "http://127.0.0.1:4526/"
+	},
+	"metrics": [
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "acceptJsGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 62,
+			"median": 63,
+			"name": "bannerVisibleMs",
+			"p95": 64,
+			"samples": [58, 61, 63, 64, 64],
+			"unit": "ms"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "crossOriginRequests",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "dialogJsGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 1568,
+			"median": 1568,
+			"name": "documentGzip",
+			"p95": 1568,
+			"samples": [1568],
+			"unit": "bytes"
+		},
+		{
+			"avg": 294107,
+			"median": 294107,
+			"name": "emittedClientJsGzip",
+			"p95": 294107,
+			"samples": [294107],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 13224,
+			"median": 13224,
+			"name": "initialCssGzip",
+			"p95": 13224,
+			"samples": [13224],
+			"unit": "bytes"
+		},
+		{
+			"avg": 205302,
+			"median": 205302,
+			"name": "initialJsBrotli",
+			"p95": 205302,
+			"samples": [205302],
+			"unit": "bytes"
+		},
+		{
+			"avg": 236609,
+			"median": 236609,
+			"name": "initialJsGzip",
+			"p95": 236609,
+			"samples": [236609],
+			"unit": "bytes"
+		},
+		{
+			"avg": 715139,
+			"median": 715139,
+			"name": "initialJsRaw",
+			"p95": 715139,
+			"samples": [715139],
+			"unit": "bytes"
+		},
+		{
+			"avg": 34,
+			"median": 34,
+			"name": "initialJsRequests",
+			"p95": 34,
+			"samples": [34],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initRequests",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 1,
+			"median": 1,
+			"name": "manifestRequests",
+			"p95": 1,
+			"samples": [1],
+			"unit": "count"
+		},
+		{
+			"avg": 149175,
+			"median": 149175,
+			"name": "nonEnLocaleBytes",
+			"p95": 149175,
+			"samples": [149175],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "offlinePolicyBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 149175,
+			"median": 149175,
+			"name": "resolverBytes",
+			"p95": 149175,
+			"samples": [149175],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "snapshotBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+	],
+	"package": "@c15t/examples-payload-bench",
+	"runtime": "chromium",
+	"scenario": "nuxt-static",
+	"schemaVersion": 1,
+	"suite": "examples-payload",
+	"timestamp": "2026-10-09T18:46:10.771Z"
+}
