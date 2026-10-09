@@ -284,6 +284,32 @@ const describeFailure = (error: unknown, label: string): string => {
 };
 
 /**
+ * Applies the build policy to a missing backend URL, which counts as a
+ * failed fetch: `'fail'` throws, an explicit `'runtime'` logs a notice, and
+ * the dev default warns.
+ */
+const reportMissingSource = (
+	policy: ManifestBuildPolicy,
+	resolved: { explicit: boolean; mode: ManifestBuildErrorMode },
+	envHint: string
+): void => {
+	const { command, label, logger } = policy;
+	const missing = `no backend URL is set, so ${command === 'build' ? 'the build' : 'dev'} cannot fetch the consent manifest.${envHint}`;
+	if (resolved.mode === 'fail') {
+		throw new Error(
+			`${label}: ${missing} Set \`${MANIFEST_BUILD_ERROR_ENV}=runtime\` (or \`onBuildError: 'runtime'\`) to ${command === 'build' ? 'build' : 'run dev'} without a snapshot.`
+		);
+	}
+	if (resolved.explicit) {
+		logger.info(
+			`skipped the consent manifest fetch because no backend URL is set.${envHint}`
+		);
+		return;
+	}
+	logger.warn(`${missing} A production build stops on this error.`);
+};
+
+/**
  * Loads the snapshot a framework integration bundles, following one policy
  * in every framework:
  *
@@ -330,19 +356,7 @@ export const loadManifestForBuild = async (
 		: '';
 	const configured = source.manifestURL ?? source.backendURL;
 	if (!configured) {
-		const missing = `no backend URL is set, so ${command === 'build' ? 'the build' : 'dev'} cannot fetch the consent manifest.${envHint}`;
-		if (mode === 'fail') {
-			throw new Error(
-				`${label}: ${missing} Set \`${MANIFEST_BUILD_ERROR_ENV}=runtime\` (or \`onBuildError: 'runtime'\`) to ${command === 'build' ? 'build' : 'run dev'} without a snapshot.`
-			);
-		}
-		if (explicit) {
-			logger.info(
-				`skipped the consent manifest fetch because no backend URL is set.${envHint}`
-			);
-		} else {
-			logger.warn(`${missing} A production build stops on this error.`);
-		}
+		reportMissingSource(policy, { explicit, mode }, envHint);
 		return undefined;
 	}
 	if (!hasBuildManifestSource(source)) {
