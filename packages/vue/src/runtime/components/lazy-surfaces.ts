@@ -75,39 +75,8 @@ const loadQuietly = async (load: () => Promise<unknown>) => {
 	}
 };
 
-/**
- * Prefetch a surface chunk without competing with the page's own loading.
- *
- * Waits for the window `load` event and then for the page to go quiet (no
- * resource finishing, no visible image loading), then an idle slot; see
- * `scheduleIdlePreload` in `@c15t/ui`. `load` alone is too early on pages
- * that render their main image after their scripts run, and a bare idle
- * callback fired during loading under CPU throttle made banner-visible
- * about 130ms worse on the SPA arm. Skipped with Save-Data on, on 2G and
- * offline. Intent warming starts the download at once.
- *
- * @returns A function that cancels the prefetch if it has not started.
- */
-export const prefetchSurfaceAfterLoad = function prefetchSurfaceAfterLoad(
-	load: () => Promise<unknown>
-): () => void {
-	if (typeof window === 'undefined' || !isIdlePreloadAllowed()) {
-		return () => undefined;
-	}
-	return scheduleIdlePreload(() => {
-		if (isIdlePreloadAllowed()) {
-			void loadQuietly(load);
-		}
-	});
-};
-
 const loadConsentManager = () => import('./manager.vue');
 const loadIabConsentDialog = () => import('./iab-panel.vue');
-
-export const prefetchConsentManager = () =>
-	prefetchSurfaceAfterLoad(loadConsentManager);
-export const prefetchIabConsentDialog = () =>
-	prefetchSurfaceAfterLoad(loadIabConsentDialog);
 
 /** A failed warm is left to the open, which retries the download. */
 const warm = (load: () => Promise<unknown>) => {
@@ -164,6 +133,10 @@ export const dialogIntentHandler = function dialogIntentHandler(
 // placeholder button that opens the dialog is mounted. The chunk loads once
 // the page has gone quiet if a gate is still open then, so a visit with
 // saved consent and nothing that opens the dialog never downloads it.
+// `load` alone is too early on pages that render their main image after
+// their scripts run, and a bare idle callback fired during loading under CPU
+// throttle made banner-visible about 130ms worse on the SPA arm; see
+// `scheduleIdlePreload` in `@c15t/ui`.
 type IdleScheduler = typeof scheduleIdlePreload;
 
 let openGates = 0;
