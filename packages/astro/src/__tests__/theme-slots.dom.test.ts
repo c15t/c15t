@@ -5,7 +5,7 @@ import { iabPromptClassNames, promptClassNames } from '../banner/class-names';
 import { buildIABPrompt } from '../browser/render-iab-prompt';
 import { buildPrompt } from '../browser/render-prompt';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import { testRule } from './policy-fixture';
 

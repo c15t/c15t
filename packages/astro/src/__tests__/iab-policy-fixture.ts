@@ -1,7 +1,7 @@
 import { MINIMAL_GVL } from '@c15t/conformance/fixtures/gvl';
 import { deferInitGvl } from '@c15t/core';
 
-import { hostedMode } from '../mode';
+import { hosted as hostedMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 import { testWire } from './policy-fixture';
 
@@ -35,7 +35,7 @@ export const iabInitResponse = function iabInitResponse(
 /** A hosted site that never set `iab`, with one marketing script. */
 export const SITE_WITHOUT_IAB: C15tAstroOptions = {
 	consentCategories: ['necessary', 'marketing'],
-	mode: hostedMode({ url: 'https://consent.example.com' }),
+	mode: hostedMode({ backendURL: 'https://consent.example.com' }),
 	scripts: [
 		{ category: 'marketing', id: 'pixel', src: 'https://example.com/pixel.js' },
 	],

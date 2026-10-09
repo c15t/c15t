@@ -29,12 +29,8 @@ const virtualOptionsPlugin = {
 		}
 		return `export default ${JSON.stringify({
 			colorScheme: 'system',
-			endpoints: {
-				enabled: false,
-				initPath: '/api/c15t/init',
-				manifestPath: '/api/c15t/manifest',
-			},
 			mode: { type: 'offline' },
+			routePrefix: '/api/c15t',
 			ui: 'svelte',
 		})};`;
 	},

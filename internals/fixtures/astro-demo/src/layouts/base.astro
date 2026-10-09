@@ -2,7 +2,7 @@
 import { ClientRouter } from 'astro:transitions';
 import ConsentBanner from 'c15t/astro/components/consent-banner.astro';
 import ConsentDialog from 'c15t/astro/components/consent-dialog.astro';
-import ConsentDialogTrigger from 'c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentDialogLink from 'c15t/astro/components/consent-dialog-link.astro';
 import ConsentScript from 'c15t/astro/components/consent-script.astro';
 
 interface Props {
@@ -23,7 +23,7 @@ const { title } = Astro.props;
 	<body>
 		<slot />
 		<footer>
-			<ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
+			<ConsentDialogLink>Cookie preferences</ConsentDialogLink>
 		</footer>
 		<ConsentBanner />
 		<ConsentDialog />

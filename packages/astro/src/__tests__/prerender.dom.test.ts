@@ -11,7 +11,7 @@ import {
 import { boot, registerIAB, setPromptRendererLoaderForTest } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 import { createTestPageIAB } from './page-iab';

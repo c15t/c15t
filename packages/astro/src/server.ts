@@ -175,7 +175,7 @@ const modeOptions = function modeOptions(
 	switch (mode.type) {
 		case 'hosted':
 			return {
-				backendURL: mode.url,
+				backendURL: mode.backendURL ?? options.backendURL,
 				// The browser's own `/init` carries these; so does the render's,
 				// or server and browser resolve different policies.
 				initHeaders: mode.headers,
@@ -183,14 +183,17 @@ const modeOptions = function modeOptions(
 			};
 		case 'manifest':
 			return {
-				backendURL: mode.backendURL,
+				backendURL: options.backendURL,
 				// The init route serves only lists from the shared cache; a
 				// caller's own fetch keeps its list inline.
-				gvlRoute: fetch ? undefined : options.endpoints.initPath,
-				manifest: mode.manifest,
+				gvlRoute:
+					fetch || options.routePrefix === undefined
+						? undefined
+						: `${options.routePrefix}/init`,
+				manifest: mode.snapshot,
 				manifestURL: mode.manifestURL,
 				mode: 'manifest',
-				reportSessions: mode.reportSessions,
+				reportSessions: options.reportSessions,
 			};
 		default:
 			return {
@@ -340,8 +343,11 @@ export const resolveConsentContext = async function resolveConsentContext(
 		adapter: '@c15t/astro',
 		// An explicit `i18n.locale` outranks Accept-Language negotiation.
 		overrides: { language: options.i18n?.locale },
-		// The injected routes: a render never fetches them over the network.
-		ownRoutes: [options.endpoints.initPath, options.endpoints.manifestPath],
+		// The injected route: a render never fetches it over the network.
+		ownRoutes:
+			options.routePrefix === undefined
+				? []
+				: [`${options.routePrefix}/init`, `${options.routePrefix}/manifest`],
 		request: { headers: input.headers, url: input.url },
 		// A prerendered page is one HTML file for every visitor.
 		shared: prerendered,
@@ -662,3 +668,33 @@ export {
 	INLINE_STYLES_CSS,
 	INLINE_STYLES_ID,
 } from './inline-styles';
+
+// The handlers behind the injected route, for a site that sets
+// `routePrefix: false` and serves the paths itself. The manifest cache
+// lives in `@c15t/core/server`, one process cache shared with the other
+// framework adapters.
+export {
+	createConsentRouteHandlers,
+	resolveManifestSourceURL,
+	waitUntilFromLocals,
+} from './api/handlers';
+export type {
+	ConsentRouteHandlerOptions,
+	RequestLifetime,
+} from './api/handlers';
+export { resolveManifestSourceFrom } from './api/manifest-init';
+export type { FetchGvl, RequestSource } from './api/manifest-init';
+export {
+	clearManifestCache,
+	createManifestRequestURL,
+	fetchCachedManifest,
+	getManifestSMaxAge,
+	getManifestStaleWhileRevalidate,
+	MANIFEST_DEDUPE_TTL_SECONDS,
+	MANIFEST_PASSTHROUGH_HEADERS,
+} from '@c15t/core/server';
+export type {
+	CachedManifestResponse,
+	FetchCachedManifestOptions,
+	ManifestFetch,
+} from '@c15t/core/server';

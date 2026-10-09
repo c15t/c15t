@@ -10,7 +10,7 @@
 import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
 import ConsentBannerDeferred from '@c15t/astro/components/consent-banner-deferred.astro';
 import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
-import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentDialogLink from '@c15t/astro/components/consent-dialog-link.astro';
 import ConsentScript from '@c15t/astro/components/consent-script.astro';
 
 import BenchmarkProbe from '../components/benchmark-probe.astro';
@@ -39,9 +39,9 @@ const { scenario, deferred = false, scripts } = Astro.props;
 	<body>
 		<main style="padding: 2rem; font-family: system-ui, sans-serif">
 			<h1>Astro Benchmark: {scenario}</h1>
-			<ConsentDialogTrigger>
+			<ConsentDialogLink>
 				<span id="open-preferences-label">Open Preferences</span>
-			</ConsentDialogTrigger>
+			</ConsentDialogLink>
 		</main>
 
 		<BenchmarkProbe scenario={scenario} />

@@ -12,7 +12,7 @@ import { IAB_PROMPT_SLOT_ATTRIBUTE } from '../banner/slot';
 import { buildIABPrompt } from '../browser/render-iab-prompt';
 import IABConsentBanner from '../components/iab-prompt.astro';
 import { resolveOptions } from '../integration';
-import { hostedMode, offlineMode } from '../mode';
+import { hosted as hostedMode, offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 import { describeTree } from './dom-tree';
@@ -58,7 +58,7 @@ describe('<IABConsentBanner /> on a prerendered page', () => {
 			headers: new Headers(),
 			options: resolveOptions({
 				...OPTIONS,
-				mode: hostedMode({ url: 'https://consent.example.com' }),
+				mode: hostedMode({ backendURL: 'https://consent.example.com' }),
 			}),
 			prerendered: true,
 		});

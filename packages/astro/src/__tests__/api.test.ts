@@ -1,5 +1,5 @@
 /**
- * Wiring of `@c15t/astro/api` onto the core consent route handler. The
+ * Wiring of the injected route onto the core consent route handler. The
  * route behaviour itself is pinned once, in
  * `packages/core/src/server/__tests__/consent-route.test.ts`.
  */
@@ -10,15 +10,15 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
+import { resolveOptions } from '../integration';
+import { hosted as hostedMode, manifest as manifestMode } from '../mode';
 import {
 	clearManifestCache,
 	createConsentRouteHandlers,
+	resolveConsentContext,
 	resolveManifestSourceURL,
 	waitUntilFromLocals,
-} from '../api';
-import { resolveOptions } from '../integration';
-import { hostedMode, manifestMode } from '../mode';
-import { resolveConsentContext } from '../server';
+} from '../server';
 import type { C15tAstroOptions } from '../types';
 
 const MANIFEST = await buildConsentManifestFromConfig({
@@ -36,7 +36,8 @@ const request = (path: string, headers: Record<string, string> = {}) =>
 
 const options = (
 	astroOptions: C15tAstroOptions = {
-		mode: manifestMode({ backendURL: BACKEND }),
+		backendURL: BACKEND,
+		mode: manifestMode(),
 	}
 ) => resolveOptions(astroOptions);
 
@@ -56,16 +57,13 @@ afterEach(() => {
 describe('createConsentRouteHandlers', () => {
 	it('reads the manifest from the mode: manifestURL, backendURL or the hosted URL', async () => {
 		for (const [mode, expected] of [
-			[manifestMode({ backendURL: BACKEND }), `${BACKEND}/manifest`],
+			[manifestMode(), `${BACKEND}/manifest`],
 			[
-				manifestMode({
-					backendURL: BACKEND,
-					manifestURL: 'https://cdn.example.com/m.json',
-				}),
+				manifestMode({ manifestURL: 'https://cdn.example.com/m.json' }),
 				'https://cdn.example.com/m.json',
 			],
 			[
-				hostedMode({ url: '/api/self-host' }),
+				hostedMode({ backendURL: '/api/self-host' }),
 				'https://site.example.com/api/self-host/manifest',
 			],
 		] as const) {
@@ -74,7 +72,7 @@ describe('createConsentRouteHandlers', () => {
 			// oxlint-disable-next-line no-await-in-loop -- one mode at a time keeps the failing case readable.
 			await createConsentRouteHandlers({
 				fetch,
-				options: options({ mode }),
+				options: options({ backendURL: BACKEND, mode }),
 			}).manifest(request('/api/c15t/manifest'));
 			expect(fetch.mock.calls[0]?.[0]).toBe(expected);
 		}
@@ -88,7 +86,8 @@ describe('createConsentRouteHandlers', () => {
 		const handlers = createConsentRouteHandlers({
 			fetch,
 			options: options({
-				mode: manifestMode({ backendURL: BACKEND, manifest: MANIFEST }),
+				backendURL: BACKEND,
+				mode: manifestMode({ snapshot: MANIFEST }),
 			}),
 		});
 		const response = await handlers.init(
@@ -104,8 +103,10 @@ describe('createConsentRouteHandlers', () => {
 		const handlers = createConsentRouteHandlers({
 			fetch: upstream(),
 			options: options({
+				backendURL: BACKEND,
 				i18n: { locale: 'de' },
-				mode: manifestMode({ backendURL: BACKEND, reportSessions: false }),
+				mode: manifestMode(),
+				reportSessions: false,
 			}),
 		});
 		const payload = await (
@@ -122,32 +123,37 @@ describe('createConsentRouteHandlers', () => {
 	it.each([
 		[
 			'reportSessions: false',
-			manifestMode({ backendURL: BACKEND, reportSessions: false }),
+			{ backendURL: BACKEND, mode: manifestMode(), reportSessions: false },
 		],
-		['hosted mode', hostedMode({ url: BACKEND })],
-	])('sends no session report for %s', async (_, mode) => {
-		const fetch = upstream();
-		await createConsentRouteHandlers({
-			fetch,
-			options: options({ mode }),
-		}).init(request('/api/c15t/init'));
-		await new Promise((resolve) => {
-			setTimeout(resolve, 0);
-		});
-		expect(
-			fetch.mock.calls.some(([url]) => String(url).endsWith('/sessions'))
-		).toBe(false);
-	});
+		['hosted mode', { mode: hostedMode({ backendURL: BACKEND }) }],
+	] satisfies [string, C15tAstroOptions][])(
+		'sends no session report for %s',
+		async (_, astroOptions) => {
+			const fetch = upstream();
+			await createConsentRouteHandlers({
+				fetch,
+				options: options(astroOptions),
+			}).init(request('/api/c15t/init'));
+			await new Promise((resolve) => {
+				setTimeout(resolve, 0);
+			});
+			expect(
+				fetch.mock.calls.some(([url]) => String(url).endsWith('/sessions'))
+			).toBe(false);
+		}
+	);
 
-	it('GET dispatches between the two routes by path', async () => {
+	it('GET dispatches the catch-all route by its last segment', async () => {
 		const handlers = createConsentRouteHandlers({
 			fetch: upstream(),
 			options: options(),
 		});
 		const manifest = await handlers.GET(request('/api/c15t/manifest'));
 		const init = await handlers.GET(request('/api/c15t/init'));
+		const other = await handlers.GET(request('/api/c15t/subjects'));
 		expect(manifest.headers.get('cache-control')).toBe('s-maxage=60');
 		expect(init.headers.get('cache-control')).toBe('private, no-store');
+		expect(other.status).toBe(404);
 	});
 
 	it('registers detached work with the waitUntil on locals', async () => {
@@ -202,14 +208,12 @@ it('serves Astro manifest SSR references through the same-origin init route', as
 	const gvlUpstream = vi.fn(() => Promise.resolve(Response.json(completeGVL)));
 	vi.stubGlobal('fetch', gvlUpstream);
 	const resolved = options({
-		endpoints: { initPath: '/privacy/init' },
+		backendURL: BACKEND,
 		// IAB is opt-in: without `iab` an IAB policy throws.
 		iab: { cmpId: 28 },
-		mode: manifestMode({
-			backendURL: BACKEND,
-			manifest,
-			reportSessions: false,
-		}),
+		mode: manifestMode({ snapshot: manifest }),
+		reportSessions: false,
+		routePrefix: '/privacy',
 	});
 	const context = await resolveConsentContext({
 		headers: new Headers({ 'x-c15t-country': 'DE' }),

@@ -80,12 +80,13 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
 		(subpath) =>
 			subpath.startsWith('./vue/runtime/') && subpath.endsWith('.vue')
 	),
-	// The Astro middleware and routes import the `virtual:c15t/options`
+	// The Astro middleware and route import the `virtual:c15t/options`
 	// module the integration generates at build time.
 	'./astro/middleware',
-	'./astro/api/init',
-	'./astro/api/manifest',
-	// `.astro` components only load through Astro's compiler.
+	'./astro/api',
+	// `.astro` components, and the barrel of them, only load through
+	// Astro's compiler.
+	'./astro/components',
 	...Object.keys(manifest.exports).filter(
 		(subpath) => subpath.startsWith('./astro/') && subpath.endsWith('.astro')
 	),

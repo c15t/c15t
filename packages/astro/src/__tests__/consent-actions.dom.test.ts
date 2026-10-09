@@ -13,7 +13,7 @@ import { buildPrompt, renderPromptIntoSlot } from '../browser/render-prompt';
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
 import { testRule } from './policy-fixture';

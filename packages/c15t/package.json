@@ -655,15 +655,10 @@
 			"import": "./shims/astro/ui/vue.js",
 			"default": "./shims/astro/ui/vue.js"
 		},
-		"./astro/api/init": {
-			"types": "./shims/astro/api/init.d.ts",
-			"import": "./shims/astro/api/init.js",
-			"default": "./shims/astro/api/init.js"
-		},
-		"./astro/api/manifest": {
-			"types": "./shims/astro/api/manifest.d.ts",
-			"import": "./shims/astro/api/manifest.js",
-			"default": "./shims/astro/api/manifest.js"
+		"./astro/components": {
+			"types": "./shims/astro/components.d.ts",
+			"import": "./shims/astro/components.js",
+			"default": "./shims/astro/components.js"
 		},
 		"./astro/styles.css": "./dist/astro/styles.css",
 		"./astro/iab/styles.css": "./dist/astro/iab/styles.css",
@@ -684,10 +679,10 @@
 			"import": "./shims/astro/components/prompt.astro.js",
 			"default": "./shims/astro/components/prompt.astro.js"
 		},
-		"./astro/components/consent-dialog-trigger.astro": {
-			"types": "./shims/astro/components/panel-trigger.astro.d.ts",
-			"import": "./shims/astro/components/panel-trigger.astro.js",
-			"default": "./shims/astro/components/panel-trigger.astro.js"
+		"./astro/components/consent-dialog-link.astro": {
+			"types": "./shims/astro/components/panel-link.astro.d.ts",
+			"import": "./shims/astro/components/panel-link.astro.js",
+			"default": "./shims/astro/components/panel-link.astro.js"
 		},
 		"./astro/components/consent-dialog.astro": {
 			"types": "./shims/astro/components/panel.astro.d.ts",

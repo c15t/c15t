@@ -101,9 +101,10 @@ export const starterTargets: StarterTarget[] = [
 		start: () => ['run', 'start'],
 	},
 	{
+		// PUBLIC_C15T_BACKEND_URL from the shared environment is where the
+		// browser asks for each visitor's policy and saves.
 		directory: 'examples/astro-static',
 		id: 'astro-static',
-		placeholderBackend: true,
 		routes: ['/'],
 		serverRendered: false,
 		start: (port) => [

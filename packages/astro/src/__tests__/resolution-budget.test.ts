@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { clearManifestCache } from '../api';
 import { resolveOptions } from '../integration';
-import { hostedMode } from '../mode';
-import { DEFAULT_RESOLVE_TIMEOUT_MS, resolveConsentContext } from '../server';
+import { hosted as hostedMode } from '../mode';
+import {
+	clearManifestCache,
+	DEFAULT_RESOLVE_TIMEOUT_MS,
+	resolveConsentContext,
+} from '../server';
 import type { C15tAstroOptions } from '../types';
 import { testWire } from './policy-fixture';
 
@@ -63,7 +66,7 @@ describe('server resolution budget', () => {
 		const backend = heldFetch(initResponse);
 		let settled = false;
 		const pending = resolveContext(
-			{ mode: hostedMode({ url: BACKEND }) },
+			{ mode: hostedMode({ backendURL: BACKEND }) },
 			{ fetch: backend.fetch }
 		).then((value) => {
 			settled = true;
@@ -85,7 +88,10 @@ describe('server resolution budget', () => {
 		const backend = heldFetch(initResponse);
 		const started = Date.now();
 		const c15t = await resolveContext(
-			{ middleware: { timeoutMs: false }, mode: hostedMode({ url: BACKEND }) },
+			{
+				middleware: { timeoutMs: false },
+				mode: hostedMode({ backendURL: BACKEND }),
+			},
 			{ fetch: backend.fetch, timeoutMs: 30 }
 		);
 

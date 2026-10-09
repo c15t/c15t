@@ -9,7 +9,7 @@ import {
 	createClassMapPlugin,
 	EMPTY_STYLESHEET_ID,
 } from '../libs/class-map-plugin';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 
 const directory = mkdtempSync(join(tmpdir(), 'c15t-class-maps-'));
 const withCSS = join(directory, 'panel.js');

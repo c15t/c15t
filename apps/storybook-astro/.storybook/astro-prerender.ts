@@ -81,7 +81,7 @@ const extractConfig = function extractConfig(html: string): unknown {
 const COMPONENT_FILES: Record<string, string> = {
 	'consent-banner': 'components/prompt.astro',
 	'consent-dialog': 'components/panel.astro',
-	'consent-dialog-trigger': 'components/panel-trigger.astro',
+	'consent-dialog-trigger': 'components/panel-link.astro',
 	'iab-consent-banner': 'components/iab-prompt.astro',
 	'iab-consent-dialog': 'components/iab-panel.astro',
 };
@@ -151,7 +151,7 @@ const renderVariants = async function renderVariants(
 			const astroOptions: Record<string, unknown> = {
 				colorScheme: variant.options?.colorScheme ?? 'light',
 				consentCategories: variant.options?.consentCategories,
-				mode: mode.offlineMode({ policyRules: [storybook.storybookPolicy] }),
+				mode: mode.offline({ policyRules: [storybook.storybookPolicy] }),
 				presentation: {
 					...storybook.storybookPresentation,
 					prompt: {
@@ -167,7 +167,7 @@ const renderVariants = async function renderVariants(
 				// the policy pack is what makes the runtime's model `iab`.
 				astroOptions.iab = { cmpId: 160, gvl: mockGVL };
 				astroOptions.consentCategories = ['necessary', 'marketing'];
-				astroOptions.mode = mode.offlineMode({
+				astroOptions.mode = mode.offline({
 					policyRules: [storybook.storybookIABPolicy],
 				});
 			}

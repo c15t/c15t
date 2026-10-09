@@ -11,7 +11,7 @@ export const generateAstroBoilerplate = (
 		throw new Error('Hosted Astro boilerplate requires a backend URL.');
 	}
 	const mode = hosted
-		? `hosted({ url: ${JSON.stringify(options.backendURL)} })`
+		? `hosted({ backendURL: ${JSON.stringify(options.backendURL)} })`
 		: `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`;
 	return {
 		dependencies: [
@@ -24,11 +24,11 @@ export const generateAstroBoilerplate = (
 			'Consent.astro': `---
 import ConsentBanner from '@c15t/astro/components/consent-banner.astro';
 import ConsentDialog from '@c15t/astro/components/consent-dialog.astro';
-import ConsentDialogTrigger from '@c15t/astro/components/consent-dialog-trigger.astro';
+import ConsentDialogLink from '@c15t/astro/components/consent-dialog-link.astro';
 ---
 <ConsentBanner />
 <ConsentDialog />
-<ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger>
+<ConsentDialogLink>Privacy settings</ConsentDialogLink>
 `,
 			'ConsentHead.astro': `---
 import ConsentScript from '@c15t/astro/components/consent-script.astro';

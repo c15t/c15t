@@ -8,7 +8,7 @@ import { buildPrompt } from '../browser/render-prompt';
 import ConsentBanner from '../components/prompt.astro';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
-import { hostedMode, offlineMode } from '../mode';
+import { hosted as hostedMode, offline as offlineMode } from '../mode';
 import { buildBannerRevealScript, resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 import { describeTree } from './dom-tree';
@@ -82,7 +82,7 @@ describe('prerendered routes', () => {
 	it('leaves a hosted policy for the browser to resolve', async () => {
 		const fetchImpl = vi.fn();
 		const c15t = await runPrerendered(
-			{ mode: hostedMode({ url: 'https://consent.example.com' }) },
+			{ mode: hostedMode({ backendURL: 'https://consent.example.com' }) },
 			fetchImpl as never
 		);
 		expect(fetchImpl).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe('<ConsentBanner /> on a prerendered page', () => {
 		const html = await container.renderToString(ConsentBanner, {
 			locals: {
 				c15t: await runPrerendered({
-					mode: hostedMode({ url: 'https://consent.example.com' }),
+					mode: hostedMode({ backendURL: 'https://consent.example.com' }),
 				}),
 			},
 			props: { title: 'Cookies?' },
