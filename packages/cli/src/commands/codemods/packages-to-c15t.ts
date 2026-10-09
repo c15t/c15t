@@ -20,6 +20,7 @@ import {
 } from './source-edits';
 import type { TextEdit, TransformResult } from './source-edits';
 import { findStylesheetImports } from './stylesheet-imports';
+import type { StylesheetImport } from './stylesheet-imports';
 
 const STYLESHEET_EXTENSIONS = new Set(['.css', '.scss', '.sass', '.less']);
 
@@ -340,10 +341,40 @@ const lineStartOf = function lineStartOf(text: string, index: number): number {
 };
 
 /**
+ * The range that removes a stylesheet directive and its trailing comments:
+ * its whole line when nothing else is on it, or just the directive when a
+ * rule follows it. With nothing after it, the space before it goes instead.
+ */
+const directiveRemoval = function directiveRemoval(
+	text: string,
+	directive: StylesheetImport,
+	lineStart: number
+): TextEdit {
+	const before = text.slice(lineStart, directive.start);
+	if (directive.followed) {
+		return { end: directive.trailingEnd, start: directive.start, text: '' };
+	}
+	if (before.trim() === '') {
+		const newline = /^\r?\n/u.exec(text.slice(directive.trailingEnd));
+		return {
+			end: directive.trailingEnd + (newline?.[0].length ?? 0),
+			start: lineStart,
+			text: '',
+		};
+	}
+	const leading = /[\t ]*$/u.exec(before)?.[0].length ?? 0;
+	return {
+		end: directive.trailingEnd,
+		start: directive.start - leading,
+		text: '',
+	};
+};
+
+/**
  * Removes or keeps c15t stylesheet `@import` directives. Each directive is
  * read whole, so one that spans lines or takes Less options is handled like
- * any other. A directive followed on its line by more than a comment is left
- * alone, as the codemod can't tell what that text belongs to.
+ * any other. A directive without a `;` that shares its line with more than a
+ * comment is left alone, as the codemod can't tell where it ends.
  */
 const transformStylesheet = function transformStylesheet(
 	text: string,
@@ -355,7 +386,7 @@ const transformStylesheet = function transformStylesheet(
 	let operations = 0;
 	for (const directive of findStylesheetImports(text, extname(filePath))) {
 		const { specifier } = directive;
-		if (!STYLESHEET_SPECIFIER.test(specifier) || directive.followed) {
+		if (!(STYLESHEET_SPECIFIER.test(specifier) && directive.bounded)) {
 			continue;
 		}
 		const lineStart = lineStartOf(text, directive.start);
@@ -363,21 +394,7 @@ const transformStylesheet = function transformStylesheet(
 		const startsLine = before.trim() === '';
 		// A layer(), supports() or media query places the import on purpose.
 		if (!(directive.placed || keepsStylesheet(specifier, plan))) {
-			const newline = /^\r?\n/u.exec(text.slice(directive.trailingEnd));
-			edits.push(
-				startsLine
-					? {
-							end: directive.trailingEnd + (newline?.[0].length ?? 0),
-							start: lineStart,
-							text: '',
-						}
-					: {
-							end: directive.trailingEnd,
-							start:
-								directive.start - (/[\t ]*$/u.exec(before)?.[0].length ?? 0),
-							text: '',
-						}
-			);
+			edits.push(directiveRemoval(text, directive, lineStart));
 			summaries.add(`removed ${specifier}`);
 			operations += 1;
 			continue;

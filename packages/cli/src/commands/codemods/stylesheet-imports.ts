@@ -27,6 +27,13 @@ export interface StylesheetImport {
 	placed: boolean;
 	/** Something other than a comment follows the directive on its line. */
 	followed: boolean;
+	/**
+	 * Where the directive ends is certain: nothing but comments follows it on
+	 * its line, or it ends at a `;`. Without a `;`, text after it on the same
+	 * line may belong to it. In plain CSS, `//` after the `;` is not a
+	 * comment, so that directive isn't bounded either.
+	 */
+	bounded: boolean;
 }
 
 const BLOCK_COMMENTS_ONLY: StylesheetSyntax = {
@@ -276,9 +283,14 @@ export const findStylesheetImports = function findStylesheetImports(
 			trailingEnd,
 			lineEnd === -1 ? text.length : lineEnd
 		);
+		const followedBy = rest.trim();
 		imports.push({
+			bounded:
+				followedBy === '' ||
+				(text[end - 1] === ';' &&
+					(syntax.lineComments || !followedBy.startsWith('//'))),
 			end,
-			followed: rest.trim() !== '',
+			followed: followedBy !== '',
 			placed: conditions < end && text[conditions] !== ';',
 			specifier: text.slice(url.start, url.end),
 			specifierEnd: url.end,

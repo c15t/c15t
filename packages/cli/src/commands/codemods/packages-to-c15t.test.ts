@@ -321,6 +321,26 @@ body {}
 		expect(await read('src/main.scss')).toBe('body {}\n');
 	});
 
+	it('handles a stylesheet import that shares its line with the next rule', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/index.css': `@import '@c15t/react/styles.css'; @import './theme.css';
+@import './reset.css'; @import "@c15t/react/iab/styles.css"; /* old */ @import './base.css';
+@import url('@c15t/react/styles.css') layer(c15t); @import './app.css';
+@import '@c15t/react/styles.css' .a { color: red }
+`,
+			}
+		);
+
+		expect(await read('src/index.css')).toBe(`@import './theme.css';
+@import './reset.css'; @import './base.css';
+/* ${TODO} */
+@import url('c15t/react/styles.css') layer(c15t); @import './app.css';
+@import '@c15t/react/styles.css' .a { color: red }
+`);
+	});
+
 	it('reads Less import options', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
