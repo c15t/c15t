@@ -73,7 +73,6 @@ const NEXT_SUBPATHS = new Set([
 	'middleware',
 	'pages',
 	'proxy',
-	'root',
 	'server',
 	'static',
 	'styles.css',

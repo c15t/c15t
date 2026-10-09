@@ -123,6 +123,21 @@ import { Root } from 'c15t/react/primitives/dialog';
 		expect(await read('app/globals.css')).toBe('');
 	});
 
+	it('marks @c15t/nextjs/root, which c15t/next does not serve', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', next: '^16.0.0' },
+			{
+				'app/layout.tsx': `import { Root } from '@c15t/nextjs/root';
+`,
+			}
+		);
+
+		expect(await read('app/layout.tsx'))
+			.toBe(`// TODO(c15t v3): @c15t/nextjs/root is not a c15t v3 entry. Import from c15t/next or one of its subpaths.
+import { Root } from '@c15t/nextjs/root';
+`);
+	});
+
 	it('rewrites re-exports, dynamic imports and import types', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0' },
