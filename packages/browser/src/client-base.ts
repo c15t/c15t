@@ -4,6 +4,7 @@ import {
 	evaluateConsent,
 	declareOwnedVendors,
 	forgetOwnedVendors,
+	IABUnavailableError,
 	isVendorAllowed,
 } from '@c15t/core';
 import type {
@@ -20,6 +21,7 @@ import type {
 	ProviderTransportFactory,
 	ResolvedVendor,
 } from '@c15t/core';
+import { isIABConfigured } from '@c15t/core/runtime';
 import type {
 	ConsentRuntimeIABFactory,
 	GPPModuleLoader,
@@ -273,6 +275,43 @@ export const createConsentClientWith = function createConsentClientWith(
 	let disposed = false;
 	let detachPageActions: (() => void) | null = null;
 
+	// IAB is opt-in. The stock banner and dialog stand aside for an `iab`
+	// policy, so a page without the IAB UI would leave the visitor with no
+	// banner at all, whatever vendor data the backend sent. Report it as an
+	// `error` event and throw it outside the kernel's listener loop, so it
+	// reaches the console as an uncaught error. Once per client.
+	const iabOn =
+		context.createIAB !== undefined &&
+		isIABConfigured(options.iab ?? { enabled: true });
+	let iabReported = false;
+	const reportIABUnavailable = function reportIABUnavailable(
+		snapshot: ConsentSnapshot
+	): void {
+		if (
+			iabOn ||
+			iabReported ||
+			snapshot.resolution.status !== 'matched' ||
+			snapshot.policyRule.model !== 'iab' ||
+			snapshot.externalPermissions !== undefined
+		) {
+			return;
+		}
+		iabReported = true;
+		const error = context.createIAB
+			? new IABUnavailableError(
+					'IAB is turned off',
+					'Remove `iab: false` or `iab.enabled: false`'
+				)
+			: new IABUnavailableError(
+					'this page loads the build without IAB',
+					'Load c15t.iab.js instead of c15t.js, or import from @c15t/browser/iab'
+				);
+		emit('error', error);
+		queueMicrotask(() => {
+			throw error;
+		});
+	};
+
 	const initial = kernel.getSnapshot();
 	let lastActiveUI: KernelActiveUI = initial.activeUI;
 	let lastConsents = initial.effectivePermissions;
@@ -294,6 +333,7 @@ export const createConsentClientWith = function createConsentClientWith(
 		// Saves and hydration can change permissions or explicit receipts;
 		// one subscription observes both paths.
 		kernel.subscribe((snapshot) => {
+			reportIABUnavailable(snapshot);
 			// A vendor-only save changes neither permissions nor the category
 			// receipt, and a declaration can make a stored denial count.
 			if (
@@ -541,6 +581,8 @@ export const createConsentClientWith = function createConsentClientWith(
 			} finally {
 				startingRuntime = false;
 			}
+			// A prefetch can carry the policy before any snapshot changes.
+			reportIABUnavailable(kernel.getSnapshot());
 			drainingRuntimeEvents = true;
 			try {
 				// Listener-triggered events follow notifications already queued.

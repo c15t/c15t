@@ -3,7 +3,8 @@
  *
  * The consent setup lives in a layer per output mode:
  *
- * - `config/server`: request-time server rendering with `manifest: 'server'`.
+ * - `config/server`: request-time server rendering with `manifest: 'server'`,
+ *   fetching the manifest at runtime (`buildManifest: false`).
  * - `config/static`: prerendered or SPA output with `manifest: 'client'`.
  *   Selected with `C15T_NUXT_OUTPUT=static` and built with `nuxt generate`.
  *

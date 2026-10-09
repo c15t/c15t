@@ -143,7 +143,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Geography headers](./docs/frameworks/nuxt/geography-headers.md): Which request headers the c15t Nuxt module reads for the visitor's country, region, language and Global Privacy Control, and how to trust and test them.
 - [IAB GPP](./docs/frameworks/nuxt/gpp.md): Turn on the IAB Global Privacy Platform API (__gpp) in Nuxt with the c15t Nuxt module's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/nuxt/headless.md): Build your own consent banner and preference form in Nuxt with the auto-imported c15t composables instead of ConsentRoot.
-- [IAB TCF](./docs/frameworks/nuxt/iab.md): Show the IAB TCF banner and preference centre in Nuxt with the c15t Nuxt module when your Inth policy uses the IAB model.
+- [IAB TCF](./docs/frameworks/nuxt/iab.md): Turn on IAB TCF in Nuxt with the c15t module's iab option, so visitors under an IAB policy get the IAB banner, preference centre and __tcfapi.
 - [Nuxt module](./docs/frameworks/nuxt/module.md): What the c15t Nuxt module registers, where each option goes between nuxt.config.ts and app.config.ts, and every module option.
 - [Network blocker](./docs/frameworks/nuxt/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Nuxt app until their consent category is allowed, with rules in the c15t module options.
 - [Quickstart](./docs/frameworks/nuxt/quickstart.md): Add c15t to a server-rendered Nuxt app with the Nuxt module, Inth, consent-gated scripts and a preferences link.
@@ -174,7 +174,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Embeds](./docs/frameworks/vue/embeds.md): Keep YouTube videos, maps and other iframes out of a Vue page until their consent category is allowed, with ConsentGate or the iframe blocker.
 - [IAB GPP](./docs/frameworks/vue/gpp.md): Turn on the IAB Global Privacy Platform API (__gpp) in a Vue app with the c15t Vue plugin's gpp option, so ad tech can read US state opt-outs and the TCF EU consent string.
 - [Headless](./docs/frameworks/vue/headless.md): Build your own consent banner and preference form in a Vue app with the c15t composables instead of ConsentRoot.
-- [IAB TCF](./docs/frameworks/vue/iab.md): Show the IAB TCF banner and preference centre in a Vue app with the c15t Vue plugin when your Inth policy uses the IAB model.
+- [IAB TCF](./docs/frameworks/vue/iab.md): Turn on IAB TCF in a Vue app with the c15t Vue plugin's iab option, so visitors under an IAB policy get the IAB banner, preference centre and __tcfapi.
 - [Network blocker](./docs/frameworks/vue/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Vue app until their consent category is allowed, with rules passed to the c15t Vue plugin.
 - [c15tVue plugin](./docs/frameworks/vue/plugin.md): Install c15t in a Vue app with app.use(c15tVue), what the plugin starts when the app mounts, and every option it accepts.
 - [Quickstart](./docs/frameworks/vue/quickstart.md): Add c15t to a Vue 3 app built with Vite, using the Vue plugin, Inth, consent-gated scripts and a preferences link.

@@ -54,9 +54,10 @@ visitor's decision, so keep it out of shared caches. See
 [Server API](/docs/frameworks/astro/server#cache-server-rendered-pages-safely).
 
 `manifest()` resolves each request on the server from your project's public
-policy file. With `buildManifest: true`, as here, the build downloads that file
-and bundles it, so a render never waits on the backend for the policy. Without
-it, the server downloads and caches the file at runtime. The browser asks the
+policy file. By default the build downloads that file and bundles it, so a
+render never waits on the backend for the policy. With `buildManifest: false`,
+or when the build can't fetch it, the server downloads and caches the file at
+runtime. The browser asks the
 injected `/api/c15t/init` route when it needs a decision, and saves consent to
 the `backendURL`. `manifest()` needs that URL as `backendURL`; without it, the
 config fails to load.
@@ -72,8 +73,8 @@ backend's `/init`, so each page view waits on a backend request.
 
 ### Set how long a render waits for the backend
 
-The middleware waits up to 500 ms for the policy. With `buildManifest: true`
-the policy is already on the server, so the budget matters when the server
+The middleware waits up to 500 ms for the policy. With a bundled manifest the
+policy is already on the server, so the budget matters when the server
 fetches it at runtime or uses `hosted()`. If the backend has not answered by
 then, for example on a cold cache or during an outage, the page
 renders without a server decision. The HTML has no banner, optional categories

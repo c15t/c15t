@@ -22,7 +22,7 @@ the whole setup.
 | Components | `ConsentRoot`, `ConsentWidget`, `ConsentPreferencesLink`, `ConsentDialogTrigger`, `ConsentGate` and the deprecated `ConsentFrame`, all global. See [components](/docs/frameworks/nuxt/components). |
 | Composables | 29 composables, auto-imported. See [composables](/docs/frameworks/nuxt/composables). |
 | A Nuxt plugin | Creates the consent runtime for each request on the server and once in the browser, resolves the visitor's policy during server rendering, and writes the `tokens` option into the page head. |
-| Server routes | With `buildManifest: true` or `manifest: 'server'`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
+| Server routes | In server manifest mode, the default with an absolute `backendURL`, `GET /api/c15t/init` and `GET /api/c15t/manifest`. With `manifest: 'client'` and no `manifestURL`, only the manifest route. |
 | The `#c15t/composables` alias | Points at the module's composables, for the few that are not auto-imported. |
 
 In the browser, the plugin starts the consent modules once the app has
@@ -31,7 +31,7 @@ plugin starts them before the mount, and the policy request runs while the
 app mounts. With `manifest: 'client'` the manifest request starts as soon as
 the plugin runs, and the modules still start after the mount. Starting reads the stored choice, applies Global Privacy Control,
 and starts the script loader, clear-on-revocation, the network blocker, the
-iframe blocker and, under an IAB policy, the IAB module.
+iframe blocker and, with `iab` set and an IAB policy, the IAB module.
 
 With `manifest` unset, the module also writes a small inline script into the
 head of each `ssr: false` page. It calls your backend's `/init` while the
@@ -76,7 +76,7 @@ when `nuxt.config.ts` sets `manifestURL`; an empty string is enough. Keep
 `backendURL` in `nuxt.config.ts`: a value in `app.config.ts` is bundled with
 the app and takes precedence over runtime config.
 
-With `buildManifest: true`, the policy comes from the build. The init and
+When the build bundles a manifest, the policy comes from the build. The init and
 manifest routes serve the bundled snapshot and never download one, so these
 variables only change where consent saves and session reports go, and the
 manifest URL variables have no effect. To use another project's policy, set
@@ -97,10 +97,10 @@ picks up a new URL only when you generate it again.
 | Option | Default | What it does |
 | --- | --- | --- |
 | `backendURL` | `'/api/c15t'` | Your Inth or self-hosted backend. Consent saves go here. |
-| `manifest` | `false` | `'server'` resolves each visitor on the Nuxt server from a cached manifest. `'client'` resolves in the browser. `false` calls the backend's `/init`. `true` is an older name for `'server'`. |
-| `buildManifest` | `false` | Recommended for Nuxt server deployments. Fetches a snapshot during `nuxt build` and when `nuxt dev` starts, enables server manifest mode and embeds it in the server bundle. `nuxt prepare` skips the fetch. A failed fetch stops the build. Requires an absolute upstream URL. Runtime URL environment variables don't change the snapshot, so rebuild after policy edits. Cannot be combined with `manifest: 'client'`, and needs a Nuxt server, not `nuxt generate`. |
-| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. With `buildManifest: true`, it is where the build downloads the snapshot, and the server doesn't use it at runtime. It does not choose a mode: with `manifest` unset the module keeps its `false` default and calls `/init`, so set `buildManifest: true` or `manifest: 'server'` to add the init and manifest server routes. |
-| `manifestSnapshot` | Unset | A manifest object to use instead of downloading one, for example imported from a JSON file in `nuxt.config.ts`. In client mode the browser resolves the policy from it and does not request the manifest. Where the module adds a manifest route, that route serves it. The app's JavaScript includes it in every mode, because `app.config.ts` can switch to client mode. `buildManifest` takes precedence on the server, and a `manifestSnapshot` in `app.config.ts` takes precedence in the browser. Rebuild after policy edits. |
+| `manifest` | Unset | Unset, the module uses `'server'` when the build bundles a manifest, and `false` otherwise. `'server'` resolves each visitor on the Nuxt server from a bundled or cached manifest. `'client'` resolves in the browser. `false` calls the backend's `/init`. `true` is an older name for `'server'`. |
+| `buildManifest` | Unset | Fetches a snapshot during `nuxt build` and when `nuxt dev` starts, enables server manifest mode and embeds it in the server bundle. `nuxt prepare` skips the fetch. Runtime URL environment variables don't change the snapshot, so rebuild after policy edits. Unset, the module does this when it has an absolute upstream URL and a Nuxt server that renders pages, unless `manifest` is `false` or `'client'` or `manifestSnapshot` is set; `nuxt generate` and `ssr: false` skip it. A failed fetch then logs a warning and the server routes fetch at runtime. `true` stops the build when the fetch fails, and cannot be combined with `manifest: 'client'`. `false` never fetches: pair it with `manifest: 'server'` to apply policy edits without a rebuild. |
+| `manifestURL` | `${backendURL}/manifest` in server mode, `manifestRoute` in client mode | Where the manifest is downloaded from. Must be absolute in client mode on a static host. When the build bundles a manifest, it is where the build downloads the snapshot, and the server doesn't use it at runtime. It does not choose a mode: without a bundled manifest and with `manifest` unset, the module calls `/init`, so set `manifest: 'server'` to add the init and manifest server routes. |
+| `manifestSnapshot` | Unset | A manifest object to use instead of downloading one, for example imported from a JSON file in `nuxt.config.ts`. In client mode the browser resolves the policy from it and does not request the manifest. Where the module adds a manifest route, that route serves it. The app's JavaScript includes it in every mode, because `app.config.ts` can switch to client mode. A build snapshot fetched with `buildManifest: true` takes precedence on the server, and a `manifestSnapshot` in `app.config.ts` takes precedence in the browser. Rebuild after policy edits. |
 | `geoURL` | Unset | Client mode only. An endpoint that returns `{ country, region }` for the visitor. |
 | `manifestRoute` | `/api/c15t/manifest` | Path of the manifest route the module adds. |
 | `initRoute` | `/api/c15t/init` | Path of the init route the module adds in server mode. |
@@ -122,7 +122,7 @@ mode fits which deployment.
 | `domain` | The browser's hostname | The domain the browser sends with each consent save to the backend's `/subjects`. |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. See [clear on revocation](/docs/frameworks/nuxt/clear-on-revocation). |
-| `iab` | Settings from `/init` | IAB TCF publisher settings, such as `publisherRestrictions`. `false` mounts no CMP. See [IAB TCF](/docs/frameworks/nuxt/iab#restrict-how-vendors-use-a-purpose). |
+| `iab` | Off | Turns IAB TCF on; `{}` is enough. Also takes publisher settings, such as `publisherRestrictions`; fields left out come from `/init`. Unset, `false` or `{ enabled: false }` leaves IAB off, and an `iab` policy with a vendor list throws an `IABUnavailableError`. Set it here, not only in `app.config.ts`, so pages prefetch the IAB banner. See [IAB TCF](/docs/frameworks/nuxt/iab). |
 
 ### Scripts, blocking and events
 
@@ -149,7 +149,6 @@ mode fits which deployment.
 
 ## Verify
 
-Run `nuxt dev` and request `/api/c15t/init` with `buildManifest: true` or
-`manifest: 'server'`. It returns JSON with the resolved policy for your
+Run `nuxt dev` and request `/api/c15t/init` in server manifest mode. It returns JSON with the resolved policy for your
 location. View the source of a page under a policy that asks for consent and
 find `data-testid="consent-banner-root"`.

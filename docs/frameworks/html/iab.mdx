@@ -10,7 +10,12 @@ Load `c15t.iab.js` instead of `c15t.js` when your policy uses IAB TCF. It
 contains the CMP, the TC string encoder, the IAB banner and the purpose and
 vendor preference dialog. `c15t.js`, `c15t.offline.js` and
 `c15t.headless.js` leave all of that out, so pages without an IAB policy stay
-smaller.
+smaller. The stock banner on those builds stands aside for a policy that
+uses the `iab` model, so a page that resolves one emits an `error` event and
+throws an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) as an uncaught
+error. So does `c15t.iab.js` with `iab: false`. Load `c15t.iab.js` for
+visitors whose policy uses IAB TCF, or remove the `iab` model from the
+policy.
 
 {/* example: fragment */}
 

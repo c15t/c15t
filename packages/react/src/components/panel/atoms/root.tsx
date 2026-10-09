@@ -19,6 +19,7 @@ import { LocalThemeContext } from '~/context/theme-context';
 import type { ThemeContextValue } from '~/context/theme-context';
 import { useActiveUI, useHasConsentUI, useModel } from '~/hooks';
 import { useFocusTrap } from '~/hooks/use-focus-trap';
+import { useIABPolicyGuard } from '~/hooks/use-iab-policy-guard';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useScrollLock } from '~/hooks/use-scroll-lock';
 import { useTextDirection } from '~/hooks/use-text-direction';
@@ -164,6 +165,7 @@ const ConsentDialogRoot: FC<ConsentDialogRootProps> = ({
 	style,
 	...rest
 }) => {
+	useIABPolicyGuard();
 	// Global theme from provider (if any)
 	const globalTheme = useTheme();
 	const { components } = useUIConfig();

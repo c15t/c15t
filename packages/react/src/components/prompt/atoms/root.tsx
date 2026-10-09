@@ -16,6 +16,7 @@ import {
 	useModel,
 	usePolicyRule,
 } from '~/hooks';
+import { useIABPolicyGuard } from '~/hooks/use-iab-policy-guard';
 import { useLateEntry } from '~/hooks/use-late-entry';
 import { useTextDirection } from '~/hooks/use-text-direction';
 import type { CSSPropertiesWithVars } from '~/types/theme';
@@ -261,6 +262,7 @@ const ConsentBannerRootChildren = createForwardRef<
 		},
 		ref
 	) => {
+		useIABPolicyGuard();
 		const activeUI = useActiveUI();
 		const { components } = useUIConfig();
 		const hasConsentUI = useHasConsentUI();

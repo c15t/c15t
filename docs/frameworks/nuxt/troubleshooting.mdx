@@ -16,23 +16,41 @@ Network tab, find the init request.
    shows no banner, which is common in opt-out regions. See
    [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
 2. **`ConsentRoot` is inside a page that unmounts.** Put it in `app.vue`.
-3. **The backend did not answer.** `/api/c15t/init` must return 200 with
-   `buildManifest: true` or `manifest: 'server'`, or your `manifestURL` must
-   with `manifest: 'client'`. While resolution fails, c15t shows no UI and keeps
+3. **The backend did not answer.** In server manifest mode,
+   `/api/c15t/init` must return 200. With `manifest: 'client'`, your
+   `manifestURL` must return 200. While resolution fails, c15t shows no UI and keeps
    every optional category denied.
 4. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
 
+## The page throws IABUnavailableError
+
+**Check.** Nuxt shows its error page, and the error has the code
+`C15T_IAB_UNAVAILABLE` and reads "c15t: this visitor's policy uses IAB TCF,
+but `iab` is not set." The visitor's policy uses the `iab` model and the
+backend sent its vendor list, but the module has no `iab` option, or has
+`iab: false` or `iab: { enabled: false }`. The standard banner does not
+handle the IAB model, so c15t throws rather than leave the visitor with no
+consent UI. A server render fails with status 500. A prerendered or
+`ssr: false` page shows the error page once the browser resolves the policy.
+
+**Fix.** If the site uses IAB TCF, set `c15t: { iab: {} }` in
+`nuxt.config.ts`, or `iab: { cmpId }` when your backend sends no CMP ID. See
+[IAB TCF](/docs/frameworks/nuxt/iab). If it does not, remove the `iab` model
+from the policy for that region in your Inth project or policy pack. A
+backend that answers `gvl: null` turns IAB off for that request, and nothing
+throws.
+
 ## The banner is not in the server HTML
 
-**Check.** Only request-time rendering with `buildManifest: true`,
-`manifest: 'server'` or `manifest` unset puts the banner in the HTML.
+**Check.** Only request-time rendering in server manifest mode or with
+`manifest: false` puts the banner in the HTML.
 Prerendered routes, routes with a `prerender`, `swr`, `isr` or `cache` rule,
 `nuxt generate` output and `ssr: false` send the same HTML to every visitor,
 so the banner appears after the browser resolves the policy.
 
 **Fix.** If a route needs the banner in its HTML, render it at request time
-with `buildManifest: true`, `manifest: 'server'` or `manifest` unset.
+in server manifest mode or with `manifest: false`.
 
 **Check.** With server rendering, the render waits at most `timeoutMs` for the
 policy, 500 milliseconds by default. A slower backend renders the page without
@@ -81,9 +99,10 @@ functions.
 
 ## `nuxt build` or `nuxt dev` fails fetching the manifest
 
-**Check.** With `buildManifest: true`, the module downloads the manifest when
-`nuxt build` runs and when `nuxt dev` starts, and stops if it can't. The error
-names the cause:
+**Check.** The module downloads the manifest when `nuxt build` runs and when
+`nuxt dev` starts. By default a failure logs a warning and the server routes
+fetch the policy at runtime. With `buildManifest: true` the build stops
+instead. The message names the cause:
 
 - `build-time manifests require an absolute upstream URL`: `backendURL` or
   `manifestURL` is a relative path, such as the default `/api/c15t`.
@@ -97,25 +116,27 @@ names the cause:
 **Fix.** Set `backendURL` to your project's absolute backend URL, including
 any path prefix; the module adds `/manifest`. To download from another
 address, set `manifestURL` to the full manifest URL, which is used as written.
-Make sure the build machine can reach the backend. `nuxt prepare` doesn't
+Make sure the build machine can reach the backend, or set
+`buildManifest: false` to build without it. `nuxt prepare` doesn't
 download the manifest, so installing dependencies works offline.
 
 ## Policy edits don't show up
 
-**Check.** With `buildManifest: true`, the policy is fixed when you build.
+**Check.** When the build bundles a manifest, the policy is fixed when you
+build.
 Changing `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server moves consent
 saves, not the policy.
 
 **Fix.** Build again after editing policies, translations or vendors. If your
 CI caches build output, skip the cache for that build. To pick up edits
-without rebuilding, use `manifest: 'server'` instead.
+without rebuilding, set `buildManifest: false` and `manifest: 'server'`.
 
 ## Static hosting returns 404 for /api/c15t/manifest
 
 **Check.** A static host has no Nuxt server routes, so `/api/c15t/manifest`
 does not exist after deployment.
 
-**Fix.** Remove `buildManifest`, then use `manifest: 'client'` with an
+**Fix.** Use `manifest: 'client'` with an
 absolute `manifestURL`, or leave `manifest` unset, as in
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
 If the browser reports a CORS error for the manifest, add your site's origin

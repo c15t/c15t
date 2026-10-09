@@ -1,7 +1,7 @@
 # Astro starter
 
 An Astro site with server output, the Node adapter and the `c15t/astro`
-integration in `manifest()` mode with `buildManifest: true`. The build bundles
+integration in `manifest()` mode. The build bundles
 your project's policy into the server, and the server resolves each visitor
 from it, so the banner is in the first HTML. PostHog loads once the visitor
 allows measurement.
@@ -23,8 +23,8 @@ bun run --cwd examples/astro dev
 ```
 
 The site talks to the `https://benchmarks-inth.inth.app` demo Inth project.
-`astro dev` and `astro build` download its policy when they start, and stop if
-they can't. To use your own project, set `PUBLIC_C15T_BACKEND_URL` to its
+`astro dev` and `astro build` download its policy when they start. If they
+can't, they log a warning and the server fetches the policy at runtime. To use your own project, set `PUBLIC_C15T_BACKEND_URL` to its
 backend URL and add the site's origin to its trusted origins:
 
 ```sh

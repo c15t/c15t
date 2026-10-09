@@ -1,19 +1,45 @@
 ---
 title: IAB TCF
-description: Show the IAB TCF banner and preference centre in Nuxt with the c15t Nuxt module when your Inth policy uses the IAB model.
+description: Turn on IAB TCF in Nuxt with the c15t module's iab option, so visitors under an IAB policy get the IAB banner, preference centre and __tcfapi.
 group: frameworks
 ---
 
 ## Turn on IAB TCF
 
-IAB TCF is a policy setting, not a Nuxt option. When the visitor's policy uses
-the `iab` model and names your CMP ID, `ConsentRoot` renders the IAB banner and
-preference centre in place of the standard ones. No extra component or
-stylesheet is needed; the IAB components include their own styles. Configure
-the CMP ID and vendors in your Inth project, or see
-[IAB TCF for a self-hosted backend](/docs/self-host/guides/iab-tcf). Publisher
-restrictions are set in your app; see
-[restrict how vendors use a purpose](#restrict-how-vendors-use-a-purpose).
+IAB TCF is off until you turn it on. Add `iab` under the `c15t` key in
+`nuxt.config.ts`; an empty object is enough:
+
+<include src="../../shared/examples/nuxt/iab-opt-in.mdx" />
+
+With `iab` set, `ConsentRoot` renders the IAB banner and preference centre in
+place of the standard ones while the visitor's policy uses the `iab` model and
+names your CMP ID, and c15t installs `__tcfapi`. Configure the CMP ID and
+vendors in your Inth project, or see
+[IAB TCF for a self-hosted backend](/docs/self-host/guides/iab-tcf). No extra
+component or stylesheet is needed; the IAB components include their own
+styles.
+
+Without `iab`, or with `iab: false` or `iab: { enabled: false }`, IAB stays
+off: no `__tcfapi` is installed, the app never loads `@c15t/iab`, and pages do
+not prefetch it.
+
+If a visitor's policy uses the `iab` model and the backend sends its vendor
+list while IAB is off, the app throws an `IABUnavailableError` (code
+`C15T_IAB_UNAVAILABLE`). The standard banner does not handle the IAB model,
+so the visitor would otherwise get no working consent UI. A server render
+fails and Nuxt renders its error page with status 500. On a page the browser
+resolves itself, such as a prerendered page or one with `ssr: false`, the
+module shows the same error page from the browser. Set `iab`, or remove the
+`iab` model from the policy. A backend that answers `gvl: null` turns IAB off
+for the request, and the policy runs as opt-in. See
+[troubleshooting](/docs/frameworks/nuxt/troubleshooting#the-page-throws-iabunavailableerror).
+
+Set `iab` in `nuxt.config.ts` rather than only in `app.config.ts`. The build
+reads the module options to decide whether pages prefetch the IAB banner and
+CMP. IAB set only in `app.config.ts` still works, but the browser fetches those
+files only once the policy calls for them, so the CMP is ready later and, on
+`ssr: false` pages, the IAB banner appears later. `iab` is read once, when the
+app starts; changing it with `updateAppConfig()` has no effect.
 
 To compose the IAB surfaces yourself, import
 [`IABConsentBanner`](/docs/frameworks/nuxt/components/iab-consent-banner) and
@@ -49,9 +75,8 @@ export default defineNuxtConfig({
 
 `iab` also takes `publisherCountryCode`, a `vendors` allowlist,
 `customVendors` and `cmpVersion`. Fields you leave out come from the policy:
-the CMP ID, custom vendors and vendor list arrive with `/init`. The CMP still
-mounts only while the visitor's policy uses the `iab` model. `iab: false`
-mounts no CMP.
+the CMP ID, custom vendors and vendor list arrive with `/init`. The CMP mounts
+only while the visitor's policy uses the `iab` model.
 
 <include src="../../shared/iab-publisher-restrictions.mdx" />
 
@@ -61,8 +86,8 @@ For an IAB policy, the server HTML carries the banner's purpose names, vendor
 count and a reference to the Global Vendor List, not the whole list. The banner
 renders on the server with the same summary the browser shows. After
 hydration, the IAB module fetches the full list and loads it before it saves a
-TC String. With `buildManifest: true` or `manifest: 'server'`, the module's
-init route serves the versioned list with a one-day public cache. Allow that
+TC String. In server manifest mode, the default with an absolute `backendURL`, the
+module's init route serves the versioned list with a one-day public cache. Allow that
 route, or your backend origin, in your CSP `connect-src`. See
 [Content Security Policy](/docs/frameworks/nuxt/content-security-policy).
 
@@ -72,4 +97,5 @@ route, or your backend origin, in your CSP `connect-src`. See
 
 Load a page under your IAB policy and confirm the IAB banner appears. In the
 browser console, `__tcfapi('getTCData', 2, console.log)` returns a TC String
-after you accept or reject.
+after you accept or reject. If Nuxt shows its error page with an
+`IABUnavailableError` instead, `iab` is not set.

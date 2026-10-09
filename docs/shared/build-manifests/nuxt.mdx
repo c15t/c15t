@@ -1,28 +1,31 @@
 <include src="../build-time-manifest.mdx" />
 
-Add `buildManifest: true` under the existing `c15t` key in `nuxt.config.ts`:
+The module bundles the manifest by default when `backendURL` is absolute:
 
 {/* example: fragment */}
 
 ```ts title="nuxt.config.ts"
 c15t: {
 	backendURL: 'https://your-project.inth.app',
-	buildManifest: true,
 },
 ```
 
-The module enables server manifest mode, fetches the snapshot during `nuxt build`
-or development setup and embeds it in the server bundle. `nuxt prepare`
-does not fetch a manifest, so dependency installation and type preparation do not
-require the backend. The server init and manifest routes use it automatically;
-the full manifest stays out of runtime configuration. Production server startup
-does not run module setup or fetch another manifest.
+The module enables server manifest mode, fetches the snapshot during
+`nuxt build` or development setup and embeds it in the server bundle.
+`nuxt prepare` does not fetch a manifest, so dependency installation and type
+preparation do not require the backend. The server init and manifest routes
+use it automatically; the full manifest stays out of runtime configuration.
+Production server startup does not run module setup or fetch another manifest.
 
-Use an absolute upstream `backendURL` or `manifestURL`. This option requires
-a Nuxt server and cannot be combined with `manifest: 'client'`. For a static
-host without a server, keep the browser setup described below.
+The build fetches only from an absolute upstream `backendURL` or
+`manifestURL`. It skips the fetch with a relative URL, `manifest: false`,
+`manifest: 'client'`, a `manifestSnapshot`, `nuxt generate` or `ssr: false`.
+If the fetch fails, the module logs a warning and the server routes fetch and
+cache the policy at runtime. Set `buildManifest: true` to stop the build
+instead. For a static host without a server, keep the browser setup described
+below.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-For policy updates without a rebuild, replace `buildManifest: true` with
+For policy updates without a rebuild, set `buildManifest: false` and
 `manifest: 'server'` to fetch and cache the policy at runtime.

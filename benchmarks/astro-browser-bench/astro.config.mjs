@@ -46,6 +46,9 @@ const integrations = [svelte()];
 
 if (benchMode === 'manifest' || benchMode === 'scripts') {
 	const options = {
+		// The backend is this app, which isn't running during the build, and
+		// the benchmark measures the runtime manifest path.
+		buildManifest: false,
 		consentCategories,
 		// The fixture backend lives under `/api/bench-consent`, which the
 		// integration does not know about; the manifest route it does

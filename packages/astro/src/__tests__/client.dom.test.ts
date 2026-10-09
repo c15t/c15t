@@ -5,13 +5,13 @@ import { onDemandRuntimeModules } from '@c15t/core/runtime/on-demand';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { resetDialogStylesForTest } from '../browser/dialog-styles';
-import { whenIABReady } from '../browser/iab';
 import {
 	attachBannerActions,
 	boot,
 	getConsent,
 	getConsentClient,
 	registerDialogStyles,
+	registerIAB,
 	registerRuntimeModules,
 	subscribe,
 	syncBannerVisibility,
@@ -24,11 +24,14 @@ import { buildConfigScript } from '../server';
 import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';
 import type { ConsentDialogHandle } from '../ui/adapter';
+import { createTestPageIAB } from './page-iab';
 import { testResolution, testRule } from './policy-fixture';
 
 // The boot script registers these for a site that can configure them;
 // these suites boot without it.
 registerRuntimeModules(onDemandRuntimeModules);
+const pageIAB = createTestPageIAB();
+registerIAB(pageIAB);
 
 const OPTIONS: C15tAstroOptions = {
 	consentCategories: ['necessary', 'measurement', 'marketing'],
@@ -215,7 +218,7 @@ describe('IAB options', () => {
 			...OPTIONS,
 			iab: { cmpId: 28, gvl: GVL, publisherRestrictions },
 		});
-		await whenIABReady();
+		await pageIAB.whenReady();
 		expect(booted.getConsent().iab?.publisherRestrictions).toEqual(
 			publisherRestrictions
 		);
@@ -257,7 +260,7 @@ describe('banner actions', () => {
 					initialPolicyResolution: testResolution({ model: 'iab' }),
 				}
 			);
-			await whenIABReady();
+			await pageIAB.whenReady();
 			document
 				.querySelector<HTMLButtonElement>(`[data-c15t-action="${action}"]`)
 				?.click();

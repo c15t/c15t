@@ -349,3 +349,8 @@ export {
 	vendorsListedUnder,
 } from './libs/vendors';
 export { deferInitGvl } from './transports/gvl-reference';
+export {
+	IAB_UNAVAILABLE_ERROR_CODE,
+	IABUnavailableError,
+	policyNeedsIAB,
+} from './libs/iab-unavailable';

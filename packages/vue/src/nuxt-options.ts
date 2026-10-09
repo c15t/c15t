@@ -26,10 +26,18 @@ export interface C15tNuxtConfig
 /** Module-only options. They stay out of runtime config. */
 export interface ConsentModuleOptions {
 	/**
-	 * Fetch and embed the server manifest during Nuxt build/dev setup.
-	 * Enables server manifest mode and requires an absolute upstream URL.
-	 * Skips `nuxt prepare`. Policy edits need a rebuild; a fetch failure
-	 * stops it. @default false
+	 * Fetch the manifest during `nuxt build` and `nuxt dev` setup and embed
+	 * it in the server bundle, in server manifest mode. Policy edits then
+	 * need a rebuild. `nuxt prepare` never fetches.
+	 *
+	 * Unset, the module does this when the app renders on a Nuxt server and
+	 * has an absolute upstream URL, unless `manifest` is `false` or
+	 * `'client'` or a `manifestSnapshot` is set. It skips `nuxt generate` and
+	 * `ssr: false`. A failed fetch logs a warning and the server routes fetch
+	 * the policy at runtime instead. `true` always fetches and stops the
+	 * build when the fetch fails. `false` never fetches, so policy edits
+	 * apply without a rebuild: pair it with `manifest: 'server'` to keep the
+	 * server routes.
 	 */
 	buildManifest?: boolean;
 	/**

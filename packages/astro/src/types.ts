@@ -164,9 +164,15 @@ export interface C15tMiddlewareOptions {
 /** Options accepted by the `c15t()` Astro integration. */
 export interface C15tAstroOptions {
 	/**
-	 * Fetch the manifest during build/dev setup and bundle it for this deployment.
-	 * Requires manifest mode with an absolute upstream URL. Policy edits need a
-	 * rebuild. A fetch failure stops the build. @default false
+	 * Fetch the manifest when `astro build` or `astro dev` starts and bundle
+	 * it for this deployment. Policy edits then need a rebuild.
+	 *
+	 * Unset, `manifest()` mode fetches it whenever its upstream URL is
+	 * absolute; a failed fetch logs a warning and the server fetches the
+	 * policy at runtime instead. `true` requires manifest mode with an
+	 * absolute upstream URL and stops the build when the fetch fails.
+	 * `false` always fetches at runtime, so policy edits apply without a
+	 * rebuild.
 	 */
 	buildManifest?: boolean;
 	/** Host layout and styling constrained by the active policy. */

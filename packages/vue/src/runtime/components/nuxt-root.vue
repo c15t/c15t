@@ -7,16 +7,17 @@ import {
 	useConsentConfig,
 	useConsentKernelContext,
 } from '../composables';
+import { useMounted } from '../composables/use-mounted';
 import { applyRootOverrides } from '../root-overrides';
 import {
+	LazyConsentBanner as ConsentBanner,
+	LazyConsentDialogTrigger,
 	LazyConsentManager,
 	LazyIabConsentBanner,
 	LazyIabConsentDialog,
 	prefetchConsentManager,
 	prefetchIabConsentDialog,
 } from './lazy-surfaces';
-import ConsentDialogTrigger from './panel-trigger.vue';
-import ConsentBanner from './prompt.vue';
 
 const props = defineProps<{
 	region?: string;
@@ -28,6 +29,11 @@ const config = useConsentConfig();
 const init = useConsentInit();
 const activeUI = useConsentActiveUI();
 const context = useConsentKernelContext();
+// An `iab` policy without `iab` has no surface to show; the context reports
+// the error instead.
+const { iabUnavailable } = context;
+// The trigger shows only after mount, so its chunk loads after mount too.
+const mounted = useMounted();
 
 watch(
 	() => ({
@@ -67,13 +73,15 @@ onMounted(() => {
 </script>
 
 <template>
-	<LazyIabConsentBanner v-if="init?.gvl || init?.gvlReference" />
-	<ConsentBanner v-else />
-	<LazyIabConsentDialog
-		v-if="(init?.gvl || init?.gvlReference) && iabDialogNeeded"
-	/>
-	<LazyConsentManager
-		v-else-if="!(init?.gvl || init?.gvlReference) && managerNeeded"
-	/>
-	<ConsentDialogTrigger v-if="config.showTrigger" />
+	<template v-if="!iabUnavailable">
+		<LazyIabConsentBanner v-if="init?.gvl || init?.gvlReference" />
+		<ConsentBanner v-else />
+		<LazyIabConsentDialog
+			v-if="(init?.gvl || init?.gvlReference) && iabDialogNeeded"
+		/>
+		<LazyConsentManager
+			v-else-if="!(init?.gvl || init?.gvlReference) && managerNeeded"
+		/>
+		<LazyConsentDialogTrigger v-if="config.showTrigger && mounted" />
+	</template>
 </template>

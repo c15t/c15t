@@ -1,6 +1,11 @@
 import { existsSync, realpathSync } from 'node:fs';
 
-import { loadBuildManifest } from '@c15t/core/build';
+import {
+	hasBuildManifestSource,
+	loadBuildManifest,
+	loadDefaultBuildManifest,
+} from '@c15t/core/build';
+import { isIABConfigured } from '@c15t/core/runtime';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -10,16 +15,22 @@ import {
 	addServerHandler,
 	addServerPlugin,
 	addTemplate,
+	addVitePlugin,
 	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
+	useLogger,
 } from '@nuxt/kit';
 import type { Nuxt, NuxtModule } from '@nuxt/schema';
 import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
 import type { C15tNuxtConfig, ModuleOptions } from './nuxt-options';
-import { stopPrefetchingConsentChunks } from './prefetch';
+import {
+	createPackageCheck,
+	preloadConsentBanner,
+	stopPrefetchingConsentChunks,
+} from './prefetch';
 import {
 	DEVTOOLS_ICON_ROUTE,
 	DEVTOOLS_PAGE_ROUTE,
@@ -29,6 +40,11 @@ import {
 	resolveNuxtInitRoute,
 	resolveNuxtManifestRoute,
 } from './runtime/manifest';
+import {
+	collectStyleSources,
+	preloadInlinedConsentStyles,
+} from './stylesheets';
+import type { StyleSourceIndex } from './stylesheets';
 
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
@@ -95,21 +111,61 @@ const addDevToolsTab = (
 const renderSnapshotModule = (snapshot: ConsentManifest | undefined): string =>
 	`export default ${snapshot ? JSON.stringify(snapshot) : 'undefined'};`;
 
+/**
+ * Whether `buildManifest` left unset fetches a snapshot. It needs a Nuxt
+ * server that renders pages and an absolute upstream URL, and stays out of
+ * the way of an explicit `manifest: false` or `'client'` and of a
+ * `manifestSnapshot` the app supplies.
+ */
+const buildsManifestByDefault = (
+	options: ModuleOptions,
+	nuxt: Nuxt,
+	hasSnapshot: boolean
+): boolean => {
+	const { manifest } = options;
+	if (manifest === false || manifest === 'client' || hasSnapshot) {
+		return false;
+	}
+	// `nuxt generate` deploys static files with no server routes to serve
+	// the snapshot, and an `ssr: false` app renders nothing on the server.
+	const { _generate: generate } = nuxt.options as { _generate?: boolean };
+	if (generate || nuxt.options.nitro.static || nuxt.options.ssr === false) {
+		return false;
+	}
+	return hasBuildManifestSource(options);
+};
+
 const loadNuxtBuildManifest = (
 	enabled: boolean | undefined,
 	options: ModuleOptions,
-	prepare: boolean
+	nuxt: Nuxt,
+	hasSnapshot: boolean
 ) => {
-	if (!enabled) {
+	if (enabled === false) {
 		return undefined;
 	}
-	if (options.manifest === 'client') {
+	if (enabled === true && options.manifest === 'client') {
 		throw new Error('@c15t/vue: buildManifest requires server manifest mode.');
+	}
+	if (
+		enabled === undefined &&
+		!buildsManifestByDefault(options, nuxt, hasSnapshot)
+	) {
+		return undefined;
 	}
 	options.manifest = 'server';
 	// `nuxt prepare` writes types during dependency installation. The
 	// build loads its own snapshot, so preparation needs no backend request.
-	return prepare ? undefined : loadBuildManifest(options, '@c15t/vue');
+	if (nuxt.options._prepare) {
+		return undefined;
+	}
+	// Only an explicit `true` stops the build when the fetch fails. Otherwise
+	// the server routes fetch and cache the manifest at runtime.
+	return enabled
+		? loadBuildManifest(options, '@c15t/vue')
+		: loadDefaultBuildManifest(options, '@c15t/vue', (message) =>
+				useLogger('@c15t/vue').warn(message)
+			);
 };
 
 // Annotated explicitly: the inferred type names `NuxtModule` through
@@ -120,7 +176,6 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		devtools: true,
 		initPrefetch: true,
 		initRoute: resolveNuxtInitRoute({}),
-		manifest: false,
 		manifestRoute: resolveNuxtManifestRoute({}),
 	}),
 	meta: {
@@ -146,8 +201,12 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			(await loadNuxtBuildManifest(
 				buildManifest,
 				options,
-				nuxt.options._prepare
+				nuxt,
+				configuredSnapshot !== undefined
 			)) ?? configuredSnapshot;
+		// Left unset so the build manifest could tell it from an explicit
+		// `false`. Without one, a `manifestURL` alone still calls `/init`.
+		options.manifest ??= false;
 		const manifestMode = resolveManifestMode(options);
 		const initRoute = resolveNuxtInitRoute(options);
 		const manifestRoute = resolveNuxtManifestRoute(options);
@@ -363,11 +422,41 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			});
 		}
 
+		// Which stylesheets each CSS file of the client build holds; the
+		// manifest below only names the files.
+		const styleSources: StyleSourceIndex = new Map();
+		addVitePlugin(() => collectStyleSources(styleSources), {
+			dev: false,
+			server: false,
+		});
+
 		// c15t loads what a page needs when it needs it; Nuxt would prefetch
 		// every lazy c15t chunk on every page, and each finished download
-		// queues main-thread work in front of the banner.
+		// queues main-thread work in front of the banner. Nuxt would also
+		// link c15t stylesheets it already inlines into the HTML, and each
+		// link holds back the first paint: they become preloads.
+		// IAB chunks keep their hints only when the module options turn IAB
+		// on. `app.config.ts` can turn it on too, but the build cannot read
+		// it; the CMP then loads on demand, without a hint.
+		const iab = isIABConfigured(options.iab);
 		nuxt.hook('build:manifest', (manifest) => {
-			stopPrefetchingConsentChunks(manifest, nuxt.options.srcDir);
+			const isConsentFile = createPackageCheck();
+			stopPrefetchingConsentChunks(
+				manifest,
+				nuxt.options.srcDir,
+				isConsentFile,
+				{
+					clientManifest: manifestMode === 'client',
+					iab,
+				}
+			);
+			preloadInlinedConsentStyles(
+				manifest,
+				styleSources,
+				nuxt.options.features.inlineStyles,
+				isConsentFile
+			);
+			preloadConsentBanner(manifest, nuxt.options.srcDir, isConsentFile);
 		});
 
 		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {

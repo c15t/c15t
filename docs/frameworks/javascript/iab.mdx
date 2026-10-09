@@ -9,7 +9,11 @@ group: frameworks
 With the stock UI from the [quickstart](/docs/frameworks/javascript/quickstart),
 import `init` from `@c15t/browser/iab` instead of `@c15t/browser`. This entry
 adds the CMP, the TC string encoder, the IAB banner and the purpose and vendor
-dialog. The plain entry leaves them out.
+dialog. The plain entry leaves them out. Its stock banner stands aside for a
+policy that uses the `iab` model, so a client that resolves one emits an
+`error` event and throws an `IABUnavailableError` (code
+`C15T_IAB_UNAVAILABLE`) as an uncaught error. So does the IAB entry with
+`iab: false`.
 
 ```ts title="src/main.ts"
 import { init } from '@c15t/browser/iab';

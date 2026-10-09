@@ -83,3 +83,30 @@ describe('banner style imports', () => {
 		expect(importers.length).toBeGreaterThan(0);
 	});
 });
+
+/** Every component stylesheet a module graph imports statically. */
+const staticStylesheets = function staticStylesheets(entry: string): string[] {
+	return [...staticGraph(entry).values()]
+		.flat()
+		.filter((specifier) =>
+			/^@c15t\/ui\/styles\/components\/.+\.css$/u.test(specifier)
+		);
+};
+
+describe('root style imports', () => {
+	test('the Nuxt root imports no stylesheet statically: Nuxt would link it from the entry', () => {
+		// Nuxt inlines the styles of each component it server-renders. A
+		// stylesheet in the entry's static graph also becomes a
+		// render-blocking <link>, because the entry has no other way to
+		// bring it to the browser.
+		expect(staticStylesheets(join(componentsDir, 'nuxt-root.vue'))).toEqual([]);
+	});
+
+	test('neither root imports the dialog trigger statically: it renders only after mount', () => {
+		for (const root of ['root.vue', 'nuxt-root.vue']) {
+			expect(staticStylesheets(join(componentsDir, root)), root).not.toContain(
+				'@c15t/ui/styles/components/consent-dialog-trigger.css'
+			);
+		}
+	});
+});
