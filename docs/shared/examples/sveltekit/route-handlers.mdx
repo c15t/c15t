@@ -1,12 +1,11 @@
 {/* Generated from internals/doc-snippets/sveltekit/src/routes/api/c15t/[...path]/+server.ts (docs:route-handlers) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```ts title="src/routes/api/c15t/[...path]/+server.ts"
-import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
+import { createConsentRoute } from '@c15t/svelte/kit';
 
-// GET /api/c15t resolves the visitor from the cached policy manifest.
-// GET /api/c15t/manifest serves that manifest. Other methods are not handled:
-// the browser saves consent to the backend URL directly.
-export const { GET } = createSvelteKitConsentRouteHandlers({
-	backendURL: 'https://your-project.inth.app',
-});
+// GET /api/c15t/init resolves the visitor from the bundled policy, and
+// GET /api/c15t/manifest serves it. Other methods are not handled: the
+// browser saves consent to the backend URL directly. Pair it with
+// `c15tHandle({ routePrefix: '/api/c15t' })`.
+export const { GET } = createConsentRoute();
 ```

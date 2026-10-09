@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+	import ConsentProvider from '../../lib/components/consent-provider.svelte';
 	import ConsentWidget from '../../lib/components/preferences.svelte';
 	import type { ConsentContextValue } from '../../lib/context.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
@@ -16,7 +16,7 @@
 	} = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	{#if capture}<Reader {capture} />{/if}
 	<ConsentWidget {noStyle} />
-</ConsentManagerProvider>
+</ConsentProvider>

@@ -1,15 +1,19 @@
 /**
- * SvelteKit `handle` hook that resolves consent context once per request.
+ * SvelteKit `handle` hook that holds the consent config and reads the
+ * request's consent context once.
  *
- * The Next.js counterpart (`c15tMiddleware`) exists because that platform
- * exposes geo to middleware and strips it before Server Components. SvelteKit
- * has no such gap — but it does have the same duplication problem: without a
- * handle, every `+layout.server.ts`, `+page.server.ts` and route handler
- * re-parses the same headers and the same cookie. This runs that work once and
- * publishes it on `event.locals.c15t`.
+ * Without a handle, every `+layout.server.ts`, `+page.server.ts` and route
+ * handler would re-parse the same headers and the same cookie. This runs
+ * that work once and publishes it, with the mode `loadConsent` resolves
+ * with, on `event.locals.c15t`.
  */
+import { building } from '$app/env';
+import type { ConsentMode } from '@c15t/core/modes';
 import { readRequestConsent } from '@c15t/core/server';
-import type { ConsentRequestHeaderInputs } from '@c15t/schema/types';
+import type {
+	ConsentManifest,
+	ConsentRequestHeaderInputs,
+} from '@c15t/schema/types';
 import type { RequestEvent } from '@sveltejs/kit';
 
 import { injectModulePreloads } from './module-preload';
@@ -19,21 +23,33 @@ import type { C15tLocals, ConsentRequestOptions } from './types';
 /** Options for {@link c15tHandle}. */
 export interface C15tHandleOptions extends ConsentRequestOptions {
 	/**
-	 * Every page this handle serves is shared between visitors, as during a
-	 * prerender. The handle then reads no cookie or geo header and leaves
-	 * no stored consent, clock or privacy signal on `event.locals.c15t`, and
-	 * `loadConsent` makes no upstream call. Pass SvelteKit's `building`
-	 * flag: from `$app/environment` in SvelteKit 2, `$app/env` in
-	 * SvelteKit 3.
-	 *
-	 * @example
-	 * ```ts
-	 * import { building } from '$app/environment';
-	 *
-	 * export const handle = c15tHandle({ shared: building });
-	 * ```
+	 * The c15t backend. Defaults to the URL `consentManifest()` read from
+	 * `PUBLIC_C15T_BACKEND_URL`. A `hosted({ backendURL })` mode's own URL
+	 * wins.
 	 */
-	shared?: boolean;
+	backendURL?: string;
+	/**
+	 * How `loadConsent` resolves the visitor: `manifest()` (the default),
+	 * `hosted()` or `offline()` from `@c15t/svelte/kit`. They are plain
+	 * data; `ConsentRoot` loads the code a mode needs in the browser only
+	 * when it runs.
+	 *
+	 * @default manifest()
+	 */
+	mode?: ConsentMode;
+	/**
+	 * Where `createConsentRoute()` is mounted, such as `/api/c15t` for
+	 * `src/routes/api/c15t/[...path]/+server.ts`. The browser then resolves
+	 * consent on pages the server did not, such as prerendered ones,
+	 * through the app's own route. Without it, the browser asks the
+	 * backend's `/init`.
+	 */
+	routePrefix?: string;
+	/**
+	 * A manifest to resolve with instead of the one `consentManifest()`
+	 * downloaded.
+	 */
+	snapshot?: ConsentManifest;
 }
 
 /**
@@ -94,6 +110,24 @@ const normalizeRequestHeaders = function normalizeRequestHeaders(
 };
 
 /**
+ * The data a mode carries. A transport factory, such as `hosted()` from
+ * `@c15t/svelte`, carries its options as data too; only that data reaches
+ * the browser.
+ */
+const modeData = function modeData(mode: ConsentMode): ConsentMode {
+	if (typeof mode !== 'function') {
+		return mode;
+	}
+	if (!(mode as Partial<ConsentMode>).type) {
+		throw new TypeError(
+			'c15t: c15tHandle() takes manifest(), hosted() or offline() from @c15t/svelte/kit. Pass custom() to <ConsentRoot mode> instead.'
+		);
+	}
+	const { kind: _kind, ...data } = mode as ConsentMode & { kind?: string };
+	return data as ConsentMode;
+};
+
+/**
  * Creates the c15t SvelteKit handle.
  *
  * Register it in `src/hooks.server.ts`, alone or composed with `sequence()`:
@@ -105,26 +139,26 @@ const normalizeRequestHeaders = function normalizeRequestHeaders(
  * export const handle = sequence(c15tHandle(), myOtherHandle);
  * ```
  *
- * Augment `App.Locals` so `event.locals.c15t` is typed:
+ * Type `event.locals.c15t` with one line in `src/app.d.ts`:
  *
  * ```ts
- * import type { C15tLocals } from '@c15t/svelte/kit';
- *
- * declare global {
- *   namespace App {
- *     interface Locals {
- *       c15t: C15tLocals;
- *     }
- *   }
- * }
+ * /// <reference types="@c15t/svelte/kit/locals" />
  * ```
  *
- * @param options - Cookie name and geo/language overrides.
+ * While SvelteKit prerenders, every page is shared between visitors: the
+ * handle reads no cookie or geo header and leaves no stored consent, clock
+ * or privacy signal on `event.locals.c15t`.
+ *
+ * @param options - The mode, the consent route's prefix, a snapshot, the
+ * cookie name and geo/language overrides.
  * @returns A `handle` hook that populates `event.locals.c15t`.
+ * @throws {TypeError} When `mode` is `custom()`, which cannot reach the
+ * browser as data.
  */
 export const c15tHandle = function c15tHandle(
 	options: C15tHandleOptions = {}
 ): C15tHandle {
+	const mode = modeData(options.mode ?? { type: 'manifest' });
 	return async ({ event, resolve }) => {
 		const { headers } = event.request;
 		// A prerendered page is one HTML file for every visitor: no cookie or
@@ -137,20 +171,29 @@ export const c15tHandle = function c15tHandle(
 				region: options.region,
 			},
 			request: { headers, url: event.url },
-			shared: options.shared === true,
+			shared: building,
 			storage: options.cookieName
 				? { storageKey: options.cookieName }
 				: undefined,
 		});
-		if (!options.shared) {
+		if (!building) {
 			normalizeRequestHeaders(headers, inputs);
 		}
 
-		const locals: C15tLocals = { config, inputs };
+		const locals: C15tLocals = { config, inputs, mode };
+		if (options.backendURL !== undefined) {
+			locals.backendURL = options.backendURL;
+		}
+		if (options.routePrefix !== undefined) {
+			locals.routePrefix = options.routePrefix;
+		}
+		if (options.snapshot !== undefined) {
+			locals.snapshot = options.snapshot;
+		}
 		if (options.cookieName !== undefined) {
 			locals.cookieName = options.cookieName;
 		}
-		if (options.shared) {
+		if (building) {
 			locals.shared = true;
 		}
 		(event.locals as { c15t?: C15tLocals }).c15t = locals;

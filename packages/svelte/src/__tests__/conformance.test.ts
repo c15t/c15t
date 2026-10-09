@@ -9,7 +9,7 @@ import {
  *
  * Drives the shared `runConformanceSuite` against real Svelte renders:
  * - `mount` boots a fixture that wraps the requested component in
- *   `ConsentManagerProvider` (provider takes a `children` snippet, so
+ *   `ConsentProvider` (provider takes a `children` snippet, so
  *   each component variant needs a dispatching fixture).
  * - `getStore` projects the provider's live kernel snapshot into the
  *   v2-compatible shape asserted by the shared suite.
@@ -26,7 +26,7 @@ import type {
 	SuiteApi,
 	TestDriver,
 } from '@c15t/conformance';
-import { deferInitGvl, custom } from '@c15t/core';
+import { custom, deferInitGvl, offline } from '@c15t/core';
 import type {
 	AllConsentNames,
 	ConsentKernel,
@@ -44,7 +44,6 @@ import { mount, unmount } from 'svelte';
 import { afterAll, beforeAll, describe, expect, test } from 'vitest';
 
 import { whenIABReady } from '../lib/iab-loader';
-import { offline } from '../lib/transports/offline';
 import type { ConsentManagerOptions } from '../lib/types';
 import ConformanceFixture from './fixtures/conformance-fixture.svelte';
 import { createPolicySession, probePolicyContract } from './policy-driver';

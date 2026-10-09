@@ -72,7 +72,7 @@ export const experimentCallbacks = {
  * it the way a flag provider would.
  */
 export const experimentFromSearch = function experimentFromSearch(
-	params: URLSearchParams
+	params: Pick<URLSearchParams, 'get'>
 ): ConsentExperiment | undefined {
 	if (params.get('experiment') !== '1') {
 		return undefined;

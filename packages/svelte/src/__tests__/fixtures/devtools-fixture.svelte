@@ -1,9 +1,9 @@
 <script lang="ts">
+	import { offline } from '@c15t/core';
 	import { resolvePolicyRules } from '@c15t/schema/types';
 
-	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
+	import ConsentProvider from '../../lib/components/consent-provider.svelte';
 	import ConsentDevToolsComponent from '../../lib/devtools';
-	import { offline } from '../../lib/transports/offline';
 
 	let {
 		categories,
@@ -53,7 +53,7 @@
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	options={{
 		mode: offline(),
 		consentCategories: categories,
@@ -70,10 +70,10 @@
 		{shadow}
 		defaultOpen
 	/>
-</ConsentManagerProvider>
+</ConsentProvider>
 
 {#if multiple}
-	<ConsentManagerProvider options={{ mode: offline() }}>
+	<ConsentProvider options={{ mode: offline() }}>
 		<ConsentDevToolsComponent position="bottom-right" />
-	</ConsentManagerProvider>
+	</ConsentProvider>
 {/if}

@@ -5,7 +5,10 @@ import path from 'node:path';
 import { afterEach, describe, expect, test } from 'vitest';
 
 import { MODULE_PRELOAD_PLACEHOLDERS } from '../kit/module-preload';
-import { c15tPreload, consentManifest, resolveChunkHrefs } from '../vite';
+import { consentManifest, resolveChunkHrefs } from '../vite';
+
+/** The module-preload plugin `consentManifest()` includes. */
+const preloadPlugin = () => consentManifest()[1];
 
 const CORE = '/app/node_modules/@c15t/core/dist/modules';
 
@@ -57,7 +60,7 @@ describe('Svelte manifest module', () => {
 		async ({ plugins, snapshotInBrowser }) => {
 			const root = await mkdtemp(path.join(tmpdir(), 'c15t-svelte-manifest-'));
 			directories.push(root);
-			const plugin = consentManifest({
+			const [plugin] = consentManifest({
 				backendURL: 'https://consent.example.com',
 				fetch: () =>
 					Promise.resolve(
@@ -107,7 +110,7 @@ describe('resolveChunkHrefs', () => {
 	});
 });
 
-describe('c15tPreload', () => {
+describe('consentManifest module preload', () => {
 	const setup = async function setup() {
 		const root = await mkdtemp(path.join(tmpdir(), 'c15t-preload-'));
 		directories.push(root);
@@ -118,7 +121,7 @@ describe('c15tPreload', () => {
 			file,
 			`const hrefs = ${JSON.stringify(MODULE_PRELOAD_PLACEHOLDERS)};`
 		);
-		const plugin = c15tPreload();
+		const plugin = preloadPlugin();
 		const configure = (ssr: boolean) =>
 			plugin.configResolved({
 				build: { ssr },
@@ -172,7 +175,7 @@ describe('c15tPreload', () => {
 
 	test('reads SvelteKit 3 options, which are not nested under kit', async () => {
 		const { file } = await setup();
-		const plugin = c15tPreload();
+		const plugin = preloadPlugin();
 		plugin.configResolved({
 			build: {},
 			plugins: [
@@ -195,7 +198,7 @@ describe('c15tPreload', () => {
 
 	test('does nothing outside SvelteKit', async () => {
 		const { file } = await setup();
-		const plugin = c15tPreload();
+		const plugin = preloadPlugin();
 		plugin.configResolved({
 			build: {},
 			plugins: [],

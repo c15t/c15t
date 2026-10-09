@@ -1,4 +1,4 @@
-import { c15tPreload } from '@c15t/svelte/vite';
+import { consentManifest } from '@c15t/svelte/vite';
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
@@ -12,8 +12,11 @@ export default defineConfig({
 			adapter: adapter(),
 			preprocess: vitePreprocess(),
 		}),
-		// Lets c15tHandle preload the script loader on pages with scripts.
-		c15tPreload(),
+		// Lets c15tHandle preload the script loader on pages with scripts. The
+		// areas of this app use different backends, so a build without a
+		// backend URL keeps going and each server load reads its policy at
+		// runtime.
+		consentManifest({ onBuildError: 'runtime' }),
 	],
 	server: {
 		watch: {

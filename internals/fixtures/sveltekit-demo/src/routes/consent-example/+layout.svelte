@@ -3,26 +3,18 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
-		hosted,
+		ConsentRoot,
 	} from '@c15t/svelte';
 
 	import { scripts } from '#lib/example-scripts.js';
-	import { testBackend } from '#lib/test-backend.js';
 
 	import '@c15t/svelte/styles.css';
 
 	let { children, data } = $props();
-
-	const mode = hosted({
-		backendURL: 'https://your-project.inth.app',
-		...testBackend('url'),
-	});
 </script>
 
-<ConsentManagerProvider
-	{mode}
-	prefetch={data.prefetch}
+<ConsentRoot
+	state={data.consent}
 	{scripts}
 >
 	{@render children()}
@@ -31,4 +23,4 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentRoot>

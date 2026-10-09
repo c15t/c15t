@@ -23,12 +23,13 @@
 		"To manually install, follow the [quickstart](https://c15t.com/docs/frameworks/svelte/quickstart)."
 	],
 	"usage": [
-		"Wrap your app with `ConsentManagerProvider`",
+		"Add `consentManifest()` from `@c15t/svelte/vite` to `vite.config.ts`. It downloads your policy from `VITE_C15T_BACKEND_URL` (SvelteKit: `PUBLIC_C15T_BACKEND_URL`)",
+		"Wrap your app with `ConsentProvider` in `manifest()` mode",
 		"Add `ConsentBanner` and `ConsentDialog` near the root",
-		"Customise styling and behaviour to fit your app",
+		"In SvelteKit, render `ConsentRoot` with the state `loadConsent` from `@c15t/svelte/kit` returns; see the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart)",
 		"For full implementation details, see the [Svelte quickstart docs](https://c15t.com/docs/frameworks/svelte/quickstart)",
 
-		"```svelte\n<!-- src/routes/+layout.svelte -->\n<script>\n  import { ConsentManagerProvider, ConsentBanner, ConsentDialog } from '@c15t/svelte'\n  import '../app.css'\n\n  let { children } = $props()\n</script>\n\n<ConsentManagerProvider\n  mode=\"hosted\"\n  backendURL=\"https://your-instance.c15t.dev\"\n  consentCategories={['necessary', 'measurement', 'marketing']}\n>\n  {@render children()}\n  <ConsentBanner />\n  <ConsentDialog />\n</ConsentManagerProvider>\n```\n\nImport `@c15t/svelte/styles.css` once from your global CSS, such as SvelteKit's `src/app.css`."
+		"```svelte\n<!-- src/App.svelte -->\n<script lang=\"ts\">\n  import {\n    ConsentBanner,\n    ConsentDialog,\n    ConsentProvider,\n    manifest,\n  } from '@c15t/svelte';\n</script>\n\n<ConsentProvider mode={manifest()}>\n  <main>Your app goes here.</main>\n  <ConsentBanner />\n  <ConsentDialog />\n</ConsentProvider>\n```"
 	],
 	"docsLink": "https://c15t.com/docs/frameworks/svelte/quickstart",
 	"quickStartLink": "https://c15t.com/docs/frameworks/svelte/quickstart",

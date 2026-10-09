@@ -36,7 +36,7 @@
 
 	const consent = getConsentContext();
 	// The draft ships with this widget, not with the provider; see
-	// `ConsentManagerProvider`. Handing it over here seeds the switches in
+	// `ConsentProvider`. Handing it over here seeds the switches in
 	// this render, server-side too.
 	consent.provideDraft(createPreferenceDraft);
 	const widgetId = $props.id();

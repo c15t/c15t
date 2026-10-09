@@ -1,13 +1,10 @@
 /**
- * `GET /api/c15t/manifest` — the shipped `@c15t/svelte/kit` manifest proxy,
- * forwarding the fixture's cache headers verbatim.
+ * `GET /api/c15t/manifest` — the shipped `@c15t/svelte/kit` consent route,
+ * serving the fixture's manifest with its cache headers. `GET` picks
+ * `manifest` from the path's last segment.
  */
-import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
+import { createConsentRoute } from '@c15t/svelte/kit';
 
-import type { RequestHandler } from './$types';
-
-const handlers = createSvelteKitConsentRouteHandlers({
+export const { GET } = createConsentRoute({
 	manifestURL: '/api/bench-consent/manifest',
 });
-
-export const GET: RequestHandler = handlers.manifest;

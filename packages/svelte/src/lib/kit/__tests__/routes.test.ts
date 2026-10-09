@@ -7,7 +7,7 @@ import { clearManifestCache } from '@c15t/core/server';
 import type { RequestEvent } from '@sveltejs/kit';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
-import { createSvelteKitConsentRouteHandlers } from '../routes';
+import { createConsentRoute } from '../routes';
 import { createEvent } from './event';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
@@ -41,19 +41,19 @@ beforeEach(() => {
 	clearManifestCache();
 });
 
-describe('createSvelteKitConsentRouteHandlers', () => {
-	test('serves and resolves a build snapshot without an upstream policy request', async () => {
+describe('createConsentRoute', () => {
+	test('serves and resolves a snapshot without an upstream policy request', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
-		const handlers = createSvelteKitConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
-			manifest: MANIFEST_FIXTURE,
 			reportSessions: false,
+			snapshot: MANIFEST_FIXTURE,
 		});
-		expect(
-			await (await handlers.manifest(restEvent('manifest'))).json()
-		).toEqual(MANIFEST_FIXTURE);
-		const response = await handlers.init(
+		expect(await (await GET(restEvent('manifest'))).json()).toEqual(
+			MANIFEST_FIXTURE
+		);
+		const response = await GET(
 			restEvent('init', { headers: { 'x-vercel-ip-country': 'DE' } })
 		);
 		expect(await response.json()).toMatchObject({
@@ -62,35 +62,18 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	test('returns GET, init and manifest, and the write methods with proxy on', () => {
+	test('returns GET, and the write methods with proxy on', () => {
+		expect(Object.keys(createConsentRoute()).sort()).toEqual(['GET']);
 		expect(
 			Object.keys(
-				createSvelteKitConsentRouteHandlers({ backendURL: BACKEND })
+				createConsentRoute({ backendURL: BACKEND, proxy: true })
 			).sort()
-		).toEqual(['GET', 'init', 'manifest']);
-		expect(
-			Object.keys(
-				createSvelteKitConsentRouteHandlers({
-					backendURL: BACKEND,
-					proxy: true,
-				})
-			).sort()
-		).toEqual([
-			'DELETE',
-			'GET',
-			'OPTIONS',
-			'PATCH',
-			'POST',
-			'PUT',
-			'init',
-			'manifest',
-			'proxy',
-		]);
+		).toEqual(['DELETE', 'GET', 'OPTIONS', 'PATCH', 'POST', 'PUT']);
 	});
 
 	test('GET dispatches on the rest parameter, or the path of a fixed route', async () => {
 		const fetch = upstream();
-		const { GET } = createSvelteKitConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
 			reportSessions: false,
@@ -107,14 +90,15 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 
 	test('fetches a relative backend in-process through event.fetch', async () => {
 		const eventFetch = upstream();
-		const { init } = createSvelteKitConsentRouteHandlers({
+		const { GET } = createConsentRoute({
 			backendURL: '/api/self-host',
 			reportSessions: false,
 		});
-		await init(
+		await GET(
 			createEvent({
 				fetch: eventFetch,
 				headers: { host: 'evil.example' },
+				route: { id: ROUTE_ID, params: { path: 'init' } },
 				url: 'https://shop.example/api/c15t/init',
 			})
 		);
@@ -129,17 +113,14 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 		try {
 			const fetch = upstream();
 			const waitUntil = vi.fn();
-			const { manifest } = createSvelteKitConsentRouteHandlers({
-				backendURL: BACKEND,
-				fetch,
-			});
+			const { GET } = createConsentRoute({ backendURL: BACKEND, fetch });
 			const event = () =>
 				Object.assign(restEvent('manifest'), {
 					platform: { context: { waitUntil } },
 				});
-			await manifest(event());
+			await GET(event());
 			vi.advanceTimersByTime(1500);
-			await manifest(event());
+			await GET(event());
 			expect(waitUntil).toHaveBeenCalledTimes(1);
 			expect(waitUntil.mock.contexts[0]).toEqual({ waitUntil });
 		} finally {
@@ -149,7 +130,7 @@ describe('createSvelteKitConsentRouteHandlers', () => {
 
 	test('the proxy vouches for the hop chain with event.getClientAddress()', async () => {
 		const fetch = upstream();
-		const { POST } = createSvelteKitConsentRouteHandlers({
+		const { POST } = createConsentRoute({
 			backendURL: BACKEND,
 			fetch,
 			proxy: true,

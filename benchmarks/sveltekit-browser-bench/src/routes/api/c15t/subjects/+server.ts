@@ -1,9 +1,10 @@
 /**
  * `POST /api/c15t/subjects`.
  *
- * `@c15t/svelte/kit` ships init and manifest only — saving consent is a
- * backend write, so the manifest arms post to the same fixture the direct
- * arms do. Kept same-origin so the browser sees one backend host.
+ * `createConsentRoute()` without `proxy` serves init and manifest only —
+ * saving consent is a backend write, so the manifest arms post to the same
+ * fixture the direct arms do. Kept same-origin so the browser sees one
+ * backend host.
  */
 import {
 	applyBenchConsentLatency,

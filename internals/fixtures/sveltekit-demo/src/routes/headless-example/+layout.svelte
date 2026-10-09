@@ -2,7 +2,7 @@
 	import {
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
+		ConsentProvider,
 		hosted,
 	} from '@c15t/svelte';
 
@@ -21,7 +21,7 @@
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	{mode}
 	{scripts}
 >
@@ -31,4 +31,4 @@
 	</footer>
 	<CustomConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>

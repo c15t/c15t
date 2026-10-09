@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	import Provider from '../../lib/components/manager-provider.svelte';
+	import Provider from '../../lib/components/consent-provider.svelte';
 	import Link from '../../lib/components/panel-link.svelte';
 	import Dialog from '../../lib/components/panel.svelte';
 	import Banner from '../../lib/components/prompt.svelte';

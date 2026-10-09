@@ -1,6 +1,8 @@
+import { custom, hosted as hostedTransport } from '@c15t/core';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { c15tHandle } from '../handle';
+import { hosted } from '../index';
 import type { C15tLocals } from '../types';
 import { CONSENTED_COOKIE, createEvent } from './event';
 
@@ -140,8 +142,8 @@ describe('c15tHandle', () => {
 			},
 		];
 
-		// Without `c15tPreload()` the build names no chunk, so no link is
-		// added.
+		// Outside a `consentManifest()` build no chunk is named, so no link
+		// is added.
 		const page =
 			'<head><meta name="c15t-modulepreload" content="loader-and-blocker"></head>';
 		expect(resolveOptions.transformPageChunk({ done: true, html: page })).toBe(
@@ -150,5 +152,36 @@ describe('c15tHandle', () => {
 		expect(
 			resolveOptions.transformPageChunk({ done: true, html: '<p>page</p>' })
 		).toBe('<p>page</p>');
+	});
+});
+
+describe('c15tHandle mode', () => {
+	test('stores manifest() by default, with the route prefix and backend', async () => {
+		const { locals } = await runHandle(createEvent(), {
+			backendURL: 'https://consent.example.com',
+			routePrefix: '/api/c15t',
+		});
+		expect(locals).toMatchObject({
+			backendURL: 'https://consent.example.com',
+			mode: { type: 'manifest' },
+			routePrefix: '/api/c15t',
+		});
+	});
+
+	test('keeps only the data of a transport factory', async () => {
+		const { locals } = await runHandle(createEvent(), {
+			mode: hostedTransport({ backendURL: 'https://consent.example.com' }),
+		});
+		expect(locals.mode).toEqual(
+			hosted({ backendURL: 'https://consent.example.com' })
+		);
+		expect(typeof locals.mode).toBe('object');
+	});
+
+	test('rejects custom(), which cannot reach the browser as data', () => {
+		const mode = custom({ init: () => Promise.resolve({}) });
+		expect(() => c15tHandle({ mode: mode as never })).toThrow(
+			/Pass custom\(\) to <ConsentRoot mode>/u
+		);
 	});
 });

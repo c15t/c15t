@@ -6,11 +6,9 @@ the stock banner. A "Privacy settings" link in the footer reopens the
 preference dialog, and PostHog loads only after the visitor allows
 measurement.
 
-- `vite.config.ts` downloads the policy with `consentManifest` and serves it
-  as `c15t/generated`.
-- `src/App.svelte` mounts `ConsentManagerProvider` in `manifest()` mode with
-  the banner, dialog and link.
-- `src/scripts.ts` registers PostHog.
+- `vite.config.ts` downloads the policy with `consentManifest`.
+- `src/App.svelte` mounts `ConsentProvider` in `manifest()` mode, which
+  reads that policy, with PostHog, the banner, dialog and link.
 
 ## Run it
 
@@ -30,7 +28,7 @@ set `VITE_C15T_BACKEND_URL` in `.env.local` to its backend URL and add
 `http://127.0.0.1:5173` to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project,
-or the backend URL. Replace `phc_your_project_key` in `src/scripts.ts` with
+or the backend URL. Replace `phc_your_project_key` in `src/App.svelte` with
 your PostHog project key.
 
 Docs: [Svelte quickstart](https://c15t.com/docs/frameworks/svelte/quickstart)

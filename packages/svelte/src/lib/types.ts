@@ -1,5 +1,8 @@
 import type {
+	ConsentMode,
+	ExperimentState,
 	IABConfig,
+	KernelConfig,
 	LegalLinks,
 	ProviderTransportFactory,
 } from '@c15t/core';
@@ -49,7 +52,7 @@ export type UseNetworkBlockerOptions = RuntimeNetworkBlockerOptions;
 export type UsePersistenceOptions = RuntimePersistenceOptions;
 
 /**
- * Options accepted by `<ConsentManagerProvider>`.
+ * Options accepted by `<ConsentProvider>`.
  *
  * Everything except the fields below is the framework-agnostic
  * {@link ConsentRuntimeOptions} contract, forwarded untouched to
@@ -84,14 +87,14 @@ export interface ConsentManagerOptions
 	 * @example
 	 * ```svelte
 	 * <script lang="ts">
-	 *   import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+	 *   import { ConsentProvider, hosted } from '@c15t/svelte';
 	 *
 	 *   let { children } = $props();
 	 * </script>
 	 *
-	 * <ConsentManagerProvider mode={hosted({ backendURL: '/api/c15t' })}>
+	 * <ConsentProvider mode={hosted({ backendURL: '/api/c15t' })}>
 	 *   {@render children()}
-	 * </ConsentManagerProvider>
+	 * </ConsentProvider>
 	 * ```
 	 */
 	mode: ProviderTransportFactory;
@@ -113,12 +116,12 @@ export interface ConsentManagerOptions
 	 *
 	 * @example
 	 * ```svelte
-	 * <ConsentManagerProvider
+	 * <ConsentProvider
 	 *   mode={hosted({ backendURL: '/api/c15t' })}
 	 *   gpp={{ usApproach: 'national' }}
 	 * >
 	 *   {@render children()}
-	 * </ConsentManagerProvider>
+	 * </ConsentProvider>
 	 * ```
 	 */
 	gpp?: RuntimeGPPOptions | boolean;
@@ -168,3 +171,23 @@ export type SvelteUIOptions = UIOptions;
 export type ConsentProviderCallbacks = NonNullable<
 	ConsentRuntimeOptions['callbacks']
 >;
+
+/**
+ * What `loadConsent` from `@c15t/svelte/kit` returns as `consent`, for
+ * `<ConsentRoot state>`. Every field is serializable, so a SvelteKit
+ * `load` can return it.
+ */
+export interface ConsentRootState {
+	/** The mode `c15tHandle()` was given, as data. */
+	mode: ConsentMode;
+	/** The visitor's consent state the server resolved. */
+	prefetch: Omit<KernelConfig, 'transport'> & ExperimentState;
+	/** The c15t backend. Saves go here. */
+	backendURL?: string;
+	/**
+	 * Prefix of the app's consent route, such as `/api/c15t`, when
+	 * `c15tHandle()` was given one. The browser re-inits and fetches the
+	 * manifest through it.
+	 */
+	routePrefix?: string;
+}

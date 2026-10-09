@@ -7,16 +7,20 @@ visitor's choice applies from the first paint. A "Privacy settings" link in the
 footer reopens the preference dialog, and PostHog loads only after the visitor
 allows measurement.
 
-- `vite.config.ts` downloads the policy with `consentManifest` and serves it
-  to server code as `c15t/generated`. The browser bundle never gets it.
-- `src/lib/server/c15t.ts` holds the consent options with that policy.
-- `src/routes/+layout.server.ts` resolves consent with `loadConsent`.
-- `src/routes/api/c15t/[...path]/+server.ts` resolves consent for the browser
-  on pages the server did not resolve.
-- `src/routes/+layout.svelte` renders `ConsentManagerProvider` with the banner,
-  dialog and link.
+- `vite.config.ts` downloads the policy with `consentManifest`. Only server
+  code gets it; the browser bundle never does.
 - `src/hooks.server.ts` reads the request's consent context once with
   `c15tHandle`.
+- `src/routes/+layout.server.ts` resolves consent with `loadConsent`.
+- `src/routes/+layout.svelte` renders `ConsentRoot` with PostHog, the banner,
+  dialog and link.
+- `src/app.d.ts` types `event.locals.c15t`.
+
+A prerendered page carries no visitor's consent, so the browser resolves it.
+To do that through the app's own origin, add
+`src/routes/api/c15t/[...path]/+server.ts` with
+`export const { GET } = createConsentRoute();` and pass
+`c15tHandle({ routePrefix: '/api/c15t' })`.
 
 ## Run it
 
@@ -36,7 +40,7 @@ your own project, set `PUBLIC_C15T_BACKEND_URL` in `.env.local` to its backend
 URL and add `http://localhost:5173` to its trusted origins.
 
 Rebuild after you change the policy, translations or vendors in your project,
-or the backend URL. Replace `phc_your_project_key` in `src/lib/scripts.ts` with
+or the backend URL. Replace `phc_your_project_key` in `src/routes/+layout.svelte` with
 your PostHog project key.
 
 Docs: [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart)

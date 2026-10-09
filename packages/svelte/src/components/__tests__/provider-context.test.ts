@@ -1,16 +1,16 @@
 /**
- * Tests for ConsentManagerProvider context values.
+ * Tests for ConsentProvider context values.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-context.test.tsx
  */
 
+import { offline } from '@c15t/core';
 import { render, screen, waitFor } from '@testing-library/svelte';
 import { beforeEach, describe, expect, test } from 'vitest';
 
 import ContextConsumerFixture from '../../__tests__/fixtures/context-consumer-fixture.svelte';
-import { offline } from '../../lib/transports/offline';
 
-describe('ConsentManagerProvider Context Values', () => {
+describe('ConsentProvider Context Values', () => {
 	beforeEach(() => {
 		window.localStorage.clear();
 		const cookies = document.cookie.split(';');

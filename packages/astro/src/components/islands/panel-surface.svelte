@@ -13,7 +13,7 @@
 <script lang="ts">
 	import type { LegalLinks } from '@c15t/core';
 	import type { ConsentRuntime } from '@c15t/core/runtime';
-	import { ConsentDialog, ConsentManagerProvider } from '@c15t/svelte';
+	import { ConsentDialog, ConsentProvider } from '@c15t/svelte';
 	import type { Component } from 'svelte';
 
 	// The injected stylesheet covers the banner and the dialog. The Svelte
@@ -51,7 +51,7 @@
 	});
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	{runtime}
 	options={options as never}
 >
@@ -62,4 +62,4 @@
 	{:else}
 		<ConsentDialog {legalLinks} />
 	{/if}
-</ConsentManagerProvider>
+</ConsentProvider>

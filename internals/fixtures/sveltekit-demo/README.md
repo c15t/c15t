@@ -43,10 +43,10 @@ These routes cover the SvelteKit docs recipes. The acceptance suite in
 
 | Route | Recipe |
 | --- | --- |
-| `/consent-example` | Root layout load calls `loadConsent` with the backend URL; banner in the server HTML |
+| `/consent-example` | `loadConsent` with a `hosted()` handle in `src/hooks.server.ts`; banner in the server HTML |
 | `/consent-example/static` | A prerendered page under the same layout; the browser resolves consent |
 | `/consent-example/branded` | Theme tokens from `generateThemeCSS()` in a server load |
-| `/manifest-example` | `loadConsent` through the manifest route in `src/routes/api/c15t` |
+| `/manifest-example` | `loadConsent` with a `manifest()` handle; the browser re-inits through the route in `src/routes/api/c15t` |
 | `/headless-example` | A custom banner from `getHeadlessConsent()` with the stock dialog |
 | `/experiment-example` | The `/consent-example` setup with the banner experiment (not published) |
 

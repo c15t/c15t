@@ -7,7 +7,7 @@
 		ConsentBanner,
 		ConsentDialog,
 		ConsentDialogLink,
-		ConsentManagerProvider,
+		ConsentProvider,
 		hosted,
 	} from '@c15t/svelte';
 
@@ -29,7 +29,7 @@
 	const experiment = experimentFromSearch(location.search);
 </script>
 
-<ConsentManagerProvider
+<ConsentProvider
 	callbacks={experimentCallbacks}
 	{experiment}
 	{mode}
@@ -41,4 +41,4 @@
 	</footer>
 	<ConsentBanner />
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>
