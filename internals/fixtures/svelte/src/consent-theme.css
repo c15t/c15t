@@ -1,4 +1,5 @@
-/* Load after @c15t/svelte/styles.css so these values win. */
+/* c15t's default tokens sit on :where(:root), so these values win whichever
+   stylesheet loads first. */
 :root {
 	--c15t-primary: #6943a3;
 	--c15t-primary-hover: #533285;

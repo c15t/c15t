@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 
 const ManifestGeoLayout = ({ children }: { children: ReactNode }) => (
 	<ConsentShell
+		styles={false}
 		scenario="manifest-geo"
 		transport="manifest-geo"
 	>

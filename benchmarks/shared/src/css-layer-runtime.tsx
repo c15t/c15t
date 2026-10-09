@@ -140,6 +140,9 @@ export const CssLayerScenarioRenderer = ({
 			},
 			mode: offline({ policyRules: [POLICY] }),
 			persistence: false,
+			// Tailwind CSS 3's unlayered preflight beats the components' layered
+			// rules, so that app imports styles.css through postcss-tailwind3.
+			styles: environmentId !== 'tw3',
 			theme: THEME,
 		}}
 	>
@@ -160,9 +163,12 @@ export const CssLayerScenarioRenderer = ({
 								React {surface} compatibility check
 							</h1>
 							<p className="css-layer-description">
-								This route imports the React components and the per-component
-								@c15t/ui style artifacts. The class-map entry for the shared
-								button is loaded as <code>{buttonStyles.button}</code>.
+								This route renders the React components with{' '}
+								{environmentId === 'tw3'
+									? 'styles.css through postcss-tailwind3'
+									: 'the styles they deliver themselves'}
+								. The class-map entry for the shared button is loaded as{' '}
+								<code>{buttonStyles.button}</code>.
 							</p>
 						</div>
 

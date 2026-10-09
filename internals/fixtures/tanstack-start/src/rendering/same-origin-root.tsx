@@ -20,8 +20,6 @@ import {
 import { scripts } from '../scripts';
 import { testBackend } from '../test-backend';
 
-import consentCss from 'c15t/tanstack-start/styles.css?url';
-
 // The consent server route in src/routes/api/c15t/$.ts.
 const consentRoute = '/api/c15t';
 
@@ -65,7 +63,6 @@ export const Route = createRootRoute({
 	...consentLoaderOptions,
 	component: RootComponent,
 	head: () => ({
-		links: [{ href: consentCss, rel: 'stylesheet' }],
 		meta: [
 			{ charSet: 'utf-8' },
 			{ content: 'width=device-width, initial-scale=1', name: 'viewport' },

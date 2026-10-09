@@ -16,6 +16,7 @@ const GateSSRBoundary = async ({ children }: { children: ReactNode }) => {
 
 	return (
 		<ConsentShell
+			styles={false}
 			state={state}
 			scenario="gate-ssr"
 		>

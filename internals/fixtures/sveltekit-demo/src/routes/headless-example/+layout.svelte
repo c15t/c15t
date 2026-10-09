@@ -10,9 +10,6 @@
 	import { scripts } from '#lib/example-scripts.js';
 	import { testBackend } from '#lib/test-backend.js';
 
-	// The stock dialog still needs the stylesheet.
-	import '@c15t/svelte/styles.css';
-
 	let { children } = $props();
 
 	const mode = hosted({

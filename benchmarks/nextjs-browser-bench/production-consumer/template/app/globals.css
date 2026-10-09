@@ -1,5 +1,5 @@
-/* The documented aggregate import, as a production site uses it. */
-@import 'c15t/react/styles.css';
+/* c15t's components deliver their own styles. For an arm whose build
+   predates that, the bench prepends the `c15t/react/styles.css` import. */
 
 :root {
 	color-scheme: light dark;

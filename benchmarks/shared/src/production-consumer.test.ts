@@ -1,6 +1,9 @@
+import { readFileSync } from 'node:fs';
+
 import { describe, expect, it } from 'vitest';
 
 import {
+	consumerGlobalStyles,
 	consumerPackageJson,
 	consumerScenarios,
 	interleaveArms,
@@ -114,6 +117,28 @@ describe('consumerPackageJson', () => {
 				tarballs: new Map([['@c15t/core', '/t/core.tgz']]),
 			})
 		).toThrow('no c15t package');
+	});
+});
+
+describe('consumerGlobalStyles', () => {
+	const template = readFileSync(
+		new URL(
+			'../../nextjs-browser-bench/production-consumer/template/app/globals.css',
+			import.meta.url
+		),
+		'utf8'
+	);
+	const imports = (css: string) =>
+		css.match(/@import\s[^;]*c15t[^;]*;/gu) ?? [];
+
+	it('loads c15t only through the components when they deliver styles', () => {
+		expect(imports(consumerGlobalStyles(template, 'automatic'))).toEqual([]);
+	});
+
+	it('imports the aggregate stylesheet once for an older build', () => {
+		expect(imports(consumerGlobalStyles(template, 'external'))).toEqual([
+			"@import 'c15t/react/styles.css';",
+		]);
 	});
 });
 
