@@ -8,6 +8,7 @@ import { computed, watch } from 'vue';
 
 import {
 	useConsentActiveUI,
+	useConsentInit,
 	useConsentKernel,
 	useConsentSnapshot,
 } from '../composables';
@@ -15,6 +16,7 @@ import { useConsentConfig } from '../composables/config';
 import { useSurfaceTranslations } from '../composables/use-surface-translations';
 import { slotAttrs } from '../utils/slot-attrs';
 import ConsentButton from './button.vue';
+import { useIdleDialogPrefetch, warmConsentDialog } from './lazy-surfaces';
 
 const props = defineProps<{ category: AllConsentNames }>();
 const snapshot = useConsentSnapshot();
@@ -84,6 +86,16 @@ const actionLabel = computed(() => {
 	).replace('{category}', categoryTitle.value);
 });
 
+// The placeholder button opens the dialog, so while it shows the dialog
+// loads in idle time, and at once on hover, focus or touch.
+const init = useConsentInit();
+const isIABPolicy = () => Boolean(init.value?.gvl || init.value?.gvlReference);
+useIdleDialogPrefetch(
+	() => !allowed.value && !policyBlocked.value,
+	isIABPolicy
+);
+const warmDialog = () => warmConsentDialog(isIABPolicy());
+
 const openPreferences = function openPreferences() {
 	activeUI.value = 'manager';
 };
@@ -123,6 +135,8 @@ const openPreferences = function openPreferences() {
 				size="small"
 				data-testid="consent-gate-button"
 				@click="openPreferences"
+				@pointerenter="warmDialog"
+				@focus="warmDialog"
 			>
 				{{ actionLabel }}
 			</ConsentButton>

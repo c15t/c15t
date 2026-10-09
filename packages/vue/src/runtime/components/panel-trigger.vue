@@ -29,6 +29,7 @@ import { useLocalStorageRef } from '../composables/use-local-storage-ref';
 import { useMounted } from '../composables/use-mounted';
 import { useWindowSize } from '../composables/use-window-size';
 import { slotAttrs } from '../utils/slot-attrs';
+import { useIdleDialogPrefetch, warmConsentDialog } from './lazy-surfaces';
 import TriggerIcon from './trigger-icon.vue';
 
 const activeUI = useConsentActiveUI();
@@ -71,6 +72,12 @@ const isVisible = computed(() => {
 	// notice dismissed, the same rule as React's `after-prompt`.
 	return showWhen === 'always' || promptRequirement.value.kind === 'none';
 });
+
+// The trigger only opens the dialog, so it loads the dialog like every other
+// opener: in idle time while it shows, and at once on hover, focus or touch.
+const isIABPolicy = () => Boolean(init.value?.gvl || init.value?.gvlReference);
+useIdleDialogPrefetch(() => isVisible.value, isIABPolicy);
+const warmDialog = () => warmConsentDialog(isIABPolicy());
 
 // With <ConsentDevTools> mounted, the trigger becomes a two-item toolbar
 // that carries the DevTools launcher, so one control occupies the corner.
@@ -426,6 +433,8 @@ const selectItem = function selectItem(kind: ToolbarItemKind) {
 			:style="[config.components?.trigger?.root?.style, triggerStyle]"
 			:aria-label="config.triggerAriaLabel"
 			@click="openDialog"
+			@pointerenter="warmDialog"
+			@focus="warmDialog"
 		>
 			<span
 				v-bind="slotAttrs(config.components?.trigger?.icon, triggerStyles.icon)"

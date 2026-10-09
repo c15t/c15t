@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, ref, watch } from 'vue';
+import { ref, watch } from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -15,8 +15,7 @@ import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
 	LazyIabConsentDialog,
-	prefetchConsentManager,
-	prefetchIabConsentDialog,
+	useIdleDialogPrefetch,
 } from './lazy-surfaces';
 
 const props = defineProps<{
@@ -46,8 +45,9 @@ watch(
 );
 
 // Mount dialog surfaces once first needed, then keep them mounted (close
-// animations, repeat opens). Chunks are prefetched on idle so the first
-// open never pays network+parse.
+// animations, repeat opens). While the banner is shown, the chunk is
+// prefetched once the page has loaded and gone quiet, so the first open
+// rarely pays network+parse.
 const managerNeeded = ref(false);
 const iabDialogNeeded = ref(false);
 watch(
@@ -63,13 +63,10 @@ watch(
 	},
 	{ immediate: true }
 );
-onMounted(() => {
-	if (init.value?.gvl || init.value?.gvlReference) {
-		prefetchIabConsentDialog();
-	} else {
-		prefetchConsentManager();
-	}
-});
+useIdleDialogPrefetch(
+	() => activeUI.value === 'banner',
+	() => Boolean(init.value?.gvl || init.value?.gvlReference)
+);
 </script>
 
 <template>

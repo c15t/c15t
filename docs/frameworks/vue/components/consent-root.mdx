@@ -31,10 +31,15 @@ when the `showTrigger` option is `true`.
 
 Nothing renders until the visitor's policy has resolved. The dialog and the
 IAB surfaces load as separate chunks. The IAB surfaces replace the standard
-ones only when the `iab` option is set and the policy uses the `iab` model. After the page's `load` event,
-`ConsentRoot` prefetches the dialog chunk in an idle moment, so the first
-Customize click does not wait for the network. The dialog unmounts when it
-closes.
+ones only when the `iab` option is set and the policy uses the `iab` model.
+While the banner is shown, `ConsentRoot` prefetches the dialog chunk in an
+idle moment once the page has finished loading: after the `load` event, with
+no resource completing for one second and no visible image still
+downloading, or 10 seconds after `load` at the latest. Hover, focus or touch
+on Customize, `ConsentPreferencesLink`, `ConsentDialogTrigger` or a `ConsentGate`
+button loads it at once, so the first Customize click rarely waits for the
+network. The prefetch is skipped with Save-Data on, on 2G connections and
+offline. The dialog unmounts when it closes.
 
 ## Theme tokens
 

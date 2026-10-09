@@ -6,8 +6,10 @@
  * it's the LCP-critical surface and must server-render into the first
  * HTML. Nuxt's root loads it as its own chunk too (see `nuxt-root.vue`).
  * Everything else is split:
- * - manager/dialog: mounted once first needed, chunk prefetched on idle so
- *   the first "customize" click never pays network+parse
+ * - manager/dialog: mounted once first needed. While something can open
+ *   it, its chunk is prefetched once the page has loaded and gone quiet,
+ *   and warmed at once on hover, focus or touch of a button that opens it,
+ *   so the first "customize" click rarely pays network+parse
  * - IAB surfaces: load only when the resolved policy is IAB (`init.gvl`)
  * - dialog trigger: mounted only in the browser, when `showTrigger` is set
  *
@@ -15,7 +17,11 @@
  * tax was ~345-530ms; the weight was parse/hydration
  * of surfaces most visitors never see.
  */
-import { defineAsyncComponent } from 'vue';
+import {
+	isIdlePreloadAllowed,
+	scheduleIdlePreload,
+} from '@c15t/ui/utils/idle-preload';
+import { defineAsyncComponent, onBeforeUnmount, onMounted, watch } from 'vue';
 
 export const LazyConsentManager = defineAsyncComponent(
 	() => import('./manager.vue')
@@ -60,40 +66,39 @@ export const LazyConsentDialogTrigger = defineAsyncComponent({
 	suspensible: false,
 });
 
+/** Start a download whose failure the next open reports instead. */
+const loadQuietly = async (load: () => Promise<unknown>) => {
+	try {
+		await load();
+	} catch {
+		// The open retries the import and reports its own failure.
+	}
+};
+
 /**
- * Prefetch a surface chunk WITHOUT competing with the critical path.
+ * Prefetch a surface chunk without competing with the page's own loading.
  *
- * Measured: prefetching on bare requestIdleCallback fired during the loading
- * window under CPU throttle and made banner-visible ~130ms WORSE on the SPA
- * arm. So we wait for the window `load` event first (banner is visible well
- * before it), then an idle slot. Intent warming (hover/focus on the
- * customize button) still wins the race for mouse users.
+ * Waits for the window `load` event and then for the page to go quiet (no
+ * resource finishing, no visible image loading), then an idle slot; see
+ * `scheduleIdlePreload` in `@c15t/ui`. `load` alone is too early on pages
+ * that render their main image after their scripts run, and a bare idle
+ * callback fired during loading under CPU throttle made banner-visible
+ * about 130ms worse on the SPA arm. Skipped with Save-Data on, on 2G and
+ * offline. Intent warming starts the download at once.
+ *
+ * @returns A function that cancels the prefetch if it has not started.
  */
 export const prefetchSurfaceAfterLoad = function prefetchSurfaceAfterLoad(
 	load: () => Promise<unknown>
-): void {
-	if (typeof window === 'undefined') {
-		return;
+): () => void {
+	if (typeof window === 'undefined' || !isIdlePreloadAllowed()) {
+		return () => undefined;
 	}
-	const schedule = () => {
-		const idle =
-			'requestIdleCallback' in window
-				? (handler: () => void) =>
-						(
-							window as Window & {
-								requestIdleCallback: (handler: () => void) => void;
-							}
-						).requestIdleCallback(handler)
-				: (handler: () => void) => setTimeout(handler, 1500);
-		idle(() => {
-			void load();
-		});
-	};
-	if (document.readyState === 'complete') {
-		schedule();
-	} else {
-		window.addEventListener('load', schedule, { once: true });
-	}
+	return scheduleIdlePreload(() => {
+		if (isIdlePreloadAllowed()) {
+			void loadQuietly(load);
+		}
+	});
 };
 
 const loadConsentManager = () => import('./manager.vue');
@@ -104,6 +109,133 @@ export const prefetchConsentManager = () =>
 export const prefetchIabConsentDialog = () =>
 	prefetchSurfaceAfterLoad(loadIabConsentDialog);
 
+/** A failed warm is left to the open, which retries the download. */
+const warm = (load: () => Promise<unknown>) => {
+	if (typeof window !== 'undefined') {
+		void loadQuietly(load);
+	}
+};
+
 /** Immediate warm for user-intent signals (hover/focus on "customize"). */
-export const warmConsentManager = () => undefined;
-export const warmIabConsentDialog = () => undefined;
+export const warmConsentManager = () => warm(loadConsentManager);
+export const warmIabConsentDialog = () => warm(loadIabConsentDialog);
+
+/**
+ * Warm the dialog a policy opens now: the IAB dialog under an IAB policy,
+ * otherwise the consent manager.
+ *
+ * @param iab - Whether the resolved policy is IAB (`init.gvl`).
+ */
+export const warmConsentDialog = function warmConsentDialog(
+	iab: boolean
+): void {
+	if (iab) {
+		warmIabConsentDialog();
+	} else {
+		warmConsentManager();
+	}
+};
+
+/**
+ * An intent handler for an element containing buttons that open the
+ * dialog. Bind it to `pointerover` and `focusin`: both bubble, so one
+ * handler covers every button, and a touch fires `pointerover` before
+ * `pointerdown`. Hover, focus or a touch on a descendant matching
+ * `selector` warms the dialog.
+ *
+ * @param selector - The descendants that open the dialog.
+ * @param iab - Whether the resolved policy is IAB, read when intent fires.
+ * @returns The event handler.
+ * @internal
+ */
+export const dialogIntentHandler = function dialogIntentHandler(
+	selector: string,
+	iab: () => boolean
+): (event: Event) => void {
+	return (event) => {
+		const target = event.target as Element | null;
+		if (target?.closest?.(selector)) {
+			warmConsentDialog(iab());
+		}
+	};
+};
+
+// Open idle-prefetch gates: the banner is shown, or a trigger, link or
+// placeholder button that opens the dialog is mounted. The chunk loads once
+// the page has gone quiet if a gate is still open then, so a visit with
+// saved consent and nothing that opens the dialog never downloads it.
+type IdleScheduler = typeof scheduleIdlePreload;
+
+let openGates = 0;
+let cancelScheduled: (() => void) | undefined;
+let scheduleIdle: IdleScheduler = scheduleIdlePreload;
+let dialogIsIAB: () => boolean = () => false;
+
+const prefetchOpenDialog = () => {
+	cancelScheduled = undefined;
+	if (openGates > 0 && isIdlePreloadAllowed()) {
+		warmConsentDialog(dialogIsIAB());
+	}
+};
+
+/**
+ * Hold an idle-prefetch gate open while `active` is true, from mount until
+ * unmount. The IAB check runs when the prefetch starts, by which time
+ * `/init` has usually answered.
+ *
+ * @param active - Whether the dialog can be opened soon from this component.
+ * @param iab - Whether the resolved policy is IAB (`init.gvl`).
+ * @internal
+ */
+export const useIdleDialogPrefetch = function useIdleDialogPrefetch(
+	active: () => boolean,
+	iab: () => boolean
+): void {
+	let held = false;
+	const release = () => {
+		if (held) {
+			held = false;
+			openGates -= 1;
+		}
+	};
+	onMounted(() => {
+		watch(
+			active,
+			(isActive) => {
+				if (!isActive) {
+					release();
+					return;
+				}
+				if (held) {
+					return;
+				}
+				held = true;
+				openGates += 1;
+				dialogIsIAB = iab;
+				if (!cancelScheduled && isIdlePreloadAllowed()) {
+					cancelScheduled = scheduleIdle(prefetchOpenDialog);
+				}
+			},
+			{ immediate: true }
+		);
+	});
+	onBeforeUnmount(release);
+};
+
+/**
+ * Reset the idle-prefetch gates between tests.
+ *
+ * @param options - `scheduleIdle` replaces the idle scheduler, so a test can
+ * run idle work on demand instead of waiting for the page to go quiet.
+ * @internal
+ */
+export const resetIdleDialogPrefetchForTests =
+	function resetIdleDialogPrefetchForTests(
+		options: { scheduleIdle?: IdleScheduler } = {}
+	): void {
+		cancelScheduled?.();
+		cancelScheduled = undefined;
+		openGates = 0;
+		dialogIsIAB = () => false;
+		scheduleIdle = options.scheduleIdle ?? scheduleIdlePreload;
+	};

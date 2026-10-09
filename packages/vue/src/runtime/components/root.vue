@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { onMounted, watch } from 'vue';
+import { watch } from 'vue';
 
 import {
 	useConsentActiveUI,
@@ -14,8 +14,7 @@ import {
 	LazyConsentManager,
 	LazyIabConsentBanner,
 	LazyIabConsentDialog,
-	prefetchConsentManager,
-	prefetchIabConsentDialog,
+	useIdleDialogPrefetch,
 } from './lazy-surfaces';
 import ConsentBanner from './prompt.vue';
 
@@ -35,14 +34,12 @@ const { iabUnavailable } = context;
 // The trigger shows only after mount, so its chunk loads after mount too.
 const mounted = useMounted();
 
-onMounted(() => {
-	// Warm the dialog chunk during idle so the first open is instant.
-	if (init.value?.gvl || init.value?.gvlReference) {
-		prefetchIabConsentDialog();
-	} else {
-		prefetchConsentManager();
-	}
-});
+// While the banner is shown, prefetch the dialog chunk once the page has
+// loaded and gone quiet, so the first open rarely waits for it.
+useIdleDialogPrefetch(
+	() => activeUI.value === 'banner',
+	() => Boolean(init.value?.gvl || init.value?.gvlReference)
+);
 
 watch(
 	() => ({

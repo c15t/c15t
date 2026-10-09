@@ -41,6 +41,7 @@ import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
 import DescriptionContent from './description-content.vue';
 import EarlyTapScript from './early-tap-script';
+import { dialogIntentHandler } from './lazy-surfaces';
 import ConsentTag from './tag.vue';
 
 /**
@@ -229,6 +230,15 @@ const rightLabels = computed<Record<PolicyRight, string>>(() => {
 	};
 });
 
+/**
+ * Hover, focus or a touch on Customize or a rights button starts loading
+ * the consent manager, so it downloads before the click instead of after.
+ */
+const warmDialogOnIntent = dialogIntentHandler(
+	'[data-action="customize"], [data-action="right"]',
+	() => false
+);
+
 /** Additional buttons open preferences and use underlined text styling. */
 const onRight = function onRight() {
 	activeUI.value = 'manager';
@@ -333,6 +343,8 @@ const onAction = function onAction(action: PresentationAction) {
 							slotAttrs(config.components?.banner?.card, bannerStyles.card)
 						"
 						data-testid="consent-banner-card"
+						@pointerover="warmDialogOnIntent"
+						@focusin="warmDialogOnIntent"
 						:role="blocking ? 'dialog' : 'region'"
 						:aria-modal="blocking ? 'true' : undefined"
 						:aria-label="bannerTitle"

@@ -28,6 +28,7 @@ import { useLateEntry } from '../composables/use-late-entry';
 import { useFocusTrap } from '../primitives/use-focus-trap';
 import { slotAttrs } from '../utils/slot-attrs';
 import ConsentActions from './actions.vue';
+import { dialogIntentHandler } from './lazy-surfaces';
 import ConsentTag from './tag.vue';
 
 const IAB_BANNER_LAYOUT: (PresentationAction | PresentationAction[])[] = [
@@ -150,6 +151,15 @@ const descriptionParts = computed(() => {
 	return { after: after ?? '', before: before ?? text };
 });
 
+/**
+ * Hover, focus or a touch on Customize or the partners link starts loading
+ * the IAB dialog, so it downloads before the click instead of after.
+ */
+const warmDialogOnIntent = dialogIntentHandler(
+	'[data-action="customize"], [data-testid="iab-consent-banner-partners-link"]',
+	() => true
+);
+
 const onAction = async function onAction(action: PresentationAction) {
 	try {
 		if (action === 'customize') {
@@ -267,6 +277,8 @@ useFocusTrap(bannerCard, () => shouldTrapFocus.value);
 						"
 						ref="bannerCard"
 						data-testid="iab-consent-banner-card"
+						@pointerover="warmDialogOnIntent"
+						@focusin="warmDialogOnIntent"
 						:role="shouldTrapFocus ? 'dialog' : 'region'"
 						:aria-modal="shouldTrapFocus ? 'true' : undefined"
 						:aria-label="iabT?.banner?.title"

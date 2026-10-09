@@ -39,10 +39,16 @@ cached routes the banner appears after the browser resolves the policy. See
 
 The IAB surfaces replace the standard ones only when the module's `iab`
 option is set and the policy uses the `iab` model. The dialog and the IAB
-surfaces load as separate chunks. `ConsentRoot`
-prefetches the dialog chunk after the page's `load` event, mounts the dialog
-the first time preferences open, and keeps it mounted after that so its close
-animation runs.
+surfaces load as separate chunks. While the banner is shown, `ConsentRoot`
+prefetches the dialog chunk once the page has finished loading: after the
+`load` event, with no resource completing for one second and no visible
+image still downloading, or 10 seconds after `load` at the latest. Hover,
+focus or touch on Customize, `ConsentPreferencesLink`, `ConsentDialogTrigger` or
+a `ConsentGate` button loads it at once. The prefetch is skipped with
+Save-Data on, on 2G connections and offline, and on visits where nothing on
+the page can open the dialog. `ConsentRoot` mounts the dialog the first time
+preferences open, and keeps it mounted after that so its close animation
+runs.
 
 The banner and the trigger are separate chunks too, so their CSS is not part
 of your app's entry stylesheets. Every page preloads the banner chunk. With
