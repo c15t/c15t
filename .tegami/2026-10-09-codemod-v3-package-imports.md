@@ -13,7 +13,9 @@ The new `packages-to-c15t` codemod runs before the other v3 codemods. It
 points `@c15t/react` imports at `c15t/react`, `@c15t/nextjs` imports at
 `c15t/next`, and, in a Next.js app, the `@c15t/react` root at `c15t/next`.
 Subpaths such as `/headless` and `/components/consent-dialog-link` keep their
-names. It removes `styles.css` imports, because v3 components add their own
+names. It points the `@c15t/react/postcss-tailwind3` and
+`@c15t/nextjs/postcss-tailwind3` PostCSS plugins at `c15t/postcss-tailwind3`.
+It removes `styles.css` imports, because v3 components add their own
 styles. With Tailwind CSS 3 or a cascade layer it keeps the import, points it
 at `c15t`, and leaves a `TODO(c15t v3)` comment to set `styles: false`.
 

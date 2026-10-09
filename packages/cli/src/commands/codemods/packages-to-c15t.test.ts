@@ -206,6 +206,40 @@ import 'c15t/react/styles.css';
 `);
 	});
 
+	it('points object-form and required PostCSS plugins at c15t/postcss-tailwind3', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', next: '^15.0.0', tailwindcss: '^3.4.17' },
+			{
+				'apps/docs/postcss.config.cjs': `module.exports = {
+	plugins: [require("@c15t/react/postcss-tailwind3"), require('tailwindcss')],
+};
+`,
+				'postcss.config.mjs': `export default {
+	plugins: {
+		'@c15t/nextjs/postcss-tailwind3': {},
+		tailwindcss: {},
+		'@c15t/nextjs': {},
+	},
+};
+`,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(await read('postcss.config.mjs')).toBe(`export default {
+	plugins: {
+		'c15t/postcss-tailwind3': {},
+		tailwindcss: {},
+		'@c15t/nextjs': {},
+	},
+};
+`);
+		expect(await read('apps/docs/postcss.config.cjs')).toBe(`module.exports = {
+	plugins: [require("c15t/postcss-tailwind3"), require('tailwindcss')],
+};
+`);
+	});
+
 	it('reads Tailwind CSS 3 from peer and optional dependencies', async () => {
 		const files = {
 			'src/consent.tsx': `import '@c15t/react/styles.css';

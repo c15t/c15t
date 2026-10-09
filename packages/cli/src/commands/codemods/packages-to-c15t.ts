@@ -87,6 +87,8 @@ const RENAMED_REACT_SUBPATHS: Record<string, string> = {
 };
 
 const SCOPED_SPECIFIER = /^@c15t\/(?<pkg>react|nextjs)(?:\/(?<subpath>.+))?$/u;
+const POSTCSS_PLUGIN_SPECIFIER =
+	/^@c15t\/(?:react|nextjs)\/postcss-tailwind3$/u;
 const STYLESHEET_SPECIFIER =
 	/^@c15t\/(?<pkg>react|nextjs)\/(?<iab>iab\/)?styles(?<tw3>\.tw3)?\.css$/u;
 const CSS_IMPORT =
@@ -173,7 +175,31 @@ const keepsStylesheet = function keepsStylesheet(
 	);
 };
 
-/** The string literals that name a module: imports, re-exports, `import()` and import types. */
+/**
+ * Whether a literal names the scoped PostCSS plugin the way a PostCSS config
+ * loads it: as an object-form `plugins` key or through `require()`.
+ */
+const isPostcssPluginReference = function isPostcssPluginReference(
+	literal: TsMorphTypes.StringLiteral,
+	parent: TsMorphTypes.Node | undefined
+): boolean {
+	if (!POSTCSS_PLUGIN_SPECIFIER.test(literal.getLiteralValue())) {
+		return false;
+	}
+	if (Node.isPropertyAssignment(parent)) {
+		return parent.getNameNode() === literal;
+	}
+	return (
+		Node.isCallExpression(parent) &&
+		parent.getExpression().getText() === 'require' &&
+		parent.getArguments()[0] === literal
+	);
+};
+
+/**
+ * The string literals that name a module: imports, re-exports, `import()`,
+ * import types, and PostCSS plugin keys and `require()` calls.
+ */
 const moduleSpecifiersOf = function moduleSpecifiersOf(
 	sourceFile: TsMorphTypes.SourceFile
 ): TsMorphTypes.StringLiteral[] {
@@ -181,6 +207,9 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 		.getDescendantsOfKind(SyntaxKind.StringLiteral)
 		.filter((literal) => {
 			const parent = literal.getParent();
+			if (isPostcssPluginReference(literal, parent)) {
+				return true;
+			}
 			if (
 				Node.isImportDeclaration(parent) ||
 				Node.isExportDeclaration(parent)
@@ -307,9 +336,10 @@ const transformStylesheet = function transformStylesheet(
 /**
  * Points `@c15t/react` and `@c15t/nextjs` imports at the `c15t` entries
  * that replace them in v3: `c15t/react` and its subpaths, or `c15t/next` in
- * a Next.js app. Removes `styles.css` imports, because v3 components add
- * their own styles, and keeps them with a `TODO(c15t v3)` comment where
- * Tailwind CSS 3 or a cascade layer still needs them. An app whose
+ * a Next.js app, and the scoped `postcss-tailwind3` plugins at
+ * `c15t/postcss-tailwind3`. Removes `styles.css` imports, because v3
+ * components add their own styles, and keeps them with a `TODO(c15t v3)`
+ * comment where Tailwind CSS 3 or a cascade layer still needs them. An app whose
  * package.json lists the scoped packages without `c15t` 3 keeps its scoped
  * imports. package.json itself is left alone.
  *
