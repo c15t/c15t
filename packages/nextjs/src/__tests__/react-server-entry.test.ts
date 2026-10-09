@@ -34,16 +34,12 @@ describe('@c15t/nextjs react-server entry', () => {
 	});
 
 	test('exports what a Server Component layout renders or passes on', () => {
-		for (const name of [
-			'ConsentDialogTrigger',
-			'ConsentGate',
-			'ConsentProvider',
-			'ConsentTheme',
-			'ConsentWidget',
-			'defineTheme',
-		] as const) {
-			expect(reactServer[name]).toBeDefined();
-		}
+		expect(reactServer.ConsentDialogTrigger).toBeDefined();
+		expect(reactServer.ConsentGate).toBeDefined();
+		expect(reactServer.ConsentProvider).toBeDefined();
+		expect(reactServer.ConsentTheme).toBeDefined();
+		expect(reactServer.ConsentWidget).toBeDefined();
+		expect(reactServer.defineTheme).toBeDefined();
 	});
 
 	test('exports the config helpers and the mode data factories', () => {
