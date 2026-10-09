@@ -498,7 +498,11 @@ it.each(['c15t=consent', 'session=unrelated'])(
 		try {
 			const result = await run({
 				headers: { cookie },
-				options: { mode: hostedMode({ url: 'https://consent.example.com' }) },
+				// IAB is opt-in: without `iab` an IAB policy throws.
+				options: {
+					iab: { cmpId: 28 },
+					mode: hostedMode({ url: 'https://consent.example.com' }),
+				},
 			});
 			expect(fetch).toHaveBeenCalledOnce();
 			expect(result.config.initialIab?.gvl).toEqual(

@@ -8,12 +8,13 @@ import {
 	IAB_PROMPT_SLOT_ATTRIBUTE,
 	PROMPT_SLOT_ATTRIBUTE,
 } from '../banner/slot';
-import { boot, setPromptRendererLoaderForTest } from '../client';
+import { boot, registerIAB, setPromptRendererLoaderForTest } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions } from '../types';
+import { createTestPageIAB } from './page-iab';
 import { testResolution, testRule } from './policy-fixture';
 // The client imports each banner renderer, and @c15t/iab for an IAB policy,
 // the first time it needs one. Vite compiles a module on its first import,
@@ -32,6 +33,9 @@ import '../browser/render-prompt';
 const OPTIONS: C15tAstroOptions = {
 	mode: offlineMode({ policyRules: [testRule] }),
 };
+
+// The boot script registers this for a site that sets `iab`.
+registerIAB(createTestPageIAB());
 
 let client: AstroConsentClient | null = null;
 

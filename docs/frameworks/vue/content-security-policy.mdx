@@ -20,7 +20,7 @@ A Vue app with c15t adds these to the page, and your policy must allow them:
 ## Allow the backend
 
 Add your backend's origin to `connect-src`. With `manifest: 'client'`, add
-the origin of `manifestURL` too. Under an IAB TCF policy, the IAB module
+the origin of `manifestURL` too. With `iab` set and an IAB TCF policy, the IAB module
 fetches the Global Vendor List from the URL the policy gives, usually your
 backend.
 

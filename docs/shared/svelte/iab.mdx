@@ -43,7 +43,14 @@ outside Europe:
 | `gvl`, `gvlURL` | Supply the vendor list, or change where it is fetched from. |
 | `enabled` | `false` keeps the configuration but leaves the add-on unmounted. |
 
-Pass `iab={false}`, or omit it, to leave IAB off.
+Pass `iab={false}`, or omit it, to leave IAB off. If a visitor's policy
+then uses the `iab` model and the backend sends its vendor list, the
+provider throws an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) while
+rendering, on the server and in the browser: the standard banner does not
+handle the IAB model, so the visitor would otherwise get no working consent
+UI. Set `iab`, or remove the `iab` model from the policy. A backend that
+answers `gvl: null` turns IAB off for the request, and the policy runs as
+opt-in.
 
 [IABConsentBanner](./components/iab-consent-banner) and
 [IABConsentDialog](./components/iab-consent-dialog) list each component's

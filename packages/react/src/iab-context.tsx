@@ -23,6 +23,11 @@ import { KernelContext } from './context';
 import { IABContext } from './context/iab-context-value';
 import type { IABContextValue } from './context/iab-context-value';
 import { useCommittedRef } from './hooks/use-committed-ref';
+import { markIABProviderLoaded } from './hooks/use-iab-policy-guard';
+
+// The standard surfaces throw for an `iab` policy in an app without IAB;
+// an app that loads this module renders IAB itself.
+markIABProviderLoaded();
 
 export interface ReactIABState extends KernelIABState {
 	config: {

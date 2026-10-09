@@ -6,8 +6,8 @@ group: frameworks
 
 ## Import the IAB dialog when you compose surfaces
 
-`ConsentRoot` loads `IABConsentDialog` for you when the visitor's policy uses
-IAB TCF and preferences open. Import it only when you compose the IAB
+`ConsentRoot` loads `IABConsentDialog` for you when the module's `iab` option
+is set, the visitor's policy uses IAB TCF and preferences open. Import it only when you compose the IAB
 surfaces yourself. The module does not register it globally, so import it
 from `c15t/vue/runtime/components/iab-consent-dialog.vue`:
 

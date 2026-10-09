@@ -31,7 +31,7 @@ plugin starts them before the mount, and the policy request runs while the
 app mounts. With `manifest: 'client'` the manifest request starts as soon as
 the plugin runs, and the modules still start after the mount. Starting reads the stored choice, applies Global Privacy Control,
 and starts the script loader, clear-on-revocation, the network blocker, the
-iframe blocker and, under an IAB policy, the IAB module.
+iframe blocker and, with `iab` set and an IAB policy, the IAB module.
 
 With `manifest` unset, the module also writes a small inline script into the
 head of each `ssr: false` page. It calls your backend's `/init` while the
@@ -122,7 +122,7 @@ mode fits which deployment.
 | `domain` | The browser's hostname | The domain the browser sends with each consent save to the backend's `/subjects`. |
 | `reloadOnConsentRevoked` | `true` | Reloads the page when a save withdraws a granted category or vendor. |
 | `clearOnRevocation` | Unset | Deletes first-party cookies and storage keys for a withdrawn category. See [clear on revocation](/docs/frameworks/nuxt/clear-on-revocation). |
-| `iab` | Settings from `/init` | IAB TCF publisher settings, such as `publisherRestrictions`. `false` mounts no CMP. See [IAB TCF](/docs/frameworks/nuxt/iab#restrict-how-vendors-use-a-purpose). |
+| `iab` | Off | Turns IAB TCF on; `{}` is enough. Also takes publisher settings, such as `publisherRestrictions`; fields left out come from `/init`. Unset, `false` or `{ enabled: false }` leaves IAB off, and an `iab` policy with a vendor list throws an `IABUnavailableError`. Set it here, not only in `app.config.ts`, so pages prefetch the IAB banner. See [IAB TCF](/docs/frameworks/nuxt/iab). |
 
 ### Scripts, blocking and events
 

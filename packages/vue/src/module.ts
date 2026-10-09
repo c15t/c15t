@@ -1,6 +1,7 @@
 import { existsSync, realpathSync } from 'node:fs';
 
 import { loadBuildManifest } from '@c15t/core/build';
+import { isIABConfigured } from '@c15t/core/runtime';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -10,6 +11,7 @@ import {
 	addServerHandler,
 	addServerPlugin,
 	addTemplate,
+	addVitePlugin,
 	addTypeTemplate,
 	createResolver,
 	defineNuxtModule,
@@ -19,7 +21,11 @@ import { defu } from 'defu';
 import { joinURL } from 'ufo';
 
 import type { C15tNuxtConfig, ModuleOptions } from './nuxt-options';
-import { stopPrefetchingConsentChunks } from './prefetch';
+import {
+	createPackageCheck,
+	preloadConsentBanner,
+	stopPrefetchingConsentChunks,
+} from './prefetch';
 import {
 	DEVTOOLS_ICON_ROUTE,
 	DEVTOOLS_PAGE_ROUTE,
@@ -29,6 +35,11 @@ import {
 	resolveNuxtInitRoute,
 	resolveNuxtManifestRoute,
 } from './runtime/manifest';
+import {
+	collectStyleSources,
+	preloadInlinedConsentStyles,
+} from './stylesheets';
+import type { StyleSourceIndex } from './stylesheets';
 
 export { defineTheme, type Theme } from '@c15t/ui/theme';
 
@@ -363,11 +374,41 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			});
 		}
 
+		// Which stylesheets each CSS file of the client build holds; the
+		// manifest below only names the files.
+		const styleSources: StyleSourceIndex = new Map();
+		addVitePlugin(() => collectStyleSources(styleSources), {
+			dev: false,
+			server: false,
+		});
+
 		// c15t loads what a page needs when it needs it; Nuxt would prefetch
 		// every lazy c15t chunk on every page, and each finished download
-		// queues main-thread work in front of the banner.
+		// queues main-thread work in front of the banner. Nuxt would also
+		// link c15t stylesheets it already inlines into the HTML, and each
+		// link holds back the first paint: they become preloads.
+		// IAB chunks keep their hints only when the module options turn IAB
+		// on. `app.config.ts` can turn it on too, but the build cannot read
+		// it; the CMP then loads on demand, without a hint.
+		const iab = isIABConfigured(options.iab);
 		nuxt.hook('build:manifest', (manifest) => {
-			stopPrefetchingConsentChunks(manifest, nuxt.options.srcDir);
+			const isConsentFile = createPackageCheck();
+			stopPrefetchingConsentChunks(
+				manifest,
+				nuxt.options.srcDir,
+				isConsentFile,
+				{
+					clientManifest: manifestMode === 'client',
+					iab,
+				}
+			);
+			preloadInlinedConsentStyles(
+				manifest,
+				styleSources,
+				nuxt.options.features.inlineStyles,
+				isConsentFile
+			);
+			preloadConsentBanner(manifest, nuxt.options.srcDir, isConsentFile);
 		});
 
 		if (nuxt.options.dev && devtools && isNuxtDevToolsEnabled(nuxt)) {

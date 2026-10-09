@@ -604,6 +604,45 @@ describe('astro:config:setup', () => {
 		);
 	});
 
+	it.each([
+		['no `iab` option', {}],
+		['`iab: false`', { iab: false }],
+		['`iab.enabled: false`', { iab: { cmpId: 160, enabled: false } }],
+	] as const)('ships no IAB wiring with %s', async (_label, iabOptions) => {
+		// The Nuxt module once mounted the CMP for a site that never set `iab`.
+		// Here a site without it must not even reach the mount or the
+		// `import()` that fetches `@c15t/iab`.
+		const { calls } = await runSetup({ mode: offlineMode(), ...iabOptions });
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).not.toContain('registerIAB(');
+		expect(code).not.toContain(resolveOwnEntry('@c15t/iab'));
+		expect(code).not.toContain('mountRuntimeIAB');
+	});
+
+	it('registers the IAB wiring before boot when `iab` is set', async () => {
+		const { calls } = await runSetup({
+			iab: { cmpId: 160 },
+			mode: offlineMode(),
+		});
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).toContain(
+			`import { mountRuntimeIAB } from ${specifier('@c15t/core/runtime/on-demand')};`
+		);
+		expect(code).toContain(
+			`registerIAB({ ...createLazyIABFactory(() => import(${specifier('@c15t/iab')})), mount: mountRuntimeIAB });`
+		);
+		// `@c15t/iab` stays behind `import()`.
+		const staticImports = code
+			.split('\n')
+			.filter((line) => line.startsWith('import '));
+		expect(
+			staticImports.some((line) => line.includes(resolveOwnEntry('@c15t/iab')))
+		).toBe(false);
+		expect(code.indexOf('registerIAB(')).toBeLessThan(
+			code.indexOf('boot(options')
+		);
+	});
+
 	it('keeps what a client entrypoint may configure static', async () => {
 		const { calls } = await runSetup({
 			clientEntrypoint: './src/c15t.client.ts',

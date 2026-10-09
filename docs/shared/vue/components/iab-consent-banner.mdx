@@ -10,9 +10,10 @@ group: reference
   ## What IABConsentBanner renders
 
   `IABConsentBanner` is the IAB TCF first layer. It renders while `activeUI`
-  is `'banner'` and the visitor's policy uses the `iab` model with a vendor
-  list. `ConsentRoot` renders it in place of `ConsentBanner` under such a
-  policy, so you only import it to compose the surfaces yourself.
+  is `'banner'`, the `iab` option is set, and the visitor's policy uses the
+  `iab` model with a vendor list. `ConsentRoot` renders it in place of
+  `ConsentBanner` under such a policy, so you only import it to compose the
+  surfaces yourself.
 
   The banner lists the purposes, stacks and special features your vendors
   use, with the vendor count as a link. Its footer has Reject All, Accept All

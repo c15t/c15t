@@ -203,6 +203,8 @@ it('serves Astro manifest SSR references through the same-origin init route', as
 	vi.stubGlobal('fetch', gvlUpstream);
 	const resolved = options({
 		endpoints: { initPath: '/privacy/init' },
+		// IAB is opt-in: without `iab` an IAB policy throws.
+		iab: { cmpId: 28 },
 		mode: manifestMode({
 			backendURL: BACKEND,
 			manifest,

@@ -1,3 +1,4 @@
+import { IAB_UNAVAILABLE_ERROR_CODE, IABUnavailableError } from '@c15t/core';
 import {
 	readStoredRecords,
 	readStoredRecordsFromCookieHeader,
@@ -821,12 +822,13 @@ test('runtime clears configured storage when permission is revoked', async () =>
 	localStorage.removeItem('application:setting');
 });
 
-test('mounts the shared CMP for a prefetched IAB reference and encodes consent', async () => {
+test('with `iab` set, mounts the shared CMP for a prefetched IAB reference and encodes consent', async () => {
 	const { completeGVL } =
 		await import('../../../iab/src/__tests__/fixtures/gvl-sample');
 	const { deferInitGvl } = await import('@c15t/core');
 	const config: RuntimeConsentConfig = {
 		backendURL: 'https://consent.test',
+		iab: {},
 		iframeBlocker: false,
 	};
 	const prefetch = deferInitGvl(
@@ -894,6 +896,254 @@ test('mounts the shared CMP for a prefetched IAB reference and encodes consent',
 	} finally {
 		dispose();
 	}
+});
+
+describe('IAB is opt-in', () => {
+	const VUE_MESSAGE =
+		"c15t: this visitor's policy uses IAB TCF, but `iab` is not set. Pass `iab` to the c15t plugin, such as `app.use(c15tVue, { iab: {} })`, or remove the IAB model from your policy.";
+
+	const iabPolicyResolution = writePolicyResolutionWire(
+		resolvePolicyRules({
+			countryCode: 'DE',
+			regionCode: null,
+			rules: [
+				{
+					id: 'iab-opt-in',
+					match: { isDefault: true },
+					model: 'iab',
+					prompt: 'choice',
+				},
+			],
+		})
+	);
+
+	const createIABInit = async function createIABInit(): Promise<InitOutput> {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const { deferInitGvl } = await import('@c15t/core');
+		return deferInitGvl(
+			{
+				...initFixture,
+				cmpId: 28,
+				gvl: completeGVL,
+				policyResolution: iabPolicyResolution,
+			},
+			'https://consent.test/vendor-list'
+		) as InitOutput;
+	};
+
+	/** A hosted backend whose `/init` answers with an IAB policy. */
+	const stubIABBackend = async function stubIABBackend(
+		init: InitOutput | Promise<InitOutput> = createIABInit()
+	) {
+		const { completeGVL } =
+			await import('../../../iab/src/__tests__/fixtures/gvl-sample');
+		const answer = await init;
+		const fetchMock = vi.fn((input: RequestInfo | URL) => {
+			const url = String(input).split('?')[0] ?? '';
+			if (url.endsWith('/init')) {
+				return Promise.resolve(Response.json(answer));
+			}
+			return Promise.resolve(
+				url.endsWith('/vendor-list')
+					? Response.json(completeGVL)
+					: Response.json({ subjectId: 'subject-iab' })
+			);
+		});
+		vi.stubGlobal('fetch', fetchMock);
+		return fetchMock;
+	};
+
+	const expectUnavailable = (error: unknown, message = VUE_MESSAGE) => {
+		expect(error).toBeInstanceOf(IABUnavailableError);
+		expect((error as Error).message).toBe(message);
+		expect((error as { code?: string }).code).toBe(IAB_UNAVAILABLE_ERROR_CODE);
+	};
+
+	test.each([
+		['unset', undefined],
+		['false', false],
+		['{ enabled: false }', { enabled: false }],
+	] as const)(
+		'with `iab` %s, a server-resolved IAB policy throws before anything renders',
+		async (_label, iab) => {
+			const prefetch = await createIABInit();
+			let thrown: unknown;
+			try {
+				createVueConsentKernelContext({
+					config: { backendURL: 'https://consent.test', iab },
+					prefetch,
+				});
+			} catch (error) {
+				thrown = error;
+			}
+			expect(thrown).toMatchObject({
+				code: IAB_UNAVAILABLE_ERROR_CODE,
+				message: VUE_MESSAGE,
+			});
+			expectUnavailable(thrown);
+		}
+	);
+
+	test('the plugin throws the same error from `app.use`', async () => {
+		const prefetch = await createIABInit();
+		const app = createSSRApp(ConsentRoot);
+
+		expect(() =>
+			app.use(c15tVue, { backendURL: 'https://consent.test', prefetch })
+		).toThrow(VUE_MESSAGE);
+	});
+
+	test('with `iab: {}`, the server render shows the IAB banner', async () => {
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.test',
+			iab: {},
+			iframeBlocker: false,
+		};
+		const context = createVueConsentKernelContext({
+			config,
+			prefetch: await createIABInit(),
+		});
+		try {
+			const app = createSSRApp(ConsentRoot);
+			provideContext(app, context, config);
+			const ssrContext: { teleports?: Record<string, string> } = {};
+			const html = [
+				await renderToString(app, ssrContext),
+				...Object.values(ssrContext.teleports ?? {}),
+			].join('');
+			expect(html).toContain('data-testid="iab-consent-banner');
+			expect(context.iabUnavailable.value).toBe(false);
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('without `iab`, an IAB answer from `/init` reports the error once and shows no surface', async () => {
+		await stubIABBackend();
+		const config: RuntimeConsentConfig = {
+			backendURL: 'https://consent.test',
+			iframeBlocker: false,
+		};
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config,
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		const wrapper = mount(ConsentRoot, {
+			global: {
+				provide: {
+					[consentConfigKey as symbol]: config,
+					[symbolKernelContext as symbol]: context,
+					[symbolKernel as symbol]: context.kernel,
+					[symbolSnapshot as symbol]: context.snapshot,
+					[symbolInit as symbol]: context.init,
+					[symbolActiveUI as symbol]: context.activeUI,
+					[symbolConsent as symbol]: context.storedConsent,
+				},
+			},
+		});
+		context.start();
+		try {
+			await vi.waitFor(() => expect(errors).toHaveLength(1));
+			expectUnavailable(errors[0]);
+			expect(context.iabUnavailable.value).toBe(true);
+			await flushPromises();
+			expect(
+				document.querySelector('[data-testid="iab-consent-banner-root"]')
+			).toBeNull();
+			expect(
+				document.querySelector('[data-testid="consent-banner-root"]')
+			).toBeNull();
+			expect(context.iab).toBeUndefined();
+			expect(
+				(window as Window & { __tcfapi?: unknown }).__tcfapi
+			).toBeUndefined();
+
+			// A later answer for the same policy does not report it again.
+			await context.runtime.reinit();
+			await flushPromises();
+			expect(errors).toHaveLength(1);
+		} finally {
+			wrapper.unmount();
+			context.dispose();
+		}
+	});
+
+	test('without `iab`, an IAB policy with `gvl: null` runs as opt-in and reports nothing', async () => {
+		await stubIABBackend({
+			...initFixture,
+			gvl: null,
+			policyResolution: iabPolicyResolution,
+		} as InitOutput);
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config: { backendURL: 'https://consent.test', iframeBlocker: false },
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		context.start();
+		try {
+			await vi.waitFor(() =>
+				expect(context.snapshot.value.resolution.status).toBe('matched')
+			);
+			await flushPromises();
+			expect(context.snapshot.value.policyRule.model).toBe('iab');
+			// The backend turned IAB off for the request: the policy runs as
+			// opt-in.
+			expect(context.snapshot.value.model).toBe('opt-in');
+			expect(context.iabUnavailable.value).toBe(false);
+			expect(context.init.value?.gvl).toBeUndefined();
+			expect(errors).toEqual([]);
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('without `iab`, a policy that is not IAB reports nothing', async () => {
+		await stubIABBackend({ ...initFixture, cmpId: 28 } as InitOutput);
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config: { backendURL: 'https://consent.test', iframeBlocker: false },
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		context.start();
+		try {
+			await vi.waitFor(() =>
+				expect(context.snapshot.value.resolution.status).toBe('matched')
+			);
+			await flushPromises();
+			expect(context.snapshot.value.policyRule.model).toBe('opt-in');
+			expect(errors).toEqual([]);
+		} finally {
+			context.dispose();
+		}
+	});
+
+	test('with `iab: {}`, the same `/init` answer mounts the CMP', async () => {
+		await stubIABBackend();
+		const errors: unknown[] = [];
+		const context = createVueConsentKernelContext({
+			config: {
+				backendURL: 'https://consent.test',
+				iab: {},
+				iframeBlocker: false,
+			},
+			onIABUnavailable: (error) => errors.push(error),
+		});
+		context.start();
+		try {
+			await vi.waitFor(() => expect(context.iab).toBeDefined());
+			expect(context.snapshot.value.model).toBe('iab');
+			expect(context.init.value?.cmpId).toBe(28);
+			await context.iab?.whenReady?.();
+			expect(typeof (window as Window & { __tcfapi?: unknown }).__tcfapi).toBe(
+				'function'
+			);
+			expect(errors).toEqual([]);
+		} finally {
+			context.dispose();
+		}
+	});
 });
 
 test('IAB publisher restrictions configured in Vue reach the CMP and its TC string', async () => {

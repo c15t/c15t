@@ -23,6 +23,24 @@ Network tab, find the init request.
 4. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
 
+## The page throws IABUnavailableError
+
+**Check.** Nuxt shows its error page, and the error has the code
+`C15T_IAB_UNAVAILABLE` and reads "c15t: this visitor's policy uses IAB TCF,
+but `iab` is not set." The visitor's policy uses the `iab` model and the
+backend sent its vendor list, but the module has no `iab` option, or has
+`iab: false` or `iab: { enabled: false }`. The standard banner does not
+handle the IAB model, so c15t throws rather than leave the visitor with no
+consent UI. A server render fails with status 500. A prerendered or
+`ssr: false` page shows the error page once the browser resolves the policy.
+
+**Fix.** If the site uses IAB TCF, set `c15t: { iab: {} }` in
+`nuxt.config.ts`, or `iab: { cmpId }` when your backend sends no CMP ID. See
+[IAB TCF](/docs/frameworks/nuxt/iab). If it does not, remove the `iab` model
+from the policy for that region in your Inth project or policy pack. A
+backend that answers `gvl: null` turns IAB off for that request, and nothing
+throws.
+
 ## The banner is not in the server HTML
 
 **Check.** Only request-time rendering with `buildManifest: true`,

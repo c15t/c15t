@@ -12,7 +12,9 @@
 import {
 	c15tProtocolHeaders,
 	createHostedTransport,
+	IABUnavailableError,
 	initOutputToKernelConfig,
+	policyNeedsIAB,
 	watchRevocationReload,
 } from '@c15t/core';
 import type {
@@ -36,7 +38,11 @@ import { createPersistence } from '@c15t/core/modules/persistence';
 import type { StorageConfig } from '@c15t/core/modules/persistence';
 import type { Script } from '@c15t/core/modules/script-loader';
 import { createWindowDebug } from '@c15t/core/modules/window-debug';
-import { createLazyIABFactory, mountRuntimeIAB } from '@c15t/core/runtime';
+import {
+	createLazyIABFactory,
+	isIABConfigured,
+	mountRuntimeIAB,
+} from '@c15t/core/runtime';
 import type {
 	ConsentRuntimeIABHandle,
 	GPPModuleLoader,
@@ -112,6 +118,12 @@ export interface VueConsentKernelContext {
 	init: Ref<VueConsentDisplayData | undefined>;
 	activeUI: Ref<ConsentActiveUI>;
 	storedConsent: Readonly<Ref<ConsentSnapshot['explicitChoice']>>;
+	/**
+	 * Whether the visitor's policy uses IAB TCF on an app without `iab`.
+	 * The context reports an {@link IABUnavailableError} for it, and
+	 * `ConsentRoot` renders no surface meanwhile.
+	 */
+	iabUnavailable: Readonly<Ref<boolean>>;
 	ownsKernel: boolean;
 	/**
 	 * The experiment the runtime validates, assigns and attributes.
@@ -681,8 +693,9 @@ const toRuntimeOptions = function toRuntimeOptions(
 		consentSource: config.consentSource,
 		experiment: config.experiment,
 		gpp: config.gpp,
-		// An unset `iab` mounts the CMP from what `/init` returns.
-		iab: config.iab ?? {},
+		// IAB is opt-in: without `iab` no CMP mounts, and an `iab` policy
+		// throws (see `createVueConsentKernelContext`).
+		iab: config.iab,
 		iframeBlocker: config.iframeBlocker,
 		loadGPP,
 		networkBlocker: config.networkBlocker,
@@ -754,6 +767,74 @@ const refreshClientGeo = async function refreshClientGeo(
 	}
 };
 
+/** Where an app sets `iab`, for the fix an {@link IABUnavailableError} names. */
+export type VueIABHost = 'nuxt' | 'vue';
+
+const IAB_UNAVAILABLE_FIX: Record<VueIABHost, string> = {
+	nuxt: 'Set `c15t: { iab: {} }` in nuxt.config.ts, or `iab: { cmpId }` when your backend sends no CMP ID',
+	vue: 'Pass `iab` to the c15t plugin, such as `app.use(c15tVue, { iab: {} })`',
+};
+
+/**
+ * The error a Vue or Nuxt app raises for an `iab` policy without `iab`.
+ *
+ * @param host - Where the app sets `iab`.
+ * @returns A fresh {@link IABUnavailableError}.
+ * @internal
+ */
+export const createIABUnavailableError = function createIABUnavailableError(
+	host: VueIABHost
+): IABUnavailableError {
+	return new IABUnavailableError('`iab` is not set', IAB_UNAVAILABLE_FIX[host]);
+};
+
+/** Throw an error where nothing catches it. */
+const throwUncaught = function throwUncaught(error: unknown): never {
+	throw error;
+};
+
+/** Decides and reports when an app cannot answer for an `iab` policy. */
+interface IABGuard {
+	/** Whether the snapshot's policy needs a CMP the app does not mount. */
+	isUnavailable: (snapshot: ConsentSnapshot) => boolean;
+	/** A fresh error for this app. */
+	error: () => IABUnavailableError;
+	/** Report the error for the snapshot, once, in a microtask. */
+	check: (snapshot: ConsentSnapshot) => void;
+}
+
+/**
+ * The IAB guard for one context.
+ *
+ * @param lacksIAB - Whether the app owns its runtime and did not set `iab`.
+ * @param options - Where the app sets `iab`, and who receives a later error.
+ * @returns The guard.
+ */
+const createIABGuard = function createIABGuard(
+	lacksIAB: boolean,
+	options: Pick<VueConsentContextOptions, 'host' | 'onIABUnavailable'>
+): IABGuard {
+	const host = options.host ?? 'vue';
+	const report = options.onIABUnavailable ?? throwUncaught;
+	const isUnavailable = (snapshot: ConsentSnapshot) =>
+		lacksIAB && policyNeedsIAB(snapshot);
+	const error = () => createIABUnavailableError(host);
+	let reported = false;
+	return {
+		check(snapshot) {
+			if (reported || !isUnavailable(snapshot)) {
+				return;
+			}
+			reported = true;
+			const failure = error();
+			// Outside the kernel's listener loop.
+			queueMicrotask(() => report(failure));
+		},
+		error,
+		isUnavailable,
+	};
+};
+
 /** What {@link createVueConsentKernelContext} builds a context from. */
 export interface VueConsentContextOptions {
 	config: RuntimeConsentConfig;
@@ -783,6 +864,18 @@ export interface VueConsentContextOptions {
 	producerContract?: number | null;
 	/** A runtime the host owns. The context renders it and starts nothing. */
 	runtime?: ConsentRuntime;
+	/**
+	 * Where the app sets `iab`, named in the fix of an
+	 * {@link IABUnavailableError}. Defaults to `'vue'`.
+	 */
+	host?: VueIABHost;
+	/**
+	 * Receives the {@link IABUnavailableError} when a policy that resolves
+	 * after construction (`/init` in the browser) uses IAB TCF on an app
+	 * without `iab`. Called once, in a microtask. Defaults to throwing it
+	 * as an uncaught error; the Nuxt plugin shows Nuxt's error page.
+	 */
+	onIABUnavailable?: (error: IABUnavailableError) => void;
 }
 
 /**
@@ -794,8 +887,18 @@ export interface VueConsentContextOptions {
  * when there is server markup, and {@link VueConsentKernelContext.dispose}
  * when the app unmounts.
  *
+ * IAB is opt-in. When the visitor's policy uses the `iab` model and the
+ * snapshot carries its vendor list, only a CMP can answer for it, and the
+ * app mounts one only with `iab`. Without it the context raises an
+ * {@link IABUnavailableError}: thrown from here when the server render or
+ * the prefetch already resolved the policy, and passed to
+ * `onIABUnavailable` when the browser resolves it later. A borrowed
+ * runtime's host configures IAB, so it never raises.
+ *
  * @param options - The config and what the server resolved.
  * @returns The context the plugin provides to components.
+ * @throws {IABUnavailableError} When the starting snapshot already needs
+ * IAB and `iab` is not set.
  */
 // oxlint-disable-next-line max-lines-per-function -- One runtime, its refs and their lifecycle.
 export const createVueConsentKernelContext =
@@ -831,11 +934,11 @@ export const createVueConsentKernelContext =
 					initialConfig.now,
 			};
 			const runtimeOptions = toRuntimeOptions(config);
-			// The app's own IAB CMP loads on demand; `iab: false` loads none.
-			createIAB =
-				runtimeOptions.iab === false
-					? undefined
-					: createLazyIABFactory(() => import('@c15t/iab')).create;
+			// IAB is opt-in. A configured CMP loads `@c15t/iab` on demand, once
+			// a policy uses the `iab` model; without `iab` nothing imports it.
+			createIAB = isIABConfigured(runtimeOptions.iab)
+				? createLazyIABFactory(() => import('@c15t/iab')).create
+				: undefined;
 			owned = createConsentProviderRuntime(
 				{
 					...runtimeOptions,
@@ -860,9 +963,24 @@ export const createVueConsentKernelContext =
 		// No `enabled` toggle in the Vue config, so the kernel never swaps.
 		const { kernel } = runtime;
 
+		const iabGuard = createIABGuard(
+			Boolean(owned) && !isIABConfigured(config.iab),
+			options
+		);
+		// The server render and a prefetched browser start read the same
+		// snapshot, so both throw here, before any surface renders.
+		if (iabGuard.isUnavailable(kernel.getSnapshot())) {
+			owned?.dispose();
+			throw iabGuard.error();
+		}
+
 		const snapshot = shallowRef(kernel.getSnapshot());
+		const iabUnavailable = computed(() =>
+			iabGuard.isUnavailable(snapshot.value)
+		);
 		const unsubscribe = kernel.subscribe((next) => {
 			snapshot.value = next;
+			iabGuard.check(next);
 		});
 		const iab = shallowRef(runtime.iab ?? undefined);
 		const unsubscribeIab = runtime.subscribe(() => {
@@ -899,6 +1017,7 @@ export const createVueConsentKernelContext =
 			set iab(handle) {
 				iab.value = handle;
 			},
+			iabUnavailable,
 			init,
 			kernel,
 			ownsKernel: Boolean(owned),

@@ -329,6 +329,8 @@ const buildConfig = function buildConfig(
 		disableAnimation: true,
 		domain: 'consent.example',
 		hideBranding: true,
+		// IAB is opt-in; the IAB surfaces stand for an app that turned it on.
+		iab: isIabComponent(opts.component) ? {} : provided.iab,
 		trapFocus: provided.trapFocus ?? false,
 	} as ConsentConfig;
 };

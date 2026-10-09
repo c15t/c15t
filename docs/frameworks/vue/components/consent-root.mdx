@@ -30,7 +30,8 @@ It also renders [`ConsentDialogTrigger`](/docs/frameworks/vue/components/consent
 when the `showTrigger` option is `true`.
 
 Nothing renders until the visitor's policy has resolved. The dialog and the
-IAB surfaces load as separate chunks. After the page's `load` event,
+IAB surfaces load as separate chunks. The IAB surfaces replace the standard
+ones only when the `iab` option is set and the policy uses the `iab` model. After the page's `load` event,
 `ConsentRoot` prefetches the dialog chunk in an idle moment, so the first
 Customize click does not wait for the network. The dialog unmounts when it
 closes.

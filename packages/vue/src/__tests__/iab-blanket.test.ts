@@ -110,6 +110,8 @@ const config = {
 	customFetch: acceptSave,
 	disableAnimation: true,
 	hideBranding: true,
+	// IAB is opt-in; these surfaces stand for an app that turned it on.
+	iab: {},
 	trapFocus: false,
 } as ConsentConfig;
 

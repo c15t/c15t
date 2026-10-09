@@ -37,10 +37,21 @@ in the first HTML, with no layout shift after hydration. On prerendered and
 cached routes the banner appears after the browser resolves the policy. See
 [rendering](/docs/frameworks/nuxt/rendering).
 
-The dialog and the IAB surfaces load as separate chunks. `ConsentRoot`
+The IAB surfaces replace the standard ones only when the module's `iab`
+option is set and the policy uses the `iab` model. The dialog and the IAB
+surfaces load as separate chunks. `ConsentRoot`
 prefetches the dialog chunk after the page's `load` event, mounts the dialog
 the first time preferences open, and keeps it mounted after that so its close
 animation runs.
+
+The banner and the trigger are separate chunks too, so their CSS is not part
+of your app's entry stylesheets. Every page preloads the banner chunk. With
+Nuxt's `features.inlineStyles`, on by default, it also preloads the banner's
+CSS instead of linking it: a server-rendered banner paints with the styles
+Nuxt writes into the page head, so no c15t stylesheet blocks the first paint.
+The browser applies the CSS with the chunk, before it shows a banner it
+renders itself. The trigger chunk loads after the page mounts, and only when
+`showTrigger` is `true`.
 
 ## Theme tokens
 
