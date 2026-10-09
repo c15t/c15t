@@ -336,6 +336,20 @@
         "typescript": "6.0.3",
       },
     },
+    "benchmarks/examples-payload": {
+      "name": "@c15t/examples-payload-bench",
+      "dependencies": {
+        "@c15t/benchmarking": "workspace:*",
+        "playwright": "1.61.1",
+      },
+      "devDependencies": {
+        "@c15t/browser": "workspace:*",
+        "@c15t/integrations": "workspace:*",
+        "@c15t/svelte": "workspace:*",
+        "c15t": "workspace:*",
+        "vitest": "4.1.10",
+      },
+    },
     "benchmarks/manifest-cache-bench": {
       "name": "@c15t/manifest-cache-bench",
       "dependencies": {
@@ -2652,6 +2666,8 @@
     "@c15t/example-tanstack-start": ["@c15t/example-tanstack-start@workspace:examples/tanstack-start"],
 
     "@c15t/example-vue": ["@c15t/example-vue@workspace:examples/vue"],
+
+    "@c15t/examples-payload-bench": ["@c15t/examples-payload-bench@workspace:benchmarks/examples-payload"],
 
     "@c15t/fixture-acceptance": ["@c15t/fixture-acceptance@workspace:internals/fixtures/acceptance"],
 

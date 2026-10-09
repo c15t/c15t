@@ -5,6 +5,11 @@ const profiles: Record<string, { packages: string[]; suites: string[] }> = {
 		packages: ['@c15t/next-bundle-bench'],
 		suites: ['bundle', 'artifact'],
 	},
+	// Each revision builds and measures its own `examples/` starters.
+	examples: {
+		packages: ['@c15t/examples-payload-bench'],
+		suites: ['examples-payload'],
+	},
 	full: {
 		packages: [
 			...quickPackages,
