@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type * as ClientModule from '../client';
 import type { AstroConsentClient, PageIAB } from '../client';
 import type * as IntegrationModule from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 import { createTestPageIAB } from './page-iab';
 import { testResolution, testRule } from './policy-fixture';
@@ -28,6 +28,8 @@ const loadClient = async function loadClient(): Promise<{
 }> {
 	vi.resetModules();
 	const clientModule: typeof ClientModule = await import('../client');
+	const { offlineTransport } = await import('../transport');
+	clientModule.registerTransport(offlineTransport);
 	const { resolveOptions }: typeof IntegrationModule =
 		await import('../integration');
 	return {

@@ -111,12 +111,12 @@ export default defineConfig({
 				privacyPolicy: { href: '/privacy', label: 'Privacy Policy' },
 			},
 			// `offline()` resolves policies locally, so the demo runs with no
-			// backend. Swap in `hosted({ url })` or `manifest({ backendURL })`
+			// backend. Swap in `hosted()` or `manifest()` and a `backendURL`
 			// to talk to a real one. With `C15T_IAB=1` it also carries the
 			// vendor list the server needs to render the IAB banner at all;
 			// hosted and manifest mode get theirs from `/init`.
 			...iabOptions,
-			mode: backendURL && !iab ? hosted({ url: backendURL }) : iabOptions.mode,
+			mode: backendURL && !iab ? hosted({ backendURL }) : iabOptions.mode,
 			scripts: [
 				{
 					category: 'measurement',

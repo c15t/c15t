@@ -100,7 +100,7 @@ describe('Astro boilerplate', () => {
 		);
 		expect(template.files['consent-client.ts']).toContain('googleTagManager(');
 		expect(template.files['Consent.astro']).toContain(
-			'<ConsentDialogTrigger>Privacy settings</ConsentDialogTrigger>'
+			'<ConsentDialogLink>Privacy settings</ConsentDialogLink>'
 		);
 	});
 });

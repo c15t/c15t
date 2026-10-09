@@ -6,10 +6,10 @@ import {
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import { completeGVL } from '../../../iab/src/__tests__/fixtures/gvl-sample';
-import { clearManifestCache } from '../api';
 import { resolveOptions } from '../integration';
 import { createConsentMiddleware } from '../middleware-handler';
-import { manifestMode } from '../mode';
+import { manifest as manifestMode } from '../mode';
+import { clearManifestCache } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 
 const MANIFEST = await buildConsentManifestFromConfig({
@@ -33,7 +33,8 @@ const manifestResponse = function manifestResponse(): Response {
 
 const options = function options(
 	astroOptions: C15tAstroOptions = {
-		mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+		backendURL: 'https://consent.example.com',
+		mode: manifestMode(),
 	}
 ) {
 	return resolveOptions(astroOptions);
@@ -135,7 +136,7 @@ describe('manifest-mode server prefetch', () => {
 	it('serves an inline manifest without any fetch', async () => {
 		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
 		const { c15t } = await render({
-			astroOptions: { mode: manifestMode({ manifest: MANIFEST }) },
+			astroOptions: { mode: manifestMode({ snapshot: MANIFEST }) },
 			fetch: fetchImpl as never,
 			headers: { 'x-c15t-country': 'DE' },
 		});
@@ -163,11 +164,12 @@ describe('middleware skip list', () => {
 		expect(fetchImpl).not.toHaveBeenCalled();
 	});
 
-	it('honours custom endpoint paths', async () => {
+	it('honours a custom routePrefix', async () => {
 		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
 		const astroOptions: C15tAstroOptions = {
-			endpoints: { initPath: '/consent/init', manifestPath: '/consent/mf' },
-			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			backendURL: 'https://consent.example.com',
+			mode: manifestMode(),
+			routePrefix: '/consent',
 		};
 		expect(
 			(
@@ -192,8 +194,9 @@ describe('middleware skip list', () => {
 	it('skips the paths the site listed', async () => {
 		const fetchImpl = vi.fn(() => Promise.resolve(manifestResponse()));
 		const astroOptions: C15tAstroOptions = {
+			backendURL: 'https://consent.example.com',
 			middleware: { skip: ['/healthz', '/api/webhooks/'] },
-			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			mode: manifestMode(),
 		};
 		const skipped = await Promise.all(
 			['/healthz', '/api/webhooks', '/api/webhooks/stripe'].map((path) =>
@@ -233,7 +236,10 @@ it.each(['public', 'custom'] as const)(
 		try {
 			const result = await render({
 				// IAB is opt-in: without `iab` an IAB policy throws.
-				astroOptions: { iab: { cmpId: 28 }, mode: manifestMode({ manifest }) },
+				astroOptions: {
+					iab: { cmpId: 28 },
+					mode: manifestMode({ snapshot: manifest }),
+				},
 				fetch: loader === 'custom' ? fetch : undefined,
 				headers: { 'x-c15t-country': 'DE' },
 			});

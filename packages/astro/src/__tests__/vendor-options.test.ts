@@ -4,10 +4,9 @@ import {
 } from '@c15t/schema/types';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { clearManifestCache } from '../api';
 import { resolveOptions } from '../integration';
-import { manifestMode, offlineMode } from '../mode';
-import { resolveConsentContext } from '../server';
+import { manifest as manifestMode, offline as offlineMode } from '../mode';
+import { clearManifestCache, resolveConsentContext } from '../server';
 import { testRule } from './policy-fixture';
 
 afterEach(() => {
@@ -51,7 +50,7 @@ describe('vendors from the backend manifest', () => {
 		const c15t = await resolveConsentContext({
 			headers: new Headers({ 'x-vercel-ip-country': 'DE' }),
 			options: resolveOptions({
-				mode: manifestMode({ manifest }),
+				mode: manifestMode({ snapshot: manifest }),
 				vendors: [
 					{
 						category: 'measurement',

@@ -101,19 +101,13 @@ that `clientEntrypoint` names.
 
 ## Register vendor scripts
 
-Remove any existing PostHog snippet first, so PostHog loads once. Then create
-the script list. It selects PostHog's EU region. Change `region` to `'us'` for
-a US project.
+Remove any existing PostHog snippet first, so PostHog loads once. Then list
+the scripts in `src/c15t.client.ts`, which the integration finds on its own:
 
-<include src="../../shared/examples/astro/scripts.mdx" />
+<include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
 Replace `phc_your_project_key` with your PostHog project key. PostHog waits
 for measurement permission and does not fall back to cookieless capture.
-
-Then export the scripts from the client entrypoint that `astro.config.mjs`
-points at:
-
-<include src="../../shared/examples/astro/client-entrypoint.mdx" />
 
 Other vendors work the same way. See
 [integrations](/docs/integrations/overview) for the list, and
@@ -129,7 +123,7 @@ iframes and tracking requests.
 Wrap every page in this layout. `ConsentScript` goes in `<head>`, where it
 hands the browser the server's decision and sets the color scheme before first
 paint. `ConsentBanner` renders the banner, `ConsentDialog` reserves a place for
-the preference dialog, and `ConsentDialogTrigger` is the link visitors use to
+the preference dialog, and `ConsentDialogLink` is the link visitors use to
 change their mind later. `ConsentScript` inlines the banner's rules into the
 page, so you do not import a stylesheet.
 
@@ -139,10 +133,9 @@ choice.
 
 ## Type `Astro.locals.c15t`
 
-Add the middleware types so TypeScript knows about the consent context the
-integration puts on every request:
-
-<include src="../../shared/examples/astro/env-types.mdx" />
+The integration adds the type of the consent context it puts on every request
+to `.astro/types.d.ts`, so TypeScript knows `Astro.locals.c15t` without an
+`env.d.ts` line.
 
 ## Check that it works
 

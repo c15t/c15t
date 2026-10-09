@@ -68,7 +68,7 @@ import {
 import { activateGatedScripts } from './browser/inline-scripts';
 import type * as PromptRenderer from './browser/render-prompt';
 import { assertIABAvailable, isIABUnavailable } from './libs/iab-unavailable';
-import { resolveTransportFactory } from './mode';
+import type { ResolveTransport } from './transport';
 import type { C15tClientOptionsExtension, C15tResolvedOptions } from './types';
 import { loadDialogAdapter } from './ui/adapter';
 import type { ConsentDialogHandle, ConsentDialogKind } from './ui/adapter';
@@ -547,7 +547,7 @@ const whenPolicySettled = function whenPolicySettled(
 
 /**
  * Show or hide the persistent consent controls the page rendered on the
- * server (`<ConsentDialogTrigger />`) as the policy resolution changes.
+ * server (`<ConsentDialogLink />`) as the policy resolution changes.
  *
  * With nothing to manage the controls stay hidden: before a rule resolves,
  * and under a `none` rule that owes no rights. They appear on their own once
@@ -744,6 +744,27 @@ export const registerIAB = function registerIAB(iab: PageIAB): void {
 	pageIAB = iab;
 };
 
+/** Set by the boot script; see {@link registerTransport}. */
+let pageTransport: ResolveTransport | null = null;
+
+/**
+ * Pick how the page turns the serialized mode into a transport.
+ *
+ * The boot script registers the variant that fits the site, so the page
+ * ships only that one: a site that renders on demand loads the init path
+ * when a page inits again, and a site with no adapter, whose every page
+ * inits in the browser, ships the hosted transport with the page. Call
+ * before {@link boot}.
+ *
+ * @param resolve - Turns the resolved options into a transport factory.
+ * @internal
+ */
+export const registerTransport = function registerTransport(
+	resolve: ResolveTransport
+): void {
+	pageTransport = resolve;
+};
+
 /**
  * Mount these module factories.
  *
@@ -810,13 +831,7 @@ const createClient = function createClient(
 					: (options.iab as RuntimeIABOptions | undefined),
 			// Called only when `gpp` is set, so other sites never fetch the chunk.
 			loadGPP: () => import('@c15t/iab/gpp'),
-			mode: resolveTransportFactory(options.mode, {
-				backendURL:
-					options.mode.type === 'manifest'
-						? options.mode.backendURL
-						: undefined,
-				initPath: options.endpoints.initPath,
-			}),
+			mode: (pageTransport ?? notRegistered('mode'))(options),
 			networkBlocker: extension.networkBlocker ?? options.networkBlocker,
 			nonce: pageNonce,
 			pkg: '@c15t/astro',
@@ -1488,6 +1503,11 @@ export type { ResolvedVendor, VendorChoice } from '@c15t/core';
 export type { ConsentDialogKind } from './ui/adapter';
 export { registerDialogAdapter, registerDialogSurface } from './ui/adapter';
 export { registerDialogStyles } from './browser/dialog-styles';
+// The boot script registers one of these with `registerTransport()`.
+// Re-exported here rather than imported from their own entry, so the one a
+// page uses lands in the chunk it shares with the components' scripts
+// instead of a page chunk that imports the shared code back from it.
+export { hostedTransport, lazyTransport, offlineTransport } from './transport';
 export type {
 	ConsentDialogAdapter,
 	ConsentDialogContext,

@@ -1,5 +1,3 @@
-import { fileURLToPath } from 'node:url';
-
 import node from '@astrojs/node';
 import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
@@ -10,11 +8,7 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
-			clientEntrypoint: fileURLToPath(
-				new URL('./src/consent-client.ts', import.meta.url)
-			),
 			mode: offline(),
-			ui: 'svelte',
 			// #region docs:vendors-option title="astro.config.mjs (partial)"
 			vendors: [
 				{

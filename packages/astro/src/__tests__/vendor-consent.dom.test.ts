@@ -12,7 +12,7 @@ import { activateGatedScripts } from '../browser/inline-scripts';
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 import { registerDialogAdapter, registerDialogSurface } from '../ui/adapter';
 import { reactDialogAdapter } from '../ui/react';

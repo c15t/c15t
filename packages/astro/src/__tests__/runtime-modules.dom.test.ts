@@ -11,7 +11,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { boot, registerRuntimeModules } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 import { testResolution, testRule } from './policy-fixture';
 

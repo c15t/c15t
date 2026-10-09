@@ -19,7 +19,7 @@ import {
 } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { buildConfigScript } from '../server';
 import type { C15tAstroOptions, C15tIABOptions } from '../types';
 import { registerDialogAdapter } from '../ui/adapter';

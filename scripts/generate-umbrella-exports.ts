@@ -966,6 +966,14 @@ const resolveEntryModulePath = function resolveEntryModulePath(
 	}
 
 	const typesTarget = entry.types ? normalizePackagePath(entry.types) : null;
+	// A module shipped as source, such as `@c15t/astro`'s components barrel,
+	// which Astro compiles along with the `.astro` files it re-exports.
+	if (typesTarget?.startsWith('src/') && /\.tsx?$/u.test(typesTarget)) {
+		const sourcePath = join(packageDir, typesTarget);
+		if (existsSync(sourcePath)) {
+			return sourcePath;
+		}
+	}
 	if (!typesTarget?.startsWith('dist-types/')) {
 		throw new Error(
 			`${packageName} ${subpath}: cannot locate the entry module — expected a dist-types/ types condition or a sourceRoot mapping, got ${JSON.stringify(entry)}.`

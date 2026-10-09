@@ -13,7 +13,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 
 import IABConsentBanner from '../components/iab-prompt.astro';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
 import type { C15tAstroOptions, C15tLocals } from '../types';
 

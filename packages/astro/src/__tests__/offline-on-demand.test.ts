@@ -1,9 +1,12 @@
 /**
- * The page script loads offline mode on demand.
+ * The page script loads every init path on demand.
  *
- * `createOfflineTransport` carries the recommended policy-rule pack. Hosted
- * and manifest sites never run it, so the browser client must not import it
- * statically; an offline init must still resolve its rules.
+ * `offline()` carries the recommended policy-rule pack, and the hosted
+ * transport's init path is only needed when a page inits again. A page the
+ * server resolved runs neither, so the browser client must not import them
+ * statically. `@c15t/core/runtime/client-mode` loads the hosted init path
+ * with `import()`, and its own tests pin that; an offline init must still
+ * resolve its rules.
  *
  * The load-count tests share one module registry and run in order.
  */
@@ -14,7 +17,8 @@ import { fileURLToPath } from 'node:url';
 import type { ProviderTransportContext } from '@c15t/core';
 import { describe, expect, it, vi } from 'vitest';
 
-import { hostedMode, offlineMode, resolveTransportFactory } from '../mode';
+import { hosted as hostedMode, offline as offlineMode } from '../mode';
+import { lazyTransport, offlineTransport } from '../transport';
 import { testRule } from './policy-fixture';
 
 const offlineModule = vi.hoisted(() => ({ loads: 0 }));
@@ -33,9 +37,14 @@ const context: ProviderTransportContext = {
 
 const SRC = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** Names that pull the offline transport or a rule pack into a bundle. */
-const OFFLINE_ONLY = new Set([
+/**
+ * Names that pull the offline transport, a rule pack or the hosted init
+ * path into a bundle.
+ */
+const INIT_ONLY = new Set([
+	'createHostedTransport',
 	'createOfflineTransport',
+	'hosted',
 	'offline',
 	'policyRulePresets',
 	'recommendedPolicyRules',
@@ -55,8 +64,8 @@ const resolveLocal = function resolveLocal(
 };
 
 /** Every static value import reachable from `entry` inside this package. */
-const walk = function walk(entry: string) {
-	const seen = new Set<string>();
+const walk = function walk(entry: string, skip: string[] = []) {
+	const seen = new Set<string>(skip);
 	const edges: { file: string; specifier: string; names: string[] }[] = [];
 	const visit = (file: string) => {
 		if (seen.has(file)) {
@@ -86,33 +95,41 @@ const walk = function walk(entry: string) {
 };
 
 describe('browser client graph', () => {
-	it('does not statically import offline mode or a rule pack', () => {
-		const { edges, files } = walk(resolve(SRC, 'client.ts'));
+	it('does not statically import an init path or a rule pack', () => {
+		// The client re-exports every transport, and the boot script imports
+		// the one its mode runs, so a bundler drops the others. Everything
+		// else the client imports ships with every page.
+		const transport = resolve(SRC, 'transport.ts');
+		const { edges, files } = walk(resolve(SRC, 'client.ts'), [transport]);
 
-		expect(files.has(resolve(SRC, 'mode.ts'))).toBe(true);
 		expect(files.has(resolve(SRC, 'offline-mode.ts'))).toBe(false);
 		const offenders = edges.filter(
 			(edge) =>
 				!edge.specifier.startsWith('.') &&
-				edge.names.some((name) => OFFLINE_ONLY.has(name))
+				edge.names.some((name) => INIT_ONLY.has(name))
 		);
 		expect(offenders).toEqual([]);
+	});
+
+	it('loads offline mode only with import()', () => {
+		const { files } = walk(resolve(SRC, 'transport.ts'));
+		expect(files.has(resolve(SRC, 'offline-mode.ts'))).toBe(false);
 	});
 });
 
 describe('offline mode on demand', () => {
 	it('hosted mode never loads it', () => {
-		const transport = resolveTransportFactory(hostedMode({ url: '/x' }))(
-			context
-		);
+		const transport = lazyTransport({
+			mode: hostedMode({ backendURL: '/x' }),
+		})(context);
 		expect(transport).toBeDefined();
 		expect(offlineModule.loads).toBe(0);
 	});
 
 	it('an offline transport loads nothing until it inits, and saves without it', async () => {
-		const transport = resolveTransportFactory(
-			offlineMode({ policyRules: [testRule] })
-		)(context);
+		const transport = offlineTransport({
+			mode: offlineMode({ policyRules: [testRule] }),
+		})(context);
 		const saved = await transport.save?.({
 			subjectId: 'sub_1',
 		} as never);
@@ -122,9 +139,9 @@ describe('offline mode on demand', () => {
 	});
 
 	it('an offline init loads it once and resolves the rules', async () => {
-		const transport = resolveTransportFactory(
-			offlineMode({ policyRules: [testRule] })
-		)(context);
+		const transport = offlineTransport({
+			mode: offlineMode({ policyRules: [testRule] }),
+		})(context);
 		const [first, second] = await Promise.all([
 			transport.init?.({ overrides: {}, user: null }),
 			transport.init?.({ overrides: { country: 'DE' }, user: null }),

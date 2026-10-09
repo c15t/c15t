@@ -46,17 +46,17 @@ const integrations = [svelte()];
 
 if (benchMode === 'manifest' || benchMode === 'scripts') {
 	const options = {
-		// The backend is this app, which isn't running during the build, and
-		// the benchmark measures the runtime manifest path.
-		buildManifest: false,
+		backendURL,
 		consentCategories,
 		// The fixture backend lives under `/api/bench-consent`, which the
 		// integration does not know about; the manifest route it does
 		// know about is skipped for it.
 		middleware: { skip: ['/api/bench-consent'] },
+		// The backend is this app, which isn't running during the build, and
+		// the benchmark measures the runtime manifest path.
 		mode: manifest({
-			backendURL,
 			manifestURL: `${backendURL}/manifest`,
+			source: 'runtime',
 		}),
 	};
 	if (benchMode === 'scripts') {
@@ -83,7 +83,7 @@ if (benchMode === 'manifest' || benchMode === 'scripts') {
 		c15t({
 			consentCategories,
 			middleware: { skip: ['/api/bench-consent'] },
-			mode: hosted({ url: backendURL }),
+			mode: hosted({ backendURL }),
 		})
 	);
 }

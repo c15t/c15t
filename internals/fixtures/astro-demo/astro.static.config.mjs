@@ -1,5 +1,3 @@
-import { fileURLToPath } from 'node:url';
-
 import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
 import c15t, { hosted } from 'c15t/astro';
@@ -10,14 +8,10 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
-			clientEntrypoint: fileURLToPath(
-				new URL('./src/consent-client.ts', import.meta.url)
-			),
-			mode: hosted({
-				url: 'https://your-project.inth.app',
-				...testBackend('url'),
-			}),
-			ui: 'svelte',
+			backendURL: 'https://your-project.inth.app',
+			...testBackend('backendURL'),
+			clientEntrypoint: './src/consent-client.ts',
+			mode: hosted(),
 			// Demo-only: the example suite's vendor scenario.
 			vendors: [
 				{

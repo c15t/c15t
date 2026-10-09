@@ -17,8 +17,19 @@ import {
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildInlineCodeHashes } from '../csp';
-import { c15t, createOwnEntryResolver, resolveOptions } from '../integration';
-import { hostedMode, manifestMode, offlineMode } from '../mode';
+import {
+	buildLocalsTypes,
+	c15t,
+	createOwnEntryResolver,
+	inferUIAdapter,
+	resolveClientEntrypoint,
+	resolveOptions,
+} from '../integration';
+import {
+	hosted as hostedMode,
+	manifest as manifestMode,
+	offline as offlineMode,
+} from '../mode';
 import type { C15tAstroOptions } from '../types';
 
 interface SetupCalls {
@@ -78,24 +89,30 @@ const runSetup = async function runSetup(
 	return { calls, integration };
 };
 
-const runDone = function runDone(
+/** Run setup, then return `astro:config:done` to call, the way Astro does. */
+const runDone = async function runDone(
 	options: C15tAstroOptions,
 	integrationNames: string[],
-	adapter?: { name: string }
+	adapter?: { name: string },
+	command = 'build'
 ) {
-	const integration = c15t(options);
+	const integrations = integrationNames.map((name) => ({ name }));
+	const { integration } = await runSetup(
+		options,
+		{ adapter, integrations },
+		command as 'build'
+	);
 	const logger = { error: vi.fn(), warn: vi.fn() };
+	const injectTypes = vi.fn();
 	const run = () =>
 		integration.hooks['astro:config:done']?.({
-			config: {
-				adapter,
-				integrations: integrationNames.map((name) => ({ name })),
-			},
+			config: { adapter, integrations },
+			injectTypes,
 			logger,
 		} as unknown as Parameters<
 			NonNullable<(typeof integration)['hooks']['astro:config:done']>
 		>[0]);
-	return Object.assign(run, { logger });
+	return Object.assign(run, { injectTypes, logger });
 };
 
 describe('createOwnEntryResolver', () => {
@@ -116,7 +133,7 @@ describe('createOwnEntryResolver', () => {
 
 describe('resolveOptions', () => {
 	it.each(['build', 'dev'] as const)(
-		'buildManifest keeps the %s snapshot in server options only',
+		'keeps the %s snapshot in server options only',
 		async (command) => {
 			const fetch = vi.fn<typeof globalThis.fetch>(() =>
 				Promise.resolve(Response.json(INLINE_MANIFEST))
@@ -125,8 +142,9 @@ describe('resolveOptions', () => {
 			try {
 				const { calls } = await runSetup(
 					{
-						buildManifest: true,
-						mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+						backendURL: 'https://consent.example.com',
+						mode: manifestMode(),
+						onBuildError: 'fail',
 					},
 					{},
 					command
@@ -144,10 +162,9 @@ describe('resolveOptions', () => {
 					const clientOptions = JSON.parse(
 						clientSource.replace(/^export default /u, '').replace(/;$/u, '')
 					);
-					expect(clientOptions.mode).toEqual({
-						backendURL: 'https://consent.example.com',
-						type: 'manifest',
-					});
+					expect(clientOptions.mode).toEqual({ type: 'manifest' });
+					expect(clientOptions.backendURL).toBe('https://consent.example.com');
+					expect(clientOptions.routePrefix).toBe('/api/c15t');
 					expect(clientSource).not.toContain(INLINE_MANIFEST.revision);
 				}
 				expect(fetch).toHaveBeenCalledTimes(1);
@@ -163,23 +180,27 @@ describe('resolveOptions', () => {
 			error: 'invalid consent manifest',
 			response: () => Response.json({ error: 'not a manifest' }),
 		},
-	])('buildManifest stops the build on $error', async ({ response, error }) => {
-		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
-		vi.stubGlobal(
-			'fetch',
-			vi.fn(() => Promise.resolve(response()))
-		);
-		try {
-			await expect(
-				runSetup({
-					buildManifest: true,
-					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
-				})
-			).rejects.toThrow(error);
-		} finally {
-			vi.unstubAllGlobals();
+	])(
+		"onBuildError: 'fail' stops the build on $error",
+		async ({ response, error }) => {
+			vi.stubEnv('C15T_ON_BUILD_ERROR', '');
+			vi.stubGlobal(
+				'fetch',
+				vi.fn(() => Promise.resolve(response()))
+			);
+			try {
+				await expect(
+					runSetup({
+						backendURL: 'https://consent.example.com',
+						mode: manifestMode(),
+						onBuildError: 'fail',
+					})
+				).rejects.toThrow(error);
+			} finally {
+				vi.unstubAllGlobals();
+			}
 		}
-	});
+	);
 
 	it('preview never fetches a new build snapshot', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
@@ -187,8 +208,9 @@ describe('resolveOptions', () => {
 		try {
 			await runSetup(
 				{
-					buildManifest: true,
-					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+					backendURL: 'https://consent.example.com',
+					mode: manifestMode(),
+					onBuildError: 'fail',
 				},
 				{},
 				'preview'
@@ -212,7 +234,8 @@ describe('resolveOptions', () => {
 		);
 		vi.stubGlobal('fetch', fetch);
 		const { calls } = await runSetup({
-			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			backendURL: 'https://consent.example.com',
+			mode: manifestMode(),
 		});
 		expect(fetch).toHaveBeenCalledWith(
 			'https://consent.example.com/manifest',
@@ -231,7 +254,7 @@ describe('resolveOptions', () => {
 			vi.fn(() => Promise.resolve(new Response(null, { status: 503 })))
 		);
 		const { calls } = await runSetup(
-			{ mode: manifestMode({ backendURL: 'https://consent.example.com' }) },
+			{ backendURL: 'https://consent.example.com', mode: manifestMode() },
 			{},
 			'dev'
 		);
@@ -250,7 +273,8 @@ describe('resolveOptions', () => {
 		);
 		await expect(
 			runSetup({
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode(),
 			})
 		).rejects.toThrow(
 			"@c15t/astro: could not fetch the consent manifest from https://consent.example.com/manifest during the build (/manifest responded 503 ). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to deploy with runtime fetching."
@@ -259,14 +283,15 @@ describe('resolveOptions', () => {
 
 	it.each([
 		['onBuildError', { onBuildError: 'runtime' }, ''],
-		['C15T_ON_BUILD_ERROR', { buildManifest: true }, 'runtime'],
+		['C15T_ON_BUILD_ERROR', { onBuildError: 'fail' }, 'runtime'],
 	] as const)(
 		'%s runtime lets astro build continue',
 		async (_name, settings, fromEnv) => {
 			vi.stubEnv('C15T_ON_BUILD_ERROR', fromEnv);
 			const { calls } = await runSetup({
 				...settings,
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode(),
 			});
 			expect(calls.logger.warn).toHaveBeenCalledTimes(1);
 		}
@@ -277,7 +302,8 @@ describe('resolveOptions', () => {
 		await expect(
 			runSetup(
 				{
-					mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+					backendURL: 'https://consent.example.com',
+					mode: manifestMode(),
 					onBuildError: 'fail',
 				},
 				{},
@@ -286,32 +312,60 @@ describe('resolveOptions', () => {
 		).rejects.toThrow('during dev (offline in tests)');
 	});
 
-	it('reads PUBLIC_C15T_BACKEND_URL when manifest() has no backendURL', async () => {
+	it('reads PUBLIC_C15T_BACKEND_URL when no backendURL is set', async () => {
 		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://env.example.com');
 		const fetch = vi.fn<typeof globalThis.fetch>(() =>
 			Promise.resolve(Response.json(INLINE_MANIFEST))
 		);
 		vi.stubGlobal('fetch', fetch);
-		await runSetup({ mode: manifestMode() });
+		// `c15t()` with no options is `manifest()` mode.
+		const { calls } = await runSetup({});
 		expect(fetch).toHaveBeenCalledWith(
 			'https://env.example.com/manifest',
 			expect.anything()
 		);
+		const hosted = await runSetup({ mode: hostedMode() });
+		expect(serverOptionsSource(hosted.calls)).toContain(
+			'"backendURL":"https://env.example.com"'
+		);
+		expect(serverOptionsSource(calls)).toContain('"type":"manifest"');
+	});
+
+	it('reads PUBLIC_C15T_BACKEND_URL from .env in the project root', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'c15t-astro-env-'));
+		writeFileSync(
+			join(root, '.env'),
+			'PUBLIC_C15T_BACKEND_URL=https://dotenv.example.com\n'
+		);
+		const { calls } = await runSetup(
+			{ mode: hostedMode() },
+			{ root: pathToFileURL(`${root}/`) }
+		);
+		expect(serverOptionsSource(calls)).toContain(
+			'"backendURL":"https://dotenv.example.com"'
+		);
 	});
 
 	it.each([
-		['hosted()', { mode: hostedMode({ url: 'https://consent.example.com' }) }],
+		[
+			'hosted()',
+			{ mode: hostedMode({ backendURL: 'https://consent.example.com' }) },
+		],
 		['offline()', { mode: offlineMode() }],
 		[
 			'a relative manifest URL',
-			{ mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }) },
+			{ backendURL: '', mode: manifestMode({ manifestURL: '/m.json' }) },
 		],
 		[
-			'buildManifest: false',
+			"manifest({ source: 'runtime' })",
 			{
-				buildManifest: false,
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode({ source: 'runtime' }),
 			},
+		],
+		[
+			'a snapshot of its own',
+			{ mode: manifestMode({ snapshot: INLINE_MANIFEST }) },
 		],
 	] satisfies [string, C15tAstroOptions][])(
 		'fetches no build snapshot with %s',
@@ -324,28 +378,13 @@ describe('resolveOptions', () => {
 		}
 	);
 
-	it.each(['preview', 'sync'] as const)(
-		'buildManifest: true with hosted() leaves %s alone',
-		async (command) => {
-			await expect(
-				runSetup(
-					{
-						buildManifest: true,
-						mode: hostedMode({ url: 'https://consent.example.com' }),
-					},
-					{},
-					command
-				)
-			).resolves.toBeDefined();
-		}
-	);
-
-	it('buildManifest: true still needs an absolute upstream URL', async () => {
+	it("onBuildError: 'fail' still needs an absolute upstream URL", async () => {
 		vi.stubEnv('C15T_ON_BUILD_ERROR', '');
 		await expect(
 			runSetup({
-				buildManifest: true,
-				mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }),
+				backendURL: '',
+				mode: manifestMode({ manifestURL: '/m.json' }),
+				onBuildError: 'fail',
 			})
 		).rejects.toThrow('absolute upstream URL');
 	});
@@ -354,19 +393,55 @@ describe('resolveOptions', () => {
 		expect(resolveOptions({ mode: offlineMode() }).ui).toBe('svelte');
 	});
 
-	it('enables the injected routes only for manifest mode', () => {
-		expect(resolveOptions({ mode: offlineMode() }).endpoints.enabled).toBe(
-			false
-		);
+	it('defaults to manifest() and the /api/c15t route prefix', () => {
+		const resolved = resolveOptions({
+			backendURL: 'https://consent.example.com',
+		});
+		expect(resolved.mode).toEqual({ type: 'manifest' });
+		expect(resolved.routePrefix).toBe('/api/c15t');
+	});
+
+	it('trims a routePrefix and drops it for false', () => {
 		expect(
+			resolveOptions({ mode: offlineMode(), routePrefix: '/consent/' })
+				.routePrefix
+		).toBe('/consent');
+		expect(
+			resolveOptions({ mode: offlineMode(), routePrefix: false })
+		).not.toHaveProperty('routePrefix');
+		expect(() =>
+			resolveOptions({ mode: offlineMode(), routePrefix: 'api/c15t' })
+		).toThrowError(/must be a path that starts with "\/"/u);
+	});
+
+	it('rejects a function in the serialized options', () => {
+		// `JSON.stringify` would drop it, so a `posthog()` helper here used to
+		// lose its callbacks without a word.
+		expect(() =>
 			resolveOptions({
-				mode: manifestMode({ backendURL: 'https://consent.example.com' }),
-			}).endpoints.enabled
-		).toBe(true);
-		expect(
-			resolveOptions({ mode: manifestMode({ manifest: INLINE_MANIFEST }) })
-				.endpoints.enabled
-		).toBe(true);
+				mode: offlineMode(),
+				scripts: [
+					{ category: 'measurement', id: 'a', onLoad: () => undefined },
+				],
+			})
+		).toThrowError(
+			/c15t\(\)\.scripts\[0\]\.onLoad is a function.*src\/c15t\.client\.ts/u
+		);
+		expect(() =>
+			c15t({
+				mode: offlineMode(),
+				networkBlocker: {
+					onRequestBlocked: () => undefined,
+				} as unknown as C15tAstroOptions['networkBlocker'],
+			})
+		).toThrowError(/networkBlocker\.onRequestBlocked is a function/u);
+	});
+
+	it('rejects a transport function as the mode', () => {
+		const transport = Object.assign(() => ({}), { kind: 'custom' });
+		expect(() =>
+			resolveOptions({ mode: transport as unknown as C15tAstroOptions['mode'] })
+		).toThrowError(/`mode` must be manifest\(\), hosted\(\) or offline\(\)/u);
 	});
 
 	it.each(['solid', 'constructor', '__proto__'])(
@@ -387,16 +462,18 @@ describe('resolveOptions', () => {
 		// The browser would post saves to the init route's own prefix,
 		// `/api/c15t/subjects`, where nothing answers.
 		expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
-			/pass backendURL to manifest\(\)/u
+			/manifest\(\) needs a backend URL.*PUBLIC_C15T_BACKEND_URL/u
+		);
+		expect(() => resolveOptions({ mode: hostedMode() })).toThrowError(
+			/hosted\(\) needs a backend URL/u
 		);
 	});
 
-	it('does not read a backend URL from the environment', () => {
-		vi.stubEnv('C15T_BACKEND_URL', 'https://consent.example.com');
+	it('leaves reading the environment to the setup hook', () => {
 		vi.stubEnv('PUBLIC_C15T_BACKEND_URL', 'https://consent.example.com');
 		try {
 			expect(() => resolveOptions({ mode: manifestMode() })).toThrowError(
-				'@c15t/astro: pass backendURL to manifest()'
+				/manifest\(\) needs a backend URL/u
 			);
 		} finally {
 			vi.unstubAllEnvs();
@@ -408,8 +485,9 @@ describe('resolveOptions', () => {
 		try {
 			expect(
 				resolveOptions({
-					mode: manifestMode({ backendURL: '', manifestURL: '/m.json' }),
-				}).mode
+					backendURL: '',
+					mode: manifestMode({ manifestURL: '/m.json' }),
+				})
 			).toHaveProperty('backendURL', '');
 		} finally {
 			vi.unstubAllEnvs();
@@ -423,7 +501,7 @@ describe('resolveOptions', () => {
 		vi.stubEnv('C15T_MANIFEST_URL', '');
 		try {
 			expect(() =>
-				resolveOptions({ mode: manifestMode({ backendURL: '' }) })
+				resolveOptions({ backendURL: '', mode: manifestMode() })
 			).toThrowError(/gives the server no manifest to fetch/u);
 		} finally {
 			vi.unstubAllEnvs();
@@ -433,8 +511,9 @@ describe('resolveOptions', () => {
 	it('accepts an empty backendURL with an inline manifest', () => {
 		expect(
 			resolveOptions({
-				mode: manifestMode({ backendURL: '', manifest: INLINE_MANIFEST }),
-			}).mode
+				backendURL: '',
+				mode: manifestMode({ snapshot: INLINE_MANIFEST }),
+			})
 		).toHaveProperty('backendURL', '');
 	});
 
@@ -442,7 +521,7 @@ describe('resolveOptions', () => {
 		vi.stubEnv('C15T_MANIFEST_URL', 'https://consent.example.com/manifest');
 		try {
 			expect(() =>
-				resolveOptions({ mode: manifestMode({ backendURL: '' }) })
+				resolveOptions({ backendURL: '', mode: manifestMode() })
 			).toThrowError(/gives the server no manifest to fetch/u);
 		} finally {
 			vi.unstubAllEnvs();
@@ -452,7 +531,7 @@ describe('resolveOptions', () => {
 	it('leaves an inline manifest without a backendURL alone', () => {
 		// The network-free path: the app serves its own save route.
 		expect(
-			resolveOptions({ mode: manifestMode({ manifest: INLINE_MANIFEST }) }).mode
+			resolveOptions({ mode: manifestMode({ snapshot: INLINE_MANIFEST }) })
 		).not.toHaveProperty('backendURL');
 	});
 
@@ -461,14 +540,12 @@ describe('resolveOptions', () => {
 		// the backend's, so a `manifestURL` without one would 404 on save.
 		expect(() =>
 			resolveOptions({ mode: manifestMode({ manifestURL: '/m.json' }) })
-		).toThrowError(/pass backendURL to manifest\(\)/u);
+		).toThrowError(/manifest\(\) needs a backend URL/u);
 		expect(
 			resolveOptions({
-				mode: manifestMode({
-					backendURL: 'https://consent.example.com',
-					manifestURL: '/m.json',
-				}),
-			}).mode
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode({ manifestURL: '/m.json' }),
+			})
 		).toMatchObject({ backendURL: 'https://consent.example.com' });
 	});
 
@@ -499,21 +576,6 @@ describe('resolveOptions', () => {
 				mode: offlineMode(),
 			}).experiment
 		).toMatchObject({ arm: 'bar' });
-	});
-
-	it('keeps custom route paths', () => {
-		const resolved = resolveOptions({
-			endpoints: { enabled: true, initPath: '/consent/init' },
-			mode: offlineMode(),
-		});
-		expect(resolved.endpoints.initPath).toBe('/consent/init');
-		expect(resolved.endpoints.manifestPath).toBe('/api/c15t/manifest');
-	});
-
-	it('rejects a missing mode', () => {
-		expect(() =>
-			resolveOptions({} as unknown as C15tAstroOptions)
-		).toThrowError(/`mode` is required/u);
 	});
 
 	it('drops build-only options from the serialized shape', () => {
@@ -575,7 +637,7 @@ describe('astro:config:setup', () => {
 
 	it('hands the browser the policy hashes when a clientEntrypoint can add inline scripts', async () => {
 		const options: C15tAstroOptions = {
-			clientEntrypoint: './src/c15t.client.ts',
+			clientEntrypoint: 'site/c15t.client',
 			mode: offlineMode(),
 		};
 		const { calls } = await runSetup(options, {
@@ -604,7 +666,7 @@ describe('astro:config:setup', () => {
 
 	it('registers the middleware before user middleware', async () => {
 		const { calls } = await runSetup({
-			mode: hostedMode({ url: '/api/c15t' }),
+			mode: hostedMode({ backendURL: '/api/c15t' }),
 		});
 		expect(calls.addMiddleware).toHaveBeenCalledWith({
 			entrypoint: resolveOwnEntry('@c15t/astro/middleware'),
@@ -796,6 +858,44 @@ describe('astro:config:setup', () => {
 		}
 	);
 
+	it.each([
+		['offline()', { mode: offlineMode() }, {}, 'offlineTransport'],
+		[
+			'hosted() with no adapter',
+			{ mode: hostedMode({ backendURL: 'https://consent.example.com' }) },
+			{},
+			'hostedTransport',
+		],
+		[
+			'hosted() with an adapter',
+			{ mode: hostedMode({ backendURL: 'https://consent.example.com' }) },
+			{ adapter: { name: '@astrojs/node' } },
+			'lazyTransport',
+		],
+		[
+			'manifest()',
+			{
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode({ source: 'runtime' }),
+			},
+			{ adapter: { name: '@astrojs/node' } },
+			'lazyTransport',
+		],
+	] satisfies [string, C15tAstroOptions, Record<string, unknown>, string][])(
+		'registers the one transport %s needs',
+		async (_name, options, config, transport) => {
+			const { calls } = await runSetup(options, config);
+			const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+			expect(code).toContain(
+				`registerTransport, ${transport} } from ${specifier('@c15t/astro/client')};`
+			);
+			expect(code).toContain(`registerTransport(${transport});`);
+			expect(code.indexOf('registerTransport(')).toBeLessThan(
+				code.indexOf('boot(options')
+			);
+		}
+	);
+
 	it('keeps both island specifiers behind import()', async () => {
 		const { calls } = await runSetup({ mode: offlineMode(), ui: 'react' });
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
@@ -877,7 +977,7 @@ describe('astro:config:setup', () => {
 
 	it('keeps what a client entrypoint may configure static', async () => {
 		const { calls } = await runSetup({
-			clientEntrypoint: './src/c15t.client.ts',
+			clientEntrypoint: 'site/c15t.client',
 			mode: offlineMode(),
 		});
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
@@ -894,16 +994,69 @@ describe('astro:config:setup', () => {
 
 	it('threads a client entrypoint into the boot script', async () => {
 		const { calls } = await runSetup({
-			clientEntrypoint: './src/c15t.client.ts',
+			clientEntrypoint: 'site/c15t.client',
 			mode: offlineMode(),
 		});
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
-		expect(code).toContain('import clientOptions from "./src/c15t.client.ts"');
+		expect(code).toContain('import clientOptions from "site/c15t.client"');
 		expect(code).toContain('boot(options, clientOptions);');
 	});
 
+	it('resolves a relative client entrypoint from the project root', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'c15t-astro-client-'));
+		mkdirSync(join(root, 'src'));
+		writeFileSync(join(root, 'src', 'consent.ts'), 'export default {};');
+		const { calls } = await runSetup(
+			{ clientEntrypoint: './src/consent.ts', mode: offlineMode() },
+			{ root: pathToFileURL(`${root}/`) }
+		);
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).toContain(
+			`import clientOptions from ${JSON.stringify(join(root, 'src', 'consent.ts'))}`
+		);
+		await expect(
+			runSetup(
+				{ clientEntrypoint: './src/missing.ts', mode: offlineMode() },
+				{ root: pathToFileURL(`${root}/`) }
+			)
+		).rejects.toThrow(
+			/does not exist. Relative paths start from the project root/u
+		);
+	});
+
+	it('finds src/c15t.client.ts on its own', async () => {
+		const root = mkdtempSync(join(tmpdir(), 'c15t-astro-client-'));
+		mkdirSync(join(root, 'src'));
+		const file = join(root, 'src', 'c15t.client.ts');
+		writeFileSync(file, 'export default {};');
+		expect(
+			await resolveClientEntrypoint(undefined, pathToFileURL(`${root}/`))
+		).toBe(file);
+		const empty = mkdtempSync(join(tmpdir(), 'c15t-astro-client-'));
+		expect(
+			await resolveClientEntrypoint(undefined, pathToFileURL(`${empty}/`))
+		).toBeUndefined();
+	});
+
+	it('keeps the client entrypoint path out of the browser options', async () => {
+		const { calls } = await runSetup({
+			clientEntrypoint: 'site/c15t.client',
+			mode: offlineMode(),
+		});
+		const [update] = calls.updateConfig.mock.calls[0] ?? [];
+		const [plugin] = update.vite.plugins;
+		const client = plugin.load('\0virtual:c15t/options', { ssr: false });
+		expect(client).not.toContain('site/c15t.client');
+		for (const key of ['middleware', 'inlineStyles', 'clientEntrypoint']) {
+			expect(client).not.toContain(`"${key}"`);
+		}
+		expect(plugin.load('\0virtual:c15t/options', { ssr: true })).toContain(
+			'"clientEntrypoint":"site/c15t.client"'
+		);
+	});
+
 	it('quotes client entrypoints without letting them add statements', async () => {
-		const clientEntrypoint = "./client'\\file.ts';globalThis.injected=true;//";
+		const clientEntrypoint = "client'\\file.ts';globalThis.injected=true;//";
 		const { calls } = await runSetup({
 			clientEntrypoint,
 			mode: offlineMode(),
@@ -927,7 +1080,7 @@ describe('astro:config:setup', () => {
 		const { calls } = await runSetup({
 			consentCategories: ['necessary', 'measurement'],
 			gpp: { usApproach: 'national', usFallback: 'none' },
-			mode: hostedMode({ url: 'https://consent.example.com' }),
+			mode: hostedMode({ backendURL: 'https://consent.example.com' }),
 		});
 		const [config] = calls.updateConfig.mock.calls[0] as [
 			{
@@ -948,8 +1101,8 @@ describe('astro:config:setup', () => {
 			loaded.replace(/^export default /u, '').replace(/;$/u, '')
 		);
 		expect(parsed.mode).toEqual({
+			backendURL: 'https://consent.example.com',
 			type: 'hosted',
-			url: 'https://consent.example.com',
 		});
 		expect(parsed.consentCategories).toEqual(['necessary', 'measurement']);
 		expect(parsed.gpp).toEqual({ usApproach: 'national', usFallback: 'none' });
@@ -976,80 +1129,105 @@ describe('astro:config:setup', () => {
 		]);
 	});
 
-	it('injects the init and manifest routes in manifest mode', async () => {
+	it('injects one catch-all route in manifest mode', async () => {
 		const { calls } = await runSetup({
-			mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+			backendURL: 'https://consent.example.com',
+			mode: manifestMode(),
+			routePrefix: '/consent',
 		});
+		expect(calls.injectRoute).toHaveBeenCalledTimes(1);
 		expect(calls.injectRoute).toHaveBeenCalledWith({
-			entrypoint: resolveOwnEntry('@c15t/astro/api/init'),
-			pattern: '/api/c15t/init',
-			prerender: false,
-		});
-		expect(calls.injectRoute).toHaveBeenCalledWith({
-			entrypoint: resolveOwnEntry('@c15t/astro/api/manifest'),
-			pattern: '/api/c15t/manifest',
+			entrypoint: resolveOwnEntry('@c15t/astro/api'),
+			pattern: '/consent/[...path]',
 			prerender: false,
 		});
 	});
 
-	it('injects no routes in hosted mode', async () => {
-		const { calls } = await runSetup({
-			mode: hostedMode({ url: '/api/c15t' }),
+	it('prerenders the route for browser resolution on a site with no adapter', async () => {
+		const options: C15tAstroOptions = {
+			backendURL: 'https://consent.example.com',
+			mode: manifestMode({ resolve: 'browser' }),
+		};
+		const { calls } = await runSetup(options);
+		expect(calls.injectRoute).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pattern: '/api/c15t/[...path]',
+				prerender: true,
+			})
+		);
+		const withAdapter = await runSetup(options, {
+			adapter: { name: '@astrojs/node' },
 		});
-		expect(calls.injectRoute).not.toHaveBeenCalled();
+		expect(withAdapter.calls.injectRoute).toHaveBeenCalledWith(
+			expect.objectContaining({ prerender: false })
+		);
 	});
+
+	it.each([
+		['hosted mode', { mode: hostedMode({ backendURL: '/api/c15t' }) }],
+		['offline mode', { mode: offlineMode() }],
+		[
+			'routePrefix: false',
+			{
+				backendURL: 'https://consent.example.com',
+				mode: manifestMode(),
+				routePrefix: false,
+			},
+		],
+	] satisfies [string, C15tAstroOptions][])(
+		'injects no route with %s',
+		async (_name, options) => {
+			const { calls } = await runSetup(options);
+			expect(calls.injectRoute).not.toHaveBeenCalled();
+		}
+	);
 });
 
 describe('astro:config:done', () => {
 	/** Run setup for `command`, then done, the way Astro does. */
-	const runForCommand = async function runForCommand(
+	const runForCommand = (
 		options: C15tAstroOptions,
 		command: string,
 		adapter?: { name: string }
-	) {
-		const integration = c15t(options);
-		await integration.hooks['astro:config:setup']?.({
-			addMiddleware: vi.fn(),
-			command,
-			injectRoute: vi.fn(),
-			injectScript: vi.fn(),
-			logger: { warn: vi.fn() },
-			updateConfig: vi.fn(),
-		} as unknown as Parameters<
-			NonNullable<(typeof integration)['hooks']['astro:config:setup']>
-		>[0]);
-		return () =>
-			integration.hooks['astro:config:done']?.({
-				config: { adapter, integrations: [{ name: '@astrojs/svelte' }] },
-				logger: { error: vi.fn(), warn: vi.fn() },
-			} as unknown as Parameters<
-				NonNullable<(typeof integration)['hooks']['astro:config:done']>
-			>[0]);
-	};
+	) => runDone(options, ['@astrojs/svelte'], adapter, command);
 	const MANIFEST: C15tAstroOptions = {
-		mode: manifestMode({ backendURL: 'https://consent.example.com' }),
+		backendURL: 'https://consent.example.com',
+		mode: manifestMode(),
 	};
 
-	it('names the injected routes when a build has no adapter', async () => {
+	it('names the injected route when a build has no adapter', async () => {
 		const done = await runForCommand(MANIFEST, 'build');
-		expect(done).toThrowError(
-			/manifest mode injects on-demand routes at \/api\/c15t\/init.*need a server adapter/u
+		await expect(done()).rejects.toThrowError(
+			/on-demand route at \/api\/c15t\/\[\.\.\.path\], which needs a server adapter.*hosted\(\), offline\(\) or manifest\(\{ resolve: 'browser' \}\)/u
 		);
 	});
 
-	it('tells an explicit `endpoints` site how to build statically', async () => {
+	it("lets manifest({ resolve: 'browser' }) build without an adapter", async () => {
 		const done = await runForCommand(
-			{ endpoints: true, mode: offlineMode() },
+			{ ...MANIFEST, mode: manifestMode({ resolve: 'browser' }) },
 			'build'
 		);
-		expect(done).toThrowError(/`endpoints` injects .*set `endpoints: false`/u);
+		await expect(done()).resolves.toBeUndefined();
+	});
+
+	it('adds the App.Locals type for Astro.locals.c15t', async () => {
+		const done = await runForCommand(MANIFEST, 'dev');
+		await done();
+		expect(done.injectTypes).toHaveBeenCalledWith({
+			content: expect.stringMatching(
+				/c15t: import\('(?:c15t\/astro|@c15t\/astro)'\)\.C15tLocals;/u
+			),
+			filename: 'locals.d.ts',
+		});
+		const content = await buildLocalsTypes(undefined);
+		expect(content).toMatch(/^declare namespace App \{/u);
 	});
 
 	it.each(['dev', 'sync'])(
 		'lets `astro %s` run without an adapter, as Astro does',
 		async (command) => {
 			const done = await runForCommand(MANIFEST, command);
-			expect(done).not.toThrow();
+			await expect(done()).resolves.toBeUndefined();
 		}
 	);
 
@@ -1057,15 +1235,15 @@ describe('astro:config:done', () => {
 		const done = await runForCommand(MANIFEST, 'build', {
 			name: '@astrojs/node',
 		});
-		expect(done).not.toThrow();
+		await expect(done()).resolves.toBeUndefined();
 	});
 
-	it('lets manifest mode build statically with `endpoints: false`', async () => {
+	it('lets manifest mode build statically with `routePrefix: false`', async () => {
 		const done = await runForCommand(
-			{ ...MANIFEST, endpoints: false },
+			{ ...MANIFEST, routePrefix: false },
 			'build'
 		);
-		expect(done).not.toThrow();
+		await expect(done()).resolves.toBeUndefined();
 	});
 
 	it.each([
@@ -1074,17 +1252,17 @@ describe('astro:config:done', () => {
 		['vue', '@astrojs/vue'],
 	] as const)(
 		'fails clearly when %s is selected without %s',
-		(ui, astroIntegration) => {
-			const run = runDone({ mode: offlineMode(), ui }, []);
-			expect(run).toThrowError(
+		async (ui, astroIntegration) => {
+			const run = await runDone({ mode: offlineMode(), ui }, []);
+			await expect(run()).rejects.toThrowError(
 				new RegExp(`ui: "${ui}" needs ${astroIntegration}`, 'u')
 			);
 		}
 	);
 
-	it('names every package to install in the error log', () => {
-		const run = runDone({ mode: offlineMode(), ui: 'react' }, []);
-		expect(run).toThrow();
+	it('names every package to install in the error log', async () => {
+		const run = await runDone({ mode: offlineMode(), ui: 'react' }, []);
+		await expect(run()).rejects.toThrow();
 		expect(run.logger.error).toHaveBeenCalledWith(
 			expect.stringContaining('@astrojs/react, @c15t/react, react, react-dom')
 		);
@@ -1094,50 +1272,52 @@ describe('astro:config:done', () => {
 		['svelte', '@astrojs/svelte'],
 		['react', '@astrojs/react'],
 		['vue', '@astrojs/vue'],
-	] as const)('passes when %s has %s installed', (ui, astroIntegration) => {
-		expect(
-			runDone({ mode: offlineMode(), ui }, [astroIntegration])
-		).not.toThrow();
-	});
-
-	it('passes for a banner-only site', () => {
-		expect(
-			runDone({ mode: offlineMode(), requireUIIntegration: false }, [])
-		).not.toThrow();
-	});
-
-	it.each(['@astrojs/react', '@astrojs/vue'])(
-		'suggests reusing %s when ui was left at the default',
-		(astroIntegration) => {
-			const run = runDone({ mode: offlineMode() }, [
-				'@astrojs/svelte',
+	] as const)(
+		'passes when %s has %s installed',
+		async (ui, astroIntegration) => {
+			const run = await runDone({ mode: offlineMode(), ui }, [
 				astroIntegration,
 			]);
-			run();
-			expect(run.logger.warn).toHaveBeenCalledWith(
-				expect.stringContaining(astroIntegration)
-			);
+			await expect(run()).resolves.toBeUndefined();
 		}
 	);
 
-	it('never switches the adapter on its own', async () => {
-		const options: C15tAstroOptions = { mode: offlineMode() };
-		runDone(options, ['@astrojs/svelte', '@astrojs/react'])();
-
-		// The suggestion is advice, not a decision: the page still boots the
-		// Svelte island until someone sets `ui` themselves.
-		const { calls } = await runSetup(options);
-		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
-		expect(code).toContain('registerDialogAdapter("svelte"');
-		expect(code).not.toContain(resolveOwnEntry('@c15t/astro/ui/react'));
+	it('passes for a banner-only site', async () => {
+		const run = await runDone(
+			{ mode: offlineMode(), requireUIIntegration: false },
+			[]
+		);
+		await expect(run()).resolves.toBeUndefined();
 	});
 
-	it('stays quiet when ui was chosen explicitly', () => {
-		const run = runDone({ mode: offlineMode(), ui: 'svelte' }, [
-			'@astrojs/svelte',
-			'@astrojs/react',
-		]);
-		run();
-		expect(run.logger.warn).not.toHaveBeenCalled();
+	it.each([
+		[['@astrojs/react'], 'react'],
+		[['@astrojs/vue'], 'vue'],
+		[['@astrojs/svelte'], 'svelte'],
+		[[], 'svelte'],
+		[['@astrojs/svelte', '@astrojs/react'], 'svelte'],
+		[['@astrojs/react', '@astrojs/vue'], 'svelte'],
+	] as const)('infers ui from %j as %s', (installed, ui) => {
+		expect(inferUIAdapter(installed)).toBe(ui);
+	});
+
+	it('renders the dialog with the one UI integration the site registers', async () => {
+		const { calls } = await runSetup(
+			{ mode: offlineMode() },
+			{ integrations: [{ name: '@astrojs/react' }] }
+		);
+		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(code).toContain('registerDialogAdapter("react"');
+		expect(code).not.toContain(resolveOwnEntry('@c15t/astro/ui/svelte'));
+
+		const explicit = await runSetup(
+			{ mode: offlineMode(), ui: 'svelte' },
+			{ integrations: [{ name: '@astrojs/react' }] }
+		);
+		const [, explicitCode] = explicit.calls.injectScript.mock.calls[0] as [
+			string,
+			string,
+		];
+		expect(explicitCode).toContain('registerDialogAdapter("svelte"');
 	});
 });

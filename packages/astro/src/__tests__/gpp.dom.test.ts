@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { boot } from '../client';
 import type { AstroConsentClient } from '../client';
 import { resolveOptions } from '../integration';
-import { offlineMode } from '../mode';
+import { offline as offlineMode } from '../mode';
 import type { C15tAstroOptions } from '../types';
 
 interface PingData {

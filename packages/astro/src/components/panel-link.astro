@@ -1,14 +1,14 @@
 ---
 /**
- * A button that opens a consent dialog.
+ * `<ConsentDialogLink>`: the "Privacy settings" control that opens a
+ * consent dialog, for the footer every site needs.
  *
  * Ships no JavaScript of its own — it carries `data-c15t-action` and the
- * one delegated listener the banner already installed picks it up. Use it
- * for the "Cookie preferences" link every footer needs.
+ * one delegated listener the banner already installed picks it up.
  *
  * ```astro
- * <ConsentDialogTrigger>Cookie preferences</ConsentDialogTrigger>
- * <ConsentDialogTrigger kind="iab">Ad partners</ConsentDialogTrigger>
+ * <ConsentDialogLink>Privacy settings</ConsentDialogLink>
+ * <ConsentDialogLink kind="iab">Ad partners</ConsentDialogLink>
  * ```
  */
 import ComponentStyles from './component-styles.astro';

@@ -1,5 +1,3 @@
-import { fileURLToPath } from 'node:url';
-
 import node from '@astrojs/node';
 import svelte from '@astrojs/svelte';
 import { defineConfig } from 'astro/config';
@@ -12,18 +10,13 @@ export default defineConfig({
 	integrations: [
 		svelte(),
 		c15t({
+			backendURL: 'https://your-project.inth.app',
+			...testBackend('backendURL'),
+			clientEntrypoint: './src/consent-client.ts',
 			// The acceptance suite tests a backend outage during server
 			// rendering, so the server fetches the policy at runtime.
 			// `examples/astro` covers the bundled default.
-			buildManifest: false,
-			clientEntrypoint: fileURLToPath(
-				new URL('./src/consent-client.ts', import.meta.url)
-			),
-			mode: manifest({
-				backendURL: 'https://your-project.inth.app',
-				...testBackend('backendURL'),
-			}),
-			ui: 'svelte',
+			mode: manifest({ source: 'runtime' }),
 			// Demo-only: the example suite's vendor scenario.
 			vendors: [
 				{
