@@ -30,14 +30,11 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 
 import { decisionInputsFromConfig } from './libs/decision-seed';
+import { resolveInitRoute } from './libs/init-route';
 import { readPrefetchedInitialData } from './libs/prefetch-head';
 import type { ConsentState } from './server';
 
-/**
- * Same-origin route that resolves init from the cached manifest. Matches the
- * splat route `createConsentServerRoute()` serves under `/api/c15t/$`.
- */
-export const DEFAULT_INIT_ROUTE = '/api/c15t/init';
+export { DEFAULT_INIT_ROUTE } from './libs/init-route';
 
 export interface ConsentRootProps {
 	/**
@@ -56,8 +53,9 @@ export interface ConsentRootProps {
 
 	/**
 	 * Backend base URL. When provided, the provider uses hosted mode and
-	 * auto-runs init. Consent saves go to `${backendURL}/subjects`; init goes
-	 * to {@link ConsentRootProps.initRoute}.
+	 * auto-runs init. Consent saves go to `${backendURL}/subjects`, and init
+	 * to `${backendURL}/init` unless {@link ConsentRootProps.initRoute} names
+	 * a same-origin route.
 	 *
 	 * Without the proxy this is the c15t backend itself, for example
 	 * `https://consent.example.com`. With
@@ -72,13 +70,17 @@ export interface ConsentRootProps {
 	backendURL?: string;
 
 	/**
-	 * Same-origin init route served by `createConsentServerRoute()`.
-	 * Defaults to `/api/c15t/init`, which resolves init in-process from the
-	 * cached manifest and asserts the resolved decision inputs on save so a
-	 * stale policy is rejected instead of recorded.
+	 * Same-origin init route served by `createConsentServerRoute()`, usually
+	 * `"/api/c15t/init"` (`DEFAULT_INIT_ROUTE`). The route resolves init
+	 * in-process from the cached manifest, and saves then assert the
+	 * resolved decision inputs, so the backend rejects a save made against
+	 * a stale policy instead of recording it.
 	 *
-	 * Pass `false` to call `${backendURL}/init` directly instead, for apps
-	 * that do not mount the server route.
+	 * Omit it when you don't mount the route: an absolute `backendURL`
+	 * then gets init from `${backendURL}/init`. A same-origin `backendURL`
+	 * such as `"/api/c15t"` (the route with `proxy: true`) is the route
+	 * itself, so `${backendURL}/init` is used as the init route. Pass
+	 * `false` to call `${backendURL}/init` without the decision assertion.
 	 */
 	initRoute?: string | false;
 
@@ -190,7 +192,8 @@ const resolveMode = function resolveMode(
 	if (!backendURL) {
 		return lazyOffline();
 	}
-	if (initRoute === false) {
+	const initURL = resolveInitRoute(backendURL, initRoute);
+	if (!initURL) {
 		return hosted({ initialData, url: backendURL });
 	}
 	return hosted({
@@ -200,7 +203,7 @@ const resolveMode = function resolveMode(
 		// A streamed state renders no banner before it resolves, and the
 		// saves made after that carry the decision the kernel applied.
 		decisionInputs: decisionInputsFromConfig(state, overrides),
-		initURL: initRoute ?? DEFAULT_INIT_ROUTE,
+		initURL,
 		initialData,
 		url: backendURL,
 	});

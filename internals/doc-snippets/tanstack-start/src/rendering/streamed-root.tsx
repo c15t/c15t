@@ -40,7 +40,6 @@ const RootComponent = () => {
 				<ConsentRoot
 					state={consent}
 					backendURL={backendURL}
-					initRoute={false}
 					scripts={scripts}
 				>
 					<Outlet />

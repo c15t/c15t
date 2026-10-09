@@ -93,6 +93,11 @@ Keep these details right:
   `/api/c15t`, it would fetch its own route during the render, so it skips the
   fetch and returns only the cookie and header state.
 - `routePrefix` makes the page load IAB vendor lists through the route too.
+- Because `backendURL` is a path on your origin, `ConsentRoot` treats
+  `/api/c15t/init` as the route's init and binds each save to the policy it
+  resolved. To send only init through the route and keep saves going straight
+  to your backend, drop `proxy: true`, keep the absolute `backendURL`, and add
+  `initRoute="/api/c15t/init"`.
 - The proxy forwards the visitor's user agent, language, origin and location
   headers so the backend's firewall sees a normal visitor. Set
   `trustForwardedHeaders: true` on `createConsentServerRoute` only when your
@@ -109,9 +114,9 @@ resolve consent from your backend URL:
 
 - `state={{}}` means no server state. The page renders without consent UI and
   every optional category stays denied until the browser has the policy.
-- `initRoute={false}` sends the browser's `/init` request straight to your
-  backend URL, so the host needs no server route or server function. Add the
-  site's origin to your Inth project's trusted origins.
+- The browser sends its `/init` request straight to your backend URL, so the
+  host needs no server route or server function. Add the site's origin to
+  your Inth project's trusted origins.
 - `consentPrefetchHead` is optional. It adds an inline script to `<head>` that
   starts the `/init` request before the app's JavaScript loads, and
   `ConsentRoot` uses that response instead of sending its own.

@@ -182,7 +182,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * `${backendURL}/manifest` through the in-process manifest cache and
 	 * resolves init locally, so the first paint already carries policy, UI,
 	 * translations, and IAB metadata. Omit it to only read cookies and
-	 * headers; the client then runs init through the same-origin route.
+	 * headers; `ConsentRoot` then runs init in the browser on mount.
 	 *
 	 * Relative URLs are resolved against the request's own origin
 	 * (`request.url`); set `trustForwardedHeaders` to use `x-forwarded-*`
@@ -261,7 +261,7 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * counted from the manifest request. When it runs out the helper returns
 	 * the cookie-and-headers state: no consent UI in the server HTML,
 	 * optional categories denied, gated scripts and embeds blocked. The
-	 * client then runs init through the same-origin route. The manifest
+	 * client then runs init on mount. The manifest
 	 * request keeps running and fills the cache for the next render. `false`
 	 * waits for the manifest cache's own request timeout (5 seconds).
 	 *
@@ -376,7 +376,7 @@ const resolveConsentState = async function resolveConsentState(
 		manifest: backendURL ? options.manifest : undefined,
 		manifestURL: options.manifestURL,
 		// TanStack Start resolves from the manifest only; without a backend
-		// the client runs init through the same-origin route.
+		// the client runs init on mount.
 		mode: backendURL ? 'manifest' : undefined,
 		now: options.now,
 		overrides: { country: options.country, language: options.language },
@@ -406,7 +406,7 @@ const resolveConsentState = async function resolveConsentState(
  * 1. Reads the consent cookie, the CDN geo headers (plus the `x-c15t-*`
  *    overrides `consentRequestMiddleware()` wrote), `accept-language`, and
  *    `sec-gpc`. Without a `backendURL` this is the whole result: the client
- *    then runs init through the same-origin route on mount.
+ *    then runs init on mount.
  * 2. With a `backendURL`, loads the consent manifest through the
  *    in-process cache (or uses the inline `manifest`) and resolves init
  *    locally for this request's country, region, language, and GPC signal.
@@ -469,7 +469,7 @@ export { consentLoaderOptions } from './libs/loader-options';
  * ```
  *
  * Omit `backendURL` to skip the manifest prefetch and only read cookies
- * and headers; the client then runs init through the same-origin route.
+ * and headers; `ConsentRoot` then runs init in the browser on mount.
  *
  * @param options - {@link resolveConsent} options; `request` defaults to
  * `getRequest()`.

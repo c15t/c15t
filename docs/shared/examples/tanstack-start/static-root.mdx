@@ -28,12 +28,7 @@ const RootComponent = () => (
 			<HeadContent />
 		</head>
 		<body>
-			<ConsentRoot
-				state={{}}
-				backendURL={backendURL}
-				initRoute={false}
-				scripts={scripts}
-			>
+			<ConsentRoot state={{}} backendURL={backendURL} scripts={scripts}>
 				<Outlet />
 				<ConsentBanner />
 				<ConsentDialog />

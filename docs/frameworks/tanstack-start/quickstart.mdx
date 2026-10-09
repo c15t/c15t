@@ -109,10 +109,10 @@ What each part does:
   from running again on client-side navigation, since the visitor's consent
   state does not change between routes.
 - **`ConsentRoot`** creates the consent runtime from that state, so the server
-  HTML and the first browser render match. `initRoute={false}` sends the
-  browser's requests straight to your backend URL. Consent saves go there
-  too, so `backendURL` reads `VITE_C15T_BACKEND_URL` like the consent
-  options, and saves reach the project the snapshot came from.
+  HTML and the first browser render match. The browser sends its requests,
+  including consent saves, straight to `backendURL`. It reads
+  `VITE_C15T_BACKEND_URL` like the consent options, so saves reach the
+  project the snapshot came from.
 - **`scripts`** stays in this module. A server function can only return
   serializable data, and vendor loaders contain functions.
 - **No stylesheet** is linked. `ConsentBanner` renders its rules into the

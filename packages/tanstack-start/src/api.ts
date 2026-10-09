@@ -20,8 +20,9 @@
  * - `GET /api/c15t/manifest` passes the cached backend manifest through
  *   with its cache headers, so browsers and CDNs can cache it.
  * - `GET /api/c15t/init` resolves init in-process from that manifest for
- *   the request's geo, language, and GPC signal. `ConsentRoot` points
- *   `initURL` here by default; a client language switch re-hits it.
+ *   the request's geo, language, and GPC signal. Pass
+ *   `initRoute="/api/c15t/init"` to `ConsentRoot` to use it; a client
+ *   language switch re-hits it.
  *
  * By default `POST /subjects` is not proxied: consent saves go straight to
  * `backendURL`, which mirrors the Next.js and Nuxt adapters. Pass

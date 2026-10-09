@@ -5,7 +5,8 @@
  * Invariants verified:
  * - State is respected (initial consents, initial overrides).
  * - Kernel is per-mount (two mounts produce two kernels).
- * - `backendURL` selects hosted mode with the same-origin init route.
+ * - `backendURL` selects hosted mode. Init goes to the backend unless
+ *   `initRoute` names the same-origin route.
  */
 import {
 	useConsent,
@@ -103,14 +104,17 @@ describe('ConsentRoot: kernel is per-mount', () => {
 });
 
 describe('ConsentRoot: transport selection', () => {
-	test('backendURL runs init through the same-origin init route', async () => {
-		const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-			Response.json({
-				branding: 'c15t',
-				location: { countryCode: 'DE', regionCode: null },
-				translations: { language: 'en', translations: { common: {} } },
-			})
-		);
+	const initResponse = () =>
+		Response.json({
+			branding: 'c15t',
+			location: { countryCode: 'DE', regionCode: null },
+			translations: { language: 'en', translations: { common: {} } },
+		});
+
+	test('an absolute backendURL gets init from the backend by default', async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockImplementation(() => Promise.resolve(initResponse()));
 
 		try {
 			await render(
@@ -126,9 +130,38 @@ describe('ConsentRoot: transport selection', () => {
 			await vi.waitFor(() => {
 				expect(fetchSpy).toHaveBeenCalled();
 			});
-			const initURL = String(fetchSpy.mock.calls[0]?.[0]);
-			expect(initURL).toContain(DEFAULT_INIT_ROUTE);
-			expect(initURL).not.toContain('consent.example.com');
+			// The query carries the consent journey.
+			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
+				'https://consent.example.com/init'
+			);
+		} finally {
+			fetchSpy.mockRestore();
+		}
+	});
+
+	test('initRoute runs init through the same-origin route', async () => {
+		const fetchSpy = vi
+			.spyOn(globalThis, 'fetch')
+			.mockImplementation(() => Promise.resolve(initResponse()));
+
+		try {
+			await render(
+				<ConsentRoot
+					backendURL="https://consent.example.com"
+					initRoute={DEFAULT_INIT_ROUTE}
+					state={{}}
+					persistence={false}
+				>
+					<span>ready</span>
+				</ConsentRoot>
+			);
+
+			await vi.waitFor(() => {
+				expect(fetchSpy).toHaveBeenCalled();
+			});
+			expect(String(fetchSpy.mock.calls[0]?.[0]).split('?')[0]).toBe(
+				DEFAULT_INIT_ROUTE
+			);
 		} finally {
 			fetchSpy.mockRestore();
 		}
