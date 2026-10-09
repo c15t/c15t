@@ -10,8 +10,8 @@ group: reference
   Upgrade this app from c15t v2 to c15t v3.
 
   1. Check `package.json` for c15t packages. `@c15t/nextjs` means Next.js, `@c15t/react` without it means React, and `c15t` alone means the JavaScript store.
-  2. Read the matching guide before you change anything: https://c15t.com/docs/frameworks/next/upgrade-v3.md, https://c15t.com/docs/frameworks/react/upgrade-v3.md or https://c15t.com/docs/frameworks/javascript/upgrade-v3.md. Follow it in order and do not guess v3 APIs from memory.
-  3. If the app also runs its own c15t backend with `@c15t/backend`, read https://c15t.com/docs/upgrade-v3.md and upgrade the backend in the same change. Start with `npx @c15t/cli@alpha codemods backend-config-to-v3 node-sdk-to-v3 --dry-run --json`, then run it without `--dry-run`.
+  2. Read the matching guide before you change anything: /docs/frameworks/next/upgrade-v3.md, /docs/frameworks/react/upgrade-v3.md or /docs/frameworks/javascript/upgrade-v3.md. Follow it in order and do not guess v3 APIs from memory.
+  3. If the app also runs its own c15t backend with `@c15t/backend`, read /docs/upgrade-v3.md and upgrade the backend in the same change. Start with `npx @c15t/cli@alpha codemods backend-config-to-v3 node-sdk-to-v3 --dry-run --json`, then run it without `--dry-run`.
   4. Keep the existing backend URL.
   5. Run the typecheck and build when you finish.
 
