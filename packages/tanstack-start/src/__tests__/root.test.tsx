@@ -5,9 +5,11 @@
  * Invariants verified:
  * - State is respected (initial consents, initial overrides).
  * - Kernel is per-mount (two mounts produce two kernels).
- * - `backendURL` selects hosted mode. Init goes to the backend unless
- *   `routePrefix` names the same-origin consent route.
+ * - The state's `backendURL` and `routePrefix` pick the transport. Init
+ *   goes to the backend unless `routePrefix` names the same-origin consent
+ *   route.
  */
+import { offline } from '@c15t/core/modes';
 import {
 	useConsent,
 	useDeclaredVendors,
@@ -59,7 +61,10 @@ describe('ConsentRoot: state is honored', () => {
 
 		const { getByTestId } = await render(
 			<ConsentRoot
-				state={{ initialOverrides: { country: 'DE', language: 'de' } }}
+				state={{
+					initialOverrides: { country: 'DE', language: 'de' },
+					mode: offline(),
+				}}
 				persistence={false}
 			>
 				<CountryLabel />
@@ -119,8 +124,7 @@ describe('ConsentRoot: transport selection', () => {
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="https://consent.example.com"
-					state={{}}
+					state={{ backendURL: 'https://consent.example.com' }}
 					persistence={false}
 				>
 					<span>ready</span>
@@ -147,9 +151,10 @@ describe('ConsentRoot: transport selection', () => {
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="https://consent.example.com"
-					routePrefix="/api/c15t/"
-					state={{}}
+					state={{
+						backendURL: 'https://consent.example.com',
+						routePrefix: '/api/c15t/',
+					}}
 					persistence={false}
 				>
 					<span>ready</span>
@@ -179,8 +184,7 @@ describe('ConsentRoot: transport selection', () => {
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="/api/c15t"
-					state={{}}
+					state={{ backendURL: '/api/c15t' }}
 					persistence={false}
 				>
 					<span>ready</span>

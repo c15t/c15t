@@ -4,7 +4,6 @@ import { describe, expect, test, vi } from 'vitest';
 import {
 	createStaticConsentResolver,
 	createStaticManifestModule,
-	resolveStrictestDefaultInit,
 	resolveUnknownLocationInit,
 } from '../static';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
@@ -188,9 +187,5 @@ describe('resolveUnknownLocationInit', () => {
 				status: 'matched',
 			});
 		}
-	});
-
-	test('keeps the deprecated resolveStrictestDefaultInit name working', () => {
-		expect(resolveStrictestDefaultInit).toBe(resolveUnknownLocationInit);
 	});
 });

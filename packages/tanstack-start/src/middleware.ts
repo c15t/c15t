@@ -97,9 +97,7 @@ const writeNormalizedHeaders = function writeNormalizedHeaders(
  * export const Route = createFileRoute('/api/c15t/$')({
  *   server: {
  *     middleware: [consentRequestMiddleware()],
- *     handlers: createConsentServerRoute({
- *       backendURL: 'https://your-project.inth.app',
- *     }),
+ *     handlers: createConsentRoute(),
  *   },
  * });
  * ```

@@ -54,10 +54,10 @@ export const readPrefetchedInitialData =
  *
  * Use it on prerendered or `ssr: false` routes where no loader runs on the
  * server, so the banner still resolves as early as possible. Point
- * `backendURL` at the base the root's init request goes to: the root's
- * `routePrefix` when it sets one, such as `/api/c15t`, otherwise its
- * `backendURL`. `ConsentRoot` looks the response up by that base and hands
- * it to the provider as its first init.
+ * `backendURL` at the base the root's init request goes to: the
+ * `routePrefix` the state carries when it has one, such as `/api/c15t`,
+ * otherwise the backend URL. `ConsentRoot` looks the response up by that
+ * base and hands it to the provider as its first init.
  *
  * @param options - Prefetch options plus an optional script element id.
  * @returns A fragment with a `scripts` array to spread into `head()`.

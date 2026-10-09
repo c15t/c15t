@@ -5,11 +5,14 @@ import {
 } from '@c15t/schema/types';
 import type { PolicyRule } from '@c15t/schema/types';
 
-/** Prepared public policy and receipts for adapter tests. */
+/**
+ * Prepared public policy and receipts for adapter tests, with the backend
+ * URL `createConsentStateHandler()` puts on the state.
+ */
 export const policyFixture = (
 	values: Partial<ConsentState> = {},
 	rule: Partial<PolicyRule> = {}
-): KernelConfig => {
+): KernelConfig & { backendURL: string } => {
 	const policy = normalizePolicyRule({
 		id: 'react-test',
 		match: { fallback: true },
@@ -23,6 +26,7 @@ export const policyFixture = (
 		([category]) => category !== 'necessary'
 	);
 	return {
+		backendURL: '/api/c15t',
 		initialPolicyResolution: {
 			fingerprints,
 			matchedBy: 'fallback',

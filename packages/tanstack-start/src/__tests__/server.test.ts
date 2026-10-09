@@ -179,7 +179,7 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy,
-				manifest: MANIFEST_FIXTURE,
+				snapshot: MANIFEST_FIXTURE,
 				onBackgroundRevalidate: (task) => {
 					registered.push(task);
 				},
@@ -220,7 +220,7 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 				backendURL: 'https://consent.example.com',
 				experiment,
 				fetch: fetchSpy,
-				manifest: MANIFEST_FIXTURE,
+				snapshot: MANIFEST_FIXTURE,
 				onBackgroundRevalidate: (task) => {
 					registered.push(task);
 				},
@@ -242,7 +242,7 @@ describe('resolveConsent with an inline manifest: session reports', () => {
 			{
 				backendURL: 'https://consent.example.com',
 				fetch: fetchSpy,
-				manifest: MANIFEST_FIXTURE,
+				snapshot: MANIFEST_FIXTURE,
 				reportSessions: false,
 			}
 		);

@@ -58,6 +58,10 @@ const deferred = function deferred() {
 	return { promise, resolve: settle };
 };
 
+// The server function's config, as `createConsentStateHandler({
+// routePrefix: '/api/c15t', proxy: true })` puts it on the state.
+const sameOrigin = { backendURL: '/api/c15t', routePrefix: '/api/c15t' };
+
 const initResponse = () =>
 	Response.json({
 		branding: 'c15t',
@@ -71,7 +75,6 @@ describe('ConsentRoot: streamed state', () => {
 		const { promise } = deferred();
 		const html = renderToString(
 			<ConsentRoot
-				backendURL="/api/c15t"
 				persistence={false}
 				state={promise}
 			>
@@ -91,9 +94,7 @@ describe('ConsentRoot: streamed state', () => {
 		try {
 			const { getByTestId } = await render(
 				<ConsentRoot
-					backendURL="/api/c15t"
 					persistence={false}
-					routePrefix="/api/c15t"
 					state={promise}
 				>
 					<Status />
@@ -105,7 +106,7 @@ describe('ConsentRoot: streamed state', () => {
 				.element(getByTestId('status'))
 				.toHaveTextContent('pending/none/false');
 
-			resolveState(policyFixture());
+			resolveState({ ...policyFixture(), ...sameOrigin });
 			await expect
 				.element(getByTestId('status'))
 				.toHaveTextContent('opt-in/banner/false');
@@ -133,9 +134,7 @@ describe('ConsentRoot: streamed state', () => {
 		try {
 			await render(
 				<ConsentRoot
-					backendURL="/api/c15t"
 					persistence={false}
-					routePrefix="/api/c15t"
 					state={promise}
 				>
 					<Status />
@@ -147,7 +146,7 @@ describe('ConsentRoot: streamed state', () => {
 			});
 			expect(fetchSpy).not.toHaveBeenCalled();
 
-			resolveState({ initialOverrides: { country: 'DE' } });
+			resolveState({ initialOverrides: { country: 'DE' }, ...sameOrigin });
 			await vi.waitFor(() => {
 				expect(fetchSpy).toHaveBeenCalled();
 			});

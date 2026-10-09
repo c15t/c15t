@@ -43,8 +43,8 @@ describe('resolveConsent wiring', () => {
 		const handler = createConsentStateHandler({
 			backendURL: 'https://consent.example.com',
 			fetch,
-			manifest,
 			reportSessions: false,
+			snapshot: manifest,
 			request: requestOf({
 				'accept-language': 'de-DE',
 				'sec-gpc': '1',
@@ -89,7 +89,7 @@ describe('resolveConsent wiring', () => {
 			backendURL: 'https://consent.example.com',
 			fetch: sessions,
 			journey: 'tab',
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 			request: requestOf({ 'x-vercel-ip-country': 'DE' }),
 		});
 		await vi.waitFor(() => expect(sessions).toHaveBeenCalled());
@@ -107,7 +107,7 @@ describe('resolveConsent wiring', () => {
 			// oxlint-disable-next-line no-await-in-loop -- One render at a time.
 			const state = await resolveConsent({
 				backendURL: 'https://consent.example.com',
-				manifest: MANIFEST_FIXTURE,
+				snapshot: MANIFEST_FIXTURE,
 				request: requestOf({ 'x-vercel-ip-country': 'DE' }),
 				...off,
 			});
@@ -121,7 +121,7 @@ describe('resolveConsent wiring', () => {
 		rememberConsentInputs(request, { country: 'DE' });
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
-			manifest: MANIFEST_FIXTURE,
+			snapshot: MANIFEST_FIXTURE,
 			reportSessions: false,
 			request,
 		});
@@ -174,7 +174,8 @@ describe('resolveConsent wiring', () => {
 			}),
 		});
 		expect(fetch).not.toHaveBeenCalled();
-		expect(state).toEqual({});
+		// Only what the browser needs to resolve the visitor itself.
+		expect(state).toEqual({ backendURL: 'https://consent.example.com' });
 	});
 
 	test('a deferred vendor list points at the route prefix when one is set', async () => {
@@ -199,7 +200,7 @@ describe('resolveConsent wiring', () => {
 		);
 		const state = await resolveConsent({
 			backendURL: 'https://consent.example.com',
-			manifest: {
+			snapshot: {
 				...MANIFEST_FIXTURE,
 				cmpId: 28,
 				iab: {
