@@ -104,6 +104,34 @@ export const openBrowserContext = async function openBrowserContext(
 	return { context, page: await context.newPage(), requests };
 };
 
+/**
+ * Hold every script the app serves until `release()`, as a slow phone
+ * would before its bundles arrive. Inline scripts in the HTML still run.
+ */
+export const holdAppScripts = async function holdAppScripts(
+	context: BrowserContext,
+	baseURL: string
+): Promise<{ held: () => number; release: () => void }> {
+	const { origin } = new URL(baseURL);
+	let release: () => void = () => undefined;
+	const gate = new Promise<void>((resolve) => {
+		release = resolve;
+	});
+	let held = 0;
+	await context.route('**/*', async (route) => {
+		const request = route.request();
+		if (
+			request.resourceType() === 'script' &&
+			new URL(request.url()).origin === origin
+		) {
+			held += 1;
+			await gate;
+		}
+		await route.fallback();
+	});
+	return { held: () => held, release: () => release() };
+};
+
 export const acceptButton = (page: Page) =>
 	page.getByRole('button', { name: /^accept all$/iu }).first();
 export const rejectButton = (page: Page) =>

@@ -15,6 +15,7 @@ import {
 	categoryControl,
 	expandCategory,
 	expectNoTracking,
+	holdAppScripts,
 	openBrowserContext,
 	openPreferences,
 	readConsentMotion,
@@ -35,6 +36,24 @@ const BRANDED_PRIMARY: Record<string, string> = {
 	svelte: '#6943a3',
 	sveltekit: '#6943a3',
 };
+
+/**
+ * Routes whose banner is in the server HTML, so a visitor can tap it
+ * before the framework's JavaScript has run.
+ */
+const SERVER_BANNER_ROUTES: Record<string, readonly string[]> = {
+	nextjs: ['/app-router', '/awaited', '/pages-router'],
+	nuxt: ['/consent-example'],
+	'tanstack-start': ['/consent-example'],
+	'tanstack-start-same-origin': ['/consent-example'],
+	'tanstack-start-streamed': ['/consent-example'],
+};
+
+/** Each server-rendered banner route with each choice a visitor can tap. */
+const earlyTapCases = (targetId: string) =>
+	(SERVER_BANNER_ROUTES[targetId] ?? []).flatMap((route) =>
+		(['accept', 'reject'] as const).map((choice) => ({ choice, route }))
+	);
 
 for (const target of selectedTargets()) {
 	describe(target.id, () => {
@@ -383,6 +402,61 @@ for (const target of selectedTargets()) {
 				await page.reload();
 				await expect.poll(() => video(page).count()).toBe(1);
 				await openPreferences(page);
+				expect(requests.unexpected).toEqual([]);
+			});
+		}
+
+		for (const { choice, route } of earlyTapCases(target.id)) {
+			test(`${route}: ${choice} tapped before hydration is applied`, async () => {
+				({ context, page, requests } = await openBrowserContext(
+					browser,
+					server.baseURL,
+					server.backendURL
+				));
+				const scripts = await holdAppScripts(context, server.baseURL);
+				const banner = page.getByTestId('consent-banner-root');
+				const button =
+					choice === 'accept' ? acceptButton(page) : rejectButton(page);
+				const storedChoice = () =>
+					page.evaluate(() => localStorage.getItem('c15t'));
+				await page.goto(route, { waitUntil: 'commit' });
+				await button.waitFor({ state: 'visible' });
+				// The banner is server HTML: no bundle has run yet.
+				expect(scripts.held()).toBeGreaterThan(0);
+				await button.click();
+				// The inline script took the tap and hid the banner at once.
+				await expect.poll(() => button.isVisible()).toBe(false);
+				expect(await banner.count()).toBe(1);
+				expect(await storedChoice()).toBeNull();
+
+				scripts.release();
+				// Hydration records the tap: the banner leaves the page and the
+				// choice is stored and applied.
+				await expect.poll(() => banner.count()).toBe(0);
+				await expect.poll(storedChoice).not.toBeNull();
+				expect(await page.locator('#c15t-early-tap').count()).toBe(0);
+				if (choice === 'accept') {
+					await expect.poll(() => requests.posthog).toBe(1);
+					await expect.poll(() => requests.xPixel).toBe(1);
+					await expect.poll(() => video(page).count()).toBe(1);
+				} else {
+					await expectNoTracking(page, requests);
+				}
+
+				await page.reload();
+				await expect
+					.poll(() =>
+						page
+							.getByRole('heading', { exact: true, name: 'Consent example' })
+							.isVisible()
+					)
+					.toBe(true);
+				if (choice === 'accept') {
+					await expect.poll(() => video(page).count()).toBe(1);
+				} else {
+					await expectNoTracking(page, requests);
+				}
+				expect(await button.isVisible()).toBe(false);
 				expect(requests.unexpected).toEqual([]);
 			});
 		}
