@@ -3,7 +3,6 @@ import { describe, expect, test, vi } from 'vitest';
 import {
 	createStaticConsentResolver,
 	createStaticManifestModule,
-	resolveStrictestDefaultInit,
 	resolveUnknownLocationInit,
 } from '../static';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
@@ -20,10 +19,6 @@ describe('@c15t/nextjs/static', () => {
 		});
 		expect(payload.policyResolution?.policy?.model).toBe('opt-out');
 		expect(payload.location).toEqual({ countryCode: null, regionCode: null });
-	});
-
-	test('keeps the deprecated resolveStrictestDefaultInit name working', () => {
-		expect(resolveStrictestDefaultInit).toBe(resolveUnknownLocationInit);
 	});
 
 	test('uses the browser language when no language is configured', () => {

@@ -179,7 +179,7 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 		directory: 'nextjs',
 		// The stand-in `withConsentManifest` aliases to the generated
 		// snapshot; the server helpers import it, apps never do.
-		exclude: ['./generated-manifest', TAILWIND3_PLUGIN],
+		exclude: ['./generated-manifest', './user-config', TAILWIND3_PLUGIN],
 		packageName: '@c15t/nextjs',
 		prefix: 'next',
 	},
@@ -393,6 +393,11 @@ const buildConditionalEntry = function buildConditionalEntry(
 	const mapped: ConditionalExport = {};
 
 	for (const condition of Object.keys(entry)) {
+		// The shim re-exports the bare specifier, so the bundler applies
+		// `react-server` when it resolves the scoped package.
+		if (condition === 'react-server') {
+			continue;
+		}
 		const extension = SHIM_EXTENSIONS[condition];
 		if (!extension) {
 			throw new Error(
@@ -611,6 +616,11 @@ const buildWildcardEntry = function buildWildcardEntry(
 	const shimBase = toShimBase(umbrellaSubpath);
 	const mapped: ConditionalExport = {};
 	for (const condition of Object.keys(entry)) {
+		// The shim re-exports the bare specifier, so the bundler applies
+		// `react-server` when it resolves the scoped package.
+		if (condition === 'react-server') {
+			continue;
+		}
 		const extension = SHIM_EXTENSIONS[condition];
 		if (!extension) {
 			throw new Error(

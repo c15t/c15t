@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, stat } from 'node:fs/promises';
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -138,6 +138,43 @@ describe('Next.js build-time manifest', () => {
 			existing: '/existing.js',
 		});
 		expect(userWebpack).toHaveBeenCalledTimes(2);
+	});
+
+	test.each(['c15t.config.ts', 'c15t.config.mjs'])(
+		'aliases %s into server and browser bundles',
+		async (file) => {
+			const root = await createRoot();
+			await writeFile(join(root, file), 'export default {};\n');
+			const config = await withConsentManifest({}, optionsFor())(
+				'phase-development-server',
+				{ defaultConfig: {} }
+			);
+
+			expect(config.turbopack?.resolveAlias?.['@c15t/nextjs/user-config']).toBe(
+				`./${file}`
+			);
+			const webpack = config.webpack as NonNullable<typeof config.webpack>;
+			for (const isServer of [true, false]) {
+				const resolved = webpack({}, { isServer } as never) as {
+					resolve: { alias: Record<string, string> };
+				};
+				expect(resolved.resolve.alias['@c15t/nextjs/user-config$']).toBe(
+					join(root, file)
+				);
+			}
+		}
+	);
+
+	test('leaves the config stub in place without a c15t.config file', async () => {
+		await createRoot();
+		const config = await withConsentManifest({}, optionsFor())(
+			'phase-production-build',
+			{ defaultConfig: {} }
+		);
+
+		expect(config.turbopack?.resolveAlias).not.toHaveProperty(
+			'@c15t/nextjs/user-config'
+		);
 	});
 
 	test('transpiles the c15t packages so Pages Router bundles see the alias', async () => {

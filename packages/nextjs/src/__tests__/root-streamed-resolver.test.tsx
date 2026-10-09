@@ -44,7 +44,7 @@ describe('ConsentRoot: streamed state', () => {
 
 		const { getByTestId } = await render(
 			<ConsentRoot
-				backendURL="/api/c15t"
+				config={{ backendURL: '/api/c15t' }}
 				persistence={false}
 				state={state}
 			>

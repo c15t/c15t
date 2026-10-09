@@ -1,7 +1,8 @@
+import { manifest } from '@c15t/core/modes';
 /**
  * With `withConsentManifest` aliasing `@c15t/nextjs/generated-manifest` to
  * the snapshot, the route and `resolveConsent` read it without the app
- * passing `manifest`.
+ * passing `snapshot`.
  */
 import { clearManifestCache } from '@c15t/core/server';
 import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
@@ -38,7 +39,7 @@ afterEach(() => {
 
 describe('generated manifest default', () => {
 	test('the route serves the snapshot without fetching it', async () => {
-		const { GET } = createConsentRoute(config);
+		const { GET } = createConsentRoute({ config });
 
 		const response = await GET(
 			new Request('https://app.example.com/api/c15t/manifest'),
@@ -49,7 +50,7 @@ describe('generated manifest default', () => {
 		expect(fetch).not.toHaveBeenCalled();
 	});
 
-	test('resolveConsent reads the snapshot for a same-origin manifest route', async () => {
+	test('resolveConsent reads the snapshot', async () => {
 		const state = await resolveConsent({
 			config,
 			reportSessions: false,
@@ -65,6 +66,28 @@ describe('generated manifest default', () => {
 
 		expect(JSON.stringify(state)).toContain('eu-opt-in');
 		expect(fetch).not.toHaveBeenCalled();
+	});
+
+	test("source: 'runtime' fetches the backend's manifest instead", async () => {
+		fetch.mockImplementation(() =>
+			Promise.resolve(Response.json({ ...MANIFEST_FIXTURE, revision: 'live' }))
+		);
+		const { GET } = createConsentRoute({
+			config: defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				mode: manifest({ source: 'runtime' }),
+			}),
+		});
+
+		const response = await GET(
+			new Request('https://app.example.com/api/c15t/manifest'),
+			{ params: Promise.resolve({ c15t: ['manifest'] }) }
+		);
+
+		expect(await response.json()).toMatchObject({ revision: 'live' });
+		expect(String(fetch.mock.calls[0]?.[0])).toBe(
+			'https://consent.example.com/manifest'
+		);
 	});
 
 	test('an upstream manifestURL wins over the snapshot', async () => {

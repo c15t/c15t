@@ -88,6 +88,7 @@
 		},
 		".": {
 			"types": "./dist-types/index.d.ts",
+			"react-server": "./dist/index.react-server.js",
 			"import": "./dist/index.js",
 			"default": "./dist/index.js"
 		},
@@ -135,6 +136,11 @@
 			"types": "./dist-types/generated-manifest.d.ts",
 			"import": "./dist/generated-manifest.js",
 			"default": "./dist/generated-manifest.js"
+		},
+		"./user-config": {
+			"types": "./dist-types/user-config.d.ts",
+			"import": "./dist/user-config.js",
+			"default": "./dist/user-config.js"
 		}
 	},
 	"publishConfig": {

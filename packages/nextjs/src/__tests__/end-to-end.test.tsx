@@ -1,4 +1,5 @@
 import type { KernelConfig } from '@c15t/core';
+import { manifest } from '@c15t/core/modes';
 /**
  * End-to-end tests for the Next.js adapter.
  *
@@ -65,7 +66,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 			const { unmount } = await render(
 				<ConsentRoot
 					state={{}}
-					backendURL="/api/c15t"
+					config={{ backendURL: '/api/c15t' }}
 					persistence={false}
 				>
 					<div data-testid="probe">ready</div>
@@ -73,8 +74,9 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 			);
 
 			await vi.waitFor(() => {
+				// The default mode, manifest(), re-inits through the backend.
 				expect((window as WindowWithC15t).c15t).toMatchObject({
-					mode: 'hosted',
+					mode: 'manifest',
 					pkg: '@c15t/nextjs',
 				});
 			});
@@ -115,7 +117,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 			const { getByTestId } = await render(
 				<ConsentRoot
 					state={{}}
-					backendURL="http://bench.example.com/api/c15t"
+					config={{ backendURL: 'http://bench.example.com/api/c15t' }}
 					persistence={false}
 				>
 					<Probe />
@@ -177,7 +179,7 @@ describe('ConsentRoot: backendURL triggers auto-init', () => {
 			const { getByTestId } = await render(
 				<ConsentRoot
 					state={{}}
-					backendURL="http://bench.example.com/api/c15t"
+					config={{ backendURL: 'http://bench.example.com/api/c15t' }}
 					options={{ enabled: false }}
 				>
 					<Probe />
@@ -228,7 +230,7 @@ describe('ConsentRoot: resolved state reaches first paint', () => {
 			const { getByTestId } = await render(
 				<ConsentRoot
 					state={state}
-					backendURL="http://bench.example.com/api/c15t"
+					config={{ backendURL: 'http://bench.example.com/api/c15t' }}
 					persistence={false}
 				>
 					<Probe />
@@ -282,7 +284,7 @@ describe('ConsentRoot: config picks the transport', () => {
 		);
 	};
 
-	test('initURL: init hits the same-origin route, saves post to the backend', async () => {
+	test('routePrefix: init hits the same-origin route, saves post to the backend', async () => {
 		const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
 			Promise.resolve(
 				url.endsWith('/subjects')
@@ -312,8 +314,7 @@ describe('ConsentRoot: config picks the transport', () => {
 					state={{}}
 					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
-						initURL: '/api/consent/init',
-						manifestURL: '/api/consent/manifest',
+						routePrefix: '/api/consent',
 					})}
 					// A site declares its categories; with none, the permissive
 					// policy asks only for an acknowledgement, not a choice.
@@ -364,7 +365,7 @@ describe('ConsentRoot: config picks the transport', () => {
 		}
 	});
 
-	test('manifestURL: init resolves in the browser from the manifest route', async () => {
+	test("resolve: 'browser': init resolves in the browser from the manifest route", async () => {
 		const fetchSpy = vi.fn((url: string) =>
 			Promise.resolve(
 				url.endsWith('/subjects')
@@ -381,7 +382,8 @@ describe('ConsentRoot: config picks the transport', () => {
 					state={{ initialOverrides: { country: 'DE' } }}
 					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
-						manifestURL: '/api/consent/manifest',
+						mode: manifest({ resolve: 'browser' }),
+						routePrefix: '/api/consent',
 					})}
 					persistence={false}
 				>
@@ -404,7 +406,53 @@ describe('ConsentRoot: config picks the transport', () => {
 		}
 	});
 
-	test('backendURL only: hosted mode against the backend /init', async () => {
+	test("resolve: 'browser' asks the backend /init for a country the manifest splits by region", async () => {
+		const fetchSpy = vi.fn((url: string) =>
+			Promise.resolve(
+				pathOf(url).endsWith('/init')
+					? jsonResponse({
+							branding: 'c15t',
+							location: { countryCode: 'US', regionCode: 'CA' },
+							policyResolution: writePolicyResolutionWire(
+								policyFixture({}, { id: 'us-ca-opt-out' })
+									.initialPolicyResolution
+							),
+							translations: { language: 'en', translations: { common: {} } },
+						})
+					: jsonResponse(MANIFEST_FIXTURE)
+			)
+		);
+		const originalFetch = globalThis.fetch;
+		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
+
+		try {
+			const { getByTestId } = await render(
+				<ConsentRoot
+					state={{ initialOverrides: { country: 'US' } }}
+					config={defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						mode: manifest({ resolve: 'browser' }),
+						routePrefix: '/api/consent',
+					})}
+					persistence={false}
+				>
+					<PolicyProbe />
+				</ConsentRoot>
+			);
+
+			await expect
+				.element(getByTestId('probe'))
+				.toHaveTextContent('us-ca-opt-out|US|false');
+			expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
+				'/api/consent/manifest',
+				'https://consent.example.com/init',
+			]);
+		} finally {
+			globalThis.fetch = originalFetch;
+		}
+	});
+
+	test('backendURL only: manifest() re-inits against the backend /init', async () => {
 		const fetchSpy = vi.fn().mockResolvedValue(
 			jsonResponse({
 				branding: 'c15t',
@@ -537,8 +585,7 @@ describe('ConsentRoot: config picks the transport', () => {
 					state={{}}
 					config={defineConsentConfig({
 						backendURL: 'https://consent.example.com',
-						initURL: '/api/consent/init',
-						manifestURL: '/api/consent/manifest',
+						routePrefix: '/api/consent',
 					})}
 					options={{
 						mode: Object.assign(() => ({ init }), { kind: 'custom' as const }),

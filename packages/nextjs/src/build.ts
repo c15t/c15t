@@ -1,4 +1,5 @@
-import { relative, sep } from 'node:path';
+import { existsSync } from 'node:fs';
+import { join, relative, sep } from 'node:path';
 
 import {
 	GENERATED_MODULE_IDS,
@@ -42,14 +43,39 @@ const GENERATED_SPECIFIERS = [
 	...GENERATED_MODULE_IDS,
 ];
 
+/** The specifier the package imports the app's `c15t.config.ts` through. */
+const USER_CONFIG_SPECIFIER = '@c15t/nextjs/user-config';
+
+/** Config files looked up at the project root, in this order. */
+const USER_CONFIG_FILES = [
+	'c15t.config.ts',
+	'c15t.config.mts',
+	'c15t.config.js',
+	'c15t.config.mjs',
+];
+
 /**
- * Packages whose imports of {@link GENERATED_SPECIFIERS} must be bundled for
- * the alias to apply. The Pages Router leaves dependencies external on the
- * server unless they are transpiled.
+ * Packages whose imports of {@link GENERATED_SPECIFIERS} and
+ * {@link USER_CONFIG_SPECIFIER} must be bundled for the alias to apply. The
+ * Pages Router leaves dependencies external on the server unless they are
+ * transpiled.
  */
 const GENERATED_IMPORTERS = ['c15t', '@c15t/core', '@c15t/nextjs'];
 
 type WebpackConfigFunction = NonNullable<NextConfig['webpack']>;
+
+/** The app's `c15t.config.*` at the project root, or `undefined`. */
+const findUserConfig = function findUserConfig(
+	root: string
+): string | undefined {
+	for (const name of USER_CONFIG_FILES) {
+		const file = join(root, name);
+		if (existsSync(file)) {
+			return file;
+		}
+	}
+	return undefined;
+};
 
 /** A project-relative `./` path, the form Turbopack resolves alias targets in. */
 const fromProject = function fromProject(file: string): string {
@@ -58,19 +84,22 @@ const fromProject = function fromProject(file: string): string {
 };
 
 /**
- * Points {@link GENERATED_SPECIFIERS} at the written modules in both
+ * Points {@link GENERATED_SPECIFIERS} at the written modules and
+ * {@link USER_CONFIG_SPECIFIER} at the app's `c15t.config.ts` in both
  * bundlers, keeping any aliases and `webpack` function already set, and
  * transpiles the c15t packages so Pages Router server bundles see the
- * alias. Packages the app lists in `serverExternalPackages` stay external.
+ * aliases. Packages the app lists in `serverExternalPackages` stay
+ * external.
  *
  * Server bundles get the snapshot. Browser bundles get the module that
  * imports `server-only`, so a client import fails the build. Turbopack
  * picks it through the `browser` condition, webpack through the client
- * compiler.
+ * compiler. Both get the same config file.
  */
-const withGeneratedManifestAlias = function withGeneratedManifestAlias(
+const withConsentAliases = function withConsentAliases(
 	config: NextConfig,
-	files: ManifestCacheFiles
+	files: ManifestCacheFiles,
+	userConfigFile: string | undefined
 ): NextConfig {
 	const external = new Set(config.serverExternalPackages);
 	const transpilePackages = [
@@ -83,19 +112,27 @@ const withGeneratedManifestAlias = function withGeneratedManifestAlias(
 		browser: fromProject(files.browser),
 		default: fromProject(files.server),
 	};
+	const turbopackAliases: Record<string, string | Record<string, string>> =
+		Object.fromEntries(
+			GENERATED_SPECIFIERS.map((specifier) => [specifier, turbopackTarget])
+		);
+	if (userConfigFile) {
+		turbopackAliases[USER_CONFIG_SPECIFIER] = fromProject(userConfigFile);
+	}
 	const userWebpack = config.webpack ?? undefined;
 	const webpack: WebpackConfigFunction = (webpackConfig, context) => {
 		const resolved = userWebpack
 			? userWebpack(webpackConfig, context)
 			: webpackConfig;
 		const target = context.isServer ? files.server : files.browser;
+		const aliases: Record<string, string> = Object.fromEntries(
+			GENERATED_SPECIFIERS.map((specifier) => [`${specifier}$`, target])
+		);
+		if (userConfigFile) {
+			aliases[`${USER_CONFIG_SPECIFIER}$`] = userConfigFile;
+		}
 		resolved.resolve ??= {};
-		resolved.resolve.alias = {
-			...resolved.resolve.alias,
-			...Object.fromEntries(
-				GENERATED_SPECIFIERS.map((specifier) => [`${specifier}$`, target])
-			),
-		};
+		resolved.resolve.alias = { ...resolved.resolve.alias, ...aliases };
 		return resolved;
 	};
 	return {
@@ -105,9 +142,7 @@ const withGeneratedManifestAlias = function withGeneratedManifestAlias(
 			...config.turbopack,
 			resolveAlias: {
 				...config.turbopack?.resolveAlias,
-				...Object.fromEntries(
-					GENERATED_SPECIFIERS.map((specifier) => [specifier, turbopackTarget])
-				),
+				...turbopackAliases,
 			},
 		},
 		webpack,
@@ -115,9 +150,18 @@ const withGeneratedManifestAlias = function withGeneratedManifestAlias(
 };
 
 /**
- * Fetches the deployment's consent manifest before Next.js builds or starts
- * dev, writes it to `node_modules/.cache/c15t/manifest.js`, and hands it to
- * the server helpers. `resolveConsent` and the consent route handlers read
+ * Finds the app's `c15t.config.ts` and fetches the deployment's consent
+ * manifest before Next.js builds or starts dev.
+ *
+ * `c15t.config.ts` (or `.mts`, `.js`, `.mjs`) at the project root is
+ * aliased into server and browser bundles, so `ConsentRoot`,
+ * `resolveConsent()`, `createConsentRoute()` and the Pages Router helpers
+ * read it without the app importing it. Its default export must be a
+ * `defineConsentConfig()` result. Browser bundles include it, so it must
+ * hold no secrets.
+ *
+ * The manifest is written to `node_modules/.cache/c15t/manifest.js` and
+ * handed to the server helpers. `resolveConsent` and the consent route handlers read
  * it by default. Server code that needs it reads `snapshot` from
  * `@c15t/core/generated` (or `c15t/generated`). Nothing is written into the
  * app's source tree. Production server startup never fetches or rewrites the
@@ -136,11 +180,11 @@ const withGeneratedManifestAlias = function withGeneratedManifestAlias(
  * for a `backendURL` that is not absolute http(s), and for
  * `output: 'export'`, which has no server.
  *
- * The snapshot reaches the helpers through a bundler alias. The wrapper adds
- * `c15t`, `@c15t/core` and `@c15t/nextjs` to `transpilePackages`, so Pages
- * Router server bundles apply it too. A package listed in
- * `serverExternalPackages` stays external, does not see the alias, and reads
- * the manifest at runtime instead.
+ * The config and the snapshot reach the helpers through bundler aliases.
+ * The wrapper adds `c15t`, `@c15t/core` and `@c15t/nextjs` to
+ * `transpilePackages`, so Pages Router server bundles apply them too. A
+ * package listed in `serverExternalPackages` stays external and does not
+ * see the aliases: it reads no config and fetches the manifest at runtime.
  *
  * @param config - Existing Next.js configuration, preserved as given apart
  * from the alias.
@@ -156,6 +200,13 @@ const withGeneratedManifestAlias = function withGeneratedManifestAlias(
  *
  * // Reads NEXT_PUBLIC_C15T_BACKEND_URL, like defineConsentConfig.
  * export default withConsentManifest({});
+ * ```
+ *
+ * ```ts
+ * // c15t.config.ts
+ * import { defineConsentConfig } from 'c15t/next';
+ *
+ * export default defineConsentConfig({});
  * ```
  */
 export const withConsentManifest =
@@ -197,5 +248,5 @@ export const withConsentManifest =
 						: undefined,
 			}
 		);
-		return withGeneratedManifestAlias(resolved, files);
+		return withConsentAliases(resolved, files, findUserConfig(process.cwd()));
 	};
