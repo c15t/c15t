@@ -1,5 +1,4 @@
 @import 'tailwindcss';
-@import '@c15t/nextjs/styles.css';
 @source "../app/**/*.{ts,tsx}";
 @source "../../shared/src/**/*.{ts,tsx}";
 

@@ -41,6 +41,11 @@ export interface ConsentShellProps {
 	networkBlocker?: ConsentRootProps['networkBlocker'];
 	/** CSP nonce for automatic component styles in the nonce test routes. */
 	nonce?: string;
+	/**
+	 * `false` in the cells that import `@c15t/nextjs/styles.css`, so the
+	 * components do not deliver a second copy of its rules.
+	 */
+	styles?: boolean;
 }
 
 const createMode = function createMode({
@@ -92,6 +97,7 @@ export const ConsentShell = ({
 	manifest,
 	networkBlocker,
 	nonce,
+	styles = true,
 }: ConsentShellProps) => {
 	const mode = useMemo(
 		() => createMode({ backendURL, manifest, transport }),
@@ -122,6 +128,7 @@ export const ConsentShell = ({
 				consentCategories: ['necessary', 'measurement', 'marketing'],
 				mode,
 				nonce,
+				styles,
 				theme: {
 					motion: {
 						duration: { fast: '1ms', normal: '1ms', slow: '1ms' },

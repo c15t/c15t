@@ -11,7 +11,6 @@
 		hosted,
 	} from '@c15t/svelte';
 
-	import '@c15t/svelte/styles.css';
 	import ExamplePage from './ExamplePage.svelte';
 	import {
 		experimentCallbacks,

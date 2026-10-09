@@ -10,8 +10,6 @@
 	import { scripts } from '#lib/example-scripts.js';
 	import { testBackend } from '#lib/test-backend.js';
 
-	import '@c15t/svelte/styles.css';
-
 	let { children, data } = $props();
 
 	const mode = hosted({

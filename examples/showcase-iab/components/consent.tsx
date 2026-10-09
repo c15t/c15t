@@ -31,13 +31,10 @@ const CMP_ID = 160;
 // with through the `vendors` prop.
 const GVL_URL = '/vendor-list.json';
 
-// The IAB surfaces do not render their own styles yet, so app/globals.css
-// imports c15t's stylesheets and `styles: false` keeps the stock surfaces
-// from adding a second copy.
 export const Consent = ({ children }: { children: ReactNode }) => (
 	<ConsentRoot
 		state={{}}
-		options={{ mode, styles: false, theme: brandTheme }}
+		options={{ mode, theme: brandTheme }}
 	>
 		{/* Before the page, so __tcfapi exists when the ad slots ask for it. */}
 		<IABProvider

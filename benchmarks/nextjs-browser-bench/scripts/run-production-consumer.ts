@@ -6,7 +6,8 @@
  * Each arm installs one c15t build into its own consumer directory, builds
  * it with `next build` (Turbopack), and serves it with `next start`. Arms
  * are measured interleaved (ABBA) on the same routes and scenarios. The
- * consumer uses the documented aggregate stylesheet, a custom theme,
+ * consumer imports no c15t stylesheet when the installed build delivers its
+ * own styles, and the aggregate stylesheet otherwise. It uses a custom theme,
  * server-resolved consent from the cached manifest under a Suspense
  * boundary, and the deferred preference dialog, so duplicate stylesheets,
  * late banner chunks, and deferred-UI costs show up in the output.
@@ -65,6 +66,8 @@ import {
 	loadBrowserBenchInit,
 } from '@c15t/benchmarking/policy-fixtures';
 import {
+	AUTOMATIC_STYLES_MODULE,
+	consumerGlobalStyles,
 	consumerPackageJson,
 	consumerScenarios,
 	interleaveArms,
@@ -75,6 +78,7 @@ import {
 import type {
 	ConsumerArm,
 	ConsumerScenarioDefinition,
+	ConsumerStyleDelivery,
 	WorkspacePackageInfo,
 } from '@c15t/benchmarking/production-consumer';
 import { BENCHMARK_SCHEMA_VERSION } from '@c15t/benchmarking/schema';
@@ -297,9 +301,26 @@ interface ArmProvenance {
 	source: string;
 	installedC15tVersion: string;
 	nextVersion: string;
+	styles: ConsumerStyleDelivery;
 	tarballs: string[];
 	buildMs: number;
 }
+
+/** Whether the arm's installed `@c15t/react` delivers its own styles. */
+const installedStyleDelivery = function installedStyleDelivery(
+	dir: string
+): ConsumerStyleDelivery {
+	const packageDir = [
+		join(dir, 'node_modules', 'c15t', 'node_modules', '@c15t', 'react'),
+		join(dir, 'node_modules', '@c15t', 'react'),
+	].find((candidate) => existsSync(join(candidate, 'package.json')));
+	if (!packageDir) {
+		throw new Error(`${dir} has no installed @c15t/react.`);
+	}
+	return existsSync(join(packageDir, AUTOMATIC_STYLES_MODULE))
+		? 'automatic'
+		: 'external';
+};
 
 const describeSource = function describeSource(arm: ConsumerArm): string {
 	switch (arm.source.kind) {
@@ -379,7 +400,13 @@ const prepareArm = async function prepareArm(
 
 	console.log(`[${arm.label}] installing into ${dir}`);
 	run('bun', ['install'], dir, join(dir, 'install.log'));
-	console.log(`[${arm.label}] building`);
+	const styles = installedStyleDelivery(dir);
+	const globalsPath = join(dir, 'app', 'globals.css');
+	writeFileSync(
+		globalsPath,
+		consumerGlobalStyles(readFileSync(globalsPath, 'utf8'), styles)
+	);
+	console.log(`[${arm.label}] building with ${styles} styles`);
 	const buildStartedAt = performance.now();
 	run('bun', ['run', 'build'], dir, join(dir, 'build.log'));
 	const buildMs = Math.round(performance.now() - buildStartedAt);
@@ -393,6 +420,7 @@ const prepareArm = async function prepareArm(
 		label: arm.label,
 		nextVersion,
 		source: describeSource(arm),
+		styles,
 		tarballs: [...(tarballs ?? new Map<string, string>()).entries()].map(
 			([name, file]) => `${name} ${sha256(file)}`
 		),
@@ -1113,6 +1141,7 @@ const buildResult = function buildResult(input: {
 			nextVersion: input.provenance.nextVersion,
 			profile: throttleProfile,
 			route: input.route,
+			styleDelivery: input.provenance.styles,
 			stylesheets: describeStylesheets(last?.stylesheets, input.overlap),
 			stylesheetsAfterDialog: describeStylesheets(
 				last?.stylesheetsAfterDialog,
@@ -1126,7 +1155,7 @@ const buildResult = function buildResult(input: {
 			...summarizeServerHtmlMetrics(input.serverHtml),
 		],
 		notes: [
-			'Next.js App Router consumer installed from packed or published c15t artifacts outside the workspace: aggregate stylesheet, custom theme, server consent from the cached manifest inside a Suspense boundary, deferred preference dialog.',
+			'Next.js App Router consumer installed from packed or published c15t artifacts outside the workspace: automatic component styles, or the aggregate stylesheet for a build without them, custom theme, server consent from the cached manifest inside a Suspense boundary, deferred preference dialog.',
 			`Visit: ${input.scenario.visit}. Cold state: ${input.scenario.coldState.setup}.`,
 			'cssEncodedBytes sums Resource Timing encodedBodySize (compressed body) over every stylesheet; cssAssetCount counts them. cssSharedClassCount counts class selectors defined by more than one loaded stylesheet.',
 			'serverManifestFetches counts fixture-origin /manifest requests during the visit, so a warm SDK manifest cache reads 0.',
@@ -1181,11 +1210,11 @@ const toMarkdown = function toMarkdown(
 		'',
 		`Profile ${throttleProfile}, injected consent-origin latency ${backendLatencyMs} ms, ${iterations} measured samples plus ${warmupIterations} warm-up per arm, arms interleaved. Medians with (min–max).`,
 		'',
-		'| Arm | Source | c15t | Next |',
-		'| --- | --- | --- | --- |',
+		'| Arm | Source | c15t | Next | c15t styles |',
+		'| --- | --- | --- | --- | --- |',
 		...provenance.map(
 			(arm) =>
-				`| ${arm.label} | ${arm.source} | ${arm.installedC15tVersion} | ${arm.nextVersion} |`
+				`| ${arm.label} | ${arm.source} | ${arm.installedC15tVersion} | ${arm.nextVersion} | ${arm.styles} |`
 		),
 		'',
 		`| Route | Scenario | Arm | ${summaryColumns.join(' | ')} | Cold state |`,
