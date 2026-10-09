@@ -16,7 +16,7 @@ if (!baseUrl || !storyId || !outPrefix) {
 	throw new Error('usage: capture-story.ts <baseUrl> <storyId> <outPrefix>');
 }
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage();
 await page.goto(`${baseUrl}/iframe.html?id=${storyId}&viewMode=story`, {
 	waitUntil: 'networkidle',

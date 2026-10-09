@@ -39,6 +39,7 @@ export default defineConfig({
 	timeout: 120_000,
 	use: {
 		actionTimeout: 10_000,
+		headless: true,
 		trace: 'retain-on-failure',
 	},
 	workers: process.env.CI ? 1 : undefined,

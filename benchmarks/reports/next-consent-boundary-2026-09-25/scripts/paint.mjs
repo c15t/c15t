@@ -349,7 +349,7 @@ const result = {
 	samples,
 	startLoad: load(),
 };
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 try {
 	const saved = {};
 	for (const arm of arms) {

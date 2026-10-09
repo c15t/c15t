@@ -76,7 +76,7 @@ const median = (values: number[]) => {
 		? (sorted[middle] ?? 0)
 		: ((sorted[middle - 1] ?? 0) + (sorted[middle] ?? 0)) / 2;
 };
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 try {
 	const page = await browser.newPage();
 	const results = [];

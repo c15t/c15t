@@ -96,7 +96,7 @@ const measure = (page: Page, selector: string) =>
 		});
 	}, selector);
 
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 try {
 	const samples: {
 		first: Awaited<ReturnType<typeof measure>>;

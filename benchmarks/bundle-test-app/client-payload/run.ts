@@ -477,7 +477,7 @@ const main = async function main() {
 			skipBuild ? join(workDir, name) : prepareArm(name, definition, v3)
 		);
 	}
-	const browser = await chromium.launch();
+	const browser = await chromium.launch({ headless: true });
 	const arms: ArmResult[] = [];
 	try {
 		for (const [index, name] of armNames.entries()) {

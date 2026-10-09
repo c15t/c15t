@@ -36,7 +36,7 @@ beforeAll(async () => {
 		},
 		{ interval: 200, timeout: 20_000 }
 	);
-	browser = await chromium.launch();
+	browser = await chromium.launch({ headless: true });
 });
 
 afterAll(async () => {

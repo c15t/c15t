@@ -795,7 +795,7 @@ const main = async function main(): Promise<void> {
 	});
 	const baseUrl = `http://localhost:${server.port}`;
 
-	const browser = await chromium.launch();
+	const browser = await chromium.launch({ headless: true });
 	const results: LiveVendorResult[] = [];
 
 	try {

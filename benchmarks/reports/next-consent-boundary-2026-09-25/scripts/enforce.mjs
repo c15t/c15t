@@ -200,7 +200,7 @@ const run = async (browser, arm, source, visit, saved) => {
 };
 
 const result = { rows: [], startLoad: load() };
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 try {
 	const saved = {};
 	for (const arm of arms) {

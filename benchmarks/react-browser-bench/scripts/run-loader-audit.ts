@@ -52,7 +52,7 @@ declare global {
 		__loaderAuditMounts: number[];
 	}
 }
-const browser = await chromium.launch();
+const browser = await chromium.launch({ headless: true });
 const samples: Sample[] = [];
 try {
 	// Discard the compiler warmup, then measure fresh storage and module contexts.

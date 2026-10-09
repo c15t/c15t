@@ -617,7 +617,7 @@ const main = async function main() {
 		root,
 	});
 	const markers = markerTableFor(backend.manifest, backend.init);
-	const browser = await chromium.launch();
+	const browser = await chromium.launch({ headless: true });
 	const measurements: ExampleMeasurement[] = [];
 	const failures: { example: string; error: string }[] = [];
 	try {

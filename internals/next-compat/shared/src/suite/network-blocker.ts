@@ -46,7 +46,7 @@ export const defineNetworkBlockerSuite = function defineNetworkBlockerSuite(
 		let browser: Browser;
 
 		beforeAll(async () => {
-			browser = await chromium.launch();
+			browser = await chromium.launch({ headless: true });
 		});
 
 		afterAll(async () => {
