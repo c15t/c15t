@@ -199,9 +199,10 @@ const isRequireCall = function isRequireCall(
 };
 
 /**
- * The string literals that name a module: imports, re-exports, `import()`
- * and `require()` calls, import types, and PostCSS plugin keys. A template
- * literal or computed argument is left alone.
+ * The string literals that name a module: imports, re-exports,
+ * `import x = require()`, `import()` and `require()` calls, import types,
+ * and PostCSS plugin keys. A template literal or computed argument is left
+ * alone.
  */
 const moduleSpecifiersOf = function moduleSpecifiersOf(
 	sourceFile: TsMorphTypes.SourceFile
@@ -218,6 +219,9 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 				Node.isExportDeclaration(parent)
 			) {
 				return parent.getModuleSpecifier() === literal;
+			}
+			if (Node.isExternalModuleReference(parent)) {
+				return true;
 			}
 			if (Node.isCallExpression(parent)) {
 				return (
@@ -241,7 +245,7 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 const todoAnchor = function todoAnchor(
 	parent: TsMorphTypes.Node
 ): TsMorphTypes.Node {
-	if (!Node.isCallExpression(parent)) {
+	if (Node.isImportDeclaration(parent) || Node.isExportDeclaration(parent)) {
 		return parent;
 	}
 	const statement = parent.getFirstAncestor(Node.isStatement);
