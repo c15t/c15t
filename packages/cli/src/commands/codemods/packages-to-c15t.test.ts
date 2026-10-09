@@ -284,6 +284,69 @@ import 'c15t/react/styles.css';
 		}
 	);
 
+	it.each(['>=2 <4', '^3 || ^4', '2 - 4'])(
+		'reads the installed Tailwind CSS for %s, which spans several majors',
+		async (specifier) => {
+			const { read, result } = await run(
+				{ c15t: '^3.0.0', tailwindcss: specifier },
+				{
+					'node_modules/tailwindcss/package.json': JSON.stringify({
+						version: '3.4.17',
+					}),
+					'src/main.ts': `import '@c15t/react/styles.css';
+`,
+				}
+			);
+
+			expect(await read('src/main.ts')).toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+			expect(result.warnings).toEqual([]);
+		}
+	);
+
+	it('keeps stylesheet imports and warns for a multi-major range with nothing installed', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3 || ^4' },
+			{
+				'src/main.ts': `import '@c15t/react/styles.css';
+`,
+			}
+		);
+
+		expect(await read('src/main.ts')).toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+		expect(result.warnings).toEqual([
+			expect.objectContaining({
+				message: expect.stringContaining(
+					"Could not tell the Tailwind CSS version from '^3 || ^4'"
+				),
+			}),
+		]);
+	});
+
+	it.each(['~3', '3.x', '>=3.0.0 <4', 'workspace:^3.4.0'])(
+		'reads %s as Tailwind CSS 3 without checking the installed version',
+		async (specifier) => {
+			const { read, result } = await run(
+				{ c15t: '^3.0.0', tailwindcss: specifier },
+				{
+					'node_modules/tailwindcss/package.json': JSON.stringify({
+						version: '4.1.0',
+					}),
+					'src/main.ts': `import '@c15t/react/styles.css';
+`,
+				}
+			);
+
+			expect(await read('src/main.ts')).toBe(`// ${TODO}
+import 'c15t/react/styles.css';
+`);
+			expect(result.warnings).toEqual([]);
+		}
+	);
+
 	it('removes stylesheet imports when the installed Tailwind CSS is 4', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0', tailwindcss: 'catalog:' },

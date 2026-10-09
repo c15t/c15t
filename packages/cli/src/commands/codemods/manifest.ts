@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
+import { minVersion, subset, validRange } from 'semver';
+
 /** The dependency fields of an app's `package.json` the codemods read. */
 export interface PackageJson {
 	dependencies?: Record<string, string>;
@@ -69,15 +71,42 @@ export const usesUmbrella = function usesUmbrella(
 	);
 };
 
+/** `workspace:` and `npm:<name>@` prefixes in front of a semver range. */
+const RANGE_PREFIX = /^(?:workspace:|npm:(?:@[^/]+\/)?[^@]+@)/u;
+
 /**
- * The Tailwind CSS major version. A specifier without a version, such as
- * `latest`, `workspace:*` or `catalog:`, falls back to the installed package.
+ * The one major version a specifier allows, or null when it allows several,
+ * such as `^3 || ^4` or `>=2 <4`, or names no version. A specifier that isn't
+ * a semver range, such as a git URL, falls back to its first number.
+ */
+const declaredMajorOf = function declaredMajorOf(
+	specifier: string
+): number | null {
+	const range = validRange(specifier.replace(RANGE_PREFIX, ''));
+	if (range === null) {
+		return majorOf(specifier);
+	}
+	const major = minVersion(range)?.major;
+	if (major === undefined) {
+		return null;
+	}
+	return subset(range, `>=${major}.0.0-0 <${major + 1}.0.0`, {
+		includePrerelease: true,
+	})
+		? major
+		: null;
+};
+
+/**
+ * The Tailwind CSS major version. A specifier without a single major, such
+ * as `latest`, `workspace:*`, `catalog:` or `^3 || ^4`, falls back to the
+ * installed package.
  */
 export const tailwindMajor = async function tailwindMajor(
 	projectRoot: string,
 	specifier: string
 ): Promise<number | null> {
-	const declared = majorOf(specifier);
+	const declared = declaredMajorOf(specifier);
 	if (declared !== null) {
 		return declared;
 	}
