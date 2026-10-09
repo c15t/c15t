@@ -7,13 +7,14 @@
  * stylesheets a page can reach, so this one runs Astro 7 itself.
  */
 import { execFile } from 'node:child_process';
-import { mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, readdir, readFile, rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
-import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { promisify } from 'node:util';
 
+import iabBannerClasses from '@c15t/ui/styles/components/iab-consent-banner';
+import iabPanelClasses from '@c15t/ui/styles/components/iab-consent-dialog';
 import panelClasses from '@c15t/ui/styles/components/panel';
 import { preferenceItemVariants } from '@c15t/ui/styles/primitives';
 import { afterAll, describe, expect, it } from 'vitest';
@@ -38,17 +39,16 @@ afterAll(async () => {
 	);
 });
 
-/**
- * Build the fixture and return every stylesheet its page can reach: the ones
- * the HTML links or inlines, and the ones a script links at runtime by URL.
- *
- * @param ui - The dialog adapter to build with.
- * @returns The reachable CSS, concatenated.
- */
-const buildReachableCSS = async function buildReachableCSS(
-	ui: 'react' | 'svelte'
+const buildFixture = async function buildFixture(
+	ui: 'react' | 'svelte',
+	iab = false,
+	deferred = false
 ): Promise<string> {
-	const outDir = await mkdtemp(join(tmpdir(), `c15t-astro-${ui}-`));
+	// Astro renames prerendered assets. Its output must share the source
+	// filesystem; /tmp can be mounted separately in a linked worktree.
+	const buildDir = join(FIXTURE, '.astro');
+	await mkdir(buildDir, { recursive: true });
+	const outDir = await mkdtemp(join(buildDir, `c15t-${ui}-`));
 	outDirs.push(outDir);
 	await promisify(execFile)(
 		process.execPath,
@@ -57,11 +57,35 @@ const buildReachableCSS = async function buildReachableCSS(
 			env: {
 				...process.env,
 				ASTRO_TELEMETRY_DISABLED: '1',
+				C15T_ASTRO_CACHE_DIR: join(outDir, '.astro'),
+				C15T_DEFERRED: deferred ? '1' : '0',
+				C15T_IAB: iab ? '1' : '0',
 				C15T_UI: ui,
 				C15T_VITE_CACHE_DIR: join(outDir, '.vite'),
 			},
 		}
 	);
+	return outDir;
+};
+
+/**
+ * Build the fixture and return every stylesheet its page can reach: the ones
+ * the HTML links or inlines, and the ones a script links at runtime by URL.
+ *
+ * @param ui - The dialog adapter to build with.
+ * @param iab - Whether to build the IAB banner and dialog.
+ * @returns The HTML, inline and linked initial CSS, and reachable deferred CSS.
+ */
+const buildReachableCSS = async function buildReachableCSS(
+	ui: 'react' | 'svelte',
+	iab = false
+): Promise<{
+	css: string;
+	html: string;
+	initialCSS: string;
+	deferredCSS: string;
+}> {
+	const outDir = await buildFixture(ui, iab);
 	const html = await readFile(join(outDir, 'index.html'), 'utf8');
 	const assets = await readdir(join(outDir, '_astro'));
 	const scripts = await Promise.all(
@@ -79,7 +103,16 @@ const buildReachableCSS = async function buildReachableCSS(
 	const linked = await Promise.all(
 		reachable.map((name) => readFile(join(outDir, '_astro', name), 'utf8'))
 	);
-	return [...linked, ...inline].join('\n');
+	const initialLinks = reachable.filter((name) => html.includes(name));
+	const initialLinked = await Promise.all(
+		initialLinks.map((name) => readFile(join(outDir, '_astro', name), 'utf8'))
+	);
+	return {
+		css: [...linked, ...inline].join('\n'),
+		deferredCSS: linked.join('\n'),
+		html,
+		initialCSS: [...initialLinked, ...inline].join('\n'),
+	};
 };
 
 describe('an Astro build', () => {
@@ -88,14 +121,14 @@ describe('an Astro build', () => {
 	const dialogSelectors = [`.${panelClasses.root}`, `.${panelClasses.card}`];
 
 	it('gives the React dialog its stylesheet', async () => {
-		const css = await buildReachableCSS('react');
+		const { css } = await buildReachableCSS('react');
 		for (const selector of dialogSelectors) {
 			expect(css).toContain(selector);
 		}
 	}, 60_000);
 
 	it('gives the Svelte dialog its stylesheets', async () => {
-		const css = await buildReachableCSS('svelte');
+		const { css } = await buildReachableCSS('svelte');
 		for (const selector of dialogSelectors) {
 			expect(css).toContain(selector);
 		}
@@ -103,5 +136,44 @@ describe('an Astro build', () => {
 		const [itemClass] = preferenceItemVariants().root().split(' ');
 		expect(itemClass).toBeTruthy();
 		expect(css).toContain(`.${itemClass}`);
+	}, 60_000);
+
+	it.each(['react', 'svelte'] as const)(
+		'puts IAB banner CSS in the server HTML and defers both panel sheets for %s',
+		async (ui) => {
+			const { deferredCSS, html, initialCSS } = await buildReachableCSS(
+				ui,
+				true
+			);
+			expect(
+				html.match(/data-c15t-styles="c15t-iab-first-paint"/gu)
+			).toHaveLength(1);
+			expect(
+				html.indexOf('data-c15t-styles="c15t-iab-first-paint"')
+			).toBeLessThan(html.indexOf('</head>'));
+			expect(html).toContain('data-testid="iab-consent-banner-root"');
+			expect(html).not.toMatch(/<link[^>]*rel="stylesheet"/u);
+			expect(initialCSS).toContain(`.${iabBannerClasses.card}`);
+			expect(initialCSS).not.toContain(`.${iabPanelClasses.card}`);
+			expect(initialCSS).not.toContain(`.${panelClasses.card}`);
+			expect(deferredCSS).toContain(`.${iabPanelClasses.card}`);
+			expect(deferredCSS).toContain(`.${panelClasses.card}`);
+		},
+		60_000
+	);
+
+	it('ships first-paint rules once in the outer page without repeating them in a server island', async () => {
+		const outDir = await buildFixture('svelte', false, true);
+		const { stdout } = await promisify(execFile)(process.execPath, [
+			join(FIXTURE, 'render-deferred.mjs'),
+			join(outDir, 'server', 'entry.mjs'),
+		]);
+		const { html, island } = JSON.parse(stdout) as {
+			html: string;
+			island: string;
+		};
+		expect(html.match(/data-c15t-styles="c15t-first-paint"/gu)).toHaveLength(1);
+		expect(island).toContain('data-testid="consent-banner-root"');
+		expect(island).not.toContain('data-c15t-styles');
 	}, 60_000);
 });

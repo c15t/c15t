@@ -10,13 +10,21 @@
  */
 import * as dialog from '@c15t/ui/styles/sheets/dialog';
 import * as firstPaint from '@c15t/ui/styles/sheets/first-paint';
+import * as iabDialog from '@c15t/ui/styles/sheets/iab-dialog';
+import * as iabFirstPaint from '@c15t/ui/styles/sheets/iab-first-paint';
 import * as primitives from '@c15t/ui/styles/sheets/primitives';
 
 import { STYLE_ATTRIBUTE, STYLES_MARKER } from '../surface-styles';
 import type { SurfaceStyleSheet } from '../surface-styles';
 
 /** Every sheet a marker can name, in cascade order. */
-const SHEETS: readonly SurfaceStyleSheet[] = [firstPaint, dialog, primitives];
+const SHEETS: readonly SurfaceStyleSheet[] = [
+	firstPaint,
+	dialog,
+	primitives,
+	iabFirstPaint,
+	iabDialog,
+];
 
 const MARKER = new RegExp(
 	`<meta name="${STYLES_MARKER}" content="(?<body>[^"]*)"`,

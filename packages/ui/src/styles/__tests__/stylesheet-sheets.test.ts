@@ -85,12 +85,17 @@ describe('styles/sheets', async () => {
 	const firstPaint = await importSheet('first-paint');
 	const dialog = await importSheet('dialog');
 	const primitives = await importSheet('primitives');
+	const iabFirstPaint = await importSheet('iab-first-paint');
+	const iabDialog = await importSheet('iab-dialog');
+	const sheets = [firstPaint, dialog, primitives, iabFirstPaint, iabDialog];
 
 	test('each sheet has its own id', () => {
-		expect([firstPaint.id, dialog.id, primitives.id]).toEqual([
+		expect(sheets.map((sheet) => sheet.id)).toEqual([
 			'c15t-first-paint',
 			'c15t-dialog',
 			'c15t-primitives',
+			'c15t-iab-first-paint',
+			'c15t-iab-dialog',
 		]);
 	});
 
@@ -131,7 +136,7 @@ describe('styles/sheets', async () => {
 	});
 
 	test('every sheet opens with the layer order', () => {
-		for (const sheet of [firstPaint, dialog, primitives]) {
+		for (const sheet of sheets) {
 			expect(layerStatements(sheet.css)).toEqual([
 				'properties, theme, base, components, utilities',
 			]);
@@ -158,5 +163,43 @@ describe('styles/sheets', async () => {
 
 	test('dialog.css holds the dialog sheet', () => {
 		expect(readDist(join(SHEETS_DIR, 'dialog.css')).trim()).toBe(dialog.css);
+	});
+
+	test('IAB sheets preserve every aggregate rule without resetting variables', () => {
+		const asInStyles = (rule: string) =>
+			rule.replaceAll(':where(:root)', ':root').replaceAll('html.', ':root.');
+		// The aggregate keeps its original panel-before-prompt order. Their
+		// selectors are disjoint, so the prompt can arrive before the panel.
+		expect(
+			[...ruleList(iabFirstPaint.css), ...ruleList(iabDialog.css)]
+				.map(asInStyles)
+				.sort()
+		).toEqual(ruleList(readDist(join(DIST_DIR, 'iab/styles.css'))).sort());
+		const declarations: string[] = [];
+		parse(iabDialog.css).walkDecls((declaration) => {
+			declarations.push(declaration.prop);
+		});
+		expect(declarations.filter((name) => name.startsWith('--'))).toEqual([]);
+	});
+
+	test('IAB banner CSS excludes dialog rules and preserves app overrides', () => {
+		const selectors = ruleList(iabFirstPaint.css)
+			.map((rule) => rule.split('|')[1])
+			.join('\n');
+		const panelClasses = [
+			...readDist(join(DIST_DIR, 'styles/components/iab-panel.js')).matchAll(
+				/c15t-ui-[\w-]+/gu
+			),
+		].map((match) => match[0]);
+		expect(panelClasses.length).toBeGreaterThan(0);
+		expect(panelClasses.filter((name) => selectors.includes(name))).toEqual([]);
+		expect(iabFirstPaint.css).toContain(':where(:root)');
+		expect(iabFirstPaint.css).not.toMatch(/(?<!:where\():root/u);
+	});
+
+	test('iab-dialog.css holds the IAB dialog sheet', () => {
+		expect(readDist(join(SHEETS_DIR, 'iab-dialog.css')).trim()).toBe(
+			iabDialog.css
+		);
 	});
 });

@@ -13,6 +13,8 @@
  * <IABConsentDialog />
  * ```
  */
+import ComponentStyles from './component-styles.astro';
+
 interface Props {
 	/** Warm the island's chunk once the browser is idle. */
 	preload?: boolean;
@@ -25,6 +27,8 @@ interface Props {
 
 const { preload = false, disableAnimation } = Astro.props;
 ---
+
+<ComponentStyles />
 
 <div
 	data-c15t-dialog-host="iab"

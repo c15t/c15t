@@ -204,14 +204,16 @@ and easing tokens.
 
 ## Load the stylesheet yourself
 
-`ConsentScript`, or the banner on a layout without it, inlines the banner's
-rules into each page as a `<style>` element, so no c15t stylesheet holds back
-the first paint. When a visitor first reaches for the dialog, c15t links the
-dialog's rules, plus the primitives stylesheet for the Svelte dialog. With
-`iab` set, every page also links `c15t/astro/iab/styles.css`.
+`ConsentScript`, or the first consent component on a layout without it,
+inlines base and configured IAB banner rules once per page as `<style>`
+elements. No c15t stylesheet holds back the first paint. When a visitor
+first reaches for a dialog, c15t links its rules and waits for them before
+mounting the surface. Svelte also loads its primitives stylesheet. The IAB
+panel's rules load only when the IAB dialog opens.
 
-On a Tailwind CSS 3 site, the integration adds `c15t/astro/styles.css` to
-every page instead, so your `c15t/postcss-tailwind3` build processes it.
+On a Tailwind CSS 3 site, the integration adds `c15t/astro/styles.css` and,
+with IAB configured, `c15t/astro/iab/styles.css` to every page instead, so
+your `c15t/postcss-tailwind3` build processes them.
 Tailwind 3 sites need no change, but their first paint still waits for that
 stylesheet.
 Do not import `c15t/astro/styles.css` as well. To control the cascade layer

@@ -14,7 +14,6 @@ export const generateReactBoilerplate = (
 			: `offline({ policyRules: ${DEFAULT_OFFLINE_RULES} })`;
 	const source = `${next ? "'use client';\n\n" : ''}import type { ReactNode } from 'react';
 import { ConsentBanner, ConsentDialog, ConsentDialogLink, ConsentProvider, ${options.mode} } from '${packageName}';
-${options.framework === 'next-pages' ? '' : `import '${packageName}/styles.css';`}
 ${generateScriptsImport(options.scripts)}
 
 const mode = ${mode};
@@ -46,9 +45,6 @@ export function ConsentManager({ children }: { children: ReactNode }) {
 		instructions: [
 			'Import ConsentManager from {{output}}/consent-manager using the relative path from your entry file.',
 			`Mount <ConsentManager>{children}</ConsentManager> ${location}. Keep it mounted across navigation.`,
-			...(options.framework === 'next-pages'
-				? [`Add import '${packageName}/styles.css' to pages/_app.tsx.`]
-				: []),
 			'This wrapper initializes consent in the browser. It does not add server prefetch or a backend proxy.',
 		],
 	};

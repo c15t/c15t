@@ -21,39 +21,25 @@ other visitor, and the policy manifest carries the vendor list reference.
 The stock `ConsentBanner` and `ConsentDialog` stay closed under the `iab`
 model. Render the IAB components inside `ConsentRoot`, next to them:
 
-{/* example: fragment */}
-
-```tsx title="src/components/iab-consent.tsx"
-import {
-	IABConsentBanner,
-	IABConsentDialog,
-	IABProvider,
-} from 'c15t/react/iab';
-import { useModel } from 'c15t/tanstack-start';
-
-export function IABConsent({ cmpId }: { cmpId: number }) {
-	const model = useModel();
-	if (model !== 'iab') {
-		return null;
-	}
-	return (
-		<IABProvider cmpId={cmpId}>
-			<IABConsentBanner />
-			<IABConsentDialog />
-		</IABProvider>
-	);
-}
-```
+<include src="../../shared/examples/tanstack-start/iab-consent.mdx" />
 
 Render `<IABConsent cmpId={YOUR_CMP_ID} />` in the root route, next to
 `ConsentBanner`. Checking `useModel()` renders the IAB components only for
 visitors whose policy uses the IAB model.
 
-The IAB components do not render their own styles yet. Link the base
-stylesheet and then the IAB stylesheet in the root route's `head()`. The IAB
-stylesheet holds only the IAB rules and uses the base stylesheet's tokens.
-Set `styles: false` in `ConsentRoot`'s `options` so the stock components do
-not add a second copy of the base rules:
+The IAB banner and dialog render their own styles by default. Leave
+`ConsentRoot`'s `styles` option enabled. The banner's styles render in the
+server HTML, and the dialog loads its rules when opened.
+
+<import src="../../shared/react/iab/overview.mdx#configure" />
+
+## Load an external stylesheet
+
+With Tailwind CSS 3, or when you want to put c15t in a named cascade layer,
+link the base stylesheet and then the IAB stylesheet in the root route's
+`head()`. The IAB stylesheet holds the IAB rules and uses the base
+stylesheet's tokens. Set `styles: false` in `ConsentRoot`'s `options` so the
+components use those stylesheets:
 
 {/* example: fragment */}
 
@@ -69,7 +55,8 @@ import iabCss from 'c15t/tanstack-start/iab/styles.css?url';
 options={{ styles: false }}
 ```
 
-<import src="../../shared/react/iab/overview.mdx#configure" />
+Tailwind CSS 3 also needs the
+[PostCSS plugin](/docs/customization/tailwind#set-up-tailwind-css-3).
 
 ## Restrict how vendors use a purpose
 

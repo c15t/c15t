@@ -327,6 +327,8 @@ const NONCE_BEARING_SELECTOR = [
 	'script[data-c15t-config]',
 	'script[data-c15t-inline]',
 	'style#c15t-theme',
+	'style[data-c15t-styles="c15t-first-paint"]',
+	'style[data-c15t-styles="c15t-iab-first-paint"]',
 	'script[data-c15t-category]',
 ].join(', ');
 
@@ -502,7 +504,10 @@ const loadDialogChunks = async function loadDialogChunks(
 			const adapter = await loadDialogAdapter(client.options.ui);
 			await adapter.preload?.();
 		})(),
-		loadDialogStyles(pageNonce),
+		loadDialogStyles(
+			pageNonce,
+			client.getConsent().model === 'iab' ? 'iab' : 'preferences'
+		),
 	]);
 };
 
@@ -948,7 +953,7 @@ const createClient = function createClient(
 					// for both so the dialog never paints without its rules.
 					const [adapter] = await Promise.all([
 						loadDialogAdapter(options.ui),
-						loadDialogStyles(pageNonce),
+						loadDialogStyles(pageNonce, kind),
 					]);
 					if (disposed) {
 						return;

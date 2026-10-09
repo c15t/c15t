@@ -74,8 +74,9 @@ It has no copy props.
 
 ## Style the banner
 
-IAB styles load with the integration once `iab` is set, from
-`c15t/astro/iab/styles.css`. The banner keeps its own button styles and does
+The integration inlines IAB banner rules when `iab` is set. Its preference
+center rules load when the IAB dialog opens. Tailwind CSS 3 uses the full
+external IAB stylesheet instead. The banner keeps its own button styles and does
 not read `theme.consentActions`. Theme tokens still apply.
 
 | Element | Attributes |

@@ -15,6 +15,8 @@ import type { CSSPropertiesWithVars } from '~/types/theme';
 import { useUIConfig } from '~/ui-config-context';
 import { mergeSlotProps } from '~/utils/merge-slot-props';
 
+import { IAB_FIRST_PAINT_SHEETS } from '../../shared/iab-first-paint-sheets';
+import { SurfaceStyles } from '../../shared/surface-styles';
 import { IABConsentBannerOverlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['iab'];
@@ -86,6 +88,10 @@ const IABConsentBannerRootChildren = createForwardRef<
 		// server HTML; the stylesheet positions it with `position: fixed`.
 		return (
 			<>
+				<SurfaceStyles
+					sheets={IAB_FIRST_PAINT_SHEETS}
+					noStyle={noStyle}
+				/>
 				<IABConsentBannerOverlay />
 				<div
 					ref={ref}

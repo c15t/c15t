@@ -1,6 +1,5 @@
 'use client';
 
-import '@c15t/react/styles.css';
 import type { AllConsentNames } from '@c15t/core';
 import { offline } from '@c15t/react';
 import { ConsentBanner } from '@c15t/react/consent-banner';

@@ -567,17 +567,19 @@ describe('astro:config:setup', () => {
 		);
 	});
 
-	it('adds the IAB stylesheet when IAB is configured', async () => {
+	it('defers the IAB panel stylesheet and links no CSS on IAB pages', async () => {
 		const { calls } = await runSetup({
 			iab: { cmpId: 160 },
 			mode: offlineMode(),
 		});
-		const styles = calls.injectScript.mock.calls.find(
-			([stage]) => stage === 'page-ssr'
-		) as [string, string];
-		expect(styles[1]).toContain(
-			`import ${specifier('@c15t/astro/iab/styles.css')};`
+		expect(
+			calls.injectScript.mock.calls.some(([stage]) => stage === 'page-ssr')
+		).toBe(false);
+		const [, boot] = calls.injectScript.mock.calls[0] as [string, string];
+		expect(boot).toContain(
+			`import iabDialogStyle from ${JSON.stringify(`${resolveOwnEntry('@c15t/ui/styles/sheets/iab-dialog.css')}?url`)};`
 		);
+		expect(boot).toContain("registerDialogStyles([iabDialogStyle], 'iab');");
 	});
 
 	it.each(['react', 'svelte', 'vue'] as const)(
@@ -658,10 +660,30 @@ describe('astro:config:setup', () => {
 				calls.injectScript.mock.calls.some(([stage]) => stage === 'page-ssr')
 			).toBe(false);
 		});
+
+		it('links both full stylesheets for Tailwind 3 with IAB enabled', async () => {
+			const { calls } = await runSetup(
+				{ iab: { cmpId: 160 }, mode: offlineMode() },
+				{ root: projectWithTailwind('3.4.17') }
+			);
+			expect(calls.injectScript).toHaveBeenCalledWith(
+				'page-ssr',
+				[
+					`import ${specifier('@c15t/astro/styles.css')};`,
+					`import ${specifier('@c15t/astro/iab/styles.css')};`,
+				].join('\n')
+			);
+			const [, boot] = calls.injectScript.mock.calls[0] as [string, string];
+			expect(boot).not.toContain('sheets/iab-dialog.css');
+		});
 	});
 
 	it('registers no dialog stylesheets with `styles: false`', async () => {
-		const { calls } = await runSetup({ mode: offlineMode(), styles: false });
+		const { calls } = await runSetup({
+			iab: { cmpId: 160 },
+			mode: offlineMode(),
+			styles: false,
+		});
 		const [, code] = calls.injectScript.mock.calls[0] as [string, string];
 		expect(code).not.toContain('?url');
 		expect(code).not.toContain('registerDialogStyles(');

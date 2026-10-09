@@ -21,8 +21,8 @@ stylesheet in `<head>` used to delay the first paint by a round trip: on a
 mobile connection, a Next.js page first painted at about 370 ms instead of
 650 ms once the link was gone.
 
-Load `styles.css` yourself only with Tailwind CSS 3, a named cascade layer or
-IAB TCF. [Import the stylesheet yourself](#import-the-stylesheet-yourself)
+Load `styles.css` yourself with Tailwind CSS 3 or a named cascade layer.
+[Import the stylesheet yourself](#import-the-stylesheet-yourself)
 covers those cases.
 
 ## How the surfaces deliver their rules
@@ -37,6 +37,11 @@ and the default `ConsentGate` placeholder render the first-paint sheet.
 `ConsentDialog` and `ConsentWidget` render it plus the dialog sheet. The
 dialog sheet ships with the dialog's lazily loaded code, so it is not part of
 the first page load. A server-rendered banner puts its rules in the HTML.
+
+`IABConsentBanner` also delivers the IAB variables and banner rules.
+`IABConsentDialog` adds the IAB dialog rules when it opens, including the
+shared rules it needs when rendered without a banner. IAB setups need no
+stylesheet imports with automatic styling enabled.
 
 - In React 19, React moves the elements into `<head>` and renders each sheet
   once per page, as `<style data-precedence="c15t" data-href="c15t-first-paint">`.
@@ -82,8 +87,6 @@ need control over the file:
   stylesheet itself.
 - **A named cascade layer.** Import the stylesheet into your own layer, as in
   [order c15t's layer against your CSS](#order-c15ts-layer-against-your-css).
-- **IAB TCF.** `IABConsentBanner` and `IABConsentDialog` do not render their
-  own styles yet. Import `styles.css`, then the adapter's `iab/styles.css`.
 
 | Framework | Option | Files to import |
 | --- | --- | --- |
@@ -121,8 +124,8 @@ the first paint. Remove the import, or add `styles: false` if you need it.
 | HTML, JavaScript | Part of the stylesheet in the shadow root, which holds only the rules the stock surfaces use |
 
 `styles.css` still holds every stock surface's rules for apps that set
-`styles: false`. Only the IAB TCF surfaces need a second file,
-`iab/styles.css`.
+`styles: false`. In that manual mode, IAB TCF also needs `iab/styles.css`
+after the base stylesheet.
 
 Earlier 3.0 alphas shipped the dialog's rules in `@c15t/ui/styles/dialog.css`,
 which the dialog's code imported. That file, the `@c15t/ui/styles/dialog`
@@ -164,10 +167,10 @@ in `c15t.components`, so order `c15t` against your own layers.
 ## Load Astro's stylesheets yourself
 
 By default the Astro integration inlines the banner's rules into each page,
-links the dialog's rules when a dialog opens, and links
-`c15t/astro/iab/styles.css` on every page when it sets `iab`. On a Tailwind
-CSS 3 site it adds `c15t/astro/styles.css` to every page instead of inlining
-the banner's rules. To load the
+including the IAB banner rules when it sets `iab`, and links the dialog's
+rules when a dialog opens. On a Tailwind CSS 3 site it adds
+`c15t/astro/styles.css` and, with IAB, `c15t/astro/iab/styles.css` to every
+page instead of inlining the banner's rules. To load the
 files yourself, for example from a global stylesheet that names its own
 layers, set `styles: false` in the `c15t()` options and import them after
 your layer order statement. With `styles: false`, c15t inlines no rules and

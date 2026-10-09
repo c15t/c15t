@@ -36,11 +36,10 @@ import {
 	PROMPT_SLOT_ATTRIBUTE,
 	promptClassNames,
 	resolvePromptModel,
-	INLINE_STYLES_CSS,
-	INLINE_STYLES_ID,
 } from '@c15t/astro/server';
 import type { PromptProps } from '@c15t/astro/server';
 import Branding from './branding.astro';
+import ComponentStyles from './component-styles.astro';
 
 interface Props extends PromptProps {
 	/**
@@ -55,9 +54,16 @@ interface Props extends PromptProps {
 	 * own, whose nonce the page's policy does not list.
 	 */
 	nonce?: string;
+	/** The deferred wrapper already renders the static CSS. @internal */
+	inlineStyles?: boolean;
 }
 
-const { force = false, nonce: nonceProp, ...props } = Astro.props;
+const {
+	force = false,
+	inlineStyles = true,
+	nonce: nonceProp,
+	...props
+} = Astro.props;
 
 const { c15t } = Astro.locals;
 
@@ -90,9 +96,6 @@ const emitConfig = markConfigEmitted(Astro.locals);
 const colorSchemeScript = emitConfig
 	? buildColorSchemeScript(c15t.options.colorScheme)
 	: '';
-// The first-paint rules, inlined like the theme below for layouts with no
-// <ConsentScript />.
-const inlineStyles = emitConfig && c15t.options.inlineStyles !== false;
 const themeCSS = emitConfig
 	? buildThemeCSS(theme)
 	: '';
@@ -124,16 +127,7 @@ const model = resolvePromptModel({
 	)
 }
 
-{
-	inlineStyles && (
-		<style
-			is:inline
-			data-c15t-styles={INLINE_STYLES_ID}
-			nonce={nonce}
-			set:html={INLINE_STYLES_CSS}
-		/>
-	)
-}
+{inlineStyles && <ComponentStyles nonce={nonce} />}
 
 {
 	themeCSS && (

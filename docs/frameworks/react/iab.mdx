@@ -11,11 +11,21 @@ group: frameworks
 Import the components from `c15t/react/iab` and render them inside your
 existing `ConsentProvider` from `c15t/react`.
 
-The IAB components do not render their own styles yet. Import
-`c15t/react/styles.css` and then `c15t/react/iab/styles.css` at your global
-stylesheet entry. The IAB stylesheet holds only the IAB rules and uses the
-tokens from the base stylesheet. Set `styles: false` in the provider options
-so the stock components do not add a second copy of the base rules:
+The IAB banner and dialog render their own styles by default. Leave the
+provider's `styles` option enabled and render the components without a CSS
+import:
+
+<include src="../../shared/examples/react/iab-consent.mdx" />
+
+<import src="../../shared/react/iab/overview.mdx#configure" />
+
+## Load an external stylesheet
+
+With Tailwind CSS 3, or when you want to put c15t in a named cascade layer,
+import `c15t/react/styles.css` and then `c15t/react/iab/styles.css` at your
+global stylesheet entry. The IAB stylesheet holds the IAB rules and uses the
+base stylesheet's tokens. Set `styles: false` so the components use those
+stylesheets:
 
 {/* example: fragment */}
 
@@ -27,11 +37,8 @@ import 'c15t/react/iab/styles.css';
 styles: false,
 ```
 
-Then render the IAB components:
-
-<include src="../../shared/examples/react/iab-consent.mdx" />
-
-<import src="../../shared/react/iab/overview.mdx#configure" />
+Tailwind CSS 3 also needs the
+[PostCSS plugin](/docs/customization/tailwind#set-up-tailwind-css-3).
 
 ## Restrict how vendors use a purpose
 

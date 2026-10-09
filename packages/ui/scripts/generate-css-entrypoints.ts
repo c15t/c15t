@@ -28,10 +28,13 @@
  * | `styles/sheets/first-paint.js` | `styles.css` up to its dialog rules, as a string | React and Svelte surfaces, which render it as a `<style>` |
  * | `styles/sheets/dialog.js`, `styles/sheets/dialog.css` | the dialog and preference-widget rules, as a string and as a file | the dialog and widget, with their lazy code; Astro links the file when the dialog opens |
  * | `styles/sheets/primitives.js` | `styles/primitives.css`, as a string | the Svelte dialog |
+ * | `styles/sheets/iab-first-paint.js` | IAB variables and banner rules, as a string | IAB banners and standalone dialogs |
+ * | `styles/sheets/iab-dialog.js`, `styles/sheets/iab-dialog.css` | IAB dialog rules, as a string and file | IAB dialogs, with their lazy code; Astro links the file before opening |
  *
  * No JavaScript in the package imports a stylesheet. The Next.js Pages
  * Router refuses to build an app whose dependencies import global CSS, so
- * every rule reaches the page through a stylesheet the app imports itself.
+ * rules reach the page through component-rendered styles or a stylesheet
+ * the app imports itself.
  *
  * Every variable stays in `styles.css`, so later sheets only add rules and
  * never re-declare a variable a host has overridden.
@@ -42,6 +45,7 @@ import {
 	readdirSync,
 	readFileSync,
 	renameSync,
+	rmSync,
 	writeFileSync,
 } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -50,11 +54,14 @@ import { defaultTheme, generateDefaultThemeCSS } from '../src/theme/utils';
 import {
 	DIALOG_COMPONENTS,
 	FIRST_PAINT_COMPONENTS,
+	IAB_DIALOG_COMPONENTS,
+	IAB_FIRST_PAINT_COMPONENTS,
 	IAB_PREFIX,
 	LAYER_ORDER,
 } from './stylesheet-parts';
 
 const DIST_DIR = join(import.meta.dirname, '..', 'dist');
+const TYPES_DIR = join(import.meta.dirname, '..', 'dist-types');
 const PRIMITIVES_DIR = join(DIST_DIR, 'styles', 'primitives');
 const COMPONENTS_DIR = join(DIST_DIR, 'styles', 'components');
 
@@ -441,8 +448,10 @@ const writeSheet = function writeSheet(name: string, css: string): string {
 		`styles/sheets/${name}.js`,
 		`export const id = ${JSON.stringify(`c15t-${name}`)};\nexport const css = ${JSON.stringify(text)};\n`
 	);
-	writeDist(
-		`styles/sheets/${name}.d.ts`,
+	const declaration = join(TYPES_DIR, 'styles', 'sheets', `${name}.d.ts`);
+	mkdirSync(dirname(declaration), { recursive: true });
+	writeFileSync(
+		declaration,
 		[
 			'/** Identifies the stylesheet, so a page renders it once. */',
 			'export declare const id: string;',
@@ -451,6 +460,9 @@ const writeSheet = function writeSheet(name: string, css: string): string {
 			'',
 		].join('\n')
 	);
+	// Watch builds keep dist, so remove declarations from the earlier output
+	// layout as well as emitting them in the package's types directory.
+	rmSync(join(DIST_DIR, 'styles', 'sheets', `${name}.d.ts`), { force: true });
 	return text;
 };
 
@@ -556,15 +568,31 @@ writeSheet(
 // Loaded next to styles.css, so they carry only IAB variables and rules:
 // no second copy of the tokens or of the variables styles.css declares.
 if (IAB_COMPONENTS.length > 0) {
+	const iabFirstPaintNames = new Set<string>(IAB_FIRST_PAINT_COMPONENTS);
+	const iabDialogNames = new Set<string>(IAB_DIALOG_COMPONENTS);
+	const unassignedIab = IAB_COMPONENTS.filter(
+		(name) => !(iabFirstPaintNames.has(name) || iabDialogNames.has(name))
+	);
+	const missingIab = [...iabFirstPaintNames, ...iabDialogNames].filter(
+		(name) => !IAB_COMPONENTS.includes(name)
+	);
+	if (unassignedIab.length > 0 || missingIab.length > 0) {
+		throw new Error(
+			`generate-css-entrypoints: IAB stylesheet groups differ from components (unassigned: ${unassignedIab.join(', ')}; missing: ${missingIab.join(', ')})`
+		);
+	}
 	const iab = collectCssParts(
 		IAB_COMPONENTS.map((name) => ({
-			group: 'iab',
+			group: name,
 			label: `components/${name}`,
 			path: join(COMPONENTS_DIR, `${name}.css`),
 		})),
 		seenUnlayered
 	);
-	const iabRules = rulesFor(iab.ruleParts, 'iab', 'iab/styles.css');
+	// Keep the existing aggregate's component order for manual CSS users.
+	const iabRules = IAB_COMPONENTS.flatMap((name) =>
+		rulesFor(iab.ruleParts, name, 'iab/styles.css')
+	);
 	const iabBanner =
 		'/* @c15t/ui IAB TCF styles. Load after @c15t/ui/styles.css, which holds the tokens. */';
 	const iabRoot = iab.rootParts.join('\n\n');
@@ -579,6 +607,22 @@ if (IAB_COMPONENTS.length > 0) {
 	writeDist(
 		'iab/styles.tw3.css',
 		joinParts([iabBanner, iabRoot, iabRules.join('\n\n')])
+	);
+
+	// IAB variables are delivered once, before either component's rules, so
+	// opening a dialog cannot reset an app's token overrides.
+	writeSheet(
+		'iab-first-paint',
+		[
+			LAYER_ORDER,
+			yieldToAppRoot(iabRoot),
+			`@layer components{${IAB_FIRST_PAINT_COMPONENTS.flatMap((name) => rulesFor(iab.ruleParts, name, 'styles/sheets/iab-first-paint.js')).join('\n')}}`,
+		].join('\n')
+	);
+	const iabDialogSheet = `${LAYER_ORDER}\n@layer components{${IAB_DIALOG_COMPONENTS.flatMap((name) => rulesFor(iab.ruleParts, name, 'styles/sheets/iab-dialog.js')).join('\n')}}`;
+	writeDist(
+		'styles/sheets/iab-dialog.css',
+		`${writeSheet('iab-dialog', iabDialogSheet)}\n`
 	);
 }
 

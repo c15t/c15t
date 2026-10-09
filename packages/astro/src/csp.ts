@@ -25,8 +25,9 @@
  */
 
 import { applyExperimentTheme } from '@c15t/core';
+import { isIABConfigured } from '@c15t/core/runtime';
 
-import { INLINE_STYLES_CSS } from './inline-styles';
+import { INLINE_IAB_STYLES_CSS, INLINE_STYLES_CSS } from './inline-styles';
 import { hashSource } from './libs/csp-hash';
 import type { CspHashAlgorithm, CspHashSource } from './libs/csp-hash';
 import {
@@ -84,6 +85,9 @@ export const buildInlineCodeHashes = async function buildInlineCodeHashes(
 		// The first-paint rules the components inline, unless the page
 		// links c15t's stylesheet instead.
 		options.inlineStyles === false ? '' : INLINE_STYLES_CSS,
+		options.inlineStyles && isIABConfigured(options.iab)
+			? INLINE_IAB_STYLES_CSS
+			: '',
 		...new Set(themes.map((theme) => buildThemeCSS(theme))),
 	].filter(Boolean);
 	return {

@@ -70,9 +70,10 @@ SvelteKit page, check that `src/hooks.server.ts` exports `c15tHandle`.
 - The console reports a blocked inline style: pass the provider a `nonce`, or
   set `styles={false}` and import the stylesheet. The Content Security Policy
   page covers both.
-- IAB TCF surfaces are unstyled: they do not add their own styles. Import
-  `@c15t/svelte/styles.css` and `@c15t/svelte/iab/styles.css`, and set
-  `styles={false}`.
+- IAB TCF surfaces are unstyled with automatic styles disabled: import
+  `@c15t/svelte/styles.css` and `@c15t/svelte/iab/styles.css` together. With
+  automatic styles enabled, check the policy and IAB configuration, the
+  provider's `noStyle` option, and CSP errors.
 
 ## A vendor loads before consent, or twice
 

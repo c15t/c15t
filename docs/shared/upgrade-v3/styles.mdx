@@ -27,12 +27,12 @@ A generated theme uses `:root:root`, so your own `--c15t-*` values on plain
   import you keep still styles the components, but the rules ship twice and
   the stylesheet still delays the first paint.
 - Keep an import of the v3 stylesheet, such as `c15t/react/styles.css`, only
-  with Tailwind CSS 3, a named cascade layer or IAB TCF, and set
+  with Tailwind CSS 3 or a named cascade layer, and set
   `styles: false` in the provider options so the components add no second
   copy. See
   [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
-- `iab/styles.css` no longer repeats the default tokens. Import it after
-  `styles.css`.
+- With manual styles, `iab/styles.css` no longer repeats the default tokens.
+  Import it after `styles.css`. Automatic IAB styling needs neither import.
 - Tailwind CSS 3 needs a PostCSS plugin for c15t's `styles.css`. Add
   `'c15t/postcss-tailwind3': {}` before `tailwindcss` in `postcss.config`,
   and set `styles: false`. See [Tailwind CSS 3](/docs/customization/tailwind#set-up-tailwind-css-3).

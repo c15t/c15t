@@ -410,7 +410,10 @@ const generateFilesContent = async function generateFilesContent({
 		);
 	}
 
-	if (pkg === 'c15t/react' || pkg === 'c15t/next') {
+	if (
+		(pkg === 'c15t/react' || pkg === 'c15t/next') &&
+		isTailwindV3(context.framework.tailwindVersion)
+	) {
 		spinner.start('Configuring app stylesheet...');
 		const stylesheetResult = await updateAppStylesheetImports({
 			entrypointPath: result.layoutPath,
@@ -439,17 +442,15 @@ const generateFilesContent = async function generateFilesContent({
 			spinner.stop(formatLogMessage('warn', warning));
 		}
 
-		if (isTailwindV3(context.framework.tailwindVersion)) {
-			const postcssResult = await configureTailwind3Postcss({
-				cwd: context.cwd,
-				pkg,
-				projectRoot,
-				spinner,
-			});
-			Object.assign(result, postcssResult, {
-				warnings: [...warnings, ...(postcssResult.warnings ?? [])],
-			});
-		}
+		const postcssResult = await configureTailwind3Postcss({
+			cwd: context.cwd,
+			pkg,
+			projectRoot,
+			spinner,
+		});
+		Object.assign(result, postcssResult, {
+			warnings: [...warnings, ...(postcssResult.warnings ?? [])],
+		});
 	}
 
 	return result;

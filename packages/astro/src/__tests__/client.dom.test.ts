@@ -985,6 +985,47 @@ describe('dialog stylesheets and ClientRouter swaps', () => {
 		expect(booted.getConsent().activeUI).toBe('dialog');
 	});
 
+	it('waits for base and IAB panel styles before mounting an IAB dialog', async () => {
+		const iabCSS = '/_astro/iab-dialog.css';
+		registerDialogStyles([DIALOG_CSS]);
+		registerDialogStyles([iabCSS], 'iab');
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		const booted = start(
+			{ ...OPTIONS, iab: { cmpId: 28, gvl: GVL } },
+			{
+				...INLINE_CONFIG,
+				initialPolicyResolution: testResolution({ model: 'iab' }),
+			}
+		);
+		const opening = booted.openDialog('iab');
+		await vi.waitFor(() => {
+			expect(
+				document.head.querySelector(`link[href="${iabCSS}"]`)
+			).not.toBeNull();
+		});
+		dialogLink()?.dispatchEvent(new Event('load'));
+		await tick();
+		expect(targets).toHaveLength(0);
+		document.head
+			.querySelector(`link[href="${iabCSS}"]`)
+			?.dispatchEvent(new Event('load'));
+		await opening;
+		expect(targets).toHaveLength(1);
+	});
+
+	it('loads only the shared sheet for a standard preference dialog', async () => {
+		registerDialogStyles([DIALOG_CSS]);
+		registerDialogStyles(['/_astro/iab-dialog.css'], 'iab');
+		const { targets } = registerRecordingAdapter();
+		renderBanner();
+		await openWithStyles(start());
+		expect(targets).toHaveLength(1);
+		expect(
+			document.head.querySelector('link[href="/_astro/iab-dialog.css"]')
+		).toBeNull();
+	});
+
 	it('opens unstyled rather than not at all when the stylesheet fails', async () => {
 		registerDialogStyles([DIALOG_CSS]);
 		const { targets } = registerRecordingAdapter();
@@ -1230,6 +1271,8 @@ describe('a CSP nonce on the page', () => {
 			'<script data-c15t-config nonce="next-n0nce"></script>',
 			'<script data-c15t-inline nonce="next-n0nce">0</script>',
 			'<style id="c15t-theme" nonce="next-n0nce"></style>',
+			'<style data-c15t-styles="c15t-first-paint" nonce="next-n0nce"></style>',
+			'<style data-c15t-styles="c15t-iab-first-paint" nonce="next-n0nce"></style>',
 			'<script nonce="unrelated">0</script>',
 			// Not c15t's, so not c15t's to hand the live nonce to.
 			'<script id="foreign" nonce="next-n0nce">0</script>',
@@ -1247,6 +1290,9 @@ describe('a CSP nonce on the page', () => {
 		expect(nonceOf('script[data-c15t-config]')).toBe(NONCE);
 		expect(nonceOf('script[data-c15t-inline]')).toBe(NONCE);
 		expect(nonceOf('#c15t-theme')).toBe(NONCE);
+		for (const style of incoming.querySelectorAll('style[data-c15t-styles]')) {
+			expect(style.getAttribute('nonce')).toBe(NONCE);
+		}
 		expect(nonceOf('script[data-c15t-category]')).toBe(NONCE);
 		expect(nonceOf('script[nonce="unrelated"]')).toBe('unrelated');
 		expect(nonceOf('#foreign')).toBe('next-n0nce');

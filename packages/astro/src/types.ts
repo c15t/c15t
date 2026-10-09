@@ -340,9 +340,12 @@ export interface C15tAstroOptions {
 	 * Deliver c15t's styles. `<ConsentScript />`, or the banner on a layout
 	 * without it, inlines the first-paint rules into the HTML, so no
 	 * stylesheet link holds back the page's first paint. The client links
-	 * the dialog's rules when a dialog first opens. With
-	 * {@link C15tAstroOptions.iab} set, every page also links
-	 * `@c15t/astro/iab/styles.css`.
+	 * the dialog's rules before mounting it. With
+	 * {@link C15tAstroOptions.iab} set, IAB banner rules are also inlined,
+	 * and its panel rules load only when the IAB dialog opens.
+	 *
+	 * A Tailwind CSS 3 site links the full base and IAB stylesheets through
+	 * the host's CSS pipeline instead of inlining the rules.
 	 *
 	 * Set to `false` to import `@c15t/astro/styles.css` (and the IAB
 	 * stylesheet) yourself, for example from a global stylesheet with your

@@ -54,21 +54,21 @@ Inth project that is still provisioning, because it has no backend URL yet.
 
 ## Options
 
-| Option                                          | Purpose                                                                                                                                                                                                                  |
-| ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `--plan`, `--dry-run`                           | Return the proposed file edits without writing files or installing packages.                                                                                                                                             |
-| `--apply`                                       | Write the file edits and install missing packages.                                                                                                                                                                       |
-| `--skip-install`                                | Write the file edits without running a package manager.                                                                                                                                                                  |
-| `--backend-url <url>`                           | Use this HTTP or HTTPS backend URL.                                                                                                                                                                                      |
-| `--project <id, name or organization/name>`     | Use the backend URL of a signed-in Inth project.                                                                                                                                                                         |
-| `--proxy`                                       | Add a Next.js rewrite to the hosted backend. Hosted Next.js only.                                                                                                                                                        |
-| `--ssr`                                         | Start consent resolution on the server in a hosted Next.js App Router app. The wrapper passes the pending result to the provider, so pages render without waiting for the backend and the banner mounts after hydration. |
-| `--devtools`                                    | Include c15t DevTools.                                                                                                                                                                                                   |
-| `--ui-style prebuilt` or `expanded`             | Use the stock components or their compound parts. React and Next.js only.                                                                                                                                                |
-| `--theme none`, `minimal`, `dark` or `tailwind` | Apply a theme preset. React and Next.js only.                                                                                                                                                                            |
-| `--scripts <ids>`                               | Add consent-aware vendor scripts, as a comma-separated list. An unknown ID returns the list of valid IDs.                                                                                                                |
-| `--resume`                                      | Recover an interrupted setup.                                                                                                                                                                                            |
-| `--debug`                                       | Log setup state transitions.                                                                                                                                                                                             |
+| Option                                          | Purpose                                                                                                                                                                                                                                      |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--plan`, `--dry-run`                           | Return the proposed file edits without writing files or installing packages.                                                                                                                                                                 |
+| `--apply`                                       | Write the file edits and install missing packages.                                                                                                                                                                                           |
+| `--skip-install`                                | Write the file edits without running a package manager.                                                                                                                                                                                      |
+| `--backend-url <url>`                           | Use this HTTP or HTTPS backend URL.                                                                                                                                                                                                          |
+| `--project <id, name or organization/name>`     | Use the backend URL of a signed-in Inth project.                                                                                                                                                                                             |
+| `--proxy`                                       | Add a Next.js rewrite to the hosted backend. Hosted Next.js only.                                                                                                                                                                            |
+| `--ssr`                                         | Start consent resolution on the server in a hosted Next.js App Router app. The wrapper passes the pending result to the provider, so pages render without waiting for the backend and the banner follows in a later chunk, before hydration. |
+| `--devtools`                                    | Include c15t DevTools.                                                                                                                                                                                                                       |
+| `--ui-style prebuilt` or `expanded`             | Use the stock components or their compound parts. React and Next.js only.                                                                                                                                                                    |
+| `--theme none`, `minimal`, `dark` or `tailwind` | Apply a theme preset. React and Next.js only.                                                                                                                                                                                                |
+| `--scripts <ids>`                               | Add consent-aware vendor scripts, as a comma-separated list. An unknown ID returns the list of valid IDs.                                                                                                                                    |
+| `--resume`                                      | Recover an interrupted setup.                                                                                                                                                                                                                |
+| `--debug`                                       | Log setup state transitions.                                                                                                                                                                                                                 |
 
 Without flags for them, non-interactive setup uses the stock components, no
 theme, no scripts, and no proxy, server resolution or DevTools. Replace the
@@ -76,26 +76,26 @@ placeholder IDs in generated script configuration before you deploy.
 
 ## Set up styles and Tailwind CSS
 
-In React and Next.js apps, setup adds c15t's `styles.css` import to your
-global CSS entry. It follows local CSS imports in the application entrypoint,
-including semicolon-free imports and aliases from `tsconfig.json` or
-`jsconfig.json`, then checks conventional global stylesheet paths. Aliases outside
-the project are skipped so setup can find a stylesheet inside the app. If it cannot
-find the stylesheet, setup warns you to add the import yourself.
+React and Next.js components render their own styles by default. Setup leaves
+your global CSS unchanged with Tailwind CSS 4 or without Tailwind.
 
 When you choose a theme preset, the generated provider renders `ConsentTheme`
 to apply the tokens in `theme.ts`. Passing `theme` in the provider options alone
 does not generate CSS. The None preset keeps c15t's default styles.
 
-With Tailwind CSS 4, or without Tailwind, setup moves the starter universal reset
-`* { padding: 0; margin: 0; }` into `@layer base`. It also accepts the reset's
-optional `box-sizing: border-box`. An unlayered reset outranks c15t's layered
-component styles and removes the banner and dialog spacing. Setup leaves custom
-rules alone. Put other global resets in `@layer base` yourself; keep intentional
+Put a global reset such as `* { padding: 0; margin: 0; }` in `@layer base`.
+An unlayered reset outranks c15t's layered component styles and removes the
+banner and dialog spacing. Setup leaves those rules alone. Keep intentional
 component overrides outside that layer.
 
 Setup recognizes Tailwind CSS 3 version ranges, including `>=3.4.17 <4`.
-With Tailwind CSS 3 setup also:
+With Tailwind CSS 3, setup imports c15t's `styles.css` in your global CSS and
+sets `styles: false` in the generated provider. Tailwind's PostCSS build must
+process the external stylesheet. Setup follows local CSS imports in the
+application entrypoint, including semicolon-free imports and aliases from
+`tsconfig.json` or `jsconfig.json`, then checks conventional global stylesheet
+paths. Aliases outside the project are skipped. If setup cannot find a
+stylesheet, it warns you to add the import yourself. Setup also:
 
 * Puts the import above the `@tailwind` directives, and replaces a
   `styles.tw3.css` import from an earlier setup.

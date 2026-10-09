@@ -70,6 +70,7 @@ export const createOwnEntryResolver =
 
 /** The dialog and preference-widget rules, which no first paint needs. */
 const DIALOG_STYLESHEET = '@c15t/ui/styles/sheets/dialog.css';
+const IAB_DIALOG_STYLESHEET = '@c15t/ui/styles/sheets/iab-dialog.css';
 
 /**
  * What each `ui` adapter needs from the app, keyed by adapter name.
@@ -466,6 +467,12 @@ const buildBootScript = function buildBootScript(
 		});
 		lines.push(`registerDialogStyles([${names.join(', ')}]);`);
 	}
+	if (resolved.inlineStyles && isIABConfigured(resolved.iab)) {
+		lines.push(
+			`import iabDialogStyle from ${JSON.stringify(`${resolveEntry(IAB_DIALOG_STYLESHEET)}?url`)};`,
+			"registerDialogStyles([iabDialogStyle], 'iab');"
+		);
+	}
 	if (options.clientEntrypoint) {
 		lines.push(
 			`import clientOptions from ${JSON.stringify(options.clientEntrypoint)};`,
@@ -478,9 +485,8 @@ const buildBootScript = function buildBootScript(
 };
 
 /**
- * Build the stylesheet imports the integration injects into every page:
- * the IAB stylesheet when the integration sets `iab`, and `styles.css`
- * where the components do not inline the first-paint rules (Tailwind 3).
+ * Build the stylesheet imports for a Tailwind 3 site, where the host must
+ * process the base and optional IAB rules instead of inlining them.
  *
  * @param resolved - The resolved integration options.
  * @param resolveEntry - Maps this package's specifiers to what Astro loads.
@@ -506,7 +512,7 @@ export const buildStylesImport = function buildStylesImport(
 	if (!resolved.inlineStyles) {
 		lines.push(`import ${quote('@c15t/astro/styles.css')};`);
 	}
-	if (isIABConfigured(resolved.iab)) {
+	if (!resolved.inlineStyles && isIABConfigured(resolved.iab)) {
 		lines.push(`import ${quote('@c15t/astro/iab/styles.css')};`);
 	}
 	return lines.join('\n');

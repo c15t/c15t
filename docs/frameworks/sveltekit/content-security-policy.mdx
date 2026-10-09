@@ -53,12 +53,14 @@ provider's `nonce`, or else the nonce SvelteKit put on its own scripts, so a
 nonce-based policy admits them. A prerendered page under `mode: 'auto'` gets
 hashes instead of nonces, so there is no nonce for `c15tHandle` to copy.
 
-The dialog and the other surfaces that first render in the browser add their
-rules with the provider's `nonce` only. SvelteKit does not pass its nonce to
-your components. Under a `style-src` without `'unsafe-inline'`, set
+The standard and IAB dialogs and other components that first render in the
+browser use the provider's `nonce`, or inherit the nonce from an existing
+c15t style or a page script. Your `style-src` must allow that nonce.
+
+For a prerendered page, or when your policy does not allow those nonces, set
 `styles={false}` on `ConsentManagerProvider` and import
-`@c15t/svelte/styles.css` in your root layout. `'self'` covers that
-stylesheet.
+`@c15t/svelte/styles.css` in your root layout. With IAB TCF, also import
+`@c15t/svelte/iab/styles.css` after it. `'self'` covers those stylesheets.
 
 ## Allow the generated theme
 

@@ -21,7 +21,6 @@ export const generateTanStackStartBoilerplate = (
 			'Consent.tsx': `import { ConsentBanner, ConsentDialog, ConsentDialogTrigger, ConsentRoot${hosted ? '' : ', offline'} } from '@c15t/tanstack-start';
 import type { ConsentRootProps } from '@c15t/tanstack-start';
 import type { ReactNode } from 'react';
-import '@c15t/tanstack-start/styles.css';
 ${generateScriptsImport(options.scripts)}
 
 export function Consent(props: { state: ConsentRootProps['state']; children: ReactNode }) {

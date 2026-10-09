@@ -29,7 +29,9 @@ const fixture = async () => {
 	await mkdir(join(app, 'src'), { recursive: true });
 	await writeFile(
 		join(app, 'package.json'),
-		JSON.stringify({ dependencies: { react: '19', vite: '7' } })
+		JSON.stringify({
+			dependencies: { react: '19', tailwindcss: '3.4.17', vite: '7' },
+		})
 	);
 	await writeFile(join(app, 'src/App.tsx'), appSource);
 	return { app, directory };

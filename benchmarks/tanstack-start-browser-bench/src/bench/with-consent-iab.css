@@ -1,4 +1,2 @@
-/* c15t's stylesheet and the IAB TCF styles, for `C15T_BENCH_IAB=1` builds. */
-@import '@c15t/tanstack-start/styles.css';
-@import '@c15t/tanstack-start/iab/styles.css';
+/* App CSS for IAB builds. IAB components render their own consent styles. */
 @import './app.css';

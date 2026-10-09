@@ -9,6 +9,93 @@ import {
 } from 'node:fs';
 import { dirname, join } from 'node:path';
 
+/**
+ * Style-loading contracts that changed when components began delivering CSS.
+ * The head's fixtures run against both products, but an older product still
+ * needs its aggregate import to render a styled banner or dialog.
+ */
+const EXTERNAL_STYLE_CONTRACTS = [
+	{
+		automaticEntry: 'packages/react/src/components/shared/surface-styles.tsx',
+		imports: ['@c15t/nextjs/styles.css'],
+		owners: ['benchmarks/nextjs-browser-bench/app/_bench/with-consent.css'],
+	},
+	{
+		automaticEntry: 'packages/react/src/components/shared/surface-styles.tsx',
+		imports: ['@c15t/tanstack-start/styles.css'],
+		owners: [
+			'benchmarks/tanstack-start-browser-bench/src/bench/with-consent.css',
+		],
+	},
+	{
+		automaticEntry:
+			'packages/react/src/components/shared/iab-first-paint-sheets.ts',
+		imports: [
+			'@c15t/tanstack-start/styles.css',
+			'@c15t/tanstack-start/iab/styles.css',
+		],
+		owners: [
+			'benchmarks/tanstack-start-browser-bench/src/bench/with-consent-iab.css',
+		],
+	},
+	{
+		automaticEntry: 'packages/svelte/src/lib/surface-styles.ts',
+		imports: ['@c15t/svelte/styles.css'],
+		owners: [
+			'client-manifest',
+			'client',
+			'repeat-visitor-scripts',
+			'repeat-visitor',
+			'scripts',
+			'ssr-manifest',
+			'ssr',
+		].map(
+			(route) =>
+				`benchmarks/sveltekit-browser-bench/src/routes/${route}/+layout.svelte`
+		),
+	},
+] as const;
+
+const preserveBaseStyleImports = function preserveBaseStyleImports(
+	base: string
+) {
+	for (const { automaticEntry, imports, owners } of EXTERNAL_STYLE_CONTRACTS) {
+		if (existsSync(join(base, automaticEntry))) {
+			continue;
+		}
+		for (const owner of owners) {
+			const path = join(base, owner);
+			if (!existsSync(path)) {
+				continue;
+			}
+			const source = readFileSync(path, 'utf8');
+			const missing = imports.filter(
+				(specifier) => !source.includes(specifier)
+			);
+			if (missing.length === 0) {
+				continue;
+			}
+			const isCss = owner.endsWith('.css');
+			const statements = missing
+				.map((specifier) =>
+					isCss ? `@import '${specifier}';` : `\timport '${specifier}';`
+				)
+				.join('\n');
+			if (isCss) {
+				writeFileSync(path, `${statements}\n${source}`);
+			} else {
+				const updated = source.replace(/<script\b[^>]*>/u, `$&\n${statements}`);
+				if (updated === source) {
+					throw new Error(
+						`Benchmark stylesheet owner ${owner} has no script block`
+					);
+				}
+				writeFileSync(path, updated);
+			}
+		}
+	}
+};
+
 /** Use identical fixtures, including deletions, while retaining each revision's product. */
 export const replaceBenchmarkFixtures = function replaceBenchmarkFixtures(
 	source: string,
@@ -97,4 +184,5 @@ export const replaceBenchmarkFixtures = function replaceBenchmarkFixtures(
 			writeFileSync(join(base, file), manifest);
 		}
 	}
+	preserveBaseStyleImports(base);
 };

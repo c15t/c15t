@@ -1,3 +1,5 @@
+import { createHash } from 'node:crypto';
+
 import { chromium } from 'playwright';
 import type { Browser, BrowserContext, Page } from 'playwright';
 import {
@@ -59,6 +61,8 @@ export interface CompatScenario {
 export interface CompatSuiteOptions {
 	title: string;
 	scenarios: CompatScenario[];
+	/** The Next 16 cells exercise automatic styles without CSS imports. */
+	styles?: 'external' | 'automatic';
 }
 
 const TEST_COUNTRY = 'FR';
@@ -170,6 +174,35 @@ const clearInitRequests = async function clearInitRequests(baseURL: string) {
 	await fetch(`${baseURL}/api/c15t/__compat/requests`, { method: 'DELETE' });
 };
 
+/** Applies a style-only CSP to the document, leaving scripts unrestricted. */
+const applyStylePolicy = async function applyStylePolicy(
+	page: Page,
+	url: string,
+	policy: 'nonce' | 'hash'
+): Promise<void> {
+	await page.route(url, async (route) => {
+		const response = await route.fetch();
+		const body = await response.text();
+		const sources =
+			policy === 'nonce'
+				? "'nonce-compat-style-nonce'"
+				: [...body.matchAll(/<style\b[^>]*>[\s\S]*?<\/style>/gu)]
+						.map(([tag]) => {
+							const css = tag.slice(tag.indexOf('>') + 1, -'</style>'.length);
+							return `'sha256-${createHash('sha256').update(css).digest('base64')}'`;
+						})
+						.join(' ');
+		await route.fulfill({
+			body,
+			headers: {
+				...response.headers(),
+				'content-security-policy': `style-src 'self' ${sources}; style-src-attr 'unsafe-inline'`,
+			},
+			response,
+		});
+	});
+};
+
 /**
  * Browsers attach `sec-fetch-site` to every request; Node's `fetch` sends
  * `sec-fetch-mode` but never `sec-fetch-site`. That header separates the
@@ -194,6 +227,7 @@ const isBrowserRequest = function isBrowserRequest(
 export const defineCompatSuite = function defineCompatSuite({
 	title,
 	scenarios,
+	styles = 'external',
 }: CompatSuiteOptions) {
 	describe(title, () => {
 		const baseURL = inject('compatBaseURL');
@@ -529,12 +563,8 @@ export const defineCompatSuite = function defineCompatSuite({
 			registerScenario(scenario);
 		}
 
-		// The app imports `@c15t/nextjs/styles.css` and nothing else. That
-		// stylesheet carries the dialog's rules, so opening the dialog must
-		// neither load another stylesheet nor paint an unstyled card. A
-		// stylesheet imported from package code instead is what the Pages
-		// Router refuses to build.
-		it('styles the dialog from the stylesheet the app imports', async () => {
+		// A deferred dialog must open styled, without another CSS request.
+		it('styles the deferred dialog without fetching another stylesheet', async () => {
 			const [scenario] = scenarios;
 			if (!scenario) {
 				throw new Error('the suite needs a scenario to open the dialog on');
@@ -542,7 +572,12 @@ export const defineCompatSuite = function defineCompatSuite({
 			const pageStylesheets = stylesheetPathsIn(
 				await fetchHTML(baseURL, scenario.path)
 			);
-			expect(pageStylesheets).not.toEqual([]);
+			if (styles === 'automatic') {
+				expect(pageStylesheets).toEqual([]);
+				await applyStylePolicy(page, `${baseURL}${scenario.path}`, 'nonce');
+			} else {
+				expect(pageStylesheets).not.toEqual([]);
+			}
 
 			const loadedStylesheets = new Set<string>();
 			page.on('request', (request) => {
@@ -564,9 +599,68 @@ export const defineCompatSuite = function defineCompatSuite({
 					return { display: style.display, position: style.position };
 				})
 			).toEqual({ display: 'flex', position: 'relative' });
+			if (styles === 'automatic') {
+				const nonces = await page
+					.locator('style[data-c15t-styles="c15t-dialog"]')
+					.evaluateAll((elements) =>
+						elements.map((element) =>
+							element instanceof HTMLStyleElement ? element.nonce : undefined
+						)
+					);
+				expect([...new Set(nonces)]).toEqual(['compat-style-nonce']);
+			}
 			expect([...loadedStylesheets].sort()).toEqual(pageStylesheets);
 			expect(pageErrors).toEqual([]);
 			expect(consoleErrors).toEqual([]);
 		});
+
+		if (styles === 'automatic') {
+			it.each(['nonce', 'hash'] as const)(
+				'styles the server banner without JavaScript or CSS requests under a %s CSP',
+				async (policy) => {
+					const scenario = scenarios.find((entry) => entry.initPath === 'ssr');
+					if (!scenario) {
+						throw new Error('automatic styles need a server-rendered scenario');
+					}
+					const noScriptContext = await browser.newContext({
+						extraHTTPHeaders: { 'x-vercel-ip-country': TEST_COUNTRY },
+						javaScriptEnabled: false,
+					});
+					try {
+						const noScriptPage = await noScriptContext.newPage();
+						const loadedStylesheets: string[] = [];
+						const errors: string[] = [];
+						noScriptPage.on('request', (request) => {
+							if (request.resourceType() === 'stylesheet') {
+								loadedStylesheets.push(request.url());
+							}
+						});
+						noScriptPage.on('console', (message) => {
+							if (message.type() === 'error') {
+								errors.push(message.text());
+							}
+						});
+						await applyStylePolicy(
+							noScriptPage,
+							`${baseURL}${scenario.path}`,
+							policy
+						);
+						await noScriptPage.goto(`${baseURL}${scenario.path}`);
+						expect(
+							await noScriptPage
+								.locator('[data-testid="consent-banner-root"]')
+								.evaluate((element) => {
+									const style = getComputedStyle(element);
+									return { display: style.display, position: style.position };
+								})
+						).toEqual({ display: 'flex', position: 'fixed' });
+						expect(loadedStylesheets).toEqual([]);
+						expect(errors).toEqual([]);
+					} finally {
+						await noScriptContext.close();
+					}
+				}
+			);
+		}
 	});
 };

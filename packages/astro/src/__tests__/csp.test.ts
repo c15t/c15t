@@ -22,6 +22,7 @@ import ConsentScript from '../components/consent-script.astro';
 import IABConsentBanner from '../components/iab-prompt.astro';
 import ConsentBanner from '../components/prompt.astro';
 import { buildAstroCsp, buildInlineCodeHashes } from '../csp';
+import { INLINE_IAB_STYLES_CSS } from '../inline-styles';
 import { resolveOptions } from '../integration';
 import { offlineMode } from '../mode';
 import { resolveConsentContext } from '../server';
@@ -148,6 +149,30 @@ describe("Astro's own CSP", () => {
 	/** The hash a browser computes for an inline element's text. */
 	const sha256 = (content: string): string =>
 		`sha256-${createHash('sha256').update(content).digest('base64')}`;
+
+	it('allows the IAB first-paint sheet only when automatic inline styles are active', async () => {
+		const options = resolveOptions({
+			iab: { cmpId: 160 },
+			mode: offlineMode(),
+		});
+		const hash = sha256(INLINE_IAB_STYLES_CSS);
+		expect((await buildInlineCodeHashes(options)).styles).toContain(hash);
+		const external = [
+			{ ...options, inlineStyles: false },
+			resolveOptions({
+				iab: { cmpId: 160 },
+				mode: offlineMode(),
+				styles: false,
+			}),
+			resolveOptions({ mode: offlineMode() }),
+		];
+		const hashes = await Promise.all(
+			external.map((resolved) => buildInlineCodeHashes(resolved))
+		);
+		for (const { styles } of hashes) {
+			expect(styles).not.toContain(hash);
+		}
+	});
 
 	/** Text of every inline `<script>` and `<style>` a policy must allow. */
 	const governedInlineCode = function governedInlineCode(html: string): {
