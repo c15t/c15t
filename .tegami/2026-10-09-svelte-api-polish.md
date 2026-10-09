@@ -61,6 +61,6 @@ Removed, with no alias, because `@c15t/svelte` was not public in v2:
 `initRoute` and `shared` options, and the `prefetch` it returned.
 `@c15t/svelte` now needs SvelteKit 2.63 or later, for `$app/env`.
 
-In `@c15t/core`, the browser manifest resolver loads its per-language
-import table and the vendor-list cache on demand, and `clientMode()` builds
-its offline chunk self-contained, so neither adds to first-load JavaScript.
+In `@c15t/core`, `clientMode()` builds its offline chunk self-contained, so
+it no longer splits shared modules out of a SvelteKit page's first-load
+JavaScript.
