@@ -193,8 +193,8 @@ describe('an ssr: false page', () => {
 			`${window.location.origin}/api/c15t/init`
 		);
 		// It starts the page's consent journey, which the runtime continues.
-		expect(sent.searchParams.get('c15tJourneyScope')).toBe('page');
-		expect(sent.searchParams.get('c15tJourney')).toBe(
+		expect(sent.searchParams.get('journeyScope')).toBe('page');
+		expect(sent.searchParams.get('journey')).toBe(
 			(window as Window & { __c15tJourney?: { id: string } }).__c15tJourney?.id
 		);
 		const app = await startApp();

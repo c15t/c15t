@@ -26,8 +26,11 @@
 
 import {
 	appendJourneyParams,
+	applyInitParamsToHeaders,
 	CONSENT_REQUEST_HEADER_NAMES,
+	extractConsentRequestInputs,
 	getIpAddress,
+	INIT_PARAM_HEADERS,
 	parsePolicyContractHeader,
 	POLICY_CONTRACT_HEADER,
 	POLICY_CONTRACT_VERSION,
@@ -579,6 +582,23 @@ const readRequestForwarding = function readRequestForwarding(
 const notFound = () => Response.json({ error: 'Not found' }, { status: 404 });
 
 /**
+ * The country, region and GPC overrides a browser's `/init` carries as
+ * query parameters, leaving out any it did not send.
+ */
+const queryOverrides = function queryOverrides(
+	url: URL
+): Partial<ResolveInitFromManifestInputs> {
+	const { country, gpc, region } = extractConsentRequestInputs(
+		applyInitParamsToHeaders(url, new Headers())
+	);
+	return {
+		...(country && { country }),
+		...(gpc !== undefined && { gpc }),
+		...(region && { region }),
+	};
+};
+
+/**
  * Creates the consent route handler an adapter mounts.
  *
  * Nothing is read from the environment, and the configured URLs are
@@ -899,10 +919,21 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 	};
 
 	const serveInit = async function serveInit(
-		request: Request,
+		incoming: Request,
 		url: URL,
 		context: ConsentRouteRequestContext
 	): Promise<Response> {
+		// A browser sends its version, contract, overrides and experiment arm
+		// as query parameters, so a cross-origin `/init` needs no preflight.
+		// Folded onto their header names, every reader below, the backend
+		// fallback and the session report see one set of inputs.
+		const request = INIT_PARAM_HEADERS.some(([param]) =>
+			url.searchParams.has(param)
+		)
+			? new Request(incoming, {
+					headers: applyInitParamsToHeaders(url, incoming.headers),
+				})
+			: incoming;
 		const budget = createBudget(
 			readTimeoutMs(request.headers.get(CONSENT_ROUTE_TIMEOUT_HEADER))
 		);
@@ -927,7 +958,14 @@ export const createConsentRouteHandler = function createConsentRouteHandler(
 			return listResponse;
 		}
 		const inputs = context.inputs
-			? { ...context.inputs, language: context.inputs.language ?? 'en' }
+			? {
+					...context.inputs,
+					// Inputs an adapter resolved from the request headers miss the
+					// overrides a browser sends in the query string; those win,
+					// as the `x-c15t-*` override headers did.
+					...queryOverrides(url),
+					language: context.inputs.language ?? 'en',
+				}
 			: getResolverInputsFromHeaders(request.headers);
 		const payload = await resolveConsentInit({
 			clientContract: request.headers.get(POLICY_CONTRACT_HEADER),

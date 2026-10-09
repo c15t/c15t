@@ -10,12 +10,24 @@ import { createConsentClient } from '../client';
 import { manifest, manifestNeedsLocation } from '../transports/manifest';
 import type { ConsentClient } from '../types';
 
-/** A request URL without the consent journey query the runtime adds. */
-const pathOf = (url: unknown): string =>
-	String(url).replace(
-		/[?&]c15tJourney=[^&#]*&c15tJourneyScope=[^&#]*(?:&c15tStored=[01])?/u,
-		''
-	);
+/** A query pair c15t adds to `/init`. */
+const INIT_PAIR =
+	/^(?:v|contract|country|region|gpc|experiment|journey|journeyScope|stored)=/u;
+
+/** A request URL without the parameters a client adds to `/init`. */
+const pathOf = (url: unknown): string => {
+	const text = String(url);
+	const [base = '', query] = text.split('?');
+	if (query === undefined) {
+		return text;
+	}
+	const pairs = query.split('&');
+	const kept = pairs.filter((pair) => !INIT_PAIR.test(pair));
+	if (kept.length === pairs.length) {
+		return text;
+	}
+	return kept.length > 0 ? `${base}?${kept.join('&')}` : base;
+};
 
 const clients: ConsentClient[] = [];
 

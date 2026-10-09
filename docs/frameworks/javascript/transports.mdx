@@ -42,15 +42,20 @@ runtime and create a new one.
 | Option | What it does |
 | --- | --- |
 | `url` | The backend URL. Relative URLs such as `/api/c15t` work behind a proxy. |
-| `headers` | Extra headers for the `/init` request. |
+| `headers` | Request headers to forward on `/init`: `accept-language`, the geo headers and `sec-gpc`. Meant for server code forwarding a visitor's request. In a browser, any but `accept-language` makes a cross-origin `/init` wait for a CORS preflight; pass overrides through the runtime's `overrides` instead, which travel in the query string. |
 | `fetch` | A `fetch` implementation, for tests or unusual runtimes. |
 | `domain` | The domain recorded with each save. Defaults to the page's host. |
-| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `url`. Set `assertDecisionInputs: true` with it. |
+| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `url`. Set `assertDecisionInputs: true` with it. Its query string may carry your own parameters, but c15t replaces any named `v`, `contract`, `country`, `region`, `gpc`, `experiment`, `journey`, `journeyScope` or `stored` with its own value. |
 | `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. |
 
 With `@c15t/browser`, `init({ backendURL })` builds `hosted({ url: backendURL })`
 for you. Add your app's origin to the Inth project's trusted origins, or the
-browser blocks `/init` with a CORS error.
+browser blocks consent saves with a CORS error.
+
+A cross-origin `/init` is a CORS simple request: the client version, policy
+contract, overrides and experiment arm go in the query string, and the request
+carries no cookies, so the browser sends it without an `OPTIONS` preflight.
+Saves still go out with cookies and still need the trusted origin.
 
 ## Manifest
 

@@ -44,6 +44,18 @@ export {
 	type SessionJourney,
 	type SessionReportInputs,
 } from './session-report';
+export {
+	appendInitParams,
+	applyInitParamsToHeaders,
+	INIT_COUNTRY_PARAM,
+	INIT_EXPERIMENT_PARAM,
+	INIT_GPC_PARAM,
+	INIT_PARAM_HEADERS,
+	INIT_POLICY_CONTRACT_PARAM,
+	INIT_REGION_PARAM,
+	INIT_VERSION_PARAM,
+	type InitRequestParams,
+} from './init-request-params';
 // Export constants separately for runtime-safe usage
 export { brandingValues as brandingValuesConst } from './constants';
 export {

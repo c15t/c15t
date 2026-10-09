@@ -12,6 +12,7 @@ import type {
 	ConsentSessionSource,
 } from '../api/session';
 import type { ConsentManifest } from './consent-manifest';
+import { appendSearchParams } from './search-params';
 
 /**
  * Request header a host puts the visitor's IP on when it reports a session.
@@ -29,7 +30,9 @@ export const CONSENT_SESSION_CLIENT_IP_HEADER = 'x-c15t-client-ip';
  * Request header that carries the banner-experiment arm a visitor runs, as
  * `<id>=<arm>` with both parts URI-encoded. A client sends it on `/init`
  * only while the visitor has no stored choice, so a session that carries it
- * is one where the banner was owed under that arm.
+ * is one where the banner was owed under that arm. A browser sends the same
+ * value as the `experiment` query parameter instead, so a cross-origin
+ * `/init` needs no CORS preflight.
  */
 export const CONSENT_EXPERIMENT_HEADER = 'x-c15t-experiment';
 
@@ -85,19 +88,33 @@ export const parseExperimentHeader = function parseExperimentHeader(
 
 /**
  * Query parameter carrying the consent journey id on `GET /init` and
- * `POST /subjects`. A query parameter, not a header, so older backends need
- * no CORS change.
+ * `POST /subjects`. A query parameter, not a header, so it adds no CORS
+ * preflight.
  */
-export const CONSENT_JOURNEY_PARAM = 'c15tJourney';
+export const CONSENT_JOURNEY_PARAM = 'journey';
 
 /** Query parameter that carries the journey's scope: `page` or `tab`. */
-export const CONSENT_JOURNEY_SCOPE_PARAM = 'c15tJourneyScope';
+export const CONSENT_JOURNEY_SCOPE_PARAM = 'journeyScope';
 
 /**
  * Query parameter on `GET /init`: `1` when the browser had a stored choice
  * or notice dismissal when the journey started, else `0`.
  */
-export const CONSENT_JOURNEY_STORED_PARAM = 'c15tStored';
+export const CONSENT_JOURNEY_STORED_PARAM = 'stored';
+
+/**
+ * The journey parameter names `3.0.0-alpha.8` and `alpha.9` clients sent:
+ * `c15tJourney`, `c15tJourneyScope` and `c15tStored`. Readers fall back to
+ * them when a request carries no journey under the current names. Never
+ * written. Remove once the alpha clients that send them are retired.
+ *
+ * @internal
+ */
+export const LEGACY_CONSENT_JOURNEY_PARAMS = {
+	id: 'c15tJourney',
+	scope: 'c15tJourneyScope',
+	stored: 'c15tStored',
+} as const;
 
 /**
  * How long a journey id lives in the browser.
@@ -168,11 +185,37 @@ const toSearchParams = function toSearchParams(
 	);
 };
 
+const JOURNEY_PARAM_NAMES = [
+	{
+		id: CONSENT_JOURNEY_PARAM,
+		scope: CONSENT_JOURNEY_SCOPE_PARAM,
+		stored: CONSENT_JOURNEY_STORED_PARAM,
+	},
+	LEGACY_CONSENT_JOURNEY_PARAMS,
+] as const;
+
+const readJourneyNamed = function readJourneyNamed(
+	params: URLSearchParams,
+	names: (typeof JOURNEY_PARAM_NAMES)[number]
+): ConsentJourneyParams | null {
+	const id = parseJourneyId(params.get(names.id));
+	const scope = parseJourneyScope(params.get(names.scope));
+	if (!(id && scope)) {
+		return null;
+	}
+	const stored = params.get(names.stored);
+	return stored === '1' || stored === '0'
+		? { id, scope, storedChoice: stored === '1' }
+		: { id, scope };
+};
+
 /**
  * Read the journey a request carries in its query string.
  *
  * Both the id and the scope must be well formed, or there is no journey.
- * `storedChoice` is set only for `c15tStored=1` or `c15tStored=0`.
+ * `storedChoice` is set only for `stored=1` or `stored=0`. A request with
+ * no journey under the current names is read under the alpha names in
+ * {@link LEGACY_CONSENT_JOURNEY_PARAMS}; the two sets are never mixed.
  *
  * @param source - The request URL, absolute or relative, or its query.
  * @returns The journey, or `null`.
@@ -184,15 +227,13 @@ export const readJourneyParams = function readJourneyParams(
 	if (!params) {
 		return null;
 	}
-	const id = parseJourneyId(params.get(CONSENT_JOURNEY_PARAM));
-	const scope = parseJourneyScope(params.get(CONSENT_JOURNEY_SCOPE_PARAM));
-	if (!(id && scope)) {
-		return null;
+	for (const names of JOURNEY_PARAM_NAMES) {
+		const journey = readJourneyNamed(params, names);
+		if (journey) {
+			return journey;
+		}
 	}
-	const stored = params.get(CONSENT_JOURNEY_STORED_PARAM);
-	return stored === '1' || stored === '0'
-		? { id, scope, storedChoice: stored === '1' }
-		: { id, scope };
+	return null;
 };
 
 /**
@@ -213,14 +254,7 @@ export const appendJourneyParams = function appendJourneyParams(
 	if (journey.storedChoice !== undefined) {
 		params.set(CONSENT_JOURNEY_STORED_PARAM, journey.storedChoice ? '1' : '0');
 	}
-	const hash = url.indexOf('#');
-	const base = hash === -1 ? url : url.slice(0, hash);
-	const fragment = hash === -1 ? '' : url.slice(hash);
-	let separator = '?';
-	if (base.includes('?')) {
-		separator = base.endsWith('?') || base.endsWith('&') ? '' : '&';
-	}
-	return `${base}${separator}${params.toString()}${fragment}`;
+	return appendSearchParams(url, params);
 };
 
 /**

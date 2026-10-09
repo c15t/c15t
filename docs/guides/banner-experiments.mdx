@@ -386,11 +386,12 @@ owed to, and how many of them accepted. c15t sends both to the backend on
 its own; you do not wire anything up.
 
 - **Visitors owed the banner.** While a visitor has no stored choice, every
-  `/init` carries their arm in an `x-c15t-experiment: <id>=<arm>` header,
-  and the backend puts it on that request's session report as
+  `/init` carries their arm as `<id>=<arm>` in the `experiment` query
+  parameter, and the backend puts it on that request's session report as
   `experiment: { id, arm }`. In manifest mode, the server render or the
   init route puts it on the report it sends to `POST /sessions`. A visitor
-  who already chose is not shown the banner, so is not counted.
+  who already chose is not shown the banner, so is not counted. A
+  server-to-server caller can send the `x-c15t-experiment` header instead.
 - **Choices.** Every choice saved through `POST /subjects` carries the arm
   in `metadata.experiment`, as above.
 
