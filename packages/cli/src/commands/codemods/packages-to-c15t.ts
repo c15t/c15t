@@ -220,21 +220,44 @@ const MODULE_HELPERS = new Set([
 	'vi.unmock',
 ]);
 
-/** Whether a call's first argument is a module specifier. */
-const takesModuleSpecifier = function takesModuleSpecifier(
-	call: TsMorphTypes.CallExpression,
-	specifier: string
+/** Whether a node is a `vi.mock()`-style call from {@link MODULE_HELPERS}. */
+const isModuleHelperCall = function isModuleHelperCall(
+	node: TsMorphTypes.Node
 ): boolean {
-	const callee = call.getExpression();
-	if (callee.getKind() === SyntaxKind.ImportKeyword || isRequireCall(call)) {
-		return true;
+	if (!Node.isCallExpression(node)) {
+		return false;
 	}
-	// A mock of a stylesheet has no import to follow once it's removed.
+	const callee = node.getExpression();
 	return (
 		Node.isPropertyAccessExpression(callee) &&
-		MODULE_HELPERS.has(callee.getText()) &&
-		!STYLESHEET_SPECIFIER.test(specifier)
+		MODULE_HELPERS.has(callee.getText())
 	);
+};
+
+/** Whether a call's first argument is a module specifier. */
+const takesModuleSpecifier = function takesModuleSpecifier(
+	call: TsMorphTypes.CallExpression
+): boolean {
+	return (
+		call.getExpression().getKind() === SyntaxKind.ImportKeyword ||
+		isRequireCall(call) ||
+		isModuleHelperCall(call)
+	);
+};
+
+/**
+ * Where a mock of a stylesheet points: the path its import is kept at, or
+ * `undefined` when the import is removed and the mock has nothing to follow.
+ */
+const stylesheetMockTarget = function stylesheetMockTarget(
+	specifier: string,
+	plan: ImportPlan
+): string | undefined {
+	if (!keepsStylesheet(specifier, plan)) {
+		return undefined;
+	}
+	const kept = keptStylesheet(specifier, plan.umbrella);
+	return kept === specifier ? undefined : kept;
 };
 
 /**
@@ -264,8 +287,7 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 			}
 			if (Node.isCallExpression(parent)) {
 				return (
-					parent.getArguments()[0] === literal &&
-					takesModuleSpecifier(parent, literal.getLiteralValue())
+					parent.getArguments()[0] === literal && takesModuleSpecifier(parent)
 				);
 			}
 			return (
@@ -337,6 +359,15 @@ const transformWith = (
 		for (const literal of moduleSpecifiersOf(sourceFile)) {
 			const specifier = literal.getLiteralValue();
 			const parent = literal.getParentOrThrow();
+			if (STYLESHEET_SPECIFIER.test(specifier) && isModuleHelperCall(parent)) {
+				const target = stylesheetMockTarget(specifier, plan);
+				if (target !== undefined) {
+					edits.push(rewriteLiteral(literal, target));
+					summaries.add(`${specifier} -> ${target}`);
+					operations += 1;
+				}
+				continue;
+			}
 			if (STYLESHEET_SPECIFIER.test(specifier)) {
 				const sideEffect = sideEffectStatement(parent);
 				if (sideEffect && !keepsStylesheet(specifier, plan)) {

@@ -431,6 +431,24 @@ vi.mock(\`@c15t/react\`);
 `);
 	});
 
+	it('points a mock of a kept stylesheet import where the import goes', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', next: '^15.0.0', tailwindcss: '^3.4.0' },
+			{
+				'src/layout.test.tsx': `import '@c15t/nextjs/styles.css';
+vi.mock('@c15t/nextjs/styles.css', () => ({}));
+jest.mock("@c15t/react/iab/styles.tw3.css");
+`,
+			}
+		);
+
+		expect(await read('src/layout.test.tsx')).toBe(`// ${TODO}
+import 'c15t/next/styles.css';
+vi.mock('c15t/next/styles.css', () => ({}));
+jest.mock("c15t/react/iab/styles.css");
+`);
+	});
+
 	it('puts the TODO for a JSDoc import type above the comment', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0' },
