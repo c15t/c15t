@@ -19,7 +19,7 @@
  */
 
 import type { AllConsentNames } from '../consent/consent-types';
-import type { ConsentKernel, ConsentSnapshot } from '../types';
+import type { ConsentKernel, ConsentSnapshot, SaveUISource } from '../types';
 import {
 	EARLY_TAP_ROOT,
 	EARLY_TAP_STYLE_ID,
@@ -90,7 +90,7 @@ const apply = (
 	kernel: ConsentKernel,
 	tap: EarlyConsentTap,
 	view: Window,
-	categories: (() => readonly AllConsentNames[] | undefined) | undefined
+	options: EarlyConsentTapReplayOptions
 ): void => {
 	if (!stillApplies(tap, kernel.getSnapshot())) {
 		unhide(view);
@@ -107,8 +107,8 @@ const apply = (
 		void saveConsentSurface(kernel, () =>
 			kernel.commands.save(tap.action === 'accept' ? 'all' : 'none', {
 				actionAt: tap.at,
-				categories: categories?.(),
-				uiSource: 'banner',
+				categories: options.categories?.(),
+				uiSource: options.uiSource ?? 'banner',
 			})
 		);
 	}
@@ -134,6 +134,11 @@ export interface EarlyConsentTapReplayOptions {
 	 * own.
 	 */
 	view?: Window | null;
+	/**
+	 * The UI recorded with the choice, as the banner's own buttons record
+	 * it. Defaults to `banner`.
+	 */
+	uiSource?: SaveUISource;
 }
 
 /**
@@ -192,7 +197,7 @@ export const replayEarlyConsentTaps = (
 		for (const stop of stops.splice(0)) {
 			stop();
 		}
-		apply(kernel, tap, view, options.categories);
+		apply(kernel, tap, view, options);
 	};
 	// Either one tells us the runtime started: adopting a prefetch emits
 	// `init:applied`, and a resolved `/init` commits a snapshot. Outside the

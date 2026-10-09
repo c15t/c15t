@@ -13,6 +13,10 @@ import {
 } from 'react';
 
 import { ProviderServicesContext } from '~/context';
+import {
+	toSaveUISource,
+	useConsentTracking,
+} from '~/context/consent-tracking-context';
 import { useCommittedRef } from '~/hooks/use-committed-ref';
 import { useIsHydrated } from '~/hooks/use-is-hydrated';
 import { useKernel } from '~/kernel-selector';
@@ -45,6 +49,8 @@ export const EarlyTapScript = () => {
 	// oxlint-disable-next-line react/hook-use-state -- Read once, at mount.
 	const [serverRendered] = useState(!hydrated);
 	const kernel = useKernel();
+	// The banner root's source, which its buttons record once hydrated.
+	const uiSource = toSaveUISource(useConsentTracking().uiSource);
 	const services = useCommittedRef(useContext(ProviderServicesContext));
 	const script = useRef<HTMLScriptElement>(null);
 	// The script ran in the window of the document it was parsed into,
@@ -58,9 +64,10 @@ export const EarlyTapScript = () => {
 			replayEarlyConsentTaps(kernel, {
 				categories: () => services.current?.getConsentCategories(),
 				started: () => services.current?.isStarted() ?? true,
+				uiSource,
 				view: view.current,
 			}),
-		[kernel, services]
+		[kernel, services, uiSource]
 	);
 	if (!serverRendered) {
 		return null;

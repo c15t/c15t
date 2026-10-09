@@ -280,6 +280,22 @@ describe('replayEarlyConsentTaps', () => {
 		}
 	);
 
+	test('records the UI source the banner gives', async () => {
+		runScript();
+		renderBanner();
+		tap('accept');
+		const runtime = createRuntime();
+		replayEarlyConsentTaps(runtime.kernel, {
+			started: () => runtime.started,
+			uiSource: 'widget',
+		});
+		await startAndInit(runtime);
+		await vi.waitFor(() => expect(saves).toHaveLength(1));
+		expect(JSON.parse(saves[0] ?? '{}')).toMatchObject({
+			uiSource: 'widget',
+		});
+	});
+
 	test('records a notice dismissal at the time of the tap', async () => {
 		policy = matchedResolution(noticeRule());
 		runScript();

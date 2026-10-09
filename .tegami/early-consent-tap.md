@@ -28,8 +28,10 @@ resolves a different consent model or prompt than the one the visitor saw.
 Under a Content Security Policy the script takes the `nonce` you already pass
 to c15t. The IAB banner and banners built from hooks are unchanged. In a
 banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
-on itself or on its `asChild` element, or `performDefaultAction={false}` keeps the old behavior, so a handler that
-calls `preventDefault()` still decides what its tap does.
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
 
 `kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
 the visitor dismissed the notice. A future or invalid time falls back to now.

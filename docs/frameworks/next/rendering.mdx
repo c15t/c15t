@@ -257,8 +257,10 @@ A tap made on a banner for one model or prompt is dropped when the browser
 resolves another, and the banner shows again. A banner you build from hooks
 has no inline script, so a tap before hydration does nothing there, and a
 page with two stock banners holds no early taps at all. Neither
-does a button in a composed `ConsentBanner` that has its own `onClick`, on
-itself or on its `asChild` element, or `performDefaultAction={false}`, so your handler still decides that tap. Under a
+does a button in a composed `ConsentBanner` that has its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}`, so your handler,
+link or form still decides that tap. A tap on a banner with its own `uiSource`
+is recorded with that source. Under a
 Content Security Policy the script needs `options.nonce`; see
 [Content Security Policy](/docs/frameworks/next/content-security-policy).
 

@@ -200,19 +200,16 @@ describe('composed ConsentBanner', () => {
 		).toBeUndefined();
 	});
 
-	test('an asChild button whose child has a click handler opts out of early tap replay', async () => {
+	test('asChild and submit buttons opt out of early tap replay', async () => {
 		await renderComposed(
 			<ConsentBanner.Root>
 				<ConsentBanner.Card>
 					<ConsentBanner.Footer>
+						{/* The link would navigate before the replay records accept. */}
 						<ConsentBanner.AcceptButton asChild>
-							<a
-								href="#accept"
-								onClick={(event) => event.preventDefault()}
-							>
-								Accept
-							</a>
+							<a href="#accept">Accept</a>
 						</ConsentBanner.AcceptButton>
+						<ConsentBanner.RejectButton type="submit" />
 					</ConsentBanner.Footer>
 				</ConsentBanner.Card>
 			</ConsentBanner.Root>
@@ -220,6 +217,7 @@ describe('composed ConsentBanner', () => {
 		await waitForTestId('consent-banner-accept-button');
 
 		expect(query('consent-banner-accept-button')?.dataset.earlyTap).toBe('off');
+		expect(query('consent-banner-reject-button')?.dataset.earlyTap).toBe('off');
 	});
 });
 

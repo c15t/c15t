@@ -1,10 +1,6 @@
 import type { AllConsentNames } from '@c15t/core';
 import { EARLY_TAP_OPT_OUT } from '@c15t/core/surface-actions';
-import {
-	forwardRef as createForwardRef,
-	isValidElement,
-	useCallback,
-} from 'react';
+import { forwardRef as createForwardRef, useCallback } from 'react';
 import type { FocusEvent, MouseEvent, PointerEvent } from 'react';
 
 import { useIdleDialogWarming, warmDialogChunk } from '~/chunk-warming';
@@ -57,41 +53,48 @@ const EARLY_TAP_ACTIONS: Partial<Record<string, string>> = {
 
 /**
  * Whether the pre-hydration script must leave this button's taps alone.
- * It replays from `data-action` alone, so a button whose own click handler
- * can veto the action, that skips the default action, or whose action does
- * not match its `data-action` opts out. The replay then never records a
- * choice the hydrated button would not.
+ * It replays from `data-action` alone, so a button whose action does not
+ * match its `data-action`, that skips the default action, or whose click
+ * does more than the stock action opts out. The replay then never records
+ * a choice the hydrated button would not. An `asChild` element can carry
+ * its own `data-action`, so it always opts out.
  */
 const skipsEarlyTap = function skipsEarlyTap(params: {
 	action: string;
+	asChild: boolean | undefined;
 	dataAction: unknown;
-	hasClickHandler: boolean;
+	ownsClick: boolean;
 	performDefaultAction: boolean;
 }): boolean {
-	const { action, dataAction, hasClickHandler, performDefaultAction } = params;
+	const { action, dataAction, ownsClick, performDefaultAction } = params;
 	const replays =
-		!hasClickHandler &&
+		!ownsClick &&
 		(performDefaultAction || action === 'open-consent-dialog') &&
 		EARLY_TAP_ACTIONS[action] === dataAction;
 	return (
-		!replays && Object.values(EARLY_TAP_ACTIONS).includes(String(dataAction))
+		!replays &&
+		(params.asChild === true ||
+			Object.values(EARLY_TAP_ACTIONS).includes(String(dataAction)))
 	);
 };
 
 /**
- * Whether a click handler runs before the consent action. With `asChild`
- * the child's own `onClick` runs first and can veto it.
+ * Whether a click does more than the stock action. A click handler can veto
+ * it. An `asChild` element brings its own `data-action`, handlers, and
+ * perhaps a link to follow. A submit or reset button acts on its form. The
+ * script stops the click but not its default, so a link or form would leave
+ * the page before the replay.
  */
-const hasClickHandler = function hasClickHandler(
-	onClick: unknown,
-	asChild: boolean | undefined,
-	children: unknown
-): boolean {
+const ownsClick = function ownsClick(params: {
+	asChild: boolean | undefined;
+	onClick: unknown;
+	type: unknown;
+}): boolean {
 	return (
-		onClick !== undefined ||
-		(asChild === true &&
-			isValidElement<{ onClick?: unknown }>(children) &&
-			children.props.onClick !== undefined)
+		params.onClick !== undefined ||
+		params.asChild === true ||
+		params.type === 'submit' ||
+		params.type === 'reset'
 	);
 };
 
@@ -361,12 +364,13 @@ export const ConsentButton = createForwardRef<
 
 		const earlyTapOptOut = skipsEarlyTap({
 			action,
+			asChild,
 			dataAction: domProps['data-action'] ?? consentAction,
-			hasClickHandler: hasClickHandler(
-				forwardedOnClick,
+			ownsClick: ownsClick({
 				asChild,
-				props.children
-			),
+				onClick: forwardedOnClick,
+				type: domProps.type,
+			}),
 			performDefaultAction,
 		})
 			? { [EARLY_TAP_OPT_OUT]: 'off' }
