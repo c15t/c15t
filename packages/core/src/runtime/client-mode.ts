@@ -85,11 +85,9 @@ export type LoadManifestBrowserModule = () => Promise<
 	Pick<typeof ManifestBrowserModule, 'createBrowserManifestTransport'>
 >;
 
-// The hosted and browser-resolver chunks are built self-contained; see
-// `lazy-hosted.ts`. Offline mode imports only `@c15t/schema`.
+// Every chunk here is built self-contained; see `lazy-hosted.ts`.
 const loadHostedModule: LoadHostedModule = () => import('./lazy-hosted');
-const loadOfflineModule: LoadOfflineModule = () =>
-	import('../transports/offline');
+const loadOfflineModule: LoadOfflineModule = () => import('./lazy-offline');
 const loadManifestBrowserModule: LoadManifestBrowserModule = () =>
 	import('./lazy-manifest-browser');
 

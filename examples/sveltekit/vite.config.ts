@@ -1,17 +1,10 @@
 // #region docs:vite-config
-import { c15tPreload, consentManifest } from '@c15t/svelte/vite';
+import { consentManifest } from '@c15t/svelte/vite';
 import adapter from '@sveltejs/adapter-auto';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-	plugins: [
-		// Downloads the policy from PUBLIC_C15T_BACKEND_URL when Vite starts
-		// and serves it to server code as `c15t/generated`.
-		consentManifest(),
-		sveltekit({ adapter: adapter() }),
-		// Lets c15tHandle preload the script loader on pages with scripts.
-		c15tPreload(),
-	],
+	plugins: [consentManifest(), sveltekit({ adapter: adapter() })],
 });
 // #endregion docs:vite-config

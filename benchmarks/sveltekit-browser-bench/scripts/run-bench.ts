@@ -8,7 +8,7 @@
  * report can put the two suites in one table.
  *
  * The measured arms run against the shipped `@c15t/svelte/kit` layer
- * (`c15tHandle`, `loadConsent`, `createSvelteKitConsentRouteHandlers`); the
+ * (`c15tHandle`, `loadConsent`, `createConsentRoute`); the
  * `baseline` arms render the same shell with no c15t in the route's module
  * graph at all, which is the floor `consentTax = bannerVisible − floor`
  * subtracts.
@@ -903,7 +903,7 @@ const run = async function run() {
 					],
 					notes: [
 						'SvelteKit browser bench covers the @c15t/svelte/kit SSR paths (direct init and manifest), browser-side SPA arms, a pre-seeded repeat visitor, and zero-consent baseline floors.',
-						'The client-manifest arm resolves the manifest in the browser; @c15t/svelte ships server-side manifest resolution, so that arm prices the alternative rather than a shipped mode.',
+						'The client-manifest arm resolves the manifest in the browser through a bench-owned lazy transport, so it prices the alternative to the default server-side manifest resolution.',
 						'The scripts arms configure one measurement-gated script and a network-blocker rule over manifest SSR: scripts as a first visit (script timing after the accept click), repeat-visitor-scripts with stored consent (script timing from navigation start, plus how long a matching fetch sent before start() was held).',
 						`Visit: ${visit}. Cold state: ${coldState.setup}.`,
 						...visitMetricGlossary,

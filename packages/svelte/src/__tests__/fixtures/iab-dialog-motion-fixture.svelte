@@ -1,6 +1,6 @@
 <script lang="ts">
+	import ConsentProvider from '../../lib/components/consent-provider.svelte';
 	import IabConsentDialog from '../../lib/components/iab-panel.svelte';
-	import ConsentManagerProvider from '../../lib/components/manager-provider.svelte';
 	import type { ConsentManagerOptions } from '../../lib/types';
 
 	let {
@@ -12,9 +12,9 @@
 	} = $props();
 </script>
 
-<ConsentManagerProvider {options}>
+<ConsentProvider {options}>
 	<IabConsentDialog
 		{disableAnimation}
 		open
 	/>
-</ConsentManagerProvider>
+</ConsentProvider>

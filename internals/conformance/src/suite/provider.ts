@@ -1,7 +1,7 @@
 /**
  * Provider conformance suite.
  *
- * Asserts that every framework's `ConsentManagerProvider` exposes an
+ * Asserts that every framework's consent provider exposes an
  * observable consent store with the expected top-level shape.
  */
 

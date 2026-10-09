@@ -1,21 +1,18 @@
 <script lang="ts">
 	import BenchShell from '$lib/bench-shell.svelte';
 	import { benchConsentCategories } from '$lib/fixture';
-	import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+	import { ConsentRoot } from '@c15t/svelte';
 
 	let { children, data } = $props();
 </script>
 
-<ConsentManagerProvider
-	options={{
-		mode: hosted({ backendURL: '/api/c15t' }),
-		consentCategories: [...benchConsentCategories],
-		prefetch: data.consentPrefetch,
-		disableAnimation: true,
-		trapFocus: false,
-	}}
+<ConsentRoot
+	state={data.consent}
+	consentCategories={[...benchConsentCategories]}
+	disableAnimation={true}
+	trapFocus={false}
 >
 	<BenchShell scenario="repeat-visitor">
 		{@render children()}
 	</BenchShell>
-</ConsentManagerProvider>
+</ConsentRoot>

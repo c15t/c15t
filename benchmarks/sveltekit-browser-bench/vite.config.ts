@@ -1,8 +1,11 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 
 /**
- * `c15tPreload()` lets `c15tHandle` preload the on-demand script loader and
- * network blocker chunks on the routes that configure them.
+ * `consentManifest()` lets `c15tHandle` preload the on-demand script loader
+ * and network blocker chunks on the routes that configure them. The bench
+ * has no backend to fetch a manifest from at build time (its fixture is
+ * this app), so `onBuildError: 'runtime'` skips the fetch and the server
+ * reads the fixture's manifest at runtime.
  *
  * The benchmark runner builds this app against older base revisions too,
  * and `@c15t/svelte/vite` does not exist there. Vite bundles this config
@@ -16,9 +19,9 @@ const loadC15tPlugins = async function loadC15tPlugins(): Promise<unknown[]> {
 	const specifier = ['@c15t/svelte', 'vite'].join('/');
 	try {
 		const module = (await import(specifier)) as {
-			c15tPreload: () => unknown;
+			consentManifest: (options: { onBuildError: 'runtime' }) => unknown;
 		};
-		return [module.c15tPreload()];
+		return [module.consentManifest({ onBuildError: 'runtime' })].flat();
 	} catch (error) {
 		const code = (error as { code?: unknown } | null)?.code;
 		if (code === 'ERR_PACKAGE_PATH_NOT_EXPORTED') {

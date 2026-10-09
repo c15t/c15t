@@ -60,8 +60,6 @@ c15t is the only thing that loads it.
 Declare the backend URL as a public environment variable in `src/env.ts`, so
 the server and the browser read the same value:
 
-<include src="../../shared/examples/sveltekit/env.mdx" />
-
 Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any path
 prefix, in `.env` or your host's build environment. The example app's `.env`
 points at `https://example-inth.inth.app`, a demo project. `static: true`
@@ -87,8 +85,6 @@ pages that register scripts.
 
 Declare the consent options once, in `src/lib/server/c15t.ts`. Modules under
 `src/lib/server` never reach the browser:
-
-<include src="../../shared/examples/sveltekit/consent-options.mdx" />
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
@@ -121,7 +117,7 @@ has the details.
 
 Create `src/routes/api/c15t/[...path]/+server.ts` with the same options:
 
-<include src="../../shared/examples/sveltekit/consent-route.mdx" />
+<include src="../../shared/examples/sveltekit/route-handlers.mdx" />
 
 `GET /api/c15t` resolves a visitor from the bundled policy, the same way the
 layout load does. The browser calls it whenever it resolves consent itself,

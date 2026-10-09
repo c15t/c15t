@@ -37,7 +37,7 @@ afterEach(() => {
 	root.className = '';
 });
 
-describe('ConsentManagerProvider colorScheme', () => {
+describe('ConsentProvider colorScheme', () => {
 	test('unset mirrors a .dark class on <html>, as React and Vue do', async () => {
 		stubSystemDark(false);
 		root.classList.add('dark');

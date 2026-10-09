@@ -1,3 +1,4 @@
+// #region docs:scripts
 import { posthog } from '@c15t/integrations/posthog';
 
 export const scripts = [
@@ -8,3 +9,4 @@ export const scripts = [
 		loadMode: 'after-consent',
 	}),
 ];
+// #endregion docs:scripts

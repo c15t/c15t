@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ConsentManagerProvider } from '@c15t/svelte';
+	import { ConsentProvider } from '@c15t/svelte';
 	import { untrack } from 'svelte';
 	import type { Snippet } from 'svelte';
 
@@ -38,6 +38,6 @@
 	}
 </script>
 
-<ConsentManagerProvider options={mergedOptions}>
+<ConsentProvider options={mergedOptions}>
 	{@render props.children()}
-</ConsentManagerProvider>
+</ConsentProvider>

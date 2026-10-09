@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Provider from '../../lib/components/manager-provider.svelte';
+	import Provider from '../../lib/components/consent-provider.svelte';
 	import DialogLink from '../../lib/components/panel-link.svelte';
 	import Trigger from '../../lib/components/panel-trigger.svelte';
 	import Dialog from '../../lib/components/panel.svelte';

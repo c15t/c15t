@@ -1,5 +1,5 @@
 /**
- * Tests for ConsentManagerProvider error handling.
+ * Tests for ConsentProvider error handling.
  *
  * Mirrors: packages/react/src/providers/__tests__/provider-errors.test.tsx
  */
@@ -13,7 +13,7 @@ import { testOffline } from '../../__tests__/test-offline';
 const mockFetch = vi.fn();
 window.fetch = mockFetch;
 
-describe('ConsentManagerProvider Error Handling', () => {
+describe('ConsentProvider Error Handling', () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 

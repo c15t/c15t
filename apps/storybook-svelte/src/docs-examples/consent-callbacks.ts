@@ -1,7 +1,7 @@
 // #region docs:consent-callbacks title="src/lib/consent-callbacks.ts"
 import type { ConsentProviderCallbacks } from '@c15t/svelte';
 
-// Pass as `callbacks={callbacks}` on ConsentManagerProvider.
+// Pass as `callbacks={callbacks}` on ConsentProvider.
 export const callbacks: ConsentProviderCallbacks = {
 	// Runs just before c15t reloads the page after a withdrawal.
 	onBeforeConsentRevocationReload: ({ preferences }) => {

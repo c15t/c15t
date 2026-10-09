@@ -2,7 +2,7 @@
 	import {
 		ConsentBanner,
 		ConsentDialog,
-		ConsentManagerProvider,
+		ConsentProvider,
 		offline,
 	} from '@c15t/svelte';
 
@@ -19,7 +19,7 @@
 </script>
 
 <!-- Tailwind 3 builds c15t's stylesheet from app.css. -->
-<ConsentManagerProvider
+<ConsentProvider
 	{mode}
 	persistence={false}
 	styles={false}
@@ -34,4 +34,4 @@
 	<ConsentBanner class="!p-[7px] dark:!p-[11px]" />
 	<!-- #endregion docs:slot -->
 	<ConsentDialog />
-</ConsentManagerProvider>
+</ConsentProvider>

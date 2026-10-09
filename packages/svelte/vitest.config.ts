@@ -15,13 +15,37 @@ import { svelte } from '@sveltejs/vite-plugin-svelte';
 import { defineConfig, mergeConfig } from 'vitest/config';
 
 const workspaceAliases = [
+	// SvelteKit resolves `$app/env` in an app; tests read a stand-in.
+	{
+		find: '$app/env',
+		replacement: resolve(__dirname, 'src/lib/kit/__tests__/app-env.ts'),
+	},
 	{
 		find: '@c15t/core/build',
 		replacement: resolve(__dirname, '../core/src/build.ts'),
 	},
 	{
+		find: '@c15t/core/generated',
+		replacement: resolve(__dirname, 'src/lib/__tests__/generated.ts'),
+	},
+	{
+		find: '@c15t/core/modes',
+		replacement: resolve(__dirname, '../core/src/modes.ts'),
+	},
+	{
+		find: '@c15t/core/transports/manifest-browser',
+		replacement: resolve(
+			__dirname,
+			'../core/src/transports/manifest-browser.ts'
+		),
+	},
+	{
 		find: '@c15t/core/transports',
 		replacement: resolve(__dirname, '../core/src/transports/index.ts'),
+	},
+	{
+		find: '@c15t/core/runtime/client-mode',
+		replacement: resolve(__dirname, '../core/src/runtime/client-mode.ts'),
 	},
 	{
 		find: '@c15t/core/runtime/provider',

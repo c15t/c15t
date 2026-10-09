@@ -1,14 +1,11 @@
 /**
- * `GET /api/c15t/init` — the shipped `@c15t/svelte/kit` init handler, pointed
- * at the local manifest fixture. Nothing here re-implements resolution; the
- * bench measures the package.
+ * `GET /api/c15t/init` — the shipped `@c15t/svelte/kit` consent route,
+ * pointed at the local manifest fixture. Nothing here re-implements
+ * resolution; the bench measures the package. `GET` picks `init` from the
+ * path's last segment.
  */
-import { createSvelteKitConsentRouteHandlers } from '@c15t/svelte/kit';
+import { createConsentRoute } from '@c15t/svelte/kit';
 
-import type { RequestHandler } from './$types';
-
-const handlers = createSvelteKitConsentRouteHandlers({
+export const { GET } = createConsentRoute({
 	manifestURL: '/api/bench-consent/manifest',
 });
-
-export const GET: RequestHandler = handlers.init;

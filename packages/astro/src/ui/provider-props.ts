@@ -56,7 +56,7 @@ export interface DialogPresentationOptions {
 	theme?: C15tResolvedOptions['theme'];
 }
 
-/** Props handed to `ConsentManagerProvider` by the Svelte dialog surface. */
+/** Props handed to `ConsentProvider` by the Svelte dialog surface. */
 export interface DialogProviderProps {
 	/** The page-level runtime. The provider borrows it, it does not own it. */
 	runtime: ConsentRuntime;
@@ -69,7 +69,7 @@ export interface DialogProviderProps {
  *
  * @param runtime - The page runtime that owns the kernel.
  * @param options - The resolved integration options.
- * @returns Props for `ConsentManagerProvider`.
+ * @returns Props for `ConsentProvider`.
  */
 export const buildProviderProps = function buildProviderProps(
 	runtime: ConsentRuntime,

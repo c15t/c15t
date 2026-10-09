@@ -54,7 +54,7 @@
 		runtime?: ConsentRuntime;
 	}
 
-	type ConsentManagerProviderProps =
+	type ConsentProviderProps =
 		| (ConsentManagerOptions &
 				ProviderRuntimeProps & {
 					options?: ProviderOptionsInput;
@@ -64,7 +64,7 @@
 					options: ConsentManagerOptions;
 				});
 
-	let props: ConsentManagerProviderProps = $props();
+	let props: ConsentProviderProps = $props();
 
 	const mergeDefinedOptions = function mergeDefinedOptions(
 		base: ProviderOptionsInput,
@@ -87,7 +87,7 @@
 		runtime: _runtime,
 		options: nestedOptions = {},
 		...topLevelOptions
-	}: ConsentManagerProviderProps): ProviderOptionsInput {
+	}: ConsentProviderProps): ProviderOptionsInput {
 		return mergeDefinedOptions(nestedOptions, topLevelOptions);
 	};
 
@@ -360,7 +360,7 @@
 	const throwIABUnavailable = function throwIABUnavailable(): never {
 		throw new IABUnavailableError(
 			'`iab` is not set',
-			'Set `iab` on <ConsentManagerProvider> and render <IABConsentBanner>'
+			'Set `iab` on <ConsentProvider> and render <IABConsentBanner>'
 		);
 	};
 

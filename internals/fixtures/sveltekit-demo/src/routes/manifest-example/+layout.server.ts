@@ -1,12 +1,4 @@
-import { building } from '$app/env';
-import { loadConsent } from '@c15t/svelte/kit';
-
-import type { LayoutServerLoad } from './$types';
-
-export const load: LayoutServerLoad = async (event) => ({
-	// Resolve through this app's own route, which caches the policy manifest,
-	// instead of calling the backend on every page load.
-	prefetch: building
-		? undefined
-		: await loadConsent(event, { initRoute: '/api/c15t' }),
-});
+// Resolves from the backend's cached policy manifest, the mode
+// `src/hooks.server.ts` gives this area, instead of calling the backend's
+// `/init` on every page load. The browser re-inits through `/api/c15t`.
+export { loadConsent as load } from '@c15t/svelte/kit';

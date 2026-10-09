@@ -2,9 +2,6 @@
 	"name": "@c15t/example-sveltekit",
 	"private": true,
 	"type": "module",
-	"imports": {
-		"#lib/*": "./src/lib/*"
-	},
 	"scripts": {
 		"build": "vite build",
 		"check-types": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
@@ -13,8 +10,7 @@
 	},
 	"dependencies": {
 		"@c15t/integrations": "workspace:*",
-		"@c15t/svelte": "workspace:*",
-		"c15t": "workspace:*"
+		"@c15t/svelte": "workspace:*"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-auto": "8.0.0",

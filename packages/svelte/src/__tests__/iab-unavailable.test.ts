@@ -20,7 +20,7 @@ import { policyFixture } from './policy-fixture';
 
 const GVL = MINIMAL_GVL as unknown as GlobalVendorList;
 const MESSAGE =
-	"c15t: this visitor's policy uses IAB TCF, but `iab` is not set. Set `iab` on <ConsentManagerProvider> and render <IABConsentBanner>, or remove the IAB model from your policy.";
+	"c15t: this visitor's policy uses IAB TCF, but `iab` is not set. Set `iab` on <ConsentProvider> and render <IABConsentBanner>, or remove the IAB model from your policy.";
 
 const iabPolicy = () =>
 	policyFixture({}, { categories: ['marketing'], model: 'iab' }) as ReturnType<

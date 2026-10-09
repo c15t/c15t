@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Provider from '../../lib/components/manager-provider.svelte';
+	import Provider from '../../lib/components/consent-provider.svelte';
 	import Dialog from '../../lib/components/panel.svelte';
 	import Banner from '../../lib/components/prompt.svelte';
 	import type { ConsentContextValue } from '../../lib/context.svelte';
