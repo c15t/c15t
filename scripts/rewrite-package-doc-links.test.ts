@@ -4,6 +4,8 @@ import { expect, test } from 'vitest';
 
 import {
 	packageDocLink,
+	packageIndexLinks,
+	packagePromptLinks,
 	restorePackageDocIncludes,
 } from './rewrite-package-doc-links';
 
@@ -68,4 +70,62 @@ test('relative website routes become local Markdown links', () => {
 	expect(
 		packageDocLink('../assets/example.png', 'guides/example.md', files)
 	).toBe('../assets/example.png');
+});
+
+test('other root-relative site paths link to the website', () => {
+	expect(packageDocLink('/llms-full.txt', 'index.md', files)).toBe(
+		'https://c15t.com/llms-full.txt'
+	);
+	expect(packageDocLink('//cdn.example.com/a.js', 'index.md', files)).toBe(
+		'//cdn.example.com/a.js'
+	);
+});
+
+const promptFiles = new Set([
+	'upgrade-v3.md',
+	'frameworks/next/upgrade-v3.md',
+	'frameworks/react/upgrade-v3.md',
+]);
+
+test('prompt docs paths become bundled files relative to the page', () => {
+	expect(
+		packagePromptLinks(
+			'Read /docs/frameworks/next/upgrade-v3.md first and follow it in order.',
+			'frameworks/next/upgrade-v3.md',
+			promptFiles
+		)
+	).toBe('Read ./upgrade-v3.md first and follow it in order.');
+	expect(
+		packagePromptLinks(
+			'Read the guide: /docs/frameworks/next/upgrade-v3.md, /docs/frameworks/react/upgrade-v3.md or /docs/frameworks/javascript/upgrade-v3.md. Then read /docs/upgrade-v3.md.',
+			'upgrade-v3.md',
+			promptFiles
+		)
+	).toBe(
+		'Read the guide: ./frameworks/next/upgrade-v3.md, ./frameworks/react/upgrade-v3.md or https://c15t.com/docs/frameworks/javascript/upgrade-v3.md. Then read ./upgrade-v3.md.'
+	);
+});
+
+test('prompt text keeps paths that are not site docs', () => {
+	const text =
+		'Proxy /api/c15t, keep `src/docs/notes.md`, and read /docsets/x or https://inth.com/docs/a.md.';
+	expect(packagePromptLinks(text, 'upgrade-v3.md', promptFiles)).toBe(text);
+	expect(
+		packagePromptLinks(
+			'(/docs/upgrade-v3.md#backend)\n/docs/frameworks/react/upgrade-v3.md',
+			'frameworks/next/upgrade-v3.md',
+			promptFiles
+		)
+	).toBe('(../../upgrade-v3.md#backend)\n../react/upgrade-v3.md');
+});
+
+test('AGENTS.md root-relative links resolve beside the docs directory', () => {
+	expect(
+		packageIndexLinks(
+			'[Index](/docs/llms.txt) · [Full](/llms-full.txt) · [Guide](/docs/upgrade-v3) · [Kept](./docs/upgrade-v3.md)',
+			promptFiles
+		)
+	).toBe(
+		'[Index](https://c15t.com/docs/llms.txt) · [Full](https://c15t.com/llms-full.txt) · [Guide](./docs/upgrade-v3.md) · [Kept](./docs/upgrade-v3.md)'
+	);
 });

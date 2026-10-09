@@ -26,6 +26,8 @@ import type { PackageSkill } from './package-skill';
 import { renderPackageSkill } from './package-skill';
 import {
 	packageDocLink,
+	packageIndexLinks,
+	packagePromptLinks,
 	restorePackageDocIncludes,
 } from './rewrite-package-doc-links';
 
@@ -385,6 +387,11 @@ const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 						if (node.type === 'link' || node.type === 'definition') {
 							node.url = packageDocLink(node.url, file, bundledFiles);
 						}
+						// leadtype renders <Prompt> as a `prompt` code block, so its
+						// docs paths are plain text rather than link nodes.
+						if (node.type === 'code' && node.lang === 'prompt') {
+							node.value = packagePromptLinks(node.value, file, bundledFiles);
+						}
 					});
 				});
 			const path = join(docsDir, file);
@@ -405,7 +412,10 @@ const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 	const agentsPath = join(outDir, 'AGENTS.md');
 	const docsReadmePath = join(outDir, 'docs', 'README.md');
 	const agentsContent = withFrameworkGroups(
-		withPackageSetupLinks(readFileSync(agentsPath, 'utf8'), bundledFiles)
+		withPackageSetupLinks(
+			packageIndexLinks(readFileSync(agentsPath, 'utf8'), bundledFiles),
+			bundledFiles
+		)
 	);
 	writeFileSync(agentsPath, agentsContent);
 	writeFileSync(
