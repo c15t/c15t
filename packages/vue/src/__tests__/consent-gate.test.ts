@@ -12,8 +12,6 @@ import { translations as de } from '../../../translations/src/translations/de';
 import ConsentGate from '../runtime/components/consent-gate.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -22,6 +20,8 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
 
 let mounted: {
 	context: VueConsentKernelContext;

@@ -538,6 +538,22 @@ describe('deriveUmbrellaArtifacts', () => {
 		]);
 	});
 
+	it('claims the Vue component shims of a source that claims its .vue files', () => {
+		const artifacts = deriveUmbrellaArtifacts([
+			fixtureSource({
+				config: { directory: 'vue', packageName: '@c15t/vue', prefix: 'vue' },
+				exports: { '.': { import: './dist/module.mjs' } },
+				sideEffects: ['**/*.css', '**/*.vue'],
+			}),
+		]);
+
+		expect(artifacts.sideEffects).toEqual([
+			'**/*.css',
+			'**/*.vue',
+			'shims/vue/**/*.vue.js',
+		]);
+	});
+
 	it('claims every shim when a root-mounted source declares no sideEffects', () => {
 		const artifacts = deriveUmbrellaArtifacts([
 			fixtureSource({ exports: { '.': { import: './dist/index.js' } } }),

@@ -1,20 +1,18 @@
 /**
- * The plain-Vue Vite plugin resolves its runtime modules relative to its own
- * file: source builds ship `.ts`, the published dist ships `.js`. Hardcoding
- * `.ts` broke every consumer of the published package, so both shapes are
- * pinned here — the source plugin against `src/`, and (when the package is
- * built, as it always is under `turbo run test`) the dist plugin against the
- * emitted `dist/` tree.
+ * The plain-Vue Vite plugin, and the runtime specifiers the package resolves
+ * itself. The published dist ships `.js`, so the `imports` targets are
+ * checked against the emitted `dist/` tree when the package is built, as it
+ * always is under `turbo run test`.
  */
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { c15tVue, consentManifest } from '../vite';
+import { consentManifest } from '../vite';
 
 const packageDir = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const distVitePath = join(packageDir, 'dist/vite.mjs');
@@ -48,54 +46,39 @@ describe('Vue manifest module', () => {
 	});
 });
 
-interface ResolvedPluginPaths {
-	stubPath: string;
-	composablesPath: string;
+interface PackageImports {
+	imports: Record<string, { default: string; types: string }>;
 }
 
-const resolvePluginPaths = function resolvePluginPaths(
-	factory: () => unknown
-): ResolvedPluginPaths {
-	const plugin = factory() as {
-		resolveId: (id: string) => string | undefined;
-		config: () => { resolve: { alias: Record<string, string> } };
-	};
-	const stubPath = plugin.resolveId('#imports');
-	const composablesPath = plugin.config().resolve.alias['#c15t/composables'];
-	if (!(stubPath && composablesPath)) {
-		throw new Error('plugin did not resolve its runtime modules');
-	}
-	return { composablesPath, stubPath };
-};
+describe('consentManifest()', () => {
+	it('keeps the packages that ship .vue files out of dependency pre-bundling', () => {
+		const { optimizeDeps } = consentManifest().config();
 
-describe('c15tVue plugin runtime resolution', () => {
-	it('resolves the committed .ts runtime modules from source', () => {
-		const { composablesPath, stubPath } = resolvePluginPaths(c15tVue);
-
-		expect(stubPath).toBe(join(packageDir, 'src/runtime/vue/stubs.ts'));
-		expect(existsSync(stubPath)).toBe(true);
-		expect(composablesPath).toBe(
-			join(packageDir, 'src/runtime/composables/index.ts')
+		expect(optimizeDeps.exclude).toEqual(
+			expect.arrayContaining(['@c15t/core/generated', '@c15t/vue', 'c15t'])
 		);
-		expect(existsSync(composablesPath)).toBe(true);
 	});
+});
 
+describe('runtime specifiers', () => {
+	// `#imports` and `#c15t/composables` resolve through the package's own
+	// `imports` field in a plain Vue app, so it needs no resolver plugin.
+	// Nuxt aliases both first.
 	it.runIf(existsSync(distVitePath))(
-		'resolves the emitted .js runtime modules from dist',
-		async () => {
-			const distModule = (await import(pathToFileURL(distVitePath).href)) as {
-				c15tVue: () => unknown;
-			};
-			const { composablesPath, stubPath } = resolvePluginPaths(
-				distModule.c15tVue
-			);
+		'point at runtime modules the build emits',
+		() => {
+			const { imports } = JSON.parse(
+				readFileSync(join(packageDir, 'package.json'), 'utf8')
+			) as PackageImports;
 
-			expect(stubPath).toBe(join(packageDir, 'dist/runtime/vue/stubs.js'));
-			expect(existsSync(stubPath)).toBe(true);
-			expect(composablesPath).toBe(
-				join(packageDir, 'dist/runtime/composables/index.js')
-			);
-			expect(existsSync(composablesPath)).toBe(true);
+			expect(Object.keys(imports).sort()).toEqual([
+				'#c15t/composables',
+				'#imports',
+			]);
+			for (const target of Object.values(imports)) {
+				expect(existsSync(join(packageDir, target.default))).toBe(true);
+				expect(existsSync(join(packageDir, target.types))).toBe(true);
+			}
 		}
 	);
 });

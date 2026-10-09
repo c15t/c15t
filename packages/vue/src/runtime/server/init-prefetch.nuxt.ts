@@ -34,7 +34,7 @@ export default defineNitroPlugin((nitroApp) => {
 		const appConfig = useServerAppConfig(event) as
 			| { c15t?: Partial<RuntimeConsentConfig> }
 			| undefined;
-		// A `customFetch` or `consentSource` in `app.config.ts` rules the
+		// A `consentSource` or `experiment` in `app.config.ts` rules the
 		// script out, so without that file the browser starts `/init`.
 		if (!appConfig) {
 			return;

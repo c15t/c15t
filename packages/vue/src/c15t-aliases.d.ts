@@ -36,20 +36,29 @@ declare module '#c15t/server-app-config' {
 	) => Record<string, unknown> | undefined;
 }
 
-/** A Nitro virtual the module registers for its server routes. */
+/** A Nitro virtual the module registers for its consent route. */
 declare module '#c15t/manifest-snapshot' {
 	import type { ConsentManifest } from '@c15t/schema/types';
 
-	/** The manifest fetched during the build, or `undefined` without one. */
+	/** The server snapshot, or `undefined` without one. */
 	const manifest: ConsentManifest | undefined;
 	export default manifest;
 }
 
-/** A Nuxt template the module registers for client manifest mode. */
+/** A Nuxt template the server render reads without a consent route. */
+declare module '#c15t/server-manifest-snapshot' {
+	import type { ConsentManifest } from '@c15t/schema/types';
+
+	/** The server snapshot, or `undefined` without one. */
+	const manifest: ConsentManifest | undefined;
+	export default manifest;
+}
+
+/** A Nuxt template the browser reads in `manifest({ resolve: 'browser' })`. */
 declare module '#c15t/client-manifest-snapshot' {
 	import type { ConsentManifest } from '@c15t/schema/types';
 
-	/** A `manifestSnapshot` from the `c15t` key, in client manifest mode. */
+	/** The snapshot for browser resolution; `undefined` in every other mode. */
 	const manifest: ConsentManifest | undefined;
 	export default manifest;
 }

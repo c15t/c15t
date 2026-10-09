@@ -5,6 +5,7 @@ import type { BlockedRequestInfo } from '@c15t/core/modules/network-blocker';
 import type { NitroRouteConfig } from 'nitropack/types';
 import { expectTypeOf } from 'vitest';
 
+import type { hosted, manifest } from '../src/module';
 import type { ModuleOptions } from '../src/nuxt-options';
 
 // Module options accept every runtime option that survives JSON.
@@ -57,12 +58,23 @@ expectTypeOf<{
 	storageConfig: { crossSubdomain: true; storageKey: 'consent' };
 }>().toExtend<ModuleOptions>();
 
-// The domain the hosted transport sends with consent requests.
-expectTypeOf<{ domain: 'example.com' }>().toExtend<ModuleOptions>();
-export const wrongDomain: ModuleOptions = {
-	// @ts-expect-error A domain is a string.
-	domain: 1,
+// `mode` is the data the module entry's factories return, and
+// `routePrefix` a path or `false`. Both are `nuxt.config.ts` options.
+expectTypeOf<{
+	mode: ReturnType<typeof manifest>;
+	routePrefix: false;
+}>().toExtend<ModuleOptions>();
+expectTypeOf<{ mode: ReturnType<typeof hosted> }>().toExtend<ModuleOptions>();
+export const wrongRoutePrefix: ModuleOptions = {
+	// @ts-expect-error A route prefix is a path or `false`.
+	routePrefix: true,
 };
+export const modeInAppConfig = defineAppConfig({
+	c15t: {
+		// @ts-expect-error The build reads `mode` from nuxt.config.ts only.
+		mode: { type: 'hosted' },
+	},
+});
 
 export const unknownAppConfig = defineAppConfig({
 	c15t: {

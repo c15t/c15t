@@ -59,8 +59,8 @@
 	"type": "module",
 	"sideEffects": [
 		"**/*.css",
-		"shims/vue.*",
-		"shims/vue/**"
+		"**/*.vue",
+		"shims/vue/**/*.vue.js"
 	],
 	"main": "./shims/index.js",
 	"types": "./shims/index.d.ts",
@@ -503,16 +503,6 @@
 			"import": "./shims/vue/devtools.js",
 			"default": "./shims/vue/devtools.js"
 		},
-		"./vue/consent-root": {
-			"types": "./shims/vue/consent-root.d.ts",
-			"import": "./shims/vue/consent-root.js",
-			"default": "./shims/vue/consent-root.js"
-		},
-		"./vue/consent-widget": {
-			"types": "./shims/vue/preferences.d.ts",
-			"import": "./shims/vue/preferences.js",
-			"default": "./shims/vue/preferences.js"
-		},
 		"./vue/runtime/*": "./shims/vue/runtime/*",
 		"./vue/composables/*": "./shims/vue/composables/*",
 		"./vue/runtime/components/consent-banner.vue": {
@@ -555,10 +545,10 @@
 			"import": "./shims/vue/runtime/components/consent-branding-icon.vue.js",
 			"default": "./shims/vue/runtime/components/consent-branding-icon.vue.js"
 		},
-		"./vue/runtime/components/consent-preferences-link.vue": {
-			"types": "./shims/vue/runtime/components/consent-preferences-link.vue.d.ts",
-			"import": "./shims/vue/runtime/components/consent-preferences-link.vue.js",
-			"default": "./shims/vue/runtime/components/consent-preferences-link.vue.js"
+		"./vue/runtime/components/consent-dialog-link.vue": {
+			"types": "./shims/vue/runtime/components/panel-link.vue.d.ts",
+			"import": "./shims/vue/runtime/components/panel-link.vue.js",
+			"default": "./shims/vue/runtime/components/panel-link.vue.js"
 		},
 		"./vue/runtime/components/consent-button.vue": {
 			"types": "./shims/vue/runtime/components/consent-button.vue.d.ts",
@@ -594,11 +584,6 @@
 			"types": "./shims/vue/runtime/components/consent-gate.vue.d.ts",
 			"import": "./shims/vue/runtime/components/consent-gate.vue.js",
 			"default": "./shims/vue/runtime/components/consent-gate.vue.js"
-		},
-		"./vue/runtime/components/consent-frame.vue": {
-			"types": "./shims/vue/runtime/components/consent-frame.vue.d.ts",
-			"import": "./shims/vue/runtime/components/consent-frame.vue.js",
-			"default": "./shims/vue/runtime/components/consent-frame.vue.js"
 		},
 		"./vue/runtime/components/consent-legal-links.vue": {
 			"types": "./shims/vue/runtime/components/consent-legal-links.vue.d.ts",

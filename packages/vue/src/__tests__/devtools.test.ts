@@ -12,8 +12,8 @@ import ConsentDevToolsDefault, {
 	DevTools,
 } from '../devtools';
 import { consentConfigKey } from '../runtime/composables/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import { symbolKernelContext, symbolKernel } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const KernelProvider = defineComponent({
 	props: {

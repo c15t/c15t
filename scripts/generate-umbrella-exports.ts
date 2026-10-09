@@ -622,6 +622,9 @@ const buildWildcardEntry = function buildWildcardEntry(
 	return mapped;
 };
 
+/** The `sideEffects` claim of a package that ships Vue single-file components. */
+const VUE_FILES = '**/*.vue';
+
 /**
  * Derives the umbrella's `sideEffects` claim from the mirrored packages' own
  * declarations. The umbrella defaults to claiming only CSS as side-effectful
@@ -656,11 +659,22 @@ const deriveSideEffects = function deriveSideEffects(
 		if (
 			Array.isArray(declared) &&
 			declared.every(
-				(pattern) => typeof pattern === 'string' && pattern.endsWith('.css')
+				(pattern) =>
+					typeof pattern === 'string' &&
+					(pattern.endsWith('.css') || pattern === VUE_FILES)
 			)
 		) {
-			// CSS-only claims are covered by the umbrella's own `**/*.css`:
-			// the mirrored CSS subpaths are real files under `dist/`.
+			// CSS claims are covered by the umbrella's own `**/*.css`: the
+			// mirrored CSS subpaths are real files under `dist/`. A `.vue`
+			// claim covers the SFC shims, and the `.vue.js` shims that
+			// re-export a `.vue` entry.
+			if (declared.includes(VUE_FILES)) {
+				const { prefix } = source.config;
+				sideEffects.push(
+					VUE_FILES,
+					prefix ? `shims/${prefix}/**/*.vue.js` : 'shims/**/*.vue.js'
+				);
+			}
 			continue;
 		}
 		if (declared === undefined || declared === true) {

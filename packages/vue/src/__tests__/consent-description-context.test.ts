@@ -17,7 +17,6 @@ import { expect, test } from 'vitest';
 import ConsentDescription from '../runtime/components/description.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -26,6 +25,7 @@ import {
 	symbolKernelContext,
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
+import { createVueConsentKernelContext } from './test-kernel';
 
 const rule: PolicyRule = {
 	categories: ['measurement'],

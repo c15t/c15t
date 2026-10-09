@@ -46,8 +46,6 @@ import ConsentWidget from '../runtime/components/preferences.vue';
 import ConsentBanner from '../runtime/components/prompt.vue';
 import { consentConfigKey } from '../runtime/composables/config';
 import type { ConsentConfig } from '../runtime/config';
-import { createVueConsentKernelContext } from '../runtime/kernel';
-import type { VueConsentKernelContext } from '../runtime/kernel';
 import {
 	symbolActiveUI,
 	symbolConsent,
@@ -57,6 +55,8 @@ import {
 	symbolSnapshot,
 } from '../runtime/utils/symbols';
 import { createPolicySession, probePolicyContract } from './policy-driver';
+import { createVueConsentKernelContext } from './test-kernel';
+import type { VueConsentKernelContext } from './test-kernel';
 
 type ProviderOptions = Partial<ConsentConfig> & {
 	callbacks?: Record<string, (...args: unknown[]) => void>;

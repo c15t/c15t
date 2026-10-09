@@ -1,73 +1,9 @@
-import { existsSync } from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import { createConsentManifestPlugin } from '@c15t/core/build';
-import type { ManifestBuildOptions } from '@c15t/core/build';
-import type { Plugin } from 'vite';
+import type {
+	ConsentManifestPlugin,
+	ManifestBuildOptions,
+} from '@c15t/core/build';
 
-const dir = path.dirname(fileURLToPath(import.meta.url));
-
-/**
- * Source builds ship .ts, dist builds ship .js — resolve whichever exists
- * (hardcoding .ts broke every consumer of the published package; the Nuxt
- * module entry probes the same way).
- */
-const resolveRuntimeModule = function resolveRuntimeModule(
-	...candidates: string[]
-): string {
-	return candidates
-		.map((candidate) => path.resolve(dir, candidate))
-		.find((candidatePath) => existsSync(candidatePath)) as string;
-};
-
-const stubPath = resolveRuntimeModule(
-	'./runtime/vue/stubs.ts',
-	'./runtime/vue/stubs.js'
-);
-
-const composablesPath = resolveRuntimeModule(
-	'./runtime/composables/index.ts',
-	'./runtime/composables/index.js'
-);
-
-/**
- * Resolve the Nuxt-shaped specifiers `@c15t/vue`'s shared runtime uses.
- *
- * `#imports` and `#c15t/composables` are Nuxt virtuals; a plain Vue or
- * Astro app has neither. Both are answered from `resolveId` rather than
- * `resolve.alias` alone: a host that sets its own aliases in array form
- * (Astro does) replaces the object this plugin's `config()` contributes
- * instead of merging with it, and the composables specifier then reaches
- * Rollup unresolved. The alias stays for anything that reads it directly.
- *
- * @returns The Vite plugin to list in a non-Nuxt app's config.
- */
-export const c15tVue = function c15tVue(): Plugin {
-	return {
-		config() {
-			return {
-				resolve: {
-					alias: {
-						'#c15t/composables': composablesPath,
-					},
-				},
-			};
-		},
-		enforce: 'pre',
-		name: '@c15t/vue',
-		resolveId(id) {
-			if (id === '#imports') {
-				return stubPath;
-			}
-			if (id === '#c15t/composables') {
-				return composablesPath;
-			}
-		},
-	};
-};
-
-export default c15tVue;
 export type {
 	ConsentManifest,
 	ManifestBuildErrorMode,
@@ -75,25 +11,65 @@ export type {
 } from '@c15t/core/build';
 
 /**
- * Fetches the deployment's consent manifest when Vite starts and serves it
- * as the virtual module `@c15t/core/generated` (also `c15t/generated`), for
- * a plain Vue single-page app. Import `snapshot` from it; no file is
- * written into the app.
+ * Packages that ship `.vue` files. Vite's dependency pre-bundling cannot
+ * load them, so they stay out of it, along with the `c15t` umbrella that
+ * re-exports them.
+ */
+const VUE_SOURCE_PACKAGES = ['@c15t/vue', 'c15t'];
+
+/** What {@link consentManifest} returns: one Vite plugin. */
+export type VueConsentManifestPlugin = Omit<ConsentManifestPlugin, 'config'> & {
+	config: () => ReturnType<ConsentManifestPlugin['config']>;
+};
+
+/**
+ * The c15t Vite plugin for a plain Vue app. It fetches the deployment's
+ * consent manifest when Vite starts and serves it as the virtual module
+ * `@c15t/core/generated` (also `c15t/generated`), which `manifest()` and
+ * `hosted()` from `c15t/vue/vue-plugin` read. No file is written into the
+ * app. It also keeps `@c15t/vue`, whose components are `.vue` files, out of
+ * dependency pre-bundling.
  *
  * `backendURL` defaults to `VITE_C15T_BACKEND_URL`, including `.env` files.
  * When that variable is unset, the plugin sets
  * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so app code
  * reads the same value. A missing URL or a failed fetch stops `vite build`
- * and warns in `vite dev`, where `snapshot` is `undefined`. Set
- * `onBuildError` or `C15T_ON_BUILD_ERROR` to change that.
+ * and warns in `vite dev`, where `manifest()` then fetches the manifest
+ * when the app starts. Set `onBuildError` or `C15T_ON_BUILD_ERROR` to
+ * change that.
  *
  * @param options - Backend URL and `onBuildError`. Appends `/manifest`.
  * @returns A Vite plugin.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
  * `vite build`.
+ * @example
+ * ```ts
+ * import vue from '@vitejs/plugin-vue';
+ * import { consentManifest } from 'c15t/vue/vite';
+ * import { defineConfig } from 'vite';
+ *
+ * export default defineConfig({
+ * 	plugins: [vue(), consentManifest()],
+ * });
+ * ```
  */
-export const consentManifest = (options: ManifestBuildOptions = {}) =>
-	createConsentManifestPlugin(options, {
+export const consentManifest = (
+	options: ManifestBuildOptions = {}
+): VueConsentManifestPlugin => {
+	const plugin = createConsentManifestPlugin(options, {
 		envNames: ['VITE_C15T_BACKEND_URL'],
 		label: '@c15t/vue/vite',
 	});
+	return {
+		...plugin,
+		config: () => {
+			const config = plugin.config();
+			return {
+				...config,
+				optimizeDeps: {
+					exclude: [...config.optimizeDeps.exclude, ...VUE_SOURCE_PACKAGES],
+				},
+			};
+		},
+	};
+};

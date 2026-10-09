@@ -4,8 +4,8 @@ import { afterEach, beforeAll, describe, expect, test, vi } from 'vitest';
 import { createApp, createSSRApp, defineComponent, h, toValue } from 'vue';
 import type { App } from 'vue';
 
-import { c15tVue, generateTokensCSS } from '../index';
-import type { C15tVuePluginOptions } from '../index';
+import { c15tVue, generateTokensCSS } from './test-plugin';
+import type { C15tVuePluginOptions } from './test-plugin';
 
 const nuxt = vi.hoisted(() => ({
 	appConfig: {} as Record<string, unknown>,
