@@ -1,6 +1,14 @@
 // #region docs:quickstart-config title="c15t.config.ts"
+import { posthog } from '@c15t/integrations/posthog';
 import { defineConsentConfig } from 'c15t/next';
 
-// The backend URL comes from NEXT_PUBLIC_C15T_BACKEND_URL.
-export const consentConfig = defineConsentConfig({ routePrefix: '/api/c15t' });
+export default defineConsentConfig({
+	scripts: [
+		posthog({
+			id: 'phc_your_project_key',
+			initOptions: { cookieless_mode: 'never' },
+			loadMode: 'after-consent',
+		}),
+	],
+});
 // #endregion docs:quickstart-config

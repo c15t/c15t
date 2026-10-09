@@ -1,4 +1,4 @@
-{/* Generated from examples/nextjs/components/consent.tsx (docs:consent-wrapper) by scripts/sync-example-docs.ts. Edit the source file. */}
+{/* Generated from internals/doc-snippets/nextjs/components/consent.tsx (docs:consent-wrapper) by scripts/sync-example-docs.ts. Edit the source file. */}
 
 ```tsx title="components/consent.tsx"
 'use client';
@@ -12,16 +12,16 @@ import {
 import type { ConsentRootProps } from 'c15t/next';
 import type { ReactNode } from 'react';
 
-import { consentConfig } from '@/c15t.config';
 import { scripts } from '@/lib/scripts';
 
 interface ConsentProps {
 	children: ReactNode;
-	state: ConsentRootProps['state'];
+	state?: ConsentRootProps['state'];
 }
 
+// ConsentRoot reads c15t.config.ts itself; props win over the config.
 export const Consent = ({ children, state }: ConsentProps) => (
-	<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
+	<ConsentRoot state={state} scripts={scripts}>
 		{children}
 		<ConsentBanner />
 		<ConsentDialog />
