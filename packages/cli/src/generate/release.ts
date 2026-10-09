@@ -37,6 +37,7 @@ export const LINKED_C15T_PACKAGES: ReadonlySet<string> = new Set([
 	'@c15t/core',
 	'@c15t/dev-tools',
 	'@c15t/iab',
+	'@c15t/integrations',
 	'@c15t/nextjs',
 	'@c15t/node-sdk',
 	'@c15t/react',
