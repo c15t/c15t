@@ -464,6 +464,26 @@ describe('manifest() early init for a provider', () => {
 		expect(first && again && first.sameAs(again)).toBe(true);
 		expect(first && other && first.sameAs(other)).toBe(false);
 	});
+
+	it('recognizes an equal manifest built again during render', () => {
+		const fetchSpy = vi.fn<typeof fetch>();
+		const first = earlyInitModes.get(
+			manifest(options(structuredClone(bannerSomewhereManifest), fetchSpy))
+		);
+		const again = earlyInitModes.get(
+			manifest(options(structuredClone(bannerSomewhereManifest), fetchSpy))
+		);
+		const edited = earlyInitModes.get(
+			manifest(
+				options(
+					{ ...structuredClone(bannerSomewhereManifest), appName: 'other' },
+					fetchSpy
+				)
+			)
+		);
+		expect(first && again && first.sameAs(again)).toBe(true);
+		expect(first && edited && first.sameAs(edited)).toBe(false);
+	});
 });
 
 describe('manifest()', () => {

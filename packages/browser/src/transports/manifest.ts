@@ -315,6 +315,34 @@ const localAnswer = function localAnswer(
 /** The options each `manifest()` early-init entry was registered with. */
 const earlySettings = new WeakMap<EarlyInitMode, ManifestModeOptions>();
 
+/** Each inline manifest's JSON, built once per object. */
+const manifestText = new WeakMap<ConsentManifest, string>();
+
+/**
+ * Whether two inline manifests are the same. A manifest built during
+ * render is a new object on every render, so equal content counts too.
+ */
+const sameManifest = function sameManifest(
+	a: ConsentManifest | undefined,
+	b: ConsentManifest | undefined
+): boolean {
+	if (a === b) {
+		return true;
+	}
+	if (!a || !b || a.revision !== b.revision) {
+		return false;
+	}
+	const text = (value: ConsentManifest) => {
+		let json = manifestText.get(value);
+		if (json === undefined) {
+			json = JSON.stringify(value);
+			manifestText.set(value, json);
+		}
+		return json;
+	};
+	return text(a) === text(b);
+};
+
 /**
  * Resolve `/init` in the browser from the backend's consent manifest.
  *
@@ -446,7 +474,7 @@ export const manifest = function manifest(
 			const theirs = earlySettings.get(other);
 			return (
 				theirs !== undefined &&
-				theirs.manifest === settings.manifest &&
+				sameManifest(theirs.manifest, settings.manifest) &&
 				theirs.fetch === settings.fetch &&
 				theirs.manifestURL === settings.manifestURL &&
 				theirs.backendURL === settings.backendURL &&
