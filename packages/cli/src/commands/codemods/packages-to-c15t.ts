@@ -1,4 +1,4 @@
-import { join } from 'node:path';
+import { extname, join } from 'node:path';
 
 import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
@@ -92,6 +92,9 @@ const STYLESHEET_SPECIFIER =
 	/^@c15t\/(?<pkg>react|nextjs)\/(?<iab>iab\/)?styles(?<tw3>\.tw3)?\.css$/u;
 const CSS_IMPORT =
 	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*?);?(?:\s*\/\*.*?\*\/)*\s*$/u;
+/** The same `@import` in Sass or Less, which also allow a trailing `//` comment. */
+const PREPROCESSOR_IMPORT =
+	/^(?<indent>[\t ]*)@import\s+(?:url\(\s*)?(?<quote>['"])(?<specifier>@c15t\/(?:react|nextjs)\/(?:iab\/)?styles(?:\.tw3)?\.css)\k<quote>(?:\s*\))?(?<conditions>[^;]*?);?(?:\s*\/\*.*?\*\/)*(?:\s*\/\/.*)?\s*$/u;
 
 const KEPT_SUMMARY = ', kept with a TODO';
 
@@ -304,13 +307,17 @@ const transformWith = (
 /** Removes or keeps stylesheet `@import`s, one line at a time. */
 const transformStylesheet = function transformStylesheet(
 	text: string,
+	filePath: string,
 	plan: ImportPlan
 ): { text: string; operations: number; summaries: string[] } {
+	// Plain CSS has no `//` comments, and `//` there can sit inside a URL.
+	const pattern =
+		extname(filePath) === '.css' ? CSS_IMPORT : PREPROCESSOR_IMPORT;
 	const lines: string[] = [];
 	const summaries = new Set<string>();
 	let operations = 0;
 	for (const line of text.split('\n')) {
-		const groups = CSS_IMPORT.exec(line)?.groups;
+		const groups = pattern.exec(line)?.groups;
 		if (!groups) {
 			lines.push(line);
 			continue;
@@ -381,7 +388,7 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 	const stylesheets = await runTextTransform(
 		options,
 		STYLESHEET_EXTENSIONS,
-		(text) => transformStylesheet(text, plan)
+		(text, filePath) => transformStylesheet(text, filePath, plan)
 	);
 	const result = mergeResults(sources, stylesheets);
 	const keptStylesheets = result.changedFiles.some((file) =>

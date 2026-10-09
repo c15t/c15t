@@ -232,6 +232,51 @@ import { YouTubeEmbed } from '@c15t/react/components/integrations';
 `);
 	});
 
+	it('handles // comments after stylesheet imports in Sass and Less', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/index.css': `@import '@c15t/react/styles.css'; // not a CSS comment
+`,
+				'src/legacy.less': `@import '@c15t/react/styles.css'; // legacy
+`,
+				'src/main.scss': `@import '@c15t/react/styles.css'; // legacy
+@import "@c15t/react/iab/styles.css"; /* block */ // and line
+`,
+				'src/theme.sass': `@import '@c15t/react/styles.css' // indented syntax
+`,
+			}
+		);
+
+		expect(await read('src/main.scss')).toBe('');
+		expect(await read('src/theme.sass')).toBe('');
+		expect(await read('src/legacy.less')).toBe('');
+		// Plain CSS has no // comments, so the line is left alone.
+		expect(await read('src/index.css')).toBe(
+			`@import '@c15t/react/styles.css'; // not a CSS comment
+`
+		);
+	});
+
+	it('keeps a // comment when it rewrites a Sass stylesheet import', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.0' },
+			{
+				'src/main.scss': `@import '@c15t/react/styles.css'; // legacy
+`,
+				'src/theme.sass': `@import '@c15t/react/styles.css' // indented syntax
+`,
+			}
+		);
+
+		expect(await read('src/main.scss')).toBe(`/* ${TODO} */
+@import 'c15t/react/styles.css'; // legacy
+`);
+		expect(await read('src/theme.sass')).toBe(`/* ${TODO} */
+@import 'c15t/react/styles.css' // indented syntax
+`);
+	});
+
 	it('keeps a stylesheet imported into a named layer', async () => {
 		const { read } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
