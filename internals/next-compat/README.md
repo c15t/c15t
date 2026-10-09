@@ -52,7 +52,7 @@ bun run --cwd internals/next-compat/next-16-app test:compat       # skip turbo; 
 bun run --cwd internals/next-compat/next-16-cache-components test:compat tests/dev-prerender.test.ts
 ```
 
-The global setup (`shared/src/suite/global-setup.ts`) runs the cell's `build` script when `.next/BUILD_ID` is absent, starts `next start` on a free port, and stops it afterwards. `COMPAT_FORCE_BUILD=1` rebuilds; `COMPAT_SKIP_BUILD=1` never builds; `COMPAT_PRINT_SERVER_LOGS=1` prints the server output at teardown.
+The global setup (`shared/src/suite/global-setup.ts`) runs the cell's `build` script when `.next/BUILD_ID` is absent, starts `next start` on a free port, and stops it afterwards. When reusing a build, it restores the packed packages first: Turbo caches the app output, but not its `node_modules`. `COMPAT_FORCE_BUILD=1` rebuilds; `COMPAT_SKIP_BUILD=1` skips compilation but still installs the packed packages; `COMPAT_PRINT_SERVER_LOGS=1` prints the server output at teardown.
 
 A cell can opt out of that flow with a `compat.config.ts` exporting `{ mode: 'static-export' }` (`shared/src/suite/cell-config.ts`). The setup then starts the backend stub on its own port first, runs the build with `NEXT_PUBLIC_COMPAT_BACKEND_URL` set to the stub's absolute URL, and serves `out/` from a small static file server (`shared/src/suite/static-server.ts`) on a second port. Because the stub URL is baked into the export, the setup records it in `.next/compat-static-export.json` and only reuses an existing `out/` when it gets the same port back; otherwise it rebuilds. `bun run build` on its own fails in that cell by design: the manifest step needs the stub URL, so run `test:compat`.
 

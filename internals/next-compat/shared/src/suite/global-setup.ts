@@ -12,6 +12,7 @@ import type { TestProject } from 'vitest/node';
 import { startFixtureServer } from '../fixture/standalone';
 import type { FixtureServer } from '../fixture/standalone';
 import { readCellConfig } from './cell-config';
+import { prepareCompatCell } from './prepare-cell';
 import './provided-context';
 import { startStaticServer } from './static-server';
 
@@ -31,32 +32,6 @@ const getFreePort = async function getFreePort(): Promise<number> {
 const resolveNextBin = function resolveNextBin(appDir: string): string {
 	const require = createRequire(join(appDir, 'package.json'));
 	return require.resolve('next/dist/bin/next');
-};
-
-const run = async function run(
-	args: string[],
-	appDir: string,
-	label: string,
-	command: string = process.execPath,
-	env: Record<string, string> = {}
-): Promise<void> {
-	const child = spawn(command, args, {
-		cwd: appDir,
-		env: { ...process.env, NEXT_TELEMETRY_DISABLED: '1', ...env },
-		stdio: ['ignore', 'pipe', 'pipe'],
-	});
-	let logs = '';
-	child.stdout.on('data', (chunk) => {
-		logs += String(chunk);
-	});
-	child.stderr.on('data', (chunk) => {
-		logs += String(chunk);
-	});
-	// `once` rejects if the child emits `error` before it exits.
-	const [code] = (await once(child, 'exit')) as [number | null];
-	if (code !== 0) {
-		throw new Error(`${label} failed (exit ${code})\n${logs}`);
-	}
 };
 
 const isServerReady = async function isServerReady(
@@ -90,13 +65,6 @@ const waitForServer = async function waitForServer(
 	return waitForServer(baseURL, child, attempt + 1);
 };
 
-const shouldBuild = function shouldBuild(built: boolean): boolean {
-	return (
-		process.env.COMPAT_SKIP_BUILD !== '1' &&
-		(process.env.COMPAT_FORCE_BUILD === '1' || !built)
-	);
-};
-
 /**
  * Default mode: `next build` (when needed), then `next start` serves the app
  * together with the stub mounted inside it.
@@ -107,10 +75,10 @@ const setupServer = async function setupServer(
 ) {
 	const nextBin = resolveNextBin(appDir);
 
-	if (shouldBuild(existsSync(join(appDir, '.next', 'BUILD_ID')))) {
-		// The cell's build script installs the packed packages before `next build`.
-		await run(['run', 'build'], appDir, 'bun run build', 'bun');
-	}
+	await prepareCompatCell(
+		appDir,
+		existsSync(join(appDir, '.next', 'BUILD_ID'))
+	);
 
 	const port = await getFreePort();
 	const baseURL = `http://${HOST}:${port}`;
@@ -227,10 +195,10 @@ const setupStaticExport = async function setupStaticExport(
 		const built =
 			existsSync(join(appDir, 'out', 'index.html')) &&
 			marker?.backendURL === backendURL;
-		if (shouldBuild(built)) {
-			await run(['run', 'build'], appDir, 'bun run build', 'bun', {
-				NEXT_PUBLIC_COMPAT_BACKEND_URL: backendURL,
-			});
+		const rebuilt = await prepareCompatCell(appDir, built, {
+			NEXT_PUBLIC_COMPAT_BACKEND_URL: backendURL,
+		});
+		if (rebuilt) {
 			writeFileSync(
 				join(appDir, STATIC_EXPORT_MARKER),
 				JSON.stringify({ backendURL } satisfies StaticExportMarker)
