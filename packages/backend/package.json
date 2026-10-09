@@ -93,6 +93,7 @@
 		"@c15t/browser": "workspace:*",
 		"@c15t/schema": "workspace:*",
 		"@c15t/translations": "workspace:*",
+		"@hono/standard-validator": "0.2.3",
 		"effect": "4.0.0",
 		"evlog": "2.22.4",
 		"hono": "^4.12.34",
