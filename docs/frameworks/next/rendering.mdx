@@ -255,7 +255,8 @@ allows; Customize opens the dialog.
 
 A tap made on a banner for one model or prompt is dropped when the browser
 resolves another, and the banner shows again. A banner you build from hooks
-has no inline script, so a tap before hydration does nothing there. Neither
+has no inline script, so a tap before hydration does nothing there, and a
+page with two stock banners holds no early taps at all. Neither
 does a button in a composed `ConsentBanner` that has its own `onClick`, on
 itself or on its `asChild` element, or `performDefaultAction={false}`, so your handler still decides that tap. Under a
 Content Security Policy the script needs `options.nonce`; see

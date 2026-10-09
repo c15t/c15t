@@ -191,6 +191,20 @@ describe('the inline script', () => {
 		expect(hidden()).toBe(false);
 	});
 
+	test('leaves taps alone while the page has more than one banner', () => {
+		// Two banners can belong to two runtimes, and the first to hydrate
+		// would claim the shared queue.
+		runScript();
+		renderBanner();
+		document.body.insertAdjacentHTML('beforeend', document.body.innerHTML);
+		const handler = vi.fn();
+		document.addEventListener('click', handler);
+		tap('accept');
+		expect(handler).toHaveBeenCalledOnce();
+		expect(queue()?.taps).toEqual([]);
+		expect(hidden()).toBe(false);
+	});
+
 	test('leaves the IAB banner and other buttons alone', () => {
 		runScript();
 		renderBanner('iab');
