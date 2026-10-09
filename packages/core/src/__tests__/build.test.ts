@@ -10,6 +10,7 @@ import {
 	consentManifest,
 	loadBuildManifest,
 	writeManifestModule,
+	writeManifestModuleWithFallback,
 } from '../build';
 
 const MANIFEST_FIXTURE = {
@@ -190,6 +191,155 @@ describe('manifest output', () => {
 			);
 		}
 	);
+});
+
+describe('manifest module with runtime fallback', () => {
+	const defaults = {
+		importSource: 'c15t/build',
+		label: 'test/build',
+		outputFile: 'generated/manifest.ts',
+	};
+	const createLogger = () => ({ info: vi.fn(), warn: vi.fn() });
+	const STUB =
+		'export const consentManifest: ConsentManifest | undefined = undefined;';
+
+	test('writes the snapshot when the fetch succeeds', async () => {
+		const options = optionsFor(await createRoot());
+		const logger = createLogger();
+		const file = await writeManifestModuleWithFallback(
+			options,
+			defaults,
+			logger
+		);
+		expect(await readFile(file, 'utf8')).toContain('build-test');
+		expect(logger.warn).not.toHaveBeenCalled();
+	});
+
+	test('warns and writes an undefined export when the fetch fails', async () => {
+		const options = optionsFor(await createRoot());
+		options.fetch.mockRejectedValue(
+			new TypeError('fetch failed', {
+				cause: Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:9'), {
+					code: 'ECONNREFUSED',
+				}),
+			})
+		);
+		const logger = createLogger();
+		const file = await writeManifestModuleWithFallback(
+			options,
+			defaults,
+			logger
+		);
+		const source = await readFile(file, 'utf8');
+		expect(source).toContain(
+			"import type { ConsentManifest } from 'c15t/build';"
+		);
+		expect(source).toContain(STUB);
+		expect(logger.warn).toHaveBeenCalledTimes(1);
+		const [message] = logger.warn.mock.calls[0] ?? [];
+		expect(message).toContain('test/build: could not fetch');
+		expect(message).toContain('ECONNREFUSED 127.0.0.1:9');
+		expect(message).toContain("`onBuildError: 'fail'`");
+	});
+
+	test('replaces an earlier snapshot instead of reusing it', async () => {
+		const options = optionsFor(await createRoot());
+		const file = await writeManifestModuleWithFallback(
+			options,
+			defaults,
+			createLogger()
+		);
+		options.fetch.mockResolvedValue(new Response(null, { status: 503 }));
+		await writeManifestModuleWithFallback(options, defaults, createLogger());
+		expect(await readFile(file, 'utf8')).toContain(STUB);
+	});
+
+	test("stops the build with onBuildError: 'fail'", async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		const logger = createLogger();
+		await expect(
+			writeManifestModuleWithFallback(
+				{ ...options, onBuildError: 'fail' },
+				defaults,
+				logger
+			)
+		).rejects.toThrow('backend unavailable');
+		expect(logger.warn).not.toHaveBeenCalled();
+		await expect(stat(join(root, defaults.outputFile))).rejects.toMatchObject({
+			code: 'ENOENT',
+		});
+	});
+
+	test.each(['/api/c15t', 'file:///backend', ''])(
+		'skips the fetch for backendURL %j and writes an undefined export',
+		async (backendURL) => {
+			const options = optionsFor(await createRoot());
+			const logger = createLogger();
+			const file = await writeManifestModuleWithFallback(
+				{ ...options, backendURL },
+				defaults,
+				logger
+			);
+			expect(options.fetch).not.toHaveBeenCalled();
+			expect(await readFile(file, 'utf8')).toContain(STUB);
+			expect(logger.info).toHaveBeenCalledWith(
+				expect.stringContaining('not an absolute http(s) URL')
+			);
+			expect(logger.warn).not.toHaveBeenCalled();
+		}
+	);
+
+	test("rejects a relative backendURL with onBuildError: 'fail'", async () => {
+		const options = optionsFor(await createRoot());
+		await expect(
+			writeManifestModuleWithFallback(
+				{ ...options, backendURL: '/api/c15t', onBuildError: 'fail' },
+				defaults,
+				createLogger()
+			)
+		).rejects.toThrow('upstream');
+		expect(options.fetch).not.toHaveBeenCalled();
+	});
+
+	test.each(['runtime', 'fail'] as const)(
+		'a framework skip reason skips the fetch with onBuildError: %s',
+		async (onBuildError) => {
+			const options = optionsFor(await createRoot());
+			const logger = createLogger();
+			const file = await writeManifestModuleWithFallback(
+				{ ...options, onBuildError },
+				{ ...defaults, skipReason: 'the app has no server' },
+				logger
+			);
+			expect(options.fetch).not.toHaveBeenCalled();
+			expect(await readFile(file, 'utf8')).toContain(STUB);
+			expect(logger.info).toHaveBeenCalledWith(
+				'test/build: skipped the consent manifest fetch because the app has no server.'
+			);
+		}
+	);
+
+	test('still rejects an invalid onBuildError or export name', async () => {
+		const options = optionsFor(await createRoot());
+		await expect(
+			writeManifestModuleWithFallback(
+				// @ts-expect-error -- checks the runtime guard for JavaScript callers.
+				{ ...options, onBuildError: 'warn' },
+				defaults,
+				createLogger()
+			)
+		).rejects.toThrow("onBuildError must be 'runtime' or 'fail'");
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		await expect(
+			writeManifestModuleWithFallback(
+				{ ...options, exportName: 'default' },
+				defaults,
+				createLogger()
+			)
+		).rejects.toThrow('exportName must be a valid identifier');
+	});
 });
 
 describe('framework build snapshot', () => {

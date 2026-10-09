@@ -51,4 +51,59 @@ describe('TanStack Start manifest generation', () => {
 			expect(source).toContain('satisfies ConsentManifest');
 		}
 	);
+
+	const createRoot = async () => {
+		const root = await mkdtemp(join(tmpdir(), 'c15t-tanstack-manifest-'));
+		directories.push(root);
+		return root;
+	};
+	const failingFetch = () =>
+		vi
+			.fn<typeof globalThis.fetch>()
+			.mockRejectedValue(new Error('backend unavailable'));
+
+	test('warns through Vite and writes an undefined export when the fetch fails', async () => {
+		const root = await createRoot();
+		const logger = { info: vi.fn(), warn: vi.fn() };
+		await consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: failingFetch(),
+		}).configResolved({ logger, root });
+		const source = await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8');
+		expect(source).toContain("from 'c15t/tanstack-start/static'");
+		expect(source).toContain(
+			'export const consentManifest: ConsentManifest | undefined = undefined;'
+		);
+		expect(logger.warn).toHaveBeenCalledWith(
+			expect.stringContaining(
+				"@c15t/tanstack-start/build: could not fetch the consent manifest during the build (backend unavailable). The server fetches it at runtime instead. Set `onBuildError: 'fail'`"
+			)
+		);
+	});
+
+	test("stops the build with onBuildError: 'fail'", async () => {
+		const root = await createRoot();
+		await expect(
+			consentManifest({
+				backendURL: 'https://consent.example.com',
+				fetch: failingFetch(),
+				onBuildError: 'fail',
+			}).configResolved({ root })
+		).rejects.toThrow('backend unavailable');
+	});
+
+	test('skips the fetch for a relative backendURL', async () => {
+		const root = await createRoot();
+		const fetchSpy = failingFetch();
+		const logger = { info: vi.fn(), warn: vi.fn() };
+		await consentManifest({
+			backendURL: '/api/c15t',
+			fetch: fetchSpy,
+		}).configResolved({ logger, root });
+		expect(fetchSpy).not.toHaveBeenCalled();
+		expect(logger.warn).not.toHaveBeenCalled();
+		expect(
+			await readFile(join(root, 'src/c15t-manifest.ts'), 'utf8')
+		).toContain('= undefined;');
+	});
 });

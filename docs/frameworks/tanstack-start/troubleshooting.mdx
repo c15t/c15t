@@ -4,19 +4,23 @@ description: Fix build-time manifest failures, a missing server-rendered banner,
 group: frameworks
 ---
 
-## vite build or vite dev stops while fetching the manifest
+## vite build or vite dev can't fetch the manifest
 
-**Check.** Read the error. The `consentManifest` plugin downloads the
-manifest when Vite starts, and a failed download stops the build or dev
-server.
+**Check.** Read the warning. The `consentManifest` plugin downloads the
+manifest when Vite starts. When the download fails or takes longer than 10
+seconds, it logs a warning that starts with
+`@c15t/tanstack-start/build: could not fetch the consent manifest during the
+build`, and Vite continues. `src/c15t-manifest.ts` then exports `undefined`,
+so the server fetches the policy at runtime. With `onBuildError: 'fail'`, the
+same failure stops the build or dev server with an error.
 
-| Error | Fix |
+| Message | Fix |
 | --- | --- |
-| `build-time manifests require an absolute upstream URL` | `backendURL` is empty, relative or not a URL. Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t` |
+| `skipped the consent manifest fetch because backendURL ... is not an absolute http(s) URL` | `backendURL` is empty, relative or not a URL. Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL` |
 | `/manifest responded 404` | The URL is not a c15t backend, or it is missing a path prefix. Copy the backend URL from Inth exactly |
 | `/manifest responded` with another status | The backend refused or failed the request. Check that the project exists and that the build machine can reach it |
 | `/manifest returned an invalid consent manifest` | The URL answered with something other than a c15t manifest, such as an HTML page. Check the URL |
-| `fetch failed`, with `ENOTFOUND` or another network error | The build machine cannot reach the backend. Allow the request, or switch to [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader) |
+| `fetch failed`, with `ENOTFOUND` or another network error, or a timeout | The build machine cannot reach the backend. Allow the request, or switch to [runtime fetching](/docs/frameworks/tanstack-start/rendering#await-consent-in-the-loader) |
 
 ## Cannot find module './c15t-manifest'
 

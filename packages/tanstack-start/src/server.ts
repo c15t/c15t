@@ -202,8 +202,10 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	 * `@c15t/backend`, a build-time module from
 	 * `@c15t/tanstack-start/static`). Takes precedence over `manifestURL`
 	 * and keeps the request path network-free.
+	 * `undefined`, which a build that could not fetch the manifest generates,
+	 * makes the server fetch the policy at runtime.
 	 */
-	manifest?: ConsentManifest;
+	manifest?: ConsentManifest | undefined;
 
 	/**
 	 * Fetch implementation for the manifest and GVL requests. Defaults to

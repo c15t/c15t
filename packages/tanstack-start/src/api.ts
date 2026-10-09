@@ -57,8 +57,12 @@ export interface ConsentServerRouteOptions {
 	 * `backendURL`.
 	 */
 	manifestURL?: string;
-	/** Deployment-bound manifest. Takes precedence over upstream URLs. */
-	manifest?: ConsentManifest;
+	/**
+	 * Deployment-bound manifest. Takes precedence over upstream URLs.
+	 * `undefined`, which a build that could not fetch the manifest generates,
+	 * makes the server fetch the policy at runtime.
+	 */
+	manifest?: ConsentManifest | undefined;
 
 	/**
 	 * Fetch implementation for manifest and GVL requests. Defaults to

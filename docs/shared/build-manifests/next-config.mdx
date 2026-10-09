@@ -9,3 +9,25 @@ write the policy to `c15t-manifest.ts` in the directory you run them from.
 `NEXT_PUBLIC_C15T_BACKEND_URL` with the same fallback as `c15t.config.ts`, so
 saves and the snapshot point at the same project. Keep `c15t-manifest.ts` out
 of Git.
+
+If the fetch fails or takes longer than 10 seconds, the build logs a warning
+and keeps going. `c15t-manifest.ts` then exports `undefined`, and the server
+fetches and caches the policy at runtime, as with
+[runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data).
+The build skips the fetch and writes the same file when `backendURL` is not an
+absolute http(s) URL, or when the config sets `output: 'export'`, which has no
+server to use the snapshot.
+
+To stop the build when the fetch fails, set `onBuildError: 'fail'`:
+
+{/* example: fragment */}
+
+```ts title="next.config.ts"
+export default withConsentManifest(nextConfig, {
+	backendURL: 'https://your-project.inth.app',
+	onBuildError: 'fail',
+});
+```
+
+With `'fail'`, a relative `backendURL` stops the build too. A static export
+still skips the fetch.

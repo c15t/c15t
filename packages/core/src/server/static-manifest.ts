@@ -99,16 +99,18 @@ export const loadStaticManifest = async (
 	}
 };
 
-/** Generates a typed module with validated export and import names.
- * @param options - Manifest fetch options and generated identifiers.
+/**
+ * Validates the identifiers a generated manifest module uses.
+ * @param options - Requested export name and type import source.
  * @param defaults - Framework import source and error label.
- * @returns TypeScript source containing the manifest.
- * @throws {Error} When a generated identifier is invalid or the fetch fails.
+ * @returns The export name and import source to write.
+ * @throws {Error} When either identifier is invalid.
+ * @internal
  */
-export const createStaticManifestModule = async (
-	options: StaticManifestModuleOptions,
+export const resolveStaticManifestModuleNames = (
+	options: Pick<StaticManifestModuleOptions, 'exportName' | 'importSource'>,
 	defaults: { importSource: string; label: string }
-): Promise<string> => {
+): { exportName: string; importSource: string } => {
 	const exportName = options.exportName ?? 'consentManifest';
 	if (
 		!/^[A-Za-z_$][\w$]*$/u.test(exportName) ||
@@ -124,11 +126,47 @@ export const createStaticManifestModule = async (
 			`${defaults.label}: importSource must be a module specifier, received ${JSON.stringify(importSource)}.`
 		);
 	}
-	const manifest = await loadStaticManifest(options, defaults.label);
-	return [
-		`import type { ConsentManifest } from '${importSource}';`,
+	return { exportName, importSource };
+};
+
+/**
+ * Renders a generated manifest module. Without a manifest, the export is
+ * `undefined` with the same `ConsentManifest` type, so imports still compile
+ * and the server fetches the manifest at runtime.
+ * @param names - Validated export name and type import source.
+ * @param manifest - The snapshot, or `undefined` when the build has none.
+ * @returns TypeScript source for the module.
+ * @internal
+ */
+export const renderStaticManifestModule = (
+	names: { exportName: string; importSource: string },
+	manifest: ConsentManifest | undefined
+): string =>
+	[
+		`import type { ConsentManifest } from '${names.importSource}';`,
 		'',
-		`export const ${exportName} = ${JSON.stringify(manifest, null, 2)} as const satisfies ConsentManifest;`,
+		...(manifest
+			? [
+					`export const ${names.exportName} = ${JSON.stringify(manifest, null, 2)} as const satisfies ConsentManifest;`,
+				]
+			: [
+					'// The build did not fetch the manifest, so the server fetches it at runtime.',
+					`export const ${names.exportName}: ConsentManifest | undefined = undefined;`,
+				]),
 		'',
 	].join('\n');
+
+/** Generates a typed module with validated export and import names.
+ * @param options - Manifest fetch options and generated identifiers.
+ * @param defaults - Framework import source and error label.
+ * @returns TypeScript source containing the manifest.
+ * @throws {Error} When a generated identifier is invalid or the fetch fails.
+ */
+export const createStaticManifestModule = async (
+	options: StaticManifestModuleOptions,
+	defaults: { importSource: string; label: string }
+): Promise<string> => {
+	const names = resolveStaticManifestModuleNames(options, defaults);
+	const manifest = await loadStaticManifest(options, defaults.label);
+	return renderStaticManifestModule(names, manifest);
 };

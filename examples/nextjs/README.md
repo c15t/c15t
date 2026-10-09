@@ -29,7 +29,8 @@ bun run --cwd examples/nextjs dev
 
 Open `http://localhost:3100`. The app talks to the
 `https://benchmarks-inth.inth.app` demo Inth project. `next dev` and
-`next build` download its policy when they start, and stop if they can't.
+`next build` download its policy when they start. If they can't, they log a
+warning and the server fetches the policy at runtime.
 
 To use your own project, set `NEXT_PUBLIC_C15T_BACKEND_URL` in `.env.local` to
 its backend URL, and add the app's origin to its trusted origins. Rebuild after

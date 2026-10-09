@@ -188,8 +188,10 @@ export interface ResolveConsentOptions extends ConsentRequestOptions {
 	/**
 	 * Inline manifest for hosts that already loaded it. Takes precedence over
 	 * `manifestURL` and keeps the request path backend-free.
+	 * `undefined`, which a build that could not fetch the manifest generates,
+	 * makes the server fetch the policy at runtime.
 	 */
-	manifest?: ConsentManifest;
+	manifest?: ConsentManifest | undefined;
 
 	/**
 	 * Override fetch. Useful for testing or for wiring Vercel's

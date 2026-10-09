@@ -28,6 +28,21 @@ handlers: createConsentServerRoute({ ...consentOptions, proxy: true }),
 
 <include src="../vite-build-manifest.mdx" />
 
+If the fetch fails or takes longer than 10 seconds, the plugin logs a warning
+and Vite keeps going. `src/c15t-manifest.ts` then exports `undefined`, and the
+server fetches and caches the policy at runtime. A `backendURL` that is not an
+absolute http(s) URL skips the fetch the same way.
+
+To stop the build when the fetch fails, set `onBuildError: 'fail'`:
+
+{/* example: fragment */}
+
+```ts title="vite.config.ts"
+consentManifest({ backendURL, onBuildError: 'fail' }),
+```
+
+With `'fail'`, a relative `backendURL` stops the build too.
+
 If you install `@c15t/tanstack-start` directly, set
 `importSource: '@c15t/tanstack-start/static'`.
 

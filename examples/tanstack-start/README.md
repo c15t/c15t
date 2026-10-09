@@ -26,9 +26,10 @@ bun run --cwd examples/tanstack-start dev
 ```
 
 The app talks to the `https://benchmarks-inth.inth.app` demo Inth project.
-`vite dev` and `vite build` download its policy when they start, and stop if
-they can't. To use your own project, set `VITE_C15T_BACKEND_URL` to its
-backend URL and add the app's origin to its trusted origins:
+`vite dev` and `vite build` download its policy when they start. If they
+can't, they log a warning and the server fetches the policy at runtime.
+To use your own project, set `VITE_C15T_BACKEND_URL` to its backend URL and
+add the app's origin to its trusted origins:
 
 ```sh
 VITE_C15T_BACKEND_URL=https://your-project.inth.app \

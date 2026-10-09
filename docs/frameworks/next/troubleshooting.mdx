@@ -27,25 +27,34 @@ handler's upstream backend. See
 ## Why does `next build` or `next dev` fail to fetch the manifest?
 
 **Check.** `withConsentManifest` downloads `${backendURL}/manifest` when
-`next build`, `next dev` or `next typegen` loads `next.config.ts`, and stops
-on any failure. It never reuses an old `c15t-manifest.ts`. The error names
-the cause:
+`next build`, `next dev` or `next typegen` loads `next.config.ts`. When the
+download fails or takes longer than 10 seconds, it logs a warning that starts
+with `@c15t/nextjs/build: could not fetch the consent manifest during the
+build`, and the build continues. `c15t-manifest.ts` then exports `undefined`,
+so the server fetches the policy at runtime. It never reuses an old
+`c15t-manifest.ts`. With `onBuildError: 'fail'`, the same failure stops the
+build with an error. The message in parentheses names the cause:
 
-- `@c15t/nextjs/build: build-time manifests require an absolute upstream URL.`
-  The `backendURL` passed to `withConsentManifest` is missing, empty or a
-  path such as `/api/c15t`. An empty `NEXT_PUBLIC_C15T_BACKEND_URL=` line
-  produces an empty string, which the `??` fallback does not replace.
-- `@c15t/nextjs/build: /manifest responded 404`, or another status.
-  The URL is not your project's backend. Check for the
-  `https://your-project.inth.app` placeholder and a missing path prefix.
-- `@c15t/nextjs/build: /manifest returned an invalid consent manifest.` The
-  URL answered, but not with a c15t manifest. It may be a different service,
-  or a backend that does not support this c15t version.
+- `fetch failed`, with `ENOTFOUND`, `ECONNREFUSED` or another network error,
+  or a timeout. The build machine cannot reach the backend.
+- `/manifest responded 404`, or another status. The URL is not your
+  project's backend. Check for the `https://your-project.inth.app`
+  placeholder and a missing path prefix.
+- `/manifest returned an invalid consent manifest.` The URL answered, but not
+  with a c15t manifest. It may be a different service, or a backend that does
+  not support this c15t version.
+
+A message that says the build `skipped the consent manifest fetch` means
+`backendURL` is missing, empty or a path such as `/api/c15t`. An empty
+`NEXT_PUBLIC_C15T_BACKEND_URL=` line produces an empty string, which the `??`
+fallback does not replace. With `onBuildError: 'fail'`, this stops the build
+with `build-time manifests require an absolute upstream URL.`
 
 **Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute backend URL from
 your Inth project, or your self-hosted origin with its path prefix, wherever
-`next build` runs, including CI. The build machine must reach the backend. To
-build without access to it, use
+`next build` runs, including CI. If the build machine can't reach the backend,
+the deployment works without a snapshot, but each server fetches the policy
+on its first request. To drop the build-time fetch, use
 [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data)
 instead.
 

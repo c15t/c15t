@@ -27,8 +27,12 @@ export interface NextConsentManifestHandlersOptions {
 	 * `backendURL`.
 	 */
 	manifestURL?: string;
-	/** Deployment-bound manifest. Takes precedence over upstream URLs. */
-	manifest?: ConsentManifest;
+	/**
+	 * Deployment-bound manifest. Takes precedence over upstream URLs.
+	 * `undefined`, which a build that could not fetch the manifest generates,
+	 * makes the server fetch the policy at runtime.
+	 */
+	manifest?: ConsentManifest | undefined;
 
 	/**
 	 * A `defineConsentConfig` result. Its `backendURL` and an absolute
