@@ -67,29 +67,32 @@
 
 	const options = $derived({
 		consentCategories: ['necessary', 'marketing', 'measurement'],
+		i18n: {
+			messages: {
+				de: { ...baseTranslations.de },
+				en: { ...baseTranslations.en },
+				fr: { ...baseTranslations.fr },
+				zh: { ...baseTranslations.zh },
+			},
+		},
 		iab: {
-			enabled: true,
 			// Match the example backend. This is a demo ID, not a production CMP configuration.
 			cmpId: 10,
 			customVendors: [
 				{
+					cookieMaxAgeSeconds: 31536000,
+					dataCategories: [1, 2, 6, 8],
 					id: 'internal-analytics',
 					name: 'Example Analytics',
 					privacyPolicyUrl: 'https://www.google.com',
 					purposes: [1, 8],
-					dataCategories: [1, 2, 6, 8],
-					usesCookies: true,
-					cookieMaxAgeSeconds: 31536000,
-					usesNonCookieAccess: true,
 					specialFeatures: [1, 2],
+					usesCookies: true,
+					usesNonCookieAccess: true,
 				},
 			],
+			enabled: true,
 		},
-		scripts,
-		storageConfig: {
-			crossSubdomain: true,
-		},
-		theme: activeTheme,
 		legalLinks: {
 			privacyPolicy: {
 				href: '/legal/privacy-policy',
@@ -98,21 +101,18 @@
 				href: '/legal/terms-of-service',
 			},
 		},
-		user: {
-			id: '123',
-			identityProvider: 'custom',
-		},
-		i18n: {
-			messages: {
-				zh: { ...baseTranslations.zh },
-				en: { ...baseTranslations.en },
-				fr: { ...baseTranslations.fr },
-				de: { ...baseTranslations.de },
-			},
-		},
 		overrides: {
 			country: 'CA',
 			region: 'QC',
+		},
+		scripts,
+		storageConfig: {
+			crossSubdomain: true,
+		},
+		theme: activeTheme,
+		user: {
+			id: '123',
+			identityProvider: 'custom',
 		},
 	} satisfies Omit<ConsentManagerOptions, 'mode' | 'prefetch'>);
 </script>
