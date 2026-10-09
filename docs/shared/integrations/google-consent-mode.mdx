@@ -17,8 +17,10 @@ send; see Google's
 So the browser contacts Google before consent. If your policy requires no
 Google request until the visitor allows it, set `loadMode: 'after-consent'`.
 The helper then creates nothing and requests nothing until its category is
-allowed. When it loads, it still sends the `default` command first, with the
-permissions at that moment, and `update` commands after later changes.
+allowed. When it loads, it sends the `default` command first, with the
+permissions at that moment, and `update` commands after later changes. Under
+an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so the helper loads on the first page.
 
 ## How categories map to Google consent types
 

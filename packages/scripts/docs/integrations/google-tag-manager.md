@@ -257,7 +257,7 @@ A kernel you create yourself needs a loader from
 
 ## Choose when the container loads
 
-| `loadMode`        | Before a choice                                                                                            | After the category is allowed                                                                                                                                         |
+| `loadMode`        | Until the category is allowed                                                                              | After the category is allowed                                                                                                                                         |
 | ----------------- | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `'always'`        | Loads `gtm.js` and sends `consent` `default` with the current permissions before the `gtm.js` start event. | Sends `consent` `update`, then the `consent-update` event.                                                                                                            |
 | `'after-consent'` | Sends nothing to Google. The helper creates no `dataLayer` or `gtag` function.                             | Loads `gtm.js` once. `consent` `default` carries the current permissions and comes before the `gtm.js` start event. Later changes send `update` and `consent-update`. |
@@ -269,18 +269,27 @@ the visitor opts in:
 googleTagManager({ id: 'GTM-XXXXXXX', loadMode: 'after-consent' }),
 ```
 
+`'after-consent'` waits for the category to be allowed, not for a recorded
+choice. Under an `opt-in` policy, that happens when the visitor allows it.
+Under an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so `gtm.js` loads on the first page unless a saved refusal or a
+privacy signal restricts the category; see
+[policies](../concepts/policies.md).
+
 `necessary` is always allowed, so a gated container needs another category.
-This mode defaults to `{ or: ['measurement', 'marketing'] }`. A container usually holds Analytics
-tags and advertising tags, and this default loads it once the visitor allows
-either purpose. Google tags inside still follow the Consent Mode types, so an
-Ads tag stays restricted for a visitor who allowed only measurement. If the
-container holds only Analytics tags, pass `category: 'measurement'`.
+This mode defaults to `{ or: ['measurement', 'marketing'] }`. A container
+usually holds Analytics tags and advertising tags, and this default loads it
+once the visitor allows either purpose. Google tags inside still follow the
+Consent Mode types, so an Ads tag stays restricted for a visitor who allowed
+only measurement. If the container holds only Analytics tags, pass
+`category: 'measurement'`.
 
 This mode gives up part of Consent Mode. With `'always'`, Google tags send
 cookieless pings while a type is denied, and Google uses them to model
 conversions and behavior for visitors who refused or have not chosen. With
-`'after-consent'`, those visitors send nothing, so Google has no data to model
-them from. Reports cover only visitors who allowed the category.
+`'after-consent'`, visitors whose category is denied send nothing, so Google
+has no data to model them from. Reports cover only visitors who allowed the
+category.
 
 The container starts with the visitor's current choice in its `default`
 command. On the page where the visitor accepts, it loads after the choice, so
@@ -306,8 +315,10 @@ send; see Google's
 So the browser contacts Google before consent. If your policy requires no
 Google request until the visitor allows it, set `loadMode: 'after-consent'`.
 The helper then creates nothing and requests nothing until its category is
-allowed. When it loads, it still sends the `default` command first, with the
-permissions at that moment, and `update` commands after later changes.
+allowed. When it loads, it sends the `default` command first, with the
+permissions at that moment, and `update` commands after later changes. Under
+an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so the helper loads on the first page.
 
 ## How categories map to Google consent types
 

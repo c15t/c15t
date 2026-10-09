@@ -259,7 +259,7 @@ options above instead.
 
 ## Choose when Google loads
 
-| `loadMode`        | Before a choice                                                                            | After the category is allowed                                                                                                     |
+| `loadMode`        | Until the category is allowed                                                              | After the category is allowed                                                                                                     |
 | ----------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | `'always'`        | Loads `gtag/js` and sends `consent` `default` with the current permissions, then `config`. | Sends `consent` `update` with the mapped types granted.                                                                           |
 | `'after-consent'` | Sends nothing to Google. The helper creates no `dataLayer` or `gtag` function.             | Loads `gtag/js` once. `consent` `default` carries the current permissions and comes before `config`. Later changes send `update`. |
@@ -271,11 +271,21 @@ the visitor opts in:
 gtag({ id: 'G-XXXXXXXXXX', category: 'measurement', loadMode: 'after-consent' }),
 ```
 
+`'after-consent'` waits for the category to be allowed, not for a recorded
+choice. Under an `opt-in` policy, that happens when the visitor allows it.
+Under an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so `gtag/js` loads on the first page unless a saved refusal or a
+privacy signal restricts the category; see
+[policies](../concepts/policies.md). `necessary` is always allowed, so
+`category: 'necessary'` loads `gtag/js` before a choice in either mode. Use
+`measurement` or `marketing`.
+
 This gives up part of Consent Mode. With `'always'`, Google tags send
 cookieless pings while a type is denied, and Google uses them to model
 conversions and behavior for visitors who refused or have not chosen. With
-`'after-consent'`, those visitors send nothing, so Google has no data to model
-them from. Reports cover only visitors who allowed the category.
+`'after-consent'`, visitors whose category is denied send nothing, so Google
+has no data to model them from. Reports cover only visitors who allowed the
+category.
 
 When the visitor withdraws the category, c15t reloads the page and the new
 page does not load `gtag/js`. With `reloadOnConsentRevoked: false`, the tag
@@ -295,8 +305,10 @@ send; see Google's
 So the browser contacts Google before consent. If your policy requires no
 Google request until the visitor allows it, set `loadMode: 'after-consent'`.
 The helper then creates nothing and requests nothing until its category is
-allowed. When it loads, it still sends the `default` command first, with the
-permissions at that moment, and `update` commands after later changes.
+allowed. When it loads, it sends the `default` command first, with the
+permissions at that moment, and `update` commands after later changes. Under
+an `opt-out` or `none` policy, optional categories are allowed before a
+choice, so the helper loads on the first page.
 
 ## How categories map to Google consent types
 

@@ -129,8 +129,14 @@ export interface GtagOptions {
 	 *   until `category` is allowed. The script then loads once, with a
 	 *   `consent` `default` command that reflects the current permissions sent
 	 *   before `config`, and `update` commands on later changes. Google gets no
-	 *   cookieless pings from visitors who have not chosen or who refused, so
-	 *   Consent Mode cannot model their conversions.
+	 *   cookieless pings from visitors whose `category` is denied, so Consent
+	 *   Mode cannot model their conversions.
+	 *
+	 * `after-consent` waits for `category` to be allowed, not for a recorded
+	 * choice. Under an `opt-out` or `none` policy, optional categories are
+	 * allowed before a choice, so the script loads on the first page.
+	 * `necessary` is always allowed, so pair this mode with `measurement` or
+	 * `marketing`.
 	 *
 	 * After a withdrawal c15t reloads the page by default. With
 	 * `reloadOnConsentRevoked: false`, the loaded tag stays on the page and

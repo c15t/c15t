@@ -12,9 +12,13 @@ script loads before a choice and sends Google Consent Mode signals.
 With `loadMode: 'after-consent'`, the helper sends no request to Google and
 creates no `dataLayer` until its category is allowed. The script then loads
 once. The `consent` `default` command still comes first, with the visitor's
-current choices, and later changes send `update`. Visitors who have not
-chosen or who refused send Google nothing, so Consent Mode cannot model their
-conversions.
+current choices, and later changes send `update`. Visitors whose category is
+denied send Google nothing, so Consent Mode cannot model their conversions.
+
+The helper waits for the category to be allowed, not for a recorded choice.
+Under an `opt-in` policy, that means after the visitor allows it. Under an
+`opt-out` or `none` policy, optional categories are allowed before a choice,
+so the script loads on the first page.
 
 `gtag()` waits for its `category`. `googleTagManager()` gains a `category`
 option. With `'after-consent'` it defaults to
