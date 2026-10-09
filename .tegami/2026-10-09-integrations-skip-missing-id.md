@@ -15,8 +15,7 @@ These helpers now log an error such as
 `console.error` and return a script that never loads. The rest of the page,
 including the consent UI, keeps working. An ID in the wrong format, such as a
 malformed Mixpanel token, LogRocket app ID or Klaviyo public key, is handled the
-same way, with the existing message. Helpers that required a string ID now
-also accept a number.
+same way, with the existing message.
 
 Other configuration mistakes, such as a non-https `scriptUrl` override or an
 invalid RudderStack consent mapping, still throw. `@c15t/scripts` re-exports
