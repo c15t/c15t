@@ -99,6 +99,23 @@ const ownsClick = function ownsClick(params: {
 };
 
 /**
+ * The value `key` renders with after the button's prop spreads. As in JSX,
+ * the last layer that has the key wins, even with `undefined`.
+ */
+const renderedProp = function renderedProp(
+	key: string,
+	layers: readonly Readonly<Record<string, unknown>>[]
+): unknown {
+	let value: unknown;
+	for (const layer of layers) {
+		if (key in layer) {
+			value = layer[key];
+		}
+	}
+	return value;
+};
+
+/**
  * Resolves the final variant and mode for a consent button.
  *
  * @param params.consentAction Semantic consent action key.
@@ -362,14 +379,21 @@ export const ConsentButton = createForwardRef<
 
 		const isStyled = !(contextNoStyle || noStyle);
 
+		// The same layers, in the same order, as the spreads below. A
+		// `components.button.*` slot can set `data-action` or `type` too.
+		const ownProps = {
+			'data-action': consentAction,
+			type: asChild ? undefined : ('button' as const),
+		};
+		const renderedLayers = [ownProps, buttonStyleProps, domProps];
 		const earlyTapOptOut = skipsEarlyTap({
 			action,
 			asChild,
-			dataAction: domProps['data-action'] ?? consentAction,
+			dataAction: renderedProp('data-action', renderedLayers),
 			ownsClick: ownsClick({
 				asChild,
 				onClick: forwardedOnClick,
-				type: domProps.type,
+				type: renderedProp('type', renderedLayers),
 			}),
 			performDefaultAction,
 		})
@@ -379,17 +403,16 @@ export const ConsentButton = createForwardRef<
 		return (
 			<Comp
 				ref={ref}
-				type={asChild ? undefined : 'button'}
 				data-variant={isStyled ? resolvedButtonStyle.variant : undefined}
 				data-mode={isStyled ? resolvedButtonStyle.mode : undefined}
 				data-size={isStyled ? size : undefined}
-				data-action={consentAction}
-				{...earlyTapOptOut}
+				{...ownProps}
 				{...buttonStyleProps}
 				onClick={buttonClick}
 				onFocus={buttonFocus}
 				onPointerEnter={buttonPointerEnter}
 				{...domProps}
+				{...earlyTapOptOut}
 			/>
 		);
 	}

@@ -8,15 +8,20 @@ import { describe, expect, test, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 
 import { ComponentFixtureProvider as ConsentProvider } from '~/__tests__/component-fixture-provider';
+import type { ComponentFixtureOptions } from '~/__tests__/component-fixture-provider';
 import { policyFixture } from '~/__tests__/policy-fixture';
 import { ConsentDialog } from '~/components/panel';
 import { ConsentBanner } from '~/components/prompt';
 import { offline } from '~/transports/offline';
 
-const renderComposed = function renderComposed(children: ReactNode) {
+const renderComposed = function renderComposed(
+	children: ReactNode,
+	components?: ComponentFixtureOptions['components']
+) {
 	return render(
 		<ConsentProvider
 			options={{
+				components,
 				mode: offline(),
 				persistence: false,
 				prefetch: policyFixture(undefined, { id: 'banner-compose-test' }),
@@ -218,6 +223,24 @@ describe('composed ConsentBanner', () => {
 
 		expect(query('consent-banner-accept-button')?.dataset.earlyTap).toBe('off');
 		expect(query('consent-banner-reject-button')?.dataset.earlyTap).toBe('off');
+	});
+
+	test('a button whose slot changes its data-action opts out of early tap replay', async () => {
+		// The script would replay reject while the hydrated button accepts.
+		const slot = { 'data-action': 'reject', 'data-early-tap': 'on' };
+		await renderComposed(
+			<ConsentBanner.Root>
+				<ConsentBanner.Card>
+					<ConsentBanner.AcceptButton />
+				</ConsentBanner.Card>
+			</ConsentBanner.Root>,
+			{ button: { primary: slot, secondary: slot } }
+		);
+		await waitForTestId('consent-banner-accept-button');
+		const accept = query('consent-banner-accept-button');
+
+		expect(accept?.dataset.action).toBe('reject');
+		expect(accept?.dataset.earlyTap).toBe('off');
 	});
 });
 
