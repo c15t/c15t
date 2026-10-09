@@ -11,7 +11,7 @@ const TODO =
 	'TODO(c15t v3): c15t components add their own styles. Keep this import only with Tailwind CSS 3 or a named cascade layer, and set styles: false in the provider options.';
 
 const ESM_TODO =
-	'TODO(c15t v3): c15t ships ESM only from v3, so require() cannot load it. Convert this file to import, or to an .mjs or ESM config.';
+	'TODO(c15t v3): c15t ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert this file to import, or to an .mjs or ESM config, to support older runtimes.';
 
 const run = async function run(
 	dependencies: Record<string, string>,
@@ -415,7 +415,7 @@ import Legacy = require('@c15t/react/legacy');
 			{
 				filePath: expect.stringMatching(/src\/consent\.ts$/u),
 				message:
-					'2 require() calls name c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+					'2 require() calls name c15t, which ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert the file to import, or to an .mjs or ESM config, to support older runtimes.',
 			},
 		]);
 	});
@@ -438,12 +438,12 @@ const headless = require('@c15t/react/headless');
 			{
 				filePath: expect.stringMatching(/src\/a\.cjs$/u),
 				message:
-					'1 require() call names c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+					'1 require() call names c15t, which ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert the file to import, or to an .mjs or ESM config, to support older runtimes.',
 			},
 			{
 				filePath: expect.stringMatching(/src\/b\.cjs$/u),
 				message:
-					'2 require() calls name c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+					'2 require() calls name c15t, which ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert the file to import, or to an .mjs or ESM config, to support older runtimes.',
 			},
 		]);
 	});
@@ -569,7 +569,7 @@ export function apply(theme) {}
 			{
 				filePath: expect.stringMatching(/apps\/docs\/postcss\.config\.cjs$/u),
 				message:
-					'1 require() call names c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.',
+					'1 require() call names c15t, which ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert the file to import, or to an .mjs or ESM config, to support older runtimes.',
 			},
 		]);
 	});

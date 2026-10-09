@@ -96,7 +96,7 @@ const STYLESHEET_SPECIFIER =
 const KEPT_SUMMARY = ', kept with a TODO';
 
 const ESM_TODO =
-	'c15t ships ESM only from v3, so require() cannot load it. Convert this file to import, or to an .mjs or ESM config.';
+	'c15t ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert this file to import, or to an .mjs or ESM config, to support older runtimes.';
 
 const STYLES_TODO =
 	'c15t components add their own styles. Keep this import only with Tailwind CSS 3 or a named cascade layer, and set styles: false in the provider options.';
@@ -599,7 +599,7 @@ export const runPackagesToC15tCodemod = async function runPackagesToC15tCodemod(
 			onRequires: (filePath, count) => {
 				requireWarnings.push({
 					filePath,
-					message: `${count} require() ${count === 1 ? 'call names' : 'calls name'} c15t, which ships ESM only from v3. Convert the file to import, or to an .mjs or ESM config.`,
+					message: `${count} require() ${count === 1 ? 'call names' : 'calls name'} c15t, which ships ESM only from v3. require() loads it only on Node.js 20.19+ or 22.12+. Convert the file to import, or to an .mjs or ESM config, to support older runtimes.`,
 				});
 			},
 			onScopedImport: () => {
