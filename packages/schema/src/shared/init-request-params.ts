@@ -122,14 +122,14 @@ const toSearchParams = function toSearchParams(
 	if (source instanceof URL) {
 		return source.searchParams;
 	}
-	const query = source.indexOf('?');
+	// A `?` inside a fragment is not a query.
+	const fragment = source.indexOf('#');
+	const base = fragment === -1 ? source : source.slice(0, fragment);
+	const query = base.indexOf('?');
 	if (query === -1) {
 		return new URLSearchParams();
 	}
-	const hash = source.indexOf('#', query);
-	return new URLSearchParams(
-		source.slice(query + 1, hash === -1 ? undefined : hash)
-	);
+	return new URLSearchParams(base.slice(query + 1));
 };
 
 /**

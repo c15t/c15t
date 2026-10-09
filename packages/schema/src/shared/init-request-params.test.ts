@@ -116,6 +116,14 @@ describe('init query parameters', () => {
 		expect(headers.get('cf-ipcountry')).toBe('US');
 	});
 
+	it('reads no parameter from a fragment', () => {
+		const headers = applyInitParamsToHeaders(
+			'/init#frag?country=US',
+			new Headers({ 'x-c15t-country': 'DE' })
+		);
+		expect(headers.get('x-c15t-country')).toBe('DE');
+	});
+
 	it('falls back to the legacy headers when no parameter is sent', () => {
 		const original = new Headers({
 			'x-c15t-gpc': '1',
