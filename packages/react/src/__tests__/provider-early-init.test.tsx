@@ -45,7 +45,7 @@ const initBody = (id: string) =>
 	});
 
 interface InitRequest {
-	/** The country override, which travels as the `c15tCountry` parameter. */
+	/** The country override, which travels as the `country` parameter. */
 	country: string | null;
 	headers: Record<string, string>;
 	respond: (policyId: string) => void;
@@ -66,7 +66,7 @@ beforeEach(() => {
 			new Promise<Response>((resolve, reject) => {
 				requests.push({
 					country: new URL(url, window.location.href).searchParams.get(
-						'c15tCountry'
+						'country'
 					),
 					fail: () => reject(new TypeError('Failed to fetch')),
 					headers: init.headers,

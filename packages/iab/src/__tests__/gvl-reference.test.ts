@@ -488,10 +488,10 @@ test('hosted fetching reproduces the server geo and privacy inputs', async () =>
 		// cross-origin `/init` stays a CORS simple request.
 		const query = new URL(String(url)).searchParams;
 		const matched =
-			query.get('c15tCountry') === 'DE' &&
-			query.get('c15tRegion') === 'BE' &&
-			query.get('c15tGpc') === '1' &&
-			query.get('c15tPolicyContract') === '1';
+			query.get('country') === 'DE' &&
+			query.get('region') === 'BE' &&
+			query.get('gpc') === '1' &&
+			query.get('contract') === '1';
 		return Promise.resolve(
 			Response.json({ gvl: matched ? completeGVL : null })
 		);

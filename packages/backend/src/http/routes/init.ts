@@ -37,12 +37,11 @@ export const register = function register({
 		}),
 		async (c) => {
 			// A browser sends its version, contract, overrides and experiment
-			// arm as query parameters (`c15tVersion`, `c15tPolicyContract`,
-			// `c15tCountry`, `c15tRegion`, `c15tGpc`, `c15tExperiment`), so a
-			// cross-origin init needs no CORS preflight. Older clients and
-			// server callers send the same values as headers. Folded onto the
-			// header names, a parameter wins and every reader below sees one
-			// set of inputs.
+			// arm as query parameters (`v`, `contract`, `country`, `region`,
+			// `gpc`, `experiment`), so a cross-origin init needs no CORS
+			// preflight. Older clients and server callers send the same
+			// values as headers. Folded onto the header names, a parameter
+			// wins and every reader below sees one set of inputs.
 			const headers = applyInitParamsToHeaders(c.req.url, c.req.raw.headers);
 			const { body, manifest, signals } = await buildInitResponse(
 				options.manifest ?? {},
@@ -98,7 +97,7 @@ export const register = function register({
 			// response identity too, for any cache that ignores no-store, and so
 			// is the declared vendor scope: it changes which vendors the response
 			// names, which is the one thing a consent surface may not serve to the
-			// wrong client. A contract sent as `c15tPolicyContract` is already in
+			// wrong client. A contract sent as `contract` is already in
 			// the URL every cache keys on; `Vary` covers the legacy header.
 			c.header('Cache-Control', 'no-store');
 			c.header('Vary', 'Origin, x-c15t-policy-contract, x-c15t-vendors');

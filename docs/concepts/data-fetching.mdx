@@ -67,8 +67,8 @@ makes:
 
 | Request | Query parameters |
 | --- | --- |
-| `GET /init` | `c15tJourney`, `c15tJourneyScope`, `c15tStored` (`1` if a choice or notice dismissal was stored) |
-| `POST /subjects` | `c15tJourney`, `c15tJourneyScope` |
+| `GET /init` | `journey`, `journeyScope`, `stored` (`1` if a choice or notice dismissal was stored) |
+| `POST /subjects` | `journey`, `journeyScope` |
 
 Session reports carry it as `journey: { id, scope, storedChoice, prompt, domain }`.
 A report and a save with the same `id` belong to one page load. `prompt` is
@@ -137,9 +137,11 @@ export const mode = hosted({
 });
 ```
 
-The route must return the c15t init response contract. `assertDecisionInputs`
-binds saves to the resolved policy when init did not return a signed policy
-snapshot token. The backend can then reject a stale policy decision. Next.js
+The route must return the c15t init response contract. c15t adds its inputs to
+`initURL` as query parameters, replacing any of your own with the same name.
+See [query parameters and CORS](/docs/self-host/api/endpoints#query-parameters-and-cors)
+for the names. `assertDecisionInputs` binds saves to the resolved policy when
+init did not return a signed policy snapshot token. The backend can then reject a stale policy decision. Next.js
 sets this option for you when `ConsentRoot` receives a `config` with
 `initURL`.
 

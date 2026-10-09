@@ -64,18 +64,25 @@ client's inputs travel in the query string instead:
 
 | Query parameter | Replaces header | Value |
 | --- | --- | --- |
-| `c15tVersion` | `x-c15t-version` | Client package version. |
-| `c15tPolicyContract` | `x-c15t-policy-contract` | Policy contract the client reads. Any other value than `1` gets an `unsupported-contract` failure. |
-| `c15tCountry` | `x-c15t-country` | Country override. |
-| `c15tRegion` | `x-c15t-region` | Region override. |
-| `c15tGpc` | `x-c15t-gpc` | GPC override, `1` or `0`. Other values are ignored. |
-| `c15tExperiment` | `x-c15t-experiment` | Experiment arm as `<id>=<arm>`, each part URI-encoded. |
+| `v` | `x-c15t-version` | Client package version. |
+| `contract` | `x-c15t-policy-contract` | Policy contract the client reads. Any other value than `1` gets an `unsupported-contract` failure. |
+| `country` | `x-c15t-country` | Country override. |
+| `region` | `x-c15t-region` | Region override. |
+| `gpc` | `x-c15t-gpc` | GPC override, `1` or `0`. Other values are ignored. |
+| `experiment` | `x-c15t-experiment` | Experiment arm as `<id>=<arm>`, each part URI-encoded. |
 
 The backend reads each parameter first and the header second, so older
 clients and server-to-server callers that send the headers keep working.
 `Accept-Language` stays a header because browsers send it without a
-preflight. The journey parameters `c15tJourney`, `c15tJourneyScope` and
-`c15tStored` work the same way.
+preflight. The journey parameters `journey`, `journeyScope` and `stored` also
+travel in the query string. The backend still reads the `c15tJourney`,
+`c15tJourneyScope` and `c15tStored` names that `3.0.0-alpha.8` and `alpha.9`
+clients send.
+
+c15t reserves these names on an init URL. If your `initURL` already carries
+one, such as `/api/consent/init?country=US`, c15t replaces it with its own
+value, so each name appears once. A reserved name c15t does not send on that
+request passes through, and the backend reads it as that input.
 
 `/init` answers any origin. A trusted origin gets its own origin back with
 `Access-Control-Allow-Credentials: true`, as older clients send `/init` with
@@ -86,7 +93,7 @@ including `POST /subjects`, still answers only origins in `trustedOrigins`.
 
 The overrides are visitor-controlled in either form. If your edge strips
 incoming `x-c15t-*` headers so visitors cannot choose their own policy rule,
-strip `c15tCountry`, `c15tRegion` and `c15tGpc` from `/init` too.
+strip `country`, `region` and `gpc` from `/init` too.
 
 ### Vendor scope
 

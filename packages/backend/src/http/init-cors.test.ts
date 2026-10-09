@@ -64,11 +64,11 @@ describe('/init query parameters', () => {
 
 	it('reads the country and region overrides from the query', async () => {
 		assert.strictEqual(
-			(await resolution('/init?c15tPolicyContract=1&c15tCountry=DE')).policyId,
+			(await resolution('/init?contract=1&country=DE')).policyId,
 			'eu_opt_in'
 		);
 		assert.strictEqual(
-			(await resolution('/init?c15tCountry=US&c15tRegion=CA')).policyId,
+			(await resolution('/init?country=US&region=CA')).policyId,
 			'ca_opt_out'
 		);
 	});
@@ -88,7 +88,7 @@ describe('/init query parameters', () => {
 	it('lets a query parameter win over the legacy header', async () => {
 		assert.strictEqual(
 			(
-				await resolution('/init?c15tCountry=US&c15tRegion=CA', {
+				await resolution('/init?country=US&region=CA', {
 					'x-c15t-country': 'DE',
 				})
 			).policyId,
@@ -99,10 +99,10 @@ describe('/init query parameters', () => {
 	it('negotiates the contract a client declares in the query', async () => {
 		// A missed parameter reads as a client that predates the contract and
 		// silently turns negotiation off, so this must fail closed.
-		assert.deepInclude(
-			await resolution('/init?c15tPolicyContract=2&c15tCountry=DE'),
-			{ reason: 'unsupported-contract', status: 'failed' }
-		);
+		assert.deepInclude(await resolution('/init?contract=2&country=DE'), {
+			reason: 'unsupported-contract',
+			status: 'failed',
+		});
 		assert.deepInclude(
 			await resolution('/init', {
 				[POLICY_CONTRACT_HEADER]: '2',
@@ -118,9 +118,9 @@ describe('/init query parameters', () => {
 			manifest: { appName: 'Query', policyRules: RULES },
 			sessions: { onReport },
 		});
-		await reporting.request('/init?c15tCountry=DE&c15tGpc=1');
-		// `c15tGpc=0` beats the browser's own signal, as `x-c15t-gpc` did.
-		await reporting.request('/init?c15tCountry=DE&c15tGpc=0', {
+		await reporting.request('/init?country=DE&gpc=1');
+		// `gpc=0` beats the browser's own signal, as `x-c15t-gpc` did.
+		await reporting.request('/init?country=DE&gpc=0', {
 			headers: { 'sec-gpc': '1' },
 		});
 		await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 2));
@@ -137,7 +137,7 @@ describe('/init query parameters', () => {
 			sessions: { onReport },
 		});
 		const response = await reporting.request(
-			'/init?c15tVersion=3.1.0&c15tPolicyContract=1&c15tCountry=DE&c15tExperiment=banner%2520shape%3Dwall'
+			'/init?v=3.1.0&contract=1&country=DE&experiment=banner%2520shape%3Dwall'
 		);
 		assert.strictEqual(response.status, 200);
 		await vi.waitFor(() => assert.strictEqual(onReport.mock.calls.length, 1));
@@ -168,7 +168,7 @@ describe('/init CORS', () => {
 
 	it('answers any origin with `*`, no credentials, and the contract exposed', async () => {
 		const response = await harness.app.request(
-			'/init?c15tVersion=3.1.0&c15tPolicyContract=1&c15tCountry=DE',
+			'/init?v=3.1.0&contract=1&country=DE',
 			{ headers: { Origin: UNTRUSTED } }
 		);
 		assert.strictEqual(response.status, 200);

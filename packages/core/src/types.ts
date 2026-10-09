@@ -556,7 +556,7 @@ export interface InitContext {
 	/**
 	 * The consent journey this page load belongs to, set by the browser
 	 * runtime. The hosted transport sends it as query parameters on
-	 * `GET /init` (`c15tJourney`, `c15tJourneyScope`, `c15tStored`) so the
+	 * `GET /init` (`journey`, `journeyScope`, `stored`) so the
 	 * backend's session report can be linked to the save that follows.
 	 */
 	journey?: KernelJourney;

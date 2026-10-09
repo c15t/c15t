@@ -250,7 +250,7 @@ describe('lazyHosted', () => {
 		expect(`${sent.origin}${sent.pathname}`).toBe(
 			'https://consent.example.com/init'
 		);
-		expect(sent.searchParams.get('c15tCountry')).toBe('DE');
+		expect(sent.searchParams.get('country')).toBe('DE');
 		// Only `Accept` and `Accept-Language`: no CORS preflight.
 		expect(init?.headers).toEqual({
 			accept: 'application/json',

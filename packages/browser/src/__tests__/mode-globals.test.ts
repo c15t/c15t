@@ -16,19 +16,23 @@ import { createHostedGlobal } from '../hosted-global';
 import { createOfflineGlobal } from '../offline-global';
 import type { ConsentClientOptions } from '../types';
 
-/** A request URL without the consent journey query the runtime adds. */
-/** A request URL without the `c15t*` parameters a client adds to `/init`. */
+/** A query pair c15t adds to `/init`. */
+const INIT_PAIR =
+	/^(?:v|contract|country|region|gpc|experiment|journey|journeyScope|stored)=/u;
+
+/** A request URL without the parameters a client adds to `/init`. */
 const pathOf = (url: unknown): string => {
 	const text = String(url);
 	const [base = '', query] = text.split('?');
-	if (query === undefined || !/(?:^|&)c15t[A-Z]/u.test(query)) {
+	if (query === undefined) {
 		return text;
 	}
-	const kept = query
-		.split('&')
-		.filter((pair) => !/^c15t[A-Z]/u.test(pair))
-		.join('&');
-	return kept ? `${base}?${kept}` : base;
+	const pairs = query.split('&');
+	const kept = pairs.filter((pair) => !INIT_PAIR.test(pair));
+	if (kept.length === pairs.length) {
+		return text;
+	}
+	return kept.length > 0 ? `${base}?${kept.join('&')}` : base;
 };
 
 const testWindow = window as Window & { c15t?: unknown };

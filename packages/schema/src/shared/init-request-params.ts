@@ -14,6 +14,12 @@
  * so clients that still send headers keep working.
  * {@link applyInitParamsToHeaders} folds the parameters onto their header
  * names, so the code that reads those headers needs no second path.
+ *
+ * The names are short and unprefixed (`/init?v=3.0.0&country=GB`), so c15t
+ * reserves them on an init URL. When c15t sends a parameter, its value
+ * replaces any the URL already carried under that name, and the name
+ * appears once. A parameter c15t does not send passes through, and a
+ * backend reads it as that input.
  */
 
 import { POLICY_CONTRACT_HEADER } from './policy-resolution-wire';
@@ -25,25 +31,25 @@ import {
 import type { SessionExperiment } from './session-report';
 
 /** Client package version, as the `x-c15t-version` header carried it. */
-export const INIT_VERSION_PARAM = 'c15tVersion';
+export const INIT_VERSION_PARAM = 'v';
 
 /** Policy wire contract the client reads (`x-c15t-policy-contract`). */
-export const INIT_POLICY_CONTRACT_PARAM = 'c15tPolicyContract';
+export const INIT_POLICY_CONTRACT_PARAM = 'contract';
 
 /** Country override, an ISO 3166-1 alpha-2 code (`x-c15t-country`). */
-export const INIT_COUNTRY_PARAM = 'c15tCountry';
+export const INIT_COUNTRY_PARAM = 'country';
 
 /** Region override, an ISO 3166-2 subdivision code (`x-c15t-region`). */
-export const INIT_REGION_PARAM = 'c15tRegion';
+export const INIT_REGION_PARAM = 'region';
 
 /** GPC override, `1` or `0` (`x-c15t-gpc`). Any other value is ignored. */
-export const INIT_GPC_PARAM = 'c15tGpc';
+export const INIT_GPC_PARAM = 'gpc';
 
 /**
  * Banner-experiment arm as `<id>=<arm>`, both parts URI-encoded
  * (`x-c15t-experiment`). Sent only while the visitor has no stored choice.
  */
-export const INIT_EXPERIMENT_PARAM = 'c15tExperiment';
+export const INIT_EXPERIMENT_PARAM = 'experiment';
 
 /** Each init query parameter and the legacy header it replaces. */
 export const INIT_PARAM_HEADERS: readonly (readonly [string, string])[] = [
@@ -132,7 +138,7 @@ const toSearchParams = function toSearchParams(
  *
  * A parameter wins over a header with the same meaning: a client that sends
  * the parameter is newer than any header a proxy might add. An empty
- * parameter is ignored, and so is a `c15tGpc` other than `1` or `0`, so a
+ * parameter is ignored, and so is a `gpc` other than `1` or `0`, so a
  * malformed value never hides a browser's `Sec-GPC`.
  *
  * @param url - The request URL, absolute or relative.

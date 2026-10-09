@@ -45,7 +45,7 @@ runtime and create a new one.
 | `headers` | Request headers to forward on `/init`: `accept-language`, the geo headers and `sec-gpc`. Meant for server code forwarding a visitor's request. In a browser, any but `accept-language` makes a cross-origin `/init` wait for a CORS preflight; pass overrides through the runtime's `overrides` instead, which travel in the query string. |
 | `fetch` | A `fetch` implementation, for tests or unusual runtimes. |
 | `domain` | The domain recorded with each save. Defaults to the page's host. |
-| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `url`. Set `assertDecisionInputs: true` with it. |
+| `initURL` | Send `/init` somewhere else, such as a same-origin route, while saves still go to `url`. Set `assertDecisionInputs: true` with it. Its query string may carry your own parameters, but c15t replaces any named `v`, `contract`, `country`, `region`, `gpc`, `experiment`, `journey`, `journeyScope` or `stored` with its own value. |
 | `assertDecisionInputs` | Send the resolved policy inputs with each save, so the backend can reject a save made against a stale policy. |
 
 With `@c15t/browser`, `init({ backendURL })` builds `hosted({ url: backendURL })`

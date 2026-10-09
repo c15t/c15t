@@ -16,12 +16,12 @@ describe('init query parameters', () => {
 		// The hosted gateway and older backends read these header names; a
 		// rename here silently drops the input for them.
 		expect(Object.fromEntries(INIT_PARAM_HEADERS)).toEqual({
-			c15tCountry: 'x-c15t-country',
-			c15tExperiment: CONSENT_EXPERIMENT_HEADER,
-			c15tGpc: 'x-c15t-gpc',
-			c15tPolicyContract: POLICY_CONTRACT_HEADER,
-			c15tRegion: 'x-c15t-region',
-			c15tVersion: 'x-c15t-version',
+			contract: POLICY_CONTRACT_HEADER,
+			country: 'x-c15t-country',
+			experiment: CONSENT_EXPERIMENT_HEADER,
+			gpc: 'x-c15t-gpc',
+			region: 'x-c15t-region',
+			v: 'x-c15t-version',
 		});
 	});
 
@@ -36,7 +36,7 @@ describe('init query parameters', () => {
 				version: '3.0.0',
 			})
 		).toBe(
-			'/api/c15t/init?site=shop&c15tVersion=3.0.0&c15tPolicyContract=1&c15tCountry=DE&c15tRegion=BE&c15tGpc=0&c15tExperiment=banner%2520shape%3Da%253Db#top'
+			'/api/c15t/init?site=shop&v=3.0.0&contract=1&country=DE&region=BE&gpc=0&experiment=banner%2520shape%3Da%253Db#top'
 		);
 	});
 
@@ -44,8 +44,38 @@ describe('init query parameters', () => {
 		expect(appendInitParams('https://c.example/init', {})).toBe(
 			'https://c.example/init'
 		);
-		expect(appendInitParams('', { version: '3.0.0' })).toBe(
-			'?c15tVersion=3.0.0'
+		expect(appendInitParams('', { version: '3.0.0' })).toBe('?v=3.0.0');
+	});
+
+	it('replaces a parameter the URL already carries, so it appears once', () => {
+		// The names are generic; an app's own init route may already use one.
+		// c15t's value wins, and the app's other parameters keep their order
+		// and encoding.
+		const url = appendInitParams(
+			'/api/consent/init?country=US&site=a%20b&v=1&tag=x#top',
+			{ country: 'GB', version: '3.0.0' }
+		);
+		expect(url).toBe(
+			'/api/consent/init?site=a%20b&tag=x&v=3.0.0&country=GB#top'
+		);
+		const params = new URL(url, 'https://shop.example').searchParams;
+		expect(params.getAll('country')).toEqual(['GB']);
+		expect(params.getAll('v')).toEqual(['3.0.0']);
+	});
+
+	it('leaves a parameter c15t does not send for the backend to read', () => {
+		const url = appendInitParams('/api/consent/init?region=CA', {
+			country: 'US',
+		});
+		expect(url).toBe('/api/consent/init?region=CA&country=US');
+		expect(
+			applyInitParamsToHeaders(url, new Headers()).get('x-c15t-region')
+		).toBe('CA');
+	});
+
+	it('matches an encoded name in the existing query', () => {
+		expect(appendInitParams('/init?%63ountry=US&gpc', { country: 'GB' })).toBe(
+			'/init?gpc&country=GB'
 		);
 	});
 
@@ -74,7 +104,7 @@ describe('init query parameters', () => {
 
 	it('lets a parameter win over the legacy header and keeps the other headers', () => {
 		const headers = applyInitParamsToHeaders(
-			'/init?c15tCountry=FR&c15tPolicyContract=2',
+			'/init?country=FR&contract=2',
 			new Headers({
 				'cf-ipcountry': 'US',
 				'x-c15t-country': 'DE',
@@ -101,7 +131,7 @@ describe('init query parameters', () => {
 
 	it('ignores empty values and a GPC value other than 1 or 0', () => {
 		const headers = applyInitParamsToHeaders(
-			'/init?c15tCountry=&c15tGpc=yes',
+			'/init?country=&gpc=yes',
 			new Headers({ 'sec-gpc': '1' })
 		);
 		expect(headers.has('x-c15t-country')).toBe(false);

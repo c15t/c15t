@@ -110,7 +110,7 @@ describe('ConsentManagerProvider Basic Request Behavior', () => {
 			// The query carries the protocol inputs and the consent journey.
 			expect(mockFetch).toHaveBeenCalledWith(
 				expect.stringMatching(
-					/^\/api\/c15t\/init\?c15tVersion=[^&]+&c15tPolicyContract=1&c15tJourney=/u
+					/^\/api\/c15t\/init\?v=[^&]+&contract=1&journey=/u
 				),
 				expect.objectContaining({ method: 'GET' })
 			);

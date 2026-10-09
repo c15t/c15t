@@ -586,10 +586,9 @@ describe('init route', () => {
 
 	test('reads the inputs a browser sends as query parameters', async () => {
 		const response = await route({ fetch: upstream() })(
-			request(
-				'/api/c15t/init?c15tVersion=3.1.0&c15tPolicyContract=1&c15tCountry=DE&c15tGpc=1',
-				{ headers: { 'x-c15t-country': 'US' } }
-			)
+			request('/api/c15t/init?v=3.1.0&contract=1&country=DE&gpc=1', {
+				headers: { 'x-c15t-country': 'US' },
+			})
 		);
 		expect(await response.json()).toMatchObject({
 			location: { countryCode: 'DE' },
@@ -600,7 +599,7 @@ describe('init route', () => {
 
 	test('fails a client that declares an unknown contract in the query', async () => {
 		const response = await route({ fetch: upstream() })(
-			request('/api/c15t/init?c15tPolicyContract=99&c15tCountry=DE')
+			request('/api/c15t/init?contract=99&country=DE')
 		);
 		expect((await response.json()).policyResolution).toMatchObject({
 			reason: 'unsupported-contract',
@@ -610,7 +609,7 @@ describe('init route', () => {
 
 	test('query overrides win over adapter-supplied inputs, as override headers did', async () => {
 		const response = await route({ fetch: upstream() })(
-			request('/api/c15t/init?c15tCountry=DE'),
+			request('/api/c15t/init?country=DE'),
 			{ inputs: { country: 'US', language: 'de' } }
 		);
 		expect(await response.json()).toMatchObject({
@@ -816,10 +815,9 @@ describe('session reports', () => {
 		const registered: Promise<void>[] = [];
 		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
 		await route({ fetch })(
-			request(
-				`/api/c15t/init?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`,
-				{ headers: { 'x-vercel-ip-country': 'DE' } }
-			),
+			request(`/api/c15t/init?journey=${id}&journeyScope=page&stored=0`, {
+				headers: { 'x-vercel-ip-country': 'DE' },
+			}),
 			{ waitUntil: (task) => registered.push(task) }
 		);
 		await registered[0];
@@ -836,9 +834,7 @@ describe('session reports', () => {
 		const fetch = upstream();
 		const registered: Promise<void>[] = [];
 		await route({ fetch })(
-			request(
-				'/api/c15t/init?c15tJourney=visitor-42&c15tJourneyScope=page&c15tStored=0'
-			),
+			request('/api/c15t/init?journey=visitor-42&journeyScope=page&stored=0'),
 			{ waitUntil: (task) => registered.push(task) }
 		);
 		await registered[0];
@@ -1059,12 +1055,12 @@ describe('/init fallback for a backend without /manifest', () => {
 		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
 		await route({ backendURL: '/api/self-host' })(
 			request(
-				`/api/c15t/init?utm_source=mail&c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`
+				`/api/c15t/init?utm_source=mail&journey=${id}&journeyScope=tab&stored=1`
 			),
 			{ localFetch }
 		);
 		expect(localFetch).toHaveBeenLastCalledWith(
-			`/api/self-host/init?c15tJourney=${id}&c15tJourneyScope=tab&c15tStored=1`,
+			`/api/self-host/init?journey=${id}&journeyScope=tab&stored=1`,
 			expect.anything()
 		);
 	});
@@ -1077,7 +1073,7 @@ describe('/init fallback for a backend without /manifest', () => {
 			translations: { language: 'en', translations: {} },
 		});
 		await route({ backendURL: '/api/self-host' })(
-			request('/api/c15t/init?c15tCountry=DE&c15tGpc=0&c15tPolicyContract=1'),
+			request('/api/c15t/init?country=DE&gpc=0&contract=1'),
 			{ localFetch }
 		);
 		expect(localFetch).toHaveBeenLastCalledWith(
@@ -1096,7 +1092,7 @@ describe('/init fallback for a backend without /manifest', () => {
 		});
 		const id = '3b241101-e2bb-4255-8caf-4136c566a962';
 		const handle = route({ backendURL: BACKEND, fetch });
-		const query = `?c15tJourney=${id}&c15tJourneyScope=page&c15tStored=0`;
+		const query = `?journey=${id}&journeyScope=page&stored=0`;
 		const lastInitOrigin = () =>
 			new Headers(
 				fetch.mock.calls.findLast(([url]) => String(url).includes('/init'))?.[1]

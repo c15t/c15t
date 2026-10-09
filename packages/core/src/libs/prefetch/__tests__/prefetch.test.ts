@@ -102,9 +102,7 @@ describe('prefetch utilities', () => {
 			},
 		});
 		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect(new URL(url).searchParams.get('c15tVersion')).toEqual(
-			expect.any(String)
-		);
+		expect(new URL(url).searchParams.get('v')).toEqual(expect.any(String));
 		// A cross-origin backend answers this without a CORS preflight.
 		expect(corsPreflightReasons(init)).toEqual([]);
 		expect(init.headers).toEqual({ 'accept-language': 'de' });
@@ -122,11 +120,11 @@ describe('prefetch utilities', () => {
 		const [url, init] = fetch.mock.calls[0] as unknown as [string, RequestInit];
 		expect(corsPreflightReasons(init)).toEqual([]);
 		const query = new URL(url).searchParams;
-		expect(query.get('c15tVersion')).toEqual(expect.any(String));
-		expect(query.get('c15tPolicyContract')).toBe('1');
-		expect(query.get('c15tCountry')).toBe('DE');
-		expect(query.get('c15tRegion')).toBe('BE');
-		expect(query.get('c15tGpc')).toBe('0');
+		expect(query.get('v')).toEqual(expect.any(String));
+		expect(query.get('contract')).toBe('1');
+		expect(query.get('country')).toBe('DE');
+		expect(query.get('region')).toBe('BE');
+		expect(query.get('gpc')).toBe('0');
 	});
 
 	it('builds the same request as the runtime prefetch', () => {
@@ -239,14 +237,14 @@ describe('prefetch utilities', () => {
 
 		expect(
 			buildPrefetchScript({ backendURL: '/api/c15t', overrides: { gpc: true } })
-		).toContain('c15tGpc=1');
+		).toContain('gpc=1');
 
 		const primed = primePrefetchedInitialData({
 			backendURL: '/api/c15t',
 			overrides: { gpc: true },
 		});
 		const call = fetchSpy.mock.calls[0] as [string, RequestInit];
-		expect(new URL(call[0]).searchParams.get('c15tGpc')).toBe('1');
+		expect(new URL(call[0]).searchParams.get('gpc')).toBe('1');
 		expect(
 			getMatchingPrefetchedInitialData({
 				backendURL: '/api/c15t',
@@ -386,10 +384,7 @@ describe('prefetch utilities', () => {
 				'http://localhost:3000/api/third/init'
 			);
 			expect(readJourneyParams(third)).toBeNull();
-			expect([...third.searchParams.keys()]).toEqual([
-				'c15tVersion',
-				'c15tPolicyContract',
-			]);
+			expect([...third.searchParams.keys()]).toEqual(['v', 'contract']);
 		});
 
 		it('primePrefetchedInitialData sends the same journey as the script', () => {

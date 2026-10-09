@@ -20,10 +20,9 @@
  * headers are safe and version-gated manifest serving stays possible.
  *
  * `GET /init` is the exception. A browser on another origin sends it as a
- * CORS simple request, so the version and the contract travel as the
- * `c15tVersion` and `c15tPolicyContract` query parameters instead
- * ({@link c15tProtocolParams}); a header would add an `OPTIONS` preflight
- * to every first visit. Other requests keep the headers: `/subjects` is a
+ * CORS simple request, so the version and the contract travel as the `v`
+ * and `contract` query parameters instead ({@link c15tProtocolParams}); a
+ * header would add an `OPTIONS` preflight to every first visit. Other requests keep the headers: `/subjects` is a
  * JSON `POST` and is preflighted anyway, and server-side requests have no
  * CORS. The backend reads the parameter first and the header second.
  */

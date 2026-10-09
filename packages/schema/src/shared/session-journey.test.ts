@@ -45,7 +45,7 @@ describe('journey query parameters', () => {
 			storedChoice: false,
 		});
 		expect(url).toBe(
-			`/api/c15t/init?lang=de&c15tJourney=${ID}&c15tJourneyScope=tab&c15tStored=0`
+			`/api/c15t/init?lang=de&journey=${ID}&journeyScope=tab&stored=0`
 		);
 		expect(readJourneyParams(url)).toEqual({
 			id: ID,
@@ -65,21 +65,62 @@ describe('journey query parameters', () => {
 	it('reads junk as no journey', () => {
 		for (const query of [
 			'',
-			'?c15tJourney=not-a-uuid&c15tJourneyScope=page',
-			`?c15tJourney=${ID}x&c15tJourneyScope=page`,
-			`?c15tJourney=${ID}&c15tJourneyScope=window`,
-			`?c15tJourney=${ID}`,
-			'?c15tJourneyScope=page',
+			'?journey=not-a-uuid&journeyScope=page',
+			`?journey=${ID}x&journeyScope=page`,
+			`?journey=${ID}&journeyScope=window`,
+			`?journey=${ID}`,
+			'?journeyScope=page',
 		]) {
 			expect(readJourneyParams(`https://example.com/init${query}`)).toBeNull();
 		}
 		expect(readJourneyParams(undefined)).toBeNull();
 	});
 
+	it('replaces a journey the URL already carries', () => {
+		const other = '9c5b94b1-35ad-49bb-b118-8e8fc24abf80';
+		expect(
+			appendJourneyParams(
+				`/subjects?journey=${other}&journeyScope=tab&site=a`,
+				{
+					id: ID,
+					scope: 'page',
+				}
+			)
+		).toBe(`/subjects?site=a&journey=${ID}&journeyScope=page`);
+	});
+
+	it('reads the alpha parameter names when the current ones are absent', () => {
+		// 3.0.0-alpha.8 and alpha.9 clients sent `c15tJourney`,
+		// `c15tJourneyScope` and `c15tStored`.
+		expect(
+			readJourneyParams(
+				`/init?c15tJourney=${ID}&c15tJourneyScope=tab&c15tStored=1`
+			)
+		).toEqual({ id: ID, scope: 'tab', storedChoice: true });
+		expect(
+			readSessionJourney(
+				`/init?c15tJourney=${ID}&c15tJourneyScope=page&c15tStored=0`
+			)
+		).toEqual({ id: ID, scope: 'page', storedChoice: false });
+	});
+
+	it('prefers the current names and never mixes them with the alpha names', () => {
+		const other = '9c5b94b1-35ad-49bb-b118-8e8fc24abf80';
+		expect(
+			readJourneyParams(
+				`/init?c15tJourney=${other}&c15tJourneyScope=tab&c15tStored=1&journey=${ID}&journeyScope=page&stored=0`
+			)
+		).toEqual({ id: ID, scope: 'page', storedChoice: false });
+		// A current id with only an alpha scope is no journey under either set.
+		expect(
+			readJourneyParams(`/init?journey=${ID}&c15tJourneyScope=page`)
+		).toBeNull();
+	});
+
 	it('ignores a stored flag that is not 0 or 1', () => {
 		expect(
 			readJourneyParams(
-				`/init?c15tJourney=${ID.toUpperCase()}&c15tJourneyScope=page&c15tStored=yes`
+				`/init?journey=${ID.toUpperCase()}&journeyScope=page&stored=yes`
 			)
 		).toEqual({ id: ID, scope: 'page' });
 	});
@@ -127,7 +168,7 @@ describe('readSessionJourney', () => {
 	it('needs the stored flag and takes the domain from the site', () => {
 		expect(
 			readSessionJourney(
-				`/init?c15tJourney=${ID}&c15tJourneyScope=page&c15tStored=0`,
+				`/init?journey=${ID}&journeyScope=page&stored=0`,
 				'https://shop.example.com'
 			)
 		).toEqual({
@@ -137,7 +178,7 @@ describe('readSessionJourney', () => {
 			storedChoice: false,
 		});
 		expect(
-			readSessionJourney(`/init?c15tJourney=${ID}&c15tJourneyScope=page`)
+			readSessionJourney(`/init?journey=${ID}&journeyScope=page`)
 		).toBeNull();
 	});
 });

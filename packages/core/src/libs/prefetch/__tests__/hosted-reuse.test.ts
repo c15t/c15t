@@ -61,7 +61,7 @@ describe('hosted browser prefetch consumption', () => {
 		expect(first?.policyResolution).toEqual(payload.policyResolution);
 		expect(fetch).toHaveBeenCalledTimes(1);
 		const [url, init] = fetch.mock.calls[0] ?? [];
-		expect(new URL(url).searchParams.get('c15tPolicyContract')).toBe('1');
+		expect(new URL(url).searchParams.get('contract')).toBe('1');
 		// A cross-origin backend answers this without a CORS preflight.
 		expect(corsPreflightReasons(init)).toEqual([]);
 		await transport.init?.(context);
