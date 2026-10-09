@@ -340,6 +340,33 @@ body {}
 `);
 	});
 
+	it('rewrites require() calls with a string literal', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/consent.cjs': `const { ConsentManagerProvider } = require('@c15t/react');
+const headless = require("@c15t/react/headless");
+const { c15tMiddleware } = require('@c15t/nextjs/middleware');
+const legacy = require('@c15t/react/legacy');
+const dynamic = require(\`@c15t/react/\${name}\`);
+const fixed = require(\`@c15t/react\`);
+require('@c15t/react/styles.css');
+`,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(await read('src/consent.cjs'))
+			.toBe(`const { ConsentManagerProvider } = require('c15t/react');
+const headless = require("c15t/react/headless");
+const { c15tMiddleware } = require('c15t/next/middleware');
+// TODO(c15t v3): @c15t/react/legacy is not a c15t v3 entry. Import from c15t/react or one of its subpaths.
+const legacy = require('@c15t/react/legacy');
+const dynamic = require(\`@c15t/react/\${name}\`);
+const fixed = require(\`@c15t/react\`);
+`);
+	});
+
 	it('points object-form and required PostCSS plugins at c15t/postcss-tailwind3', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0', next: '^15.0.0', tailwindcss: '^3.4.17' },

@@ -54,11 +54,11 @@ When `package.json` lists `next` or `@c15t/nextjs`, the `@c15t/react` root
 moves to `c15t/next`, which re-exports the React components and hooks. The
 v2 `@c15t/react/cookie-banner` alias becomes
 `c15t/react/components/consent-banner`. It rewrites imports, re-exports,
-`import()` calls and import types, and leaves `c15t/react`,
-`@c15t/integrations` and other packages alone. In a PostCSS config, it points
-the `@c15t/react/postcss-tailwind3` and `@c15t/nextjs/postcss-tailwind3`
-plugins at `c15t/postcss-tailwind3`, whether the config names them as an
-object key or in `require()`.
+`import()` and `require()` calls with a string literal, and import types, and
+leaves `c15t/react`, `@c15t/integrations` and other packages alone. In a
+PostCSS config, it points the `@c15t/react/postcss-tailwind3` and
+`@c15t/nextjs/postcss-tailwind3` plugins at `c15t/postcss-tailwind3`, whether
+the config names them as an object key or in `require()`.
 
 It removes `@c15t/react/styles.css` and `@c15t/nextjs/styles.css` imports,
 including the `iab/` and `.tw3.css` variants, because v3 components add their

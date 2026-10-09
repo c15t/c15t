@@ -177,30 +177,30 @@ const keepsStylesheet = function keepsStylesheet(
 	);
 };
 
-/**
- * Whether a literal names the scoped PostCSS plugin the way a PostCSS config
- * loads it: as an object-form `plugins` key or through `require()`.
- */
-const isPostcssPluginReference = function isPostcssPluginReference(
+/** Whether a literal names the scoped PostCSS plugin as an object-form `plugins` key. */
+const isPostcssPluginKey = function isPostcssPluginKey(
 	literal: TsMorphTypes.StringLiteral,
 	parent: TsMorphTypes.Node | undefined
 ): boolean {
-	if (!POSTCSS_PLUGIN_SPECIFIER.test(literal.getLiteralValue())) {
-		return false;
-	}
-	if (Node.isPropertyAssignment(parent)) {
-		return parent.getNameNode() === literal;
-	}
 	return (
-		Node.isCallExpression(parent) &&
-		parent.getExpression().getText() === 'require' &&
-		parent.getArguments()[0] === literal
+		POSTCSS_PLUGIN_SPECIFIER.test(literal.getLiteralValue()) &&
+		Node.isPropertyAssignment(parent) &&
+		parent.getNameNode() === literal
 	);
 };
 
+/** Whether a call is `require(...)`. */
+const isRequireCall = function isRequireCall(
+	call: TsMorphTypes.CallExpression
+): boolean {
+	const callee = call.getExpression();
+	return Node.isIdentifier(callee) && callee.getText() === 'require';
+};
+
 /**
- * The string literals that name a module: imports, re-exports, `import()`,
- * import types, and PostCSS plugin keys and `require()` calls.
+ * The string literals that name a module: imports, re-exports, `import()`
+ * and `require()` calls, import types, and PostCSS plugin keys. A template
+ * literal or computed argument is left alone.
  */
 const moduleSpecifiersOf = function moduleSpecifiersOf(
 	sourceFile: TsMorphTypes.SourceFile
@@ -209,7 +209,7 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 		.getDescendantsOfKind(SyntaxKind.StringLiteral)
 		.filter((literal) => {
 			const parent = literal.getParent();
-			if (isPostcssPluginReference(literal, parent)) {
+			if (isPostcssPluginKey(literal, parent)) {
 				return true;
 			}
 			if (
@@ -220,7 +220,8 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 			}
 			if (Node.isCallExpression(parent)) {
 				return (
-					parent.getExpression().getKind() === SyntaxKind.ImportKeyword &&
+					(parent.getExpression().getKind() === SyntaxKind.ImportKeyword ||
+						isRequireCall(parent)) &&
 					parent.getArguments()[0] === literal
 				);
 			}
@@ -229,6 +230,42 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 				Node.isImportTypeNode(parent.getParent())
 			);
 		});
+};
+
+/**
+ * Where a TODO about a module specifier goes: above the statement that holds
+ * it when that statement starts on the same line, so `const x = require(…)`
+ * gets its TODO on the line above rather than inside the expression.
+ */
+const todoAnchor = function todoAnchor(
+	parent: TsMorphTypes.Node
+): TsMorphTypes.Node {
+	if (!Node.isCallExpression(parent)) {
+		return parent;
+	}
+	const statement = parent.getFirstAncestor(Node.isStatement);
+	return statement &&
+		statement.getStartLineNumber() === parent.getStartLineNumber()
+		? statement
+		: parent;
+};
+
+/**
+ * The statement a stylesheet import is alone in, which removing the import
+ * removes: `import './styles.css';` or `require('./styles.css');`.
+ */
+const sideEffectStatement = function sideEffectStatement(
+	parent: TsMorphTypes.Node
+): TsMorphTypes.Node | undefined {
+	if (Node.isImportDeclaration(parent)) {
+		return parent.getImportClause() === undefined ? parent : undefined;
+	}
+	const statement = parent.getParent();
+	return Node.isCallExpression(parent) &&
+		isRequireCall(parent) &&
+		Node.isExpressionStatement(statement)
+		? statement
+		: undefined;
 };
 
 /** Replaces the text between a string literal's quotes, keeping its quote style. */
@@ -252,17 +289,15 @@ const transformWith = (
 			const specifier = literal.getLiteralValue();
 			const parent = literal.getParentOrThrow();
 			if (STYLESHEET_SPECIFIER.test(specifier)) {
-				const sideEffect =
-					Node.isImportDeclaration(parent) &&
-					parent.getImportClause() === undefined;
+				const sideEffect = sideEffectStatement(parent);
 				if (sideEffect && !keepsStylesheet(specifier, plan)) {
-					edits.push(propertyRemoval(parent));
+					edits.push(propertyRemoval(sideEffect));
 					summaries.add(`removed ${specifier}`);
 					operations += 1;
 					continue;
 				}
 				const kept = keptStylesheet(specifier, plan.umbrella);
-				const todo = addTodo(parent, STYLES_TODO, edits);
+				const todo = addTodo(todoAnchor(parent), STYLES_TODO, edits);
 				if (kept !== specifier) {
 					edits.push(rewriteLiteral(literal, kept));
 				}
@@ -281,7 +316,7 @@ const transformWith = (
 				continue;
 			}
 			if ('todo' in target) {
-				if (addTodo(parent, target.todo, edits)) {
+				if (addTodo(todoAnchor(parent), target.todo, edits)) {
 					summaries.add(`TODO: ${specifier}`);
 					operations += 1;
 				}
