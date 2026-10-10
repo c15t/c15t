@@ -402,6 +402,31 @@ body
 		);
 	});
 
+	it('keeps comments in front of a removed final Sass import target', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/block.scss': `@import './theme', /* application note */ '@c15t/react/styles.css';
+`,
+				'src/line.scss': `@import
+	'./theme',
+	// application note
+	'@c15t/react/styles.css',
+	/* iab */ '@c15t/react/iab/styles.css';
+`,
+			}
+		);
+
+		expect(await read('src/block.scss')).toBe(
+			`@import './theme' /* application note */;
+`
+		);
+		// A line comment becomes a block comment, so the `;` stays on its line.
+		expect(await read('src/line.scss')).toBe(`@import
+	'./theme' /* application note */ /* iab */;
+`);
+	});
+
 	it('migrates Sass pkg: stylesheet URLs', async () => {
 		const scss = `@use 'pkg:@c15t/react/styles.css';
 @forward 'pkg:@c15t/nextjs/styles.css';

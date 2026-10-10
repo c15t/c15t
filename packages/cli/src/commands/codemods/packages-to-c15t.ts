@@ -646,9 +646,23 @@ const commentsOf = function commentsOf(trivia: string): string {
 };
 
 /**
+ * The comments in the trivia between two targets as block comments on one
+ * line, so text after them, like a `;`, stays outside them.
+ */
+const blockCommentsOf = function blockCommentsOf(trivia: string): string {
+	return Array.from(trivia.matchAll(TRIVIA_COMMENT), ({ groups }) => {
+		const comment = groups?.comment ?? '';
+		return comment.startsWith('//')
+			? `/* ${comment.slice(2).trim().replaceAll('*/', '* /')} */`
+			: comment;
+	}).join(' ');
+};
+
+/**
  * The edit that rewrites a Sass import's target list without its removed
  * targets. Each remaining target keeps the separator in front of it, and
- * comments in front of a removed target move to the next one that stays.
+ * comments in front of a removed target move to the next one that stays,
+ * or after the last one, as block comments, when the final targets go.
  */
 const targetListEdit = function targetListEdit(
 	text: string,
@@ -674,6 +688,10 @@ const targetListEdit = function targetListEdit(
 		}
 		list += `${trivia ?? ''}${targetText(text, target, fate ?? target.specifier)}`;
 		trivia = undefined;
+	}
+	const trailing = blockCommentsOf(trivia ?? '');
+	if (trailing !== '') {
+		list += ` ${trailing}`;
 	}
 	const [first] = targets;
 	return {
