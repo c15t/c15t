@@ -83,7 +83,6 @@ export const manifest = function manifest(
 	);
 };
 
-export { manifestNeedsLocation } from '@c15t/core/transports/manifest-browser';
 export type {
 	BrowserManifestModeFactory,
 	BrowserManifestOptions as ManifestModeOptions,

@@ -201,7 +201,7 @@ export const UMBRELLA_SOURCES: UmbrellaSource[] = [
 					'HostedOptions',
 					'ManifestModeOptions',
 				],
-				values: ['hosted', 'manifest', 'manifestNeedsLocation', 'offline'],
+				values: ['hosted', 'manifest', 'offline'],
 			},
 		},
 		packageName: '@c15t/react',

@@ -20,7 +20,7 @@
  */
 export { hosted } from './transports/hosted';
 export type { HostedOptions } from './transports/hosted';
-export { manifest, manifestNeedsLocation } from './transports/manifest';
+export { manifest } from './transports/manifest';
 export type {
 	BrowserManifestModeFactory,
 	ManifestModeOptions,

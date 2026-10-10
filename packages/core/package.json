@@ -99,6 +99,11 @@
 			"import": "./dist/transports/manifest-browser.js",
 			"default": "./dist/transports/manifest-browser.js"
 		},
+		"./transports/manifest-location": {
+			"types": "./dist-types/transports/manifest-browser-location.d.ts",
+			"import": "./dist/transports/manifest-browser-location.js",
+			"default": "./dist/transports/manifest-browser-location.js"
+		},
 		"./transports/manifest-cache": {
 			"types": "./dist-types/transports/manifest-cache.d.ts",
 			"import": "./dist/transport-manifest-cache.js",

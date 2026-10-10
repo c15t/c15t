@@ -110,6 +110,11 @@
 			"import": "./shims/transports/manifest-browser.js",
 			"default": "./shims/transports/manifest-browser.js"
 		},
+		"./transports/manifest-location": {
+			"types": "./shims/transports/manifest-location.d.ts",
+			"import": "./shims/transports/manifest-location.js",
+			"default": "./shims/transports/manifest-location.js"
+		},
 		"./transports/manifest-cache": {
 			"types": "./shims/transports/manifest-cache.d.ts",
 			"import": "./shims/transports/manifest-cache.js",

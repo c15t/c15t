@@ -16,9 +16,9 @@ import { earlyInitModes } from '../transports/early-init-modes';
 import {
 	createBrowserManifestTransport,
 	manifest,
-	manifestNeedsLocation,
 	withEarlyInit,
 } from '../transports/manifest-browser';
+import { manifestNeedsLocation } from '../transports/manifest-browser-location';
 import type { InitContext } from '../types';
 
 const everywhereManifest: ConsentManifest = {

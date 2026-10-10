@@ -96,7 +96,7 @@ const EXPECTED_ESM_FAILURES = new Set<string>([
  * `@c15t/react/modes`, which `@c15t/react` keeps out of its index.
  */
 const EXTRA_UMBRELLA_KEYS: Record<string, string[]> = {
-	'./react': ['manifest', 'manifestNeedsLocation'],
+	'./react': ['manifest'],
 };
 
 const describeResult = function describeResult(result: LoadResult): string {

@@ -9,7 +9,7 @@
 import { resolvePolicyResolutionFromManifest } from '@c15t/schema/types';
 import type { ConsentManifest, PolicyResolution } from '@c15t/schema/types';
 
-import { experienceKey } from './manifest-browser-packs';
+import { experienceKey, hasLocationMatchers } from './manifest-browser-packs';
 
 /** Stands in for a region no pack lists. Never a real subdivision code. */
 const UNLISTED_REGION = '?';
@@ -107,4 +107,25 @@ export const locationFreeOutcome = function locationFreeOutcome(
 	}
 	locationFreeOutcomes.set(manifest, outcome);
 	return outcome;
+};
+
+/**
+ * Whether resolving this manifest needs to know where the visitor is.
+ *
+ * A manifest without country or region packs resolves the same everywhere,
+ * so the browser can do it without a round trip. So does one whose packs
+ * are keyed by location but all give the same experience, for example
+ * opt-in with the same categories and copy in Europe, Quebec and everywhere
+ * else: only the policy id differs. A manifest where some location gets a
+ * different banner, or none, or matches no pack, needs a location.
+ *
+ * @param manifest - The manifest.
+ * @returns `true` when a country is required for a faithful answer.
+ */
+export const manifestNeedsLocation = function manifestNeedsLocation(
+	manifest: ConsentManifest
+): boolean {
+	return (
+		hasLocationMatchers(manifest) && locationFreeOutcome(manifest) === null
+	);
 };

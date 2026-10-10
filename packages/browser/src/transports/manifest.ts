@@ -78,7 +78,7 @@ export const manifest = function manifest(
 };
 
 // oxlint-disable-next-line oxc/no-barrel-file -- Part of the public `manifest` export of @c15t/browser.
-export { manifestNeedsLocation } from '@c15t/core/transports/manifest-browser';
+export { manifestNeedsLocation } from '@c15t/core/transports/manifest-location';
 export type {
 	BrowserManifestModeFactory,
 	BrowserManifestOptions as ManifestModeOptions,

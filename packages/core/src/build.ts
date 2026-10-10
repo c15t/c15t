@@ -6,7 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import type { ConsentManifest } from '@c15t/schema/types';
 
 import { loadStaticManifest } from './server/static-manifest';
-import { manifestNeedsLocation } from './transports/manifest-browser';
+import { manifestNeedsLocation } from './transports/manifest-browser-location';
 
 export type { ConsentManifest } from '@c15t/schema/types';
 

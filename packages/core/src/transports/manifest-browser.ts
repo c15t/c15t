@@ -31,7 +31,6 @@ import { earlyInitModes } from './early-init-modes';
 import type { EarlyInitMode } from './early-init-modes';
 import { createHostedTransport } from './hosted';
 import type { TransportInitResponse } from './init-output';
-import { locationFreeOutcome } from './manifest-browser-location';
 import {
 	hasLocationMatchers,
 	mayBeLocationFree,
@@ -117,27 +116,6 @@ const deriveBackendURL = function deriveBackendURL(
 		return undefined;
 	}
 	return trimmed.slice(0, -'/manifest'.length);
-};
-
-/**
- * Whether resolving this manifest needs to know where the visitor is.
- *
- * A manifest without country or region packs resolves the same everywhere,
- * so the browser can do it without a round trip. So does one whose packs
- * are keyed by location but all give the same experience, for example
- * opt-in with the same categories and copy in Europe, Quebec and everywhere
- * else: only the policy id differs. A manifest where some location gets a
- * different banner, or none, or matches no pack, needs a location.
- *
- * @param manifest - The manifest.
- * @returns `true` when a country is required for a faithful answer.
- */
-export const manifestNeedsLocation = function manifestNeedsLocation(
-	manifest: ConsentManifest
-): boolean {
-	return (
-		hasLocationMatchers(manifest) && locationFreeOutcome(manifest) === null
-	);
 };
 
 /**
