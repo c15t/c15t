@@ -152,6 +152,9 @@ const cleanupMockBrowser = function cleanupMockBrowser() {
 	delete globalRef.va;
 	delete globalRef.vaq;
 	delete globalRef.vam;
+	delete globalRef.si;
+	delete globalRef.siq;
+	delete globalRef.sil;
 	delete globalRef.$crisp;
 	delete globalRef.CRISP_WEBSITE_ID;
 	delete globalRef.CRISP_RUNTIME_CONFIG;

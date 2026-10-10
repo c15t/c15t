@@ -65,6 +65,7 @@
 	"docs/integrations/tiktok-pixel.mdx": 1,
 	"docs/integrations/umami-analytics.mdx": 1,
 	"docs/integrations/vercel-analytics.mdx": 1,
+	"docs/integrations/vercel-speed-insights.mdx": 1,
 	"docs/integrations/x-pixel.mdx": 1,
 	"docs/self-host/api/configuration.mdx": 2,
 	"docs/self-host/guides/caching.mdx": 1,

@@ -54,8 +54,11 @@ fetching, a slow manifest response keeps the page blank for up to `timeoutMs`,
 can also hold a streamed boundary's reveal for up to 300 ms after the browser's
 first paint or an earlier boundary's reveal, even with a warm manifest cache.
 `<SpeedInsights />` from `@vercel/speed-insights` is one such boundary, because
-it wraps itself in `Suspense`. Choose the awaited layout only when the page
-and its banner must arrive together, and measure the page.
+it wraps itself in `Suspense`. It also reports before consent, so load Speed
+Insights through
+[`vercelSpeedInsights`](/docs/integrations/vercel-speed-insights) instead.
+Choose the awaited layout only when the page and its banner must arrive
+together, and measure the page.
 
 Without `cacheComponents`, you can also make the root layout itself async and
 await `resolveConsent` there. The page and the banner then arrive together, but

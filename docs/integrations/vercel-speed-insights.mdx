@@ -1,0 +1,73 @@
+---
+title: Vercel Speed Insights
+description: Load the Vercel Speed Insights collector only after measurement consent with the c15t vercelSpeedInsights helper, drop Web Vitals reports on revocation, and check it in DevTools.
+icon: vercel-analytics
+group: integrations
+---
+
+## Configure Vercel Speed Insights
+
+Enable Speed Insights for the project in Vercel. Remove the `SpeedInsights`
+component or `injectSpeedInsights()` call from `@vercel/speed-insights`. The
+collector starts once per page, so a copy loaded outside c15t keeps reporting
+before consent.
+
+<CommandTabs command="@c15t/integrations@alpha" mode="install" />
+
+```ts title="src/consent-scripts.ts"
+import { vercelSpeedInsights } from '@c15t/integrations/vercel-speed-insights';
+
+export const scripts = [vercelSpeedInsights()];
+```
+
+<include src="../shared/integrations/register-scripts.mdx" />
+
+## Options
+
+| Option | Default | Behavior |
+| --- | --- | --- |
+| `dsn` | None | Project DSN for deployments outside Vercel, set as `data-dsn`. Reports go to Vercel's vitals endpoint for that DSN. |
+| `mode` | None | `'development'` loads the debug script. `'auto'` and `'production'` load the production script. The helper does not detect your environment. |
+| `debug` | None | `true` loads `https://va.vercel-scripts.com/v1/speed-insights/script.debug.js`, which logs reports to the console and sends nothing. |
+| `endpoint` | None | Custom vitals endpoint, set as `data-endpoint`. |
+| `scriptUrl` | `https://va.vercel-scripts.com/v1/speed-insights/script.js` | Loader URL override, such as `/_vercel/speed-insights/script.js` on Vercel. Takes precedence over `mode` and `debug`. |
+| `sampleRate` | `1` | Share of page loads that report, from `0` to `1`, set as `data-sample-rate`. Other values throw a `TypeError`. |
+| `beforeSend` | None | Edits or drops a report while measurement is allowed. Return the event, with a changed `url` if needed, or `null` to drop it. |
+
+The helper also sets `data-sdkn="c15t"` on the script element. Without `dsn`
+or `endpoint`, the collector posts to `/_vercel/speed-insights/vitals` on your
+own origin, which exists only on Vercel deployments with Speed Insights on.
+
+## Loading and revocation
+
+`vercelSpeedInsights` uses the `measurement` category. When measurement becomes
+allowed, the helper defines the `window.siq` queue and a `window.si` stub,
+unless they exist, registers a `beforeSend` callback and loads the script.
+
+The collector keeps its listeners after its script element is removed and
+sends queued reports on `pagehide` and navigation. On revocation the helper
+removes the script element and its `beforeSend` callback starts returning
+`null`, so no report is sent, including during the reload c15t runs on
+revocation. A later grant re-adds the script, which does not start a second
+collector, and reports resume. Reports also stop when the provider that owns
+the scripts unmounts.
+
+The collector holds one `beforeSend` callback. Pass yours through the
+`beforeSend` option. Calling `window.si('beforeSend', ...)` yourself replaces
+the helper's consent check.
+
+Reports only cover page loads after consent. The collector reads buffered
+paint and navigation timings, but interactions before consent are missed. The
+helper does not set `data-route`, so Vercel groups reports by URL rather than
+by route pattern such as `/blog/[slug]`.
+
+## Verify Vercel Speed Insights
+
+Filter DevTools Network by `speed-insights`. After you allow measurement,
+`script.js` loads from `va.vercel-scripts.com` with `data-sdkn="c15t"`. Change
+route or switch tabs, and a `POST` to `/_vercel/speed-insights/vitals` follows.
+Automated browsers that set `navigator.webdriver` load the collector but send
+nothing. With `debug` or `mode: 'development'` the reports appear in the
+console instead.
+
+<include src="../shared/integrations/vendor-revocation-and-verify.mdx" />

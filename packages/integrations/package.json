@@ -36,6 +36,7 @@
 		"sentry",
 		"session-replay",
 		"tiktok-pixel",
+		"vercel-speed-insights",
 		"x-pixel"
 	],
 	"homepage": "https://c15t.com/docs/integrations/overview",
@@ -188,6 +189,11 @@
 			"types": "./dist-types/vendors/analytics/vercel-analytics.d.ts",
 			"import": "./dist/vendors/analytics/vercel-analytics.js",
 			"default": "./dist/vendors/analytics/vercel-analytics.js"
+		},
+		"./vercel-speed-insights": {
+			"types": "./dist-types/vendors/analytics/vercel-speed-insights.d.ts",
+			"import": "./dist/vendors/analytics/vercel-speed-insights.js",
+			"default": "./dist/vendors/analytics/vercel-speed-insights.js"
 		},
 		"./klaviyo": {
 			"types": "./dist-types/vendors/email-and-sms/klaviyo.d.ts",

@@ -36,6 +36,7 @@ import { segment } from './vendors/analytics/segment';
 import { sentry } from './vendors/analytics/sentry';
 import { umamiAnalytics } from './vendors/analytics/umami-analytics';
 import { vercelAnalytics } from './vendors/analytics/vercel-analytics';
+import { vercelSpeedInsights } from './vendors/analytics/vercel-speed-insights';
 import { klaviyo } from './vendors/email-and-sms/klaviyo';
 import { crisp } from './vendors/functional/crisp';
 import { frontChat } from './vendors/functional/front-chat';
@@ -413,6 +414,11 @@ const blankScriptUrlCases: {
 		create: (scriptUrl) => vercelAnalytics({ scriptUrl }),
 		expectedSrc: 'https://va.vercel-scripts.com/v1/script.js',
 		helper: 'vercelAnalytics',
+	},
+	{
+		create: (scriptUrl) => vercelSpeedInsights({ scriptUrl }),
+		expectedSrc: 'https://va.vercel-scripts.com/v1/speed-insights/script.js',
+		helper: 'vercelSpeedInsights',
 	},
 	{
 		create: (scriptUrl) =>
