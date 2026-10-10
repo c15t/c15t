@@ -50,8 +50,8 @@ export interface ConsentRouteOptions {
 	/**
 	 * Backend base URL that serves `/manifest`, for example
 	 * `https://your-project.inth.app`. Defaults to the URL
-	 * `consentManifest()` read from `VITE_C15T_BACKEND_URL`. The proxy
-	 * forwards to it.
+	 * `consentManifest()` read from `VITE_C15T_BACKEND_URL` or
+	 * `VITE_INTH_PROJECT_URL`. The proxy forwards to it.
 	 */
 	backendURL?: string;
 

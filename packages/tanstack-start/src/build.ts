@@ -20,9 +20,10 @@ export type {
  * is `undefined`. `backendURL` is public and reaches both.
  *
  * The backend URL comes from `backendURL` or, when that is omitted, from
- * `VITE_C15T_BACKEND_URL`, including `.env` files. When the variable is
- * unset, the plugin sets `import.meta.env.VITE_C15T_BACKEND_URL` to the URL
- * it used, so server and browser code read the same value.
+ * `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`, including `.env`
+ * files. When `VITE_C15T_BACKEND_URL` is unset, the plugin sets
+ * `import.meta.env.VITE_C15T_BACKEND_URL` to the URL it used, so server and
+ * browser code read the same value.
  *
  * The fetch waits at most 10 seconds. When it fails, `vite build` stops with
  * an error, and `vite dev` logs a warning and serves `snapshot: undefined`,
@@ -46,7 +47,7 @@ export type {
  */
 export const consentManifest = (options: ManifestBuildOptions = {}) =>
 	createConsentManifestPlugin(options, {
-		envNames: ['VITE_C15T_BACKEND_URL'],
+		envNames: ['VITE_C15T_BACKEND_URL', 'VITE_INTH_PROJECT_URL'],
 		label: '@c15t/tanstack-start/build',
 		serverRendered: true,
 	});

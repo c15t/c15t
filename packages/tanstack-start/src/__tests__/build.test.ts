@@ -197,7 +197,7 @@ describe('TanStack Start manifest backend URL', () => {
 			root: await tempRoot(),
 		});
 		await expect(buildGenerated(plugin, 'server')).rejects.toThrow(
-			/VITE_C15T_BACKEND_URL/u
+			/VITE_C15T_BACKEND_URL \(or VITE_INTH_PROJECT_URL\)/u
 		);
 	});
 
@@ -217,5 +217,69 @@ describe('TanStack Start manifest backend URL', () => {
 		expect(logger.warn).toHaveBeenCalledWith(
 			expect.stringContaining('VITE_C15T_BACKEND_URL')
 		);
+	});
+});
+
+describe('TanStack Start backend URL variables', () => {
+	/** The `backendURL` the generated module exports, for the given env. */
+	const resolveBackendURL = async (
+		env: Record<string, unknown>,
+		options: { backendURL?: string } = {}
+	) => {
+		const root = await mkdtemp(join(tmpdir(), 'c15t-inth-env-'));
+		try {
+			const plugin = consentManifest({
+				...options,
+				fetch: vi
+					.fn<typeof globalThis.fetch>()
+					.mockRejectedValue(new Error('unreachable')),
+				onBuildError: 'runtime',
+			});
+			await plugin.configResolved({
+				command: 'serve',
+				env,
+				logger: { info: () => undefined, warn: () => undefined },
+				root,
+			});
+			const source = String(
+				await plugin.load.call(
+					{ environment: { config: { consumer: 'server' } } },
+					plugin.resolveId('@c15t/core/generated') as string
+				)
+			);
+			return {
+				backendURL: /export const backendURL = "(?<url>[^"]*)";/u.exec(source)
+					?.groups?.url,
+				env,
+			};
+		} finally {
+			await rm(root, { force: true, recursive: true });
+		}
+	};
+	const INTH = 'https://inth.example.com';
+	const C15T = 'https://c15t.example.com';
+
+	test('VITE_INTH_PROJECT_URL alone gives the backend URL', async () => {
+		const { backendURL, env } = await resolveBackendURL({
+			VITE_INTH_PROJECT_URL: INTH,
+		});
+		expect(backendURL).toBe(INTH);
+		expect(env.VITE_C15T_BACKEND_URL).toBe(INTH);
+	});
+
+	test('VITE_C15T_BACKEND_URL wins when both are set', async () => {
+		const { backendURL } = await resolveBackendURL({
+			VITE_C15T_BACKEND_URL: C15T,
+			VITE_INTH_PROJECT_URL: INTH,
+		});
+		expect(backendURL).toBe(C15T);
+	});
+
+	test('an explicit backendURL beats both variables', async () => {
+		const { backendURL } = await resolveBackendURL(
+			{ VITE_C15T_BACKEND_URL: C15T, VITE_INTH_PROJECT_URL: INTH },
+			{ backendURL: 'https://option.example.com' }
+		);
+		expect(backendURL).toBe('https://option.example.com');
 	});
 });

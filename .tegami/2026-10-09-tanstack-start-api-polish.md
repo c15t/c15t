@@ -34,9 +34,9 @@ about 500 B (gzip) smaller.
 
 `consentManifest()` from `c15t/tanstack-start/build` serves the snapshot as
 `c15t/generated` instead of writing `c15t-manifest.ts`. The browser bundle
-gets `snapshot: undefined`. It reads `VITE_C15T_BACKEND_URL`, and a failed
-download stops `vite build` and warns in `vite dev`; `onBuildError` and
-`C15T_ON_BUILD_ERROR` change that.
+gets `snapshot: undefined`. It reads `VITE_C15T_BACKEND_URL`, then
+`VITE_INTH_PROJECT_URL`, and a failed download stops `vite build` and warns
+in `vite dev`; `onBuildError` and `C15T_ON_BUILD_ERROR` change that.
 
 The browser gets init from `${backendURL}/init` unless the state names a
 `routePrefix`, the same option, meaning and default (none) as Next.js. Before,
