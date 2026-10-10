@@ -739,6 +739,35 @@ vi.mock(\`@c15t/react\`);
 `);
 	});
 
+	it.each([
+		'jest.createMockFromModule',
+		'jest.deepUnmock',
+		'jest.doMock',
+		'jest.dontMock',
+		'jest.mock',
+		'jest.requireActual',
+		'jest.requireMock',
+		'jest.setMock',
+		'jest.unmock',
+		'jest.unstable_mockModule',
+		'jest.unstable_unmockModule',
+		'vi.doMock',
+		'vi.doUnmock',
+		'vi.importActual',
+		'vi.importMock',
+		'vi.mock',
+		'vi.unmock',
+	])('points %s() at the new entry', async (helper) => {
+		const { read } = await run(
+			{ c15t: '^3.0.0' },
+			{ 'src/consent.test.ts': `${helper}('@c15t/react');\n` }
+		);
+
+		expect(await read('src/consent.test.ts')).toBe(
+			`${helper}('c15t/react');\n`
+		);
+	});
+
 	it('leaves module helpers on local bindings alone', async () => {
 		const shadowed = `function lookup(require) {
 	return require.resolve('@c15t/react');

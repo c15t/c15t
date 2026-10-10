@@ -257,6 +257,7 @@ const isRequireCall = function isRequireCall(
  */
 const MODULE_HELPERS = new Set([
 	'jest.createMockFromModule',
+	'jest.deepUnmock',
 	'jest.doMock',
 	'jest.dontMock',
 	'jest.mock',
@@ -264,6 +265,8 @@ const MODULE_HELPERS = new Set([
 	'jest.requireMock',
 	'jest.setMock',
 	'jest.unmock',
+	'jest.unstable_mockModule',
+	'jest.unstable_unmockModule',
 	'require.resolve',
 	'vi.doMock',
 	'vi.doUnmock',
