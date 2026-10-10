@@ -114,6 +114,18 @@ const activityTime = function activityTime(entry: PerformanceEntry): number {
 		: entry.startTime;
 };
 
+/** When the page's `load` event ended, if the browser reports it. */
+const loadEventEnd = (): number | undefined => {
+	if (typeof performance.getEntriesByType !== 'function') {
+		return undefined;
+	}
+	const [navigation] = performance.getEntriesByType('navigation') as
+		| PerformanceNavigationTiming[]
+		| [];
+	const end = navigation?.loadEventEnd;
+	return end && end > 0 ? end : undefined;
+};
+
 /**
  * Run `task` once the page has loaded and gone quiet, in an idle period.
  *
@@ -237,18 +249,29 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 		task();
 	};
 
-	const afterLoad = () => {
+	/**
+	 * Start waiting for quiet. The deadline counts from `loadTime`, so a
+	 * banner that mounts after the page loaded, such as one that waited for a
+	 * slow `/init`, does not get a fresh `maxWaitMs`.
+	 */
+	const afterLoad = (loadTime?: number) => {
 		if (cancelled) {
 			return;
 		}
-		loadedAt = performance.now();
-		timer = setTimeout(() => check(false), quietMs);
+		const now = performance.now();
+		loadedAt = loadTime ?? now;
+		const untilDeadline = maxWaitMs - (now - loadedAt);
+		timer = setTimeout(
+			() => check(false),
+			Math.max(0, Math.min(quietMs, untilDeadline))
+		);
 	};
+	const onLoad = () => afterLoad();
 
 	if (document.readyState === 'complete') {
-		afterLoad();
+		afterLoad(loadEventEnd());
 	} else {
-		window.addEventListener('load', afterLoad, { once: true });
+		window.addEventListener('load', onLoad, { once: true });
 	}
 
 	return () => {
@@ -256,7 +279,7 @@ export const scheduleIdlePreload = function scheduleIdlePreload(
 			return;
 		}
 		cancelled = true;
-		window.removeEventListener('load', afterLoad);
+		window.removeEventListener('load', onLoad);
 		stopObserving();
 		if (timer !== undefined) {
 			clearTimeout(timer);

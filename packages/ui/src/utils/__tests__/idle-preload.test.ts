@@ -288,6 +288,24 @@ describe('scheduleIdlePreload', () => {
 		expect(task).toHaveBeenCalledOnce();
 	});
 
+	test('counts the maximum wait from the load event, not from the call', () => {
+		// The page loaded at 100 ms; a banner mounts at 1600 ms, after a slow
+		// /init, while an image keeps the page busy.
+		vi.advanceTimersByTime(100);
+		vi.spyOn(performance, 'getEntriesByType').mockReturnValue([
+			{ loadEventEnd: performance.now() } as PerformanceNavigationTiming,
+		]);
+		vi.advanceTimersByTime(1500);
+		addImage();
+		const task = vi.fn();
+		scheduleIdlePreload(task, { maxWaitMs: 2000, quietMs: 1000 });
+
+		vi.advanceTimersByTime(499);
+		expect(task).not.toHaveBeenCalled();
+		vi.advanceTimersByTime(1);
+		expect(task).toHaveBeenCalledOnce();
+	});
+
 	test('lets an idle wait last no longer than the maximum wait', () => {
 		const requestIdleCallback = vi.fn(() => 1);
 		vi.stubGlobal('requestIdleCallback', requestIdleCallback);
