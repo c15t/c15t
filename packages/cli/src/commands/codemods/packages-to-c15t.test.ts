@@ -767,6 +767,34 @@ export default defineConfig({
 `);
 	});
 
+	it('rewrites computed PostCSS plugin keys only inside a plugins object', async () => {
+		const { read, result } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^3.4.17' },
+			{
+				'postcss.config.mjs': `export default {
+	plugins: {
+		['@c15t/react/postcss-tailwind3']: {},
+		[\`@c15t/nextjs/postcss-tailwind3\`]: {},
+		tailwindcss: {},
+	},
+	options: { [\`@c15t/react/postcss-tailwind3\`]: {} },
+};
+`,
+			}
+		);
+
+		expect(result.errors).toEqual([]);
+		expect(await read('postcss.config.mjs')).toBe(`export default {
+	plugins: {
+		['c15t/postcss-tailwind3']: {},
+		[\`c15t/postcss-tailwind3\`]: {},
+		tailwindcss: {},
+	},
+	options: { [\`@c15t/react/postcss-tailwind3\`]: {} },
+};
+`);
+	});
+
 	it('adds one ESM TODO to a required PostCSS plugin across codemod runs', async () => {
 		const config = `module.exports = {
 	plugins: [

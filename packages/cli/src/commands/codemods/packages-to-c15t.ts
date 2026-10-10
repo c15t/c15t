@@ -218,16 +218,26 @@ const isPluginsObject = function isPluginsObject(
 	return Node.isPropertyAssignment(holder) && propertyKey(holder) === 'plugins';
 };
 
-/** Whether a literal names the scoped PostCSS plugin as an object-form `plugins` key. */
+/** A string or template literal without substitutions that names a module. */
+type SpecifierLiteral =
+	| TsMorphTypes.StringLiteral
+	| TsMorphTypes.NoSubstitutionTemplateLiteral;
+
+/**
+ * Whether a literal names the scoped PostCSS plugin as an object-form
+ * `plugins` key, written plainly or computed, as in `['…']: {}`.
+ */
 const isPostcssPluginKey = function isPostcssPluginKey(
-	literal: TsMorphTypes.StringLiteral,
+	literal: SpecifierLiteral,
 	parent: TsMorphTypes.Node | undefined
 ): boolean {
+	const name = Node.isComputedPropertyName(parent) ? parent : literal;
+	const property = name.getParent();
 	return (
 		POSTCSS_PLUGIN_SPECIFIER.test(literal.getLiteralValue()) &&
-		Node.isPropertyAssignment(parent) &&
-		parent.getNameNode() === literal &&
-		isPluginsObject(parent.getParent())
+		Node.isPropertyAssignment(property) &&
+		property.getNameNode() === name &&
+		isPluginsObject(property.getParent())
 	);
 };
 
@@ -303,12 +313,16 @@ const stylesheetMockTarget = function stylesheetMockTarget(
  * The string literals that name a module: imports, re-exports,
  * `import x = require()`, `import()` and `require()` calls, `vi.mock()` and
  * `jest.mock()` calls, import types (JSDoc ones too), and PostCSS plugin
- * keys. A template literal or computed argument is left alone.
+ * keys, computed ones included. Any other template literal or computed
+ * argument is left alone.
  */
 const moduleSpecifiersOf = function moduleSpecifiersOf(
 	sourceFile: TsMorphTypes.SourceFile
-): TsMorphTypes.StringLiteral[] {
-	return sourceFile
+): SpecifierLiteral[] {
+	const computedKeys = sourceFile
+		.getDescendantsOfKind(SyntaxKind.NoSubstitutionTemplateLiteral)
+		.filter((literal) => isPostcssPluginKey(literal, literal.getParent()));
+	const strings = sourceFile
 		.getDescendantsOfKind(SyntaxKind.StringLiteral)
 		.filter((literal) => {
 			const parent = literal.getParent();
@@ -334,6 +348,7 @@ const moduleSpecifiersOf = function moduleSpecifiersOf(
 				Node.isImportTypeNode(parent.getParent())
 			);
 		});
+	return [...strings, ...computedKeys];
 };
 
 /**
@@ -394,7 +409,7 @@ const sideEffectStatement = function sideEffectStatement(
 
 /** Replaces the text between a string literal's quotes, keeping its quote style. */
 const rewriteLiteral = function rewriteLiteral(
-	literal: TsMorphTypes.StringLiteral,
+	literal: SpecifierLiteral,
 	text: string
 ): TextEdit {
 	return { end: literal.getEnd() - 1, start: literal.getStart() + 1, text };

@@ -62,7 +62,8 @@ v2 `@c15t/react/cookie-banner` alias becomes
 `c15t/react`, `@c15t/integrations` and other packages alone. In a
 PostCSS config, it points the `@c15t/react/postcss-tailwind3` and
 `@c15t/nextjs/postcss-tailwind3` plugins at `c15t/postcss-tailwind3`, whether
-the config names them as a `plugins` object key or in `require()`.
+the config names them as a `plugins` object key, computed keys such as
+`['@c15t/react/postcss-tailwind3']` included, or in `require()`.
 
 c15t ships ESM only from v3. `require()` loads it only on Node.js 20.19+ or
 22.12+, which load ESM through `require()` by default. Each `require()` call
