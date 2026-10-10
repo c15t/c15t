@@ -128,6 +128,8 @@ Changed:
 
 - `hosted()` asserts the resolved decision on saves whenever `initURL` is
   set. Pass `assertDecisionInputs: false` to turn that off.
+- Every framework package rejects `routePrefix: '/'` at setup with the same
+  error, from `normalizeRoutePrefix()` in `@c15t/core/server`.
 - The error for a runtime with no `mode` names the package and the API that
   got none, such as ``@c15t/react ConsentProvider: `mode` is required. Use
   manifest() or hosted().``, instead of the v2

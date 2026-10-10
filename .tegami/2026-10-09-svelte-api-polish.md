@@ -41,7 +41,9 @@ export { loadConsent as load } from '@c15t/svelte/kit';
 
 - `c15tHandle({ mode, routePrefix, snapshot, backendURL })` stores the
   config on `event.locals.c15t`. `mode` is data from `@c15t/svelte/kit`
-  (`manifest()`, the default, `hosted()` or `offline()`).
+  (`manifest()`, the default, `hosted()` or `offline()`). `c15tHandle()`
+  throws for `routePrefix: '/'`: a catch-all route at the site root would
+  catch every page.
 - `loadConsent` works as `load` directly and returns `{ consent }`. It
   detects a prerender from SvelteKit's `building` flag, so `shared` is gone.
 - `<ConsentRoot state>` turns the mode into a transport that loads each
