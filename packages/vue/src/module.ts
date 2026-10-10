@@ -3,6 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { loadManifestForBuild, readBuildEnv } from '@c15t/core/build';
 import type { ConsentMode } from '@c15t/core/modes';
 import { isIABConfigured } from '@c15t/core/runtime';
+import { normalizeRoutePrefix } from '@c15t/core/server';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -185,6 +186,24 @@ const readModuleMode = function readModuleMode(
 };
 
 /**
+ * The configured `routePrefix`, checked here so a bad prefix stops the build
+ * and the runtime config only ever holds a checked one.
+ *
+ * @throws {TypeError} When the prefix is `/` or not a path.
+ */
+const checkRoutePrefix = function checkRoutePrefix(
+	options: ModuleOptions
+): string | false {
+	if (options.routePrefix === false) {
+		return false;
+	}
+	return normalizeRoutePrefix(
+		'@c15t/vue',
+		options.routePrefix ?? DEFAULT_NUXT_ROUTE_PREFIX
+	);
+};
+
+/**
  * `manifest()` saves consent at `${backendURL}/subjects` from the browser.
  * The consent route answers `GET` only, so without a backend URL every save
  * would fail after the visitor chose. A `snapshot` replaces the manifest
@@ -350,6 +369,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		}
 		const resolver = createResolver(import.meta.url);
 		const mode = readModuleMode(options);
+		options.routePrefix = checkRoutePrefix(options);
 		const routePrefix = readNuxtRoutePrefix(options);
 		assertManifestBackend(mode, options.backendURL, nuxt);
 		warnStaticServerResolution(mode, nuxt);

@@ -534,6 +534,14 @@ describe('mode and routePrefix', () => {
 		expect(handlerRoutes(removed)).toEqual([]);
 	});
 
+	test('rejects a routePrefix of / at setup', async () => {
+		await expect(
+			setUpModule({ backendURL: '/api/self-host', routePrefix: '/' })
+		).rejects.toThrow(
+			"@c15t/vue: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
+		);
+	});
+
 	test('hosted() needs no consent route', async () => {
 		const nuxt = await setUpModule({
 			backendURL: 'https://consent.example.com',
