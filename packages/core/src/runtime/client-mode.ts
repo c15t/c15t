@@ -263,15 +263,13 @@ const startEarlyInit = function startEarlyInit(
 	) {
 		return undefined;
 	}
-	// Carries the experiment arm and journey as the loaded transport does,
-	// so that transport's first request still matches this one and takes
-	// its response.
+	// Carries the whole init context (overrides, experiment arm, journey),
+	// as the loaded transport does, so that transport's first request still
+	// matches this one and takes its response.
 	const request: HostedInitRequest = createHostedInitRequest({
+		...ctx,
 		backendURL: options.backendURL,
-		experiment: ctx.experiment,
 		initURL: options.initURL,
-		journey: ctx.journey,
-		overrides: ctx.overrides,
 	});
 	return sendEarly(fetch, request.url, request.init);
 };
