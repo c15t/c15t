@@ -35,6 +35,11 @@ const IGNORED_DIRECTORIES = new Set([
 export interface CodemodSession {
 	project: Project;
 	filePaths: string[];
+	/**
+	 * Latest text of files edited by `runTextTransform`, keyed by path, so a
+	 * later transform builds on an earlier one's edits even in a dry run.
+	 */
+	texts: Map<string, string>;
 }
 
 export interface CodemodRunOptions {
@@ -104,6 +109,7 @@ export const createCodemodSession = async (
 		compilerOptions: { allowJs: true },
 		skipAddingFilesFromTsConfig: true,
 	}),
+	texts: new Map(),
 });
 
 /** Apply one transform and report exact before/after source for review. */
@@ -168,6 +174,7 @@ export const runTextTransform = async (
 	) => { text: string; operations: number; summaries: string[] }
 ): Promise<CodemodRunResult> => {
 	const filePaths = await collectFiles(options.projectRoot, extensions);
+	const texts = options.session?.texts;
 	const result: CodemodRunResult = {
 		changedFiles: [],
 		errors: [],
@@ -176,11 +183,13 @@ export const runTextTransform = async (
 	await forEachSequential(filePaths, {
 		run: async (filePath) => {
 			try {
-				const before = await readFile(filePath, 'utf-8');
+				const before =
+					texts?.get(filePath) ?? (await readFile(filePath, 'utf-8'));
 				const transformed = transform(before, filePath);
 				if (transformed.text === before) {
 					return;
 				}
+				texts?.set(filePath, transformed.text);
 				if (!options.dryRun) {
 					await writeFile(filePath, transformed.text, 'utf-8');
 				}

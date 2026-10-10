@@ -1,5 +1,7 @@
 import { join } from 'node:path';
 
+import { installedVersion, rangeOf } from './manifest';
+
 interface ParsedVersion {
 	major: number;
 	minor: number;
@@ -82,6 +84,18 @@ const extractVersionFromSpecifier = function extractVersionFromSpecifier(
 	}
 
 	return match.groups?.version ?? null;
+};
+
+/**
+ * The version a semver specifier names, or null when it names none, as
+ * `catalog:`, a `link:`, `file:` or git specifier, a dist-tag or `*` don't.
+ */
+const declaredVersionOf = function declaredVersionOf(
+	specifier: string
+): string | null {
+	return rangeOf(specifier) === null
+		? null
+		: extractVersionFromSpecifier(specifier);
 };
 
 const isNumericSegment = function isNumericSegment(value: string): boolean {
@@ -252,25 +266,38 @@ export const isCodemodApplicableForVersion =
 		return true;
 	};
 
+/** The dependency groups of a manifest, in the order they are read. */
+const dependencyGroupsOf = function dependencyGroupsOf(
+	manifest: PackageJsonLike
+): (DependencyMap | undefined)[] {
+	return [
+		manifest.dependencies,
+		manifest.devDependencies,
+		manifest.peerDependencies,
+		manifest.optionalDependencies,
+	];
+};
+
 /**
  * Best-effort c15t version detection from a package.json object.
  *
  * Returns the lowest declared core/framework version. Independently versioned
  * integrations and tooling do not determine the application API version.
+ * A specifier that names no version, such as `catalog:`, a `link:`, `file:`
+ * or git specifier, a dist-tag or `*`, whatever digits it holds, takes its
+ * version from `installed`.
+ *
+ * @param manifest - The app's `package.json`.
+ * @param installed - Installed versions by package name.
+ * @returns The lowest version found, or null when there is none.
  */
 export const detectInstalledC15tVersionFromPackageJson =
 	function detectInstalledC15tVersionFromPackageJson(
-		manifest: PackageJsonLike
+		manifest: PackageJsonLike,
+		installed: Readonly<Record<string, string>> = {}
 	): string | null {
-		const dependencyGroups: (DependencyMap | undefined)[] = [
-			manifest.dependencies,
-			manifest.devDependencies,
-			manifest.peerDependencies,
-			manifest.optionalDependencies,
-		];
-
 		const versions: string[] = [];
-		for (const dependencies of dependencyGroups) {
+		for (const dependencies of dependencyGroupsOf(manifest)) {
 			if (!dependencies) {
 				continue;
 			}
@@ -280,7 +307,8 @@ export const detectInstalledC15tVersionFromPackageJson =
 					continue;
 				}
 
-				const extracted = extractVersionFromSpecifier(specifier);
+				const extracted =
+					declaredVersionOf(specifier) ?? installed[packageName];
 				if (!extracted) {
 					continue;
 				}
@@ -312,7 +340,38 @@ export const detectInstalledC15tVersionFromPackageJson =
 	};
 
 /**
- * Best-effort c15t version detection from `<projectRoot>/package.json`.
+ * The installed versions of the c15t packages whose specifier names no
+ * version.
+ */
+const installedVersionsOf = async function installedVersionsOf(
+	projectRoot: string,
+	manifest: PackageJsonLike
+): Promise<Record<string, string>> {
+	const names = new Set(
+		dependencyGroupsOf(manifest).flatMap((dependencies) =>
+			Object.entries(dependencies ?? {})
+				.filter(
+					([name, specifier]) =>
+						MIGRATED_PACKAGES.has(name) && declaredVersionOf(specifier) === null
+				)
+				.map(([name]) => name)
+		)
+	);
+	const entries = await Promise.all(
+		[...names].map(
+			async (name) => [name, await installedVersion(projectRoot, name)] as const
+		)
+	);
+	return Object.fromEntries(
+		entries.filter(
+			(entry): entry is readonly [string, string] => entry[1] !== null
+		)
+	);
+};
+
+/**
+ * Best-effort c15t version detection from `<projectRoot>/package.json`,
+ * reading the installed version for a specifier that names none.
  */
 export const detectInstalledC15tVersion =
 	async function detectInstalledC15tVersion(
@@ -335,7 +394,10 @@ export const detectInstalledC15tVersion =
 				content = await fs.readFile(manifestPath, 'utf-8');
 			}
 			const parsed = JSON.parse(content) as PackageJsonLike;
-			return detectInstalledC15tVersionFromPackageJson(parsed);
+			return detectInstalledC15tVersionFromPackageJson(
+				parsed,
+				await installedVersionsOf(projectRoot, parsed)
+			);
 		} catch {
 			return null;
 		}

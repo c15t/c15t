@@ -177,7 +177,165 @@ export const referencesOf = function referencesOf(
 		);
 };
 
-/** An object property's key without quotes, or undefined when computed. */
+/** The declarations an identifier resolves to in its own file. */
+export const localDeclarationsOf = function localDeclarationsOf(
+	identifier: TsMorphTypes.Identifier
+): TsMorphTypes.Node[] {
+	const sourceFile = identifier.getSourceFile();
+	return (identifier.getSymbol()?.getDeclarations() ?? []).filter(
+		(declaration) => declaration.getSourceFile() === sourceFile
+	);
+};
+
+/** The module an import declaration that holds `node` loads. */
+export const importedModuleOf = function importedModuleOf(
+	node: TsMorphTypes.Node
+): string | undefined {
+	return node
+		.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+		?.getModuleSpecifierValue();
+};
+
+/** Whether a declaration is `import { name } from` one of `modules`. */
+const isNamedImportFrom = function isNamedImportFrom(
+	declaration: TsMorphTypes.Node,
+	name: string,
+	modules: readonly string[]
+): boolean {
+	if (!Node.isImportSpecifier(declaration) || declaration.getName() !== name) {
+		return false;
+	}
+	const moduleName = importedModuleOf(declaration);
+	return moduleName !== undefined && modules.includes(moduleName);
+};
+
+/**
+ * The name a binding has where it comes from, so an alias resolves to what
+ * it stands for:
+ *
+ * - an identifier nothing in the file declares is a global, named by its text;
+ * - `test` in `import { vi as test } from 'vitest'` is `vi`;
+ * - `V.vi` after `import * as V from 'vitest'` is `vi`, as is `V.vi` after
+ *   a default import, `import V from 'vitest'`.
+ *
+ * An import counts only from a module `modulesOf` lists for its name. Any
+ * other local binding, such as a parameter that shadows a global, has none.
+ *
+ * @param node - An identifier, or a property access on a namespace or
+ * default import.
+ * @param modulesOf - For each exported name, the modules that export it.
+ * @returns The global or imported name, or `undefined`.
+ */
+export const sourceNameOf = function sourceNameOf(
+	node: TsMorphTypes.Node,
+	modulesOf: Readonly<Record<string, readonly string[]>>
+): string | undefined {
+	// Own keys only, so a name such as `constructor` finds no modules.
+	const modulesFor = (name: string): readonly string[] =>
+		Object.hasOwn(modulesOf, name) ? (modulesOf[name] ?? []) : [];
+	if (Node.isPropertyAccessExpression(node)) {
+		const namespace = node.getExpression();
+		const name = node.getName();
+		const imported =
+			Node.isIdentifier(namespace) &&
+			localDeclarationsOf(namespace).some(
+				(declaration) =>
+					(Node.isNamespaceImport(declaration) ||
+						Node.isImportClause(declaration)) &&
+					modulesFor(name).includes(importedModuleOf(declaration) ?? '')
+			);
+		return imported ? name : undefined;
+	}
+	if (!Node.isIdentifier(node)) {
+		return undefined;
+	}
+	const declarations = localDeclarationsOf(node);
+	if (declarations.length === 0) {
+		return node.getText();
+	}
+	const specifier = declarations.find(
+		(declaration) =>
+			Node.isImportSpecifier(declaration) &&
+			isNamedImportFrom(
+				declaration,
+				declaration.getName(),
+				modulesFor(declaration.getName())
+			)
+	);
+	return specifier && Node.isImportSpecifier(specifier)
+		? specifier.getName()
+		: undefined;
+};
+
+/**
+ * Strips `as`, `satisfies`, `<T>` type assertions, non-null `!` and
+ * parentheses around an expression.
+ */
+export const unwrapExpression = function unwrapExpression(
+	node: TsMorphTypes.Node
+): TsMorphTypes.Node {
+	let current = node;
+	while (
+		Node.isAsExpression(current) ||
+		Node.isSatisfiesExpression(current) ||
+		Node.isTypeAssertion(current) ||
+		Node.isNonNullExpression(current) ||
+		Node.isParenthesizedExpression(current)
+	) {
+		current = current.getExpression();
+	}
+	return current;
+};
+
+/** The modules that export `createRequire`. */
+const NODE_MODULE = { createRequire: ['node:module', 'module'] } as const;
+
+/**
+ * Whether an identifier names Node's `require`: the global, or a binding
+ * created by `createRequire()` from `node:module`, imported by name or
+ * reached through a namespace or default import. A parameter or local
+ * declaration that shadows `require` does not count.
+ */
+export const isNodeRequire = function isNodeRequire(
+	identifier: TsMorphTypes.Identifier
+): boolean {
+	const declarations = localDeclarationsOf(identifier);
+	if (declarations.length === 0) {
+		return identifier.getText() === 'require';
+	}
+	return declarations.some((declaration) => {
+		if (!Node.isVariableDeclaration(declaration)) {
+			return false;
+		}
+		const declared = declaration.getInitializer();
+		const initializer = declared && unwrapExpression(declared);
+		if (!initializer || !Node.isCallExpression(initializer)) {
+			return false;
+		}
+		const factory = initializer.getExpression();
+		if (Node.isPropertyAccessExpression(factory)) {
+			return sourceNameOf(factory, NODE_MODULE) === 'createRequire';
+		}
+		return (
+			factory
+				.getSymbol()
+				?.getDeclarations()
+				.some((imported) =>
+					isNamedImportFrom(
+						imported,
+						'createRequire',
+						NODE_MODULE.createRequire
+					)
+				) ?? false
+		);
+	});
+};
+
+/**
+ * An object property's key without quotes. A computed key counts when it is
+ * a string, as in `['tailwindcss']: {}`; any other computed key is
+ * `undefined`.
+ */
 export const propertyKey = function propertyKey(
 	property: TsMorphTypes.ObjectLiteralElementLike
 ): string | undefined {
@@ -188,10 +346,13 @@ export const propertyKey = function propertyKey(
 	) {
 		return undefined;
 	}
-	const name = property.getNameNode();
-	if (Node.isIdentifier(name)) {
-		return name.getText();
+	const nameNode = property.getNameNode();
+	if (Node.isIdentifier(nameNode)) {
+		return nameNode.getText();
 	}
+	const name = Node.isComputedPropertyName(nameNode)
+		? nameNode.getExpression()
+		: nameNode;
 	if (
 		Node.isStringLiteral(name) ||
 		Node.isNoSubstitutionTemplateLiteral(name)
@@ -299,10 +460,26 @@ const siblingsOf = function siblingsOf(
 	);
 };
 
+/** Whether a comment or other text sits between two adjacent elements. */
+const hasTriviaBetween = function hasTriviaBetween(
+	left: TsMorphTypes.Node,
+	right: TsMorphTypes.Node
+): boolean {
+	return (
+		left
+			.getSourceFile()
+			.getFullText()
+			.slice(left.getEnd(), right.getStart())
+			.replace(',', '')
+			.trim() !== ''
+	);
+};
+
 /**
  * Ranges that remove `elements` and their commas. Adjacent elements of one
  * list are removed as a single run: removing `b` and `c` from
- * `{ a: 1, b: 2, c: 3 }` leaves `{ a: 1 }`.
+ * `{ a: 1, b: 2, c: 3 }` leaves `{ a: 1 }`. A comment between two elements
+ * ends the run, so it stays.
  */
 export const elementRemovals = function elementRemovals(
 	elements: Iterable<TsMorphTypes.Node>
@@ -323,7 +500,7 @@ export const elementRemovals = function elementRemovals(
 		covered.add(element);
 		while (index >= 0) {
 			const next = siblings[index + 1];
-			if (!next || !removing.has(next)) {
+			if (!(next && removing.has(next)) || hasTriviaBetween(last, next)) {
 				break;
 			}
 			covered.add(next);
@@ -333,21 +510,6 @@ export const elementRemovals = function elementRemovals(
 		edits.push(spanRemoval(element, last));
 	}
 	return edits;
-};
-
-/** Strips `as`, `satisfies` and parentheses around an expression. */
-export const unwrapExpression = function unwrapExpression(
-	node: TsMorphTypes.Node
-): TsMorphTypes.Node {
-	let current = node;
-	while (
-		Node.isAsExpression(current) ||
-		Node.isSatisfiesExpression(current) ||
-		Node.isParenthesizedExpression(current)
-	) {
-		current = current.getExpression();
-	}
-	return current;
 };
 
 /** The quote character the file's first import uses, defaulting to `'`. */
