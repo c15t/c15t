@@ -80,6 +80,12 @@ const byMode = (
 	text: Record<C15tStorageMode | 'unknown', string>
 ): string => text[mode ?? 'unknown'];
 
+// Where the first-visit failure check has to break initialization. A server
+// that resolves consent before the page loads makes a request DevTools cannot
+// block, and a regional bundled manifest can still fall back to `/init`.
+const hostedInitFailure =
+	'Block the request that initializes consent: the backend `/init`, a same-origin init route, a manifest fetch, or the `/init` a bundled manifest falls back to when a regional policy needs a location the browser does not know (the quickstart shows which this setup uses). If the server resolves consent before the page loads, the browser never sees that request; make it fail on the server instead, for example by pointing the backend URL at an unreachable address for one run.';
+
 /**
  * Exact-version lookups per package manager. Package managers do not share
  * a `view` subcommand: Bun has no `bun view`, Yarn 2+ queries the registry
@@ -305,11 +311,9 @@ Run the project's typecheck, tests and production build. Serve the production bu
 		{
 			custom:
 				" Then make the transport's `init` fail: no banner shows and tools that wait for consent send no requests.",
-			hosted:
-				' Then block the request that initializes consent (the backend `/init`, a same-origin init route or a manifest fetch; the quickstart shows which one this setup uses): no banner shows and tools that wait for consent send no requests. A build-time manifest the app resolves itself makes no such request; skip this check for it.',
+			hosted: ` Then make initialization fail. ${hostedInitFailure} No banner shows and tools that wait for consent send no requests. Skip this check only if the app makes no initialization request at all.`,
 			offline: '',
-			unknown:
-				" Unless the setup is offline, also make initialization fail: in hosted mode block the request that initializes consent (the backend `/init`, a same-origin init route or a manifest fetch; the quickstart shows which one this setup uses), and in custom mode make the transport's `init` fail. No banner shows and tools that wait for consent send no requests. A build-time manifest the app resolves itself makes no such request; skip this check for it.",
+			unknown: ` Unless the setup is offline, also make initialization fail. In hosted mode: ${hostedInitFailure} In custom mode, make the transport's \`init\` fail. No banner shows and tools that wait for consent send no requests. Skip this check only if the app makes no initialization request at all.`,
 		}
 	)} An always-loading helper loads before any choice; check that it signals denied consent.
 2. Reject all: tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out; ${byMode(

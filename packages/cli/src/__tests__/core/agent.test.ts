@@ -557,11 +557,15 @@ describe('c15t setup instructions', () => {
 		const hosted = createC15tSetupInstructions({ mode: 'hosted' });
 		const offline = createC15tSetupInstructions({ mode: 'offline' });
 		const custom = createC15tSetupInstructions({ mode: 'custom' });
+		expect(hosted).toContain('Then make initialization fail.');
 		expect(hosted).toContain(
-			'Then block the request that initializes consent (the backend `/init`, a same-origin init route or a manifest fetch'
+			'the `/init` a bundled manifest falls back to when a regional policy needs a location'
 		);
 		expect(hosted).toContain(
-			'A build-time manifest the app resolves itself makes no such request'
+			'If the server resolves consent before the page loads, the browser never sees that request; make it fail on the server instead'
+		);
+		expect(hosted).toContain(
+			'Skip this check only if the app makes no initialization request at all.'
 		);
 		expect(custom).toContain("Then make the transport's `init` fail");
 		expect(offline).not.toContain('initializes consent');
