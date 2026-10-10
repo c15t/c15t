@@ -152,8 +152,10 @@ through `${routePrefix}/init`.
 
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
 and other record endpoints. Configure both if you choose this optional proxy
-variant. The
-[Next.js rewrite recipe](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+variant. Server-rendered frameworks do both with one option: `proxy: true` in
+Next.js `c15t.config.ts` or TanStack Start's `createConsentStateHandler`,
+with a consent route created with `proxy: true`. The
+[Next.js recipe](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
 shows the configuration. A direct absolute backend URL works
 without a rewrite.
 

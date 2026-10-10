@@ -61,6 +61,28 @@ describe('defineConsentConfig', () => {
 		);
 	});
 
+	test('proxy needs routePrefix', () => {
+		expect(() =>
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				proxy: true,
+			})
+		).toThrow(
+			'@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.'
+		);
+		expect(
+			defineConsentConfig({
+				backendURL: 'https://consent.example.com',
+				proxy: true,
+				routePrefix: '/api/c15t/',
+			})
+		).toMatchObject({
+			backendURL: 'https://consent.example.com',
+			proxy: true,
+			routePrefix: '/api/c15t',
+		});
+	});
+
 	test('accepts relative paths and absolute http(s) URLs', () => {
 		expect(() =>
 			defineConsentConfig({

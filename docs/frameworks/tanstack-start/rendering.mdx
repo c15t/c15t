@@ -103,8 +103,9 @@ Keep these details right:
   resolved. It also makes the page load IAB vendor lists through the route.
   It means the same as Next.js `defineConsentConfig({ routePrefix })`, and
   like there it has no default.
-- `proxy: true` on `createConsentStateHandler` sends saves through the route.
-  It needs `routePrefix`, and throws
+- `proxy: true` on `createConsentStateHandler` sends saves through the route,
+  like Next.js `defineConsentConfig({ proxy: true })`. It needs `routePrefix`,
+  and throws
   ``@c15t/tanstack-start: `proxy` sends saves through the consent route, so it needs `routePrefix`.``
   without it. To send only init through the route and keep saves going
   straight to your backend, drop `proxy: true` from both and keep

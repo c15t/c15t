@@ -64,6 +64,15 @@ in the config to send the browser's init there; without it the browser calls
 `${backendURL}/init`. Pages that `resolveConsent()` renders on the server don't
 need the route.
 
+To keep browser saves on your origin too, set `proxy: true` next to
+`routePrefix` in the config, and pass `proxy: true` to `createConsentRoute()`
+or `createPagesConsentRoute()`, which now takes it as well. The browser then
+sends init and saves to `routePrefix`, while `resolveConsent()`, the route and
+the build keep the absolute `backendURL`. This is the same option as TanStack
+Start's `createConsentStateHandler({ proxy })`, and replaces pointing
+`backendURL` at `/api/c15t` and passing the absolute URL to each server helper,
+or a Next.js rewrite in the Pages Router.
+
 `withConsentManifest()` writes the snapshot to `node_modules/.cache/c15t/`
 and points `c15t/generated` at it, defaulting to
 `NEXT_PUBLIC_C15T_BACKEND_URL`. Importing `c15t/generated` from a client

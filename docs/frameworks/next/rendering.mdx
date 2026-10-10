@@ -196,11 +196,12 @@ them before Server Components run. Add `c15tProxy` from `c15t/next/proxy` in
 that case, as [Forward geography headers](/docs/frameworks/next/geography-headers)
 shows. A static export has no server and cannot read location headers.
 
-## Add a same-origin rewrite
+## Keep browser requests on your origin
 
-A rewrite from `/api/c15t` to the backend is optional. It saves the browser a
-separate connection to the backend's domain and changes nothing about when
-consent resolves. It needs a Next.js server or a hosting-level proxy. See
+`proxy: true` in `c15t.config.ts`, with a consent route that forwards saves,
+sends the browser's saves through `/api/c15t` instead of the backend's domain.
+It is optional, saves the browser a separate connection, and changes nothing
+about when consent resolves. It needs a Next.js server. See
 [Optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
 
 ## Use a src directory

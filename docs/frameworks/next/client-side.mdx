@@ -69,11 +69,13 @@ In the Pages Router, render it in `_app.tsx`. Without `withConsentProps`,
 Without server state, `ConsentRoot` initializes in the browser. Keep it
 mounted across client navigation.
 
-## Optional same-origin rewrite
+## Optional same-origin requests
 
-A [same-origin rewrite](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
-from `/api/c15t` to the backend saves the browser a separate connection to the
-backend's domain. It needs a Next.js server or a proxy at your host.
+With `routePrefix` and `proxy: true` in `c15t.config.ts` and a consent route
+that forwards saves, the browser sends every consent request to your own
+origin, which saves it a separate connection to the backend's domain. It
+needs a Next.js server. See
+[optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
 
 ## Verify browser initialization
 

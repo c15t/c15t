@@ -18,11 +18,11 @@ Without it, the helper logs a warning only outside production.
 **Check.** If the consent route repeatedly calls itself, check its upstream
 URL.
 
-**Fix.** Pass the absolute Inth or self-hosted backend endpoint as the
-`backendURL` of `createConsentRoute`. The browser can use `/api/c15t` with an
-optional rewrite or `proxy: true`, but that local prefix must not become the
-route's upstream backend. See
-[Next.js optimization](/docs/frameworks/next/optimization) for the rewrite setup.
+**Fix.** Set the config's `backendURL`, or `NEXT_PUBLIC_C15T_BACKEND_URL`, to
+the absolute Inth or self-hosted backend endpoint. To send the browser through
+`/api/c15t`, set `proxy: true` and `routePrefix` instead of a relative
+`backendURL`; the route keeps the absolute URL. See
+[Next.js optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
 
 ## Why does `next build` or `next dev` fail to fetch the manifest?
 
@@ -118,9 +118,9 @@ Check the Next.js server and browser requests after following the
 4. Change a policy, rebuild, then check it. With runtime fetching, check it
    after the manifest caches refresh instead. Cache the public manifest, never
    the visitor-specific init response.
-5. If you added a rewrite, confirm browser consent requests use `/api/c15t`,
-   including submissions. Direct requests to the backend are expected when you
-   have not configured a rewrite.
+5. If you set `proxy: true`, confirm browser consent requests use `/api/c15t`,
+   including submissions. Direct requests to the backend are expected without
+   it.
 
 ## Why does ConsentRoot warn that it found no config?
 

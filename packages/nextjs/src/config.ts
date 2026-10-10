@@ -81,6 +81,18 @@ export interface ConsentConfig extends ConsentClientOptions {
 	routePrefix?: string;
 
 	/**
+	 * The route at {@link routePrefix} was created with
+	 * `createConsentRoute({ proxy: true })` (or `createPagesConsentRoute`),
+	 * so the browser sends saves through it instead of straight to
+	 * `backendURL`. The server helpers keep using `backendURL`, so keep it
+	 * absolute. Needs `routePrefix`. Same option as TanStack Start's
+	 * `createConsentStateHandler({ proxy })`.
+	 *
+	 * @default false
+	 */
+	proxy?: boolean;
+
+	/**
 	 * The consent journey scope, read by both `resolveConsent` and
 	 * `ConsentRoot` so they agree.
 	 */
@@ -145,8 +157,9 @@ const modeHasBackend = function modeHasBackend(mode: ConsentMode): boolean {
  * mode, route prefix, journey and the browser options.
  * @returns The validated, frozen config.
  * @throws {TypeError} When the mode needs a backend URL and none is set, a
- * URL is neither an absolute `http(s)` URL nor a `/`-relative path, or
- * `mode` or `journey` is not one this package knows.
+ * URL is neither an absolute `http(s)` URL nor a `/`-relative path, `proxy`
+ * is set without `routePrefix`, or `mode` or `journey` is not one this
+ * package knows.
  * @example
  * ```ts
  * // c15t.config.ts
@@ -178,6 +191,11 @@ export const defineConsentConfig = function defineConsentConfig(
 	}
 	assertConsentURL('backendURL', backendURL);
 	assertConsentURL('routePrefix', config.routePrefix);
+	if (config.proxy && config.routePrefix === undefined) {
+		throw new TypeError(
+			'@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.'
+		);
+	}
 	if (mode.type === 'manifest') {
 		assertConsentURL('mode.manifestURL', mode.manifestURL);
 		assertConsentURL('mode.geoURL', mode.geoURL);

@@ -66,19 +66,19 @@ Measure your own deployment before you choose a layout for speed.
 
 ## Keep browser consent requests on your origin
 
-A Next.js rewrite is an optional optimization. It can avoid a separate browser
-DNS lookup and TLS connection to the consent backend when that connection would
-otherwise be needed. Manifests and server rendering work without it.
+By default the browser saves consent to `${backendURL}/subjects`, a separate
+origin. Sending those requests through your own app can avoid a separate
+browser DNS lookup and TLS connection to the consent backend, and lets a
+`connect-src 'self'` policy cover them. Manifests and server rendering work
+without it.
 
-The app server still connects to Inth, and the rewrite adds a proxy hop. Measure
-your deployment to check the effect on latency. Vendor scripts, pixels and
-iframes keep their own URLs; this rewrite only forwards c15t HTTP requests.
-The same setup works with a self-hosted c15t backend.
+The app server still connects to the backend, and each save takes an extra
+hop through your server. Measure your deployment to check the effect on
+latency. Vendor scripts, pixels and iframes keep their own URLs; only c15t
+requests move. The same setup works with a self-hosted c15t backend.
 
-### Send browser requests through your origin
-
-Point the config's `backendURL` at a prefix on your own origin, and mount the
-consent route there:
+Set `routePrefix` and `proxy: true` in the config, and keep `backendURL`
+absolute:
 
 {/* example: fragment */}
 
@@ -86,18 +86,13 @@ consent route there:
 import { defineConsentConfig } from 'c15t/next';
 
 export default defineConsentConfig({
-	backendURL: '/api/c15t',
+	proxy: true,
 	routePrefix: '/api/c15t',
 });
 ```
 
-The browser now saves to `/api/c15t/subjects` and re-inits through
-`/api/c15t/init`. Keep `NEXT_PUBLIC_C15T_BACKEND_URL` set to the absolute
-backend URL: `withConsentManifest` reads the variable, not the config, so
-the build still downloads the manifest from the backend.
-
-In the App Router, let the consent route forward the other consent paths to
-the backend with `proxy: true`:
+Then mount the consent route with `proxy: true`, so it forwards saves to the
+backend. In the App Router:
 
 {/* example: fragment */}
 
@@ -105,72 +100,53 @@ the backend with `proxy: true`:
 import { createConsentRoute } from 'c15t/next/api';
 
 export const { DELETE, GET, OPTIONS, PATCH, POST, PUT } = createConsentRoute({
-	backendURL: process.env.NEXT_PUBLIC_C15T_BACKEND_URL,
 	proxy: true,
 });
 ```
 
-The Pages Router route has no `proxy`. Use a fallback rewrite there instead,
-merged into your existing Next.js configuration inside `withConsentManifest`:
-
-```ts title="next.config.ts"
-import { withConsentManifest } from 'c15t/next/build';
-import type { NextConfig } from 'next';
-
-const nextConfig = {
-	async rewrites() {
-		return {
-			fallback: [
-				{
-					source: '/api/c15t/:path*',
-					destination: 'https://your-project.inth.app/:path*',
-				},
-			],
-		};
-	},
-} satisfies NextConfig;
-
-export default withConsentManifest(nextConfig);
-```
-
-Replace `https://your-project.inth.app` with your project's backend URL,
-including any path prefix. Next.js serves the consent route first. Other
-consent requests, such as `/api/c15t/subjects`, reach Inth through the
-rewrite.
-
-### Keep server requests pointed upstream
-
-The server must still reach the backend directly. A relative `backendURL`
-points the server helpers at your own app, so pass them the absolute URL, as
-the route above does. In the root layout:
+In the Pages Router:
 
 {/* example: fragment */}
 
-```tsx title="app/layout.tsx"
-<ConsentRoot
-	state={resolveConsent({
-		backendURL: process.env.NEXT_PUBLIC_C15T_BACKEND_URL,
-	})}
->
+```ts title="pages/api/c15t/[...c15t].ts"
+import { createPagesConsentRoute } from 'c15t/next/pages';
+
+export default createPagesConsentRoute({ proxy: true });
 ```
 
-In the Pages Router, pass the same option as the second argument of
-`withConsentProps`. The browser keeps `/api/c15t`.
+What the route serves:
 
-### Check rewrite precedence
+| Request | Handled by |
+| --- | --- |
+| `GET /api/c15t/init` | The route, from the bundled manifest, for this request's location, language and privacy signal |
+| `GET /api/c15t/manifest` | The route, serving the bundled manifest |
+| `POST /api/c15t/subjects` and other consent paths | Forwarded to your backend because `proxy: true` |
+| Any other path | `404`, so the route is never an open proxy |
 
-An array-form rewrite or `afterFiles` runs after concrete routes; `fallback`
-runs after all application routes. A matching `beforeFiles` rewrite or
-middleware/proxy rewrite can intercept the local handlers instead. See
-[Next.js rewrite order](https://nextjs.org/docs/app/api-reference/config/next-config-js/rewrites).
+Keep these details right:
 
-Use `/api/c15t/:path*` for the backend prefix. A bare `/api/c15t` source does not
-match nested endpoints. If a self-hosted backend catch-all already handles that
-prefix, it serves the remaining endpoints instead of the fallback rewrite.
-Keep the consent route's upstream URL absolute to avoid a request loop.
+- `proxy: true` in `c15t.config.ts` points the browser at `routePrefix` for
+  init and saves. `resolveConsent`, `withConsentProps` and the consent route
+  keep the absolute `backendURL` from the config or
+  `NEXT_PUBLIC_C15T_BACKEND_URL`, so the server never fetches its own route
+  and `withConsentManifest` still downloads the manifest from the backend.
+- `proxy` needs `routePrefix`. Without it, `defineConsentConfig` throws
+  ``@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.``
+- Set `proxy: true` in both places. With it only in the config, saves reach a
+  route that answers them with 404 or 405. To send only init through the route
+  and keep saves going straight to the backend, drop `proxy` from both and keep
+  `routePrefix`.
+- `options.mode` on `ConsentRoot`, or a `hosted({ backendURL })` with its own
+  URL, keeps talking to that URL.
+- The proxy forwards the visitor's user agent, language, origin and location
+  headers, so the backend's firewall sees a normal visitor. Set
+  `trustForwardedHeaders: true` on the route only when your host overwrites
+  `x-forwarded-for`, as Vercel and Cloudflare do. Otherwise a visitor could
+  send a false IP address to your backend.
 
-A full [static export](/docs/frameworks/next/static-export) has no Next.js
-rewrites or API handlers. Use a hosting-level proxy or direct public Inth URL.
+TanStack Start has the same option, `createConsentStateHandler({ proxy })`.
+A full [static export](/docs/frameworks/next/static-export) has no API routes.
+Use a hosting-level proxy or the public backend URL there.
 
 ## Configure manifest cache refresh
 
@@ -251,8 +227,8 @@ rendering, streaming and browser initialization.
 Measure cold entry, warm requests and client navigation separately.
 Check server requests as well as the browser Network panel. Confirm that
 consent saves reach the backend and policy updates appear after a rebuild, or
-the configured refresh window with runtime caching. If you add a rewrite, also confirm browser consent requests
-use your origin.
+the configured refresh window with runtime caching. If you set `proxy: true`,
+also confirm browser consent requests use your origin.
 
 ## Start returning visitors' scripts sooner
 

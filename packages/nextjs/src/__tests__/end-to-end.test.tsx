@@ -285,86 +285,97 @@ describe('ConsentRoot: config picks the transport', () => {
 		);
 	};
 
-	test('routePrefix: init hits the same-origin route, saves post to the backend', async () => {
-		const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
-			Promise.resolve(
-				url.endsWith('/subjects')
-					? jsonResponse({ ok: true, subjectId: 'sub_saved' })
-					: jsonResponse({
-							branding: 'c15t',
-							location: { countryCode: 'DE', regionCode: null },
-							policyDecision: {
-								country: 'DE',
-								fingerprint: policyFixture({}, { id: 'gdpr' })
-									.initialPolicyResolution.fingerprints.policy,
-								policyId: 'gdpr',
-							},
-							policyResolution: writePolicyResolutionWire(
-								policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
-							),
-							translations: { language: 'en', translations: { common: {} } },
-						})
-			)
-		);
-		const originalFetch = globalThis.fetch;
-		globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
-
-		try {
-			const { getByTestId } = await render(
-				<ConsentRoot
-					state={{}}
-					config={defineConsentConfig({
-						backendURL: 'https://consent.example.com',
-						routePrefix: '/api/consent',
-					})}
-					// A site declares its categories; with none, the permissive
-					// policy asks only for an acknowledgement, not a choice.
-					options={{
-						consentCategories: [
-							'necessary',
-							'experience',
-							'functionality',
-							'marketing',
-							'measurement',
-						],
-					}}
-					persistence={false}
-				>
-					<PolicyProbe />
-				</ConsentRoot>
+	test.each([
+		[
+			'saves post to the backend',
+			undefined,
+			'https://consent.example.com/subjects',
+		],
+		['with proxy, saves post to the route too', true, '/api/consent/subjects'],
+	])(
+		'routePrefix: init hits the same-origin route, %s',
+		async (_name, proxy, saveURL) => {
+			const fetchSpy = vi.fn((url: string, _init?: RequestInit) =>
+				Promise.resolve(
+					url.endsWith('/subjects')
+						? jsonResponse({ ok: true, subjectId: 'sub_saved' })
+						: jsonResponse({
+								branding: 'c15t',
+								location: { countryCode: 'DE', regionCode: null },
+								policyDecision: {
+									country: 'DE',
+									fingerprint: policyFixture({}, { id: 'gdpr' })
+										.initialPolicyResolution.fingerprints.policy,
+									policyId: 'gdpr',
+								},
+								policyResolution: writePolicyResolutionWire(
+									policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+								),
+								translations: { language: 'en', translations: { common: {} } },
+							})
+				)
 			);
+			const originalFetch = globalThis.fetch;
+			globalThis.fetch = fetchSpy as unknown as typeof globalThis.fetch;
 
-			await expect
-				.element(getByTestId('probe'))
-				.toHaveTextContent('gdpr|DE|false');
-			await getByTestId('save').click();
-			await expect
-				.element(getByTestId('probe'))
-				.toHaveTextContent('gdpr|DE|true');
-			await vi.waitFor(() => {
-				expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
-					'/api/consent/init',
-					'https://consent.example.com/subjects',
-				]);
-			});
-			// The init and the save it led to carry one journey.
-			const [initJourney, saveJourney] = fetchSpy.mock.calls.map(([url]) =>
-				readJourneyParams(String(url))
-			);
-			expect(initJourney?.scope).toBe('page');
-			expect(saveJourney?.id).toBe(initJourney?.id);
-			// Manifest-resolved init issues no snapshot token, so the save
-			// asserts the policy it was made against.
-			const saveInit = fetchSpy.mock.calls[1]?.[1];
-			expect(JSON.parse(String(saveInit?.body))).toMatchObject({
-				fingerprint: policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
-					.fingerprints.policy,
-				policyId: 'gdpr',
-			});
-		} finally {
-			globalThis.fetch = originalFetch;
+			try {
+				const { getByTestId } = await render(
+					<ConsentRoot
+						state={{}}
+						config={defineConsentConfig({
+							backendURL: 'https://consent.example.com',
+							proxy,
+							routePrefix: '/api/consent',
+						})}
+						// A site declares its categories; with none, the permissive
+						// policy asks only for an acknowledgement, not a choice.
+						options={{
+							consentCategories: [
+								'necessary',
+								'experience',
+								'functionality',
+								'marketing',
+								'measurement',
+							],
+						}}
+						persistence={false}
+					>
+						<PolicyProbe />
+					</ConsentRoot>
+				);
+
+				await expect
+					.element(getByTestId('probe'))
+					.toHaveTextContent('gdpr|DE|false');
+				await getByTestId('save').click();
+				await expect
+					.element(getByTestId('probe'))
+					.toHaveTextContent('gdpr|DE|true');
+				await vi.waitFor(() => {
+					expect(fetchSpy.mock.calls.map(([url]) => pathOf(url))).toEqual([
+						'/api/consent/init',
+						saveURL,
+					]);
+				});
+				// The init and the save it led to carry one journey.
+				const [initJourney, saveJourney] = fetchSpy.mock.calls.map(([url]) =>
+					readJourneyParams(String(url))
+				);
+				expect(initJourney?.scope).toBe('page');
+				expect(saveJourney?.id).toBe(initJourney?.id);
+				// Manifest-resolved init issues no snapshot token, so the save
+				// asserts the policy it was made against.
+				const saveInit = fetchSpy.mock.calls[1]?.[1];
+				expect(JSON.parse(String(saveInit?.body))).toMatchObject({
+					fingerprint: policyFixture({}, { id: 'gdpr' }).initialPolicyResolution
+						.fingerprints.policy,
+					policyId: 'gdpr',
+				});
+			} finally {
+				globalThis.fetch = originalFetch;
+			}
 		}
-	});
+	);
 
 	test("resolve: 'browser': init resolves in the browser from the manifest route", async () => {
 		const fetchSpy = vi.fn((url: string) =>

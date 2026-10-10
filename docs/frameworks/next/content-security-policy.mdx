@@ -129,11 +129,11 @@ connect-src 'self' https://<your-backend-host> https://<your-manifest-host>;
 ```
 
 Use the endpoint host supplied by your Inth project or your self-hosted backend.
-When you use the same-origin rewrite from
-[Optimization](/docs/frameworks/next/optimization), `backendURL` is `/api/c15t`
-and `'self'` already covers the browser requests; the Next.js server connects to
-the backend outside the browser's CSP. The consent route at
-`/api/c15t` is also same-origin.
+With `proxy: true` and `routePrefix: '/api/c15t'`, as
+[Optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+shows, the browser sends every consent request to `/api/c15t` and `'self'`
+covers them; the Next.js server connects to the backend outside the browser's
+CSP.
 
 IAB TCF policies can fetch the Global Vendor List from the URL the policy
 provides; allow that host in `connect-src` if you use the

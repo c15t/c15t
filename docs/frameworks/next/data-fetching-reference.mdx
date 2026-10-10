@@ -19,6 +19,7 @@ Requires Next.js 15 or 16 (`next ^15.0.0 || ^16.0.0`).
 | `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. Consent submissions go to `/subjects` under it, and the server reads `/manifest` or `/init` from it. |
 | `mode` | `manifest()` | `manifest()`, `hosted()` or `offline()` from `c15t/next`. See [consent modes](/docs/concepts/modes). |
 | `routePrefix` | none | Where the catch-all consent route is mounted, such as `/api/c15t`. A browser that resolves consent itself asks `${routePrefix}/init` instead of the backend's `/init`. Leave it unset when every page resolves consent on the server. |
+| `proxy` | `false` | The route at `routePrefix` forwards saves (`createConsentRoute({ proxy: true })`), so the browser saves there instead of `${backendURL}/subjects`. The server helpers keep `backendURL`. Needs `routePrefix`. See [optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin). |
 | `journey` | `'page'` | The consent journey scope, read by both `resolveConsent` and `ConsentRoot` so they agree. |
 | `scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`, `persistence`, `scriptLoader`, `options` | none | Browser options. `ConsentRoot` props of the same name win over them. |
 
@@ -43,6 +44,7 @@ throws a `TypeError` with one of these messages:
 | ``@c15t/nextjs: defineConsentConfig `backendURL` must be an absolute http(s) URL or a `/`-relative path, received "...".`` | A URL is protocol-relative, such as `//your-project.inth.app`, or bare, such as `api/c15t`. The same check covers `routePrefix`, `mode.manifestURL`, `mode.geoURL` and `mode.backendURL`. |
 | ``@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or offline() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.`` | `mode` is not one of the data factories. |
 | ``@c15t/nextjs: defineConsentConfig `journey` must be 'page', 'tab' or false.`` | `journey` has another value. |
+| ``@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.`` | `proxy: true` without `routePrefix`. |
 
 Protocol-relative and bare URLs are rejected because the server helpers would
 resolve them against the request host and reach an unintended origin.
@@ -100,10 +102,9 @@ Set `mode: hosted()` in `c15t.config.ts`. The
 has the complete config. For server rendering, keep the layout from your
 router guide. `resolveConsent` will call backend `/init` per request.
 
-Remove the consent route if no page needs it. If you use an optional backend
-rewrite, removing the route lets requests under the prefix reach the backend
-through the rewrite. See [optimization](/docs/frameworks/next/optimization)
-for rewrite configuration.
+Remove the consent route if no page needs it, unless `proxy: true` sends
+browser saves through it. See
+[optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
 
 ## Server helper options
 
@@ -211,9 +212,9 @@ available, `resolveConsent` reports the error and returns the baseline state.
 
 A render never fetches your own consent route: a URL on the request's origin
 under the config's `routePrefix`. `resolveConsent` reports the URL and returns
-the baseline state instead. Give it the backend URL your handlers
-use, as [Optimization](/docs/frameworks/next/optimization#keep-server-requests-pointed-upstream)
-shows for the `/api/c15t` prefix.
+the baseline state instead. Keep the config's `backendURL` absolute, and use
+[`proxy: true`](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+to keep the browser on your origin.
 
 Any other same-origin `backendURL` is a backend reached through your app, such
 as `/api/c15t` with a rewrite or a mounted `@c15t/backend`. `resolveConsent`
@@ -350,7 +351,7 @@ forwards the other consent paths to the backend. Everything defaults to
 | `backendURL` | the config's, then `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. Without a snapshot, the route fetches `${backendURL}/manifest`. |
 | `manifestURL` | the mode's absolute `manifestURL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
 | `snapshot` | the snapshot `withConsentManifest` downloaded | Takes precedence over upstream URLs, serves the manifest and resolves each visitor without fetching policy. Stays fixed until rebuilding. |
-| `proxy` | `false` | Forward `subjects`, `subjects/:id`, `health` and `status` to the backend, so a browser `backendURL` of `/api/c15t` reaches it through this route instead of a rewrite. App Router only. |
+| `proxy` | `false` | Forward `subjects`, `subjects/:id`, `health` and `status` to the backend, so browser saves stay on your origin. Pair it with `proxy: true` in `c15t.config.ts`. `createPagesConsentRoute` takes it too. |
 | `manifestRevalidateSeconds` | `300` | Next.js Data Cache revalidation for the manifest fetch. `false` disables it. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the manifest and Global Vendor List requests. |
 | `trustForwardedHeaders` | `false` | Resolve a `/`-relative `backendURL` or `manifestURL` against the request's `forwarded`, `x-forwarded-host` and `x-forwarded-proto` headers instead of `request.url`. Set it only behind a proxy that sets those headers and drops the ones a client sends. |
@@ -369,9 +370,9 @@ your own app, so keep upstream URLs absolute; otherwise the consent route
 fetches itself.
 
 A `/`-relative `manifestURL` on the config's mode names the route itself, so
-the handler ignores it. When the config's `backendURL` is a same-origin
-rewrite prefix, pass the absolute upstream URL to `createConsentRoute`
-instead, as described in [optimization](/docs/frameworks/next/optimization).
+the handler ignores it. Keep the config's `backendURL` absolute. To keep the
+browser on your origin, set [`proxy: true`](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin)
+rather than a relative `backendURL`.
 
 The handlers are built on the consent route handler in `@c15t/core/server`,
 which the TanStack Start, SvelteKit, Astro and Nuxt adapters share, so the

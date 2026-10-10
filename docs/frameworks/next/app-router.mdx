@@ -73,6 +73,7 @@ so it can hold `scripts` but must hold no secrets.
 | `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. Choices post to `${backendURL}/subjects`. |
 | `mode` | `manifest()` | `manifest()`, `hosted()` or `offline()` from `c15t/next`. See [consent modes](/docs/concepts/modes). |
 | `routePrefix` | none | Where you mount the [consent route](#initialize-in-the-browser). Set it only when some pages resolve consent in the browser. |
+| `proxy` | `false` | Send browser saves through the consent route too. See [optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin). |
 | `journey` | `'page'` | The consent journey scope. |
 | `scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`, `persistence`, `scriptLoader`, `options` | none | Browser options. `ConsentRoot` props of the same name win over them. |
 
@@ -167,8 +168,10 @@ Then mount one catch-all route under it:
 
 `createConsentRoute()` answers `GET /api/c15t/init` and
 `GET /api/c15t/manifest` from the bundled snapshot. Any other path under
-`/api/c15t` returns 404. Pass `createConsentRoute({ proxy: true })` to forward
-the remaining consent paths, such as `/subjects`, to the backend instead.
+`/api/c15t` returns 404. To keep saves on your origin too, set `proxy: true`
+in `c15t.config.ts` and pass `createConsentRoute({ proxy: true })`, which
+forwards the remaining consent paths, such as `/subjects`, to the backend; see
+[optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin).
 
 Without `routePrefix`, a page without `state` calls `${backendURL}/init`. The
 HTML is the same for every visitor either way. To mix these pages with
@@ -201,7 +204,8 @@ policy, as
 [runtime manifest caching](/docs/frameworks/next/optimization#reuse-cached-policy-data)
 describes.
 
-A same-origin [rewrite](/docs/frameworks/next/optimization) is optional with
+Keeping browser saves on your origin with
+[`proxy: true`](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin) is optional with
 either source. [Optimization](/docs/frameworks/next/optimization) also covers
 manifest cache refresh and measured performance.
 

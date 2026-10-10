@@ -82,9 +82,9 @@ export interface NextConsentRouteOptions extends ConsentSourceOptions {
 
 	/**
 	 * Forward the other consent paths (`subjects`, `subjects/:id`, `health`,
-	 * `status`) to the backend, so a browser `backendURL` of `/api/c15t`
-	 * reaches the backend through this route instead of a rewrite. Without
-	 * it, those paths answer 404. App Router only.
+	 * `status`) to the backend, so browser saves stay on the app's origin.
+	 * Pair it with `proxy: true` in `c15t.config.ts`, which points the
+	 * browser at `routePrefix`. Without it, those paths answer 404.
 	 *
 	 * @default false
 	 */
