@@ -125,7 +125,7 @@ leftover composable call loads a second copy of the vendor outside c15t.
 
 The helpers load each vendor from the host in its guide, usually the vendor's
 own domain, and the vendor's requests go straight to it. `@nuxt/scripts`
-bundles and proxies many registry scripts by default, including Google
+bundles some registry scripts and proxies many by default, including Google
 Analytics, when the app has a server runtime. Before a request reaches the
 vendor, the proxy truncates the visitor's IP address, strips cookie and
 authorization headers, and, depending on the script, generalizes fingerprinting
