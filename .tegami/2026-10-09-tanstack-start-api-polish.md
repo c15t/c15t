@@ -1,8 +1,6 @@
 ---
 packages:
   '@c15t/tanstack-start': minor
-  '@c15t/core': minor
-  '@c15t/cli': patch
   c15t: minor
 ---
 
@@ -21,10 +19,10 @@ const getConsentState = createServerFn({ method: 'GET' }).handler(
 <ConsentRoot state={consent} scripts={scripts}>
 ```
 
-`createConsentStateHandler({ mode, routePrefix, snapshot })` takes the mode
-as data. `manifest()`, `hosted()` and `offline()` from `c15t/tanstack-start`
-are now the data factories from `@c15t/core/modes`, not transports.
-`manifest()` (the default) resolves the visitor on the server.
+`createConsentStateHandler({ mode, routePrefix, proxy, snapshot })` takes the
+mode as data. `manifest()`, `hosted()` and `offline()` from
+`c15t/tanstack-start` are now the data factories from `c15t/modes`, not
+transports. `manifest()` (the default) resolves the visitor on the server.
 `manifest({ resolve: 'browser' })` leaves it to the browser, and `hosted()`
 and `offline()` resolve as their names say. A mode's `snapshot` stays on the
 server.
@@ -33,6 +31,12 @@ server.
 JavaScript holds the record transport only, and the code for init loads
 when the browser runs init. The TanStack Start quickstart's first load is
 about 500 B (gzip) smaller.
+
+`consentManifest()` from `c15t/tanstack-start/build` serves the snapshot as
+`c15t/generated` instead of writing `c15t-manifest.ts`. The browser bundle
+gets `snapshot: undefined`. It reads `VITE_C15T_BACKEND_URL`, and a failed
+download stops `vite build` and warns in `vite dev`; `onBuildError` and
+`C15T_ON_BUILD_ERROR` change that.
 
 The browser gets init from `${backendURL}/init` unless the state names a
 `routePrefix`, the same option, meaning and default (none) as Next.js. Before,
@@ -52,28 +56,27 @@ With `createConsentRoute({ proxy: true })`, pass
 `createConsentStateHandler({ routePrefix: '/api/c15t', proxy: true })` so the
 browser saves through the route.
 
-Breaking for earlier v3 alphas:
+Removed, with no deprecated alias (these were v3 alpha only):
 
-- `ConsentRoot` drops the `backendURL` and `routePrefix` props. Pass them to
-  `createConsentStateHandler()`; a page with no loader passes `state={{}}`
+- `ConsentRoot`'s `backendURL` and `routePrefix` props: pass them to
+  `createConsentStateHandler()`. A page with no loader passes `state={{}}`
   and gets the backend URL from `consentManifest()`.
-- `createConsentServerRoute` is renamed `createConsentRoute`, and returns
-  only `GET` (plus the write methods with `proxy`). `manifestGET`, `initGET`
-  and `proxyHandler` are removed.
-- `manifest` is renamed `snapshot` on `createConsentStateHandler`,
-  `resolveConsent` and `createConsentRoute`. `manifestURL` on the state
-  handler moves to `manifest({ manifestURL })`.
-- `ConsentManifestOptions` and `resolveStrictestDefaultInit` are removed.
-- `ConsentRoot`'s `initRoute` prop and the `DEFAULT_INIT_ROUTE` export are
-  removed. Replace `initRoute="/api/c15t/init"` with
+- `ConsentRoot`'s `initRoute` prop and the `DEFAULT_INIT_ROUTE` export.
+  Replace `initRoute="/api/c15t/init"` with
   `createConsentStateHandler({ routePrefix: '/api/c15t' })`, and drop
   `initRoute={false}`, which is now the default. The server helpers'
   `routePrefix` has no `/api/c15t` default either.
-- A root whose state names no backend URL, and no `consentManifest()`,
-  throws instead of falling back to offline mode. Pass `mode: offline()` to
-  resolve without a backend.
+- `createConsentServerRoute`: use `createConsentRoute`, which returns only
+  `GET` (plus the write methods with `proxy`). `manifestGET`, `initGET` and
+  `proxyHandler` are removed.
+- The `manifest` option of `createConsentStateHandler`, `resolveConsent` and
+  `createConsentRoute`: use `snapshot`. `manifestURL` on the state handler
+  moves to `manifest({ manifestURL })`.
+- `ConsentManifestOptions` and `resolveStrictestDefaultInit`: use
+  `ResolveConsentOptions` and `resolveUnknownLocationInit`.
+- `consentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
 
-`clientMode()` from `@c15t/core/runtime/client-mode` takes `initialData`, an
-init response a prefetch script already requested, and builds its lazy
-hosted and browser-resolver chunks self-contained, so Vite 8 doesn't split
-a page's first-load chunk around them.
+Changed: a root whose state names no backend URL, and no `consentManifest()`,
+throws instead of falling back to offline mode. Pass `mode: offline()` to
+resolve without a backend.

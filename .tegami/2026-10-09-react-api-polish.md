@@ -1,7 +1,6 @@
 ---
 packages:
   '@c15t/react': minor
-  '@c15t/core': minor
   c15t: minor
 ---
 
@@ -24,12 +23,6 @@ override the build's values. `@c15t/react` keeps these modes on its
 `@c15t/react/modes` entry, so the Next.js and TanStack Start entries, which
 re-export `@c15t/react`, never import the build's snapshot module.
 
-`consentManifest()` from `c15t/build` now warns when the downloaded policy
-depends on the visitor's location. The browser can't resolve such a policy
-on its own, so `manifest()` still asks the backend's `/init` on the first
-visit unless the page passes `inputs` or `geoURL`. The warning suggests
-`hosted()`.
-
 The browser manifest resolver loads on demand. When the policy depends on a
 location the page doesn't know, the browser asks `/init` and never downloads
 the resolver. Otherwise the resolver starts loading as soon as `manifest()`
@@ -37,6 +30,10 @@ runs. Each language's base copy and the IAB vendor list load only when a
 visitor needs them. The React quickstart's first-load JavaScript is about
 3.8 KB gzip smaller.
 
-`Frame`, `FrameRoot`, `FrameTitle` and `FrameButton`, the v2 names for
-`ConsentGate` and its parts, now log a one-time warning outside production.
-They still render `ConsentGate`.
+`ConsentTheme` and `defineTheme` are importable from the new
+`c15t/react/theme` entry, which a Server Component can import.
+
+Deprecated, still working: `Frame`, `FrameRoot`, `FrameTitle` and
+`FrameButton`, the v2 names for `ConsentGate` and its parts, and the
+`FrameProps` type. The components still render `ConsentGate`, and now log a
+one-time warning outside production.

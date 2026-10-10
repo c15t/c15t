@@ -1,7 +1,6 @@
 ---
 packages:
   '@c15t/nextjs': minor
-  '@c15t/react': minor
   c15t: minor
 ---
 
@@ -39,26 +38,36 @@ import { resolveConsent } from 'c15t/next/server';
 `ConsentRoot`, `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` as one
 client module. This also fixes `next build --webpack`, which failed on React
 hooks in the server graph. `ConsentTheme` and `defineTheme` are importable
-there too, and from the new `c15t/react/theme` entry.
+there too.
 
-The config takes `mode` (`manifest()`, `hosted()` or `offline()`, exported as
-data from `c15t/next`; `manifest()` by default), `routePrefix`, `journey`, and
-the browser options `scripts`, `vendors`, `clearOnRevocation`,
-`networkBlocker`, `persistence`, `scriptLoader` and `options`. `ConsentRoot`
-props win over the config's. `ConsentRoot` warns in development when it finds
-no config. `options.mode` on `ConsentRoot` takes the same data, or a transport
-such as `custom(transport)`; a `hosted()` or `offline()` transport from
-`c15t/react` still works but warns in development, because its code is then in
-the first-load bundle.
+The config takes `backendURL` (default `NEXT_PUBLIC_C15T_BACKEND_URL`),
+`mode` (`manifest()`, `hosted()` or `offline()`, exported as data from
+`c15t/next`; `manifest()` by default), `routePrefix`, `journey`, and the
+browser options `scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`,
+`persistence`, `scriptLoader` and `options`. `ConsentRoot` props win over the
+config's. `ConsentRoot` warns in development when it finds no config.
+`options.mode` on `ConsentRoot` takes the same data, or a transport such as
+`custom(transport)`; a `hosted()` or `offline()` transport from `c15t/react`
+still works but warns in development, because its code is then in the
+first-load bundle. With `manifest()` resolved on the server, the browser gets
+no resolver, snapshot or other language.
 
 `createConsentRoute()` serves `/manifest` and `/init` from one catch-all
 route, such as `app/api/c15t/[...c15t]/route.ts`. Other paths under the
 prefix return 404, or reach the backend with `proxy: true`. Set `routePrefix`
 in the config to send the browser's init there; without it the browser calls
-`${backendURL}/init`. The route and `resolveConsent()` read the snapshot
-`withConsentManifest()` generated, so apps no longer import
-`c15t-manifest.ts` or keep a `c15t.server.ts`. `backendURL` and
-`withConsentManifest()` default to `NEXT_PUBLIC_C15T_BACKEND_URL`.
+`${backendURL}/init`. Pages that `resolveConsent()` renders on the server don't
+need the route.
+
+`withConsentManifest()` writes the snapshot to `node_modules/.cache/c15t/`
+and points `c15t/generated` at it, defaulting to
+`NEXT_PUBLIC_C15T_BACKEND_URL`. Importing `c15t/generated` from a client
+component fails the build, because the browser copy imports `server-only`.
+The wrapper also adds `c15t`, `@c15t/core` and `@c15t/nextjs` to
+`transpilePackages`, so Pages Router server code sees the snapshot and the
+config. A failed download stops `next build` and warns in `next dev`; pass
+`onBuildError` as the second argument, or set `C15T_ON_BUILD_ERROR`, to
+change that. `output: 'export'` skips the download.
 
 The Pages Router gets `withConsentProps()`, a `getServerSideProps` that adds a
 JSON-safe `consent` prop, and `ConsentPageProps` for `AppProps`:
@@ -71,25 +80,25 @@ export const getServerSideProps = withConsentProps();
 export default createPagesConsentRoute();
 ```
 
-Breaking changes in `@c15t/nextjs` (alpha-only names, removed without an
-alias):
+Removed, with no deprecated alias (these were v3 alpha only):
 
 - `defineConsentConfig({ manifestURL, initURL })`: use `routePrefix`, or
   `mode: manifest({ resolve: 'browser', manifestURL })`.
 - `ConsentRoot`'s `backendURL` prop: set `backendURL` in the config or
-  `NEXT_PUBLIC_C15T_BACKEND_URL`.
+  `NEXT_PUBLIC_C15T_BACKEND_URL`. `config` is now an optional override.
 - `createNextConsentRouteHandlers()` and its `manifestGET`: use
   `createConsentRoute()`.
 - `createPagesApiHandlers()`: use `createPagesConsentRoute()` in a catch-all
   API route.
-- `resolveConsent({ config })` and the route helpers' `config` option still
-  override `c15t.config.ts`; most apps pass nothing.
 - The `manifest` option of `resolveConsent()` and `createConsentRoute()`: use
-  `snapshot`.
+  `snapshot`, which defaults to the build's.
 - `ConsentManifestOptions` and the `c15t.server.ts` pattern: use
   `ResolveConsentOptions` or `NextConsentRouteOptions` when you need them.
 - `resolveStrictestDefaultInit` from `c15t/next/static`: use
   `resolveUnknownLocationInit`.
-- `hosted`, `offline` and `manifest` from `c15t/next` are now the data
-  factories. A `ConsentProvider` that needs a transport imports them from
-  `c15t/react`.
+- `withConsentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
+
+Changed: `hosted`, `offline` and `manifest` from `c15t/next` are now the data
+factories. A `ConsentProvider` that needs a transport imports them from
+`c15t/react`.
