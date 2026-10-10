@@ -19,6 +19,8 @@ import {
 } from './lazy-surfaces';
 import ConsentBanner from './prompt.vue';
 
+// The default slot renders after the surfaces, so a root that wraps the
+// app the way a React provider does keeps the app.
 const props = defineProps<{
 	region?: string;
 	country?: string;
@@ -71,4 +73,5 @@ watch(
 		/>
 		<LazyConsentDialogTrigger v-if="config.showTrigger && mounted" />
 	</template>
+	<slot />
 </template>

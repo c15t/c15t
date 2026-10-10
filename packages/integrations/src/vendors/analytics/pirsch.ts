@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { listDataAttribute } from '../_shared/attributes';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -144,8 +145,9 @@ const getPirschScriptUrl = function getPirschScriptUrl(
  *
  * @param options - The options for the Pirsch script.
  * @returns The Pirsch script.
- * @throws {Error} When `identificationCode` is missing, empty, or invalid.
- * Provide a valid non-empty `identificationCode` string to prevent this error.
+ * @remarks When `identificationCode` is missing or blank, the helper logs
+ *   `pirsch: missing or invalid identificationCode` with `console.error`
+ *   and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -158,11 +160,12 @@ const getPirschScriptUrl = function getPirschScriptUrl(
  * ```
  */
 export const pirsch = function pirsch(options: PirschOptions): Script {
-	const identificationCode = options.identificationCode.trim();
-	if (identificationCode.length === 0) {
-		throw new Error(
-			'pirsch: invalid identificationCode - must be a non-empty string'
-		);
+	const identificationCode = readId(options.identificationCode);
+	if (identificationCode === undefined) {
+		return skipMissingId('pirsch', 'identificationCode', {
+			category: 'measurement',
+			manifest: pirschManifest,
+		});
 	}
 
 	const resolved = resolveManifest(pirschManifest, {

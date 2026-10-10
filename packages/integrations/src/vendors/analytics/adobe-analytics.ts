@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 
 declare global {
 	interface Window {
@@ -16,31 +17,22 @@ interface AdobeAnalyticsManifestOptions {
 	seedAdobeDataLayer: boolean;
 }
 
-const validateAdobeAnalyticsScriptUrl =
-	function validateAdobeAnalyticsScriptUrl(scriptUrl: string): string {
-		const trimmed = scriptUrl.trim();
-		if (trimmed.length === 0) {
-			throw new Error(
-				'adobeAnalytics: invalid scriptUrl - must be a non-empty https URL from your Adobe Data Collection embed code'
-			);
-		}
-
+const getAdobeAnalyticsScriptUrlProblem =
+	function getAdobeAnalyticsScriptUrlProblem(
+		scriptUrl: string
+	): string | undefined {
 		let parsed: URL;
 		try {
-			parsed = new URL(trimmed);
+			parsed = new URL(scriptUrl);
 		} catch {
-			throw new Error(
-				'adobeAnalytics: invalid scriptUrl - must be a valid https URL from your Adobe Data Collection embed code'
-			);
+			return 'adobeAnalytics: invalid scriptUrl - must be a valid https URL from your Adobe Data Collection embed code';
 		}
 
 		if (parsed.protocol !== 'https:') {
-			throw new Error(
-				'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code'
-			);
+			return 'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code';
 		}
 
-		return trimmed;
+		return undefined;
 	};
 
 const createAdobeAnalyticsManifest = function createAdobeAnalyticsManifest(
@@ -89,6 +81,11 @@ export const adobeAnalyticsManifest = createAdobeAnalyticsManifest({
 	seedAdobeDataLayer: true,
 });
 
+const skippedAdobeAnalyticsScript = {
+	category: 'measurement',
+	manifest: adobeAnalyticsManifest,
+} as const;
+
 export interface AdobeAnalyticsOptions {
 	/**
 	 * Adobe Experience Platform Data Collection web property embed URL.
@@ -129,11 +126,13 @@ export interface AdobeAnalyticsOptions {
  *
  * @param options - The options for the Adobe Analytics script.
  * @returns The Adobe Analytics script.
- * @throws {Error} When `scriptUrl` is missing, empty, invalid, or not `https:`.
- * Copy the full web property embed URL from Adobe Data Collection and pass it
- * as `scriptUrl`.
  *
  * @remarks
+ * When `scriptUrl` is missing, blank, invalid, or not `https:`, the helper
+ * logs the problem with `console.error` and returns a script that never
+ * loads. Copy the full web property embed URL from Adobe Data Collection and
+ * pass it as `scriptUrl`.
+ *
  * Adobe Analytics is commonly deployed through Adobe Experience Platform Data
  * Collection Tags (formerly Launch). The loaded property may in turn load Adobe
  * Analytics, Web SDK, or other extensions and rules, so configure those Adobe
@@ -152,7 +151,19 @@ export interface AdobeAnalyticsOptions {
 export const adobeAnalytics = function adobeAnalytics(
 	options: AdobeAnalyticsOptions
 ): Script {
-	const scriptUrl = validateAdobeAnalyticsScriptUrl(options.scriptUrl);
+	const scriptUrl = readId(options.scriptUrl);
+	if (scriptUrl === undefined) {
+		return skipMissingId(
+			'adobeAnalytics',
+			'scriptUrl',
+			skippedAdobeAnalyticsScript
+		);
+	}
+	const problem = getAdobeAnalyticsScriptUrlProblem(scriptUrl);
+	if (problem !== undefined) {
+		return skipScript(problem, skippedAdobeAnalyticsScript);
+	}
+
 	const manifest = createAdobeAnalyticsManifest({
 		async: options.async ?? true,
 		seedAdobeDataLayer: options.seedAdobeDataLayer ?? true,

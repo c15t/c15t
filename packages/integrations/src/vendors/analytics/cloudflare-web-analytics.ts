@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -70,8 +71,9 @@ export interface CloudflareWebAnalyticsOptions {
  *
  * @param options - The options for the Cloudflare Web Analytics script.
  * @returns The Cloudflare Web Analytics script.
- * @throws {Error} Throws `cloudflareWebAnalytics: missing token` when
- * `options.token` is missing, invalid, or trims to an empty string.
+ * @remarks When `token` is missing or blank, the
+ *   helper logs `cloudflareWebAnalytics: missing or invalid token` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -86,14 +88,12 @@ export interface CloudflareWebAnalyticsOptions {
 export const cloudflareWebAnalytics = function cloudflareWebAnalytics(
 	options: CloudflareWebAnalyticsOptions
 ): Script {
-	let token: string;
-	if (typeof options.token === 'string') {
-		token = options.token.trim();
-	} else {
-		token = '';
-	}
-	if (token.length === 0) {
-		throw new Error('cloudflareWebAnalytics: missing token');
+	const token = readId(options.token);
+	if (token === undefined) {
+		return skipMissingId('cloudflareWebAnalytics', 'token', {
+			category: 'measurement',
+			manifest: cloudflareWebAnalyticsManifest,
+		});
 	}
 
 	const resolved = resolveManifest(cloudflareWebAnalyticsManifest, {

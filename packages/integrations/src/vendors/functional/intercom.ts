@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 export const INTERCOM_API_BASES = {
@@ -159,8 +159,9 @@ export interface IntercomOptions {
  *
  * @param options - The options for the Intercom script.
  * @returns The Intercom script configuration.
- * @throws {Error} `intercom: missing or invalid appId` when `appId` is
- *   empty or only whitespace.
+ * @remarks When `appId` is missing or blank, the
+ *   helper logs `intercom: missing or invalid appId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -177,7 +178,13 @@ export const intercom = function intercom({
 	settings,
 	scriptSrc,
 }: IntercomOptions): Script {
-	const normalizedAppId = requireId('intercom', 'appId', appId);
+	const normalizedAppId = readId(appId);
+	if (normalizedAppId === undefined) {
+		return skipMissingId('intercom', 'appId', {
+			category: 'functionality',
+			manifest: intercomManifest,
+		});
+	}
 
 	return resolveManifest(intercomManifest, {
 		scriptSrc: resolveScriptUrl(

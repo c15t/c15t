@@ -48,9 +48,9 @@ Google Tag Manager follows the
 [Consent Mode contract](/docs/integrations/google-tag-manager). Remove the
 container and pixel snippets from `pages/_document.tsx` or your layout, so each
 vendor loads once. If they come from `@next/third-parties`, follow
-[migrate from `@next/third-parties`](#migrate-from-nextthird-parties). Both
-helpers throw on an empty ID, so leave a helper out of the array until you
-have its ID.
+[migrate from `@next/third-parties`](#migrate-from-nextthird-parties). With an
+empty ID, a helper logs an error and its script does not load, so leave a
+helper out of the array until you have its ID.
 
 ## Check each vendor's loading behavior
 

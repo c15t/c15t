@@ -32,7 +32,7 @@ export const scripts = [
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `clientId` | Required | Set as `data-client-id`. The helper trims it. Empty or whitespace-only values throw. |
+| `clientId` | Required | Set as `data-client-id`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `configWhenGranted` | Required | Object set as `window.databuddyConfig` while measurement is allowed. |
 | `configWhenDenied` | Required | Object set as `window.databuddyConfig` while measurement is denied. |
 | `apiUrl` | `https://basket.databuddy.cc` | Collection endpoint, set as `data-api-url`. |

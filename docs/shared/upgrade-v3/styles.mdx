@@ -31,6 +31,9 @@ A generated theme uses `:root:root`, so your own `--c15t-*` values on plain
   `styles: false` in the provider options so the components add no second
   copy. See
   [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
+  The `packages-to-c15t` codemod removes `@c15t/react` and `@c15t/nextjs`
+  stylesheet imports. With Tailwind CSS 3 or a cascade layer it keeps them,
+  pointed at `c15t`, with a `TODO(c15t v3)` comment.
 - With manual styles, `iab/styles.css` no longer repeats the default tokens.
   Import it after `styles.css`. Automatic IAB styling needs neither import.
 - Tailwind CSS 3 needs a PostCSS plugin for c15t's `styles.css`. Add

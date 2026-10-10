@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -142,8 +143,9 @@ export interface MixpanelAnalyticsOptions {
  *
  * @param options - The options for the Mixpanel Analytics script.
  * @returns The Mixpanel Analytics script configuration.
- * @throws {Error} Throws when `token` is not a non-empty 32-character
- * hexadecimal Mixpanel project token.
+ * @remarks When `token` is missing, blank, or not a 32-character
+ *   hexadecimal Mixpanel project token, the helper logs the problem with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -160,11 +162,18 @@ export const mixpanelAnalytics = function mixpanelAnalytics({
 	initOptions,
 	scriptUrl,
 }: MixpanelAnalyticsOptions): Script {
-	const normalizedToken = token.trim();
+	const skipped = {
+		category: 'measurement',
+		manifest: mixpanelAnalyticsManifest,
+	} as const;
+	const normalizedToken = readId(token);
+	if (normalizedToken === undefined) {
+		return skipMissingId('mixpanelAnalytics', 'token', skipped);
+	}
 	if (!/^[a-f0-9]{32}$/iu.test(normalizedToken)) {
-		throw new Error(
-			'mixpanelAnalytics: token must be a non-empty ' +
-				'32-character hexadecimal string'
+		return skipScript(
+			'mixpanelAnalytics: token must be a 32-character hexadecimal string',
+			skipped
 		);
 	}
 

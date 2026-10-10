@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
 import { clearbit } from './clearbit';
@@ -32,13 +33,14 @@ describe('clearbit', () => {
 		);
 	});
 
-	it('throws for non-string publishable keys', () => {
-		expect(() =>
-			clearbit({ publishableKey: null as unknown as string })
-		).toThrow();
-		expect(() =>
-			clearbit({ publishableKey: 42 as unknown as string })
-		).toThrow();
+	it('logs and skips the script for publishable keys of the wrong type', () => {
+		for (const publishableKey of [null, {}]) {
+			expectSkippedScript(
+				() => clearbit({ publishableKey: publishableKey as unknown as string }),
+				{ category: 'marketing', id: 'clearbit' },
+				'clearbit: missing or invalid publishableKey'
+			);
+		}
 	});
 
 	it('trims the publishable key before building the loader URL', () => {
@@ -71,13 +73,11 @@ describe('clearbit', () => {
 		);
 	});
 
-	it('throws for an empty publishableKey', () => {
-		expect(() =>
-			clearbit({
-				publishableKey: '   ',
-			})
-		).toThrowError(
-			'clearbit: invalid publishableKey - must be a non-empty string'
+	it('logs and skips the script for an empty publishableKey', () => {
+		expectSkippedScript(
+			() => clearbit({ publishableKey: '   ' }),
+			{ category: 'marketing', id: 'clearbit' },
+			'clearbit: missing or invalid publishableKey'
 		);
 	});
 });

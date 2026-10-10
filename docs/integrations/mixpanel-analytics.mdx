@@ -35,7 +35,7 @@ during initialization.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `token` | Required | 32-character hexadecimal project token. Surrounding whitespace is trimmed; any other value throws. |
+| `token` | Required | 32-character hexadecimal project token. Surrounding whitespace is trimmed. Any other value logs an error and the script does not load. |
 | `initOptions` | `{}` | Mixpanel config passed to `init`. Use JSON-serializable values only. |
 | `scriptUrl` | `https://cdn.mxpnl.com/libs/mixpanel-2-latest.min.js` | Loader URL override. |
 

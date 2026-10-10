@@ -25,7 +25,7 @@ export const scripts = [heap({ envId: 'YOUR_ENVIRONMENT_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `envId` | Required | Environment ID. Set as `heap.envId` and `heap.appid`, and used in the default loader URL. The helper trims it. Empty values throw. |
+| `envId` | Required | Environment ID. Set as `heap.envId` and `heap.appid`, and used in the default loader URL. The helper trims it. Empty values log an error and the script does not load. |
 | `clientConfig` | `{}` | Client configuration set on `heap.clientConfig`. Values must be JSON-serializable with finite numbers; other values throw a `TypeError`. The helper always sets `shouldFetchServerConfig: false` and overrides any value you pass for it. |
 | `scriptUrl` | `https://cdn.us.heap-api.com/config/<envId>/heap_config.js` | Config loader URL override. A blank value falls back to the default. |
 

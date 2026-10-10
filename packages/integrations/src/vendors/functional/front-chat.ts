@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -61,17 +62,21 @@ export interface FrontChatOptions {
  *
  * @param options - Front channel and launcher configuration.
  * @returns The Front Chat script configuration.
- * @throws {Error} When chatId is missing or empty. Copy the public ID from
- * the Front channel's installation snippet.
+ * @remarks When `chatId` is missing or blank, the helper logs
+ *   `frontChat: missing or invalid chatId` with `console.error` and returns
+ *   a script that never loads. Copy the public ID from the Front channel's
+ *   installation snippet.
  * @example
  * frontChat({ chatId: 'YOUR_FRONT_CHAT_ID' });
  * @see https://help.front.com/en/articles/2049
  */
 export const frontChat = function frontChat(options: FrontChatOptions): Script {
-	const chatId =
-		typeof options?.chatId === 'string' ? options.chatId.trim() : '';
-	if (!chatId) {
-		throw new Error('frontChat: chatId must be a non-empty string.');
+	const chatId = readId(options?.chatId);
+	if (chatId === undefined) {
+		return skipMissingId('frontChat', 'chatId', {
+			category: 'functionality',
+			manifest: frontChatManifest,
+		});
 	}
 
 	const scriptSrc = resolveScriptUrl(

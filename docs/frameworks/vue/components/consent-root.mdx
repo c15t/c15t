@@ -13,8 +13,14 @@ Import it from `c15t/vue/vue-plugin`:
 
 `ConsentRoot` reads the consent runtime that
 [the c15tVue plugin](/docs/frameworks/vue/plugin) creates in `src/main.ts`.
-Keep it in the root component, outside your router view, so it stays mounted
-when the route changes. It has no slots and brings its own styles.
+Keep it in the root component so it stays mounted when the route changes.
+It brings its own styles.
+
+`ConsentRoot` is not a provider. The c15tVue plugin already gives every
+component the consent runtime, so nothing needs to sit inside it. Render
+`<ConsentRoot />` next to your page content as shown above. If you wrap your
+content in it instead, the content still renders after the banner, dialog
+and trigger, but wrapping adds nothing.
 
 ## What ConsentRoot renders
 

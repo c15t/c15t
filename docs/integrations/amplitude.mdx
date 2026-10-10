@@ -24,7 +24,7 @@ export const scripts = [amplitude({ apiKey: 'YOUR_PROJECT_API_KEY' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `apiKey` | Required | Project API key passed to `amplitude.init`. The helper trims it. Empty or whitespace-only values throw. |
+| `apiKey` | Required | Project API key passed to `amplitude.init`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `initOptions` | `{}` | Browser SDK 2 options passed as the second argument to `init`. Use JSON-serializable values only. |
 | `scriptUrl` | `https://cdn.amplitude.com/libs/analytics-browser-2.44.4-min.js.gz` | Loader URL override. The default pins Browser SDK 2 version `2.44.4`. A blank value falls back to the default. |
 

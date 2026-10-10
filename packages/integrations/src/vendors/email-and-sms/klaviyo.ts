@@ -3,6 +3,7 @@ import type { AllConsentNames, HasCondition, Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId, skipScript } from '../_shared/required-id';
 import { trimToUndefined } from '../_shared/script-url';
 
 declare global {
@@ -85,24 +86,19 @@ const DEFAULT_CATEGORIES = {
 	full: { and: ['marketing', 'measurement'] },
 } as const satisfies Record<KlaviyoMode, HasCondition<AllConsentNames>>;
 
-const validatePublicApiKey = function validatePublicApiKey(
-	value: unknown
-): string {
-	const key = typeof value === 'string' ? value.trim() : '';
-
+/** Describes what is wrong with a non-blank public API key, if anything. */
+const getPublicApiKeyProblem = function getPublicApiKeyProblem(
+	key: string
+): string | undefined {
 	if (key.startsWith('pk_')) {
-		throw new Error(
-			'klaviyo: publicApiKey received a private API key. Use the six-character public API key from Settings > Account > API keys, and revoke the exposed private key.'
-		);
+		return 'klaviyo: publicApiKey received a private API key. Use the six-character public API key from Settings > Account > API keys, and revoke the exposed private key';
 	}
 
 	if (!PUBLIC_API_KEY_PATTERN.test(key)) {
-		throw new Error(
-			'klaviyo: publicApiKey must be the six-character public API key from Settings > Account > API keys'
-		);
+		return 'klaviyo: publicApiKey must be the six-character public API key from Settings > Account > API keys';
 	}
 
-	return key;
+	return undefined;
 };
 
 const validateScriptUrl = function validateScriptUrl(
@@ -193,8 +189,11 @@ const installKlaviyoObject = function installKlaviyoObject(): void {
  *
  * @param options - Klaviyo account and consent configuration.
  * @returns The Klaviyo script configuration.
- * @throws {Error} When `publicApiKey` is not a six-character public API key,
- * or `scriptUrl` is not an https URL.
+ * @throws {Error} When `mode` is not `'full'` or `'forms-only'`, or
+ *   `scriptUrl` is not an https URL.
+ * @remarks When `publicApiKey` is missing, blank, or not a six-character
+ *   public API key, the helper logs the problem with `console.error` and
+ *   returns a script that never loads.
  *
  * @example
  * ```ts
@@ -206,14 +205,26 @@ const installKlaviyoObject = function installKlaviyoObject(): void {
  * @see https://help.klaviyo.com/hc/en-us/articles/115005076767
  */
 export const klaviyo = function klaviyo(options: KlaviyoOptions): Script {
-	const publicApiKey = validatePublicApiKey(options?.publicApiKey);
 	const mode = options.mode ?? 'full';
 	if (mode !== 'full' && mode !== 'forms-only') {
 		throw new Error("klaviyo: mode must be 'full' or 'forms-only'");
 	}
+	const category = options.category ?? DEFAULT_CATEGORIES[mode];
+
+	const publicApiKey = readId(options?.publicApiKey);
+	if (publicApiKey === undefined) {
+		return skipMissingId('klaviyo', 'publicApiKey', {
+			category,
+			manifest: klaviyoManifest,
+		});
+	}
+	const problem = getPublicApiKeyProblem(publicApiKey);
+	if (problem !== undefined) {
+		return skipScript(problem, { category, manifest: klaviyoManifest });
+	}
 
 	const script = resolveManifest(klaviyoManifest, {
-		category: options.category ?? DEFAULT_CATEGORIES[mode],
+		category,
 		scriptUrl:
 			validateScriptUrl(options.scriptUrl) ??
 			`https://static.klaviyo.com/onsite/js/${publicApiKey}/klaviyo.js`,

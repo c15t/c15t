@@ -2,7 +2,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
 	deniedConsents,
@@ -83,13 +83,28 @@ describe('adobeAnalytics contract', () => {
 		expect(asyncAttribute).toBe(false);
 	});
 
-	it('throws for a non-https scriptUrl', () => {
-		expect(() =>
-			adobeAnalytics({
-				scriptUrl: 'http://assets.adobedtm.com/c15tfake/launch.min.js',
-			})
-		).toThrowError(
-			'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code'
+	it('logs and appends nothing for a non-https scriptUrl', () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		let appendCount = 0;
+		installHeadProbe(() => {
+			appendCount += 1;
+		});
+
+		loadScripts(
+			[
+				adobeAnalytics({
+					scriptUrl: 'http://assets.adobedtm.com/c15tfake/launch.min.js',
+				}),
+			],
+			grantedMeasurementConsents
 		);
+
+		expect(error).toHaveBeenCalledWith(
+			'adobeAnalytics: invalid scriptUrl - must use https: from your Adobe Data Collection embed code. The script will not load.'
+		);
+		expect(appendCount).toBe(0);
+		expect(window.adobeDataLayer).toBeUndefined();
 	});
 });

@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -82,6 +83,9 @@ export interface HotjarOptions {
  *
  * @param options - The options for the Hotjar script.
  * @returns The Hotjar script configuration.
+ * @remarks When `siteId` is missing, blank, or `0`, the helper logs
+ *   `hotjar: missing or invalid siteId` with `console.error` and returns a
+ *   script that never loads.
  *
  * @example
  * ```ts
@@ -95,13 +99,12 @@ export const hotjar = function hotjar({
 	version = 6,
 	scriptUrl,
 }: HotjarOptions): Script {
-	if (siteId === null || siteId === undefined) {
-		throw new Error('hotjar: missing or invalid siteId');
-	}
-
-	const normalizedSiteId = String(siteId).trim();
-	if (normalizedSiteId.length === 0 || normalizedSiteId === '0') {
-		throw new Error('hotjar: missing or invalid siteId');
+	const normalizedSiteId = readId(siteId);
+	if (normalizedSiteId === undefined || normalizedSiteId === '0') {
+		return skipMissingId('hotjar', 'siteId', {
+			category: 'measurement',
+			manifest: hotjarManifest,
+		});
 	}
 
 	return resolveManifest(hotjarManifest, {

@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { runtimeTimestampValue, vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 interface TikTokPixelFunction {
@@ -191,8 +191,9 @@ export interface TikTokPixelOptions {
  *
  * @param options - The options for the TikTok Pixel script
  * @returns The TikTok Pixel script configuration
- * @throws {Error} `tiktokPixel: missing or invalid pixelId` when `pixelId` is
- *   empty or only whitespace.
+ * @remarks When `pixelId` is missing or blank, the
+ *   helper logs `tiktokPixel: missing or invalid pixelId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -207,8 +208,16 @@ export const tiktokPixel = function tiktokPixel({
 	pixelId,
 	scriptSrc,
 }: TikTokPixelOptions): Script {
+	const normalizedPixelId = readId(pixelId);
+	if (normalizedPixelId === undefined) {
+		return skipMissingId('tiktokPixel', 'pixelId', {
+			category: 'marketing',
+			manifest: tiktokPixelManifest,
+		});
+	}
+
 	const resolved = resolveManifest(tiktokPixelManifest, {
-		pixelId: requireId('tiktokPixel', 'pixelId', pixelId),
+		pixelId: normalizedPixelId,
 		scriptSrc: resolveScriptUrl(
 			scriptSrc,
 			'https://analytics.tiktok.com/i18n/pixel/events.js'

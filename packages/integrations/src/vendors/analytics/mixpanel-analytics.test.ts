@@ -4,6 +4,7 @@ import {
 	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -45,12 +46,16 @@ describe('mixpanelAnalytics', () => {
 		expect(mixpanel?._i).toEqual([[MOCK_MIXPANEL_TOKEN, {}, 'mixpanel']]);
 	});
 
-	it('throws for blank or malformed tokens', () => {
-		expect(() => mixpanelAnalytics({ token: '   ' })).toThrow(
-			'mixpanelAnalytics: token must be a non-empty 32-character hexadecimal string'
+	it('logs and skips the script for blank or malformed tokens', () => {
+		expectSkippedScript(
+			() => mixpanelAnalytics({ token: '   ' }),
+			{ category: 'measurement', id: 'mixpanel-analytics' },
+			'mixpanelAnalytics: missing or invalid token'
 		);
-		expect(() => mixpanelAnalytics({ token: 'not-a-valid-token' })).toThrow(
-			'mixpanelAnalytics: token must be a non-empty 32-character hexadecimal string'
+		expectSkippedScript(
+			() => mixpanelAnalytics({ token: 'not-a-valid-token' }),
+			{ category: 'measurement', id: 'mixpanel-analytics' },
+			'mixpanelAnalytics: token must be a 32-character hexadecimal string'
 		);
 	});
 

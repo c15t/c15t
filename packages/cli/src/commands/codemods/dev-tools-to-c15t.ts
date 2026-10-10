@@ -1,9 +1,8 @@
-import { readFile } from 'node:fs/promises';
-import { join } from 'node:path';
-
 import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
+import { dependenciesOf, readPackageJson, usesUmbrella } from './manifest';
+import type { PackageJson } from './manifest';
 import { runTransform } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
 import {
@@ -46,31 +45,16 @@ const REMOVED_ROOT = new Set([
 const REMOVED_ROOT_TODO = (name: string) =>
 	`${name} was removed. Dev tools read the consent engine; render DevTools inside the provider, or call createDevTools({ kernel }).`;
 
-interface DependencyMap {
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-}
-
 /** Picks the `/devtools` entry that matches how the app installs c15t. */
-const devtoolsEntryFor = function devtoolsEntryFor(
-	manifest: DependencyMap | null
-): string {
-	const dependencies = {
-		...manifest?.devDependencies,
-		...manifest?.dependencies,
-	};
-	const umbrella = dependencies.c15t;
-	const umbrellaMajor = /(?<major>\d+)/u.exec(umbrella ?? '')?.groups?.major;
-	const usesUmbrella =
-		umbrella !== undefined &&
-		(umbrellaMajor === undefined || Number(umbrellaMajor) >= 3);
+const devtoolsEntryFor = async function devtoolsEntryFor(
+	projectRoot: string,
+	manifest: PackageJson | null
+): Promise<string> {
+	const dependencies = dependenciesOf(manifest);
 	const usesNext =
 		dependencies.next !== undefined ||
 		dependencies['@c15t/nextjs'] !== undefined;
-	if (
-		usesUmbrella ||
-		(!dependencies['@c15t/nextjs'] && !dependencies['@c15t/react'])
-	) {
+	if (await usesUmbrella(projectRoot, dependencies)) {
 		return usesNext ? 'c15t/next/devtools' : 'c15t/react/devtools';
 	}
 	return usesNext ? '@c15t/nextjs/devtools' : '@c15t/react/devtools';
@@ -200,13 +184,7 @@ const transformWith = (entry: string) =>
 export const runDevToolsToC15tCodemod = async function runDevToolsToC15tCodemod(
 	options: CodemodRunOptions
 ): Promise<CodemodRunResult> {
-	let manifest: DependencyMap | null = null;
-	try {
-		manifest = JSON.parse(
-			await readFile(join(options.projectRoot, 'package.json'), 'utf-8')
-		) as DependencyMap;
-	} catch {
-		manifest = null;
-	}
-	return runTransform(options, transformWith(devtoolsEntryFor(manifest)));
+	const manifest = await readPackageJson(options.projectRoot);
+	const entry = await devtoolsEntryFor(options.projectRoot, manifest);
+	return runTransform(options, transformWith(entry));
 };

@@ -24,7 +24,7 @@ export const scripts = [hightouch({ writeKey: 'YOUR_WRITE_KEY' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `writeKey` | Required | Event Source write key passed to `htevents.load`. The helper trims it. Empty values throw. |
+| `writeKey` | Required | Event Source write key passed to `htevents.load`. The helper trims it. Empty values log an error and the script does not load. |
 | `apiHost` | None | API host passed in the load options. Without it, the SDK uses `us-east-1.hightouch-events.com`. Set it only for another region or a first-party tracking host. A blank value is dropped. |
 | `trackPageView` | `true` | Queues `htevents.page()` after `load`. Set `false` when your router sends page calls. |
 | `scriptUrl` | `https://cdn.hightouch-events.com/browser/release/v1-latest/events.min.js` | Loader URL override. A blank value falls back to the default. |

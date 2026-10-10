@@ -24,7 +24,7 @@ export const scripts = [clearbit({ publishableKey: 'YOUR_PUBLISHABLE_KEY' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `publishableKey` | Required | Publishable key. The helper trims it and URL-encodes it into the default loader URL. Empty or non-string values throw. |
+| `publishableKey` | Required | Publishable key. The helper trims it and URL-encodes it into the default loader URL. Empty or non-string values log an error and the script does not load. |
 | `scriptUrl` | `https://tag.clearbitscripts.com/v1/<publishableKey>/tags.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation

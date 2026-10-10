@@ -544,17 +544,22 @@ describe('c15t setup instructions', () => {
 		);
 	});
 
-	it('treats a browser-side c15t package or c15t.js script tag as an existing setup', () => {
+	it('treats a browser-side c15t package or c15t.js script tag in the target app as an existing setup', () => {
 		const instructions = createC15tSetupInstructions();
-		expect(instructions).toContain(
-			'list c15t or a browser-side @c15t/* package'
-		);
+		expect(instructions).toContain("Does the target app's package.json");
+		expect(instructions).toContain('or a browser-side @c15t/* package');
 		for (const name of ['@c15t/svelte', '@c15t/browser']) {
 			expect(instructions).toContain(name);
 		}
 		expect(instructions).toContain('load c15t.js with a script tag');
 		expect(instructions).toContain(
-			"Server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli) don't count."
+			'Count a workspace package the app\n   depends on or imports'
+		);
+		expect(instructions).toContain(
+			'skip\n   workspaces the app does not reach'
+		);
+		expect(instructions).toContain(
+			"Server and tooling packages (@c15t/backend,\n   @c15t/node-sdk, @c15t/cli) don't count."
 		);
 	});
 
@@ -564,7 +569,46 @@ describe('c15t setup instructions', () => {
 			'First visit: under a policy that asks for a choice, the banner shows'
 		);
 		expect(instructions).toContain(
-			'no banner is correct there, and no optional tool loads when the backend is blocked'
+			'Also check a location without a prompt as the guide describes: no banner is correct there.'
+		);
+	});
+
+	it('checks backend failure only in modes that have a backend', () => {
+		const hosted = createC15tSetupInstructions({ mode: 'hosted' });
+		const offline = createC15tSetupInstructions({ mode: 'offline' });
+		const custom = createC15tSetupInstructions({ mode: 'custom' });
+		expect(hosted).toContain('Then make initialization fail.');
+		expect(hosted).toContain(
+			'the `/init` a bundled manifest falls back to when a regional policy needs a location'
+		);
+		expect(hosted).toContain(
+			'If the server resolves consent before the page loads, the browser never sees that request; make it fail on the server instead'
+		);
+		expect(hosted).toContain(
+			'Skip this check only if the app makes no initialization request at all.'
+		);
+		expect(custom).toContain("Then make the transport's `init` fail");
+		expect(custom).toContain(
+			'Then restore `init` and confirm consent initializes again.'
+		);
+		expect(hosted).toContain(
+			'Then undo the failure and confirm consent initializes again.'
+		);
+		expect(offline).not.toContain('initializes consent');
+		for (const instructions of [hosted, offline]) {
+			expect(instructions).toContain(
+				'An always-loading helper loads before any choice; check that it signals denied consent.'
+			);
+		}
+	});
+
+	it('applies the c15t dist-tag only to c15t packages', () => {
+		const instructions = createC15tSetupInstructions({ distTag: 'alpha' });
+		expect(instructions).toContain(
+			'Resolve the exact version of `c15t` and each `@c15t/*` package from the `alpha` dist-tag first.'
+		);
+		expect(instructions).toContain(
+			"with the quickstart's own specifiers; the c15t dist-tag does not apply to them"
 		);
 	});
 

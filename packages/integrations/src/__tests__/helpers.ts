@@ -285,6 +285,46 @@ export const expectScriptMatchesIntegration =
 	};
 
 /**
+ * Asserts that a helper logs a configuration problem and returns a script that
+ * never loads, instead of throwing.
+ *
+ * @param create - Calls the helper under test.
+ * @param script - ID and category the skipped script should keep. Its
+ * vendor slug is the ID.
+ * @param problem - Expected message, without the trailing
+ * `. The script will not load.`
+ *
+ * @example
+ * ```ts
+ * expectSkippedScript(
+ * 	() => posthog({ id: '' }),
+ * 	{ category: 'measurement', id: 'posthog' },
+ * 	'posthog: missing or invalid id'
+ * );
+ * ```
+ */
+export const expectSkippedScript = function expectSkippedScript(
+	create: () => Script,
+	script: Pick<Script, 'category' | 'id'>,
+	problem: string
+): void {
+	const error = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+	try {
+		// The vendor stays declared, and listed by name, while the ID is missing.
+		expect(create()).toEqual({
+			callbackOnly: true,
+			...script,
+			vendor: script.id,
+			vendorDetails: expect.objectContaining({ name: expect.any(String) }),
+		});
+		expect(error).toHaveBeenCalledOnce();
+		expect(error).toHaveBeenCalledWith(`${problem}. The script will not load.`);
+	} finally {
+		error.mockRestore();
+	}
+};
+
+/**
  * Converts an array-like value into a plain array.
  *
  * @param value - Array-like input such as `arguments`, a `NodeList`, or a

@@ -1,13 +1,25 @@
 import { existsSync } from 'node:fs';
-import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import { Node, SyntaxKind } from 'ts-morph';
 import type * as TsMorphTypes from 'ts-morph';
 
+import {
+	dependenciesOf,
+	isAtLeastMajor,
+	readPackageJson,
+	tailwindMajor,
+} from './manifest';
 import { createCodemodSession } from './runner';
 import type { CodemodRunOptions, CodemodRunResult } from './runner';
-import { lineIndent, propertyKey, unwrapExpression } from './source-edits';
+import {
+	importedModuleOf,
+	isNodeRequire,
+	lineIndent,
+	localDeclarationsOf,
+	propertyKey,
+	unwrapExpression,
+} from './source-edits';
 
 const CONFIG_FILES = [
 	'postcss.config.js',
@@ -18,73 +30,30 @@ const CONFIG_FILES = [
 
 const PLUGIN_SUFFIX = '/postcss-tailwind3';
 
-interface PackageJson {
-	dependencies?: Record<string, string>;
-	devDependencies?: Record<string, string>;
-}
-
-const readPackageJson = async function readPackageJson(
-	projectRoot: string
-): Promise<PackageJson | null> {
-	try {
-		return JSON.parse(
-			await readFile(join(projectRoot, 'package.json'), 'utf-8')
-		) as PackageJson;
-	} catch {
-		return null;
-	}
-};
-
-const majorOf = function majorOf(specifier: string | undefined): number | null {
-	const major = /(?<major>\d+)/u.exec(specifier ?? '')?.groups?.major;
-	return major ? Number(major) : null;
-};
-
-/**
- * The Tailwind CSS major version. A specifier without a version, such as
- * `latest`, `workspace:*` or `catalog:`, falls back to the installed package.
- */
-const tailwindMajor = async function tailwindMajor(
-	projectRoot: string,
-	specifier: string
-): Promise<number | null> {
-	const declared = majorOf(specifier);
-	if (declared !== null) {
-		return declared;
-	}
-	try {
-		const installed = JSON.parse(
-			await readFile(
-				join(projectRoot, 'node_modules', 'tailwindcss', 'package.json'),
-				'utf-8'
-			)
-		) as { version?: string };
-		return majorOf(installed.version);
-	} catch {
-		return null;
-	}
-};
-
 /**
  * The plugin entry for the c15t package the app installs: the umbrella
- * `c15t` from v3 on, otherwise the scoped framework package.
+ * `c15t` from v3 on, otherwise the scoped framework package. When neither
+ * the `c15t` range nor the installed package tells its version, the scoped
+ * package wins, and `c15t` is used only when no scoped package is listed.
  */
-const pluginFor = function pluginFor(
+const pluginFor = async function pluginFor(
+	projectRoot: string,
 	dependencies: Record<string, string>
-): string | null {
+): Promise<string | null> {
 	const umbrella = dependencies.c15t;
-	if (umbrella !== undefined) {
-		const major = majorOf(umbrella);
-		if (major === null || major >= 3) {
-			return `c15t${PLUGIN_SUFFIX}`;
-		}
+	const v3 =
+		umbrella === undefined
+			? false
+			: await isAtLeastMajor(projectRoot, 'c15t', umbrella, 3);
+	if (v3 === true) {
+		return `c15t${PLUGIN_SUFFIX}`;
 	}
 	for (const name of ['@c15t/nextjs', '@c15t/react', '@c15t/tanstack-start']) {
 		if (dependencies[name] !== undefined) {
 			return `${name}${PLUGIN_SUFFIX}`;
 		}
 	}
-	return null;
+	return v3 === null ? `c15t${PLUGIN_SUFFIX}` : null;
 };
 
 /** `plugins` values in the file, whatever object holds them. */
@@ -95,6 +64,72 @@ const pluginLists = function pluginLists(
 		.getDescendantsOfKind(SyntaxKind.PropertyAssignment)
 		.filter((property) => propertyKey(property) === 'plugins')
 		.map((property) => unwrapExpression(property.getInitializerOrThrow()));
+};
+
+/** A c15t PostCSS plugin entry: `c15t/…` or a scoped `@c15t/…/…` one. */
+const PLUGIN_MODULE = /^(?:c15t|@c15t\/[^/]+)\/postcss-tailwind3$/u;
+
+/**
+ * The module an array-form plugin entry loads: a string, the first item of
+ * a `[name, options]` tuple, a `require()` call, or a binding imported or
+ * required from it, called or not.
+ */
+const entryModuleOf = function entryModuleOf(
+	entry: TsMorphTypes.Node,
+	depth = 0
+): string | undefined {
+	const node = unwrapExpression(entry);
+	if (depth > 8) {
+		return undefined;
+	}
+	if (
+		Node.isStringLiteral(node) ||
+		Node.isNoSubstitutionTemplateLiteral(node)
+	) {
+		return node.getLiteralValue();
+	}
+	if (Node.isArrayLiteralExpression(node)) {
+		const [name] = node.getElements();
+		return name && entryModuleOf(name, depth + 1);
+	}
+	if (Node.isPropertyAccessExpression(node)) {
+		return entryModuleOf(node.getExpression(), depth + 1);
+	}
+	if (Node.isCallExpression(node)) {
+		const callee = node.getExpression();
+		const [argument] = node.getArguments();
+		return Node.isIdentifier(callee) && isNodeRequire(callee) && argument
+			? entryModuleOf(argument, depth + 1)
+			: entryModuleOf(callee, depth + 1);
+	}
+	if (!Node.isIdentifier(node)) {
+		return undefined;
+	}
+	for (const declaration of localDeclarationsOf(node)) {
+		const imported = importedModuleOf(declaration);
+		if (imported !== undefined) {
+			return imported;
+		}
+		const initializer = Node.isVariableDeclaration(declaration)
+			? declaration.getInitializer()
+			: undefined;
+		if (initializer) {
+			return entryModuleOf(initializer, depth + 1);
+		}
+	}
+	return undefined;
+};
+
+/** Whether an array-form `plugins` list already has a c15t plugin. */
+const hasPluginEntry = function hasPluginEntry(
+	list: TsMorphTypes.Node
+): boolean {
+	return (
+		Node.isArrayLiteralExpression(list) &&
+		list
+			.getElements()
+			.some((entry) => PLUGIN_MODULE.test(entryModuleOf(entry) ?? ''))
+	);
 };
 
 type Outcome =
@@ -135,6 +170,9 @@ const addPlugin = function addPlugin(
 		);
 		return { kind: 'added' };
 	}
+	if (lists.some(hasPluginEntry)) {
+		return { kind: 'present' };
+	}
 	if (lists.some((list) => Node.isArrayLiteralExpression(list))) {
 		return {
 			kind: 'skipped',
@@ -166,12 +204,10 @@ export const runPostcssTailwind3Codemod =
 			totalFiles: 0,
 			warnings: [],
 		};
-		const manifest = await readPackageJson(options.projectRoot);
-		const dependencies = {
-			...manifest?.devDependencies,
-			...manifest?.dependencies,
-		};
-		const plugin = pluginFor(dependencies);
+		const dependencies = dependenciesOf(
+			await readPackageJson(options.projectRoot)
+		);
+		const plugin = await pluginFor(options.projectRoot, dependencies);
 		const specifier = dependencies.tailwindcss;
 		if (!plugin || specifier === undefined) {
 			return result;

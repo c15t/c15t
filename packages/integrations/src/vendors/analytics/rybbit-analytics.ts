@@ -4,6 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { booleanDataAttribute } from '../_shared/attributes';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { joinUrlPath } from '../_shared/script-url';
 
 declare global {
@@ -119,21 +120,19 @@ const getRybbitScriptUrl = function getRybbitScriptUrl(
  *
  * @param options - The options for the Rybbit Analytics script.
  * @returns The Rybbit Analytics script.
- * @throws {Error} Throws `rybbitAnalytics: missing siteId` when
- * `options.siteId` is undefined, null, or trims to an empty string. Provide a
- * valid non-empty site ID string to prevent this error.
+ * @remarks When `siteId` is missing or blank, the helper logs
+ *   `rybbitAnalytics: missing or invalid siteId` with `console.error` and
+ *   returns a script that never loads.
  */
 export const rybbitAnalytics = function rybbitAnalytics(
 	options: RybbitAnalyticsOptions
 ): Script {
-	let siteId: string;
-	if (options.siteId === undefined || options.siteId === null) {
-		siteId = '';
-	} else {
-		siteId = String(options.siteId).trim();
-	}
-	if (siteId.length === 0) {
-		throw new Error('rybbitAnalytics: missing siteId');
+	const siteId = readId(options.siteId);
+	if (siteId === undefined) {
+		return skipMissingId('rybbitAnalytics', 'siteId', {
+			category: 'measurement',
+			manifest: rybbitAnalyticsManifest,
+		});
 	}
 
 	let debounce: string | undefined;

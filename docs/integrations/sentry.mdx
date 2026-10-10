@@ -104,7 +104,7 @@ and metrics.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `dsn` | Required to load Sentry | Your project's DSN. c15t loads the SDK and calls `Sentry.init`. |
+| `dsn` | Required to load Sentry | Your project's DSN. c15t loads the SDK and calls `Sentry.init`. A blank DSN logs an error and the script does not load. |
 | `initOptions` | `{}` | Passed to `Sentry.init` with c15t's consent integration first. CDN `integrations` callbacks can access `window.Sentry`. |
 | `version` | `'11.4.0'` | SDK version to load. Another version loads without subresource integrity. |
 | `tracing` | `true` when traces are sampled | Loads the tracing bundle and adds `browserTracingIntegration()`. |

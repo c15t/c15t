@@ -10,7 +10,8 @@ group: integrations
 Copy the six-character public API key, also called the site ID, from
 **Settings > Account > API keys** in Klaviyo. It appears in every page that
 loads Klaviyo, so it is safe in browser code. Never put a private key
-(`pk_...`) in the browser; the helper throws if you pass one.
+(`pk_...`) in the browser. If you pass one, the helper logs an error and
+Klaviyo does not load.
 
 <CommandTabs command="@c15t/integrations@alpha" mode="install" />
 
@@ -30,7 +31,7 @@ installation off, or c15t is not the only thing loading it.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `publicApiKey` | Required | Six-letter-or-digit public API key. Surrounding whitespace is trimmed. Any other value throws, with a separate message for private keys. |
+| `publicApiKey` | Required | Six-letter-or-digit public API key. Surrounding whitespace is trimmed. Any other value, including a missing key, logs an error and the script does not load. Private keys get their own message. |
 | `mode` | `'full'` | `'full'` loads forms and web tracking. `'forms-only'` turns Klaviyo's web tracking off before the bundle starts; see [forms-only mode](#forms-only-mode). |
 | `category` | `{ and: ['marketing', 'measurement'] }`, or `'marketing'` in forms-only mode | Consent condition that must hold before Klaviyo.js loads. Accepts any category or `and`/`or`/`not` condition. |
 | `scriptUrl` | `https://static.klaviyo.com/onsite/js/<publicApiKey>/klaviyo.js` | Loader URL override, such as a first-party proxy. Must be `https:`. A blank value falls back to the default. |

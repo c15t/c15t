@@ -1,6 +1,6 @@
 ---
 title: Codemods
-description: Migrate source from c15t v2 to v3 with the c15t CLI codemods command, covering the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the Node.js SDK and backend config, and run the v1 to v2 source transforms.
+description: Migrate source from c15t v2 to v3 with the c15t CLI codemods command, covering package imports, the provider, transports, moved exports, dev tools, policy presets, CSS variables, Tailwind CSS 3, callbacks, the Node.js SDK and backend config, and run the v1 to v2 source transforms.
 group: cli
 ---
 
@@ -10,7 +10,7 @@ The v3 codemods run only when you name them; `--all` never selects them.
 Preview every change first, then run the same command without `--dry-run`:
 
 ```bash
-npx @c15t/cli@alpha codemods consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
+npx @c15t/cli@alpha codemods packages-to-c15t consent-provider-options root-exports-to-subpaths use-consent-manager-to-hooks callbacks-to-v3 policy-packs-to-policy-rules --dry-run --json
 ```
 
 Name several codemods in one command and they run in a fixed order, whatever
@@ -21,6 +21,7 @@ place, so type-checking fails at each one until you resolve it.
 
 | ID | Rewrites | Leaves a `TODO(c15t v3)` for |
 | --- | --- | --- |
+| `packages-to-c15t` | `@c15t/react` and `@c15t/nextjs` imports to `c15t/react`, `c15t/next` and their subpaths, and removes `styles.css` imports | Stylesheet imports Tailwind CSS 3 or a cascade layer needs, and `components/integrations` imports |
 | `consent-provider-options` | `ConsentManagerProvider`, `ConsentManagerOptions` and `ConsentManagerProviderProps` to the `ConsentProvider` names; `mode: 'hosted'` with `backendURL`, `headers` and `customFetch` to `mode: hosted({ backendURL, headers, fetch })`; `mode: 'offline'` with `offlinePolicy.policyPacks` to `mode: offline({ policyRules })`; `iframeBlockerConfig` to `iframeBlocker` | `mode: 'custom'` with `endpointHandlers`, a `mode` set from a variable, `retryConfig`, other `offlinePolicy` keys and hand-written policy packs |
 | `root-exports-to-subpaths` | Imports of names that left the `c15t/react`, `c15t/next`, `@c15t/react` and `@c15t/nextjs` roots, moved to `/headless`, `/consent-dialog-trigger`, `/types` or `/components/consent-banner` | Removed names such as `useConsentScript`, `YouTubeEmbed` and `ConsentButton` |
 | `use-consent-manager-to-hooks` | `useConsentManager()` fields to one hook each | Fields with no one-call replacement |
@@ -40,9 +41,63 @@ The v1 to v2 transform `translations-to-i18n` moves it to `i18n`; name it to
 run it on a v2 app.
 
 The codemods edit `.ts`, `.tsx`, `.js`, `.jsx`, `.mts`, `.cts`, `.mjs` and
-`.cjs` files. `css-variables-to-v3` also edits `.css`, `.scss`, `.sass` and
-`.less` files. None of them edit `package.json`, lockfiles, or `.vue`,
-`.svelte` and `.astro` files.
+`.cjs` files. `packages-to-c15t` and `css-variables-to-v3` also edit `.css`,
+`.scss`, `.sass` and `.less` files. None of them edit `package.json`,
+lockfiles, or `.vue`, `.svelte` and `.astro` files.
+
+### Package imports
+
+`packages-to-c15t` runs first, so the other codemods see the `c15t` entries.
+It moves `@c15t/react` to `c15t/react` and `@c15t/nextjs` to `c15t/next`,
+keeping the subpath: `@c15t/react/headless` becomes `c15t/react/headless`.
+When `package.json` lists `next` or `@c15t/nextjs`, the `@c15t/react` root
+moves to `c15t/next`, which re-exports the React components and hooks. The
+v2 `@c15t/react/cookie-banner` alias becomes
+`c15t/react/components/consent-banner`. It rewrites imports, including
+`import x = require()`, re-exports, import types, and `import()`, `require()`,
+`vi.mock()` and `jest.mock()` calls with a string literal. It leaves
+`c15t/react`, `@c15t/integrations` and other packages alone. In a
+PostCSS config, it points the `@c15t/react/postcss-tailwind3` and
+`@c15t/nextjs/postcss-tailwind3` plugins at `c15t/postcss-tailwind3`, whether
+the config names them as a `plugins` object key, computed keys such as
+`['@c15t/react/postcss-tailwind3']` included, or in `require()`.
+
+c15t ships ESM only from v3. `require()` loads it only on Node.js 20.19+ or
+22.12+, which load ESM through `require()` by default. Each `require()` call
+and `import x = require()` the codemod rewrites gets a TODO, and the run lists
+every such file with its count. To support older runtimes, convert those files
+to `import`, or a PostCSS config to `postcss.config.mjs`. The codemod doesn't
+convert CommonJS for you.
+
+It removes `@c15t/react/styles.css` and `@c15t/nextjs/styles.css` imports,
+including the `iab/` variants, because v3 components add their own styles. It
+reads each stylesheet `@import` whole, so one that spans lines or takes Less
+options such as `(css)` is handled too. In Sass it treats `@use` and
+`@forward` the same way as `@import`, and a `pkg:` URL such as
+`pkg:@c15t/react/styles.css` the same way as the bare one, keeping the
+`pkg:` prefix when it rewrites it. In a Sass import that lists several
+targets, such as `@import 'theme', '@c15t/react/styles.css';`, it handles
+each target on its own and keeps the others. When `package.json` lists
+`tailwindcss` 3 in any dependency field, the import is a `.tw3.css` variant, a
+stylesheet `@import` has a `layer()`, `supports()` or media condition, or a
+Sass `@use` or `@forward` has an `as`, `with()`, `show` or `hide` clause, it
+keeps the import, points it at `styles.css` from the `c15t` entry, and leaves a
+`TODO(c15t v3)` comment to set `styles: false`. For a `tailwindcss` version
+that isn't a semver range, such as a catalog, a `link:`, `file:` or git
+specifier, or `latest`, or a range over several majors such as `workspace:*`
+or `^3 || ^4`, it reads the installed `tailwindcss`. If it still can't tell
+the version, it keeps the import the same way and prints a warning.
+
+If `package.json` lists `@c15t/react` or `@c15t/nextjs` but not `c15t` v3, it
+leaves the scoped imports and prints a warning. For a `c15t` version that
+isn't a semver range, such as `catalog:`, or a range over several majors, it
+reads the installed `c15t`, and keeps the scoped imports when nothing is
+installed. While those packages are v2, it
+leaves their stylesheet imports and mocks as they are too, since v2 components
+don't add their own styles. For a version that isn't a semver range, such as
+`catalog:`, it reads the installed package, and treats the package as v2 when
+nothing is installed. At v3, it still removes the stylesheet imports.
+Replace the packages with `c15t@alpha` and run it again.
 
 ### Provider, transports and options
 
@@ -87,7 +142,8 @@ no other change. Hand-written policy packs use a different format in v3;
 `dev-tools-to-c15t` picks `c15t/next/devtools` when `package.json` lists
 `next` or `@c15t/nextjs`, and `c15t/react/devtools` otherwise. If
 `package.json` lists the scoped packages but not `c15t` v3, it uses
-`@c15t/nextjs/devtools` or `@c15t/react/devtools`.
+`@c15t/nextjs/devtools` or `@c15t/react/devtools`. It reads the `c15t`
+version the same way as `packages-to-c15t`.
 
 ### Styles
 
@@ -97,14 +153,17 @@ stylesheets and in string and template literals, including inline `style`
 objects.
 
 `postcss-tailwind3` runs when `package.json` lists `tailwindcss` 3 and c15t.
-For a version such as `workspace:*`, `catalog:` or `latest`, it reads the
-installed `tailwindcss`, and prints a warning if it still can't tell.
+For a version that isn't a semver range, such as a catalog, a `link:`, `file:`
+or git specifier, or `latest`, or a range over several majors such as
+`workspace:*` or `^3 || ^4`, it reads the installed `tailwindcss`, and prints a
+warning if it still can't tell.
 It adds `'c15t/postcss-tailwind3': {}`, or the
 `@c15t/nextjs/postcss-tailwind3` or `@c15t/react/postcss-tailwind3` plugin
-when the app uses scoped packages, to an object-form
-`postcss.config.{js,cjs,mjs,ts}`. It leaves an array-form config unchanged and
-prints a warning; add the plugin by hand as
-[Tailwind CSS 3](/docs/customization/tailwind#set-up-tailwind-css-3) shows.
+when the app uses scoped packages without `c15t` v3, to an object-form
+`postcss.config.{js,cjs,mjs,ts}`. It leaves an array-form config unchanged.
+When the array doesn't list a c15t plugin, it prints a warning; add the plugin
+by hand as [Tailwind CSS 3](/docs/customization/tailwind#set-up-tailwind-css-3)
+shows.
 
 ### Node.js SDK and backend
 
@@ -202,7 +261,8 @@ npx @c15t/cli@alpha codemods --all --from 1.9.0 --to 2.0.0 --dry-run --json
 
 `--all` picks the transforms that apply to the version you start from. Without
 `--from`, it reads the `c15t` or framework package version declared in
-`package.json`. If you already upgraded the dependency but the source still
+`package.json`, or the installed version for a specifier such as `catalog:`
+that names none. If you already upgraded the dependency but the source still
 uses v1, pass the old version with `--from 1.9.0` or name the transforms. v2
 prereleases such as `2.0.0-rc.4` count as v2, so `--all` skips every v1
 transform for them.

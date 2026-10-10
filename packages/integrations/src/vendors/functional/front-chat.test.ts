@@ -7,6 +7,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 } from '../../__tests__/helpers';
 import { frontChat, shutdownFrontChat } from './front-chat';
 
@@ -25,11 +26,13 @@ describe('frontChat', () => {
 		});
 	});
 
-	it.each(['', '   ', undefined, null, 42])(
-		'rejects invalid chat ID %s',
+	it.each(['', '   ', undefined, null, {}])(
+		'logs and skips the script for invalid chat ID %s',
 		(chatId) => {
-			expect(() => frontChat({ chatId: chatId as string })).toThrow(
-				'chatId must be a non-empty string'
+			expectSkippedScript(
+				() => frontChat({ chatId: chatId as string }),
+				{ category: 'functionality', id: 'front-chat' },
+				'frontChat: missing or invalid chatId'
 			);
 		}
 	);

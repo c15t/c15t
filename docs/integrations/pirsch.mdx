@@ -26,7 +26,7 @@ export const scripts = [
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `identificationCode` | Required | Set as `data-code`. Empty or whitespace-only values throw. |
+| `identificationCode` | Required | Set as `data-code`. Empty or whitespace-only values log an error and the script does not load. |
 | `domain` | None | Extra dashboard domains, each optionally as `domain:CODE`. An array becomes a comma-separated `data-domain`. |
 | `dev` | None | Hostname Pirsch reports instead of localhost, set as `data-dev`. Use it to test locally. |
 | `hitEndpoint` | None | Page view endpoint, set as `data-hit-endpoint`. |

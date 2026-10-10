@@ -17,6 +17,7 @@ import { runIabOptionToIabProviderCodemod } from './iab-option-to-iab-provider';
 import { runIgnoreGeoLocationToOverridesCodemod } from './ignore-geo-location-to-overrides';
 import { runC15tModeToHostedCodemod } from './mode-c15t-to-hosted';
 import { runNodeSdkToV3Codemod } from './node-sdk-to-v3';
+import { runPackagesToC15tCodemod } from './packages-to-c15t';
 import { runPolicyPacksToPolicyRulesCodemod } from './policy-packs-to-policy-rules';
 import { runPostcssTailwind3Codemod } from './postcss-tailwind3';
 import { runReactOptionsToTopLevelCodemod } from './react-options-to-top-level';
@@ -207,6 +208,14 @@ const codemods: CodemodDefinition[] = [
 			fromRange: '<2.0.0-0',
 			toRange: '>=2.0.0-0',
 		},
+	},
+	{
+		hint: 'Points @c15t/react and @c15t/nextjs imports at c15t/react and c15t/next, and removes their styles.css imports, which v3 components add themselves.',
+		id: 'packages-to-c15t',
+		label: '@c15t/react and @c15t/nextjs -> c15t',
+		run: runPackagesToC15tCodemod,
+		targetVersion: V3_TARGET_VERSION,
+		versioning: V3_VERSIONING,
 	},
 	{
 		hint: 'Rewrites useConsentManager() destructuring to the v3 hooks and marks fields that need manual work.',
