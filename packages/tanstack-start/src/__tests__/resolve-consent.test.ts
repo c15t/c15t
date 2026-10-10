@@ -200,7 +200,10 @@ describe('resolveConsent wiring', () => {
 		expect(state).toEqual({ backendURL: 'https://consent.example.com' });
 	});
 
-	test('a deferred vendor list points at the route prefix when one is set', async () => {
+	test.each([
+		['/api/consent', /^\/api\/consent\/init\?c15t-gvl=7/u],
+		['/', /^\/init\?c15t-gvl=7/u],
+	])('a deferred vendor list points at %s/init', async (routePrefix, url) => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
 		vi.stubGlobal(
 			'fetch',
@@ -224,7 +227,7 @@ describe('resolveConsent wiring', () => {
 			backendURL: 'https://consent.example.com',
 			reportSessions: false,
 			request: requestOf(),
-			routePrefix: '/api/consent',
+			routePrefix,
 			snapshot: {
 				...MANIFEST_FIXTURE,
 				cmpId: 28,
@@ -244,8 +247,6 @@ describe('resolveConsent wiring', () => {
 		});
 		vi.unstubAllGlobals();
 		expect(fetch).not.toHaveBeenCalled();
-		expect(state.initialIab?.gvlReference?.url).toMatch(
-			/^\/api\/consent\/init\?c15t-gvl=7/u
-		);
+		expect(state.initialIab?.gvlReference?.url).toMatch(url);
 	});
 });

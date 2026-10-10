@@ -467,7 +467,11 @@ const resolveConsentState = async function resolveConsentState(
 		experiment: options.experiment,
 		fetch: options.fetch,
 		forwardHeaders: options.forwardHeaders,
-		gvlRoute: routePrefix === undefined ? undefined : `${routePrefix}/init`,
+		// A route at the root is `/`; `//init` would read as a host.
+		gvlRoute:
+			routePrefix === undefined
+				? undefined
+				: `${routePrefix === '/' ? '' : routePrefix}/init`,
 		journey: options.journey,
 		now: options.now,
 		overrides: { country: options.country, language: options.language },
