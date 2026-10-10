@@ -206,7 +206,10 @@ export default mergeConfig(
 					extends: true,
 					test: {
 						environment: 'node',
-						include: ['src/__tests__/build.test.ts'],
+						include: [
+							'src/__tests__/build.test.ts',
+							'src/__tests__/config.test.ts',
+						],
 						name: 'node',
 					},
 				},
@@ -219,7 +222,10 @@ export default mergeConfig(
 							instances: [{ browser: 'chromium' }],
 							provider: playwright(),
 						},
-						exclude: ['src/__tests__/build.test.ts'],
+						exclude: [
+							'src/__tests__/build.test.ts',
+							'src/__tests__/config.test.ts',
+						],
 						include: [
 							'src/**/*.test.tsx',
 							'src/**/*.test.ts',

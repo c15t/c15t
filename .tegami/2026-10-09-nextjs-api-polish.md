@@ -87,7 +87,9 @@ read no build-time manifest, as in Nuxt and Astro: `hosted()`, `offline()`,
 `c15t.config.ts`. A build in those modes never contacts the backend, so it no
 longer needs `onBuildError: 'runtime'` when the backend is unreachable. The
 wrapper also reads the config's `backendURL` before
-`NEXT_PUBLIC_C15T_BACKEND_URL`.
+`NEXT_PUBLIC_C15T_BACKEND_URL`, and a config `defineConsentConfig` rejects
+stops the build. `defineConsentConfig` now checks the config on the server
+and at build time only; browser bundles skip the checks and their messages.
 
 The Pages Router gets `withConsentProps()`, a `getServerSideProps` that adds a
 JSON-safe `consent` prop, and `ConsentPageProps` for `AppProps`:

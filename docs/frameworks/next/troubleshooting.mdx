@@ -176,8 +176,11 @@ it as `mode` in `c15t.config.ts`. `custom(transport)` does not warn.
 
 ## Why does defineConsentConfig throw?
 
-**Check.** `next build` or the first render fails with a `TypeError` that
-starts with `@c15t/nextjs: defineConsentConfig`.
+**Check.** `next build`, `next dev` or the first server render fails with a
+`TypeError` that starts with `@c15t/nextjs: defineConsentConfig`.
+`withConsentManifest` reads `c15t.config.ts` when Next.js loads
+`next.config.ts`, so most config errors stop the build before it compiles.
+The checks run on the server only; the browser copy of the file skips them.
 
 **Fix.** The [config reference](/docs/frameworks/next/data-fetching-reference#config-reference)
 lists each message. The most common is

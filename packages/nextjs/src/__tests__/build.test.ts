@@ -368,6 +368,23 @@ describe('Next.js build-time manifest', () => {
 		);
 	});
 
+	test('stops the build when defineConsentConfig rejects c15t.config.ts', async () => {
+		const root = await createRoot();
+		const message =
+			"@c15t/nextjs: defineConsentConfig `journey` must be 'page', 'tab' or false.";
+		await writeFile(
+			join(root, 'c15t.config.ts'),
+			`throw new TypeError(${JSON.stringify(message)});\n`
+		);
+		const options = optionsFor();
+		await expect(
+			withConsentManifest({}, options)('phase-production-build', {
+				defaultConfig: {},
+			})
+		).rejects.toThrow(message);
+		expect(options.fetch).not.toHaveBeenCalled();
+	});
+
 	test('warns and fetches as for manifest() when c15t.config.ts cannot be read', async () => {
 		const root = await createRoot();
 		await writeFile(

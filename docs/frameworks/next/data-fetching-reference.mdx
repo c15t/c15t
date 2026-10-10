@@ -34,8 +34,10 @@ directly or a proxy that forwards `Host` from its default virtual host, use an
 absolute `backendURL`. A relative one resolves against whatever `Host` the
 request sent, so the request would choose the origin the server fetches.
 
-`defineConsentConfig` validates at call time and returns a frozen object. It
-throws a `TypeError` with one of these messages:
+`defineConsentConfig` returns a frozen object. On the server, which includes
+`withConsentManifest` reading the file at build time, it validates first and
+throws a `TypeError` with one of these messages. Browser bundles skip the
+checks, so they add no bytes there:
 
 | Message | Cause |
 | --- | --- |

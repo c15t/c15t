@@ -121,9 +121,12 @@ const importConfigFile = async function importConfigFile(
  * Next.js uses for `next.config.ts`, so the build sees the same `mode` and
  * `backendURL` as the bundles.
  *
- * A config that can't be evaluated here (an import Node can't load, say)
- * warns and reads as no config: the build then fetches the manifest as for
- * `manifest()`, as it did before it read the file.
+ * A config `defineConsentConfig` rejects stops the build with its error.
+ * One that can't be evaluated here for another reason (an import Node
+ * can't load, say) warns and reads as no config: the build then fetches the
+ * manifest as for `manifest()`, as it did before it read the file.
+ *
+ * @throws {TypeError} When `defineConsentConfig` rejects the config.
  */
 const loadUserConfig = async function loadUserConfig(
 	file: string,
@@ -139,8 +142,19 @@ const loadUserConfig = async function loadUserConfig(
 			: undefined;
 	} catch (error) {
 		// Next.js wraps the evaluation error as its `cause`.
-		const reason = [error, (error as { cause?: unknown } | null)?.cause]
-			.filter((part) => part !== undefined)
+		const parts = [error, (error as { cause?: unknown } | null)?.cause].filter(
+			(part) => part !== undefined
+		);
+		// `defineConsentConfig` rejected the config: the server render
+		// would too, so stop here.
+		const rejected = parts.find(
+			(part) =>
+				part instanceof Error && part.message.startsWith('@c15t/nextjs: ')
+		);
+		if (rejected) {
+			throw rejected;
+		}
+		const reason = parts
 			.map((part) => (part instanceof Error ? part.message : String(part)))
 			.join(': ');
 		console.warn(
@@ -295,7 +309,8 @@ const withConsentAliases = function withConsentAliases(
  * environment or a `.env` file, and the build appends `/manifest`.
  * @returns An asynchronous Next.js configuration factory.
  * @throws {Error} When the fetch fails in `'fail'` mode, the default for
- * `next build`, or the snapshot cannot be written.
+ * `next build`, the snapshot cannot be written, or `defineConsentConfig`
+ * rejects `c15t.config.ts`.
  * @example
  * ```ts
  * import { withConsentManifest } from 'c15t/next/build';

@@ -134,15 +134,6 @@ describe('resolveConsent wiring', () => {
 		}
 	});
 
-	test('defineConsentConfig rejects an unknown journey', () => {
-		expect(() =>
-			defineConsentConfig({
-				backendURL: 'https://consent.example.com',
-				journey: 'session' as never,
-			})
-		).toThrow(TypeError);
-	});
-
 	test('with proxy, the server still reads the absolute backend', async () => {
 		const manifestFetch = backend();
 		await resolveConsent({
