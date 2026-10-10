@@ -1032,6 +1032,22 @@ describe('readBuildEnv', () => {
 	});
 });
 
+describe('readBuildEnv quoting', () => {
+	test.each([
+		['"https://api.example" # production'],
+		["'https://api.example' # production"],
+		['"https://api.example"'],
+		['https://api.example # production'],
+		['https://api.example'],
+	])('reads %s as the bare URL', async (value) => {
+		const root = await createRoot();
+		await writeFile(join(root, '.env'), `PUBLIC_C15T_BACKEND_URL=${value}\n`);
+		expect(readBuildEnv(['PUBLIC_C15T_BACKEND_URL'], { root })).toBe(
+			'https://api.example'
+		);
+	});
+});
+
 describe('formatEnvNames', () => {
 	test('puts the Inth names in parentheses', () => {
 		expect(

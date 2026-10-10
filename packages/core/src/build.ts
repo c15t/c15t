@@ -153,11 +153,10 @@ const parseEnvFile = (source: string): Record<string, string> => {
 		const key = line.slice(0, equals).trim();
 		let value = line.slice(equals + 1).trim();
 		const [quote] = value;
-		if ((quote === '"' || quote === "'") && value.endsWith(quote)) {
-			value = value.slice(1, -1);
-		} else {
-			value = value.replace(/\s+#.*$/u, '');
-		}
+		// A quoted value ends at its closing quote, so a comment after it,
+		// as in `KEY="https://x" # note`, is dropped with the quotes.
+		const close = quote === '"' || quote === "'" ? value.indexOf(quote, 1) : -1;
+		value = close > 0 ? value.slice(1, close) : value.replace(/\s+#.*$/u, '');
 		values[key] = value;
 	}
 	return values;
