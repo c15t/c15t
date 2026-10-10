@@ -156,10 +156,9 @@ const setsInthProjectURL = (lines: string[], key: string): boolean => {
 		if (!match) {
 			return false;
 		}
-		const value = line
-			.slice(match[0].length)
-			.replace(/\s+#.*$/u, '')
-			.trim();
+		// As dotenv reads it: `#` starts a comment even right after `=`, so
+		// `KEY=# TODO` is empty.
+		const value = (line.slice(match[0].length).split('#', 1)[0] ?? '').trim();
 		return value !== '' && value !== '""' && value !== "''";
 	});
 };
