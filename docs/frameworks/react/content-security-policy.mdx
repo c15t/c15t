@@ -14,6 +14,7 @@ A React app with c15t adds these to the page, and your policy must allow them:
 | `c15t/react/styles.css`, only if you import it with `styles: false` | `style-src 'self'` |
 | The `<style id="c15t-theme">` element, if you render `ConsentTheme` | `style-src` with a nonce or its hash |
 | `<script>` elements the script loader creates for `scripts` entries, both `src` and inline | `script-src` with each vendor's host, or a nonce |
+| With server rendering, the inline `<script>` before the banner's buttons that holds a tap made before hydration | `script-src` with a nonce or its hash |
 | Browser requests to your backend's `/init` and `/subjects` | `connect-src` with the backend origin |
 | Iframes inside `ConsentGate`, and the frames, images and requests your vendors load | `frame-src`, `img-src`, `connect-src` for each vendor |
 

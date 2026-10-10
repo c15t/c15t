@@ -33,6 +33,7 @@ import {
 	useConsentBannerSurface,
 } from '../surface-context';
 import type { ConsentBannerSurface } from '../surface-context';
+import { EarlyTapScript } from './early-tap-script';
 import { Overlay } from './overlay';
 
 const DEFAULT_MODELS: C15tCoreTypes.Model[] = ['opt-in', 'opt-out'];
@@ -300,6 +301,8 @@ const ConsentBannerRootChildren = createForwardRef<
 		// Only render when the banner should be shown
 		return shouldShowBanner ? (
 			<>
+				{/* Before the buttons, so a tap on them is never missed. */}
+				<EarlyTapScript />
 				<SurfaceStyles
 					sheets={FIRST_PAINT_SHEETS}
 					noStyle={noStyle}
