@@ -1,51 +1,37 @@
 <include src="../build-time-manifest.mdx" />
 
-Add `consentManifest` from `c15t/build` to your existing Vite plugins, alongside
-the Vue and c15t Vue plugins:
+Add `consentManifest` from `c15t/vue/vite` to your existing Vite plugins:
 
-{/* example: fragment */}
+<include src="../examples/vue/vite-config.mdx" />
 
-```ts title="vite.config.ts (plugins option)"
-import { consentManifest } from 'c15t/build';
-
-export default {
-	plugins: [
-		// Keep your existing framework plugins here.
-		consentManifest({ backendURL: 'https://your-project.inth.app' }),
-	],
-};
-```
-
-Without `backendURL`, the plugin reads `VITE_C15T_BACKEND_URL`. When
-`vite build` or `vite dev` starts, the plugin fetches the policy and serves it
-as `snapshot` from `c15t/generated`. Import it in `src/main.ts` and add these
-options to the existing Vue plugin setup:
+The plugin reads `VITE_C15T_BACKEND_URL`, or a `backendURL` option. When
+`vite build` or `vite dev` starts, it fetches the policy and serves it as
+`snapshot` from `c15t/generated`. Pass `manifest()` from
+`c15t/vue/vue-plugin` as the plugin's `mode` in `src/main.ts`:
 
 {/* example: fragment */}
 
 ```ts title="src/main.ts"
-import { snapshot } from 'c15t/generated';
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
 
-app.use(c15tVue, {
-	backendURL: 'https://your-project.inth.app',
-	manifest: 'client',
-	manifestSnapshot: snapshot,
-});
+app.use(c15tVue, { mode: manifest() });
 ```
 
+`manifest()` reads the snapshot and the backend URL from `c15t/generated`.
 The browser resolves policy from the bundled snapshot without fetching
-`/manifest` or `/init`. Without `geoURL` or explicit location overrides it
-uses the unknown-location policy, so configure a fallback rule. The bundle
-includes the policy and resolver. Keep your scripts and other plugin options.
+`/manifest`. When the policy depends on a location the page does not know,
+it asks the backend's `/init`, unless you pass `inputs` or `geoURL`. The
+bundle includes the policy and the resolver. Keep your scripts and other
+plugin options.
 
 When the build has no snapshot, as in `vite dev` after a failed fetch,
-`snapshot` is `undefined`, and the plugin fetches
+`snapshot` is `undefined`, and the browser fetches
 `${backendURL}/manifest` instead.
 
 <include src="../build-time-manifest-notes.mdx" />
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, omit the snapshot and use [runtime
-manifest fetching](/docs/frameworks/vue/rendering#resolve-from-the-manifest-in-the-browser).
-Keep the original backend `/init` setup when you need backend geolocation.
+For policy updates without a rebuild, use `hosted()` from
+`c15t/vue/vue-plugin`, which asks the backend's `/init` on each page load, or
+`manifest({ source: 'runtime' })`, which fetches the manifest at runtime.

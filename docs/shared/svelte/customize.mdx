@@ -29,7 +29,8 @@ const theme = {
 };
 ```
 
-Pass it as `theme={theme}` on `ConsentManagerProvider`. Define the class in a
+Pass it as `theme={theme}` on `ConsentProvider`, or on `ConsentRoot` in
+SvelteKit. Define the class in a
 global stylesheet, or with `:global(.brand-banner-card)` in a component,
 because Svelte scopes component styles. The Svelte components read these
 slots:

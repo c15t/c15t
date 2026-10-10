@@ -92,7 +92,7 @@ and preferences UI. These examples do not create a second consent provider.
   </Tab>
 
   <Tab value="Nuxt">
-    The Nuxt module registers `ConsentGate` and `ConsentPreferencesLink`, so
+    The Nuxt module registers `ConsentGate` and `ConsentDialogLink`, so
     this component imports only the embed configuration.
 
     ```vue title="app/components/ConsentEmbed.vue"
@@ -111,7 +111,7 @@ and preferences UI. These examples do not create a second consent provider.
         />
         <template #placeholder>
           <p>Allow {{ embedCategory }} to load this content.</p>
-          <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+          <ConsentDialogLink>Open privacy settings</ConsentDialogLink>
         </template>
       </ConsentGate>
     </template>
@@ -127,8 +127,7 @@ and preferences UI. These examples do not create a second consent provider.
 
     ```vue title="src/ConsentEmbed.vue"
     <script setup lang="ts">
-    import ConsentGate from 'c15t/vue/runtime/components/consent-gate.vue';
-    import ConsentPreferencesLink from 'c15t/vue/runtime/components/consent-preferences-link.vue';
+    import { ConsentDialogLink, ConsentGate } from 'c15t/vue/vue-plugin';
     import { embedCategory, embedURL, embedTitle, embedAspectRatio } from './embed-config';
     </script>
 
@@ -143,7 +142,7 @@ and preferences UI. These examples do not create a second consent provider.
         />
         <template #placeholder>
           <p>Allow {{ embedCategory }} to load this content.</p>
-          <ConsentPreferencesLink>Open privacy settings</ConsentPreferencesLink>
+          <ConsentDialogLink>Open privacy settings</ConsentDialogLink>
         </template>
       </ConsentGate>
     </template>
@@ -204,7 +203,7 @@ and preferences UI. These examples do not create a second consent provider.
   </Tab>
 
   <Tab value="Svelte">
-    Render this component inside the existing `ConsentManagerProvider`.
+    Render this component inside the existing `ConsentProvider`.
     The provider from your quickstart supplies its consent state.
 
     ```svelte title="src/ConsentEmbed.svelte"
@@ -233,8 +232,8 @@ and preferences UI. These examples do not create a second consent provider.
   </Tab>
 
   <Tab value="SvelteKit">
-    Render this component inside the existing `ConsentManagerProvider`.
-    Keep the SvelteKit root provider and its server prefetch unchanged.
+    Render this component inside the existing `ConsentRoot`.
+    Keep the SvelteKit root and its server-resolved state unchanged.
 
     ```svelte title="src/lib/ConsentEmbed.svelte"
     <script lang="ts">

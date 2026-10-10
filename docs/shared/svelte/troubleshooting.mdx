@@ -17,13 +17,14 @@ DevTools. In the Network panel, find the `/init` request.
    wrong. While the request fails, optional categories stay denied and no
    banner shows.
 4. **The component is outside the provider.** `ConsentBanner` must render
-   inside `ConsentManagerProvider`; outside it, Svelte throws
+   inside `ConsentProvider`, or `ConsentRoot` in SvelteKit; outside it,
+   Svelte throws
    `c15t: no v3 consent context`.
 
 ## Svelte throws "no v3 consent context"
 
-**Check.** A getter or component ran without a `ConsentManagerProvider` above
-it.
+**Check.** A getter or component ran without a `ConsentProvider` or
+`ConsentRoot` above it.
 
 **Fix.** Move it inside the provider.
 

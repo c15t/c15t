@@ -24,12 +24,14 @@ automatically:
 {/* example: fragment */}
 
 ```svelte
-<ConsentManagerProvider
-	{mode}
+<ConsentProvider
+	mode={manifest()}
 	{scripts}
 	iab={{ cmpId: registeredCmpId }}
 >
 ```
+
+In SvelteKit, pass the same `iab` prop to `ConsentRoot`.
 
 Then render `IABConsentBanner` and `IABConsentDialog` next to the standard
 components.

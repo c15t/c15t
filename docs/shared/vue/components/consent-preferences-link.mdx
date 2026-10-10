@@ -1,17 +1,16 @@
 ---
-title: "ConsentPreferencesLink"
-description: "Shared ConsentPreferencesLink reference for the c15t Vue plugin and Nuxt module."
+title: "ConsentDialogLink"
+description: "Shared ConsentDialogLink reference for the c15t Vue plugin and Nuxt module."
 group: reference
 ---
 
-{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentPreferencesLink pages. */}
+{/* This file is NOT rendered directly. Sections are imported by the Vue and Nuxt ConsentDialogLink pages. */}
 
 <section id="behavior">
-  ## What ConsentPreferencesLink renders
+  ## What ConsentDialogLink renders
 
-  `ConsentPreferencesLink` renders one `button` that sets `activeUI` to
-  `'manager'`, which opens the preference dialog. The React adapter calls this
-  component `ConsentDialogLink`. It has no props. The default label is the
+  `ConsentDialogLink` renders one `button` that sets `activeUI` to
+  `'manager'`, which opens the preference dialog. The React adapter uses the same name. It has no props. The default label is the
   `consentManagerDialog.title` translation, "Privacy Settings" in English.
   The link shows it in the visitor's language once init has delivered copy,
   and in English until then. Its default slot replaces the label.

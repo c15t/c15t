@@ -2,17 +2,19 @@
 
 `manifest()` mode bundles the manifest by default. The integration fetches
 it when `astro build` or `astro dev` starts, then embeds it in its generated
-server options. Middleware, init routes and manifest routes use that same
-snapshot automatically. The browser options omit the full manifest. No
+server options. Middleware and the consent route use that same
+snapshot automatically. The browser options omit the full manifest, unless
+the mode is `manifest({ resolve: 'browser' })`. No
 generated file or extra import is needed. `astro check` and `astro sync` do
 not fetch, so type checks work without the backend. `astro preview` serves the
 completed build and never fetches a new snapshot.
 
 The build fetches only from an absolute upstream `backendURL` or
 `manifestURL`, because it cannot fetch a route in the app it is still
-compiling. `manifest()` without a `backendURL` reads
-`PUBLIC_C15T_BACKEND_URL`. With a relative URL, `hosted()` or `offline()`,
-the integration skips the fetch. If the fetch fails, `astro build` stops.
+compiling. Without a top-level `backendURL`, the integration reads
+`PUBLIC_C15T_BACKEND_URL`. With a relative URL, `hosted()`, `offline()`,
+`manifest({ snapshot })` or `manifest({ source: 'runtime' })`, the
+integration skips the fetch. If the fetch fails, `astro build` stops.
 `astro dev` logs a warning instead, and the server fetches and caches the
 policy at runtime. The config is read once at build time, so the built server
 keeps the backend URL and the snapshot it was built with.
@@ -27,11 +29,10 @@ c15t({ mode: manifest(), onBuildError: 'runtime' });
 ```
 
 `onBuildError: 'fail'` stops `astro dev` too, and stops the build on a
-relative URL. `buildManifest: true` is a deprecated spelling of
-`onBuildError: 'fail'`, and with `hosted()` or `offline()` it stops
-`astro build` and `astro dev`.
+relative URL.
 
 <include src="../build-time-manifest-notes.mdx" />
 
-For policy updates without a rebuild, set `buildManifest: false` and keep
-`manifest()`. The server then fetches and caches the policy at runtime.
+For policy updates without a rebuild, set
+`mode: manifest({ source: 'runtime' })`. The server then fetches and caches
+the policy at runtime.

@@ -9,6 +9,7 @@ the provider's `mode`:
 | Mode | Copy comes from | Languages |
 | --- | --- | --- |
 | `hosted()` | The backend's `/init` response, in the language the browser or server asked for, with the provider's `i18n` messages for that language on top | Every language the backend bundles: bg, cs, cy, da, de, el, en, es, et, fi, fr, ga, gu, he, hi, hr, hu, id, is, it, lb, lt, lv, mt, nb, nl, nn, pl, pt, rm, ro, sk, sl, sv and zh |
+| `manifest()` | The manifest's translations over the base copy for the visitor's language, with the provider's `i18n` messages on top. Resolved on the server in SvelteKit, in the browser in Svelte. | English base copy is bundled; another language's base copy loads the first time a visitor needs it |
 | `offline()` | The provider's `i18n` prop, merged over bundled English | English, plus any language you supply in full |
 
 The browser bundle carries English only. Other languages arrive from the

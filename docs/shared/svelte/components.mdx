@@ -4,12 +4,12 @@
 
 Import every component from `@c15t/svelte`, except the dev tools panel,
 which comes from `@c15t/svelte/devtools`. Render them inside
-`ConsentManagerProvider`; a component outside it throws
+`ConsentProvider`, or `ConsentRoot` in SvelteKit; a component outside it throws
 `c15t: no v3 consent context`.
 
 | Component | Renders | Page |
 | --- | --- | --- |
-| `ConsentManagerProvider` | Nothing. Creates and starts the consent runtime. | [ConsentManagerProvider](./components/consent-manager-provider) |
+| `ConsentProvider` | Nothing. Creates and starts the consent runtime. `ConsentRoot` wraps it in SvelteKit. | [ConsentProvider](./components/consent-manager-provider) |
 | `ConsentBanner` | The first-layer banner when the policy asks for one. | [ConsentBanner](./components/consent-banner) |
 | `ConsentDialog` | The preference dialog, loaded on first use. | [ConsentDialog](./components/consent-dialog) |
 | `ConsentWidget` | The preference controls inline, for a settings page. | [ConsentWidget](./components/consent-widget) |
@@ -22,8 +22,7 @@ which comes from `@c15t/svelte/devtools`. Render them inside
 | `ConsentDevTools` | A development panel for the consent state. | [Dev tools](./components/dev-tools) |
 | `Dialog`, `Switch`, `Tabs` and others | Unstyled building blocks for your own UI. | [Primitives](./components/primitives) |
 
-`Frame` is a deprecated alias for `ConsentGate`. `DevTools` and
-`C15TDevTools` are aliases for `ConsentDevTools`.
+`DevTools` and `C15TDevTools` are aliases for `ConsentDevTools`.
 
 ## Styles
 

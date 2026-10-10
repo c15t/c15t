@@ -27,8 +27,10 @@ the provider:
 {/* example: fragment */}
 
 ```svelte
-<ConsentManagerProvider {mode} {scripts} nonce={cspNonce}>
+<ConsentProvider mode={manifest()} {scripts} nonce={cspNonce}>
 ```
+
+In SvelteKit, pass the same `nonce` prop to `ConsentRoot`.
 
 The script loader then sets that nonce on every `<script>` it adds, for both
 `src` and inline `textContent` scripts. A `nonce` on one `scripts` entry wins

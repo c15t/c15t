@@ -1,4 +1,4 @@
-{/* Shared by the Svelte and SvelteKit ConsentManagerProvider pages, after each page's mount section. */}
+{/* Shared by the Svelte ConsentProvider and SvelteKit ConsentRoot pages, after each page's mount section. */}
 
 ## Props
 
@@ -8,7 +8,7 @@ from `@c15t/svelte` lists every option.
 
 | Prop | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `mode` | `hosted()`, `offline()` or `custom()` result | required | Where policies come from and where choices are saved. Read once; remount the provider to change it. |
+| `mode` | `manifest()`, `hosted()`, `offline()` or `custom()` result | required on `ConsentProvider`; `ConsentRoot` takes the mode from `c15tHandle()` | Where policies come from and where choices are saved. Read once; remount the provider to change it. See [consent modes](/docs/concepts/modes). |
 | `prefetch` | `ConsentState` | none | Server-resolved state from `loadConsent` or `resolveConsent`. With a resolved policy in it, the first render already knows whether to show the banner, and the browser skips its own `/init` request. Read once. |
 | `scripts` | `Script[]` | none | Vendor scripts that load when their category is allowed. Updates after mount: new scripts go to the loader. See [scripts](../scripts). |
 | `consentCategories` | `AllConsentNames[]` | the policy's categories | Categories the preference UI offers, within the policy's scope. Updates after mount. |

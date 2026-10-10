@@ -9,7 +9,8 @@ around it. Use it for a privacy settings page:
 
 <include src="../../examples/storybook-svelte/privacy-settings-page.mdx" />
 
-Render the page inside `ConsentManagerProvider`. The widget works without
+Render the page inside `ConsentProvider`, or
+`ConsentRoot` in SvelteKit. The widget works without
 `ConsentDialog`, but keep the dialog mounted elsewhere if the banner's
 Customize button should also work.
 
