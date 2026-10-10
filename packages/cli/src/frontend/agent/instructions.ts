@@ -223,8 +223,10 @@ Do this before installing anything; the result decides which path you take when 
    Does the target app's package.json, or what it resolves to in the lockfile, list c15t
    or a browser-side @c15t/* package (such as @c15t/nextjs, @c15t/react, @c15t/svelte,
    @c15t/browser or @c15t/scripts), or does a page load c15t.js with a script tag (from a
-   CDN, an Inth project or a self-hosted backend)? Other workspaces don't count, and
-   neither do server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli).
+   CDN, an Inth project or a self-hosted backend)? Count a workspace package the app
+   depends on or imports, such as a shared UI package that exports the provider; skip
+   workspaces the app does not reach. Server and tooling packages (@c15t/backend,
+   @c15t/node-sdk, @c15t/cli) don't count.
    ├── Yes, every c15t package and pinned script URL is 3.x → keep it; check its storage mode (Storage mode below).
    ├── Yes, any c15t package is below 3.0 → Upgrade path.
    └── No
@@ -302,12 +304,12 @@ Run the project's typecheck, tests and production build. Serve the production bu
 		mode,
 		{
 			custom:
-				" Then make the app's transport fail: no banner shows and tools that wait for consent send no requests.",
+				" Then make the transport's `init` fail: no banner shows and tools that wait for consent send no requests.",
 			hosted:
-				' Then block the backend URL: no banner shows and tools that wait for consent send no requests.',
+				' Then block the request that initializes consent (the backend `/init`, a same-origin init route or a manifest fetch; the quickstart shows which one this setup uses): no banner shows and tools that wait for consent send no requests. A build-time manifest the app resolves itself makes no such request; skip this check for it.',
 			offline: '',
 			unknown:
-				" Unless the setup is offline, also block the backend URL (hosted) or make the app's transport fail (custom): no banner shows and tools that wait for consent send no requests.",
+				" Unless the setup is offline, also make initialization fail: in hosted mode block the request that initializes consent (the backend `/init`, a same-origin init route or a manifest fetch; the quickstart shows which one this setup uses), and in custom mode make the transport's `init` fail. No banner shows and tools that wait for consent send no requests. A build-time manifest the app resolves itself makes no such request; skip this check for it.",
 		}
 	)} An always-loading helper loads before any choice; check that it signals denied consent.
 2. Reject all: tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out; ${byMode(

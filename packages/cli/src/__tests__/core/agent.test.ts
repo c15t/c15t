@@ -532,9 +532,14 @@ describe('c15t setup instructions', () => {
 			expect(instructions).toContain(name);
 		}
 		expect(instructions).toContain('load c15t.js with a script tag');
-		expect(instructions).toContain("Other workspaces don't count");
 		expect(instructions).toContain(
-			'neither do server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli)'
+			'Count a workspace package the app\n   depends on or imports'
+		);
+		expect(instructions).toContain(
+			'skip\n   workspaces the app does not reach'
+		);
+		expect(instructions).toContain(
+			"Server and tooling packages (@c15t/backend,\n   @c15t/node-sdk, @c15t/cli) don't count."
 		);
 	});
 
@@ -551,8 +556,15 @@ describe('c15t setup instructions', () => {
 	it('checks backend failure only in modes that have a backend', () => {
 		const hosted = createC15tSetupInstructions({ mode: 'hosted' });
 		const offline = createC15tSetupInstructions({ mode: 'offline' });
-		expect(hosted).toContain('Then block the backend URL: no banner shows');
-		expect(offline).not.toContain('block the backend URL');
+		const custom = createC15tSetupInstructions({ mode: 'custom' });
+		expect(hosted).toContain(
+			'Then block the request that initializes consent (the backend `/init`, a same-origin init route or a manifest fetch'
+		);
+		expect(hosted).toContain(
+			'A build-time manifest the app resolves itself makes no such request'
+		);
+		expect(custom).toContain("Then make the transport's `init` fail");
+		expect(offline).not.toContain('initializes consent');
 		for (const instructions of [hosted, offline]) {
 			expect(instructions).toContain(
 				'An always-loading helper loads before any choice; check that it signals denied consent.'

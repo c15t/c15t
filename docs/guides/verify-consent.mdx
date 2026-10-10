@@ -72,9 +72,12 @@ having clicked anything. Turn GPC off and confirm the restriction ends.
 
 ## Check failure behavior
 
-Block the backend URL in DevTools (right-click the request, then **Block
-request URL**) and reload. No banner appears, and vendors that wait for consent
-send no requests. A helper that always loads, such as `gtag` with its default
+Block the request that initializes consent in DevTools (right-click the
+request, then **Block request URL**) and reload. That is the backend `/init`, a
+same-origin init route or a manifest fetch, depending on your setup; with a
+custom transport, make its `init` fail instead. No banner appears, and vendors
+that wait for consent send no requests. A build-time manifest your app resolves
+itself makes no such request, so skip this check for it. A helper that always loads, such as `gtag` with its default
 `loadMode`, still loads; check that it reports denied consent. A missing
 banner must never mean "allowed". Then unblock it and confirm the page
 recovers.
