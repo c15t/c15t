@@ -29,7 +29,10 @@ let warnedImplementation = false;
 
 /** Where the transport sends requests. */
 export interface NextClientModeOptions {
-	/** Backend URL for saves, and for `GET /init` in hosted mode. */
+	/**
+	 * Backend URL for saves, and for `GET /init` in hosted mode. With
+	 * `proxy`, the route prefix.
+	 */
 	backendURL?: string;
 	/** Prefix of the app's catch-all consent route, such as `/api/c15t`. */
 	routePrefix?: string;
@@ -79,10 +82,11 @@ export const createClientMode = function createClientMode(
 	if (data.type === 'offline') {
 		return Object.assign(lazyOffline({ policyRules: data.policyRules }), data);
 	}
+	// Saves never fall back to `routePrefix`: the route takes writes only
+	// with `proxy`, and then `ConsentRoot` passes it as `backendURL`.
 	const backendURL =
 		(data.type === 'hosted' ? data.backendURL : undefined) ??
-		options.backendURL ??
-		routePrefix;
+		options.backendURL;
 	if (!backendURL) {
 		throw new Error(
 			`@c15t/nextjs: ${data.type}() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or \`backendURL\` in c15t.config.ts.`

@@ -47,6 +47,19 @@ describe('createClientMode', () => {
 		expect(createClientMode(offline(), {}).kind).toBe('offline');
 	});
 
+	test('never saves to a route prefix that was not passed as the backend', () => {
+		// Without `proxy` the consent route answers `GET` only.
+		expect(() =>
+			createClientMode(manifest(), { routePrefix: '/api/c15t' })
+		).toThrow('manifest() needs a backend URL');
+		expect(
+			createClientMode(manifest(), {
+				backendURL: '/api/c15t',
+				routePrefix: '/api/c15t',
+			}).kind
+		).toBe('manifest');
+	});
+
 	test('a transport factory is used as is', () => {
 		const custom = Object.assign(vi.fn(), { kind: 'custom' as const });
 

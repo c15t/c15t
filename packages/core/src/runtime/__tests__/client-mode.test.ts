@@ -128,15 +128,44 @@ describe('clientMode()', () => {
 		);
 	});
 
-	test('manifest() saves through the route prefix without a backend URL', async () => {
-		const transport = clientMode(manifest(), { routePrefix: '/api/c15t' })(
-			context
+	test('manifest() never saves to a route prefix it was not given as the backend', () => {
+		// A consent route without a proxy answers `GET` only, so a save posted
+		// to it would 404 or 405 after the visitor chose.
+		expect(() =>
+			clientMode(manifest({ snapshot: everywhereManifest }), {
+				routePrefix: '/api/c15t',
+			})
+		).toThrow('manifest() needs a backend URL');
+		expect(() =>
+			clientMode(
+				manifest({ resolve: 'browser', snapshot: everywhereManifest }),
+				{ routePrefix: '/api/c15t' }
+			)
+		).toThrow('manifest() needs a backend URL');
+	});
+
+	test('manifest() saves through a forwarding route passed as the backend', async () => {
+		const transport = clientMode(manifest(), {
+			backendURL: '/api/c15t',
+			routePrefix: '/api/c15t',
+		})(context);
+
+		await transport.save?.({
+			choice: { categories: {}, version: 3 },
+			confirmed: { actionAt: 1, categories: {} },
+			consents: { necessary: true },
+			decisionInputs: { fingerprint: 'f', policyId: 'p' },
+			subjectId: 'sub_1',
+		} as unknown as SavePayload);
+
+		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe('/api/c15t/subjects');
+	});
+
+	test('offline() needs no backend URL', () => {
+		expect(clientMode(offline()).kind).toBe('offline');
+		expect(clientMode(offline(), { routePrefix: '/api/c15t' }).kind).toBe(
+			'offline'
 		);
-
-		fetchSpy.mockImplementation(() => Promise.reject(new Error('offline')));
-		await transport.init?.(initContext()).catch(() => undefined);
-
-		expect(pathOf(fetchSpy.mock.calls[0]?.[0])).toBe('/api/c15t/init');
 	});
 
 	test("hosted() prefers the mode's own backend URL", async () => {

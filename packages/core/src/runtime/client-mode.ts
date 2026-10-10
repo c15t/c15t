@@ -44,8 +44,10 @@ import type { InitContext, KernelTransport } from '../types';
 export interface ClientModeOptions {
 	/**
 	 * Backend URL for saves, and for `GET /init` in hosted mode. A hosted
-	 * mode's own `backendURL` wins. Manifest mode falls back to
-	 * `routePrefix`, for a consent route that proxies saves.
+	 * mode's own `backendURL` wins. When the consent route forwards writes,
+	 * as with Next.js and TanStack Start's `proxy`, pass the route prefix
+	 * here: `routePrefix` alone never receives saves, because a route
+	 * without a proxy answers `GET` only.
 	 */
 	backendURL?: string;
 	/**
@@ -516,7 +518,9 @@ export const clientMode = function clientMode(
 			data
 		);
 	}
-	const backendURL = options.backendURL ?? routePrefix;
+	// Saves never fall back to `routePrefix`: a consent route only forwards
+	// writes when the caller says so by passing it as `backendURL`.
+	const { backendURL } = options;
 	if (backendURL === undefined) {
 		throw new Error(
 			'c15t: manifest() needs a backend URL. Set `backendURL` in your config.'
