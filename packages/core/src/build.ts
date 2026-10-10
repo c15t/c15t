@@ -164,9 +164,12 @@ const parseEnvFile = (source: string): Record<string, string> => {
 };
 
 /**
- * Reads the first of `names` that is set, the way Vite resolves variables:
- * values the framework already loaded, then the process environment, then
- * `.env.[mode].local`, `.env.[mode]`, `.env.local` and `.env` in `root`.
+ * Reads the first of `names` that is set. Each name is looked up the way
+ * Vite resolves variables: values the framework already loaded, then the
+ * process environment, then `.env.[mode].local`, `.env.[mode]`,
+ * `.env.local` and `.env` in `root`. An earlier name wins wherever it is
+ * set, so `*_C15T_BACKEND_URL` in `.env` beats `*_INTH_PROJECT_URL` in the
+ * environment. An empty value counts as unset.
  * @param names - Variable names in order of preference.
  * @param options - Variables the framework loaded, the directory with the
  * `.env` files and the mode, such as `production`.
@@ -181,43 +184,61 @@ export const readBuildEnv = (
 		root?: string;
 	} = {}
 ): string | undefined => {
+	let parsed: Record<string, string>[] | undefined;
+	const readFiles = (root: string): Record<string, string>[] => {
+		const files = [
+			...(options.mode
+				? [`.env.${options.mode}.local`, `.env.${options.mode}`]
+				: []),
+			'.env.local',
+			'.env',
+		];
+		return files.map((file) => {
+			try {
+				return parseEnvFile(readFileSync(resolve(root, file), 'utf8'));
+			} catch {
+				return {};
+			}
+		});
+	};
 	for (const name of names) {
 		const loaded = options.env?.[name];
-		if (typeof loaded === 'string') {
+		if (typeof loaded === 'string' && loaded !== '') {
 			return loaded;
 		}
 		const fromProcess = process.env[name];
-		if (fromProcess !== undefined) {
+		if (fromProcess) {
 			return fromProcess;
 		}
-	}
-	if (!options.root) {
-		return undefined;
-	}
-	const files = [
-		...(options.mode
-			? [`.env.${options.mode}.local`, `.env.${options.mode}`]
-			: []),
-		'.env.local',
-		'.env',
-	];
-	const parsed = files.map((file) => {
-		try {
-			return parseEnvFile(
-				readFileSync(resolve(options.root ?? '', file), 'utf8')
-			);
-		} catch {
-			return {};
+		if (!options.root) {
+			continue;
 		}
-	});
-	for (const name of names) {
+		parsed ??= readFiles(options.root);
 		for (const values of parsed) {
-			if (values[name] !== undefined) {
+			if (values[name]) {
 				return values[name];
 			}
 		}
 	}
 	return undefined;
+};
+
+/**
+ * Names backend URL variables for a message: the c15t names, then the Inth
+ * ones in parentheses, as in
+ * `VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL)`.
+ * @param names - Variable names in order of preference.
+ * @returns The names joined for a sentence.
+ * @internal
+ */
+export const formatEnvNames = (names: readonly string[]): string => {
+	const isInth = (name: string) => name.endsWith('_INTH_PROJECT_URL');
+	const primary = names.filter((name) => !isInth(name)).join(' or ');
+	const inth = names.filter(isInth).join(' or ');
+	if (!primary) {
+		return inth;
+	}
+	return inth ? `${primary} (or ${inth})` : primary;
 };
 
 /** Where a build reports a skipped or failed manifest fetch. */
@@ -347,7 +368,7 @@ export const loadManifestForBuild = async (
 		return undefined;
 	}
 	const envHint = policy.envNames?.length
-		? ` Pass backendURL or set ${policy.envNames.join(' or ')}.`
+		? ` Pass backendURL or set ${formatEnvNames(policy.envNames)}.`
 		: '';
 	const configured = source.manifestURL ?? source.backendURL;
 	if (!configured) {
@@ -677,8 +698,9 @@ const GENERATED_IMPORTERS = [
  * Builds the Vite plugin behind each `consentManifest` export. It serves
  * the virtual `@c15t/core/generated` module, so no file is written into the
  * app. Preview uses the existing build. Without `backendURL`, the first of
- * `envNames` that is set supplies it; a `VITE_` variable left unset is then
- * set to the URL used, so app code reads the same value.
+ * `envNames` that is set supplies it; the first `VITE_` variable, when
+ * unset or empty, is then set to the URL used, so app code reads the same
+ * value. The c15t variables come before the Inth ones.
  *
  * The manifest is fetched only for a bundle that reads `snapshot`, which
  * `hosted()` and `offline()` never do. The mode is chosen in app code, so
@@ -778,7 +800,7 @@ export const createConsentManifestPlugin = (
 		}
 		missingURLReported = true;
 		logger().warn(
-			`no backend URL is set. \`hosted()\` and \`manifest()\` without their own \`backendURL\` throw when the app starts. Pass backendURL to the plugin or set ${defaults.envNames.join(' or ')}.`
+			`no backend URL is set. \`hosted()\` and \`manifest()\` without their own \`backendURL\` throw when the app starts. Pass backendURL to the plugin or set ${formatEnvNames(defaults.envNames)}.`
 		);
 	};
 	return {
@@ -812,12 +834,7 @@ export const createConsentManifestPlugin = (
 			const exposed = defaults.envNames.find((name) =>
 				name.startsWith('VITE_')
 			);
-			if (
-				backendURL &&
-				exposed &&
-				config.env &&
-				config.env[exposed] === undefined
-			) {
+			if (backendURL && exposed && config.env && !config.env[exposed]) {
 				config.env[exposed] = backendURL;
 			}
 		},
@@ -918,7 +935,7 @@ export const createConsentManifestPlugin = (
  * the backend's `/init` unless the page passes `inputs` or `geoURL`.
  *
  * @param options - Backend URL and `onBuildError`. `backendURL` defaults to
- * `VITE_C15T_BACKEND_URL`.
+ * `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`.
  * @returns A Vite plugin, compatible with React, Vue, Svelte and Solid builds.
  * @throws {Error} When the fetch fails in `'fail'` mode, stopping Vite.
  * @example
@@ -933,6 +950,6 @@ export const consentManifest = (
 ): ConsentManifestPlugin =>
 	createConsentManifestPlugin(options, {
 		adviseHostedForLocation: true,
-		envNames: ['VITE_C15T_BACKEND_URL'],
+		envNames: ['VITE_C15T_BACKEND_URL', 'VITE_INTH_PROJECT_URL'],
 		label: '@c15t/core/build',
 	});

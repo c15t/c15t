@@ -90,6 +90,8 @@ don't pass one, from the environment or a `.env` file:
 `PUBLIC_C15T_BACKEND_URL` (Astro, Svelte and SvelteKit) or
 `VITE_C15T_BACKEND_URL` (TanStack Start, React, Vue and plain JavaScript).
 The Vite plugins set an unset `VITE_C15T_BACKEND_URL` to the URL they used.
+Each variable has an Inth alternative, read when the c15t one is unset, such
+as `VITE_INTH_PROJECT_URL`, so other Inth SDKs can share the project URL.
 
 `consentManifest()` from `c15t/build` warns when the downloaded policy
 depends on the visitor's location. A single-page app's `manifest()` then still

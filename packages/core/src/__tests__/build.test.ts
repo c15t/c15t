@@ -20,8 +20,10 @@ import {
 	consentManifest,
 	createConsentManifestPlugin,
 	GENERATED_MODULE_IDS,
+	formatEnvNames,
 	loadBuildManifest,
 	MANIFEST_CACHE_DIR,
+	readBuildEnv,
 	writeManifestCacheModule,
 } from '../build';
 
@@ -319,6 +321,66 @@ describe('@c15t/core/generated in Vite', () => {
 		);
 	});
 
+	describe('VITE_INTH_PROJECT_URL', () => {
+		const resolveBackendURL = async (
+			env: Record<string, unknown>,
+			options: { backendURL?: string } = {}
+		) => {
+			const root = await createRoot();
+			const { fetch } = optionsFor(root);
+			const plugin = consentManifest({ ...options, fetch });
+			await plugin.configResolved({
+				command: 'serve',
+				env,
+				mode: 'production',
+				root,
+			});
+			const source = await plugin.load.call(
+				undefined,
+				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
+			);
+			return { fetch, source };
+		};
+
+		test('alone gives the backend URL and sets VITE_C15T_BACKEND_URL', async () => {
+			const env: Record<string, unknown> = {
+				VITE_INTH_PROJECT_URL: 'https://inth.example.com',
+			};
+			const { fetch, source } = await resolveBackendURL(env);
+			expect(source).toContain(
+				'export const backendURL = "https://inth.example.com";'
+			);
+			expect(env.VITE_C15T_BACKEND_URL).toBe('https://inth.example.com');
+			expect(fetch).toHaveBeenCalledWith(
+				'https://inth.example.com/manifest',
+				expect.any(Object)
+			);
+		});
+
+		test('loses to VITE_C15T_BACKEND_URL when both are set', async () => {
+			const { source } = await resolveBackendURL({
+				VITE_C15T_BACKEND_URL: 'https://c15t.example.com',
+				VITE_INTH_PROJECT_URL: 'https://inth.example.com',
+			});
+			expect(source).toContain(
+				'export const backendURL = "https://c15t.example.com";'
+			);
+		});
+
+		test('an explicit backendURL beats both variables', async () => {
+			const env: Record<string, unknown> = {
+				VITE_C15T_BACKEND_URL: 'https://c15t.example.com',
+				VITE_INTH_PROJECT_URL: 'https://inth.example.com',
+			};
+			const { source } = await resolveBackendURL(env, {
+				backendURL: 'https://option.example.com',
+			});
+			expect(source).toContain(
+				'export const backendURL = "https://option.example.com";'
+			);
+		});
+	});
+
 	test('suggests hosted() when the policy depends on location', async () => {
 		const root = await createRoot();
 		const regional = {
@@ -608,7 +670,7 @@ describe('build-time manifest policy', () => {
 	const STUB = 'export const snapshot = undefined;';
 	const defaultsFor = (rootDir: string, command: 'build' | 'dev') => ({
 		command,
-		envNames: ['VITE_C15T_BACKEND_URL'],
+		envNames: ['VITE_C15T_BACKEND_URL', 'VITE_INTH_PROJECT_URL'],
 		importSource: 'c15t/build',
 		label: 'test/build',
 		rootDir,
@@ -729,7 +791,7 @@ describe('build-time manifest policy', () => {
 		async (backendURL) => {
 			const { error, options } = await write({ backendURL });
 			expect(error?.message).toBe(
-				"test/build: no backend URL is set, so the build cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL. Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to build without a snapshot."
+				"test/build: no backend URL is set, so the build cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL). Set `C15T_ON_BUILD_ERROR=runtime` (or `onBuildError: 'runtime'`) to build without a snapshot."
 			);
 			expect(options.fetch).not.toHaveBeenCalled();
 		}
@@ -739,7 +801,7 @@ describe('build-time manifest policy', () => {
 		const { logger, source } = await write({ backendURL: undefined }, 'dev');
 		expect(source).toContain(STUB);
 		expect(logger.warn).toHaveBeenCalledWith(
-			'no backend URL is set, so dev cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL. A production build stops on this error.'
+			'no backend URL is set, so dev cannot fetch the consent manifest. Pass backendURL or set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL). A production build stops on this error.'
 		);
 	});
 
@@ -751,7 +813,7 @@ describe('build-time manifest policy', () => {
 		expect(source).toContain(STUB);
 		expect(logger.warn).not.toHaveBeenCalled();
 		expect(logger.info).toHaveBeenCalledWith(
-			'skipped the consent manifest fetch because no backend URL is set. Pass backendURL or set VITE_C15T_BACKEND_URL.'
+			'skipped the consent manifest fetch because no backend URL is set. Pass backendURL or set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).'
 		);
 	});
 
@@ -761,7 +823,7 @@ describe('build-time manifest policy', () => {
 			onBuildError: 'fail',
 		});
 		expect(error?.message).toContain(
-			'build-time manifests require an absolute upstream URL. Pass backendURL or set VITE_C15T_BACKEND_URL.'
+			'build-time manifests require an absolute upstream URL. Pass backendURL or set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).'
 		);
 		expect(options.fetch).not.toHaveBeenCalled();
 	});
@@ -935,6 +997,55 @@ describe('build snapshot validation', () => {
 		options.fetch.mockResolvedValue(Response.json(body));
 		await expect(loadBuildManifest(options, 'test/build')).resolves.toEqual(
 			body
+		);
+	});
+});
+
+describe('readBuildEnv', () => {
+	test('an earlier name in a .env file beats a later one in the environment', async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, '.env'),
+			'NEXT_PUBLIC_C15T_BACKEND_URL=https://c15t.example.com\n'
+		);
+		vi.stubEnv('NEXT_PUBLIC_INTH_PROJECT_URL', 'https://inth.example.com');
+		expect(
+			readBuildEnv(
+				['NEXT_PUBLIC_C15T_BACKEND_URL', 'NEXT_PUBLIC_INTH_PROJECT_URL'],
+				{ root }
+			)
+		).toBe('https://c15t.example.com');
+	});
+
+	test('an empty value counts as unset', async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, '.env'),
+			'NEXT_PUBLIC_C15T_BACKEND_URL=\nNEXT_PUBLIC_INTH_PROJECT_URL=https://inth.example.com\n'
+		);
+		expect(
+			readBuildEnv(
+				['NEXT_PUBLIC_C15T_BACKEND_URL', 'NEXT_PUBLIC_INTH_PROJECT_URL'],
+				{ root }
+			)
+		).toBe('https://inth.example.com');
+	});
+});
+
+describe('formatEnvNames', () => {
+	test('puts the Inth names in parentheses', () => {
+		expect(
+			formatEnvNames([
+				'PUBLIC_C15T_BACKEND_URL',
+				'VITE_C15T_BACKEND_URL',
+				'PUBLIC_INTH_PROJECT_URL',
+				'VITE_INTH_PROJECT_URL',
+			])
+		).toBe(
+			'PUBLIC_C15T_BACKEND_URL or VITE_C15T_BACKEND_URL (or PUBLIC_INTH_PROJECT_URL or VITE_INTH_PROJECT_URL)'
+		);
+		expect(formatEnvNames(['VITE_C15T_BACKEND_URL'])).toBe(
+			'VITE_C15T_BACKEND_URL'
 		);
 	});
 });
