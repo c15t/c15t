@@ -41,7 +41,9 @@ in `vite dev`; `onBuildError` and `C15T_ON_BUILD_ERROR` change that.
 The browser gets init from `${backendURL}/init` unless the state names a
 `routePrefix`, the same option, meaning and default (none) as Next.js. Before,
 `ConsentRoot` sent init to `/api/c15t/init` by default, so an app that didn't
-mount the consent route got a 404 on every page load.
+mount the consent route got a 404 on every page load. `routePrefix: '/'`
+throws when `createConsentStateHandler()` runs: a catch-all route at the site
+root would catch every page.
 
 The consent route is `createConsentRoute()` and needs no options either:
 

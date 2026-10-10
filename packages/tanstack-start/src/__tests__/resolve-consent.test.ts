@@ -200,10 +200,7 @@ describe('resolveConsent wiring', () => {
 		expect(state).toEqual({ backendURL: 'https://consent.example.com' });
 	});
 
-	test.each([
-		['/api/consent', /^\/api\/consent\/init\?c15t-gvl=7/u],
-		['/', /^\/init\?c15t-gvl=7/u],
-	])('a deferred vendor list points at %s/init', async (routePrefix, url) => {
+	test('a deferred vendor list points at the route prefix, trailing slash trimmed', async () => {
 		const fetch = vi.fn<typeof globalThis.fetch>();
 		vi.stubGlobal(
 			'fetch',
@@ -227,7 +224,7 @@ describe('resolveConsent wiring', () => {
 			backendURL: 'https://consent.example.com',
 			reportSessions: false,
 			request: requestOf(),
-			routePrefix,
+			routePrefix: '/api/consent/',
 			snapshot: {
 				...MANIFEST_FIXTURE,
 				cmpId: 28,
@@ -247,6 +244,20 @@ describe('resolveConsent wiring', () => {
 		});
 		vi.unstubAllGlobals();
 		expect(fetch).not.toHaveBeenCalled();
-		expect(state.initialIab?.gvlReference?.url).toMatch(url);
+		expect(state.initialIab?.gvlReference?.url).toMatch(
+			/^\/api\/consent\/init\?c15t-gvl=7/u
+		);
+		expect(state.routePrefix).toBe('/api/consent');
+	});
+
+	test('rejects a route prefix of / when the handler is created', async () => {
+		const message =
+			"@c15t/tanstack-start: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'.";
+		expect(() => createConsentStateHandler({ routePrefix: '/' })).toThrow(
+			message
+		);
+		await expect(
+			resolveConsent({ request: requestOf(), routePrefix: '/' })
+		).rejects.toThrow(message);
 	});
 });

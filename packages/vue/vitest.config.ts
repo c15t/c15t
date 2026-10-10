@@ -43,6 +43,12 @@ export default mergeConfig(
 					),
 				},
 				{
+					'#c15t/build-options': resolve(
+						__dirname,
+						'./src/__tests__/build-options-virtual.ts'
+					),
+				},
+				{
 					'#c15t/client-manifest-snapshot': resolve(
 						__dirname,
 						'./src/__tests__/manifest-snapshot.ts'

@@ -44,6 +44,7 @@ checks, so they add no bytes there:
 | `@c15t/nextjs: defineConsentConfig expects an object.` | The argument is not an object. |
 | ``@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL) set at build time.`` | No backend URL, and the mode is not `offline()` or a `hosted()` with its own `backendURL`. |
 | ``@c15t/nextjs: defineConsentConfig `backendURL` must be an absolute http(s) URL or a `/`-relative path, received "...".`` | A URL is protocol-relative, such as `//your-project.inth.app`, or bare, such as `api/c15t`. The same check covers `routePrefix`, `mode.manifestURL`, `mode.geoURL` and `mode.backendURL`. |
+| ``@c15t/nextjs: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'.`` | `routePrefix` is `'/'`. A catch-all route at the site root would catch every page. |
 | ``@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or offline() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.`` | `mode` is not one of the data factories. |
 | ``@c15t/nextjs: defineConsentConfig `journey` must be 'page', 'tab' or false.`` | `journey` has another value. |
 | ``@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.`` | `proxy: true` without `routePrefix`. |

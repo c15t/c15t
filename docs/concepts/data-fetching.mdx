@@ -151,6 +151,8 @@ for the names. Because `initURL` is set, `assertDecisionInputs` defaults to
 returned no signed policy snapshot token, so the backend can reject a save
 made against a stale policy. Server-rendered frameworks do this for you when
 you set `routePrefix`: the browser re-inits through `${routePrefix}/init`.
+Every framework rejects `routePrefix: '/'` when it sets up, because a
+catch-all consent route at the site root would catch every page.
 
 The init route resolves policy; the backend rewrite forwards `/api/c15t/subjects`
 and other record endpoints. Configure both if you choose this optional proxy

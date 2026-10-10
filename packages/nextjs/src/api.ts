@@ -7,7 +7,7 @@ import type {
 } from '@c15t/core/server';
 
 import type { ConsentSourceOptions } from './consent-source';
-import { resolveConsentSource } from './consent-source';
+import { readConfigRoutePrefix, resolveConsentSource } from './consent-source';
 
 const DEFAULT_MANIFEST_REVALIDATE_SECONDS = 300;
 
@@ -119,6 +119,9 @@ export const createManifestFetchInit = function createManifestFetchInit(
  * request, so `c15t.config.ts` is read once every module has loaded.
  */
 const createHandler = function createHandler(options: NextConsentRouteOptions) {
+	// `c15t.config.ts` went through `defineConsentConfig`; a config passed
+	// here did not, so check its prefix now rather than on a request.
+	readConfigRoutePrefix(options.config);
 	// Two cache layers on purpose. `next.revalidate` reaches the App Router
 	// Data Cache; the shared in-process cache covers the Pages Router and
 	// any runtime without one, and adds ETag revalidation on top. The
@@ -220,6 +223,7 @@ const readCatchAllPath = async function readCatchAllPath(
  * @returns `GET`, plus `POST`, `PATCH`, `PUT`, `DELETE` and `OPTIONS` when
  * `proxy` is on. A handler throws when it has no manifest, backend URL or
  * `manifestURL` to read.
+ * @throws {TypeError} When `options.config` sets `routePrefix: '/'`.
  * @example
  * ```ts
  * // app/api/c15t/[...c15t]/route.ts

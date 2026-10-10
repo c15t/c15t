@@ -3,6 +3,7 @@ import { existsSync, realpathSync } from 'node:fs';
 import { loadManifestForBuild, readBuildEnv } from '@c15t/core/build';
 import type { ConsentMode } from '@c15t/core/modes';
 import { isIABConfigured } from '@c15t/core/runtime';
+import { normalizeRoutePrefix } from '@c15t/core/server';
 import { defaultConsentConfig } from '@c15t/schema/config';
 import type { ConsentManifest } from '@c15t/schema/types';
 import {
@@ -39,6 +40,7 @@ import {
 	readNuxtMode,
 	readNuxtRoutePrefix,
 } from './runtime/nuxt-mode';
+import type { BuiltOptions } from './runtime/server/build-options';
 import {
 	collectStyleSources,
 	preloadInlinedConsentStyles,
@@ -185,6 +187,24 @@ const readModuleMode = function readModuleMode(
 };
 
 /**
+ * The configured `routePrefix`, checked here so a bad prefix stops the build
+ * and the runtime config only ever holds a checked one.
+ *
+ * @throws {TypeError} When the prefix is `/` or not a path.
+ */
+const checkRoutePrefix = function checkRoutePrefix(
+	options: ModuleOptions
+): string | false {
+	if (options.routePrefix === false) {
+		return false;
+	}
+	return normalizeRoutePrefix(
+		'@c15t/vue',
+		options.routePrefix ?? DEFAULT_NUXT_ROUTE_PREFIX
+	);
+};
+
+/**
  * `manifest()` saves consent at `${backendURL}/subjects` from the browser.
  * The consent route answers `GET` only, so without a backend URL every save
  * would fail after the visitor chose. A `snapshot` replaces the manifest
@@ -311,6 +331,47 @@ const withoutSnapshot = function withoutSnapshot(
 	return rest;
 };
 
+/**
+ * Puts the module options in the public runtime config, which the server
+ * render and the browser read. Values already there win, except `mode` and
+ * `routePrefix`: the build chose the consent route, the snapshots and the
+ * browser code from the module's, so the server and the browser must run
+ * those. The `build-options` server plugin does the same for runtime
+ * variables such as `NUXT_PUBLIC_C15T_ROUTE_PREFIX`.
+ */
+const publishOptions = function publishOptions(
+	options: Omit<ModuleOptions, 'devtools' | 'initPrefetch' | 'onBuildError'>,
+	mode: ConsentMode,
+	nuxt: Nuxt
+): void {
+	const existing = nuxt.options.runtimeConfig.public.c15t as
+		| Record<string, unknown>
+		| undefined;
+	const built: BuiltOptions = {
+		mode: withoutSnapshot(mode),
+		routePrefix: options.routePrefix ?? false,
+	};
+	for (const name of ['mode', 'routePrefix'] as const) {
+		if (
+			existing?.[name] !== undefined &&
+			JSON.stringify(existing[name]) !== JSON.stringify(built[name])
+		) {
+			useLogger('@c15t/vue').warn(
+				`\`runtimeConfig.public.c15t.${name}\` is ignored: the build uses \`c15t.${name}\` (${JSON.stringify(built[name])}). Set it there.`
+			);
+		}
+	}
+	const { mode: _mode, routePrefix: _routePrefix, ...rest } = existing ?? {};
+	const published: Record<string, unknown> = defu(rest, options);
+	published.mode = built.mode;
+	published.routePrefix = built.routePrefix;
+	// Untyped: an app's generated runtime config types read `routePrefix`
+	// as the string it holds, while the option also takes `false`.
+	const publicRuntimeConfig: Record<string, unknown> =
+		nuxt.options.runtimeConfig.public;
+	publicRuntimeConfig.c15t = published;
+};
+
 /** The modules the snapshot templates declare, with their documentation. */
 const SNAPSHOT_MODULES = [
 	['#c15t/manifest-snapshot', 'The server snapshot for the consent route.'],
@@ -350,6 +411,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		}
 		const resolver = createResolver(import.meta.url);
 		const mode = readModuleMode(options);
+		options.routePrefix = checkRoutePrefix(options);
 		const routePrefix = readNuxtRoutePrefix(options);
 		assertManifestBackend(mode, options.backendURL, nuxt);
 		warnStaticServerResolution(mode, nuxt);
@@ -398,18 +460,7 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 			getContents: () => renderSnapshotModule(clientSnapshot),
 		}).dst;
 
-		// Untyped: an app's generated runtime config types read `routePrefix`
-		// as the string it holds, while the option also takes `false`.
-		const publicRuntimeConfig: Record<string, unknown> =
-			nuxt.options.runtimeConfig.public;
-		publicRuntimeConfig.c15t = defu(
-			nuxt.options.runtimeConfig.public.c15t ?? {},
-			{
-				...options,
-				mode: withoutSnapshot(mode),
-				routePrefix: options.routePrefix ?? DEFAULT_NUXT_ROUTE_PREFIX,
-			}
-		);
+		publishOptions(options, mode, nuxt);
 
 		// Transpile/inline the module runtime by directory, not just package
 		// name. When the module is registered through an aliasing package
@@ -531,6 +582,16 @@ const module: NuxtModule<ModuleOptions> = defineNuxtModule<ModuleOptions>({
 		);
 
 		addPlugin(resolver.resolve('./runtime/plugin.nuxt'));
+		// The build chose the route, the snapshots and the browser code from
+		// `mode` and `routePrefix`; a runtime override such as
+		// `NUXT_PUBLIC_C15T_ROUTE_PREFIX` would make the browser disagree.
+		const built: BuiltOptions = {
+			mode: withoutSnapshot(mode),
+			routePrefix: options.routePrefix ?? false,
+		};
+		nuxt.options.nitro.virtual['#c15t/build-options'] = () =>
+			`export default ${JSON.stringify(built)};\n`;
+		addServerPlugin(resolver.resolve('./runtime/server/build-options.nuxt'));
 		// Nuxt applies `NUXT_PUBLIC_C15T_BACKEND_URL` on a running server by
 		// itself. The Inth variable needs a plugin, and only while neither the
 		// option nor the c15t variable gave the build its URL.

@@ -28,7 +28,8 @@ export interface NuxtConsentModeConfig {
 	 * Path of the one consent route the module adds in `manifest()` mode. It
 	 * answers `${routePrefix}/init` and `${routePrefix}/manifest`. `false`
 	 * adds no route: the server render resolves from the manifest itself,
-	 * and the browser asks the backend.
+	 * and the browser asks the backend. `/` is rejected when the module
+	 * sets up: a catch-all route at the site root would catch every page.
 	 *
 	 * @default '/api/c15t'
 	 */
@@ -55,6 +56,8 @@ export const readNuxtMode = function readNuxtMode(
 /**
  * The consent route's path prefix, or `undefined` when the app has no
  * consent route: `routePrefix: false`, or a mode other than `manifest()`.
+ * The module checked the prefix at setup (it rejects `/`), so this runs in
+ * the browser without the check.
  *
  * @param config - The module options or the public runtime config.
  * @returns The prefix without a trailing slash.

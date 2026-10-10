@@ -37,7 +37,9 @@ export default defineConfig({
 - `routePrefix` (default `'/api/c15t'`, `false` for none) replaces
   `endpoints`. The integration injects one catch-all route,
   `${routePrefix}/[...path]`, from the `c15t/astro/api` entry, which answers
-  `init` and `manifest`.
+  `init` and `manifest`. `routePrefix: '/'` now throws when the integration
+  loads instead of injecting no route: a catch-all route at the site root
+  would catch every page.
 - `clientEntrypoint` resolves a relative path from the project root, and
   defaults to `src/c15t.client.ts`, `.js` or `.mjs` when the file exists.
   The browser options no longer carry its absolute path.

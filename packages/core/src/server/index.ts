@@ -66,6 +66,7 @@ export {
 	ManifestUnavailableError,
 	resolveManifestSourceURL,
 } from '../libs/manifest-cache-runtime';
+export { normalizeRoutePrefix } from './route-prefix';
 export {
 	createStaticManifestModule,
 	loadStaticManifest,

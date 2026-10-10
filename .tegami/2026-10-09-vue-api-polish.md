@@ -11,9 +11,11 @@ packages:
 the policy, the server resolves each visitor, and the browser ships no
 resolver or snapshot. One catch-all consent route answers
 `${routePrefix}/init` and `${routePrefix}/manifest`; `routePrefix` defaults
-to `/api/c15t`, and `false` adds no route. For `nuxt generate` and other
-static hosting, use `manifest({ resolve: 'browser' })` with
-`routePrefix: false`: only then does the browser bundle get the snapshot.
+to `/api/c15t`, and `false` adds no route. `routePrefix: '/'` stops the
+build: a catch-all route at the site root would catch every page. For
+`nuxt generate` and other static hosting, use
+`manifest({ resolve: 'browser' })` with `routePrefix: false`: only then does
+the browser bundle get the snapshot.
 `nuxt generate` with a server-resolved `manifest()` now logs a warning that
 says so.
 

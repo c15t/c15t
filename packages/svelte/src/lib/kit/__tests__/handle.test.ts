@@ -178,6 +178,19 @@ describe('c15tHandle mode', () => {
 		expect(typeof locals.mode).toBe('object');
 	});
 
+	test('trims a trailing slash off the route prefix', async () => {
+		const { locals } = await runHandle(createEvent(), {
+			routePrefix: '/api/c15t/',
+		});
+		expect(locals.routePrefix).toBe('/api/c15t');
+	});
+
+	test('rejects a route prefix of / when the hook is created', () => {
+		expect(() => c15tHandle({ routePrefix: '/' })).toThrow(
+			"@c15t/svelte: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
+		);
+	});
+
 	test('rejects custom(), which cannot reach the browser as data', () => {
 		const mode = custom({ init: () => Promise.resolve({}) });
 		expect(() => c15tHandle({ mode: mode as never })).toThrow(

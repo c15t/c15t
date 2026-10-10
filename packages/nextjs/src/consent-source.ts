@@ -13,7 +13,7 @@ import userConfig from '@c15t/nextjs/user-config';
 import type { ConsentManifest } from '@c15t/schema/types';
 
 import type { ConsentConfig } from './config';
-import { readBackendURLFromEnv } from './config';
+import { checkRoutePrefix, readBackendURLFromEnv } from './config';
 
 /** Options every server helper takes to override `c15t.config.ts`. */
 export interface ConsentSourceOptions {
@@ -57,6 +57,26 @@ export interface ConsentSource {
 
 const isPath = (url: string | undefined): url is string =>
 	url !== undefined && url.startsWith('/') && !url.startsWith('//');
+
+/**
+ * The config's route prefix, checked as `defineConsentConfig` checks it: a
+ * config passed straight to a helper skips that function.
+ *
+ * @param config - The config the helper reads.
+ * @returns The prefix without a trailing slash, or `undefined`.
+ * @throws {TypeError} When the prefix is `/`, or neither a `/`-relative
+ * path nor an absolute `http(s)` URL.
+ * @internal
+ */
+export const readConfigRoutePrefix = function readConfigRoutePrefix(
+	config: ConsentConfig | undefined
+): string | undefined {
+	const routePrefix = config?.routePrefix;
+	if (routePrefix === undefined) {
+		return undefined;
+	}
+	return checkRoutePrefix(routePrefix);
+};
 
 /** The backend URL: explicit, then the mode's, the config's, the env's, the build's. */
 const resolveBackendURL = function resolveBackendURL(
@@ -121,7 +141,7 @@ export const resolveConsentSource = function resolveConsentSource(
 ): ConsentSource {
 	const config = options.config ?? userConfig;
 	const mode: ConsentMode = config?.mode ?? { type: 'manifest' };
-	const routePrefix = config?.routePrefix;
+	const routePrefix = readConfigRoutePrefix(config);
 	const backendURL = resolveBackendURL(options, config, mode);
 	const forcedManifest =
 		options.manifestURL !== undefined || options.snapshot !== undefined;

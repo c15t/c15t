@@ -65,7 +65,8 @@ route, such as `app/api/c15t/[...c15t]/route.ts`. Other paths under the
 prefix return 404, or reach the backend with `proxy: true`. Set `routePrefix`
 in the config to send the browser's init there; without it the browser calls
 `${backendURL}/init`. Pages that `resolveConsent()` renders on the server don't
-need the route.
+need the route. `defineConsentConfig({ routePrefix: '/' })` throws, which stops
+the build: a catch-all route at the site root would catch every page.
 
 To keep browser saves on your origin too, set `proxy: true` next to
 `routePrefix` in the config, and pass `proxy: true` to `createConsentRoute()`
