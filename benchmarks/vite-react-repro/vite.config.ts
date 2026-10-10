@@ -26,4 +26,9 @@ export default defineConfig({
 			template: 'raw-data',
 		}),
 	],
+	// `@c15t/react` resolves its own React from the workspace; without this
+	// the bundle carries two copies and the app throws on its first hook.
+	resolve: {
+		dedupe: ['react', 'react-dom'],
+	},
 });

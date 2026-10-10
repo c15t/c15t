@@ -6,6 +6,7 @@
 		"bench": "BENCH_OUTPUT_DIR=../../.benchmarks/current/browser-runtime/react bunx tsx scripts/run-bench.ts",
 		"bench:banner-visibility": "BENCH_OUTPUT_DIR=../../.benchmarks/current/banner-visibility bunx tsx scripts/run-banner-visibility-bench.ts",
 		"bench:ci": "BENCH_OUTPUT_DIR=../../.benchmarks/head/browser-runtime/react bunx tsx scripts/run-bench.ts",
+		"bench:dialog-open-timing": "BENCH_OUTPUT_DIR=../../.benchmarks/current/dialog-open-timing bunx tsx scripts/run-dialog-open-timing-bench.ts",
 		"bench:nightly": "BENCH_OUTPUT_DIR=../../.benchmarks/nightly/browser-runtime/react bunx tsx scripts/run-bench.ts",
 		"build": "next build",
 		"dev": "next dev",

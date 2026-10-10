@@ -28,6 +28,9 @@ const config = {
 	routeRules: {
 		'/baseline-client': { ssr: false },
 		'/client': { ssr: false },
+		// `/client` plus a hero image that starts after `load`, for the
+		// dialog-open bench.
+		'/client-hero': { ssr: false },
 		// The route plugin switches this page to client manifest mode in the
 		// browser, which the server cannot see, so its HTML must not start
 		// the hosted `/init` request.
@@ -74,6 +77,7 @@ if (baselineBuild) {
 			'app/pages/ssr-manifest.vue',
 			'app/pages/client.vue',
 			'app/pages/client-manifest.vue',
+			'app/pages/client-hero.vue',
 			'app/pages/repeat-visitor.vue',
 			'app/components/**',
 			'app/plugins/**',

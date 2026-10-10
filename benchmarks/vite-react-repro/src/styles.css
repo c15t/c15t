@@ -65,3 +65,11 @@ p {
 	max-width: 60ch;
 	color: #334155;
 }
+
+.hero {
+	display: block;
+	width: 100%;
+	max-width: 1200px;
+	height: auto;
+	border-radius: 24px;
+}

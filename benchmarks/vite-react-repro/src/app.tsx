@@ -6,6 +6,8 @@ import {
 	offline,
 } from '@c15t/react';
 
+import { Hero, heroRequested } from './hero';
+
 export const App = () => (
 	<ConsentProvider
 		options={{
@@ -23,6 +25,7 @@ export const App = () => (
 		}}
 	>
 		<main className="app-shell">
+			{heroRequested ? <Hero /> : null}
 			<div className="copy">
 				<p className="eyebrow">Vite Repro</p>
 				<h1>@c15t/react bundle inspection</h1>

@@ -1,0 +1,560 @@
+# run app cell: click time after load (ms), click-to-visible (ms), dialog chunk state at click
+A [1/15] before/react banner: click +259.2 ms after load, visible 851.9 ms, chunk cold
+A [1/15] after/react banner: click +187.1 ms after load, visible 843.9 ms, chunk cold
+A [1/15] before/nuxt banner: click +1326.5 ms after load, visible 1718.1 ms, chunk cold
+A [1/15] after/nuxt banner: click +1434.8 ms after load, visible 1644.1 ms, chunk cold
+A [1/15] before/react load+500: click +505 ms after load, visible 570.3 ms, chunk in flight
+A [1/15] after/react load+500: click +503.7 ms after load, visible 822 ms, chunk cold
+A [1/15] before/nuxt load+500: click +1526 ms after load, visible 1634.9 ms, chunk cold
+A [1/15] after/nuxt load+500: click +1381.1 ms after load, visible 1626.6 ms, chunk cold
+A [1/15] before/react load+1000: click +1008.7 ms after load, visible 102 ms, chunk ready
+A [1/15] after/react load+1000: click +1007.6 ms after load, visible 813.3 ms, chunk cold
+A [1/15] before/nuxt load+1000: click +1332 ms after load, visible 1589.7 ms, chunk cold
+A [1/15] after/nuxt load+1000: click +1333.2 ms after load, visible 1620 ms, chunk cold
+A [1/15] before/react load+2000: click +2003 ms after load, visible 56.8 ms, chunk ready
+A [1/15] after/react load+2000: click +2007.1 ms after load, visible 760.4 ms, chunk cold
+A [1/15] before/nuxt load+2000: click +2006.5 ms after load, visible 1020.7 ms, chunk in flight
+A [1/15] after/nuxt load+2000: click +2003.6 ms after load, visible 1438.5 ms, chunk cold
+A [1/15] before/react load+5000: click +5003.8 ms after load, visible 73.7 ms, chunk ready
+A [1/15] after/react load+5000: click +5003.5 ms after load, visible 82.2 ms, chunk ready
+A [1/15] before/nuxt load+5000: click +5003.5 ms after load, visible 43.4 ms, chunk ready
+A [1/15] after/nuxt load+5000: click +5006.1 ms after load, visible 56.1 ms, chunk in flight
+A [1/15] before/react load+12000: click +12010.3 ms after load, visible 138.2 ms, chunk ready
+A [1/15] after/react load+12000: click +12003.2 ms after load, visible 63.6 ms, chunk ready
+A [1/15] before/nuxt load+12000: click +12007.6 ms after load, visible 77.7 ms, chunk ready
+A [1/15] after/nuxt load+12000: click +12004.5 ms after load, visible 46.8 ms, chunk ready
+A [1/15] before/react hover@banner: click +447.1 ms after load, visible 599.2 ms, chunk in flight
+A [1/15] after/react hover@banner: click +445.4 ms after load, visible 677.6 ms, chunk in flight
+A [1/15] before/nuxt hover@banner: click +1629.4 ms after load, visible 1487 ms, chunk in flight
+A [1/15] after/nuxt hover@banner: click +1622.7 ms after load, visible 1490.1 ms, chunk in flight
+A [1/15] before/react hover@load+1000: click +1262.4 ms after load, visible 69 ms, chunk ready
+A [1/15] after/react hover@load+1000: click +1427.3 ms after load, visible 622.7 ms, chunk in flight
+A [1/15] before/nuxt hover@load+1000: click +1981.3 ms after load, visible 1446.7 ms, chunk in flight
+A [1/15] after/nuxt hover@load+1000: click +1644.9 ms after load, visible 1482.6 ms, chunk in flight
+A [2/15] after/react banner: click +179.2 ms after load, visible 858.1 ms, chunk cold
+A [2/15] before/react banner: click +183.6 ms after load, visible 842.6 ms, chunk cold
+A [2/15] after/nuxt banner: click +1322.8 ms after load, visible 1632.5 ms, chunk cold
+A [2/15] before/nuxt banner: click +1308.4 ms after load, visible 1602 ms, chunk cold
+A [2/15] after/react load+500: click +503.6 ms after load, visible 825.7 ms, chunk cold
+A [2/15] before/react load+500: click +507.4 ms after load, visible 571.3 ms, chunk in flight
+A [2/15] after/nuxt load+500: click +1885.6 ms after load, visible 1674.7 ms, chunk cold
+A [2/15] before/nuxt load+500: click +1687.7 ms after load, visible 1826 ms, chunk cold
+A [2/15] after/react load+1000: click +1008.5 ms after load, visible 1016 ms, chunk cold
+A [2/15] before/react load+1000: click +1008.2 ms after load, visible 376.1 ms, chunk in flight
+A [2/15] after/nuxt load+1000: click +1446 ms after load, visible 1662 ms, chunk cold
+A [2/15] before/nuxt load+1000: click +1394.4 ms after load, visible 1599.2 ms, chunk cold
+A [2/15] after/react load+2000: click +2004.4 ms after load, visible 741 ms, chunk cold
+A [2/15] before/react load+2000: click +2007.2 ms after load, visible 62.2 ms, chunk ready
+A [2/15] after/nuxt load+2000: click +2003.6 ms after load, visible 1540.1 ms, chunk cold
+A [2/15] before/nuxt load+2000: click +2006.3 ms after load, visible 1035.3 ms, chunk in flight
+A [2/15] after/react load+5000: click +5003.4 ms after load, visible 69.4 ms, chunk ready
+A [2/15] before/react load+5000: click +5006.7 ms after load, visible 57.9 ms, chunk ready
+A [2/15] after/nuxt load+5000: click +5007.9 ms after load, visible 65.7 ms, chunk in flight
+A [2/15] before/nuxt load+5000: click +5003.6 ms after load, visible 65 ms, chunk ready
+A [2/15] after/react load+12000: click +12003.6 ms after load, visible 63.2 ms, chunk ready
+A [2/15] before/react load+12000: click +12004.3 ms after load, visible 102.5 ms, chunk ready
+A [2/15] after/nuxt load+12000: click +12003.1 ms after load, visible 43.8 ms, chunk ready
+A [2/15] before/nuxt load+12000: click +12007.3 ms after load, visible 43.7 ms, chunk ready
+A [2/15] after/react hover@banner: click +462 ms after load, visible 660.7 ms, chunk in flight
+A [2/15] before/react hover@banner: click +451.9 ms after load, visible 670.1 ms, chunk in flight
+A [2/15] after/nuxt hover@banner: click +1570.2 ms after load, visible 1474 ms, chunk in flight
+A [2/15] before/nuxt hover@banner: click +1596.5 ms after load, visible 1427.3 ms, chunk in flight
+A [2/15] after/react hover@load+1000: click +1247.7 ms after load, visible 587.3 ms, chunk in flight
+A [2/15] before/react hover@load+1000: click +1251.3 ms after load, visible 66.7 ms, chunk ready
+A [2/15] after/nuxt hover@load+1000: click +1584.2 ms after load, visible 1477.9 ms, chunk in flight
+A [2/15] before/nuxt hover@load+1000: click +1597.9 ms after load, visible 1512.8 ms, chunk in flight
+A [3/15] before/react banner: click +247.9 ms after load, visible 872.8 ms, chunk cold
+A [3/15] after/react banner: click +196.7 ms after load, visible 842 ms, chunk cold
+A [3/15] before/nuxt banner: click +1301.7 ms after load, visible 1554.1 ms, chunk cold
+A [3/15] after/nuxt banner: click +1328 ms after load, visible 1601.2 ms, chunk cold
+A [3/15] before/react load+500: click +503.3 ms after load, visible 551.6 ms, chunk in flight
+A [3/15] after/react load+500: click +508 ms after load, visible 820.4 ms, chunk cold
+A [3/15] before/nuxt load+500: click +1302.9 ms after load, visible 1527.8 ms, chunk cold
+A [3/15] after/nuxt load+500: click +1347.1 ms after load, visible 1620.2 ms, chunk cold
+A [3/15] before/react load+1000: click +1003.3 ms after load, visible 61.5 ms, chunk ready
+A [3/15] after/react load+1000: click +1002.9 ms after load, visible 798.9 ms, chunk cold
+A [3/15] before/nuxt load+1000: click +1315.6 ms after load, visible 1617.5 ms, chunk cold
+A [3/15] after/nuxt load+1000: click +1318.6 ms after load, visible 1600.8 ms, chunk cold
+A [3/15] before/react load+2000: click +2003.5 ms after load, visible 75.5 ms, chunk ready
+A [3/15] after/react load+2000: click +2007.6 ms after load, visible 743.1 ms, chunk cold
+A [3/15] before/nuxt load+2000: click +2002.8 ms after load, visible 1037.5 ms, chunk in flight
+A [3/15] after/nuxt load+2000: click +2003.5 ms after load, visible 1450.6 ms, chunk cold
+A [3/15] before/react load+5000: click +5003.8 ms after load, visible 123.9 ms, chunk ready
+A [3/15] after/react load+5000: click +5006.9 ms after load, visible 62.9 ms, chunk ready
+A [3/15] before/nuxt load+5000: click +5007.2 ms after load, visible 50.5 ms, chunk ready
+A [3/15] after/nuxt load+5000: click +5003.2 ms after load, visible 42.6 ms, chunk in flight
+A [3/15] before/react load+12000: click +12003.2 ms after load, visible 59.2 ms, chunk ready
+A [3/15] after/react load+12000: click +12002.9 ms after load, visible 57.4 ms, chunk ready
+A [3/15] before/nuxt load+12000: click +12002.9 ms after load, visible 41.2 ms, chunk ready
+A [3/15] after/nuxt load+12000: click +12007.3 ms after load, visible 43.1 ms, chunk ready
+A [3/15] before/react hover@banner: click +460 ms after load, visible 620.9 ms, chunk in flight
+A [3/15] after/react hover@banner: click +435.1 ms after load, visible 668.3 ms, chunk in flight
+A [3/15] before/nuxt hover@banner: click +1605.3 ms after load, visible 1463.8 ms, chunk in flight
+A [3/15] after/nuxt hover@banner: click +1638.5 ms after load, visible 1473.3 ms, chunk in flight
+A [3/15] before/react hover@load+1000: click +1274.7 ms after load, visible 102.1 ms, chunk ready
+A [3/15] after/react hover@load+1000: click +1250.1 ms after load, visible 600.4 ms, chunk in flight
+A [3/15] before/nuxt hover@load+1000: click +1571.2 ms after load, visible 1438.5 ms, chunk in flight
+A [3/15] after/nuxt hover@load+1000: click +1571.7 ms after load, visible 1477.4 ms, chunk in flight
+A [4/15] after/react banner: click +196.3 ms after load, visible 845.3 ms, chunk cold
+A [4/15] before/react banner: click +184.9 ms after load, visible 849.7 ms, chunk cold
+A [4/15] after/nuxt banner: click +1320.1 ms after load, visible 1633.6 ms, chunk cold
+A [4/15] before/nuxt banner: click +1316.1 ms after load, visible 1616.4 ms, chunk cold
+A [4/15] after/react load+500: click +502.9 ms after load, visible 822.1 ms, chunk cold
+A [4/15] before/react load+500: click +503.3 ms after load, visible 556.7 ms, chunk in flight
+A [4/15] after/nuxt load+500: click +1329.5 ms after load, visible 1618.8 ms, chunk cold
+A [4/15] before/nuxt load+500: click +1305.4 ms after load, visible 1567.1 ms, chunk cold
+A [4/15] after/react load+1000: click +1007.2 ms after load, visible 809 ms, chunk cold
+A [4/15] before/react load+1000: click +1006.3 ms after load, visible 69.4 ms, chunk in flight
+A [4/15] after/nuxt load+1000: click +1314.9 ms after load, visible 1627.7 ms, chunk cold
+A [4/15] before/nuxt load+1000: click +1295.5 ms after load, visible 1636.1 ms, chunk cold
+A [4/15] after/react load+2000: click +2006.9 ms after load, visible 749.5 ms, chunk cold
+A [4/15] before/react load+2000: click +2007.2 ms after load, visible 60 ms, chunk ready
+A [4/15] after/nuxt load+2000: click +2006.4 ms after load, visible 1426.1 ms, chunk cold
+A [4/15] before/nuxt load+2000: click +2002.8 ms after load, visible 1043.2 ms, chunk in flight
+A [4/15] after/react load+5000: click +5003 ms after load, visible 56.8 ms, chunk ready
+A [4/15] before/react load+5000: click +5002.9 ms after load, visible 55.7 ms, chunk ready
+A [4/15] after/nuxt load+5000: click +5007.4 ms after load, visible 48.1 ms, chunk in flight
+A [4/15] before/nuxt load+5000: click +5007.3 ms after load, visible 45.8 ms, chunk ready
+A [4/15] after/react load+12000: click +12003.9 ms after load, visible 59.2 ms, chunk ready
+A [4/15] before/react load+12000: click +12005.6 ms after load, visible 58.6 ms, chunk ready
+A [4/15] after/nuxt load+12000: click +12007.1 ms after load, visible 46.4 ms, chunk ready
+A [4/15] before/nuxt load+12000: click +12003.2 ms after load, visible 42.3 ms, chunk ready
+A [4/15] after/react hover@banner: click +434.6 ms after load, visible 666.9 ms, chunk in flight
+A [4/15] before/react hover@banner: click +526.4 ms after load, visible 686.1 ms, chunk in flight
+A [4/15] after/nuxt hover@banner: click +1608.7 ms after load, visible 1483.3 ms, chunk in flight
+A [4/15] before/nuxt hover@banner: click +1564.6 ms after load, visible 1445 ms, chunk in flight
+A [4/15] after/react hover@load+1000: click +1248.2 ms after load, visible 594.3 ms, chunk in flight
+A [4/15] before/react hover@load+1000: click +1245.3 ms after load, visible 61.6 ms, chunk ready
+A [4/15] after/nuxt hover@load+1000: click +1610.5 ms after load, visible 1489 ms, chunk in flight
+A [4/15] before/nuxt hover@load+1000: click +1638.6 ms after load, visible 1482.5 ms, chunk in flight
+A [5/15] before/react banner: click +188.7 ms after load, visible 845.7 ms, chunk cold
+A [5/15] after/react banner: click +223.7 ms after load, visible 840.1 ms, chunk cold
+A [5/15] before/nuxt banner: click +1386.4 ms after load, visible 1643.3 ms, chunk cold
+A [5/15] after/nuxt banner: click +1356.5 ms after load, visible 1630.2 ms, chunk cold
+A [5/15] before/react load+500: click +507.8 ms after load, visible 531.2 ms, chunk in flight
+A [5/15] after/react load+500: click +503 ms after load, visible 819.3 ms, chunk cold
+A [5/15] before/nuxt load+500: click +1348.4 ms after load, visible 1586.2 ms, chunk cold
+A [5/15] after/nuxt load+500: click +1359.3 ms after load, visible 1618.7 ms, chunk cold
+A [5/15] before/react load+1000: click +1004.8 ms after load, visible 64.6 ms, chunk ready
+A [5/15] after/react load+1000: click +1002.2 ms after load, visible 807.5 ms, chunk cold
+A [5/15] before/nuxt load+1000: click +1315.5 ms after load, visible 1596 ms, chunk cold
+A [5/15] after/nuxt load+1000: click +1317.5 ms after load, visible 1648.4 ms, chunk cold
+A [5/15] before/react load+2000: click +2007.3 ms after load, visible 81.7 ms, chunk ready
+A [5/15] after/react load+2000: click +2006.7 ms after load, visible 767.8 ms, chunk cold
+A [5/15] before/nuxt load+2000: click +2002.5 ms after load, visible 1007.2 ms, chunk in flight
+A [5/15] after/nuxt load+2000: click +2008.1 ms after load, visible 1477.6 ms, chunk cold
+A [5/15] before/react load+5000: click +5014.5 ms after load, visible 214.3 ms, chunk ready
+A [5/15] after/react load+5000: click +5013.3 ms after load, visible 361.9 ms, chunk ready
+A [5/15] before/nuxt load+5000: click +5048.8 ms after load, visible 212.8 ms, chunk ready
+A [5/15] after/nuxt load+5000: click +5032.8 ms after load, visible 360.3 ms, chunk in flight
+A [5/15] before/react load+12000: click +12019 ms after load, visible 233.7 ms, chunk ready
+A [5/15] after/react load+12000: click +12009.8 ms after load, visible 152.4 ms, chunk ready
+A [5/15] before/nuxt load+12000: click +12003.5 ms after load, visible 58.4 ms, chunk ready
+A [5/15] after/nuxt load+12000: click +12006.1 ms after load, visible 48.9 ms, chunk ready
+A [5/15] before/react hover@banner: click +462.6 ms after load, visible 648.5 ms, chunk in flight
+A [5/15] after/react hover@banner: click +450.5 ms after load, visible 665.4 ms, chunk in flight
+A [5/15] before/nuxt hover@banner: click +1572.4 ms after load, visible 1447 ms, chunk in flight
+A [5/15] after/nuxt hover@banner: click +1606.1 ms after load, visible 1523.5 ms, chunk in flight
+A [5/15] before/react hover@load+1000: click +1262.6 ms after load, visible 104.5 ms, chunk ready
+A [5/15] after/react hover@load+1000: click +1265.1 ms after load, visible 593.1 ms, chunk in flight
+A [5/15] before/nuxt hover@load+1000: click +1578.7 ms after load, visible 1460.3 ms, chunk in flight
+A [5/15] after/nuxt hover@load+1000: click +1684.5 ms after load, visible 1490 ms, chunk in flight
+A [6/15] after/react banner: click +194.6 ms after load, visible 850.6 ms, chunk cold
+A [6/15] before/react banner: click +618.4 ms after load, visible 952.4 ms, chunk cold
+A [6/15] after/nuxt banner: click +2465.7 ms after load, visible 1777 ms, chunk cold
+A [6/15] before/nuxt banner: click +1839.8 ms after load, visible 1626.4 ms, chunk cold
+A [6/15] after/react load+500: click +791.9 ms after load, visible 1070.1 ms, chunk cold
+A [6/15] before/react load+500: click +503.5 ms after load, visible 566.8 ms, chunk in flight
+A [6/15] after/nuxt load+500: click +1337.1 ms after load, visible 1639.6 ms, chunk cold
+A [6/15] before/nuxt load+500: click +1352.6 ms after load, visible 1594.5 ms, chunk cold
+A [6/15] after/react load+1000: click +1002.7 ms after load, visible 814.8 ms, chunk cold
+A [6/15] before/react load+1000: click +1004.4 ms after load, visible 61.8 ms, chunk ready
+A [6/15] after/nuxt load+1000: click +1294.5 ms after load, visible 1605.6 ms, chunk cold
+A [6/15] before/nuxt load+1000: click +1304.8 ms after load, visible 1584.4 ms, chunk cold
+A [6/15] after/react load+2000: click +2008.5 ms after load, visible 745.7 ms, chunk cold
+A [6/15] before/react load+2000: click +2007.6 ms after load, visible 62.2 ms, chunk ready
+A [6/15] after/nuxt load+2000: click +2006.7 ms after load, visible 1462.5 ms, chunk cold
+A [6/15] before/nuxt load+2000: click +2005.7 ms after load, visible 1024.5 ms, chunk in flight
+A [6/15] after/react load+5000: click +5002.8 ms after load, visible 60.1 ms, chunk ready
+A [6/15] before/react load+5000: click +5007.1 ms after load, visible 59.7 ms, chunk ready
+A [6/15] after/nuxt load+5000: click +5007 ms after load, visible 44.9 ms, chunk in flight
+A [6/15] before/nuxt load+5000: click +5007.7 ms after load, visible 51.8 ms, chunk ready
+A [6/15] after/react load+12000: click +12006.4 ms after load, visible 54.3 ms, chunk ready
+A [6/15] before/react load+12000: click +12007.4 ms after load, visible 66.5 ms, chunk ready
+A [6/15] after/nuxt load+12000: click +12006.8 ms after load, visible 47.2 ms, chunk ready
+A [6/15] before/nuxt load+12000: click +12008.5 ms after load, visible 69.6 ms, chunk ready
+A [6/15] after/react hover@banner: click +570 ms after load, visible 707.7 ms, chunk in flight
+A [6/15] before/react hover@banner: click +507.2 ms after load, visible 671.1 ms, chunk in flight
+A [6/15] after/nuxt hover@banner: click +1538.7 ms after load, visible 1486.1 ms, chunk in flight
+A [6/15] before/nuxt hover@banner: click +1564.1 ms after load, visible 1449.5 ms, chunk in flight
+A [6/15] after/react hover@load+1000: click +1241.1 ms after load, visible 607.3 ms, chunk in flight
+A [6/15] before/react hover@load+1000: click +1257.6 ms after load, visible 68.1 ms, chunk ready
+A [6/15] after/nuxt hover@load+1000: click +1591.2 ms after load, visible 1463.7 ms, chunk in flight
+A [6/15] before/nuxt hover@load+1000: click +1645.8 ms after load, visible 1513.4 ms, chunk in flight
+A [7/15] before/react banner: click +229.7 ms after load, visible 849.4 ms, chunk cold
+A [7/15] after/react banner: click +190.2 ms after load, visible 874.9 ms, chunk cold
+A [7/15] before/nuxt banner: click +1314.6 ms after load, visible 1594.7 ms, chunk cold
+A [7/15] after/nuxt banner: click +1369.4 ms after load, visible 1633.1 ms, chunk cold
+A [7/15] before/react load+500: click +762.3 ms after load, visible 974.4 ms, chunk cold
+A [7/15] after/react load+500: click +505 ms after load, visible 980.6 ms, chunk cold
+A [7/15] before/nuxt load+500: click +1693.6 ms after load, visible 1728.5 ms, chunk cold
+A [7/15] after/nuxt load+500: click +2110.8 ms after load, visible 1660.4 ms, chunk cold
+A [7/15] before/react load+1000: click +1006.9 ms after load, visible 537 ms, chunk in flight
+A [7/15] after/react load+1000: click +1010 ms after load, visible 974 ms, chunk cold
+A [7/15] before/nuxt load+1000: click +2110.4 ms after load, visible 1665.7 ms, chunk cold
+A [7/15] after/nuxt load+1000: click +1655.1 ms after load, visible 1645.3 ms, chunk cold
+A [7/15] before/react load+2000: click +2004.7 ms after load, visible 77.1 ms, chunk ready
+A [7/15] after/react load+2000: click +2003.4 ms after load, visible 742.4 ms, chunk cold
+A [7/15] before/nuxt load+2000: click +2005.4 ms after load, visible 1033.4 ms, chunk in flight
+A [7/15] after/nuxt load+2000: click +2003.3 ms after load, visible 1434.4 ms, chunk cold
+A [7/15] before/react load+5000: click +5004.2 ms after load, visible 63.3 ms, chunk ready
+A [7/15] after/react load+5000: click +5009.5 ms after load, visible 83.3 ms, chunk ready
+A [7/15] before/nuxt load+5000: click +5004.5 ms after load, visible 110.9 ms, chunk ready
+A [7/15] after/nuxt load+5000: click +5004.7 ms after load, visible 151.9 ms, chunk in flight
+A [7/15] before/react load+12000: click +12006.9 ms after load, visible 178.9 ms, chunk ready
+A [7/15] after/react load+12000: click +12004.2 ms after load, visible 118 ms, chunk ready
+A [7/15] before/nuxt load+12000: click +12009.9 ms after load, visible 115 ms, chunk ready
+A [7/15] after/nuxt load+12000: click +12003.5 ms after load, visible 90.4 ms, chunk ready
+A [7/15] before/react hover@banner: click +506 ms after load, visible 550.2 ms, chunk in flight
+A [7/15] after/react hover@banner: click +485.5 ms after load, visible 665.6 ms, chunk in flight
+A [7/15] before/nuxt hover@banner: click +1663.8 ms after load, visible 1510.2 ms, chunk in flight
+A [7/15] after/nuxt hover@banner: click +1576.2 ms after load, visible 1467.4 ms, chunk in flight
+A [7/15] before/react hover@load+1000: click +1258.3 ms after load, visible 66.9 ms, chunk ready
+A [7/15] after/react hover@load+1000: click +1246.2 ms after load, visible 596.8 ms, chunk in flight
+A [7/15] before/nuxt hover@load+1000: click +1659.6 ms after load, visible 1460.8 ms, chunk in flight
+A [7/15] after/nuxt hover@load+1000: click +1780.8 ms after load, visible 1432 ms, chunk in flight
+A [8/15] after/react banner: click +216.4 ms after load, visible 850.5 ms, chunk cold
+A [8/15] before/react banner: click +206 ms after load, visible 841.7 ms, chunk cold
+A [8/15] after/nuxt banner: click +1316.9 ms after load, visible 1673.6 ms, chunk cold
+A [8/15] before/nuxt banner: click +1345.6 ms after load, visible 1615.5 ms, chunk cold
+A [8/15] after/react load+500: click +505.1 ms after load, visible 831.2 ms, chunk cold
+A [8/15] before/react load+500: click +507 ms after load, visible 610.6 ms, chunk in flight
+A [8/15] after/nuxt load+500: click +1325.1 ms after load, visible 1608.6 ms, chunk cold
+A [8/15] before/nuxt load+500: click +1730.8 ms after load, visible 1648.6 ms, chunk cold
+A [8/15] after/react load+1000: click +1015.2 ms after load, visible 912.9 ms, chunk cold
+A [8/15] before/react load+1000: click +1045.2 ms after load, visible 591.1 ms, chunk in flight
+A [8/15] after/nuxt load+1000: click +2155.9 ms after load, visible 1546 ms, chunk cold
+A [8/15] before/nuxt load+1000: click +1450.2 ms after load, visible 1658.5 ms, chunk cold
+A [8/15] after/react load+2000: click +2004.4 ms after load, visible 763.6 ms, chunk cold
+A [8/15] before/react load+2000: click +2004.1 ms after load, visible 94.1 ms, chunk ready
+A [8/15] after/nuxt load+2000: click +2003 ms after load, visible 1439 ms, chunk cold
+A [8/15] before/nuxt load+2000: click +2003.5 ms after load, visible 1022.6 ms, chunk in flight
+A [8/15] after/react load+5000: click +5003 ms after load, visible 73 ms, chunk ready
+A [8/15] before/react load+5000: click +5003.4 ms after load, visible 75.7 ms, chunk ready
+A [8/15] after/nuxt load+5000: click +5003.1 ms after load, visible 68.1 ms, chunk in flight
+A [8/15] before/nuxt load+5000: click +5006.3 ms after load, visible 44.3 ms, chunk ready
+A [8/15] after/react load+12000: click +12007.4 ms after load, visible 67.8 ms, chunk ready
+A [8/15] before/react load+12000: click +12002.8 ms after load, visible 61.2 ms, chunk ready
+A [8/15] after/nuxt load+12000: click +12007.1 ms after load, visible 52.4 ms, chunk ready
+A [8/15] before/nuxt load+12000: click +12007 ms after load, visible 49.3 ms, chunk ready
+A [8/15] after/react hover@banner: click +556.8 ms after load, visible 671.4 ms, chunk in flight
+A [8/15] before/react hover@banner: click +457.1 ms after load, visible 592.1 ms, chunk in flight
+A [8/15] after/nuxt hover@banner: click +1595.5 ms after load, visible 1471.8 ms, chunk in flight
+A [8/15] before/nuxt hover@banner failed: browser.newContext: Target page, context or browser has been closed
+A [8/15] after/react hover@load+1000: click +1249.7 ms after load, visible 638 ms, chunk in flight
+A [8/15] before/react hover@load+1000: click +1244.1 ms after load, visible 57 ms, chunk ready
+A [8/15] after/nuxt hover@load+1000 failed: browser.newContext: Target page, context or browser has been closed
+A [8/15] before/nuxt hover@load+1000 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:43147/client-hero
+A [9/15] before/react banner failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:44679/?hero
+A [9/15] after/react banner failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:41979/?hero
+A [9/15] before/nuxt banner failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:43147/client-hero
+A [9/15] after/nuxt banner failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:36479/client-hero
+A [9/15] before/react load+500 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:44679/?hero
+A [9/15] after/react load+500 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:41979/?hero
+A [9/15] before/nuxt load+500 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:43147/client-hero
+A [9/15] after/nuxt load+500 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:36479/client-hero
+A [9/15] before/react load+1000 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:44679/?hero
+A [9/15] after/react load+1000 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:41979/?hero
+A [9/15] before/nuxt load+1000 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:43147/client-hero
+A [9/15] after/nuxt load+1000 failed: page.goto: net::ERR_CONNECTION_REFUSED at http://127.0.0.1:36479/client-hero
+B [1/15] before/react banner: click +254.6 ms after load, visible 845.4 ms, chunk cold
+B [1/15] after/react banner: click +189.7 ms after load, visible 837.8 ms, chunk cold
+B [1/15] before/nuxt banner: click +1309.8 ms after load, visible 1705.2 ms, chunk cold
+B [1/15] after/nuxt banner: click +1424.1 ms after load, visible 1659.3 ms, chunk cold
+B [1/15] before/react load+500: click +509.8 ms after load, visible 581.9 ms, chunk in flight
+B [1/15] after/react load+500: click +503.6 ms after load, visible 830.2 ms, chunk cold
+B [1/15] before/nuxt load+500: click +1312.2 ms after load, visible 1618.4 ms, chunk cold
+B [1/15] after/nuxt load+500: click +1302.3 ms after load, visible 1598.6 ms, chunk cold
+B [1/15] before/react load+1000: click +1003.8 ms after load, visible 70.7 ms, chunk in flight
+B [1/15] after/react load+1000: click +1008.6 ms after load, visible 820.1 ms, chunk cold
+B [1/15] before/nuxt load+1000: click +1305.8 ms after load, visible 1598.2 ms, chunk cold
+B [1/15] after/nuxt load+1000: click +1383.2 ms after load, visible 1626.4 ms, chunk cold
+B [1/15] before/react load+2000: click +2007.8 ms after load, visible 54.2 ms, chunk ready
+B [1/15] after/react load+2000: click +2002.8 ms after load, visible 743.1 ms, chunk cold
+B [1/15] before/nuxt load+2000: click +2004.3 ms after load, visible 1013.7 ms, chunk in flight
+B [1/15] after/nuxt load+2000: click +2009.6 ms after load, visible 1469.9 ms, chunk cold
+B [1/15] before/react load+5000: click +5009 ms after load, visible 99.2 ms, chunk ready
+B [1/15] after/react load+5000: click +5009.4 ms after load, visible 134.8 ms, chunk ready
+B [1/15] before/nuxt load+5000: click +5004.5 ms after load, visible 51.1 ms, chunk ready
+B [1/15] after/nuxt load+5000: click +5006.8 ms after load, visible 422.6 ms, chunk in flight
+B [1/15] before/react load+12000: click +12010.4 ms after load, visible 287.2 ms, chunk ready
+B [1/15] after/react load+12000: click +12007 ms after load, visible 58.5 ms, chunk ready
+B [1/15] before/nuxt load+12000: click +12007.6 ms after load, visible 75.1 ms, chunk ready
+B [1/15] after/nuxt load+12000: click +12006.2 ms after load, visible 50.2 ms, chunk ready
+B [1/15] before/react hover@banner: click +548 ms after load, visible 542.4 ms, chunk in flight
+B [1/15] after/react hover@banner: click +400.9 ms after load, visible 670.6 ms, chunk in flight
+B [1/15] before/nuxt hover@banner: click +1628.1 ms after load, visible 1503.3 ms, chunk in flight
+B [1/15] after/nuxt hover@banner: click +1609.2 ms after load, visible 1489.8 ms, chunk in flight
+B [1/15] before/react hover@load+1000: click +1265.1 ms after load, visible 80.8 ms, chunk ready
+B [1/15] after/react hover@load+1000: click +1247.5 ms after load, visible 606.1 ms, chunk in flight
+B [1/15] before/nuxt hover@load+1000: click +1645.6 ms after load, visible 1507.5 ms, chunk in flight
+B [1/15] after/nuxt hover@load+1000: click +1550.7 ms after load, visible 1498.8 ms, chunk in flight
+B [2/15] after/react banner: click +189.5 ms after load, visible 883.7 ms, chunk cold
+B [2/15] before/react banner: click +169.5 ms after load, visible 773.8 ms, chunk cold
+B [2/15] after/nuxt banner: click +1327.1 ms after load, visible 1596.7 ms, chunk cold
+B [2/15] before/nuxt banner: click +1323.2 ms after load, visible 1610.1 ms, chunk cold
+B [2/15] after/react load+500: click +507.3 ms after load, visible 817.6 ms, chunk cold
+B [2/15] before/react load+500: click +503 ms after load, visible 510.1 ms, chunk in flight
+B [2/15] after/nuxt load+500: click +1610.1 ms after load, visible 1719.6 ms, chunk cold
+B [2/15] before/nuxt load+500: click +1415.3 ms after load, visible 1644.5 ms, chunk cold
+B [2/15] after/react load+1000: click +1003.3 ms after load, visible 873.7 ms, chunk cold
+B [2/15] before/react load+1000: click +1006.7 ms after load, visible 144.3 ms, chunk in flight
+B [2/15] after/nuxt load+1000: click +1468.1 ms after load, visible 1668.5 ms, chunk cold
+B [2/15] before/nuxt load+1000: click +1467.8 ms after load, visible 1641.8 ms, chunk cold
+B [2/15] after/react load+2000: click +2008 ms after load, visible 763.2 ms, chunk cold
+B [2/15] before/react load+2000: click +2003.9 ms after load, visible 71.5 ms, chunk ready
+B [2/15] after/nuxt load+2000: click +2007 ms after load, visible 1419.9 ms, chunk cold
+B [2/15] before/nuxt load+2000: click +2004.3 ms after load, visible 981.1 ms, chunk in flight
+B [2/15] after/react load+5000: click +5006.7 ms after load, visible 61.7 ms, chunk ready
+B [2/15] before/react load+5000: click +5006.8 ms after load, visible 57.4 ms, chunk ready
+B [2/15] after/nuxt load+5000: click +5004.3 ms after load, visible 78.9 ms, chunk in flight
+B [2/15] before/nuxt load+5000: click +5007.2 ms after load, visible 46.1 ms, chunk ready
+B [2/15] after/react load+12000: click +12003.1 ms after load, visible 58.4 ms, chunk ready
+B [2/15] before/react load+12000: click +12004.6 ms after load, visible 60.7 ms, chunk ready
+B [2/15] after/nuxt load+12000: click +12003.7 ms after load, visible 58.1 ms, chunk ready
+B [2/15] before/nuxt load+12000: click +12006.8 ms after load, visible 47.8 ms, chunk ready
+B [2/15] after/react hover@banner: click +498.2 ms after load, visible 657.8 ms, chunk in flight
+B [2/15] before/react hover@banner: click +419.2 ms after load, visible 650.2 ms, chunk in flight
+B [2/15] after/nuxt hover@banner: click +1586.9 ms after load, visible 1485.4 ms, chunk in flight
+B [2/15] before/nuxt hover@banner: click +1634.1 ms after load, visible 1499.1 ms, chunk in flight
+B [2/15] after/react hover@load+1000: click +1252.4 ms after load, visible 582.6 ms, chunk in flight
+B [2/15] before/react hover@load+1000: click +1259.8 ms after load, visible 59.7 ms, chunk ready
+B [2/15] after/nuxt hover@load+1000: click +1598.9 ms after load, visible 1487.7 ms, chunk in flight
+B [2/15] before/nuxt hover@load+1000: click +1597.7 ms after load, visible 1411 ms, chunk in flight
+B [3/15] before/react banner: click +273.5 ms after load, visible 859.4 ms, chunk cold
+B [3/15] after/react banner: click +172.5 ms after load, visible 847.5 ms, chunk cold
+B [3/15] before/nuxt banner: click +1283.2 ms after load, visible 1611.8 ms, chunk cold
+B [3/15] after/nuxt banner: click +1311.7 ms after load, visible 1595 ms, chunk cold
+B [3/15] before/react load+500: click +507.7 ms after load, visible 506.2 ms, chunk in flight
+B [3/15] after/react load+500: click +503.5 ms after load, visible 823.8 ms, chunk cold
+B [3/15] before/nuxt load+500: click +1294.3 ms after load, visible 1580.6 ms, chunk cold
+B [3/15] after/nuxt load+500: click +1370.9 ms after load, visible 1623.1 ms, chunk cold
+B [3/15] before/react load+1000: click +1003.2 ms after load, visible 63.4 ms, chunk ready
+B [3/15] after/react load+1000: click +1002.4 ms after load, visible 799.7 ms, chunk cold
+B [3/15] before/nuxt load+1000: click +1307.1 ms after load, visible 1585.6 ms, chunk cold
+B [3/15] after/nuxt load+1000: click +1301.7 ms after load, visible 1626.1 ms, chunk cold
+B [3/15] before/react load+2000: click +2009.8 ms after load, visible 83.2 ms, chunk ready
+B [3/15] after/react load+2000: click +2002.7 ms after load, visible 734.2 ms, chunk cold
+B [3/15] before/nuxt load+2000: click +2007.4 ms after load, visible 1031.3 ms, chunk in flight
+B [3/15] after/nuxt load+2000: click +2006.6 ms after load, visible 1442.2 ms, chunk cold
+B [3/15] before/react load+5000: click +5006.3 ms after load, visible 55.6 ms, chunk ready
+B [3/15] after/react load+5000: click +5006.2 ms after load, visible 55.6 ms, chunk ready
+B [3/15] before/nuxt load+5000: click +5003.6 ms after load, visible 47.8 ms, chunk ready
+B [3/15] after/nuxt load+5000: click +5003.6 ms after load, visible 62.6 ms, chunk in flight
+B [3/15] before/react load+12000: click +12003.5 ms after load, visible 62.9 ms, chunk ready
+B [3/15] after/react load+12000: click +12006.8 ms after load, visible 54 ms, chunk ready
+B [3/15] before/nuxt load+12000: click +12006.4 ms after load, visible 42.5 ms, chunk ready
+B [3/15] after/nuxt load+12000: click +12007.3 ms after load, visible 48.6 ms, chunk ready
+B [3/15] before/react hover@banner: click +414 ms after load, visible 642.7 ms, chunk in flight
+B [3/15] after/react hover@banner: click +420.8 ms after load, visible 662.9 ms, chunk in flight
+B [3/15] before/nuxt hover@banner: click +1545.9 ms after load, visible 1438 ms, chunk in flight
+B [3/15] after/nuxt hover@banner: click +1586.1 ms after load, visible 1479.4 ms, chunk in flight
+B [3/15] before/react hover@load+1000: click +1243.2 ms after load, visible 58.8 ms, chunk ready
+B [3/15] after/react hover@load+1000: click +1251.8 ms after load, visible 585.2 ms, chunk in flight
+B [3/15] before/nuxt hover@load+1000: click +1590.6 ms after load, visible 1457 ms, chunk in flight
+B [3/15] after/nuxt hover@load+1000: click +1553.6 ms after load, visible 1488.5 ms, chunk in flight
+B [4/15] after/react banner: click +189.1 ms after load, visible 844 ms, chunk cold
+B [4/15] before/react banner: click +214.2 ms after load, visible 847.5 ms, chunk cold
+B [4/15] after/nuxt banner: click +1353.4 ms after load, visible 1601.8 ms, chunk cold
+B [4/15] before/nuxt banner: click +1301.6 ms after load, visible 1544.9 ms, chunk cold
+B [4/15] after/react load+500: click +503.2 ms after load, visible 814.8 ms, chunk cold
+B [4/15] before/react load+500: click +506.7 ms after load, visible 531.7 ms, chunk in flight
+B [4/15] after/nuxt load+500: click +1300 ms after load, visible 1629.5 ms, chunk cold
+B [4/15] before/nuxt load+500: click +1285.5 ms after load, visible 1556.3 ms, chunk cold
+B [4/15] after/react load+1000: click +1002.4 ms after load, visible 818.9 ms, chunk cold
+B [4/15] before/react load+1000: click +1003.2 ms after load, visible 56.1 ms, chunk ready
+B [4/15] after/nuxt load+1000: click +1293.9 ms after load, visible 1618.6 ms, chunk cold
+B [4/15] before/nuxt load+1000: click +1262.9 ms after load, visible 1652.7 ms, chunk cold
+B [4/15] after/react load+2000: click +2006.8 ms after load, visible 736.5 ms, chunk cold
+B [4/15] before/react load+2000: click +2006.8 ms after load, visible 53.1 ms, chunk ready
+B [4/15] after/nuxt load+2000: click +2004.3 ms after load, visible 1461.1 ms, chunk cold
+B [4/15] before/nuxt load+2000: click +2006.7 ms after load, visible 1035.9 ms, chunk in flight
+B [4/15] after/react load+5000: click +5007.2 ms after load, visible 53.6 ms, chunk ready
+B [4/15] before/react load+5000: click +5007.3 ms after load, visible 102.5 ms, chunk ready
+B [4/15] after/nuxt load+5000: click +5003.6 ms after load, visible 42.3 ms, chunk in flight
+B [4/15] before/nuxt load+5000: click +5006.4 ms after load, visible 43.8 ms, chunk ready
+B [4/15] after/react load+12000: click +12006.9 ms after load, visible 54 ms, chunk ready
+B [4/15] before/react load+12000: click +12006.8 ms after load, visible 58.3 ms, chunk ready
+B [4/15] after/nuxt load+12000: click +12007.1 ms after load, visible 47.9 ms, chunk ready
+B [4/15] before/nuxt load+12000: click +12002.5 ms after load, visible 46.2 ms, chunk ready
+B [4/15] after/react hover@banner: click +422.1 ms after load, visible 661.6 ms, chunk in flight
+B [4/15] before/react hover@banner: click +441.8 ms after load, visible 655.3 ms, chunk in flight
+B [4/15] after/nuxt hover@banner: click +1535.9 ms after load, visible 1481.4 ms, chunk in flight
+B [4/15] before/nuxt hover@banner: click +1545.3 ms after load, visible 1461.2 ms, chunk in flight
+B [4/15] after/react hover@load+1000: click +1265.2 ms after load, visible 605.4 ms, chunk in flight
+B [4/15] before/react hover@load+1000: click +1253.3 ms after load, visible 65 ms, chunk ready
+B [4/15] after/nuxt hover@load+1000: click +1574.2 ms after load, visible 1495.8 ms, chunk in flight
+B [4/15] before/nuxt hover@load+1000: click +1561 ms after load, visible 1440.7 ms, chunk in flight
+B [5/15] before/react banner: click +169.7 ms after load, visible 847.1 ms, chunk cold
+B [5/15] after/react banner: click +182 ms after load, visible 845.4 ms, chunk cold
+B [5/15] before/nuxt banner: click +1285.3 ms after load, visible 1556.1 ms, chunk cold
+B [5/15] after/nuxt banner: click +1306.6 ms after load, visible 1601.6 ms, chunk cold
+B [5/15] before/react load+500: click +503.3 ms after load, visible 545.5 ms, chunk in flight
+B [5/15] after/react load+500: click +503.3 ms after load, visible 812.4 ms, chunk cold
+B [5/15] before/nuxt load+500: click +1342.7 ms after load, visible 1612.7 ms, chunk cold
+B [5/15] after/nuxt load+500: click +1316.1 ms after load, visible 1593.6 ms, chunk cold
+B [5/15] before/react load+1000: click +1004.2 ms after load, visible 67.8 ms, chunk ready
+B [5/15] after/react load+1000: click +1002.7 ms after load, visible 805.1 ms, chunk cold
+B [5/15] before/nuxt load+1000: click +1306 ms after load, visible 1559.1 ms, chunk cold
+B [5/15] after/nuxt load+1000: click +1312 ms after load, visible 1623.8 ms, chunk cold
+B [5/15] before/react load+2000: click +2006.8 ms after load, visible 54 ms, chunk ready
+B [5/15] after/react load+2000: click +2007.1 ms after load, visible 759.4 ms, chunk cold
+B [5/15] before/nuxt load+2000: click +2007.2 ms after load, visible 1046.2 ms, chunk in flight
+B [5/15] after/nuxt load+2000: click +2002.5 ms after load, visible 1456.4 ms, chunk cold
+B [5/15] before/react load+5000: click +5003.7 ms after load, visible 63.1 ms, chunk ready
+B [5/15] after/react load+5000: click +5007.1 ms after load, visible 71.7 ms, chunk ready
+B [5/15] before/nuxt load+5000: click +5009.3 ms after load, visible 118.3 ms, chunk ready
+B [5/15] after/nuxt load+5000: click +5013.5 ms after load, visible 1663.1 ms, chunk cold
+B [5/15] before/react load+12000: click +12028 ms after load, visible 203.9 ms, chunk ready
+B [5/15] after/react load+12000: click +12008.6 ms after load, visible 216.8 ms, chunk ready
+B [5/15] before/nuxt load+12000: click +12006.3 ms after load, visible 152.2 ms, chunk ready
+B [5/15] after/nuxt load+12000: click +12004.6 ms after load, visible 49.4 ms, chunk ready
+B [5/15] before/react hover@banner: click +550.2 ms after load, visible 605.1 ms, chunk in flight
+B [5/15] after/react hover@banner: click +413 ms after load, visible 661.2 ms, chunk in flight
+B [5/15] before/nuxt hover@banner: click +1561.8 ms after load, visible 1495.3 ms, chunk in flight
+B [5/15] after/nuxt hover@banner: click +1607.8 ms after load, visible 1483.4 ms, chunk in flight
+B [5/15] before/react hover@load+1000: click +1249.7 ms after load, visible 51.3 ms, chunk ready
+B [5/15] after/react hover@load+1000: click +1242.1 ms after load, visible 582.2 ms, chunk in flight
+B [5/15] before/nuxt hover@load+1000: click +1585.6 ms after load, visible 1473.6 ms, chunk in flight
+B [5/15] after/nuxt hover@load+1000: click +1620.7 ms after load, visible 1510.4 ms, chunk in flight
+B [6/15] after/react banner: click +216.6 ms after load, visible 849.9 ms, chunk cold
+B [6/15] before/react banner: click +259 ms after load, visible 852.1 ms, chunk cold
+B [6/15] after/nuxt banner: click +1395 ms after load, visible 1629.3 ms, chunk cold
+B [6/15] before/nuxt banner: click +1350.8 ms after load, visible 1690.1 ms, chunk cold
+B [6/15] after/react load+500: click +627.7 ms after load, visible 976.7 ms, chunk cold
+B [6/15] before/react load+500: click +532.3 ms after load, visible 976.3 ms, chunk cold
+B [6/15] after/nuxt load+500: click +1579.3 ms after load, visible 1764.5 ms, chunk cold
+B [6/15] before/nuxt load+500: click +2061.1 ms after load, visible 1740.6 ms, chunk cold
+B [6/15] after/react load+1000: click +1007.3 ms after load, visible 850.4 ms, chunk cold
+B [6/15] before/react load+1000: click +1009.5 ms after load, visible 60.7 ms, chunk ready
+B [6/15] after/nuxt load+1000: click +1353.2 ms after load, visible 1621.6 ms, chunk cold
+B [6/15] before/nuxt load+1000: click +1304.4 ms after load, visible 1542.7 ms, chunk cold
+B [6/15] after/react load+2000: click +2003 ms after load, visible 738.8 ms, chunk cold
+B [6/15] before/react load+2000: click +2004.2 ms after load, visible 61.5 ms, chunk ready
+B [6/15] after/nuxt load+2000: click +2006.2 ms after load, visible 1463.6 ms, chunk cold
+B [6/15] before/nuxt load+2000: click +2006.8 ms after load, visible 1020.5 ms, chunk in flight
+B [6/15] after/react load+5000: click +5003.4 ms after load, visible 54.6 ms, chunk ready
+B [6/15] before/react load+5000: click +5007.3 ms after load, visible 53.4 ms, chunk ready
+B [6/15] after/nuxt load+5000: click +5008.2 ms after load, visible 50.1 ms, chunk in flight
+B [6/15] before/nuxt load+5000: click +5007.2 ms after load, visible 46 ms, chunk ready
+B [6/15] after/react load+12000: click +12003.8 ms after load, visible 53.1 ms, chunk ready
+B [6/15] before/react load+12000: click +12003.5 ms after load, visible 53.8 ms, chunk ready
+B [6/15] after/nuxt load+12000: click +12003.2 ms after load, visible 59.9 ms, chunk ready
+B [6/15] before/nuxt load+12000: click +12006.9 ms after load, visible 60.4 ms, chunk ready
+B [6/15] after/react hover@banner: click +465.4 ms after load, visible 661.6 ms, chunk in flight
+B [6/15] before/react hover@banner: click +420.8 ms after load, visible 649.9 ms, chunk in flight
+B [6/15] after/nuxt hover@banner: click +1700.1 ms after load, visible 1469.9 ms, chunk in flight
+B [6/15] before/nuxt hover@banner: click +1752.2 ms after load, visible 1510.5 ms, chunk in flight
+B [6/15] after/react hover@load+1000: click +1264.1 ms after load, visible 652.9 ms, chunk in flight
+B [6/15] before/react hover@load+1000: click +1286.8 ms after load, visible 83.9 ms, chunk ready
+B [6/15] after/nuxt hover@load+1000: click +1552.6 ms after load, visible 1478.8 ms, chunk in flight
+B [6/15] before/nuxt hover@load+1000: click +1596.3 ms after load, visible 1440.3 ms, chunk in flight
+B [7/15] before/react banner: click +194.4 ms after load, visible 851.2 ms, chunk cold
+B [7/15] after/react banner: click +175.9 ms after load, visible 903.5 ms, chunk cold
+B [7/15] before/nuxt banner: click +1353 ms after load, visible 1576.3 ms, chunk cold
+B [7/15] after/nuxt banner: click +1416.3 ms after load, visible 1623.3 ms, chunk cold
+B [7/15] before/react load+500: click +503.2 ms after load, visible 598.4 ms, chunk in flight
+B [7/15] after/react load+500: click +503 ms after load, visible 818.7 ms, chunk cold
+B [7/15] before/nuxt load+500: click +1624.4 ms after load, visible 1628.7 ms, chunk cold
+B [7/15] after/nuxt load+500: click +1279.4 ms after load, visible 1595.1 ms, chunk cold
+B [7/15] before/react load+1000: click +1010.7 ms after load, visible 425.9 ms, chunk in flight
+B [7/15] after/react load+1000: click +1005.5 ms after load, visible 882.7 ms, chunk cold
+B [7/15] before/nuxt load+1000: click +2394.5 ms after load, visible 1652.6 ms, chunk cold
+B [7/15] after/nuxt load+1000: click +2008.9 ms after load, visible 1659.8 ms, chunk cold
+B [7/15] before/react load+2000: click +2017.4 ms after load, visible 745.1 ms, chunk in flight
+B [7/15] after/react load+2000: click +2021.3 ms after load, visible 947.3 ms, chunk cold
+B [7/15] before/nuxt load+2000: click +2025.1 ms after load, visible 1235.7 ms, chunk in flight
+B [7/15] after/nuxt load+2000: click +2012.7 ms after load, visible 1520.8 ms, chunk cold
+B [7/15] before/react load+5000: click +5003.8 ms after load, visible 75.7 ms, chunk ready
+B [7/15] after/react load+5000: click +5003.5 ms after load, visible 65.1 ms, chunk ready
+B [7/15] before/nuxt load+5000: click +5005.2 ms after load, visible 55.5 ms, chunk ready
+B [7/15] after/nuxt load+5000: click +5006.2 ms after load, visible 46.2 ms, chunk in flight
+B [7/15] before/react load+12000: click +12003.4 ms after load, visible 55.1 ms, chunk ready
+B [7/15] after/react load+12000: click +12006.1 ms after load, visible 134 ms, chunk ready
+B [7/15] before/nuxt load+12000: click +12011 ms after load, visible 168.5 ms, chunk ready
+B [7/15] after/nuxt load+12000: click +12003.6 ms after load, visible 101.1 ms, chunk ready
+B [7/15] before/react hover@banner: click +2223.4 ms after load, visible 201.3 ms, chunk ready
+B [7/15] after/react hover@banner: click +684.3 ms after load, visible 693.3 ms, chunk in flight
+B [7/15] before/nuxt hover@banner: click +1859.8 ms after load, visible 1481.9 ms, chunk in flight
+B [7/15] after/nuxt hover@banner: click +1752.8 ms after load, visible 1468.4 ms, chunk in flight
+B [7/15] before/react hover@load+1000: click +1264.3 ms after load, visible 64 ms, chunk ready
+B [7/15] after/react hover@load+1000: click +1251.6 ms after load, visible 604.8 ms, chunk in flight
+B [7/15] before/nuxt hover@load+1000: click +1568.3 ms after load, visible 1413.3 ms, chunk in flight
+B [7/15] after/nuxt hover@load+1000: click +1542 ms after load, visible 1458.3 ms, chunk in flight
+B [8/15] after/react banner: click +214.3 ms after load, visible 842.2 ms, chunk cold
+B [8/15] before/react banner: click +155.2 ms after load, visible 843 ms, chunk cold
+B [8/15] after/nuxt banner: click +1306 ms after load, visible 1597.8 ms, chunk cold
+B [8/15] before/nuxt banner: click +1514.8 ms after load, visible 1650.4 ms, chunk cold
+B [8/15] after/react load+500: click +506.4 ms after load, visible 895.2 ms, chunk cold
+B [8/15] before/react load+500: click +502.3 ms after load, visible 530.2 ms, chunk in flight
+B [8/15] after/nuxt load+500: click +1298.6 ms after load, visible 1598.1 ms, chunk cold
+B [8/15] before/nuxt load+500: click +1410.9 ms after load, visible 1648.6 ms, chunk cold
+B [8/15] after/react load+1000: click +1003 ms after load, visible 826.7 ms, chunk cold
+B [8/15] before/react load+1000: click +1006.6 ms after load, visible 57 ms, chunk ready
+B [8/15] after/nuxt load+1000: click +1323.2 ms after load, visible 1612.6 ms, chunk cold
+B [8/15] before/nuxt load+1000: click +1319.8 ms after load, visible 1813.9 ms, chunk cold
+B [8/15] after/react load+2000: click +2003.7 ms after load, visible 748.4 ms, chunk cold
+B [8/15] before/react load+2000: click +2010.3 ms after load, visible 142 ms, chunk ready
+B [8/15] after/nuxt load+2000: click +2020.4 ms after load, visible 1684.6 ms, chunk cold
+B [8/15] before/nuxt load+2000: click +2046.5 ms after load, visible 1686.2 ms, chunk cold
+B [8/15] after/react load+5000: click +5003.2 ms after load, visible 77.5 ms, chunk ready
+B [8/15] before/react load+5000: click +5007.9 ms after load, visible 80 ms, chunk ready
+B [8/15] after/nuxt load+5000: click +5003.1 ms after load, visible 57.9 ms, chunk in flight
+B [8/15] before/nuxt load+5000: click +5008.8 ms after load, visible 96.5 ms, chunk ready
+B [8/15] after/react load+12000: click +12002.5 ms after load, visible 76.8 ms, chunk ready
+B [8/15] before/react load+12000: click +12003.4 ms after load, visible 58.3 ms, chunk ready
+B [8/15] after/nuxt load+12000: click +12007.6 ms after load, visible 54.3 ms, chunk ready
+B [8/15] before/nuxt load+12000: click +12006.4 ms after load, visible 45.5 ms, chunk ready
+B [8/15] after/react hover@banner: click +517.1 ms after load, visible 659.8 ms, chunk in flight
+B [8/15] before/react hover@banner: click +468.6 ms after load, visible 654.2 ms, chunk in flight
+B [8/15] after/nuxt hover@banner: click +1577.5 ms after load, visible 1474.9 ms, chunk in flight
+B [8/15] before/nuxt hover@banner: click +1578.7 ms after load, visible 1448.2 ms, chunk in flight
+B [8/15] after/react hover@load+1000: click +1249.7 ms after load, visible 582.9 ms, chunk in flight
+B [8/15] before/react hover@load+1000: click +1244.9 ms after load, visible 65.4 ms, chunk ready
+B [8/15] after/nuxt hover@load+1000: click +1592.6 ms after load, visible 1481.4 ms, chunk in flight
+B [8/15] before/nuxt hover@load+1000: click +1516.3 ms after load, visible 1496.4 ms, chunk in flight
+B [9/15] before/react banner failed: browserContext.close: Target page, context or browser has been closed
+B [9/15] after/react banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react load+500 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react load+500 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt load+500 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt load+500 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react load+2000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react load+2000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt load+2000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt load+2000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react load+5000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react load+5000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt load+5000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt load+5000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react load+12000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react load+12000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt load+12000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt load+12000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react hover@banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react hover@banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt hover@banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt hover@banner failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/react hover@load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/react hover@load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] before/nuxt hover@load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [9/15] after/nuxt hover@load+1000 failed: browser.newContext: Target page, context or browser has been closed
+B [10/15] after/react banner failed: browser.newContext: Target page, context or browser has been closed
+B [10/15] before/react banner failed: browser.newContext: Target page, context or browser has been closed
+B [10/15] after/nuxt banner failed: browser.newContext: Target page, context or browser has been closed
