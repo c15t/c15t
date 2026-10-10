@@ -10,6 +10,7 @@ import {
 import { createKernel as createConsentKernel } from '../../../kernel';
 import { deleteConsentFromStorage, setCookie } from '../../../libs/cookie';
 import { STORAGE_KEY_V2 } from '../../../libs/storage-keys';
+import type { HydrationRecords } from '../../../types';
 import {
 	hydrateFromStorage,
 	readStoredRecords,
