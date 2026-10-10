@@ -160,7 +160,8 @@ const IAB_KEYS = [
 	'customVendorLegitimateInterests',
 ] as const;
 
-const DIGITS_ONLY = /^\d+$/u;
+/** Digits only, as in a stored timestamp. @internal */
+export const DIGITS_ONLY = /^\d+$/u;
 
 /**
  * Defines an own enumerable data property. Plain assignment would route a
@@ -180,7 +181,10 @@ const setOwn = function setOwn(
 	});
 };
 
-const decodeComponent = function decodeComponent(value: string): string | null {
+/** `decodeURIComponent`, or `null` for malformed text. @internal */
+export const decodeComponent = function decodeComponent(
+	value: string
+): string | null {
 	try {
 		return decodeURIComponent(value);
 	} catch {
@@ -318,6 +322,33 @@ const readEpoch = function readEpoch(
 };
 
 /**
+ * The decoded envelope, or the issues found. An empty subject or IAB
+ * metadata is left out, and so is epoch 0.
+ */
+const envelopeResult = function envelopeResult(
+	issues: StorageIssue[],
+	categories: ExplicitChoice['categories'],
+	subject: ConsentSubject | undefined,
+	epoch: number | undefined,
+	iab: StoredIabMetadata | undefined
+): DecodeResult<StoredConsentEnvelope> {
+	if (issues.length > 0) {
+		return { issues, ok: false };
+	}
+	const envelope: StoredConsentEnvelope = { categories, version: 3 };
+	if (subject && Object.keys(subject).length > 0) {
+		envelope.subject = subject;
+	}
+	if (epoch) {
+		envelope.epoch = epoch;
+	}
+	if (iab && Object.keys(iab).length > 0) {
+		envelope.iab = iab;
+	}
+	return { ok: true, record: envelope };
+};
+
+/**
  * Validates a parsed v3 envelope object. Reuses the consent-record
  * validator for `version` and `categories`, then checks `subject` and
  * `iab`. Any structural issue rejects the whole envelope.
@@ -360,23 +391,13 @@ export const validateStoredConsentEnvelope =
 		} else if (rawIab !== undefined) {
 			issues.push({ code: 'not-an-object', path: 'iab' });
 		}
-		if (issues.length > 0) {
-			return { issues, ok: false };
-		}
-		const envelope: StoredConsentEnvelope = {
-			categories: choice.record.categories,
-			version: 3,
-		};
-		if (subject) {
-			envelope.subject = subject;
-		}
-		if (epoch) {
-			envelope.epoch = epoch;
-		}
-		if (iab) {
-			envelope.iab = iab;
-		}
-		return { ok: true, record: envelope };
+		return envelopeResult(
+			issues,
+			choice.record.categories,
+			subject,
+			epoch,
+			iab
+		);
 	};
 
 /** Whether a raw cookie value is a compact v3 envelope. */
@@ -503,23 +524,57 @@ const parseBooleanMap = function parseBooleanMap(
 	return map;
 };
 
-const splitFields = function splitFields(
+/**
+ * Reads a compact subject field into `subject`. An empty or undecodable id
+ * is an issue.
+ *
+ * @returns Whether `key` is a subject field.
+ */
+const readSubjectField = function readSubjectField(
+	key: string,
+	value: string,
+	subject: ConsentSubject,
+	issues: StorageIssue[]
+): boolean {
+	const subjectKey = CODE_TO_SUBJECT_KEY.get(key);
+	if (subjectKey) {
+		const decoded = decodeComponent(value);
+		if (decoded) {
+			subject[subjectKey] = decoded;
+		} else {
+			issues.push({ code: 'invalid-identifier', path: key });
+		}
+	}
+	return subjectKey !== undefined;
+};
+
+/**
+ * Splits a compact value into its fields after the version field, which
+ * must be `prefix`. A malformed or repeated field rejects the whole value.
+ */
+const parseCompactFields = function parseCompactFields(
 	rawValue: string,
+	prefix: string,
 	issues: StorageIssue[]
 ): Map<string, string> | null {
+	const parts = rawValue.split(FIELD_SEPARATOR);
+	if (parts[0] !== prefix) {
+		issues.push({ code: 'unsupported-version', path: VERSION_FIELD });
+		return null;
+	}
 	const fields = new Map<string, string>();
-	for (const field of rawValue.split(FIELD_SEPARATOR)) {
-		const separator = field.indexOf(KEY_VALUE_SEPARATOR);
+	for (const part of parts.slice(1)) {
+		const separator = part.indexOf(KEY_VALUE_SEPARATOR);
 		if (separator <= 0) {
-			issues.push({ code: 'malformed-encoding', path: field });
+			issues.push({ code: 'malformed-encoding', path: part });
 			return null;
 		}
-		const key = field.slice(0, separator);
+		const key = part.slice(0, separator);
 		if (fields.has(key)) {
 			issues.push({ code: 'duplicate-key', path: key });
 			return null;
 		}
-		fields.set(key, field.slice(separator + 1));
+		fields.set(key, part.slice(separator + 1));
 	}
 	return fields;
 };
@@ -537,17 +592,14 @@ export const decodeStoredConsentEnvelopeCompact =
 		now: number
 	): DecodeResult<StoredConsentEnvelope> {
 		const issues: StorageIssue[] = [];
-		if (!isCompactStoredConsentEnvelope(rawValue)) {
-			return {
-				issues: [{ code: 'unsupported-version', path: VERSION_FIELD }],
-				ok: false,
-			};
-		}
-		const fields = splitFields(rawValue, issues);
+		const fields = parseCompactFields(
+			rawValue,
+			COMPACT_ENVELOPE_PREFIX,
+			issues
+		);
 		if (!fields) {
 			return { issues, ok: false };
 		}
-		fields.delete(VERSION_FIELD);
 
 		const rawBases = fields.get(BASIS_FIELD);
 		fields.delete(BASIS_FIELD);
@@ -568,14 +620,7 @@ export const decodeStoredConsentEnvelopeCompact =
 		const iab: StoredIabMetadata = {};
 
 		for (const [key, value] of fields) {
-			const subjectKey = CODE_TO_SUBJECT_KEY.get(key);
-			if (subjectKey) {
-				const decoded = decodeComponent(value);
-				if (decoded === null || decoded.length === 0) {
-					issues.push({ code: 'invalid-identifier', path: key });
-				} else {
-					subject[subjectKey] = decoded;
-				}
+			if (readSubjectField(key, value, subject, issues)) {
 				continue;
 			}
 			const category = CODE_TO_CATEGORY.get(key);
@@ -597,20 +642,7 @@ export const decodeStoredConsentEnvelopeCompact =
 			issues.push({ code: 'unknown-key', path: key });
 		}
 
-		if (issues.length > 0) {
-			return { issues, ok: false };
-		}
-		const envelope: StoredConsentEnvelope = { categories, version: 3 };
-		if (Object.keys(subject).length > 0) {
-			envelope.subject = subject;
-		}
-		if (epoch) {
-			envelope.epoch = epoch;
-		}
-		if (Object.keys(iab).length > 0) {
-			envelope.iab = iab;
-		}
-		return { ok: true, record: envelope };
+		return envelopeResult(issues, categories, subject, epoch, iab);
 	};
 
 // ---------------------------------------------------------------------------
@@ -618,16 +650,10 @@ export const decodeStoredConsentEnvelopeCompact =
 // ---------------------------------------------------------------------------
 
 /** Validates a parsed notice dismissal. */
-export const decodeNoticeDismissal = function decodeNoticeDismissal(
+export const decodeNoticeDismissal: (
 	input: unknown,
 	now: number
-): DecodeResult<StoredNoticeDismissal> {
-	const result = validateNoticeDismissal(input, now);
-	if (result.ok === false) {
-		return { issues: result.issues, ok: false };
-	}
-	return { ok: true, record: result.record };
-};
+) => DecodeResult<StoredNoticeDismissal> = validateNoticeDismissal;
 
 // ---------------------------------------------------------------------------
 // Compact cookie projection for notice dismissal
@@ -636,37 +662,10 @@ export const decodeNoticeDismissal = function decodeNoticeDismissal(
 /** Prefix of the compact notice-dismissal cookie projection. */
 export const COMPACT_NOTICE_PREFIX = 'v=1';
 
-const parseCompactFields = function parseCompactFields(
-	rawValue: string,
-	prefix: string,
-	issues: StorageIssue[]
-): Map<string, string> | null {
-	const parts = rawValue.split(FIELD_SEPARATOR);
-	if (parts[0] !== prefix) {
-		issues.push({ code: 'unsupported-version', path: 'v' });
-		return null;
-	}
-	const fields = new Map<string, string>();
-	for (const part of parts.slice(1)) {
-		const separator = part.indexOf(KEY_VALUE_SEPARATOR);
-		if (separator <= 0) {
-			issues.push({ code: 'malformed-encoding', path: part });
-			return null;
-		}
-		const key = part.slice(0, separator);
-		if (fields.has(key)) {
-			issues.push({ code: 'duplicate-key', path: key });
-			return null;
-		}
-		fields.set(key, part.slice(separator + 1));
-	}
-	return fields;
-};
-
 const parseCompactInteger = function parseCompactInteger(
 	value: string | undefined
 ): unknown {
-	if (value === undefined || !/^\d+$/u.test(value)) {
+	if (value === undefined || !DIGITS_ONLY.test(value)) {
 		return value;
 	}
 	return Number(value);
@@ -796,14 +795,7 @@ export const decodeVendorChoiceCompact = function decodeVendorChoiceCompact(
 	}
 	const subject: ConsentSubject = {};
 	for (const [key, value] of fields) {
-		const subjectKey = CODE_TO_SUBJECT_KEY.get(key);
-		if (subjectKey) {
-			const decoded = decodeComponent(value);
-			if (decoded === null || decoded.length === 0) {
-				issues.push({ code: 'invalid-identifier', path: key });
-			} else {
-				subject[subjectKey] = decoded;
-			}
+		if (readSubjectField(key, value, subject, issues)) {
 			continue;
 		}
 		if (key !== 't' && key !== 'd') {

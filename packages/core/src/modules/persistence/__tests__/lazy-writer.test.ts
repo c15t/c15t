@@ -25,6 +25,7 @@ import {
 } from '../../../libs/storage-keys';
 import type { SaveResult } from '../../../types';
 import { watchRevocationReload } from '../../revocation-reload';
+import { createScriptLoader } from '../../script-loader';
 import { mountPersistence as createPersistence } from '../mount';
 import { readStoredConsentRecord } from '../record-storage';
 import { createWriterLoader } from '../writer-loader';
@@ -411,6 +412,122 @@ describe('before the write code lands', () => {
 		await settle(saving);
 		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
 		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
+	});
+
+	test('a handle mounted while an earlier revocation waits for the write code starts from the revocation', async () => {
+		// An earlier page stored a grant.
+		await seedChoice({ marketing: true });
+		const { land, loader } = heldBackLoader();
+		const first = createConsentKernel({ now: Date.now() });
+		const firstHandle = createPersistence({ kernel: first }, loader);
+		vi.setSystemTime(NOW + 1000);
+		const accepting = first.commands.save({ marketing: true });
+		vi.setSystemTime(NOW + 2000);
+		const rejecting = first.commands.save({ marketing: false });
+		// The provider remounts before the write code has loaded.
+		firstHandle.dispose();
+		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
+
+		const kernel = createConsentKernel({ now: Date.now() });
+		const onBeforeLoad = vi.fn();
+		const scripts = createScriptLoader({
+			kernel,
+			scripts: [
+				{
+					callbackOnly: true,
+					category: 'marketing',
+					id: 'gated-on-remount',
+					onBeforeLoad,
+				},
+			],
+		});
+		const handle = createPersistence({ kernel }, loader);
+
+		expect(
+			kernel.getSnapshot().explicitChoice?.categories.marketing
+		).toMatchObject({
+			confirmedAt: NOW + 2000,
+			value: false,
+		});
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+
+		await land();
+		await settle(Promise.all([accepting, rejecting]));
+		expect(storedChoice()?.choice.categories.marketing?.value).toBe(false);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		expect(onBeforeLoad).not.toHaveBeenCalled();
+		scripts.dispose();
+		handle.dispose();
+	});
+
+	test('a seeded handle mounted while a revocation waits for the write code applies the revocation', async () => {
+		await seedChoice({ marketing: true });
+		const { land, loader } = heldBackLoader();
+		const first = createConsentKernel({ now: Date.now() });
+		const firstHandle = createPersistence({ kernel: first }, loader);
+		vi.setSystemTime(NOW + 1000);
+		const rejecting = first.commands.save({ marketing: false });
+		firstHandle.dispose();
+
+		// A server render seeded the grant from the cookie.
+		const kernel = createConsentKernel({ now: Date.now() });
+		kernel.hydrate({
+			choice: readStoredConsentRecord(undefined, Date.now()).selected?.choice,
+		});
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+		const handle = createPersistence({ kernel, skipHydration: true }, loader);
+
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		await land();
+		await settle(rejecting);
+		expect(storedChoice()?.choice.categories.marketing?.value).toBe(false);
+		handle.dispose();
+	});
+
+	test('a choice made after remounting is not overwritten by the earlier handle’s queued write', async () => {
+		const { land, loader } = heldBackLoader();
+		const first = createConsentKernel({ now: Date.now() });
+		const firstHandle = createPersistence({ kernel: first }, loader);
+		const rejecting = first.commands.save({ marketing: false });
+		firstHandle.dispose();
+
+		const { kernel, storedAtSend } = kernelWithTransport();
+		const handle = createPersistence({ kernel }, loader);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(false);
+		vi.setSystemTime(NOW + 1000);
+		const accepting = kernel.commands.save({ marketing: true });
+
+		await land();
+		await settle(rejecting);
+		const result = await settle(accepting);
+
+		expect(result.ok).toBe(true);
+		expect(storedAtSend).toHaveLength(1);
+		expect(storedChoice()?.choice.categories.marketing?.value).toBe(true);
+		expect(kernel.getSnapshot().effectivePermissions.marketing).toBe(true);
+
+		// A third mount reads the newer choice, not the first handle's.
+		const third = createConsentKernel({ now: Date.now() });
+		createPersistence({ kernel: third }, loader).dispose();
+		expect(third.getSnapshot().effectivePermissions.marketing).toBe(true);
+		handle.dispose();
+	});
+
+	test('a clear drops a queued choice that a later mount would start from', async () => {
+		const { land, loader } = heldBackLoader();
+		const first = createConsentKernel({ now: Date.now() });
+		const firstHandle = createPersistence({ kernel: first }, loader);
+		const accepting = first.commands.save({ marketing: true });
+		firstHandle.clear();
+		firstHandle.dispose();
+
+		const kernel = createConsentKernel({ now: Date.now() });
+		const handle = createPersistence({ kernel }, loader);
+		expect(kernel.getSnapshot().explicitChoice).toBeNull();
+		await land();
+		await settle(accepting);
+		expect(storedChoice()).toBeNull();
+		handle.dispose();
 	});
 
 	test('once a banner is shown, the write code loads in idle time three seconds after the load event', async () => {

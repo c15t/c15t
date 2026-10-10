@@ -139,6 +139,13 @@ export default mergeConfig(
 					find: /^\.\/dialog-surface$/u,
 					replacement: resolve(__dirname, './src/ui/dialog.ts'),
 				},
+				// Also as in the script-tag builds: the write code is loaded from
+				// the start, so a save is stored in the macrotask after it, not
+				// once a chunk lands, possibly in a later test's storage.
+				{
+					find: /^\.\/writer-loader(?<extension>\.js)?$/u,
+					replacement: './writer-loader-static$<extension>',
+				},
 			],
 		},
 		test: {
