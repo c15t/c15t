@@ -188,9 +188,8 @@ export default defineConsentConfig({ mode: hosted() });
 ```
 
 Keep `withConsentManifest` in `next.config.ts`: it is what finds
-`c15t.config.ts`. It still downloads the manifest during builds, which
-`hosted()` does not read, so a failed download stops `next build` unless you
-pass `onBuildError: 'runtime'`. The layouts stay the same. `resolveConsent`
+`c15t.config.ts`. With `hosted()` it downloads no manifest, so `next build`
+does not contact the backend. The layouts stay the same. `resolveConsent`
 and the browser now call `${backendURL}/init`, and consent choices still go to
 `${backendURL}/subjects`. Every visit makes a backend request, which the
 manifest avoids. For a browser-only setup with no server work, follow

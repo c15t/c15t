@@ -1,6 +1,15 @@
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import {
+	mkdir,
+	mkdtemp,
+	readFile,
+	rm,
+	stat,
+	symlink,
+	writeFile,
+} from 'node:fs/promises';
+import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
@@ -16,10 +25,25 @@ const CACHE = 'node_modules/.cache/c15t';
 
 const directories: string[] = [];
 
-/** A temporary app root, which `withConsentManifest` reads from the cwd. */
+/**
+ * The TypeScript the examples install. Next.js 15 reads `tsconfig.json`
+ * through its JavaScript API, which this package's TypeScript 7 lacks.
+ */
+const typescriptDir = dirname(
+	createRequire(
+		new URL('../../../../examples/nextjs/package.json', import.meta.url)
+	).resolve('typescript/package.json')
+);
+
+/**
+ * A temporary app root, which `withConsentManifest` reads from the cwd,
+ * with TypeScript installed so a `c15t.config.ts` can be read.
+ */
 const createRoot = async () => {
 	const root = await mkdtemp(join(tmpdir(), 'c15t-manifest-'));
 	directories.push(root);
+	await mkdir(join(root, 'node_modules'), { recursive: true });
+	await symlink(typescriptDir, join(root, 'node_modules/typescript'), 'dir');
 	vi.spyOn(process, 'cwd').mockReturnValue(root);
 	return root;
 };
@@ -264,6 +288,104 @@ describe('Next.js build-time manifest', () => {
 		expect(await readServerModule(root)).toContain(
 			'export const backendURL = "https://env.example.com/api";'
 		);
+	});
+
+	test.each([
+		['hosted()', "{ mode: { type: 'hosted' } }", 'uses hosted()'],
+		['offline()', "{ mode: { type: 'offline' } }", 'uses offline()'],
+		[
+			'manifest({ snapshot })',
+			"{ mode: { type: 'manifest', snapshot: { revision: 'own' } } }",
+			'manifest({ snapshot })',
+		],
+		[
+			"manifest({ source: 'runtime' })",
+			"{ mode: { type: 'manifest', source: 'runtime' } }",
+			"manifest({ source: 'runtime' })",
+		],
+	])(
+		'next build skips the fetch when c15t.config.ts uses %s',
+		async (_mode, exported, reason) => {
+			const root = await createRoot();
+			await writeFile(
+				join(root, 'c15t.config.ts'),
+				`const config: Record<string, unknown> = ${exported};\nexport default config;\n`
+			);
+			const options = optionsFor();
+			// An unreachable backend must not matter: nothing is fetched.
+			options.fetch.mockRejectedValue(new Error('backend unavailable'));
+			const info = vi
+				.spyOn(console, 'info')
+				.mockImplementation(() => undefined);
+			const config = await withConsentManifest({}, options)(
+				'phase-production-build',
+				{ defaultConfig: {} }
+			);
+			expect(options.fetch).not.toHaveBeenCalled();
+			expect(await readServerModule(root)).toContain(
+				'export const snapshot = undefined;'
+			);
+			expect(info).toHaveBeenCalledWith(expect.stringContaining(reason));
+			// The config is still aliased into the bundles.
+			expect(config.turbopack?.resolveAlias?.['@c15t/nextjs/user-config']).toBe(
+				'./c15t.config.ts'
+			);
+		}
+	);
+
+	test('next build still fetches for manifest() in c15t.config.mjs', async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, 'c15t.config.mjs'),
+			"export default { mode: { type: 'manifest' } };\n"
+		);
+		const options = optionsFor();
+		await withConsentManifest({}, options)('phase-production-build', {
+			defaultConfig: {},
+		});
+		expect(options.fetch).toHaveBeenCalledTimes(1);
+		expect(await readServerModule(root)).toContain(
+			JSON.stringify(MANIFEST_FIXTURE.revision)
+		);
+	});
+
+	test("fetches from the config's backendURL when the env leaves it out", async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, 'c15t.config.ts'),
+			"export default { backendURL: 'https://config.example.com' };\n"
+		);
+		const { fetch } = optionsFor();
+		await withConsentManifest({}, { fetch })('phase-production-build', {
+			defaultConfig: {},
+		});
+		expect(fetch).toHaveBeenCalledWith(
+			'https://config.example.com/manifest',
+			expect.any(Object)
+		);
+		expect(await readServerModule(root)).toContain(
+			'export const backendURL = "https://config.example.com";'
+		);
+	});
+
+	test('warns and fetches as for manifest() when c15t.config.ts cannot be read', async () => {
+		const root = await createRoot();
+		await writeFile(
+			join(root, 'c15t.config.ts'),
+			"throw new Error('config exploded');\n"
+		);
+		const options = optionsFor();
+		const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+		await withConsentManifest({}, options)('phase-production-build', {
+			defaultConfig: {},
+		});
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringContaining(
+				'@c15t/nextjs/build: could not read c15t.config.ts'
+			)
+		);
+		expect(String(warn.mock.calls[0]?.[0])).toContain('config exploded');
+		expect(options.fetch).toHaveBeenCalledTimes(1);
 	});
 
 	test.each(['runtime', 'fail'] as const)(

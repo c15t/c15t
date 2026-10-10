@@ -251,7 +251,8 @@ snapshot:
   `onBuildError: 'fail'`, a relative URL stops the build instead.
 - Next.js builds with `output: 'export'`, which has no server.
 - The mode is `hosted()`, `offline()`, `manifest({ snapshot })` or
-  `manifest({ source: 'runtime' })` in Nuxt and Astro.
+  `manifest({ source: 'runtime' })` in Next.js, Nuxt and Astro. Next.js reads
+  the mode from `c15t.config.ts`.
 
 A failed download never reuses an older snapshot. The
 [troubleshooting guide](/docs/guides/troubleshooting#why-does-the-build-fail-to-download-the-manifest)

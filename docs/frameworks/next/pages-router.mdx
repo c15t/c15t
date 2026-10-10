@@ -138,9 +138,8 @@ browser retries after hydration.
 
 Set `mode: hosted()` in `c15t.config.ts` and remove `routePrefix` and
 `pages/api/c15t/[...c15t].ts`. Keep `withConsentManifest`, which finds the
-config; it still downloads the manifest during builds, so a failed download
-stops `next build` unless you pass `onBuildError: 'runtime'`. `_app.tsx` and
-the pages stay the same. `withConsentProps` and the browser now call
+config. With `hosted()` it downloads no manifest, so `next build` does not
+contact the backend. `_app.tsx` and the pages stay the same. `withConsentProps` and the browser now call
 `${backendURL}/init`, and consent choices still go to
 `${backendURL}/subjects`. For a browser-only setup with no server work, follow
 [client-side initialization](/docs/frameworks/next/client-side).

@@ -6,9 +6,17 @@ or function goes in as the first argument, unchanged:
 `next build`, `next dev` and `next typegen` fetch `${backendURL}/manifest` and
 write the policy to `node_modules/.cache/c15t/`, outside your source tree, so
 there is nothing to keep out of Git. `next start` serves the built snapshot and
-fetches no policy. Without a `backendURL` option, the build reads
-`NEXT_PUBLIC_C15T_BACKEND_URL`, as `c15t.config.ts` does, so saves and the
-snapshot point at the same project.
+fetches no policy. Without a `backendURL` option, the build reads the
+`backendURL` in `c15t.config.ts`, which defaults to
+`NEXT_PUBLIC_C15T_BACKEND_URL`, so saves and the snapshot point at the same
+project.
+
+The wrapper reads `c15t.config.ts` the way Next.js reads `next.config.ts`, and
+skips the fetch for `mode: hosted()`, `mode: offline()`,
+`manifest({ snapshot })` and `manifest({ source: 'runtime' })`, which read no
+build-time manifest. Those builds never contact the backend. If the file can't
+be read at build time, for example because it imports something Node can't
+load, the build warns and fetches as for `manifest()`.
 
 The wrapper also finds `c15t.config.ts` (or `.mts`, `.js`, `.mjs`) at the
 project root, next to `next.config.ts`, and points `c15t/generated` at the

@@ -50,9 +50,8 @@ Wrap `next.config.ts` in `withConsentManifest`, which finds `c15t.config.ts`:
 
 <include src="../../shared/examples/nextjs/next-config.mdx" />
 
-It also downloads the manifest during builds, which `hosted()` does not read.
-A failed download stops `next build`; pass `onBuildError: 'runtime'` as the
-second argument to let the build continue.
+With `hosted()` it downloads no manifest, so `next build` does not contact the
+backend.
 
 ## Mount the root without state
 

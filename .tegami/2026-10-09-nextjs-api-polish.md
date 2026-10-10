@@ -67,7 +67,13 @@ The wrapper also adds `c15t`, `@c15t/core` and `@c15t/nextjs` to
 `transpilePackages`, so Pages Router server code sees the snapshot and the
 config. A failed download stops `next build` and warns in `next dev`; pass
 `onBuildError` as the second argument, or set `C15T_ON_BUILD_ERROR`, to
-change that. `output: 'export'` skips the download.
+change that. `output: 'export'` skips the download. So do the modes that
+read no build-time manifest, as in Nuxt and Astro: `hosted()`, `offline()`,
+`manifest({ snapshot })` and `manifest({ source: 'runtime' })` in
+`c15t.config.ts`. A build in those modes never contacts the backend, so it no
+longer needs `onBuildError: 'runtime'` when the backend is unreachable. The
+wrapper also reads the config's `backendURL` before
+`NEXT_PUBLIC_C15T_BACKEND_URL`.
 
 The Pages Router gets `withConsentProps()`, a `getServerSideProps` that adds a
 JSON-safe `consent` prop, and `ConsentPageProps` for `AppProps`:
