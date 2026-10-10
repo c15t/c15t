@@ -15,7 +15,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
 - [Customize the interface](./customization/overview.md): Change c15t's consent banner and dialog one step at a time, from a prop to your own markup, and find where each step lives in your framework.
 - [Verify consent](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
-- [Migrate to v3](./upgrade-v3.md): Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
+- [Migrate to v3](./upgrade-v3.md): Upgrade from c15t v2 to v3, or from an earlier v3 alpha. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, upgrade a self-hosted backend and the Node.js SDK, and look up every renamed and removed v3 alpha API.
 
 ## More documentation
 
@@ -26,7 +26,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 ### Next.js
 
 - [Embeds](./frameworks/next/embeds.md): Keep YouTube videos, maps and other iframes out of a Next.js page until their consent category is allowed, with ConsentGate or the iframe blocker in ConsentRoot.
-- [Network blocker](./frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules on ConsentRoot.
+- [Network blocker](./frameworks/next/network-blocker.md): Hold fetch and XMLHttpRequest calls in a Next.js app until their consent category is allowed, with networkBlocker rules in c15t.config.ts.
 - [Scripts](./frameworks/next/scripts.md): Register vendor scripts in a Next.js ConsentRoot, check how each vendor loads, let visitors turn off one vendor and clear stored data after revocation.
 
 ### TanStack Start
@@ -88,12 +88,13 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 - [Consent state reference](./concepts/consent-state.md): How c15t saves choices, gates IAB vendors, hydrates server records and keeps browser tabs and storage in step.
 - [Data fetching](./concepts/data-fetching.md): Choose the recommended build-time policy snapshot or runtime manifest fetching, backend /init, browser resolution or offline rules, and understand where consent choices are saved.
 - [How consent works](./concepts/how-consent-works.md): What c15t decides on each page load, the difference between a permission and a recorded choice, and what happens when a visitor saves.
+- [Consent modes](./concepts/modes.md): Reference for manifest(), hosted() and offline() in every c15t framework package, where each one resolves the visitor's policy, what it adds to first-load JavaScript, the build-time manifest fetch and its failure policy, and the backend URL variable each framework reads.
 - [Policies](./concepts/policies.md): How policy models, prompts and scope decide what c15t asks visitors, where to change the rules, and why a banner may not appear.
 
 ## Guides
 
 - [Banner experiments](./guides/banner-experiments.md): Run A/B tests on consent banner presentation with any feature-flag provider or built-in weighted assignment, and attribute every impression and choice to its arm.
-- [Troubleshooting](./guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences and failed static builds in c15t v3.
+- [Troubleshooting](./guides/troubleshooting.md): Fix a missing banner, analytics that load before consent, choices lost on reload, CORS errors, hydration differences, failed manifest downloads, mode errors and failed static builds in c15t v3.
 - [Verify consent](./guides/verify-consent.md): Check in a production build that vendor requests wait for consent, rejection survives a reload, preferences reopen and privacy signals apply.
 
 ## Customization
@@ -159,4 +160,4 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## Reference
 
-- [Migrate to v3](./upgrade-v3.md): Upgrade from c15t v2 to v3. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, and upgrade a self-hosted backend and the Node.js SDK.
+- [Migrate to v3](./upgrade-v3.md): Upgrade from c15t v2 to v3, or from an earlier v3 alpha. Pick the guide for the v2 package you use (@c15t/nextjs, @c15t/react or the c15t store), rename @c15t/scripts, keep visitors' choices, upgrade a self-hosted backend and the Node.js SDK, and look up every renamed and removed v3 alpha API.

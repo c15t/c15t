@@ -70,50 +70,41 @@ endpoint, policy, styles and consent UI. Remove the vendor's original script,
 SDK initializer or tag-manager entry, so the vendor loads only through c15t.
 
 The vendor pages put the helper in `src/consent-scripts.ts`. If your framework
-quickstart already created a scripts file, such as `lib/scripts.ts` in the
-Next.js guide, add the helper to that array instead of creating a second file.
+quickstart already has a `scripts` array, such as the one in `c15t.config.ts`
+in the Next.js guide, add the helper to that array instead of creating a
+second file.
 The `scripts` export is a configuration, not an initializer. Add it to the c15t provider you already have, at the registration
 point for your framework below. These are edits to that provider, not a second
 provider.
 
 **Next.js**
 
-Import the configuration into the client boundary from your router guide:
+Add the configuration to `scripts` in `c15t.config.ts`, next to
+`next.config.ts`:
 
-```ts
-import { ConsentRoot } from 'c15t/next';
-import { scripts } from './consent-scripts';
+```ts title="c15t.config.ts"
+import { defineConsentConfig } from 'c15t/next';
+import { scripts } from './src/consent-scripts';
+
+export default defineConsentConfig({ scripts });
 ```
 
-Keep the server-resolved `state` and shared `consentConfig` from your
-router guide. Its manifest, init and save URLs stay in effect. Add
-`scripts` as a top-level prop on the existing root:
-
-```tsx
-<ConsentRoot state={state} config={consentConfig} scripts={scripts}>
-  {children}
-</ConsentRoot>
-```
-
-App Router, Pages Router and static export all use this `ConsentRoot` in
-the `'use client'` wrapper `components/consent.tsx`. Keep `scripts` there,
-because a Server Component cannot pass script callbacks to it. See
+Keep the rest of your config, such as `mode` and `routePrefix`, in the
+same call. `ConsentRoot` reads the config in the browser, so the layout
+keeps passing only `state`. App Router, Pages Router and static export all
+read the same file. See
 [Next.js scripts and embeds](../frameworks/next/scripts.md).
 
 **TanStack Start**
 
 Import the configuration into your root route and pass it to the existing
-`ConsentRoot` as a top-level prop. Keep the loader and `backendURL` from
-the [TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
+`ConsentRoot` as a top-level prop. Keep the loader from the
+[TanStack Start quickstart](https://c15t.com/docs/frameworks/tanstack-start/quickstart):
 
 ```tsx title="src/routes/__root.tsx"
 import { scripts } from '../consent-scripts';
 
-<ConsentRoot
-  state={consent}
-  backendURL={backendURL}
-  scripts={scripts}
->
+<ConsentRoot state={consent} scripts={scripts}>
 ```
 
 Import vendor helpers in the root route module, not in a server function.
@@ -132,8 +123,8 @@ import { scripts } from './consent-scripts';
 <ConsentProvider options={{ mode, scripts }}>
 ```
 
-`mode` is the `hosted({ backendURL: 'https://your-project.inth.app' })` value
-from the [React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
+`mode` is the `manifest()` value from the
+[React quickstart](https://c15t.com/docs/frameworks/react/quickstart). Keep the banner,
 dialog and preferences link inside the provider. See
 [React scripts and embeds](../frameworks/react/scripts.md).
 
@@ -162,15 +153,16 @@ callbacks. Write the vendor IDs into `consent-scripts.ts`. See
 Pass the scripts to the existing `c15tVue` plugin call in `src/main.ts`:
 
 ```ts title="src/main.ts"
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
 import { scripts } from './consent-scripts';
 
 app.use(c15tVue, {
-  backendURL: 'https://your-project.inth.app',
+  mode: manifest(),
   scripts,
 });
 ```
 
-Keep your existing backend URL and other options. The plugin starts one
+Keep your existing `mode` and other options. The plugin starts one
 script loader when the app mounts, after it has applied the visitor's stored
 choice. Do not also call `createScriptLoader` from a component. See
 [Vue scripts and embeds](../frameworks/vue/scripts.md).
@@ -178,12 +170,11 @@ choice. Do not also call `createScriptLoader` from a component. See
 **Astro**
 
 Add the scripts to the client entrypoint from the
-[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), the module that the
-integration's `clientEntrypoint` option names. Keep `mode`, `ui` and the
-framework integration in `astro.config.mjs` as they are. If the module
-already exports scripts, combine the two arrays.
+[Astro quickstart](https://c15t.com/docs/frameworks/astro/quickstart), `src/c15t.client.ts`,
+which the integration finds on its own. Keep `astro.config.mjs` as it is.
+If the module already exports scripts, combine the two arrays.
 
-```ts title="src/consent-client.ts"
+```ts title="src/c15t.client.ts"
 import type { C15tClientOptionsExtension } from 'c15t/astro';
 import { scripts } from './consent-scripts';
 
@@ -203,15 +194,13 @@ pass them as a top-level prop:
 
 ```svelte title="src/App.svelte"
 <script lang="ts">
-  import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+  import { ConsentProvider, manifest } from '@c15t/svelte';
   import { scripts } from './consent-scripts';
-
-  const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 </script>
 
-<ConsentManagerProvider {mode} {scripts}>
+<ConsentProvider mode={manifest()} {scripts}>
   <!-- Keep your application, consent UI and preferences link here. -->
-</ConsentManagerProvider>
+</ConsentProvider>
 ```
 
 Retain the styles and consent UI from the [Svelte quickstart](https://c15t.com/docs/frameworks/svelte/quickstart).
@@ -219,22 +208,21 @@ The provider owns the loader and disposes it on unmount.
 
 **SvelteKit**
 
-Add the scripts to the existing root layout provider. Keep the server load
-and its serializable prefetch data from the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart).
+Add the scripts to the existing `ConsentRoot` in the root layout. Keep the
+handle and the layout load from the [SvelteKit quickstart](https://c15t.com/docs/frameworks/sveltekit/quickstart).
 
 ```svelte title="src/routes/+layout.svelte"
 <script lang="ts">
-  import { ConsentManagerProvider, hosted } from '@c15t/svelte';
+  import { ConsentRoot } from '@c15t/svelte';
   import { scripts } from '../consent-scripts';
 
   let { children, data } = $props();
-  const mode = hosted({ backendURL: 'https://your-project.inth.app' });
 </script>
 
-<ConsentManagerProvider {mode} {scripts} prefetch={data.prefetch}>
+<ConsentRoot state={data.consent} {scripts}>
   {@render children()}
   <!-- Keep your consent UI and preferences link here. -->
-</ConsentManagerProvider>
+</ConsentRoot>
 ```
 
 Import vendor helpers in the layout component, not in `+layout.server.ts`:
@@ -261,20 +249,19 @@ to a pasted snippet. See [HTML scripts](../frameworks/html/scripts.md).
 
 **JavaScript**
 
-Pass the scripts to `init()` from `@c15t/browser`, next to your backend
-URL:
+Pass the scripts to `init()` from `@c15t/browser`, next to your mode:
 
 ```ts
-import { init } from '@c15t/browser';
+import { init, manifest } from '@c15t/browser';
 import { scripts } from './consent-scripts';
 
 const consent = init({
-  backendURL: 'https://your-project.inth.app',
+  mode: manifest(),
   scripts,
 });
 ```
 
-Keep the backend URL from your quickstart. With
+Keep the mode from your quickstart. With
 `createConsentRuntime` from `c15t/runtime`, pass `scripts` to it instead.
 A kernel you create yourself needs a loader from
 `c15t/modules/script-loader`. Attach one loader per kernel. See
