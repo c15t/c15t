@@ -1,0 +1,28 @@
+{
+	"baseArms": {},
+	"budgets": {
+		"definitionMismatches": [],
+		"evaluated": 86,
+		"expected": 86,
+		"failed": 1,
+		"missingBaseMetric": 0,
+		"missingDefinitions": [],
+		"missingHeadMetric": 0,
+		"passed": 85,
+		"unevaluatedArm": 0,
+		"unexpectedDefinitions": []
+	},
+	"enforce": false,
+	"failures": [
+		"budget failed @c15t/examples-payload-bench:vue:examples-payload#crossOriginRequests: crossOriginRequests exceeded byte budget by 1.00 bytes"
+	],
+	"ok": false,
+	"profile": "regression",
+	"results": {
+		"compared": 13,
+		"expected": 13,
+		"missingBase": [],
+		"missingHead": [],
+		"unexpected": []
+	}
+}

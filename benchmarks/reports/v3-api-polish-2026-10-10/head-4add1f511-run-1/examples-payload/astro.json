@@ -1,0 +1,241 @@
+{
+	"budgetDefinitions": [
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (gzip, 0 B tolerance).",
+			"metric": "initialJsGzip",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "First-load JavaScript may not grow (brotli, 0 B tolerance).",
+			"metric": "initialJsBrotli",
+			"threshold": 0
+		},
+		{
+			"comparator": "delta-bytes-lte",
+			"description": "A first visit may not add cross-origin requests.",
+			"metric": "crossOriginRequests",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Offline fallback policy data stays out of first-load JavaScript.",
+			"metric": "offlinePolicyBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "Languages other than English stay out of first-load JavaScript.",
+			"metric": "nonEnLocaleBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "The server manifest snapshot stays out of first-load JavaScript.",
+			"metric": "snapshotBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "The browser manifest resolver stays out of first-load JavaScript.",
+			"metric": "resolverBytes",
+			"threshold": 0
+		},
+		{
+			"comparator": "absolute-lte",
+			"description": "The browser does not fetch the manifest on a server-resolved page.",
+			"metric": "manifestRequests",
+			"threshold": 0
+		}
+	],
+	"budgets": [],
+	"commitSha": "4add1f511db74e0bce3caa6c21376010a35dff8b",
+	"environment": {
+		"arch": "arm64",
+		"browserVersion": "149.0.7827.55",
+		"ci": false,
+		"nodeVersion": "v24.21.0",
+		"os": "darwin"
+	},
+	"fixture": {
+		"consentCount": 5,
+		"localeCount": 1,
+		"name": "optin-choice-eu",
+		"notes": [
+			"Fixture backend serves buildBrowserBenchManifest() and its DE resolution."
+		],
+		"scriptCount": 0,
+		"themeComplexity": "minimal"
+	},
+	"framework": "astro",
+	"metadata": {
+		"backendLatencyMs": 0,
+		"bannerVisible": true,
+		"kind": "server",
+		"url": "http://127.0.0.1:4521/"
+	},
+	"metrics": [
+		{
+			"avg": 3982,
+			"median": 3982,
+			"name": "acceptJsGzip",
+			"p95": 3982,
+			"samples": [3982],
+			"unit": "bytes"
+		},
+		{
+			"avg": 12.2,
+			"median": 12,
+			"name": "bannerVisibleMs",
+			"p95": 13,
+			"samples": [12, 12, 12, 12, 13],
+			"unit": "ms"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "crossOriginRequests",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "devtoolsBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 73608,
+			"median": 73608,
+			"name": "dialogJsGzip",
+			"p95": 73608,
+			"samples": [73608],
+			"unit": "bytes"
+		},
+		{
+			"avg": 12661,
+			"median": 12661,
+			"name": "documentGzip",
+			"p95": 12661,
+			"samples": [12661],
+			"unit": "bytes"
+		},
+		{
+			"avg": 342954,
+			"median": 342954,
+			"name": "emittedClientJsGzip",
+			"p95": 342954,
+			"samples": [342954],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "iabBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initialCssGzip",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 60547,
+			"median": 60547,
+			"name": "initialJsBrotli",
+			"p95": 60547,
+			"samples": [60547],
+			"unit": "bytes"
+		},
+		{
+			"avg": 69278,
+			"median": 69278,
+			"name": "initialJsGzip",
+			"p95": 69278,
+			"samples": [69278],
+			"unit": "bytes"
+		},
+		{
+			"avg": 208844,
+			"median": 208844,
+			"name": "initialJsRaw",
+			"p95": 208844,
+			"samples": [208844],
+			"unit": "bytes"
+		},
+		{
+			"avg": 6,
+			"median": 6,
+			"name": "initialJsRequests",
+			"p95": 6,
+			"samples": [6],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "initRequests",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "manifestRequests",
+			"p95": 0,
+			"samples": [0],
+			"unit": "count"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "nonEnLocaleBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "offlinePolicyBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "resolverBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		},
+		{
+			"avg": 0,
+			"median": 0,
+			"name": "snapshotBytes",
+			"p95": 0,
+			"samples": [0],
+			"unit": "bytes"
+		}
+	],
+	"notes": [
+		"Blocked internet requests: https://eu-assets.i.posthog.com/static/array.js"
+	],
+	"package": "@c15t/examples-payload-bench",
+	"runtime": "chromium",
+	"scenario": "astro",
+	"schemaVersion": 1,
+	"suite": "examples-payload",
+	"timestamp": "2026-10-10T09:09:22.355Z"
+}
