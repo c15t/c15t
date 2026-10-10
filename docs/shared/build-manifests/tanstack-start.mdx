@@ -9,8 +9,8 @@ The plugin reads the backend URL from `backendURL`, or from
 unset, the plugin sets it to the URL it used, so app code can read
 `import.meta.env.VITE_C15T_BACKEND_URL` instead of repeating the URL.
 
-When `vite build` or `vite dev` starts, the plugin fetches the policy and
-serves it to server code as `snapshot` from `c15t/generated`. In the browser
+The plugin fetches the policy during `vite build`, or in `vite dev` when the
+server first loads it, and serves it to server code as `snapshot` from `c15t/generated`. In the browser
 bundle, `snapshot` is `undefined`, so the policy never ships to the browser.
 `createConsentStateHandler()` reads the snapshot and the backend URL from
 there, as the

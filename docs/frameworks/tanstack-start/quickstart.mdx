@@ -39,8 +39,8 @@ Add the `consentManifest` plugin to `vite.config.ts`, before `tanstackStart()`:
 
 <include src="../../shared/examples/tanstack-start/vite-config.mdx" />
 
-When `vite build` or `vite dev` starts, the plugin downloads your project's
-public policy from `${backendURL}/manifest` and serves it to server code as
+During `vite build`, or in `vite dev` when the server first loads it, the
+plugin downloads your project's public policy from `${backendURL}/manifest` and serves it to server code as
 `snapshot` from `c15t/generated`. In the browser bundle, `snapshot` is
 `undefined`, so the policy stays on the server. No file is written into your
 project.

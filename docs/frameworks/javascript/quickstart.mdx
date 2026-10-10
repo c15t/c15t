@@ -40,8 +40,9 @@ including any path prefix, in `.env` or wherever you build:
 VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
-`consentManifest` downloads your project's public policy from `/manifest` when
-`vite build` or `vite dev` starts, and serves it to your app as `snapshot`
+`consentManifest` downloads your project's public policy from `/manifest`
+during `vite build`, or in `vite dev` when the app first loads it, and serves
+it to your app as `snapshot`
 from `c15t/generated`. No file is written into your project.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
