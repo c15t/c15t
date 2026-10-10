@@ -215,12 +215,14 @@ const isNamedImportFrom = function isNamedImportFrom(
  *
  * - an identifier nothing in the file declares is a global, named by its text;
  * - `test` in `import { vi as test } from 'vitest'` is `vi`;
- * - `V.vi` after `import * as V from 'vitest'` is `vi`.
+ * - `V.vi` after `import * as V from 'vitest'` is `vi`, as is `V.vi` after
+ *   a default import, `import V from 'vitest'`.
  *
  * An import counts only from a module `modulesOf` lists for its name. Any
  * other local binding, such as a parameter that shadows a global, has none.
  *
- * @param node - An identifier, or a property access on a namespace import.
+ * @param node - An identifier, or a property access on a namespace or
+ * default import.
  * @param modulesOf - For each exported name, the modules that export it.
  * @returns The global or imported name, or `undefined`.
  */
@@ -238,7 +240,8 @@ export const sourceNameOf = function sourceNameOf(
 			Node.isIdentifier(namespace) &&
 			localDeclarationsOf(namespace).some(
 				(declaration) =>
-					Node.isNamespaceImport(declaration) &&
+					(Node.isNamespaceImport(declaration) ||
+						Node.isImportClause(declaration)) &&
 					modulesFor(name).includes(importedModuleOf(declaration) ?? '')
 			);
 		return imported ? name : undefined;
@@ -264,9 +267,13 @@ export const sourceNameOf = function sourceNameOf(
 		: undefined;
 };
 
+/** The modules that export `createRequire`. */
+const NODE_MODULE = { createRequire: ['node:module', 'module'] } as const;
+
 /**
  * Whether an identifier names Node's `require`: the global, or a binding
- * created by `createRequire()` from `node:module`. A parameter or local
+ * created by `createRequire()` from `node:module`, imported by name or
+ * reached through a namespace or default import. A parameter or local
  * declaration that shadows `require` does not count.
  */
 export const isNodeRequire = function isNodeRequire(
@@ -284,16 +291,20 @@ export const isNodeRequire = function isNodeRequire(
 		if (!initializer || !Node.isCallExpression(initializer)) {
 			return false;
 		}
+		const factory = initializer.getExpression();
+		if (Node.isPropertyAccessExpression(factory)) {
+			return sourceNameOf(factory, NODE_MODULE) === 'createRequire';
+		}
 		return (
-			initializer
-				.getExpression()
+			factory
 				.getSymbol()
 				?.getDeclarations()
 				.some((imported) =>
-					isNamedImportFrom(imported, 'createRequire', [
-						'node:module',
-						'module',
-					])
+					isNamedImportFrom(
+						imported,
+						'createRequire',
+						NODE_MODULE.createRequire
+					)
 				) ?? false
 		);
 	});

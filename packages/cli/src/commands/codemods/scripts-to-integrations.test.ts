@@ -62,6 +62,43 @@ function custom(require: (value: string) => string) {
 		}
 	);
 
+	it.each([
+		['namespace', "import * as module from 'node:module';"],
+		['default', "import module from 'module';"],
+	])(
+		'migrates createRequire reached through a %s import',
+		async (_form, importLine) => {
+			const source = `${importLine}
+const require = module.createRequire(import.meta.url);
+const events = require('@c15t/scripts/events');
+`;
+			const { filePath, projectRoot } = await fixture(source);
+			const result = await runScriptsToIntegrationsCodemod({
+				dryRun: false,
+				projectRoot,
+			});
+			expect(result.errors).toEqual([]);
+			expect(await readFile(filePath, 'utf8')).toBe(
+				source.replace('@c15t/scripts/events', '@c15t/integrations/events')
+			);
+		}
+	);
+
+	it('leaves createRequire on a local module object untouched', async () => {
+		const source = `const createRequire = (_url: string) => (value: string) => value;
+const module = { createRequire };
+const require = module.createRequire(import.meta.url);
+const value = require('@c15t/scripts/events');
+`;
+		const { filePath, projectRoot } = await fixture(source);
+		const result = await runScriptsToIntegrationsCodemod({
+			dryRun: false,
+			projectRoot,
+		});
+		expect(result.errors).toEqual([]);
+		expect(await readFile(filePath, 'utf8')).toBe(source);
+	});
+
 	it('leaves a custom createRequire function untouched', async () => {
 		const source = `const createRequire = (_url: string) => (value: string) => value;
 const require = createRequire(import.meta.url);
