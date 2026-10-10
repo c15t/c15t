@@ -335,6 +335,8 @@ Vue and Nuxt:
 | Removed | Use instead |
 | --- | --- |
 | Nuxt options `manifest`, `manifestURL`, `manifestSnapshot`, `buildManifest`, `geoURL`, `initRoute`, `manifestRoute` | `mode`, `routePrefix`, `onBuildError`, and `manifest({ manifestURL, geoURL, snapshot })` from `c15t/vue` |
+| `NUXT_PUBLIC_C15T_MANIFEST_URL` and `NUXT_C15T_MANIFEST_URL` | `mode: manifest({ manifestURL })` in `nuxt.config.ts`. The variables are no longer read, so the manifest URL is fixed at build time. `NUXT_PUBLIC_C15T_BACKEND_URL` and `NUXT_C15T_BACKEND_URL` still work. |
+| Nuxt option `domain` | Nothing. Saves send the page's hostname. |
 | `ConsentPreferencesLink`, `runtime/components/consent-preferences-link.vue` | `ConsentDialogLink`, `consent-dialog-link.vue`. The floating `ConsentDialogTrigger` keeps its name. |
 | `ConsentFrame` | `ConsentGate` |
 | Vue plugin options `backendURL`, `manifest`, `manifestSnapshot`, `manifestURL`, `customFetch`, `domain` | `mode`, a factory from `c15t/vue/vue-plugin` that takes them |
@@ -351,6 +353,7 @@ Svelte and SvelteKit (`@c15t/svelte` was not public in v2):
 | `c15tPreload` | Part of `consentManifest()` from `@c15t/svelte/vite` |
 | `ConsentManifestOptions`, `consentManifest({ outputFile })` | Removed |
 | `loadConsent(event, { backendURL, manifest, initRoute, shared })` returning `prefetch` | `c15tHandle({ mode, routePrefix, snapshot, backendURL })` in `src/hooks.server.ts`, and `export { loadConsent as load }`, which returns `{ consent }` |
+| `resolveConsent({ manifest })` from `@c15t/svelte/server` | `resolveConsent({ snapshot })` |
 | `<ConsentManagerProvider prefetch={...}>` | `<ConsentRoot state={data.consent}>` |
 
 Astro:

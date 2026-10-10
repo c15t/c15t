@@ -66,6 +66,11 @@ Removed, with no deprecated alias (these were v3 alpha only):
 - Nuxt options `manifest`, `manifestURL`, `manifestSnapshot`, `buildManifest`,
   `geoURL`, `initRoute` and `manifestRoute`. Use `mode`, `routePrefix`,
   `onBuildError` and `manifest({ manifestURL, geoURL, snapshot })`.
+- The `NUXT_PUBLIC_C15T_MANIFEST_URL` and `NUXT_C15T_MANIFEST_URL`
+  environment variables. Set `mode: manifest({ manifestURL })` in
+  `nuxt.config.ts`. `NUXT_PUBLIC_C15T_BACKEND_URL` and
+  `NUXT_C15T_BACKEND_URL` still work.
+- The Nuxt option `domain`. Saves send the page's hostname.
 - `ConsentPreferencesLink`. It is `ConsentDialogLink`, at
   `runtime/components/consent-dialog-link.vue`. The floating
   `ConsentDialogTrigger` stays.

@@ -69,5 +69,7 @@ SvelteKit), `Frame` (use `ConsentGate`), `createSvelteKitConsentRouteHandlers`
 (use `createConsentRoute`), `c15tPreload` (part of `consentManifest()`),
 `ConsentManifestOptions`, `consentManifest()`'s `outputFile`, `exportName`,
 `importSource` and `rootDir` options, `loadConsent`'s `backendURL`,
-`manifest`, `initRoute` and `shared` options, and the `prefetch` it returned.
+`manifest`, `initRoute` and `shared` options, and the `prefetch` it returned,
+and the `manifest` option of `resolveConsent` from `@c15t/svelte/server` (use
+`snapshot`).
 `@c15t/svelte` now needs SvelteKit 2.63 or later, for `$app/env`.
