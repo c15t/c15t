@@ -73,9 +73,11 @@ having clicked anything. Turn GPC off and confirm the restriction ends.
 ## Check failure behavior
 
 Block the backend URL in DevTools (right-click the request, then **Block
-request URL**) and reload. No banner appears, and no optional vendor loads.
-A missing banner must never mean "allowed". Then unblock it and confirm the
-page recovers.
+request URL**) and reload. No banner appears, and vendors that wait for consent
+send no requests. A helper that always loads, such as `gtag` with its default
+`loadMode`, still loads; check that it reports denied consent. A missing
+banner must never mean "allowed". Then unblock it and confirm the page
+recovers.
 
 ## Check the interface
 

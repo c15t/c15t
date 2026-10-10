@@ -309,7 +309,7 @@ Run the project's typecheck, tests and production build. Serve the production bu
 			unknown:
 				" Unless the setup is offline, also block the backend URL (hosted) or make the app's transport fail (custom): no banner shows and tools that wait for consent send no requests.",
 		}
-	)} An always-loading helper still loads in these cases; check that it signals denied consent.
+	)} An always-loading helper loads before any choice; check that it signals denied consent.
 2. Reject all: tools that wait for consent send no requests, and always-loading helpers signal denied consent or stay opted out; ${byMode(
 		mode,
 		{

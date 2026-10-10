@@ -555,7 +555,7 @@ describe('c15t setup instructions', () => {
 		expect(offline).not.toContain('block the backend URL');
 		for (const instructions of [hosted, offline]) {
 			expect(instructions).toContain(
-				'An always-loading helper still loads in these cases; check that it signals denied consent.'
+				'An always-loading helper loads before any choice; check that it signals denied consent.'
 			);
 		}
 	});
