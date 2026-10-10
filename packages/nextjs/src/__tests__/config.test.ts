@@ -90,6 +90,23 @@ describe('defineConsentConfig', () => {
 		});
 	});
 
+	test.each(['/', '//'])(
+		'rejects routePrefix %s, with or without proxy',
+		(routePrefix) => {
+			for (const proxy of [false, true]) {
+				expect(() =>
+					defineConsentConfig({
+						backendURL: 'https://consent.example.com',
+						proxy,
+						routePrefix,
+					})
+				).toThrow(
+					"@c15t/nextjs: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
+				);
+			}
+		}
+	);
+
 	test('accepts relative paths and absolute http(s) URLs', () => {
 		expect(() =>
 			defineConsentConfig({

@@ -11,6 +11,7 @@
 
 import type { ConsentJourneyOption } from '@c15t/core';
 import type { ConsentMode } from '@c15t/core/modes';
+import { normalizeRoutePrefix } from '@c15t/core/server';
 
 import type { ConsentClientOptions } from './types';
 
@@ -79,7 +80,8 @@ export interface ConsentConfig extends ConsentClientOptions {
 	 * The server never fetches its own route.
 	 *
 	 * No default: without it there is no route to serve. Leave it unset
-	 * when every page resolves consent on the server.
+	 * when every page resolves consent on the server. `/` is rejected: a
+	 * catch-all route at the site root would catch every page.
 	 */
 	routePrefix?: string;
 
@@ -171,7 +173,14 @@ const assertConsentConfig = function assertConsentConfig(
 		);
 	}
 	assertConsentURL('backendURL', backendURL);
-	assertConsentURL('routePrefix', config.routePrefix);
+	if (
+		typeof config.routePrefix === 'string' &&
+		config.routePrefix.startsWith('/')
+	) {
+		normalizeRoutePrefix('@c15t/nextjs', config.routePrefix);
+	} else {
+		assertConsentURL('routePrefix', config.routePrefix);
+	}
 	if (config.proxy && config.routePrefix === undefined) {
 		throw new TypeError(
 			'@c15t/nextjs: `proxy` sends saves through the consent route, so it needs `routePrefix`.'
@@ -213,9 +222,9 @@ const assertConsentConfig = function assertConsentConfig(
  *
  * @returns The validated, frozen config.
  * @throws {TypeError} When the mode needs a backend URL and none is set, a
- * URL is neither an absolute `http(s)` URL nor a `/`-relative path, `proxy`
- * is set without `routePrefix`, or `mode` or `journey` is not one this
- * package knows.
+ * URL is neither an absolute `http(s)` URL nor a `/`-relative path,
+ * `routePrefix` is `/`, `proxy` is set without `routePrefix`, or `mode` or
+ * `journey` is not one this package knows.
  * @example
  * ```ts
  * // c15t.config.ts

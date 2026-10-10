@@ -256,6 +256,18 @@ describe('resolveConsent wiring', () => {
 		expect(resolved.initialPolicyResolution?.status).toBe('matched');
 	});
 
+	test('rejects a config with routePrefix / that skipped defineConsentConfig', async () => {
+		await expect(
+			resolveConsent({
+				backendURL: 'https://consent.example.com',
+				config: { routePrefix: '/' },
+				request: requestOf({}),
+			})
+		).rejects.toThrow(
+			"@c15t/nextjs: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
+		);
+	});
+
 	test('onError replaces the warning; production stays quiet', async () => {
 		const failing = vi.fn<typeof globalThis.fetch>(() =>
 			Promise.reject(new Error('network down'))

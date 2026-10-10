@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest';
 
 import { createConsentRoute } from '../api';
 import { defineConsentConfig } from '../config';
+import { createPagesConsentRoute } from '../pages';
 import { MANIFEST_FIXTURE } from './manifest-fixture';
 
 const params = (...segments: string[]) => ({
@@ -117,6 +118,26 @@ describe('createConsentRoute', () => {
 		expect(response.status).toBe(201);
 		expect(String(fetch.mock.calls[0]?.[0])).toBe(
 			'https://consent.example.com/subjects'
+		);
+	});
+
+	test('rejects a config with routePrefix / when the route is created', () => {
+		// A config passed here skips defineConsentConfig's check.
+		expect(() =>
+			createConsentRoute({
+				backendURL: 'https://consent.example.com',
+				config: { routePrefix: '/' },
+			})
+		).toThrow(
+			"@c15t/nextjs: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
+		);
+		expect(() =>
+			createPagesConsentRoute({
+				backendURL: 'https://consent.example.com',
+				config: { routePrefix: '/' },
+			})
+		).toThrow(
+			"@c15t/nextjs: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
 		);
 	});
 });

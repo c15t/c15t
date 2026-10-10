@@ -5,6 +5,7 @@
  * @internal
  */
 import type { ConsentMode } from '@c15t/core/modes';
+import { normalizeRoutePrefix } from '@c15t/core/server';
 import {
 	backendURL as generatedBackendURL,
 	snapshot as generatedSnapshot,
@@ -57,6 +58,28 @@ export interface ConsentSource {
 
 const isPath = (url: string | undefined): url is string =>
 	url !== undefined && url.startsWith('/') && !url.startsWith('//');
+
+/**
+ * The config's route prefix, checked: a config passed straight to a helper
+ * skips `defineConsentConfig`. A `/`-relative prefix goes through the
+ * shared check, which rejects `/`.
+ *
+ * @param config - The config the helper reads.
+ * @returns The prefix without a trailing slash, or `undefined`.
+ * @throws {TypeError} When the prefix is `/`.
+ * @internal
+ */
+export const readConfigRoutePrefix = function readConfigRoutePrefix(
+	config: ConsentConfig | undefined
+): string | undefined {
+	const routePrefix = config?.routePrefix;
+	if (routePrefix === undefined) {
+		return undefined;
+	}
+	return routePrefix.startsWith('/')
+		? normalizeRoutePrefix('@c15t/nextjs', routePrefix)
+		: routePrefix.replace(/\/+$/u, '');
+};
 
 /** The backend URL: explicit, then the mode's, the config's, the env's, the build's. */
 const resolveBackendURL = function resolveBackendURL(
@@ -121,7 +144,7 @@ export const resolveConsentSource = function resolveConsentSource(
 ): ConsentSource {
 	const config = options.config ?? userConfig;
 	const mode: ConsentMode = config?.mode ?? { type: 'manifest' };
-	const routePrefix = config?.routePrefix;
+	const routePrefix = readConfigRoutePrefix(config);
 	const backendURL = resolveBackendURL(options, config, mode);
 	const forcedManifest =
 		options.manifestURL !== undefined || options.snapshot !== undefined;
