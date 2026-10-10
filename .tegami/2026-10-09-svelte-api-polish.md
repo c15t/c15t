@@ -20,9 +20,10 @@ The Svelte quickstart is now one Vite plugin and one component:
 `@c15t/svelte` exports `manifest()`, `hosted()` and `offline()` itself, so
 Svelte apps import nothing from `@c15t/browser`. `manifest()` with no options
 uses the snapshot and backend URL that `consentManifest()` from
-`@c15t/svelte/vite` downloaded and serves as `c15t/generated`. `hosted()` with
-no options uses that backend URL too, as in Vue and React, so a Svelte app no
-longer passes `hosted({ backendURL })`. `offline()` is now core's.
+`@c15t/svelte/vite` downloaded and serves as `c15t/generated`.
+`manifest({ manifestURL })` fetches that URL when the page loads instead of
+using the snapshot. `hosted()` with no options uses that backend URL too, as
+in Vue and React, so a Svelte app no longer passes `hosted({ backendURL })`. `offline()` is now core's.
 
 SvelteKit config lives in one place, the handle:
 

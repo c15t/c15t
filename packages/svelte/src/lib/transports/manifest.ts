@@ -20,9 +20,10 @@ export type ManifestModeOptions = BrowserManifestOptions;
  * With no options it uses what `consentManifest()` from
  * `@c15t/svelte/vite` downloaded: the snapshot, and the backend URL it
  * read from `VITE_C15T_BACKEND_URL`. Saves still go to that backend.
- * Without a snapshot, as after `source: 'runtime'` or a dev server that
- * could not reach the backend, the manifest is fetched when the page
- * loads.
+ * With `manifestURL`, that URL is fetched when the page loads and the
+ * build's snapshot is not used. Without a snapshot, as after
+ * `source: 'runtime'` or a dev server that could not reach the backend,
+ * the manifest is fetched from the backend when the page loads.
  *
  * Only English base copy is bundled. Another language's copy loads the
  * first time a visitor resolves to it.
@@ -49,9 +50,13 @@ export const manifest = function manifest(
 ): BrowserManifestModeFactory {
 	return browserManifest({
 		backendURL,
-		// `source: 'runtime'` skips the build's snapshot; a snapshot of your
-		// own replaces it.
-		snapshot: options.source === 'runtime' ? undefined : snapshot,
+		// A `manifestURL` is fetched at runtime and `source: 'runtime'` asks
+		// for the backend's, so both skip the build's snapshot. A snapshot of
+		// your own replaces it.
+		snapshot:
+			options.manifestURL || options.source === 'runtime'
+				? undefined
+				: snapshot,
 		...options,
 	} as ManifestModeOptions);
 };
