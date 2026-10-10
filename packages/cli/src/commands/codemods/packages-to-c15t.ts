@@ -643,7 +643,7 @@ const transformStylesheet = function transformStylesheet(
 	for (const directive of findStylesheetImports(text, extname(filePath))) {
 		const targets = directive.targets ?? [directive];
 		const fates = targets.map((target) =>
-			targetFate(target.specifier, directive.placed, plan)
+			targetFate(target.specifier, target.placed, plan)
 		);
 		if (!directive.bounded || fates.every((fate) => fate === undefined)) {
 			continue;

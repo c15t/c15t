@@ -348,6 +348,30 @@ body
 `);
 	});
 
+	it('migrates a Sass import list that ends in a media query', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/first.scss': `@import '@c15t/react/styles.css', './theme' screen;
+`,
+				'src/last.scss': `@import './theme', '@c15t/react/styles.css' screen;
+`,
+				'src/theme.sass': `@import '@c15t/react/styles.css', "@c15t/react/iab/styles.css" print
+`,
+			}
+		);
+
+		// The media query applies to the last target alone, so it stays there.
+		expect(await read('src/last.scss')).toBe(`/* ${TODO} */
+@import './theme', 'c15t/react/styles.css' screen;
+`);
+		expect(await read('src/first.scss')).toBe(`@import './theme' screen;
+`);
+		expect(await read('src/theme.sass')).toBe(`/* ${TODO} */
+@import "c15t/react/iab/styles.css" print
+`);
+	});
+
 	it('migrates Sass @use and @forward of c15t stylesheets', async () => {
 		const css = `@use '@c15t/react/styles.css';
 @forward '@c15t/react/styles.css';

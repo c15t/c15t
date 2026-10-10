@@ -21,8 +21,14 @@ export interface StylesheetTarget {
 	specifierEnd: number;
 	/** The target's first character: its quote or `url(`. */
 	start: number;
-	/** After the target's closing quote or `)`. */
+	/**
+	 * After the target's closing quote or `)`, or after the media query or
+	 * other condition that follows the last target of a list, which applies
+	 * to that target alone.
+	 */
 	end: number;
+	/** A media query or other condition follows the target. */
+	placed: boolean;
 }
 
 /**
@@ -279,7 +285,8 @@ const loadRuleAt = function loadRuleAt(
 /**
  * The targets of a Sass import that lists several, or `undefined` when it
  * names one or anything but a URL follows a comma. Each target is read whole,
- * so a comma inside quotes or `url()` doesn't split it.
+ * so a comma inside quotes or `url()` doesn't split it. A media query or
+ * other condition after the last target belongs to that target alone.
  */
 const targetsOf = function targetsOf(
 	text: string,
@@ -297,6 +304,7 @@ const targetsOf = function targetsOf(
 		}
 		targets.push({
 			end: url.after,
+			placed: false,
 			specifier: text.slice(url.start, url.end),
 			specifierEnd: url.end,
 			specifierStart: url.start,
@@ -308,11 +316,39 @@ const targetsOf = function targetsOf(
 		}
 		cursor += 1;
 	}
-	// Anything after the last target, such as a media query, makes this a
-	// plain CSS import that the codemod treats as placed.
-	const ended = cursor >= end || (text[cursor] === ';' && cursor + 1 === end);
 	const [first, second, ...rest] = targets;
-	return ended && first && second ? [first, second, ...rest] : undefined;
+	if (!(first && second)) {
+		return undefined;
+	}
+	const last = rest.at(-1) ?? second;
+	let conditionEnd = text[end - 1] === ';' ? end - 1 : end;
+	while (conditionEnd > cursor && /\s/u.test(text[conditionEnd - 1] ?? '')) {
+		conditionEnd -= 1;
+	}
+	// A media query or other condition after the last target makes that
+	// target a plain CSS import that the codemod treats as placed.
+	if (conditionEnd > cursor) {
+		last.end = conditionEnd;
+		last.placed = true;
+	}
+	return [first, second, ...rest];
+};
+
+/**
+ * Whether a media query or other condition follows a directive's URL, or
+ * the last target of a Sass list. `conditions` is the first character after
+ * the directive's first URL.
+ */
+const isPlaced = function isPlaced(
+	text: string,
+	conditions: number,
+	end: number,
+	targets: StylesheetImport['targets']
+): boolean {
+	if (targets) {
+		return targets.at(-1)?.placed ?? false;
+	}
+	return conditions < end && text[conditions] !== ';';
 };
 
 /**
@@ -384,8 +420,7 @@ export const findStylesheetImports = function findStylesheetImports(
 					(syntax.lineComments || !followedBy.startsWith('//'))),
 			end,
 			followed: followedBy !== '',
-			placed:
-				targets === undefined && conditions < end && text[conditions] !== ';',
+			placed: isPlaced(text, conditions, end, targets),
 			specifier: text.slice(url.start, url.end),
 			specifierEnd: url.end,
 			specifierStart: url.start,
