@@ -220,10 +220,11 @@ Do this before installing anything; the result decides which path you take when 
 2. Classify the existing consent setup. Walk this tree:
 
    \`\`\`
-   Does any package.json or lockfile list c15t or a browser-side @c15t/* package (such as
-   @c15t/nextjs, @c15t/react, @c15t/svelte, @c15t/browser or @c15t/scripts), or does a page
-   load c15t.js with a script tag (from a CDN, an Inth project or a self-hosted backend)?
-   Server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli) don't count.
+   Does the target app's package.json, or what it resolves to in the lockfile, list c15t
+   or a browser-side @c15t/* package (such as @c15t/nextjs, @c15t/react, @c15t/svelte,
+   @c15t/browser or @c15t/scripts), or does a page load c15t.js with a script tag (from a
+   CDN, an Inth project or a self-hosted backend)? Other workspaces don't count, and
+   neither do server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli).
    ├── Yes, every c15t package and pinned script URL is 3.x → keep it; check its storage mode (Storage mode below).
    ├── Yes, any c15t package is below 3.0 → Upgrade path.
    └── No

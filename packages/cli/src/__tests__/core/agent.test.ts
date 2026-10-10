@@ -524,17 +524,17 @@ describe('c15t setup instructions', () => {
 		);
 	});
 
-	it('treats a browser-side c15t package or c15t.js script tag as an existing setup', () => {
+	it('treats a browser-side c15t package or c15t.js script tag in the target app as an existing setup', () => {
 		const instructions = createC15tSetupInstructions();
-		expect(instructions).toContain(
-			'list c15t or a browser-side @c15t/* package'
-		);
+		expect(instructions).toContain("Does the target app's package.json");
+		expect(instructions).toContain('or a browser-side @c15t/* package');
 		for (const name of ['@c15t/svelte', '@c15t/browser']) {
 			expect(instructions).toContain(name);
 		}
 		expect(instructions).toContain('load c15t.js with a script tag');
+		expect(instructions).toContain("Other workspaces don't count");
 		expect(instructions).toContain(
-			"Server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli) don't count."
+			'neither do server and tooling packages (@c15t/backend, @c15t/node-sdk, @c15t/cli)'
 		);
 	});
 
