@@ -37,8 +37,7 @@ because it covers every way a permission changes. Never treat
 
 <include src="../examples/storybook-svelte/consent-callbacks.mdx" />
 
-Pass the object as `callbacks={callbacks}` on `ConsentProvider`, or on
-`ConsentRoot` in SvelteKit. The
+Pass the object as `callbacks={callbacks}` on `ConsentProvider`. The
 provider reads it once, when it is created. Keep the functions in a module or
 in the component that renders the provider; on SvelteKit, not in a server
 load, because a load cannot send functions to the browser.

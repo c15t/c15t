@@ -6,14 +6,14 @@ group: frameworks
 
 ## Import `ConsentGate` and wrap an embed
 
-Import `ConsentGate` from `c15t/vue/runtime/components/consent-gate.vue`.
+Import `ConsentGate` from `c15t/vue/vue-plugin`.
 Put the embed in the default slot and a placeholder in the `placeholder`
 slot:
 
 <include src="../../../shared/examples/vue/embed.mdx" />
 
 The iframe is absent from the page until the visitor allows measurement. The
-placeholder uses `ConsentPreferencesLink` so the visitor can open preferences
+placeholder uses `ConsentDialogLink` so the visitor can open preferences
 from it.
 
 <import src="../../../shared/vue/components/consent-gate.mdx#behavior" />

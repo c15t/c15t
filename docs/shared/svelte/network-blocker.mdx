@@ -22,10 +22,12 @@ Pass it to the provider:
 {/* example: fragment */}
 
 ```svelte
+<!-- Svelte: src/App.svelte -->
 <ConsentProvider mode={manifest()} {scripts} {networkBlocker}>
-```
 
-In SvelteKit, pass the same prop to `ConsentRoot`.
+<!-- SvelteKit: src/routes/+layout.svelte -->
+<ConsentRoot state={data.consent} {scripts} {networkBlocker}>
+```
 
 The provider reads `networkBlocker` once, when it is created. Remount the
 provider to change the rules.

@@ -74,7 +74,7 @@ The blocker runs in the browser only. It starts holding matching requests
 when the c15t plugin runs, before your app hydrates. While consent is
 unknown, a matching request waits instead of failing. Once the policy and the
 stored choice apply, a waiting request is sent if consent allows it and
-blocked otherwise. In server manifest mode, the default with an absolute `backendURL`,
+blocked otherwise. When the server resolves the policy, in the default `manifest()` mode or `hosted()`,
 the policy arrives with the page, so waiting requests are decided as soon as the
 app mounts.
 

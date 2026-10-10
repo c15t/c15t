@@ -5,20 +5,20 @@ these files:
 
 | File | Role |
 | --- | --- |
-| `vite.config.ts` | `consentManifest` from `@c15t/svelte/vite` fetches the policy and serves it to server code as `c15t/generated`. |
-| `src/hooks.server.ts` | `c15tHandle()` holds the mode, `manifest()` by default, and the snapshot on `event.locals.c15t`. |
-| `src/routes/+layout.server.ts` | `loadConsent` resolves each visitor from the snapshot and returns `{ consent }`. |
-| `src/routes/+layout.svelte` | `<ConsentRoot state={data.consent}>` hands the result to the browser. |
+| `vite.config.ts` | `consentManifest` from `@c15t/svelte/vite` fetches the policy. |
+| `src/hooks.server.ts` | `c15tHandle()`, whose default mode, `manifest()`, resolves from the fetched policy. |
+| `src/routes/+layout.server.ts` | `export { loadConsent as load }` resolves each visitor. |
+| `src/routes/+layout.svelte` | `ConsentRoot state={data.consent}` renders the result. |
 
 The plugin's position in `plugins` does not matter. It fetches the policy
 once Vite has resolved its config, before anything compiles. Without a
-`backendURL` option, it reads `PUBLIC_C15T_BACKEND_URL`, then
-`VITE_C15T_BACKEND_URL`, from the environment or `.env`.
+`backendURL` option, it reads `PUBLIC_C15T_BACKEND_URL` from the environment
+or `.env`.
 
 The plugin detects the `sveltekit()` plugin and keeps the snapshot on the
-server. Server code gets it from `c15t/generated`; in the browser bundle,
-`snapshot` is `undefined`. `c15tHandle` and `loadConsent` read it themselves,
-so most apps never import it.
+server. `loadConsent` and `createConsentRoute()` read it without an import.
+The browser bundle never holds it: `ConsentRoot` gets the resolved policy
+from `loadConsent` instead.
 
 Static hosts follow [build a static site](/docs/frameworks/sveltekit/rendering#build-a-static-site)
 instead.
@@ -32,8 +32,9 @@ plugin and fetches the policy too, following the same rules when the fetch
 fails. SvelteKit 2.68 also runs the plugin during `svelte-kit sync`, but logs
 a failed fetch and continues.
 
-To apply policy edits without a rebuild, pass
-`c15tHandle({ mode: manifest({ source: 'runtime' }) })`, with `manifest` from
-`@c15t/svelte/kit`. The server then fetches and caches the policy at runtime.
-To have the backend resolve every visit instead, pass `mode: hosted()`. The
-layout load then calls the backend's `/init`, and so does the browser.
+To apply policy edits without a rebuild, set
+`c15tHandle({ mode: manifest({ source: 'runtime' }) })` and follow
+[fetch the manifest at runtime](/docs/frameworks/sveltekit/rendering#fetch-the-manifest-at-runtime).
+To have the backend resolve every visit instead, set
+`c15tHandle({ mode: hosted() })`. The layout load then calls the backend's
+`/init`, and so does the browser on pages the server did not resolve.

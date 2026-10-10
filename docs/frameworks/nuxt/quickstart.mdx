@@ -49,20 +49,23 @@ the policy, so build again to switch projects.
 NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
-With an absolute backend URL, the module fetches your project's public policy
-once, during `nuxt build` and when `nuxt dev` starts, and embeds it in the
-server bundle.
-It also adds two routes to your Nuxt server, `/api/c15t/manifest` and
-`/api/c15t/init`. The server resolves each visitor from the bundled policy
-and the request's location and language headers, so rendering a page never
-waits on Inth. Consent saves still go to Inth.
-[Data fetching](/docs/concepts/data-fetching) compares this with calling the
-backend on every request.
+The module's default mode, `manifest()`, fetches your project's public
+policy once, during `nuxt build` and when `nuxt dev` starts, and embeds it in
+the server bundle. It also adds one consent route to your Nuxt server,
+`/api/c15t/**`, which answers `/api/c15t/init` and `/api/c15t/manifest`. The
+server resolves each visitor from the bundled policy and the request's
+location and language headers, so rendering a page never waits on Inth. The
+browser bundle carries no policy and no resolver. Consent saves still go to
+Inth. [Data fetching](/docs/concepts/data-fetching) compares this with
+calling the backend on every request.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
-To apply policy edits without rebuilding, set `buildManifest: false` and
-`manifest: 'server'`. The routes then fetch and cache the policy at runtime.
+To apply policy edits without rebuilding, set
+`c15t: { mode: manifest({ source: 'runtime' }) }`, with `manifest` imported
+from `c15t/vue`. The server then fetches and caches the policy at runtime.
+[Rendering and deployment](/docs/frameworks/nuxt/rendering) covers the other
+modes.
 
 ## Mount the consent UI
 
@@ -71,7 +74,7 @@ Add `ConsentRoot` and a preferences link to `app.vue`:
 <include src="../../shared/examples/nuxt/root.mdx" />
 
 `ConsentRoot` renders the banner when the visitor's policy asks for one and
-loads the preference dialog when it opens. `ConsentPreferencesLink` renders a
+loads the preference dialog when it opens. `ConsentDialogLink` renders a
 button that reopens preferences, labelled with the dialog's title in the
 visitor's language: Privacy Settings in English. It renders nothing until the
 policy offers preferences.

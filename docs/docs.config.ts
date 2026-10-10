@@ -367,7 +367,7 @@ export default defineDocsConfig({
 								'components/consent-banner',
 								'components/consent-manager',
 								'components/consent-widget',
-								'components/consent-preferences-link',
+								'components/consent-dialog-link',
 								'components/consent-dialog-trigger',
 								'components/consent-gate',
 								'components/iab-consent-banner',
@@ -439,7 +439,7 @@ export default defineDocsConfig({
 								'components/consent-banner',
 								'components/consent-manager',
 								'components/consent-widget',
-								'components/consent-preferences-link',
+								'components/consent-dialog-link',
 								'components/consent-dialog-trigger',
 								'components/consent-gate',
 								'components/iab-consent-banner',
@@ -505,7 +505,7 @@ export default defineDocsConfig({
 								'components/consent-banner',
 								'components/consent-banner-deferred',
 								'components/consent-dialog',
-								'components/consent-dialog-trigger',
+								'components/consent-dialog-link',
 								'components/iab-consent-banner',
 								'components/iab-consent-dialog',
 							],
@@ -574,7 +574,7 @@ export default defineDocsConfig({
 						{
 							pages: [
 								'components',
-								'components/consent-manager-provider',
+								'components/consent-provider',
 								'components/consent-banner',
 								'components/consent-dialog',
 								'components/consent-widget',
@@ -643,7 +643,7 @@ export default defineDocsConfig({
 						{
 							pages: [
 								'components',
-								'components/consent-manager-provider',
+								'components/consent-root',
 								'components/consent-banner',
 								'components/consent-dialog',
 								'components/consent-widget',

@@ -10,9 +10,9 @@ group: frameworks
 
 The blocker shares a separate chunk with the script loader. The chunk loads
 only on pages with `networkBlocker` rules or `scripts`, and matching requests
-wait until it has loaded. Add the `c15tPreload()` Vite plugin so `c15tHandle`
-links the chunk from the page's `<head>` and the browser fetches it with the
-app's own code.
+wait until it has loaded. `consentManifest()` lets `c15tHandle` link the
+chunk from the page's `<head>`, so the browser fetches it with the app's own
+code.
 [Preload the script loader](./scripts#preload-the-script-loader) shows the
 setup.
 

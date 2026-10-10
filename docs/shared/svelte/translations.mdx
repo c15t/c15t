@@ -45,7 +45,8 @@ language; the keys you leave out keep c15t's copy:
 In `hosted()` mode, the backend's copy for the visitor's language is the base,
 and your `i18n` messages for that language replace it key by key. Keys you do
 not list keep the backend's copy, including copy edited in your Inth project.
-The same applies to the copy in a SvelteKit `prefetch`. c15t picks the
+The same applies to the copy SvelteKit's `loadConsent` resolves on the
+server. c15t picks the
 messages for the exact language first, then for its primary language, so a
 visitor resolved to `de-AT` gets your `de` messages when there is no `de-AT`
 entry. Messages for other languages are not applied.

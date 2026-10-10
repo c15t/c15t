@@ -4,14 +4,25 @@ description: Fix common c15t Vue plugin problems, from unresolved imports and a 
 group: frameworks
 ---
 
-## Vite cannot resolve #imports or #c15t/composables
+## Vite fails to pre-bundle c15t's .vue files
 
-**Check.** Look in the `plugins` array of `vite.config.ts`. The c15t Vite
-plugin is missing.
+**Check.** `vite dev` reports an error from dependency optimization for a
+`.vue` file under `@c15t/vue`, or `manifest()` throws `c15t: manifest() has
+no backend URL`. `consentManifest()` is missing from the `plugins` array of
+`vite.config.ts`.
 
-**Fix.** Add `c15tVue()` from `c15t/vue/vite` to the `plugins` array, next to
-`@vitejs/plugin-vue`. See the
-[quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugins).
+**Fix.** Add `consentManifest()` from `c15t/vue/vite` to the `plugins` array,
+next to `@vitejs/plugin-vue`, and set `VITE_C15T_BACKEND_URL`. See the
+[quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugin).
+
+## app.use() throws "pass `mode`"
+
+**Check.** The plugin options have no `mode`. Earlier v3 alphas took
+`backendURL`, `manifest`, `manifestURL` and `manifestSnapshot` on the plugin.
+
+**Fix.** Pass `mode: manifest()`, `hosted()` or `offline()` from
+`c15t/vue/vue-plugin`. Move `backendURL` into the mode, such as
+`hosted({ backendURL })`, or let `consentManifest()` supply it.
 
 <include src="../../shared/vite-build-manifest-troubleshooting.mdx" />
 
@@ -34,22 +45,21 @@ composables inside `setup`.
 ## Why is there no banner?
 
 **Check.** [DevTools](/docs/frameworks/vue/components/dev-tools) shows the
-matched policy. Without a bundled snapshot, find the `/init` request in the
-Network tab.
+matched policy. With `hosted()`, find the `/init` request in the Network tab;
+with `manifest({ source: 'runtime' })`, the `/manifest` request.
 
 **Fix.** Work through these causes in order:
 
 1. **The visitor's policy asks for no banner.** A policy with prompt `none`
    shows no banner, which is common in opt-out regions. See
    [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
-2. **The bundled snapshot resolves the unknown-location policy.** With
-   `manifestSnapshot` and no `geoURL`, every visitor gets the policy your
-   project assigns when the location is unknown. Check that rule, then
-   rebuild.
+2. **`manifest()` resolves the unknown-location policy.** Without `inputs`
+   or `geoURL`, every visitor gets the policy your project assigns when the
+   location is unknown. Check that rule, then rebuild.
 3. **`ConsentRoot` is inside a route that unmounts.** Put it in the root
    component.
-4. **The backend did not answer.** Without a snapshot, `/init` must
-   return 200. A CORS error means your site's origin is missing from the
+4. **The backend did not answer.** With `hosted()`, `/init` must return
+   200; with a runtime manifest, `/manifest` must. A CORS error means your site's origin is missing from the
    Inth project's trusted origins. While resolution fails, c15t shows no UI and
    keeps every optional category denied.
 5. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
@@ -64,23 +74,14 @@ but the plugin has no `iab` option, or has `iab: false` or
 `iab: { enabled: false }`. The standard banner does not handle the IAB model,
 so c15t throws rather than leave the visitor with no consent UI.
 `app.use()` throws when the policy arrives with `prefetch`; otherwise the
-error is uncaught once `/init` answers, and `ConsentRoot` renders nothing.
+error is uncaught once the policy resolves, and `ConsentRoot` renders
+nothing.
 
 **Fix.** If the site uses IAB TCF, pass `iab` to the plugin, such as
 `app.use(c15tVue, { iab: {} })`. See [IAB TCF](/docs/frameworks/vue/iab).
 If it does not, remove the `iab` model from the policy for that region in
 your Inth project or policy pack. A backend that answers `gvl: null` turns
 IAB off for that request, and nothing throws.
-
-## The browser requests /api/c15t/init
-
-**Check.** Look for `backendURL` and `manifest` in the plugin options. When
-`backendURL` is unset, the plugin defaults to `/api/c15t` and requests the
-`/api/c15t/init` route that only the Nuxt module provides.
-`manifest: 'server'` calls the same route.
-
-**Fix.** Set `backendURL` to your backend. Use `manifest: 'client'` or leave
-`manifest` unset in a plain Vue app.
 
 ## Tokens in my CSS do not apply
 

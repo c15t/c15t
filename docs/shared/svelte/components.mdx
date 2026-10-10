@@ -3,13 +3,13 @@
 ## Every component
 
 Import every component from `@c15t/svelte`, except the dev tools panel,
-which comes from `@c15t/svelte/devtools`. Render them inside
-`ConsentProvider`, or `ConsentRoot` in SvelteKit; a component outside it throws
+which comes from `@c15t/svelte/devtools`. Render them inside the provider:
+`ConsentProvider` in a Svelte app, or `ConsentRoot`, which renders
+`ConsentProvider`, in a SvelteKit root layout. A component outside it throws
 `c15t: no v3 consent context`.
 
 | Component | Renders | Page |
 | --- | --- | --- |
-| `ConsentProvider` | Nothing. Creates and starts the consent runtime. `ConsentRoot` wraps it in SvelteKit. | [ConsentProvider](./components/consent-manager-provider) |
 | `ConsentBanner` | The first-layer banner when the policy asks for one. | [ConsentBanner](./components/consent-banner) |
 | `ConsentDialog` | The preference dialog, loaded on first use. | [ConsentDialog](./components/consent-dialog) |
 | `ConsentWidget` | The preference controls inline, for a settings page. | [ConsentWidget](./components/consent-widget) |

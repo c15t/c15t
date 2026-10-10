@@ -1,6 +1,6 @@
 ---
 title: Rendering and deployment
-description: Choose how c15t resolves consent on an Astro site, from static output with hosted mode to server output with manifest mode, prerendered pages, server islands, ClientRouter and offline development.
+description: Choose how c15t resolves consent on an Astro site, from static output with hosted() or browser-resolved manifest() to server output with manifest(), prerendered pages, server islands, ClientRouter and offline development.
 group: frameworks
 ---
 
@@ -13,7 +13,8 @@ browser finishes the job. A page rendered per request can.
 | Your site | Astro setup | c15t mode | Banner in the first HTML |
 | --- | --- | --- | --- |
 | Static pages on any static host | `output: 'static'`, no adapter | `hosted()` | No. The browser renders it after `/init` |
-| Pages rendered on each request | `output: 'server'` and an adapter | `manifest()` | Yes |
+| Static pages, with the policy resolved in the browser | `output: 'static'`, no adapter | `manifest({ resolve: 'browser' })` | No. The browser renders it after reading the manifest |
+| Pages rendered on each request | `output: 'server'` and an adapter | `manifest()`, the default | Yes |
 | A server build with some prerendered pages | `output: 'server'`, `prerender = true` on those pages | `manifest()` | Only on the request-rendered pages |
 | Cached pages that still need a per-visitor banner | An adapter, and `ConsentBannerDeferred` in the layout | `manifest()` | Yes, from a server island |
 | Local development and tests with no backend | Either output | `offline()` | Depends on the output |
@@ -37,9 +38,34 @@ returning visitor keeps their choice, because it comes from their own cookie.
 The browser calls the backend from your site's origin, so that origin must be
 in the Inth project's trusted origins.
 
-`manifest()` does not work here. It adds on-demand routes, and without an
-adapter `astro build` stops with an error that names them. Use `hosted()` for a
-purely static host.
+The default `manifest()` does not work here. It injects an on-demand route,
+and without an adapter `astro build` stops with an error that names it.
+
+## Static output with browser resolution
+
+`manifest({ resolve: 'browser' })` resolves the policy in the browser from
+your project's manifest, with no request to the backend's `/init`:
+
+{/* example: fragment */}
+
+```js title="astro.config.mjs"
+import svelte from '@astrojs/svelte';
+import { defineConfig } from 'astro/config';
+import c15t, { manifest } from 'c15t/astro';
+
+export default defineConfig({
+	integrations: [svelte(), c15t({ mode: manifest({ resolve: 'browser' }) })],
+});
+```
+
+The build downloads the manifest and the integration prerenders it as a
+static file at `/api/c15t/manifest`, so no adapter is needed. The browser
+fetches that file from your own origin, loads the resolver, and resolves the
+policy. It has no request location, so without `inputs` or `geoURL` every
+visitor gets the policy your project assigns when the location is unknown.
+Use `hosted()` when your policy differs by region and you have no location
+source. Consent saves go to the backend, so your site's origin must be in
+the Inth project's trusted origins.
 
 ## Server output with `manifest()`
 
@@ -55,11 +81,13 @@ visitor's decision, so keep it out of shared caches. See
 
 `manifest()` resolves each request on the server from your project's public
 policy file. By default the build downloads that file and bundles it, so a
-render never waits on the backend for the policy. With `buildManifest: false`,
-in `astro dev` when the fetch fails, or with `onBuildError: 'runtime'`, the
-server downloads and caches the file at runtime. The browser asks the
-injected `/api/c15t/init` route when it needs a decision, and saves consent to
-the backend URL. `manifest()` needs that URL as `backendURL` or
+render never waits on the backend for the policy. With
+`manifest({ source: 'runtime' })`, in `astro dev` when the fetch fails, or
+with `onBuildError: 'runtime'`, the server downloads and caches the file at
+runtime. The browser asks the injected `/api/c15t/init` route when it needs a
+decision, and saves consent to the backend URL. A server-rendered page ships
+only the code that saves consent; the code that resolves a policy loads when
+a page asks again. `manifest()` needs the backend URL as `backendURL` or
 `PUBLIC_C15T_BACKEND_URL`; without it, the config fails to load.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling
 `/init` for every render.
@@ -83,11 +111,10 @@ for the policy and shows the banner when it arrives.
 
 Change the budget in the integration options:
 
+{/* example: fragment */}
+
 ```js title="astro.config.mjs (partial)"
-c15t({
-	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-	middleware: { timeoutMs: 800 },
-});
+c15t({ middleware: { timeoutMs: 800 } });
 ```
 
 Set `timeoutMs: false` to wait however long the backend takes. With
@@ -100,15 +127,13 @@ List routes that should not pay for that, such as health checks or webhooks.
 A prefix also covers the routes below it, and `Astro.locals.c15t` stays unset
 on a skipped route:
 
+{/* example: fragment */}
+
 ```js title="astro.config.mjs (partial)"
-c15t({
-	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-	middleware: { skip: ['/api/webhooks', '/healthz'] },
-});
+c15t({ middleware: { skip: ['/api/webhooks', '/healthz'] } });
 ```
 
-The integration's own `/api/c15t/init` and `/api/c15t/manifest` routes are
-always skipped.
+The integration's own route under `routePrefix` is always skipped.
 
 ## Prerender pages in a server build
 
@@ -164,7 +189,7 @@ swap, listen for `astro:page-load`. See the
 backend. Not recommended for production environments.
 
 ```js title="astro.config.mjs (partial)"
-c15t({ mode: offline(), ui: 'svelte' });
+c15t({ mode: offline() });
 ```
 
 Import `offline` from `c15t/astro`. Choices persist in the visitor's cookie and
@@ -182,9 +207,10 @@ script shows it in the first paint to visitors with nothing stored.
   In DevTools Network, the browser does not request `/init` on a server-rendered
   page.
 - **Static output or a prerendered page:** the page source has no banner
-  markup. In DevTools Network, the browser requests `/init` from your backend,
-  or `/api/c15t/init` in a server build, and the banner appears after it
-  returns.
+  markup. In DevTools Network, the browser requests `/init` from your backend
+  with `hosted()`, `/api/c15t/manifest` with
+  `manifest({ resolve: 'browser' })`, or `/api/c15t/init` in a server build,
+  and the banner appears after it returns.
 - **Server island:** the page source has no banner markup. In DevTools
   Network, a request to `/_server-islands/ConsentBanner` returns it.
 - **Every path:** vendor requests stay absent until you allow their category,

@@ -31,22 +31,12 @@ or vendors.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte@alpha c15t@alpha @c15t/browser@alpha @c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
 
-Svelte uses its own package, `@c15t/svelte`. The `c15t` package has no Svelte
-entry point; the app imports the bundled policy from its `c15t/generated`
-module. `@c15t/browser` provides the browser manifest transport, and
-`@c15t/integrations` holds the vendor helpers.
-
-## Register vendor scripts
-
-Create `src/scripts.ts`. PostHog waits for measurement permission:
-
-<include src="../../shared/examples/svelte/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key. Remove any
-`<script>` tags or SDK imports that already load PostHog, so c15t is the only
-thing that loads it.
+Svelte uses its own package, `@c15t/svelte`, which exports the components and
+the `manifest()`, `hosted()` and `offline()` modes. `@c15t/integrations`
+holds the vendor helpers. The `c15t` package has no Svelte entry point, so
+you don't install it.
 
 ## Bundle the policy at build time
 
@@ -54,11 +44,16 @@ Add `consentManifest` to the plugins in `vite.config.ts`:
 
 <include src="../../shared/examples/svelte/vite-config.mdx" />
 
+Set `VITE_C15T_BACKEND_URL` to your project's backend URL, including any path
+prefix, in `.env` or your build environment:
+
+```sh title=".env"
+VITE_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
 `consentManifest` downloads your project's public policy from
-`<backendURL>/manifest` when `vite build` or `vite dev` starts, and serves it
-to your app as `snapshot` from `c15t/generated`. Without a `backendURL`
-option, the plugin reads `VITE_C15T_BACKEND_URL`. Set it to your project's
-backend URL, including any path prefix, in `.env` or your build environment.
+`<backendURL>/manifest` when `vite build` or `vite dev` starts, and hands it
+and the backend URL to `manifest()`. No file is written into your project.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
@@ -66,22 +61,31 @@ backend URL, including any path prefix, in `.env` or your build environment.
 
 ## Mount the provider
 
-Render `ConsentManagerProvider` around your app in `src/App.svelte`:
+Render `ConsentProvider` around your app in `src/App.svelte`, with the
+vendor scripts c15t should load:
 
 <include src="../../shared/examples/svelte/app.mdx" />
 
-The `<main>` element stands in for your app's content. `manifest()` resolves
-the policy from the bundled snapshot and saves choices to `backendURL`, the
-same `VITE_C15T_BACKEND_URL` the plugin reads. Vite writes the variable into
-the bundle at build time, so changing it means a rebuild.
+The `<main>` element stands in for your app's content. `manifest()` from
+`@c15t/svelte`, with no options, resolves the policy from the snapshot
+`consentManifest` downloaded and saves choices to the same
+`VITE_C15T_BACKEND_URL`. Vite writes the variable into the bundle at build
+time, so changing it means a rebuild.
+
+PostHog waits for measurement permission. Replace `phc_your_project_key`
+with your PostHog project key. Remove any `<script>` tags or SDK imports that
+already load PostHog, so c15t is the only thing that loads it.
 
 The browser resolves the snapshot without a request when the policy does not
 depend on geography, or when it knows the country and region the policy needs.
-Pass them through the `inputs` option, for example from an edge worker, to
-keep regional resolution on the snapshot. Otherwise it calls the backend's
-`/init` and uses its resolved policy and translations. Those visitors wait
-for a backend round trip and can receive newer policy than the build
-snapshot. The policy and resolver code are part of the browser bundle.
+Pass them as `manifest({ inputs: { country, region } })`, for example from an
+edge worker, or set `geoURL` to a same-origin route that returns them, to keep
+regional resolution on the snapshot. Otherwise it calls the backend's `/init`
+and uses its resolved policy and translations. Those visitors wait for a
+backend round trip and can receive newer policy than the build snapshot. The
+bundle carries the policy and English copy. The resolver loads as its own
+chunk when the app starts, and a visitor who resolves to another language
+loads that language's copy the first time it is needed.
 
 The provider starts consent when it mounts and stops it when it unmounts, so
 keep it at the root of the app.
@@ -97,9 +101,22 @@ There is no stylesheet to import. Each component adds the rules it uses to
 `@c15t/svelte/styles.css` yourself and pass `styles={false}` to the provider;
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
-To apply policy edits without a rebuild, remove the plugin and the
-`c15t/generated` import, and use `hosted({ backendURL })` from `@c15t/svelte` as the
-mode. The browser then resolves consent through the backend's `/init`.
+To apply policy edits without a rebuild, pass `manifest({ source: 'runtime' })`,
+which fetches the manifest from the backend when the page loads. To have the
+backend resolve every visitor's location, pass `hosted()` with the backend
+URL; unlike `manifest()`, it does not read it from `consentManifest`:
+
+{/* example: fragment */}
+
+```svelte title="src/App.svelte (partial)"
+<script lang="ts">
+	import { ConsentProvider, hosted } from '@c15t/svelte';
+
+	const mode = hosted({ backendURL: import.meta.env.VITE_C15T_BACKEND_URL });
+</script>
+
+<ConsentProvider {mode} {scripts}>
+```
 
 ## Verify consent
 

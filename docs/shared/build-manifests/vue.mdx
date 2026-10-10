@@ -1,37 +1,31 @@
 <include src="../build-time-manifest.mdx" />
 
-Add `consentManifest` from `c15t/vue/vite` to your existing Vite plugins:
+`consentManifest()` from `c15t/vue/vite` downloads the policy when
+`vite build` or `vite dev` starts:
 
 <include src="../examples/vue/vite-config.mdx" />
 
-The plugin reads `VITE_C15T_BACKEND_URL`, or a `backendURL` option. When
-`vite build` or `vite dev` starts, it fetches the policy and serves it as
-`snapshot` from `c15t/generated`. Pass `manifest()` from
-`c15t/vue/vue-plugin` as the plugin's `mode` in `src/main.ts`:
+Without a `backendURL` option, the plugin reads `VITE_C15T_BACKEND_URL` from
+the environment or `.env`. `manifest()` from `c15t/vue/vue-plugin`, with no
+options, reads the downloaded policy and the same backend URL, so `src/main.ts`
+needs no import from `c15t/generated`:
 
-{/* example: fragment */}
+<include src="../examples/vue/main.mdx" />
 
-```ts title="src/main.ts"
-import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+The browser resolves the visitor's policy from the bundled snapshot, with no
+`/manifest` or `/init` request. Without `inputs` or `geoURL`, every visitor
+gets the policy your project assigns when the location is unknown, so
+configure that fallback rule. The app bundles the policy and English copy,
+and loads the resolver as its own chunk when it starts.
 
-app.use(c15tVue, { mode: manifest() });
-```
-
-`manifest()` reads the snapshot and the backend URL from `c15t/generated`.
-The browser resolves policy from the bundled snapshot without fetching
-`/manifest`. When the policy depends on a location the page does not know,
-it asks the backend's `/init`, unless you pass `inputs` or `geoURL`. The
-bundle includes the policy and the resolver. Keep your scripts and other
-plugin options.
-
-When the build has no snapshot, as in `vite dev` after a failed fetch,
-`snapshot` is `undefined`, and the browser fetches
-`${backendURL}/manifest` instead.
+When the build has no snapshot, as in `vite dev` after a failed download,
+`manifest()` fetches `${backendURL}/manifest` when the app starts.
 
 <include src="../build-time-manifest-notes.mdx" />
 
 <include src="../vite-build-manifest.mdx" />
 
-For policy updates without a rebuild, use `hosted()` from
-`c15t/vue/vue-plugin`, which asks the backend's `/init` on each page load, or
-`manifest({ source: 'runtime' })`, which fetches the manifest at runtime.
+For policy edits without a rebuild, use
+[`manifest({ source: 'runtime' })`](/docs/frameworks/vue/rendering#fetch-the-manifest-at-runtime),
+or [`hosted()`](/docs/frameworks/vue/rendering#ask-the-backend-for-each-visitors-policy)
+when you need the backend's geolocation.

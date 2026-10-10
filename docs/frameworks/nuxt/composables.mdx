@@ -39,7 +39,7 @@ composables do not work there.
 
 ## Composables on the server
 
-The composables work during server rendering. In server manifest mode, the default with an absolute `backendURL`,
+The composables work during server rendering. When the server resolves the policy, in the default `manifest()` mode or `hosted()`,
 they return the visitor's resolved policy and stored
 choice, so the server HTML and
 the first client render agree. On prerendered and cached routes, and with

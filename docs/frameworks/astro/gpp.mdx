@@ -13,17 +13,13 @@ privacy signals from it.
 
 ## Turn on GPP
 
-Add `gpp` to the integration options, next to the `mode` from the
+Add `gpp` to the integration options from the
 [quickstart](/docs/frameworks/astro/quickstart):
 
 {/* example: fragment */}
 
 ```js title="astro.config.mjs (partial)"
-c15t({
-	mode: manifest({ backendURL: 'https://your-project.inth.app' }),
-	gpp: true,
-	ui: 'svelte',
-});
+c15t({ gpp: true });
 ```
 
 Replace `https://your-project.inth.app` with your project's backend URL.

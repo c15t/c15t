@@ -16,10 +16,10 @@ Network tab, find the init request.
    shows no banner, which is common in opt-out regions. See
    [why the banner may be absent](/docs/concepts/policies#why-the-banner-may-be-absent).
 2. **`ConsentRoot` is inside a page that unmounts.** Put it in `app.vue`.
-3. **The backend did not answer.** In server manifest mode,
-   `/api/c15t/init` must return 200. With `manifest: 'client'`, your
-   `manifestURL` must return 200. While resolution fails, c15t shows no UI and keeps
-   every optional category denied.
+3. **The policy did not resolve.** In the default `manifest()` mode,
+   `/api/c15t/init` must return 200. With `hosted()`, the backend's `/init`
+   must. While resolution fails, c15t shows no UI and keeps every optional
+   category denied.
 4. **A stored choice exists.** Clear the `c15t` cookie and localStorage entry,
    or use a private window.
 
@@ -43,14 +43,15 @@ throws.
 
 ## The banner is not in the server HTML
 
-**Check.** Only request-time rendering in server manifest mode or with
-`manifest: false` puts the banner in the HTML.
+**Check.** Only request-time rendering in `manifest()` or `hosted()` mode
+puts the banner in the HTML. `manifest({ resolve: 'browser' })` and
+`offline()` resolve in the browser.
 Prerendered routes, routes with a `prerender`, `swr`, `isr` or `cache` rule,
 `nuxt generate` output and `ssr: false` send the same HTML to every visitor,
 so the banner appears after the browser resolves the policy.
 
 **Fix.** If a route needs the banner in its HTML, render it at request time
-in server manifest mode or with `manifest: false`.
+with `manifest()`, the default, or `hosted()`.
 
 **Check.** With server rendering, the render waits at most `timeoutMs` for the
 policy, 500 milliseconds by default. A slower backend renders the page without
@@ -103,33 +104,37 @@ functions.
 `nuxt dev` starts, and waits at most 10 seconds. When the download fails,
 `nuxt build` stops with an error that starts with `could not fetch the
 consent manifest from <url> during the build`. `nuxt dev` logs the same
-message as a warning, and the server routes fetch the policy at runtime. The
+message as a warning, and the server fetches the policy at runtime. The
 part in parentheses names the cause:
 
 - `fetch failed` with a network error, or `no response within 10 seconds`:
   the build machine can't reach the backend.
+
 - `/manifest responded 404 Not Found`, or another status: the URL doesn't
   point at your project's backend, or the backend is down.
+
 - `returned an invalid consent manifest`: the URL answers, but not with a c15t
   manifest.
 
-With `onBuildError: 'fail'` or `buildManifest: true`, these errors also
-appear:
+- `no backend URL is set`: neither `backendURL` nor
+  `NUXT_PUBLIC_C15T_BACKEND_URL` is set. A missing URL follows the same rule
+  as a failed download: `nuxt build` stops and `nuxt dev` warns.
+
+With `onBuildError: 'fail'`, this error also appears:
 
 - `build-time manifests require an absolute upstream URL`: `backendURL` or
-  `manifestURL` is a relative path, such as the default `/api/c15t`. Without
-  `onBuildError: 'fail'`, the module skips the fetch instead.
-- `buildManifest requires server manifest mode`: `manifest: 'client'` is also
-  set.
+  `manifestURL` is a relative path. Without `onBuildError: 'fail'`, the
+  module skips the fetch instead.
 
 **Fix.** Set `NUXT_PUBLIC_C15T_BACKEND_URL`, or `backendURL` under the `c15t`
 key, to your project's absolute backend URL, including any path prefix; the
-module adds `/manifest`. To download from another address, set `manifestURL`
-to the full manifest URL, which is used as written. Make sure the build
-machine can reach the backend. To deploy while it is down, build with
-`C15T_ON_BUILD_ERROR=runtime`, or set `onBuildError: 'runtime'`. To never
-fetch at build time, set `buildManifest: false`. `nuxt prepare` doesn't
-download the manifest, so installing dependencies works offline.
+module adds `/manifest`. To download from another address, set
+`mode: manifest({ manifestURL })` to the full manifest URL, which is used as
+written. Make sure the build machine can reach the backend. To deploy while
+it is down, build with `C15T_ON_BUILD_ERROR=runtime`, or set
+`onBuildError: 'runtime'`. To never fetch at build time, set
+`mode: manifest({ source: 'runtime' })`. `nuxt prepare` doesn't download the
+manifest, so installing dependencies works offline.
 
 ## Policy edits don't show up
 
@@ -140,26 +145,54 @@ saves, not the policy.
 
 **Fix.** Build again after editing policies, translations or vendors. If your
 CI caches build output, skip the cache for that build. To pick up edits
-without rebuilding, set `buildManifest: false` and `manifest: 'server'`.
+without rebuilding, set `mode: manifest({ source: 'runtime' })`.
 
-## Static hosting returns 404 for /api/c15t/manifest
+## Static hosting returns 404 for /api/c15t/init
 
-**Check.** A static host has no Nuxt server routes, so `/api/c15t/manifest`
-does not exist after deployment.
+**Check.** A static host has no Nuxt server routes, so `/api/c15t/init` and
+`/api/c15t/manifest` do not exist after deployment. `nuxt generate` warns
+about this when `mode` is the default `manifest()`.
 
-**Fix.** Use `manifest: 'client'` with an
-absolute `manifestURL`, or leave `manifest` unset, as in
+**Fix.** Set `mode: manifest({ resolve: 'browser' })` with
+`routePrefix: false`, or `mode: hosted()`, as in
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
-If the browser reports a CORS error for the manifest, add your site's origin
-to the Inth project's trusted origins.
+If the browser reports a CORS error for a consent save or `/init`, add your
+site's origin to the Inth project's trusted origins.
+
+## The module throws "`c15t.mode` in nuxt.config.ts is a transport"
+
+**Check.** `nuxt.config.ts` imports `manifest`, `hosted` or `offline` from
+`c15t/vue/vue-plugin`. Those return browser transports, which cannot travel
+through runtime config.
+
+**Fix.** Import them from `c15t/vue`, the module entry, which returns plain
+data.
+
+## Options from an earlier alpha have no effect
+
+**Check.** The `c15t` key sets `manifest`, `manifestURL`, `manifestSnapshot`,
+`buildManifest`, `geoURL`, `initRoute` or `manifestRoute`. The module no
+longer reads them.
+
+**Fix.** Use `mode` and `routePrefix`:
+
+| Earlier option | Now |
+| --- | --- |
+| `manifest: 'server'` | Nothing: `manifest()` is the default |
+| `manifest: 'client'` | `mode: manifest({ resolve: 'browser' })` |
+| `manifest: false` | `mode: hosted()` |
+| `manifestURL`, `geoURL`, `manifestSnapshot` | `manifest({ manifestURL })`, `manifest({ geoURL })`, `manifest({ snapshot })` |
+| `buildManifest: false` | `mode: manifest({ source: 'runtime' })` |
+| `buildManifest: true` | `onBuildError: 'fail'` |
+| `initRoute`, `manifestRoute` | `routePrefix`, one catch-all for both |
 
 ## Every visitor gets the same policy on a static site
 
-**Check.** In `manifest: 'client'` mode the browser has no request location,
-so it resolves the policy for an unknown location.
+**Check.** With `manifest({ resolve: 'browser' })` the browser has no request
+location, so it resolves the policy for an unknown location.
 
-**Fix.** Set `geoURL` to an endpoint that returns the visitor's `country` and
-`region`.
+**Fix.** Pass `geoURL` to `manifest()` with a route on your site that returns
+the visitor's `country` and `region`, or use `hosted()`.
 
 ## A composable throws "Kernel not found"
 

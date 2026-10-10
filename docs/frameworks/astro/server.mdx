@@ -1,6 +1,6 @@
 ---
 title: Server API
-description: How the c15t middleware resolves consent for each Astro request, what Astro.locals.c15t holds, the helpers in c15t/astro/server, the injected init and manifest routes, and how to cache server-rendered pages safely.
+description: How the c15t middleware resolves consent for each Astro request, what Astro.locals.c15t holds, the helpers in c15t/astro/server, the injected consent route, and how to cache server-rendered pages safely.
 group: frameworks
 ---
 
@@ -36,9 +36,9 @@ location, language and GPC, the `user-agent`, the mode's configured consent
 headers and, while the visitor has no stored choice, the experiment arm. Over
 `https` or to a loopback host it also carries the consent cookie, never the
 rest of the cookie jar; over plain HTTP to any other host it carries no
-cookie. The render never requests the integration's own init and manifest
-routes: a `hosted({ url })` or `manifest({ backendURL })` that resolves to
-them on the request's origin renders without a server decision.
+cookie. The render never requests the integration's own consent route: a
+backend URL that resolves to it on the request's origin renders without a
+server decision.
 
 ## Type `Astro.locals.c15t`
 
@@ -62,7 +62,7 @@ line is needed.
 
 On a prerendered page, `snapshot` is what a first-time visitor would get, and
 `prerendered` is `true`. On a route listed in `middleware.skip`, and on the
-integration's own init and manifest routes, `Astro.locals.c15t` is unset.
+integration's own consent route, `Astro.locals.c15t` is unset.
 
 ## Use consent in server code
 
@@ -110,39 +110,43 @@ next visitor.
   `If-None-Match` with `304`, so a CDN can cache it. With one, it returns the
   build's snapshot with no cache headers.
 
-## The injected routes
+## The injected route
 
-In `manifest()` mode the integration adds two on-demand routes:
+In `manifest()` mode the integration injects one on-demand route,
+`${routePrefix}/[...path]`, which is `/api/c15t/[...path]` by default:
 
-| Route | Returns |
+| Request | Returns |
 | --- | --- |
-| `GET /api/c15t/init` | The policy for this request, resolved from the bundled or cached manifest. The browser calls it on prerendered pages and after a failed server resolution |
+| `GET /api/c15t/init` | The policy for this request, resolved from the bundled or cached manifest. The browser calls it on prerendered pages, after a failed server resolution, and when a page's consent changes after it loads |
 | `GET /api/c15t/manifest` | Your project's public policy file: the build's snapshot when the build bundled one, otherwise proxied from the backend with its cache headers |
 
-The routes are the consent route handler from `@c15t/core/server`, shared
+The route is the consent route handler from `@c15t/core/server`, shared
 with the Next.js, TanStack Start, SvelteKit and Nuxt adapters. A vendor list that cannot be loaded
 fails the init request rather than answering `gvl: null`, which the browser
-would read as "IAB is off". The manifest route passes upstream only a
+would read as "IAB is off". The manifest path passes upstream only a
 `language` query parameter that looks like a language tag.
 
-With a bundled manifest, the routes use the build's snapshot and never fetch
+With a bundled manifest, the route uses the build's snapshot and never fetches
 the manifest. Without one, the server keeps the manifest in memory and
 refreshes it in the background.
 On Cloudflare, c15t hands that refresh to the adapter's `waitUntil`, so the
 request context stays alive until it finishes. The browser saves consent to
-the backend URL directly, not to these routes.
+the backend URL directly, not to this route.
 
-Change the paths with `endpoints.initPath` and `endpoints.manifestPath`.
+Change the path with `routePrefix: '/consent'`. With
+`manifest({ resolve: 'browser' })` and no adapter, the integration prerenders
+the route and writes only `${routePrefix}/manifest`, which the browser
+fetches. `hosted()` and `offline()` inject no route.
 
 ### Serve the routes yourself
 
-With `endpoints: false`, `astro build` no longer needs the routes, and your
-app serves `init` and `manifest` at the configured paths.
-`createConsentRouteHandlers({ options })` from `c15t/astro/api` returns
-`init(request, { locals })` and `manifest(request, { locals })`, the same
-handlers the injected routes use. Pass the resolved integration options. The
-browser still calls `endpoints.initPath`, so keep that path pointing at your
-route.
+With `routePrefix: false`, the integration injects nothing and `astro build`
+no longer needs an adapter for it. The browser then asks the backend's
+`/init` on pages the server did not resolve. To answer `init` and `manifest`
+from a route of your own, export the handlers the injected route uses,
+`createConsentRouteHandlers({ options })` from `c15t/astro/server`, with the
+resolved integration options. Its `GET(request, { locals })` dispatches by
+the last path segment.
 
 ## Helpers in `c15t/astro/server`
 

@@ -18,7 +18,7 @@ Add `gpp` to the provider in `src/App.svelte`, keeping your existing `mode`,
 {/* example: fragment */}
 
 ```svelte title="src/App.svelte"
-<ConsentManagerProvider {mode} {scripts} gpp>
+<ConsentProvider mode={manifest()} {scripts} gpp>
 ```
 
 `gpp` on its own uses the defaults. Pass an object to change them, such as

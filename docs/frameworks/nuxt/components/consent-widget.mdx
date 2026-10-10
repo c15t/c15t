@@ -12,7 +12,7 @@ or account settings page without an import:
 <include src="../../../shared/examples/nuxt/privacy-page.mdx" />
 
 Keep `ConsentRoot` in `app.vue` too, so visitors on other pages still get the
-banner. In server manifest mode, the default with an absolute `backendURL`, the
+banner. When the server resolves the policy, in the default `manifest()` mode or `hosted()`, the
 widget renders on the server with the visitor's recorded choice already applied to the
 switches.
 

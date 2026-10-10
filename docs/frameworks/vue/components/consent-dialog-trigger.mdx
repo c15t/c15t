@@ -13,7 +13,7 @@ then renders it:
 
 ```ts title="src/main.ts"
 app.use(c15tVue, {
-	backendURL: 'https://your-project.inth.app',
+	mode: manifest(),
 	scripts,
 	showTrigger: true,
 	triggerDefaultPosition: 'bottom-left',
@@ -21,8 +21,7 @@ app.use(c15tVue, {
 ```
 
 When you compose the surfaces without `ConsentRoot`, import the trigger from
-`c15t/vue/runtime/components/consent-dialog-trigger.vue` and render it
-yourself:
+`c15t/vue/vue-plugin` and render it yourself:
 
 <include src="../../../shared/examples/vue/consent-surfaces.mdx" />
 
@@ -38,6 +37,6 @@ All trigger options go in the object you pass to `app.use(c15tVue, ...)`.
 
 ## Next steps
 
-- [ConsentPreferencesLink](/docs/frameworks/vue/components/consent-preferences-link)
+- [ConsentDialogLink](/docs/frameworks/vue/components/consent-dialog-link)
   is an inline alternative for a footer.
 - [c15tVue plugin](/docs/frameworks/vue/plugin) lists every option.
