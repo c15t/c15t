@@ -49,6 +49,7 @@ import { createRoot, hydrateRoot } from 'react-dom/client';
 import type { Root } from 'react-dom/client';
 import { renderToString } from 'react-dom/server';
 import { vi } from 'vitest';
+import { userEvent } from 'vitest/browser';
 
 import { validateStoredConsentEnvelope } from '../../../core/src/modules/persistence/record-codec';
 import { encodeStoredConsentEnvelopeJson } from '../../../core/src/modules/persistence/writer/encode';
@@ -220,7 +221,11 @@ export const createFrameworkPolicyDriver = ({
 	}) => Promise<KernelConfig>;
 }) => {
 	const createPolicySession: CreatePolicySession = async (setup) => {
-		await Promise.resolve();
+		// Compare action styling without a pointer left over a previous
+		// control: a parked pointer gives that button its :hover tint.
+		await userEvent.hover(document.documentElement, {
+			position: { x: 1, y: 1 },
+		});
 		let resolution = prepare(setup.policy);
 		let response: InitResponse = {
 			cmpId: setup.policy.model === 'iab' ? 123 : undefined,
