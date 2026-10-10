@@ -245,7 +245,9 @@ environment mode hides undeclared variables from tasks, so list
 
 A missing backend URL follows the same policy as a failed download: a
 production build stops, dev warns, and an explicit `'runtime'` logs a notice
-and continues.
+and continues. Astro and Nuxt are stricter in `manifest()` mode, including
+`manifest({ snapshot })`: the browser saves consent to the backend, so a
+missing backend URL stops `astro dev` and `nuxt dev` as well.
 
 The download is skipped without an error when the build cannot use a
 snapshot:
