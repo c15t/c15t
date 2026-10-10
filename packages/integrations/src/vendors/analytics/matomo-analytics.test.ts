@@ -4,6 +4,7 @@ import {
 	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -24,6 +25,21 @@ describe('matomoAnalytics', () => {
 			persistAfterConsentRevoked: undefined,
 			src: 'https://analytics.example.com/matomo.js',
 		});
+	});
+
+	it('logs and skips the script when the tracker or script URL is missing', () => {
+		for (const options of [
+			{},
+			{ trackerUrl: 'https://analytics.example.com/matomo.php' },
+			{ scriptUrl: 'https://analytics.example.com/matomo.js' },
+			{ scriptUrl: '   ', trackerUrl: '   ' },
+		]) {
+			expectSkippedScript(
+				() => matomoAnalytics(options),
+				{ category: 'measurement', id: 'matomo-analytics' },
+				'matomoAnalytics: missing matomoUrl, cloudId, or explicit trackerUrl and scriptUrl'
+			);
+		}
 	});
 
 	it('resolves cloud IDs and queue bootstrap commands', () => {

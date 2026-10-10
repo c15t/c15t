@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 export interface XPixelContent {
@@ -171,8 +171,9 @@ export interface XPixelOptions {
  *
  * @param options - The options for the X Pixel script
  * @returns The X Pixel script configuration
- * @throws {Error} `xPixel: missing or invalid pixelId` when `pixelId` is
- *   empty or only whitespace.
+ * @remarks When `pixelId` is missing or blank, the
+ *   helper logs `xPixel: missing or invalid pixelId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -187,8 +188,16 @@ export const xPixel = function xPixel({
 	pixelId,
 	scriptSrc,
 }: XPixelOptions): Script {
+	const normalizedPixelId = readId(pixelId);
+	if (normalizedPixelId === undefined) {
+		return skipMissingId('xPixel', 'pixelId', {
+			category: 'marketing',
+			manifest: xPixelManifest,
+		});
+	}
+
 	const resolved = resolveManifest(xPixelManifest, {
-		pixelId: requireId('xPixel', 'pixelId', pixelId),
+		pixelId: normalizedPixelId,
 		scriptSrc: resolveScriptUrl(
 			scriptSrc,
 			'https://static.ads-twitter.com/uwt.js'

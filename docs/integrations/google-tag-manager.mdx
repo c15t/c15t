@@ -25,7 +25,7 @@ export const scripts = [googleTagManager({ id: 'GTM-XXXXXXX' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `id` | Required | Container ID, for example `GTM-1234XXX`. The helper trims it. Empty or whitespace-only values throw. |
+| `id` | Required | Container ID, for example `GTM-1234XXX`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `dataLayer` | `'dataLayer'` | Queue name. A custom name adds `&l=<name>` to the container URL and renames the helper's queue function to `<name>Gtag`. |
 | `updateEventName` | `'consent-update'` | `dataLayer` event pushed after every consent update. Use it as a GTM trigger. |
 | `consentMapping` | The table below | Replaces the category-to-Google mapping. |

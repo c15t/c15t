@@ -25,7 +25,7 @@ export const scripts = [cloudflareWebAnalytics({ token: 'YOUR_BEACON_TOKEN' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `token` | Required | Beacon token, written into the `data-cf-beacon` attribute. The helper trims it. Empty values throw. |
+| `token` | Required | Beacon token, written into the `data-cf-beacon` attribute. The helper trims it. Empty values log an error and the script does not load. |
 | `spa` | `true` | Written into `data-cf-beacon`. Turns on Cloudflare's route tracking for single-page apps. Set `false` for a site with only full page loads. |
 | `scriptUrl` | `https://static.cloudflareinsights.com/beacon.min.js` | Loader URL override. |
 

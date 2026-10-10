@@ -29,8 +29,8 @@ export const scripts = [
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `writeKey` | Required | Source write key. Surrounding whitespace is trimmed; an empty value throws. |
-| `dataPlaneUrl` | Required | Data plane URL. A missing, invalid or non-HTTPS URL throws. |
+| `writeKey` | Required | Source write key. Surrounding whitespace is trimmed. An empty value logs an error and the script does not load. |
+| `dataPlaneUrl` | Required | Data plane URL. A missing, invalid or non-HTTPS URL logs an error and the script does not load. |
 | `consentManagement` | None | `{ mapping }` from c15t categories to RudderStack consent IDs. Switches to destination consent mode. |
 | `loadOptions` | `{}` | Third argument to `rudderanalytics.load()`. Use JSON-serializable values only. |
 | `trackPageView` | `true` | Queues `rudderanalytics.page()` before the loader. |

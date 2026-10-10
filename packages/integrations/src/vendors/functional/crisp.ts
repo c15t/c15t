@@ -3,7 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 declare global {
@@ -179,8 +179,9 @@ const createCrispManifest = function createCrispManifest(
  *
  * @param options - The options for the Crisp script.
  * @returns The Crisp script configuration.
- * @throws {Error} `crisp: missing or invalid websiteId` when `websiteId` is
- *   empty or only whitespace.
+ * @remarks When `websiteId` is missing or blank, the
+ *   helper logs `crisp: missing or invalid websiteId` with
+ *   `console.error` and returns a script that never loads.
  *
  * @example
  * ```ts
@@ -192,6 +193,14 @@ const createCrispManifest = function createCrispManifest(
  * @see {@link https://help.crisp.chat/en/article/how-do-i-install-crisp-live-chat-on-my-website-10wcj3l/} Crisp installation documentation.
  */
 export const crisp = function crisp(options: CrispOptions): Script {
+	const websiteId = readId(options.websiteId);
+	if (websiteId === undefined) {
+		return skipMissingId('crisp', 'websiteId', {
+			category: 'functionality',
+			manifest: crispManifest,
+		});
+	}
+
 	return resolveManifest(createCrispManifest(options), {
 		cookieDomain: options.cookieDomain,
 		cookieExpiry: options.cookieExpiry,
@@ -202,6 +211,6 @@ export const crisp = function crisp(options: CrispOptions): Script {
 		),
 		sessionMerge: options.sessionMerge,
 		tokenId: options.tokenId,
-		websiteId: requireId('crisp', 'websiteId', options.websiteId),
+		websiteId,
 	});
 };

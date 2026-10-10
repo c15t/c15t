@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
 	createCallbackInfo,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	setupScriptHelperTest,
 	toArgumentsArray,
@@ -113,8 +114,10 @@ describe('hightouch', () => {
 		);
 	});
 
-	it('throws for an empty write key', () => {
-		expect(() => hightouch({ writeKey: '   ' })).toThrowError(
+	it('logs and skips the script for an empty write key', () => {
+		expectSkippedScript(
+			() => hightouch({ writeKey: '   ' }),
+			{ category: 'measurement', id: 'hightouch' },
 			'hightouch: missing or invalid writeKey'
 		);
 	});

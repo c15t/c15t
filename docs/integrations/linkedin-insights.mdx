@@ -25,7 +25,7 @@ export const scripts = [linkedinInsights({ id: 'YOUR_PARTNER_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `id` | Required | Partner ID. The helper trims it, sets it as `_linkedin_partner_id` and appends it to `_linkedin_data_partner_ids`. Empty or whitespace-only values throw. |
+| `id` | Required | Partner ID. The helper trims it, sets it as `_linkedin_partner_id` and appends it to `_linkedin_data_partner_ids`. Empty or whitespace-only values log an error and the script does not load. |
 | `scriptSrc` | `https://snap.licdn.com/li.lms-analytics/insight.min.js` | Loader URL override. A blank value falls back to the default. |
 
 ## Loading and revocation

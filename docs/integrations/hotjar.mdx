@@ -24,7 +24,7 @@ export const scripts = [hotjar({ siteId: 1234567 })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `siteId` | Required | Site ID as a number or string. Set as `window._hjSettings.hjid` and used in the default loader URL. Missing, empty and `0` values throw. |
+| `siteId` | Required | Site ID as a number or string. Set as `window._hjSettings.hjid` and used in the default loader URL. Missing, empty and `0` values log an error and the script does not load. |
 | `version` | `6` | Script version, set as `window._hjSettings.hjsv` and the `sv` query parameter of the default loader URL. |
 | `scriptUrl` | `https://static.hotjar.com/c/hotjar-<siteId>.js?sv=<version>` | Loader URL override. |
 

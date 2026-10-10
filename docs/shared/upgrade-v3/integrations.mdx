@@ -30,11 +30,11 @@ import { posthog } from '@c15t/integrations/posthog';
 The `scripts` configuration option and the `Script` type keep their names.
 
 Two helper behaviors change. A helper that needs an ID, such as `metaPixel`,
-`googleTagManager` or `posthog`, now throws when the ID is empty or only
-whitespace, where v2 loaded a broken script. And if your code reads
-`@c15t/integrations/registry`, an entry's `consentCategory` can now be a
-compound condition such as `{ and: ['marketing', 'measurement'] }`, not only a
-category name.
+`googleTagManager` or `posthog`, now logs an error and skips its script when
+the ID is empty or only whitespace, where v2 loaded a broken script. And if
+your code reads `@c15t/integrations/registry`, an entry's `consentCategory` can
+now be a compound condition such as `{ and: ['marketing', 'measurement'] }`,
+not only a category name.
 
 `@c15t/scripts` stays available as a deprecated compatibility package for all
 of v3. It re-exports the implementation and types of `@c15t/integrations`, so

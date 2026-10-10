@@ -4,7 +4,7 @@ import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
 import { buildQueuePixelInstall } from '../_shared/install-builders';
-import { requireId } from '../_shared/required-id';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl } from '../_shared/script-url';
 
 /**
@@ -294,8 +294,9 @@ const getRedditPixelInitOptions = function getRedditPixelInitOptions({
  *
  * @param options - The options for the Reddit Pixel script.
  * @returns The Reddit Pixel script configuration.
- * @throws {Error} `redditPixel: missing or invalid pixelId` when `pixelId` is
- *   empty or only whitespace.
+ * @remarks When `pixelId` is missing or blank, the
+ *   helper logs `redditPixel: missing or invalid pixelId` with
+ *   `console.error` and returns a script that never loads.
  */
 export const redditPixel = function redditPixel({
 	pixelId,
@@ -304,6 +305,14 @@ export const redditPixel = function redditPixel({
 	disableFirstPartyCookies,
 	scriptUrl,
 }: RedditPixelOptions): Script {
+	const normalizedPixelId = readId(pixelId);
+	if (normalizedPixelId === undefined) {
+		return skipMissingId('redditPixel', 'pixelId', {
+			category: 'marketing',
+			manifest: redditPixelManifest,
+		});
+	}
+
 	let trackStep: { args: unknown[] } | undefined;
 
 	if (trackPageVisit) {
@@ -334,7 +343,7 @@ export const redditPixel = function redditPixel({
 
 	return resolveManifest(manifest, {
 		initOptions: resolvedInitOptions,
-		pixelId: requireId('redditPixel', 'pixelId', pixelId),
+		pixelId: normalizedPixelId,
 		scriptUrl: resolveScriptUrl(
 			scriptUrl,
 			'https://www.redditstatic.com/ads/pixel.js'

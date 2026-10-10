@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
 import { cloudflareWebAnalytics } from './cloudflare-web-analytics';
@@ -38,13 +39,14 @@ describe('cloudflareWebAnalytics', () => {
 		});
 	});
 
-	it('throws for blank tokens', () => {
-		expect(() => cloudflareWebAnalytics({ token: '   ' })).toThrow(
-			'cloudflareWebAnalytics: missing token'
-		);
-		expect(() =>
-			cloudflareWebAnalytics({ token: undefined as unknown as string })
-		).toThrow('cloudflareWebAnalytics: missing token');
+	it('logs and skips the script for blank tokens', () => {
+		for (const token of ['   ', undefined]) {
+			expectSkippedScript(
+				() => cloudflareWebAnalytics({ token: token as string }),
+				{ category: 'measurement', id: 'cloudflare-web-analytics' },
+				'cloudflareWebAnalytics: missing or invalid token'
+			);
+		}
 	});
 
 	it('honors a custom loader URL', () => {

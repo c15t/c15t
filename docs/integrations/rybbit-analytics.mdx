@@ -27,7 +27,7 @@ leave unset adds no attribute, so Rybbit uses its own default.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `siteId` | Required | Site ID as a string or number, set as `data-site-id`. Empty or whitespace-only values throw. |
+| `siteId` | Required | Site ID as a string or number, set as `data-site-id`. Empty or whitespace-only values log an error and the script does not load. |
 | `autoTrackPageview` | None | Automatic page views, set as `data-auto-track-pageview`. |
 | `trackSpa` | None | Client-side route tracking, set as `data-track-spa`. |
 | `trackQuery` | None | Query strings in tracked URLs, set as `data-track-query`. |

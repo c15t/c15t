@@ -25,7 +25,7 @@ export const scripts = [umamiAnalytics({ websiteId: 'YOUR_WEBSITE_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `websiteId` | Required | Set as `data-website-id`. Empty or whitespace-only values throw. |
+| `websiteId` | Required | Set as `data-website-id`. Empty or whitespace-only values log an error and the script does not load. |
 | `hostUrl` | None | Host that receives events, set as `data-host-url`. |
 | `autoTrack` | None | `false` sets `data-auto-track="false"` and stops automatic tracking. |
 | `domains` | None | Domains to track, set as `data-domains`. Pass a comma-separated string or an array; the helper joins an array with commas. |

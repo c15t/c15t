@@ -10,6 +10,7 @@ import {
 	installHeadProbe,
 	loadScripts,
 	registerVendorContractCleanup,
+	updateScripts,
 } from './e2e-test-utils';
 import { posthog } from './vendors/analytics/posthog';
 
@@ -191,6 +192,32 @@ describe('posthog contract', () => {
 		expect(window.posthog.capture).toBe(liveCapture);
 		expect(window.posthog.get_explicit_consent_status()).toBe('granted');
 		expect(window.posthog._i).toBeUndefined();
+	});
+
+	it('logs and loads nothing for a blank project key instead of throwing', () => {
+		const error = vi
+			.spyOn(console, 'error')
+			.mockImplementation(() => undefined);
+		const appended: string[] = [];
+		installHeadProbe((node) => {
+			appended.push(node.src);
+		});
+
+		// A blank `VITE_POSTHOG_KEY=` reaches the helper as an empty string.
+		const script = posthog({ id: '' });
+
+		expect(error).toHaveBeenCalledWith(
+			'posthog: missing or invalid id. The script will not load.'
+		);
+		expect(loadScripts([script], grantedMeasurementConsents)).toEqual([
+			'posthog',
+		]);
+		expect(updateScripts([script], deniedConsents)).toEqual({
+			loaded: [],
+			unloaded: ['posthog'],
+		});
+		expect(appended).toEqual([]);
+		expect(window.posthog).toBeUndefined();
 	});
 
 	it('bootstraps a snippet-shaped stub that array.js will install over', () => {

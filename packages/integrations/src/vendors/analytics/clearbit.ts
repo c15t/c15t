@@ -3,6 +3,7 @@ import type { Script } from '@c15t/core';
 import { resolveManifest } from '../../resolve';
 import { vendorManifestContract } from '../../types';
 import type { VendorManifest } from '../../types';
+import { readId, skipMissingId } from '../_shared/required-id';
 import { resolveScriptUrl, trimToUndefined } from '../_shared/script-url';
 
 const getDefaultClearbitScriptUrl = function getDefaultClearbitScriptUrl(
@@ -62,10 +63,12 @@ export interface ClearbitOptions {
  *
  * @param options - The options for the Clearbit script.
  * @returns The Clearbit script.
- * @throws {Error} When `publishableKey` is missing, empty, or invalid.
- * Provide a valid non-empty `publishableKey` string to prevent this error.
  *
  * @remarks
+ * When `publishableKey` is missing or blank, the helper logs
+ * `clearbit: missing or invalid publishableKey` with `console.error` and
+ * returns a script that never loads.
+ *
  * Clearbit identifies visitors and companies for enrichment and intent use
  * cases. This helper therefore uses the `marketing` consent category by
  * default even though Clearbit is listed with analytics integrations for
@@ -81,15 +84,12 @@ export interface ClearbitOptions {
  * ```
  */
 export const clearbit = function clearbit(options: ClearbitOptions): Script {
-	const publishableKey =
-		typeof options.publishableKey === 'string'
-			? options.publishableKey.trim()
-			: '';
-
-	if (publishableKey.length === 0) {
-		throw new Error(
-			'clearbit: invalid publishableKey - must be a non-empty string'
-		);
+	const publishableKey = readId(options.publishableKey);
+	if (publishableKey === undefined) {
+		return skipMissingId('clearbit', 'publishableKey', {
+			category: 'marketing',
+			manifest: clearbitManifest,
+		});
 	}
 
 	return resolveManifest(clearbitManifest, {

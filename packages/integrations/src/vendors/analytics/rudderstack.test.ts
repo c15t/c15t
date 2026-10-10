@@ -4,6 +4,7 @@ import {
 	createCallbackInfo,
 	deniedConsentState,
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	getTestGlobal,
 	grantedMeasurementConsentState,
 	setupScriptHelperTest,
@@ -129,22 +130,24 @@ describe('rudderstack', () => {
 		expect(script.src).toBe('https://cdn.rudderlabs.com/v3/modern/rsa.min.js');
 	});
 
-	it('throws for an empty write key', () => {
-		expect(() =>
-			rudderstack({
-				dataPlaneUrl: 'https://c15t-live-probe.invalid',
-				writeKey: '   ',
-			})
-		).toThrowError('rudderstack: missing or invalid writeKey');
+	it('logs and skips the script for an empty write key', () => {
+		expectSkippedScript(
+			() =>
+				rudderstack({
+					dataPlaneUrl: 'https://c15t-live-probe.invalid',
+					writeKey: '   ',
+				}),
+			{ category: 'measurement', id: 'rudderstack' },
+			'rudderstack: missing or invalid writeKey'
+		);
 	});
 
-	it('throws for an empty data plane URL', () => {
-		expect(() =>
-			rudderstack({
-				dataPlaneUrl: '   ',
-				writeKey: 'WRITE_KEY',
-			})
-		).toThrowError('rudderstack: missing or invalid dataPlaneUrl');
+	it('logs and skips the script for an empty data plane URL', () => {
+		expectSkippedScript(
+			() => rudderstack({ dataPlaneUrl: '   ', writeKey: 'WRITE_KEY' }),
+			{ category: 'measurement', id: 'rudderstack' },
+			'rudderstack: missing or invalid dataPlaneUrl'
+		);
 	});
 
 	it('throws for a non-HTTPS scriptUrl override', () => {
@@ -157,13 +160,16 @@ describe('rudderstack', () => {
 		).toThrowError('rudderstack: scriptUrl must be a valid https URL');
 	});
 
-	it('throws for a non-HTTPS data plane URL', () => {
-		expect(() =>
-			rudderstack({
-				dataPlaneUrl: 'http://c15t-live-probe.invalid',
-				writeKey: 'WRITE_KEY',
-			})
-		).toThrowError('rudderstack: dataPlaneUrl must be a valid https URL');
+	it('logs and skips the script for a non-HTTPS data plane URL', () => {
+		expectSkippedScript(
+			() =>
+				rudderstack({
+					dataPlaneUrl: 'http://c15t-live-probe.invalid',
+					writeKey: 'WRITE_KEY',
+				}),
+			{ category: 'measurement', id: 'rudderstack' },
+			'rudderstack: dataPlaneUrl must be a valid https URL'
+		);
 	});
 
 	it('loads inert with buffered events and signals denied IDs in pre-consent mode', () => {

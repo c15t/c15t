@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
 	expectScriptMatchesIntegration,
+	expectSkippedScript,
 	setupScriptHelperTest,
 } from '../../__tests__/helpers';
 import { rybbitAnalytics } from './rybbit-analytics';
@@ -85,15 +86,13 @@ describe('rybbitAnalytics', () => {
 		expect(script.attributes?.['data-site-id']).toBe('rybbit-123');
 	});
 
-	it('throws for blank site IDs', () => {
-		expect(() => rybbitAnalytics({ siteId: '   ' })).toThrow(
-			'rybbitAnalytics: missing siteId'
-		);
-		expect(() =>
-			rybbitAnalytics({ siteId: undefined as unknown as string })
-		).toThrow('rybbitAnalytics: missing siteId');
-		expect(() =>
-			rybbitAnalytics({ siteId: null as unknown as string })
-		).toThrow('rybbitAnalytics: missing siteId');
+	it('logs and skips the script for blank site IDs', () => {
+		for (const siteId of ['   ', undefined, null]) {
+			expectSkippedScript(
+				() => rybbitAnalytics({ siteId: siteId as unknown as string }),
+				{ category: 'measurement', id: 'rybbit-analytics' },
+				'rybbitAnalytics: missing or invalid siteId'
+			);
+		}
 	});
 });

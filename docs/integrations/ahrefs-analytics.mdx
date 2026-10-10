@@ -24,7 +24,7 @@ export const scripts = [ahrefsAnalytics({ key: 'YOUR_PROJECT_KEY' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `key` | Required | Project key. Empty or whitespace-only values throw. |
+| `key` | Required | Project key. Empty or whitespace-only values log an error and the script does not load. |
 | `scriptUrl` | `https://analytics.ahrefs.com/analytics.js` | Loader URL override. |
 
 ## Loading and revocation

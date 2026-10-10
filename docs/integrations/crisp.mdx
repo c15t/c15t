@@ -24,7 +24,7 @@ export const scripts = [crisp({ websiteId: 'YOUR_WEBSITE_ID' })];
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `websiteId` | Required | Written to `window.CRISP_WEBSITE_ID`. The helper trims it. Empty or whitespace-only values throw. |
+| `websiteId` | Required | Written to `window.CRISP_WEBSITE_ID`. The helper trims it. Empty or whitespace-only values log an error and the script does not load. |
 | `locale` | None | Widget locale, written to `window.CRISP_RUNTIME_CONFIG.locale`. |
 | `sessionMerge` | None | Merges anonymous sessions into token-backed sessions. Written to `CRISP_RUNTIME_CONFIG.session_merge`. |
 | `tokenId` | None | Session continuity token, written to `window.CRISP_TOKEN_ID`. |
