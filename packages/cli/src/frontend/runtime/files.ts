@@ -18,7 +18,8 @@ import type { Stats } from 'node:fs';
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
 import { getInstallSpecifier } from '../../generate/dependencies.ts';
-import type { GenerationPlan } from '../../generate/index.ts';
+import type { FileMerge, GenerationPlan } from '../../generate/index.ts';
+import { mergeFile } from '../../generate/merge.ts';
 
 const recoveryDirectory = '.c15t-native-generation';
 
@@ -174,6 +175,24 @@ const requireMatchingContents = (
 	}
 };
 
+/** Tells the user what to add to an existing file this host won't change. */
+const handMergeInstruction = (
+	name: string,
+	generated: string,
+	merge: FileMerge
+): string => {
+	if (merge.type === 'insert') {
+		return `Add to ${name}:\n${merge.inserts
+			.map((insert) =>
+				insert.before
+					? `${insert.content}\n(before ${insert.before})`
+					: insert.content
+			)
+			.join('\n')}`;
+	}
+	return `Add to ${name}:\n${generated.trimEnd()}`;
+};
+
 /**
  * Review generation against an existing app without writing files.
  * @param projectRoot Application directory containing package.json.
@@ -189,15 +208,28 @@ export const planGeneration = (
 	readFileSync(targetPath(root, 'package.json'), 'utf8');
 	requireNoRecovery(root);
 	const files: PlannedFile[] = [];
+	const instructions = generation.instructions.slice();
 	const seen: string[] = [];
 	for (const name of Object.keys(generation.files)) {
 		const target = targetPath(root, name);
 		registerTarget(seen, target);
-		const content = generation.files[name];
-		if (typeof content !== 'string') {
+		const generated = generation.files[name];
+		if (typeof generated !== 'string') {
 			throw new Error(`Invalid generated contents: ${name}`);
 		}
 		const current = readExisting(target);
+		const merge = Object.hasOwn(generation.merge ?? {}, name)
+			? generation.merge[name]
+			: undefined;
+		let content = generated;
+		if (current !== null && merge) {
+			// This host only creates files. An existing file that needs
+			// lines added, such as `.env`, stays as it is for the user to edit.
+			if (mergeFile(current, generated, merge) !== current) {
+				instructions.push(handMergeInstruction(name, generated, merge));
+			}
+			content = current;
+		}
 		requireMatchingContents(current, content, name);
 		files.push({
 			content,
@@ -208,7 +240,7 @@ export const planGeneration = (
 	return {
 		dependencies: generation.dependencies.map(getInstallSpecifier),
 		files,
-		instructions: generation.instructions.slice(),
+		instructions,
 		root,
 	};
 };

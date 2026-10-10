@@ -212,7 +212,7 @@ describe('local unpublished package sources', () => {
 	});
 	it('refreshes generated app dependencies after preparing a new local snapshot', async () => {
 		await writePackage(
-			'@c15t/react',
+			'@c15t/svelte',
 			{ [rootName]: 'workspace:*' },
 			'export {};'
 		);
@@ -221,31 +221,31 @@ describe('local unpublished package sources', () => {
 			'generate',
 			'offline',
 			'--framework',
-			'react',
+			'svelte',
 			'--package-source',
 			checkout,
 			'--apply',
 			'--json',
 		];
 		const first = await prepareBoilerplatePackages({
-			dependencies: ['@c15t/react'],
+			dependencies: ['@c15t/svelte'],
 			packageSource: checkout,
 		});
 		expect(await runCli(args, { cwd: app })).toMatchObject({ success: true });
-		const readmePath = path.join(app, 'src/consent/README.md');
-		const readme = await fs.readFile(readmePath, 'utf8');
+		const componentPath = path.join(app, 'src/App.svelte');
+		const component = await fs.readFile(componentPath, 'utf8');
 		await writePackage(
-			'@c15t/react',
+			'@c15t/svelte',
 			{ [rootName]: 'workspace:*' },
 			'export const updated = true;'
 		);
 		const second = await prepareBoilerplatePackages({
-			dependencies: ['@c15t/react'],
+			dependencies: ['@c15t/svelte'],
 			packageSource: checkout,
 		});
 		expect(second.preparedAt).not.toBe(first.preparedAt);
-		expect(second.packages['@c15t/react']?.tarball).not.toBe(
-			first.packages['@c15t/react']?.tarball
+		expect(second.packages['@c15t/svelte']?.tarball).not.toBe(
+			first.packages['@c15t/svelte']?.tarball
 		);
 		const refreshed = await runCli(args, { cwd: app });
 		expect(refreshed, JSON.stringify(refreshed)).toMatchObject({
@@ -262,7 +262,7 @@ describe('local unpublished package sources', () => {
 		for (const [name, archive] of Object.entries(second.packages)) {
 			expect(manifest.dependencies[name]).toBe(`file:${archive.tarball}`);
 		}
-		expect(await fs.readFile(readmePath, 'utf8')).toBe(readme);
+		expect(await fs.readFile(componentPath, 'utf8')).toBe(component);
 		expect(await runCli(args, { cwd: app })).toMatchObject({
 			data: { edits: [] },
 			success: true,

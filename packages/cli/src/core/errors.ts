@@ -102,6 +102,11 @@ export const ERROR_CATALOG = {
 	},
 
 	// --- File System Errors ---
+	FILE_CONFLICT: {
+		code: 'FILE_CONFLICT',
+		hint: 'Merge the generated code into your files by hand, or pass --overwrite to replace them',
+		message: 'Files already exist with other contents',
+	},
 	FILE_NOT_FOUND: {
 		code: 'FILE_NOT_FOUND',
 		message: 'File not found',

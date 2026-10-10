@@ -275,6 +275,7 @@ it.each([
 	'sveltekit',
 	'solid',
 	'astro',
+	'astro-static',
 ])('matches Node generation for %s in both modes', (framework) => {
 	for (const mode of ['hosted', 'offline']) {
 		const args = [
@@ -285,8 +286,6 @@ it.each([
 			framework,
 			'--scripts',
 			' google-tag,microsoft-clarity,google-tag, ',
-			'--output',
-			'src/privacy',
 			...(mode === 'hosted'
 				? ['--backend-url', 'https://consent.example.com/a?b=c']
 				: []),
@@ -318,8 +317,8 @@ it.each(
 		['hosted', '--framework', 'react', '--backend-url', 'not-a-url'],
 		['hosted', '--framework', 'react', '--backend-url', 'ftp://example.com'],
 		['offline', '--framework', 'react', '--scripts', 'unknown'],
-		['offline', '--framework', 'react', '--output', '../outside'],
-		['offline', '--framework', 'react', '--output'],
+		['offline', '--framework', 'react', '--output', 'src'],
+		['offline', '--framework', 'html'],
 	].map((args) => ({ args }))
 )('rejects invalid generation arguments $args', ({ args }) => {
 	const result = spawnSync(binary, ['c15t', 'generate', ...args], {

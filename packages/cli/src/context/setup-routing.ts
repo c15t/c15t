@@ -18,7 +18,7 @@ const explicitSetupFlags = [
 
 /** Whether setup selects standalone boilerplate generation. */
 export const isBoilerplateSetup = (flags: CliContext['flags']): boolean =>
-	['boilerplate', 'framework', 'output', 'package-source'].some((flag) =>
+	['boilerplate', 'framework', 'package-source'].some((flag) =>
 		Boolean(flags[flag])
 	);
 

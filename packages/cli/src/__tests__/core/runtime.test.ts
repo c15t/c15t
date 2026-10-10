@@ -313,7 +313,7 @@ it('keeps committed files and supplies a retry command on installer failure', as
 			{ cwd: root, packageManager: 'npm' }
 		)
 	).rejects.toThrow('retry npm install');
-	expect(existsSync(join(root, 'src/consent/consent-manager.tsx'))).toBe(true);
+	expect(existsSync(join(root, 'src/consent.tsx'))).toBe(true);
 	expect(existsSync(join(root, '.c15t-native-generation'))).toBe(false);
 });
 it('rejects dependency options, symlink manifests and pre-cancelled installs', async () => {
@@ -362,7 +362,7 @@ it('cancels a running installer while keeping committed generation files', async
 	);
 	controller.abort();
 	await checked;
-	expect(existsSync(join(root, 'src/consent/consent-manager.tsx'))).toBe(true);
+	expect(existsSync(join(root, 'src/consent.tsx'))).toBe(true);
 });
 
 it('revalidates the application manifest before applying a reviewed plan', () => {
@@ -593,8 +593,8 @@ it('reports cancellation between apply and install with the created files', asyn
 			{ cwd: root, packageManager: 'npm', signal: controller.signal }
 		)
 	).rejects.toThrow(
-		/cancelled\. Generated files remain\. Created: .*src\/consent\/consent-manager\.tsx/u
+		/cancelled\. Generated files remain\. Created: .*src\/consent\.tsx/u
 	);
-	expect(existsSync(join(root, 'src/consent/consent-manager.tsx'))).toBe(true);
+	expect(existsSync(join(root, 'src/consent.tsx'))).toBe(true);
 	expect(existsSync(join(root, 'installer-ran'))).toBe(false);
 });

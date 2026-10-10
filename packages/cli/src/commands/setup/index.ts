@@ -21,7 +21,7 @@ const readAgentOptions = (
 	const { flags, commandArgs } = context;
 	const unsupported = [
 		'boilerplate',
-		'output',
+		'overwrite',
 		'package-source',
 		'env',
 		'proxy',
