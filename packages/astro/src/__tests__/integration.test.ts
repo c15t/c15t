@@ -455,6 +455,12 @@ describe('resolveOptions', () => {
 		).toThrowError(/must be a path that starts with "\/"/u);
 	});
 
+	it.each(['/', '//'])('rejects a routePrefix of %s', (routePrefix) => {
+		expect(() => resolveOptions({ mode: offlineMode(), routePrefix })).toThrow(
+			"@c15t/astro: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'."
+		);
+	});
+
 	it.each([
 		['the default route', {}],
 		['routePrefix: false', { routePrefix: false }],

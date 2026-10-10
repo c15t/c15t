@@ -19,6 +19,7 @@
 import { readBuildEnv } from '@c15t/core/build';
 import type { ConsentMode } from '@c15t/core/modes';
 import { isIABConfigured } from '@c15t/core/runtime';
+import { normalizeRoutePrefix } from '@c15t/core/server';
 import type { AstroIntegration } from 'astro';
 
 import { createClassMapPlugin } from './libs/class-map-plugin';
@@ -183,6 +184,8 @@ const resolveMiddleware = function resolveMiddleware(
  * @param routePrefix - The configured `routePrefix`.
  * @returns The prefix, or `undefined` for `routePrefix: false`.
  * @throws {Error} When the prefix is not a root-relative path.
+ * @throws {TypeError} When the prefix is `/`: a catch-all route at the site
+ * root would catch every page.
  */
 const resolveRoutePrefix = function resolveRoutePrefix(
 	routePrefix: C15tAstroOptions['routePrefix']
@@ -196,7 +199,7 @@ const resolveRoutePrefix = function resolveRoutePrefix(
 			`@c15t/astro: \`routePrefix\` must be a path that starts with "/", such as '/api/c15t', or false. Got ${JSON.stringify(prefix)}.`
 		);
 	}
-	return prefix.replace(/\/+$/u, '') || undefined;
+	return normalizeRoutePrefix('@c15t/astro', prefix);
 };
 
 /** Every `type` a mode can carry. */

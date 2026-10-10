@@ -127,7 +127,8 @@ export interface C15tAstroOptions {
 	 * The route renders on demand, so `astro build` needs a server adapter.
 	 * A static site uses `hosted()` or `offline()`, or
 	 * `manifest({ resolve: 'browser' })`, which prerenders only
-	 * `${routePrefix}/manifest`.
+	 * `${routePrefix}/manifest`. `/` is rejected: a catch-all route at the
+	 * site root would catch every page.
 	 *
 	 * @default '/api/c15t'
 	 */
