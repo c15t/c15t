@@ -192,6 +192,12 @@ const modeSkipReason = function modeSkipReason(
 	if (mode?.source === 'runtime') {
 		return "c15t.config.ts sets manifest({ source: 'runtime' })";
 	}
+	// The server fetches an absolute manifestURL at runtime and ignores a
+	// build snapshot. A `/` path is the browser's, so it still needs one.
+	const url = mode?.manifestURL;
+	if (url !== undefined && (!url.startsWith('/') || url.startsWith('//'))) {
+		return 'c15t.config.ts passes an absolute manifest({ manifestURL })';
+	}
 	return undefined;
 };
 

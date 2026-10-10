@@ -405,6 +405,11 @@ describe('Next.js build-time manifest', () => {
 			"{ mode: { type: 'manifest', source: 'runtime' } }",
 			"manifest({ source: 'runtime' })",
 		],
+		[
+			'an absolute manifest({ manifestURL })',
+			"{ mode: { type: 'manifest', manifestURL: 'https://cdn.example/policy.json' } }",
+			'absolute manifest({ manifestURL })',
+		],
 	])(
 		'next build skips the fetch when c15t.config.ts uses %s',
 		async (_mode, exported, reason) => {
