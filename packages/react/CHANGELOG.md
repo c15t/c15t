@@ -1,3 +1,151 @@
+## @c15t/react@3.0.0-alpha.10 (alpha)
+
+### Send a bundled manifest's `/init` from the provider's first render
+
+With `manifest()` from `@c15t/browser` as the `ConsentProvider` mode, a
+visitor whose banner depends on a location the browser does not know waited
+for the provider to mount before `/init` left. The request now leaves during
+the provider's first client render, as it does with `hosted()`, and the mount
+takes that response instead of asking again. Nothing is sent early when the
+bundled manifest can answer on its own, when the visitor has a stored choice,
+or with a `prefetch` or an `experiment`.
+
+### Throw when an IAB policy has no `IABProvider`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, an app without `IABProvider` showed no consent UI at all: the standard
+`ConsentBanner` and `ConsentDialog` do not handle the IAB model. They now
+throw an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) during render,
+on the server and in the browser:
+
+> c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted.
+
+Render `IABProvider` from `c15t/react/iab` for those visitors, or remove the
+`iab` model from the policy. A backend that answers `gvl: null` turns IAB off
+for the request, and nothing throws.
+
+`@c15t/core` exports `IABUnavailableError`, `IAB_UNAVAILABLE_ERROR_CODE` and
+`policyNeedsIAB()`, which adapters use to decide when to throw.
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Keep banner taps made before the page hydrates
+
+A banner rendered on the server shows before the page's JavaScript runs. On a
+slow phone that gap lasts seconds: about 2 s on Next.js and 1.2 s on Nuxt in
+our mobile benchmark. A tap on Accept all or Reject all in that gap did
+nothing. The button had no handler yet, the banner stayed up and no choice
+was saved.
+
+The stock banner in React, Next.js, TanStack Start, Vue and Nuxt now renders
+a small inline script in front of its buttons. It holds an Accept all, Reject
+all, notice dismiss or Customize tap and hides the banner straight away for
+the first three. Once the banner hydrates and the runtime has started, c15t
+records the choice or the notice dismissal with the time of the tap, so
+later init data can't overwrite it, then saves it and loads the scripts it allows. Customize opens
+the dialog. A tap is dropped and the banner shows again when the browser
+resolves a different consent model or prompt than the one the visitor saw.
+
+Under a Content Security Policy the script takes the `nonce` you already pass
+to c15t. The IAB banner and banners built from hooks are unchanged. In a
+banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
+
+`kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
+the visitor dismissed the notice. A future or invalid time falls back to now.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### `c15t/react` exports the modes, defaulting to what the build downloaded
+
+Import `manifest`, `hosted` and `offline` from `c15t/react`. React apps no
+longer import anything from `@c15t/browser`. With `consentManifest()` from
+`c15t/build` in the Vite config, `manifest()` needs no arguments: it reads the
+policy snapshot and the backend URL from `c15t/generated`. `hosted()` reads
+the same backend URL.
+The plugin reads `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`, and
+`hosted()`'s missing-URL error names both outside production.
+
+```tsx
+import { ConsentProvider, manifest } from 'c15t/react';
+
+<ConsentProvider options={{ mode: manifest() }}>{children}</ConsentProvider>;
+```
+
+Pass `snapshot`, `manifestURL`, `backendURL` or `source: 'runtime'` to
+override the build's values. `@c15t/react` keeps these modes on its
+`@c15t/react/modes` entry, so the Next.js and TanStack Start entries, which
+re-export `@c15t/react`, never import the build's snapshot module.
+
+The browser manifest resolver loads on demand. When the policy depends on a
+location the page doesn't know, the browser asks `/init` and never downloads
+the resolver. Otherwise the resolver starts loading as soon as `manifest()`
+runs. Each language's base copy and the IAB vendor list load only when a
+visitor needs them. The React quickstart's first-load JavaScript is about
+3.8 KB gzip smaller.
+
+With `preloadDialog: 'idle'`, the default, the deferred `ConsentDialog`
+starts loading three seconds after the load event, in idle time, instead of
+in the first idle time after it. Hovering, focusing or touching a button that
+opens the dialog still loads it at once.
+
+`ConsentTheme` and `defineTheme` are importable from the new
+`c15t/react/theme` entry, which a Server Component can import.
+
+Deprecated, still working: `Frame`, `FrameRoot`, `FrameTitle` and
+`FrameButton`, the v2 names for `ConsentGate` and its parts, and the
+`FrameProps` type. The components still render `ConsentGate`, and now log a
+one-time warning outside production.
+
 ## @c15t/react@3.0.0-alpha.8 (alpha)
 
 ### Link a page's `/init` to the save that follows

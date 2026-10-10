@@ -1,3 +1,100 @@
+## @c15t/browser@3.0.0-alpha.10 (alpha)
+
+### Show the banner from a bundled manifest when every location gets the same one
+
+`manifest()` used to call `/init` whenever a policy rule was keyed by country
+or region and the browser did not know the visitor's location, so the banner
+waited for that round trip. It now resolves in the browser when every location
+gets the same banner: the rules share model, prompt, categories, copy and GPC
+handling, a default rule covers unlisted countries, and with region rules, a
+fallback rule covers a missing region. The save asserts the unknown-location rule, which the backend
+recomputes from the same manifest.
+
+`manifestNeedsLocation()` follows the same rule and returns `false` for such a
+manifest. Manifests where some location gets a different banner, or none, still
+call `/init`, as do IAB policies behind country or region rules. So do
+visitors in any language but English when the location is unknown, because the
+browser bundle carries English copy only and `/init` returns their language in
+full.
+
+A manifest resolved this way reports no location: `getSnapshot().location`
+and `useLocation()` have a `null` country and region. Supply the country
+through `inputs` if your code reads it. When IAB GPP is on, through the
+runtime's `gpp` option, `<ConsentGPP>` or `mountGPP()`, an unknown location
+still calls `/init`, because the GPP US sections need the visitor's state. The
+script-tag build counts GPP as on unless `c15t.init()` gets `gpp: false`.
+Transport factories see this as `gppEnabled` on their context.
+
+### Send a bundled manifest's `/init` from the provider's first render
+
+With `manifest()` from `@c15t/browser` as the `ConsentProvider` mode, a
+visitor whose banner depends on a location the browser does not know waited
+for the provider to mount before `/init` left. The request now leaves during
+the provider's first client render, as it does with `hosted()`, and the mount
+takes that response instead of asking again. Nothing is sent early when the
+bundled manifest can answer on its own, when the visitor has a stored choice,
+or with a `prefetch` or an `experiment`.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### Throw when an IAB policy reaches a page without the IAB UI
+
+With `c15t.js`, `@c15t/browser`, or the IAB build with `iab: false`, a backend
+policy that used the `iab` model left the visitor with no banner: the stock
+UI stands aside for that model. The client now emits an `error` event and
+throws an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) as an uncaught
+error. Load `c15t.iab.js` or `@c15t/browser/iab` for those visitors, or
+remove the `iab` model from the policy.
+
+### `init()` from `@c15t/browser` takes a mode factory
+
+Breaking for earlier v3 alphas. `init()` and `createConsentClient()` from
+`@c15t/browser`, `@c15t/browser/headless` and `@c15t/browser/iab` require
+`mode`, a factory from `manifest()`, `hosted()`, `offline()` or `custom()`.
+The entries no longer import every transport, so a bundle keeps only the mode
+it uses. The JavaScript quickstart drops about 12 KB gzip, including the
+offline policy pack.
+
+With `consentManifest()` from `c15t/build`, `manifest()` reads the policy
+snapshot and the backend URL from `c15t/generated`, and `hosted()` reads the
+backend URL (from `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`):
+
+```ts
+import { init, manifest } from '@c15t/browser';
+
+init({ mode: manifest() });
+```
+
+When the build has no snapshot, `manifest()` fetches
+`${backendURL}/manifest` instead of requesting `/api/c15t/manifest` on the
+site's own origin. `manifest()` resolves with the shared browser resolver: it
+bundles English base copy and loads other languages when a visitor needs
+them. A link to `#c15t-preferences` opens the preference dialog without code.
+
+Removed from these entries, with no deprecated alias:
+
+| Before | After |
+| --- | --- |
+| `init({ backendURL })` | `init({ mode: hosted({ backendURL }) })`, or `hosted()` with `consentManifest()` |
+| `init({ mode: 'hosted' })`, `'manifest'`, `'offline'` | `init({ mode: hosted() })`, `manifest()`, `offline()` |
+| `init({ mode: 'manifest', manifest: snapshot, backendURL })` | `init({ mode: manifest() })` |
+| `init({ manifestURL })` | `init({ mode: manifest({ manifestURL }) })` |
+| `init({ policyRules: ['europeOptIn'] })` | `init({ mode: offline({ policyRules: [policyRulePresets.europeOptIn()] }) })` |
+| `manifest({ manifest })` | `manifest({ snapshot })` |
+
+`manifest()`'s `inputs` take only `country` and `region`.
+
+The script-tag builds (`c15t.js`, `c15t.offline.js`, `c15t.headless.js`,
+`c15t.iab.js`) still read mode names and these options from `data-*`
+attributes and `c15t.push(['config', …])`. Their option type is now
+`ScriptTagClientOptions`. `@c15t/browser/hosted` and `@c15t/browser/offline`
+keep their options. The script-tag builds bundle the code that saves consent
+instead of loading it as a second request, so `c15t.js` is slightly smaller.
+
 ## @c15t/browser@3.0.0-alpha.8 (alpha)
 
 ### Link a page's `/init` to the save that follows

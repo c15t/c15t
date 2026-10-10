@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': minor
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### `init()` from `@c15t/browser` takes a mode factory

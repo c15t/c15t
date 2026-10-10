@@ -1,3 +1,18 @@
+## @c15t/scripts@3.0.0-alpha.9 (alpha)
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### Fix upgrade links in the package READMEs
+
+The `@c15t/node-sdk` README now links to the Node.js SDK section of the
+self-host upgrade guide. The `@c15t/scripts` README and npm homepage link to
+the `scripts-to-integrations` codemod. Both used to point at the root
+`/docs/upgrade-v3` guide, which has been removed.
+
 ## @c15t/scripts@3.0.0-alpha.6 (alpha)
 
 ### Add a Sentry integration

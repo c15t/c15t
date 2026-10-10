@@ -1,3 +1,152 @@
+## @c15t/astro@3.0.0-alpha.10 (alpha)
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Throw when an IAB policy reaches a site without `iab`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, a site without `iab` ran the IAB model with no CMP to answer for it:
+Accept recorded nothing. The server render now throws an
+`IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`), and a page the browser
+resolves itself throws it there as an uncaught error. Set `iab` in the
+integration options, or remove the `iab` model from the policy. A backend that
+answers `gvl: null` turns IAB off for the request, and nothing throws.
+
+The page script also no longer carries the CMP mount and the lazy `@c15t/iab`
+loader, about 1.7 KB minified, unless `iab` is set.
+
+### Astro: `c15t()` with no options, one consent route and a components barrel
+
+`c15t()` now works with no options. The backend URL defaults to
+`PUBLIC_C15T_BACKEND_URL`, read from the environment or `.env` in the project
+root, and the mode defaults to `manifest()`. `PUBLIC_INTH_PROJECT_URL` works
+too when `PUBLIC_C15T_BACKEND_URL` is unset. The modes are the data factories
+from `c15t/modes`, re-exported from `c15t/astro`:
+
+```js
+// astro.config.mjs, server output
+export default defineConfig({
+	adapter: node({ mode: 'standalone' }),
+	integrations: [svelte(), c15t()],
+	output: 'server',
+});
+
+// static output, no adapter
+export default defineConfig({
+	integrations: [svelte(), c15t({ mode: hosted() })],
+});
+```
+
+- `backendURL` is a top-level option. `hosted({ backendURL })` of its own
+  still wins.
+- `manifest({ snapshot, source, resolve })` replaces
+  `manifest({ backendURL, manifest })`. `source: 'runtime'` fetches the policy
+  at runtime instead of bundling it at build time. `resolve: 'browser'`
+  resolves the policy in the browser, so a static site with no adapter can use
+  `manifest()`: the integration prerenders `/api/c15t/manifest` for it.
+- `reportSessions` is a top-level option.
+- `routePrefix` (default `'/api/c15t'`, `false` for none) replaces
+  `endpoints`. The integration injects one catch-all route,
+  `${routePrefix}/[...path]`, from the `c15t/astro/api` entry, which answers
+  `init` and `manifest`.
+- `clientEntrypoint` resolves a relative path from the project root, and
+  defaults to `src/c15t.client.ts`, `.js` or `.mjs` when the file exists.
+  The browser options no longer carry its absolute path.
+- `ui` defaults to the framework of the one Astro UI integration the site
+  registers, among `@astrojs/svelte`, `@astrojs/react` and `@astrojs/vue`, and
+  to `'svelte'` otherwise.
+- `c15t()` throws when a serialized option holds a function, naming where it
+  is. A vendor helper such as `posthog()` in `scripts` used to lose its
+  callbacks without a word; move it to `src/c15t.client.ts`.
+- The integration adds the type of `Astro.locals.c15t` to `.astro/types.d.ts`.
+  Remove the `/// <reference types="c15t/astro/middleware" />` line from
+  `src/env.d.ts`.
+- `c15t/astro/components` exports `ConsentBanner`, `ConsentDialog`,
+  `ConsentDialogLink`, `ConsentScript`, `IABConsentBanner` and
+  `IABConsentDialog`. `ConsentBannerDeferred` renders a server island, so it
+  stays at `c15t/astro/components/consent-banner-deferred.astro`.
+- Server-rendered `manifest()` and `hosted()` pages ship only the code that
+  saves consent. The init path loads when a page inits again.
+- `offline()` reports the location it resolved for, so the preference dialog
+  shows its title.
+- `manifest()` without a backend URL, from `backendURL` or
+  `PUBLIC_C15T_BACKEND_URL`, fails at setup, including
+  `manifest({ snapshot })` and any `routePrefix`. The consent route answers
+  `GET` only, so saves used to fail after the visitor chose.
+
+With `manifest()`, the integration fetches the policy manifest during
+`astro build` and dev startup and bundles it into the server. Middleware and
+the consent route use that snapshot; the browser options omit it unless the
+mode resolves in the browser. The fetch is skipped for `hosted()`,
+`offline()`, `manifest({ snapshot })`, `manifest({ source: 'runtime' })` and
+a relative backend URL. If the fetch fails or takes longer than 10 seconds,
+`astro build` now stops with an error, where it used to warn and continue,
+and `astro dev` logs a warning and fetches the policy at runtime. Set
+`onBuildError`, or `C15T_ON_BUILD_ERROR`, to change that.
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- `hosted({ url })`: use `hosted({ backendURL })`, or the top-level
+  `backendURL`. `hosted({ domain })` is gone too.
+- `manifest({ backendURL, manifest, reportSessions })`: use the top-level
+  `backendURL` and `reportSessions`, and `manifest({ snapshot })`.
+- `endpoints` and the `c15t/astro/api/init` and `c15t/astro/api/manifest`
+  entries: use `routePrefix`.
+- `buildManifest`: use `onBuildError`, or `manifest({ source: 'runtime' })`
+  for `buildManifest: false`.
+- `c15t/astro/components/consent-dialog-trigger.astro` and
+  `ConsentDialogTrigger`: use `consent-dialog-link.astro` and
+  `ConsentDialogLink`.
+- `resolveTransportFactory`, `custom` and the `C15tModeDescriptor`,
+  `C15tHostedDescriptor`, `C15tManifestDescriptor`, `C15tOfflineDescriptor`
+  and `C15tEndpointOptions` types. Modes are `ConsentMode` from
+  `c15t/astro`.
+- `c15t/astro/api` no longer exports the route handlers. Import
+  `createConsentRouteHandlers` and the manifest cache helpers from
+  `c15t/astro/server`.
+
 ## @c15t/astro@3.0.0-alpha.7 (alpha)
 
 ### Show the consent banner at once, and fade it in only when it arrives late

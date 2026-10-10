@@ -1,3 +1,152 @@
+## @c15t/cli@3.0.0-alpha.10 (alpha)
+
+### Framework generation writes the quickstart files
+
+`setup --framework <target>` (and `generate`) now writes the same files the
+framework quickstarts show, at the same paths, instead of wrapper files in
+`src/consent/`. For example, `--framework next-app` writes `.env`,
+`next.config.ts`, `c15t.config.ts` and `app/layout.tsx`.
+
+```bash
+npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-project.inth.app --apply
+```
+
+- Hosted mode writes the backend URL to `.env` under the framework's public
+  env var (`NEXT_PUBLIC_C15T_BACKEND_URL`, `NUXT_PUBLIC_C15T_BACKEND_URL`,
+  `PUBLIC_C15T_BACKEND_URL` or `VITE_C15T_BACKEND_URL`). An existing `.env`
+  keeps its other keys. One that already sets the matching
+  `*_INTH_PROJECT_URL` gets no c15t variable, which would override it. The
+  CLI never creates or edits `.gitignore`.
+- Generated code uses the v3 API only: `manifest()`, `hosted()` and
+  `offline()`, `defineConsentConfig`, `withConsentManifest`, `ConsentRoot`
+  and `ConsentDialogLink`. Templates that pass a backend URL in code write
+  `hosted({ backendURL })`, not `hosted({ url })`. The Astro templates write
+  `ConsentDialogLink` instead of `ConsentDialogTrigger`, and the TanStack
+  Start template no longer writes `initRoute`.
+- New targets: `astro-static` (static output, `hosted()`) and `html` (the
+  `c15t.js` script tag). `--boilerplate` picks `astro` or `astro-static` from
+  whether the project has a server adapter.
+- An existing file with other contents stops generation and is listed in the
+  error. Pass `--overwrite` to replace it. `.env`, `index.html` and
+  SvelteKit's `src/app.d.ts` get the c15t lines added instead.
+- Removed: `--output` and the generated `README.md`. In `@c15t/cli/generate`,
+  `GenerateOptions.output` is gone, and plans gain a `merge` map with a
+  `mergeFile()` helper for files the project already has.
+
+The `consent-provider-options` codemod writes `hosted({ backendURL })`
+instead of `hosted({ url })`. It imports `hosted()` and `offline()` from
+`c15t/react` (or `@c15t/react`) when the provider comes from a Next.js or
+TanStack Start entry, whose `hosted()` is plain data for
+`defineConsentConfig`. It also leaves an existing `manifest()` mode alone.
+
+### Move `@c15t/react` and `@c15t/nextjs` imports to `c15t` in the v3 codemods
+
+The v3 codemods left `@c15t/react` imports and `@c15t/react/styles.css`
+imports in place, so an app that had switched its dependencies to `c15t`
+still imported packages it no longer installed.
+
+The new `packages-to-c15t` codemod runs before the other v3 codemods. It
+points `@c15t/react` imports at `c15t/react`, `@c15t/nextjs` imports at
+`c15t/next`, and, in a Next.js app, the `@c15t/react` root at `c15t/next`.
+Subpaths such as `/headless` and `/components/consent-dialog-link` keep their
+names. It points the `@c15t/react/postcss-tailwind3` and
+`@c15t/nextjs/postcss-tailwind3` PostCSS plugins at `c15t/postcss-tailwind3`.
+It removes `styles.css` imports, because v3 components add their own
+styles. With Tailwind CSS 3 or a cascade layer it keeps the import, points it
+at `c15t`, and leaves a `TODO(c15t v3)` comment to set `styles: false`. It
+does the same, with a warning, when it can't tell the Tailwind CSS version.
+
+```bash
+npx @c15t/cli@alpha codemods packages-to-c15t --dry-run --json
+```
+
+If `package.json` lists `@c15t/react` or `@c15t/nextjs` without `c15t` v3,
+the codemod keeps the scoped imports and prints a warning. It does not edit
+`package.json`.
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Give coding agents the full c15t setup and migration rules
+
+`c15t setup --codex` and `createAgentSetupPlan()` now hand the agent step-by-step
+rules for installing c15t, upgrading from v2 or replacing another consent banner.
+The agent inventories the app's analytics, pixels and embeds first, then picks
+the install, upgrade or replace path. It resolves exact versions from the CLI's
+npm dist-tag and checks that only one copy of `@c15t/core` is installed. It runs
+the upgrade guide's codemod command with every transform, and replaces framework
+vendor packages such as `@next/third-parties` and `@nuxt/scripts` with c15t
+loaders. Finally it checks first visit, reject, accept and withdrawal in a
+browser.
+
+Docs links in the task point at the site for the CLI's release line. A v3
+prerelease CLI links to `https://v3.c15t.com` and resolves versions from
+`@alpha`. A stable CLI links to `https://c15t.com` and resolves from `@latest`.
+
+`@c15t/cli/frontend/agent` also exports `createC15tSetupInstructions()`, which
+returns these steps without a title or account steps. Hosts can put their own
+account and backend steps first. It accepts `origin`, `distTag`, `mode` and
+`firstStep`. `createC15tIntegrationGuidance()` returns only the consent-gating
+rules, for hosts that embed them in another prompt or skill.
+
+### Keep the app's own `ConsentProvider` working after `consent-provider-options`
+
+When a file declares its own `ConsentProvider`, such as a wrapper around
+`ConsentManagerProvider`, the codemod now imports
+`ConsentProvider as ConsentManagerProvider` and leaves the JSX alone. It used
+to import `ConsentProvider` over the wrapper's name, so the wrapper rendered
+itself.
+
+### Point setup agents at upgrade guides that exist
+
+The upgrade rules in `c15t setup --codex` and `createC15tSetupInstructions()`
+sent Vue, Nuxt, Svelte, Astro and TanStack Start apps to the root
+`/docs/upgrade-v3.md` guide, which has been removed. The agent now picks the
+Next.js, React or JavaScript guide by the v2 package the app uses:
+`@c15t/nextjs`, `@c15t/react` or the `c15t` store. An app that runs its own
+`@c15t/backend` is pointed at the self-host upgrade guide.
+
 ## @c15t/cli@3.0.0-alpha.7 (alpha)
 
 ### Add a Sentry integration

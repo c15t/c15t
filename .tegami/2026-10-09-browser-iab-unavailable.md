@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/browser': minor
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
 ---
 
 ### Throw when an IAB policy reaches a page without the IAB UI

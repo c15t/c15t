@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/integrations': patch
+  "@c15t/integrations":
+    replay:
+      - exit-prerelease(npm:@c15t/integrations)
 ---
 
 ### Log and skip a helper with a missing vendor ID instead of throwing

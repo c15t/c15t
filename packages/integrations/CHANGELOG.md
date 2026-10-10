@@ -1,3 +1,52 @@
+## @c15t/integrations@3.0.0-alpha.10 (alpha)
+
+### Log and skip a helper with a missing vendor ID instead of throwing
+
+Helpers that need an account ID, such as `posthog()`, `googleTagManager()` and
+`metaPixel()`, threw when the ID was empty or only whitespace. IDs usually come
+from environment variables, so a blank `VITE_POSTHOG_KEY=` threw while the app
+rendered and took the consent banner down with it.
+
+These helpers now log an error such as
+`posthog: missing or invalid id. The script will not load.` with
+`console.error` and return a script that never loads. The rest of the page,
+including the consent UI, keeps working, and the vendor stays listed in the
+preference center. An ID in the wrong format, such as a
+malformed Mixpanel token, LogRocket app ID or Klaviyo public key, is handled the
+same way, with the existing message.
+
+Other configuration mistakes, such as a non-https `scriptUrl` override or an
+invalid RudderStack consent mapping, still throw. `@c15t/scripts` re-exports
+these helpers and behaves the same way.
+
+### Load the Google tag and Google Tag Manager only after consent
+
+`gtag()` and `googleTagManager()` take a `loadMode` option, with the same
+values as `posthog()`. The default, `'always'`, keeps today's behavior: the
+script loads before a choice and sends Google Consent Mode signals.
+
+With `loadMode: 'after-consent'`, the helper sends no request to Google and
+creates no `dataLayer` until its category is allowed. The script then loads
+once. The `consent` `default` command still comes first, with the visitor's
+current choices, and later changes send `update`. Visitors whose category is
+denied send Google nothing, so Consent Mode cannot model their conversions.
+
+The helper waits for the category to be allowed, not for a recorded choice.
+Under an `opt-in` policy, that means after the visitor allows it. Under an
+`opt-out` or `none` policy, optional categories are allowed before a choice,
+so the script loads on the first page.
+
+`gtag()` waits for its `category`. `googleTagManager()` gains a `category`
+option. With `'after-consent'` it defaults to
+`{ or: ['measurement', 'marketing'] }`, so the container loads once the
+visitor allows either; pass `'measurement'` for a container with only
+Analytics tags. With `'always'` the default stays `'necessary'`.
+
+```ts
+gtag({ id: 'G-XXXXXXXXXX', category: 'measurement', loadMode: 'after-consent' });
+googleTagManager({ id: 'GTM-XXXXXXX', loadMode: 'after-consent' });
+```
+
 ## @c15t/integrations@3.0.0-alpha.8 (alpha)
 
 ### List integration vendors in the preference dialog

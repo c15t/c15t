@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/astro': minor
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
 ---
 
 ### Throw when an IAB policy reaches a site without `iab`

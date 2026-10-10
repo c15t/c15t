@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': minor
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Framework generation writes the quickstart files

@@ -1,3 +1,235 @@
+## @c15t/vue@3.0.0-alpha.10 (alpha)
+
+### Make IAB TCF opt-in for Vue and Nuxt
+
+The Vue plugin and Nuxt module no longer turn on IAB TCF from the policy
+alone. Without an `iab` option, `@c15t/iab` and the IAB banner and dialog
+never load, no `__tcfapi` is installed, and Nuxt pages stop prefetching them.
+On a Nuxt site with no IAB policy, that removes about 13 KB of gzipped
+prefetch from every page.
+
+A visitor whose policy uses the `iab` model, on an app without `iab`, now
+gets an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) when the backend
+sends the vendor list:
+
+> c15t: this visitor's policy uses IAB TCF, but `iab` is not set.
+
+In Nuxt, a server render fails and Nuxt shows its error page; a prerendered
+or `ssr: false` page shows the same error page once the browser resolves the
+policy. With the Vue plugin, `app.use()` throws when the policy arrives with
+`prefetch`, and otherwise the error is thrown as an uncaught error after
+`/init` answers. A backend that answers `gvl: null` turns IAB off for the
+request, and nothing throws.
+
+If you relied on your policy to show the IAB banner, add `iab: {}`, or
+`iab: { cmpId }` when the backend does not send one. In Nuxt, put it under
+`c15t` in `nuxt.config.ts`. Set only in `app.config.ts`, IAB still works but
+pages do not prefetch the IAB banner and CMP. `iab: false` and
+`iab: { enabled: false }` count as unset, so an IAB policy throws there too.
+
+### Keep banner taps made before the page hydrates
+
+A banner rendered on the server shows before the page's JavaScript runs. On a
+slow phone that gap lasts seconds: about 2 s on Next.js and 1.2 s on Nuxt in
+our mobile benchmark. A tap on Accept all or Reject all in that gap did
+nothing. The button had no handler yet, the banner stayed up and no choice
+was saved.
+
+The stock banner in React, Next.js, TanStack Start, Vue and Nuxt now renders
+a small inline script in front of its buttons. It holds an Accept all, Reject
+all, notice dismiss or Customize tap and hides the banner straight away for
+the first three. Once the banner hydrates and the runtime has started, c15t
+records the choice or the notice dismissal with the time of the tap, so
+later init data can't overwrite it, then saves it and loads the scripts it allows. Customize opens
+the dialog. A tap is dropped and the banner shows again when the browser
+resolves a different consent model or prompt than the one the visitor saw.
+
+Under a Content Security Policy the script takes the `nonce` you already pass
+to c15t. The IAB banner and banners built from hooks are unchanged. In a
+banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
+
+`kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
+the visitor dismissed the notice. A future or invalid time falls back to now.
+
+### Stop c15t stylesheets blocking the first paint in Nuxt
+
+Nuxt inlined the banner's styles into the HTML and also linked the same CSS
+as render-blocking stylesheets, together with the dialog trigger's CSS,
+which no first paint uses. On a throttled phone, a page with a banner first
+painted at about 1,070 ms instead of 450 ms.
+
+`ConsentRoot` now loads the banner and the trigger as their own chunks.
+Every page preloads the banner chunk, and the CSS Nuxt inlines is preloaded
+instead of linked. The browser applies that CSS with the chunk, before it
+shows a banner it renders itself. The trigger chunk loads after the page
+mounts, and only with `showTrigger`. With `features.inlineStyles: false`,
+Nuxt keeps linking the banner's CSS.
+
+Pages outside client manifest mode also stop prefetching the client
+manifest resolver and its translations (about 66 KB gzip), which they never
+load at startup.
+
+The plain Vue plugin's `ConsentRoot` loads the trigger as its own chunk
+too.
+
+### Render children passed to `ConsentRoot` in Vue and Nuxt
+
+`ConsentRoot` had no default slot, so wrapping an app in it, the way a React
+app sits inside a provider, dropped everything inside without a warning and
+the page never rendered. The Vue and Nuxt `ConsentRoot` now render their
+default slot after the banner, dialog and trigger, on the server and in the
+browser.
+
+Keep rendering `<ConsentRoot />` next to your page content, such as
+`<NuxtPage />`. It is not a provider, so wrapping adds nothing; this change
+only stops a wrapped app from disappearing.
+
+### Vue and Nuxt pick the policy source with `mode`
+
+**Nuxt.** Set `mode` in `nuxt.config.ts` with `manifest()`, `hosted()` or
+`offline()` from `c15t/vue`. The default is `manifest()`: the build downloads
+the policy, the server resolves each visitor, and the browser ships no
+resolver or snapshot. One catch-all consent route answers
+`${routePrefix}/init` and `${routePrefix}/manifest`; `routePrefix` defaults
+to `/api/c15t`, and `false` adds no route. For `nuxt generate` and other
+static hosting, use `manifest({ resolve: 'browser' })` with
+`routePrefix: false`: only then does the browser bundle get the snapshot.
+`nuxt generate` with a server-resolved `manifest()` now logs a warning that
+says so.
+
+```ts
+import { manifest } from 'c15t/vue';
+
+export default defineNuxtConfig({
+	c15t: { mode: manifest({ resolve: 'browser' }), routePrefix: false },
+	modules: ['c15t/vue'],
+	ssr: false,
+});
+```
+
+`mode` and `routePrefix` are read from `nuxt.config.ts` only; `app.config.ts`
+keeps `scripts`, `callbacks` and other runtime options. The module now
+auto-imports every composable `c15t/vue/vue-plugin` exports, including
+`useHasConsentPolicy`, `useHasConsentUi`, `useHasConsentPreferences` and
+`useIabTranslations`.
+
+The module bundles the manifest during `nuxt build` and dev startup, reading
+`NUXT_PUBLIC_C15T_BACKEND_URL` when the `c15t` key sets no `backendURL`. The
+fetch is skipped for `hosted()`, `offline()`, `manifest({ snapshot })`,
+`manifest({ source: 'runtime' })`, a relative backend URL and `nuxt prepare`.
+If the fetch fails or takes longer than 10 seconds, `nuxt build` now stops
+with an error, where it used to warn and continue, and `nuxt dev` logs a
+warning and fetches the policy at runtime. Set `onBuildError` under the `c15t`
+key, or `C15T_ON_BUILD_ERROR`, to change that. Use
+`manifest({ source: 'runtime' })` to always fetch at runtime, so policy edits
+apply without a rebuild. `manifest()` without a backend URL, including
+`manifest({ snapshot })`, now stops `nuxt build` and `nuxt dev` with an error
+naming `NUXT_PUBLIC_C15T_BACKEND_URL`: the consent route answers `GET` only,
+so saves used to fail after the visitor chose.
+`NUXT_PUBLIC_INTH_PROJECT_URL` works when `NUXT_PUBLIC_C15T_BACKEND_URL` is
+unset, at build time and on a running server; `consentManifest()` from
+`c15t/vue/vite` reads `VITE_INTH_PROJECT_URL` the same way.
+
+**Vue.** `app.use(c15tVue, { mode })` requires a mode: `manifest()`,
+`hosted()`, `offline()` or `custom()` from `c15t/vue/vue-plugin`.
+`manifest()` and `hosted()` read the backend URL and policy that
+`consentManifest()` from `c15t/vue/vite` downloaded, served as
+`c15t/generated`. `manifest({ manifestURL })` fetches that URL when the app
+starts instead of using the snapshot. The client manifest mode uses the
+shared browser resolver, so it no longer downloads every language. The same entry exports the
+components, so `ConsentRoot`, `ConsentDialogLink` and the rest import from
+`c15t/vue/vue-plugin`. `consentManifest()` is now the only Vite plugin; the
+package resolves its runtime imports itself. `@c15t/vue` declares
+`sideEffects`, so bundlers drop what an app doesn't import.
+
+```ts
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+
+createApp(App).use(c15tVue, { mode: manifest(), scripts }).mount('#app');
+```
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- Nuxt options `manifest`, `manifestURL`, `manifestSnapshot`, `buildManifest`,
+  `geoURL`, `initRoute` and `manifestRoute`. Use `mode`, `routePrefix`,
+  `onBuildError` and `manifest({ manifestURL, geoURL, snapshot })`.
+- The `NUXT_PUBLIC_C15T_MANIFEST_URL` and `NUXT_C15T_MANIFEST_URL`
+  environment variables. Set `mode: manifest({ manifestURL })` in
+  `nuxt.config.ts`. `NUXT_PUBLIC_C15T_BACKEND_URL` and
+  `NUXT_C15T_BACKEND_URL` still work.
+- The Nuxt option `domain`. Saves send the page's hostname.
+- `ConsentPreferencesLink`. It is `ConsentDialogLink`, at
+  `runtime/components/consent-dialog-link.vue`. The floating
+  `ConsentDialogTrigger` stays.
+- `ConsentFrame`. Use `ConsentGate`.
+- Vue plugin options `backendURL`, `manifest`, `manifestSnapshot`,
+  `manifestURL`, `customFetch` and `domain`. Pass them to the mode instead.
+- The default `c15tVue` export of `c15t/vue/vite`: use `consentManifest`. The
+  app plugin keeps the name `c15tVue`.
+- The `c15t/vue/consent-root` and `c15t/vue/consent-widget` subpaths.
+- `consentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
+
+`offline()` now reports the location it resolved for, so the preference
+dialog shows its title.
+
+**Location-based policies in the browser.** When the policy depends on the
+visitor's country or region and the browser has no location, the Vue
+plugin's `manifest()` and Nuxt's `manifest({ resolve: 'browser' })` now ask
+the backend's `/init`, as React, Svelte and `@c15t/browser` do. They used to
+apply the rule for an unknown location without a request, which could be
+another region's rules. Pass `inputs` or `geoURL` to resolve in the browser,
+or `initFallback: false` to the Vue plugin's `manifest()` to keep the old
+behaviour. `consentManifest()` from `c15t/vue/vite` now warns when a
+`manifest()` build bundles such a policy, and suggests `hosted()`.
+
+### Send cross-origin `/init` without a CORS preflight
+
+A browser calling a backend on another origin no longer waits for an
+`OPTIONS` preflight before `GET /init`. On a first visit that saves a round
+trip before the banner shows, about 150 ms on desktop and more on mobile.
+
+The client version, policy contract, country, region and GPC overrides and
+the experiment arm now travel as query parameters instead of `x-c15t-*`
+headers: `v`, `contract`, `country`, `region`, `gpc` and `experiment`, as in
+`/init?v=3.0.0&country=GB`. `Accept-Language` stays a header. The hosted
+transport, the inline prefetch script, the early init in Next.js and the IAB
+vendor-list reference all build the same request. Server-to-server init calls
+keep the headers.
+
+The journey parameters lose their prefix too: `c15tJourney`,
+`c15tJourneyScope` and `c15tStored` are now `journey`, `journeyScope` and
+`stored`, on both `/init` and `POST /subjects`. `@c15t/backend` still reads the
+old names from `3.0.0-alpha.8` and `alpha.9` clients.
+
+c15t reserves these names on an init URL. If a custom `initURL` already
+carries one, c15t replaces it with its own value, so each name appears once.
+
+`/init` now defaults to `credentials: 'same-origin'`: it reads and sets no
+cookie, so a cross-origin init no longer sends one. Saves still default to
+`'include'`. An explicit `credentials` option still applies to both.
+
+`@c15t/backend` reads the new parameters first and the old headers second, so
+older clients keep working. `GET /init` now answers any origin with
+`Access-Control-Allow-Origin: *` and no credentials, and keeps reflecting a
+trusted origin with credentials for older clients. Consent saves and every
+other route still answer only `trustedOrigins`. Same-origin init routes in the
+framework adapters read the parameters too.
+
+Upgrade the backend before or together with the clients. A backend that
+predates this release ignores the parameters: it serves current clients
+without contract negotiation, overrides, experiment attribution or journey
+ids, and it blocks their `/init` for an origin outside `trustedOrigins`.
+
+A caller-supplied `headers` option on the hosted transport is still sent as
+headers. In a browser, any of them except `accept-language` brings the
+preflight back. If your edge strips incoming `x-c15t-*` headers, strip
+`country`, `region` and `gpc` from `/init` requests too.
+
 ## @c15t/vue@3.0.0-alpha.8 (alpha)
 
 ### Link a page's `/init` to the save that follows

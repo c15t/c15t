@@ -1,3 +1,138 @@
+## @c15t/svelte@3.0.0-alpha.10 (alpha)
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Throw when an IAB policy reaches a provider without `iab`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, `ConsentManagerProvider` without `iab` ran the IAB model with no CMP to
+answer for it. It now throws an `IABUnavailableError` (code
+`C15T_IAB_UNAVAILABLE`) while rendering, on the server and in the browser.
+Set `iab` on the provider and render `IABConsentBanner`, or remove the `iab`
+model from the policy. A backend that answers `gvl: null` turns IAB off for
+the request, and nothing throws.
+
+### Svelte and SvelteKit: `ConsentProvider`, `manifest()` and `ConsentRoot`
+
+The Svelte quickstart is now one Vite plugin and one component:
+
+```svelte
+<script lang="ts">
+	import { ConsentBanner, ConsentProvider, manifest } from '@c15t/svelte';
+</script>
+
+<ConsentProvider mode={manifest()}>
+	<ConsentBanner />
+</ConsentProvider>
+```
+
+`@c15t/svelte` exports `manifest()`, `hosted()` and `offline()` itself, so
+Svelte apps import nothing from `@c15t/browser`. `manifest()` with no options
+uses the snapshot and backend URL that `consentManifest()` from
+`@c15t/svelte/vite` downloaded and serves as `c15t/generated`.
+`manifest({ manifestURL })` fetches that URL when the page loads instead of
+using the snapshot. `hosted()` with no options uses that backend URL too, as
+in Vue and React, so a Svelte app no longer passes `hosted({ backendURL })`. `offline()` is now core's.
+
+SvelteKit config lives in one place, the handle:
+
+```ts
+// src/hooks.server.ts
+export const handle = c15tHandle(); // or c15tHandle({ mode: hosted() })
+
+// src/routes/+layout.server.ts
+export { loadConsent as load } from '@c15t/svelte/kit';
+```
+
+```svelte
+<ConsentRoot state={data.consent}>
+```
+
+- `c15tHandle({ mode, routePrefix, snapshot, backendURL })` stores the
+  config on `event.locals.c15t`. `mode` is data from `@c15t/svelte/kit`
+  (`manifest()`, the default, `hosted()` or `offline()`).
+- `loadConsent` works as `load` directly and returns `{ consent }`. It
+  detects a prerender from SvelteKit's `building` flag, so `shared` is gone.
+- `<ConsentRoot state>` turns the mode into a transport that loads each
+  init path only when it runs. A server-resolved page ships no resolver,
+  policy pack, snapshot or other language.
+- `createConsentRoute()` serves `src/routes/api/c15t/[...path]/+server.ts`,
+  needed only for prerendered pages, with `c15tHandle({ routePrefix:
+  '/api/c15t' })`. It reads the handle's `snapshot`, `backendURL` and mode
+  from `event.locals.c15t`, so they are set once; route options still win.
+  In the proxy setup, `c15tHandle({ backendURL: '/api/c15t', routePrefix:
+  '/api/c15t' })`, the route skips the handle's URL, which names the route
+  itself, and forwards to the build's backend URL.
+- `consentManifest()` now includes the module-preload plugin when the
+  `sveltekit()` plugin is present, and keeps the snapshot out of the browser
+  bundle there. It reads `PUBLIC_C15T_BACKEND_URL`, then
+  `VITE_C15T_BACKEND_URL`, then `PUBLIC_INTH_PROJECT_URL` and
+  `VITE_INTH_PROJECT_URL`. A failed download stops `vite build` and warns in
+  `vite dev`; `onBuildError` and `C15T_ON_BUILD_ERROR` change that. In a
+  Svelte single-page app, it warns when the bundled policy depends on the
+  visitor's location and suggests `hosted()`.
+- `/// <reference types="@c15t/svelte/kit/locals" />` in `src/app.d.ts`
+  types `event.locals.c15t`.
+
+Removed, with no alias, because `@c15t/svelte` was not public in v2:
+`ConsentManagerProvider` (use `ConsentProvider`, or `ConsentRoot` in
+SvelteKit), `Frame` (use `ConsentGate`), `createSvelteKitConsentRouteHandlers`
+(use `createConsentRoute`), `c15tPreload` (part of `consentManifest()`),
+`ConsentManifestOptions`, `consentManifest()`'s `outputFile`, `exportName`,
+`importSource` and `rootDir` options, `loadConsent`'s `backendURL`,
+`manifest`, `initRoute` and `shared` options, and the `prefetch` it returned,
+and the `manifest` option of `resolveConsent` from `@c15t/svelte/server` (use
+`snapshot`).
+`@c15t/svelte` now needs SvelteKit 2.63 or later, for `$app/env`.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
 ## @c15t/svelte@3.0.0-alpha.7 (alpha)
 
 ### Show the consent banner at once, and fade it in only when it arrives late

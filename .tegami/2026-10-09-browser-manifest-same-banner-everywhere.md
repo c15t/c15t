@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/browser': patch
-  '@c15t/core': patch
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
 ---
 
 ### Show the banner from a bundled manifest when every location gets the same one

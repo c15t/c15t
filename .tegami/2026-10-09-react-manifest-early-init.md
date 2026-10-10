@@ -1,8 +1,14 @@
 ---
 packages:
-  '@c15t/core': patch
-  '@c15t/browser': patch
-  '@c15t/react': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
 ---
 
 ### Send a bundled manifest's `/init` from the provider's first render

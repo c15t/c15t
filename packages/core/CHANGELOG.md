@@ -1,3 +1,274 @@
+## @c15t/core@3.0.0-alpha.10 (alpha)
+
+### Show the banner from a bundled manifest when every location gets the same one
+
+`manifest()` used to call `/init` whenever a policy rule was keyed by country
+or region and the browser did not know the visitor's location, so the banner
+waited for that round trip. It now resolves in the browser when every location
+gets the same banner: the rules share model, prompt, categories, copy and GPC
+handling, a default rule covers unlisted countries, and with region rules, a
+fallback rule covers a missing region. The save asserts the unknown-location rule, which the backend
+recomputes from the same manifest.
+
+`manifestNeedsLocation()` follows the same rule and returns `false` for such a
+manifest. Manifests where some location gets a different banner, or none, still
+call `/init`, as do IAB policies behind country or region rules. So do
+visitors in any language but English when the location is unknown, because the
+browser bundle carries English copy only and `/init` returns their language in
+full.
+
+A manifest resolved this way reports no location: `getSnapshot().location`
+and `useLocation()` have a `null` country and region. Supply the country
+through `inputs` if your code reads it. When IAB GPP is on, through the
+runtime's `gpp` option, `<ConsentGPP>` or `mountGPP()`, an unknown location
+still calls `/init`, because the GPP US sections need the visitor's state. The
+script-tag build counts GPP as on unless `c15t.init()` gets `gpp: false`.
+Transport factories see this as `gppEnabled` on their context.
+
+### Send a bundled manifest's `/init` from the provider's first render
+
+With `manifest()` from `@c15t/browser` as the `ConsentProvider` mode, a
+visitor whose banner depends on a location the browser does not know waited
+for the provider to mount before `/init` left. The request now leaves during
+the provider's first client render, as it does with `hosted()`, and the mount
+takes that response instead of asking again. Nothing is sent early when the
+bundled manifest can answer on its own, when the visitor has a stored choice,
+or with a `prefetch` or an `experiment`.
+
+### Consent modes as data, `c15t/generated` and one build-failure policy
+
+Breaking for earlier v3 alphas. Every name below was alpha-only, so it is
+removed with no deprecated alias.
+
+**Modes as data.** `c15t/modes` (`@c15t/core/modes`) exports `manifest()`,
+`hosted()` and `offline()` as plain data factories. Each returns a
+serializable `{ type, …options }` object, typed as `ConsentMode`, with no
+imports behind it. Server-rendered frameworks take this data in their config.
+
+```ts
+import { hosted, manifest, offline } from 'c15t/modes';
+
+manifest(); // { type: 'manifest' }
+manifest({ resolve: 'browser', geoURL: '/api/geo' });
+hosted({ backendURL: 'https://your-project.inth.app' });
+offline({ policyRules });
+```
+
+`manifest()` takes `source` (`'build'`, the default, or `'runtime'`) or
+`snapshot`, never both, plus `resolve`, `manifestURL`, `geoURL` and `inputs`.
+
+`hosted()`, `offline()` and `manifest()` as transports carry their options as
+enumerable data too, so they satisfy `ConsentMode`. Transport factories can
+report `kind: 'manifest'`.
+
+**First-load JavaScript.** `c15t/runtime/client-mode` turns mode data into a
+transport for a server-rendered page. For `manifest()` resolved on the server
+and for `hosted()`, first-load JavaScript holds only the record transport and
+the init-request builder. The hosted init path, browser resolution and
+offline mode load with `import()` when they run, from self-contained chunks,
+so Vite and Turbopack don't split a page's first-load chunk around them.
+`clientMode()` takes `initialData`, an init response a prefetch script already
+requested.
+
+**One browser manifest resolver.** `c15t/transports/manifest-browser`
+resolves a manifest in the browser. It bundles English base copy and loads
+other languages with `import('@c15t/translations/<lang>')` the first time a
+visitor needs one. When the policy depends on a location the page doesn't
+know, it asks `geoURL`, then the backend's `/init`. `@c15t/browser`, React,
+Svelte, Vue and the Next.js root use it instead of the all-languages
+resolver, so they no longer download every language.
+`c15t/transports/manifest` bundles every language and is for server code
+only.
+
+**`c15t/generated`.** The build integrations no longer write
+`c15t-manifest.ts` into your source tree, so there is nothing to add to
+`.gitignore` and type checks pass on a fresh clone. `c15t/generated`
+(`@c15t/core/generated`) exports `snapshot`, the fetched manifest, and
+`backendURL`, the URL the build read it from. Both are `undefined` when the
+build has no snapshot. In the browser bundle of TanStack Start and SvelteKit,
+`snapshot` is always `undefined`; single-page apps get it in the browser.
+Most apps never import it: the framework helpers read it themselves.
+
+**One rule for failed build-time manifest fetches.** Every build integration
+handles a failed fetch the same way: `withConsentManifest` in Next.js, the
+`consentManifest` Vite plugins (`c15t/build`, `c15t/tanstack-start/build`,
+`c15t/vue/vite`, `@c15t/svelte/vite`), the Nuxt module and the Astro
+integration.
+
+- The fetch waits at most 10 seconds.
+- A production build (`next build`, `vite build`, `nuxt build`,
+  `astro build`) stops with an error that names the URL and the cause.
+- Dev (`next dev`, `vite dev`, `nuxt dev`, `astro dev`) logs a warning and
+  fetches the policy at runtime. `snapshot` is then `undefined`.
+- A missing backend URL follows the same rule.
+- The new `onBuildError` option picks one behaviour for both commands:
+  `'fail'` stops dev too, and `'runtime'` lets a production build continue
+  and fetch at runtime. The `C15T_ON_BUILD_ERROR` environment variable
+  overrides it, so you can deploy during a backend outage without a code
+  change: `C15T_ON_BUILD_ERROR=runtime npm run build`.
+- The fetch is skipped, without an error, for a relative backend URL. With
+  `onBuildError: 'fail'`, a relative URL stops the build.
+- The Vite plugins fetch only for a bundle that reads `snapshot`. A
+  single-page app picks its mode in app code, so `vite build` fills the
+  snapshot in after tree-shaking: a React, Vue, Svelte or JavaScript app
+  that uses `hosted()` or `offline()` never contacts the backend during the
+  build, and a backend outage no longer stops it. `vite dev` fetches when
+  the app first loads `c15t/generated`.
+- The plugins can't see the options passed to `manifest()`, so an app whose
+  `manifest()` takes `manifestURL` or `source: 'runtime'` still reads
+  `snapshot`. Pass `source: 'runtime'` to the plugin as well, as in
+  `consentManifest({ source: 'runtime' })`: it never fetches, and serves
+  `snapshot: undefined` in dev and in builds.
+
+The build reads the backend URL from the framework's public variable when you
+don't pass one, from the environment or a `.env` file:
+`NEXT_PUBLIC_C15T_BACKEND_URL`, `NUXT_PUBLIC_C15T_BACKEND_URL`,
+`PUBLIC_C15T_BACKEND_URL` (Astro, Svelte and SvelteKit) or
+`VITE_C15T_BACKEND_URL` (TanStack Start, React, Vue and plain JavaScript).
+The Vite plugins set an unset `VITE_C15T_BACKEND_URL` to the URL they used.
+Each variable has an Inth alternative, read when the c15t one is unset, such
+as `VITE_INTH_PROJECT_URL`, so other Inth SDKs can share the project URL.
+
+`consentManifest()` from `c15t/build` warns when the downloaded policy
+depends on the visitor's location. A single-page app's `manifest()` then still
+asks the backend's `/init` on the first visit unless the page passes `inputs`
+or `geoURL`, so the warning suggests `hosted()`.
+
+`offline()` now reports the location it resolved for, so the Vue and Astro
+preference dialog shows its title.
+
+**Consent write code loads later.** Once a banner or dialog has shown, the
+code that saves consent loads on the first press, key or focus inside it, or
+in idle time three seconds after the load event, whichever comes first. It
+used to load in the first idle time after the load event, which could land it
+in first-load JavaScript. A save that comes first still waits for it.
+
+Removed:
+
+- `hosted({ url })`: use `hosted({ backendURL })`.
+- `createManifestTransport({ manifest })`: use
+  `createManifestTransport({ snapshot })`.
+- `hostedModes` from `c15t/runtime/provider`: use `readHostedMode(mode)`.
+- The generated `c15t-manifest.ts` file, and the build options `outputFile`,
+  `exportName`, `importSource` and `rootDir`. Delete the file and its
+  `.gitignore` entry, and replace
+  `import { consentManifest } from './c15t-manifest'` with
+  `import { snapshot } from 'c15t/generated'`.
+
+Changed:
+
+- `hosted()` asserts the resolved decision on saves whenever `initURL` is
+  set. Pass `assertDecisionInputs: false` to turn that off.
+- The error for a runtime with no `mode` names the package and the API that
+  got none, such as ``@c15t/react ConsentProvider: `mode` is required. Use
+  manifest() or hosted().``, instead of the v2
+  `ConsentManagerProvider`. Production builds name the package only.
+
+### A provider remounted right after a choice starts from that choice
+
+When a provider remounted before persistence's write code had loaded, for
+example because `onChoiceRecorded` changed the layout, the new provider read
+storage that did not hold the choice yet. It could show the banner again or,
+after a revocation, restore the earlier grant and run gated scripts until the
+next reload. A provider mounted while another one's writes wait now starts
+from that provider's records, revocations included. Its own later choices
+still win, and the earlier writes keep the newer decision per category when
+they land.
+
+### Throw when an IAB policy has no `IABProvider`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, an app without `IABProvider` showed no consent UI at all: the standard
+`ConsentBanner` and `ConsentDialog` do not handle the IAB model. They now
+throw an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) during render,
+on the server and in the browser:
+
+> c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted.
+
+Render `IABProvider` from `c15t/react/iab` for those visitors, or remove the
+`iab` model from the policy. A backend that answers `gvl: null` turns IAB off
+for the request, and nothing throws.
+
+`@c15t/core` exports `IABUnavailableError`, `IAB_UNAVAILABLE_ERROR_CODE` and
+`policyNeedsIAB()`, which adapters use to decide when to throw.
+
+### Keep banner taps made before the page hydrates
+
+A banner rendered on the server shows before the page's JavaScript runs. On a
+slow phone that gap lasts seconds: about 2 s on Next.js and 1.2 s on Nuxt in
+our mobile benchmark. A tap on Accept all or Reject all in that gap did
+nothing. The button had no handler yet, the banner stayed up and no choice
+was saved.
+
+The stock banner in React, Next.js, TanStack Start, Vue and Nuxt now renders
+a small inline script in front of its buttons. It holds an Accept all, Reject
+all, notice dismiss or Customize tap and hides the banner straight away for
+the first three. Once the banner hydrates and the runtime has started, c15t
+records the choice or the notice dismissal with the time of the tap, so
+later init data can't overwrite it, then saves it and loads the scripts it allows. Customize opens
+the dialog. A tap is dropped and the banner shows again when the browser
+resolves a different consent model or prompt than the one the visitor saw.
+
+Under a Content Security Policy the script takes the `nonce` you already pass
+to c15t. The IAB banner and banners built from hooks are unchanged. In a
+banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
+
+`kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
+the visitor dismissed the notice. A future or invalid time falls back to now.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### Send cross-origin `/init` without a CORS preflight
+
+A browser calling a backend on another origin no longer waits for an
+`OPTIONS` preflight before `GET /init`. On a first visit that saves a round
+trip before the banner shows, about 150 ms on desktop and more on mobile.
+
+The client version, policy contract, country, region and GPC overrides and
+the experiment arm now travel as query parameters instead of `x-c15t-*`
+headers: `v`, `contract`, `country`, `region`, `gpc` and `experiment`, as in
+`/init?v=3.0.0&country=GB`. `Accept-Language` stays a header. The hosted
+transport, the inline prefetch script, the early init in Next.js and the IAB
+vendor-list reference all build the same request. Server-to-server init calls
+keep the headers.
+
+The journey parameters lose their prefix too: `c15tJourney`,
+`c15tJourneyScope` and `c15tStored` are now `journey`, `journeyScope` and
+`stored`, on both `/init` and `POST /subjects`. `@c15t/backend` still reads the
+old names from `3.0.0-alpha.8` and `alpha.9` clients.
+
+c15t reserves these names on an init URL. If a custom `initURL` already
+carries one, c15t replaces it with its own value, so each name appears once.
+
+`/init` now defaults to `credentials: 'same-origin'`: it reads and sets no
+cookie, so a cross-origin init no longer sends one. Saves still default to
+`'include'`. An explicit `credentials` option still applies to both.
+
+`@c15t/backend` reads the new parameters first and the old headers second, so
+older clients keep working. `GET /init` now answers any origin with
+`Access-Control-Allow-Origin: *` and no credentials, and keeps reflecting a
+trusted origin with credentials for older clients. Consent saves and every
+other route still answer only `trustedOrigins`. Same-origin init routes in the
+framework adapters read the parameters too.
+
+Upgrade the backend before or together with the clients. A backend that
+predates this release ignores the parameters: it serves current clients
+without contract negotiation, overrides, experiment attribution or journey
+ids, and it blocks their `/init` for an origin outside `trustedOrigins`.
+
+A caller-supplied `headers` option on the hosted transport is still sent as
+headers. In a browser, any of them except `accept-language` brings the
+preflight back. If your edge strips incoming `x-c15t-*` headers, strip
+`country`, `region` and `gpc` from `/init` requests too.
+
 ## @c15t/core@3.0.0-alpha.9 (alpha)
 
 ### List integration vendors in the preference dialog
