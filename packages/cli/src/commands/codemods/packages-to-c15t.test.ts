@@ -372,6 +372,36 @@ body
 `);
 	});
 
+	it('keeps comments in front of removed Sass import targets', async () => {
+		const { read } = await run(
+			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
+			{
+				'src/first.scss': `@import '@c15t/react/styles.css', /* theme override */ './theme';
+`,
+				'src/lines.scss': `@import
+	'@c15t/react/styles.css',
+	// theme override
+	'./theme';
+`,
+				'src/middle.scss': `@import './base', /* theme override */ '@c15t/react/styles.css', './theme';
+`,
+			}
+		);
+
+		expect(await read('src/first.scss')).toBe(
+			`@import /* theme override */ './theme';
+`
+		);
+		expect(await read('src/lines.scss')).toBe(`@import
+	// theme override
+	'./theme';
+`);
+		expect(await read('src/middle.scss')).toBe(
+			`@import './base', /* theme override */ './theme';
+`
+		);
+	});
+
 	it('migrates Sass @use and @forward of c15t stylesheets', async () => {
 		const css = `@use '@c15t/react/styles.css';
 @forward '@c15t/react/styles.css';

@@ -625,9 +625,21 @@ const targetText = function targetText(
 	return `${text.slice(target.start, target.specifierStart)}${specifier}${text.slice(target.specifierEnd, target.end)}`;
 };
 
+/** A comment in the trivia between two targets, with the space after it. */
+const TRIVIA_COMMENT = /(?<comment>\/\*[\s\S]*?\*\/|\/\/[^\n]*)(?<space>\s*)/gu;
+
+/** The comments in the trivia between two targets, without separators. */
+const commentsOf = function commentsOf(trivia: string): string {
+	return Array.from(
+		trivia.matchAll(TRIVIA_COMMENT),
+		({ groups }) => `${groups?.comment ?? ''}${groups?.space || ' '}`
+	).join('');
+};
+
 /**
  * The edit that rewrites a Sass import's target list without its removed
- * targets. Each remaining target keeps the separator in front of it.
+ * targets. Each remaining target keeps the separator in front of it, and
+ * comments in front of a removed target move to the next one that stays.
  */
 const targetListEdit = function targetListEdit(
 	text: string,
@@ -635,18 +647,24 @@ const targetListEdit = function targetListEdit(
 	fates: (typeof REMOVED | string | undefined)[]
 ): TextEdit {
 	let list = '';
-	let leading = true;
+	let trivia: string | undefined;
 	for (const [index, target] of targets.entries()) {
+		const previous = targets[index - 1];
+		if (previous) {
+			const gap = text.slice(previous.end, target.start);
+			// The first gap after a kept target supplies the separator; later
+			// gaps, and any before the first kept target, give their comments.
+			trivia =
+				trivia === undefined && list !== ''
+					? gap
+					: `${trivia ?? ''}${commentsOf(gap)}`;
+		}
 		const fate = fates[index];
 		if (fate === REMOVED) {
 			continue;
 		}
-		const previous = targets[index - 1];
-		if (!leading && previous) {
-			list += text.slice(previous.end, target.start);
-		}
-		list += targetText(text, target, fate ?? target.specifier);
-		leading = false;
+		list += `${trivia ?? ''}${targetText(text, target, fate ?? target.specifier)}`;
+		trivia = undefined;
 	}
 	const [first] = targets;
 	return {
