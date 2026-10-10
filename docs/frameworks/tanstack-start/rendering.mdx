@@ -104,7 +104,9 @@ Keep these details right:
   It means the same as Next.js `defineConsentConfig({ routePrefix })`, and
   like there it has no default. `'/'` throws
   ``@c15t/tanstack-start: `routePrefix` can't be '/': a consent route at the site root would catch every page. Use a path such as '/api/c15t'.``
-  when the handler is created.
+  when the handler is created. An empty string throws too, because it isn't
+  a path that starts with `/`. To run without a consent route, leave
+  `routePrefix` out.
 - `proxy: true` on `createConsentStateHandler` sends saves through the route,
   like Next.js `defineConsentConfig({ proxy: true })`. It needs `routePrefix`,
   and throws
