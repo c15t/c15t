@@ -4,6 +4,7 @@
  * integration that module exports `undefined`, so they need their source
  * passed in.
  */
+import { manifest as browserManifest } from '@c15t/core/transports/manifest-browser';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { describe, expect, test } from 'vitest';
 
@@ -34,11 +35,24 @@ describe('manifest() from c15t/react', () => {
 			withBuildDefaults({ source: 'runtime' }, build).snapshot
 		).toBeUndefined();
 		expect(withBuildDefaults({ manifestURL: '/c15t/manifest' }, build)).toEqual(
-			{ manifestURL: '/c15t/manifest' }
+			{ backendURL: 'https://built.example', manifestURL: '/c15t/manifest' }
 		);
 		expect(
 			withBuildDefaults({ backendURL: '/api/c15t' }, build).backendURL
 		).toBe('/api/c15t');
+	});
+
+	test("saves to the build's backend when manifestURL names a CDN", () => {
+		const mode = browserManifest(
+			withBuildDefaults(
+				{ manifestURL: 'https://cdn.example/policy.json' },
+				build
+			)
+		);
+
+		expect(mode.backendURL).toBe('https://built.example');
+		expect(mode.manifestURL).toBe('https://cdn.example/policy.json');
+		expect(mode.snapshot).toBeUndefined();
 	});
 
 	test('carries the resolved options as data', () => {

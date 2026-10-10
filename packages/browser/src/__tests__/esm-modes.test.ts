@@ -8,6 +8,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { manifest as browserManifest } from '@c15t/core/transports/manifest-browser';
 import type { ConsentManifest } from '@c15t/schema/types';
 import { build } from 'esbuild';
 import { describe, expect, it } from 'vitest';
@@ -58,11 +59,26 @@ describe('manifest() from @c15t/browser', () => {
 		).toBeUndefined();
 		expect(
 			withBuildDefaults({ manifestURL: '/api/c15t/manifest' }, buildOutput)
-		).toEqual({ manifestURL: '/api/c15t/manifest' });
+		).toEqual({
+			backendURL: 'https://built.example',
+			manifestURL: '/api/c15t/manifest',
+		});
 		expect(
 			withBuildDefaults({ backendURL: 'https://own.example' }, buildOutput)
 				.backendURL
 		).toBe('https://own.example');
+	});
+
+	it("saves to the build's backend when manifestURL names a CDN", () => {
+		const mode = browserManifest(
+			withBuildDefaults(
+				{ manifestURL: 'https://cdn.example/policy.json' },
+				buildOutput
+			)
+		);
+		expect(mode.backendURL).toBe('https://built.example');
+		expect(mode.manifestURL).toBe('https://cdn.example/policy.json');
+		expect(mode.snapshot).toBeUndefined();
 	});
 
 	it('carries the resolved options as data', () => {

@@ -108,3 +108,12 @@ test('a manifestURL is fetched at runtime and wins over the bundled snapshot', a
 		MANIFEST_URL,
 	]);
 });
+
+test("a manifestURL on a CDN still saves to the build's backend", () => {
+	const mode = manifest({
+		manifestURL: 'https://cdn.example.test/policy.json',
+	});
+
+	expect(mode.backendURL).toBe('https://consent.example.test');
+	expect(mode.snapshot).toBeUndefined();
+});
