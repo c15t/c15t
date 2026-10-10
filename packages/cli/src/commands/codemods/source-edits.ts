@@ -187,6 +187,15 @@ const localDeclarationsOf = function localDeclarationsOf(
 	);
 };
 
+/** The module an import declaration that holds `node` loads. */
+const importedModuleOf = function importedModuleOf(
+	node: TsMorphTypes.Node
+): string | undefined {
+	return node
+		.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
+		?.getModuleSpecifierValue();
+};
+
 /** Whether a declaration is `import { name } from` one of `modules`. */
 const isNamedImportFrom = function isNamedImportFrom(
 	declaration: TsMorphTypes.Node,
@@ -196,34 +205,63 @@ const isNamedImportFrom = function isNamedImportFrom(
 	if (!Node.isImportSpecifier(declaration) || declaration.getName() !== name) {
 		return false;
 	}
-	const moduleName = declaration
-		.getFirstAncestorByKind(SyntaxKind.ImportDeclaration)
-		?.getModuleSpecifierValue();
+	const moduleName = importedModuleOf(declaration);
 	return moduleName !== undefined && modules.includes(moduleName);
 };
 
 /**
- * Whether an identifier names the global `name`, or the `name` export of
- * one of `modules`, such as `vi` from `vitest`. A parameter or local
- * declaration that shadows the global does not count.
+ * The name a binding has where it comes from, so an alias resolves to what
+ * it stands for:
  *
- * @param identifier - The identifier to check.
- * @param name - The global's name, which is also the export's name.
- * @param modules - Modules that export the same binding.
- * @returns Whether the identifier refers to that global or export.
+ * - an identifier nothing in the file declares is a global, named by its text;
+ * - `test` in `import { vi as test } from 'vitest'` is `vi`;
+ * - `V.vi` after `import * as V from 'vitest'` is `vi`.
+ *
+ * An import counts only from a module `modulesOf` lists for its name. Any
+ * other local binding, such as a parameter that shadows a global, has none.
+ *
+ * @param node - An identifier, or a property access on a namespace import.
+ * @param modulesOf - For each exported name, the modules that export it.
+ * @returns The global or imported name, or `undefined`.
  */
-export const isGlobalOrImport = function isGlobalOrImport(
-	identifier: TsMorphTypes.Identifier,
-	name: string,
-	modules: readonly string[]
-): boolean {
-	const declarations = localDeclarationsOf(identifier);
-	if (declarations.length === 0) {
-		return identifier.getText() === name;
+export const sourceNameOf = function sourceNameOf(
+	node: TsMorphTypes.Node,
+	modulesOf: Readonly<Record<string, readonly string[]>>
+): string | undefined {
+	// Own keys only, so a name such as `constructor` finds no modules.
+	const modulesFor = (name: string): readonly string[] =>
+		Object.hasOwn(modulesOf, name) ? (modulesOf[name] ?? []) : [];
+	if (Node.isPropertyAccessExpression(node)) {
+		const namespace = node.getExpression();
+		const name = node.getName();
+		const imported =
+			Node.isIdentifier(namespace) &&
+			localDeclarationsOf(namespace).some(
+				(declaration) =>
+					Node.isNamespaceImport(declaration) &&
+					modulesFor(name).includes(importedModuleOf(declaration) ?? '')
+			);
+		return imported ? name : undefined;
 	}
-	return declarations.some((declaration) =>
-		isNamedImportFrom(declaration, name, modules)
+	if (!Node.isIdentifier(node)) {
+		return undefined;
+	}
+	const declarations = localDeclarationsOf(node);
+	if (declarations.length === 0) {
+		return node.getText();
+	}
+	const specifier = declarations.find(
+		(declaration) =>
+			Node.isImportSpecifier(declaration) &&
+			isNamedImportFrom(
+				declaration,
+				declaration.getName(),
+				modulesFor(declaration.getName())
+			)
 	);
+	return specifier && Node.isImportSpecifier(specifier)
+		? specifier.getName()
+		: undefined;
 };
 
 /**

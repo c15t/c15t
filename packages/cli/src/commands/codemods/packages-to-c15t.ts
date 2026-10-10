@@ -17,9 +17,9 @@ import {
 	addTodo,
 	applyEdits,
 	elementRemovals,
-	isGlobalOrImport,
 	isNodeRequire,
 	propertyKey,
+	sourceNameOf,
 	TODO_MARKER,
 	UNCHANGED,
 } from './source-edits';
@@ -273,6 +273,11 @@ const MODULE_HELPERS = new Set([
 	'vi.unmock',
 ]);
 
+/** The method names in {@link MODULE_HELPERS}, checked before any binding. */
+const HELPER_METHODS = new Set(
+	[...MODULE_HELPERS].map((helper) => helper.slice(helper.indexOf('.') + 1))
+);
+
 /** Modules that export the test-runner globals, as `vitest` exports `vi`. */
 const HELPER_MODULES: Record<string, readonly string[]> = {
 	jest: ['@jest/globals'],
@@ -280,9 +285,12 @@ const HELPER_MODULES: Record<string, readonly string[]> = {
 };
 
 /**
- * Whether a node is a `vi.mock()`-style call from {@link MODULE_HELPERS}
- * whose receiver is the real `vi`, `jest` or `require`, not a local
- * binding of the same name.
+ * Whether a node is a `vi.mock()`-style call from {@link MODULE_HELPERS}.
+ * The receiver is matched by what it refers to, not its local name: the
+ * global `vi`, `jest` or `require`, a `createRequire()` binding, or `vi` or
+ * `jest` imported under any name, as `import { vi as test } from 'vitest'`
+ * or `import * as V from 'vitest'` does. A local binding that shadows a
+ * global doesn't count.
  */
 const isModuleHelperCall = function isModuleHelperCall(
 	node: TsMorphTypes.Node
@@ -292,19 +300,21 @@ const isModuleHelperCall = function isModuleHelperCall(
 	}
 	const callee = node.getExpression();
 	if (
-		!Node.isPropertyAccessExpression(callee) ||
-		!MODULE_HELPERS.has(callee.getText())
+		!(
+			Node.isPropertyAccessExpression(callee) &&
+			HELPER_METHODS.has(callee.getName())
+		)
 	) {
 		return false;
 	}
 	const receiver = callee.getExpression();
-	if (!Node.isIdentifier(receiver)) {
-		return false;
-	}
-	const name = receiver.getText();
-	return name === 'require'
-		? isNodeRequire(receiver)
-		: isGlobalOrImport(receiver, name, HELPER_MODULES[name] ?? []);
+	const helper =
+		Node.isIdentifier(receiver) && isNodeRequire(receiver)
+			? 'require'
+			: sourceNameOf(receiver, HELPER_MODULES);
+	return (
+		helper !== undefined && MODULE_HELPERS.has(`${helper}.${callee.getName()}`)
+	);
 };
 
 /** Whether a call's first argument is a module specifier. */

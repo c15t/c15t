@@ -718,6 +718,38 @@ jest.mock('c15t/react');
 `);
 	});
 
+	it('resolves aliased and namespaced test-runner helpers', async () => {
+		const local = `const test = { mock: (name) => name };
+test.mock('@c15t/react');
+`;
+		const { read } = await run(
+			{ c15t: '^3.0.0' },
+			{
+				'src/aliased.test.ts': `import { jest as j } from '@jest/globals';
+import { vi as test } from 'vitest';
+test.mock('@c15t/react');
+j.mock('@c15t/react');
+`,
+				'src/local.ts': local,
+				'src/namespace.test.ts': `import * as V from 'vitest';
+V.vi.mock('@c15t/react');
+`,
+			}
+		);
+
+		expect(await read('src/aliased.test.ts'))
+			.toBe(`import { jest as j } from '@jest/globals';
+import { vi as test } from 'vitest';
+test.mock('c15t/react');
+j.mock('c15t/react');
+`);
+		expect(await read('src/namespace.test.ts'))
+			.toBe(`import * as V from 'vitest';
+V.vi.mock('c15t/react');
+`);
+		expect(await read('src/local.ts')).toBe(local);
+	});
+
 	it('points mocks of a removed stylesheet import at c15t', async () => {
 		const { read, result } = await run(
 			{ c15t: '^3.0.0', tailwindcss: '^4.0.0' },
