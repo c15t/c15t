@@ -4,8 +4,10 @@ import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
 import { cleanupProjects, createProject } from './__tests__/helpers';
+import { runCssVariablesToV3Codemod as cssVariables } from './css-variables-to-v3';
 import { runPackagesToC15tCodemod as codemod } from './packages-to-c15t';
 import { runPostcssTailwind3Codemod as postcssTailwind3 } from './postcss-tailwind3';
+import { createCodemodSession } from './runner';
 
 const TODO =
 	'TODO(c15t v3): c15t components add their own styles. Keep this import only with Tailwind CSS 3 or a named cascade layer, and set styles: false in the provider options.';
@@ -822,6 +824,36 @@ export default defineConfig({
 	],
 };
 `);
+	});
+
+	it('passes dry-run stylesheet edits to the next codemod in a session', async () => {
+		const stylesheet = `@import "@c15t/react/styles.css";
+.banner {
+	--consent-widget-max-width: 40rem;
+}
+`;
+		const { read, rootDir } = await run(
+			{ c15t: '^3.0.0' },
+			{ 'src/index.css': stylesheet },
+			true
+		);
+		const session = await createCodemodSession(rootDir);
+		const options = { dryRun: true, projectRoot: rootDir, session };
+		const packages = await codemod(options);
+		const variables = await cssVariables(options);
+		const path = join(rootDir, 'src/index.css');
+		const first = packages.changedFiles.find((file) => file.filePath === path);
+		const second = variables.changedFiles.find(
+			(file) => file.filePath === path
+		);
+
+		expect(first?.before).toBe(stylesheet);
+		expect(second?.before).toBe(first?.after);
+		expect(second?.after).toBe(`.banner {
+	--consent-manager-max-width: 40rem;
+}
+`);
+		expect(await read('src/index.css')).toBe(stylesheet);
 	});
 
 	it.each(['workspace:*', 'catalog:', 'latest', '*', 'file:../tailwindcss'])(
