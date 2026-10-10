@@ -92,3 +92,6 @@ links land on the framework list. Do not mention React Native, Expo or
 | `/docs/frameworks/react-native/troubleshooting` | `/docs/frameworks` | Removed, not published in v3 |
 | `/docs/frameworks/vue/components/consent-preferences-link` | `/docs/frameworks/vue/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |
 | `/docs/frameworks/nuxt/components/consent-preferences-link` | `/docs/frameworks/nuxt/components/consent-dialog-link` | Named after the renamed component, `ConsentDialogLink` |
+| `/docs/frameworks/svelte/components/consent-manager-provider` | `/docs/frameworks/svelte/components/consent-provider` | Named after the renamed component, `ConsentProvider` |
+| `/docs/frameworks/sveltekit/components/consent-manager-provider` | `/docs/frameworks/sveltekit/components/consent-root` | SvelteKit layouts render `ConsentRoot`, which wraps `ConsentProvider` |
+| `/docs/frameworks/sveltekit/rendering#serve-the-manifest-route` | `/docs/frameworks/sveltekit/rendering#fetch-the-manifest-at-runtime` | Runtime fetching is a `c15tHandle` mode; the route moved to `#serve-the-consent-route`. Anchor links cannot redirect server-side |

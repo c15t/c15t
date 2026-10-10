@@ -1,6 +1,6 @@
 ---
 title: Vendor consent
-description: Let visitors allow a category such as marketing in a SvelteKit app and still turn off one vendor in it, with the vendors prop on ConsentManagerProvider and getConsentManager.
+description: Let visitors allow a category such as marketing in a SvelteKit app and still turn off one vendor in it, with the vendors prop on ConsentRoot and getConsentManager.
 group: frameworks
 ---
 
@@ -13,7 +13,7 @@ you only declare a vendor for a script of your own, or to replace a helper's
 name and privacy policy.
 
 Declare the vendors in the root layout, using the `vendor` slug each script
-already carries, and pass them to `ConsentManagerProvider`:
+already carries, and pass them to `ConsentRoot`:
 
 {/* example: fragment */}
 
@@ -31,7 +31,7 @@ already carries, and pass them to `ConsentManagerProvider`:
   ];
 </script>
 
-<ConsentManagerProvider {mode} prefetch={data.prefetch} {scripts} {vendors}>
+<ConsentRoot state={data.consent} {scripts} {vendors}>
 ```
 
 The provider reads `vendors` once, when it is created.

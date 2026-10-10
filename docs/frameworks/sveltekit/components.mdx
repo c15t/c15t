@@ -1,7 +1,12 @@
 ---
 title: Components
-description: Props and behavior of every @c15t/svelte component in a SvelteKit app, from ConsentManagerProvider and ConsentBanner to ConsentGate and DevTools.
+description: Props and behavior of every @c15t/svelte component in a SvelteKit app, from ConsentRoot and ConsentBanner to ConsentGate and DevTools.
 group: frameworks
 ---
+
+[`ConsentRoot`](./components/consent-root) renders `ConsentProvider` from
+the state `loadConsent` returned, so the banner is in the server HTML. Mount
+it once, in the root `+layout.svelte`; every other component renders inside
+it.
 
 <include src="../../shared/svelte/components.mdx" />

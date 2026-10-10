@@ -6,7 +6,7 @@ group: frameworks
 
 ## Register scripts in the root layout
 
-Pass the array from `src/lib/scripts.ts` to `ConsentManagerProvider`
+Pass the array from `src/lib/scripts.ts` to `ConsentRoot`
 as the `scripts` prop in `src/routes/+layout.svelte`. The
 [quickstart](/docs/frameworks/sveltekit/quickstart) sets up both files:
 
@@ -26,19 +26,13 @@ it. On a page with either, the browser would otherwise request the chunk after
 the app's JavaScript has run, and a returning visitor's consented scripts and
 held requests would wait for that extra request.
 
-Add the `c15tPreload()` Vite plugin so `c15tHandle` can link the chunk from
-the page's `<head>` with `<link rel="modulepreload">`:
-
-{/* example: fragment */}
-
-```ts title="vite.config.ts (partial)"
-import { c15tPreload } from '@c15t/svelte/vite';
-
-export default defineConfig({ plugins: [sveltekit(), c15tPreload()] });
-```
+`consentManifest()` from `@c15t/svelte/vite`, already in `vite.config.ts`
+from the quickstart, lets `c15tHandle` link the chunk from the page's
+`<head>` with `<link rel="modulepreload">`. It does this whenever the
+`sveltekit()` plugin is present; there is nothing else to add.
 
 SvelteKit builds the server before the client, so the server cannot know the
-chunk's file name. After the client build, the plugin writes the chunk URL
+chunk's file name. After the client build, `consentManifest()` writes the chunk URL
 into the server output, before SvelteKit prerenders pages and before the
 adapter copies the build. Then `c15tHandle` adds one link to every page whose
 provider has scripts or blocker rules, prerendered pages included. The link

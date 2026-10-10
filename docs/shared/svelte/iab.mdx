@@ -16,7 +16,7 @@ download.
 
 ## Add the IAB components
 
-Turn IAB on with the provider's `iab` prop, keeping your existing `mode`,
+Turn IAB on with the provider's `iab` prop, keeping your existing mode or `state`,
 `scripts` and other props. `registeredCmpId` stands for the number IAB Europe
 assigned to your company. The standard and IAB components add their styles
 automatically:
@@ -24,11 +24,11 @@ automatically:
 {/* example: fragment */}
 
 ```svelte
-<ConsentManagerProvider
-	{mode}
-	{scripts}
-	iab={{ cmpId: registeredCmpId }}
->
+<!-- Svelte: src/App.svelte -->
+<ConsentProvider mode={manifest()} {scripts} iab={{ cmpId: registeredCmpId }}>
+
+<!-- SvelteKit: src/routes/+layout.svelte -->
+<ConsentRoot state={data.consent} {scripts} iab={{ cmpId: registeredCmpId }}>
 ```
 
 Then render `IABConsentBanner` and `IABConsentDialog` next to the standard

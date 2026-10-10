@@ -1,15 +1,16 @@
-{/* Shared by the Svelte and SvelteKit ConsentManagerProvider pages, after each page's mount section. */}
+{/* Shared by the Svelte ConsentProvider and SvelteKit ConsentRoot pages, after each page's mount section. */}
 
 ## Props
 
 Pass each option as a top-level prop, or group them in `options`. When both
 set the same option, the top-level prop wins. The `ConsentManagerOptions` type
-from `@c15t/svelte` lists every option.
+from `@c15t/svelte` lists every option. SvelteKit's `ConsentRoot` takes the
+same props, except that `state` replaces `mode` and `prefetch`.
 
 | Prop | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `mode` | `hosted()`, `offline()` or `custom()` result | required | Where policies come from and where choices are saved. Read once; remount the provider to change it. |
-| `prefetch` | `ConsentState` | none | Server-resolved state from `loadConsent` or `resolveConsent`. With a resolved policy in it, the first render already knows whether to show the banner, and the browser skips its own `/init` request. Read once. |
+| `mode` | `manifest()`, `hosted()`, `offline()` or `custom()` result, all from `@c15t/svelte` | required | Where policies come from and where choices are saved. Read once; remount the provider to change it. `ConsentRoot` builds it from `state`, or takes a `custom()` transport as `mode`. |
+| `prefetch` | `ConsentState` | none | Server-resolved state, such as the result of `resolveConsent`. With a resolved policy in it, the first render already knows whether to show the banner, and the browser skips its own policy request. `ConsentRoot` passes it from `state`. Read once. |
 | `scripts` | `Script[]` | none | Vendor scripts that load when their category is allowed. Updates after mount: new scripts go to the loader. See [scripts](../scripts). |
 | `consentCategories` | `AllConsentNames[]` | the policy's categories | Categories the preference UI offers, within the policy's scope. Updates after mount. |
 | `theme` | `Theme` | none | Slot classes and `consentActions` button styles. Design tokens in it are not applied in the browser. Updates after mount. |
@@ -55,7 +56,8 @@ runtime:
 1. It reads the stored choice from the cookie and local storage.
 2. It starts the script loader, the iframe blocker and, if configured, the
    network blocker and the IAB TCF add-on.
-3. It requests the policy, unless `prefetch` already holds one.
+3. It resolves the policy with its `mode`, unless `prefetch` already holds
+   one.
 
 When the provider unmounts, it stops all of them. Keep one provider at the root of the app, so it stays mounted across
 navigation and every component can reach it.
@@ -80,7 +82,8 @@ Open the page in a private window with DevTools open:
 
 1. The banner appears once the policy resolves. `window.c15t` in the console
    shows `pkg: '@c15t/svelte'`.
-2. The Network panel shows one `/init` request, or none when the page came
-   with a server `prefetch`.
+2. The Network panel shows the request your mode makes: none for
+   `manifest()` with a bundled snapshot, one `/init` for `hosted()`, and
+   none when the page came with a server-resolved state.
 3. A component that calls `getConsentManager()` renders without the
    `c15t: no v3 consent context` error.

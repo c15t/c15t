@@ -35,8 +35,10 @@ server-only modules into browser code, so the generator never reaches the bundle
 <include src="../../shared/examples/sveltekit/theme.mdx" />
 
 Return the CSS from a layout load. If your root `+layout.server.ts` already
-has a load from the quickstart, add `themeCSS` to the object it returns next
-to `prefetch`:
+exports `loadConsent` from the quickstart, call it from your own `load` and
+return `themeCSS` next to its `consent`, as in
+`({ ...(await loadConsent(event)), themeCSS })`. A separate layout looks like
+this:
 
 <include src="../../shared/examples/sveltekit/theme-load.mdx" />
 

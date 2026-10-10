@@ -1,6 +1,6 @@
 ---
 title: Quickstart
-description: Bundle your c15t policy into a SvelteKit server at build time, resolve consent in the root layout load so the banner is in the server HTML, then hydrate the provider with consent-gated scripts and a preferences link.
+description: Bundle your c15t policy into a SvelteKit server at build time, resolve consent in the root layout load so the banner is in the server HTML, then hydrate ConsentRoot with consent-gated scripts and a preferences link.
 group: frameworks
 ---
 
@@ -13,12 +13,9 @@ first paint. For prerendered pages, a static site or SPA mode, follow this
 guide and then [rendering and deployment](/docs/frameworks/sveltekit/rendering).
 The `examples/sveltekit` app in the c15t repository is the finished result.
 
-`@c15t/svelte` supports SvelteKit 2 and 3 with Svelte 5. The examples use
-SvelteKit 3. On SvelteKit 2, import `building` and `dev` from
-`$app/environment` instead of `$app/env`, and write `#lib/` imports as `$lib/`
-without the `.js` extension. SvelteKit 2 has no `src/env.ts`: import `env` from
-`$env/dynamic/public` and read `env.PUBLIC_C15T_BACKEND_URL`. Its adapter
-stays in `svelte.config.js`.
+`@c15t/svelte` supports SvelteKit 2.63 and later, including SvelteKit 3,
+with Svelte 5. The examples use SvelteKit 3. On SvelteKit 2, keep the adapter
+in `svelte.config.js` instead of passing it to `sveltekit()`.
 
 The guide uses [Inth](https://inth.com) for policies and consent records.
 Create an Inth project, then:
@@ -38,126 +35,105 @@ production setup. Rebuild after changing policies, translations or vendors.
 
 ## Install
 
-<CommandTabs command="@c15t/svelte@alpha c15t@alpha @c15t/integrations@alpha" mode="install" />
+<CommandTabs command="@c15t/svelte@alpha @c15t/integrations@alpha" mode="install" />
 
-SvelteKit uses `@c15t/svelte`; its server helpers are in `@c15t/svelte/kit`
-and its Vite plugins in `@c15t/svelte/vite`. The `c15t` package has no Svelte
-entry point; server code imports the bundled policy from its `c15t/generated`
-module.
-
-## Register vendor scripts
-
-Create `src/lib/scripts.ts`. PostHog waits for measurement permission:
-
-<include src="../../shared/examples/sveltekit/scripts.mdx" />
-
-Replace `phc_your_project_key` with your PostHog project key. Remove any
-`<script>` tags in `src/app.html` or SDK imports that already load PostHog, so
-c15t is the only thing that loads it.
+SvelteKit uses `@c15t/svelte`: components from `@c15t/svelte`, server
+helpers from `@c15t/svelte/kit` and the Vite plugin from `@c15t/svelte/vite`.
+The `c15t` package has no Svelte entry point, so you don't install it.
 
 ## Set the backend URL
 
-Declare the backend URL as a public environment variable in `src/env.ts`, so
-the server and the browser read the same value:
+Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any
+path prefix, in `.env` or your host's build environment:
 
-Set `PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including any path
-prefix, in `.env` or your host's build environment. The example app's `.env`
-points at `https://example-inth.inth.app`, a demo project. `static: true`
-inlines the value at build time, the same value the policy below comes from.
+```sh title=".env"
+PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
+```
+
+The example app's `.env` points at `https://example-inth.inth.app`, a demo
+project. The build reads the variable, and the server and the browser use the
+value the build read, so rebuild after you change it.
 
 ## Bundle the policy at build time
 
-Add `consentManifest` and `c15tPreload` to the plugins in `vite.config.ts`:
+Add `consentManifest` to the plugins in `vite.config.ts`:
 
 <include src="../../shared/examples/sveltekit/vite-config.mdx" />
 
 `consentManifest` downloads your project's public policy from
 `<backendURL>/manifest` when Vite starts, for `vite build` and `vite dev`. On
-SvelteKit 3, `svelte-kit sync` runs it too. Server code imports the policy as
-`snapshot` from `c15t/generated`. In the browser bundle, `snapshot` is
-`undefined`, so the policy stays on the server. No file is written into your
-project. Without a `backendURL` option, the plugin reads
-`PUBLIC_C15T_BACKEND_URL` from the environment or `.env`, the same variable
-`src/env.ts` declares.
-
-`c15tPreload` lets `c15tHandle`, added below, preload the script loader on
-pages that register scripts.
-
-Declare the consent options once, in `src/lib/server/c15t.ts`. Modules under
-`src/lib/server` never reach the browser:
+SvelteKit 3, `svelte-kit sync` runs it too. The policy stays on the server:
+the browser bundle never gets it. No file is written into your project. In a
+build, the plugin also lets `c15tHandle`, added below, preload the script
+loader on pages that register scripts.
 
 <include src="../../shared/build-time-manifest-notes.mdx" />
 
-The policy and the backend URL are both fixed at build time, so rebuild after
-you change `PUBLIC_C15T_BACKEND_URL`.
-
 To apply policy edits without a rebuild, fetch the policy at runtime instead;
-see [serve the manifest route](/docs/frameworks/sveltekit/rendering#serve-the-manifest-route).
+see [fetch the manifest at runtime](/docs/frameworks/sveltekit/rendering#fetch-the-manifest-at-runtime).
+
+## Add the server hook
+
+`c15tHandle` holds the consent config and reads the consent cookie, location
+headers and Global Privacy Control once per request. It stores them on
+`event.locals.c15t` for `loadConsent` and any other load or endpoint that
+needs them. It also writes a server-rendered banner's rules into the HTML
+`<head>` as `<style>` elements, so the banner is styled before hydration
+without a stylesheet request. Add it to `src/hooks.server.ts`:
+
+<include src="../../shared/examples/sveltekit/hooks.mdx" />
+
+With no options, the mode is `manifest()`: the server resolves each visitor
+from the bundled policy. [Rendering and deployment](/docs/frameworks/sveltekit/rendering)
+covers `hosted()`, `offline()` and the other options.
+
+Type `event.locals.c15t` with one line in `src/app.d.ts`:
+
+<include src="../../shared/examples/sveltekit/app-locals.mdx" />
 
 ## Resolve consent in the root layout load
 
+Export `loadConsent` as the root layout's server load:
+
 <include src="../../shared/examples/sveltekit/layout-server.mdx" />
 
-`loadConsent` reads the visitor's consent cookie, location headers and Global
-Privacy Control, resolves their policy from the bundled snapshot, and returns
-a plain, serializable object for the provider's `prefetch` prop. Rendering a
-page makes no policy request to the backend. `loadConsent` never throws. If
-resolution takes longer than `timeoutMs`, 500 ms by default, it returns the
-stored choice without a policy, and the browser resolves the policy after
-hydration.
+`loadConsent` resolves the visitor's policy from the bundled snapshot with
+the inputs `c15tHandle` read, and returns `{ consent }`, a plain,
+serializable object for `ConsentRoot`. Rendering a page makes no policy
+request to the backend. `loadConsent` never throws. If resolution takes
+longer than 500 ms, it returns the stored choice without a policy, and the
+browser resolves the policy after hydration.
 
-While SvelteKit prerenders pages at build time, `building` is `true`, so
-`shared: building` makes the load return no visitor's consent and no policy.
-A prerendered page goes to every visitor, so it must not contain one
-visitor's consent. The browser resolves consent on those pages through the
-route below. [Rendering and deployment](/docs/frameworks/sveltekit/rendering#prerender-some-pages)
-has the details.
+While SvelteKit prerenders pages at build time, `loadConsent` returns no
+visitor's consent and no policy, because a prerendered page goes to every
+visitor. It reads SvelteKit's `building` flag itself.
+[Prerender some pages](/docs/frameworks/sveltekit/rendering#prerender-some-pages)
+covers how the browser resolves consent there.
 
-## Add the consent route
-
-Create `src/routes/api/c15t/[...path]/+server.ts` with the same options:
-
-<include src="../../shared/examples/sveltekit/route-handlers.mdx" />
-
-`GET /api/c15t` resolves a visitor from the bundled policy, the same way the
-layout load does. The browser calls it whenever it resolves consent itself,
-such as on a prerendered page. The route exports only `GET`; choices are saved
-to the backend directly.
-
-## Render the provider in the root layout
+## Render ConsentRoot in the root layout
 
 <include src="../../shared/examples/sveltekit/layout.mdx" />
 
-Pass `data.prefetch` through unchanged. The provider starts from it, so the
+Pass `data.consent` through unchanged. `ConsentRoot` starts from it, so the
 server and the browser render the same banner and the browser makes no second
-request for the policy. `hosted()` saves choices to the backend URL, and
-`initURL` sends the browser's own policy requests to `/api/c15t`. A policy
-resolved from a manifest has no signed snapshot token, so
-`assertDecisionInputs: true` sends the decision it was made against with each
-save instead.
+request for the policy. A page the server resolved ships no resolver, policy
+rules or snapshot to the browser.
+
+PostHog waits for measurement permission. Replace `phc_your_project_key`
+with your PostHog project key. Remove any `<script>` tags in `src/app.html` or
+SDK imports that already load PostHog, so c15t is the only thing that loads
+it. Create `scripts` in the layout component, not in `+layout.server.ts`:
+they hold functions, which a server load cannot send to the browser.
 
 `ConsentBanner` shows the banner when the policy asks for one.
 `ConsentDialog` is the preference dialog; it loads in its own chunk after the
 page, before anyone opens it. `ConsentDialogLink` is the persistent way back to
 preferences. Put it where visitors look for privacy settings, such as the
 footer. There is no stylesheet to import: the components bring their own
-rules, and the server hook below writes the banner's into the HTML.
+rules, and the server hook writes the banner's into the HTML.
 
-Keep the provider in the root layout so it stays mounted across client-side
+Keep `ConsentRoot` in the root layout so it stays mounted across client-side
 navigation.
-
-## Add the server hook
-
-`c15tHandle` reads the consent cookie, location headers and Global Privacy
-Control once per request, for `loadConsent` and any other load or endpoint
-that needs them. It also writes a server-rendered banner's rules into the
-HTML `<head>` as `<style>` elements, so the banner is styled before hydration
-without a stylesheet request. Add it to `src/hooks.server.ts`:
-
-<include src="../../shared/examples/sveltekit/hooks.mdx" />
-
-[Rendering and deployment](/docs/frameworks/sveltekit/rendering#resolve-request-context-once-with-c15thandle)
-shows how to type `event.locals.c15t`.
 
 ## Verify consent
 

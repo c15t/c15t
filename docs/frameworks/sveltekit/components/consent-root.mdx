@@ -1,23 +1,33 @@
 ---
-title: ConsentManagerProvider
-description: Mount ConsentManagerProvider in a SvelteKit root layout with a server prefetch so the banner is in the first HTML, with every prop and its default.
+title: ConsentRoot
+description: Mount ConsentRoot in a SvelteKit root layout with the state loadConsent returns, so the banner is in the first HTML, with every prop and its default.
 group: frameworks
 ---
 
-## Mount the provider in the root layout
+## Mount ConsentRoot in the root layout
 
-Resolve consent in the root layout's server load, then pass the result to the
-provider as `prefetch` in the root layout:
+Export `loadConsent` as the root layout's server load, then pass its
+`consent` to `ConsentRoot` as `state`:
 
 <include src="../../../shared/examples/sveltekit/layout-server.mdx" />
 
 <include src="../../../shared/examples/sveltekit/layout.mdx" />
 
-Pass `data.prefetch` through unchanged. The provider starts from it on the
-server and in the browser, so both render the same banner, and the browser
-makes no second policy request. The [quickstart](../quickstart) explains
-`loadConsent`, the bundled policy in `consentOptions`, the `/api/c15t` route
-and `shared: building` for prerendered pages.
+Pass `data.consent` through unchanged. It holds the visitor's
+server-resolved consent, the mode `c15tHandle()` was given, the backend URL
+and the consent route's prefix. `ConsentRoot` renders `ConsentProvider` from
+it, on the server and in the browser, so both render the same banner and the
+browser makes no second policy request. The [quickstart](../quickstart)
+explains `c15tHandle` and `loadConsent`.
+
+`ConsentRoot` turns the mode into a transport that loads each policy path
+only when it runs. A page the server resolved ships a small transport that
+saves choices, and no resolver, policy rules, snapshot or other languages.
+The code to resolve the policy again in the browser, such as after a
+language change or on a prerendered page, loads when it is needed.
+
+To use a transport of your own, pass `custom()` from `@c15t/svelte` as
+`ConsentRoot`'s `mode` prop. `c15tHandle()` takes only data modes.
 
 Keep the provider in the root `+layout.svelte`. A layout stays mounted across
 client-side navigation, so the runtime, the loaded scripts and the dialog
@@ -28,4 +38,4 @@ Create `scripts` and `callbacks` in the layout component, not in
 `+layout.server.ts`. They hold functions, which a server load cannot send to
 the browser.
 
-<include src="../../../shared/svelte/components/consent-manager-provider.mdx" />
+<include src="../../../shared/svelte/components/consent-provider.mdx" />
