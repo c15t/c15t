@@ -107,7 +107,9 @@ your client component, import from `c15t/next`, and change the provider:
 {/* example: fragment */}
 
 ```tsx title="After (v3): components/consent-manager/provider.tsx, changed lines"
-import { ConsentBanner, ConsentDialog, ConsentProvider, hosted } from 'c15t/next';
+import { ConsentBanner, ConsentDialog, ConsentProvider } from 'c15t/next';
+// c15t/next's hosted() is data for c15t.config.ts; the provider takes the transport.
+import { hosted } from 'c15t/react';
 
 // In the component, replace ConsentManagerProvider:
 <ConsentProvider

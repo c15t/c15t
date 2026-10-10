@@ -30,3 +30,8 @@ npx @c15t/cli@alpha setup hosted --framework react --backend-url https://your-pr
 - Removed: `--output` and the generated `README.md`. In `@c15t/cli/generate`,
   `GenerateOptions.output` is gone, and plans gain a `merge` map with a
   `mergeFile()` helper for files the project already has.
+
+The `consent-provider-options` codemod now imports `hosted()` and `offline()`
+from `c15t/react` (or `@c15t/react`) when the provider comes from a Next.js or
+TanStack Start entry, whose `hosted()` is plain data for
+`defineConsentConfig`. It also leaves an existing `manifest()` mode alone.

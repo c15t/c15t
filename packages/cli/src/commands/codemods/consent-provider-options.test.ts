@@ -11,7 +11,7 @@ import { runConsentProviderOptionsCodemod as codemod } from './consent-provider-
 describe('consent-provider-options codemod', { timeout: 20_000 }, () => {
 	afterEach(cleanupProjects);
 
-	it('renames the provider and turns hosted mode into a transport', async () => {
+	it('renames the provider and takes the hosted transport from the React entry', async () => {
 		const { result, updated } = await transformFile(
 			codemod,
 			`'use client';
@@ -43,8 +43,8 @@ import {
 	ConsentBanner,
 	ConsentDialog,
 	ConsentProvider,
-	hosted,
 } from '@c15t/nextjs';
+import { hosted } from '@c15t/react';
 
 export default function ConsentManagerClient({ children }) {
 	return (
@@ -424,6 +424,39 @@ export const options: ConsentManagerOptions = {
 };`);
 	});
 
+	it('imports transports from c15t/react next to a c15t/next provider', async () => {
+		const { updated } = await transformFile(
+			codemod,
+			`'use client';
+
+import { ConsentManagerProvider } from 'c15t/next';
+
+export const Consent = ({ children }) => (
+	<ConsentManagerProvider options={{ mode: 'offline' }}>{children}</ConsentManagerProvider>
+);
+`
+		);
+
+		// c15t/next exports hosted() and offline() as data for
+		// defineConsentConfig; ConsentProvider needs the transport.
+		expect(updated).toContain("import { ConsentProvider } from 'c15t/next';");
+		expect(updated).toContain("import { offline } from 'c15t/react';");
+		expect(updated).toContain('options={{ mode: offline() }}');
+	});
+
+	it('leaves a manifest() mode alone', async () => {
+		const { result } = await transformFile(
+			codemod,
+			`import { ConsentProvider, manifest } from 'c15t/react';
+
+export const App = ({ children }) => (
+	<ConsentProvider options={{ mode: manifest() }}>{children}</ConsentProvider>
+);
+`
+		);
+		expect(result.changedFiles).toEqual([]);
+	});
+
 	it('marks a mode held in a variable or expression', async () => {
 		const source = `import type { ConsentManagerOptions } from '@c15t/react';
 
@@ -446,7 +479,7 @@ export const fromHelper: ConsentManagerOptions = {
 		);
 
 		const todo =
-			'TODO(c15t v3): mode now takes a transport such as hosted({ backendURL }) or offline().';
+			'TODO(c15t v3): mode now takes a transport: hosted({ backendURL }), manifest() with the consentManifest() build plugin, or offline().';
 		expect(first).toContain(
 			`export const options: ConsentProviderOptions = { /* ${todo} Replace this value and remove backendURL, offlinePolicy and endpointHandlers. */ mode };`
 		);
