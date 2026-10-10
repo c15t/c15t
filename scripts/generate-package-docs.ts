@@ -18,6 +18,7 @@ import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
 import { visit } from 'unist-util-visit';
 
+import { docsOriginForVersion } from '../packages/cli/src/generate/docs-origin';
 import {
 	withFrameworkGroups,
 	withPackageSetupLinks,
@@ -374,6 +375,12 @@ const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 		throw new Error(`leadtype package docs failed for ${config.name}`);
 	}
 
+	// Links to pages outside the bundle go to the docs site for this
+	// package's release, not whichever major c15t.com documents today.
+	const { version } = JSON.parse(
+		readFileSync(join(outDir, 'package.json'), 'utf8')
+	) as { version: string };
+	const siteOrigin = docsOriginForVersion(version);
 	const docsDir = join(outDir, 'docs');
 	const files = await fg('**/*.md', { cwd: docsDir });
 	const bundledFiles = new Set(files);
@@ -385,12 +392,22 @@ const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 				.use(() => (tree: Root) => {
 					visit(tree, (node) => {
 						if (node.type === 'link' || node.type === 'definition') {
-							node.url = packageDocLink(node.url, file, bundledFiles);
+							node.url = packageDocLink(
+								node.url,
+								file,
+								bundledFiles,
+								siteOrigin
+							);
 						}
 						// leadtype renders <Prompt> as a `prompt` code block, so its
 						// docs paths are plain text rather than link nodes.
 						if (node.type === 'code' && node.lang === 'prompt') {
-							node.value = packagePromptLinks(node.value, file, bundledFiles);
+							node.value = packagePromptLinks(
+								node.value,
+								file,
+								bundledFiles,
+								siteOrigin
+							);
 						}
 					});
 				});
@@ -413,7 +430,11 @@ const runLeadtype = async function runLeadtype(config: PackageDocsConfig) {
 	const docsReadmePath = join(outDir, 'docs', 'README.md');
 	const agentsContent = withFrameworkGroups(
 		withPackageSetupLinks(
-			packageIndexLinks(readFileSync(agentsPath, 'utf8'), bundledFiles),
+			packageIndexLinks(
+				readFileSync(agentsPath, 'utf8'),
+				bundledFiles,
+				siteOrigin
+			),
 			bundledFiles
 		)
 	);

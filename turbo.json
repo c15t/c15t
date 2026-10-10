@@ -666,6 +666,7 @@
 		"build:docs": {
 			"inputs": [
 				"$TURBO_ROOT$/docs/**",
+				"$TURBO_ROOT$/packages/cli/src/generate/docs-origin.ts",
 				"$TURBO_ROOT$/scripts/generate-package-docs.ts",
 				"$TURBO_ROOT$/scripts/package-doc-entry-points.ts",
 				"$TURBO_ROOT$/scripts/rewrite-package-doc-links.ts",

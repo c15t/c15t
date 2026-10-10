@@ -22,25 +22,28 @@ export const restorePackageDocIncludes = async (
 	return content;
 };
 
-/** Website that serves pages missing from a package's filtered bundle. */
-const SITE_ORIGIN = 'https://c15t.com';
-
 const isRootRelative = (url: string): boolean =>
 	url.startsWith('/') && !url.startsWith('//');
 
-/** Resolve site documentation URLs to version-matched files when bundled. */
+/**
+ * Resolve site documentation URLs to version-matched files when bundled.
+ * Pages missing from the package's filtered bundle point at `siteOrigin`,
+ * the docs site for the package's release, because c15t.com documents the
+ * previous major during a new major's prereleases.
+ */
 export const packageDocLink = (
 	url: string,
 	fromFile: string,
-	bundledFiles: ReadonlySet<string>
+	bundledFiles: ReadonlySet<string>,
+	siteOrigin: string
 ): string => {
 	const isRelative = url.startsWith('./') || url.startsWith('../');
 	if (!isRelative && !/^\/docs(?:\/|[?#]|$)/u.test(url)) {
 		// Other site paths, such as /llms-full.txt, do not exist inside the
 		// package, so they point at the website.
-		return isRootRelative(url) ? new URL(url, SITE_ORIGIN).href : url;
+		return isRootRelative(url) ? new URL(url, siteOrigin).href : url;
 	}
-	const parsed = new URL(url, `${SITE_ORIGIN}/docs/${fromFile}`);
+	const parsed = new URL(url, `${siteOrigin}/docs/${fromFile}`);
 	const route = parsed.pathname.replace(/^\/docs\/?/u, '').replace(/\/$/u, '');
 	const target = [
 		route.replace(/\.mdx$/u, '.md'),
@@ -82,20 +85,21 @@ const promptDocPath = new RegExp(
  * `https://v3.c15t.com/docs/frameworks/next/upgrade-v3.md`. In a package
  * bundle they become the bundled file, relative to the page holding the
  * prompt, because those docs match the installed version. Absolute URLs to
- * pages outside the bundle stay as written; root-relative paths point at the
- * website.
+ * pages outside the bundle stay as written; root-relative paths point at
+ * `siteOrigin`.
  */
 export const packagePromptLinks = (
 	text: string,
 	fromFile: string,
-	bundledFiles: ReadonlySet<string>
+	bundledFiles: ReadonlySet<string>,
+	siteOrigin: string
 ): string =>
 	text.replace(
 		promptDocPath,
 		(match, open: string, url: string, close: string) => {
 			const absolute = url.startsWith(PROMPT_DOCS_ORIGIN);
 			const path = absolute ? url.slice(PROMPT_DOCS_ORIGIN.length) : url;
-			const link = packageDocLink(path, fromFile, bundledFiles);
+			const link = packageDocLink(path, fromFile, bundledFiles, siteOrigin);
 			if (absolute && !link.startsWith('.')) {
 				return match;
 			}
@@ -106,13 +110,14 @@ export const packagePromptLinks = (
 /**
  * Rewrite root-relative links in a package's AGENTS.md, which sits beside
  * its `docs` directory. Bundled pages become `./docs/` paths; anything else
- * points at the website.
+ * points at `siteOrigin`.
  */
 export const packageIndexLinks = (
 	markdown: string,
-	bundledFiles: ReadonlySet<string>
+	bundledFiles: ReadonlySet<string>,
+	siteOrigin: string
 ): string =>
 	markdown.replace(/(?<=\]\()\/(?!\/)[^)\s]*(?=\))/gu, (url) => {
-		const link = packageDocLink(url, 'index.md', bundledFiles);
+		const link = packageDocLink(url, 'index.md', bundledFiles, siteOrigin);
 		return link.startsWith('./') ? `./docs/${link.slice(2)}` : link;
 	});

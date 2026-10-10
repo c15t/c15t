@@ -9,7 +9,7 @@ group: integrations
 
 Each vendor helper in `@c15t/integrations` returns a script configuration that you
 register with your c15t provider. Importing a helper installs nothing on its
-own. Set up consent with your [framework quickstart](https://c15t.com/docs/frameworks) first,
+own. Set up consent with your [framework quickstart](https://v3.c15t.com/docs/frameworks) first,
 then follow the vendor guide.
 
 | Package manager | Command                                |
@@ -123,18 +123,18 @@ behind the cookies a vendor already wrote; `clearOnRevocation` deletes them
 when their category is denied. Each framework documents both in its Scripts
 and embeds group:
 
-| Framework      | Vendor consent                                                                   | Clear on revocation                                                                        |
-| -------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
-| Next.js        | [Vendor consent](https://c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/next/clear-on-revocation)           |
-| TanStack Start | [Vendor consent](https://c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
-| React          | [Vendor consent](https://c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/react/clear-on-revocation)          |
-| Nuxt           | [Vendor consent](https://c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
-| Vue            | [Vendor consent](https://c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://c15t.com/docs/frameworks/vue/clear-on-revocation)            |
-| Astro          | [Vendor consent](https://c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://c15t.com/docs/frameworks/astro/clear-on-revocation)          |
-| Svelte         | [Vendor consent](https://c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
-| SvelteKit      | [Vendor consent](https://c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
-| HTML           | [Vendor consent](https://c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://c15t.com/docs/frameworks/html/clear-on-revocation)           |
-| JavaScript     | [Vendor consent](https://c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
+| Framework      | Vendor consent                                                                      | Clear on revocation                                                                           |
+| -------------- | ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| Next.js        | [Vendor consent](https://v3.c15t.com/docs/frameworks/next/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/next/clear-on-revocation)           |
+| TanStack Start | [Vendor consent](https://v3.c15t.com/docs/frameworks/tanstack-start/vendor-consent) | [Clear on revocation](https://v3.c15t.com/docs/frameworks/tanstack-start/clear-on-revocation) |
+| React          | [Vendor consent](https://v3.c15t.com/docs/frameworks/react/vendor-consent)          | [Clear on revocation](https://v3.c15t.com/docs/frameworks/react/clear-on-revocation)          |
+| Nuxt           | [Vendor consent](https://v3.c15t.com/docs/frameworks/nuxt/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/nuxt/clear-on-revocation)           |
+| Vue            | [Vendor consent](https://v3.c15t.com/docs/frameworks/vue/vendor-consent)            | [Clear on revocation](https://v3.c15t.com/docs/frameworks/vue/clear-on-revocation)            |
+| Astro          | [Vendor consent](https://v3.c15t.com/docs/frameworks/astro/vendor-consent)          | [Clear on revocation](https://v3.c15t.com/docs/frameworks/astro/clear-on-revocation)          |
+| Svelte         | [Vendor consent](https://v3.c15t.com/docs/frameworks/svelte/vendor-consent)         | [Clear on revocation](https://v3.c15t.com/docs/frameworks/svelte/clear-on-revocation)         |
+| SvelteKit      | [Vendor consent](https://v3.c15t.com/docs/frameworks/sveltekit/vendor-consent)      | [Clear on revocation](https://v3.c15t.com/docs/frameworks/sveltekit/clear-on-revocation)      |
+| HTML           | [Vendor consent](https://v3.c15t.com/docs/frameworks/html/vendor-consent)           | [Clear on revocation](https://v3.c15t.com/docs/frameworks/html/clear-on-revocation)           |
+| JavaScript     | [Vendor consent](https://v3.c15t.com/docs/frameworks/javascript/vendor-consent)     | [Clear on revocation](https://v3.c15t.com/docs/frameworks/javascript/clear-on-revocation)     |
 
 ## Send events only to allowed integrations
 

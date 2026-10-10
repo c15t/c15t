@@ -18,7 +18,7 @@ terminal it can help you create one.
 
 A v2 config that only has `adapter` fails with a message naming the field.
 Replace it with `database`, as the
-[database setup guide](https://c15t.com/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
+[database setup guide](https://v3.c15t.com/docs/self-host/guides/database-setup#upgrade-a-v2-backend)
 shows.
 
 ## Apply it

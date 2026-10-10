@@ -22,7 +22,7 @@ These docs describe c15t v3. Find your app's row in Choose your setup, then foll
 
 ## More documentation
 
-[Documentation index](https://c15t.com/docs/llms.txt) · [Full Markdown context](https://c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
+[Documentation index](https://v3.c15t.com/docs/llms.txt) · [Full Markdown context](https://v3.c15t.com/llms-full.txt). Prefer the index and individual pages for focused tasks.
 
 ## Frameworks
 

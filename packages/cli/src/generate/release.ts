@@ -1,3 +1,4 @@
+import { docsOriginForVersion } from './docs-origin.ts';
 import { version as cliVersion } from './version.ts';
 
 /**
@@ -126,16 +127,7 @@ export const describeC15tRelease = function describeC15tRelease(
 	return `Install ${[...LINKED_C15T_PACKAGES].join(', ')} with @${linked}, and other @c15t packages with @${other}.`;
 };
 
-/** Docs origin for stable releases and release lines without their own site. */
-export const C15T_DOCS_ORIGIN = 'https://c15t.com';
-
-/**
- * Docs sites for the prereleases of a new major version, keyed by major.
- * c15t.com documents the current stable major until the new one ships.
- */
-const PRERELEASE_DOCS_ORIGINS: ReadonlyMap<string, string> = new Map([
-	['3', 'https://v3.c15t.com'],
-]);
+export { C15T_DOCS_ORIGIN } from './docs-origin.ts';
 
 /**
  * The npm dist-tag that publishes the c15t release a CLI belongs to.
@@ -176,13 +168,5 @@ export const c15tDistTag = function c15tDistTag(
 export const c15tDocsOrigin = function c15tDocsOrigin(
 	version: string = cliVersion
 ): string {
-	const separator = version.indexOf('-');
-	if (separator === -1) {
-		return C15T_DOCS_ORIGIN;
-	}
-	const [major = '', minor, patch] = version.slice(0, separator).split('.');
-	if (minor !== '0' || patch !== '0') {
-		return C15T_DOCS_ORIGIN;
-	}
-	return PRERELEASE_DOCS_ORIGINS.get(major) ?? C15T_DOCS_ORIGIN;
+	return docsOriginForVersion(version);
 };
