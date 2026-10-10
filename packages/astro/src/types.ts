@@ -120,7 +120,8 @@ export interface C15tAstroOptions {
 	 * Path of the route the integration injects for `manifest()` mode, which
 	 * answers `${routePrefix}/init` and `${routePrefix}/manifest`. A page
 	 * whose consent changes after it loads asks it again. `false` injects
-	 * nothing, for a site that serves those paths itself.
+	 * nothing, and the browser then asks the backend's `/init` instead; it
+	 * never calls a route of your own at that path.
 	 *
 	 * The route renders on demand, so `astro build` needs a server adapter.
 	 * A static site uses `hosted()` or `offline()`, or

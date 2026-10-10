@@ -670,7 +670,8 @@ export {
 } from './inline-styles';
 
 // The handlers behind the injected route, for a site that sets
-// `routePrefix: false` and serves the paths itself. The manifest cache
+// `routePrefix: false` and mounts them itself. The browser does not call
+// such a route for `/init`; see `createConsentRouteHandlers`. The manifest cache
 // lives in `@c15t/core/server`, one process cache shared with the other
 // framework adapters.
 export {
