@@ -9,7 +9,7 @@
  */
 import { building } from '$app/env';
 import type { ConsentMode } from '@c15t/core/modes';
-import { readRequestConsent } from '@c15t/core/server';
+import { normalizeRoutePrefix, readRequestConsent } from '@c15t/core/server';
 import type {
 	ConsentManifest,
 	ConsentRequestHeaderInputs,
@@ -42,7 +42,8 @@ export interface C15tHandleOptions extends ConsentRequestOptions {
 	 * `src/routes/api/c15t/[...path]/+server.ts`. The browser then resolves
 	 * consent on pages the server did not, such as prerendered ones,
 	 * through the app's own route. Without it, the browser asks the
-	 * backend's `/init`.
+	 * backend's `/init`. `/` is rejected: a catch-all route at the site
+	 * root would catch every page.
 	 */
 	routePrefix?: string;
 	/**
@@ -153,12 +154,16 @@ const modeData = function modeData(mode: ConsentMode): ConsentMode {
  * cookie name and geo/language overrides.
  * @returns A `handle` hook that populates `event.locals.c15t`.
  * @throws {TypeError} When `mode` is `custom()`, which cannot reach the
- * browser as data.
+ * browser as data, or `routePrefix` is `/` or not a path.
  */
 export const c15tHandle = function c15tHandle(
 	options: C15tHandleOptions = {}
 ): C15tHandle {
 	const mode = modeData(options.mode ?? { type: 'manifest' });
+	const routePrefix =
+		options.routePrefix === undefined
+			? undefined
+			: normalizeRoutePrefix('@c15t/svelte', options.routePrefix);
 	return async ({ event, resolve }) => {
 		const { headers } = event.request;
 		// A prerendered page is one HTML file for every visitor: no cookie or
@@ -184,8 +189,8 @@ export const c15tHandle = function c15tHandle(
 		if (options.backendURL !== undefined) {
 			locals.backendURL = options.backendURL;
 		}
-		if (options.routePrefix !== undefined) {
-			locals.routePrefix = options.routePrefix;
+		if (routePrefix !== undefined) {
+			locals.routePrefix = routePrefix;
 		}
 		if (options.snapshot !== undefined) {
 			locals.snapshot = options.snapshot;
