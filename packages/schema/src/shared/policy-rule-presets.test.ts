@@ -515,6 +515,33 @@ describe('reviewed opt-out and statistics profiles', () => {
 		);
 	});
 
+	test('ukOptInWithStatistics exempts measurement for GB only', () => {
+		const rules = [
+			policyRulePresets.ukOptInWithStatistics(),
+			policyRulePresets.europeOptIn(),
+		];
+		expect(
+			resolvePolicyRules({ countryCode: 'GB', regionCode: null, rules })
+		).toMatchObject({
+			policy: {
+				exemptCategories: ['measurement'],
+				model: 'opt-in',
+				preselectedCategories: ['measurement'],
+				prompt: 'choice',
+			},
+			policyId: 'uk_opt_in_with_statistics',
+		});
+		const france = resolvePolicyRules({
+			countryCode: 'FR',
+			regionCode: null,
+			rules,
+		});
+		expect(france).toMatchObject({ policyId: 'europe_opt_in' });
+		expect(france.status === 'matched' && france.policy).not.toHaveProperty(
+			'exemptCategories'
+		);
+	});
+
 	test.each(['ukStatistics', 'malaysiaStatistics'] as const)(
 		'%s permits only reviewed measurement',
 		(name) => {

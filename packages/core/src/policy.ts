@@ -35,19 +35,23 @@ export interface EffectivePolicy {
  * them, since categories outside the choice scope stay allowed there, and a
  * strict rule asks about its whole scope, since nothing outside it may run.
  * An IAB rule also asks about its whole scope: TCF consent is given per
- * purpose and recorded in the TC string, whatever the site declares.
+ * purpose and recorded in the TC string, whatever the site declares. An
+ * exempt category is always asked about, because it runs until the visitor
+ * objects.
  */
 const projectChoiceScope = function projectChoiceScope(
 	rule: ResolvedPolicyRule,
 	consentCategories?: readonly AllConsentNames[] | null
 ): readonly OptionalConsentCategory[] | undefined {
+	const exempt = rule.exemptCategories ?? [];
 	if (consentCategories?.length) {
-		return rule.scope.filter((category) =>
-			consentCategories.includes(category)
+		return rule.scope.filter(
+			(category) =>
+				consentCategories.includes(category) || exempt.includes(category)
 		);
 	}
 	return rule.scopeMode === 'permissive' && rule.model !== 'iab'
-		? []
+		? exempt
 		: undefined;
 };
 
@@ -62,6 +66,7 @@ const projectEvaluationPolicy = (
 			maxAgeMs: Math.round(rule.validity.choiceMs),
 		},
 		choiceScope: projectChoiceScope(rule, consentCategories),
+		exemptCategories: rule.exemptCategories,
 		gpcDenyCategories: rule.privacySignals.gpc.denyCategories,
 		legacyMaterialFingerprint: fingerprints.legacyMaterial ?? null,
 		model: rule.model,

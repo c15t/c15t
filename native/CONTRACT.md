@@ -54,9 +54,13 @@ until a current explicit choice grants it: `defaultPermission` in
 `packages/core/src/consent-record/evaluate.ts` permits an in-scope category only
 for `model === 'opt-out' || model === 'none'`, so `iab` and `opt-in` answer the
 same way, and `docs/internal/evaluator-parity.md` measured that identity cell by
-cell. `necessary` is granted and is not the rule's to take: the web evaluator
-seeds `permissions` with `necessary: true` and never revisits it, and its GPC
-check refuses a mapping that names `necessary`. The prompt is `choice` and
+cell. The web evaluator also permits a category listed in an opt-in rule's
+`exemptCategories`. Neither core reads that field yet: Swift rejects the rule
+as an unknown field and Kotlin ignores it, so on a device an exempt category
+waits for consent like any other opt-in category. `necessary` is granted and
+is not the rule's to take: the web evaluator seeds `permissions` with
+`necessary: true` and never revisits it, and its GPC check refuses a mapping
+that names `necessary`. The prompt is `choice` and
 nothing else -- `POLICY_MODEL_PROMPTS` in `@c15t/schema` allows `iab` exactly
 that one, and `assertPromptForModel` in `@c15t/core` agrees -- so a notice is
 never what an IAB rule settles on: the rule owes a disclosure it can name from

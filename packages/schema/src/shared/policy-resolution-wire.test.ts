@@ -120,4 +120,28 @@ describe('client policy reader', () => {
 			readPolicyResolutionWire({ ...resolution, version: 1 })
 		).toStrictEqual(resolution);
 	});
+
+	test('reads the exempt categories resolution writes', () => {
+		const resolution = resolvePolicyRules({
+			countryCode: 'GB',
+			regionCode: null,
+			rules: [
+				{
+					exemptCategories: ['measurement'],
+					id: 'uk',
+					match: { countries: ['GB'] },
+					model: 'opt-in',
+					prompt: 'choice',
+				},
+			],
+		});
+
+		expect(resolution).toMatchObject({
+			policy: { exemptCategories: ['measurement'] },
+			status: 'matched',
+		});
+		expect(
+			readPolicyResolutionWire({ ...resolution, version: 1 })
+		).toStrictEqual(resolution);
+	});
 });

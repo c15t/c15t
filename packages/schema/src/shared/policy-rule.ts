@@ -152,6 +152,15 @@ export interface PolicyRule {
 	/** Categories a preference form pre-selects. Inside scope; never for `iab`. */
 	preselectedCategories?: string[];
 	/**
+	 * Categories an `opt-in` rule permits before any choice, because a
+	 * reviewed consent exemption covers every use in them. Inside scope,
+	 * pre-selected, always shown for a choice and never `marketing`. The
+	 * visitor can still object, and an objection is a denial like any other.
+	 * Vendor consent signals for these categories stay denied: the exemption
+	 * lets the processing run, it is not consent.
+	 */
+	exemptCategories?: string[];
+	/**
 	 * Actions a choice prompt offers. `accept` and `reject` are always
 	 * required; `customize` is optional. Leave unset for notice and none.
 	 */
@@ -215,6 +224,12 @@ export interface ResolvedPolicyRule {
 	scopeMode: PolicyScopeMode;
 	/** Sorted. Always empty for `iab`. */
 	preselectedCategories: PolicyOptionalCategory[];
+	/**
+	 * Sorted, and also in `preselectedCategories`. Present only when
+	 * non-empty, so rules without exemptions keep their wire shape and
+	 * fingerprints.
+	 */
+	exemptCategories?: PolicyOptionalCategory[];
 	actions: PolicyActionConstraints;
 	/** Sorted. Contains `disclosure` and `preferences` for every model but `none`. */
 	rights: PolicyRight[];
@@ -251,6 +266,7 @@ const RULE_KEYS = [
 	'categories',
 	'scopeMode',
 	'preselectedCategories',
+	'exemptCategories',
 	'actions',
 	'rights',
 	'validity',
@@ -368,7 +384,7 @@ const collectModelPromptErrors = function collectModelPromptErrors(
 
 const collectCategoryListErrors = function collectCategoryListErrors(
 	check: RuleCheck,
-	field: 'categories' | 'preselectedCategories',
+	field: 'categories' | 'preselectedCategories' | 'exemptCategories',
 	options: { allowWildcard: boolean }
 ): void {
 	const { errors, label, rule } = check;
@@ -414,6 +430,26 @@ const resolveScope = function resolveScope(
 	return optional.length > 0 ? optional : [...POLICY_OPTIONAL_CATEGORIES];
 };
 
+const collectOutOfScopeErrors = function collectOutOfScopeErrors(
+	check: RuleCheck,
+	field: 'preselectedCategories' | 'exemptCategories'
+): void {
+	const { errors, label, rule } = check;
+	const categories = own(rule, field);
+	if (!isStringArray(categories)) {
+		return;
+	}
+	const scope = resolveScope(own(rule, 'categories'));
+	for (const category of categories) {
+		const trimmed = category.trim();
+		if (isPolicyOptionalCategory(trimmed) && !scope.includes(trimmed)) {
+			errors.push(
+				`Policy ${label} ${field} "${trimmed}" is outside the policy scope.`
+			);
+		}
+	}
+};
+
 const collectScopeErrors = function collectScopeErrors(check: RuleCheck): void {
 	const { errors, label, rule } = check;
 	collectCategoryListErrors(check, 'categories', { allowWildcard: true });
@@ -447,16 +483,40 @@ const collectScopeErrors = function collectScopeErrors(check: RuleCheck): void {
 	collectCategoryListErrors(check, 'preselectedCategories', {
 		allowWildcard: false,
 	});
-	if (isStringArray(preselected)) {
-		const scope = resolveScope(own(rule, 'categories'));
-		for (const category of preselected) {
-			const trimmed = category.trim();
-			if (isPolicyOptionalCategory(trimmed) && !scope.includes(trimmed)) {
-				errors.push(
-					`Policy ${label} preselectedCategories "${trimmed}" is outside the policy scope.`
-				);
-			}
-		}
+	collectOutOfScopeErrors(check, 'preselectedCategories');
+};
+
+/**
+ * Opt-out and none already permit every category in scope, and IAB records
+ * consent per purpose in the TC string, so only opt-in can exempt one.
+ * Marketing stays out: advertising has no consent exemption, and its
+ * vendors read effective permissions as consent.
+ */
+const collectExemptErrors = function collectExemptErrors(
+	check: RuleCheck
+): void {
+	const { errors, label, rule } = check;
+	if (own(rule, 'exemptCategories') === undefined) {
+		return;
+	}
+	if (own(rule, 'model') !== 'opt-in') {
+		errors.push(
+			`Policy ${label} can only define exemptCategories with model "opt-in".`
+		);
+		return;
+	}
+	collectCategoryListErrors(check, 'exemptCategories', {
+		allowWildcard: false,
+	});
+	collectOutOfScopeErrors(check, 'exemptCategories');
+	const exempt = own(rule, 'exemptCategories');
+	if (
+		isStringArray(exempt) &&
+		exempt.some((category) => category.trim() === 'marketing')
+	) {
+		errors.push(
+			`Policy ${label} cannot exempt "marketing"; advertising needs consent.`
+		);
 	}
 };
 
@@ -776,6 +836,7 @@ const collectRuleErrors = function collectRuleErrors(
 	collectMatchErrors(check);
 	collectModelPromptErrors(check);
 	collectScopeErrors(check);
+	collectExemptErrors(check);
 	collectActionErrors(check);
 	collectRightsErrors(check);
 	collectValidityErrors(check);
@@ -976,21 +1037,35 @@ const resolveRights = function resolveRights(rule: PolicyRule): PolicyRight[] {
 	]);
 };
 
-const resolvePreselected = function resolvePreselected(
-	rule: PolicyRule
+const resolveCategoryList = function resolveCategoryList(
+	categories: readonly string[]
 ): PolicyOptionalCategory[] {
-	if (
-		rule.model === 'iab' ||
-		rule.model === 'none' ||
-		!rule.preselectedCategories
-	) {
-		return [];
-	}
 	return canonicalizePolicySet(
-		rule.preselectedCategories
+		categories
 			.map((category) => category.trim())
 			.filter(isPolicyOptionalCategory)
 	);
+};
+
+const resolveExemptCategories = function resolveExemptCategories(
+	rule: PolicyRule
+): PolicyOptionalCategory[] {
+	return rule.model === 'opt-in' && rule.exemptCategories
+		? resolveCategoryList(rule.exemptCategories)
+		: [];
+};
+
+/** An exempt category runs before a choice, so the form shows it on. */
+const resolvePreselected = function resolvePreselected(
+	rule: PolicyRule
+): PolicyOptionalCategory[] {
+	if (rule.model === 'iab' || rule.model === 'none') {
+		return [];
+	}
+	return resolveCategoryList([
+		...(rule.preselectedCategories ?? []),
+		...resolveExemptCategories(rule),
+	]);
 };
 
 const resolveValidity = function resolveValidity(
@@ -1068,6 +1143,10 @@ export const normalizePolicyRule = function normalizePolicyRule(
 	};
 	if (i18n) {
 		normalized.i18n = i18n;
+	}
+	const exemptCategories = resolveExemptCategories(rule);
+	if (exemptCategories.length > 0) {
+		normalized.exemptCategories = exemptCategories;
 	}
 	const issues = collectResolvedPolicyRuleIssues(normalized);
 	if (issues.length > 0) {

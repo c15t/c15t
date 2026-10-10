@@ -54,7 +54,9 @@ with your framework, follow any vendor guide, for example
 
 Every callback receives `{ id, elementId, hasConsent, consents }`, plus
 `vendor` when the script declares one, and `element` for scripts with an
-element.
+element. Under a rule with `exemptCategories` it also receives
+`consentSignals`, which reports the exempt categories as denied. Pass
+`consentSignals ?? consents` to a vendor's own consent API.
 
 ## Load before consent and signal the vendor
 
