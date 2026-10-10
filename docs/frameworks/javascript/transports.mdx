@@ -60,11 +60,14 @@ from `c15t` requires the URL:
 
 `hosted()` from `@c15t/browser` takes the same options, and `backendURL`
 defaults to the URL `consentManifest()` from `c15t/build` read from
-`VITE_C15T_BACKEND_URL`. Without the plugin or the option it throws:
+`VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. Without the plugin or the
+option it throws:
 
 ```txt
-@c15t/browser: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL.
+@c15t/browser: hosted() needs `backendURL`. Pass it, or add consentManifest() from c15t/build to your Vite config and set VITE_C15T_BACKEND_URL (or VITE_INTH_PROJECT_URL).
 ```
+
+A production build prints only the first sentence.
 
 Add your app's origin to the Inth project's trusted origins, or the browser
 blocks consent saves with a CORS error.

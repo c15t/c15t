@@ -52,6 +52,9 @@ shows it, including any path prefix, in `.env` or wherever you build:
 VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
+
 The example app's `.env` points at `https://example-inth.inth.app`, a demo
 project. The server function and `ConsentRoot` read the URL from the plugin,
 so the app code never repeats it. If you pass `backendURL` to the plugin

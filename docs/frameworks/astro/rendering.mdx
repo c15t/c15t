@@ -88,7 +88,8 @@ runtime. The browser asks the injected `/api/c15t/init` route when it needs a
 decision, and saves consent to the backend URL. A server-rendered page ships
 only the code that saves consent; the code that resolves a policy loads when
 a page asks again. `manifest()` needs the backend URL as `backendURL` or
-`PUBLIC_C15T_BACKEND_URL`; without it, the config fails to load.
+`PUBLIC_C15T_BACKEND_URL` (or `PUBLIC_INTH_PROJECT_URL`); without it, the
+config fails to load.
 [Data fetching](/docs/concepts/data-fetching) compares this with calling
 `/init` for every render.
 

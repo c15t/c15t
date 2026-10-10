@@ -43,6 +43,9 @@ in your host's build settings:
 NEXT_PUBLIC_C15T_BACKEND_URL=https://example-inth.inth.app
 ```
 
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
 `https://example-inth.inth.app` is a demo project you can use to try the
 setup. Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build,
 the server and the browser use the same URL, and changing the variable on a

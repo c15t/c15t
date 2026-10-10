@@ -5,8 +5,8 @@ Add the plugin before `tanstackStart()`:
 <include src="../examples/tanstack-start/vite-config.mdx" />
 
 The plugin reads the backend URL from `backendURL`, or from
-`VITE_C15T_BACKEND_URL` when you leave `backendURL` out. If that variable is
-unset, the plugin sets it to the URL it used, so app code can read
+`VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`, when you leave
+`backendURL` out. If `VITE_C15T_BACKEND_URL` is unset, the plugin sets it to the URL it used, so app code can read
 `import.meta.env.VITE_C15T_BACKEND_URL` instead of repeating the URL.
 
 The plugin fetches the policy during `vite build`, or in `vite dev` when the

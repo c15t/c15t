@@ -51,6 +51,9 @@ build:
 VITE_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
+If your app already sets `VITE_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `VITE_C15T_BACKEND_URL` wins.
+
 `consentManifest` downloads your project's public policy from `/manifest`
 during `vite build`, or in `vite dev` when the app first loads it, and serves
 it to your app as `snapshot`

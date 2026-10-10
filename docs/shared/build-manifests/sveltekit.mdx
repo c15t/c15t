@@ -12,8 +12,8 @@ these files:
 
 The plugin's position in `plugins` does not matter. It fetches the policy
 once Vite has resolved its config, before anything compiles. Without a
-`backendURL` option, it reads `PUBLIC_C15T_BACKEND_URL` from the environment
-or `.env`.
+`backendURL` option, it reads `PUBLIC_C15T_BACKEND_URL`, then
+`PUBLIC_INTH_PROJECT_URL`, from the environment or `.env`.
 
 The plugin detects the `sveltekit()` plugin and keeps the snapshot on the
 server. `loadConsent` and `createConsentRoute()` read it without an import.

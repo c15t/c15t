@@ -6,8 +6,8 @@ first loads it:
 
 <include src="../examples/vue/vite-config.mdx" />
 
-Without a `backendURL` option, the plugin reads `VITE_C15T_BACKEND_URL` from
-the environment or `.env`. `manifest()` from `c15t/vue/vue-plugin`, with no
+Without a `backendURL` option, the plugin reads `VITE_C15T_BACKEND_URL`, then
+`VITE_INTH_PROJECT_URL`, from the environment or `.env`. `manifest()` from `c15t/vue/vue-plugin`, with no
 options, reads the downloaded policy and the same backend URL, so `src/main.ts`
 needs no import from `c15t/generated`:
 

@@ -35,7 +35,8 @@ manifest and resolves it in the browser. See [build-time manifests](#bundle-the-
 
 For policy updates without rebuilding, use `hosted()` from `c15t/react` as
 the mode. It reads the backend URL `consentManifest` read from
-`VITE_C15T_BACKEND_URL`; without the plugin, pass `hosted({ backendURL })`.
+`VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`; without the plugin, pass
+`hosted({ backendURL })`.
 That runtime path works as follows:
 
 1. The page loads with no consent state. Every optional category is denied.

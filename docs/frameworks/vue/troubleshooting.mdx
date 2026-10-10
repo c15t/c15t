@@ -12,7 +12,8 @@ no backend URL`. `consentManifest()` is missing from the `plugins` array of
 `vite.config.ts`.
 
 **Fix.** Add `consentManifest()` from `c15t/vue/vite` to the `plugins` array,
-next to `@vitejs/plugin-vue`, and set `VITE_C15T_BACKEND_URL`. See the
+next to `@vitejs/plugin-vue`, and set `VITE_C15T_BACKEND_URL` (or
+`VITE_INTH_PROJECT_URL`). See the
 [quickstart](/docs/frameworks/vue/quickstart#add-the-vite-plugin).
 
 ## app.use() throws "pass `mode`"

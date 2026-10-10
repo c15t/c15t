@@ -49,6 +49,9 @@ the policy, so build again to switch projects.
 NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
+If your app already sets `NUXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NUXT_PUBLIC_C15T_BACKEND_URL` wins.
+
 The module's default mode, `manifest()`, fetches your project's public
 policy once, during `nuxt build` and when `nuxt dev` starts, and embeds it in
 the server bundle. It also adds one consent route to your Nuxt server,

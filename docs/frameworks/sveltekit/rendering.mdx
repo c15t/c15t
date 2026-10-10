@@ -153,7 +153,8 @@ export const handle = c15tHandle({
 ```
 
 The route skips a handle `backendURL` that points at itself, and forwards to
-the backend URL `consentManifest` read from `PUBLIC_C15T_BACKEND_URL`. To
+the backend URL `consentManifest` read from `PUBLIC_C15T_BACKEND_URL` or
+`PUBLIC_INTH_PROJECT_URL`. To
 forward somewhere else, pass `createConsentRoute({ backendURL, proxy: true })`.
 With the proxy on, `GET`
 still resolves `init` and `manifest` in the process, and the handlers forward
@@ -233,7 +234,7 @@ own handles through `sequence(c15tHandle(), yourHandle)` from
 | --- | --- | --- |
 | `mode` | `manifest()` | How `loadConsent` resolves the visitor: `manifest()`, `hosted()` or `offline()` from `@c15t/svelte/kit`. |
 | `routePrefix` | none | Where [`createConsentRoute()`](#serve-the-consent-route) is mounted, such as `/api/c15t`. Without it, the browser asks the backend's `/init` when it resolves consent itself. |
-| `backendURL` | The URL `consentManifest` read from `PUBLIC_C15T_BACKEND_URL` | The backend. `hosted({ backendURL })` wins. |
+| `backendURL` | The URL `consentManifest` read from `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL` | The backend. `hosted({ backendURL })` wins. |
 | `snapshot` | The manifest `consentManifest` downloaded | A manifest of your own to resolve with. |
 | `cookieName` | `c15t` | The consent cookie. Match the provider's `storageConfig.storageKey`. |
 | `country`, `region`, `language` | from headers | Forces one input for every request. |

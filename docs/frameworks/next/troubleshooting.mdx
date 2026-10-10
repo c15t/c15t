@@ -18,7 +18,8 @@ Without it, the helper logs a warning only outside production.
 **Check.** If the consent route repeatedly calls itself, check its upstream
 URL.
 
-**Fix.** Set the config's `backendURL`, or `NEXT_PUBLIC_C15T_BACKEND_URL`, to
+**Fix.** Set the config's `backendURL`, or `NEXT_PUBLIC_C15T_BACKEND_URL` (or
+`NEXT_PUBLIC_INTH_PROJECT_URL`), to
 the absolute Inth or self-hosted backend endpoint. To send the browser through
 `/api/c15t`, set `proxy: true` and `routePrefix` instead of a relative
 `backendURL`; the route keeps the absolute URL. See
@@ -46,8 +47,8 @@ parentheses names the cause:
   not support this c15t version.
 
 `no backend URL is set` means the build found no `backendURL` option, no
-`backendURL` in `c15t.config.ts` and no `NEXT_PUBLIC_C15T_BACKEND_URL`, or an
-empty one. `next build` stops on it and
+`backendURL` in `c15t.config.ts` and no `NEXT_PUBLIC_C15T_BACKEND_URL` or
+`NEXT_PUBLIC_INTH_PROJECT_URL`, or empty ones. `next build` stops on it and
 `next dev` warns. A notice that the build `skipped the consent manifest fetch`
 means the backend URL is a path such as `/api/c15t`. With
 `onBuildError: 'fail'`, that stops the build with `build-time manifests
@@ -62,8 +63,9 @@ build could not evaluate the file, so it fetched the manifest as for
 error. The usual cause is an import Node can't load at build time, such as a
 stylesheet. Keep `c15t.config.ts` to the config and the packages it needs.
 
-**Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` to the absolute backend URL from
-your Inth project, or your self-hosted origin with its path prefix, wherever
+**Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` (or
+`NEXT_PUBLIC_INTH_PROJECT_URL`) to the absolute backend URL from your Inth
+project, or your self-hosted origin with its path prefix, wherever
 `next build` runs, including CI. To deploy while the backend is down, run the
 build with `C15T_ON_BUILD_ERROR=runtime`, or set `onBuildError: 'runtime'`.
 The deployment then works without a snapshot, and each server fetches the
@@ -140,7 +142,9 @@ else. A config in `src/` is not found. Check that:
   only a named one.
 - You restarted `next dev` after adding the file.
 
-Without a config, `ConsentRoot` reads `NEXT_PUBLIC_C15T_BACKEND_URL`, uses
+Without a config, `ConsentRoot` reads `NEXT_PUBLIC_C15T_BACKEND_URL`, which
+`withConsentManifest` sets from `NEXT_PUBLIC_INTH_PROJECT_URL` when only that
+is set, uses
 `manifest()` and runs no `scripts`. With no backend URL either, it throws; see
 the next section.
 
@@ -149,14 +153,18 @@ the next section.
 **Check.** The page, or `next build` while it prerenders the page, throws one
 of these errors from `ConsentRoot`:
 
-- ``@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.``
-- ``@c15t/nextjs: hosted() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL, or `backendURL` in c15t.config.ts.``
+- ``@c15t/nextjs: manifest() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL), or `backendURL` in c15t.config.ts.``
+- ``@c15t/nextjs: hosted() needs a backend URL. Set NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL), or `backendURL` in c15t.config.ts.``
+
+A production build prints only the first sentence, such as
+`@c15t/nextjs: manifest() needs a backend URL.`
 
 `ConsentRoot` found no `c15t.config.ts`, or got a `config` prop without a
-backend URL, and `NEXT_PUBLIC_C15T_BACKEND_URL` was unset when Next.js
-compiled the page.
+backend URL, and neither `NEXT_PUBLIC_C15T_BACKEND_URL` nor
+`NEXT_PUBLIC_INTH_PROJECT_URL` was set when Next.js compiled the page.
 
-**Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` wherever `next build` and
+**Fix.** Set `NEXT_PUBLIC_C15T_BACKEND_URL` (or
+`NEXT_PUBLIC_INTH_PROJECT_URL`) wherever `next build` and
 `next dev` run, and check that `withConsentManifest` finds `c15t.config.ts`
 (see the previous section). Earlier alphas fell back to offline mode here;
 now the root throws. To run without a backend, set `mode: offline()` in
@@ -184,7 +192,7 @@ The checks run on the server only; the browser copy of the file skips them.
 
 **Fix.** The [config reference](/docs/frameworks/next/data-fetching-reference#config-reference)
 lists each message. The most common is
-``@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL set at build time.``
+``@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL) set at build time.``
 Set the variable in `.env.local` and in your host's build settings, or pass
 `backendURL`.
 

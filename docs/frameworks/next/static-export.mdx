@@ -26,7 +26,8 @@ exported site's origin to its trusted origins. Copy the project's backend URL.
 Set `NEXT_PUBLIC_C15T_BACKEND_URL` to your project's backend URL, including
 any path prefix, in `.env.local` and in your host's build settings. Keep it
 absolute. A path such as `/api/c15t` would point at your static host, which
-has nothing to answer it.
+has nothing to answer it. `NEXT_PUBLIC_INTH_PROJECT_URL` works too; when both
+are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
 
 Create `c15t.config.ts` at the project root with `mode: hosted()`. Without a
 server there is no consent route, so the browser calls `${backendURL}/init`.

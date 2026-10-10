@@ -8,7 +8,8 @@ write the policy to `node_modules/.cache/c15t/`, outside your source tree, so
 there is nothing to keep out of Git. `next start` serves the built snapshot and
 fetches no policy. Without a `backendURL` option, the build reads the
 `backendURL` in `c15t.config.ts`, which defaults to
-`NEXT_PUBLIC_C15T_BACKEND_URL`, so saves and the snapshot point at the same
+`NEXT_PUBLIC_C15T_BACKEND_URL`, then `NEXT_PUBLIC_INTH_PROJECT_URL`, so saves
+and the snapshot point at the same
 project.
 
 The wrapper reads `c15t.config.ts` the way Next.js reads `next.config.ts`, and

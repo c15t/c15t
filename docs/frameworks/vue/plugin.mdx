@@ -62,12 +62,12 @@ mode, not the plugin:
 | Mode | Options |
 | --- | --- |
 | `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `manifestURL` fetches it from that URL instead of using the snapshot; `snapshot` takes one you supply. `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
-| `hosted()` | `backendURL`, by default the one `consentManifest()` read from `VITE_C15T_BACKEND_URL`. `headers`, `fetch`, `domain`. |
+| `hosted()` | `backendURL`, by default the one `consentManifest()` read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. `headers`, `fetch`, `domain`. |
 | `offline()` | `policyRules`. Omitted, c15t's recommended rules. |
 
 `manifest()` and `hosted()` throw when they have no backend URL: add
-`consentManifest()` to `vite.config.ts` and set `VITE_C15T_BACKEND_URL`, or
-pass `backendURL`.
+`consentManifest()` to `vite.config.ts` and set `VITE_C15T_BACKEND_URL` (or
+`VITE_INTH_PROJECT_URL`), or pass `backendURL`.
 
 ### Scripts and blocking
 

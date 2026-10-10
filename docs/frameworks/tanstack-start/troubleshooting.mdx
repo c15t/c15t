@@ -17,7 +17,7 @@ fetches the policy at runtime.
 
 | Message | Fix |
 | --- | --- |
-| `no backend URL is set` | Set `VITE_C15T_BACKEND_URL` in `.env` or the build environment, or pass `backendURL`. `vite build` stops on this; `vite dev` warns |
+| `no backend URL is set` | Set `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) in `.env` or the build environment, or pass `backendURL`. `vite build` stops on this; `vite dev` warns |
 | `skipped the consent manifest fetch because ... is not an absolute http(s) URL` | Set `VITE_C15T_BACKEND_URL` to the absolute backend URL, such as `https://your-project.inth.app`, not `/api/c15t`. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL` |
 | `/manifest responded 404` | The URL is not a c15t backend, or it is missing a path prefix. Copy the backend URL from Inth exactly |
 | `/manifest responded` with another status | The backend refused or failed the request. Check that the project exists and that the build machine can reach it |
@@ -119,7 +119,7 @@ The state names no backend URL and `consentManifest()` supplied none, for
 example on a page with `state={{}}` and no plugin in `vite.config.ts`.
 
 **Fix.** Add `consentManifest()` to `vite.config.ts` and set
-`VITE_C15T_BACKEND_URL`. Earlier alphas fell back to offline mode here; now
+`VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`). Earlier alphas fell back to offline mode here; now
 the root throws. To run without a backend, pass `mode: offline()` to
 `createConsentStateHandler`, or `state={{ mode: offline() }}`.
 

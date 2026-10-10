@@ -71,6 +71,10 @@ NUXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app \
   node .output/server/index.mjs
 ```
 
+`NUXT_PUBLIC_INTH_PROJECT_URL` works the same way when the build read its
+URL from that variable or had none. It never replaces a `backendURL` from
+`nuxt.config.ts` or a `NUXT_PUBLIC_C15T_BACKEND_URL`.
+
 The browser, server rendering and the consent route all use this value. Keep
 `backendURL` in `nuxt.config.ts`: a value in `app.config.ts` is bundled with
 the app and takes precedence over runtime config.
@@ -95,7 +99,7 @@ picks up a new URL only when you generate it again.
 
 | Option | Default | What it does |
 | --- | --- | --- |
-| `backendURL` | `NUXT_PUBLIC_C15T_BACKEND_URL` | Your Inth or self-hosted backend. The build downloads the manifest from it and consent saves go to it. The module reads the variable when the build starts, and Nuxt applies it again at runtime. |
+| `backendURL` | `NUXT_PUBLIC_C15T_BACKEND_URL`, then `NUXT_PUBLIC_INTH_PROJECT_URL` | Your Inth or self-hosted backend. The build downloads the manifest from it and consent saves go to it. The module reads the variable when the build starts, and Nuxt applies it again at runtime. |
 | `mode` | `manifest()` | Where the visitor's policy comes from. Import `manifest()`, `hosted()` or `offline()` from `c15t/vue`. `nuxt.config.ts` only. See [the modes](#modes). |
 | `routePrefix` | `'/api/c15t'` | Path of the consent route the module adds in `manifest()` mode. It answers `${routePrefix}/init` and `${routePrefix}/manifest`. `false` adds no route: the server render resolves from the snapshot directly, and the browser asks the backend's `/init`. `nuxt.config.ts` only. |
 | `onBuildError` | Unset | What a failed build-time manifest download does in `manifest()` mode. Unset, `nuxt build` stops and `nuxt dev` logs a warning, and the server fetches the policy at runtime. `'fail'` stops both. `'runtime'` lets both continue. A missing backend URL stops both in `manifest()` mode, with or without a snapshot, because the browser saves consent there. The `C15T_ON_BUILD_ERROR` environment variable overrides it. The download waits at most 10 seconds. |

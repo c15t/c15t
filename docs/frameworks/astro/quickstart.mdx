@@ -57,6 +57,9 @@ path prefix, in `.env` or wherever you build:
 PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
+If your app already sets `PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `PUBLIC_C15T_BACKEND_URL` wins.
+
 `c15t()` reads it from the environment, or from `.env` or `.env.local` in the
 project root, when `astro.config.mjs` loads, so the config needs no
 `backendURL`. The URL must be absolute.

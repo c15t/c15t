@@ -161,21 +161,28 @@ Each framework reads its backend URL from a public environment variable, so
 the quickstarts never write it in code. Put it in `.env` or your host's build
 settings. The value is public configuration, not a secret.
 
-| Framework | Variable |
-| --- | --- |
-| Next.js | `NEXT_PUBLIC_C15T_BACKEND_URL` |
-| Nuxt | `NUXT_PUBLIC_C15T_BACKEND_URL` |
-| Astro | `PUBLIC_C15T_BACKEND_URL` |
-| SvelteKit and Svelte | `PUBLIC_C15T_BACKEND_URL`, then `VITE_C15T_BACKEND_URL` |
-| TanStack Start, React, Vue and JavaScript with Vite | `VITE_C15T_BACKEND_URL` |
-| Script tag | `data-backend-url` on the script element |
+| Framework | Variable | Inth alternative |
+| --- | --- | --- |
+| Next.js | `NEXT_PUBLIC_C15T_BACKEND_URL` | `NEXT_PUBLIC_INTH_PROJECT_URL` |
+| Nuxt | `NUXT_PUBLIC_C15T_BACKEND_URL` | `NUXT_PUBLIC_INTH_PROJECT_URL` |
+| Astro | `PUBLIC_C15T_BACKEND_URL` | `PUBLIC_INTH_PROJECT_URL` |
+| SvelteKit and Svelte | `PUBLIC_C15T_BACKEND_URL`, then `VITE_C15T_BACKEND_URL` | `PUBLIC_INTH_PROJECT_URL`, then `VITE_INTH_PROJECT_URL` |
+| TanStack Start, React, Vue and JavaScript with Vite | `VITE_C15T_BACKEND_URL` | `VITE_INTH_PROJECT_URL` |
+| Script tag | `data-backend-url` on the script element | – |
+
+Set either variable. The Inth one holds your Inth project URL, so other Inth
+SDKs in the same app can read it too. When both are set, the c15t variable
+wins.
 
 A backend URL resolves in this order: the mode's own `backendURL`, then the
-framework's top-level `backendURL` option, then the variable. The build reads
-the variable from the process environment, then from `.env.[mode].local`,
-`.env.[mode]`, `.env.local` and `.env` in the project root. The Vite plugins
-set an unset `VITE_C15T_BACKEND_URL` to the URL they used, so
-`import.meta.env.VITE_C15T_BACKEND_URL` in app code reads the same value.
+framework's top-level `backendURL` option, then the c15t variable, then the
+Inth variable. The build reads each variable from the process environment,
+then from `.env.[mode].local`, `.env.[mode]`, `.env.local` and `.env` in the
+project root, so a c15t variable in `.env` still beats an Inth variable in
+the environment. The Vite plugins set an unset `VITE_C15T_BACKEND_URL` to the
+URL they used, so `import.meta.env.VITE_C15T_BACKEND_URL` in app code reads
+the same value. `withConsentManifest()` does the same for
+`NEXT_PUBLIC_C15T_BACKEND_URL` in Next.js.
 
 Next.js inlines `NEXT_PUBLIC_` variables at build time. Changing the variable
 on a built app has no effect until you rebuild.

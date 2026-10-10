@@ -171,7 +171,7 @@ With `proxy` on, it also returns `POST`, `PATCH`, `PUT`, `DELETE` and
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `backendURL` | `string` | the handle's: a `hosted()` mode's `backendURL`, then `c15tHandle({ backendURL })`, then the URL `consentManifest()` read from `PUBLIC_C15T_BACKEND_URL` | The backend's base URL, absolute or `/`-relative. The manifest is at `<backendURL>/manifest` when there is no snapshot. A handle `backendURL` that points at this route, as in the proxy setup, is skipped. |
+| `backendURL` | `string` | the handle's: a `hosted()` mode's `backendURL`, then `c15tHandle({ backendURL })`, then the URL `consentManifest()` read from `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL` | The backend's base URL, absolute or `/`-relative. The manifest is at `<backendURL>/manifest` when there is no snapshot. A handle `backendURL` that points at this route, as in the proxy setup, is skipped. |
 | `manifestURL` | `string` | the handle's `manifest({ manifestURL })` | A manifest URL of its own, such as a CDN. Wins over `backendURL`. Absolute or `/`-relative. |
 | `snapshot` | `ConsentManifest` | the handle's: the mode's `snapshot`, then `c15tHandle({ snapshot })`, then the manifest `consentManifest()` downloaded | A manifest to resolve with. |
 | `proxy` | `true` or `{ paths?, cookieNames? }` | off | Forwards consent writes to `backendURL`. See [save consent through your own origin](./rendering#save-consent-through-your-own-origin). |
@@ -242,7 +242,7 @@ without an import. The plugin writes no file into your project.
 
 | Option | Type | Default | Behavior |
 | --- | --- | --- | --- |
-| `backendURL` | `string` | `PUBLIC_C15T_BACKEND_URL`, then `VITE_C15T_BACKEND_URL` | Absolute `http` or `https` backend URL. The plugin appends `/manifest`. |
+| `backendURL` | `string` | `PUBLIC_C15T_BACKEND_URL`, then `VITE_C15T_BACKEND_URL`, then `PUBLIC_INTH_PROJECT_URL`, then `VITE_INTH_PROJECT_URL` | Absolute `http` or `https` backend URL. The plugin appends `/manifest`. |
 | `onBuildError` | `'fail' \| 'runtime'` | Unset | What a failed fetch does. Unset, `vite build` stops and `vite dev` logs a warning. A missing backend URL counts as a failed fetch. The `C15T_ON_BUILD_ERROR` environment variable overrides it. |
 
 The plugin detects `sveltekit()` and keeps the snapshot on the server: the

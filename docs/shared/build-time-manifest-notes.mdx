@@ -8,7 +8,9 @@ The build reads the backend URL from your public backend URL variable when
 the config doesn't pass one: `NEXT_PUBLIC_C15T_BACKEND_URL` in Next.js,
 `NUXT_PUBLIC_C15T_BACKEND_URL` in Nuxt, `PUBLIC_C15T_BACKEND_URL` in Astro,
 Svelte and SvelteKit, and `VITE_C15T_BACKEND_URL` in TanStack Start and other
-Vite apps.
+Vite apps. Each also reads the matching Inth variable, such as
+`NEXT_PUBLIC_INTH_PROJECT_URL`, when the c15t one is unset. See
+[set the backend URL](/docs/concepts/modes#set-the-backend-url).
 
 The fetch waits at most 10 seconds. When it fails, or no backend URL is set,
 every framework does the same thing:

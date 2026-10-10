@@ -48,6 +48,9 @@ any path prefix, in `.env.local` and in your host's build settings:
 NEXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
 Next.js inlines `NEXT_PUBLIC_` variables at build time, so the build, the
 server and the browser use the same URL, and changing the variable on a built
 app has no effect until you rebuild. To set the URL in code instead, pass
@@ -70,7 +73,7 @@ so it can hold `scripts` but must hold no secrets.
 
 | Option | Default | Behavior |
 | --- | --- | --- |
-| `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. Choices post to `${backendURL}/subjects`. |
+| `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL`, then `NEXT_PUBLIC_INTH_PROJECT_URL` | Backend base URL. Choices post to `${backendURL}/subjects`. |
 | `mode` | `manifest()` | `manifest()`, `hosted()` or `offline()` from `c15t/next`. See [consent modes](/docs/concepts/modes). |
 | `routePrefix` | none | Where you mount the [consent route](#initialize-in-the-browser). Set it only when some pages resolve consent in the browser. |
 | `proxy` | `false` | Send browser saves through the consent route too. See [optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin). |

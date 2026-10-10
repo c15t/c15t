@@ -117,7 +117,7 @@ part in parentheses names the cause:
   manifest.
 
 - `manifest() needs a backend URL`: neither `backendURL` nor
-  `NUXT_PUBLIC_C15T_BACKEND_URL` is set. `nuxt build` and `nuxt dev` both
+  `NUXT_PUBLIC_C15T_BACKEND_URL` (or `NUXT_PUBLIC_INTH_PROJECT_URL`) is set. `nuxt build` and `nuxt dev` both
   stop, whatever `onBuildError` says, because the browser saves consent to
   the backend. `manifest({ snapshot })` stops with
   `manifest({ snapshot }) still needs a backend URL` for the same reason.
@@ -128,8 +128,8 @@ With `onBuildError: 'fail'`, this error also appears:
   `manifestURL` is a relative path. Without `onBuildError: 'fail'`, the
   module skips the fetch instead.
 
-**Fix.** Set `NUXT_PUBLIC_C15T_BACKEND_URL`, or `backendURL` under the `c15t`
-key, to your project's absolute backend URL, including any path prefix; the
+**Fix.** Set `NUXT_PUBLIC_C15T_BACKEND_URL` (or
+`NUXT_PUBLIC_INTH_PROJECT_URL`), or `backendURL` under the `c15t` key, to your project's absolute backend URL, including any path prefix; the
 module adds `/manifest`. To download from another address, set
 `mode: manifest({ manifestURL })` to the full manifest URL, which is used as
 written. Make sure the build machine can reach the backend. To deploy while

@@ -16,7 +16,7 @@ Requires Next.js 15 or 16 (`next ^15.0.0 || ^16.0.0`).
 
 | Property | Default | Behavior |
 | --- | --- | --- |
-| `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. Consent submissions go to `/subjects` under it, and the server reads `/manifest` or `/init` from it. |
+| `backendURL` | `NEXT_PUBLIC_C15T_BACKEND_URL`, then `NEXT_PUBLIC_INTH_PROJECT_URL` | Backend base URL. Consent submissions go to `/subjects` under it, and the server reads `/manifest` or `/init` from it. |
 | `mode` | `manifest()` | `manifest()`, `hosted()` or `offline()` from `c15t/next`. See [consent modes](/docs/concepts/modes). |
 | `routePrefix` | none | Where the catch-all consent route is mounted, such as `/api/c15t`. A browser that resolves consent itself asks `${routePrefix}/init` instead of the backend's `/init`. Leave it unset when every page resolves consent on the server. |
 | `proxy` | `false` | The route at `routePrefix` forwards saves (`createConsentRoute({ proxy: true })`), so the browser saves there instead of `${backendURL}/subjects`. The server helpers keep `backendURL`. Needs `routePrefix`. See [optimization](/docs/frameworks/next/optimization#keep-browser-consent-requests-on-your-origin). |
@@ -42,7 +42,7 @@ checks, so they add no bytes there:
 | Message | Cause |
 | --- | --- |
 | `@c15t/nextjs: defineConsentConfig expects an object.` | The argument is not an object. |
-| ``@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL set at build time.`` | No backend URL, and the mode is not `offline()` or a `hosted()` with its own `backendURL`. |
+| ``@c15t/nextjs: defineConsentConfig needs `backendURL`, or NEXT_PUBLIC_C15T_BACKEND_URL (or NEXT_PUBLIC_INTH_PROJECT_URL) set at build time.`` | No backend URL, and the mode is not `offline()` or a `hosted()` with its own `backendURL`. |
 | ``@c15t/nextjs: defineConsentConfig `backendURL` must be an absolute http(s) URL or a `/`-relative path, received "...".`` | A URL is protocol-relative, such as `//your-project.inth.app`, or bare, such as `api/c15t`. The same check covers `routePrefix`, `mode.manifestURL`, `mode.geoURL` and `mode.backendURL`. |
 | ``@c15t/nextjs: defineConsentConfig `mode` must be manifest(), hosted() or offline() from c15t/next. Pass a custom transport through ConsentRoot `options.mode`.`` | `mode` is not one of the data factories. |
 | ``@c15t/nextjs: defineConsentConfig `journey` must be 'page', 'tab' or false.`` | `journey` has another value. |
@@ -131,7 +131,7 @@ network request and returns cookie- and header-only state; see
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `config` | `c15t.config.ts` | The config to use instead of the file. Explicit options on this bag win over its fields. In manifest mode, its `routePrefix` names the same-origin route the browser loads a deferred IAB Global Vendor List from. |
-| `backendURL` | the mode's, then the config's, then `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. With `hosted()`, `resolveConsent` calls `${backendURL}/init`. |
+| `backendURL` | the mode's, then the config's, then `NEXT_PUBLIC_C15T_BACKEND_URL` or `NEXT_PUBLIC_INTH_PROJECT_URL` | Backend base URL. With `hosted()`, `resolveConsent` calls `${backendURL}/init`. |
 | `manifestURL` | the mode's absolute `manifestURL`, then `${backendURL}/manifest` | Absolute `GET /manifest` URL. Setting it resolves from the manifest whatever the mode, through the in-process manifest cache. A `/`-relative `manifestURL` on the mode is the browser's, so the server ignores it. |
 | `snapshot` | the snapshot `withConsentManifest` downloaded | A manifest to resolve from instead. Setting it resolves from the manifest whatever the mode. |
 | `fetch` | `globalThis.fetch` | Fetch implementation for the backend `/init` or manifest request. Manifest requests already pass `next: { revalidate: 300 }` for the App Router Data Cache. The `/init` call can carry the consent cookie and returns per-visitor state, so it uses `cache: 'no-store'`. A custom fetch must preserve these options. It also keeps the IAB Global Vendor List inline, since the browser cannot replay it. |
@@ -350,7 +350,7 @@ forwards the other consent paths to the backend. Everything defaults to
 | Option | Default | Behavior |
 | --- | --- | --- |
 | `config` | `c15t.config.ts` | The config to use instead of the file. |
-| `backendURL` | the config's, then `NEXT_PUBLIC_C15T_BACKEND_URL` | Backend base URL. Without a snapshot, the route fetches `${backendURL}/manifest`. |
+| `backendURL` | the config's, then `NEXT_PUBLIC_C15T_BACKEND_URL` or `NEXT_PUBLIC_INTH_PROJECT_URL` | Backend base URL. Without a snapshot, the route fetches `${backendURL}/manifest`. |
 | `manifestURL` | the mode's absolute `manifestURL` | Full upstream manifest URL. Takes precedence over `backendURL` plus `/manifest`. |
 | `snapshot` | the snapshot `withConsentManifest` downloaded | Takes precedence over upstream URLs, serves the manifest and resolves each visitor without fetching policy. Stays fixed until rebuilding. |
 | `proxy` | `false` | Forward `subjects`, `subjects/:id`, `health` and `status` to the backend, so browser saves stay on your origin. Pair it with `proxy: true` in `c15t.config.ts`. `createPagesConsentRoute` takes it too. |

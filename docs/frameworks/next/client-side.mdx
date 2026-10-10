@@ -37,6 +37,9 @@ any path prefix, in `.env.local` and in your host's build settings:
 NEXT_PUBLIC_C15T_BACKEND_URL=https://your-project.inth.app
 ```
 
+If your app already sets `NEXT_PUBLIC_INTH_PROJECT_URL` for other Inth SDKs, that works
+too. When both are set, `NEXT_PUBLIC_C15T_BACKEND_URL` wins.
+
 Create `c15t.config.ts` at the project root with `mode: hosted()`:
 
 <include src="../../shared/examples/nextjs/client-side-config.mdx" />

@@ -16,8 +16,8 @@ The [quickstart](/docs/frameworks/react/quickstart) does this in
 
 `manifest()` from `c15t/react` resolves the policy from the snapshot
 `consentManifest()` bundled, and sends consent choices to the backend URL the
-plugin read from `VITE_C15T_BACKEND_URL`. Set that variable to the backend URL
-from your Inth project. To fetch the policy from the backend on every page
+plugin read from `VITE_C15T_BACKEND_URL` or `VITE_INTH_PROJECT_URL`. Set one
+to the backend URL from your Inth project. To fetch the policy from the backend on every page
 load instead, pass `hosted()` from `c15t/react`. The Next.js and TanStack Start adapters export `ConsentRoot` instead, which wraps
 this provider and passes it server-resolved state.
 

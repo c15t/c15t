@@ -15,13 +15,13 @@ the cause:
 | Error | Cause |
 | --- | --- |
 | `/manifest responded 404` | The backend URL is wrong, or still the `https://your-project.inth.app` placeholder. |
-| `no backend URL is set` | Neither the `backendURL` option nor `VITE_C15T_BACKEND_URL` is set, or it is empty. `vite build` stops; `vite dev` warns. |
+| `no backend URL is set` | Neither the `backendURL` option nor `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) is set, or it is empty. `vite build` stops; `vite dev` warns. |
 | `skipped the consent manifest fetch` (a notice) | The backend URL is relative. With `onBuildError: 'fail'`, this is the error `build-time manifests require an absolute upstream URL`. |
 | `/manifest returned an invalid consent manifest.` | The URL answers, but not with a c15t v3 manifest. |
 | `fetch failed` or `no response within 10 seconds` | The machine running the command cannot reach the backend. |
 
-**Fix.** Set `VITE_C15T_BACKEND_URL` to your project's absolute backend URL
-where the command runs, in `.env` or the CI environment, and make sure that
+**Fix.** Set `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) to your
+project's absolute backend URL where the command runs, in `.env` or the CI environment, and make sure that
 machine can reach the backend. To deploy while it is down, build with
 `C15T_ON_BUILD_ERROR=runtime`.
 
@@ -42,15 +42,15 @@ the first time the app loads the policy.
 
 ## Consent requests go to the wrong backend
 
-**Check.** Look at `VITE_C15T_BACKEND_URL` in `.env`, `.env.local` and the
-build environment, and at any `backendURL` in `vite.config.ts` or
+**Check.** Look at `VITE_C15T_BACKEND_URL` and `VITE_INTH_PROJECT_URL` in
+`.env`, `.env.local` and the build environment, and at any `backendURL` in `vite.config.ts` or
 `src/App.svelte`. One still has the demo project, the placeholder
 `https://your-project.inth.app`, or a URL from another project. Vite writes
 `VITE_C15T_BACKEND_URL` into the bundle at build time, so changing it later
 does nothing until you rebuild.
 
-**Fix.** Set `VITE_C15T_BACKEND_URL` to your Inth project's backend URL,
-including any path prefix, and rebuild. The project must also list your app's
+**Fix.** Set `VITE_C15T_BACKEND_URL` (or `VITE_INTH_PROJECT_URL`) to your
+Inth project's backend URL, including any path prefix, and rebuild. The project must also list your app's
 origin as trusted.
 
 ## The banner appears after the page

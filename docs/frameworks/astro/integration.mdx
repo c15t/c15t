@@ -45,9 +45,9 @@ The backend URL is public configuration, not a secret.
 
 Your Inth or self-hosted backend. The browser saves consent there with
 `POST /subjects`, `hosted()` asks its `/init`, and `manifest()` reads
-`${backendURL}/manifest`. It defaults to `PUBLIC_C15T_BACKEND_URL`, read from
-the environment or a `.env` file in the project root when `astro.config.mjs`
-loads. A `hosted({ backendURL })` of its own wins over both.
+`${backendURL}/manifest`. It defaults to `PUBLIC_C15T_BACKEND_URL`, then
+`PUBLIC_INTH_PROJECT_URL`, read from the environment or a `.env` file in the
+project root when `astro.config.mjs` loads. A `hosted({ backendURL })` of its own wins over both.
 
 On the server, a relative backend URL or `manifestURL`, such as `/api/self-host`,
 resolves against the URL Astro gives the request, `Astro.url`. c15t does not
@@ -207,9 +207,9 @@ one copy. Keep it small, because it loads on every page.
 | --- | --- |
 | `` `mode` must be manifest(), hosted() or offline() `` | `mode` is a transport function, or not built with a helper from `c15t/astro` |
 | `is a function` | A serialized option, such as a `scripts` entry from `@c15t/integrations`, holds a function. Move it to `src/c15t.client.ts` |
-| `manifest() needs a backend URL` | No `backendURL` and no `PUBLIC_C15T_BACKEND_URL` |
-| `manifest({ snapshot }) still needs a backend URL` | A snapshot, but no `backendURL` and no `PUBLIC_C15T_BACKEND_URL`. Saves go to the backend whatever `routePrefix` is |
-| `hosted() needs a backend URL` | No `backendURL`, `hosted({ backendURL })` or `PUBLIC_C15T_BACKEND_URL` |
+| `manifest() needs a backend URL` | No `backendURL`, `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL` |
+| `manifest({ snapshot }) still needs a backend URL` | A snapshot, but no `backendURL`, `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL`. Saves go to the backend whatever `routePrefix` is |
+| `hosted() needs a backend URL` | No `backendURL`, `hosted({ backendURL })`, `PUBLIC_C15T_BACKEND_URL` or `PUBLIC_INTH_PROJECT_URL` |
 | `gives the server no manifest to fetch` | `backendURL: ''` without `manifest({ manifestURL })` or `manifest({ snapshot })` |
 | `` `routePrefix` must be a path `` | `routePrefix` is not `false` and does not start with `/` |
 | `clientEntrypoint ... does not exist` | The `clientEntrypoint` path does not resolve to a file |
