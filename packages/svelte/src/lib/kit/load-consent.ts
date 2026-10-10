@@ -129,7 +129,11 @@ const serverResolution = function serverResolution(
 	}
 	return {
 		backendURL,
-		gvlRoute: locals?.routePrefix,
+		// The catch-all serves deferred vendor lists only on its init path.
+		gvlRoute:
+			locals?.routePrefix === undefined
+				? undefined
+				: `${locals.routePrefix}/init`,
 		manifest:
 			mode.snapshot ??
 			(mode.source === 'runtime'
