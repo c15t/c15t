@@ -196,4 +196,43 @@ describe('vercelSpeedInsights', () => {
 		);
 		expect(getBeforeSend()?.(event)).toBeNull();
 	});
+
+	it('drops reports after the script is disposed', () => {
+		const globalRef = getTestGlobal() as SpeedInsightsGlobal;
+		const script = vercelSpeedInsights();
+
+		script.onBeforeLoad?.(
+			createCallbackInfo({ hasConsent: true, id: script.id })
+		);
+		const getBeforeSend = installCollector(globalRef);
+		script.onDispose?.(createCallbackInfo({ hasConsent: true, id: script.id }));
+
+		expect(getBeforeSend()?.(event)).toBeNull();
+	});
+
+	it('disposes without touching window', () => {
+		const script = vercelSpeedInsights();
+		vi.stubGlobal('window', undefined);
+
+		expect(() =>
+			script.onDispose?.(createCallbackInfo({ id: script.id }))
+		).not.toThrow();
+	});
+
+	it('keeps a newer instance gate open when an older one disposes late', () => {
+		const globalRef = getTestGlobal() as SpeedInsightsGlobal;
+		const first = vercelSpeedInsights();
+		const second = vercelSpeedInsights();
+
+		first.onBeforeLoad?.(
+			createCallbackInfo({ hasConsent: true, id: first.id })
+		);
+		const getBeforeSend = installCollector(globalRef);
+		second.onBeforeLoad?.(
+			createCallbackInfo({ hasConsent: true, id: second.id })
+		);
+		first.onDispose?.(createCallbackInfo({ hasConsent: true, id: first.id }));
+
+		expect(getBeforeSend()?.(event)).toEqual(event);
+	});
 });

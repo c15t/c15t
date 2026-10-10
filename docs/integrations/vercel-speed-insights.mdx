@@ -49,7 +49,8 @@ sends queued reports on `pagehide` and navigation. On revocation the helper
 removes the script element and its `beforeSend` callback starts returning
 `null`, so no report is sent, including during the reload c15t runs on
 revocation. A later grant re-adds the script, which does not start a second
-collector, and reports resume.
+collector, and reports resume. Reports also stop when the provider that owns
+the scripts unmounts.
 
 The collector holds one `beforeSend` callback. Pass yours through the
 `beforeSend` option. Calling `window.si('beforeSend', ...)` yourself replaces

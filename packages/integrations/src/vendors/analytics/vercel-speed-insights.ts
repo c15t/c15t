@@ -143,7 +143,9 @@ const getSampleRateAttribute = function getSampleRateAttribute(
  * @throws {TypeError} When `sampleRate` is not a number from 0 to 1.
  * @remarks The collector keeps measuring after its script element is
  * removed, so the helper also registers a `beforeSend` callback that drops
- * every report while measurement is not allowed.
+ * every report while measurement is not allowed or after the script loader
+ * is disposed. Create the helper once, outside render functions: a new
+ * helper object replaces the script element.
  *
  * @example
  * ```ts
@@ -189,6 +191,13 @@ export const vercelSpeedInsights = function vercelSpeedInsights(
 	resolved.onConsentChange = (info) => {
 		manifestOnConsentChange?.(info);
 		applyConsent(info);
+	};
+
+	// Disposing the loader calls no consent callback, and the collector keeps
+	// running. Close this instance's gate without registering it again: a
+	// replacement loader may already have registered its own.
+	resolved.onDispose = () => {
+		hasConsent = false;
 	};
 
 	return resolved;
