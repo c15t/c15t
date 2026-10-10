@@ -83,7 +83,9 @@ The transport `manifest()` from `c15t/react`, `c15t/vue/vue-plugin`,
 `@c15t/svelte` and `@c15t/browser` always resolves in the browser, so it has
 no `resolve` option. It also takes `backendURL`, `headers`, `credentials`,
 `domain`, `fetch` and `initFallback`. With no options it reads the snapshot
-and the backend URL your build integration downloaded.
+and the backend URL your build integration downloaded. With `manifestURL`,
+the browser fetches that URL when the page loads and the build's snapshot is
+not used.
 
 When the policy depends on where the visitor is, and the browser does not
 know the country or region, browser resolution asks `geoURL`, then the

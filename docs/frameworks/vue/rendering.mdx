@@ -74,8 +74,12 @@ Keep `consentManifest()` in `vite.config.ts`: `manifest()` reads the backend
 URL from it. The plugin can't see options you pass in app code, so a build
 with `manifest({ source: 'runtime' })` still downloads the manifest. To build
 without a reachable backend, set `consentManifest({ onBuildError: 'runtime' })`.
-Set `manifestURL` to fetch the manifest from somewhere else, such as a CDN in
-front of your backend.
+
+To fetch the manifest from somewhere else, such as a CDN in front of your
+backend, pass `manifest({ manifestURL })`. The app fetches that URL when it
+starts and ignores the build's snapshot. As with `source: 'runtime'`, the
+build still downloads the manifest. Consent saves still go to the backend URL
+from `consentManifest()`.
 
 The manifest is the same for every visitor, so a CDN can cache it. Location,
 `geoURL` and language loading work as in the
@@ -158,7 +162,8 @@ Serve the production build and open the Network tab:
 | `mode` | Policy requests on the first page load |
 | --- | --- |
 | `manifest()` with a build snapshot | None to the backend. A language other than English loads its text from your site. |
-| `manifest({ source: 'runtime' })` | One `GET` to `manifestURL`, by default `${backendURL}/manifest` |
+| `manifest({ source: 'runtime' })` | One `GET` to `${backendURL}/manifest` |
+| `manifest({ manifestURL })` | One `GET` to `manifestURL` |
 | `hosted()` | One `GET` to `${backendURL}/init` |
 | `offline()` | None |
 

@@ -103,10 +103,12 @@ There is no stylesheet to import. Each component adds the rules it uses to
 see [stylesheets and CSS layers](/docs/customization/stylesheets#import-the-stylesheet-yourself).
 
 To apply policy edits without a rebuild, pass `manifest({ source: 'runtime' })`,
-which fetches the manifest from the backend when the page loads. To have the
-backend resolve every visitor's location, pass `hosted()`. Like `manifest()`,
-it reads the backend URL from `consentManifest`, and a `hosted()` build never
-downloads the manifest:
+which fetches the manifest from the backend when the page loads.
+`manifest({ manifestURL })` fetches it from another URL, such as a CDN,
+instead of using the build's snapshot. To have the backend resolve every
+visitor's location, pass `hosted()`. Like `manifest()`, it reads the backend
+URL from `consentManifest`, and a `hosted()` build never downloads the
+manifest:
 
 {/* example: fragment */}
 

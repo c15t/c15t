@@ -61,7 +61,7 @@ mode, not the plugin:
 
 | Mode | Options |
 | --- | --- |
-| `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `snapshot` takes one you supply. `manifestURL`, `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
+| `manifest()` | `backendURL` and the build snapshot default to what `consentManifest()` downloaded. `source: 'runtime'` fetches the manifest when the app starts; `manifestURL` fetches it from that URL instead of using the snapshot; `snapshot` takes one you supply. `geoURL`, `inputs`, `initFallback`, `headers`, `credentials`, `fetch`, `domain`. |
 | `hosted()` | `backendURL`, by default the one `consentManifest()` read from `VITE_C15T_BACKEND_URL`. `headers`, `fetch`, `domain`. |
 | `offline()` | `policyRules`. Omitted, c15t's recommended rules. |
 

@@ -81,8 +81,8 @@ URL `consentManifest()` downloaded; without a snapshot it fetches
 
 | Option | What it does |
 | --- | --- |
-| `manifestURL` | Where to fetch the manifest. A URL that ends in `/manifest` also gives the backend URL. |
-| `snapshot` | The manifest object itself, inlined into the page. No manifest request at all. Defaults to the build's snapshot. |
+| `manifestURL` | Where to fetch the manifest when the page loads. The build's snapshot is not used. A URL that ends in `/manifest` also gives the backend URL. |
+| `snapshot` | The manifest object itself, inlined into the page. No manifest request at all. Defaults to the build's snapshot unless you set `manifestURL`. |
 | `source` | `'runtime'` ignores the build's snapshot and fetches the manifest. You can pass `snapshot` or `source`, not both. |
 | `backendURL` | Where saves go. Defaults to the build's backend URL. Required otherwise, unless `manifestURL` ends in `/manifest`. `''` means this origin. |
 | `inputs` | `{ country, region }` known ahead of time, such as a country your edge injected into the page. |
