@@ -31,10 +31,12 @@ c15t repository use this setup.
 
 ### Tell the browser where the visitor is
 
-The browser has no request location, so `manifest()` resolves a policy that
-depends on the visitor's country or region as if the location were unknown.
-It sends no request to the backend for it. Use one of these when your policy
-differs by region:
+The browser has no request location. When the policy depends on the
+visitor's country or region, `manifest()` asks the backend's `/init` on the
+first visit, as React and Svelte do, rather than apply the rule for an
+unknown location, which could be another region's. `vite build` warns when
+it bundles such a policy and suggests `hosted()`, because the bundled policy
+then saves no request. To resolve in the browser instead:
 
 - Pass `country` and `region` props to `ConsentRoot` when the page already
   knows the location, for example from a value your edge server injected.
@@ -43,9 +45,9 @@ differs by region:
 - Set `geoURL` to a same-origin route you run that returns the visitor's
   `{ country, region }` as JSON. `manifest()` requests it only when the
   policy depends on a location it does not have.
-- Pass `initFallback: true` to `manifest()` to ask the backend's `/init`
-  when the location is missing. Every first visit then makes one `/init`
-  request, so `hosted()` is usually the simpler choice.
+- Pass `initFallback: false` to `manifest()` to resolve the policy for an
+  unknown location without asking the backend. Only do this when that rule
+  is right for every visitor it reaches.
 
 ### Load the visitor's language
 

@@ -63,6 +63,7 @@ export const consentManifest = (
 	options: ManifestBuildOptions = {}
 ): VueConsentManifestPlugin => {
 	const plugin = createConsentManifestPlugin(options, {
+		adviseHostedForLocation: true,
 		envNames: ['VITE_C15T_BACKEND_URL'],
 		label: '@c15t/vue/vite',
 	});

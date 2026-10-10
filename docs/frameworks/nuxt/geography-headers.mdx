@@ -17,8 +17,8 @@ in three places:
 
 With `manifest({ resolve: 'browser' })`, no request reaches your server, so
 the browser has no location. Pass `geoURL` to `manifest()` with a route that
-returns the visitor's `country` and `region`, or every visitor gets the
-policy for an unknown location. See
+returns the visitor's `country` and `region`, or a policy that depends on
+location asks the backend's `/init` on the first visit. See
 [deploy to static hosting](/docs/frameworks/nuxt/rendering#deploy-to-static-hosting).
 
 When no location header is present, the location stays unknown and your

@@ -1,4 +1,3 @@
-import type { ConsentMode } from '@c15t/core/modes';
 import { readStoredRecordsFromCookieHeader } from '@c15t/core/modules/persistence';
 import { clientMode } from '@c15t/core/runtime/client-mode';
 import type { RequestConsentState } from '@c15t/core/server';
@@ -36,6 +35,7 @@ import {
 	readNuxtMode,
 	readNuxtRoutePrefix,
 	resolvesOnServer,
+	withClientData,
 } from './nuxt-mode';
 import type { NuxtConsentModeConfig } from './nuxt-mode';
 import { isSharedNuxtRender } from './shared-render';
@@ -62,30 +62,6 @@ const warnUnusedInitPrefetch = function warnUnusedInitPrefetch(
 			);
 		}
 	});
-};
-
-/**
- * The mode the browser runs: browser resolution gets the snapshot the
- * build bundled for it, and `hosted()` forwards the consent headers the
- * server read from the request (a CDN's country, for example) to `/init`.
- */
-const withClientData = function withClientData(
-	mode: ConsentMode,
-	headers: Record<string, string>
-): ConsentMode {
-	if (mode.type === 'manifest' && mode.resolve === 'browser') {
-		// As in a plain Vue app, a policy that depends on location resolves
-		// as for an unknown one unless `inputs` or `geoURL` give it a place:
-		// a page that resolves in the browser asks the backend nothing.
-		const browser = { ...mode, initFallback: false };
-		return clientManifestSnapshot && !mode.snapshot
-			? { ...browser, snapshot: clientManifestSnapshot, source: undefined }
-			: browser;
-	}
-	if (mode.type === 'hosted' && Object.keys(headers).length > 0) {
-		return { ...mode, headers: { ...headers, ...mode.headers } };
-	}
-	return mode;
 };
 
 export default defineNuxtPlugin(async (nuxtApp) => {
@@ -241,7 +217,7 @@ export default defineNuxtPlugin(async (nuxtApp) => {
 		initialRecords: initialRecords.value
 			? toRaw(initialRecords.value)
 			: undefined,
-		mode: clientMode(withClientData(mode, headers), {
+		mode: clientMode(withClientData(mode, headers, clientManifestSnapshot), {
 			backendURL: config.value.backendURL,
 			routePrefix,
 		}),

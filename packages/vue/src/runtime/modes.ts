@@ -40,11 +40,11 @@ const MISSING_BACKEND_URL =
  * `${backendURL}/manifest` when the app starts. English copy is bundled;
  * other languages load on demand.
  *
- * The browser does not know where the visitor is, so a policy that depends
- * on location resolves as for an unknown location, with no request to the
- * backend. Pass `inputs` when the page knows the location, `geoURL` for a
- * route that answers it, or `initFallback: true` to ask the backend's
- * `/init` instead.
+ * The browser does not know where the visitor is, so when the policy
+ * depends on location, the first visit asks the backend's `/init`, as in
+ * every single-page app. Pass `inputs` when the page knows the location, or
+ * `geoURL` for a route that answers it. `initFallback: false` resolves as
+ * for an unknown location instead, with no request.
  *
  * @param options - Overrides for the build's backend URL and snapshot.
  * @returns A transport factory for `mode`.
@@ -69,7 +69,6 @@ export const manifest = function manifest(
 		options.snapshot ??
 		(options.source === 'runtime' ? undefined : builtSnapshot);
 	return browserManifest({
-		initFallback: false,
 		...options,
 		backendURL,
 		snapshot,

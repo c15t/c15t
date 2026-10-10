@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
+import { createConsentManifestPolicyPack } from '@c15t/schema/types';
 import { build } from 'vite';
 import type { Rollup } from 'vite';
 import { describe, expect, it, vi } from 'vitest';
@@ -105,6 +106,44 @@ describe('Vue production builds', () => {
 			)
 		).rejects.toThrow('could not fetch the consent manifest');
 		expect(fetch).toHaveBeenCalledTimes(1);
+	});
+});
+
+describe('location advice', () => {
+	it('suggests hosted() when a manifest() build bundles a policy that depends on location', async () => {
+		const warn = vi.fn();
+		const plugin = consentManifest({
+			backendURL: 'https://consent.example.com',
+			fetch: () =>
+				Promise.resolve(
+					Response.json({
+						branding: 'c15t',
+						policyPacks: [
+							createConsentManifestPolicyPack({
+								id: 'regional',
+								match: { countries: ['DE'] },
+								model: 'opt-in',
+								prompt: 'choice',
+							}),
+						],
+						revision: 'vue-regional',
+						schemaVersion: 2,
+					})
+				),
+		});
+		plugin.configResolved({
+			command: 'build',
+			logger: { info: vi.fn(), warn },
+			root: tmpdir(),
+		});
+		const source = await plugin.load.call(
+			undefined,
+			plugin.resolveId('c15t/generated') as string
+		);
+		await plugin.renderChunk(source as string);
+		expect(warn).toHaveBeenCalledWith(
+			expect.stringMatching(/^@c15t\/vue\/vite: .*location.*hosted\(\)/u)
+		);
 	});
 });
 

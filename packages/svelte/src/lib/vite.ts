@@ -302,6 +302,8 @@ export const consentManifest = (
 	options: ManifestBuildOptions = {}
 ): [ConsentManifestPlugin, ModulePreloadPlugin, ServerGeneratedPlugin] => [
 	createConsentManifestPlugin(options, {
+		// A Svelte single-page app only: SvelteKit resolves on the server.
+		adviseHostedForLocation: true,
 		envNames: ['PUBLIC_C15T_BACKEND_URL', 'VITE_C15T_BACKEND_URL'],
 		label: '@c15t/svelte/vite',
 		serverRendered: (config) =>

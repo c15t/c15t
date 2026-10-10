@@ -743,9 +743,12 @@ export const createConsentManifestPlugin = (
 				{ backendURL, fetch: options.fetch },
 				policy()
 			);
+			// Only a build knows the bundle uses `manifest()`: dev loads the
+			// module for every mode.
 			if (
 				defaults.adviseHostedForLocation &&
 				!serverRendered &&
+				command() === 'build' &&
 				snapshot &&
 				manifestNeedsLocation(snapshot)
 			) {

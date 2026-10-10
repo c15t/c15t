@@ -336,16 +336,27 @@ describe('@c15t/core/generated in Vite', () => {
 			.fn<typeof globalThis.fetch>()
 			.mockImplementation(() => Promise.resolve(Response.json(regional)));
 		const logger = createLogger();
+		// A production chunk that reads the snapshot: loaded, then rendered.
 		const load = async (
 			plugin: ReturnType<typeof consentManifest>,
-			warnings: ReturnType<typeof createLogger>
+			warnings: ReturnType<typeof createLogger>,
+			command: 'build' | 'serve' = 'build'
 		) => {
-			await plugin.configResolved({ command: 'serve', logger: warnings, root });
-			await plugin.load.call(
+			plugin.configResolved({ command, logger: warnings, root });
+			const source = await plugin.load.call(
 				undefined,
 				plugin.resolveId(GENERATED_MODULE_IDS[0]) as string
 			);
+			await plugin.renderChunk(source as string);
 		};
+		const devOnly = createLogger();
+		await load(
+			consentManifest({ backendURL: 'https://consent.example.com', fetch }),
+			devOnly,
+			'serve'
+		);
+		// Dev loads the module for every mode, so it can't tell.
+		expect(devOnly.warn).not.toHaveBeenCalled();
 		await load(
 			consentManifest({ backendURL: 'https://consent.example.com', fetch }),
 			logger

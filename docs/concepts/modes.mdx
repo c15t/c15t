@@ -89,8 +89,9 @@ When the policy depends on where the visitor is, and the browser does not
 know the country or region, browser resolution asks `geoURL`, then the
 backend's `/init`. Set `initFallback: false` to resolve for an unknown location
 instead. A policy with location rules therefore saves no request in a
-single-page app unless you pass `inputs` or `geoURL`. `consentManifest()`
-from `c15t/build` warns about this when it downloads such a policy.
+single-page app unless you pass `inputs` or `geoURL`. The `consentManifest()`
+plugins from `c15t/build`, `c15t/vue/vite` and `@c15t/svelte/vite` warn
+about this when a single-page app build bundles such a policy.
 
 ## hosted()
 
