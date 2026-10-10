@@ -282,6 +282,8 @@ export interface ManifestBuildPolicy {
 	 * fetch is skipped and never fails.
 	 */
 	skipReason?: string;
+	/** Appended to the error a failed fetch throws, naming another fix. */
+	failureHint?: string;
 }
 
 const describeFailure = (error: unknown, label: string): string => {
@@ -413,7 +415,7 @@ export const loadManifestForBuild = async (
 		const failure = `could not fetch the consent manifest from ${url} during ${phase} (${describeFailure(error, label)}).`;
 		if (mode === 'fail') {
 			throw new Error(
-				`${label}: ${failure} Set \`${MANIFEST_BUILD_ERROR_ENV}=runtime\` (or \`onBuildError: 'runtime'\`) to ${command === 'build' ? 'deploy' : 'run dev'} with runtime fetching.`,
+				`${label}: ${failure} Set \`${MANIFEST_BUILD_ERROR_ENV}=runtime\` (or \`onBuildError: 'runtime'\`) to ${command === 'build' ? 'deploy' : 'run dev'} with runtime fetching.${policy.failureHint ?? ''}`,
 				{ cause: error }
 			);
 		}
@@ -773,6 +775,9 @@ export const createConsentManifestPlugin = (
 	const policy = (): ManifestBuildPolicy => ({
 		command: command(),
 		envNames: defaults.envNames,
+		// The mode is set in app code, which the plugin can't read.
+		failureHint:
+			" If the app passes manifest({ manifestURL }) or manifest({ source: 'runtime' }), pass `source: 'runtime'` to this plugin so the build skips this download.",
 		label: defaults.label,
 		logger: logger(),
 		onBuildError: options.onBuildError,

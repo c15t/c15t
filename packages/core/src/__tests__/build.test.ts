@@ -145,6 +145,17 @@ describe('@c15t/core/generated in Vite', () => {
 		expect(options.fetch).toHaveBeenCalledTimes(1);
 	});
 
+	test('the build failure names source: runtime for a runtime manifestURL', async () => {
+		const root = await createRoot();
+		const options = optionsFor(root);
+		options.fetch.mockRejectedValue(new Error('backend unavailable'));
+		await expect(
+			buildEntry(root, consentManifest(options), GENERATED_ENTRY)
+		).rejects.toThrow(
+			"pass `source: 'runtime'` to this plugin so the build skips this download."
+		);
+	});
+
 	test("onBuildError: 'runtime' bundles an undefined snapshot when the fetch fails", async () => {
 		const root = await createRoot();
 		const options = optionsFor(root);
