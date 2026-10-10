@@ -1,3 +1,12 @@
+## @c15t/node-sdk@3.0.0-alpha.10 (alpha)
+
+### Fix upgrade links in the package READMEs
+
+The `@c15t/node-sdk` README now links to the Node.js SDK section of the
+self-host upgrade guide. The `@c15t/scripts` README and npm homepage link to
+the `scripts-to-integrations` codemod. Both used to point at the root
+`/docs/upgrade-v3` guide, which has been removed.
+
 ## @c15t/node-sdk@3.0.0-alpha.7 (alpha)
 
 ### Verified identity links

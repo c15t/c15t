@@ -1,10 +1,20 @@
 ---
 packages:
-  '@c15t/core': minor
-  '@c15t/schema': minor
-  '@c15t/backend': minor
-  '@c15t/iab': patch
-  '@c15t/vue': patch
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/schema":
+    replay:
+      - exit-prerelease(npm:@c15t/schema)
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/iab":
+    replay:
+      - exit-prerelease(npm:@c15t/iab)
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
 ---
 
 ### Send cross-origin `/init` without a CORS preflight

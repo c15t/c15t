@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/node-sdk': patch
-  '@c15t/scripts': patch
+  "@c15t/node-sdk":
+    replay:
+      - exit-prerelease(npm:@c15t/node-sdk)
+  "@c15t/scripts":
+    replay:
+      - exit-prerelease(npm:@c15t/scripts)
 ---
 
 ### Fix upgrade links in the package READMEs

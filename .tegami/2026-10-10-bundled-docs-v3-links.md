@@ -1,13 +1,29 @@
 ---
 packages:
-  '@c15t/backend': patch
-  '@c15t/browser': patch
-  '@c15t/core': patch
-  '@c15t/nextjs': patch
-  '@c15t/react': patch
-  '@c15t/scripts': patch
-  '@c15t/svelte': patch
-  c15t: patch
+  "@c15t/backend":
+    replay:
+      - exit-prerelease(npm:@c15t/backend)
+  "@c15t/browser":
+    replay:
+      - exit-prerelease(npm:@c15t/browser)
+  "@c15t/core":
+    replay:
+      - exit-prerelease(npm:@c15t/core)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/scripts":
+    replay:
+      - exit-prerelease(npm:@c15t/scripts)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Link v3 package docs to v3.c15t.com

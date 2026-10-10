@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': patch
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Point setup agents at upgrade guides that exist

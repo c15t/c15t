@@ -1,6 +1,8 @@
 ---
 packages:
-  '@c15t/cli': patch
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
 ---
 
 ### Keep the app's own `ConsentProvider` working after `consent-provider-options`

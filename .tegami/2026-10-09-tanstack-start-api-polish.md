@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/tanstack-start': minor
-  c15t: minor
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### TanStack Start: the consent state carries its config

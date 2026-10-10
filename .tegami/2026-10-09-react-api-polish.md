@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/react': minor
-  c15t: minor
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### `c15t/react` exports the modes, defaulting to what the build downloaded

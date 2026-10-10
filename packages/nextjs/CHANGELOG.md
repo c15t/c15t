@@ -1,3 +1,224 @@
+## @c15t/nextjs@3.0.0-alpha.10 (alpha)
+
+### Throw when an IAB policy has no `IABProvider`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, an app without `IABProvider` showed no consent UI at all: the standard
+`ConsentBanner` and `ConsentDialog` do not handle the IAB model. They now
+throw an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) during render,
+on the server and in the browser:
+
+> c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted.
+
+Render `IABProvider` from `c15t/react/iab` for those visitors, or remove the
+`iab` model from the policy. A backend that answers `gvl: null` turns IAB off
+for the request, and nothing throws.
+
+`@c15t/core` exports `IABUnavailableError`, `IAB_UNAVAILABLE_ERROR_CODE` and
+`policyNeedsIAB()`, which adapters use to decide when to throw.
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Keep banner taps made before the page hydrates
+
+A banner rendered on the server shows before the page's JavaScript runs. On a
+slow phone that gap lasts seconds: about 2 s on Next.js and 1.2 s on Nuxt in
+our mobile benchmark. A tap on Accept all or Reject all in that gap did
+nothing. The button had no handler yet, the banner stayed up and no choice
+was saved.
+
+The stock banner in React, Next.js, TanStack Start, Vue and Nuxt now renders
+a small inline script in front of its buttons. It holds an Accept all, Reject
+all, notice dismiss or Customize tap and hides the banner straight away for
+the first three. Once the banner hydrates and the runtime has started, c15t
+records the choice or the notice dismissal with the time of the tap, so
+later init data can't overwrite it, then saves it and loads the scripts it allows. Customize opens
+the dialog. A tap is dropped and the banner shows again when the browser
+resolves a different consent model or prompt than the one the visitor saw.
+
+Under a Content Security Policy the script takes the `nonce` you already pass
+to c15t. The IAB banner and banners built from hooks are unchanged. In a
+banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
+
+`kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
+the visitor dismissed the notice. A future or invalid time falls back to now.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### Next.js reads `c15t.config.ts` on its own
+
+`withConsentManifest()` now finds `c15t.config.ts` at the project root and
+hands it to `ConsentRoot`, `resolveConsent()`, `createConsentRoute()` and the
+Pages Router helpers, so the app no longer imports its config or writes a
+client wrapper. Export the config as the file's default export. It is bundled
+into the browser too, so it can hold `scripts` but must hold no secrets.
+
+```ts
+// c15t.config.ts
+import { posthog } from '@c15t/integrations/posthog';
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({
+	scripts: [posthog({ id: 'phc_your_project_key' })],
+});
+```
+
+```tsx
+// app/layout.tsx, a Server Component
+import { ConsentBanner, ConsentDialog, ConsentRoot } from 'c15t/next';
+import { resolveConsent } from 'c15t/next/server';
+
+<ConsentRoot state={resolveConsent()}>
+	{children}
+	<ConsentBanner />
+	<ConsentDialog />
+</ConsentRoot>;
+```
+
+`c15t/next` has a `react-server` export: a Server Component imports
+`ConsentRoot`, `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` as one
+client module. This also fixes `next build --webpack`, which failed on React
+hooks in the server graph. `ConsentTheme` and `defineTheme` are importable
+there too.
+
+The config takes `backendURL` (default `NEXT_PUBLIC_C15T_BACKEND_URL`),
+`mode` (`manifest()`, `hosted()` or `offline()`, exported as data from
+`c15t/next`; `manifest()` by default), `routePrefix`, `journey`, and the
+browser options `scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`,
+`persistence`, `scriptLoader` and `options`. `ConsentRoot` props win over the
+config's. `options` merges one key at a time and `options.callbacks` one
+callback at a time, so `options={{ nonce }}` keeps the config's callbacks.
+`ConsentRoot` warns in development when it finds no config, and throws when
+`manifest()` or `hosted()` has no backend URL instead of running offline: set
+`NEXT_PUBLIC_C15T_BACKEND_URL` or `backendURL` in the config, or choose
+`mode: offline()`.
+`NEXT_PUBLIC_INTH_PROJECT_URL` works when `NEXT_PUBLIC_C15T_BACKEND_URL` is
+unset: `withConsentManifest()` copies it to the c15t variable, so the browser
+bundle still holds one value.
+`options.mode` on `ConsentRoot` takes the same data, or a transport such as
+`custom(transport)`; a `hosted()` or `offline()` transport from `c15t/react`
+still works but warns in development, because its code is then in the
+first-load bundle. With `manifest()` resolved on the server, the browser gets
+no resolver, snapshot or other language.
+
+`createConsentRoute()` serves `/manifest` and `/init` from one catch-all
+route, such as `app/api/c15t/[...c15t]/route.ts`. Other paths under the
+prefix return 404, or reach the backend with `proxy: true`. Set `routePrefix`
+in the config to send the browser's init there; without it the browser calls
+`${backendURL}/init`. Pages that `resolveConsent()` renders on the server don't
+need the route.
+
+To keep browser saves on your origin too, set `proxy: true` next to
+`routePrefix` in the config, and pass `proxy: true` to `createConsentRoute()`
+or `createPagesConsentRoute()`, which now takes it as well. The browser then
+sends init and saves to `routePrefix`, while `resolveConsent()`, the route and
+the build keep the absolute `backendURL`. This is the same option as TanStack
+Start's `createConsentStateHandler({ proxy })`, and replaces pointing
+`backendURL` at `/api/c15t` and passing the absolute URL to each server helper,
+or a Next.js rewrite in the Pages Router.
+
+`withConsentManifest()` writes the snapshot to `node_modules/.cache/c15t/`
+and points `c15t/generated` at it, defaulting to
+`NEXT_PUBLIC_C15T_BACKEND_URL`. Importing `c15t/generated` from a client
+component fails the build, because the browser copy imports `server-only`.
+The wrapper also adds `c15t`, `@c15t/core` and `@c15t/nextjs` to
+`transpilePackages`, so Pages Router server code sees the snapshot and the
+config. A failed download stops `next build` and warns in `next dev`; pass
+`onBuildError` as the second argument, or set `C15T_ON_BUILD_ERROR`, to
+change that. `output: 'export'` skips the download. So do the modes that
+read no build-time manifest, as in Nuxt and Astro: `hosted()`, `offline()`,
+`manifest({ snapshot })` and `manifest({ source: 'runtime' })` in
+`c15t.config.ts`. A build in those modes never contacts the backend, so it no
+longer needs `onBuildError: 'runtime'` when the backend is unreachable. The
+wrapper also reads the config's `backendURL` before
+`NEXT_PUBLIC_C15T_BACKEND_URL`, and a config `defineConsentConfig` rejects
+stops the build. `defineConsentConfig` now checks the config on the server
+and at build time only; browser bundles skip the checks and their messages.
+
+The Pages Router gets `withConsentProps()`, a `getServerSideProps` that adds a
+JSON-safe `consent` prop, and `ConsentPageProps` for `AppProps`:
+
+```ts
+// pages/index.tsx
+export const getServerSideProps = withConsentProps();
+
+// pages/api/c15t/[...c15t].ts
+export default createPagesConsentRoute();
+```
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- `defineConsentConfig({ manifestURL, initURL })`: use `routePrefix`, or
+  `mode: manifest({ resolve: 'browser', manifestURL })`.
+- `ConsentRoot`'s `backendURL` prop: set `backendURL` in the config or
+  `NEXT_PUBLIC_C15T_BACKEND_URL`. `config` is now an optional override.
+- `createNextConsentRouteHandlers()` and its `manifestGET`: use
+  `createConsentRoute()`.
+- `createPagesApiHandlers()`: use `createPagesConsentRoute()` in a catch-all
+  API route.
+- The `manifest` option of `resolveConsent()` and `createConsentRoute()`: use
+  `snapshot`, which defaults to the build's.
+- `ConsentManifestOptions` and the `c15t.server.ts` pattern: use
+  `ResolveConsentOptions` or `NextConsentRouteOptions` when you need them.
+- `resolveStrictestDefaultInit` from `c15t/next/static`: use
+  `resolveUnknownLocationInit`.
+- `withConsentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
+
+Changed: `hosted`, `offline` and `manifest` from `c15t/next` are now the data
+factories. A `ConsentProvider` that needs a transport imports them from
+`c15t/react`.
+
 ## @c15t/nextjs@3.0.0-alpha.8 (alpha)
 
 ### Link a page's `/init` to the save that follows

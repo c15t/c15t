@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/astro': minor
-  c15t: minor
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Astro: `c15t()` with no options, one consent route and a components barrel

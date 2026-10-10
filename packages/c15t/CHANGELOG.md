@@ -1,3 +1,725 @@
+## c15t@3.0.0-alpha.10 (alpha)
+
+### TanStack Start: the consent state carries its config
+
+`createConsentStateHandler()` now needs no options. It reads the backend URL
+and the policy snapshot from `consentManifest()` in `vite.config.ts`, and the
+state it returns carries `backendURL`, `mode` and `routePrefix` to
+`ConsentRoot`, which only needs `state`:
+
+```tsx
+const getConsentState = createServerFn({ method: 'GET' }).handler(
+	createConsentStateHandler()
+);
+
+<ConsentRoot state={consent} scripts={scripts}>
+```
+
+`createConsentStateHandler({ mode, routePrefix, proxy, snapshot })` takes the
+mode as data. `manifest()`, `hosted()` and `offline()` from
+`c15t/tanstack-start` are now the data factories from `c15t/modes`, not
+transports. `manifest()` (the default) resolves the visitor on the server.
+`manifest({ resolve: 'browser' })` leaves it to the browser, and `hosted()`
+and `offline()` resolve as their names say. A mode's `snapshot` stays on the
+server.
+
+`ConsentRoot` no longer imports the hosted transport. Its first-load
+JavaScript holds the record transport only, and the code for init loads
+when the browser runs init. The TanStack Start quickstart's first load is
+about 500 B (gzip) smaller.
+
+`consentManifest()` from `c15t/tanstack-start/build` serves the snapshot as
+`c15t/generated` instead of writing `c15t-manifest.ts`. The browser bundle
+gets `snapshot: undefined`. It reads `VITE_C15T_BACKEND_URL`, then
+`VITE_INTH_PROJECT_URL`, and a failed download stops `vite build` and warns
+in `vite dev`; `onBuildError` and `C15T_ON_BUILD_ERROR` change that.
+
+The browser gets init from `${backendURL}/init` unless the state names a
+`routePrefix`, the same option, meaning and default (none) as Next.js. Before,
+`ConsentRoot` sent init to `/api/c15t/init` by default, so an app that didn't
+mount the consent route got a 404 on every page load.
+
+The consent route is `createConsentRoute()` and needs no options either:
+
+```ts
+// src/routes/api/c15t/$.ts
+export const Route = createFileRoute('/api/c15t/$')({
+	server: { handlers: createConsentRoute() },
+});
+```
+
+With `createConsentRoute({ proxy: true })`, pass
+`createConsentStateHandler({ routePrefix: '/api/c15t', proxy: true })` so the
+browser saves through the route.
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- `ConsentRoot`'s `backendURL` and `routePrefix` props: pass them to
+  `createConsentStateHandler()`. A page with no loader passes `state={{}}`
+  and gets the backend URL from `consentManifest()`.
+- `ConsentRoot`'s `initRoute` prop and the `DEFAULT_INIT_ROUTE` export.
+  Replace `initRoute="/api/c15t/init"` with
+  `createConsentStateHandler({ routePrefix: '/api/c15t' })`, and drop
+  `initRoute={false}`, which is now the default. The server helpers'
+  `routePrefix` has no `/api/c15t` default either.
+- `createConsentServerRoute`: use `createConsentRoute`, which returns only
+  `GET` (plus the write methods with `proxy`). `manifestGET`, `initGET` and
+  `proxyHandler` are removed.
+- The `manifest` option of `createConsentStateHandler`, `resolveConsent` and
+  `createConsentRoute`: use `snapshot`. `manifestURL` on the state handler
+  moves to `manifest({ manifestURL })`.
+- `ConsentManifestOptions` and `resolveStrictestDefaultInit`: use
+  `ResolveConsentOptions` and `resolveUnknownLocationInit`.
+- `consentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
+
+The server render now fetches a relative `backendURL`, such as a backend
+mounted elsewhere on the same origin. It skips only URLs under `routePrefix`,
+or `/api/c15t` when none is set, so a render never calls its own consent
+route.
+
+Changed: a root whose state names no backend URL, and no `consentManifest()`,
+throws instead of falling back to offline mode. Pass `mode: offline()` to
+resolve without a backend.
+
+### Consent modes as data, `c15t/generated` and one build-failure policy
+
+Breaking for earlier v3 alphas. Every name below was alpha-only, so it is
+removed with no deprecated alias.
+
+**Modes as data.** `c15t/modes` (`@c15t/core/modes`) exports `manifest()`,
+`hosted()` and `offline()` as plain data factories. Each returns a
+serializable `{ type, …options }` object, typed as `ConsentMode`, with no
+imports behind it. Server-rendered frameworks take this data in their config.
+
+```ts
+import { hosted, manifest, offline } from 'c15t/modes';
+
+manifest(); // { type: 'manifest' }
+manifest({ resolve: 'browser', geoURL: '/api/geo' });
+hosted({ backendURL: 'https://your-project.inth.app' });
+offline({ policyRules });
+```
+
+`manifest()` takes `source` (`'build'`, the default, or `'runtime'`) or
+`snapshot`, never both, plus `resolve`, `manifestURL`, `geoURL` and `inputs`.
+
+`hosted()`, `offline()` and `manifest()` as transports carry their options as
+enumerable data too, so they satisfy `ConsentMode`. Transport factories can
+report `kind: 'manifest'`.
+
+**First-load JavaScript.** `c15t/runtime/client-mode` turns mode data into a
+transport for a server-rendered page. For `manifest()` resolved on the server
+and for `hosted()`, first-load JavaScript holds only the record transport and
+the init-request builder. The hosted init path, browser resolution and
+offline mode load with `import()` when they run, from self-contained chunks,
+so Vite and Turbopack don't split a page's first-load chunk around them.
+`clientMode()` takes `initialData`, an init response a prefetch script already
+requested.
+
+**One browser manifest resolver.** `c15t/transports/manifest-browser`
+resolves a manifest in the browser. It bundles English base copy and loads
+other languages with `import('@c15t/translations/<lang>')` the first time a
+visitor needs one. When the policy depends on a location the page doesn't
+know, it asks `geoURL`, then the backend's `/init`. `@c15t/browser`, React,
+Svelte, Vue and the Next.js root use it instead of the all-languages
+resolver, so they no longer download every language.
+`c15t/transports/manifest` bundles every language and is for server code
+only.
+
+**`c15t/generated`.** The build integrations no longer write
+`c15t-manifest.ts` into your source tree, so there is nothing to add to
+`.gitignore` and type checks pass on a fresh clone. `c15t/generated`
+(`@c15t/core/generated`) exports `snapshot`, the fetched manifest, and
+`backendURL`, the URL the build read it from. Both are `undefined` when the
+build has no snapshot. In the browser bundle of TanStack Start and SvelteKit,
+`snapshot` is always `undefined`; single-page apps get it in the browser.
+Most apps never import it: the framework helpers read it themselves.
+
+**One rule for failed build-time manifest fetches.** Every build integration
+handles a failed fetch the same way: `withConsentManifest` in Next.js, the
+`consentManifest` Vite plugins (`c15t/build`, `c15t/tanstack-start/build`,
+`c15t/vue/vite`, `@c15t/svelte/vite`), the Nuxt module and the Astro
+integration.
+
+- The fetch waits at most 10 seconds.
+- A production build (`next build`, `vite build`, `nuxt build`,
+  `astro build`) stops with an error that names the URL and the cause.
+- Dev (`next dev`, `vite dev`, `nuxt dev`, `astro dev`) logs a warning and
+  fetches the policy at runtime. `snapshot` is then `undefined`.
+- A missing backend URL follows the same rule.
+- The new `onBuildError` option picks one behaviour for both commands:
+  `'fail'` stops dev too, and `'runtime'` lets a production build continue
+  and fetch at runtime. The `C15T_ON_BUILD_ERROR` environment variable
+  overrides it, so you can deploy during a backend outage without a code
+  change: `C15T_ON_BUILD_ERROR=runtime npm run build`.
+- The fetch is skipped, without an error, for a relative backend URL. With
+  `onBuildError: 'fail'`, a relative URL stops the build.
+- The Vite plugins fetch only for a bundle that reads `snapshot`. A
+  single-page app picks its mode in app code, so `vite build` fills the
+  snapshot in after tree-shaking: a React, Vue, Svelte or JavaScript app
+  that uses `hosted()` or `offline()` never contacts the backend during the
+  build, and a backend outage no longer stops it. `vite dev` fetches when
+  the app first loads `c15t/generated`.
+- The plugins can't see the options passed to `manifest()`, so an app whose
+  `manifest()` takes `manifestURL` or `source: 'runtime'` still reads
+  `snapshot`. Pass `source: 'runtime'` to the plugin as well, as in
+  `consentManifest({ source: 'runtime' })`: it never fetches, and serves
+  `snapshot: undefined` in dev and in builds.
+
+The build reads the backend URL from the framework's public variable when you
+don't pass one, from the environment or a `.env` file:
+`NEXT_PUBLIC_C15T_BACKEND_URL`, `NUXT_PUBLIC_C15T_BACKEND_URL`,
+`PUBLIC_C15T_BACKEND_URL` (Astro, Svelte and SvelteKit) or
+`VITE_C15T_BACKEND_URL` (TanStack Start, React, Vue and plain JavaScript).
+The Vite plugins set an unset `VITE_C15T_BACKEND_URL` to the URL they used.
+Each variable has an Inth alternative, read when the c15t one is unset, such
+as `VITE_INTH_PROJECT_URL`, so other Inth SDKs can share the project URL.
+
+`consentManifest()` from `c15t/build` warns when the downloaded policy
+depends on the visitor's location. A single-page app's `manifest()` then still
+asks the backend's `/init` on the first visit unless the page passes `inputs`
+or `geoURL`, so the warning suggests `hosted()`.
+
+`offline()` now reports the location it resolved for, so the Vue and Astro
+preference dialog shows its title.
+
+**Consent write code loads later.** Once a banner or dialog has shown, the
+code that saves consent loads on the first press, key or focus inside it, or
+in idle time three seconds after the load event, whichever comes first. It
+used to load in the first idle time after the load event, which could land it
+in first-load JavaScript. A save that comes first still waits for it.
+
+Removed:
+
+- `hosted({ url })`: use `hosted({ backendURL })`.
+- `createManifestTransport({ manifest })`: use
+  `createManifestTransport({ snapshot })`.
+- `hostedModes` from `c15t/runtime/provider`: use `readHostedMode(mode)`.
+- The generated `c15t-manifest.ts` file, and the build options `outputFile`,
+  `exportName`, `importSource` and `rootDir`. Delete the file and its
+  `.gitignore` entry, and replace
+  `import { consentManifest } from './c15t-manifest'` with
+  `import { snapshot } from 'c15t/generated'`.
+
+Changed:
+
+- `hosted()` asserts the resolved decision on saves whenever `initURL` is
+  set. Pass `assertDecisionInputs: false` to turn that off.
+- The error for a runtime with no `mode` names the package and the API that
+  got none, such as ``@c15t/react ConsentProvider: `mode` is required. Use
+  manifest() or hosted().``, instead of the v2
+  `ConsentManagerProvider`. Production builds name the package only.
+
+### Throw when an IAB policy has no `IABProvider`
+
+When a visitor's policy used the `iab` model and the backend sent its vendor
+list, an app without `IABProvider` showed no consent UI at all: the standard
+`ConsentBanner` and `ConsentDialog` do not handle the IAB model. They now
+throw an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) during render,
+on the server and in the browser:
+
+> c15t: this visitor's policy uses IAB TCF, but no <IABProvider> is mounted.
+
+Render `IABProvider` from `c15t/react/iab` for those visitors, or remove the
+`iab` model from the policy. A backend that answers `gvl: null` turns IAB off
+for the request, and nothing throws.
+
+`@c15t/core` exports `IABUnavailableError`, `IAB_UNAVAILABLE_ERROR_CODE` and
+`policyNeedsIAB()`, which adapters use to decide when to throw.
+
+### Make IAB TCF opt-in for Vue and Nuxt
+
+The Vue plugin and Nuxt module no longer turn on IAB TCF from the policy
+alone. Without an `iab` option, `@c15t/iab` and the IAB banner and dialog
+never load, no `__tcfapi` is installed, and Nuxt pages stop prefetching them.
+On a Nuxt site with no IAB policy, that removes about 13 KB of gzipped
+prefetch from every page.
+
+A visitor whose policy uses the `iab` model, on an app without `iab`, now
+gets an `IABUnavailableError` (code `C15T_IAB_UNAVAILABLE`) when the backend
+sends the vendor list:
+
+> c15t: this visitor's policy uses IAB TCF, but `iab` is not set.
+
+In Nuxt, a server render fails and Nuxt shows its error page; a prerendered
+or `ssr: false` page shows the same error page once the browser resolves the
+policy. With the Vue plugin, `app.use()` throws when the policy arrives with
+`prefetch`, and otherwise the error is thrown as an uncaught error after
+`/init` answers. A backend that answers `gvl: null` turns IAB off for the
+request, and nothing throws.
+
+If you relied on your policy to show the IAB banner, add `iab: {}`, or
+`iab: { cmpId }` when the backend does not send one. In Nuxt, put it under
+`c15t` in `nuxt.config.ts`. Set only in `app.config.ts`, IAB still works but
+pages do not prefetch the IAB banner and CMP. `iab: false` and
+`iab: { enabled: false }` count as unset, so an IAB policy throws there too.
+
+### Stop c15t's stylesheet holding back the first paint
+
+The stylesheet apps imported for c15t was linked from `<head>`, and the
+browser painted nothing until it downloaded. On a throttled phone, a Next.js
+page with a banner first painted at about 650 ms instead of 370 ms. Now the
+stock surfaces bring their own styles, and no c15t stylesheet request comes
+before the first paint.
+
+- **React, Next.js and TanStack Start.** `ConsentBanner`,
+  `ConsentDialogTrigger`, `ConsentGate`, `ConsentDialog` and `ConsentWidget`
+  render the c15t rules they use as `<style>` elements. A server-rendered
+  banner puts them in the HTML. The dialog's rules ship with the dialog's
+  code. React 19 moves them into `<head>` and renders each once; with the
+  provider's `nonce`, or in React 18, they render next to the surface and
+  carry the nonce.
+  `IABConsentBanner` and `IABConsentDialog` deliver their IAB rules the same
+  way, including the shared styles a standalone dialog needs.
+  Streamed React IAB banners wait for their complete markup before becoming
+  visible, so the centered card does not shift while its content arrives.
+- **Svelte and SvelteKit.** The surfaces add their rules to `<head>` in the
+  browser. On a server-rendered SvelteKit page, `c15tHandle` writes the
+  banner's rules into the HTML.
+  IAB banners and dialogs also deliver their own styles.
+- **Astro.** The integration no longer adds `c15t/astro/styles.css` to every
+  page. `<ConsentScript />`, or the banner on a layout without it, inlines the
+  first-paint rules, including IAB when configured, and Astro's CSP config gets their hash. The dialog's
+  rules load when a dialog first opens. A site on Tailwind CSS 3 keeps the
+  linked stylesheet, which its PostCSS build has to process.
+
+Remove the `styles.css` import from your app. If you keep it, the page looks
+the same, but the stylesheet still holds the first paint and its rules load
+twice. To keep importing it, for Tailwind CSS 3 or a named cascade layer, set the new
+`styles: false` option on the provider (`ConsentRoot`'s `options` in Next.js
+and TanStack Start). A nonce-based `style-src` needs the provider's `nonce`,
+or `styles: false`.
+
+`@c15t/ui` adds `@c15t/ui/styles/sheets/first-paint`, `dialog` and
+`primitives`, plus `iab-first-paint` and `iab-dialog`, which export those rules
+as strings. `dialog.css` and `iab-dialog.css` are available in the same
+directory for deferred loading. The aggregate stylesheets remain available.
+
+The setup CLI omits aggregate CSS imports for adapters that deliver their own
+styles. Tailwind CSS 3 setups keep manual imports and disable automatic styles.
+
+### Keep banner taps made before the page hydrates
+
+A banner rendered on the server shows before the page's JavaScript runs. On a
+slow phone that gap lasts seconds: about 2 s on Next.js and 1.2 s on Nuxt in
+our mobile benchmark. A tap on Accept all or Reject all in that gap did
+nothing. The button had no handler yet, the banner stayed up and no choice
+was saved.
+
+The stock banner in React, Next.js, TanStack Start, Vue and Nuxt now renders
+a small inline script in front of its buttons. It holds an Accept all, Reject
+all, notice dismiss or Customize tap and hides the banner straight away for
+the first three. Once the banner hydrates and the runtime has started, c15t
+records the choice or the notice dismissal with the time of the tap, so
+later init data can't overwrite it, then saves it and loads the scripts it allows. Customize opens
+the dialog. A tap is dropped and the banner shows again when the browser
+resolves a different consent model or prompt than the one the visitor saw.
+
+Under a Content Security Policy the script takes the `nonce` you already pass
+to c15t. The IAB banner and banners built from hooks are unchanged. In a
+banner composed from `ConsentBanner.*` parts, a button with its own `onClick`,
+`asChild`, `type="submit"` or `performDefaultAction={false}` keeps the old
+behavior, so a handler that calls `preventDefault()`, a link or a form still
+decides what its tap does. A held tap is recorded with the banner's
+`uiSource`.
+
+`kernel.commands.dismissNotice()` takes an optional `{ actionAt }`, the time
+the visitor dismissed the notice. A future or invalid time falls back to now.
+
+### Stop c15t stylesheets blocking the first paint in Nuxt
+
+Nuxt inlined the banner's styles into the HTML and also linked the same CSS
+as render-blocking stylesheets, together with the dialog trigger's CSS,
+which no first paint uses. On a throttled phone, a page with a banner first
+painted at about 1,070 ms instead of 450 ms.
+
+`ConsentRoot` now loads the banner and the trigger as their own chunks.
+Every page preloads the banner chunk, and the CSS Nuxt inlines is preloaded
+instead of linked. The browser applies that CSS with the chunk, before it
+shows a banner it renders itself. The trigger chunk loads after the page
+mounts, and only with `showTrigger`. With `features.inlineStyles: false`,
+Nuxt keeps linking the banner's CSS.
+
+Pages outside client manifest mode also stop prefetching the client
+manifest resolver and its translations (about 66 KB gzip), which they never
+load at startup.
+
+The plain Vue plugin's `ConsentRoot` loads the trigger as its own chunk
+too.
+
+### Link v3 package docs to v3.c15t.com
+
+The `AGENTS.md` files and bundled docs in v3 packages linked to `c15t.com`,
+which documents v2. Those links now point at `v3.c15t.com`, so an agent that
+follows them from `node_modules` reads docs for the installed version.
+
+### `c15t/react` exports the modes, defaulting to what the build downloaded
+
+Import `manifest`, `hosted` and `offline` from `c15t/react`. React apps no
+longer import anything from `@c15t/browser`. With `consentManifest()` from
+`c15t/build` in the Vite config, `manifest()` needs no arguments: it reads the
+policy snapshot and the backend URL from `c15t/generated`. `hosted()` reads
+the same backend URL.
+The plugin reads `VITE_C15T_BACKEND_URL`, then `VITE_INTH_PROJECT_URL`, and
+`hosted()`'s missing-URL error names both outside production.
+
+```tsx
+import { ConsentProvider, manifest } from 'c15t/react';
+
+<ConsentProvider options={{ mode: manifest() }}>{children}</ConsentProvider>;
+```
+
+Pass `snapshot`, `manifestURL`, `backendURL` or `source: 'runtime'` to
+override the build's values. `@c15t/react` keeps these modes on its
+`@c15t/react/modes` entry, so the Next.js and TanStack Start entries, which
+re-export `@c15t/react`, never import the build's snapshot module.
+
+The browser manifest resolver loads on demand. When the policy depends on a
+location the page doesn't know, the browser asks `/init` and never downloads
+the resolver. Otherwise the resolver starts loading as soon as `manifest()`
+runs. Each language's base copy and the IAB vendor list load only when a
+visitor needs them. The React quickstart's first-load JavaScript is about
+3.8 KB gzip smaller.
+
+With `preloadDialog: 'idle'`, the default, the deferred `ConsentDialog`
+starts loading three seconds after the load event, in idle time, instead of
+in the first idle time after it. Hovering, focusing or touching a button that
+opens the dialog still loads it at once.
+
+`ConsentTheme` and `defineTheme` are importable from the new
+`c15t/react/theme` entry, which a Server Component can import.
+
+Deprecated, still working: `Frame`, `FrameRoot`, `FrameTitle` and
+`FrameButton`, the v2 names for `ConsentGate` and its parts, and the
+`FrameProps` type. The components still render `ConsentGate`, and now log a
+one-time warning outside production.
+
+### Next.js reads `c15t.config.ts` on its own
+
+`withConsentManifest()` now finds `c15t.config.ts` at the project root and
+hands it to `ConsentRoot`, `resolveConsent()`, `createConsentRoute()` and the
+Pages Router helpers, so the app no longer imports its config or writes a
+client wrapper. Export the config as the file's default export. It is bundled
+into the browser too, so it can hold `scripts` but must hold no secrets.
+
+```ts
+// c15t.config.ts
+import { posthog } from '@c15t/integrations/posthog';
+import { defineConsentConfig } from 'c15t/next';
+
+export default defineConsentConfig({
+	scripts: [posthog({ id: 'phc_your_project_key' })],
+});
+```
+
+```tsx
+// app/layout.tsx, a Server Component
+import { ConsentBanner, ConsentDialog, ConsentRoot } from 'c15t/next';
+import { resolveConsent } from 'c15t/next/server';
+
+<ConsentRoot state={resolveConsent()}>
+	{children}
+	<ConsentBanner />
+	<ConsentDialog />
+</ConsentRoot>;
+```
+
+`c15t/next` has a `react-server` export: a Server Component imports
+`ConsentRoot`, `ConsentBanner`, `ConsentDialog` and `ConsentDialogLink` as one
+client module. This also fixes `next build --webpack`, which failed on React
+hooks in the server graph. `ConsentTheme` and `defineTheme` are importable
+there too.
+
+The config takes `backendURL` (default `NEXT_PUBLIC_C15T_BACKEND_URL`),
+`mode` (`manifest()`, `hosted()` or `offline()`, exported as data from
+`c15t/next`; `manifest()` by default), `routePrefix`, `journey`, and the
+browser options `scripts`, `vendors`, `clearOnRevocation`, `networkBlocker`,
+`persistence`, `scriptLoader` and `options`. `ConsentRoot` props win over the
+config's. `options` merges one key at a time and `options.callbacks` one
+callback at a time, so `options={{ nonce }}` keeps the config's callbacks.
+`ConsentRoot` warns in development when it finds no config, and throws when
+`manifest()` or `hosted()` has no backend URL instead of running offline: set
+`NEXT_PUBLIC_C15T_BACKEND_URL` or `backendURL` in the config, or choose
+`mode: offline()`.
+`NEXT_PUBLIC_INTH_PROJECT_URL` works when `NEXT_PUBLIC_C15T_BACKEND_URL` is
+unset: `withConsentManifest()` copies it to the c15t variable, so the browser
+bundle still holds one value.
+`options.mode` on `ConsentRoot` takes the same data, or a transport such as
+`custom(transport)`; a `hosted()` or `offline()` transport from `c15t/react`
+still works but warns in development, because its code is then in the
+first-load bundle. With `manifest()` resolved on the server, the browser gets
+no resolver, snapshot or other language.
+
+`createConsentRoute()` serves `/manifest` and `/init` from one catch-all
+route, such as `app/api/c15t/[...c15t]/route.ts`. Other paths under the
+prefix return 404, or reach the backend with `proxy: true`. Set `routePrefix`
+in the config to send the browser's init there; without it the browser calls
+`${backendURL}/init`. Pages that `resolveConsent()` renders on the server don't
+need the route.
+
+To keep browser saves on your origin too, set `proxy: true` next to
+`routePrefix` in the config, and pass `proxy: true` to `createConsentRoute()`
+or `createPagesConsentRoute()`, which now takes it as well. The browser then
+sends init and saves to `routePrefix`, while `resolveConsent()`, the route and
+the build keep the absolute `backendURL`. This is the same option as TanStack
+Start's `createConsentStateHandler({ proxy })`, and replaces pointing
+`backendURL` at `/api/c15t` and passing the absolute URL to each server helper,
+or a Next.js rewrite in the Pages Router.
+
+`withConsentManifest()` writes the snapshot to `node_modules/.cache/c15t/`
+and points `c15t/generated` at it, defaulting to
+`NEXT_PUBLIC_C15T_BACKEND_URL`. Importing `c15t/generated` from a client
+component fails the build, because the browser copy imports `server-only`.
+The wrapper also adds `c15t`, `@c15t/core` and `@c15t/nextjs` to
+`transpilePackages`, so Pages Router server code sees the snapshot and the
+config. A failed download stops `next build` and warns in `next dev`; pass
+`onBuildError` as the second argument, or set `C15T_ON_BUILD_ERROR`, to
+change that. `output: 'export'` skips the download. So do the modes that
+read no build-time manifest, as in Nuxt and Astro: `hosted()`, `offline()`,
+`manifest({ snapshot })` and `manifest({ source: 'runtime' })` in
+`c15t.config.ts`. A build in those modes never contacts the backend, so it no
+longer needs `onBuildError: 'runtime'` when the backend is unreachable. The
+wrapper also reads the config's `backendURL` before
+`NEXT_PUBLIC_C15T_BACKEND_URL`, and a config `defineConsentConfig` rejects
+stops the build. `defineConsentConfig` now checks the config on the server
+and at build time only; browser bundles skip the checks and their messages.
+
+The Pages Router gets `withConsentProps()`, a `getServerSideProps` that adds a
+JSON-safe `consent` prop, and `ConsentPageProps` for `AppProps`:
+
+```ts
+// pages/index.tsx
+export const getServerSideProps = withConsentProps();
+
+// pages/api/c15t/[...c15t].ts
+export default createPagesConsentRoute();
+```
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- `defineConsentConfig({ manifestURL, initURL })`: use `routePrefix`, or
+  `mode: manifest({ resolve: 'browser', manifestURL })`.
+- `ConsentRoot`'s `backendURL` prop: set `backendURL` in the config or
+  `NEXT_PUBLIC_C15T_BACKEND_URL`. `config` is now an optional override.
+- `createNextConsentRouteHandlers()` and its `manifestGET`: use
+  `createConsentRoute()`.
+- `createPagesApiHandlers()`: use `createPagesConsentRoute()` in a catch-all
+  API route.
+- The `manifest` option of `resolveConsent()` and `createConsentRoute()`: use
+  `snapshot`, which defaults to the build's.
+- `ConsentManifestOptions` and the `c15t.server.ts` pattern: use
+  `ResolveConsentOptions` or `NextConsentRouteOptions` when you need them.
+- `resolveStrictestDefaultInit` from `c15t/next/static`: use
+  `resolveUnknownLocationInit`.
+- `withConsentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
+
+Changed: `hosted`, `offline` and `manifest` from `c15t/next` are now the data
+factories. A `ConsentProvider` that needs a transport imports them from
+`c15t/react`.
+
+### Render children passed to `ConsentRoot` in Vue and Nuxt
+
+`ConsentRoot` had no default slot, so wrapping an app in it, the way a React
+app sits inside a provider, dropped everything inside without a warning and
+the page never rendered. The Vue and Nuxt `ConsentRoot` now render their
+default slot after the banner, dialog and trigger, on the server and in the
+browser.
+
+Keep rendering `<ConsentRoot />` next to your page content, such as
+`<NuxtPage />`. It is not a provider, so wrapping adds nothing; this change
+only stops a wrapped app from disappearing.
+
+### Astro: `c15t()` with no options, one consent route and a components barrel
+
+`c15t()` now works with no options. The backend URL defaults to
+`PUBLIC_C15T_BACKEND_URL`, read from the environment or `.env` in the project
+root, and the mode defaults to `manifest()`. `PUBLIC_INTH_PROJECT_URL` works
+too when `PUBLIC_C15T_BACKEND_URL` is unset. The modes are the data factories
+from `c15t/modes`, re-exported from `c15t/astro`:
+
+```js
+// astro.config.mjs, server output
+export default defineConfig({
+	adapter: node({ mode: 'standalone' }),
+	integrations: [svelte(), c15t()],
+	output: 'server',
+});
+
+// static output, no adapter
+export default defineConfig({
+	integrations: [svelte(), c15t({ mode: hosted() })],
+});
+```
+
+- `backendURL` is a top-level option. `hosted({ backendURL })` of its own
+  still wins.
+- `manifest({ snapshot, source, resolve })` replaces
+  `manifest({ backendURL, manifest })`. `source: 'runtime'` fetches the policy
+  at runtime instead of bundling it at build time. `resolve: 'browser'`
+  resolves the policy in the browser, so a static site with no adapter can use
+  `manifest()`: the integration prerenders `/api/c15t/manifest` for it.
+- `reportSessions` is a top-level option.
+- `routePrefix` (default `'/api/c15t'`, `false` for none) replaces
+  `endpoints`. The integration injects one catch-all route,
+  `${routePrefix}/[...path]`, from the `c15t/astro/api` entry, which answers
+  `init` and `manifest`.
+- `clientEntrypoint` resolves a relative path from the project root, and
+  defaults to `src/c15t.client.ts`, `.js` or `.mjs` when the file exists.
+  The browser options no longer carry its absolute path.
+- `ui` defaults to the framework of the one Astro UI integration the site
+  registers, among `@astrojs/svelte`, `@astrojs/react` and `@astrojs/vue`, and
+  to `'svelte'` otherwise.
+- `c15t()` throws when a serialized option holds a function, naming where it
+  is. A vendor helper such as `posthog()` in `scripts` used to lose its
+  callbacks without a word; move it to `src/c15t.client.ts`.
+- The integration adds the type of `Astro.locals.c15t` to `.astro/types.d.ts`.
+  Remove the `/// <reference types="c15t/astro/middleware" />` line from
+  `src/env.d.ts`.
+- `c15t/astro/components` exports `ConsentBanner`, `ConsentDialog`,
+  `ConsentDialogLink`, `ConsentScript`, `IABConsentBanner` and
+  `IABConsentDialog`. `ConsentBannerDeferred` renders a server island, so it
+  stays at `c15t/astro/components/consent-banner-deferred.astro`.
+- Server-rendered `manifest()` and `hosted()` pages ship only the code that
+  saves consent. The init path loads when a page inits again.
+- `offline()` reports the location it resolved for, so the preference dialog
+  shows its title.
+- `manifest()` without a backend URL, from `backendURL` or
+  `PUBLIC_C15T_BACKEND_URL`, fails at setup, including
+  `manifest({ snapshot })` and any `routePrefix`. The consent route answers
+  `GET` only, so saves used to fail after the visitor chose.
+
+With `manifest()`, the integration fetches the policy manifest during
+`astro build` and dev startup and bundles it into the server. Middleware and
+the consent route use that snapshot; the browser options omit it unless the
+mode resolves in the browser. The fetch is skipped for `hosted()`,
+`offline()`, `manifest({ snapshot })`, `manifest({ source: 'runtime' })` and
+a relative backend URL. If the fetch fails or takes longer than 10 seconds,
+`astro build` now stops with an error, where it used to warn and continue,
+and `astro dev` logs a warning and fetches the policy at runtime. Set
+`onBuildError`, or `C15T_ON_BUILD_ERROR`, to change that.
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- `hosted({ url })`: use `hosted({ backendURL })`, or the top-level
+  `backendURL`. `hosted({ domain })` is gone too.
+- `manifest({ backendURL, manifest, reportSessions })`: use the top-level
+  `backendURL` and `reportSessions`, and `manifest({ snapshot })`.
+- `endpoints` and the `c15t/astro/api/init` and `c15t/astro/api/manifest`
+  entries: use `routePrefix`.
+- `buildManifest`: use `onBuildError`, or `manifest({ source: 'runtime' })`
+  for `buildManifest: false`.
+- `c15t/astro/components/consent-dialog-trigger.astro` and
+  `ConsentDialogTrigger`: use `consent-dialog-link.astro` and
+  `ConsentDialogLink`.
+- `resolveTransportFactory`, `custom` and the `C15tModeDescriptor`,
+  `C15tHostedDescriptor`, `C15tManifestDescriptor`, `C15tOfflineDescriptor`
+  and `C15tEndpointOptions` types. Modes are `ConsentMode` from
+  `c15t/astro`.
+- `c15t/astro/api` no longer exports the route handlers. Import
+  `createConsentRouteHandlers` and the manifest cache helpers from
+  `c15t/astro/server`.
+
+### Vue and Nuxt pick the policy source with `mode`
+
+**Nuxt.** Set `mode` in `nuxt.config.ts` with `manifest()`, `hosted()` or
+`offline()` from `c15t/vue`. The default is `manifest()`: the build downloads
+the policy, the server resolves each visitor, and the browser ships no
+resolver or snapshot. One catch-all consent route answers
+`${routePrefix}/init` and `${routePrefix}/manifest`; `routePrefix` defaults
+to `/api/c15t`, and `false` adds no route. For `nuxt generate` and other
+static hosting, use `manifest({ resolve: 'browser' })` with
+`routePrefix: false`: only then does the browser bundle get the snapshot.
+`nuxt generate` with a server-resolved `manifest()` now logs a warning that
+says so.
+
+```ts
+import { manifest } from 'c15t/vue';
+
+export default defineNuxtConfig({
+	c15t: { mode: manifest({ resolve: 'browser' }), routePrefix: false },
+	modules: ['c15t/vue'],
+	ssr: false,
+});
+```
+
+`mode` and `routePrefix` are read from `nuxt.config.ts` only; `app.config.ts`
+keeps `scripts`, `callbacks` and other runtime options. The module now
+auto-imports every composable `c15t/vue/vue-plugin` exports, including
+`useHasConsentPolicy`, `useHasConsentUi`, `useHasConsentPreferences` and
+`useIabTranslations`.
+
+The module bundles the manifest during `nuxt build` and dev startup, reading
+`NUXT_PUBLIC_C15T_BACKEND_URL` when the `c15t` key sets no `backendURL`. The
+fetch is skipped for `hosted()`, `offline()`, `manifest({ snapshot })`,
+`manifest({ source: 'runtime' })`, a relative backend URL and `nuxt prepare`.
+If the fetch fails or takes longer than 10 seconds, `nuxt build` now stops
+with an error, where it used to warn and continue, and `nuxt dev` logs a
+warning and fetches the policy at runtime. Set `onBuildError` under the `c15t`
+key, or `C15T_ON_BUILD_ERROR`, to change that. Use
+`manifest({ source: 'runtime' })` to always fetch at runtime, so policy edits
+apply without a rebuild. `manifest()` without a backend URL, including
+`manifest({ snapshot })`, now stops `nuxt build` and `nuxt dev` with an error
+naming `NUXT_PUBLIC_C15T_BACKEND_URL`: the consent route answers `GET` only,
+so saves used to fail after the visitor chose.
+`NUXT_PUBLIC_INTH_PROJECT_URL` works when `NUXT_PUBLIC_C15T_BACKEND_URL` is
+unset, at build time and on a running server; `consentManifest()` from
+`c15t/vue/vite` reads `VITE_INTH_PROJECT_URL` the same way.
+
+**Vue.** `app.use(c15tVue, { mode })` requires a mode: `manifest()`,
+`hosted()`, `offline()` or `custom()` from `c15t/vue/vue-plugin`.
+`manifest()` and `hosted()` read the backend URL and policy that
+`consentManifest()` from `c15t/vue/vite` downloaded, served as
+`c15t/generated`. `manifest({ manifestURL })` fetches that URL when the app
+starts instead of using the snapshot. The client manifest mode uses the
+shared browser resolver, so it no longer downloads every language. The same entry exports the
+components, so `ConsentRoot`, `ConsentDialogLink` and the rest import from
+`c15t/vue/vue-plugin`. `consentManifest()` is now the only Vite plugin; the
+package resolves its runtime imports itself. `@c15t/vue` declares
+`sideEffects`, so bundlers drop what an app doesn't import.
+
+```ts
+import { c15tVue, manifest } from 'c15t/vue/vue-plugin';
+
+createApp(App).use(c15tVue, { mode: manifest(), scripts }).mount('#app');
+```
+
+Removed, with no deprecated alias (these were v3 alpha only):
+
+- Nuxt options `manifest`, `manifestURL`, `manifestSnapshot`, `buildManifest`,
+  `geoURL`, `initRoute` and `manifestRoute`. Use `mode`, `routePrefix`,
+  `onBuildError` and `manifest({ manifestURL, geoURL, snapshot })`.
+- The `NUXT_PUBLIC_C15T_MANIFEST_URL` and `NUXT_C15T_MANIFEST_URL`
+  environment variables. Set `mode: manifest({ manifestURL })` in
+  `nuxt.config.ts`. `NUXT_PUBLIC_C15T_BACKEND_URL` and
+  `NUXT_C15T_BACKEND_URL` still work.
+- The Nuxt option `domain`. Saves send the page's hostname.
+- `ConsentPreferencesLink`. It is `ConsentDialogLink`, at
+  `runtime/components/consent-dialog-link.vue`. The floating
+  `ConsentDialogTrigger` stays.
+- `ConsentFrame`. Use `ConsentGate`.
+- Vue plugin options `backendURL`, `manifest`, `manifestSnapshot`,
+  `manifestURL`, `customFetch` and `domain`. Pass them to the mode instead.
+- The default `c15tVue` export of `c15t/vue/vite`: use `consentManifest`. The
+  app plugin keeps the name `c15tVue`.
+- The `c15t/vue/consent-root` and `c15t/vue/consent-widget` subpaths.
+- `consentManifest()`'s `outputFile`, `exportName`, `importSource` and
+  `rootDir` options, and the generated `c15t-manifest.ts`.
+
+`offline()` now reports the location it resolved for, so the preference
+dialog shows its title.
+
+**Location-based policies in the browser.** When the policy depends on the
+visitor's country or region and the browser has no location, the Vue
+plugin's `manifest()` and Nuxt's `manifest({ resolve: 'browser' })` now ask
+the backend's `/init`, as React, Svelte and `@c15t/browser` do. They used to
+apply the rule for an unknown location without a request, which could be
+another region's rules. Pass `inputs` or `geoURL` to resolve in the browser,
+or `initFallback: false` to the Vue plugin's `manifest()` to keep the old
+behaviour. `consentManifest()` from `c15t/vue/vite` now warns when a
+`manifest()` build bundles such a policy, and suggests `hosted()`.
+
 ## c15t@3.0.0-alpha.8 (alpha)
 
 ### Link a page's `/init` to the save that follows

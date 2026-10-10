@@ -1,13 +1,29 @@
 ---
 packages:
-  '@c15t/ui': minor
-  '@c15t/react': minor
-  '@c15t/nextjs': minor
-  '@c15t/tanstack-start': minor
-  '@c15t/svelte': minor
-  '@c15t/astro': minor
-  '@c15t/cli': patch
-  c15t: minor
+  "@c15t/ui":
+    replay:
+      - exit-prerelease(npm:@c15t/ui)
+  "@c15t/react":
+    replay:
+      - exit-prerelease(npm:@c15t/react)
+  "@c15t/nextjs":
+    replay:
+      - exit-prerelease(npm:@c15t/nextjs)
+  "@c15t/tanstack-start":
+    replay:
+      - exit-prerelease(npm:@c15t/tanstack-start)
+  "@c15t/svelte":
+    replay:
+      - exit-prerelease(npm:@c15t/svelte)
+  "@c15t/astro":
+    replay:
+      - exit-prerelease(npm:@c15t/astro)
+  "@c15t/cli":
+    replay:
+      - exit-prerelease(npm:@c15t/cli)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Stop c15t's stylesheet holding back the first paint

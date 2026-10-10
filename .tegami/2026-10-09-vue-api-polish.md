@@ -1,7 +1,11 @@
 ---
 packages:
-  '@c15t/vue': minor
-  c15t: minor
+  "@c15t/vue":
+    replay:
+      - exit-prerelease(npm:@c15t/vue)
+  c15t:
+    replay:
+      - exit-prerelease(npm:c15t)
 ---
 
 ### Vue and Nuxt pick the policy source with `mode`
