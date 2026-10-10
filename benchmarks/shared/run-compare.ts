@@ -23,6 +23,8 @@
  *   for named base arms
  * - `BENCHMARK_EXPECTED_SUITES` — comma list restricting which expected
  *   suites are required (partial local runs); every suite by default
+ * - `C15T_BENCH_ONLY` / `C15T_BENCH_SKIP` — the suites and scenarios the
+ *   runner measured (see `src/selection.ts`); only those are required
  * - `BENCHMARK_ENFORCE=true` — exit non-zero on any failure above
  * - `C15T_BENCH_BACKEND_LATENCY_MS` (alias `C15T_BENCH_INIT_LATENCY_MS`) and
  *   `C15T_BENCH_PROFILE` — the condition the browser benches ran under, which
@@ -55,6 +57,7 @@ import type {
 	MetricBudgetResult,
 	MetricSampleSet,
 } from './src/schema';
+import { benchSelectionFromEnv, isBenchSelected } from './src/selection';
 import { listJsonFiles, readJson, writeJson } from './src/utils';
 
 const baseDir = process.env.BENCHMARK_BASE_DIR ?? '.benchmarks/base';
@@ -295,6 +298,7 @@ const evaluateBudgets = function evaluateBudgets(
 const selectExpected = function selectExpected(): ExpectedBenchmarkResult[] {
 	const suites = parseList(process.env.BENCHMARK_EXPECTED_SUITES);
 	const packages = parseList(process.env.BENCHMARK_EXPECTED_PACKAGES);
+	const selection = benchSelectionFromEnv(process.env);
 	const selected = expectedBenchmarkResultsFor(
 		resolveBenchConditionFromEnv(process.env)
 	)
@@ -302,7 +306,8 @@ const selectExpected = function selectExpected(): ExpectedBenchmarkResult[] {
 			(entry) =>
 				(!suites.length || suites.includes(entry.suite)) &&
 				(!packages.length ||
-					packages.some((name) => entry.key.startsWith(`${name}:`)))
+					packages.some((name) => entry.key.startsWith(`${name}:`))) &&
+				isBenchSelected(selection, entry.suite, entry.scenario)
 		)
 		.map((entry) => ({ ...entry, budgets: entry.budgets.filter(inProfile) }));
 	if (!selected.length) {
